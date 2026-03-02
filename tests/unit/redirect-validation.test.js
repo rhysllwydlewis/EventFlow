@@ -27,50 +27,100 @@ function validateRedirectForRole(redirectUrl, userRole) {
 
   const allowedPaths = {
     admin: [
+      '/admin',
       '/admin.html',
+      '/admin-audit',
       '/admin-audit.html',
+      '/admin-content',
       '/admin-content.html',
+      '/admin-homepage',
       '/admin-homepage.html',
+      '/admin-marketplace',
       '/admin-marketplace.html',
+      '/admin-packages',
       '/admin-packages.html',
+      '/admin-payments',
       '/admin-payments.html',
+      '/admin-pexels',
       '/admin-pexels.html',
+      '/admin-photos',
       '/admin-photos.html',
+      '/admin-reports',
       '/admin-reports.html',
+      '/admin-settings',
       '/admin-settings.html',
+      '/admin-supplier-detail',
       '/admin-supplier-detail.html',
+      '/admin-suppliers',
       '/admin-suppliers.html',
+      '/admin-tickets',
       '/admin-tickets.html',
+      '/admin-user-detail',
       '/admin-user-detail.html',
+      '/admin-users',
       '/admin-users.html',
     ],
     supplier: [
+      '/dashboard/supplier',
       '/dashboard-supplier.html',
+      '/dashboard',
       '/dashboard.html',
+      '/settings',
       '/settings.html',
+      '/plan',
       '/plan.html',
+      '/pricing',
       '/pricing.html',
+      '/checkout',
       '/checkout.html',
+      '/supplier/subscription',
       '/supplier/subscription.html',
+      '/my-marketplace-listings',
       '/my-marketplace-listings.html',
+      '/supplier/marketplace-new-listing',
       '/supplier/marketplace-new-listing.html',
       '/marketplace',
       '/marketplace.html',
-      '/conversation.html',
+      '/messenger/',
+      '/messages',
       '/messages.html',
+      '/conversation',
+      '/conversation.html',
+      '/notifications',
+      '/notifications.html',
+      '/timeline',
+      '/timeline.html',
+      '/budget',
+      '/budget.html',
     ],
     customer: [
+      '/dashboard/customer',
       '/dashboard-customer.html',
+      '/dashboard',
       '/dashboard.html',
+      '/settings',
       '/settings.html',
+      '/plan',
       '/plan.html',
+      '/pricing',
       '/pricing.html',
+      '/checkout',
       '/checkout.html',
+      '/my-marketplace-listings',
       '/my-marketplace-listings.html',
       '/marketplace',
       '/marketplace.html',
-      '/conversation.html',
+      '/messenger/',
+      '/messages',
       '/messages.html',
+      '/conversation',
+      '/conversation.html',
+      '/notifications',
+      '/notifications.html',
+      '/timeline',
+      '/timeline.html',
+      '/budget',
+      '/budget.html',
     ],
   };
 
@@ -222,55 +272,55 @@ describe('Login Redirect Validation', () => {
       const user = { role: 'admin' };
       const destination =
         user.role === 'admin'
-          ? '/admin.html'
+          ? '/admin'
           : user.role === 'supplier'
-            ? '/dashboard-supplier.html'
-            : '/dashboard-customer.html';
-      expect(destination).toBe('/admin.html');
+            ? '/dashboard/supplier'
+            : '/dashboard/customer';
+      expect(destination).toBe('/admin');
     });
 
     it('should compute correct destination for supplier without redirect param', () => {
       const user = { role: 'supplier' };
       const destination =
         user.role === 'admin'
-          ? '/admin.html'
+          ? '/admin'
           : user.role === 'supplier'
-            ? '/dashboard-supplier.html'
-            : '/dashboard-customer.html';
-      expect(destination).toBe('/dashboard-supplier.html');
+            ? '/dashboard/supplier'
+            : '/dashboard/customer';
+      expect(destination).toBe('/dashboard/supplier');
     });
 
     it('should compute correct destination for customer without redirect param', () => {
       const user = { role: 'customer' };
       const destination =
         user.role === 'admin'
-          ? '/admin.html'
+          ? '/admin'
           : user.role === 'supplier'
-            ? '/dashboard-supplier.html'
-            : '/dashboard-customer.html';
-      expect(destination).toBe('/dashboard-customer.html');
+            ? '/dashboard/supplier'
+            : '/dashboard/customer';
+      expect(destination).toBe('/dashboard/customer');
     });
 
     it('should ignore invalid redirect and use role-based destination', () => {
       const user = { role: 'admin' };
-      const redirect = '/dashboard-customer.html'; // Not allowed for admin
+      const redirect = '/dashboard/customer'; // Not allowed for admin
       const isValid = validateRedirectForRole(redirect, user.role);
       const destination = isValid
         ? redirect
         : user.role === 'admin'
-          ? '/admin.html'
+          ? '/admin'
           : user.role === 'supplier'
-            ? '/dashboard-supplier.html'
-            : '/dashboard-customer.html';
-      expect(destination).toBe('/admin.html');
+            ? '/dashboard/supplier'
+            : '/dashboard/customer';
+      expect(destination).toBe('/admin');
     });
 
     it('should use valid redirect param when appropriate', () => {
       const user = { role: 'admin' };
-      const redirect = '/admin-users.html'; // Allowed for admin
+      const redirect = '/admin-users'; // Allowed for admin
       const isValid = validateRedirectForRole(redirect, user.role);
-      const destination = isValid ? redirect : '/admin.html';
-      expect(destination).toBe('/admin-users.html');
+      const destination = isValid ? redirect : '/admin';
+      expect(destination).toBe('/admin-users');
     });
   });
 });

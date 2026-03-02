@@ -41,7 +41,7 @@ function createListingCard(listing, position) {
       <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(listing.title)}" class="listing-card-image" />
       <div class="listing-card-content">
         <h3 class="listing-card-title">
-          <a href="/package.html?id=${encodeURIComponent(listing.id)}" 
+          <a href="/package?id=${encodeURIComponent(listing.id)}" 
              data-position="${position}"
              class="listing-card-link">
             ${escapeHtml(listing.title)}
@@ -55,7 +55,7 @@ function createListingCard(listing, position) {
         <p class="listing-card-description">${escapeHtml(listing.description_short || listing.description || '')}</p>
         <div class="listing-card-price">${priceDisplay}</div>
         <div class="listing-card-actions">
-          <a href="/package.html?id=${encodeURIComponent(listing.id)}" 
+          <a href="/package?id=${encodeURIComponent(listing.id)}" 
              class="btn btn-primary">
             View Details
           </a>

@@ -83,15 +83,15 @@
   // ============================================
   function dashboardUrlForUser(user) {
     if (!user || !user.role) {
-      return '/dashboard.html';
+      return '/dashboard';
     }
     if (user.role === 'admin') {
-      return '/admin.html';
+      return '/admin';
     }
     if (user.role === 'supplier') {
-      return '/dashboard-supplier.html';
+      return '/dashboard/supplier';
     }
-    return '/dashboard-customer.html';
+    return '/dashboard/customer';
   }
 
   // ============================================

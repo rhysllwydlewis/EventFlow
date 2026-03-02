@@ -14,13 +14,21 @@ const { apiLimiter } = require('../middleware/rateLimits');
 const router = express.Router();
 
 /**
+ * GET /dashboard
+ * Role-based dashboard redirect page
+ */
+router.get('/dashboard', apiLimiter, (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'dashboard.html'));
+});
+
+/**
  * GET /dashboard/customer
  * Serve customer dashboard HTML page
  */
 router.get('/dashboard/customer', apiLimiter, authRequired, async (req, res) => {
   try {
     if (req.user.role !== 'customer') {
-      return res.redirect('/auth.html');
+      return res.redirect('/auth');
     }
     res.sendFile(path.join(__dirname, '..', 'public', 'dashboard-customer.html'));
   } catch (error) {
@@ -36,7 +44,7 @@ router.get('/dashboard/customer', apiLimiter, authRequired, async (req, res) => 
 router.get('/dashboard/supplier', apiLimiter, authRequired, async (req, res) => {
   try {
     if (req.user.role !== 'supplier') {
-      return res.redirect('/auth.html');
+      return res.redirect('/auth');
     }
     res.sendFile(path.join(__dirname, '..', 'public', 'dashboard-supplier.html'));
   } catch (error) {
@@ -52,7 +60,7 @@ router.get('/dashboard/supplier', apiLimiter, authRequired, async (req, res) => 
 router.get('/admin', apiLimiter, authRequired, async (req, res) => {
   try {
     if (req.user.role !== 'admin') {
-      return res.redirect('/auth.html');
+      return res.redirect('/auth');
     }
     res.sendFile(path.join(__dirname, '..', 'public', 'admin.html'));
   } catch (error) {

@@ -172,8 +172,8 @@ function mountRoutes(app, deps) {
         customer: customer.id,
         mode: 'subscription',
         line_items: [{ price: priceId, quantity: 1 }],
-        success_url: `${baseUrl}/dashboard-supplier.html?billing=success&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${baseUrl}/pricing.html?checkout=cancelled`,
+        success_url: `${baseUrl}/dashboard/supplier?billing=success&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${baseUrl}/pricing?checkout=cancelled`,
         metadata: { userId: req.user.id, planId: 'pro' },
       });
       res.json({ url: session.url });

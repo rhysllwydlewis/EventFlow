@@ -1121,25 +1121,25 @@ const AdminShared = (function () {
       // H - Go to dashboard home
       if (e.key === 'h' && !e.ctrlKey && !e.metaKey && !isInputFocused()) {
         e.preventDefault();
-        window.location.href = '/admin.html';
+        window.location.href = '/admin';
       }
 
       // U - Go to users
       if (e.key === 'u' && !e.ctrlKey && !e.metaKey && !isInputFocused()) {
         e.preventDefault();
-        window.location.href = '/admin-users.html';
+        window.location.href = '/admin-users';
       }
 
       // P - Go to packages
       if (e.key === 'p' && !e.ctrlKey && !e.metaKey && !isInputFocused()) {
         e.preventDefault();
-        window.location.href = '/admin-packages.html';
+        window.location.href = '/admin-packages';
       }
 
       // S - Go to settings
       if (e.key === 's' && !e.ctrlKey && !e.metaKey && !isInputFocused()) {
         e.preventDefault();
-        window.location.href = '/admin-settings.html';
+        window.location.href = '/admin-settings';
       }
 
       // Escape - Close modals
@@ -1238,10 +1238,10 @@ const AdminShared = (function () {
 
   function executeCommand(action) {
     const actions = {
-      dashboard: () => (window.location.href = '/admin.html'),
-      users: () => (window.location.href = '/admin-users.html'),
-      packages: () => (window.location.href = '/admin-packages.html'),
-      settings: () => (window.location.href = '/admin-settings.html'),
+      dashboard: () => (window.location.href = '/admin'),
+      users: () => (window.location.href = '/admin-users'),
+      packages: () => (window.location.href = '/admin-packages'),
+      settings: () => (window.location.href = '/admin-settings'),
       refresh: () => window.location.reload(),
     };
 

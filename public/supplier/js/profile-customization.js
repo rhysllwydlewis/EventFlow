@@ -65,7 +65,7 @@
         container.innerHTML = `
           <p class="small" style="color: #667085;">
             You don't have any supplier profiles yet. 
-            <a href="/dashboard-supplier.html" style="color: #667eea;">Create one on your dashboard</a>.
+            <a href="/dashboard/supplier" style="color: #667eea;">Create one on your dashboard</a>.
           </p>
         `;
         return;
@@ -307,7 +307,7 @@
   function handlePreview() {
     if (currentEditingSupplierId) {
       window.open(
-        `/supplier.html?id=${encodeURIComponent(currentEditingSupplierId)}&preview=true`,
+        `/supplier?id=${encodeURIComponent(currentEditingSupplierId)}&preview=true`,
         '_blank'
       );
     } else {
@@ -326,7 +326,7 @@
       }
       const data = await response.json();
       if (data.user && data.user.role !== 'supplier') {
-        window.location.href = '/dashboard-customer.html';
+        window.location.href = '/dashboard/customer';
         return;
       }
     } catch (error) {

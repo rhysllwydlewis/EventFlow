@@ -184,7 +184,7 @@ describe('Pricing and payment system fixes', () => {
 
     it('redirects free plan to dashboard without Stripe', () => {
       const src = readSrc('public', 'supplier', 'js', 'subscription.js');
-      expect(src).toContain("window.location.href = '/dashboard-supplier.html'");
+      expect(src).toContain("window.location.href = '/dashboard/supplier'");
     });
   });
 

@@ -130,6 +130,12 @@ describe('Authentication Routes', () => {
       // Check email validation in password reset
       expect(authContent).toContain('email');
     });
+
+    it('should have token pre-validation endpoint for reset-password page', () => {
+      const authContent = fs.readFileSync(path.join(__dirname, '../../routes/auth.js'), 'utf8');
+      expect(authContent).toContain('validate-reset-token');
+      expect(authContent).toContain('validatePasswordResetToken');
+    });
   });
 
   describe('Rate Limiting Configuration', () => {

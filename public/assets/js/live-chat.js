@@ -309,7 +309,7 @@
         const responses = [
           '🤖 [Automated] Thanks for your message! This is an automated response. A team member will respond via email within 24 hours.',
           "🤖 [Automated] I'll connect you with our support team right away. Please note this is an automated message - expect a reply within 24 hours.",
-          '🤖 [Automated] Great question! For immediate help, please check our FAQ at /faq.html. A team member will follow up via email soon.',
+          '🤖 [Automated] Great question! For immediate help, please check our FAQ at /faq. A team member will follow up via email soon.',
           '🤖 [Automated] Our team is here to help! This is an automated response. For urgent matters, please email support@event-flow.co.uk directly.',
         ];
 

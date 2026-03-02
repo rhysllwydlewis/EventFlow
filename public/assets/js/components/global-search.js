@@ -365,7 +365,7 @@ class GlobalSearch {
       this.options.onSelect(result);
     } else {
       // Default: navigate to supplier page
-      window.location.href = `/supplier.html?id=${result.id}`;
+      window.location.href = `/supplier?id=${result.id}`;
     }
     this.close();
   }

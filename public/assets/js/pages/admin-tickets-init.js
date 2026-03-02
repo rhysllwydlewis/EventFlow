@@ -318,7 +318,7 @@
   }
 
   document.getElementById('backToDashboard')?.addEventListener('click', () => {
-    window.location.href = '/admin.html';
+    window.location.href = '/admin';
   });
 
   document.getElementById('refreshTicketsBtn')?.addEventListener('click', loadTickets);

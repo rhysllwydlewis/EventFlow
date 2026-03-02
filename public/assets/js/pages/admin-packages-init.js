@@ -676,7 +676,7 @@
 
     // Back to dashboard button
     document.getElementById('backToDashboard')?.addEventListener('click', () => {
-      location.href = '/admin.html';
+      location.href = '/admin';
     });
   }
 

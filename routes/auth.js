@@ -1012,6 +1012,51 @@ router.post('/verify-email', authLimiter, validateToken({ required: true }), asy
 });
 
 /**
+ * POST /api/auth/validate-reset-token
+ * Check whether a password-reset token is still valid without consuming it.
+ * Used by reset-password.html to give early feedback before the user fills in the form.
+ */
+router.post('/validate-reset-token', authLimiter, async (req, res) => {
+  const { token } = req.body || {};
+
+  if (!token) {
+    return res.status(400).json({ error: 'Missing token' });
+  }
+
+  try {
+    const users = await dbUnified.read('users');
+
+    // Try JWT token first
+    const jwtValidation = tokenUtils.validatePasswordResetToken(token);
+    if (jwtValidation.valid) {
+      const userExists = users.some(
+        u => (u.email || '').toLowerCase() === String(jwtValidation.email).toLowerCase()
+      );
+      if (!userExists) {
+        return res.status(400).json({ error: 'Invalid or expired password reset link' });
+      }
+      return res.json({ ok: true });
+    }
+
+    // Try legacy reset token
+    const user = users.find(u => u.resetToken === token);
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid or expired password reset link' });
+    }
+    if (user.resetTokenExpiresAt && new Date(user.resetTokenExpiresAt) < new Date()) {
+      return res
+        .status(400)
+        .json({ error: 'Password reset link has expired. Please request a new one.' });
+    }
+
+    return res.json({ ok: true });
+  } catch (err) {
+    logger.error('[VALIDATE RESET TOKEN] Error', { error: err.message });
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
  * POST /api/auth/reset-password
  * Verify reset token and update password
  * Enhanced with logging for debugging

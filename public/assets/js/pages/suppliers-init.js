@@ -100,7 +100,7 @@ function createSupplierCard(supplier, position) {
       ${avatarHtml}
       <div class="supplier-card-content">
         <h3 class="supplier-card-name">
-          <a href="/supplier.html?id=${encodeURIComponent(supplier.id)}" 
+          <a href="/supplier?id=${encodeURIComponent(supplier.id)}" 
              data-position="${position}"
              class="supplier-card-link">
             ${escapeHtml(supplier.name)}
@@ -143,7 +143,7 @@ function createSupplierCard(supplier, position) {
                   data-supplier-rating="${supplier.rating || ''}">
             ${shortlistBtnText}
           </button>
-          <a href="/supplier.html?id=${encodeURIComponent(supplier.id)}" 
+          <a href="/supplier?id=${encodeURIComponent(supplier.id)}" 
              class="btn btn-tertiary">
             View Profile
           </a>

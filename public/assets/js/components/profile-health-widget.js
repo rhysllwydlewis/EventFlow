@@ -199,7 +199,7 @@
 
         <button 
           class="health-cta" 
-          onclick="window.location.href='/supplier/profile-customization.html'"
+          onclick="window.location.href='/supplier/profile-customization'"
           aria-label="Improve your profile to ${scoreData.percentage}%"
         >
           ${scoreData.percentage === 100 ? '🎉 Profile Complete!' : '✨ Improve Profile'}

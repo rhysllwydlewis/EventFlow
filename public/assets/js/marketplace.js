@@ -109,7 +109,7 @@
       if (sellBtn) {
         sellBtn.textContent = 'List an Item';
         sellBtn.onclick = () => {
-          window.location.href = '/supplier/marketplace-new-listing.html';
+          window.location.href = '/supplier/marketplace-new-listing';
         };
       }
       if (myListingsLink) {
@@ -279,7 +279,7 @@
           <p class="empty-state-message">
             ${currentUser ? 'Be the first to list a pre-loved event item and help others save money!' : 'Check back soon for new listings or create an account to list your items.'}
           </p>
-          ${currentUser ? '<a href="/supplier/marketplace-new-listing.html" class="btn btn-primary">List Your First Item</a>' : '<a href="/auth" class="btn btn-primary">Create Account</a>'}
+          ${currentUser ? '<a href="/supplier/marketplace-new-listing" class="btn btn-primary">List Your First Item</a>' : '<a href="/auth" class="btn btn-primary">Create Account</a>'}
         </div>
       `;
       return;
@@ -494,7 +494,7 @@
                   ? `<div class="listing-own-notice">
                        <p>This is your listing</p>
                        <div class="listing-own-notice-actions">
-                         <a href="/supplier/marketplace-new-listing.html?edit=${listing.id}" class="btn btn-secondary">Edit Listing</a>
+                         <a href="/supplier/marketplace-new-listing?edit=${listing.id}" class="btn btn-secondary">Edit Listing</a>
                          <a href="/my-marketplace-listings" class="btn btn-secondary">View My Listings</a>
                        </div>
                      </div>`

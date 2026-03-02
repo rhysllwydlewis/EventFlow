@@ -115,8 +115,8 @@
             ${photo.size ? `<span class="photo-queue__badge">${formatFileSize(photo.size)}</span>` : ''}
           </div>
           <div class="photo-queue__supplier">
-            Supplier: <a href="/supplier.html?id=${escapeHtml(photo.supplierId)}">${escapeHtml(photo.supplierName || 'Unknown')}</a>
-            | <a href="/admin-supplier-detail.html?id=${escapeHtml(photo.supplierId)}" style="color: #667eea;">View Profile</a>
+            Supplier: <a href="/supplier?id=${escapeHtml(photo.supplierId)}">${escapeHtml(photo.supplierName || 'Unknown')}</a>
+            | <a href="/admin-supplier-detail?id=${escapeHtml(photo.supplierId)}" style="color: #667eea;">View Profile</a>
           </div>
           ${photo.caption ? `<div class="small" style="margin-bottom: 0.5rem;">${escapeHtml(photo.caption)}</div>` : ''}
           <div class="small" style="color: #999;">Uploaded: ${formatDate(photo.uploadedAt)}</div>

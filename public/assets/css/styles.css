@@ -381,7 +381,7 @@ html[data-theme="dark"] .timeline-step::before{
   position:relative;
 }
 /* Password inputs with toggle buttons need extra padding on the right */
-.form-row input[type="password"],
+.form-row input[type="password"].has-toggle,
 .form-row input[type="text"].has-toggle{
   padding-right:60px;
 }
@@ -389,19 +389,20 @@ html[data-theme="dark"] .timeline-step::before{
   position:absolute;
   right:8px;
   bottom:12px;
-  transform:translateY(0);
   border:none;
   background:none;
-  font-size:12px;
   cursor:pointer;
   color:var(--muted);
   line-height:1;
-  padding:4px 8px;
+  padding:4px 6px;
   width:auto;
-  white-space:nowrap;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
 }
 .password-toggle:hover{
-  text-decoration:underline;
+  color:var(--ink,#0B8073);
+  opacity:0.8;
 }
 .password-toggle:focus{
   outline:2px solid var(--ink,#0B8073);
@@ -411,20 +412,17 @@ html[data-theme="dark"] .timeline-step::before{
 /* Mobile-specific password toggle styling */
 @media(max-width:600px){
   .password-toggle{
-    font-size:10px;
-    padding:2px 6px;
+    padding:2px 4px;
     right:6px;
     bottom:13px;
     background:rgba(255,255,255,0.9);
     border:1px solid var(--border);
     border-radius:6px;
     z-index:1;
-    width:auto;
-    white-space:nowrap;
   }
-  .form-row input[type="password"],
+  .form-row input[type="password"].has-toggle,
   .form-row input[type="text"].has-toggle{
-    padding-right:55px;
+    padding-right:44px;
   }
 }
 

@@ -92,7 +92,7 @@
 
   // Back button
   document.getElementById('backToDashboard')?.addEventListener('click', () => {
-    window.location.href = '/admin.html';
+    window.location.href = '/admin';
   });
 
   // Export button

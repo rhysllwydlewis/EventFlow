@@ -362,7 +362,7 @@ class PackageList {
       }
       // Properly encode slug for URL to prevent XSS
       const safeSlug = encodeURIComponent(pkg.slug || '');
-      window.location.href = `/package.html?slug=${safeSlug}`;
+      window.location.href = `/package?slug=${safeSlug}`;
     });
 
     card.addEventListener('keydown', e => {
@@ -370,7 +370,7 @@ class PackageList {
         e.preventDefault();
         // Properly encode slug for URL to prevent XSS
         const safeSlug = encodeURIComponent(pkg.slug || '');
-        window.location.href = `/package.html?slug=${safeSlug}`;
+        window.location.href = `/package?slug=${safeSlug}`;
       }
     });
 
@@ -492,7 +492,7 @@ class PackageList {
       if (supplierId) {
         supplierHtml = `
           <div class="package-card-supplier">
-            <a href="/supplier.html?id=${supplierId}" class="package-card-supplier-link" data-supplier-link>
+            <a href="/supplier?id=${supplierId}" class="package-card-supplier-link" data-supplier-link>
               <img src="${supplierAvatar}" alt="${supplierName}" class="package-card-supplier-avatar" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
               <div style="display: none; width: clamp(32px, 8vw, 40px); height: clamp(32px, 8vw, 40px); border-radius: 50%; background: ${PackageList.generateGradient(pkg.supplier.name || supplierName)}; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 1rem;">${supplierName.charAt(0).toUpperCase()}</div>
               <div style="flex: 1;">

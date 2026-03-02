@@ -267,7 +267,7 @@
         return `
         <tr>
           <td><input type="checkbox" ${isSelected ? 'checked' : ''} onchange="window.toggleSupplierSelection('${escapeHtml(supplier.id)}')"></td>
-          <td><a href="/admin-supplier-detail.html?id=${escapeHtml(supplier.id)}" style="color: #667eea; font-weight: 500;">${escapeHtml(supplier.name || 'Unknown')}</a></td>
+          <td><a href="/admin-supplier-detail?id=${escapeHtml(supplier.id)}" style="color: #667eea; font-weight: 500;">${escapeHtml(supplier.name || 'Unknown')}</a></td>
           <td>${escapeHtml(supplier.email || '')}</td>
           <td>${supplier.approved ? '<span style="color: #10b981;">✓ Yes</span>' : '<span style="color: #f59e0b;">Pending</span>'}</td>
           <td>${subscriptionBadge}</td>
@@ -547,11 +547,11 @@
 
   // Global functions for button actions
   window.viewSupplier = function (id) {
-    window.location.href = `/admin-supplier-detail.html?id=${id}`;
+    window.location.href = `/admin-supplier-detail?id=${id}`;
   };
 
   window.editSupplier = function (id) {
-    window.location.href = `/admin-supplier-detail.html?id=${id}`;
+    window.location.href = `/admin-supplier-detail?id=${id}`;
   };
 
   window.approveSupplier = async function (id) {

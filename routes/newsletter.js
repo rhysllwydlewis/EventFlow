@@ -147,14 +147,14 @@ router.get('/confirm', async (req, res) => {
     const { token } = req.query;
 
     if (!token) {
-      return res.redirect('/newsletter/expired.html');
+      return res.redirect('/newsletter/expired');
     }
 
     const subscribers = (await dbUnified.read('newsletterSubscribers')) || [];
     const subscriber = subscribers.find(s => s.confirmToken === token);
 
     if (!subscriber) {
-      return res.redirect('/newsletter/expired.html');
+      return res.redirect('/newsletter/expired');
     }
 
     // Check if token is expired
@@ -162,12 +162,12 @@ router.get('/confirm', async (req, res) => {
     const expiry = new Date(subscriber.confirmTokenExpiry);
 
     if (now > expiry) {
-      return res.redirect('/newsletter/expired.html');
+      return res.redirect('/newsletter/expired');
     }
 
     // Already confirmed
     if (subscriber.status === 'active') {
-      return res.redirect('/newsletter/confirmed.html');
+      return res.redirect('/newsletter/confirmed');
     }
 
     // Activate subscription
@@ -208,10 +208,10 @@ router.get('/confirm', async (req, res) => {
       // Continue anyway - subscription is confirmed
     }
 
-    res.redirect('/newsletter/confirmed.html');
+    res.redirect('/newsletter/confirmed');
   } catch (error) {
     logger.error('Newsletter confirmation error:', error);
-    res.redirect('/newsletter/expired.html');
+    res.redirect('/newsletter/expired');
   }
 });
 

@@ -159,7 +159,7 @@
   // Attach direct checkout click handlers for authenticated users.
   // This replaces the (now-removed) inline script in pricing.html.
   function attachCheckoutHandlers() {
-    const returnUrl = `${window.location.origin}/dashboard-supplier.html`;
+    const returnUrl = `${window.location.origin}/dashboard/supplier`;
 
     const pricingButtons = document.querySelectorAll('.pricing-cta');
     pricingButtons.forEach(button => {

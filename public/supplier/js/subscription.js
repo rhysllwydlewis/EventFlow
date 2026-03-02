@@ -497,7 +497,7 @@ async function handleSubscribe(planId) {
       };
     } else {
       // Free plan — nothing to charge
-      window.location.href = '/dashboard-supplier.html';
+      window.location.href = '/dashboard/supplier';
       return;
     }
 

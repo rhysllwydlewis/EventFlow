@@ -121,10 +121,8 @@ test.describe('Authentication Flow', () => {
     if ((await passwordInput.count()) > 0) {
       await expect(passwordInput).toBeVisible();
 
-      // Look for toggle button (may be added by password-toggle.js or app.js)
-      const toggleButton = page.locator(
-        'button:has-text("Show"), .toggle-password, .password-toggle, [aria-label*="password" i]'
-      );
+      // Look for toggle button (added by app.js with SVG eye icon)
+      const toggleButton = page.locator('.password-toggle, [aria-label*="password" i]');
       if ((await toggleButton.count()) > 0) {
         await toggleButton.first().click();
         // Password input type should now be text

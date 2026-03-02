@@ -80,7 +80,7 @@ You have received a new message from ${senderName}:
 
 "${msgPreview}${ellipsis}"
 
-Log in to EventFlow to view and reply: ${url}/messages.html
+Log in to EventFlow to view and reply: ${url}/messages
 
 Best regards,
 EventFlow Team`;
@@ -94,7 +94,7 @@ function getMessageHtml(recipientName, senderName, text, baseUrl) {
     `<p>Hello ${recipientName},</p>`,
     `<p>You have received a new message from <strong>${senderName}</strong>:</p>`,
     `<blockquote style="border-left: 3px solid #667eea; padding-left: 12px; margin: 16px 0; color: #4b5563;">${msgPreview}${ellipsis}</blockquote>`,
-    `<p><a href="${url}/messages.html" style="background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">View Message</a></p>`,
+    `<p><a href="${url}/messages" style="background: #667eea; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; display: inline-block;">View Message</a></p>`,
     `<p>Best regards,<br>EventFlow Team</p>`,
   ].join('');
 }

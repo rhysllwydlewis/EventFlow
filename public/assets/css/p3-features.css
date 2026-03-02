@@ -532,38 +532,6 @@
 }
 
 /* ====================================
-   P3-13: Password Toggle
-   ==================================== */
-.password-input-wrapper {
-  position: relative;
-}
-
-.password-toggle-btn {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: transparent;
-  border: none;
-  color: #6b7280;
-  cursor: pointer;
-  padding: 0.5rem;
-  font-size: 1.125rem;
-  line-height: 1;
-  transition: color 0.2s;
-}
-
-.password-toggle-btn:hover {
-  color: #374151;
-}
-
-.password-toggle-btn:focus {
-  outline: 2px solid var(--accent, #13b6a2);
-  outline-offset: 2px;
-  border-radius: 4px;
-}
-
-/* ====================================
    P3-14: Keyboard Shortcuts
    ==================================== */
 .keyboard-shortcuts-modal .modal-content {

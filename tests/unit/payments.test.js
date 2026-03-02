@@ -202,15 +202,15 @@ describe('Payment Routes', () => {
 
   describe('URL Configuration', () => {
     it('should use environment variables for URLs', () => {
-      const defaultSuccessUrl = 'http://localhost:3000/payment-success.html';
-      const defaultCancelUrl = 'http://localhost:3000/payment-cancel.html';
+      const defaultSuccessUrl = 'http://localhost:3000/payment-success';
+      const defaultCancelUrl = 'http://localhost:3000/payment-cancel';
 
-      expect(defaultSuccessUrl).toContain('/payment-success.html');
-      expect(defaultCancelUrl).toContain('/payment-cancel.html');
+      expect(defaultSuccessUrl).toContain('/payment-success');
+      expect(defaultCancelUrl).toContain('/payment-cancel');
     });
 
     it('should append session_id parameter to success URL', () => {
-      const baseUrl = 'http://localhost:3000/payment-success.html';
+      const baseUrl = 'http://localhost:3000/payment-success';
       const successUrl = `${baseUrl}?session_id={CHECKOUT_SESSION_ID}`;
 
       expect(successUrl).toContain('session_id=');

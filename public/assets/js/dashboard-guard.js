@@ -15,26 +15,46 @@
 
   // Role requirements for each dashboard type
   const dashboardRoles = {
+    '/dashboard/supplier': 'supplier',
     '/dashboard-supplier.html': 'supplier',
+    '/dashboard/customer': 'customer',
     '/dashboard-customer.html': 'customer',
-    // Admin pages - all admin*.html files require admin role
+    // Admin pages — both canonical clean URLs and legacy .html paths
+    '/admin': 'admin',
     '/admin.html': 'admin',
+    '/admin-audit': 'admin',
     '/admin-audit.html': 'admin',
+    '/admin-content': 'admin',
     '/admin-content.html': 'admin',
+    '/admin-content-dates': 'admin',
     '/admin-content-dates.html': 'admin',
+    '/admin-homepage': 'admin',
     '/admin-homepage.html': 'admin',
+    '/admin-marketplace': 'admin',
     '/admin-marketplace.html': 'admin',
+    '/admin-packages': 'admin',
     '/admin-packages.html': 'admin',
+    '/admin-payments': 'admin',
     '/admin-payments.html': 'admin',
+    '/admin-pexels': 'admin',
     '/admin-pexels.html': 'admin',
+    '/admin-photos': 'admin',
     '/admin-photos.html': 'admin',
+    '/admin-reports': 'admin',
     '/admin-reports.html': 'admin',
+    '/admin-settings': 'admin',
     '/admin-settings.html': 'admin',
+    '/admin-supplier-detail': 'admin',
     '/admin-supplier-detail.html': 'admin',
+    '/admin-suppliers': 'admin',
     '/admin-suppliers.html': 'admin',
+    '/admin-tickets': 'admin',
     '/admin-tickets.html': 'admin',
+    '/admin-user-detail': 'admin',
     '/admin-user-detail.html': 'admin',
+    '/admin-users': 'admin',
     '/admin-users.html': 'admin',
+    '/admin-messenger': 'admin',
     '/admin-messenger.html': 'admin',
   };
 
@@ -199,11 +219,11 @@
       // Role mismatch - redirect to correct dashboard for user's role
       let correctDashboard;
       if (user.role === 'admin') {
-        correctDashboard = '/admin.html';
+        correctDashboard = '/admin';
       } else if (user.role === 'supplier') {
-        correctDashboard = '/dashboard-supplier.html';
+        correctDashboard = '/dashboard/supplier';
       } else if (user.role === 'customer') {
-        correctDashboard = '/dashboard-customer.html';
+        correctDashboard = '/dashboard/customer';
       } else {
         // Unknown role - redirect to home
         correctDashboard = '/';

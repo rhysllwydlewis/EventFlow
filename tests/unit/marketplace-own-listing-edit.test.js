@@ -9,7 +9,7 @@ describe('Marketplace own listing edit button', () => {
 
   it('displays Edit Listing button for own listings', () => {
     expect(marketplaceJs).toContain('Edit Listing');
-    expect(marketplaceJs).toContain('/supplier/marketplace-new-listing.html?edit=');
+    expect(marketplaceJs).toContain('/supplier/marketplace-new-listing?edit=');
   });
 
   it('displays View My Listings link as secondary action', () => {

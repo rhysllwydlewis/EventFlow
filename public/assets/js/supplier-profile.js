@@ -826,7 +826,7 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
    * Handle package card click
    */
   function handlePackageClick(packageId) {
-    window.location.href = `/package.html?id=${packageId}`;
+    window.location.href = `/package?id=${packageId}`;
   }
 
   /**

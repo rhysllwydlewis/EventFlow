@@ -249,7 +249,7 @@
         // Update breadcrumb
         if (categories && categories.length > 0) {
           const categoryLinks = categories.map(cat => 
-            `<a href="/category.html?slug=${cat.slug}" style="text-decoration: none; color: inherit;">${cat.name}</a>`
+            `<a href="/category?slug=${cat.slug}" style="text-decoration: none; color: inherit;">${cat.name}</a>`
           ).join(', ');
           document.getElementById('breadcrumb-category').innerHTML = categoryLinks;
         }
@@ -281,7 +281,7 @@
         // Display categories
         if (categories && categories.length > 0) {
           const categoriesHtml = categories.map(cat => 
-            `<a href="/category.html?slug=${cat.slug}" 
+            `<a href="/category?slug=${cat.slug}" 
                 style="background-color: var(--color-bg-secondary, #f8f9fa); 
                        color: var(--color-text-secondary, #6c757d); 
                        padding: 6px 12px; 

@@ -50,7 +50,7 @@ async function maintenanceMode(req, res, next) {
     }
 
     // Allow access to auth page for admin login
-    if (req.path === '/auth.html' || req.path.startsWith('/api/auth')) {
+    if (req.path === '/auth' || req.path === '/auth.html' || req.path.startsWith('/api/auth')) {
       return next();
     }
 

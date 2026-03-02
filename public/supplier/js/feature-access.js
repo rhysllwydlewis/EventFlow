@@ -191,7 +191,7 @@ export function showUpgradePrompt(featureName, message = null) {
         </ul>
       </div>
       <div class="upgrade-modal-actions">
-        <a href="/supplier/subscription.html" class="btn-upgrade">Upgrade Now</a>
+        <a href="/supplier/subscription" class="btn-upgrade">Upgrade Now</a>
         <button class="btn-cancel">Maybe Later</button>
       </div>
     </div>
@@ -331,7 +331,7 @@ export function lockFeature(element, featureName) {
   badge.className = 'feature-lock-badge';
   badge.innerHTML = `
     <div>🔒 Pro Feature</div>
-    <a href="/supplier/subscription.html" class="upgrade-cta">Upgrade to unlock</a>
+    <a href="/supplier/subscription" class="upgrade-cta">Upgrade to unlock</a>
   `;
 
   element.appendChild(badge);
@@ -394,7 +394,7 @@ export function displayPackageLimitNotice(container, currentCount) {
     </p>
     ${
       remaining <= 0
-        ? '<a href="/supplier/subscription.html" class="cta" style="margin-top: 0.5rem;">Upgrade to Pro</a>'
+        ? '<a href="/supplier/subscription" class="cta" style="margin-top: 0.5rem;">Upgrade to Pro</a>'
         : ''
     }
   `;

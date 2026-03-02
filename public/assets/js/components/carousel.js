@@ -346,7 +346,7 @@ class Carousel {
 
     return `
       <div class="carousel-item">
-        <a href="/package.html?slug=${encodeURIComponent(slug)}" class="featured-package-card">
+        <a href="/package?slug=${encodeURIComponent(slug)}" class="featured-package-card">
           <img src="${image}" alt="${title}" loading="lazy">
           <div class="package-info">
             <h3>${title}</h3>

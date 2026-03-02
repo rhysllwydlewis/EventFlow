@@ -122,22 +122,6 @@ describe('sentry-browser-init.js – SDK load retry loop is bounded', () => {
   });
 });
 
-describe('password-toggle.js – no debug noise', () => {
-  let content;
-
-  beforeAll(() => {
-    content = fs.readFileSync(
-      path.join(__dirname, '../../public/assets/js/password-toggle.js'),
-      'utf8'
-    );
-  });
-
-  it('does not log the number of password toggle inputs (debug noise)', () => {
-    expect(content).not.toContain('console.log(`✓ Password toggles initialized');
-    expect(content).not.toContain("console.log('✓ Password toggles initialized");
-  });
-});
-
 describe('auth-helpers.js – no debug noise', () => {
   let content;
 

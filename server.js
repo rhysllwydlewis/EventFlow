@@ -478,6 +478,10 @@ const canonicalPages = [
   'messages',
   'category',
   'package',
+  'supplier',
+  'data-rights',
+  'reset-password',
+  'dashboard',
 ];
 
 canonicalPages.forEach(page => {
@@ -488,6 +492,33 @@ canonicalPages.forEach(page => {
   });
   // The canonical URL without .html is handled by template middleware + static files
 });
+
+// Admin pages — redirect .html to canonical clean URL
+app.get(/^\/admin(-[\w]+)*\.html$/, (req, res) => {
+  const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+  const cleanPath = req.path.replace(/\.html$/, '');
+  res.redirect(301, `${cleanPath}${qs}`);
+});
+
+// Supplier subdirectory pages — redirect .html to canonical clean URL
+app.get('/supplier/:page.html', (req, res) => {
+  const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+  res.redirect(301, `/supplier/${req.params.page}${qs}`);
+});
+
+// Dashboard role pages — redirect old .html paths to clean role-based routes
+app.get('/dashboard-customer.html', (req, res) => {
+  const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+  res.redirect(301, `/dashboard/customer${qs}`);
+});
+app.get('/dashboard-supplier.html', (req, res) => {
+  const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+  res.redirect(301, `/dashboard/supplier${qs}`);
+});
+
+// Newsletter result pages — redirect .html to canonical
+app.get('/newsletter/confirmed.html', (req, res) => res.redirect(301, '/newsletter/confirmed'));
+app.get('/newsletter/expired.html', (req, res) => res.redirect(301, '/newsletter/expired'));
 
 // Article pages — serve clean URLs and redirect .html to canonical
 app.get('/articles/:slug', (req, res, next) => {

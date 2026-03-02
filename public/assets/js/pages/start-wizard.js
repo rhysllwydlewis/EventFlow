@@ -564,7 +564,7 @@
 
         <div class="wizard-success-actions">
           <button class="cta" type="button" onclick="location.href='/suppliers'">Browse Suppliers</button>
-          <button class="cta secondary" type="button" onclick="location.href='/dashboard-customer.html'">Go to Dashboard</button>
+          <button class="cta secondary" type="button" onclick="location.href='/dashboard/customer'">Go to Dashboard</button>
         </div>
       </div>
     `;
@@ -1194,7 +1194,7 @@
               }
 
               setTimeout(() => {
-                location.href = '/dashboard-customer.html';
+                location.href = '/dashboard/customer';
               }, 1500);
             })
             .catch(err => {

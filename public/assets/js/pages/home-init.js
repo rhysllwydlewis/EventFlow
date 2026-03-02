@@ -525,7 +525,7 @@ function renderPackageFallback(container, items) {
 
       return `
         <div class="card featured-fallback-card">
-          <a href="/package.html?slug=${slug}" class="featured-fallback-link">
+          <a href="/package?slug=${slug}" class="featured-fallback-link">
             <img src="${imgSrc}" alt="${title}" class="featured-fallback-img">
             <div class="featured-fallback-content">
               <h3 class="featured-fallback-title">${title}</h3>

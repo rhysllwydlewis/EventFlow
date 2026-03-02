@@ -8,7 +8,7 @@
 const express = require('express');
 const path = require('path');
 const { generateSitemap, generateRobotsTxt } = require('../sitemap');
-const { authLimiter } = require('../middleware/rateLimits');
+const { authLimiter, apiLimiter } = require('../middleware/rateLimits');
 const logger = require('../utils/logger');
 const sentry = require('../utils/sentry');
 
@@ -82,6 +82,22 @@ router.get('/marketplace.html', (req, res) => {
 router.get('/suppliers.html', (req, res) => {
   const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
   res.redirect(301, `/suppliers${qs}`);
+});
+
+/**
+ * GET /newsletter/confirmed
+ * Serve the newsletter subscription confirmed page
+ */
+router.get('/newsletter/confirmed', apiLimiter, (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'newsletter', 'confirmed.html'));
+});
+
+/**
+ * GET /newsletter/expired
+ * Serve the newsletter link-expired page
+ */
+router.get('/newsletter/expired', apiLimiter, (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'public', 'newsletter', 'expired.html'));
 });
 
 module.exports = router;

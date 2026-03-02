@@ -247,7 +247,7 @@ class SupplierComparison {
             (supplier, index) => `
           <div class="comparison-cell">
             <div class="comparison-actions">
-              <button class="btn btn-primary btn-sm" onclick="location.href='/supplier.html?id=${supplier.id}'">
+              <button class="btn btn-primary btn-sm" onclick="location.href='/supplier?id=${supplier.id}'">
                 View Details
               </button>
               <button class="btn btn-secondary btn-sm" data-action="contact" data-index="${index}">

@@ -59,7 +59,11 @@ describe('Admin Pages Allowlist Sync', () => {
 
   it('every ADMIN_PAGES entry should exist on disk', () => {
     const extra = ADMIN_PAGES.filter(p => {
-      const filePath = path.join(PUBLIC_DIR, p.slice(1)); // strip leading /
+      const stripLeading = p.slice(1); // strip leading /
+      // Clean URL entries (no .html) map to the corresponding .html file on disk
+      const filePath = stripLeading.endsWith('.html')
+        ? path.join(PUBLIC_DIR, stripLeading)
+        : path.join(PUBLIC_DIR, `${stripLeading}.html`);
       return !fs.existsSync(filePath);
     });
     expect(extra).toEqual([]);

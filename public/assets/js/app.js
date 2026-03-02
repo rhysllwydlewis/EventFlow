@@ -128,72 +128,100 @@ function validateRedirectForRole(redirectUrl, userRole) {
   // Define allowlisted pages per role
   const allowedPaths = {
     admin: [
+      '/admin',
       '/admin.html',
+      '/admin-audit',
       '/admin-audit.html',
+      '/admin-content',
       '/admin-content.html',
+      '/admin-homepage',
       '/admin-homepage.html',
+      '/admin-marketplace',
       '/admin-marketplace.html',
+      '/admin-packages',
       '/admin-packages.html',
+      '/admin-payments',
       '/admin-payments.html',
+      '/admin-pexels',
       '/admin-pexels.html',
+      '/admin-photos',
       '/admin-photos.html',
+      '/admin-reports',
       '/admin-reports.html',
+      '/admin-settings',
       '/admin-settings.html',
+      '/admin-supplier-detail',
       '/admin-supplier-detail.html',
+      '/admin-suppliers',
       '/admin-suppliers.html',
+      '/admin-tickets',
       '/admin-tickets.html',
+      '/admin-user-detail',
       '/admin-user-detail.html',
+      '/admin-users',
       '/admin-users.html',
     ],
     supplier: [
+      '/dashboard/supplier',
       '/dashboard-supplier.html',
+      '/dashboard',
       '/dashboard.html',
-      '/settings.html',
       '/settings',
-      '/plan.html',
+      '/settings.html',
       '/plan',
-      '/pricing.html',
+      '/plan.html',
       '/pricing',
-      '/checkout.html',
+      '/pricing.html',
       '/checkout',
+      '/checkout.html',
+      '/supplier/subscription',
       '/supplier/subscription.html',
-      '/my-marketplace-listings.html',
       '/my-marketplace-listings',
+      '/my-marketplace-listings.html',
+      '/supplier/marketplace-new-listing',
       '/supplier/marketplace-new-listing.html',
       '/marketplace',
       '/marketplace.html',
-      '/conversation.html',
       '/messenger/',
-      '/notifications.html',
+      '/messages',
+      '/messages.html',
+      '/conversation',
+      '/conversation.html',
       '/notifications',
-      '/timeline.html',
+      '/notifications.html',
       '/timeline',
-      '/budget.html',
+      '/timeline.html',
       '/budget',
+      '/budget.html',
     ],
     customer: [
+      '/dashboard/customer',
       '/dashboard-customer.html',
+      '/dashboard',
       '/dashboard.html',
-      '/settings.html',
       '/settings',
-      '/plan.html',
+      '/settings.html',
       '/plan',
-      '/pricing.html',
+      '/plan.html',
       '/pricing',
-      '/checkout.html',
+      '/pricing.html',
       '/checkout',
-      '/my-marketplace-listings.html',
+      '/checkout.html',
       '/my-marketplace-listings',
+      '/my-marketplace-listings.html',
       '/marketplace',
       '/marketplace.html',
-      '/conversation.html',
       '/messenger/',
-      '/notifications.html',
+      '/messages',
+      '/messages.html',
+      '/conversation',
+      '/conversation.html',
       '/notifications',
-      '/timeline.html',
+      '/notifications.html',
       '/timeline',
-      '/budget.html',
+      '/timeline.html',
       '/budget',
+      '/budget.html',
     ],
   };
 
@@ -377,13 +405,13 @@ function supplierCard(s, user) {
     ${avatarHtml}
     <div style="flex: 1; min-width: 0;">
       <h3 style="margin: 0 0 8px 0;">
-        <a href="/supplier.html?id=${encodeURIComponent(s.id)}" style="text-decoration: none; color: inherit;">${escapeHtml(s.name)}</a>
+        <a href="/supplier?id=${encodeURIComponent(s.id)}" style="text-decoration: none; color: inherit;">${escapeHtml(s.name)}</a>
       </h3>
       <div class="small" style="margin-bottom: 8px;">${escapeHtml(s.location || '')} · <span class="badge">${escapeHtml(s.category)}</span> ${s.price_display ? `· ${escapeHtml(s.price_display)}` : ''}</div>
       <p class="small" style="margin-bottom: 8px;">${escapeHtml(s.description_short || '')}</p>
       <div class="supplier-badges" style="margin: 8px 0;">${supplierBadges.join('')}</div>
       <div class="small" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">${tags.join(' ')}</div>
-      <div class="form-actions">${addBtn}<a class="cta secondary" href="/supplier.html?id=${encodeURIComponent(s.id)}">View details</a></div>
+      <div class="form-actions">${addBtn}<a class="cta secondary" href="/supplier?id=${encodeURIComponent(s.id)}">View details</a></div>
     </div>
   </div>`;
 }
@@ -1229,7 +1257,7 @@ async function initSupplier() {
     const slug = card.dataset.packageSlug;
     if (slug) {
       card.addEventListener('click', () => {
-        window.location.href = `/package.html?slug=${encodeURIComponent(slug)}`;
+        window.location.href = `/package?slug=${encodeURIComponent(slug)}`;
       });
       // Make keyboard accessible
       card.setAttribute('tabindex', '0');
@@ -1237,7 +1265,7 @@ async function initSupplier() {
       card.addEventListener('keydown', e => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          window.location.href = `/package.html?slug=${encodeURIComponent(slug)}`;
+          window.location.href = `/package?slug=${encodeURIComponent(slug)}`;
         }
       });
     }
@@ -3286,7 +3314,7 @@ async function initDashSupplier() {
       const supplierIdInput = document.getElementById('sup-id');
       if (supplierIdInput && supplierIdInput.value) {
         const supplierId = supplierIdInput.value;
-        window.open(`/supplier.html?id=${encodeURIComponent(supplierId)}&preview=true`, '_blank');
+        window.open(`/supplier?id=${encodeURIComponent(supplierId)}&preview=true`, '_blank');
       } else {
         alert('Please save your profile first before previewing.');
       }
@@ -3957,21 +3985,24 @@ async function initAdminUsers() {
 document.addEventListener('DOMContentLoaded', () => {
   const page =
     window.__EF_PAGE__ ||
-    (location.pathname.endsWith('admin-users.html')
+    (location.pathname.endsWith('admin-users.html') || location.pathname === '/admin-users'
       ? 'admin_users'
-      : location.pathname.endsWith('admin.html')
+      : location.pathname.endsWith('admin.html') || location.pathname === '/admin'
         ? 'admin'
         : location.pathname.endsWith('auth.html') || location.pathname === '/auth'
           ? 'auth'
           : location.pathname.endsWith('verify.html') || location.pathname === '/verify'
             ? 'verify'
-            : location.pathname.endsWith('dashboard-customer.html')
+            : location.pathname.endsWith('dashboard-customer.html') ||
+                location.pathname === '/dashboard/customer'
               ? 'dash_customer'
-              : location.pathname.endsWith('dashboard-supplier.html')
+              : location.pathname.endsWith('dashboard-supplier.html') ||
+                  location.pathname === '/dashboard/supplier'
                 ? 'dash_supplier'
-                : location.pathname.endsWith('suppliers.html')
+                : location.pathname.endsWith('suppliers.html') || location.pathname === '/suppliers'
                   ? 'results'
-                  : location.pathname.endsWith('supplier.html')
+                  : location.pathname.endsWith('supplier.html') ||
+                      location.pathname.startsWith('/supplier')
                     ? 'supplier'
                     : location.pathname.endsWith('plan.html') || location.pathname === '/plan'
                       ? 'plan'
@@ -4066,6 +4097,44 @@ document.addEventListener('DOMContentLoaded', () => {
     /* Ignore loader errors */
   }
 
+  // Password visibility toggle — shared across all pages
+  const SVG_EYE =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const SVG_EYE_OFF =
+    '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+
+  const attachPasswordToggle = function (input) {
+    if (!input) {
+      return;
+    }
+    const wrapper = input.parentElement;
+    if (!wrapper) {
+      return;
+    }
+    // Check if toggle already exists
+    if (wrapper.querySelector('.password-toggle')) {
+      return;
+    }
+    const toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'password-toggle';
+    toggle.innerHTML = SVG_EYE;
+    toggle.setAttribute('aria-label', 'Show password');
+    toggle.addEventListener('click', () => {
+      if (input.type === 'password') {
+        input.type = 'text';
+        toggle.innerHTML = SVG_EYE_OFF;
+        toggle.setAttribute('aria-label', 'Hide password');
+      } else {
+        input.type = 'password';
+        toggle.innerHTML = SVG_EYE;
+        toggle.setAttribute('aria-label', 'Show password');
+      }
+    });
+    input.classList.add('has-toggle');
+    wrapper.appendChild(toggle);
+  };
+
   if (page === 'auth') {
     // auth form handlers
     const loginForm = document.getElementById('login-form');
@@ -4097,11 +4166,11 @@ document.addEventListener('DOMContentLoaded', () => {
           if (redirectParam && validateRedirectForRole(redirectParam, existing.role)) {
             destination = redirectParam;
           } else if (existing.role === 'admin') {
-            destination = '/admin.html';
+            destination = '/admin';
           } else if (existing.role === 'supplier') {
-            destination = '/dashboard-supplier.html';
+            destination = '/dashboard/supplier';
           } else {
-            destination = '/dashboard-customer.html';
+            destination = '/dashboard/customer';
           }
 
           setTimeout(() => {
@@ -4119,7 +4188,10 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         const email = (loginEmail.value || '').trim();
         if (!email) {
-          alert('Enter your email address first so we know where to send reset instructions.');
+          if (loginStatus) {
+            loginStatus.textContent =
+              'Enter your email address first so we know where to send reset instructions.';
+          }
           return;
         }
         try {
@@ -4138,47 +4210,6 @@ document.addEventListener('DOMContentLoaded', () => {
           }
         }
       });
-    }
-
-    const attachPasswordToggle = function (input) {
-      if (!input) {
-        return;
-      }
-      const wrapper = input.parentElement;
-      if (!wrapper) {
-        return;
-      }
-      // Check if toggle already exists
-      if (wrapper.querySelector('.password-toggle')) {
-        return;
-      }
-      const toggle = document.createElement('button');
-      toggle.type = 'button';
-      toggle.className = 'password-toggle';
-      toggle.textContent = 'Show';
-      toggle.setAttribute('aria-label', 'Toggle password visibility');
-      toggle.addEventListener('click', () => {
-        if (input.type === 'password') {
-          input.type = 'text';
-          toggle.textContent = 'Hide';
-          toggle.setAttribute('aria-label', 'Hide password');
-        } else {
-          input.type = 'password';
-          toggle.textContent = 'Show';
-          toggle.setAttribute('aria-label', 'Show password');
-        }
-      });
-      input.classList.add('has-toggle');
-      wrapper.appendChild(toggle);
-    };
-
-    attachPasswordToggle(loginPassword);
-    attachPasswordToggle(regPassword);
-
-    // Also attach to confirm password field if it exists
-    const regPasswordConfirm = document.getElementById('reg-password-confirm');
-    if (regPasswordConfirm) {
-      attachPasswordToggle(regPasswordConfirm);
     }
 
     // Add caps lock warning to login password field
@@ -4626,11 +4657,11 @@ document.addEventListener('DOMContentLoaded', () => {
             // Determine destination based on user role (SECURITY: never trust redirect param alone)
             let destination;
             if (user.role === 'admin') {
-              destination = '/admin.html';
+              destination = '/admin';
             } else if (user.role === 'supplier') {
-              destination = '/dashboard-supplier.html';
+              destination = '/dashboard/supplier';
             } else {
-              destination = '/dashboard-customer.html';
+              destination = '/dashboard/customer';
             }
 
             // Check for redirect parameter - only allow if it matches user's role-appropriate pages
@@ -4978,6 +5009,10 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
   }
+
+  // Attach password visibility toggles to any remaining fields on any page
+  // (the guard in attachPasswordToggle prevents double-initialization)
+  document.querySelectorAll('.form-row input[type="password"]').forEach(attachPasswordToggle);
 });
 
 // Helper function to create resend verification form

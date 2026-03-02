@@ -383,7 +383,7 @@ ${emailData.HtmlBody || emailData.TextBody}
  * @throws {Error} If email sending fails
  */
 async function sendVerificationEmail(user, verificationToken) {
-  const verificationLink = `${APP_BASE_URL}/verify.html?token=${encodeURIComponent(verificationToken)}`;
+  const verificationLink = `${APP_BASE_URL}/verify?token=${encodeURIComponent(verificationToken)}`;
 
   logger.info(`📧 Sending verification email to ${user.email}`);
 
@@ -409,7 +409,7 @@ async function sendVerificationEmail(user, verificationToken) {
  * @throws {Error} If email sending fails
  */
 async function sendPasswordResetEmail(user, resetToken) {
-  const resetLink = `${APP_BASE_URL}/reset-password.html?token=${encodeURIComponent(resetToken)}`;
+  const resetLink = `${APP_BASE_URL}/reset-password?token=${encodeURIComponent(resetToken)}`;
 
   logger.info(`📧 Sending password reset email to ${user.email}`);
 

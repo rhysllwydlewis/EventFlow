@@ -79,10 +79,10 @@
       this.register('ctrl+k', () => this.showCommandPalette());
       this.register('ctrl+/', () => this.showShortcutsHelp());
       this.register('r', () => window.location.reload());
-      this.register('h', () => (window.location.href = '/admin.html'));
-      this.register('u', () => (window.location.href = '/admin-users.html'));
-      this.register('p', () => (window.location.href = '/admin-packages.html'));
-      this.register('s', () => (window.location.href = '/admin-settings.html'));
+      this.register('h', () => (window.location.href = '/admin'));
+      this.register('u', () => (window.location.href = '/admin-users'));
+      this.register('p', () => (window.location.href = '/admin-packages'));
+      this.register('s', () => (window.location.href = '/admin-settings'));
     }
 
     getKeyCombo(e) {
@@ -465,7 +465,7 @@
   document.addEventListener('DOMContentLoaded', () => {
     // Start dashboard updates if on admin page
     if (
-      window.location.pathname === '/admin.html' &&
+      window.location.pathname === '/admin' &&
       window.DashboardUpdater &&
       typeof window.DashboardUpdater.start === 'function'
     ) {

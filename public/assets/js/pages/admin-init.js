@@ -1864,12 +1864,12 @@
     switch (action) {
       case 'viewSupplier':
         if (id) {
-          window.location.href = `/supplier.html?id=${id}`;
+          window.location.href = `/supplier?id=${id}`;
         }
         break;
       case 'viewPackage':
         if (id) {
-          window.location.href = `/package.html?id=${id}`;
+          window.location.href = `/package?id=${id}`;
         }
         break;
       case 'editUser':

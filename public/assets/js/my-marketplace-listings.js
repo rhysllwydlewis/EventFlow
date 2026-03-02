@@ -184,7 +184,7 @@
       // For now, allow any authenticated user to list items
 
       // Navigate to dedicated listing creation page
-      window.location.href = '/supplier/marketplace-new-listing.html';
+      window.location.href = '/supplier/marketplace-new-listing';
     });
   }
 
@@ -330,7 +330,7 @@
           ${
             currentStatus === 'all'
               ? `
-            <button class="cta" onclick="window.location.href='/supplier/marketplace-new-listing.html'" style="margin-top: 1rem;">
+            <button class="cta" onclick="window.location.href='/supplier/marketplace-new-listing'" style="margin-top: 1rem;">
               + List an Item
             </button>
           `
@@ -494,7 +494,7 @@
    */
   function editListing(id) {
     // For now, navigate to the new listing page with edit mode
-    window.location.href = `/supplier/marketplace-new-listing.html?edit=${id}`;
+    window.location.href = `/supplier/marketplace-new-listing?edit=${id}`;
   }
 
   /**

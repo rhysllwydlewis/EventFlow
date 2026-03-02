@@ -4,7 +4,7 @@
 
   if (!supplierId) {
     AdminShared.showToast('No supplier ID provided', 'error');
-    setTimeout(() => (window.location.href = '/admin.html'), 2000);
+    setTimeout(() => (window.location.href = '/admin'), 2000);
     return;
   }
 
@@ -204,11 +204,11 @@
           pkg => `
         <div class="package-item">
           <div class="package-info">
-            <h4><a href="/package.html?id=${pkg.id}" target="_blank">${AdminShared.escapeHtml(pkg.title)}</a></h4>
+            <h4><a href="/package?id=${pkg.id}" target="_blank">${AdminShared.escapeHtml(pkg.title)}</a></h4>
             <p>${AdminShared.escapeHtml(pkg.price_display || pkg.price || 'Price not set')} • ${pkg.approved ? 'Approved' : 'Pending'}</p>
           </div>
           <div class="flex-gap">
-            <button class="btn btn-small btn-primary" onclick="window.open('/package.html?id=${pkg.id}', '_blank')">View</button>
+            <button class="btn btn-small btn-primary" onclick="window.open('/package?id=${pkg.id}', '_blank')">View</button>
             <button class="btn btn-small btn-secondary" data-action="editPackage" data-id="${pkg.id}">Edit</button>
             ${!pkg.approved ? `<button class="btn btn-small btn-success" data-action="approvePackage" data-id="${pkg.id}">Approve</button>` : ''}
           </div>

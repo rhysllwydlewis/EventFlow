@@ -232,7 +232,7 @@
       await AdminShared.api(`/api/admin/users/${userId}`, 'DELETE');
       AdminShared.showToast('User deleted successfully', 'success');
       setTimeout(() => {
-        location.href = '/admin-users.html';
+        location.href = '/admin-users';
       }, 1500);
     } catch (err) {
       AdminShared.showToast(`Failed to delete user: ${err.message}`, 'error');

@@ -165,8 +165,8 @@
         return (
           `<tr>` +
           `<td class="checkbox-cell"><input type="checkbox" class="user-checkbox table-checkbox" data-user-id="${userId}" ${isChecked ? 'checked' : ''}></td>` +
-          `<td><a href="/admin-user-detail.html?id=${userId}" style="color:#3b82f6;text-decoration:none;">${escapeHtml(u.name || '')}</a></td>` +
-          `<td><a href="/admin-user-detail.html?id=${userId}" style="color:#3b82f6;text-decoration:none;">${escapeHtml(u.email || '')}</a></td>` +
+          `<td><a href="/admin-user-detail?id=${userId}" style="color:#3b82f6;text-decoration:none;">${escapeHtml(u.name || '')}</a></td>` +
+          `<td><a href="/admin-user-detail?id=${userId}" style="color:#3b82f6;text-decoration:none;">${escapeHtml(u.email || '')}</a></td>` +
           `<td>${escapeHtml(u.role || '')}</td>` +
           `<td>${subscriptionBadge}</td>` +
           `<td>${u.verified ? '✓ Yes' : '✗ No'}</td>` +

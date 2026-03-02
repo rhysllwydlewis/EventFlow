@@ -184,10 +184,10 @@
       // User is logged in
       const dashboardUrl =
         user.role === 'admin'
-          ? '/admin.html'
+          ? '/admin'
           : user.role === 'supplier'
-            ? '/dashboard-supplier.html'
-            : '/dashboard-customer.html';
+            ? '/dashboard/supplier'
+            : '/dashboard/customer';
 
       // Add logged-in class to bottom nav for compact styling
       if (bottomNav) {
@@ -415,10 +415,10 @@
           e.preventDefault();
           const dashboardUrl =
             state.user.role === 'admin'
-              ? '/admin.html'
+              ? '/admin'
               : state.user.role === 'supplier'
-                ? '/dashboard-supplier.html'
-                : '/dashboard-customer.html';
+                ? '/dashboard/supplier'
+                : '/dashboard/customer';
           window.location.href = `${dashboardUrl}#notifications`;
         }
       });

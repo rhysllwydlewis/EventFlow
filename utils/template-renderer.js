@@ -52,8 +52,6 @@ function shouldProcessFile(filePath) {
     return false;
   }
 
-  // Exclude admin panel HTML from template rendering (they use dynamic JS)
-  // But include admin-settings.html as it may have placeholders
   const fileName = path.basename(filePath);
 
   // Process legal documents, articles, and main pages
@@ -75,11 +73,8 @@ function shouldProcessFile(filePath) {
   }
 
   // Process any HTML file in public root that might have copyright
-  // Exclude test files and specific admin files
-  if (
-    fileName.startsWith('test-') ||
-    (fileName.startsWith('admin-') && fileName !== 'admin-settings.html')
-  ) {
+  // Exclude only test/dev pages
+  if (fileName.startsWith('test-')) {
     return false;
   }
 

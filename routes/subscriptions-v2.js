@@ -119,7 +119,7 @@ router.post(
 
       // Free/starter plan — nothing to charge
       if (!priceId) {
-        const dest = returnUrl || `${process.env.BASE_URL || ''}/dashboard-supplier.html`;
+        const dest = returnUrl || `${process.env.BASE_URL || ''}/dashboard/supplier`;
         return res.json({ success: true, url: dest });
       }
 
@@ -129,8 +129,8 @@ router.post(
       const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
       const successUrl =
         returnUrl ||
-        `${baseUrl}/dashboard-supplier.html?billing=success&session_id={CHECKOUT_SESSION_ID}`;
-      const cancelUrl = `${baseUrl}/pricing.html?checkout=cancelled`;
+        `${baseUrl}/dashboard/supplier?billing=success&session_id={CHECKOUT_SESSION_ID}`;
+      const cancelUrl = `${baseUrl}/pricing?checkout=cancelled`;
 
       const session = await stripe.checkout.sessions.create({
         customer: customer.id,

@@ -36,9 +36,8 @@ try {
 
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
 const STRIPE_SUCCESS_URL =
-  process.env.STRIPE_SUCCESS_URL || 'http://localhost:3000/payment-success.html';
-const STRIPE_CANCEL_URL =
-  process.env.STRIPE_CANCEL_URL || 'http://localhost:3000/payment-cancel.html';
+  process.env.STRIPE_SUCCESS_URL || 'http://localhost:3000/payment-success';
+const STRIPE_CANCEL_URL = process.env.STRIPE_CANCEL_URL || 'http://localhost:3000/payment-cancel';
 
 // Introductory pricing configuration
 const STRIPE_PRO_PRICE_ID = process.env.STRIPE_PRO_PRICE_ID || '';
@@ -406,7 +405,7 @@ router.post(
       // Create portal session
       const session = await stripe.billingPortal.sessions.create({
         customer: stripeCustomerId,
-        return_url: returnUrl || `${process.env.BASE_URL}/dashboard-supplier.html`,
+        return_url: returnUrl || `${process.env.BASE_URL}/dashboard/supplier`,
       });
 
       res.json({

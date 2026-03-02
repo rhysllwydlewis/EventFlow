@@ -1058,7 +1058,7 @@
                       social media links
                     </p>
                   </div>
-                  <a href="/supplier/profile-customization.html" class="supplier-cta-banner-button">
+                  <a href="/supplier/profile-customization" class="supplier-cta-banner-button">
                     Customize Profile →
                   </a>
                 </div>
@@ -2436,7 +2436,7 @@
             <p class="small"><strong>Active Plan:</strong> ${planLabel}${badge}</p>
             ${billingHtml}
             <p class="small"><strong>Status:</strong> <span class="subscription-status-active">✓ Active</span></p>
-            <a href="/supplier/subscription.html" class="btn btn-secondary subscription-action-btn">Manage Subscription</a>
+            <a href="/supplier/subscription" class="btn btn-secondary subscription-action-btn">Manage Subscription</a>
           `;
               } else {
                 container.innerHTML = `
@@ -2452,7 +2452,7 @@
               console.error('Error loading subscription status:', error);
               container.innerHTML = `
         <p class="small">Unable to load subscription status.</p>
-        <a href="/supplier/subscription.html" class="btn btn-secondary subscription-action-btn">View Subscription</a>
+        <a href="/supplier/subscription" class="btn btn-secondary subscription-action-btn">View Subscription</a>
       `;
             }
           }
