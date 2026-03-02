@@ -90,9 +90,6 @@ label{display:block;margin:8px 0 6px;font-weight:600;color:#1F2937}.form-row{pos
 }
 
 
-
-
-
 /* Experimental v2: loader overlay */
 .loader-overlay{
   position:fixed;
@@ -168,7 +165,6 @@ body{
 }
 
 
-
 /* scroll reveal animation */
 .reveal{
   opacity:0;
@@ -231,8 +227,6 @@ body{
 .card{
   border-radius:18px;
 }
-
-
 
 
 /* Experimental v4: plan progress ring */
@@ -711,7 +705,6 @@ body.legacy-nav-open .legacy-nav-menu{
   object-fit:cover;
   display:block;
 }
-
 
 
 /* --- Modern UI Upgrade (Phase 4) --- */
@@ -1473,7 +1466,6 @@ button:not(.auth-tab):not(.role-pill), .cta{
 .article-card:hover .article-card-cta {
   text-decoration: underline;
 }
-
 
 
 .stat-item {

@@ -559,6 +559,11 @@
   min-width: 140px;
 }
 
+/* Verify-actions buttons sit side-by-side in a flex row — undo the 100% width */
+.auth-card .verify-actions .cta {
+  width: auto !important;
+}
+
 /* Auth submit button — polished, isolated from global Phase 4 styles */
 .auth-card .cta {
   width: 100% !important;
