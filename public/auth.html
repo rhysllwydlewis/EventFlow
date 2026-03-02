@@ -207,396 +207,410 @@
             </div>
           </div>
           <!-- Pexels photo attribution (populated by auth-slideshow.js) -->
-          <div class="auth-panel-credit" id="auth-panel-credit" aria-hidden="true"></div>
+          <p class="auth-panel-credit" id="auth-panel-credit" aria-live="polite"></p>
         </div>
 
         <!-- Right panel: auth form -->
         <div class="auth-split-right">
           <div class="auth-container">
-          <div class="auth-header">
-            <h1 class="auth-heading">Welcome back</h1>
-            <p class="auth-subtitle">Sign in to your EventFlow account or create a new one to get started.</p>
-          </div>
-        <div
-          role="tablist"
-          aria-label="Authentication options"
-          class="auth-tabs"
-        >
-          <button
-            id="tab-signin"
-            role="tab"
-            type="button"
-            aria-selected="true"
-            aria-controls="panel-signin"
-            tabindex="0"
-            class="auth-tab"
-          >
-            Log in
-          </button>
-          <button
-            id="tab-create"
-            role="tab"
-            type="button"
-            aria-selected="false"
-            aria-controls="panel-create"
-            tabindex="-1"
-            class="auth-tab"
-          >
-            Create a free account
-          </button>
-        </div>
-        <section
-          id="panel-signin"
-          role="tabpanel"
-          aria-labelledby="tab-signin"
-          class="auth-tab-panel"
-        >
-          <form id="login-form" class="card auth-card" action="#">
-            <div class="form-row">
-              <label for="login-email">Email</label
-              ><input
-                id="login-email"
-                name="email"
-                type="email"
-                required
-                placeholder="you@example.com"
-                aria-required="true"
-                autocomplete="email"
-              />
+            <div class="auth-header">
+              <h1 class="auth-heading">Welcome back</h1>
+              <p class="auth-subtitle">Sign in to your EventFlow account or create a new one to get started.</p>
             </div>
-            <div class="form-row">
-              <label for="login-password">Password</label>
-              <div class="auth-pw-wrap">
-                <input
-                  id="login-password"
-                  name="password"
-                  type="password"
-                  class="has-toggle"
-                  required
-                  placeholder="Your password"
-                  aria-required="true"
-                  autocomplete="current-password"
-                />
-              </div>
-              <div
-                id="login-caps-lock-warning"
-                class="auth-caps-warning"
-              >
-                ⚠️ Caps Lock is on
-              </div>
+
+            <!-- Tab switcher — ARIA tablist pattern -->
+            <div
+              role="tablist"
+              aria-label="Authentication options"
+              class="auth-tabs"
+            >
+              <button
+                id="tab-signin"
+                role="tab"
+                type="button"
+                aria-selected="true"
+                aria-controls="panel-signin"
+                tabindex="0"
+                class="auth-tab"
+              >Log in</button>
+              <button
+                id="tab-create"
+                role="tab"
+                type="button"
+                aria-selected="false"
+                aria-controls="panel-create"
+                tabindex="-1"
+                class="auth-tab"
+              >Create a free account</button>
             </div>
-            <div class="form-row">
-              <div
-                id="login-error"
-                class="error auth-error-msg"
-                role="alert"
-                aria-live="assertive"
-                aria-atomic="true"
-              ></div>
-            </div>
-            <div class="form-row">
-              <label class="small checkbox-label-right" for="login-remember">
-                <input type="checkbox" id="login-remember" name="remember" />
-                Remember me
-              </label>
-            </div>
-            <div class="form-actions">
-              <button class="cta" type="submit">Log in</button
-              ><span class="small" id="login-status" role="status" aria-live="polite"></span>
-            </div>
-            <div id="resend-verification-container" style="display: none">
-              <button type="button" class="cta" id="resend-verification-btn">
-                Resend Verification Email
-              </button>
-            </div>
-            <p class="small"><a href="#" id="forgot-password-link">Forgot your password?</a></p>
-          </form>
-        </section>
-        <section
-          id="panel-create"
-          role="tabpanel"
-          aria-labelledby="tab-create"
-          hidden
-          class="auth-tab-panel"
-        >
-          <form id="register-form" class="card auth-card" action="#">
-            <div class="form-row">
-              <label for="reg-firstname">First Name</label>
-              <input
-                id="reg-firstname"
-                name="firstname"
-                required
-                aria-required="true"
-                autocomplete="given-name"
-                placeholder="Your first name"
-              />
-            </div>
-            <div class="form-row">
-              <label for="reg-lastname">Surname</label>
-              <input
-                id="reg-lastname"
-                name="lastname"
-                required
-                aria-required="true"
-                autocomplete="family-name"
-                placeholder="Your surname"
-              />
-            </div>
-            <div class="form-row">
-              <label for="reg-email">Email</label>
-              <input
-                id="reg-email"
-                name="email"
-                type="email"
-                required
-                aria-required="true"
-                aria-describedby="email-validation-msg"
-                autocomplete="email"
-                placeholder="you@example.com"
-              />
-              <span
-                class="small auth-validation-msg"
-                id="email-validation-msg"
-                aria-live="polite"
-              ></span>
-            </div>
-            <div class="form-row">
-              <label for="reg-password">Password</label>
-              <div class="auth-pw-wrap">
-                <input
-                  id="reg-password"
-                  name="password"
-                  type="password"
-                  class="has-toggle"
-                  required
-                  placeholder="Min 8 chars with letter and number"
-                  aria-required="true"
-                  aria-describedby="password-strength-msg password-requirements"
-                  autocomplete="new-password"
-                />
-              </div>
-              <div id="password-strength-container" style="display: none">
-                <div class="auth-strength-container">
-                  <div class="auth-strength-track">
-                    <div
-                      id="password-strength-bar"
-                      class="auth-strength-bar"
-                    ></div>
+
+            <!-- Shared status message -->
+            <div id="auth-status" class="auth-status" role="alert" aria-live="polite" aria-atomic="true"></div>
+
+            <!-- SIGN IN PANEL -->
+            <div
+              id="panel-signin"
+              role="tabpanel"
+              aria-labelledby="tab-signin"
+              class="auth-tab-panel"
+            >
+              <form id="login-form" class="auth-card" action="#" novalidate autocomplete="on">
+                <div class="auth-loading-overlay" aria-hidden="true">
+                  <div class="auth-spinner"></div>
+                </div>
+
+                <div class="auth-field form-row">
+                  <label class="auth-label" for="login-email">Email address</label>
+                  <input
+                    id="login-email"
+                    name="email"
+                    type="email"
+                    class="auth-input"
+                    autocomplete="email"
+                    required
+                    placeholder="you@example.com"
+                    aria-required="true"
+                  />
+                </div>
+
+                <div class="auth-field form-row">
+                  <div class="auth-label-row">
+                    <label class="auth-label" for="login-password">Password</label>
+                    <a href="/forgot-password" class="auth-forgot-link" id="forgot-password-link">Forgot password?</a>
                   </div>
+                  <div class="auth-input-wrap auth-pw-wrap">
+                    <input
+                      id="login-password"
+                      name="password"
+                      type="password"
+                      class="auth-input has-toggle"
+                      autocomplete="current-password"
+                      required
+                      placeholder="Your password"
+                      aria-required="true"
+                    />
+                  </div>
+                  <div id="login-caps-lock-warning" class="auth-caps-warning">
+                    ⚠️ Caps Lock is on
+                  </div>
+                </div>
+
+                <div class="auth-field form-row" id="login-error-row">
+                  <div
+                    id="login-error"
+                    class="auth-error-msg error"
+                    role="alert"
+                    aria-live="assertive"
+                    aria-atomic="true"
+                  ></div>
+                </div>
+
+                <div class="auth-field auth-field--inline form-row">
+                  <label class="auth-checkbox-label checkbox-label-right" for="login-remember">
+                    <input type="checkbox" id="login-remember" name="remember" class="auth-checkbox" />
+                    <span class="auth-checkbox-custom"></span>
+                    <span>Keep me signed in</span>
+                  </label>
+                </div>
+
+                <button class="auth-submit cta ef-btn ef-btn-primary auth-submit--full" type="submit">
+                  <span class="auth-submit-text">Log in</span>
+                  <span class="auth-submit-spinner" aria-hidden="true"></span>
+                </button>
+                <span class="auth-status-inline small" id="login-status" role="status" aria-live="polite"></span>
+
+                <div id="resend-verification-container" style="display: none">
+                  <button type="button" class="auth-resend-btn cta" id="resend-verification-btn">
+                    Resend Verification Email
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <!-- CREATE ACCOUNT PANEL -->
+            <div
+              id="panel-create"
+              role="tabpanel"
+              aria-labelledby="tab-create"
+              hidden
+              class="auth-tab-panel"
+            >
+              <form id="register-form" class="auth-card" action="#" novalidate autocomplete="on">
+                <div class="auth-loading-overlay" aria-hidden="true">
+                  <div class="auth-spinner"></div>
+                </div>
+
+                <div class="auth-field-row">
+                  <div class="auth-field form-row">
+                    <label class="auth-label" for="reg-firstname">First name</label>
+                    <input
+                      id="reg-firstname"
+                      name="firstname"
+                      type="text"
+                      class="auth-input"
+                      autocomplete="given-name"
+                      required
+                      placeholder="Jane"
+                      aria-required="true"
+                    />
+                  </div>
+                  <div class="auth-field form-row">
+                    <label class="auth-label" for="reg-lastname">Last name</label>
+                    <input
+                      id="reg-lastname"
+                      name="lastname"
+                      type="text"
+                      class="auth-input"
+                      autocomplete="family-name"
+                      required
+                      placeholder="Smith"
+                      aria-required="true"
+                    />
+                  </div>
+                </div>
+
+                <div class="auth-field form-row">
+                  <label class="auth-label" for="reg-email">Email address</label>
+                  <input
+                    id="reg-email"
+                    name="email"
+                    type="email"
+                    class="auth-input"
+                    autocomplete="email"
+                    required
+                    placeholder="you@example.com"
+                    aria-required="true"
+                    aria-describedby="email-validation-msg"
+                  />
                   <span
-                    id="password-strength-label"
-                    class="auth-strength-label"
+                    class="auth-field-error small auth-validation-msg"
+                    id="email-validation-msg"
+                    aria-live="polite"
                   ></span>
                 </div>
-                <span
-                  class="small auth-strength-msg"
-                  id="password-strength-msg"
-                  role="status"
-                ></span>
-              </div>
-              <ul
-                id="password-requirements"
-                class="small auth-requirements"
-              >
-                <li id="req-length">At least 8 characters</li>
-                <li id="req-letter">Contains a letter</li>
-                <li id="req-number">Contains a number</li>
-              </ul>
-              <div
-                id="caps-lock-warning"
-                class="auth-caps-warning"
-              >
-                ⚠️ Caps Lock is on
-              </div>
-            </div>
-            <div class="form-row">
-              <label for="reg-password-confirm">Confirm Password</label>
-              <input
-                id="reg-password-confirm"
-                name="passwordConfirm"
-                type="password"
-                required
-                placeholder="Re-enter your password"
-                aria-required="true"
-                aria-describedby="password-match-msg"
-                autocomplete="new-password"
-              />
-              <span
-                class="small auth-match-msg"
-                id="password-match-msg"
-                role="alert"
-              ></span>
-            </div>
-            <div class="form-row">
-              <label for="reg-location">Location (UK County) *</label>
-              <select id="reg-location" name="location" required aria-required="true">
-                <option value="">Select your county...</option>
-                <option value="Bedfordshire">Bedfordshire</option>
-                <option value="Berkshire">Berkshire</option>
-                <option value="Bristol">Bristol</option>
-                <option value="Buckinghamshire">Buckinghamshire</option>
-                <option value="Cambridgeshire">Cambridgeshire</option>
-                <option value="Cheshire">Cheshire</option>
-                <option value="Cornwall">Cornwall</option>
-                <option value="Cumbria">Cumbria</option>
-                <option value="Derbyshire">Derbyshire</option>
-                <option value="Devon">Devon</option>
-                <option value="Dorset">Dorset</option>
-                <option value="Durham">Durham</option>
-                <option value="East Sussex">East Sussex</option>
-                <option value="Essex">Essex</option>
-                <option value="Gloucestershire">Gloucestershire</option>
-                <option value="Greater London">Greater London</option>
-                <option value="Greater Manchester">Greater Manchester</option>
-                <option value="Hampshire">Hampshire</option>
-                <option value="Herefordshire">Herefordshire</option>
-                <option value="Hertfordshire">Hertfordshire</option>
-                <option value="Isle of Wight">Isle of Wight</option>
-                <option value="Kent">Kent</option>
-                <option value="Lancashire">Lancashire</option>
-                <option value="Leicestershire">Leicestershire</option>
-                <option value="Lincolnshire">Lincolnshire</option>
-                <option value="Merseyside">Merseyside</option>
-                <option value="Norfolk">Norfolk</option>
-                <option value="North Yorkshire">North Yorkshire</option>
-                <option value="Northamptonshire">Northamptonshire</option>
-                <option value="Northumberland">Northumberland</option>
-                <option value="Nottinghamshire">Nottinghamshire</option>
-                <option value="Oxfordshire">Oxfordshire</option>
-                <option value="Rutland">Rutland</option>
-                <option value="Shropshire">Shropshire</option>
-                <option value="Somerset">Somerset</option>
-                <option value="South Yorkshire">South Yorkshire</option>
-                <option value="Staffordshire">Staffordshire</option>
-                <option value="Suffolk">Suffolk</option>
-                <option value="Surrey">Surrey</option>
-                <option value="Tyne and Wear">Tyne and Wear</option>
-                <option value="Warwickshire">Warwickshire</option>
-                <option value="West Midlands">West Midlands</option>
-                <option value="West Sussex">West Sussex</option>
-                <option value="West Yorkshire">West Yorkshire</option>
-                <option value="Wiltshire">Wiltshire</option>
-                <option value="Worcestershire">Worcestershire</option>
-                <option value="Wales">Wales</option>
-                <option value="Scotland">Scotland</option>
-                <option value="Northern Ireland">Northern Ireland</option>
-              </select>
-            </div>
-            <div class="form-row">
-              <label for="reg-postcode">Postcode (Optional)</label>
-              <input
-                id="reg-postcode"
-                name="postcode"
-                type="text"
-                placeholder="e.g. SW1A 1AA"
-                autocomplete="postal-code"
-              />
-            </div>
-            <div class="form-row">
-              <label for="reg-role">I am a…</label>
-              <div class="role-toggle" role="radiogroup" aria-label="Account type">
-                <button type="button" class="role-pill is-active" data-role="customer">
-                  Customer
+
+                <div class="auth-field form-row">
+                  <label class="auth-label" for="reg-password">Password</label>
+                  <div class="auth-input-wrap auth-pw-wrap">
+                    <input
+                      id="reg-password"
+                      name="password"
+                      type="password"
+                      class="auth-input has-toggle"
+                      autocomplete="new-password"
+                      required
+                      placeholder="Min. 8 characters"
+                      aria-required="true"
+                      aria-describedby="password-strength-msg password-requirements"
+                    />
+                  </div>
+                  <div id="password-strength-container" style="display: none">
+                    <div class="auth-pwd-strength auth-strength-container">
+                      <div class="auth-pwd-bar auth-strength-track">
+                        <div id="password-strength-bar" class="auth-pwd-fill auth-strength-bar"></div>
+                      </div>
+                      <span id="password-strength-label" class="auth-pwd-label auth-strength-label"></span>
+                    </div>
+                    <span class="small auth-strength-msg" id="password-strength-msg" role="status"></span>
+                  </div>
+                  <ul id="password-requirements" class="small auth-requirements">
+                    <li id="req-length">At least 8 characters</li>
+                    <li id="req-letter">Contains a letter</li>
+                    <li id="req-number">Contains a number</li>
+                  </ul>
+                  <div id="caps-lock-warning" class="auth-caps-warning">
+                    ⚠️ Caps Lock is on
+                  </div>
+                </div>
+
+                <div class="auth-field form-row">
+                  <label class="auth-label" for="reg-password-confirm">Confirm password</label>
+                  <input
+                    id="reg-password-confirm"
+                    name="passwordConfirm"
+                    type="password"
+                    class="auth-input"
+                    autocomplete="new-password"
+                    required
+                    placeholder="Re-enter your password"
+                    aria-required="true"
+                    aria-describedby="password-match-msg"
+                  />
+                  <span class="small auth-match-msg auth-field-error" id="password-match-msg" role="alert"></span>
+                </div>
+
+                <div class="auth-field form-row">
+                  <label class="auth-label" for="reg-location">Location (UK County) *</label>
+                  <select id="reg-location" name="location" class="auth-input" required aria-required="true">
+                    <option value="">Select your county...</option>
+                    <option value="Bedfordshire">Bedfordshire</option>
+                    <option value="Berkshire">Berkshire</option>
+                    <option value="Bristol">Bristol</option>
+                    <option value="Buckinghamshire">Buckinghamshire</option>
+                    <option value="Cambridgeshire">Cambridgeshire</option>
+                    <option value="Cheshire">Cheshire</option>
+                    <option value="Cornwall">Cornwall</option>
+                    <option value="Cumbria">Cumbria</option>
+                    <option value="Derbyshire">Derbyshire</option>
+                    <option value="Devon">Devon</option>
+                    <option value="Dorset">Dorset</option>
+                    <option value="Durham">Durham</option>
+                    <option value="East Sussex">East Sussex</option>
+                    <option value="Essex">Essex</option>
+                    <option value="Gloucestershire">Gloucestershire</option>
+                    <option value="Greater London">Greater London</option>
+                    <option value="Greater Manchester">Greater Manchester</option>
+                    <option value="Hampshire">Hampshire</option>
+                    <option value="Herefordshire">Herefordshire</option>
+                    <option value="Hertfordshire">Hertfordshire</option>
+                    <option value="Isle of Wight">Isle of Wight</option>
+                    <option value="Kent">Kent</option>
+                    <option value="Lancashire">Lancashire</option>
+                    <option value="Leicestershire">Leicestershire</option>
+                    <option value="Lincolnshire">Lincolnshire</option>
+                    <option value="Merseyside">Merseyside</option>
+                    <option value="Norfolk">Norfolk</option>
+                    <option value="North Yorkshire">North Yorkshire</option>
+                    <option value="Northamptonshire">Northamptonshire</option>
+                    <option value="Northumberland">Northumberland</option>
+                    <option value="Nottinghamshire">Nottinghamshire</option>
+                    <option value="Oxfordshire">Oxfordshire</option>
+                    <option value="Rutland">Rutland</option>
+                    <option value="Shropshire">Shropshire</option>
+                    <option value="Somerset">Somerset</option>
+                    <option value="South Yorkshire">South Yorkshire</option>
+                    <option value="Staffordshire">Staffordshire</option>
+                    <option value="Suffolk">Suffolk</option>
+                    <option value="Surrey">Surrey</option>
+                    <option value="Tyne and Wear">Tyne and Wear</option>
+                    <option value="Warwickshire">Warwickshire</option>
+                    <option value="West Midlands">West Midlands</option>
+                    <option value="West Sussex">West Sussex</option>
+                    <option value="West Yorkshire">West Yorkshire</option>
+                    <option value="Wiltshire">Wiltshire</option>
+                    <option value="Worcestershire">Worcestershire</option>
+                    <option value="Wales">Wales</option>
+                    <option value="Scotland">Scotland</option>
+                    <option value="Northern Ireland">Northern Ireland</option>
+                  </select>
+                </div>
+
+                <div class="auth-field form-row">
+                  <label class="auth-label" for="reg-postcode">Postcode <span class="auth-label-optional">(Optional)</span></label>
+                  <input
+                    id="reg-postcode"
+                    name="postcode"
+                    type="text"
+                    class="auth-input"
+                    placeholder="e.g. SW1A 1AA"
+                    autocomplete="postal-code"
+                  />
+                </div>
+
+                <div class="auth-field form-row">
+                  <label class="auth-label" for="reg-role">I am a…</label>
+                  <div class="role-toggle auth-role-picker" role="radiogroup" aria-label="Account type" id="reg-role-picker">
+                    <button type="button" class="role-pill auth-role-option auth-role-option--active is-active" data-role="customer" role="radio" aria-checked="true">
+                      <span class="auth-role-icon">🎉</span>
+                      <span>Customer</span>
+                    </button>
+                    <button type="button" class="role-pill auth-role-option" data-role="supplier" role="radio" aria-checked="false">
+                      <span class="auth-role-icon">🏪</span>
+                      <span>Supplier</span>
+                    </button>
+                  </div>
+                  <input type="hidden" id="reg-role" name="role" value="customer" />
+                </div>
+
+                <!-- Supplier-specific fields (shown when supplier role is selected) -->
+                <div id="supplier-fields" style="display: none">
+                  <div class="auth-field form-row">
+                    <label class="auth-label" for="reg-company">Company Name *</label>
+                    <input
+                      id="reg-company"
+                      name="company"
+                      type="text"
+                      class="auth-input"
+                      placeholder="Your business name"
+                      autocomplete="organization"
+                    />
+                  </div>
+                  <div class="auth-field form-row">
+                    <label class="auth-label" for="reg-jobtitle">Job Title <span class="auth-label-optional">(Optional)</span></label>
+                    <input
+                      id="reg-jobtitle"
+                      name="jobtitle"
+                      type="text"
+                      class="auth-input"
+                      placeholder="e.g. Event Manager"
+                      autocomplete="organization-title"
+                    />
+                  </div>
+                  <div class="auth-field form-row">
+                    <label class="auth-label" for="reg-website">Website <span class="auth-label-optional">(Optional)</span></label>
+                    <input
+                      id="reg-website"
+                      name="website"
+                      type="url"
+                      class="auth-input"
+                      placeholder="https://example.com"
+                      autocomplete="url"
+                    />
+                  </div>
+                  <div class="auth-field form-row">
+                    <label class="auth-label">Social Media <span class="auth-label-optional">(Optional)</span></label>
+                    <input id="reg-instagram" name="instagram" type="url" class="auth-input auth-input--stacked" placeholder="Instagram URL" />
+                    <input id="reg-facebook" name="facebook" type="url" class="auth-input auth-input--stacked" placeholder="Facebook URL" />
+                    <input id="reg-twitter" name="twitter" type="url" class="auth-input auth-input--stacked" placeholder="Twitter/X URL" />
+                    <input id="reg-linkedin" name="linkedin" type="url" class="auth-input auth-input--stacked" placeholder="LinkedIn URL" />
+                  </div>
+                </div>
+
+                <div class="auth-field form-row">
+                  <label class="auth-label" for="reg-avatar">Profile Picture <span class="auth-label-optional">(Optional)</span></label>
+                  <div class="auth-file-upload">
+                    <input
+                      id="reg-avatar"
+                      name="avatar"
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png,image/webp"
+                      aria-describedby="reg-avatar-help"
+                    />
+                  </div>
+                  <span class="small auth-file-help" id="reg-avatar-help">Max 5MB. Formats: JPEG, PNG, WebP</span>
+                </div>
+
+                <div class="auth-field auth-field--inline form-row">
+                  <label class="auth-checkbox-label checkbox-label-right small" for="reg-marketing">
+                    <input type="checkbox" id="reg-marketing" name="marketing" class="auth-checkbox" />
+                    <span class="auth-checkbox-custom"></span>
+                    <span>Send me the occasional EventFlow update and planning tips.</span>
+                  </label>
+                </div>
+
+                <div class="auth-field auth-field--inline form-row">
+                  <label class="auth-checkbox-label checkbox-label-right small" for="reg-terms">
+                    <input type="checkbox" id="reg-terms" name="terms" required aria-required="true" class="auth-checkbox" />
+                    <span class="auth-checkbox-custom"></span>
+                    <span>I agree to the <a href="/terms" target="_blank" class="auth-link">Terms</a> and <a href="/privacy" target="_blank" class="auth-link">Privacy Policy</a>. *</span>
+                  </label>
+                </div>
+
+                <div class="auth-field form-row" id="reg-hcaptcha-container">
+                  <!-- hCaptcha widget rendered here by JavaScript -->
+                </div>
+
+                <button class="auth-submit cta ef-btn ef-btn-primary auth-submit--full" type="submit">
+                  <span class="auth-submit-text">Create account</span>
+                  <span class="auth-submit-spinner" aria-hidden="true"></span>
                 </button>
-                <button type="button" class="role-pill" data-role="supplier">Supplier</button>
-              </div>
-              <input type="hidden" id="reg-role" name="role" value="customer" />
+                <span class="small auth-status-inline" id="reg-status" role="status" aria-live="polite"></span>
+              </form>
             </div>
-            <!-- Supplier-specific fields (shown when supplier role is selected) -->
-            <div id="supplier-fields" style="display: none">
-              <div class="form-row">
-                <label for="reg-company">Company Name *</label>
-                <input
-                  id="reg-company"
-                  name="company"
-                  type="text"
-                  placeholder="Your business name"
-                  autocomplete="organization"
-                />
-              </div>
-              <div class="form-row">
-                <label for="reg-jobtitle">Job Title (Optional)</label>
-                <input
-                  id="reg-jobtitle"
-                  name="jobtitle"
-                  type="text"
-                  placeholder="e.g. Event Manager"
-                  autocomplete="organization-title"
-                />
-              </div>
-              <div class="form-row">
-                <label for="reg-website">Website (Optional)</label>
-                <input
-                  id="reg-website"
-                  name="website"
-                  type="url"
-                  placeholder="https://example.com"
-                  autocomplete="url"
-                />
-              </div>
-              <div class="form-row">
-                <label>Social Media (Optional)</label>
-                <input
-                  id="reg-instagram"
-                  name="instagram"
-                  type="url"
-                  placeholder="Instagram URL"
-                />
-                <input
-                  id="reg-facebook"
-                  name="facebook"
-                  type="url"
-                  placeholder="Facebook URL"
-                />
-                <input
-                  id="reg-twitter"
-                  name="twitter"
-                  type="url"
-                  placeholder="Twitter/X URL"
-                />
-                <input id="reg-linkedin" name="linkedin" type="url" placeholder="LinkedIn URL" />
-              </div>
-            </div>
-            <div class="form-row">
-              <label for="reg-avatar">Profile Picture (Optional)</label>
-              <div class="auth-file-upload">
-                <input
-                  id="reg-avatar"
-                  name="avatar"
-                  type="file"
-                  accept="image/jpeg,image/jpg,image/png,image/webp"
-                  aria-describedby="reg-avatar-help"
-                />
-              </div>
-              <span class="small auth-file-help" id="reg-avatar-help"
-                >Max 5MB. Formats: JPEG, PNG, WebP</span
-              >
-            </div>
-            <div class="form-row">
-              <label class="small checkbox-label-right" for="reg-marketing">
-                <input type="checkbox" id="reg-marketing" name="marketing" />
-                Send me the occasional EventFlow update and planning tips.
-              </label>
-            </div>
-            <div class="form-row">
-              <label class="small checkbox-label-right" for="reg-terms">
-                <input type="checkbox" id="reg-terms" name="terms" required aria-required="true" />
-                I agree to the <a href="/terms" target="_blank">Terms</a> and
-                <a href="/privacy" target="_blank">Privacy Policy</a>. *
-              </label>
-            </div>
-            <div class="form-row" id="reg-hcaptcha-container">
-              <!-- hCaptcha widget rendered here by JavaScript -->
-            </div>
-            <div class="form-actions">
-              <button class="cta" type="submit">Create account</button>
-              <span class="small" id="reg-status" role="status" aria-live="polite"></span>
-            </div>
-          </form>
-        </section>
-        </div><!-- /.auth-container -->
+
+          </div><!-- /.auth-container -->
         </div><!-- /.auth-split-right -->
-        </div><!-- /.auth-split -->
+      </div><!-- /.auth-split -->
     </main>
 
         <!-- Load utilities -->
