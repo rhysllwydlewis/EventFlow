@@ -703,26 +703,6 @@
 }
 
 /* ============================================
-   DARK MODE - MOBILE OPTIMIZATIONS
-   ============================================ */
-
-@media (max-width: 768px) {
-  /* Legacy [data-theme="dark"] .nav-menu removed - EF header uses #ef-mobile-menu */
-  
-  [data-theme="dark"] .filters {
-    background: #1F2937;
-  }
-  
-  [data-theme="dark"] .dashboard-sidebar {
-    background: #1F2937;
-  }
-  
-  [data-theme="dark"] .bulk-actions {
-    background: #1F2937;
-  }
-}
-
-/* ============================================
    ACCESSIBILITY - MOBILE
    ============================================ */
 
@@ -882,11 +862,6 @@
   body {
     background: white;
     color: black;
-  }
-  
-  html[data-theme="dark"] body {
-    background: black;
-    color: white;
   }
 }
 
@@ -1159,11 +1134,6 @@ h4 {
     box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
   }
   
-  html[data-theme="dark"] .admin-table th:first-child,
-  html[data-theme="dark"] .admin-table td:first-child {
-    background: #1F2937;
-  }
-  
   /* Admin forms full-width inputs */
   .admin-form input,
   .admin-form select,
@@ -1220,10 +1190,6 @@ h4 {
     background: #F9FAFB;
     border-radius: 8px;
     margin-bottom: 8px;
-  }
-  
-  html[data-theme="dark"] .order-summary-header {
-    background: #1F2937;
   }
   
   .order-summary-content {
@@ -1285,12 +1251,6 @@ h4 {
     z-index: 10;
   }
   
-  html[data-theme="dark"] .conversation-compose,
-  html[data-theme="dark"] .message-compose {
-    background: #1F2937;
-    border-top-color: #374151;
-  }
-  
   .conversation-compose textarea,
   .message-compose textarea {
     min-height: 44px;
@@ -1318,11 +1278,6 @@ h4 {
     z-index: 1000;
     transition: bottom 0.3s ease-out;
     box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
-  }
-  
-  html[data-theme="dark"] .marketplace-filters,
-  html[data-theme="dark"] .filter-sidebar {
-    background: #1F2937;
   }
   
   .marketplace-filters.is-open,

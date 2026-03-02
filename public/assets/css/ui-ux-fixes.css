@@ -632,31 +632,6 @@ textarea:focus-visible {
 }
 
 /* ============================================
-   DARK MODE COMPATIBILITY
-   ============================================ */
-
-html[data-theme="dark"] .card {
-  background: #020617;
-  border-color: #1F2937;
-}
-
-html[data-theme="dark"] input,
-html[data-theme="dark"] select,
-html[data-theme="dark"] textarea {
-  background: #0f172a;
-  border-color: #1F2937;
-  color: #E5E7EB;
-}
-
-html[data-theme="dark"] .supplier-card,
-html[data-theme="dark"] .supplier-item,
-html[data-theme="dark"] .ticket-item,
-html[data-theme="dark"] .thread-item {
-  background: #0f172a;
-  border-color: #1F2937;
-}
-
-/* ============================================
    MODAL FIXES - LIGHT THEME
    ============================================ */
 
@@ -1086,13 +1061,6 @@ body.admin {
   visibility: hidden;
 }
 
-/* Dark mode */
-html[data-theme="dark"] .footer-nav {
-  background: rgba(15, 23, 42, 0.98);
-  border-top-color: rgba(55, 65, 81, 0.8);
-  box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.4), 0 -1px 3px rgba(0, 0, 0, 0.2);
-}
-
 /* Footer nav content container */
 .footer-nav-content {
   display: flex;
@@ -1165,19 +1133,6 @@ html[data-theme="dark"] .footer-nav {
   background: var(--ink, #0b8073);
 }
 
-html[data-theme="dark"] .footer-nav-link {
-  color: #94a3b8;
-}
-
-html[data-theme="dark"] .footer-nav-link:hover {
-  background: rgba(11, 128, 115, 0.15);
-  color: #00d4aa;
-}
-
-html[data-theme="dark"] .footer-nav-link:active {
-  background: rgba(11, 128, 115, 0.2);
-}
-
 /* Footer nav notification bell */
 .footer-nav-icon-button {
   position: relative;
@@ -1227,19 +1182,6 @@ html[data-theme="dark"] .footer-nav-link:active {
   text-align: center;
   line-height: 1.2;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-}
-
-html[data-theme="dark"] .footer-nav-icon-button {
-  color: #94a3b8;
-}
-
-html[data-theme="dark"] .footer-nav-icon-button:hover {
-  background: rgba(11, 128, 115, 0.15);
-  color: #00d4aa;
-}
-
-html[data-theme="dark"] .footer-nav-icon-button:active {
-  background: rgba(11, 128, 115, 0.2);
 }
 
 /* Footer nav burger button */
@@ -1297,23 +1239,6 @@ html[data-theme="dark"] .footer-nav-icon-button:active {
 
 .footer-nav-burger--open .footer-nav-burger-bar:nth-child(3) {
   transform: translateY(-5px) rotate(-45deg);
-}
-
-html[data-theme="dark"] .footer-nav-burger {
-  border-color: rgba(148, 163, 184, 0.2);
-}
-
-html[data-theme="dark"] .footer-nav-burger-bar {
-  background: #94a3b8;
-}
-
-html[data-theme="dark"] .footer-nav-burger:hover {
-  background: rgba(11, 128, 115, 0.15);
-  border-color: rgba(11, 128, 115, 0.4);
-}
-
-html[data-theme="dark"] .footer-nav-burger:active {
-  background: rgba(11, 128, 115, 0.2);
 }
 
 /* Add bottom padding to body when footer nav is present */
