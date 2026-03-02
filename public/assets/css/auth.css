@@ -528,7 +528,7 @@ h1.auth-heading {
 .auth-tab[aria-selected="true"] {
   background: rgba(255, 255, 255, 0.95);
   color: #0B8073;
-  font-weight: 600 !important;
+  font-weight: 600;
   box-shadow: 0 1px 4px rgba(11, 128, 115, 0.15), 0 0 0 1px rgba(11, 128, 115, 0.1) !important;
   position: relative;
 }
@@ -775,7 +775,8 @@ body.auth-page .auth-card select.auth-input {
   cursor: pointer;
 }
 
-/* Stacked inputs (social media fields) */
+/* Stacked inputs (social media fields) — !important overrides the `margin-top` 
+   reset applied by `.auth-card .auth-input` selectors above */
 .auth-input--stacked {
   margin-top: 0.5rem !important;
 }
@@ -1063,7 +1064,10 @@ body.auth-page .auth-card select.auth-input {
 /* ─────────────────────────────────────────────────────────────
    15. SUBMIT BUTTON
 ───────────────────────────────────────────────────────────────*/
-/* !important on width and margin-top to beat `button { width:100%; margin-top:6px }` in styles.css */
+/* !important on display, width, padding, font-size, font-weight, border-radius, border,
+   background, color, and margin-top to beat `button { width:100%; margin-top:6px }` and
+   `.cta { ... }` in styles.css which have equal or broader specificity.
+   display:flex !important overrides `display:inline-block` from global .cta rules. */
 .auth-submit,
 body.auth-page .auth-card .cta {
   display: flex !important;

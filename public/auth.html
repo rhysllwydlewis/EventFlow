@@ -207,7 +207,7 @@
             </div>
           </div>
           <!-- Pexels photo attribution (populated by auth-slideshow.js) -->
-          <p class="auth-panel-credit" id="auth-panel-credit" aria-hidden="true"></p>
+          <p class="auth-panel-credit" id="auth-panel-credit" aria-live="polite"></p>
         </div>
 
         <!-- Right panel: auth form -->
@@ -510,11 +510,11 @@
                 <div class="auth-field form-row">
                   <label class="auth-label" for="reg-role">I am a…</label>
                   <div class="role-toggle auth-role-picker" role="radiogroup" aria-label="Account type" id="reg-role-picker">
-                    <button type="button" class="role-pill auth-role-option auth-role-option--active is-active" data-role="customer">
+                    <button type="button" class="role-pill auth-role-option auth-role-option--active is-active" data-role="customer" role="radio" aria-checked="true">
                       <span class="auth-role-icon">🎉</span>
                       <span>Customer</span>
                     </button>
-                    <button type="button" class="role-pill auth-role-option" data-role="supplier">
+                    <button type="button" class="role-pill auth-role-option" data-role="supplier" role="radio" aria-checked="false">
                       <span class="auth-role-icon">🏪</span>
                       <span>Supplier</span>
                     </button>

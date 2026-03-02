@@ -83,11 +83,13 @@
         return;
       }
 
-      // Update active state
+      // Update active state and aria-checked
       rolePicker.querySelectorAll('.role-pill, .auth-role-option').forEach(b => {
         b.classList.remove('is-active', 'auth-role-option--active');
+        b.setAttribute('aria-checked', 'false');
       });
       btn.classList.add('is-active', 'auth-role-option--active');
+      btn.setAttribute('aria-checked', 'true');
     });
   }
 })();
