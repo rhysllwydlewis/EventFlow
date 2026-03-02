@@ -162,8 +162,12 @@
       photosContainer.classList.add('auth-photos--loading');
     }
 
-    fetch(API_URL)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    fetch(API_URL, { signal: controller.signal })
       .then(res => {
+        clearTimeout(timeoutId);
         if (!res.ok) {
           return null;
         }
@@ -179,6 +183,7 @@
         applyInitial(data.photos, data.photos);
       })
       .catch(() => {
+        clearTimeout(timeoutId);
         // Silently fall back — the static CSS background-images remain in place.
         if (photosContainer) {
           photosContainer.classList.remove('auth-photos--loading');
