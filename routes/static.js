@@ -8,7 +8,7 @@
 const express = require('express');
 const path = require('path');
 const { generateSitemap, generateRobotsTxt } = require('../sitemap');
-const { authLimiter } = require('../middleware/rateLimits');
+const { authLimiter, apiLimiter } = require('../middleware/rateLimits');
 const logger = require('../utils/logger');
 const sentry = require('../utils/sentry');
 
@@ -88,7 +88,7 @@ router.get('/suppliers.html', (req, res) => {
  * GET /newsletter/confirmed
  * Serve the newsletter subscription confirmed page
  */
-router.get('/newsletter/confirmed', (req, res) => {
+router.get('/newsletter/confirmed', apiLimiter, (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'newsletter', 'confirmed.html'));
 });
 
@@ -96,7 +96,7 @@ router.get('/newsletter/confirmed', (req, res) => {
  * GET /newsletter/expired
  * Serve the newsletter link-expired page
  */
-router.get('/newsletter/expired', (req, res) => {
+router.get('/newsletter/expired', apiLimiter, (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'public', 'newsletter', 'expired.html'));
 });
 
