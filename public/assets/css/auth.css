@@ -622,7 +622,7 @@ body.auth-page {
 }
 
 /* Full-page main wrapper */
-.auth-main {
+body.auth-page .auth-main {
   position: relative;
   min-height: calc(100vh - var(--auth-header-h, 72px));
   display: flex;
@@ -690,7 +690,7 @@ body.auth-page {
 }
 
 /* ---- Split-screen structure ---- */
-.auth-split {
+body.auth-page .auth-split {
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -699,12 +699,12 @@ body.auth-page {
 }
 
 /* Left panel hidden on mobile */
-.auth-split-left {
+body.auth-page .auth-split-left {
   display: none;
 }
 
 /* Right panel: scrollable form column */
-.auth-split-right {
+body.auth-page .auth-split-right {
   flex: 1;
   display: flex;
   align-items: flex-start;
@@ -713,7 +713,7 @@ body.auth-page {
 }
 
 /* Override auth-container positioning inside split layout */
-.auth-split-right .auth-container {
+body.auth-page .auth-split-right .auth-container {
   max-width: 520px;
   width: 100%;
   margin: 0 auto;
@@ -1127,25 +1127,27 @@ body.auth-page {
 }
 
 /* High contrast: remove blur filters, solid backgrounds */
-@media (prefers-contrast: high) {
+@media (prefers-contrast: more) {
   body.auth-page form.auth-card {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-    background: #ffffff;
-    border: 1px solid #000000;
+    background: #fff;
+    border: 1px solid #000;
   }
+
   body.auth-page .auth-tabs {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
+
   body.auth-page .auth-card .form-row input,
   body.auth-page .auth-card .form-row select {
-    border: 1px solid #000000;
+    border: 1px solid #000;
   }
 }
 
 @media (min-width: 1024px) {
-  .auth-panel-stats {
+  body.auth-page .auth-panel-stats {
     display: flex;
   }
 }
@@ -1280,7 +1282,7 @@ body.auth-page form.auth-card::before {
 /* ---- Mobile ( ≤ 640px ) ---- */
 @media (max-width: 640px) {
   /* Tighter right-panel vertical padding */
-  .auth-split-right {
+  body.auth-page .auth-split-right {
     padding: 1.25rem 1rem;
   }
 
@@ -1322,7 +1324,7 @@ body.auth-page form.auth-card::before {
 /* ---- Tablet ( 641 px – 1023 px ) ---- */
 @media (min-width: 641px) and (max-width: 1023px) {
   /* Reduce top/bottom padding — was 3rem from .auth-container margin rule */
-  .auth-split-right {
+  body.auth-page .auth-split-right {
     padding: 1.75rem 1.5rem;
   }
 
@@ -1345,7 +1347,7 @@ body.auth-page form.auth-card::before {
 
   /* Zero out the legacy auth-container margin that was added for the
      old single-column layout (the split layout handles it now). */
-  .auth-split-right .auth-container {
+  body.auth-page .auth-split-right .auth-container {
     margin-top: 0 !important;
     margin-bottom: 0 !important;
   }
