@@ -616,10 +616,6 @@ form.auth-card:hover {
 /* Auth page header-height token — update here if the navbar changes */
 body.auth-page {
   --auth-header-h: 72px;
-}
-
-/* Override body background on the auth page — stays within EventFlow teal/green palette */
-body.auth-page {
   background: linear-gradient(160deg, #f0fdf9 0%, #f7fffe 55%, #eafaf6 100%);
   min-height: 100vh;
 }
@@ -630,7 +626,7 @@ body.auth-page {
   min-height: calc(100vh - var(--auth-header-h, 72px));
   display: flex;
   align-items: stretch;
-  overflow: hidden;
+  overflow: clip;
 }
 
 /* ---- Animated background blobs ---- */
@@ -916,6 +912,16 @@ body.auth-page {
 /* Ensure password-toggle inputs keep text clear of the button */
 .auth-card .form-row input.has-toggle {
   padding-right: 52px !important;
+}
+
+/* Password show/hide toggle wrapper — gives the dynamically-injected
+   .password-toggle button (added by app.js) a positioned context so that
+   `position: absolute` in styles.css scopes correctly to the input area. */
+.auth-pw-wrap {
+  position: relative;
+}
+.auth-pw-wrap input {
+  width: 100%;
 }
 
 /* Extra vertical breathing room between form rows */

@@ -152,7 +152,6 @@
     <script src="/assets/js/components.js" defer></script>
     <script src="/assets/js/animations.js" defer></script>
     <script src="/assets/js/notifications.js" defer></script>
-    <script src="/assets/js/websocket-client.js" defer></script>
 
     <main id="main-content" class="auth-main">
       <!-- Animated background blobs — give backdrop-filter something to refract -->
@@ -267,15 +266,18 @@
             </div>
             <div class="form-row">
               <label for="login-password">Password</label>
-              <input
-                id="login-password"
-                name="password"
-                type="password"
-                required
-                placeholder="Your password"
-                aria-required="true"
-                autocomplete="current-password"
-              />
+              <div class="auth-pw-wrap">
+                <input
+                  id="login-password"
+                  name="password"
+                  type="password"
+                  class="has-toggle"
+                  required
+                  placeholder="Your password"
+                  aria-required="true"
+                  autocomplete="current-password"
+                />
+              </div>
               <div
                 id="login-caps-lock-warning"
                 class="auth-caps-warning"
@@ -360,16 +362,19 @@
             </div>
             <div class="form-row">
               <label for="reg-password">Password</label>
-              <input
-                id="reg-password"
-                name="password"
-                type="password"
-                required
-                placeholder="Min 8 chars with letter and number"
-                aria-required="true"
-                aria-describedby="password-strength-msg password-requirements"
-                autocomplete="new-password"
-              />
+              <div class="auth-pw-wrap">
+                <input
+                  id="reg-password"
+                  name="password"
+                  type="password"
+                  class="has-toggle"
+                  required
+                  placeholder="Min 8 chars with letter and number"
+                  aria-required="true"
+                  aria-describedby="password-strength-msg password-requirements"
+                  autocomplete="new-password"
+                />
+              </div>
               <div id="password-strength-container" style="display: none">
                 <div class="auth-strength-container">
                   <div class="auth-strength-track">
@@ -590,6 +595,10 @@
           </form>
         </section>
         </div><!-- /.auth-container -->
+        </div><!-- /.auth-split-right -->
+        </div><!-- /.auth-split -->
+    </main>
+
         <!-- Load utilities -->
         <script src="/assets/js/utils/api-client.js" defer></script>
         <script src="/assets/js/utils/auth-helpers.js" defer></script>
@@ -764,9 +773,6 @@
             initFormValidation();
           }
         </script>
-          </div><!-- /.auth-split-right -->
-        </div><!-- /.auth-split -->
-    </main>
 
     <!-- BOTTOM NAVBAR - GOLD STANDARD REBUILD (Mobile Only) -->
     <nav class="ef-bottom-nav" role="navigation" aria-label="Mobile bottom navigation">

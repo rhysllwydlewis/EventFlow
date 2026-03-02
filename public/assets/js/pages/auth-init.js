@@ -14,6 +14,12 @@
     if (moveFocus) {
       activeTab.focus();
     }
+
+    // Update the page heading to match the active tab
+    const heading = document.querySelector('.auth-heading');
+    if (heading) {
+      heading.textContent = activeTab.id === 'tab-create' ? 'Create your account' : 'Welcome back';
+    }
   }
 
   if (tabSign && tabCreate && panelSign && panelCreate) {
