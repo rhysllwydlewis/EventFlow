@@ -612,9 +612,9 @@ body.auth-page {
   --auth-header-h: 72px;
 }
 
-/* Override body background on the auth page for vivid glassmorphism */
+/* Override body background on the auth page — stays within EventFlow teal/green palette */
 body.auth-page {
-  background: linear-gradient(135deg, #e8fdf8 0%, #f3f0ff 50%, #fce4f7 100%);
+  background: linear-gradient(160deg, #f0fdf9 0%, #f7fffe 55%, #eafaf6 100%);
   min-height: 100vh;
 }
 
@@ -656,7 +656,7 @@ body.auth-page {
   height: 520px;
   bottom: -120px;
   right: -80px;
-  background: radial-gradient(circle, rgba(139, 92, 246, 0.35) 0%, rgba(109, 40, 217, 0.15) 55%, transparent 100%);
+  background: radial-gradient(circle, rgba(11, 128, 115, 0.22) 0%, rgba(11, 128, 115, 0.08) 55%, transparent 100%);
   animation: authBlob2 18s ease-in-out infinite;
 }
 
@@ -665,7 +665,7 @@ body.auth-page {
   height: 380px;
   top: 40%;
   left: 35%;
-  background: radial-gradient(circle, rgba(251, 191, 36, 0.28) 0%, rgba(245, 158, 11, 0.12) 55%, transparent 100%);
+  background: radial-gradient(circle, rgba(79, 209, 199, 0.2) 0%, rgba(19, 182, 162, 0.08) 55%, transparent 100%);
   animation: authBlob3 22s ease-in-out infinite;
 }
 
@@ -729,13 +729,16 @@ body.auth-page {
   }
 
   .auth-split-left {
-    display: block; /* override display:none from mobile; flex: below is an ITEM property (parent .auth-split is the flex container) */
+    display: flex; /* override display:none; also becomes the flex centring container */
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     flex: 1 1 0; /* flex item sizing in the parent .auth-split row */
     position: sticky;
     top: var(--auth-header-h, 72px);
     height: calc(100vh - var(--auth-header-h, 72px));
     overflow: hidden;
-    background: linear-gradient(145deg, #0B8073 0%, #13B6A2 35%, #4fd1c7 65%, #8b5cf6 100%);
+    background: linear-gradient(145deg, #064e3b 0%, #0B8073 35%, #13B6A2 65%, #4fd1c7 100%);
   }
 
   .auth-split-right {
@@ -752,17 +755,14 @@ body.auth-page {
 }
 
 /* ---- Brand visual panel ---- */
-/* Use absolute centering so it's guaranteed to be in the true centre of the panel */
+/* In-flow flex item, centred by the parent flex container (.auth-split-left) */
 .auth-brand-visual {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  position: relative; /* normal flow — parent flex does the centering */
+  z-index: 1;
   width: calc(100% - 5rem);
   max-width: 340px;
   text-align: center;
   color: #fff;
-  z-index: 1;
 }
 
 .auth-brand-logo-mark {
