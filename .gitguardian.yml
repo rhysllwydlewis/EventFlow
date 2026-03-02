@@ -1,0 +1,24 @@
+version: 2
+
+# GitGuardian configuration
+# See: https://docs.gitguardian.com/ggshield-docs/reference/configuration
+
+# Paths excluded from secret scanning.
+# Test helper files contain intentional literal test credentials (e.g. "validpassword",
+# "mock-jwt-token") that are only ever used in the local test environment and are never
+# deployed. Excluding them avoids false-positive alerts while keeping real production
+# code scanned.
+paths-ignore:
+  - "tests/helpers/test-app.js"
+  - "tests/integration/api.test.js"
+  - "tests/load/helpers.js"
+  - "tests/utils/testHelpers.js"
+
+# Detectors to ignore on the entire repo (only suppress confirmed false positives)
+# The Generic Password detector (id 27758701 / 25087650) fires on password-handling
+# UI code in public/assets/js/app.js (caps-lock detection, form submission) which
+# contains no real credentials — only DOM variable references and client-side form logic.
+ignored-detectors:
+  - name: generic_password
+    paths:
+      - "public/assets/js/app.js"

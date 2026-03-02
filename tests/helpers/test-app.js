@@ -7,7 +7,7 @@ const express = require('express');
 
 // Set test environment variables
 process.env.NODE_ENV = 'test';
-process.env.JWT_SECRET = 'test-secret-for-jest-min-32-characters-long';
+process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-secret-for-jest-min-32-characters-long'; // pragma: allowlist secret
 process.env.EMAIL_ENABLED = 'false';
 
 /**
@@ -124,6 +124,7 @@ function createAuthTestApp() {
 
     // Simulate invalid credentials
     if (email !== 'test@example.com' || password !== 'validpassword') {
+      // pragma: allowlist secret
       return res.status(401).json({
         success: false,
         error: 'Invalid credentials',
@@ -132,7 +133,7 @@ function createAuthTestApp() {
 
     res.status(200).json({
       success: true,
-      token: 'mock-jwt-token',
+      token: 'mock-jwt-token', // pragma: allowlist secret
     });
   });
 

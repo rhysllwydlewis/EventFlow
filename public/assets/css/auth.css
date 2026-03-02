@@ -1150,3 +1150,105 @@ form.auth-card::before {
   background: linear-gradient(90deg, #0B8073, #13B6A2);
   border-radius: 1px;
 }
+
+/* =============================================================
+   DEAD-SPACE ELIMINATION & RESPONSIVE SPACING POLISH
+   ============================================================= */
+
+/* Remove bottom margin from form-rows whose only child is a hidden
+   error / validation message — prevents invisible elements from adding
+   white-space gaps between visible form fields.
+   :has() is Baseline-available (Chrome 105+, FF 121+, Safari 15.4+). */
+.auth-card .form-row:has(> .auth-error-msg:only-child),
+.auth-card .form-row:has(> .auth-validation-msg:only-child),
+.auth-card .form-row:has(> [role="alert"]:only-child) {
+  margin-bottom: 0;
+}
+
+/* ---- Mobile ( ≤ 640px ) ---- */
+@media (max-width: 640px) {
+  /* Tighter right-panel vertical padding */
+  .auth-split-right {
+    padding: 1.25rem 1rem;
+  }
+
+  /* Smaller heading on small screens */
+  .auth-header {
+    margin-bottom: 0.75rem;
+  }
+
+  .auth-header .auth-heading {
+    font-size: 1.5rem;
+  }
+
+  /* Smaller tab margin */
+  .auth-tabs {
+    margin-bottom: 0.75rem;
+  }
+
+  /* Compact inputs — shave 3px per side → rows drop ~96 px → ~80 px */
+  .auth-card .form-row input,
+  .auth-card .form-row select {
+    padding: 10px 14px;
+  }
+
+  .auth-card .form-row input.has-toggle {
+    padding-right: 46px !important;
+  }
+
+  /* Tighter gap between form rows */
+  .auth-card .form-row {
+    margin-bottom: 0.75rem;
+  }
+
+  /* Reduce inner card padding */
+  form.auth-card {
+    padding: 1.25rem !important;
+  }
+}
+
+/* ---- Tablet ( 641 px – 1023 px ) ---- */
+@media (min-width: 641px) and (max-width: 1023px) {
+  /* Reduce top/bottom padding — was 3rem from .auth-container margin rule */
+  .auth-split-right {
+    padding: 1.75rem 1.5rem;
+  }
+
+  .auth-header {
+    margin-bottom: 1rem;
+  }
+
+  .auth-tabs {
+    margin-bottom: 0.875rem;
+  }
+
+  .auth-card .form-row input,
+  .auth-card .form-row select {
+    padding: 11px 15px;
+  }
+
+  .auth-card .form-row {
+    margin-bottom: 0.875rem;
+  }
+
+  /* Zero out the legacy auth-container margin that was added for the
+     old single-column layout (the split layout handles it now). */
+  .auth-split-right .auth-container {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+  }
+}
+
+/* ---- Desktop ( ≥ 1024 px ) ---- */
+@media (min-width: 1024px) {
+  /* Reduce right panel padding — was 4rem 3rem, now tighter */
+  .auth-split-right {
+    padding: 2.5rem 3rem;
+  }
+
+  /* Vertically centre brand content, nudging it up slightly so it sits
+     mid-panel rather than pure-centre (accounts for the stats bar) */
+  .auth-split-left {
+    padding-bottom: 5rem; /* leaves room for the stats bar without visual gap */
+  }
+}

@@ -154,7 +154,7 @@ describe('Authentication API Endpoints', () => {
         .post('/api/auth/register')
         .send({
           email: 'newuser@example.com',
-          password: 'validpassword123',
+          password: 'validpassword123', // pragma: allowlist secret
           name: 'New User',
         })
         .expect(201);
@@ -195,7 +195,7 @@ describe('Authentication API Endpoints', () => {
         .post('/api/auth/login')
         .send({
           email: 'test@example.com',
-          password: 'validpassword',
+          password: 'validpassword', // pragma: allowlist secret
         })
         .expect(200);
 
@@ -224,7 +224,7 @@ describe('Authentication API Endpoints', () => {
     it('should accept requests with valid bearer token', async () => {
       const response = await request(app)
         .get('/api/protected')
-        .set('Authorization', 'Bearer mock-jwt-token')
+        .set('Authorization', 'Bearer mock-jwt-token') // pragma: allowlist secret
         .expect(200);
 
       expect(response.body).toHaveProperty('success', true);
