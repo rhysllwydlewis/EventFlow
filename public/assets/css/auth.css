@@ -893,6 +893,26 @@ body.auth-page {
   border-radius: 10px;
 }
 
+/* Checkboxes must NOT inherit the text-input padding above —
+   reset them to a size that matches the surrounding label text.
+   min-height: unset cancels the global `input { min-height: 44px }` rule
+   from ui-ux-fixes.css so the checkbox doesn't inflate to touch-target height. */
+.auth-card .form-row input[type="checkbox"] {
+  width: 1em;
+  height: 1em;
+  min-height: unset;
+  padding: 0;
+  border-radius: 3px;
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: #0B8073;
+}
+
+/* Tighten checkbox + label text gap inside the auth card */
+.auth-card .checkbox-label-right {
+  gap: 6px;
+}
+
 /* Ensure password-toggle inputs keep text clear of the button */
 .auth-card .form-row input.has-toggle {
   padding-right: 52px !important;
