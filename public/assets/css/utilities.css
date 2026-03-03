@@ -261,8 +261,8 @@ button:focus {
 .cta,
 .nav-toggle,
 .icon-button,
-button[type="submit"],
-button[type="button"] {
+button[type="submit"]:not(.ef-search-bar__button),
+button[type="button"]:not(.ef-search-bar__button):not(.back-to-top):not(.carousel-prev):not(.carousel-next) {
   min-height: 44px;
   min-width: 44px;
 }

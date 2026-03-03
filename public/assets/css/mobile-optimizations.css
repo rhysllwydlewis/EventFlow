@@ -14,7 +14,7 @@
   /* Ensure interactive elements in main content areas meet minimum size */
   /* Excludes navigation, header, and specific UI components */
   main a:not(.ef-nav-link):not(.ef-mobile-link):not(.ef-bottom-link),
-  main button:not(.ef-icon-btn):not(.ef-mobile-toggle):not(.ef-btn):not(.ef-search-bar__button),
+  main button:not(.ef-icon-btn):not(.ef-mobile-toggle):not(.ef-btn):not(.ef-search-bar__button):not(.back-to-top):not(.carousel-prev):not(.carousel-next),
   .section a:not(.ef-nav-link):not(.ef-mobile-link):not(.ef-bottom-link),
   .card a:not(.ef-nav-link),
   .form-row input[type="submit"],

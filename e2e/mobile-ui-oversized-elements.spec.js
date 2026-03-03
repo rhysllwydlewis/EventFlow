@@ -73,7 +73,7 @@ test.describe('Carousel Arrows – Mobile Sizing', () => {
   });
 });
 
-test.describe('Hero Search Button – Mobile Sizing and Alignment', () => {
+test.describe('Back-to-top, Search Button – Mobile Sizing and Alignment', () => {
   test('search button should be ≤ 44px wide on mobile (375px)', async ({ page }) => {
     await page.setViewportSize(VIEWPORTS.mobile);
     await page.goto('/');
@@ -86,9 +86,9 @@ test.describe('Hero Search Button – Mobile Sizing and Alignment', () => {
 
     const btnBox = await searchBtn.boundingBox();
 
-    // Visual size should be compact (≤ 44px)
-    expect(btnBox.width).toBeLessThanOrEqual(44);
-    expect(btnBox.height).toBeLessThanOrEqual(44);
+    // Visual size should be compact (≤ 38px accounts for sub-pixel rounding at 36px target)
+    expect(btnBox.width).toBeLessThanOrEqual(38);
+    expect(btnBox.height).toBeLessThanOrEqual(38);
   });
 
   test('search button should be right-aligned within its form on mobile (375px)', async ({
