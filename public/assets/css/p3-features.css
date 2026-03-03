@@ -763,3 +763,25 @@ img {
     transform: none;
   }
 }
+
+/* Image carousel modal: smaller nav arrows on small mobile screens */
+@media (max-width: 480px) {
+  .carousel-nav {
+    font-size: 1.5rem;
+    width: 40px;
+    height: 40px;
+    padding: 0.5rem;
+  }
+
+  .carousel-prev {
+    left: 4px;
+  }
+
+  .carousel-next {
+    right: 4px;
+  }
+
+  .carousel-nav:hover {
+    transform: translateY(-50%);
+  }
+}

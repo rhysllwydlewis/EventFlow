@@ -1210,6 +1210,36 @@ body {
 }
 
 /* ========================================
+   TOUCH DEVICES – disable hover scale to prevent sticky states
+   ======================================== */
+
+@media (hover: none) and (pointer: coarse) {
+  .ef-icon-btn:hover {
+    transform: none;
+    box-shadow: none;
+    background: rgba(11, 128, 115, 0.08);
+  }
+
+  .ef-mobile-toggle:hover {
+    transform: none;
+    background: rgba(11, 128, 115, 0.08);
+  }
+
+  .ef-btn-primary:hover {
+    transform: none;
+  }
+
+  .ef-btn-secondary:hover {
+    transform: none;
+  }
+
+  .ef-bottom-link:hover,
+  .ef-bottom-link:active {
+    transform: none;
+  }
+}
+
+/* ========================================
    ACCESSIBILITY
    ======================================== */
 

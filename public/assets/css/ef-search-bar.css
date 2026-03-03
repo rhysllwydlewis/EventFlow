@@ -430,7 +430,7 @@
     --search-bar-padding: 6px;
     --search-bar-radius: 16px;
     --search-bar-inner-radius: 10px;
-    --search-btn-size: 40px;
+    --search-btn-size: 36px;
   }
   
   .ef-search-bar__segment--category { display: none; }
@@ -440,8 +440,8 @@
   .ef-search-bar__segment--input {
     flex: 1;
     padding: 0 4px 0 8px;
-    /* Add right padding to account for button width (40px) + spacing (8px) */
-    padding-right: 48px;
+    /* Add right padding to account for button width (36px) + spacing (8px) */
+    padding-right: 44px;
   }
   
   .ef-search-bar__input {
@@ -468,12 +468,37 @@
   }
 }
 
+/* ============================================
+   Touch Devices – disable hover scale/shadow to prevent sticky states
+   ============================================ */
+@media (hover: none) and (pointer: coarse) {
+  .ef-search-bar__form:hover {
+    transform: translateZ(0);
+    box-shadow: var(--search-bar-shadow), var(--search-bar-inset);
+    background: var(--search-bar-bg);
+    border-color: var(--search-bar-border);
+  }
+
+  .ef-search-bar__button:hover {
+    transform: translateZ(0);
+    box-shadow:
+      0 2px 8px rgba(5, 150, 105, 0.3),
+      0 4px 16px rgba(5, 150, 105, 0.2),
+      inset 0 1px 1px rgba(255, 255, 255, 0.25);
+    background: var(--search-btn-bg);
+  }
+
+  .ef-quick-tags__tag:hover {
+    transform: translateZ(0);
+  }
+}
+
 /* Very small screens (< 360px) */
 @media (max-width: 359px) {
   .ef-search-bar {
     --search-bar-height: 48px;
     --search-bar-padding: 5px;
-    --search-btn-size: 38px;
+    --search-btn-size: 34px;
   }
 }
 
