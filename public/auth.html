@@ -427,17 +427,19 @@
 
                 <div class="auth-field form-row">
                   <label class="auth-label" for="reg-password-confirm">Confirm password</label>
-                  <input
-                    id="reg-password-confirm"
-                    name="passwordConfirm"
-                    type="password"
-                    class="auth-input"
-                    autocomplete="new-password"
-                    required
-                    placeholder="Re-enter your password"
-                    aria-required="true"
-                    aria-describedby="password-match-msg"
-                  />
+                  <div class="auth-input-wrap auth-pw-wrap">
+                    <input
+                      id="reg-password-confirm"
+                      name="passwordConfirm"
+                      type="password"
+                      class="auth-input has-toggle"
+                      autocomplete="new-password"
+                      required
+                      placeholder="Re-enter your password"
+                      aria-required="true"
+                      aria-describedby="password-match-msg"
+                    />
+                  </div>
                   <span class="small auth-match-msg auth-field-error" id="password-match-msg" role="alert"></span>
                 </div>
 
