@@ -99,8 +99,9 @@ function isDebugEnabled() {
     }
   }
 
-  // Check if in development environment
-  return isDevelopmentEnvironment();
+  // Debug mode requires an explicit flag — do NOT auto-enable on localhost
+  // to avoid debug panels appearing for all developers by default.
+  return false;
 }
 
 // Log collage script load in debug mode only

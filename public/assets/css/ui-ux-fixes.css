@@ -1491,3 +1491,29 @@ body.has-footer-nav {
     display: flex !important;
   }
 }
+
+/* ============================================================
+   SECTION SPACING FIXES
+   ============================================================ */
+
+/* Fix: suppliers page — outer main.section + inner section.section
+   creates 128px of top padding. Remove the inner section's top
+   padding since the outer main already provides 64px. */
+main.section > .section {
+  padding-top: 0;
+}
+
+/* Fix: marketplace — the .section immediately after the hero
+   banner should use tighter top padding (64px feels excessive
+   after a visually-distinct hero). */
+.marketplace-hero + .section {
+  padding-top: 32px;
+}
+
+/* Fix: suppliers map — "Or enter a postcode" label should look
+   like a quiet field label, not a section heading. */
+.map-controls label {
+  font-size: 0.75rem;
+  color: var(--muted, #6b7280);
+  margin-bottom: 0.25rem;
+}
