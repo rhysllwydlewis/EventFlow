@@ -205,6 +205,23 @@ class Carousel {
         .carousel-next { right: 0; }
       }
 
+      /* Mobile: smaller arrows that sit in gutters, not covering card content */
+      @media (max-width: ${BREAKPOINT_MOBILE}px) {
+        .featured-carousel {
+          padding: 0 36px;
+          box-sizing: border-box;
+        }
+        .carousel-prev, .carousel-next {
+          width: 32px;
+          height: 32px;
+          font-size: 16px;
+          background: rgba(255, 255, 255, 0.95);
+          box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+        }
+        .carousel-prev { left: 0; }
+        .carousel-next { right: 0; }
+      }
+
       /* Dragging state */
       .carousel-container.is-dragging {
         cursor: grabbing;

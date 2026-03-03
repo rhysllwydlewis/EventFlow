@@ -146,6 +146,14 @@
   color: var(--ef-primary, #0B8073);
 }
 
+/* Touch devices: disable hover scale to prevent sticky appearance */
+@media (hover: none) and (pointer: coarse) {
+  .ef-bottom-link:hover .ef-bottom-icon,
+  .ef-bottom-link:focus .ef-bottom-icon {
+    transform: none;
+  }
+}
+
 /* ========================================
    DESKTOP NAVIGATION ENHANCEMENTS
    Better hierarchy and visual feedback

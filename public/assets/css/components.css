@@ -948,6 +948,14 @@ html[data-theme='dark'] .badge.subtle {
   transform: translateY(-1px) scale(0.98);
 }
 
+/* Disable hover scale on touch devices */
+@media (hover: none) and (pointer: coarse) {
+  .back-to-top:hover {
+    transform: translateY(0) scale(1);
+    box-shadow: 0 4px 16px rgba(11, 128, 115, 0.3);
+  }
+}
+
 /* Dark mode support for back to top */
 html[data-theme='dark'] .back-to-top {
   background: linear-gradient(135deg, #13b6a2, #5eead4);
@@ -998,11 +1006,23 @@ html[data-theme='dark'] .back-to-top:hover {
   }
 
   .back-to-top {
-    bottom: 4.5rem; /* Slightly lower on mobile, above footer */
+    bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
     right: 1rem;
-    width: 40px;
-    height: 40px;
-    font-size: 1.125rem;
+    width: 36px;
+    height: 36px;
+    font-size: 1rem;
+  }
+
+  /* Keep tap target accessible (44×44 minimum) via invisible pseudo-element */
+  .back-to-top::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
   }
 
   .stats-grid {
