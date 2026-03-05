@@ -606,7 +606,12 @@ class ConversationListV4 {
     if (!conv.context?.type) {
       return '';
     }
-    const map = { package: '📦 Package', supplier: '🏢 Supplier', marketplace: '🛒 Marketplace' };
+    const map = {
+      package: '📦 Package',
+      supplier_profile: '🏢 Supplier',
+      marketplace_listing: '🛒 Marketplace',
+      find_a_supplier: '🔍 Find a Supplier',
+    };
     const label = map[conv.context.type];
     if (!label) {
       return '';

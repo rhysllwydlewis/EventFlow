@@ -66,7 +66,8 @@ function messengerErrorStatus(msg) {
 let authRequired;
 let csrfProtection;
 let db;
-let wsServer;
+// Stored as a getter so the real WS server (initialized after HTTP listen) is always used
+let _getWsServer = null;
 let postmark;
 let logger;
 
@@ -145,7 +146,14 @@ function initialize(dependencies) {
   // Store as mongoDb for lazy initialization
   db = dependencies.db;
 
-  wsServer = dependencies.wsServer;
+  // Store a lazy getter so we resolve the WS server on each emit (it is initialized
+  // after the HTTP server starts, which is after route initialization).
+  // In production, `dependencies.getWebSocketServer` is always provided by routes/index.js.
+  // The `wsServer` fallback supports direct calls (e.g., test harnesses or custom setups).
+  _getWsServer =
+    typeof dependencies.getWebSocketServer === 'function'
+      ? dependencies.getWebSocketServer
+      : () => dependencies.wsServer || null;
   postmark = dependencies.postmark;
   logger = dependencies.logger;
 
@@ -189,18 +197,28 @@ async function getMessengerService() {
  * Helper: Emit WebSocket event to user
  */
 function emitToUser(userId, event, data) {
-  if (wsServer && wsServer.emitToUser) {
-    wsServer.emitToUser(userId, event, data);
+  const ws = _getWsServer ? _getWsServer() : null;
+  if (ws && ws.emitToUser) {
+    ws.emitToUser(userId, event, data);
   }
 }
 
 /**
- * Helper: Emit WebSocket event to all conversation participants
+ * Helper: Emit WebSocket event to all conversation participants via room broadcast
  */
 function emitToConversation(conversation, event, data) {
-  if (wsServer && wsServer.emitToUser) {
+  const ws = _getWsServer ? _getWsServer() : null;
+  if (!ws) {
+    return;
+  }
+  // Prefer room broadcast (emitToConversation) when available: single emit to the
+  // conversation:v4:{id} room rather than N individual emits.
+  if (ws.emitToConversation) {
+    const convId = (conversation._id || conversation.id || '').toString();
+    ws.emitToConversation(convId, event, data);
+  } else if (ws.emitToUser) {
     conversation.participants.forEach(participant => {
-      wsServer.emitToUser(participant.userId, event, data);
+      ws.emitToUser(participant.userId, event, data);
     });
   }
 }
@@ -345,7 +363,7 @@ router.get('/conversations', applyAuthRequired, async (req, res) => {
       filters.search = search.substring(0, 200);
     }
     if (status) {
-      const allowedStatuses = ['active', 'archived'];
+      const allowedStatuses = ['active', 'closed'];
       if (allowedStatuses.includes(status)) {
         filters.status = status;
       }
@@ -422,10 +440,11 @@ router.patch(
         await getMessengerService()
       ).updateConversation(id, userId, updates);
 
-      // Emit update event
+      // Emit update event with the full updated conversation so clients can correctly
+      // refresh participant-level fields (isPinned, isArchived, isMuted, unreadCount)
       emitToUser(userId, 'messenger:v4:conversation-updated', {
         conversationId: id,
-        updates,
+        conversation,
       });
 
       res.json({
@@ -748,7 +767,7 @@ router.patch(
       ).getConversation(message.conversationId.toString(), userId);
       emitToConversation(conversation, 'messenger:v4:message-edited', {
         messageId: id,
-        content,
+        content: message.content,
         editedAt: message.editedAt,
       });
 
@@ -1109,7 +1128,7 @@ router.get('/admin/conversations', applyAuthRequired, async (req, res) => {
     }
     if (status) {
       // Admins can filter by a broader set of statuses
-      const allowedAdminStatuses = ['active', 'archived', 'deleted', 'flagged'];
+      const allowedAdminStatuses = ['active', 'closed'];
       if (allowedAdminStatuses.includes(status)) {
         query.status = status;
       }

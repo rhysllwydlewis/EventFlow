@@ -254,11 +254,12 @@ class MessageComposerV4 {
     });
 
     // Close emoji picker when clicking outside
-    document.addEventListener('click', e => {
+    this._onDocumentClick = e => {
       if (this._emojiPickerOpen && !this.container.contains(e.target)) {
         this._closeEmojiPicker();
       }
-    });
+    };
+    document.addEventListener('click', this._onDocumentClick);
   }
 
   // ---------------------------------------------------------------------------
@@ -347,6 +348,10 @@ class MessageComposerV4 {
   destroy() {
     clearTimeout(this._typingTimer);
     clearTimeout(this._typingDebounce);
+    if (this._onDocumentClick) {
+      document.removeEventListener('click', this._onDocumentClick);
+      this._onDocumentClick = null;
+    }
     this.container.innerHTML = '';
   }
 

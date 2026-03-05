@@ -292,10 +292,25 @@ class ContactPickerV4 {
 
   async _findExistingConversation(participantId) {
     try {
-      const data = await this.api.request(
-        `/conversations?participantId=${encodeURIComponent(participantId)}`
-      );
-      const convs = data.conversations || data || [];
+      // Fast path: check already-loaded conversations from the app state.
+      // The GET /conversations endpoint has no participantId filter, so we rely on the
+      // in-memory state (populated at app init) rather than making an API call that
+      // returns up to 50 conversations and silently misses matches on page 2+.
+      const appState = window.messengerAppV4?.state ?? window.messengerState ?? null;
+      if (appState?.conversations) {
+        const found = appState.conversations.find(
+          c =>
+            Array.isArray(c.participants) &&
+            c.participants.some(p => p.userId === participantId) &&
+            c.participants.some(p => p.userId === this.options.currentUserId)
+        );
+        if (found) {
+          return found;
+        }
+      }
+      // Slow path: fetch all conversations and search locally
+      const data = await this.api.request('/conversations');
+      const convs = data.conversations || [];
       return (
         convs.find(c => {
           const ids = (c.participants || []).map(p => p.userId);

@@ -577,7 +577,7 @@ class MessengerV4Service {
           $set: {
             lastMessage: prevMessage
               ? {
-                  content: prevMessage.content.substring(0, 100),
+                  content: (prevMessage.content || '').substring(0, 100),
                   senderId: prevMessage.senderId,
                   senderName: prevMessage.senderName,
                   sentAt: prevMessage.createdAt,

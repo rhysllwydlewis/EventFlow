@@ -120,7 +120,7 @@ class MessengerState {
    */
   updateMessage(conversationId, messageId, updates) {
     const messages = this.messages.get(conversationId) || [];
-    const index = messages.findIndex(m => m._id === messageId);
+    const index = messages.findIndex(m => String(m._id) === String(messageId));
 
     if (index >= 0) {
       messages[index] = { ...messages[index], ...updates };
@@ -134,7 +134,7 @@ class MessengerState {
    */
   deleteMessage(conversationId, messageId) {
     const messages = this.messages.get(conversationId) || [];
-    const filteredMessages = messages.filter(m => m._id !== messageId);
+    const filteredMessages = messages.filter(m => String(m._id) !== String(messageId));
 
     this.messages.set(conversationId, filteredMessages);
     this.emit('messageDeleted', { conversationId, messageId });
@@ -145,7 +145,7 @@ class MessengerState {
    */
   updateReaction(conversationId, messageId, reaction) {
     const messages = this.messages.get(conversationId) || [];
-    const index = messages.findIndex(m => m._id === messageId);
+    const index = messages.findIndex(m => String(m._id) === String(messageId));
 
     if (index >= 0) {
       const message = messages[index];

@@ -14,7 +14,7 @@ const conversationHandlerJs = conversationHandlerExists
 (conversationHandlerExists ? describe : describe.skip)(
   'Conversation handler v1/v2 field normalization',
   () => {
-    describe('loadMessages v1 field normalization', () => {
+    describe.skip('loadMessages v1 field normalization (legacy behavior removed)', () => {
       const loadMessagesFn = (
         conversationHandlerJs.split('async function loadMessages()')[1] || ''
       ).split('async function')[0];
@@ -50,7 +50,7 @@ const conversationHandlerJs = conversationHandlerExists
       });
     });
 
-    describe('v2 to v1 fallback for empty messages with legacy thread IDs', () => {
+    describe.skip('v2 to v1 fallback for empty messages with legacy thread IDs (legacy behavior removed)', () => {
       const loadMessagesFn = (
         conversationHandlerJs.split('async function loadMessages()')[1] || ''
       ).split('async function')[0];

@@ -28,7 +28,7 @@
  * - admin-config.js: Badge and category management
  * - packages.js: Package CRUD operations
  * - suppliers.js: Supplier management
- * - messaging-v2.js/messenger-v4.js: Messaging operations (v4 is canonical)
+ * - messenger-v4.js: Messaging operations (canonical v4 API)
  * - notifications.js: User notifications
  * - ai.js: AI-powered event planning
  * - reviews.js: Review and rating system
@@ -1008,16 +1008,14 @@ function initializeWebSocketV2(db) {
   // Only initialize v2 if mode is v2 and not already initialized
   if (WEBSOCKET_MODE === 'v2' && !wsServerV2 && db) {
     try {
-      const MessagingService = require('./services/messagingService');
       const { NotificationService } = require('./services/notificationService');
 
-      const messagingService = new MessagingService(db);
+      // v2 MessagingService has been removed; pass null so websocket-server-v2
+      // falls back gracefully for any remaining v2 socket events while still
+      // serving all v4 real-time events (join-conversation, typing, etc.)
+      wsServerV2 = new WebSocketServerV2(server, null, null);
 
-      // Create WebSocket v2 instance first
-      wsServerV2 = new WebSocketServerV2(server, messagingService, null);
-
-      // Then create notification service with v2 WebSocket server
-      // In v2 mode, notifications go through the v2 server's sendNotification method
+      // Create notification service with v2 WebSocket server
       const notificationService = new NotificationService(db, wsServerV2);
 
       // Set the notification service on the v2 server
@@ -1281,15 +1279,7 @@ async function startServer() {
           logger.warn('   Server will continue running, but queries may be slower');
         }
 
-        // Ensure messaging indexes exist (using Message model)
-        try {
-          const db = await mongoDb.getDb();
-          const Message = require('./models/Message');
-          await Message.createIndexes(db);
-          logger.info('   ✅ Messaging indexes verified');
-        } catch (err) {
-          logger.warn('   ⚠️  Could not verify messaging indexes:', err.message);
-        }
+        // Messaging indexes (v1/v2 Message model removed; v4 uses ConversationV4 indexes set up separately)
 
         // Auto-migrate v1 threads and messages to MongoDB (if needed)
         // DEPRECATED: This migration is from the v1→MongoDB transition.

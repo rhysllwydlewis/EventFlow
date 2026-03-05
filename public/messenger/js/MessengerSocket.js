@@ -102,8 +102,8 @@ class MessengerSocket {
       window.dispatchEvent(new CustomEvent('messenger:conversation-read', { detail: data }));
     });
 
-    this.socket.on('messenger:v4:presence', data => {
-      this.state.setPresence(data.userId, data.status);
+    this.socket.on('presence:changed', data => {
+      this.state.setPresence(data.userId, data.state);
       window.dispatchEvent(new CustomEvent('messenger:presence', { detail: data }));
     });
 
@@ -156,17 +156,6 @@ class MessengerSocket {
     }
 
     this.socket.emit('messenger:typing', { conversationId, isTyping, userName: userName || '' });
-  }
-
-  /**
-   * Notify about new message
-   */
-  notifyNewMessage(conversationId) {
-    if (!this.isConnected || !this.socket) {
-      return;
-    }
-
-    this.socket.emit('messenger:message', { conversationId });
   }
 
   /**

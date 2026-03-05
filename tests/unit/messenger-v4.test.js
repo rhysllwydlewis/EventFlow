@@ -1017,26 +1017,27 @@ describe('MessengerV4Service', () => {
     });
 
     it('should update conversation lastMessage when the last message is deleted', async () => {
-      // Use a fresh conversation so there is exactly one non-deleted message remaining
+      // Use participants NOT in the beforeEach conversation (user2+user3 is fresh,
+      // avoiding the deduplication that would return the existing user1+user2 conversation).
       const freshConv = await service.createConversation({
         type: 'direct',
         participants: [
-          { userId: 'user1', displayName: 'Alice', role: 'customer' },
           { userId: 'user2', displayName: 'Bob', role: 'supplier' },
+          { userId: 'user3', displayName: 'Charlie', role: 'customer' },
         ],
       });
       const earlier = await service.sendMessage(freshConv._id.toString(), {
-        senderId: 'user2',
-        senderName: 'Bob',
+        senderId: 'user3',
+        senderName: 'Charlie',
         content: 'Earlier message',
       });
       const latest = await service.sendMessage(freshConv._id.toString(), {
-        senderId: 'user1',
-        senderName: 'Alice',
+        senderId: 'user2',
+        senderName: 'Bob',
         content: 'Latest message',
       });
 
-      await service.deleteMessage(latest._id.toString(), 'user1');
+      await service.deleteMessage(latest._id.toString(), 'user2');
 
       const updatedConv = await service.conversationsCollection.findOne({
         _id: freshConv._id,

@@ -653,7 +653,7 @@
       const csrfToken = await fetchCsrfToken();
 
       // Use v4 API for conversation creation (2-step: create conversation, then send message)
-      let threadRes = await fetch('/api/v4/messenger/conversations', {
+      const threadRes = await fetch('/api/v4/messenger/conversations', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -664,7 +664,7 @@
           type: 'marketplace',
           participantIds: [sellerUserId],
           context: {
-            type: 'listing',
+            type: 'marketplace_listing',
             referenceId: listing.id,
             referenceTitle: listingTitle,
           },
@@ -688,7 +688,7 @@
                 'X-CSRF-Token': csrfToken,
               },
               credentials: 'include',
-              body: JSON.stringify({ message: message.trim() }),
+              body: JSON.stringify({ content: message.trim() }),
             });
           } catch (msgError) {
             console.error('Failed to send initial message:', msgError);
@@ -696,31 +696,8 @@
           }
         }
       } else {
-        // Fall back to v1 API for backward compatibility
-        threadRes = await fetch('/api/v1/threads/start', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-Token': csrfToken,
-          },
-          credentials: 'include',
-          body: JSON.stringify({
-            supplierId: sellerSupplierId,
-            recipientId: sellerUserId,
-            marketplaceListingId: listing.id,
-            marketplaceListingTitle: listingTitle,
-            message,
-          }),
-        });
-
-        if (!threadRes.ok) {
-          const data = await threadRes.json().catch(() => ({}));
-          throw new Error(data.error || data.message || 'Failed to start conversation');
-        }
-
-        const { thread } = await threadRes.json();
-        conversationId = thread.id;
-        isV3 = false;
+        const data = await threadRes.json().catch(() => ({}));
+        throw new Error(data.error || data.message || 'Failed to start conversation');
       }
 
       // Show success message instead of redirecting

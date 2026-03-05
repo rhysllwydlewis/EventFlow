@@ -395,7 +395,7 @@ class MessengerAppV4 {
         await this.selectConversation(existing._id);
       } else {
         // No existing conversation — create one directly
-        await this.createConversation([userId], context?.type || 'direct');
+        await this.createConversation([userId], context || 'direct');
       }
       // After conversation is open and composer is ready, apply prefill text
       if (prefill && this.composer?.textarea) {
@@ -498,15 +498,17 @@ class MessengerAppV4 {
       }
     });
 
-    // Conversation updated by another participant (pin/archive/mute change from WS)
+    // Conversation updated (pin/archive/mute change) — the route now emits the full
+    // updated conversation object so participant-level fields (isPinned, isArchived,
+    // isMuted, unreadCount) are updated correctly.
     window.addEventListener('messenger:conversation-updated', e => {
-      const { conversationId, updates } = e.detail || {};
-      if (!conversationId || !updates) {
+      const { conversationId, conversation } = e.detail || {};
+      if (!conversationId) {
         return;
       }
-      const conv = this.state.conversations.find(c => c._id === conversationId);
-      if (conv) {
-        this.state.updateConversation({ ...conv, ...updates });
+      if (conversation) {
+        // Full conversation received — replace directly so participant fields stay in sync
+        this.state.updateConversation(conversation);
       }
     });
 
@@ -790,6 +792,15 @@ class MessengerAppV4 {
     this.contactPicker?.destroy();
     this.notificationBridge?.destroy();
     this.socket?.disconnect?.();
+    if (this._onKeyDown) {
+      document.removeEventListener('keydown', this._onKeyDown);
+      this._onKeyDown = null;
+    }
+    if (this._responsiveMq && this._onMqChange) {
+      this._responsiveMq.removeEventListener('change', this._onMqChange);
+      this._responsiveMq = null;
+      this._onMqChange = null;
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -804,14 +815,6 @@ class MessengerAppV4 {
   async _loadCurrentUser() {
     // Try AuthStateManager first (primary, set by auth-state.js)
     if (window.AuthStateManager?.isAuthenticated?.()) {
-      const user = window.AuthStateManager.getUser();
-      if (user) {
-        return user;
-      }
-    }
-
-    // Legacy fallback: AuthStateManager
-    if (window.AuthStateManager?.getUser) {
       const user = window.AuthStateManager.getUser();
       if (user) {
         return user;
@@ -1062,7 +1065,7 @@ class MessengerAppV4 {
   }
 
   _setupKeyboardShortcuts() {
-    document.addEventListener('keydown', e => {
+    this._onKeyDown = e => {
       // Escape: close contact picker or mobile chat panel
       if (e.key === 'Escape') {
         if (this.contactPicker?.modalEl?.style.display !== 'none') {
@@ -1085,7 +1088,8 @@ class MessengerAppV4 {
         e.preventDefault();
         this._navigateConversations(e.key === 'ArrowDown' ? 1 : -1);
       }
-    });
+    };
+    document.addEventListener('keydown', this._onKeyDown);
   }
 
   _navigateConversations(direction) {
@@ -1102,7 +1106,7 @@ class MessengerAppV4 {
 
   _setupResponsive() {
     const mq = window.matchMedia('(max-width: 768px)');
-    const handler = e => {
+    this._onMqChange = e => {
       if (!e.matches && this._activeConversationId) {
         // Restore both panels on desktop
         const sidebar = document.querySelector('[data-v4="sidebar"]');
@@ -1115,7 +1119,8 @@ class MessengerAppV4 {
         }
       }
     };
-    mq.addEventListener('change', handler);
+    this._responsiveMq = mq;
+    mq.addEventListener('change', this._onMqChange);
   }
 
   _showGlobalError(msg) {

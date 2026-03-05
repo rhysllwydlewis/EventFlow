@@ -8,13 +8,33 @@
 const logger = require('../utils/logger');
 const postmark = require('../utils/postmark');
 const { getBaseUrl } = require('../utils/config');
-const {
-  COLLECTION: MQ_COLLECTION,
-  QUEUE_STATUS,
-  MAX_RETRIES,
-  createQueueEntry,
-  calculateNextRetry,
-} = require('../models/MessageQueue');
+// MessageQueue constants (inlined from deleted models/MessageQueue.js)
+const { ObjectId: MQObjectId } = require('mongodb');
+const MQ_COLLECTION = 'messageQueue';
+const QUEUE_STATUS = { PENDING: 'pending', SENDING: 'sending', FAILED: 'failed', SENT: 'sent' };
+const MAX_RETRIES = 5;
+const MQ_RETRY_INTERVALS = [2, 4, 8, 16, 30];
+
+function createQueueEntry(data) {
+  const now = new Date();
+  return {
+    _id: new MQObjectId(),
+    userId: data.userId,
+    message: data.message,
+    retryCount: 0,
+    status: QUEUE_STATUS.PENDING,
+    createdAt: now,
+    lastAttempt: null,
+    nextRetry: now,
+    error: null,
+    metadata: data.metadata || {},
+  };
+}
+
+function calculateNextRetry(retryCount) {
+  const intervalSeconds = MQ_RETRY_INTERVALS[Math.min(retryCount, MQ_RETRY_INTERVALS.length - 1)];
+  return new Date(Date.now() + intervalSeconds * 1000);
+}
 
 // Notification types
 const NOTIFICATION_TYPES = {

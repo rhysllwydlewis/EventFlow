@@ -17,7 +17,7 @@ describe('Marketplace seller identity resolution', () => {
     expect(marketplaceJs).toContain(
       "listing.createdBy && !String(listing.createdBy).includes('@')"
     );
-    expect(marketplaceJs).toContain('recipientId: sellerUserId');
+    expect(marketplaceJs).toContain('participantIds: [sellerUserId]');
   });
 
   it('marketplace listings API attaches sellerUserId and sellerSupplierId', () => {

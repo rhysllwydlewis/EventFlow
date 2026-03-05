@@ -37,9 +37,10 @@ class UnreadBadgeManager {
   }
 
   setupListeners() {
-    // Listen to custom event from MessagingManager
-    window.addEventListener('unreadCountUpdated', e => {
-      this.updateAll(e.detail.count);
+    // Listen to unread count updates from v4 messenger (MessengerAppV4, MessengerWidgetV4)
+    window.addEventListener('messenger:unread-count', e => {
+      const count = e.detail?.count ?? e.detail ?? 0;
+      this.updateAll(count);
     });
 
     // Refresh when tab regains focus
@@ -48,21 +49,6 @@ class UnreadBadgeManager {
         this.refresh();
       }
     });
-
-    // Listen to WebSocket events if messaging system is available
-    if (window.messagingSystem) {
-      const tryListenToSocket = () => {
-        if (window.messagingSystem.socket) {
-          window.messagingSystem.socket.on('unread:update', data => {
-            this.updateAll(data.count);
-          });
-        } else {
-          // Retry after a short delay if socket not ready
-          setTimeout(tryListenToSocket, 500);
-        }
-      };
-      tryListenToSocket();
-    }
   }
 
   /**
@@ -100,10 +86,8 @@ class UnreadBadgeManager {
     // Also update page title if on messages page
     this.updatePageTitle(count);
 
-    // Log for debugging
-    console.debug(
-      `[UnreadBadgeManager] Updated ${this.badgeSelectors.length} badge types to count: ${count}`
-    );
+    // Broadcast so other page components (dashboard stats, hero counters, etc.) can react
+    window.dispatchEvent(new CustomEvent('unreadCountUpdated', { detail: { count } }));
   }
 
   /**

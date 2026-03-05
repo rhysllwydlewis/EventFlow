@@ -155,7 +155,8 @@ function getLeadQualitySummary(conversations) {
  * @param {object} [user]           - Current user
  * @returns {string} HTML string
  */
-function renderConversations(conversations, supplierProfile, user) { // eslint-disable-line no-unused-vars
+function renderConversations(conversations, supplierProfile, user) {
+  // eslint-disable-line no-unused-vars
   if (!conversations || conversations.length === 0) {
     return '<p class="small" style="color:#6b7280;padding:1rem;">No conversations yet.</p>';
   }
@@ -222,7 +223,8 @@ function renderConversations(conversations, supplierProfile, user) { // eslint-d
 /**
  * Apply filter, sort, and search to supplier conversations.
  */
-function applyFiltersSupplier(conversations, supplierProfile, user) { // eslint-disable-line no-unused-vars
+function applyFiltersSupplier(conversations, supplierProfile, user) {
+  // eslint-disable-line no-unused-vars
   if (!conversations || !Array.isArray(conversations)) {
     return [];
   }
@@ -334,12 +336,11 @@ async function loadMessagesHTTPFallback(conversationId) {
 
   while (retryCount < maxRetries) {
     try {
-      // Try v2 API first
-      const v2Url = `/api/v2/messages/${conversationId}`;
+      const v4Url = `/api/v4/messenger/conversations/${conversationId}/messages`;
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3000);
 
-      const res = await fetch(v2Url, {
+      const res = await fetch(v4Url, {
         credentials: 'include',
         signal: controller.signal,
       });
@@ -348,16 +349,6 @@ async function loadMessagesHTTPFallback(conversationId) {
       if (res.ok) {
         const data = await res.json();
         return data.messages || data.items || [];
-      }
-
-      // Try v1 API for legacy thread IDs
-      if (conversationId.startsWith('thd_')) {
-        const v1Url = `/api/v1/threads/${conversationId}/messages`;
-        const res2 = await fetch(v1Url, { credentials: 'include' });
-        if (res2.ok) {
-          const data2 = await res2.json();
-          return data2.messages || data2.items || [];
-        }
       }
 
       throw new Error(`HTTP ${res.status}`);
@@ -380,7 +371,8 @@ let messagesUnsubscribe = null;
 /**
  * Open a conversation modal and load messages.
  */
-async function openConversation(conversationId, user, supplierProfile) { // eslint-disable-line no-unused-vars
+async function openConversation(conversationId, user, supplierProfile) {
+  // eslint-disable-line no-unused-vars
   logMessageState('INIT', { conversationId });
 
   if (!conversationId) {
