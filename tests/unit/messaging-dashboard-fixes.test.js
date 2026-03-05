@@ -78,45 +78,48 @@ describe('Messaging Dashboard Fixes', () => {
     });
   });
 
-  describe('messaging-v2.js server-side fixes', () => {
-    const messagingV2Js = fs.readFileSync(
-      path.join(process.cwd(), 'routes/messaging-v2.js'),
-      'utf8'
-    );
+  const messagingV2Path = path.join(process.cwd(), 'routes/messaging-v2.js');
+  (fs.existsSync(messagingV2Path) ? describe : describe.skip)(
+    'messaging-v2.js server-side fixes',
+    () => {
+      const messagingV2Js = fs.existsSync(messagingV2Path)
+        ? fs.readFileSync(messagingV2Path, 'utf8')
+        : '';
 
-    it('supports both content and message fields in send message endpoint', () => {
-      // Find the route handler code between the comment and the next router call
-      const startMarker = '* Send message in thread';
-      const startIdx = messagingV2Js.indexOf(startMarker);
-      const endIdx = messagingV2Js.indexOf('router.post', startIdx + 100);
-      const sendMessageRoute = messagingV2Js.substring(startIdx, endIdx);
+      it('supports both content and message fields in send message endpoint', () => {
+        // Find the route handler code between the comment and the next router call
+        const startMarker = '* Send message in thread';
+        const startIdx = messagingV2Js.indexOf(startMarker);
+        const endIdx = messagingV2Js.indexOf('router.post', startIdx + 100);
+        const sendMessageRoute = messagingV2Js.substring(startIdx, endIdx);
 
-      // Should destructure both content and message (as legacyMessage)
-      expect(sendMessageRoute).toContain('message: legacyMessage');
+        // Should destructure both content and message (as legacyMessage)
+        expect(sendMessageRoute).toContain('message: legacyMessage');
 
-      // Should use message as content if content is not provided
-      expect(sendMessageRoute).toContain('if (!content && legacyMessage)');
-      expect(sendMessageRoute).toContain('content = legacyMessage');
-    });
+        // Should use message as content if content is not provided
+        expect(sendMessageRoute).toContain('if (!content && legacyMessage)');
+        expect(sendMessageRoute).toContain('content = legacyMessage');
+      });
 
-    it('maintains backward compatibility with message field', () => {
-      const startMarker = '* Send message in thread';
-      const startIdx = messagingV2Js.indexOf(startMarker);
-      const endIdx = messagingV2Js.indexOf('router.post', startIdx + 100);
-      const sendMessageRoute = messagingV2Js.substring(startIdx, endIdx);
+      it('maintains backward compatibility with message field', () => {
+        const startMarker = '* Send message in thread';
+        const startIdx = messagingV2Js.indexOf(startMarker);
+        const endIdx = messagingV2Js.indexOf('router.post', startIdx + 100);
+        const sendMessageRoute = messagingV2Js.substring(startIdx, endIdx);
 
-      // Should still validate that content or attachments are required
-      // Updated to match new implementation that checks attachments.length
-      expect(sendMessageRoute).toContain('attachments.length === 0');
-      expect(sendMessageRoute).toContain("error: 'content or attachments required'");
-    });
+        // Should still validate that content or attachments are required
+        // Updated to match new implementation that checks attachments.length
+        expect(sendMessageRoute).toContain('attachments.length === 0');
+        expect(sendMessageRoute).toContain("error: 'content or attachments required'");
+      });
 
-    it('POST /api/v2/messages/threads/:threadId/read endpoint exists', () => {
-      // Endpoint should exist
-      expect(messagingV2Js).toContain("'/threads/:threadId/read',");
-      expect(messagingV2Js).toContain('Mark all messages in thread as read');
-    });
-  });
+      it('POST /api/v2/messages/threads/:threadId/read endpoint exists', () => {
+        // Endpoint should exist
+        expect(messagingV2Js).toContain("'/threads/:threadId/read',");
+        expect(messagingV2Js).toContain('Mark all messages in thread as read');
+      });
+    }
+  );
 
   (customerMsgJsExists ? describe : describe.skip)('customer-messages.js usage', () => {
     it('imports MessagingManager from messaging.js', () => {
@@ -388,9 +391,12 @@ describe('Messaging Dashboard Fixes', () => {
         expect(supplierMessagesJs).toContain('maxRetries');
       });
 
-      it('should try both v2 and v1 APIs', () => {
-        expect(supplierMessagesJs).toContain('/api/v2/messages/${conversationId}');
-        expect(supplierMessagesJs).toContain('/api/v1/threads/${conversationId}/messages');
+      it('should use v4 API only', () => {
+        expect(supplierMessagesJs).toContain(
+          '/api/v4/messenger/conversations/${conversationId}/messages'
+        );
+        expect(supplierMessagesJs).not.toContain('/api/v2/messages/${conversationId}');
+        expect(supplierMessagesJs).not.toContain('/api/v1/threads/${conversationId}/messages');
       });
     });
 

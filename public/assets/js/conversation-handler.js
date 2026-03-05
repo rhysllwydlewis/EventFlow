@@ -28,14 +28,12 @@
       let data;
 
       if (threadId.startsWith('thd_')) {
-        // Legacy v1 thread – fall back to v1 API
-        const res = await fetch(`/api/v1/threads/${threadId}`, {
-          credentials: 'include',
-        });
-        if (!res.ok) {
-          throw new Error(`Failed to load thread: ${res.status}`);
-        }
-        data = await res.json();
+        // Legacy v1 thread – v1 API has been removed
+        const errorMsg = 'This conversation is from an older system. Please contact support.';
+        console.warn('[conversation-handler] Legacy thd_ thread ID detected; v1 API removed.');
+        thread = { subject: errorMsg, participants: [] };
+        renderThreadHeader();
+        return;
       } else {
         // Modern v4 thread
         const res = await fetch(`/api/v4/messenger/conversations/${threadId}`, {
@@ -82,23 +80,9 @@
       let data;
 
       if (threadId.startsWith('thd_')) {
-        // Legacy v1 messages – fall back to v1 API
-        const res = await fetch(`/api/v1/threads/${threadId}/messages`, {
-          credentials: 'include',
-        });
-        if (!res.ok) {
-          throw new Error(`Failed to load messages: ${res.status}`);
-        }
-        const v1Data = await res.json();
-        messages = v1Data.messages || v1Data.items || [];
-
-        // Normalize v1 message fields to v2-compatible format
-        messages = messages.map(msg => ({
-          ...msg,
-          senderId: msg.senderId || msg.fromUserId || msg.userId,
-          content: msg.content || msg.text,
-          sentAt: msg.sentAt || msg.createdAt,
-        }));
+        // Legacy v1 thread – v1 API has been removed; no messages to load
+        console.warn('[conversation-handler] Legacy thd_ thread ID detected; v1 API removed.');
+        messages = [];
       } else {
         // Modern v4 messages
         const res = await fetch(`/api/v4/messenger/conversations/${threadId}/messages`, {
@@ -109,31 +93,6 @@
         }
         data = await res.json();
         messages = data.messages || data || [];
-
-        // If v4 returns empty array but thread ID looks like a legacy thread,
-        // fall back to v1 to check for migrated messages
-        if (messages.length === 0 && threadId.startsWith('thd_')) {
-          try {
-            const v1Response = await fetch(`/api/v1/threads/${threadId}/messages`, {
-              credentials: 'include',
-            });
-            // If v1 also fails or returns empty, we simply keep the empty array
-            if (v1Response.ok) {
-              const v1Data = await v1Response.json();
-              messages = v1Data.messages || v1Data.items || [];
-              if (messages.length > 0) {
-                messages = messages.map(msg => ({
-                  ...msg,
-                  senderId: msg.senderId || msg.fromUserId || msg.userId,
-                  content: msg.content || msg.text,
-                  sentAt: msg.sentAt || msg.createdAt,
-                }));
-              }
-            }
-          } catch (fallbackErr) {
-            console.warn('[conversation-handler] v1 message fallback failed:', fallbackErr.message);
-          }
-        }
       }
 
       renderMessages();

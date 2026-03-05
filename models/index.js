@@ -320,73 +320,6 @@ const noteSchema = {
 };
 
 /**
- * Message Schema
- * Stores individual messages in conversation threads
- */
-const messageSchema = {
-  validator: {
-    $jsonSchema: {
-      bsonType: 'object',
-      required: ['id', 'threadId', 'fromUserId', 'text'],
-      properties: {
-        id: { bsonType: 'string', description: 'Unique message identifier' },
-        threadId: { bsonType: 'string', description: 'Parent thread ID' },
-        fromUserId: { bsonType: 'string', description: 'Sender user ID' },
-        fromRole: { bsonType: 'string', description: 'Sender role' },
-        text: { bsonType: 'string', description: 'Message content' },
-        packageId: { bsonType: 'string', description: 'Related package ID (optional)' },
-        supplierId: { bsonType: 'string', description: 'Related supplier ID (optional)' },
-        status: { bsonType: 'string', description: 'Message status (sent, read, etc.)' },
-        isDraft: { bsonType: 'bool', description: 'Whether message is a draft' },
-        sentAt: { bsonType: 'string', description: 'When message was sent (null for drafts)' },
-        readBy: {
-          bsonType: 'array',
-          items: { bsonType: 'string' },
-          description: 'User IDs who have read this message',
-        },
-        createdAt: { bsonType: 'string', description: 'Creation timestamp' },
-        updatedAt: { bsonType: 'string', description: 'Last update timestamp' },
-      },
-    },
-  },
-};
-
-/**
- * Thread Schema
- * Stores conversation threads between customers and suppliers
- */
-const threadSchema = {
-  validator: {
-    $jsonSchema: {
-      bsonType: 'object',
-      required: ['id', 'supplierId', 'customerId'],
-      properties: {
-        id: { bsonType: 'string', description: 'Unique thread identifier' },
-        supplierId: { bsonType: 'string', description: 'Supplier user/business ID' },
-        supplierName: { bsonType: 'string', description: 'Supplier name' },
-        customerId: { bsonType: 'string', description: 'Customer user ID' },
-        customerName: { bsonType: 'string', description: 'Customer name' },
-        packageId: { bsonType: 'string', description: 'Related package ID (optional)' },
-        subject: { bsonType: 'string', description: 'Conversation subject' },
-        status: { bsonType: 'string', description: 'Thread status (open, closed, archived)' },
-        eventType: { bsonType: 'string', description: 'Type of event' },
-        eventDate: { bsonType: 'string', description: 'Event date' },
-        eventLocation: { bsonType: 'string', description: 'Event location' },
-        guests: { bsonType: 'string', description: 'Number of guests' },
-        lastMessageAt: { bsonType: 'string', description: 'Timestamp of last message' },
-        lastMessagePreview: { bsonType: 'string', description: 'Preview of last message' },
-        unreadCount: {
-          bsonType: 'object',
-          description: 'Unread message count per user',
-        },
-        createdAt: { bsonType: 'string', description: 'Thread creation timestamp' },
-        updatedAt: { bsonType: 'string', description: 'Last activity timestamp' },
-      },
-    },
-  },
-};
-
-/**
  * Category Schema
  * Stores package categories for browsing and filtering
  */
@@ -779,8 +712,6 @@ async function initializeCollections(db) {
     categories: categorySchema,
     plans: planSchema,
     notes: noteSchema,
-    messages: messageSchema,
-    threads: threadSchema,
     events: eventSchema,
     badges: badgeSchema,
     payments: paymentSchema,
@@ -865,18 +796,6 @@ async function createIndexes(db) {
     // Note indexes
     await db.collection('notes').createIndex({ id: 1 }, { unique: true });
     await db.collection('notes').createIndex({ userId: 1 });
-
-    // Message indexes
-    await db.collection('messages').createIndex({ id: 1 }, { unique: true });
-    await db.collection('messages').createIndex({ threadId: 1 });
-    await db.collection('messages').createIndex({ fromUserId: 1 });
-    await db.collection('messages').createIndex({ createdAt: 1 });
-
-    // Thread indexes
-    await db.collection('threads').createIndex({ id: 1 }, { unique: true });
-    await db.collection('threads').createIndex({ customerId: 1 });
-    await db.collection('threads').createIndex({ supplierId: 1 });
-    await db.collection('threads').createIndex({ updatedAt: 1 });
 
     // Event indexes
     await db.collection('events').createIndex({ id: 1 }, { unique: true });

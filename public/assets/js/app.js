@@ -1132,8 +1132,16 @@ async function initSupplier() {
         if (!msg) {
           return;
         }
-        const payload = { supplierId: s.id, text: msg };
-        const r = await fetch('/api/v1/threads', {
+        const payload = {
+          type: 'direct',
+          participantIds: [s.userId || s.id],
+          context: {
+            type: 'supplier',
+            referenceId: s.id,
+            referenceTitle: s.name || s.businessName,
+          },
+        };
+        const r = await fetch('/api/v4/messenger/conversations', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -1153,9 +1161,22 @@ async function initSupplier() {
           return;
         }
 
+        const conversationId = d.conversation?._id || d.conversation?.id;
+        if (conversationId && msg) {
+          await fetch(`/api/v4/messenger/conversations/${conversationId}/messages`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-Token': window.__CSRF_TOKEN__ || '',
+            },
+            credentials: 'include',
+            body: JSON.stringify({ content: msg }),
+          }).catch(() => {});
+        }
+
         modal.remove();
-        if (d && d.thread && d.thread.id && typeof openThread === 'function') {
-          openThread(d.thread.id);
+        if (conversationId) {
+          window.location.href = `/messenger/?conversation=${conversationId}`;
         } else {
           alert('Enquiry sent. Visit your dashboard to continue the conversation.');
         }
@@ -2337,7 +2358,7 @@ async function renderThreads(targetEl) {
   }
 
   try {
-    const r = await fetch('/api/v1/threads/my', {
+    const r = await fetch('/api/v4/messenger/conversations', {
       credentials: 'include',
     });
     if (!r.ok) {
@@ -2345,13 +2366,13 @@ async function renderThreads(targetEl) {
       return;
     }
     const d = await r.json();
-    const items = (d.items || [])
+    const items = (d.conversations || d.items || [])
       .slice()
       .sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
 
     if (!items.length) {
       host.innerHTML =
-        '<p class="small">No conversations yet. Once you contact suppliers, they’ll appear here.</p>';
+        '<p class="small">No conversations yet. Once you contact suppliers, they\'ll appear here.</p>';
       return;
     }
 
@@ -2359,11 +2380,22 @@ async function renderThreads(targetEl) {
       <div class="thread-list">
         ${items
           .map(t => {
-            const otherName = t.supplierName || t.customerName || 'Conversation';
-            const last = (t.lastMessageText || '').slice(0, 80);
+            const otherParticipant = (t.participants || []).find(
+              p => p.userId !== (user && user.id)
+            );
+            const otherName =
+              otherParticipant && otherParticipant.name
+                ? otherParticipant.name
+                : t.title || 'Conversation';
+            const last = (
+              (t.lastMessage && t.lastMessage.content) ||
+              t.lastMessageText ||
+              ''
+            ).slice(0, 80);
             const when = t.updatedAt ? new Date(t.updatedAt).toLocaleString() : '';
+            const convId = t._id || t.id;
             return `
-            <button class="thread-row" type="button" data-open="${t.id}">
+            <button class="thread-row" type="button" data-open="${convId}">
               <div class="thread-row-main">
                 <span class="thread-row-title">${escapeHtml(otherName)}</span>
                 <span class="thread-row-snippet">${escapeHtml(last || 'No messages yet.')}</span>
@@ -2381,145 +2413,12 @@ async function renderThreads(targetEl) {
     host.querySelectorAll('[data-open]').forEach(btn => {
       btn.addEventListener('click', () => {
         const id = btn.getAttribute('data-open');
-        openThread(id);
+        window.location.href = `/messenger/?conversation=${id}`;
       });
     });
   } catch (_e) {
     host.innerHTML = '<p class="small">Could not load conversations.</p>';
   }
-}
-
-let efThreadPoll = null;
-
-async function openThread(id) {
-  const user = await me().catch(() => null);
-  if (!id) {
-    return;
-  }
-
-  if (efThreadPoll) {
-    clearInterval(efThreadPoll);
-    efThreadPoll = null;
-  }
-
-  const modal = document.createElement('div');
-  modal.className = 'chat-modal-backdrop';
-  modal.innerHTML = `
-    <div class="chat-modal" role="dialog" aria-modal="true">
-      <header>
-        <div>
-          <h3>Conversation</h3>
-          <div class="small">Share details, updates and questions with this supplier.</div>
-        </div>
-        <button class="cta secondary" type="button" data-close>Close</button>
-      </header>
-      <div class="chat-messages" id="thread-messages"><p class="small">Loading…</p></div>
-      <div class="chat-input">
-        <form id="thread-form">
-          <div class="chat-input-row">
-            <textarea id="thread-text" placeholder="Write a message…"></textarea>
-            <div class="chat-input-actions">
-              <button class="cta" type="submit">Send</button>
-            </div>
-          </div>
-          <div class="chat-status small" id="thread-status"></div>
-          <p class="tiny" style="opacity:0.7;margin-top:4px">
-            Tip: you can paste links to files (Google Drive, Dropbox etc.) as attachments.
-          </p>
-        </form>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(modal);
-
-  const box = modal.querySelector('#thread-messages');
-  const form = modal.querySelector('#thread-form');
-  const input = modal.querySelector('#thread-text');
-  const status = modal.querySelector('#thread-status');
-
-  async function load(scroll) {
-    try {
-      const r = await fetch(`/api/v1/threads/${encodeURIComponent(id)}/messages`, {
-        credentials: 'include',
-      });
-      if (!r.ok) {
-        box.innerHTML = '<p class="small">Could not load messages.</p>';
-        return;
-      }
-      const d = await r.json();
-      const msgs = d.items || [];
-      if (!msgs.length) {
-        box.innerHTML = '<p class="small">No messages yet. Say hello to get things started.</p>';
-      } else {
-        box.innerHTML = msgs
-          .map(m => {
-            const mine = user && m.userId === user.id;
-            const cls = mine ? 'chat-message chat-message-mine' : 'chat-message chat-message-other';
-            const when = m.createdAt ? new Date(m.createdAt).toLocaleString() : '';
-            let text = String(m.text || '');
-            text = escapeHtml(text);
-            text = text.replace(
-              /(https?:\/\/\S+)/g,
-              '<a href="$1" target="_blank" rel="noopener">$1</a>'
-            );
-            return `
-            <div class="${cls}">
-              <div class="chat-bubble">${text}</div>
-              <div class="chat-meta">${escapeHtml(when)}${mine ? ' · Sent' : ''}</div>
-            </div>
-          `;
-          })
-          .join('');
-      }
-      if (scroll) {
-        box.scrollTop = box.scrollHeight;
-      }
-    } catch (_e) {
-      box.innerHTML = '<p class="small">Could not load messages.</p>';
-    }
-  }
-
-  await load(true);
-  efThreadPoll = setInterval(() => {
-    load(false);
-  }, 5000);
-
-  form.addEventListener('submit', async e => {
-    e.preventDefault();
-    const text = (input.value || '').trim();
-    if (!text) {
-      return;
-    }
-    status.textContent = 'Sending…';
-    try {
-      const r = await fetch(`/api/v1/threads/${encodeURIComponent(id)}/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRF-Token': window.__CSRF_TOKEN__ || '',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ text }),
-      });
-      if (!r.ok) {
-        status.textContent = 'Could not send message.';
-        return;
-      }
-      input.value = '';
-      status.textContent = '';
-      await load(true);
-    } catch (_e) {
-      status.textContent = 'Could not send message.';
-    }
-  });
-
-  modal.querySelector('[data-close]').addEventListener('click', () => {
-    if (efThreadPoll) {
-      clearInterval(efThreadPoll);
-      efThreadPoll = null;
-    }
-    modal.remove();
-  });
 }
 
 function efMaybeShowOnboarding(page) {

@@ -14,11 +14,6 @@ const publicRoutes = require('./public');
 const authRoutes = require('./auth');
 const adminRoutes = require('./admin');
 const adminDebugRoutes = require('./admin-debug');
-const messagesRoutes = require('./messages');
-const messagingV2Routes = require('./messaging-v2');
-const foldersRoutes = require('./folders');
-const labelsRoutes = require('./labels');
-const advancedSearchRoutes = require('./advanced-search');
 const newsletterRoutes = require('./newsletter');
 const paymentsRoutes = require('./payments');
 const pexelsRoutes = require('./pexels');
@@ -44,7 +39,6 @@ const suppliersRoutes = require('./suppliers');
 const packagesRoutes = require('./packages');
 const categoriesRoutes = require('./categories');
 const plansLegacyRoutes = require('./plans-legacy');
-const threadsRoutes = require('./threads');
 const marketplaceRoutes = require('./marketplace');
 const discoveryRoutes = require('./discovery');
 const searchRoutes = require('./search');
@@ -102,37 +96,6 @@ function mountRoutes(app, deps) {
   // Admin debug routes (emergency auth debugging)
   app.use('/api/v1/admin/debug', adminDebugRoutes);
   app.use('/api/admin/debug', adminDebugRoutes); // Backward compatibility
-
-  // Messages routes
-  if (deps && messagesRoutes.initializeDependencies) {
-    messagesRoutes.initializeDependencies(deps);
-  }
-  app.use('/api/v1/messages', messagesRoutes);
-  app.use('/api/messages', messagesRoutes); // Backward compatibility
-
-  // Messages v2 routes (Real-time Messaging System)
-  if (deps && messagingV2Routes.initializeDependencies) {
-    messagingV2Routes.initializeDependencies(deps);
-  }
-  app.use('/api/v2/messages', messagingV2Routes);
-
-  // Folders routes (Phase 2)
-  if (deps && foldersRoutes.initializeDependencies) {
-    foldersRoutes.initializeDependencies(deps);
-  }
-  app.use('/api/v2/folders', foldersRoutes);
-
-  // Labels routes (Phase 2)
-  if (deps && labelsRoutes.initializeDependencies) {
-    labelsRoutes.initializeDependencies(deps);
-  }
-  app.use('/api/v2/labels', labelsRoutes);
-
-  // Advanced Search routes (Phase 2)
-  if (deps && advancedSearchRoutes.initializeDependencies) {
-    advancedSearchRoutes.initializeDependencies(deps);
-  }
-  app.use('/api/v2/search/advanced', advancedSearchRoutes);
 
   // Newsletter routes (public, no auth required)
   app.use('/api/v1/newsletter', newsletterRoutes);
@@ -295,13 +258,6 @@ function mountRoutes(app, deps) {
   app.use('/api/v1', plansLegacyRoutes);
   app.use('/api', plansLegacyRoutes); // Backward compatibility
 
-  // Threads routes (Phase 4)
-  if (deps && threadsRoutes.initializeDependencies) {
-    threadsRoutes.initializeDependencies(deps);
-  }
-  app.use('/api/v1/threads', threadsRoutes);
-  app.use('/api/threads', threadsRoutes); // Backward compatibility
-
   // Marketplace routes (Phase 4)
   if (deps && marketplaceRoutes.initializeDependencies) {
     marketplaceRoutes.initializeDependencies(deps);
@@ -374,18 +330,6 @@ function mountRoutes(app, deps) {
   app.use('/api/v1/admin', adminConfigRoutes);
   app.use('/api/admin', adminConfigRoutes); // Backward compatibility
 
-  // ===== MESSENGER V3 ROUTES (Gold Standard Messaging System) =====
-  // Unified messenger API - replaces fragmented messaging across v1/v2
-  const messengerRoutes = require('./messenger');
-  if (deps && messengerRoutes.initializeDependencies) {
-    // Pass mongoDb module for lazy db initialization in routes
-    const messengerDeps = { ...deps };
-    messengerDeps.db = deps.mongoDb; // Pass module, routes will call getDb() when needed
-    messengerDeps.wsServer = deps.getWebSocketServer ? deps.getWebSocketServer() : null;
-    messengerRoutes.initializeDependencies(messengerDeps);
-  }
-  app.use('/api/v3/messenger', messengerRoutes);
-
   // ===== MESSENGER V4 ROUTES (Next Generation Messaging System) =====
   // Purpose-built, gold standard real-time chat platform with liquid glass design
   const messengerV4 = require('./messenger-v4');
@@ -396,18 +340,6 @@ function mountRoutes(app, deps) {
     messengerV4Deps.wsServer = deps.getWebSocketServer ? deps.getWebSocketServer() : null;
     const messengerV4Router = messengerV4.initialize(messengerV4Deps);
     app.use('/api/v4/messenger', messengerV4Router);
-  }
-
-  // ===== CHAT V5 ROUTES (Complete Chat System Rebuild) =====
-  // Next-generation unified chat platform with gold standard real-time messaging
-  const chatV5 = require('./chat-v5');
-  if (deps && chatV5.initialize) {
-    // Pass mongoDb module for lazy db initialization in routes
-    const chatV5Deps = { ...deps };
-    chatV5Deps.db = deps.mongoDb; // Pass module, routes will call getDb() when needed
-    chatV5Deps.wsServer = deps.getWebSocketServer ? deps.getWebSocketServer() : null;
-    const chatV5Router = chatV5.initialize(chatV5Deps);
-    app.use('/api/v5/chat', chatV5Router);
   }
 
   // ===== LEGACY REDIRECTS =====
