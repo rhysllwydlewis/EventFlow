@@ -62,10 +62,10 @@ describe('MessageSupplierPanel Authentication', () => {
       expect(validMessage.trim().length).toBeGreaterThan(0);
     });
 
-    it('should use /api/threads/start endpoint for message sending', () => {
-      const messageEndpoint = '/api/threads/start';
+    it('should use /api/v4/messenger/conversations endpoint for message sending', () => {
+      const messageEndpoint = '/api/v4/messenger/conversations';
 
-      expect(messageEndpoint).toBe('/api/threads/start');
+      expect(messageEndpoint).toBe('/api/v4/messenger/conversations');
     });
   });
 

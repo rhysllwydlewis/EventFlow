@@ -645,7 +645,7 @@ app.use('/', dashboardRoutes);
 const UP_ROOT = path.join(DATA_DIR, 'uploads');
 
 function ensureDirs() {
-  const dirs = [UP_ROOT, path.join(UP_ROOT, 'suppliers'), path.join(UP_ROOT, 'packages')];
+  const dirs = [UP_ROOT, path.join(UP_ROOT, 'suppliers'), path.join(UP_ROOT, 'packages'), path.join(UP_ROOT, 'messenger')];
   for (const d of dirs) {
     if (!fs.existsSync(d)) {
       fs.mkdirSync(d, { recursive: true });

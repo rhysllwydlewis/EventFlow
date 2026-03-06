@@ -126,6 +126,9 @@ data/uploads/*
 !data/uploads/.gitkeep
 uploads/*
 !uploads/.gitkeep
+!uploads/messenger/
+uploads/messenger/*
+!uploads/messenger/.gitkeep
 public/uploads/*
 !public/uploads/.gitkeep
 
