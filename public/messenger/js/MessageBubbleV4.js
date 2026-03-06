@@ -7,6 +7,30 @@
 
 'use strict';
 
+// ---------------------------------------------------------------------------
+// Static SVG icon strings for MessageBubbleV4.
+// These are fully static literals — no user input is ever interpolated into
+// these strings, so there is no XSS risk from using them in template literals.
+// ---------------------------------------------------------------------------
+const _ICON_CHECK_SINGLE =
+  '<svg width="12" height="10" viewBox="0 0 12 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1,5 4,9 11,1"/></svg>';
+const _ICON_CHECK_DOUBLE =
+  '<svg width="18" height="10" viewBox="0 0 18 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1,5 4,9 11,1"/><polyline points="7,5 10,9 17,1"/></svg>';
+const _ICON_DOTS_VERT =
+  '<svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="5" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="19" r="1.5" fill="currentColor"/></svg>';
+const _ICON_PAPERCLIP =
+  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>';
+const _ICON_REPLY =
+  '<svg class="messenger-v4__menu-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/></svg>';
+const _ICON_REACT =
+  '<svg class="messenger-v4__menu-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>';
+const _ICON_COPY =
+  '<svg class="messenger-v4__menu-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+const _ICON_EDIT =
+  '<svg class="messenger-v4__menu-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14c0 1.1.9 2 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+const _ICON_TRASH =
+  '<svg class="messenger-v4__menu-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
+
 class MessageBubbleV4 {
   // ---------------------------------------------------------------------------
   // Public static renderers
@@ -51,7 +75,9 @@ class MessageBubbleV4 {
                 aria-haspopup="true"
                 data-message-id="${MessageBubbleV4.escape(message._id)}"
                 data-can-edit="${canEdit}"
-                data-is-own="${isSent}">⋮</button>
+                data-is-own="${isSent}">
+          ${_ICON_DOTS_VERT}
+        </button>
       </div>`;
   }
 
@@ -119,7 +145,7 @@ class MessageBubbleV4 {
     const sizeLabel = attachment.size ? MessageBubbleV4._formatFileSize(attachment.size) : '';
     return `
       <div class="messenger-v4__attachment messenger-v4__attachment--file">
-        <span class="messenger-v4__attachment-icon" aria-hidden="true">📎</span>
+        <span class="messenger-v4__attachment-icon" aria-hidden="true">${_ICON_PAPERCLIP}</span>
         <div class="messenger-v4__attachment-info">
           <a href="${MessageBubbleV4.safeUrl(attachment.url)}"
              target="_blank"
@@ -161,18 +187,17 @@ class MessageBubbleV4 {
    * @returns {string}
    */
   static renderReadReceipt(status) {
-    let icon = '✓';
+    let icon = _ICON_CHECK_SINGLE; // default: 'sent' (single tick)
     let label = 'Sent';
     let cls = 'messenger-v4__read-receipt';
 
     if (status === 'delivered') {
-      icon = '✓✓';
       label = 'Delivered';
-    }
-    if (status === 'read') {
-      icon = '✓✓';
+      icon = _ICON_CHECK_DOUBLE;
+    } else if (status === 'read') {
       label = 'Read';
       cls += ' messenger-v4__read-receipt--read';
+      icon = _ICON_CHECK_DOUBLE;
     }
 
     return `<span class="${cls}" aria-label="${label}" title="${label}">${icon}</span>`;
@@ -188,15 +213,27 @@ class MessageBubbleV4 {
   static renderContextMenu(message, isOwn, canEdit) {
     const msgId = MessageBubbleV4.escape(message._id);
     let items = `
-      <button class="messenger-v4__context-menu-item" data-action="reply" data-id="${msgId}">↩ Reply</button>
-      <button class="messenger-v4__context-menu-item" data-action="react" data-id="${msgId}">😊 React</button>
-      <button class="messenger-v4__context-menu-item" data-action="copy" data-id="${msgId}">📋 Copy</button>`;
+      <button class="messenger-v4__context-menu-item" data-action="reply" data-id="${msgId}">
+        ${_ICON_REPLY} Reply
+      </button>
+      <button class="messenger-v4__context-menu-item" data-action="react" data-id="${msgId}">
+        ${_ICON_REACT} React
+      </button>
+      <button class="messenger-v4__context-menu-item" data-action="copy" data-id="${msgId}">
+        ${_ICON_COPY} Copy
+      </button>`;
 
     if (isOwn && canEdit) {
-      items += `<button class="messenger-v4__context-menu-item" data-action="edit" data-id="${msgId}">✏️ Edit</button>`;
+      items += `
+      <button class="messenger-v4__context-menu-item" data-action="edit" data-id="${msgId}">
+        ${_ICON_EDIT} Edit
+      </button>`;
     }
     if (isOwn) {
-      items += `<button class="messenger-v4__context-menu-item messenger-v4__context-menu-item--danger" data-action="delete" data-id="${msgId}">🗑️ Delete</button>`;
+      items += `
+      <button class="messenger-v4__context-menu-item messenger-v4__context-menu-item--danger" data-action="delete" data-id="${msgId}">
+        ${_ICON_TRASH} Delete
+      </button>`;
     }
 
     return `<div class="messenger-v4__context-menu" role="menu" aria-label="Message options">${items}</div>`;

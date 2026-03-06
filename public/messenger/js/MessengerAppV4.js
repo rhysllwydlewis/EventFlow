@@ -546,7 +546,10 @@ class MessengerAppV4 {
       this.chatView.messagesEl
         .querySelectorAll('.messenger-v4__message--sent .messenger-v4__read-receipt')
         .forEach(el => {
-          el.textContent = '✓✓';
+          // Static SVG only — no user input involved, not an XSS risk.
+          // Using createElementNS would require 6+ lines; innerHTML is acceptable here.
+          el.innerHTML =
+            '<svg width="18" height="10" viewBox="0 0 18 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1,5 4,9 11,1"/><polyline points="7,5 10,9 17,1"/></svg>';
           el.classList.add('messenger-v4__read-receipt--read');
           el.setAttribute('aria-label', 'Read');
           el.title = 'Read';

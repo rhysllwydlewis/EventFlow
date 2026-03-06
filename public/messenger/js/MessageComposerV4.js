@@ -120,7 +120,9 @@ class MessageComposerV4 {
           <span class="messenger-v4__reply-bar-label">Replying to</span>
           <span class="messenger-v4__reply-bar-name" id="v4ReplyName"></span>
           <span class="messenger-v4__reply-bar-preview" id="v4ReplyPreview"></span>
-          <button class="messenger-v4__reply-bar-close" id="v4ReplyCancelBtn" aria-label="Cancel reply">✕</button>
+          <button class="messenger-v4__reply-bar-close" id="v4ReplyCancelBtn" aria-label="Cancel reply">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </div>
 
         <!-- Attached files preview -->
@@ -130,10 +132,10 @@ class MessageComposerV4 {
         <div class="messenger-v4__composer-row">
           <div class="messenger-v4__composer-actions">
             <button type="button" class="messenger-v4__composer-button" id="v4EmojiBtn" aria-label="Emoji picker" aria-expanded="false" aria-haspopup="true">
-              😊
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
             </button>
             <button type="button" class="messenger-v4__composer-button" id="v4AttachBtn" aria-label="Attach files">
-              📎
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
               <input type="file" id="v4FileInput" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" style="display:none" aria-hidden="true" />
             </button>
           </div>
@@ -512,7 +514,7 @@ class MessageComposerV4 {
         (file, i) => `
       <div class="messenger-v4__file-chip" data-index="${i}">
         <span class="messenger-v4__file-chip-name" title="${this.escape(file.name)}">${this.escape(file.name)}</span>
-        <button type="button" class="messenger-v4__file-chip-remove" data-index="${i}" aria-label="Remove ${this.escape(file.name)}">✕</button>
+        <button type="button" class="messenger-v4__file-chip-remove" data-index="${i}" aria-label="Remove ${this.escape(file.name)}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
       </div>`
       )
       .join('');

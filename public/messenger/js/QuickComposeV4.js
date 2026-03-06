@@ -177,8 +177,8 @@
         }
         .qcv4-close {
           background: transparent; border: none; cursor: pointer;
-          color: #6b7280; font-size: 1.4rem; line-height: 1;
-          padding: 4px; border-radius: 6px; transition: background 0.15s;
+          color: #6b7280; display: flex; align-items: center; justify-content: center;
+          padding: 6px; border-radius: 6px; transition: background 0.15s;
         }
         .qcv4-close:hover { background: rgba(0,0,0,0.06); }
 
@@ -337,8 +337,10 @@
     _panel.innerHTML = `
       <div class="qcv4-drag-handle" aria-hidden="true"></div>
       <div class="qcv4-header">
-        <h2 class="qcv4-title" id="qcv4-title">✉️ New Message</h2>
-        <button class="qcv4-close" id="qcv4-close-btn" aria-label="Close compose panel">✕</button>
+        <h2 class="qcv4-title" id="qcv4-title">New Message</h2>
+        <button class="qcv4-close" id="qcv4-close-btn" aria-label="Close compose panel">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
       <div class="qcv4-body">
         ${contextCardHtml}
