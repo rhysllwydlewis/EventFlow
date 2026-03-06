@@ -83,12 +83,25 @@
 
 .messenger-v4 {
   display: flex;
-  height: 100vh;
+  /* Issue 1: subtract fixed header so content isn't hidden behind it */
+  height: calc(100vh - var(--ef-header-height, 64px));
+  /* Issue 3: prevent unreasonable stretching on ultrawide monitors */
+  max-width: 1600px;
+  margin: 0 auto;
   width: 100%;
   background: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   color: var(--ef-text-base, #1a202c);
   overflow: hidden;
+  /* Issue 12: relative positioning required for absolute-positioned mobile panels */
+  position: relative;
+}
+
+/* Issue 4: scoped box-sizing reset so padding never causes overflow */
+.messenger-v4 *,
+.messenger-v4 *::before,
+.messenger-v4 *::after {
+  box-sizing: border-box;
 }
 
 /* ============================================================================
@@ -135,6 +148,13 @@
   outline: none;
   border-color: var(--messenger-primary);
   box-shadow: 0 0 0 3px rgba(11, 128, 115, 0.1);
+}
+
+/* Issue 5: keyboard focus-visible ring for search input (outline only; other
+   styles already applied by :focus above) */
+.messenger-v4__search-input:focus-visible {
+  outline: 2px solid var(--messenger-primary);
+  outline-offset: 2px;
 }
 
 .messenger-v4__search-icon {
@@ -593,7 +613,8 @@
   gap: var(--messenger-space-sm);
   margin-top: 4px;
   font-size: 11px;
-  opacity: 0;
+  /* Issue 2: use a dim-but-visible base opacity so timestamps show on touch devices */
+  opacity: 0.6;
   transition: opacity var(--messenger-transition-base);
 }
 
@@ -759,27 +780,24 @@
 }
 
 /* Mobile (< 768px) */
+/* Issue 12: absolute positioning aligns with the polish-file slide transitions.
+   JS (MessengerAppV4.handleMobilePanel) uses inline style.display to toggle
+   panels; the CSS only sets the initial stack layout and default visibility. */
 @media (max-width: 767px) {
-  .messenger-v4 {
-    flex-direction: column;
-  }
-  
   .messenger-v4__sidebar {
+    position: absolute;
+    inset: 0;
     width: 100%;
     max-width: none;
     border-right: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
   }
   
   .messenger-v4__chat {
-    display: none;
-  }
-  
-  .messenger-v4__chat--active {
-    display: flex;
-  }
-  
-  .messenger-v4__sidebar--hidden {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    /* Chat is hidden by default on mobile; JS shows it via style.display='flex'
+       when a conversation is opened, and hides it again on back navigation. */
     display: none;
   }
   
@@ -788,19 +806,45 @@
   }
 }
 
+/* Small-mobile (< 375px) — iPhone SE and similar narrow phones */
+/* Issue 3: shrink avatars, padding, and font sizes to prevent crowding */
+@media (max-width: 374px) {
+  .messenger-v4__avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+  }
+
+  .messenger-v4__sidebar-header,
+  .messenger-v4__chat-header {
+    padding: 8px 12px;
+  }
+
+  .messenger-v4__conversation-item {
+    padding: 8px 12px;
+  }
+
+  .messenger-v4__message-content {
+    max-width: 90%;
+  }
+
+  .messenger-v4__composer {
+    padding: 8px 12px;
+  }
+
+  .messenger-v4__filter-tab {
+    font-size: 12px;
+    padding: 4px 8px;
+  }
+}
+
 /* ============================================================================
    ACCESSIBILITY & REDUCED MOTION
    ============================================================================ */
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
+/* Issue 6: the canonical prefers-reduced-motion guard lives in messenger-v4-polish.css.
+   The nuclear *,*::before,*::after reset has been removed from here to avoid
+   triple-duplicate conflicts across the three CSS files. */
 
 /* Focus visible for keyboard navigation */
 .messenger-v4__conversation-item:focus-visible,
@@ -811,14 +855,49 @@
   outline-offset: 2px;
 }
 
-/* High contrast mode support */
+/* Issue 7: expand high-contrast mode coverage to all interactive messenger elements */
 @media (prefers-contrast: high) {
+  /* Sent bubbles have a teal background — white border provides contrast */
   .messenger-v4__message--sent .messenger-v4__message-bubble {
-    border: 2px solid var(--messenger-primary);
+    border: 2px solid #fff;
   }
   
   .messenger-v4__message--received .messenger-v4__message-bubble {
     border: 2px solid currentColor;
+  }
+
+  .messenger-v4__conversation-item {
+    border: 1px solid currentColor;
+  }
+
+  .messenger-v4__conversation-item--active {
+    border: 2px solid var(--messenger-primary);
+    outline: 2px solid var(--messenger-primary);
+    outline-offset: -2px;
+  }
+
+  .messenger-v4__filter-tab {
+    border: 1px solid currentColor;
+  }
+
+  .messenger-v4__filter-tab--active {
+    border: 2px solid var(--messenger-primary);
+  }
+
+  .messenger-v4__search-input {
+    border: 2px solid currentColor;
+  }
+
+  .messenger-v4__composer-input {
+    border: 2px solid currentColor;
+  }
+
+  .messenger-v4__send-button {
+    border: 2px solid #fff;
+  }
+
+  .messenger-v4__unread-badge {
+    border: 1px solid currentColor;
   }
 }
 
@@ -1123,8 +1202,8 @@
   transform: scale(0.95);
 }
 
-/* Mobile Responsiveness */
-@media (max-width: 768px) {
+/* Mobile Responsiveness — consistent 767px breakpoint (matches layout breakpoints above) */
+@media (max-width: 767px) {
   .messenger-modal__content {
     max-width: 100%;
     width: calc(100% - 2 * var(--messenger-space-md));

@@ -345,3 +345,122 @@
 .mwv4__item--skeleton .mwv4__item-btn {
   cursor: default;
 }
+
+/* ── Issue 15: Reduced motion guard ───────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .mwv4__badge--pulse {
+    animation: none;
+  }
+
+  .mwv4__item--skeleton .mwv4__avatar--skeleton,
+  .mwv4__skeleton-line {
+    animation: none;
+    opacity: 0.7;
+  }
+}
+
+/* ── Issue 16: High-contrast mode support ─────────────────────── */
+@media (prefers-contrast: high) {
+  .mwv4 {
+    border: 2px solid currentColor;
+  }
+
+  .mwv4__item-btn:focus-visible,
+  .mwv4__item-btn:hover {
+    outline: 2px solid currentColor;
+    outline-offset: -2px;
+  }
+
+  .mwv4__reply-textarea {
+    border: 2px solid currentColor;
+  }
+
+  .mwv4__reply-send {
+    border: 2px solid #fff;
+  }
+
+  .mwv4__reply-cancel {
+    border: 2px solid currentColor;
+  }
+
+  .mwv4__item--unread {
+    border-left: 3px solid #0b8073;
+  }
+}
+
+/* ── Issue 18: focus-visible for reply controls ───────────────── */
+.mwv4__reply-textarea:focus-visible {
+  outline: 2px solid #0b8073;
+  outline-offset: 1px;
+  border-color: #0b8073;
+  box-shadow: 0 0 0 3px rgba(11, 128, 115, 0.15);
+}
+
+.mwv4__reply-send:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(11, 128, 115, 0.4);
+}
+
+.mwv4__reply-cancel:focus-visible {
+  outline: 2px solid #0b8073;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 3px rgba(11, 128, 115, 0.15);
+}
+
+/* ── Issue 14: Responsive breakpoints ────────────────────────── */
+@media (max-width: 480px) {
+  .mwv4__header {
+    padding: 10px 14px;
+  }
+
+  .mwv4__item-btn {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+
+  .mwv4__avatar,
+  .mwv4__avatar-img {
+    width: 34px;
+    height: 34px;
+  }
+
+  .mwv4__avatar-initial {
+    font-size: 0.875rem;
+    line-height: 34px;
+  }
+
+  .mwv4__name {
+    font-size: 0.825rem;
+  }
+
+  .mwv4__preview {
+    font-size: 0.75rem;
+  }
+
+  .mwv4__reply-panel {
+    padding: 6px 12px 10px;
+  }
+}
+
+@media (max-width: 360px) {
+  .mwv4__item-btn {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  .mwv4__avatar,
+  .mwv4__avatar-img {
+    width: 30px;
+    height: 30px;
+  }
+
+  .mwv4__avatar-initial {
+    font-size: 0.8rem;
+    line-height: 30px;
+  }
+
+  .mwv4__time {
+    font-size: 0.65rem;
+  }
+}

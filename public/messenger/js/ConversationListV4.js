@@ -311,7 +311,7 @@ class ConversationListV4 {
     const conv = (this.state.conversations || []).find(c => c._id === id);
     const me = conv && uid ? conv.participants?.find(p => p.userId === uid) : null;
     const isUnread = me ? (me.unreadCount || 0) > 0 : false;
-    const markLabel = isUnread ? '✉️ Mark as Read' : '✉️ Mark as Unread';
+    const markLabel = isUnread ? 'Mark as Read' : 'Mark as Unread';
     const markAction = isUnread ? 'mark-read' : 'mark-unread';
 
     const menu = document.createElement('div');
@@ -319,10 +319,22 @@ class ConversationListV4 {
     menu.setAttribute('role', 'menu');
     menu.setAttribute('aria-label', 'Conversation options');
     menu.innerHTML = `
-      <button class="messenger-v4__conv-context-menu-item" data-action="${this.escape(markAction)}" data-id="${this.escape(id)}" role="menuitem">${this.escape(markLabel)}</button>
-      <button class="messenger-v4__conv-context-menu-item" data-action="pin" data-id="${this.escape(id)}" role="menuitem">📌 Pin</button>
-      <button class="messenger-v4__conv-context-menu-item" data-action="archive" data-id="${this.escape(id)}" role="menuitem">🗂️ Archive</button>
-      <button class="messenger-v4__conv-context-menu-item messenger-v4__conv-context-menu-item--danger" data-action="delete" data-id="${this.escape(id)}" role="menuitem">🗑️ Delete</button>
+      <button class="messenger-v4__conv-context-menu-item" data-action="${this.escape(markAction)}" data-id="${this.escape(id)}" role="menuitem">
+        <svg class="messenger-v4__menu-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        ${this.escape(markLabel)}
+      </button>
+      <button class="messenger-v4__conv-context-menu-item" data-action="pin" data-id="${this.escape(id)}" role="menuitem">
+        <svg class="messenger-v4__menu-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17H19V13L14 3H10L5 13V17Z"/></svg>
+        Pin
+      </button>
+      <button class="messenger-v4__conv-context-menu-item" data-action="archive" data-id="${this.escape(id)}" role="menuitem">
+        <svg class="messenger-v4__menu-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5" rx="1"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+        Archive
+      </button>
+      <button class="messenger-v4__conv-context-menu-item messenger-v4__conv-context-menu-item--danger" data-action="delete" data-id="${this.escape(id)}" role="menuitem">
+        <svg class="messenger-v4__menu-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+        Delete
+      </button>
     `;
 
     // Position the menu near the cursor

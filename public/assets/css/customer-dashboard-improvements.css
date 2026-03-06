@@ -724,3 +724,25 @@
 .customer-messenger-widget {
   margin-bottom: 1.5rem;
 }
+
+/* Issue 20: ensure the customer messenger widget container is responsive.
+   The widget itself handles internal breakpoints (messenger-widget-v4.css);
+   this rule handles the outer container on the customer dashboard. */
+#messenger-dashboard-widget {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+@media (max-width: 640px) {
+  /* Edge-to-edge on narrow phones */
+  #messenger-dashboard-widget {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  /* Remove card border-radius so it runs edge-to-edge */
+  #messenger-dashboard-widget .mwv4 {
+    border-radius: 0;
+  }
+}

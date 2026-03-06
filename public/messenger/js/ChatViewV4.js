@@ -68,11 +68,21 @@ class ChatViewV4 {
           <span class="messenger-v4__chat-header-status" id="v4ChatHeaderStatus"></span>
         </div>
         <div class="messenger-v4__chat-actions">
-          <button class="messenger-v4__action-button" id="v4PinBtn" aria-label="Pin conversation" title="Pin">📌</button>
-          <button class="messenger-v4__action-button" id="v4ArchiveBtn" aria-label="Archive conversation" title="Archive">🗂️</button>
-          <button class="messenger-v4__action-button" id="v4DeleteConvBtn" aria-label="Delete conversation" title="Delete">🗑️</button>
-          <button class="messenger-v4__action-button" id="v4MarkUnreadBtn" aria-label="Mark as unread" title="Mark as unread">✉️</button>
-          <button class="messenger-v4__action-button" id="v4BackBtn" aria-label="Back to list" title="Back" style="display:none">←</button>
+          <button class="messenger-v4__action-button" id="v4PinBtn" aria-label="Pin conversation" title="Pin">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17H19V13L14 3H10L5 13V17Z"/></svg>
+          </button>
+          <button class="messenger-v4__action-button" id="v4ArchiveBtn" aria-label="Archive conversation" title="Archive">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5" rx="1"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+          </button>
+          <button class="messenger-v4__action-button" id="v4DeleteConvBtn" aria-label="Delete conversation" title="Delete">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          </button>
+          <button class="messenger-v4__action-button" id="v4MarkUnreadBtn" aria-label="Mark as unread" title="Mark as unread">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          </button>
+          <button class="messenger-v4__action-button" id="v4BackBtn" aria-label="Back to list" title="Back" style="display:none">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          </button>
         </div>
       </div>
 
@@ -83,11 +93,15 @@ class ChatViewV4 {
         </div>
       </div>
 
-      <button class="messenger-v4__scroll-to-bottom" id="v4ScrollToBottom" aria-label="Scroll to latest message" style="display:none">↓</button>
+      <button class="messenger-v4__scroll-to-bottom" id="v4ScrollToBottom" aria-label="Scroll to latest message" style="display:none">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
 
       <!-- Lightbox overlay -->
       <div class="messenger-v4__lightbox" id="v4Lightbox" role="dialog" aria-modal="true" aria-label="Image preview" style="display:none">
-        <button class="messenger-v4__lightbox-close" id="v4LightboxClose" aria-label="Close image preview">✕</button>
+        <button class="messenger-v4__lightbox-close" id="v4LightboxClose" aria-label="Close image preview">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
         <img class="messenger-v4__lightbox-img" id="v4LightboxImg" alt="Full size attachment" />
       </div>
     `;
@@ -686,8 +700,18 @@ class ChatViewV4 {
     const menuHtml = MessageBubbleV4
       ? MessageBubbleV4.renderContextMenu(msg, isOwn, canEdit)
       : `<div class="messenger-v4__context-menu" role="menu">
-           <button class="messenger-v4__context-menu-item" data-action="copy" data-id="${this.escape(messageId)}">📋 Copy</button>
-           ${isOwn ? `<button class="messenger-v4__context-menu-item messenger-v4__context-menu-item--danger" data-action="delete" data-id="${this.escape(messageId)}">🗑️ Delete</button>` : ''}
+           <button class="messenger-v4__context-menu-item" data-action="copy" data-id="${this.escape(messageId)}">
+             <svg class="messenger-v4__menu-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+             Copy
+           </button>
+           ${
+             isOwn
+               ? `<button class="messenger-v4__context-menu-item messenger-v4__context-menu-item--danger" data-action="delete" data-id="${this.escape(messageId)}">
+             <svg class="messenger-v4__menu-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+             Delete
+           </button>`
+               : ''
+           }
          </div>`;
 
     const wrapper = document.createElement('div');
@@ -695,6 +719,11 @@ class ChatViewV4 {
     const menuEl = wrapper.firstElementChild;
     if (menuEl) {
       msgEl.appendChild(menuEl);
+      // Trigger the glass slide-in animation defined in messenger-v4-polish.css §14
+      requestAnimationFrame(() => menuEl.classList.add('is-entering'));
+      menuEl.addEventListener('animationend', () => menuEl.classList.remove('is-entering'), {
+        once: true,
+      });
     }
   }
 

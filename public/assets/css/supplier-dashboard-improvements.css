@@ -4125,3 +4125,23 @@ html {
 .dashboard-actions > div:empty {
   display: none !important;
 }
+
+/* Issue 19: messenger widget container — responsive sizing for supplier dashboard.
+   The widget element uses an inline style="margin-bottom:1rem" on the HTML.
+   These rules ensure correct sizing and edge-to-edge rendering on narrow phones. */
+#messenger-dashboard-widget-supplier {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+@media (max-width: 640px) {
+  #messenger-dashboard-widget-supplier {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  #messenger-dashboard-widget-supplier .mwv4 {
+    border-radius: 0;
+  }
+}
