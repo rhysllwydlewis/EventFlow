@@ -662,65 +662,6 @@ textarea:focus-visible {
   border-top: 1px solid #E7EAF0;
 }
 
-/* Chat modal light theme overrides */
-.chat-modal-backdrop {
-  background: rgba(255, 255, 255, 0.85) !important;
-}
-
-.chat-modal {
-  background: #ffffff !important;
-  color: #111827 !important;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
-  border: 1px solid rgba(0,0,0,0.08);
-}
-
-.chat-modal header {
-  background: #f9fafb !important;
-  border-bottom: 1px solid rgba(0,0,0,0.1) !important;
-}
-
-.chat-modal header h3,
-.chat-modal header * {
-  color: #111827 !important;
-}
-
-.chat-messages {
-  background: #ffffff !important;
-}
-
-.chat-message-other .chat-bubble {
-  background: #f3f4f6 !important;
-  color: #111827 !important;
-}
-
-.chat-message-mine .chat-bubble {
-  background: #00c896 !important;
-  color: #ffffff !important;
-}
-
-.chat-meta {
-  color: #6b7280 !important;
-}
-
-.chat-input {
-  background: #f9fafb !important;
-  border-top: 1px solid rgba(0,0,0,0.1) !important;
-}
-
-.chat-input textarea {
-  background: #ffffff !important;
-  border: 1px solid #d1d5db !important;
-  color: #111827 !important;
-}
-
-.chat-input textarea::placeholder {
-  color: #9ca3af !important;
-}
-
-.chat-status {
-  color: #6b7280 !important;
-}
-
 /* Ensure message bubbles in modals use proper styling */
 .messages-list {
   display: flex;

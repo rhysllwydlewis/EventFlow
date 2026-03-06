@@ -80,9 +80,18 @@
       let data;
 
       if (threadId.startsWith('thd_')) {
-        // Legacy v1 thread – v1 API has been removed; no messages to load
+        // Legacy v1 thread – v1 API has been removed; show a helpful empty-state
         console.warn('[conversation-handler] Legacy thd_ thread ID detected; v1 API removed.');
-        messages = [];
+        const legacyContainer = document.getElementById('messages-container');
+        if (legacyContainer) {
+          legacyContainer.innerHTML = `
+            <div style="text-align: center; padding: 2rem; color: #6b7280;">
+              <p><strong>This conversation belongs to an older messaging system.</strong></p>
+              <p>Legacy threads are no longer accessible here. Please start a new conversation or contact support if you need help retrieving old messages.</p>
+              <a href="/messenger/" style="display: inline-block; margin-top: 1rem; color: #6366f1; text-decoration: underline;">Go to Messenger</a>
+            </div>`;
+        }
+        return;
       } else {
         // Modern v4 messages
         const res = await fetch(`/api/v4/messenger/conversations/${threadId}/messages`, {
