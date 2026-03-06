@@ -725,31 +725,24 @@
   margin-bottom: 1.5rem;
 }
 
-/* Issues 19 & 20: ensure messenger widget containers are responsive on all screen sizes.
-   The widget itself is responsive (breakpoints in messenger-widget-v4.css) but the
-   outer containers on each dashboard need width capping and overflow protection. */
-#messenger-dashboard-widget,
-#messenger-dashboard-widget-supplier {
-  /* Replace inline margin-bottom with a CSS class */
-  margin-bottom: 1rem;
+/* Issue 20: ensure the customer messenger widget container is responsive.
+   The widget itself handles internal breakpoints (messenger-widget-v4.css);
+   this rule handles the outer container on the customer dashboard. */
+#messenger-dashboard-widget {
   width: 100%;
-  /* Prevent the widget card from stretching unreasonably wide on large screens */
   max-width: 100%;
   overflow: hidden;
 }
 
 @media (max-width: 640px) {
-  /* On narrow phones, remove any outer horizontal padding that would clip the widget */
-  #messenger-dashboard-widget,
-  #messenger-dashboard-widget-supplier {
+  /* Edge-to-edge on narrow phones */
+  #messenger-dashboard-widget {
     margin-left: 0;
     margin-right: 0;
-    border-radius: 0;
   }
 
-  /* Let the inner .mwv4 card breathe edge-to-edge on very narrow screens */
-  #messenger-dashboard-widget .mwv4,
-  #messenger-dashboard-widget-supplier .mwv4 {
+  /* Remove card border-radius so it runs edge-to-edge */
+  #messenger-dashboard-widget .mwv4 {
     border-radius: 0;
   }
 }
