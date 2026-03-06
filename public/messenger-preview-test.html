@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Messenger Preview</title>
+<style>
+/* Paste messenger CSS inline for preview */
+:root {
+  --ef-header-height: 64px;
+  --messenger-primary: #0B8073;
+  --messenger-primary-dark: #0A6B5F;
+  --messenger-teal-gradient-start: rgba(11,128,115,0.85);
+  --messenger-teal-gradient-end: rgba(10,107,95,0.92);
+  --messenger-glass-light: rgba(255,255,255,0.95);
+  --messenger-glass-medium: rgba(255,255,255,0.72);
+  --messenger-bubble-sent-bg: linear-gradient(135deg,rgba(11,128,115,0.85),rgba(10,107,95,0.92));
+  --messenger-bubble-received-bg: rgba(255,255,255,0.95);
+  --messenger-online: #10b981;
+  --messenger-offline: #6b7280;
+  --messenger-unread-bg: #0B8073;
+  --messenger-unread-text: #fff;
+  --messenger-space-xs: 4px;
+  --messenger-space-sm: 8px;
+  --messenger-space-md: 12px;
+  --messenger-space-lg: 16px;
+  --messenger-space-xl: 24px;
+  --messenger-space-2xl: 32px;
+  --messenger-transition-base: 250ms cubic-bezier(0.4,0,0.2,1);
+  --messenger-shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --messenger-shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+  --messenger-shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+  --ef-text-base: #1a202c;
+  --ef-text-muted: #6b7280;
+  --messenger-z-sticky: 200;
+  --messenger-z-dropdown: 100;
+  --ef-bg-base: #ffffff;
+  --messenger-avatar-bubble-start: rgba(11,128,115,0.65);
+  --messenger-avatar-bubble-end: rgba(10,107,95,0.85);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#f0f0f0; }
+</style>
+<link rel="stylesheet" href="http://localhost:4173/assets/css/messenger-v4.css">
+<link rel="stylesheet" href="http://localhost:4173/messenger/css/messenger-v4-animations.css">
+<link rel="stylesheet" href="http://localhost:4173/messenger/css/messenger-v4-polish.css">
+</head>
+<body>
+<div class="messenger-v4" style="height:100vh;">
+  <!-- Sidebar -->
+  <div class="messenger-v4__sidebar">
+    <div class="messenger-v4__sidebar-header">
+      <h2 class="messenger-v4__sidebar-title">Messages</h2>
+      <button class="messenger-v4__new-convo-btn" data-action="new-conversation" title="New conversation">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+    </div>
+    <div class="messenger-v4__search">
+      <span class="messenger-v4__search-icon">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      </span>
+      <input class="messenger-v4__search-input" type="search" placeholder="Search conversations...">
+    </div>
+    <div class="messenger-v4__filter-tabs">
+      <button class="messenger-v4__filter-tab messenger-v4__filter-tab--active">All</button>
+      <button class="messenger-v4__filter-tab">Unread</button>
+      <button class="messenger-v4__filter-tab">Active</button>
+      <button class="messenger-v4__filter-tab">Archived</button>
+    </div>
+    <div class="messenger-v4__conversation-list">
+      <!-- Conversation items -->
+      <div class="messenger-v4__conversation-item messenger-v4__conversation-item--active messenger-v4__conversation-item--unread">
+        <div class="messenger-v4__avatar-wrapper">
+          <div class="messenger-v4__avatar">JD</div>
+          <div class="messenger-v4__presence-dot messenger-v4__presence-dot--online"></div>
+        </div>
+        <div class="messenger-v4__conversation-details">
+          <div class="messenger-v4__conversation-header">
+            <span class="messenger-v4__conversation-name">Jane's Photography</span>
+            <span class="messenger-v4__role-badge messenger-v4__role-badge--supplier">Supplier</span>
+          </div>
+          <div class="messenger-v4__message-preview messenger-v4__message-preview--you">Thanks for the booking inquiry!</div>
+          <div class="messenger-v4__context-badge">
+            <span>📷 Wedding Package - 8hrs</span>
+          </div>
+        </div>
+        <div class="messenger-v4__conversation-meta">
+          <span class="messenger-v4__timestamp">2m</span>
+          <span class="messenger-v4__unread-badge">3</span>
+        </div>
+      </div>
+      <div class="messenger-v4__conversation-item">
+        <div class="messenger-v4__avatar-wrapper">
+          <div class="messenger-v4__avatar">MB</div>
+          <div class="messenger-v4__presence-dot"></div>
+        </div>
+        <div class="messenger-v4__conversation-details">
+          <div class="messenger-v4__conversation-header">
+            <span class="messenger-v4__conversation-name">Mike's Catering</span>
+          </div>
+          <div class="messenger-v4__message-preview">Looking forward to hearing from you</div>
+        </div>
+        <div class="messenger-v4__conversation-meta">
+          <span class="messenger-v4__timestamp">1h</span>
+        </div>
+      </div>
+      <div class="messenger-v4__conversation-item">
+        <div class="messenger-v4__avatar-wrapper">
+          <div class="messenger-v4__avatar">SV</div>
+          <div class="messenger-v4__presence-dot messenger-v4__presence-dot--online"></div>
+        </div>
+        <div class="messenger-v4__conversation-details">
+          <div class="messenger-v4__conversation-header">
+            <span class="messenger-v4__conversation-name">Sunset Venue & Events</span>
+          </div>
+          <div class="messenger-v4__message-preview messenger-v4__message-preview--you">Do you have any availability in June?</div>
+        </div>
+        <div class="messenger-v4__conversation-meta">
+          <span class="messenger-v4__timestamp">3h</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Chat -->
+  <div class="messenger-v4__chat">
+    <div class="messenger-v4__chat-header">
+      <button class="messenger-v4__action-button messenger-v4__back-button" style="display:none">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div class="messenger-v4__avatar-wrapper">
+        <div class="messenger-v4__avatar messenger-v4__chat-header-avatar">JD</div>
+        <div class="messenger-v4__presence-dot messenger-v4__presence-dot--online"></div>
+      </div>
+      <div class="messenger-v4__chat-header-info">
+        <div class="messenger-v4__chat-header-name">Jane's Photography</div>
+        <div class="messenger-v4__chat-header-status">Online · Supplier</div>
+      </div>
+      <div class="messenger-v4__chat-actions">
+        <button class="messenger-v4__action-button" title="View profile">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </button>
+        <button class="messenger-v4__action-button" title="Archive">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+        </button>
+        <button class="messenger-v4__action-button" title="More options">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="messenger-v4__context-banner">
+      <span class="messenger-v4__context-icon">📷</span>
+      <span class="messenger-v4__context-text">Wedding Package - 8 hours · £1,200</span>
+    </div>
+    <div class="messenger-v4__messages" data-v4="chat-view">
+      <div class="messenger-v4__date-separator">
+        <span class="messenger-v4__date-separator-text">Today</span>
+      </div>
+      <div class="messenger-v4__message messenger-v4__message--received">
+        <div class="messenger-v4__message-avatar">JD</div>
+        <div class="messenger-v4__message-content">
+          <div class="messenger-v4__message-sender">Jane D.</div>
+          <div class="messenger-v4__message-bubble">
+            Hi! Thanks for reaching out about our wedding photography package. I'd love to chat about your requirements.
+          </div>
+          <div class="messenger-v4__message-meta">
+            <span class="messenger-v4__message-time">10:32 AM</span>
+          </div>
+        </div>
+      </div>
+      <div class="messenger-v4__message messenger-v4__message--sent">
+        <div class="messenger-v4__message-content">
+          <div class="messenger-v4__message-bubble">
+            Great! We're planning a wedding for June 15th. Do you have availability for a full-day package?
+          </div>
+          <div class="messenger-v4__message-meta">
+            <span class="messenger-v4__message-time">10:35 AM</span>
+            <div class="messenger-v4__read-receipt messenger-v4__read-receipt--read">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="messenger-v4__message messenger-v4__message--received">
+        <div class="messenger-v4__message-avatar">JD</div>
+        <div class="messenger-v4__message-content">
+          <div class="messenger-v4__message-sender">Jane D.</div>
+          <div class="messenger-v4__message-bubble">
+            June 15th works perfectly! I'd love to be there from morning preparations right through the evening reception. My full-day package includes 8 hours of coverage, 300+ edited photos, and a private online gallery.
+          </div>
+          <div class="messenger-v4__message-meta">
+            <span class="messenger-v4__message-time">10:38 AM</span>
+          </div>
+        </div>
+      </div>
+      <div class="messenger-v4__typing-indicator" style="display:flex">
+        <div class="messenger-v4__message-avatar messenger-v4__message-avatar--typing">JD</div>
+        <div class="messenger-v4__typing-bubble">
+          <div class="messenger-v4__typing-dot"></div>
+          <div class="messenger-v4__typing-dot"></div>
+          <div class="messenger-v4__typing-dot"></div>
+        </div>
+      </div>
+    </div>
+    <div class="messenger-v4__composer">
+      <div class="messenger-v4__composer-row">
+        <div class="messenger-v4__composer-actions">
+          <button class="messenger-v4__composer-button" title="Emoji">😊</button>
+          <button class="messenger-v4__composer-button" title="Attach file">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+          </button>
+        </div>
+        <textarea class="messenger-v4__composer-input" placeholder="Type a message..." rows="1"></textarea>
+        <div class="messenger-v4__composer-actions">
+          <button class="messenger-v4__send-button" title="Send">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
