@@ -695,6 +695,11 @@ class ChatViewV4 {
     const menuEl = wrapper.firstElementChild;
     if (menuEl) {
       msgEl.appendChild(menuEl);
+      // Trigger the glass slide-in animation defined in messenger-v4-polish.css §14
+      requestAnimationFrame(() => menuEl.classList.add('is-entering'));
+      menuEl.addEventListener('animationend', () => menuEl.classList.remove('is-entering'), {
+        once: true,
+      });
     }
   }
 

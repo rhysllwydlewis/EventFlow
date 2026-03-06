@@ -1202,8 +1202,8 @@
   transform: scale(0.95);
 }
 
-/* Mobile Responsiveness */
-@media (max-width: 768px) {
+/* Mobile Responsiveness — consistent 767px breakpoint (matches layout breakpoints above) */
+@media (max-width: 767px) {
   .messenger-modal__content {
     max-width: 100%;
     width: calc(100% - 2 * var(--messenger-space-md));
