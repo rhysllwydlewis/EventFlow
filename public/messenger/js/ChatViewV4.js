@@ -59,6 +59,10 @@ class ChatViewV4 {
   render() {
     this.container.innerHTML = `
       <div class="messenger-v4__chat-header" id="v4ChatHeader" style="display:none">
+        <!-- Back button is the first flex child so it appears on the LEFT on mobile -->
+        <button class="messenger-v4__action-button" id="v4BackBtn" aria-label="Back to list" title="Back" style="display:none">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+        </button>
         <div class="messenger-v4__avatar-wrapper">
           <div class="messenger-v4__avatar messenger-v4__chat-header-avatar" aria-hidden="true"></div>
           <span class="messenger-v4__presence-dot" id="v4HeaderPresenceDot"></span>
@@ -79,9 +83,6 @@ class ChatViewV4 {
           </button>
           <button class="messenger-v4__action-button" id="v4MarkUnreadBtn" aria-label="Mark as unread" title="Mark as unread">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-          </button>
-          <button class="messenger-v4__action-button" id="v4BackBtn" aria-label="Back to list" title="Back" style="display:none">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
           </button>
         </div>
       </div>

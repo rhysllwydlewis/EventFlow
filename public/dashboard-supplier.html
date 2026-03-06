@@ -7,26 +7,26 @@
 <meta name="robots" content="noindex,nofollow">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
-    <link rel="stylesheet" href="/assets/css/design-tokens.css?v=18.2.0" />
-    <link rel="stylesheet" href="/assets/css/styles.css?v=18.2.0" />
-    <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.2.0" />
-    <link rel="stylesheet" href="/assets/css/utilities.css?v=18.2.0" />
-    <link rel="stylesheet" href="/assets/css/components.css?v=18.2.0" />
-    <link rel="stylesheet" href="/assets/css/animations.css?v=18.2.0" />
-    <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.2.0" />
-    <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.2.0" />
-    <link rel="stylesheet" href="/assets/css/navbar.css?v=18.2.0" />
-    <link rel="stylesheet" href="/assets/css/skeleton.css?v=18.2.0" />
-    <link rel="stylesheet" href="/assets/css/dashboard-animations.css?v=18.2.0" />
-    <link rel="stylesheet" href="/assets/css/p3-features.css?v=18.2.0" />
-    <link rel="stylesheet" href="/assets/css/liquid-glass.css?v=18.2.1" />
-    <link rel="stylesheet" href="/assets/css/messaging-glass-enhancements.css?v=18.2.1" />
-    <link rel="stylesheet" href="/assets/css/supplier-dashboard-improvements.css?v=18.2.0" />
-    <link rel="stylesheet" href="/assets/css/dashboard-hero.css?v=18.2.0" />
-    <link rel="stylesheet" href="/assets/css/supplier-utils.css?v=18.2.0" />
-    <link rel="stylesheet" href="/assets/css/profile-health.css?v=18.2.0" />
+    <link rel="stylesheet" href="/assets/css/design-tokens.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/styles.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/components.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/animations.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/navbar.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/skeleton.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/dashboard-animations.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/p3-features.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/liquid-glass.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/messaging-glass-enhancements.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/supplier-dashboard-improvements.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/dashboard-hero.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/supplier-utils.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/profile-health.css?v=18.3.0" />
     <script src="/assets/js/dashboard-guard.js?v=17.0.2"></script>
-    <script src="/assets/js/toast-notifications.js?v=18.2.0"></script>
+    <script src="/assets/js/toast-notifications.js?v=18.3.0"></script>
     <script>
       // Global image error handler for supplier avatars and other images
       document.addEventListener('DOMContentLoaded', function () {
@@ -2034,11 +2034,11 @@
           });
         </script>
 
-        <script src="/assets/js/app.js?v=18.2.0"></script>
-        <script src="/assets/js/components.js?v=18.2.0"></script>
-        <script src="/assets/js/unread-badge-manager.js?v=18.2.0"></script>
+        <script src="/assets/js/app.js?v=18.3.0"></script>
+        <script src="/assets/js/components.js?v=18.3.0"></script>
+        <script src="/assets/js/unread-badge-manager.js?v=18.3.0"></script>
         <script type="module" src="/assets/js/supplier-tickets.js?v=18.3.0"></script>
-        <script type="module" src="/assets/js/supplier-gallery.js?v=18.2.0"></script>
+        <script type="module" src="/assets/js/supplier-gallery.js?v=18.3.0"></script>
         <script type="module">
           // Display subscription status on dashboard using MongoDB API
           import {
@@ -2105,14 +2105,14 @@
                   responseRate = analytics.responseRate || 100;
                   avgResponseTime = analytics.avgResponseTime || 0;
                 } else {
-                  console.warn('Analytics API not available, fetching threads for basic stats');
-                  // Fallback to basic thread count
-                  const threadsResponse = await fetch('/api/threads/my', {
+                  console.warn('Analytics API not available, fetching conversations for basic stats');
+                  // Fallback to basic conversation count
+                  const threadsResponse = await fetch('/api/v4/messenger/conversations', {
                     credentials: 'include',
                   });
                   if (threadsResponse.ok) {
                     const threadsData = await threadsResponse.json();
-                    totalEnquiries = (threadsData.items || []).length;
+                    totalEnquiries = (threadsData.conversations || []).length;
                   }
                 }
               } catch (err) {
@@ -2493,17 +2493,50 @@
             }
 
             try {
-              // Fetch threads and supplier profile
+              // Fetch conversations (v4) and supplier profile
               const [threadsResponse, supplierResponse] = await Promise.all([
-                fetch('/api/threads/my'),
-                fetch('/api/me/suppliers'),
+                fetch('/api/v4/messenger/conversations', { credentials: 'include' }),
+                fetch('/api/me/suppliers', { credentials: 'include' }),
               ]);
 
               if (!threadsResponse.ok) {
-                throw new Error('Failed to fetch threads');
+                throw new Error('Failed to fetch conversations');
               }
               const data = await threadsResponse.json();
-              const threads = data.items || [];
+
+              // Resolve current user ID for per-participant unread counts
+              let currentUserId = null;
+              try {
+                const authRes = await fetch('/api/v1/auth/me', { credentials: 'include' });
+                if (authRes.ok) {
+                  const authData = await authRes.json();
+                  currentUserId = authData?.user?.id || null;
+                }
+              } catch (_e) {
+                /* ignore */
+              }
+
+              // Map v4 conversations to thread-like shape for calculateLeadQuality
+              const threads = (data.conversations || []).map(conv => {
+                let otherParticipant = null;
+                let myParticipant = null;
+                for (const p of conv.participants || []) {
+                  if (String(p.userId) === String(currentUserId)) {
+                    myParticipant = p;
+                  } else {
+                    otherParticipant = p;
+                  }
+                }
+                return {
+                  customerName:
+                    otherParticipant?.displayName || otherParticipant?.name || 'Unknown',
+                  lastMessage:
+                    conv.lastMessagePreview || conv.lastMessage?.content || 'No messages',
+                  status: conv.status || 'Open',
+                  unreadCount: myParticipant?.unreadCount || 0,
+                  createdAt: conv.createdAt,
+                };
+              });
 
               let supplierProfile = {};
               if (supplierResponse.ok) {
@@ -2788,13 +2821,13 @@
     <!-- Dashboard avoids third-party chat/widget scripts to reduce CSP/tracking noise -->
 
     <!-- Supplier Enquiry Notifications - Extracted to external file for CSP compliance -->
-    <script src="/assets/js/dashboard-supplier-websocket.js?v=18.2.1"></script>
+    <script src="/assets/js/dashboard-supplier-websocket.js?v=18.3.0"></script>
 
     <!-- Export Functionality - Extracted to external file for CSP compliance -->
-    <script src="/assets/js/dashboard-supplier-export.js?v=18.2.1"></script>
+    <script src="/assets/js/dashboard-supplier-export.js?v=18.3.0"></script>
 
-    <script src="/assets/js/notifications.js?v=18.2.0"></script>
-    <script src="/assets/js/components/profile-health-widget.js?v=18.2.0"></script>
+    <script src="/assets/js/notifications.js?v=18.3.0"></script>
+    <script src="/assets/js/components/profile-health-widget.js?v=18.3.0"></script>
     <script src="/assets/js/keyboard-shortcuts.js" defer></script>
     <script src="/assets/js/vendor/confetti-safe.js?v=18.3.0"></script>
     <script src="/assets/js/utils/p3-features.js" defer></script>

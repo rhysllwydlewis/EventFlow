@@ -29,14 +29,48 @@
         exportBtn.innerHTML =
           '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="animation: spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg><span>Exporting...</span>';
 
-        // Fetch enquiries/threads
-        const response = await fetch('/api/threads/my', { credentials: 'include' });
+        // Fetch enquiries/conversations
+        const response = await fetch('/api/v4/messenger/conversations', { credentials: 'include' });
         if (!response.ok) {
           throw new Error('Failed to fetch enquiries');
         }
 
         const data = await response.json();
-        const threads = data.items || [];
+        const conversations = data.conversations || [];
+
+        // Resolve current user ID for per-participant unread counts
+        let currentUserId = null;
+        try {
+          const authRes = await fetch('/api/v1/auth/me', { credentials: 'include' });
+          if (authRes.ok) {
+            const authData = await authRes.json();
+            currentUserId = authData?.user?.id || null;
+          }
+        } catch (_e) {
+          /* ignore */
+        }
+
+        // Map v4 conversations to thread-like shape for CSV export
+        const threads = conversations.map(conv => {
+          let otherParticipant = null;
+          let myParticipant = null;
+          for (const p of conv.participants || []) {
+            if (String(p.userId) === String(currentUserId)) {
+              myParticipant = p;
+            } else {
+              otherParticipant = p;
+            }
+          }
+          return {
+            customerName:
+              otherParticipant?.displayName || otherParticipant?.name || 'Unknown',
+            lastMessage:
+              conv.lastMessagePreview || conv.lastMessage?.content || 'No messages',
+            status: conv.status || 'Open',
+            unreadCount: myParticipant?.unreadCount || 0,
+            createdAt: conv.createdAt,
+          };
+        });
 
         if (threads.length === 0) {
           if (typeof Toast !== 'undefined') {

@@ -440,6 +440,10 @@
   font-weight: 600;
   color: var(--ef-text-base);
   margin-bottom: 2px;
+  /* Prevent long names from wrapping over action buttons on narrow screens */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .messenger-v4__chat-header-status {
@@ -480,16 +484,22 @@
   display: flex;
   align-items: center;
   gap: var(--messenger-space-md);
+  overflow: hidden;
 }
 
 .messenger-v4__context-icon {
   font-size: 20px;
+  flex-shrink: 0;
 }
 
 .messenger-v4__context-text {
   font-size: 14px;
   color: var(--messenger-primary);
   font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 /* Messages area */
@@ -801,6 +811,20 @@
     display: none;
   }
   
+  /* Compact header: tighter gap so name, avatar, and action buttons all fit */
+  .messenger-v4__chat-header {
+    gap: 8px;
+  }
+
+  /* Smaller name/status text so the title doesn't crowd the action buttons */
+  .messenger-v4__chat-header-name {
+    font-size: 15px;
+  }
+
+  .messenger-v4__chat-header-status {
+    font-size: 12px;
+  }
+
   .messenger-v4__message-content {
     max-width: 85%;
   }
@@ -818,6 +842,18 @@
   .messenger-v4__sidebar-header,
   .messenger-v4__chat-header {
     padding: 8px 12px;
+  }
+
+  /* Tighter header on very small screens */
+  .messenger-v4__chat-header {
+    gap: 6px;
+  }
+
+  /* Shrink in-header avatar to match sidebar avatar */
+  .messenger-v4__chat-header-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
   }
 
   .messenger-v4__conversation-item {

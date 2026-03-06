@@ -635,14 +635,19 @@
     height: 100%;
   }
 
-  /* Compact action buttons on mobile to avoid header overflow with 5 buttons */
+  /* Compact action buttons on mobile to avoid header overflow with 4 buttons */
   .messenger-v4__chat-actions {
     gap: 4px;
+    flex-shrink: 0;
   }
 
   .messenger-v4__action-button {
     width: 36px;
     height: 36px;
+    /* Explicit min-width keeps the compact size; the touch-target rule below
+       uses 44px only for composer-button and filter-tab (larger hit areas). */
+    min-width: 36px;
+    min-height: 36px;
     font-size: 14px;
   }
 
@@ -682,12 +687,33 @@
     animation: mvSlideOutLeft 0.22s cubic-bezier(0.4, 0, 0.2, 1) both;
   }
 
-  /* Ensure touch target minimum 44×44px (WCAG 2.5.5) */
+  /* Ensure touch target minimum 44×44px (WCAG 2.5.5) for composer and filter
+     buttons; action-button uses explicit min-width: 36px above to keep the
+     compact header layout. */
   .messenger-v4__composer-button,
-  .messenger-v4__action-button,
   .messenger-v4__filter-tab {
     min-width: 44px;
     min-height: 44px;
+  }
+}
+
+/* ============================================================
+   18b. SMALL MOBILE ACTION BUTTON COMPACTION (≤374px)
+   Further reduce chat-action button sizes on the narrowest
+   phones so the back button + avatar + name still fit on one row.
+   ============================================================ */
+@media (max-width: 374px) {
+  .messenger-v4__action-button {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+    font-size: 13px;
+    border-radius: 6px;
+  }
+
+  .messenger-v4__chat-actions {
+    gap: 2px;
   }
 }
 
