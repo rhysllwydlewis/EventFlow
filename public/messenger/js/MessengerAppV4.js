@@ -407,7 +407,11 @@ class MessengerAppV4 {
     });
 
     // Mobile back
-    window.addEventListener('messenger:mobile-back', () => this.handleMobilePanel('sidebar'));
+    window.addEventListener('messenger:mobile-back', () => {
+      this._activeConversationId = null;
+      this.state.setActiveConversation(null);
+      this.handleMobilePanel('sidebar');
+    });
 
     // Unread count → notification bridge
     window.addEventListener('messenger:unread-count', e => {
@@ -1076,6 +1080,8 @@ class MessengerAppV4 {
           return;
         }
         if (window.innerWidth <= 767 && this._activeConversationId) {
+          this._activeConversationId = null;
+          this.state.setActiveConversation(null);
           this.handleMobilePanel('sidebar');
         }
         return;

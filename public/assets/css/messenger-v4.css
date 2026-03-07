@@ -580,6 +580,7 @@
 
 .messenger-v4__message-content {
   max-width: 65%;
+  min-width: 0;
 }
 
 .messenger-v4__message-bubble {
@@ -587,6 +588,7 @@
   border-radius: 18px;
   position: relative;
   word-wrap: break-word;
+  overflow-wrap: anywhere;
   font-size: 15px;
   line-height: 1.6;
 }

@@ -138,7 +138,7 @@ class MessageBubbleV4 {
                alt="${MessageBubbleV4.escape(fileName || 'Image attachment')}"
                loading="lazy"
                class="messenger-v4__attachment-image"
-               onerror="this.onerror=null;this.classList.add('messenger-v4__attachment-error');if(this.parentNode){var w=document.createElement('span');w.className='messenger-v4__attachment-error-label';w.title='Image unavailable';var l=document.createElement('span');l.textContent='Image unavailable';var h=document.createElement('span');h.className='messenger-v4__attachment-error-hint';h.textContent='The file may have been removed';w.appendChild(l);w.appendChild(h);this.parentNode.appendChild(w);}" />
+               onerror="this.onerror=null;this.style.display='none';this.classList.add('messenger-v4__attachment-error');if(this.parentNode){var w=document.createElement('span');w.className='messenger-v4__attachment-error-label';w.title='Image unavailable';var l=document.createElement('span');l.textContent='Image unavailable';var h=document.createElement('span');h.className='messenger-v4__attachment-error-hint';h.textContent='The file may have been removed';w.appendChild(l);w.appendChild(h);this.parentNode.appendChild(w);}" />
         </div>`;
     }
 
