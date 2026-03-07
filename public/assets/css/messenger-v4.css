@@ -799,6 +799,8 @@
     inset: 0;
     width: 100%;
     max-width: none;
+    /* Override desktop min-width: 320px so the panel never bleeds off-screen */
+    min-width: 0;
     border-right: none;
   }
   
@@ -806,14 +808,26 @@
     position: absolute;
     inset: 0;
     width: 100%;
+    min-width: 0;
     /* Chat is hidden by default on mobile; JS shows it via style.display='flex'
        when a conversation is opened, and hides it again on back navigation. */
     display: none;
   }
-  
-  /* Compact header: tighter gap so name, avatar, and action buttons all fit */
+
+  /* Prevent wide content (long URLs, pre-formatted text) from causing horizontal scroll */
+  .messenger-v4__messages {
+    overflow-x: hidden;
+  }
+
+  /* Compact header: tighter gap and no-wrap so name + buttons all fit in one row */
   .messenger-v4__chat-header {
     gap: 8px;
+    flex-wrap: nowrap;
+  }
+
+  /* Allow name/status block to shrink and clip with ellipsis */
+  .messenger-v4__chat-header-info {
+    overflow: hidden;
   }
 
   /* Smaller name/status text so the title doesn't crowd the action buttons */
@@ -825,8 +839,22 @@
     font-size: 12px;
   }
 
+  /* Ensure message content column can shrink, preventing bubble overflow */
   .messenger-v4__message-content {
     max-width: 85%;
+    min-width: 0;
+  }
+
+  /* Wrap long words / URLs inside bubbles on narrow screens */
+  .messenger-v4__message-bubble {
+    overflow-wrap: anywhere;
+  }
+
+  /* Date separator: force centering with auto side-margins in case padding offsets it */
+  .messenger-v4__date-separator {
+    margin-left: auto;
+    margin-right: auto;
+    width: fit-content;
   }
 }
 

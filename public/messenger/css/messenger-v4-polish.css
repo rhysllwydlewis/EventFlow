@@ -639,6 +639,7 @@
   .messenger-v4__chat-actions {
     gap: 4px;
     flex-shrink: 0;
+    overflow: hidden;
   }
 
   .messenger-v4__action-button {

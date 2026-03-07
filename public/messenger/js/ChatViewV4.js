@@ -457,7 +457,7 @@ class ChatViewV4 {
     this._updateMarkUnreadBtn(isUnread);
 
     // Show back button on mobile
-    if (window.innerWidth <= 768) {
+    if (window.innerWidth <= 767) {
       this.container.querySelector('#v4BackBtn').style.display = '';
     }
   }

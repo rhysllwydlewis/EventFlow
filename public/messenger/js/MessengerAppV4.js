@@ -642,7 +642,7 @@ class MessengerAppV4 {
     }
 
     // On mobile, switch to chat panel
-    if (window.innerWidth <= 768) {
+    if (window.innerWidth <= 767) {
       this.handleMobilePanel('chat');
     }
 
@@ -1075,7 +1075,7 @@ class MessengerAppV4 {
           this.contactPicker.close();
           return;
         }
-        if (window.innerWidth <= 768 && this._activeConversationId) {
+        if (window.innerWidth <= 767 && this._activeConversationId) {
           this.handleMobilePanel('sidebar');
         }
         return;
@@ -1108,7 +1108,7 @@ class MessengerAppV4 {
   }
 
   _setupResponsive() {
-    const mq = window.matchMedia('(max-width: 768px)');
+    const mq = window.matchMedia('(max-width: 767px)');
     this._onMqChange = e => {
       if (!e.matches && this._activeConversationId) {
         // Restore both panels on desktop
