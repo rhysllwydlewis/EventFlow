@@ -293,14 +293,16 @@ describe('Messenger client-side fixes', () => {
 
   // ── A) Image unavailable placeholder readability ────────────────────────────
 
-  it('messenger-v4-polish.css error label uses white text (color: #fff)', () => {
+  it('messenger-v4-polish.css error label uses a neutral grey text color on a light background', () => {
     const cssSrc = fs.readFileSync(
       path.join(MESSENGER_DIR, 'css', 'messenger-v4-polish.css'),
       'utf8'
     );
     expect(cssSrc).toContain('.messenger-v4__attachment-error-label');
-    // Must use white (#fff) so text is readable on the dark bubble background
-    expect(cssSrc).toMatch(/\.messenger-v4__attachment-error-label\s*\{[^}]*color:\s*#fff/);
+    // Uses a light background (low opacity black overlay) so grey text is readable
+    expect(cssSrc).toMatch(/\.messenger-v4__attachment-error-label\s*\{[^}]*background:\s*rgba\(0,\s*0,\s*0,/);
+    // Uses a neutral grey text color (readable on light background)
+    expect(cssSrc).toMatch(/\.messenger-v4__attachment-error-label\s*\{[^}]*color:\s*#9ca3af/);
   });
 
   it('messenger-v4-polish.css error label has a secondary hint class defined', () => {

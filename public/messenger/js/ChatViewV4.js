@@ -254,7 +254,7 @@ class ChatViewV4 {
       const data = await this.api.getMessages(conversationId, { limit: 40 });
       const messages = Array.isArray(data?.messages) ? data.messages : Array.isArray(data) ? data : [];
       // Respect the server's hasMore flag; fall back to truthy when messages filled the page
-      this.hasMoreMessages = data.hasMore !== undefined ? data.hasMore : messages.length >= 40;
+      this.hasMoreMessages = data?.hasMore !== undefined ? data.hasMore : messages.length >= 40;
       this.oldestCursor = messages[0]?._id || null;
 
       this.state.setMessages(conversationId, messages);
@@ -350,7 +350,7 @@ class ChatViewV4 {
     if (wasAtBottom) {
       this.scrollToBottom(true);
     } else {
-      this.scrollBtn.style.display = 'block';
+      this.scrollBtn.style.display = 'flex';
     }
   }
 
@@ -612,7 +612,7 @@ class ChatViewV4 {
     if (this._isAtBottom()) {
       this.scrollBtn.style.display = 'none';
     } else {
-      this.scrollBtn.style.display = 'block';
+      this.scrollBtn.style.display = 'flex';
     }
 
     // Load older messages when scrolled within 80px of top
