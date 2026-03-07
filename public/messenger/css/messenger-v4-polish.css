@@ -687,13 +687,46 @@
     animation: mvSlideOutLeft 0.22s cubic-bezier(0.4, 0, 0.2, 1) both;
   }
 
-  /* Ensure touch target minimum 44×44px (WCAG 2.5.5) for composer and filter
-     buttons; action-button uses explicit min-width: 36px above to keep the
-     compact header layout. */
+  /* Ensure touch target minimum for composer buttons; reduced from 44px
+     to 40px so they compact on mobile alongside action buttons. */
   .messenger-v4__composer-button,
   .messenger-v4__filter-tab {
-    min-width: 44px;
-    min-height: 44px;
+    min-width: 40px;
+    min-height: 40px;
+  }
+
+  /* === NEW-CONVO BUTTON: constrain to square icon button on mobile === */
+  .messenger-v4__new-convo-btn {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    max-width: 36px;
+    flex-shrink: 0;
+    flex-grow: 0;
+    padding: 0;
+  }
+
+  /* === SEND BUTTON: compact on mobile === */
+  .messenger-v4__send-button {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    min-height: 38px;
+  }
+
+  /* === FILTER TABS: reduce disproportionate height on mobile === */
+  .messenger-v4__filter-tab {
+    min-height: 36px;
+    min-width: auto;
+    padding: 6px 12px;
+  }
+
+  /* === ATTACHMENT REMOVE BUTTON: enlarge tap target on mobile === */
+  .messenger-v4__attachment-card-remove,
+  .messenger-v4__file-chip-remove {
+    min-width: 32px;
+    min-height: 32px;
+    padding: 6px;
   }
 }
 
@@ -714,6 +747,36 @@
 
   .messenger-v4__chat-actions {
     gap: 2px;
+  }
+
+  /* === NEW-CONVO BUTTON: further compact on narrowest phones === */
+  .messenger-v4__new-convo-btn {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    max-width: 32px;
+    border-radius: 8px;
+  }
+
+  /* === COMPOSER BUTTON: compact on narrowest phones === */
+  .messenger-v4__composer-button {
+    min-width: 36px;
+    min-height: 36px;
+  }
+
+  /* === SEND BUTTON: compact on narrowest phones === */
+  .messenger-v4__send-button {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    min-height: 34px;
+  }
+
+  /* === FILTER TABS: compact on narrowest phones === */
+  .messenger-v4__filter-tab {
+    min-height: 32px;
+    padding: 4px 10px;
+    font-size: 13px;
   }
 }
 
