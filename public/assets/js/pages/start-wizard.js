@@ -249,13 +249,15 @@
 
     // Step-specific rendering
     if (stepIndex === STEP_CONFIG.WELCOME) {
-      // Welcome screen (no progress indicator)
+      // Welcome screen — no progress indicator
       html += renderWelcomeScreen();
+    } else if (stepIndex === STEP_CONFIG.SUCCESS) {
+      // Success screen — no progress indicator (it would show "Step 8 of 7")
+      html += renderSuccessScreen();
     } else {
-      // Add progress indicator for all other steps
+      // All wizard steps: show progress indicator then step content
       html += renderProgressIndicator(stepIndex);
 
-      // Render step content
       if (stepIndex === STEP_CONFIG.EVENT_TYPE) {
         html += renderEventTypeStep();
       } else if (stepIndex === STEP_CONFIG.EVENT_BASICS) {
@@ -265,8 +267,6 @@
         html += renderCategoryStep(CATEGORIES[categoryIndex]);
       } else if (stepIndex === STEP_CONFIG.REVIEW) {
         html += renderReviewStep();
-      } else if (stepIndex === STEP_CONFIG.SUCCESS) {
-        html += renderSuccessScreen();
       }
     }
 
@@ -1054,7 +1054,7 @@
 
     let html = '<div class="wizard-package-grid" role="listbox" aria-label="Available packages">';
     packages.slice(0, 6).forEach(pkg => {
-      const isSelected = pkg.id === selectedId;
+      const isSelected = String(pkg.id) === selectedId;
       const distanceInfo =
         pkg.distance !== undefined && pkg.distance !== null && typeof pkg.distance === 'number'
           ? `<p class="small wizard-package-distance">📍 ${escapeHtml(pkg.distance.toFixed(1))} miles away</p>`
