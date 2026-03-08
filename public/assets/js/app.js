@@ -2660,7 +2660,7 @@ async function initDashSupplier() {
 
       if (!items || items.length === 0) {
         supWrap.innerHTML =
-          '<div class="card"><p>You have not created a supplier profile yet.</p></div>';
+          '<div class="sd-empty-state"><div class="sd-empty-state__icon" aria-hidden="true">👤</div><p class="sd-empty-state__title">No profiles yet</p><p class="sd-empty-state__desc">Create your first supplier profile to start attracting clients.</p></div>';
         return;
       }
       supWrap.innerHTML = items
@@ -2803,7 +2803,7 @@ async function initDashSupplier() {
       console.error('Error loading suppliers:', err);
       if (supWrap) {
         supWrap.innerHTML =
-          '<div class="card"><p>Error loading suppliers. Please try again.</p></div>';
+          '<div class="sd-empty-state"><div class="sd-empty-state__icon" aria-hidden="true">⚠️</div><p class="sd-empty-state__title">Could not load profiles</p><p class="sd-empty-state__desc">Please refresh the page to try again.</p></div>';
       }
     }
   }
@@ -2993,7 +2993,7 @@ async function initDashSupplier() {
 
       if (!items || items.length === 0) {
         pkgsWrap.innerHTML =
-          '<div class="card"><p>You have not created any packages yet.</p></div>';
+          '<div class="sd-empty-state"><div class="sd-empty-state__icon" aria-hidden="true">📦</div><p class="sd-empty-state__title">No packages yet</p><p class="sd-empty-state__desc">Create your first package to showcase your services and pricing.</p></div>';
         return;
       }
       pkgsWrap.innerHTML = items
@@ -3027,7 +3027,7 @@ async function initDashSupplier() {
       console.error('Error loading packages:', err);
       if (pkgsWrap) {
         pkgsWrap.innerHTML =
-          '<div class="card"><p>Error loading packages. Please try again.</p></div>';
+          '<div class="sd-empty-state"><div class="sd-empty-state__icon" aria-hidden="true">⚠️</div><p class="sd-empty-state__title">Could not load packages</p><p class="sd-empty-state__desc">Please refresh the page to try again.</p></div>';
       }
     }
   }
