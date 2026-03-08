@@ -92,8 +92,16 @@ function createSupplierCard(supplier, position) {
   // Inline tier icon — use shared EFTierIcon helper if available (tier-icon.js)
   const tierIcon = typeof EFTierIcon !== 'undefined' ? EFTierIcon.render(supplier) : '';
 
-  const rating = supplier.rating ? `⭐ ${supplier.rating}` : '';
+  const rating = supplier.averageRating
+    ? `⭐ ${Number(supplier.averageRating).toFixed(1)}${supplier.reviewCount ? ` (${supplier.reviewCount})` : ''}`
+    : supplier.rating
+      ? `⭐ ${supplier.rating}`
+      : '';
   const priceDisplay = supplier.price_display || 'Contact for quote';
+  const distanceBadge =
+    typeof supplier.distanceMiles === 'number'
+      ? `<span class="badge badge-distance">📍 ${supplier.distanceMiles < 1 ? '< 1' : supplier.distanceMiles.toFixed(1)} mi</span>`
+      : '';
 
   return `
     <div class="card supplier-card" data-supplier-id="${escapeHtml(supplier.id)}">
@@ -112,7 +120,7 @@ function createSupplierCard(supplier, position) {
           ${rating ? `• ${rating}` : ''}
         </div>
         <p class="supplier-card-description">${escapeHtml(supplier.description_short || '')}</p>
-        <div class="supplier-card-badges">${badges.join('')}</div>
+        <div class="supplier-card-badges">${badges.join('')}${distanceBadge}</div>
         <div class="supplier-card-price">${escapeHtml(priceDisplay)}</div>
         <div class="supplier-card-actions">
           <button class="btn btn-primary btn-quote" data-supplier-id="${escapeHtml(supplier.id)}">
@@ -201,8 +209,34 @@ function createEmptyState(filters) {
   `;
 }
 
+// Valid sort values — kept in sync with VALID_SUPPLIER_SORT_VALUES in searchService.js
+const VALID_SORT_VALUES = [
+  'relevance',
+  'rating',
+  'reviews',
+  'name',
+  'newest',
+  'priceAsc',
+  'priceDesc',
+  'distance',
+];
+
+// Human-readable labels for each sort value (mirrors the HTML <option> labels)
+const SORT_LABELS = {
+  relevance: 'Relevance',
+  rating: 'Rating',
+  reviews: 'Most reviewed',
+  name: 'Name (A–Z)',
+  newest: 'Recently joined',
+  priceAsc: 'Price: low → high',
+  priceDesc: 'Price: high → low',
+  distance: 'Distance (nearest first)',
+};
+
 // Search suppliers using the v2 API
-async function searchSuppliers(filters, page = 1) {
+// Returns the full data object including appliedSort, results, pagination.
+// Throws on network/server errors so callers can show error state.
+async function searchSuppliers(filters, page = 1, signal = null) {
   const params = new URLSearchParams();
 
   if (filters.q) {
@@ -233,42 +267,48 @@ async function searchSuppliers(filters, page = 1) {
   if (filters.maxDistance) {
     params.set('maxDistance', filters.maxDistance);
   }
-  if (filters.sort && filters.sort !== 'relevance') {
-    params.set('sortBy', filters.sort);
+  // Validate sort client-side before sending; fall back to 'relevance' for unknowns
+  const sortBy = VALID_SORT_VALUES.includes(filters.sort) ? filters.sort : 'relevance';
+  if (filters.sort && filters.sort !== sortBy) {
+    console.warn(`[suppliers] Unknown sort value "${filters.sort}", falling back to "relevance"`);
+  }
+  if (sortBy !== 'relevance') {
+    params.set('sortBy', sortBy);
   }
   params.set('page', page);
   params.set('limit', 20);
 
-  try {
-    const response = await fetch(`/api/v2/search/suppliers?${params.toString()}`, {
-      credentials: 'include',
-    });
+  const response = await fetch(`/api/v2/search/suppliers?${params.toString()}`, {
+    credentials: 'include',
+    signal,
+  });
 
-    if (!response.ok) {
-      throw new Error('Search failed');
-    }
-
-    const result = await response.json();
-    const data = result.data || { results: [], pagination: { total: 0, page: 1, pages: 1 } };
-    // Normalise: API returns `pages`, but components use `totalPages`
-    if (
-      data.pagination &&
-      data.pagination.pages !== undefined &&
-      data.pagination.totalPages === undefined
-    ) {
-      data.pagination.totalPages = data.pagination.pages;
-    }
-    return data;
-  } catch (error) {
-    console.error('Search error:', error);
-    return { results: [], pagination: { total: 0, page: 1, totalPages: 1 } };
+  if (!response.ok) {
+    throw new Error(`Search failed (${response.status})`);
   }
+
+  const result = await response.json();
+  const data = result.data || {
+    results: [],
+    pagination: { total: 0, page: 1, totalPages: 1 },
+    appliedSort: 'relevance',
+  };
+  // Normalise: API returns `pages`, but components use `totalPages`
+  if (
+    data.pagination &&
+    data.pagination.pages !== undefined &&
+    data.pagination.totalPages === undefined
+  ) {
+    data.pagination.totalPages = data.pagination.pages;
+  }
+  return data;
 }
 
 // Initialize suppliers page
 async function initSuppliersPage() {
   const resultsContainer = document.getElementById('results');
   const resultCountEl = document.getElementById('resultCount');
+  const appliedSortEl = document.getElementById('applied-sort-indicator');
   const filterCategoryEl = document.getElementById('filterCategory');
   const filterPriceEl = document.getElementById('filterPrice');
   const filterQueryEl = document.getElementById('filterQuery');
@@ -285,7 +325,8 @@ async function initSuppliersPage() {
   }
 
   let currentFilters = getFiltersFromURL();
-  let isLoading = false;
+  // AbortController for the current in-flight request; allows cancelling stale requests
+  let currentAbortController = null;
 
   // Populate filter inputs from URL
   function populateFiltersFromURL() {
@@ -318,21 +359,38 @@ async function initSuppliersPage() {
     }
   }
 
-  // Render results
-  async function renderResults(append = false) {
-    if (isLoading) {
+  // Update the "Sorted by:" indicator below the filter panel
+  function updateAppliedSortIndicator(sort) {
+    if (!appliedSortEl) {
       return;
     }
-    isLoading = true;
+    if (!sort || sort === 'relevance') {
+      appliedSortEl.hidden = true;
+      appliedSortEl.textContent = '';
+    } else {
+      const label = SORT_LABELS[sort] || sort;
+      appliedSortEl.textContent = `↕ Sorted by: ${label}`;
+      appliedSortEl.hidden = false;
+    }
+  }
 
-    // Show skeleton loading
+  // Render results
+  async function renderResults(append = false) {
+    // Cancel any in-flight request before starting a new one
+    if (currentAbortController) {
+      currentAbortController.abort();
+    }
+    currentAbortController = new AbortController();
+    const signal = currentAbortController.signal;
+
+    // Show skeleton loading for fresh searches (not for load-more appends)
     if (!append) {
       resultsContainer.innerHTML = createSkeletonCards();
     }
 
     try {
-      const data = await searchSuppliers(currentFilters, currentFilters.page);
-      const { results, pagination } = data;
+      const data = await searchSuppliers(currentFilters, currentFilters.page, signal);
+      const { results, pagination, appliedSort } = data;
 
       // Track search
       if (!append) {
@@ -343,6 +401,9 @@ async function initSuppliersPage() {
       if (resultCountEl) {
         resultCountEl.textContent = `${pagination.total} supplier${pagination.total !== 1 ? 's' : ''} found`;
       }
+
+      // Show which sort the API actually applied
+      updateAppliedSortIndicator(appliedSort);
 
       // Render results or empty state
       if (results.length === 0 && !append) {
@@ -373,7 +434,10 @@ async function initSuppliersPage() {
         }
       }
     } catch (error) {
-      console.error('Render error:', error);
+      // AbortError means a newer request superseded this one — do nothing
+      if (error.name === 'AbortError') {
+        return;
+      }
       resultsContainer.innerHTML = `
         <div class="error-state" role="status" aria-live="polite">
           <div class="error-state-icon">⚠️</div>
@@ -384,10 +448,10 @@ async function initSuppliersPage() {
       `;
       const retryBtn = resultsContainer.querySelector('#retry-suppliers-btn');
       if (retryBtn) {
-        retryBtn.addEventListener('click', () => renderResults());
+        retryBtn.addEventListener('click', () => {
+          renderResults();
+        });
       }
-    } finally {
-      isLoading = false;
     }
   }
 

@@ -1777,6 +1777,22 @@ details[open] .faq-question::after {
   color: var(--ef-text-muted, #667085);
 }
 
+/* Applied-sort indicator — displayed below result count when a non-default sort is active */
+.applied-sort-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  margin: 4px var(--ef-space-1, 4px) 0;
+  font-size: 0.8125rem;
+  color: var(--ef-primary, #0b8073);
+  font-weight: 500;
+}
+
+/* Explicitly override [hidden] so display:inline-flex doesn't leak through */
+.applied-sort-indicator[hidden] {
+  display: none !important;
+}
+
 /* ===========================================
    20. RESPONSIVE UPDATES
    =========================================== */

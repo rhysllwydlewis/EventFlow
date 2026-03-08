@@ -678,3 +678,14 @@
   padding: 0.1875rem 0.5rem;
 }
 
+
+/* Distance badge — shown when distanceMiles is returned by the API */
+.badge-distance {
+  background: #e0f2fe;
+  color: #0369a1;
+  font-size: 0.72rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
