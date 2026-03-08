@@ -8,6 +8,7 @@
 const dbUnified = require('../db-unified');
 const {
   calculateRelevanceScore,
+  calculateQualityScore,
   getMatchingSnippets,
   getMatchingFields,
 } = require('../utils/searchWeighting');
@@ -277,10 +278,14 @@ async function searchSuppliers(query) {
     // Filter out items with zero score
     results = results.filter(r => r.relevanceScore > 0);
   } else {
-    // No search query, just project public fields
+    // No search query — compute quality scores for stable browse-mode ranking.
+    // This ensures that when users browse without a keyword, better-quality
+    // suppliers (high rating, many reviews, featured, verified) appear first
+    // rather than the order being determined by DB insertion order.
     results = results.map(supplier => ({
       ...projectPublicSupplierFields(supplier),
       ...(supplier._distanceMiles !== undefined ? { distanceMiles: supplier._distanceMiles } : {}),
+      relevanceScore: calculateQualityScore(supplier),
     }));
   }
 
@@ -499,8 +504,11 @@ function applyFilters(suppliers, query, userCoords) {
   }
 
   // Text search (applied in scoring, but also filter out non-matches)
+  // Phase 2: all-words matching — split query into individual words so that
+  // "wedding london" matches suppliers that mention "wedding" AND "london"
+  // anywhere in their searchable fields, rather than requiring the exact phrase.
   if (query.q) {
-    const searchTerm = query.q.toLowerCase();
+    const queryWords = query.q.toLowerCase().split(/\s+/).filter(Boolean);
     results = results.filter(s => {
       const searchableText = [
         s.name || '',
@@ -514,7 +522,8 @@ function applyFilters(suppliers, query, userCoords) {
         .join(' ')
         .toLowerCase();
 
-      return searchableText.includes(searchTerm);
+      // Every query word must appear somewhere in the combined searchable text
+      return queryWords.every(word => searchableText.includes(word));
     });
   }
 
@@ -666,6 +675,30 @@ function applyPackageFilters(packages, query, supplierMap) {
 }
 
 /**
+ * Compute a stable quality tie-break score from a result object.
+ * Used as the final comparator when primary sort keys are equal.
+ * Higher means the supplier should rank first.
+ *
+ * @param {Object} item - Projected result object
+ * @returns {number} Tie-break score
+ */
+function getQualityTieBreak(item) {
+  let score = 0;
+  score += (item.averageRating || 0) * 10;
+  score += Math.min(item.reviewCount || 0, 200) * 0.1;
+  if (item.featured) {
+    score += 5;
+  }
+  if (item.verified) {
+    score += 3;
+  }
+  if (item.isPro) {
+    score += 2;
+  }
+  return score;
+}
+
+/**
  * Sort search results
  * @param {Array} results - Results to sort
  * @param {string} sortBy - Sort criteria
@@ -680,16 +713,42 @@ function sortResults(results, sortBy, userCoords) {
       sorted.sort((a, b) => {
         const scoreA = a.relevanceScore || 0;
         const scoreB = b.relevanceScore || 0;
-        return scoreB - scoreA;
+        if (scoreB !== scoreA) {
+          return scoreB - scoreA;
+        }
+        // Tie-break: higher quality first
+        return getQualityTieBreak(b) - getQualityTieBreak(a);
       });
       break;
 
     case 'rating':
-      sorted.sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0));
+      sorted.sort((a, b) => {
+        const ratingDiff = (b.averageRating || 0) - (a.averageRating || 0);
+        if (ratingDiff !== 0) {
+          return ratingDiff;
+        }
+        // Tie-break: more reviews wins, then quality
+        const reviewDiff = (b.reviewCount || 0) - (a.reviewCount || 0);
+        if (reviewDiff !== 0) {
+          return reviewDiff;
+        }
+        return getQualityTieBreak(b) - getQualityTieBreak(a);
+      });
       break;
 
     case 'reviews':
-      sorted.sort((a, b) => (b.reviewCount || 0) - (a.reviewCount || 0));
+      sorted.sort((a, b) => {
+        const reviewDiff = (b.reviewCount || 0) - (a.reviewCount || 0);
+        if (reviewDiff !== 0) {
+          return reviewDiff;
+        }
+        // Tie-break: higher rating wins, then quality
+        const ratingDiff = (b.averageRating || 0) - (a.averageRating || 0);
+        if (ratingDiff !== 0) {
+          return ratingDiff;
+        }
+        return getQualityTieBreak(b) - getQualityTieBreak(a);
+      });
       break;
 
     case 'name':
@@ -700,16 +759,32 @@ function sortResults(results, sortBy, userCoords) {
       sorted.sort((a, b) => {
         const tA = new Date(a.updatedAt || a.createdAt || 0);
         const tB = new Date(b.updatedAt || b.createdAt || 0);
-        return tB - tA;
+        if (tB - tA !== 0) {
+          return tB - tA;
+        }
+        // Tie-break: quality
+        return getQualityTieBreak(b) - getQualityTieBreak(a);
       });
       break;
 
     case 'priceAsc':
-      sorted.sort((a, b) => getPriceLevel(a.price_display) - getPriceLevel(b.price_display));
+      sorted.sort((a, b) => {
+        const priceDiff = getPriceLevel(a.price_display) - getPriceLevel(b.price_display);
+        if (priceDiff !== 0) {
+          return priceDiff;
+        }
+        return getQualityTieBreak(b) - getQualityTieBreak(a);
+      });
       break;
 
     case 'priceDesc':
-      sorted.sort((a, b) => getPriceLevel(b.price_display) - getPriceLevel(a.price_display));
+      sorted.sort((a, b) => {
+        const priceDiff = getPriceLevel(b.price_display) - getPriceLevel(a.price_display);
+        if (priceDiff !== 0) {
+          return priceDiff;
+        }
+        return getQualityTieBreak(b) - getQualityTieBreak(a);
+      });
       break;
 
     case 'distance':
@@ -718,20 +793,34 @@ function sortResults(results, sortBy, userCoords) {
         sorted.sort((a, b) => {
           const distA = a.distanceMiles !== undefined ? a.distanceMiles : Infinity;
           const distB = b.distanceMiles !== undefined ? b.distanceMiles : Infinity;
-          return distA - distB;
+          if (distA !== distB) {
+            return distA - distB;
+          }
+          // Tie-break: quality
+          return getQualityTieBreak(b) - getQualityTieBreak(a);
         });
       } else {
-        // No postcode provided — fall back to relevance order
-        sorted.sort((a, b) => (b.relevanceScore || 0) - (a.relevanceScore || 0));
+        // No postcode provided — fall back to quality order
+        sorted.sort((a, b) => {
+          const scoreA = a.relevanceScore || 0;
+          const scoreB = b.relevanceScore || 0;
+          if (scoreB !== scoreA) {
+            return scoreB - scoreA;
+          }
+          return getQualityTieBreak(b) - getQualityTieBreak(a);
+        });
       }
       break;
 
     default:
-      // Default to relevance
+      // Default to relevance with quality tie-break
       sorted.sort((a, b) => {
         const scoreA = a.relevanceScore || 0;
         const scoreB = b.relevanceScore || 0;
-        return scoreB - scoreA;
+        if (scoreB !== scoreA) {
+          return scoreB - scoreA;
+        }
+        return getQualityTieBreak(b) - getQualityTieBreak(a);
       });
   }
 
@@ -750,18 +839,47 @@ function sortPackageResults(results, sortBy) {
   switch (sortBy) {
     case 'relevance':
       sorted.sort((a, b) => {
-        const scoreA = a.relevanceScore || 0;
-        const scoreB = b.relevanceScore || 0;
-        return scoreB - scoreA;
+        const scoreDiff = (b.relevanceScore || 0) - (a.relevanceScore || 0);
+        if (scoreDiff !== 0) {
+          return scoreDiff;
+        }
+        // Tie-break: supplier rating then price (lower is better)
+        const ratingDiff = (b.supplier?.averageRating || 0) - (a.supplier?.averageRating || 0);
+        if (ratingDiff !== 0) {
+          return ratingDiff;
+        }
+        return (a.price || 0) - (b.price || 0);
       });
       break;
 
     case 'priceAsc':
-      sorted.sort((a, b) => (a.price || 0) - (b.price || 0));
+      sorted.sort((a, b) => {
+        const priceDiff = (a.price || 0) - (b.price || 0);
+        if (priceDiff !== 0) {
+          return priceDiff;
+        }
+        // Tie-break: higher supplier rating first, then relevance
+        const ratingDiff = (b.supplier?.averageRating || 0) - (a.supplier?.averageRating || 0);
+        if (ratingDiff !== 0) {
+          return ratingDiff;
+        }
+        return (b.relevanceScore || 0) - (a.relevanceScore || 0);
+      });
       break;
 
     case 'priceDesc':
-      sorted.sort((a, b) => (b.price || 0) - (a.price || 0));
+      sorted.sort((a, b) => {
+        const priceDiff = (b.price || 0) - (a.price || 0);
+        if (priceDiff !== 0) {
+          return priceDiff;
+        }
+        // Tie-break: higher supplier rating first, then relevance
+        const ratingDiff = (b.supplier?.averageRating || 0) - (a.supplier?.averageRating || 0);
+        if (ratingDiff !== 0) {
+          return ratingDiff;
+        }
+        return (b.relevanceScore || 0) - (a.relevanceScore || 0);
+      });
       break;
 
     case 'name':
@@ -772,15 +890,21 @@ function sortPackageResults(results, sortBy) {
       sorted.sort((a, b) => {
         const tA = new Date(a.updatedAt || a.createdAt || 0);
         const tB = new Date(b.updatedAt || b.createdAt || 0);
-        return tB - tA;
+        if (tB - tA !== 0) {
+          return tB - tA;
+        }
+        // Tie-break: relevance score then supplier rating
+        return (b.relevanceScore || 0) - (a.relevanceScore || 0);
       });
       break;
 
     default:
       sorted.sort((a, b) => {
-        const scoreA = a.relevanceScore || 0;
-        const scoreB = b.relevanceScore || 0;
-        return scoreB - scoreA;
+        const scoreDiff = (b.relevanceScore || 0) - (a.relevanceScore || 0);
+        if (scoreDiff !== 0) {
+          return scoreDiff;
+        }
+        return (b.supplier?.averageRating || 0) - (a.supplier?.averageRating || 0);
       });
   }
 
@@ -855,12 +979,182 @@ function calculateFacets(allSuppliers) {
     .sort((a, b) => b.count - a.count)
     .slice(0, 15);
 
+  // Location facets — top locations by supplier count (string locations only)
+  const locationCounts = {};
+  allSuppliers.forEach(s => {
+    if (typeof s.location === 'string' && s.location.trim()) {
+      const loc = s.location.trim();
+      locationCounts[loc] = (locationCounts[loc] || 0) + 1;
+    }
+  });
+
+  const locations = Object.entries(locationCounts)
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 10);
+
   return {
     categories,
     ratings: ratingRanges,
     priceRanges,
     amenities,
+    locations,
   };
+}
+
+/**
+ * Get suppliers similar to a given supplier.
+ * Similarity is based on: same category (required), overlapping price tier,
+ * overlapping tags, and proximity of location string. Results are ranked by
+ * a composite quality score so the best matches surface first.
+ *
+ * @param {string} supplierId - The reference supplier's ID
+ * @param {number} [limit=6] - Maximum number of similar suppliers to return
+ * @returns {Promise<Array>} Array of projected public supplier objects
+ */
+async function getSimilarSuppliers(supplierId, limit = 6) {
+  const suppliers = await dbUnified.read('suppliers');
+
+  // Find the reference supplier (approved or not — we just need its attributes)
+  const reference = suppliers.find(s => s.id === supplierId || s._id === supplierId);
+  if (!reference) {
+    return [];
+  }
+
+  const referencePrice = getPriceLevel(reference.price_display);
+  const referenceTags = new Set((reference.tags || []).map(t => t.toLowerCase()));
+
+  // Filter to approved suppliers, excluding the reference itself.
+  // Only compare an ID field when it is truthy on the reference to avoid
+  // the false-negative: undefined !== undefined → false which would exclude
+  // every candidate when suppliers do not carry an _id field.
+  const candidates = suppliers.filter(s => {
+    if (!s.approved) {
+      return false;
+    }
+    if (reference.id && s.id === reference.id) {
+      return false;
+    }
+    if (reference._id && s._id === reference._id) {
+      return false;
+    }
+    return true;
+  });
+
+  // Score each candidate for similarity to the reference supplier
+  const scored = candidates.map(s => {
+    let score = 0;
+
+    // Category match is the primary signal
+    if (s.category && s.category === reference.category) {
+      score += 50;
+    }
+
+    // Price tier proximity (max 20 points — within 1 tier gets 20, within 2 gets 10)
+    const priceDiff = Math.abs(getPriceLevel(s.price_display) - referencePrice);
+    if (priceDiff === 0) {
+      score += 20;
+    } else if (priceDiff === 1) {
+      score += 10;
+    } else if (priceDiff === 2) {
+      score += 5;
+    }
+
+    // Tag overlap (up to 20 points)
+    const sharedTags = (s.tags || []).filter(t => referenceTags.has(t.toLowerCase())).length;
+    score += Math.min(sharedTags * 5, 20);
+
+    // Location match (up to 10 points) — bidirectional substring check
+    // so "London" matches "Greater London" and vice-versa
+    if (
+      reference.location &&
+      typeof reference.location === 'string' &&
+      typeof s.location === 'string'
+    ) {
+      const refLocLower = reference.location.toLowerCase();
+      const candLocLower = s.location.toLowerCase();
+      if (candLocLower.includes(refLocLower) || refLocLower.includes(candLocLower)) {
+        score += 10;
+      }
+    }
+
+    // Quality tie-break contribution
+    score += calculateQualityScore(s) * 0.1;
+
+    return { supplier: s, score };
+  });
+
+  // Sort by similarity score descending, then by quality
+  scored.sort((a, b) => {
+    if (b.score !== a.score) {
+      return b.score - a.score;
+    }
+    return calculateQualityScore(b.supplier) - calculateQualityScore(a.supplier);
+  });
+
+  return scored.slice(0, limit).map(r => projectPublicSupplierFields(r.supplier));
+}
+
+/**
+ * Build a curated discovery feed for browsing pages.
+ * Returns a set of supplier buckets useful for homepage / discovery surfaces:
+ * - featured: manually featured suppliers (already flagged)
+ * - topRated: highest-rated suppliers with at least a few reviews
+ * - newArrivals: suppliers added most recently
+ *
+ * Each bucket is independently limited and sorted so callers can render them
+ * as separate carousels without further processing.
+ *
+ * @param {Object} [options={}] - Options
+ * @param {number} [options.featuredLimit=4] - Max featured suppliers
+ * @param {number} [options.topRatedLimit=6] - Max top-rated suppliers
+ * @param {number} [options.newArrivalsLimit=6] - Max new-arrivals suppliers
+ * @returns {Promise<Object>} Discovery buckets: { featured, topRated, newArrivals }
+ */
+async function getDiscoveryFeed({
+  featuredLimit = 4,
+  topRatedLimit = 6,
+  newArrivalsLimit = 6,
+} = {}) {
+  const suppliers = await dbUnified.read('suppliers');
+  const approved = suppliers.filter(s => s.approved);
+
+  // Featured bucket — suppliers explicitly marked as featured, ranked by quality
+  const featured = [...approved]
+    .filter(s => s.featured || s.featuredSupplier)
+    .sort((a, b) => calculateQualityScore(b) - calculateQualityScore(a))
+    .slice(0, featuredLimit)
+    .map(projectPublicSupplierFields);
+
+  // Top-rated bucket — minimum 3 reviews, sorted by rating then review count
+  const topRated = [...approved]
+    .filter(s => (s.reviewCount || 0) >= 3 && (s.averageRating || 0) > 0)
+    .sort((a, b) => {
+      const ratingDiff = (b.averageRating || 0) - (a.averageRating || 0);
+      if (ratingDiff !== 0) {
+        return ratingDiff;
+      }
+      return (b.reviewCount || 0) - (a.reviewCount || 0);
+    })
+    .slice(0, topRatedLimit)
+    .map(projectPublicSupplierFields);
+
+  // New arrivals — most recently added/updated, limited to suppliers from last 90 days
+  const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+  const newArrivals = [...approved]
+    .filter(s => {
+      const t = new Date(s.createdAt || 0);
+      return t >= cutoff;
+    })
+    .sort((a, b) => {
+      const tA = new Date(a.updatedAt || a.createdAt || 0);
+      const tB = new Date(b.updatedAt || b.createdAt || 0);
+      return tB - tA;
+    })
+    .slice(0, newArrivalsLimit)
+    .map(projectPublicSupplierFields);
+
+  return { featured, topRated, newArrivals };
 }
 
 module.exports = {
@@ -870,6 +1164,8 @@ module.exports = {
   normalizeSupplierQuery,
   normalizePackageQuery,
   calculateFacets,
+  getSimilarSuppliers,
+  getDiscoveryFeed,
   getPriceLevel,
   VALID_SUPPLIER_SORT_VALUES,
   VALID_PACKAGE_SORT_VALUES,

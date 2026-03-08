@@ -1028,4 +1028,559 @@ describe('Search Service', () => {
       expect(result.appliedSort).toBe('relevance');
     });
   });
+
+  // ─── Phase 2 tests ───────────────────────────────────────────────────────────
+
+  describe('Phase 2: multi-word text filter', () => {
+    it('should match suppliers that contain all query words (any order, any field)', async () => {
+      // sup1 = "Wedding Photography Studio" in London
+      const result = await searchService.searchSuppliers({ q: 'wedding london' });
+
+      // sup1 mentions "wedding" in name and "London" in location — should match
+      expect(result.results.find(s => s.id === 'sup1')).toBeDefined();
+    });
+
+    it('should exclude suppliers that contain only some of the query words', async () => {
+      // "Manchester wedding" — sup2 is in Manchester but its text doesn't mention "wedding"
+      // (sup2 name is "Event Catering Services", tags: ['catering', 'events'])
+      const result = await searchService.searchSuppliers({ q: 'manchester wedding' });
+
+      expect(result.results.find(s => s.id === 'sup2')).toBeUndefined();
+    });
+
+    it('should return no results when one word in a multi-word query matches nothing', async () => {
+      const result = await searchService.searchSuppliers({ q: 'wedding xyznonexistent' });
+
+      expect(result.results.length).toBe(0);
+    });
+
+    it('should still work correctly with a single-word query', async () => {
+      const result = await searchService.searchSuppliers({ q: 'catering' });
+
+      expect(result.results.length).toBeGreaterThan(0);
+      result.results.forEach(s => {
+        // The word "catering" may appear in name, category, description, amenities, or tags
+        const allText = [
+          s.name || '',
+          s.description_short || '',
+          s.category || '',
+          ...(s.amenities || []),
+          ...(s.tags || []),
+        ]
+          .join(' ')
+          .toLowerCase();
+        expect(allText.includes('catering')).toBe(true);
+      });
+    });
+  });
+
+  describe('Phase 2: sort tie-breaking', () => {
+    it('should break rating ties by reviewCount descending', async () => {
+      dbUnified.read.mockImplementation(collection => {
+        if (collection === 'suppliers') {
+          return Promise.resolve([
+            {
+              id: 'tied-a',
+              name: 'Supplier A',
+              category: 'Venues',
+              approved: true,
+              averageRating: 4.5,
+              reviewCount: 10,
+            },
+            {
+              id: 'tied-b',
+              name: 'Supplier B',
+              category: 'Venues',
+              approved: true,
+              averageRating: 4.5,
+              reviewCount: 50,
+            },
+          ]);
+        }
+        return Promise.resolve([]);
+      });
+
+      const result = await searchService.searchSuppliers({ sortBy: 'rating' });
+      // Both have same rating — supplier with more reviews should come first
+      expect(result.results[0].id).toBe('tied-b');
+      expect(result.results[1].id).toBe('tied-a');
+    });
+
+    it('should break reviews ties by averageRating descending', async () => {
+      dbUnified.read.mockImplementation(collection => {
+        if (collection === 'suppliers') {
+          return Promise.resolve([
+            {
+              id: 'rev-a',
+              name: 'Low Rated',
+              category: 'Venues',
+              approved: true,
+              averageRating: 3.5,
+              reviewCount: 20,
+            },
+            {
+              id: 'rev-b',
+              name: 'High Rated',
+              category: 'Venues',
+              approved: true,
+              averageRating: 4.8,
+              reviewCount: 20,
+            },
+          ]);
+        }
+        return Promise.resolve([]);
+      });
+
+      const result = await searchService.searchSuppliers({ sortBy: 'reviews' });
+      // Same review count — higher rating wins
+      expect(result.results[0].id).toBe('rev-b');
+    });
+
+    it('should prefer featured supplier as final tie-break when all primary keys equal', async () => {
+      dbUnified.read.mockImplementation(collection => {
+        if (collection === 'suppliers') {
+          return Promise.resolve([
+            {
+              id: 'plain',
+              name: 'Plain Supplier',
+              category: 'Venues',
+              approved: true,
+              averageRating: 4.0,
+              reviewCount: 10,
+              featured: false,
+              verified: false,
+            },
+            {
+              id: 'feat',
+              name: 'Featured Supplier',
+              category: 'Venues',
+              approved: true,
+              averageRating: 4.0,
+              reviewCount: 10,
+              featured: true,
+              verified: false,
+            },
+          ]);
+        }
+        return Promise.resolve([]);
+      });
+
+      const result = await searchService.searchSuppliers({ sortBy: 'rating' });
+      // Identical rating and reviews — featured should win via quality tie-break
+      expect(result.results[0].id).toBe('feat');
+    });
+
+    it('should prefer priceAsc ties to be broken by quality (higher-quality supplier first)', async () => {
+      dbUnified.read.mockImplementation(collection => {
+        if (collection === 'suppliers') {
+          return Promise.resolve([
+            {
+              id: 'cheap-plain',
+              name: 'Cheap Plain',
+              category: 'Venues',
+              approved: true,
+              price_display: '£',
+              averageRating: 3.0,
+              reviewCount: 2,
+              featured: false,
+            },
+            {
+              id: 'cheap-quality',
+              name: 'Cheap Quality',
+              category: 'Venues',
+              approved: true,
+              price_display: '£',
+              averageRating: 4.9,
+              reviewCount: 100,
+              featured: true,
+            },
+          ]);
+        }
+        return Promise.resolve([]);
+      });
+
+      const result = await searchService.searchSuppliers({ sortBy: 'priceAsc' });
+      // Same price tier — quality supplier should come first
+      expect(result.results[0].id).toBe('cheap-quality');
+    });
+  });
+
+  describe('Phase 2: quality-based browse ranking (no query)', () => {
+    it('should return a relevanceScore for each result even without a query', async () => {
+      const result = await searchService.searchSuppliers({});
+
+      result.results.forEach(s => {
+        expect(s.relevanceScore).toBeDefined();
+        expect(typeof s.relevanceScore).toBe('number');
+      });
+    });
+
+    it('should rank higher-quality suppliers first when browsing without a query', async () => {
+      dbUnified.read.mockImplementation(collection => {
+        if (collection === 'suppliers') {
+          return Promise.resolve([
+            {
+              id: 'low-q',
+              name: 'Low Quality',
+              category: 'Venues',
+              approved: true,
+              averageRating: 2.0,
+              reviewCount: 1,
+              featured: false,
+              verified: false,
+            },
+            {
+              id: 'high-q',
+              name: 'High Quality',
+              category: 'Venues',
+              approved: true,
+              averageRating: 4.9,
+              reviewCount: 200,
+              featured: true,
+              verified: true,
+            },
+          ]);
+        }
+        return Promise.resolve([]);
+      });
+
+      const result = await searchService.searchSuppliers({ sortBy: 'relevance' });
+      expect(result.results[0].id).toBe('high-q');
+    });
+  });
+
+  describe('Phase 2: getSimilarSuppliers', () => {
+    it('should return an array of suppliers', async () => {
+      const results = await searchService.getSimilarSuppliers('sup1');
+
+      expect(Array.isArray(results)).toBe(true);
+      // sup1 is Photography/London; sup2 (Catering) and sup3 (Venues/London) are candidates
+      // At least some results must be returned (not empty due to ID filter bug)
+      expect(results.length).toBeGreaterThan(0);
+    });
+
+    it('should exclude the reference supplier from results', async () => {
+      const results = await searchService.getSimilarSuppliers('sup1');
+
+      expect(results.find(s => s.id === 'sup1')).toBeUndefined();
+    });
+
+    it('should return empty array for unknown supplierId', async () => {
+      const results = await searchService.getSimilarSuppliers('nonexistent-id');
+
+      expect(results).toEqual([]);
+    });
+
+    it('should respect the limit parameter', async () => {
+      const results = await searchService.getSimilarSuppliers('sup1', 1);
+
+      // With the fix, candidates exist — limit must be respected
+      expect(results.length).toBeLessThanOrEqual(1);
+    });
+
+    it('should not return empty when suppliers only have id (not _id)', async () => {
+      // Regression test: the original filter used `s.id !== ref.id && s._id !== ref._id`.
+      // When _id is absent on all suppliers, undefined !== undefined → false, which excluded
+      // ALL candidates. This test verifies the fix works with id-only suppliers.
+      dbUnified.read.mockImplementation(collection => {
+        if (collection === 'suppliers') {
+          return Promise.resolve([
+            { id: 'ref-only', name: 'Reference', category: 'Photography', approved: true },
+            { id: 'cand-a', name: 'Candidate A', category: 'Photography', approved: true },
+            { id: 'cand-b', name: 'Candidate B', category: 'Photography', approved: true },
+          ]);
+        }
+        return Promise.resolve([]);
+      });
+
+      const results = await searchService.getSimilarSuppliers('ref-only');
+      // Should return cand-a and cand-b, NOT empty
+      expect(results.length).toBe(2);
+      expect(results.find(r => r.id === 'ref-only')).toBeUndefined();
+    });
+
+    it('should prefer suppliers in the same category', async () => {
+      dbUnified.read.mockImplementation(collection => {
+        if (collection === 'suppliers') {
+          return Promise.resolve([
+            {
+              id: 'ref',
+              name: 'Reference Supplier',
+              category: 'Photography',
+              price_display: '$$',
+              tags: ['wedding'],
+              approved: true,
+            },
+            {
+              id: 'same-cat',
+              name: 'Same Category',
+              category: 'Photography',
+              price_display: '$$',
+              tags: ['wedding'],
+              approved: true,
+              averageRating: 4.0,
+              reviewCount: 10,
+            },
+            {
+              id: 'diff-cat',
+              name: 'Different Category',
+              category: 'Catering',
+              price_display: '$$',
+              tags: [],
+              approved: true,
+              averageRating: 4.9,
+              reviewCount: 100,
+            },
+          ]);
+        }
+        return Promise.resolve([]);
+      });
+
+      const results = await searchService.getSimilarSuppliers('ref');
+
+      // Must return results for the assertion about ordering to be meaningful
+      expect(results.length).toBeGreaterThan(0);
+      // The same-category supplier should rank first even if diff-cat has higher quality
+      if (results.length >= 1) {
+        expect(results[0].id).toBe('same-cat');
+      }
+    });
+
+    it('should not expose sensitive fields in similar suppliers results', async () => {
+      dbUnified.read.mockImplementation(collection => {
+        if (collection === 'suppliers') {
+          return Promise.resolve([
+            {
+              id: 'ref2',
+              name: 'Reference',
+              category: 'Photography',
+              approved: true,
+              email: 'ref@test.com',
+              phone: '0700000000',
+            },
+            {
+              id: 'sim1',
+              name: 'Similar',
+              category: 'Photography',
+              approved: true,
+              email: 'sim@test.com',
+              phone: '0711111111',
+            },
+          ]);
+        }
+        return Promise.resolve([]);
+      });
+
+      const results = await searchService.getSimilarSuppliers('ref2');
+
+      // Must have at least one result to make the field assertions meaningful
+      expect(results.length).toBeGreaterThan(0);
+      results.forEach(s => {
+        expect(s.email).toBeUndefined();
+        expect(s.phone).toBeUndefined();
+      });
+    });
+  });
+
+  describe('Phase 2: getDiscoveryFeed', () => {
+    it('should return featured, topRated, and newArrivals buckets', async () => {
+      const feed = await searchService.getDiscoveryFeed();
+
+      expect(feed.featured).toBeDefined();
+      expect(Array.isArray(feed.featured)).toBe(true);
+      expect(feed.topRated).toBeDefined();
+      expect(Array.isArray(feed.topRated)).toBe(true);
+      expect(feed.newArrivals).toBeDefined();
+      expect(Array.isArray(feed.newArrivals)).toBe(true);
+    });
+
+    it('should only include approved suppliers in the feed', async () => {
+      const feed = await searchService.getDiscoveryFeed();
+
+      [...feed.featured, ...feed.topRated, ...feed.newArrivals].forEach(s => {
+        expect(s.approved).toBe(true);
+      });
+    });
+
+    it('should respect featuredLimit option', async () => {
+      dbUnified.read.mockImplementation(collection => {
+        if (collection === 'suppliers') {
+          return Promise.resolve(
+            Array.from({ length: 10 }, (_, i) => ({
+              id: `f${i}`,
+              name: `Featured ${i}`,
+              category: 'Venues',
+              approved: true,
+              featured: true,
+              averageRating: 4.0,
+              reviewCount: 5,
+              createdAt: new Date().toISOString(),
+            }))
+          );
+        }
+        return Promise.resolve([]);
+      });
+
+      const feed = await searchService.getDiscoveryFeed({ featuredLimit: 2 });
+      expect(feed.featured.length).toBeLessThanOrEqual(2);
+    });
+
+    it('should only include suppliers with at least 3 reviews in topRated', async () => {
+      dbUnified.read.mockImplementation(collection => {
+        if (collection === 'suppliers') {
+          return Promise.resolve([
+            {
+              id: 'few-reviews',
+              name: 'Few Reviews',
+              category: 'Venues',
+              approved: true,
+              averageRating: 5.0,
+              reviewCount: 1,
+            },
+            {
+              id: 'many-reviews',
+              name: 'Many Reviews',
+              category: 'Venues',
+              approved: true,
+              averageRating: 4.5,
+              reviewCount: 10,
+            },
+          ]);
+        }
+        return Promise.resolve([]);
+      });
+
+      const feed = await searchService.getDiscoveryFeed();
+      const topRatedIds = feed.topRated.map(s => s.id);
+      expect(topRatedIds).not.toContain('few-reviews');
+      expect(topRatedIds).toContain('many-reviews');
+    });
+
+    it('topRated should be sorted by averageRating descending', async () => {
+      dbUnified.read.mockImplementation(collection => {
+        if (collection === 'suppliers') {
+          return Promise.resolve([
+            {
+              id: 'low-rated',
+              name: 'Low Rated',
+              category: 'Venues',
+              approved: true,
+              averageRating: 3.5,
+              reviewCount: 5,
+            },
+            {
+              id: 'high-rated',
+              name: 'High Rated',
+              category: 'Venues',
+              approved: true,
+              averageRating: 4.9,
+              reviewCount: 5,
+            },
+          ]);
+        }
+        return Promise.resolve([]);
+      });
+
+      const feed = await searchService.getDiscoveryFeed();
+      if (feed.topRated.length >= 2) {
+        const ratings = feed.topRated.map(s => s.averageRating || 0);
+        for (let i = 1; i < ratings.length; i++) {
+          expect(ratings[i - 1]).toBeGreaterThanOrEqual(ratings[i]);
+        }
+      }
+    });
+
+    it('newArrivals should only include suppliers added within the last 90 days', async () => {
+      const recent = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();
+      const old = new Date(Date.now() - 200 * 24 * 60 * 60 * 1000).toISOString();
+
+      dbUnified.read.mockImplementation(collection => {
+        if (collection === 'suppliers') {
+          return Promise.resolve([
+            {
+              id: 'new-one',
+              name: 'New Supplier',
+              category: 'Venues',
+              approved: true,
+              createdAt: recent,
+            },
+            {
+              id: 'old-one',
+              name: 'Old Supplier',
+              category: 'Venues',
+              approved: true,
+              createdAt: old,
+            },
+          ]);
+        }
+        return Promise.resolve([]);
+      });
+
+      const feed = await searchService.getDiscoveryFeed();
+      const newIds = feed.newArrivals.map(s => s.id);
+      expect(newIds).toContain('new-one');
+      expect(newIds).not.toContain('old-one');
+    });
+  });
+
+  describe('Phase 2: facets include locations', () => {
+    it('should include a locations facet in searchSuppliers results', async () => {
+      const result = await searchService.searchSuppliers({});
+
+      expect(result.facets.locations).toBeDefined();
+      expect(Array.isArray(result.facets.locations)).toBe(true);
+    });
+
+    it('should count suppliers per location string', async () => {
+      const result = await searchService.searchSuppliers({});
+
+      // Two suppliers in London (sup1 and sup3) and one in Manchester (sup2)
+      const londonFacet = result.facets.locations.find(l => l.name === 'London');
+      expect(londonFacet).toBeDefined();
+      expect(londonFacet.count).toBe(2);
+    });
+
+    it('should sort locations by count descending', async () => {
+      const result = await searchService.searchSuppliers({});
+
+      for (let i = 1; i < result.facets.locations.length; i++) {
+        expect(result.facets.locations[i - 1].count).toBeGreaterThanOrEqual(
+          result.facets.locations[i].count
+        );
+      }
+    });
+
+    it('should not include GeoJSON location objects in location facets', async () => {
+      dbUnified.read.mockImplementation(collection => {
+        if (collection === 'suppliers') {
+          return Promise.resolve([
+            {
+              id: 'geo-sup',
+              name: 'Geo Supplier',
+              category: 'Venues',
+              approved: true,
+              location: { type: 'Point', coordinates: [-3.1791, 51.4816] },
+            },
+            {
+              id: 'str-sup',
+              name: 'String Supplier',
+              category: 'Venues',
+              approved: true,
+              location: 'Cardiff',
+            },
+          ]);
+        }
+        return Promise.resolve([]);
+      });
+
+      const result = await searchService.searchSuppliers({});
+      // GeoJSON locations should not appear; string location should
+      const cardiffFacet = result.facets.locations.find(l => l.name === 'Cardiff');
+      expect(cardiffFacet).toBeDefined();
+      // No object keys from GeoJSON should show up
+      result.facets.locations.forEach(l => {
+        expect(typeof l.name).toBe('string');
+      });
+    });
+  });
 });
