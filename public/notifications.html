@@ -585,7 +585,7 @@
   // ==========================================
   // API FUNCTIONS
   // ==========================================
-  async function fetchNotifications(append = false) {
+  async function fetchNotifications(append = false, retryCount = 0) {
     if (state.isLoading) return;
     
     state.isLoading = true;
@@ -610,7 +610,14 @@
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch notifications');
+        if (response.status === 503 && retryCount < 3) {
+          state.isLoading = false;
+          const delay = Math.pow(2, retryCount + 1) * 1000;
+          console.warn(`Notifications: DB not ready (503), retrying in ${delay / 1000}s (attempt ${retryCount + 1}/3)`);
+          setTimeout(() => fetchNotifications(append, retryCount + 1), delay);
+          return;
+        }
+        throw new Error(`Failed to fetch notifications (HTTP ${response.status})`);
       }
 
       const data = await response.json();
@@ -789,11 +796,14 @@
     existingItems.forEach(item => item.remove());
 
     // Filter notifications based on current filter
-    let filteredNotifications = state.notifications;
+    let filteredNotifications = state.notifications.filter(n => !n.isDismissed);
     if (state.currentFilter === 'read') {
-      filteredNotifications = state.notifications.filter(n => n.isRead);
+      filteredNotifications = filteredNotifications.filter(n => n.isRead);
+    } else if (state.currentFilter === 'unread') {
+      // Backend already filters via unreadOnly param; apply client-side as well for consistency.
+      filteredNotifications = filteredNotifications.filter(n => !n.isRead);
     }
-    // 'unread' is handled by backend, 'all' shows everything
+    // 'all' shows all non-dismissed notifications
 
     if (filteredNotifications.length === 0) {
       empty.style.display = 'block';

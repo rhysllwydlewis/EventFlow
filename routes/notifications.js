@@ -68,12 +68,10 @@ function applyCsrfProtection(req, res, next) {
  * Creates service lazily to handle dynamic DB/WebSocket initialization
  */
 async function getNotificationService() {
-  // Get current DB connection
-  let db = null;
+  // Attempt to get the DB directly; let it throw if genuinely unavailable
+  let db;
   try {
-    if (mongoDb.isConnected()) {
-      db = await mongoDb.getDb();
-    }
+    db = await mongoDb.getDb();
   } catch (error) {
     logger.warn('MongoDB not available for notifications', { error: error.message });
     throw new Error('Database not connected');

@@ -111,28 +111,39 @@ class NotificationService {
   async getForUser(userId, options = {}) {
     const { limit = 50, skip = 0, unreadOnly = false, type = null, priority = null } = options;
 
-    const query = { userId };
+    const conditions = [
+      { userId },
+      { isDismissed: { $ne: true } },
+      { $or: this._buildExpiryFilter() },
+    ];
 
     if (unreadOnly) {
-      query.isRead = false;
+      conditions.push({ isRead: false });
     }
 
     if (type) {
-      query.type = type;
+      conditions.push({ type });
     }
 
     if (priority) {
-      query.priority = priority;
+      conditions.push({ priority });
     }
 
-    // Filter out expired notifications
-    const expiryFilter = this._buildExpiryFilter();
-    query.$or = expiryFilter;
+    const query = { $and: conditions };
+
+    const unreadQuery = {
+      $and: [
+        { userId },
+        { isDismissed: { $ne: true } },
+        { isRead: false },
+        { $or: this._buildExpiryFilter() },
+      ],
+    };
 
     const [notifications, total, unreadCount] = await Promise.all([
       this.collection.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).toArray(),
       this.collection.countDocuments(query),
-      this.collection.countDocuments({ userId, isRead: false, $or: expiryFilter }),
+      this.collection.countDocuments(unreadQuery),
     ]);
 
     return {
@@ -241,9 +252,12 @@ class NotificationService {
    */
   async getUnreadCount(userId) {
     return await this.collection.countDocuments({
-      userId,
-      isRead: false,
-      $or: this._buildExpiryFilter(),
+      $and: [
+        { userId },
+        { isRead: false },
+        { isDismissed: { $ne: true } },
+        { $or: this._buildExpiryFilter() },
+      ],
     });
   }
 

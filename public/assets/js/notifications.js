@@ -297,31 +297,48 @@
   // ==========================================
 
   async function fetchNotifications(options = {}) {
-    try {
-      const query = new URLSearchParams({
-        limit: options.limit || 50,
-        skip: options.skip || 0,
-        unreadOnly: options.unreadOnly || false,
-      });
+    const maxRetries = 3;
+    let attempt = 0;
 
-      const response = await fetch(`/api/v1/notifications?${query}`, {
-        credentials: 'include',
-      });
+    while (attempt <= maxRetries) {
+      try {
+        const query = new URLSearchParams({
+          limit: options.limit || 50,
+          skip: options.skip || 0,
+          unreadOnly: options.unreadOnly || false,
+        });
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch notifications');
+        const response = await fetch(`/api/v1/notifications?${query}`, {
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          if (response.status === 503 && attempt < maxRetries) {
+            attempt++;
+            const delay = Math.pow(2, attempt) * 1000;
+            console.warn(
+              `Notifications: DB not ready (503), retrying in ${delay / 1000}s (attempt ${attempt}/${maxRetries})`
+            );
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue;
+          }
+          throw new Error(`Failed to fetch notifications (HTTP ${response.status})`);
+        }
+
+        const data = await response.json();
+        state.notifications = data.notifications || [];
+        state.unreadCount = data.unreadCount || 0;
+
+        updateUI();
+        return data;
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+        return null;
       }
-
-      const data = await response.json();
-      state.notifications = data.notifications;
-      state.unreadCount = data.unreadCount;
-
-      updateUI();
-      return data;
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-      return null;
     }
+
+    console.error('Error fetching notifications: all retries exhausted');
+    return null;
   }
 
   function getCsrfToken() {
@@ -671,7 +688,14 @@
       return;
     }
 
-    list.innerHTML = state.notifications
+    const visibleNotifications = state.notifications.filter(n => !n.isDismissed);
+
+    if (visibleNotifications.length === 0) {
+      list.innerHTML = '<div class="notification-empty">No notifications</div>';
+      return;
+    }
+
+    list.innerHTML = visibleNotifications
       .slice(0, 10)
       .map(
         n => `
