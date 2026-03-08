@@ -671,4 +671,84 @@ router.get('/cache/stats', authRequired, roleRequired('admin'), async (req, res)
   }
 });
 
+/**
+ * GET /api/v2/search/similar/:supplierId
+ * Get suppliers similar to a given supplier (Phase 2 discovery)
+ */
+router.get('/similar/:supplierId', searchCacheMiddleware({ fixedTtl: 1800 }), async (req, res) => {
+  try {
+    const { supplierId } = req.params;
+
+    // Basic validation — supplierId must be a non-empty alphanumeric-ish string
+    if (!supplierId || !/^[a-zA-Z0-9_-]{1,100}$/.test(supplierId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid supplierId',
+      });
+    }
+
+    const parsedLimit = parseInt(req.query.limit, 10);
+    const limit = !isNaN(parsedLimit) && parsedLimit > 0 ? Math.min(parsedLimit, 12) : 6;
+
+    const results = await searchService.getSimilarSuppliers(supplierId, limit);
+
+    return res.json({
+      success: true,
+      data: {
+        supplierId,
+        results,
+        count: results.length,
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Similar suppliers error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to get similar suppliers',
+    });
+  }
+});
+
+/**
+ * GET /api/v2/search/discovery
+ * Curated discovery feed: featured, top-rated, and new arrivals (Phase 2)
+ */
+router.get('/discovery', searchCacheMiddleware({ fixedTtl: 600 }), async (req, res) => {
+  try {
+    const parsedFeaturedLimit = parseInt(req.query.featuredLimit, 10);
+    const parsedTopRatedLimit = parseInt(req.query.topRatedLimit, 10);
+    const parsedNewArrivalsLimit = parseInt(req.query.newArrivalsLimit, 10);
+
+    const options = {
+      featuredLimit:
+        !isNaN(parsedFeaturedLimit) && parsedFeaturedLimit > 0
+          ? Math.min(parsedFeaturedLimit, 12)
+          : 4,
+      topRatedLimit:
+        !isNaN(parsedTopRatedLimit) && parsedTopRatedLimit > 0
+          ? Math.min(parsedTopRatedLimit, 12)
+          : 6,
+      newArrivalsLimit:
+        !isNaN(parsedNewArrivalsLimit) && parsedNewArrivalsLimit > 0
+          ? Math.min(parsedNewArrivalsLimit, 12)
+          : 6,
+    };
+
+    const feed = await searchService.getDiscoveryFeed(options);
+
+    res.json({
+      success: true,
+      data: feed,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Discovery feed error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get discovery feed',
+    });
+  }
+});
+
 module.exports = router;
