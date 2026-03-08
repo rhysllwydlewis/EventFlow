@@ -281,13 +281,11 @@ select:focus {
   flex: 1 1 220px;
   min-width: 180px;
   max-width: 340px;
-  width: auto;
 }
 
 .admin-toolbar .filter-select {
   flex: 0 1 140px;
   min-width: 120px;
-  width: auto;
 }
 
 /* Loading spinner animation */

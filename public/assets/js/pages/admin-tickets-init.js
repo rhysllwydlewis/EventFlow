@@ -357,7 +357,6 @@
         close();
       }
     };
-    document.addEventListener('keydown', handleKeydown);
 
     modal.querySelector('.modal-close').addEventListener('click', close);
     modal.addEventListener('click', event => {
@@ -365,6 +364,9 @@
         close();
       }
     });
+
+    // Register Escape-key listener after all click-close paths are wired
+    document.addEventListener('keydown', handleKeydown);
 
     modal.querySelector('#saveTicketBtn').addEventListener('click', async () => {
       try {
