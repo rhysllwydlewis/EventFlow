@@ -126,13 +126,13 @@ class NotificationService {
     }
 
     // Filter out expired notifications
-    const now = new Date().toISOString();
-    query.$or = [{ expiresAt: null }, { expiresAt: { $gt: now } }];
+    const expiryFilter = this._buildExpiryFilter();
+    query.$or = expiryFilter;
 
     const [notifications, total, unreadCount] = await Promise.all([
       this.collection.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).toArray(),
       this.collection.countDocuments(query),
-      this.collection.countDocuments({ userId, isRead: false }),
+      this.collection.countDocuments({ userId, isRead: false, $or: this._buildExpiryFilter() }),
     ]);
 
     return {
@@ -243,6 +243,7 @@ class NotificationService {
     return await this.collection.countDocuments({
       userId,
       isRead: false,
+      $or: this._buildExpiryFilter(),
     });
   }
 
@@ -257,6 +258,19 @@ class NotificationService {
     });
 
     return result.deletedCount;
+  }
+
+  /**
+   * Build the expiry filter used to exclude expired notifications
+   * @private
+   */
+  _buildExpiryFilter() {
+    const now = new Date().toISOString();
+    return [
+      { expiresAt: { $exists: false } },
+      { expiresAt: null },
+      { expiresAt: { $gt: now } },
+    ];
   }
 
   /**
