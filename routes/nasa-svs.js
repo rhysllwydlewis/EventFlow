@@ -19,15 +19,11 @@ const router = express.Router();
 
 /**
  * Initialize dependencies from server.js.
- * This route uses no injected dependencies (it calls the NASA SVS service directly),
- * but follows the standard EventFlow pattern so server.js can call this safely.
- * @param {Object} deps - Dependencies object
+ * This route calls the NASA SVS service directly and requires no injected
+ * dependencies, but the function is exported so server.js can call it
+ * uniformly with all other route modules.
  */
-function initializeDependencies(deps) {
-  if (!deps) {
-    throw new Error('NASA SVS routes: dependencies object is required');
-  }
-}
+function initializeDependencies() {}
 
 // ---------------------------------------------------------------------------
 // GET /api/nasa-svs/moon
