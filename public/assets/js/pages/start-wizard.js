@@ -6,6 +6,21 @@
 (function () {
   'use strict';
 
+  /**
+   * HTML escape utility — defined first so all template literals below can use it.
+   */
+  function escapeHtml(unsafe) {
+    if (unsafe == null) {
+      return '';
+    }
+    if (typeof unsafe !== 'string') {
+      return String(unsafe);
+    }
+    const div = document.createElement('div');
+    div.textContent = unsafe;
+    return div.innerHTML;
+  }
+
   // Available categories for wizard steps (in order)
   const CATEGORIES = [
     { key: 'venues', name: 'Venues', icon: '🏛️' },
@@ -40,6 +55,10 @@
   let wizardState = null;
   const availablePackages = {}; // { categoryKey: [packages] }
   let hasShownWelcome = false;
+  let savedPlanId = null; // Stored after successful plan creation for "View Plan" link
+  let _beforeunloadHandler = null; // Stored so we can remove it on completion
+  let _wizardCompleted = false; // Prevents beforeunload firing after successful submission
+  let _mobileSummaryExpanded = false; // Tracks expanded state of mobile summary across re-renders
 
   /**
    * Initialize the wizard
@@ -115,6 +134,9 @@
 
     // Render plan summary
     renderPlanSummary();
+
+    // Warn if user tries to leave with in-progress data
+    setupBeforeUnload();
   }
 
   /**
@@ -253,6 +275,16 @@
 
     container.innerHTML = html;
 
+    // Announce step change for screen readers
+    const liveRegion = document.getElementById('wizard-live-region');
+    if (liveRegion && stepIndex >= 0 && stepIndex <= STEP_CONFIG.REVIEW) {
+      const stepTitles = ['Event Type', 'Event Basics', ...CATEGORIES.map(c => c.name), 'Review'];
+      const title = stepTitles[stepIndex] || '';
+      if (title) {
+        liveRegion.textContent = `Step ${stepIndex + 1} of ${STEP_CONFIG.TOTAL_VISIBLE}: ${title}`;
+      }
+    }
+
     // Attach event listeners
     attachStepListeners(stepIndex);
   }
@@ -329,30 +361,34 @@
         <h2>What type of event are you planning?</h2>
         <p class="small">This helps us show you the most relevant suppliers and packages.</p>
         
-        <div class="wizard-options">
+        <div class="wizard-options" role="group" aria-label="Event type options">
           <button class="wizard-option ${state.eventType === 'Wedding' ? 'selected' : ''}" 
-                  data-value="Wedding" type="button" id="event-type-wedding">
+                  data-value="Wedding" type="button" id="event-type-wedding"
+                  aria-pressed="${state.eventType === 'Wedding' ? 'true' : 'false'}">
             <div class="wizard-option-image-container">
               <img class="wizard-option-image" id="wedding-image" alt="Wedding" />
             </div>
             <span class="wizard-option-label">Wedding</span>
           </button>
           <button class="wizard-option ${state.eventType === 'Corporate' ? 'selected' : ''}" 
-                  data-value="Corporate" type="button" id="event-type-corporate">
+                  data-value="Corporate" type="button" id="event-type-corporate"
+                  aria-pressed="${state.eventType === 'Corporate' ? 'true' : 'false'}">
             <div class="wizard-option-image-container">
               <img class="wizard-option-image" id="corporate-image" alt="Corporate Event" />
             </div>
             <span class="wizard-option-label">Corporate Event</span>
           </button>
           <button class="wizard-option ${state.eventType === 'Birthday' ? 'selected' : ''}" 
-                  data-value="Birthday" type="button" id="event-type-birthday">
+                  data-value="Birthday" type="button" id="event-type-birthday"
+                  aria-pressed="${state.eventType === 'Birthday' ? 'true' : 'false'}">
             <div class="wizard-option-image-container">
               <img class="wizard-option-image" id="birthday-image" alt="Birthday Party" />
             </div>
             <span class="wizard-option-label">Birthday Party</span>
           </button>
           <button class="wizard-option ${state.eventType === 'Other' ? 'selected' : ''}" 
-                  data-value="Other" type="button" id="event-type-other">
+                  data-value="Other" type="button" id="event-type-other"
+                  aria-pressed="${state.eventType === 'Other' ? 'true' : 'false'}">
             <div class="wizard-option-image-container">
               <img class="wizard-option-image" id="other-event-image" alt="Other Event" />
             </div>
@@ -490,7 +526,12 @@
         ${proximityInfo}
         
         <div id="wizard-packages-${category.key}" class="wizard-packages">
-          <p class="small">Loading packages...</p>
+          <div class="wizard-package-grid">
+            <div class="wizard-skeleton-card"></div>
+            <div class="wizard-skeleton-card"></div>
+            <div class="wizard-skeleton-card"></div>
+            <div class="wizard-skeleton-card"></div>
+          </div>
         </div>
 
         <div class="wizard-actions">
@@ -509,6 +550,14 @@
     const state = window.WizardState.getState();
     const selectedPackages = Object.keys(state.selectedPackages || {});
 
+    // Build per-category edit links for selected packages
+    const categoryEditLinks = selectedPackages.map(catKey => {
+      const cat = CATEGORIES.find(c => c.key === catKey);
+      const catName = cat ? cat.name : catKey;
+      const stepIdx = STEP_CONFIG.CATEGORY_START + CATEGORIES.findIndex(c => c.key === catKey);
+      return `<a href="#" class="wizard-review-edit" data-step="${stepIdx}">✏️ Edit ${escapeHtml(catName)}</a>`;
+    }).join('');
+
     return `
       <div class="wizard-card">
         <h2>Review Your Event Plan</h2>
@@ -523,6 +572,7 @@
             ${state.date ? `<p><strong>Date:</strong> ${formatDate(state.date)}</p>` : ''}
             ${state.guests ? `<p><strong>Guests:</strong> ${state.guests}</p>` : ''}
             ${state.budget ? `<p><strong>Budget:</strong> ${escapeHtml(state.budget)}</p>` : ''}
+            <a href="#" class="wizard-review-edit" data-step="${STEP_CONFIG.EVENT_TYPE}">✏️ Edit event type</a>
             <a href="#" class="wizard-review-edit" data-step="${STEP_CONFIG.EVENT_BASICS}">✏️ Edit details</a>
           </div>
 
@@ -531,7 +581,8 @@
             ${
               selectedPackages.length > 0
                 ? `<p>You've selected <strong>${selectedPackages.length} package(s)</strong> for your event.</p>
-                   <p class="small">These will be added to your event plan for easy reference.</p>`
+                   <p class="small">These will be added to your event plan for easy reference.</p>
+                   ${categoryEditLinks}`
                 : '<p class="small">No packages selected yet. You can browse suppliers after creating your plan.</p>'
             }
           </div>
@@ -550,6 +601,7 @@
    */
   function renderSuccessScreen() {
     const state = window.WizardState.getState();
+    const planLink = savedPlanId ? `/dashboard/customer/plans/${savedPlanId}` : '/dashboard/customer';
 
     return `
       <div class="wizard-card wizard-success">
@@ -563,8 +615,9 @@
         </div>
 
         <div class="wizard-success-actions">
-          <button class="cta" type="button" onclick="location.href='/suppliers'">Browse Suppliers</button>
-          <button class="cta secondary" type="button" onclick="location.href='/dashboard/customer'">Go to Dashboard</button>
+          <button class="cta" type="button" id="success-browse-suppliers">Browse Suppliers</button>
+          <button class="cta secondary" type="button" id="success-view-plan">View Your Plan</button>
+          <button class="cta secondary" type="button" id="success-go-dashboard">Go to Dashboard</button>
         </div>
       </div>
     `;
@@ -605,11 +658,47 @@
       </div>
     `;
 
+    if (state.eventName) {
+      html += `
+        <div class="plan-summary-item">
+          <span class="small">Name:</span>
+          <span>${escapeHtml(state.eventName)}</span>
+        </div>
+      `;
+    }
+
+    if (state.date) {
+      html += `
+        <div class="plan-summary-item">
+          <span class="small">Date:</span>
+          <span>${formatDate(state.date)}</span>
+        </div>
+      `;
+    }
+
     if (state.location) {
       html += `
         <div class="plan-summary-item">
           <span class="small">Location:</span>
           <span>${escapeHtml(state.location)}</span>
+        </div>
+      `;
+    }
+
+    if (state.guests) {
+      html += `
+        <div class="plan-summary-item">
+          <span class="small">Guests:</span>
+          <span>${state.guests}</span>
+        </div>
+      `;
+    }
+
+    if (state.budget) {
+      html += `
+        <div class="plan-summary-item">
+          <span class="small">Budget:</span>
+          <span>${escapeHtml(state.budget)}</span>
         </div>
       `;
     }
@@ -622,6 +711,85 @@
     `;
 
     container.innerHTML = html;
+
+    // Also update the mobile summary strip
+    renderMobileSummary();
+  }
+
+  /**
+   * Render (or update) the collapsible mobile plan summary strip.
+   * Only visible on small screens via CSS.
+   */
+  function renderMobileSummary() {
+    const mobileSummary = document.getElementById('mobile-plan-summary');
+    if (!mobileSummary) {
+      return;
+    }
+
+    const state = window.WizardState.getState();
+    const selectedCount = Object.keys(state.selectedPackages || {}).length;
+
+    // Build compact one-liner
+    const parts = [];
+    if (state.eventType) parts.push(escapeHtml(state.eventType));
+    if (state.location)  parts.push(escapeHtml(state.location));
+    if (selectedCount)   parts.push(`${selectedCount} package${selectedCount !== 1 ? 's' : ''}`);
+    const compactText = parts.length ? parts.join(' · ') : 'Your Plan';
+
+    // Build detailed rows
+    let detailsHtml = '';
+    if (state.eventType) {
+      detailsHtml += `<div class="plan-summary-item"><span class="small">Event Type:</span><span>${escapeHtml(state.eventType)}</span></div>`;
+    }
+    if (state.eventName) {
+      detailsHtml += `<div class="plan-summary-item"><span class="small">Name:</span><span>${escapeHtml(state.eventName)}</span></div>`;
+    }
+    if (state.date) {
+      detailsHtml += `<div class="plan-summary-item"><span class="small">Date:</span><span>${formatDate(state.date)}</span></div>`;
+    }
+    if (state.location) {
+      detailsHtml += `<div class="plan-summary-item"><span class="small">Location:</span><span>${escapeHtml(state.location)}</span></div>`;
+    }
+    if (state.guests) {
+      detailsHtml += `<div class="plan-summary-item"><span class="small">Guests:</span><span>${state.guests}</span></div>`;
+    }
+    if (state.budget) {
+      detailsHtml += `<div class="plan-summary-item"><span class="small">Budget:</span><span>${escapeHtml(state.budget)}</span></div>`;
+    }
+    detailsHtml += `<div class="plan-summary-item"><span class="small">Packages:</span><span>${selectedCount} selected</span></div>`;
+
+    // Keep expanded state across re-renders using module-level flag
+    const wasExpanded = _mobileSummaryExpanded;
+
+    mobileSummary.innerHTML = `
+      <button class="wizard-mobile-summary-bar" type="button"
+              aria-expanded="${wasExpanded ? 'true' : 'false'}"
+              aria-controls="mobile-summary-details">
+        <span class="wizard-mobile-summary-compact">${compactText}</span>
+        <span class="wizard-mobile-summary-chevron" aria-hidden="true">▾</span>
+      </button>
+      <div class="wizard-mobile-summary-details" id="mobile-summary-details"
+           ${wasExpanded ? '' : 'hidden'}>
+        ${detailsHtml}
+      </div>
+    `;
+
+    // Attach toggle handler
+    const toggleBtn = mobileSummary.querySelector('.wizard-mobile-summary-bar');
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', () => {
+        _mobileSummaryExpanded = !_mobileSummaryExpanded;
+        toggleBtn.setAttribute('aria-expanded', String(_mobileSummaryExpanded));
+        const details = document.getElementById('mobile-summary-details');
+        if (details) {
+          if (_mobileSummaryExpanded) {
+            details.removeAttribute('hidden');
+          } else {
+            details.setAttribute('hidden', '');
+          }
+        }
+      });
+    }
   }
 
   /**
@@ -657,8 +825,12 @@
 
       options.forEach(opt => {
         opt.addEventListener('click', function () {
-          options.forEach(o => o.classList.remove('selected'));
+          options.forEach(o => {
+            o.classList.remove('selected');
+            o.setAttribute('aria-pressed', 'false');
+          });
           this.classList.add('selected');
+          this.setAttribute('aria-pressed', 'true');
           const value = this.getAttribute('data-value');
           window.WizardState.saveStep(STEP_CONFIG.EVENT_TYPE, { eventType: value });
           if (nextBtn) {
@@ -713,7 +885,14 @@
               ?.addEventListener('click', () => {
                 const retryContainer = document.getElementById(`wizard-packages-${category.key}`);
                 if (retryContainer) {
-                  retryContainer.innerHTML = '<p class="small">Loading packages...</p>';
+                  retryContainer.innerHTML = `
+                    <div class="wizard-package-grid">
+                      <div class="wizard-skeleton-card"></div>
+                      <div class="wizard-skeleton-card"></div>
+                      <div class="wizard-skeleton-card"></div>
+                      <div class="wizard-skeleton-card"></div>
+                    </div>
+                  `;
                 }
                 loadPackagesForCategory(category.key, state.eventType).then(retryPackages => {
                   if (retryPackages === null) {
@@ -749,10 +928,32 @@
       });
     }
 
-    // Success screen - no listeners needed (uses inline onclick)
+    // Success screen — attach navigation listeners
     if (stepIndex === STEP_CONFIG.SUCCESS) {
       // Trigger confetti or celebration animation
       triggerCelebration();
+
+      const browseSuppliersBtn = document.getElementById('success-browse-suppliers');
+      if (browseSuppliersBtn) {
+        browseSuppliersBtn.addEventListener('click', () => {
+          location.href = '/suppliers';
+        });
+      }
+
+      const viewPlanBtn = document.getElementById('success-view-plan');
+      if (viewPlanBtn) {
+        const planLink = savedPlanId ? `/dashboard/customer/plans/${savedPlanId}` : '/dashboard/customer';
+        viewPlanBtn.addEventListener('click', () => {
+          location.href = planLink;
+        });
+      }
+
+      const goDashboardBtn = document.getElementById('success-go-dashboard');
+      if (goDashboardBtn) {
+        goDashboardBtn.addEventListener('click', () => {
+          location.href = '/dashboard/customer';
+        });
+      }
     }
 
     // Next button
@@ -784,8 +985,17 @@
    * Trigger celebration animation
    */
   function triggerCelebration() {
-    // Simple confetti effect (can be enhanced)
     const colors = ['#0B8073', '#13B6A2', '#10b981', '#34d399'];
+
+    // Use a dedicated container inside the wizard rather than document.body
+    let confettiContainer = document.getElementById('wizard-confetti-container');
+    if (!confettiContainer) {
+      confettiContainer = document.createElement('div');
+      confettiContainer.id = 'wizard-confetti-container';
+      confettiContainer.className = 'wizard-confetti-container';
+      confettiContainer.setAttribute('aria-hidden', 'true');
+      (document.getElementById('wizard-container') || document.body).appendChild(confettiContainer);
+    }
 
     for (let i = 0; i < 30; i++) {
       setTimeout(() => {
@@ -795,9 +1005,17 @@
         confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
         confetti.style.animationDelay = `${Math.random() * 0.3}s`;
         confetti.style.animationDuration = `${Math.random() * 2 + 2}s`;
-        document.body.appendChild(confetti);
+        confettiContainer.appendChild(confetti);
 
-        setTimeout(() => confetti.remove(), 4000);
+        // animationend is the primary cleanup; safety timeout as fallback
+        let cleanupTimer;
+        confetti.addEventListener('animationend', () => {
+          clearTimeout(cleanupTimer);
+          if (confetti.parentNode) confetti.remove();
+        }, { once: true });
+        cleanupTimer = setTimeout(() => {
+          if (confetti.parentNode) confetti.remove();
+        }, 5000);
       }, i * 50);
     }
   }
@@ -821,7 +1039,7 @@
     const state = window.WizardState.getState();
     const selectedId = state.selectedPackages[categoryKey];
 
-    let html = '<div class="wizard-package-grid">';
+    let html = '<div class="wizard-package-grid" role="listbox" aria-label="Available packages">';
     packages.slice(0, 6).forEach(pkg => {
       const isSelected = pkg.id === selectedId;
       const distanceInfo =
@@ -831,7 +1049,8 @@
 
       html += `
         <div class="wizard-package-card ${isSelected ? 'selected' : ''}" 
-             data-package-id="${escapeHtml(String(pkg.id))}" data-category="${escapeHtml(categoryKey)}">
+             data-package-id="${escapeHtml(String(pkg.id))}" data-category="${escapeHtml(categoryKey)}"
+             role="option" aria-selected="${isSelected ? 'true' : 'false'}" tabindex="0">
           ${pkg.image ? `<img src="${escapeHtml(pkg.image)}" alt="${escapeHtml(pkg.title)}">` : ''}
           <h4>${escapeHtml(pkg.title)}</h4>
           ${distanceInfo}
@@ -848,25 +1067,41 @@
 
     container.innerHTML = html;
 
-    // Attach click handlers
+    // Attach click and keyboard handlers
     const cards = container.querySelectorAll('.wizard-package-card');
+
+    function handleCardActivation(card) {
+      const packageId = card.getAttribute('data-package-id');
+      const catKey = card.getAttribute('data-category');
+      const wasSelected = card.classList.contains('selected');
+
+      // Deselect all in category
+      cards.forEach(c => {
+        c.classList.remove('selected');
+        c.setAttribute('aria-selected', 'false');
+      });
+
+      if (!wasSelected) {
+        card.classList.add('selected');
+        card.setAttribute('aria-selected', 'true');
+        window.WizardState.selectPackage(catKey, packageId);
+      } else {
+        window.WizardState.deselectPackage(catKey);
+      }
+
+      renderPlanSummary();
+    }
+
     cards.forEach(card => {
       card.addEventListener('click', function () {
-        const packageId = this.getAttribute('data-package-id');
-        const catKey = this.getAttribute('data-category');
-        const wasSelected = this.classList.contains('selected');
+        handleCardActivation(this);
+      });
 
-        // Deselect all in category
-        cards.forEach(c => c.classList.remove('selected'));
-
-        if (!wasSelected) {
-          this.classList.add('selected');
-          window.WizardState.selectPackage(catKey, packageId);
-        } else {
-          window.WizardState.deselectPackage(catKey);
+      card.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleCardActivation(this);
         }
-
-        renderPlanSummary();
       });
     });
   }
@@ -880,20 +1115,21 @@
       const eventName = document.getElementById('wizard-event-name')?.value || '';
       const location = document.getElementById('wizard-location')?.value || '';
       const date = document.getElementById('wizard-date')?.value || '';
-      const guests = document.getElementById('wizard-guests')?.value || null;
+      const guestsRaw = document.getElementById('wizard-guests')?.value || '';
       const budget = document.getElementById('wizard-budget')?.value || '';
 
-      const stepData = {
+      // Validate with string guests so "0" is treated as a provided value, not falsy
+      const stepDataForValidation = {
         eventName,
         location,
         date,
-        guests: guests ? parseInt(guests, 10) : null,
+        guests: guestsRaw,
         budget,
       };
 
       // Enforce validation before advancing (Bug 1.3)
       if (window.WizardValidation) {
-        const validationResult = window.WizardValidation.validateStep(currentStep, stepData);
+        const validationResult = window.WizardValidation.validateStep(currentStep, stepDataForValidation);
         if (!validationResult.valid) {
           // Show errors on fields and shake invalid ones
           Object.keys(validationResult.errors).forEach(fieldName => {
@@ -915,7 +1151,14 @@
         }
       }
 
-      window.WizardState.saveStep(currentStep, stepData);
+      // Save with proper numeric conversion
+      window.WizardState.saveStep(currentStep, {
+        eventName,
+        location,
+        date,
+        guests: guestsRaw ? parseInt(guestsRaw, 10) : null,
+        budget,
+      });
     }
 
     // For step 0 (event type), enforce selection (Bug 1.3)
@@ -986,6 +1229,30 @@
       state.budget ||
       Object.keys(state.selectedPackages || {}).length > 0
     );
+  }
+
+  /**
+   * Set up beforeunload warning so users don't accidentally lose wizard data.
+   * Fires only when there is in-progress data and the wizard hasn't been completed.
+   */
+  function setupBeforeUnload() {
+    _beforeunloadHandler = e => {
+      if (!_wizardCompleted && hasFormData()) {
+        e.preventDefault();
+        e.returnValue = ''; // Required for Chrome
+      }
+    };
+    window.addEventListener('beforeunload', _beforeunloadHandler);
+  }
+
+  /**
+   * Remove the beforeunload listener (called after successful plan creation).
+   */
+  function removeBeforeUnload() {
+    if (_beforeunloadHandler) {
+      window.removeEventListener('beforeunload', _beforeunloadHandler);
+      _beforeunloadHandler = null;
+    }
   }
 
   /**
@@ -1080,8 +1347,15 @@
         return;
       }
 
-      // Mark wizard as completed
+      // Store plan ID (if returned) for the "View Your Plan" link on the success screen
+      if (saveResult && saveResult.status !== 401) {
+        savedPlanId = saveResult.plan?._id || saveResult._id || saveResult.id || null;
+      }
+
+      // Mark wizard as completed and disable beforeunload warning
       window.WizardState.markCompleted();
+      _wizardCompleted = true;
+      removeBeforeUnload();
 
       // Show success screen
       currentStep = STEP_CONFIG.SUCCESS;
@@ -1249,18 +1523,6 @@
     }
 
     return '';
-  }
-
-  /**
-   * HTML escape utility
-   */
-  function escapeHtml(unsafe) {
-    if (typeof unsafe !== 'string') {
-      return '';
-    }
-    const div = document.createElement('div');
-    div.textContent = unsafe;
-    return div.innerHTML;
   }
 
   // Initialize when DOM is ready

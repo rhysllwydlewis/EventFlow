@@ -238,8 +238,8 @@
         }
 
         // Guests is optional, but validate if provided
-        if (data.guests) {
-          const guestsResult = validateField('guests', data.guests);
+        if (data.guests !== null && data.guests !== undefined && data.guests !== '') {
+          const guestsResult = validateField('guests', String(data.guests));
           if (!guestsResult.valid) {
             errors.guests = guestsResult.errors;
             isValid = false;

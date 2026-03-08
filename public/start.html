@@ -158,16 +158,20 @@
 <script src="/assets/js/websocket-client.js" defer></script>
 
 <main id="main-content" class="section">
-  <div class="container" style="display: flex; gap: 2rem; align-items: flex-start;">
+  <div class="container wizard-layout">
     <!-- Main wizard area -->
     <div style="flex: 1; min-width: 0;">
       <!-- Template Selector (initially shown) -->
       <div id="template-selector-container" class="card" style="margin-bottom: 1rem; display: none;"></div>
       
       <h2 class="sr-only">Event planning wizard</h2>
+      <!-- ARIA live region for screen reader step announcements -->
+      <div id="wizard-live-region" class="sr-only" aria-live="polite" aria-atomic="true"></div>
       <div id="wizard-container">
         <!-- Wizard steps will be rendered here -->
       </div>
+      <!-- Mobile plan summary (collapsible, visible on small screens only) -->
+      <div id="mobile-plan-summary" class="wizard-mobile-summary"></div>
     </div>
 
     <!-- Plan summary sidebar (desktop) -->
@@ -178,12 +182,29 @@
   </div>
 </main>
 
-<script src="/assets/js/utils/pexels-client.js"></script>
-<script src="/assets/js/utils/wizard-state.js"></script>
-<script src="/assets/js/pages/start-wizard-validation.js"></script>
-<script src="/assets/js/templates.js"></script>
-<script src="/assets/js/pages/start-wizard.js"></script>
-<script>
+<script src="/assets/js/utils/pexels-client.js" defer></script>
+<script src="/assets/js/utils/wizard-state.js" defer></script>
+<script src="/assets/js/pages/start-wizard-validation.js" defer></script>
+<script src="/assets/js/templates.js" defer></script>
+<script src="/assets/js/pages/start-wizard.js" defer></script>
+<script defer>
+  /**
+   * Map a numeric budget value to the closest matching budget-range label used
+   * by the wizard's budget <select> dropdown.
+   * @param {number} amount
+   * @returns {string}
+   */
+  function mapBudgetToLabel(amount) {
+    if (amount == null || isNaN(Number(amount))) return '';
+    const n = Number(amount);
+    if (n <= 1000)  return 'Up to £1,000';
+    if (n <= 3000)  return '£1,000–£3,000';
+    if (n <= 5000)  return '£3,000–£5,000';
+    if (n <= 10000) return '£5,000–£10,000';
+    if (n <= 20000) return '£10,000–£20,000';
+    return '£20,000+';
+  }
+
   // Show template selector on page load
   document.addEventListener('DOMContentLoaded', () => {
     const container = document.getElementById('template-selector-container');
@@ -191,14 +212,14 @@
       container.style.display = 'block';
       window.EventTemplates.renderSelector('template-selector-container', (template) => {
         if (template) {
-          // Pre-fill wizard with template data
-          console.log('Template selected:', template);
           if (window.WizardState) {
-            // Pre-fill basic info
+            // Pre-fill event type (step 0 = EVENT_TYPE)
+            window.WizardState.saveStep(0, { eventType: template.eventType || template.type });
+            // Pre-fill basic info (step 1 = EVENT_BASICS)
             window.WizardState.saveStep(1, {
               location: '',
               guests: template.guestCount,
-              budget: template.budget.toString()
+              budget: mapBudgetToLabel(template.budget)
             });
           }
         }
