@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Card Preview</title>
+  <link rel="stylesheet" href="/assets/css/styles.css">
+  <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css">
+  <link rel="stylesheet" href="/assets/css/components.css">
+  <link rel="stylesheet" href="/assets/css/customer-dashboard-improvements.css">
+  <style>
+    body { padding: 2rem; background: #f3f4f6; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+    .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 1.25rem; box-shadow: 0 1px 4px rgba(0,0,0,0.05); }
+  </style>
+</head>
+<body class="customer-dashboard-page">
+  <h1 style="font-family: sans-serif; margin-bottom: 1.5rem;">Customer Dashboard Card States</h1>
+  <div class="cards">
+    <!-- Plans card - empty state -->
+    <div class="card">
+      <h3 class="customer-card-title">Your Plans</h3>
+      <p class="small customer-card-subtitle">Event plans created with the wizard.</p>
+      <div id="customer-plans-list" class="customer-plans-list-container">
+        <div class="empty-state">
+          <div class="empty-state-icon">📋</div>
+          <div class="empty-state-title">No plans yet</div>
+          <div class="empty-state-description">Start planning your perfect event with our wizard.</div>
+          <a href="/start" class="empty-state-action">Create Your First Plan</a>
+        </div>
+      </div>
+      <a href="/start" class="cta secondary customer-card-action">Create New Plan</a>
+    </div>
+
+    <!-- Saved suppliers - empty state -->
+    <div class="card">
+      <h3 class="customer-card-title">Saved Suppliers</h3>
+      <p class="small customer-card-subtitle">Review and manage your saved suppliers.</p>
+      <div id="saved-suppliers-status" aria-live="polite">
+        <div class="empty-state">
+          <div class="empty-state-icon">⭐</div>
+          <div class="empty-state-title">No saved suppliers yet</div>
+          <div class="empty-state-description">Browse suppliers and save your favorites to build your shortlist.</div>
+        </div>
+      </div>
+      <button class="cta customer-card-action--full">View Saved Items</button>
+    </div>
+
+    <!-- Saved suppliers - has count -->
+    <div class="card">
+      <h3 class="customer-card-title">Saved Suppliers (with data)</h3>
+      <p class="small customer-card-subtitle">Review and manage your saved suppliers.</p>
+      <div aria-live="polite">
+        <p class="small" style="color:var(--ef-text-muted);margin:0 0 0.75rem;">3 saved suppliers in your list.</p>
+      </div>
+      <button class="cta customer-card-action--full">View Saved Items</button>
+    </div>
+
+    <!-- Tickets card - empty state -->
+    <div class="card">
+      <div class="customer-tickets-header">
+        <h3 class="customer-card-title">Support Tickets</h3>
+        <button class="cta customer-tickets-create-btn">Create Ticket</button>
+      </div>
+      <div id="tickets-cust" class="section" aria-live="polite">
+        <div class="empty-state">
+          <div class="empty-state-icon">🎫</div>
+          <div class="empty-state-title">No support tickets yet</div>
+          <div class="empty-state-description">Create one if you need help!</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tickets card - error state -->
+    <div class="card">
+      <div class="customer-tickets-header">
+        <h3 class="customer-card-title">Support Tickets (error)</h3>
+        <button class="cta customer-tickets-create-btn">Create Ticket</button>
+      </div>
+      <div class="section" aria-live="polite">
+        <div class="error-state">
+          <div class="error-state-icon">⚠️</div>
+          <div class="error-state-title">Unable to load tickets</div>
+          <div class="error-state-description">Please try refreshing the page.</div>
+          <button class="error-state-action">Refresh</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tickets card - loading state (skeleton) -->
+    <div class="card">
+      <div class="customer-tickets-header">
+        <h3 class="customer-card-title">Support Tickets (loading)</h3>
+        <button class="cta customer-tickets-create-btn">Create Ticket</button>
+      </div>
+      <div id="tickets-cust-loading" class="section" aria-live="polite">
+        <div class="skeleton skeleton-text skeleton-text-long"></div>
+        <div class="skeleton skeleton-text skeleton-text-medium"></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
