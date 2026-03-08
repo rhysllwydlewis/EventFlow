@@ -1218,12 +1218,13 @@
       const date = document.getElementById('wizard-date')?.value || '';
       const guests = document.getElementById('wizard-guests')?.value || null;
       const budget = document.getElementById('wizard-budget')?.value || '';
+      const parsedGuests = guests ? parseInt(guests, 10) : NaN;
 
       window.WizardState.saveStep(currentStep, {
         eventName,
         location,
         date,
-        guests: guests && !isNaN(parseInt(guests, 10)) ? parseInt(guests, 10) : null,
+        guests: !isNaN(parsedGuests) ? parsedGuests : null,
         budget,
       });
     }
@@ -1369,7 +1370,7 @@
 
       // Store plan ID (if returned) for the "View Your Plan" link on the success screen
       if (saveResult && saveResult.status !== 401) {
-        savedPlanId = saveResult.plan?._id || saveResult._id || saveResult.id || null;
+        savedPlanId = saveResult.plan?.id || saveResult.plan?._id || saveResult._id || saveResult.id || null;
       }
 
       // Mark wizard as completed and disable beforeunload warning
@@ -1430,7 +1431,7 @@
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || errorData.message || 'Failed to save plan');
+      throw new Error(errorData.message || errorData.error || 'Failed to save plan');
     }
 
     return await response.json();

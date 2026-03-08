@@ -49,7 +49,7 @@ router.get('/dashboard/customer/plans/:id', apiLimiter, authRequired, async (req
     }
     // Validate the plan ID format (prefix_alphanumeric as produced by uid()).
     // An invalid format cannot belong to a real plan — redirect to the dashboard.
-    if (!/^[a-z]+_[0-9a-z]+$/i.test(req.params.id)) {
+    if (!/^[a-z]+_[0-9a-z]+$/.test(req.params.id)) {
       return res.redirect('/dashboard/customer');
     }
     res.sendFile(path.join(__dirname, '..', 'public', 'dashboard-customer.html'));
