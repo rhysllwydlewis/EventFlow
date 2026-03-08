@@ -224,6 +224,7 @@
   <div class="card">
     <h3 class="customer-card-title">Saved Suppliers</h3>
     <p class="small customer-card-subtitle">Review and manage your saved suppliers.</p>
+    <div id="saved-suppliers-status" aria-live="polite"></div>
     <button class="cta customer-card-action--full" id="openPlanBtn">View Saved Items</button>
   </div>
   
@@ -794,7 +795,13 @@ async function loadCustomerPlans(preloadedPlans) {
     }
 
     if (plans.length === 0) {
-      container.innerHTML = '<p class="small" style="color:#667085;">No plans yet. Create one to get started!</p>';
+      container.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">📋</div>
+          <div class="empty-state-title">No plans yet</div>
+          <div class="empty-state-description">Start planning your perfect event with our wizard.</div>
+        </div>
+      `;
       return;
     }
 
@@ -946,6 +953,28 @@ function populateHeroStats(plans) {
   } catch (_) {}
   const heroSuppliers = document.getElementById('hero-stat-suppliers');
   if (heroSuppliers) heroSuppliers.textContent = savedCount;
+
+  // Populate saved suppliers card status
+  const savedStatusEl = document.getElementById('saved-suppliers-status');
+  const openPlanBtn = document.getElementById('openPlanBtn');
+  if (savedStatusEl) {
+    if (savedCount === 0) {
+      savedStatusEl.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">⭐</div>
+          <div class="empty-state-title">No saved suppliers yet</div>
+          <div class="empty-state-description">Save your favorites while browsing to build your supplier shortlist.</div>
+          <a href="/suppliers" class="empty-state-action">Browse Suppliers</a>
+        </div>
+      `;
+      // Hide the "View Saved Items" button — the empty-state action above replaces it
+      if (openPlanBtn) openPlanBtn.style.display = 'none';
+    } else {
+      savedStatusEl.innerHTML = `<p class="small" style="color:var(--ef-text-muted);margin:0 0 0.75rem;">${savedCount} saved supplier${savedCount !== 1 ? 's' : ''} in your list.</p>`;
+      // Ensure the button is visible when there are saved suppliers
+      if (openPlanBtn) openPlanBtn.style.display = '';
+    }
+  }
 
   // Days to event (nearest upcoming plan with a date)
   const heroDays = document.getElementById('hero-stat-days');
