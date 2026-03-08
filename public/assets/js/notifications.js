@@ -204,6 +204,45 @@
     }
   });
 
+  // Listen for messenger:notification events dispatched by NotificationBridge.js
+  // This bridges the message badge system with the notification dropdown
+  window.addEventListener('messenger:notification', event => {
+    const { conversationId, message, sender } = event.detail;
+
+    if (state.isInitialized) {
+      const senderName = sender?.name || 'Unknown User';
+      const messagePreview = message?.content || message?.text || 'New message';
+      const actionUrl = conversationId
+        ? `/messenger?conversation=${conversationId}`
+        : '/messenger';
+
+      addMessageNotification({
+        type: 'message',
+        title: senderName,
+        message: messagePreview,
+        actionUrl,
+        metadata: conversationId ? { conversationId } : {},
+        icon: '💬',
+        createdAt: new Date(),
+        isRead: false,
+      });
+
+      // Update unread count
+      state.unreadCount++;
+      updateBellBadge();
+
+      // Show desktop notification if permitted
+      if (state.hasDesktopPermission) {
+        showDesktopNotification({ title: senderName, message: messagePreview, actionUrl });
+      }
+
+      // Play sound if enabled
+      if (state.soundEnabled) {
+        playNotificationSound();
+      }
+    }
+  });
+
   // Listen for messages being marked as read
   window.addEventListener('messaging:marked-read', async event => {
     const { conversationId } = event.detail;

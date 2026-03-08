@@ -1718,3 +1718,47 @@ body {
     max-width: none;
   }
 }
+
+/* ========================================
+   NAVBAR TEXT CONSISTENCY
+   Ensures all navbar elements use the same font size
+   regardless of page-specific stylesheet overrides
+   ======================================== */
+
+/* Define shared navbar font size variables */
+:root {
+  --ef-nav-font-size: 0.875rem;        /* 14px — matches the auth page appearance */
+  --ef-nav-font-size-tablet: 0.8rem;   /* Tablet (768px–1023px) */
+  --ef-nav-font-size-mobile: 0.78rem;  /* Ultra-small (≤320px) */
+}
+
+/* All nav links in the header should use the same size */
+.ef-header .ef-nav-link {
+  font-size: var(--ef-nav-font-size) !important;
+}
+
+/* Auth button (Log in / Log out) should match nav link size */
+.ef-header .ef-btn {
+  font-size: var(--ef-nav-font-size) !important;
+}
+
+/* Dashboard link should match exactly */
+.ef-header #ef-dashboard-link {
+  font-size: var(--ef-nav-font-size) !important;
+  font-weight: 500 !important;
+  padding: 8px 14px !important;
+}
+
+@media (max-width: 1023px) and (min-width: 768px) {
+  .ef-header .ef-nav-link,
+  .ef-header .ef-btn {
+    font-size: var(--ef-nav-font-size-tablet) !important;
+  }
+}
+
+@media (max-width: 320px) {
+  .ef-header .ef-nav-link,
+  .ef-header .ef-btn {
+    font-size: var(--ef-nav-font-size-mobile) !important;
+  }
+}
