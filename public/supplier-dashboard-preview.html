@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Preview</title>
+  <!-- Load all the same CSS as the real dashboard -->
+  <link rel="stylesheet" href="/assets/css/design-tokens.css">
+  <link rel="stylesheet" href="/assets/css/styles.css">
+  <link rel="stylesheet" href="/assets/css/utilities.css">
+  <link rel="stylesheet" href="/assets/css/components.css">
+  <link rel="stylesheet" href="/assets/css/navbar.css">
+  <link rel="stylesheet" href="/assets/css/dashboard-animations.css">
+  <link rel="stylesheet" href="/assets/css/supplier-dashboard-improvements.css">
+  <link rel="stylesheet" href="/assets/css/dashboard-hero.css">
+  <link rel="stylesheet" href="/assets/css/supplier-utils.css">
+  <link rel="stylesheet" href="/assets/css/liquid-glass.css">
+  <link rel="stylesheet" href="/assets/css/p3-features.css">
+  <style>
+    body { background: #f1f5f9; margin: 0; }
+    .preview-page { max-width: 1240px; margin: 0 auto; padding: 2rem 1rem; }
+    .preview-note { background: #fef3c7; border: 1px solid #f59e0b; border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1rem; font-size: 0.875rem; font-family: monospace; }
+  </style>
+</head>
+<body class="supplier-dashboard-page">
+  <div class="preview-page">
+    <div class="preview-note">🔍 CSS Preview — checking new sd-* classes</div>
+
+    <!-- Section Divider -->
+    <div class="sd-section-divider" role="separator" aria-hidden="true">
+      <span class="sd-section-divider__label">Profile Management</span>
+    </div>
+
+    <!-- Profiles Card -->
+    <div class="card sd-card" role="region" aria-labelledby="profiles-heading-p">
+      <div class="supplier-card-header sd-card-header sd-card-header--teal">
+        <div class="sd-card-header__left">
+          <div class="sd-card-header__title-row">
+            <div class="sd-card-header__icon sd-card-header__icon--teal" aria-hidden="true">👤</div>
+            <h2 id="profiles-heading-p" class="sd-card-header__heading">Your Supplier Profiles</h2>
+          </div>
+          <p class="sd-card-header__subtitle">Create and manage your supplier listings.</p>
+        </div>
+        <div class="sd-card-header__actions">
+          <button class="glass-btn glass-btn--primary" style="background: linear-gradient(135deg,#0b8073,#10b981);color:white;border:none;">
+            + Create Profile
+          </button>
+        </div>
+      </div>
+      <div style="padding: 1rem 1.5rem; color: #6b7280; font-size: 0.875rem;">
+        [Profile list content here]
+      </div>
+    </div>
+
+    <!-- Section Divider 2 -->
+    <div class="sd-section-divider" role="separator" aria-hidden="true">
+      <span class="sd-section-divider__label">Packages &amp; Services</span>
+    </div>
+
+    <!-- Packages Card -->
+    <div class="card sd-card supplier-dashboard-card" role="region" aria-labelledby="packages-heading-p">
+      <div class="supplier-card-header sd-card-header sd-card-header--indigo">
+        <div class="sd-card-header__left">
+          <div class="sd-card-header__title-row">
+            <div class="sd-card-header__icon sd-card-header__icon--indigo" aria-hidden="true">📦</div>
+            <h3 id="packages-heading-p" class="sd-card-header__heading">Your Packages</h3>
+          </div>
+          <p class="sd-card-header__subtitle">Checking your package allowance…</p>
+        </div>
+        <div class="sd-card-header__actions">
+          <button class="glass-btn" style="background: linear-gradient(135deg,#6366f1,#8b5cf6);color:white;border:none;">
+            + Create Package
+          </button>
+        </div>
+      </div>
+      <div style="padding: 1rem 1.5rem; color: #6b7280; font-size: 0.875rem;">
+        [Package list content here]
+      </div>
+    </div>
+
+    <!-- Section Divider 3 -->
+    <div class="sd-section-divider" role="separator" aria-hidden="true">
+      <span class="sd-section-divider__label">Account &amp; Support</span>
+    </div>
+
+    <!-- Two-col: Subscription + Lead Quality -->
+    <div class="sd-two-col">
+      <div class="card sd-card supplier-dashboard-card">
+        <div class="supplier-card-header sd-card-header sd-card-header--indigo">
+          <div class="sd-card-header__left">
+            <div class="sd-card-header__title-row">
+              <div class="sd-card-header__icon sd-card-header__icon--indigo" aria-hidden="true">💳</div>
+              <h3 class="sd-card-header__heading">Subscription</h3>
+            </div>
+            <p class="sd-card-header__subtitle">Manage your plan and billing</p>
+          </div>
+        </div>
+        <div style="padding: 1rem 1.5rem; color: #6b7280; font-size: 0.875rem;">
+          [Subscription card content]
+        </div>
+      </div>
+      <div class="card sd-card supplier-dashboard-card">
+        <div class="supplier-card-header sd-card-header sd-card-header--blue">
+          <div class="sd-card-header__left">
+            <div class="sd-card-header__title-row">
+              <div class="sd-card-header__icon sd-card-header__icon--blue" aria-hidden="true">📈</div>
+              <h3 class="sd-card-header__heading">Lead Quality Overview</h3>
+            </div>
+            <p class="sd-card-header__subtitle">Track the quality of your enquiries</p>
+          </div>
+        </div>
+        <div style="padding: 1rem 1.5rem; color: #6b7280; font-size: 0.875rem;">
+          [Lead quality content]
+        </div>
+      </div>
+    </div>
+
+    <!-- Tickets Card -->
+    <div class="card sd-card supplier-dashboard-card" style="margin-top: 1rem;">
+      <div class="supplier-card-header sd-card-header sd-card-header--red">
+        <div class="sd-card-header__left">
+          <div class="sd-card-header__title-row">
+            <div class="sd-card-header__icon sd-card-header__icon--red" aria-hidden="true">🎫</div>
+            <div>
+              <h3 class="sd-card-header__heading">Support Tickets</h3>
+              <p class="sd-card-header__subtitle sd-card-header__subtitle--no-indent">Get help when you need it</p>
+            </div>
+          </div>
+        </div>
+        <div class="sd-card-header__actions">
+          <button class="glass-btn glass-btn--primary" style="padding: 0.625rem 1.25rem; font-size: 0.875rem;">Create Ticket</button>
+        </div>
+      </div>
+      <div style="padding: 1rem 1.5rem; color: #6b7280; font-size: 0.875rem;">[Tickets]</div>
+    </div>
+
+    <!-- Messages Card with Toolbar -->
+    <div class="card sd-card supplier-dashboard-card" style="margin-top: 1rem;">
+      <div class="supplier-card-header sd-card-header sd-card-header--blue">
+        <div class="sd-card-header__left">
+          <div class="sd-card-header__title-row">
+            <div class="sd-card-header__icon sd-card-header__icon--blue" aria-hidden="true">💬</div>
+            <div style="display:flex;align-items:center;gap:0.75rem;">
+              <h3 class="sd-card-header__heading">Messages</h3>
+              <span class="badge badge-info supplier-unread-badge supplier-unread-badge--blue">3 unread</span>
+            </div>
+          </div>
+        </div>
+        <div class="sd-messages-toolbar">
+          <input type="search" placeholder="Search conversations…" class="sd-messages-toolbar__search" />
+          <select class="sd-messages-toolbar__select">
+            <option>All</option>
+            <option>Unread</option>
+          </select>
+          <select class="sd-messages-toolbar__select">
+            <option>Newest</option>
+            <option>Oldest</option>
+          </select>
+          <button class="glass-btn sd-messages-toolbar__export">
+            📥 Export CSV
+          </button>
+        </div>
+      </div>
+      <div style="padding: 1rem 1.5rem; color: #6b7280; font-size: 0.875rem;">[Messages]</div>
+    </div>
+
+    <!-- Reviews Card -->
+    <div class="card sd-card supplier-dashboard-card" style="margin-top: 1rem;">
+      <div class="supplier-card-header sd-card-header sd-card-header--amber">
+        <div class="sd-card-header__left">
+          <div class="sd-card-header__title-row">
+            <div class="sd-card-header__icon sd-card-header__icon--amber" aria-hidden="true">⭐</div>
+            <h3 class="sd-card-header__heading">Reviews &amp; Ratings</h3>
+          </div>
+          <p class="sd-card-header__subtitle">Build trust with customer testimonials</p>
+        </div>
+      </div>
+      <div style="padding: 1rem 1.5rem; color: #6b7280; font-size: 0.875rem;">[Reviews]</div>
+    </div>
+
+    <!-- Calendar section -->
+    <div style="margin-top: 1rem;">
+      <section id="availability-calendar-preview" class="card sd-card" aria-labelledby="calendar-heading-p">
+        <div class="sd-availability-section">
+          <div class="sd-availability-header">
+            <div class="sd-availability-title-row">
+              <div class="sd-availability-icon" aria-hidden="true">📅</div>
+              <div>
+                <h2 id="calendar-heading-p" class="sd-availability-heading">Availability Calendar</h2>
+                <p class="sd-availability-subtitle">Manage your bookable dates</p>
+              </div>
+            </div>
+            <span class="sd-in-dev-badge">In Development</span>
+          </div>
+          <div class="sd-calendar-placeholder">
+            <div class="sd-calendar-placeholder__inner">
+              <div class="sd-calendar-placeholder__icon" aria-hidden="true">📆</div>
+              <div>
+                <h3 class="sd-calendar-placeholder__title">Interactive Calendar Coming Soon</h3>
+                <p class="sd-calendar-placeholder__desc">Block unavailable dates, set recurring availability, and track bookings.</p>
+                <div class="sd-calendar-placeholder__chips">
+                  <span class="sd-calendar-chip"><span>✅</span><span>View bookings</span></span>
+                  <span class="sd-calendar-chip"><span>🚫</span><span>Block dates</span></span>
+                  <span class="sd-calendar-chip"><span>🔄</span><span>Recurring</span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</body>
+</html>
