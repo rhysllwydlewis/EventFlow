@@ -86,8 +86,10 @@
   async function fetchRecommendations(params = {}) {
     const queryParams = new URLSearchParams();
 
+    // The Phase 3 API accepts `eventType` (not `category`). Map the widget's
+    // `category` data attribute to `eventType` since both carry event-type intent.
     if (params.category) {
-      queryParams.append('category', params.category);
+      queryParams.append('eventType', params.category);
     }
     if (params.location) {
       queryParams.append('location', params.location);
@@ -96,17 +98,21 @@
       queryParams.append('budget', params.budget);
     }
     if (params.eventType) {
-      queryParams.append('eventType', params.eventType);
+      // eventType takes precedence over category when both are supplied
+      queryParams.set('eventType', params.eventType);
     }
+    queryParams.set('limit', '6');
 
-    const response = await fetch(`/api/v1/public/recommendations?${queryParams}`);
+    // Use Phase 3 personalized discovery endpoint
+    const response = await fetch(`/api/v2/search/personalized?${queryParams}`);
 
     if (!response.ok) {
       throw new Error('Failed to fetch recommendations');
     }
 
     const data = await response.json();
-    return data.recommendations || [];
+    // Phase 3 response shape: { success, data: { results, context } }
+    return (data.data && data.data.results) || [];
   }
 
   /**
@@ -127,17 +133,21 @@
       <div class="recommendations-grid">
         ${recommendations
           .map(supplier => {
-            const name = escapeHtml(supplier.businessName || 'Supplier');
+            // Phase 3 API returns `name` (not `businessName`)
+            const name = escapeHtml(supplier.name || supplier.businessName || 'Supplier');
             const category = escapeHtml(supplier.category || '');
-            const location = escapeHtml(supplier.location || '');
+            const location = escapeHtml(
+              typeof supplier.location === 'string' ? supplier.location : ''
+            );
             const logoSrc = safeSrc(supplier.logo || '');
-            const initial = (supplier.businessName || 'S').charAt(0).toUpperCase();
+            const initial = name.charAt(0).toUpperCase();
             const supplierId =
               typeof supplier.id === 'string' || typeof supplier.id === 'number' ? supplier.id : '';
             const href = `/supplier?id=${encodeURIComponent(supplierId)}`;
             const ratingText = supplier.averageRating
               ? `⭐ ${Number(supplier.averageRating).toFixed(1)} (${supplier.reviewCount || 0} reviews)`
               : '';
+            const rankingReason = supplier.rankingReason ? escapeHtml(supplier.rankingReason) : '';
             return `
           <a href="${href}" class="recommendation-card" style="text-decoration: none; color: inherit; display: block; cursor: pointer;">
             <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
@@ -152,7 +162,8 @@
               </div>
             </div>
             ${location ? `<p style="margin: 0 0 0.5rem; font-size: 0.875rem; color: #6b7280;">📍 ${location}</p>` : ''}
-            ${ratingText ? `<p style="margin: 0; font-size: 0.875rem; color: #6b7280;">${ratingText}</p>` : ''}
+            ${ratingText ? `<p style="margin: 0 0 0.25rem; font-size: 0.875rem; color: #6b7280;">${ratingText}</p>` : ''}
+            ${rankingReason ? `<p style="margin: 0; font-size: 0.75rem; color: #9ca3af; font-style: italic;">${rankingReason}</p>` : ''}
           </a>
         `;
           })

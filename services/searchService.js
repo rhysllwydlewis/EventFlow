@@ -1223,7 +1223,6 @@ async function buildZeroResultsFallback(query, approvedSuppliers) {
           ...projectPublicSupplierFields(s),
           relevanceScore: calculateQualityScore(s),
           rankingReason: getRankingReason(s, relaxedQuery.q || ''),
-          _isFallback: true,
         }))
         .sort((a, b) => (b.relevanceScore || 0) - (a.relevanceScore || 0))
         .slice(0, 6);

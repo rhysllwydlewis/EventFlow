@@ -641,6 +641,59 @@ kbd {
 }
 
 /* ====================================
+   P3-17: Zero-results Fallback State
+   ==================================== */
+
+/* Wrapper for the zero-results fallback view */
+.fallback-state {
+  padding: 2rem 0;
+}
+
+/* Header section: icon, headline, message, CTA */
+.fallback-state-header {
+  text-align: center;
+  padding: 2.5rem 1.5rem;
+  max-width: 540px;
+  margin: 0 auto 2rem;
+}
+
+.fallback-state-header h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0.5rem 0 0.75rem;
+}
+
+/* Human-readable fallback message from the API */
+.fallback-message {
+  font-size: 1rem;
+  color: #4b5563;
+  line-height: 1.6;
+  margin: 0 0 0.5rem;
+}
+
+/* Small note listing which filter(s) were relaxed */
+.fallback-relaxed-note {
+  font-size: 0.8125rem;
+  color: #9ca3af;
+  font-style: italic;
+  margin: 0 0 1.25rem;
+}
+
+/* Suggestions section title + grid */
+.fallback-suggestions {
+  border-top: 1px solid #e5e7eb;
+  padding-top: 1.5rem;
+}
+
+.fallback-suggestions-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 1.25rem;
+}
+
+/* ====================================
    P3-16: UX Polish & Transitions
    ==================================== */
 

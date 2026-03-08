@@ -209,6 +209,46 @@ function createEmptyState(filters) {
   `;
 }
 
+// Phase 3: fallback state — zero results but with alternative suggestions from the API
+function createFallbackState(filters, fallback) {
+  const { suggestions = [], message = '', relaxedFilters = [] } = fallback;
+  const hasFilters =
+    filters.q || filters.category || filters.location || filters.priceLevel || filters.minRating;
+
+  const suggestionCards = suggestions
+    // Position 0 signals unranked fallback to the card's analytics tracking
+    .map(supplier => createSupplierCard(supplier, 0))
+    .join('');
+
+  const relaxedNote =
+    relaxedFilters.length > 0
+      ? `<p class="fallback-relaxed-note">Filters relaxed: ${escapeHtml(relaxedFilters.join(', '))}</p>`
+      : '';
+
+  return `
+    <div class="fallback-state">
+      <div class="fallback-state-header">
+        <div class="empty-state-icon">🔍</div>
+        <h2>No exact matches</h2>
+        <p class="fallback-message">${escapeHtml(message || 'No suppliers matched your search. Here are some alternatives.')}</p>
+        ${relaxedNote}
+        <div class="empty-state-actions">
+          ${hasFilters ? '<button class="btn btn-secondary" id="clear-filters-btn">Clear filters</button>' : ''}
+          <a href="/suppliers" class="btn btn-primary">Browse all suppliers</a>
+        </div>
+      </div>
+      ${
+        suggestionCards
+          ? `<div class="fallback-suggestions">
+               <h3 class="fallback-suggestions-title">You might also like</h3>
+               <div class="supplier-cards-grid">${suggestionCards}</div>
+             </div>`
+          : ''
+      }
+    </div>
+  `;
+}
+
 // Valid sort values — kept in sync with VALID_SUPPLIER_SORT_VALUES in searchService.js
 const VALID_SORT_VALUES = [
   'relevance',
@@ -538,7 +578,7 @@ async function initSuppliersPage() {
 
     try {
       const data = await searchSuppliers(currentFilters, currentFilters.page, signal);
-      const { results, pagination, appliedSort } = data;
+      const { results, pagination, appliedSort, fallback } = data;
 
       // Track search
       if (!append) {
@@ -563,7 +603,12 @@ async function initSuppliersPage() {
 
       // Render results or empty state
       if (results.length === 0 && !append) {
-        resultsContainer.innerHTML = createEmptyState(currentFilters);
+        // Phase 3: when the API provides fallback suggestions, show them
+        if (fallback && fallback.suggestions && fallback.suggestions.length > 0) {
+          resultsContainer.innerHTML = createFallbackState(currentFilters, fallback);
+        } else {
+          resultsContainer.innerHTML = createEmptyState(currentFilters);
+        }
         attachEmptyStateHandlers();
       } else {
         const cardsHTML = results
