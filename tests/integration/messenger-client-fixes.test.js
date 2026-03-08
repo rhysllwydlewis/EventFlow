@@ -326,6 +326,59 @@ describe('Messenger client-side fixes', () => {
     expect(bubbleSrc).toContain('The file may have been removed');
   });
 
+  // ── B2) ConversationView image onerror & XSS hardening ─────────────────────
+
+  it('ConversationView.renderAttachments has an onerror handler matching MessageBubbleV4 pattern', () => {
+    const cvSrc = fs.readFileSync(path.join(MESSENGER_DIR, 'js', 'ConversationView.js'), 'utf8');
+    // Must have onerror on the img tag
+    expect(cvSrc).toContain('onerror=');
+    // onerror must show the "Image unavailable" label
+    expect(cvSrc).toContain('Image unavailable');
+    // onerror must include the hint about file removal
+    expect(cvSrc).toContain('The file may have been removed');
+  });
+
+  it('ConversationView.renderAttachments escapes att.url and att.name to prevent XSS', () => {
+    const cvSrc = fs.readFileSync(path.join(MESSENGER_DIR, 'js', 'ConversationView.js'), 'utf8');
+    // URL and name must both be escaped before injection into HTML
+    expect(cvSrc).toContain('this.escapeHtml(att.url');
+    expect(cvSrc).toContain('this.escapeHtml(att.name');
+  });
+
+  it('ConversationView.renderAttachments has a null guard for missing att objects', () => {
+    const cvSrc = fs.readFileSync(path.join(MESSENGER_DIR, 'js', 'ConversationView.js'), 'utf8');
+    // Should guard against null/undefined attachment entries in the array
+    expect(cvSrc).toContain('if (!att)');
+  });
+
+  it('ConversationView.renderAttachments uses rel=noopener noreferrer on file links', () => {
+    const cvSrc = fs.readFileSync(path.join(MESSENGER_DIR, 'js', 'ConversationView.js'), 'utf8');
+    expect(cvSrc).toContain('rel="noopener noreferrer"');
+  });
+
+  // ── B3) CSS: message-content min-width prevents vertical text ───────────────
+
+  it('messenger-v4.css sets a non-zero min-width on .messenger-v4__message-content', () => {
+    const cssSrc = fs.readFileSync(
+      path.resolve(__dirname, '..', '..', 'public', 'assets', 'css', 'messenger-v4.css'),
+      'utf8'
+    );
+    // The base rule must have a positive pixel min-width (not 0) to prevent collapse
+    expect(cssSrc).toMatch(/\.messenger-v4__message-content\s*\{[^}]*min-width:\s*[1-9]\d*px/);
+    // Must NOT be min-width: 0 in the base rule
+    expect(cssSrc).not.toMatch(/\.messenger-v4__message-content\s*\{[^}]*min-width:\s*0[;\s]/);
+  });
+
+  it('messenger-v4.css sets word-break and overflow-wrap on .messenger-v4__message-content', () => {
+    const cssSrc = fs.readFileSync(
+      path.resolve(__dirname, '..', '..', 'public', 'assets', 'css', 'messenger-v4.css'),
+      'utf8'
+    );
+    // Both text-wrapping properties must be set on the content wrapper
+    expect(cssSrc).toContain('word-break: break-word');
+    expect(cssSrc).toContain('overflow-wrap: anywhere');
+  });
+
   // ── C) Mark read/unread toggle ──────────────────────────────────────────────
 
   it('ChatViewV4 _updateMarkUnreadBtn updates aria-label based on unread state', () => {
