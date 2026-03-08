@@ -212,9 +212,7 @@
     if (state.isInitialized) {
       const senderName = sender?.name || 'Unknown User';
       const messagePreview = message?.content || message?.text || 'New message';
-      const actionUrl = conversationId
-        ? `/messenger?conversation=${conversationId}`
-        : '/messenger';
+      const actionUrl = conversationId ? `/messenger?conversation=${conversationId}` : '/messenger';
 
       addMessageNotification({
         type: 'message',
@@ -326,11 +324,22 @@
     }
   }
 
+  function getCsrfToken() {
+    if (window.__CSRF_TOKEN__) {
+      return window.__CSRF_TOKEN__;
+    }
+    const match = document.cookie.match(/(?:^|;\s*)csrf=([^;]*)/);
+    return match ? decodeURIComponent(match[1]) : null;
+  }
+
   async function markAsRead(notificationId) {
     try {
       const response = await fetch(`/api/v1/notifications/${notificationId}/read`, {
         method: 'PUT',
         credentials: 'include',
+        headers: {
+          'X-CSRF-Token': getCsrfToken(),
+        },
       });
 
       if (response.ok) {
@@ -354,6 +363,9 @@
       const response = await fetch('/api/v1/notifications/mark-all-read', {
         method: 'PUT',
         credentials: 'include',
+        headers: {
+          'X-CSRF-Token': getCsrfToken(),
+        },
       });
 
       if (response.ok) {
@@ -376,6 +388,9 @@
       const response = await fetch(`/api/v1/notifications/${notificationId}/dismiss`, {
         method: 'PUT',
         credentials: 'include',
+        headers: {
+          'X-CSRF-Token': getCsrfToken(),
+        },
       });
 
       if (response.ok) {
@@ -393,6 +408,9 @@
       const response = await fetch(`/api/v1/notifications/${notificationId}`, {
         method: 'DELETE',
         credentials: 'include',
+        headers: {
+          'X-CSRF-Token': getCsrfToken(),
+        },
       });
 
       if (response.ok) {
