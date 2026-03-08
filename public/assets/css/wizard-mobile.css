@@ -291,3 +291,76 @@
     padding-bottom: 80px; /* Space for bottom nav */
   }
 }
+
+/* ===========================================
+   MOBILE PLAN SUMMARY DRAWER
+   =========================================== */
+
+/* Hidden on desktop — only shown on mobile */
+.wizard-mobile-summary {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .wizard-mobile-summary {
+    display: block;
+    background: rgba(255, 255, 255, 0.97);
+    border: 1px solid rgba(11, 128, 115, 0.12);
+    border-radius: 12px;
+    margin-top: 0.75rem;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(11, 128, 115, 0.07);
+  }
+
+  .wizard-mobile-summary-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    background: rgba(11, 128, 115, 0.04);
+    border: none;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    min-height: 48px;
+  }
+
+  .wizard-mobile-summary-bar:focus-visible {
+    outline: 3px solid #0B8073;
+    outline-offset: -3px;
+  }
+
+  .wizard-mobile-summary-compact {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #0b1220;
+    flex: 1;
+  }
+
+  .wizard-mobile-summary-chevron {
+    color: #0B8073;
+    font-size: 0.875rem;
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+  }
+
+  .wizard-mobile-summary-bar[aria-expanded="true"] .wizard-mobile-summary-chevron {
+    transform: rotate(180deg);
+  }
+
+  .wizard-mobile-summary-details {
+    padding: 0.75rem 1rem;
+    border-top: 1px solid rgba(11, 128, 115, 0.08);
+  }
+
+  .wizard-mobile-summary-details .plan-summary-item {
+    padding: 0.375rem 0;
+    font-size: 0.875rem;
+    border-bottom: 1px solid #f3f4f6;
+  }
+
+  .wizard-mobile-summary-details .plan-summary-item:last-child {
+    border-bottom: none;
+  }
+}
