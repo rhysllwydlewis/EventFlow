@@ -132,7 +132,7 @@ class NotificationService {
     const [notifications, total, unreadCount] = await Promise.all([
       this.collection.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).toArray(),
       this.collection.countDocuments(query),
-      this.collection.countDocuments({ userId, isRead: false, $or: this._buildExpiryFilter() }),
+      this.collection.countDocuments({ userId, isRead: false, $or: expiryFilter }),
     ]);
 
     return {
@@ -266,11 +266,7 @@ class NotificationService {
    */
   _buildExpiryFilter() {
     const now = new Date().toISOString();
-    return [
-      { expiresAt: { $exists: false } },
-      { expiresAt: null },
-      { expiresAt: { $gt: now } },
-    ];
+    return [{ expiresAt: { $exists: false } }, { expiresAt: null }, { expiresAt: { $gt: now } }];
   }
 
   /**
