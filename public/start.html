@@ -160,7 +160,7 @@
 <main id="main-content" class="section">
   <div class="container wizard-layout">
     <!-- Main wizard area -->
-    <div style="flex: 1; min-width: 0;">
+    <div class="wizard-main">
       <!-- Template Selector (initially shown) -->
       <div id="template-selector-container" class="card" style="margin-bottom: 1rem; display: none;"></div>
       
@@ -175,7 +175,7 @@
     </div>
 
     <!-- Plan summary sidebar (desktop) -->
-    <aside id="plan-summary" class="wizard-sidebar card" style="width: 300px; position: sticky; top: 1rem;">
+    <aside id="plan-summary" class="wizard-sidebar card">
       <h3>Your Plan</h3>
       <p class="small">Your selections will appear here as you progress.</p>
     </aside>
@@ -233,7 +233,7 @@
         if (template) {
           if (window.WizardState) {
             // Pre-fill event type (step 0 = EVENT_TYPE)
-            // Templates store lowercase event types (e.g. 'wedding'); normalise to Title Case.
+            // Templates store lowercase event types (e.g. 'wedding'); normalize to Title Case.
             window.WizardState.saveStep(0, { eventType: mapEventTypeToWizardValue(template.eventType || template.type) });
             // Pre-fill basic info (step 1 = EVENT_BASICS)
             window.WizardState.saveStep(1, {

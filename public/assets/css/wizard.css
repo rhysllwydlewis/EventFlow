@@ -831,6 +831,9 @@
 
 /* Plan summary sidebar */
 .wizard-sidebar {
+  width: 300px;
+  position: sticky;
+  top: 1rem;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -1033,6 +1036,11 @@ textarea:focus-visible {
   display: flex;
   gap: 2rem;
   align-items: flex-start;
+}
+
+.wizard-main {
+  flex: 1;
+  min-width: 0;
 }
 
 /* ===========================================
