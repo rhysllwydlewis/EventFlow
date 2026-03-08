@@ -839,18 +839,47 @@ function sortPackageResults(results, sortBy) {
   switch (sortBy) {
     case 'relevance':
       sorted.sort((a, b) => {
-        const scoreA = a.relevanceScore || 0;
-        const scoreB = b.relevanceScore || 0;
-        return scoreB - scoreA;
+        const scoreDiff = (b.relevanceScore || 0) - (a.relevanceScore || 0);
+        if (scoreDiff !== 0) {
+          return scoreDiff;
+        }
+        // Tie-break: supplier rating then price (lower is better)
+        const ratingDiff = (b.supplier?.averageRating || 0) - (a.supplier?.averageRating || 0);
+        if (ratingDiff !== 0) {
+          return ratingDiff;
+        }
+        return (a.price || 0) - (b.price || 0);
       });
       break;
 
     case 'priceAsc':
-      sorted.sort((a, b) => (a.price || 0) - (b.price || 0));
+      sorted.sort((a, b) => {
+        const priceDiff = (a.price || 0) - (b.price || 0);
+        if (priceDiff !== 0) {
+          return priceDiff;
+        }
+        // Tie-break: higher supplier rating first, then relevance
+        const ratingDiff = (b.supplier?.averageRating || 0) - (a.supplier?.averageRating || 0);
+        if (ratingDiff !== 0) {
+          return ratingDiff;
+        }
+        return (b.relevanceScore || 0) - (a.relevanceScore || 0);
+      });
       break;
 
     case 'priceDesc':
-      sorted.sort((a, b) => (b.price || 0) - (a.price || 0));
+      sorted.sort((a, b) => {
+        const priceDiff = (b.price || 0) - (a.price || 0);
+        if (priceDiff !== 0) {
+          return priceDiff;
+        }
+        // Tie-break: higher supplier rating first, then relevance
+        const ratingDiff = (b.supplier?.averageRating || 0) - (a.supplier?.averageRating || 0);
+        if (ratingDiff !== 0) {
+          return ratingDiff;
+        }
+        return (b.relevanceScore || 0) - (a.relevanceScore || 0);
+      });
       break;
 
     case 'name':
@@ -861,15 +890,21 @@ function sortPackageResults(results, sortBy) {
       sorted.sort((a, b) => {
         const tA = new Date(a.updatedAt || a.createdAt || 0);
         const tB = new Date(b.updatedAt || b.createdAt || 0);
-        return tB - tA;
+        if (tB - tA !== 0) {
+          return tB - tA;
+        }
+        // Tie-break: relevance score then supplier rating
+        return (b.relevanceScore || 0) - (a.relevanceScore || 0);
       });
       break;
 
     default:
       sorted.sort((a, b) => {
-        const scoreA = a.relevanceScore || 0;
-        const scoreB = b.relevanceScore || 0;
-        return scoreB - scoreA;
+        const scoreDiff = (b.relevanceScore || 0) - (a.relevanceScore || 0);
+        if (scoreDiff !== 0) {
+          return scoreDiff;
+        }
+        return (b.supplier?.averageRating || 0) - (a.supplier?.averageRating || 0);
       });
   }
 
@@ -989,10 +1024,22 @@ async function getSimilarSuppliers(supplierId, limit = 6) {
   const referencePrice = getPriceLevel(reference.price_display);
   const referenceTags = new Set((reference.tags || []).map(t => t.toLowerCase()));
 
-  // Filter to approved suppliers, excluding the reference itself
-  const candidates = suppliers.filter(
-    s => s.approved && s.id !== reference.id && s._id !== reference._id
-  );
+  // Filter to approved suppliers, excluding the reference itself.
+  // Only compare an ID field when it is truthy on the reference to avoid
+  // the false-negative: undefined !== undefined → false which would exclude
+  // every candidate when suppliers do not carry an _id field.
+  const candidates = suppliers.filter(s => {
+    if (!s.approved) {
+      return false;
+    }
+    if (reference.id && s.id === reference.id) {
+      return false;
+    }
+    if (reference._id && s._id === reference._id) {
+      return false;
+    }
+    return true;
+  });
 
   // Score each candidate for similarity to the reference supplier
   const scored = candidates.map(s => {

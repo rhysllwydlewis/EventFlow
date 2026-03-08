@@ -1254,6 +1254,9 @@ describe('Search Service', () => {
       const results = await searchService.getSimilarSuppliers('sup1');
 
       expect(Array.isArray(results)).toBe(true);
+      // sup1 is Photography/London; sup2 (Catering) and sup3 (Venues/London) are candidates
+      // At least some results must be returned (not empty due to ID filter bug)
+      expect(results.length).toBeGreaterThan(0);
     });
 
     it('should exclude the reference supplier from results', async () => {
@@ -1271,7 +1274,29 @@ describe('Search Service', () => {
     it('should respect the limit parameter', async () => {
       const results = await searchService.getSimilarSuppliers('sup1', 1);
 
+      // With the fix, candidates exist — limit must be respected
       expect(results.length).toBeLessThanOrEqual(1);
+    });
+
+    it('should not return empty when suppliers only have id (not _id)', async () => {
+      // Regression test: the original filter used `s.id !== ref.id && s._id !== ref._id`.
+      // When _id is absent on all suppliers, undefined !== undefined → false, which excluded
+      // ALL candidates. This test verifies the fix works with id-only suppliers.
+      dbUnified.read.mockImplementation(collection => {
+        if (collection === 'suppliers') {
+          return Promise.resolve([
+            { id: 'ref-only', name: 'Reference', category: 'Photography', approved: true },
+            { id: 'cand-a', name: 'Candidate A', category: 'Photography', approved: true },
+            { id: 'cand-b', name: 'Candidate B', category: 'Photography', approved: true },
+          ]);
+        }
+        return Promise.resolve([]);
+      });
+
+      const results = await searchService.getSimilarSuppliers('ref-only');
+      // Should return cand-a and cand-b, NOT empty
+      expect(results.length).toBe(2);
+      expect(results.find(r => r.id === 'ref-only')).toBeUndefined();
     });
 
     it('should prefer suppliers in the same category', async () => {
@@ -1313,6 +1338,8 @@ describe('Search Service', () => {
 
       const results = await searchService.getSimilarSuppliers('ref');
 
+      // Must return results for the assertion about ordering to be meaningful
+      expect(results.length).toBeGreaterThan(0);
       // The same-category supplier should rank first even if diff-cat has higher quality
       if (results.length >= 1) {
         expect(results[0].id).toBe('same-cat');
@@ -1346,6 +1373,8 @@ describe('Search Service', () => {
 
       const results = await searchService.getSimilarSuppliers('ref2');
 
+      // Must have at least one result to make the field assertions meaningful
+      expect(results.length).toBeGreaterThan(0);
       results.forEach(s => {
         expect(s.email).toBeUndefined();
         expect(s.phone).toBeUndefined();
