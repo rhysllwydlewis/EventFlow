@@ -904,4 +904,128 @@ describe('Search Service', () => {
       expect(result.appliedSort).toBe('relevance');
     });
   });
+
+  describe('calculateFacets', () => {
+    it('should count suppliers per category', () => {
+      const facets = searchService.calculateFacets(mockSuppliers.filter(s => s.approved));
+      const photography = facets.categories.find(c => c.name === 'Photography');
+      expect(photography).toBeDefined();
+      expect(photography.count).toBe(1);
+    });
+
+    it('should sort categories by count descending', () => {
+      const facets = searchService.calculateFacets(mockSuppliers.filter(s => s.approved));
+      for (let i = 1; i < facets.categories.length; i++) {
+        expect(facets.categories[i - 1].count).toBeGreaterThanOrEqual(facets.categories[i].count);
+      }
+    });
+
+    it('should include all four rating range buckets', () => {
+      const facets = searchService.calculateFacets(mockSuppliers.filter(s => s.approved));
+      expect(facets.ratings.length).toBe(4);
+      const bucket45 = facets.ratings.find(r => r.rating === '4.5+');
+      expect(bucket45.count).toBeGreaterThanOrEqual(1); // sup1 has 4.8
+    });
+
+    it('should include amenity counts', () => {
+      const facets = searchService.calculateFacets(mockSuppliers.filter(s => s.approved));
+      const wifi = facets.amenities.find(a => a.name === 'WiFi');
+      expect(wifi).toBeDefined();
+      expect(wifi.count).toBeGreaterThanOrEqual(2); // sup1 and sup3 both have WiFi
+    });
+
+    it('should ignore unapproved suppliers (caller responsibility)', () => {
+      // When called with only approved suppliers, unapproved ones should not appear
+      const facets = searchService.calculateFacets(mockSuppliers.filter(s => s.approved));
+      const other = facets.categories.find(c => c.name === 'Other');
+      expect(other).toBeUndefined(); // sup4 is unapproved
+    });
+  });
+
+  describe('getPriceLevel', () => {
+    it('should count £ symbols', () => {
+      expect(searchService.getPriceLevel('££')).toBe(2);
+      expect(searchService.getPriceLevel('£££')).toBe(3);
+    });
+
+    it('should count $ symbols as well', () => {
+      expect(searchService.getPriceLevel('$$$')).toBe(3);
+    });
+
+    it('should return 0 for falsy input', () => {
+      expect(searchService.getPriceLevel(null)).toBe(0);
+      expect(searchService.getPriceLevel('')).toBe(0);
+      expect(searchService.getPriceLevel(undefined)).toBe(0);
+    });
+  });
+
+  describe('ownerUserId projection', () => {
+    it('should include ownerUserId in supplier search results', async () => {
+      const supplierWithOwner = { ...mockSuppliers[0], ownerUserId: 'user-abc' };
+      dbUnified.read.mockImplementation(collection => {
+        if (collection === 'suppliers') {
+          return Promise.resolve([supplierWithOwner, ...mockSuppliers.slice(1)]);
+        }
+        return Promise.resolve([]);
+      });
+
+      const result = await searchService.searchSuppliers({});
+      const found = result.results.find(s => s.id === 'sup1');
+      expect(found.ownerUserId).toBe('user-abc');
+    });
+
+    it('should not expose email or phone in search results', async () => {
+      const sensitiveSupplier = {
+        ...mockSuppliers[0],
+        email: 'secret@test.com',
+        phone: '07700900000',
+        businessAddress: '1 Secret Lane',
+      };
+      dbUnified.read.mockImplementation(collection => {
+        if (collection === 'suppliers') {
+          return Promise.resolve([sensitiveSupplier]);
+        }
+        return Promise.resolve([]);
+      });
+
+      const result = await searchService.searchSuppliers({});
+      const found = result.results.find(s => s.id === 'sup1');
+      expect(found.email).toBeUndefined();
+      expect(found.phone).toBeUndefined();
+      expect(found.businessAddress).toBeUndefined();
+    });
+  });
+
+  describe('newest sort uses updatedAt over createdAt', () => {
+    it('should rank a recently-updated supplier above an older newly-created one', async () => {
+      const recentlyUpdated = {
+        ...mockSuppliers[1], // catering
+        createdAt: new Date(Date.now() - 200 * 24 * 60 * 60 * 1000).toISOString(), // old creation
+        updatedAt: new Date().toISOString(), // just updated
+      };
+      const newlyCreated = {
+        ...mockSuppliers[0], // photography
+        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
+        updatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+      };
+      dbUnified.read.mockImplementation(collection => {
+        if (collection === 'suppliers') {
+          return Promise.resolve([newlyCreated, recentlyUpdated]);
+        }
+        return Promise.resolve([]);
+      });
+
+      const result = await searchService.searchSuppliers({ sortBy: 'newest' });
+      // recentlyUpdated has updatedAt = now, so it should come first
+      expect(result.results[0].id).toBe(recentlyUpdated.id);
+    });
+  });
+
+  describe('distance sort appliedSort fallback', () => {
+    it('should report appliedSort as relevance when distance sort requested but no postcode given', async () => {
+      const result = await searchService.searchSuppliers({ sortBy: 'distance' });
+      // No postcode → geocoding is skipped → distance sort falls back
+      expect(result.appliedSort).toBe('relevance');
+    });
+  });
 });

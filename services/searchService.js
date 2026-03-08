@@ -167,7 +167,12 @@ function projectPublicSupplierFields(supplier) {
     subscriptionTier: supplier.subscriptionTier,
     isFounding: supplier.isFounding,
     isTest: supplier.isTest,
-    // Explicitly exclude: email, phone, address, businessAddress, owner details, etc.
+    // Safe to expose: needed for the "Message" button on supplier cards
+    ownerUserId: supplier.ownerUserId,
+    // Timestamps are safe to expose and needed for 'newest' sort after projection
+    createdAt: supplier.createdAt,
+    updatedAt: supplier.updatedAt,
+    // Explicitly exclude: email, phone, address, businessAddress, etc.
   };
 }
 
@@ -280,7 +285,9 @@ async function searchSuppliers(query) {
   }
 
   // Sort results (pass userCoords for distance sort)
-  const appliedSort = normalizedQuery.sortBy;
+  const { sortBy: requestedSort } = normalizedQuery;
+  // Distance sort falls back to relevance when no postcode was given
+  const appliedSort = requestedSort === 'distance' && !userCoords ? 'relevance' : requestedSort;
   results = sortResults(results, appliedSort, userCoords);
 
   // Get total before pagination
@@ -291,9 +298,8 @@ async function searchSuppliers(query) {
   const skip = (page - 1) * limit;
   results = results.slice(skip, skip + limit);
 
-  // Calculate facets
-  const allResults = await dbUnified.read('suppliers');
-  const facets = calculateFacets(allResults.filter(s => s.approved));
+  // Calculate facets — reuse the already-loaded suppliers array (avoid a second DB read)
+  const facets = calculateFacets(suppliers.filter(s => s.approved));
 
   const duration = Date.now() - startTime;
 
@@ -691,7 +697,11 @@ function sortResults(results, sortBy, userCoords) {
       break;
 
     case 'newest':
-      sorted.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      sorted.sort((a, b) => {
+        const tA = new Date(a.updatedAt || a.createdAt || 0);
+        const tB = new Date(b.updatedAt || b.createdAt || 0);
+        return tB - tA;
+      });
       break;
 
     case 'priceAsc':
@@ -759,7 +769,11 @@ function sortPackageResults(results, sortBy) {
       break;
 
     case 'newest':
-      sorted.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      sorted.sort((a, b) => {
+        const tA = new Date(a.updatedAt || a.createdAt || 0);
+        const tB = new Date(b.updatedAt || b.createdAt || 0);
+        return tB - tA;
+      });
       break;
 
     default:
@@ -855,6 +869,8 @@ module.exports = {
   advancedSearch,
   normalizeSupplierQuery,
   normalizePackageQuery,
+  calculateFacets,
+  getPriceLevel,
   VALID_SUPPLIER_SORT_VALUES,
   VALID_PACKAGE_SORT_VALUES,
 };

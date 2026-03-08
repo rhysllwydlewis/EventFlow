@@ -309,6 +309,7 @@ async function initSuppliersPage() {
   const resultsContainer = document.getElementById('results');
   const resultCountEl = document.getElementById('resultCount');
   const appliedSortEl = document.getElementById('applied-sort-indicator');
+  const activeFiltersChipsEl = document.getElementById('active-filters-chips');
   const filterCategoryEl = document.getElementById('filterCategory');
   const filterPriceEl = document.getElementById('filterPrice');
   const filterQueryEl = document.getElementById('filterQuery');
@@ -374,6 +375,153 @@ async function initSuppliersPage() {
     }
   }
 
+  // Update the human-readable context summary ("Showing N Photography suppliers near London")
+  function updateResultsContext(total, filters) {
+    const ctxEl = document.getElementById('results-context');
+    if (!ctxEl) {
+      return;
+    }
+    const parts = [];
+    if (filters.category) {
+      parts.push(filters.category);
+    }
+    const noun = total === 1 ? 'supplier' : 'suppliers';
+    const base = parts.length ? `${total} ${parts.join(' ')} ${noun}` : `${total} ${noun}`;
+    const locationSuffix = filters.postcode
+      ? ` near ${filters.postcode}`
+      : filters.location
+        ? ` in ${filters.location}`
+        : '';
+    ctxEl.textContent = `Showing ${base}${locationSuffix}`;
+  }
+
+  // Render active filter chips below the result count
+  function renderActiveFilterChips(filters) {
+    if (!activeFiltersChipsEl) {
+      return;
+    }
+
+    const FILTER_LABELS_MAP = {
+      q: { label: v => `"${v}"`, key: 'q' },
+      category: { label: v => v, key: 'category' },
+      location: { label: v => `📍 ${v}`, key: 'location' },
+      priceLevel: {
+        label: v => `Price: ${'£'.repeat(Number(v))}`,
+        key: 'priceLevel',
+      },
+      minRating: { label: v => `⭐ ${v}+`, key: 'minRating' },
+      eventType: { label: v => v, key: 'eventType' },
+      postcode: { label: v => `Near ${v}`, key: 'postcode' },
+      maxDistance: { label: v => `≤ ${v} mi`, key: 'maxDistance' },
+      verifiedOnly: { label: () => '✓ Verified only', key: 'verifiedOnly' },
+    };
+
+    const activeChips = [];
+    Object.entries(FILTER_LABELS_MAP).forEach(([filterKey, { label, key }]) => {
+      const value = filters[filterKey];
+      if (!value || value === 'relevance') {
+        return;
+      }
+      if (filterKey === 'verifiedOnly' && !value) {
+        return;
+      }
+      const chipLabel = label(value);
+      activeChips.push(
+        `<button class="filter-chip" data-filter-key="${escapeHtml(key)}" type="button" aria-label="Remove filter: ${escapeHtml(chipLabel)}">
+          ${escapeHtml(chipLabel)} <span aria-hidden="true">×</span>
+        </button>`
+      );
+    });
+
+    if (!activeChips.length) {
+      activeFiltersChipsEl.hidden = true;
+      activeFiltersChipsEl.innerHTML = '';
+      return;
+    }
+
+    activeFiltersChipsEl.innerHTML = `${activeChips.join(
+      ''
+    )}<button class="filter-chip filter-chip--clear-all" type="button" aria-label="Clear all filters">Clear all</button>`;
+    activeFiltersChipsEl.hidden = false;
+
+    // Wire up individual chip removal
+    activeFiltersChipsEl.querySelectorAll('.filter-chip[data-filter-key]').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const key = chip.dataset.filterKey;
+        if (key === 'verifiedOnly') {
+          currentFilters.verifiedOnly = false;
+          if (filterVerifiedEl) {
+            filterVerifiedEl.checked = false;
+          }
+        } else if (key === 'priceLevel') {
+          delete currentFilters.priceLevel;
+          if (filterPriceEl) {
+            filterPriceEl.value = '';
+          }
+        } else {
+          delete currentFilters[key];
+          // Reset corresponding DOM element
+          const elMap = {
+            q: filterQueryEl,
+            category: filterCategoryEl,
+            location: null,
+            minRating: filterRatingEl,
+            eventType: filterEventTypeEl,
+            postcode: filterPostcodeEl,
+            maxDistance: filterDistanceEl,
+          };
+          const el = elMap[key];
+          if (el) {
+            el.value = '';
+          }
+        }
+        currentFilters.page = 1;
+        updateURL(currentFilters);
+        renderResults();
+      });
+    });
+
+    // Wire up clear-all chip
+    const clearAllChip = activeFiltersChipsEl.querySelector('.filter-chip--clear-all');
+    if (clearAllChip) {
+      clearAllChip.addEventListener('click', clearFilters);
+    }
+  }
+
+  // Clear all filters and reset to defaults
+  function clearFilters() {
+    currentFilters = { sort: 'relevance', page: 1 };
+    updateURL(currentFilters, true);
+    if (filterQueryEl) {
+      filterQueryEl.value = '';
+    }
+    if (filterCategoryEl) {
+      filterCategoryEl.value = '';
+    }
+    if (filterPriceEl) {
+      filterPriceEl.value = '';
+    }
+    if (filterRatingEl) {
+      filterRatingEl.value = '';
+    }
+    if (filterVerifiedEl) {
+      filterVerifiedEl.checked = false;
+    }
+    if (filterSortEl) {
+      filterSortEl.value = 'relevance';
+    }
+    if (filterEventTypeEl) {
+      filterEventTypeEl.value = '';
+    }
+    if (filterPostcodeEl) {
+      filterPostcodeEl.value = '';
+    }
+    if (filterDistanceEl) {
+      filterDistanceEl.value = '';
+    }
+    renderResults();
+  }
+
   // Render results
   async function renderResults(append = false) {
     // Cancel any in-flight request before starting a new one
@@ -402,8 +550,16 @@ async function initSuppliersPage() {
         resultCountEl.textContent = `${pagination.total} supplier${pagination.total !== 1 ? 's' : ''} found`;
       }
 
+      // Update human-readable context summary
+      updateResultsContext(pagination.total, currentFilters);
+
       // Show which sort the API actually applied
       updateAppliedSortIndicator(appliedSort);
+
+      // Render active filter chips
+      if (!append) {
+        renderActiveFilterChips(currentFilters);
+      }
 
       // Render results or empty state
       if (results.length === 0 && !append) {
@@ -553,40 +709,157 @@ async function initSuppliersPage() {
   function attachEmptyStateHandlers() {
     const clearBtn = document.getElementById('clear-filters-btn');
     if (clearBtn) {
-      clearBtn.addEventListener('click', () => {
-        currentFilters = { sort: 'relevance', page: 1 };
-        updateURL(currentFilters, true);
-        if (filterQueryEl) {
-          filterQueryEl.value = '';
-        }
-        if (filterCategoryEl) {
-          filterCategoryEl.value = '';
-        }
-        if (filterPriceEl) {
-          filterPriceEl.value = '';
-        }
-        if (filterRatingEl) {
-          filterRatingEl.value = '';
-        }
-        if (filterVerifiedEl) {
-          filterVerifiedEl.checked = false;
-        }
-        if (filterSortEl) {
-          filterSortEl.value = 'relevance';
-        }
-        if (filterEventTypeEl) {
-          filterEventTypeEl.value = '';
-        }
-        if (filterPostcodeEl) {
-          filterPostcodeEl.value = '';
-        }
-        if (filterDistanceEl) {
-          filterDistanceEl.value = '';
-        }
-        renderResults();
-      });
+      clearBtn.addEventListener('click', clearFilters);
     }
   }
+
+  // -----------------------------------------------------------------------
+  // Autocomplete for the search query input
+  // Fetches from /api/v2/search/suggestions and shows a small dropdown
+  // -----------------------------------------------------------------------
+  (function initSearchAutocomplete() {
+    if (!filterQueryEl) {
+      return;
+    }
+
+    // Create the dropdown list
+    const listEl = document.createElement('ul');
+    listEl.id = 'search-suggestions';
+    listEl.setAttribute('role', 'listbox');
+    listEl.setAttribute('aria-label', 'Search suggestions');
+    listEl.className = 'search-suggestions-list';
+    listEl.hidden = true;
+    filterQueryEl.parentElement.style.position = 'relative';
+    filterQueryEl.parentElement.appendChild(listEl);
+
+    // Set ARIA attributes on the input
+    filterQueryEl.setAttribute('autocomplete', 'off');
+    filterQueryEl.setAttribute('aria-autocomplete', 'list');
+    filterQueryEl.setAttribute('aria-controls', 'search-suggestions');
+    filterQueryEl.setAttribute('aria-expanded', 'false');
+
+    let suggestTimer;
+    let lastSuggestionQuery = '';
+
+    function hideSuggestions() {
+      listEl.hidden = true;
+      listEl.innerHTML = '';
+      filterQueryEl.setAttribute('aria-expanded', 'false');
+      filterQueryEl.removeAttribute('aria-activedescendant');
+    }
+
+    async function fetchSuggestions(q) {
+      if (!q || q.length < 2) {
+        hideSuggestions();
+        return;
+      }
+      if (q === lastSuggestionQuery) {
+        return;
+      }
+      lastSuggestionQuery = q;
+      try {
+        const res = await fetch(`/api/v2/search/suggestions?q=${encodeURIComponent(q)}`, {
+          credentials: 'include',
+        });
+        if (!res.ok) {
+          return;
+        }
+        const json = await res.json();
+        const suggestions = json.data?.suggestions || [];
+        if (!suggestions.length || filterQueryEl.value.trim() !== q) {
+          hideSuggestions();
+          return;
+        }
+        listEl.innerHTML = suggestions
+          .slice(0, 6)
+          .map(
+            (s, i) =>
+              `<li class="search-suggestion-item" role="option" id="suggestion-item-${i}" tabindex="-1">${escapeHtml(s)}</li>`
+          )
+          .join('');
+        listEl.hidden = false;
+        filterQueryEl.setAttribute('aria-expanded', 'true');
+      } catch (_) {
+        hideSuggestions();
+      }
+    }
+
+    filterQueryEl.addEventListener('input', e => {
+      clearTimeout(suggestTimer);
+      const q = e.target.value.trim();
+      suggestTimer = setTimeout(() => fetchSuggestions(q), 200);
+    });
+
+    listEl.addEventListener('click', e => {
+      const item = e.target.closest('.search-suggestion-item');
+      if (!item) {
+        return;
+      }
+      filterQueryEl.value = item.textContent;
+      currentFilters.q = item.textContent;
+      currentFilters.page = 1;
+      hideSuggestions();
+      updateURL(currentFilters);
+      renderResults();
+    });
+
+    // Keyboard navigation inside the suggestion list
+    filterQueryEl.addEventListener('keydown', e => {
+      const items = listEl.querySelectorAll('.search-suggestion-item');
+      if (!items.length || listEl.hidden) {
+        return;
+      }
+      const focused = listEl.querySelector('.search-suggestion-item:focus');
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (focused) {
+          const next = focused.nextElementSibling;
+          if (next) {
+            next.focus();
+            filterQueryEl.setAttribute('aria-activedescendant', next.id);
+          }
+        } else {
+          items[0].focus();
+          filterQueryEl.setAttribute('aria-activedescendant', items[0].id);
+        }
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (focused && focused.previousElementSibling) {
+          focused.previousElementSibling.focus();
+          filterQueryEl.setAttribute('aria-activedescendant', focused.previousElementSibling.id);
+        } else {
+          filterQueryEl.focus();
+          filterQueryEl.removeAttribute('aria-activedescendant');
+        }
+      } else if (e.key === 'Escape') {
+        hideSuggestions();
+      }
+    });
+
+    listEl.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        const focused = listEl.querySelector('.search-suggestion-item:focus');
+        if (focused) {
+          filterQueryEl.value = focused.textContent;
+          currentFilters.q = focused.textContent;
+          currentFilters.page = 1;
+          hideSuggestions();
+          updateURL(currentFilters);
+          renderResults();
+        }
+      } else if (e.key === 'Escape') {
+        hideSuggestions();
+        filterQueryEl.focus();
+      }
+    });
+
+    // Hide when focus leaves the search area
+    document.addEventListener('click', e => {
+      if (!filterQueryEl.parentElement.contains(e.target)) {
+        hideSuggestions();
+      }
+    });
+  })();
 
   // Handle filter changes
   if (filterQueryEl) {
@@ -716,38 +989,7 @@ async function initSuppliersPage() {
   // Clear filters button (top of page)
   const clearFiltersBtn = document.getElementById('clear-filters-btn-top');
   if (clearFiltersBtn) {
-    clearFiltersBtn.addEventListener('click', () => {
-      currentFilters = { sort: 'relevance', page: 1 };
-      updateURL(currentFilters, true);
-      if (filterQueryEl) {
-        filterQueryEl.value = '';
-      }
-      if (filterCategoryEl) {
-        filterCategoryEl.value = '';
-      }
-      if (filterPriceEl) {
-        filterPriceEl.value = '';
-      }
-      if (filterRatingEl) {
-        filterRatingEl.value = '';
-      }
-      if (filterVerifiedEl) {
-        filterVerifiedEl.checked = false;
-      }
-      if (filterSortEl) {
-        filterSortEl.value = 'relevance';
-      }
-      if (filterEventTypeEl) {
-        filterEventTypeEl.value = '';
-      }
-      if (filterPostcodeEl) {
-        filterPostcodeEl.value = '';
-      }
-      if (filterDistanceEl) {
-        filterDistanceEl.value = '';
-      }
-      renderResults();
-    });
+    clearFiltersBtn.addEventListener('click', clearFilters);
   }
 
   // Initial render
