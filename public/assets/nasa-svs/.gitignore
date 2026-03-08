@@ -1,0 +1,3 @@
+# Ignore GLB files — they are large binary assets that should not be committed.
+# The user downloads these locally from NASA SVS and places them in this folder.
+*.glb

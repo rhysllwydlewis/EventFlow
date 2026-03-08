@@ -747,6 +747,14 @@ const pexelsRoutes = require('./routes/pexels');
 app.use('/api/v1/pexels', pexelsRoutes);
 app.use('/api/pexels', pexelsRoutes); // Backward compatibility
 
+// NASA SVS routes (public Moon 3D model metadata)
+const nasaSvsRoutes = require('./routes/nasa-svs');
+if (nasaSvsRoutes.initializeDependencies) {
+  nasaSvsRoutes.initializeDependencies({});
+}
+app.use('/api/v1/nasa-svs', nasaSvsRoutes);
+app.use('/api/nasa-svs', nasaSvsRoutes); // Backward compatibility
+
 // AI routes
 const aiRoutes = require('./routes/ai');
 if (aiRoutes.initializeDependencies) {
