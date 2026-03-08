@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Empty State Preview</title>
+  <link rel="stylesheet" href="/assets/css/design-tokens.css">
+  <link rel="stylesheet" href="/assets/css/styles.css">
+  <link rel="stylesheet" href="/assets/css/utilities.css">
+  <link rel="stylesheet" href="/assets/css/components.css">
+  <link rel="stylesheet" href="/assets/css/supplier-dashboard-improvements.css">
+  <link rel="stylesheet" href="/assets/css/liquid-glass.css">
+</head>
+<body class="supplier-dashboard-page">
+  <div style="max-width:1240px;margin:0 auto;padding:1rem;">
+    <h2 style="font-size:1rem;color:#9ca3af;margin:0 0 0.5rem;">BEFORE: Empty sections with min-height:100vh</h2>
+
+    <!-- Support Tickets - empty state -->
+    <section class="card sd-card supplier-dashboard-card" role="region" aria-labelledby="tih">
+      <div class="supplier-card-header sd-card-header sd-card-header--red">
+        <div class="sd-card-header__left">
+          <div class="sd-card-header__title-row">
+            <div class="sd-card-header__icon sd-card-header__icon--red">🎫</div>
+            <div>
+              <h3 id="tih" class="sd-card-header__heading">Support Tickets</h3>
+              <p class="sd-card-header__subtitle sd-card-header__subtitle--no-indent">Get help when you need it</p>
+            </div>
+          </div>
+        </div>
+        <div class="sd-card-header__actions">
+          <button class="glass-btn glass-btn--primary" style="padding:0.625rem 1.25rem;font-size:0.875rem;">Create Ticket</button>
+        </div>
+      </div>
+      <div id="tickets-sup" class="section">
+        <p style="color:#6b7280;font-size:0.875rem;margin:0">No support tickets yet. Create one if you need help.</p>
+      </div>
+    </section>
+
+    <!-- Profiles - empty state -->
+    <div class="card sd-card supplier-dashboard-card" role="region" aria-labelledby="ph" style="margin-top:1rem;">
+      <div class="supplier-card-header sd-card-header sd-card-header--teal">
+        <div class="sd-card-header__left">
+          <div class="sd-card-header__title-row">
+            <div class="sd-card-header__icon sd-card-header__icon--teal">👤</div>
+            <h2 id="ph" class="sd-card-header__heading">Your Supplier Profiles</h2>
+          </div>
+          <p class="sd-card-header__subtitle">Create and manage your supplier listings.</p>
+        </div>
+      </div>
+      <div id="my-suppliers" class="section" data-test="my-suppliers-list">
+        <div class="skeleton skeleton-text skeleton-text-long"></div>
+        <div class="skeleton skeleton-text skeleton-text-medium"></div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
