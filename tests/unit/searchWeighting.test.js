@@ -7,6 +7,7 @@
 const {
   calculateRelevanceScore,
   calculateQualityScore,
+  calculateProfileCompleteness,
   getMatchingSnippets,
   getMatchingFields,
   FIELD_WEIGHTS,
@@ -204,6 +205,31 @@ describe('Search Weighting Utilities', () => {
 
       expect(score).toBeGreaterThanOrEqual(0);
     });
+
+    it('should give higher score to a supplier with a complete profile', () => {
+      const complete = {
+        averageRating: 4.0,
+        reviewCount: 10,
+        logo: 'https://example.com/logo.png',
+        description_short: 'A wonderful supplier for your events',
+        description_long:
+          'We have been providing exceptional event services for over a decade, with hundreds of happy clients.',
+        amenities: ['WiFi', 'Parking'],
+        images: ['img1.jpg', 'img2.jpg'],
+        tags: ['wedding', 'events'],
+      };
+
+      const sparse = {
+        averageRating: 4.0,
+        reviewCount: 10,
+        // no logo, description, amenities, images, tags
+      };
+
+      const completeScore = calculateQualityScore(complete);
+      const sparseScore = calculateQualityScore(sparse);
+
+      expect(completeScore).toBeGreaterThan(sparseScore);
+    });
   });
 
   describe('getMatchingSnippets', () => {
@@ -357,6 +383,75 @@ describe('Search Weighting Utilities', () => {
       Object.values(BOOSTS).forEach(boost => {
         expect(boost).toBeGreaterThan(1);
       });
+    });
+  });
+
+  describe('calculateProfileCompleteness', () => {
+    it('should return 0 for an empty item', () => {
+      expect(calculateProfileCompleteness({})).toBe(0);
+    });
+
+    it('should award points for logo presence', () => {
+      const withLogo = { logo: 'https://example.com/logo.png' };
+      const withoutLogo = {};
+      expect(calculateProfileCompleteness(withLogo)).toBeGreaterThan(
+        calculateProfileCompleteness(withoutLogo)
+      );
+    });
+
+    it('should award points for a non-trivial short description', () => {
+      const long = { description_short: 'We are a professional wedding photography studio.' };
+      const trivial = { description_short: 'Hi' }; // < 20 chars, no bonus
+      expect(calculateProfileCompleteness(long)).toBeGreaterThan(
+        calculateProfileCompleteness(trivial)
+      );
+    });
+
+    it('should award points for a non-trivial long description', () => {
+      const long = {
+        description_long:
+          'We have been providing exceptional event services for over a decade, with hundreds of happy clients.',
+      };
+      const trivial = { description_long: 'Short.' }; // < 50 chars, no bonus
+      expect(calculateProfileCompleteness(long)).toBeGreaterThan(
+        calculateProfileCompleteness(trivial)
+      );
+    });
+
+    it('should award points for amenities', () => {
+      const withAmenities = { amenities: ['WiFi', 'Parking'] };
+      const withoutAmenities = { amenities: [] };
+      expect(calculateProfileCompleteness(withAmenities)).toBeGreaterThan(
+        calculateProfileCompleteness(withoutAmenities)
+      );
+    });
+
+    it('should award points for gallery images', () => {
+      const withImages = { images: ['img1.jpg', 'img2.jpg'] };
+      const withoutImages = {};
+      expect(calculateProfileCompleteness(withImages)).toBeGreaterThan(
+        calculateProfileCompleteness(withoutImages)
+      );
+    });
+
+    it('should award points for tags', () => {
+      const withTags = { tags: ['wedding', 'photography'] };
+      const withoutTags = {};
+      expect(calculateProfileCompleteness(withTags)).toBeGreaterThan(
+        calculateProfileCompleteness(withoutTags)
+      );
+    });
+
+    it('should return maximum 15 points for a fully complete profile', () => {
+      const full = {
+        logo: 'https://example.com/logo.png',
+        description_short: 'A wonderful supplier for your events',
+        description_long: 'We have been providing exceptional event services for over a decade.',
+        amenities: ['WiFi', 'Parking'],
+        images: ['img1.jpg'],
+        tags: ['wedding'],
+      };
+      expect(calculateProfileCompleteness(full)).toBe(15);
     });
   });
 });

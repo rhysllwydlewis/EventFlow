@@ -13,6 +13,115 @@ const {
 } = require('../utils/searchWeighting');
 const { geocodeLocation, calculateDistance } = require('../utils/geocoding');
 
+// Valid sort values exported so routes can share the same constants
+const VALID_SUPPLIER_SORT_VALUES = [
+  'relevance',
+  'rating',
+  'reviews',
+  'name',
+  'newest',
+  'priceAsc',
+  'priceDesc',
+  'distance',
+];
+
+const VALID_PACKAGE_SORT_VALUES = ['relevance', 'priceAsc', 'priceDesc', 'name', 'newest'];
+
+/**
+ * Normalize and validate raw supplier search query parameters.
+ * Coerces types, clamps numeric ranges, and falls back to safe defaults
+ * so that the service layer always receives predictable values.
+ *
+ * @param {Object} raw - Raw query parameters (e.g. from req.query)
+ * @returns {Object} Normalized query object
+ */
+function normalizeSupplierQuery(raw) {
+  const q = raw.q ? String(raw.q).trim().slice(0, 200) : '';
+
+  const parsedPage = parseInt(raw.page, 10);
+  const page = Math.max(1, isNaN(parsedPage) ? 1 : parsedPage);
+  const parsedLimit = parseInt(raw.limit, 10);
+  const limit = Math.min(100, Math.max(1, isNaN(parsedLimit) ? 20 : parsedLimit));
+
+  // Numeric filters — silently discard invalid values so a bad param doesn't 400
+  const minPrice = raw.minPrice !== undefined ? Number(raw.minPrice) : undefined;
+  const maxPrice = raw.maxPrice !== undefined ? Number(raw.maxPrice) : undefined;
+  const minRating =
+    raw.minRating !== undefined && raw.minRating !== '' ? Number(raw.minRating) : undefined;
+  const maxDistance = raw.maxDistance !== undefined ? Number(raw.maxDistance) : undefined;
+  const minGuests = raw.minGuests !== undefined ? Number(raw.minGuests) : undefined;
+
+  // Amenities: accept CSV string or array, trim each entry, drop empties
+  let amenities = raw.amenities;
+  if (typeof amenities === 'string') {
+    amenities = amenities
+      .split(',')
+      .map(a => a.trim())
+      .filter(Boolean);
+  } else if (!Array.isArray(amenities)) {
+    amenities = undefined;
+  }
+  if (amenities && amenities.length === 0) {
+    amenities = undefined;
+  }
+
+  // Sort — fall back to 'relevance' for any unknown value
+  const sortBy = VALID_SUPPLIER_SORT_VALUES.includes(raw.sortBy) ? raw.sortBy : 'relevance';
+
+  return {
+    q,
+    category: raw.category ? String(raw.category).trim() : undefined,
+    eventType: raw.eventType ? String(raw.eventType).trim().slice(0, 100) : undefined,
+    location: raw.location ? String(raw.location).trim() : undefined,
+    postcode: raw.postcode ? String(raw.postcode).trim().slice(0, 10) : undefined,
+    maxDistance:
+      !isNaN(maxDistance) && maxDistance >= 0 && maxDistance <= 500 ? maxDistance : undefined,
+    minPrice: !isNaN(minPrice) ? minPrice : undefined,
+    maxPrice: !isNaN(maxPrice) ? maxPrice : undefined,
+    minRating: minRating !== undefined && !isNaN(minRating) ? minRating : undefined,
+    amenities,
+    minGuests: minGuests !== undefined && !isNaN(minGuests) ? minGuests : undefined,
+    proOnly: raw.proOnly,
+    featuredOnly: raw.featuredOnly,
+    verifiedOnly: raw.verifiedOnly,
+    sortBy,
+    page,
+    limit,
+  };
+}
+
+/**
+ * Normalize and validate raw package search query parameters.
+ *
+ * @param {Object} raw - Raw query parameters
+ * @returns {Object} Normalized query object
+ */
+function normalizePackageQuery(raw) {
+  const q = raw.q ? String(raw.q).trim().slice(0, 200) : '';
+
+  const parsedPage = parseInt(raw.page, 10);
+  const page = Math.max(1, isNaN(parsedPage) ? 1 : parsedPage);
+  const parsedLimit = parseInt(raw.limit, 10);
+  const limit = Math.min(100, Math.max(1, isNaN(parsedLimit) ? 20 : parsedLimit));
+
+  const minPrice = raw.minPrice !== undefined ? Number(raw.minPrice) : undefined;
+  const maxPrice = raw.maxPrice !== undefined ? Number(raw.maxPrice) : undefined;
+
+  // Sort — fall back to 'relevance' for any unknown value
+  const sortBy = VALID_PACKAGE_SORT_VALUES.includes(raw.sortBy) ? raw.sortBy : 'relevance';
+
+  return {
+    q,
+    category: raw.category ? String(raw.category).trim() : undefined,
+    location: raw.location ? String(raw.location).trim() : undefined,
+    minPrice: !isNaN(minPrice) ? minPrice : undefined,
+    maxPrice: !isNaN(maxPrice) ? maxPrice : undefined,
+    sortBy,
+    page,
+    limit,
+  };
+}
+
 /**
  * Count price-tier symbols in a price_display string.
  * Supports both £ and $ notation (e.g. "££", "$$$").
@@ -58,7 +167,12 @@ function projectPublicSupplierFields(supplier) {
     subscriptionTier: supplier.subscriptionTier,
     isFounding: supplier.isFounding,
     isTest: supplier.isTest,
-    // Explicitly exclude: email, phone, address, businessAddress, owner details, etc.
+    // Safe to expose: needed for the "Message" button on supplier cards
+    ownerUserId: supplier.ownerUserId,
+    // Timestamps are safe to expose and needed for 'newest' sort after projection
+    createdAt: supplier.createdAt,
+    updatedAt: supplier.updatedAt,
+    // Explicitly exclude: email, phone, address, businessAddress, etc.
   };
 }
 
@@ -112,33 +226,35 @@ function projectPublicPackageFields(pkg) {
  * @returns {number} result.durationMs - Search execution time in milliseconds
  */
 async function searchSuppliers(query) {
+  // Normalize query to ensure consistent, safe values throughout
+  const normalizedQuery = normalizeSupplierQuery(query);
   const startTime = Date.now();
   const suppliers = await dbUnified.read('suppliers');
 
   // Geocode postcode for distance filtering/sorting
   let userCoords = null;
-  if (query.postcode) {
-    userCoords = await geocodeLocation(query.postcode);
+  if (normalizedQuery.postcode) {
+    userCoords = await geocodeLocation(normalizedQuery.postcode);
   }
 
   // Filter approved suppliers
   let results = suppliers.filter(s => s.approved);
 
   // Apply filters (pass userCoords for distance filtering)
-  results = applyFilters(results, query, userCoords);
+  results = applyFilters(results, normalizedQuery, userCoords);
 
   // Calculate relevance scores if query present
-  if (query.q) {
+  if (normalizedQuery.q) {
     results = results.map(supplier => {
-      const score = calculateRelevanceScore(supplier, query.q, query);
-      const matchedFields = getMatchingFields(supplier, query.q);
+      const score = calculateRelevanceScore(supplier, normalizedQuery.q, normalizedQuery);
+      const matchedFields = getMatchingFields(supplier, normalizedQuery.q);
       const snippets = getMatchingSnippets(
         [
           supplier.name || '',
           supplier.description_short || '',
           supplier.description_long || '',
         ].join(' '),
-        query.q
+        normalizedQuery.q
       );
 
       // Project only public fields
@@ -169,23 +285,21 @@ async function searchSuppliers(query) {
   }
 
   // Sort results (pass userCoords for distance sort)
-  results = sortResults(results, query.sortBy || 'relevance', userCoords);
+  const { sortBy: requestedSort } = normalizedQuery;
+  // Distance sort falls back to relevance when no postcode was given
+  const appliedSort = requestedSort === 'distance' && !userCoords ? 'relevance' : requestedSort;
+  results = sortResults(results, appliedSort, userCoords);
 
   // Get total before pagination
   const total = results.length;
 
   // Pagination
-  const page = Number(query.page) || 1;
-  const limit = Math.min(Number(query.limit) || 20, 100);
+  const { page, limit } = normalizedQuery;
   const skip = (page - 1) * limit;
   results = results.slice(skip, skip + limit);
 
-  // Calculate facets
-  const allResults = await dbUnified.read('suppliers');
-  const facets = calculateFacets(
-    allResults.filter(s => s.approved),
-    query
-  );
+  // Calculate facets — reuse the already-loaded suppliers array (avoid a second DB read)
+  const facets = calculateFacets(suppliers.filter(s => s.approved));
 
   const duration = Date.now() - startTime;
 
@@ -197,6 +311,7 @@ async function searchSuppliers(query) {
       limit,
       pages: Math.ceil(total / limit),
     },
+    appliedSort,
     facets,
     durationMs: duration,
   };
@@ -208,6 +323,8 @@ async function searchSuppliers(query) {
  * @returns {Promise<Object>} Search results
  */
 async function searchPackages(query) {
+  // Normalize query to ensure consistent, safe values throughout
+  const normalizedQuery = normalizePackageQuery(query);
   const startTime = Date.now();
   const packages = await dbUnified.read('packages');
   const suppliers = await dbUnified.read('suppliers');
@@ -225,17 +342,17 @@ async function searchPackages(query) {
   });
 
   // Apply filters
-  results = applyPackageFilters(results, query, supplierMap);
+  results = applyPackageFilters(results, normalizedQuery, supplierMap);
 
   // Calculate relevance scores
-  if (query.q) {
+  if (normalizedQuery.q) {
     results = results.map(pkg => {
       const supplier = supplierMap[pkg.supplierId];
-      const score = calculateRelevanceScore(pkg, query.q, query);
-      const matchedFields = getMatchingFields(pkg, query.q);
+      const score = calculateRelevanceScore(pkg, normalizedQuery.q, normalizedQuery);
+      const matchedFields = getMatchingFields(pkg, normalizedQuery.q);
       const snippets = getMatchingSnippets(
         [pkg.title || '', pkg.description || ''].join(' '),
-        query.q
+        normalizedQuery.q
       );
 
       // Project only public fields for package
@@ -285,13 +402,13 @@ async function searchPackages(query) {
   }
 
   // Sort results
-  results = sortPackageResults(results, query.sortBy || 'relevance');
+  const appliedSort = normalizedQuery.sortBy;
+  results = sortPackageResults(results, appliedSort);
 
   const total = results.length;
 
   // Pagination
-  const page = Number(query.page) || 1;
-  const limit = Math.min(Number(query.limit) || 20, 100);
+  const { page, limit } = normalizedQuery;
   const skip = (page - 1) * limit;
   results = results.slice(skip, skip + limit);
 
@@ -305,6 +422,7 @@ async function searchPackages(query) {
       limit,
       pages: Math.ceil(total / limit),
     },
+    appliedSort,
     durationMs: duration,
   };
 }
@@ -579,7 +697,11 @@ function sortResults(results, sortBy, userCoords) {
       break;
 
     case 'newest':
-      sorted.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      sorted.sort((a, b) => {
+        const tA = new Date(a.updatedAt || a.createdAt || 0);
+        const tB = new Date(b.updatedAt || b.createdAt || 0);
+        return tB - tA;
+      });
       break;
 
     case 'priceAsc':
@@ -647,7 +769,11 @@ function sortPackageResults(results, sortBy) {
       break;
 
     case 'newest':
-      sorted.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      sorted.sort((a, b) => {
+        const tA = new Date(a.updatedAt || a.createdAt || 0);
+        const tB = new Date(b.updatedAt || b.createdAt || 0);
+        return tB - tA;
+      });
       break;
 
     default:
@@ -741,4 +867,10 @@ module.exports = {
   searchSuppliers,
   searchPackages,
   advancedSearch,
+  normalizeSupplierQuery,
+  normalizePackageQuery,
+  calculateFacets,
+  getPriceLevel,
+  VALID_SUPPLIER_SORT_VALUES,
+  VALID_PACKAGE_SORT_VALUES,
 };

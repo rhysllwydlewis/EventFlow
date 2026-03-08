@@ -143,6 +143,43 @@ function calculateRelevanceScore(item, query, filters = {}) {
 }
 
 /**
+ * Calculate profile completeness bonus (0-15 points).
+ * Suppliers with richer, more complete profiles are more trustworthy and
+ * discoverable, so they receive a ranking boost in no-query (browse) results.
+ *
+ * @param {Object} item - Supplier or package object
+ * @param {string} [item.logo] - Logo URL
+ * @param {string} [item.description_short] - Short description
+ * @param {string} [item.description_long] - Long description
+ * @param {Array} [item.amenities] - List of amenities
+ * @param {Array} [item.images] - Gallery images
+ * @param {Array} [item.tags] - Keyword tags
+ * @returns {number} Completeness bonus (0–15)
+ */
+function calculateProfileCompleteness(item) {
+  let bonus = 0;
+  if (item.logo) {
+    bonus += 3;
+  }
+  if (item.description_short && String(item.description_short).length > 20) {
+    bonus += 2;
+  }
+  if (item.description_long && String(item.description_long).length > 50) {
+    bonus += 3;
+  }
+  if (item.amenities && Array.isArray(item.amenities) && item.amenities.length > 0) {
+    bonus += 2;
+  }
+  if (item.images && Array.isArray(item.images) && item.images.length > 0) {
+    bonus += 3;
+  }
+  if (item.tags && Array.isArray(item.tags) && item.tags.length > 0) {
+    bonus += 2;
+  }
+  return bonus;
+}
+
+/**
  * Calculate quality score for items without query
  * @param {Object} item - Item to score
  * @returns {number} Quality score
@@ -161,6 +198,9 @@ function calculateQualityScore(item) {
   // View count contribution (0-20 points, logarithmic)
   const viewCount = item.viewCount || 0;
   score += Math.min(Math.log(viewCount + 1) * 3, 20);
+
+  // Profile completeness bonus (0-15 points)
+  score += calculateProfileCompleteness(item);
 
   return score;
 }
@@ -467,6 +507,7 @@ module.exports = {
   BOOSTS,
   calculateRelevanceScore,
   calculateQualityScore,
+  calculateProfileCompleteness,
   getMatchingSnippets,
   getMatchingFields,
 };

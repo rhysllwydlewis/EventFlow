@@ -27,94 +27,40 @@ function getSessionId(req) {
 }
 
 // ========================================
+
+// ========================================
 // CORE SEARCH ENDPOINTS
 // ========================================
 
 /**
  * GET /api/v2/search/suppliers
  * Advanced supplier search with weighted relevance
+ *
+ * Query normalization and sort validation are handled centrally by
+ * searchService.normalizeSupplierQuery so this route only needs to
+ * reject inputs that are structurally invalid before passing them on.
  */
 router.get('/suppliers', searchCacheMiddleware({ fixedTtl: null }), async (req, res) => {
   try {
-    const query = {
-      q: req.query.q ? String(req.query.q).trim() : '',
-      category: req.query.category,
-      eventType: req.query.eventType ? String(req.query.eventType).trim() : undefined,
-      location: req.query.location,
-      postcode: req.query.postcode ? String(req.query.postcode).trim() : undefined,
-      maxDistance: req.query.maxDistance ? Number(req.query.maxDistance) : undefined,
-      minPrice: req.query.minPrice,
-      maxPrice: req.query.maxPrice,
-      minRating: req.query.minRating,
-      amenities: req.query.amenities,
-      minGuests: req.query.minGuests,
-      proOnly: req.query.proOnly,
-      featuredOnly: req.query.featuredOnly,
-      verifiedOnly: req.query.verifiedOnly,
-      sortBy: req.query.sortBy || 'relevance',
-      page: req.query.page || 1,
-      limit: req.query.limit || 20,
-    };
+    // Pass raw query params — the service normalizes and validates them
+    const results = await searchService.searchSuppliers(req.query);
 
-    // Validate inputs
-    if (query.q && query.q.length > 200) {
-      return res.status(400).json({
-        success: false,
-        error: 'Search query too long (max 200 characters)',
-      });
-    }
-    if (query.eventType && query.eventType.length > 100) {
-      return res.status(400).json({
-        success: false,
-        error: 'Event type filter too long (max 100 characters)',
-      });
-    }
-    if (query.postcode && query.postcode.length > 10) {
-      return res.status(400).json({
-        success: false,
-        error: 'Postcode too long (max 10 characters)',
-      });
-    }
-    if (
-      query.maxDistance !== undefined &&
-      (isNaN(query.maxDistance) || query.maxDistance < 0 || query.maxDistance > 500)
-    ) {
-      return res.status(400).json({
-        success: false,
-        error: 'maxDistance must be a number between 0 and 500',
-      });
-    }
-    const VALID_SORT_VALUES = [
-      'relevance',
-      'rating',
-      'reviews',
-      'name',
-      'newest',
-      'priceAsc',
-      'priceDesc',
-      'distance',
-    ];
-    if (query.sortBy && !VALID_SORT_VALUES.includes(query.sortBy)) {
-      query.sortBy = 'relevance';
-    }
-
-    // Perform search
-    const results = await searchService.searchSuppliers(query);
-
-    // Track search for analytics
+    // Track search for analytics (use normalized values from results)
     const user = await getUserFromCookie(req);
     searchAnalytics
       .trackSearch({
         userId: user?.id,
         sessionId: getSessionId(req),
-        queryText: query.q,
+        queryText: req.query.q ? String(req.query.q).trim().slice(0, 200) : '',
         filters: {
-          category: query.category,
-          location: query.location,
-          minPrice: query.minPrice,
-          maxPrice: query.maxPrice,
-          minRating: query.minRating,
-          amenities: query.amenities,
+          category: req.query.category,
+          location: req.query.location,
+          minPrice: req.query.minPrice,
+          maxPrice: req.query.maxPrice,
+          minRating: req.query.minRating,
+          amenities: req.query.amenities,
+          sortBy: results.appliedSort,
+          page: results.pagination.page,
         },
         resultsCount: results.pagination.total,
         durationMs: results.durationMs,
@@ -133,7 +79,6 @@ router.get('/suppliers', searchCacheMiddleware({ fixedTtl: null }), async (req, 
     res.status(500).json({
       success: false,
       error: 'Failed to perform search',
-      message: error.message,
     });
   }
 });
@@ -144,25 +89,8 @@ router.get('/suppliers', searchCacheMiddleware({ fixedTtl: null }), async (req, 
  */
 router.get('/packages', searchCacheMiddleware({ fixedTtl: 600 }), async (req, res) => {
   try {
-    const query = {
-      q: req.query.q ? String(req.query.q).trim() : '',
-      category: req.query.category,
-      location: req.query.location,
-      minPrice: req.query.minPrice,
-      maxPrice: req.query.maxPrice,
-      sortBy: req.query.sortBy || 'relevance',
-      page: req.query.page || 1,
-      limit: req.query.limit || 20,
-    };
-
-    if (query.q && query.q.length > 200) {
-      return res.status(400).json({
-        success: false,
-        error: 'Search query too long',
-      });
-    }
-
-    const results = await searchService.searchPackages(query);
+    // Pass raw query params — the service normalizes and validates them
+    const results = await searchService.searchPackages(req.query);
 
     // Track search
     const user = await getUserFromCookie(req);
@@ -170,8 +98,15 @@ router.get('/packages', searchCacheMiddleware({ fixedTtl: 600 }), async (req, re
       .trackSearch({
         userId: user?.id,
         sessionId: getSessionId(req),
-        queryText: query.q,
-        filters: { category: query.category, location: query.location },
+        queryText: req.query.q ? String(req.query.q).trim().slice(0, 200) : '',
+        filters: {
+          category: req.query.category,
+          location: req.query.location,
+          minPrice: req.query.minPrice,
+          maxPrice: req.query.maxPrice,
+          sortBy: results.appliedSort,
+          page: results.pagination.page,
+        },
         resultsCount: results.pagination.total,
         durationMs: results.durationMs,
         userAgent: req.headers['user-agent'],
@@ -217,7 +152,15 @@ router.post('/advanced', async (req, res) => {
         userId: user?.id,
         sessionId: getSessionId(req),
         queryText: criteria.q || '',
-        filters: criteria,
+        filters: {
+          category: criteria.category,
+          location: criteria.location,
+          minPrice: criteria.minPrice,
+          maxPrice: criteria.maxPrice,
+          minRating: criteria.minRating,
+          sortBy: results.appliedSort,
+          page: results.pagination?.page,
+        },
         resultsCount: results.pagination?.total || 0,
         durationMs: results.durationMs,
         userAgent: req.headers['user-agent'],

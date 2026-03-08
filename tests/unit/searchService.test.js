@@ -765,4 +765,267 @@ describe('Search Service', () => {
       expect(result.results[0].id).toBe('str-manchester');
     });
   });
+
+  describe('normalizeSupplierQuery', () => {
+    const { normalizeSupplierQuery } = searchService;
+
+    it('should default sortBy to relevance for unknown values', () => {
+      const result = normalizeSupplierQuery({ sortBy: 'bogusSort' });
+      expect(result.sortBy).toBe('relevance');
+    });
+
+    it('should accept all valid sortBy values', () => {
+      const { VALID_SUPPLIER_SORT_VALUES } = searchService;
+      VALID_SUPPLIER_SORT_VALUES.forEach(sort => {
+        const result = normalizeSupplierQuery({ sortBy: sort });
+        expect(result.sortBy).toBe(sort);
+      });
+    });
+
+    it('should clamp page to minimum of 1', () => {
+      expect(normalizeSupplierQuery({ page: 0 }).page).toBe(1);
+      expect(normalizeSupplierQuery({ page: -5 }).page).toBe(1);
+      expect(normalizeSupplierQuery({ page: 'abc' }).page).toBe(1);
+    });
+
+    it('should clamp limit to maximum of 100', () => {
+      expect(normalizeSupplierQuery({ limit: 500 }).limit).toBe(100);
+      expect(normalizeSupplierQuery({ limit: 0 }).limit).toBe(1);
+    });
+
+    it('should truncate q to 200 characters', () => {
+      const longQuery = 'a'.repeat(300);
+      const result = normalizeSupplierQuery({ q: longQuery });
+      expect(result.q.length).toBe(200);
+    });
+
+    it('should trim q whitespace', () => {
+      const result = normalizeSupplierQuery({ q: '  wedding  ' });
+      expect(result.q).toBe('wedding');
+    });
+
+    it('should split amenities CSV string into array', () => {
+      const result = normalizeSupplierQuery({ amenities: 'WiFi, Parking, Catering' });
+      expect(Array.isArray(result.amenities)).toBe(true);
+      expect(result.amenities).toContain('WiFi');
+      expect(result.amenities).toContain('Parking');
+      expect(result.amenities).toContain('Catering');
+    });
+
+    it('should preserve amenities array as-is', () => {
+      const amenities = ['WiFi', 'Parking'];
+      const result = normalizeSupplierQuery({ amenities });
+      expect(result.amenities).toEqual(amenities);
+    });
+
+    it('should discard invalid minRating', () => {
+      expect(normalizeSupplierQuery({ minRating: 'bad' }).minRating).toBeUndefined();
+      expect(normalizeSupplierQuery({ minRating: '' }).minRating).toBeUndefined();
+    });
+
+    it('should discard invalid maxDistance', () => {
+      expect(normalizeSupplierQuery({ maxDistance: 'bad' }).maxDistance).toBeUndefined();
+      expect(normalizeSupplierQuery({ maxDistance: -1 }).maxDistance).toBeUndefined();
+      expect(normalizeSupplierQuery({ maxDistance: 600 }).maxDistance).toBeUndefined();
+    });
+
+    it('should accept valid maxDistance', () => {
+      expect(normalizeSupplierQuery({ maxDistance: 50 }).maxDistance).toBe(50);
+    });
+
+    it('should truncate eventType to 100 characters', () => {
+      const long = 'x'.repeat(150);
+      expect(normalizeSupplierQuery({ eventType: long }).eventType.length).toBe(100);
+    });
+
+    it('should truncate postcode to 10 characters', () => {
+      const long = 'SW1A 1AA EXTRA';
+      expect(normalizeSupplierQuery({ postcode: long }).postcode.length).toBe(10);
+    });
+  });
+
+  describe('normalizePackageQuery', () => {
+    const { normalizePackageQuery } = searchService;
+
+    it('should default sortBy to relevance for unknown values', () => {
+      const result = normalizePackageQuery({ sortBy: 'distance' }); // distance not valid for packages
+      expect(result.sortBy).toBe('relevance');
+    });
+
+    it('should accept all valid package sortBy values', () => {
+      const { VALID_PACKAGE_SORT_VALUES } = searchService;
+      VALID_PACKAGE_SORT_VALUES.forEach(sort => {
+        const result = normalizePackageQuery({ sortBy: sort });
+        expect(result.sortBy).toBe(sort);
+      });
+    });
+
+    it('should clamp page to minimum of 1', () => {
+      expect(normalizePackageQuery({ page: -1 }).page).toBe(1);
+    });
+
+    it('should clamp limit to maximum of 100', () => {
+      expect(normalizePackageQuery({ limit: 999 }).limit).toBe(100);
+    });
+
+    it('should truncate q to 200 characters', () => {
+      const longQuery = 'b'.repeat(300);
+      expect(normalizePackageQuery({ q: longQuery }).q.length).toBe(200);
+    });
+
+    it('should discard invalid minPrice', () => {
+      expect(normalizePackageQuery({ minPrice: 'bad' }).minPrice).toBeUndefined();
+    });
+  });
+
+  describe('appliedSort in response', () => {
+    it('should include appliedSort in searchSuppliers response', async () => {
+      const result = await searchService.searchSuppliers({ sortBy: 'rating' });
+      expect(result.appliedSort).toBe('rating');
+    });
+
+    it('should include appliedSort defaulting to relevance when omitted', async () => {
+      const result = await searchService.searchSuppliers({});
+      expect(result.appliedSort).toBe('relevance');
+    });
+
+    it('should return appliedSort as relevance when invalid sortBy given', async () => {
+      const result = await searchService.searchSuppliers({ sortBy: 'invalidSort' });
+      expect(result.appliedSort).toBe('relevance');
+    });
+
+    it('should include appliedSort in searchPackages response', async () => {
+      const result = await searchService.searchPackages({ sortBy: 'priceAsc' });
+      expect(result.appliedSort).toBe('priceAsc');
+    });
+
+    it('should return appliedSort as relevance for packages when invalid sortBy given', async () => {
+      const result = await searchService.searchPackages({ sortBy: 'distance' }); // not valid for packages
+      expect(result.appliedSort).toBe('relevance');
+    });
+  });
+
+  describe('calculateFacets', () => {
+    it('should count suppliers per category', () => {
+      const facets = searchService.calculateFacets(mockSuppliers.filter(s => s.approved));
+      const photography = facets.categories.find(c => c.name === 'Photography');
+      expect(photography).toBeDefined();
+      expect(photography.count).toBe(1);
+    });
+
+    it('should sort categories by count descending', () => {
+      const facets = searchService.calculateFacets(mockSuppliers.filter(s => s.approved));
+      for (let i = 1; i < facets.categories.length; i++) {
+        expect(facets.categories[i - 1].count).toBeGreaterThanOrEqual(facets.categories[i].count);
+      }
+    });
+
+    it('should include all four rating range buckets', () => {
+      const facets = searchService.calculateFacets(mockSuppliers.filter(s => s.approved));
+      expect(facets.ratings.length).toBe(4);
+      const bucket45 = facets.ratings.find(r => r.rating === '4.5+');
+      expect(bucket45.count).toBeGreaterThanOrEqual(1); // sup1 has 4.8
+    });
+
+    it('should include amenity counts', () => {
+      const facets = searchService.calculateFacets(mockSuppliers.filter(s => s.approved));
+      const wifi = facets.amenities.find(a => a.name === 'WiFi');
+      expect(wifi).toBeDefined();
+      expect(wifi.count).toBeGreaterThanOrEqual(2); // sup1 and sup3 both have WiFi
+    });
+
+    it('should ignore unapproved suppliers (caller responsibility)', () => {
+      // When called with only approved suppliers, unapproved ones should not appear
+      const facets = searchService.calculateFacets(mockSuppliers.filter(s => s.approved));
+      const other = facets.categories.find(c => c.name === 'Other');
+      expect(other).toBeUndefined(); // sup4 is unapproved
+    });
+  });
+
+  describe('getPriceLevel', () => {
+    it('should count £ symbols', () => {
+      expect(searchService.getPriceLevel('££')).toBe(2);
+      expect(searchService.getPriceLevel('£££')).toBe(3);
+    });
+
+    it('should count $ symbols as well', () => {
+      expect(searchService.getPriceLevel('$$$')).toBe(3);
+    });
+
+    it('should return 0 for falsy input', () => {
+      expect(searchService.getPriceLevel(null)).toBe(0);
+      expect(searchService.getPriceLevel('')).toBe(0);
+      expect(searchService.getPriceLevel(undefined)).toBe(0);
+    });
+  });
+
+  describe('ownerUserId projection', () => {
+    it('should include ownerUserId in supplier search results', async () => {
+      const supplierWithOwner = { ...mockSuppliers[0], ownerUserId: 'user-abc' };
+      dbUnified.read.mockImplementation(collection => {
+        if (collection === 'suppliers') {
+          return Promise.resolve([supplierWithOwner, ...mockSuppliers.slice(1)]);
+        }
+        return Promise.resolve([]);
+      });
+
+      const result = await searchService.searchSuppliers({});
+      const found = result.results.find(s => s.id === 'sup1');
+      expect(found.ownerUserId).toBe('user-abc');
+    });
+
+    it('should not expose email or phone in search results', async () => {
+      const sensitiveSupplier = {
+        ...mockSuppliers[0],
+        email: 'secret@test.com',
+        phone: '07700900000',
+        businessAddress: '1 Secret Lane',
+      };
+      dbUnified.read.mockImplementation(collection => {
+        if (collection === 'suppliers') {
+          return Promise.resolve([sensitiveSupplier]);
+        }
+        return Promise.resolve([]);
+      });
+
+      const result = await searchService.searchSuppliers({});
+      const found = result.results.find(s => s.id === 'sup1');
+      expect(found.email).toBeUndefined();
+      expect(found.phone).toBeUndefined();
+      expect(found.businessAddress).toBeUndefined();
+    });
+  });
+
+  describe('newest sort uses updatedAt over createdAt', () => {
+    it('should rank a recently-updated supplier above an older newly-created one', async () => {
+      const recentlyUpdated = {
+        ...mockSuppliers[1], // catering
+        createdAt: new Date(Date.now() - 200 * 24 * 60 * 60 * 1000).toISOString(), // old creation
+        updatedAt: new Date().toISOString(), // just updated
+      };
+      const newlyCreated = {
+        ...mockSuppliers[0], // photography
+        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
+        updatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+      };
+      dbUnified.read.mockImplementation(collection => {
+        if (collection === 'suppliers') {
+          return Promise.resolve([newlyCreated, recentlyUpdated]);
+        }
+        return Promise.resolve([]);
+      });
+
+      const result = await searchService.searchSuppliers({ sortBy: 'newest' });
+      // recentlyUpdated has updatedAt = now, so it should come first
+      expect(result.results[0].id).toBe(recentlyUpdated.id);
+    });
+  });
+
+  describe('distance sort appliedSort fallback', () => {
+    it('should report appliedSort as relevance when distance sort requested but no postcode given', async () => {
+      const result = await searchService.searchSuppliers({ sortBy: 'distance' });
+      // No postcode → geocoding is skipped → distance sort falls back
+      expect(result.appliedSort).toBe('relevance');
+    });
+  });
 });

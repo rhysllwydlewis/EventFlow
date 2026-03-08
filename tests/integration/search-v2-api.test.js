@@ -265,18 +265,15 @@ describe('Search V2 API Integration Tests', () => {
 
   describe('Input Validation', () => {
     it('should validate query length in supplier search', () => {
-      const routeContent = fs.readFileSync(
-        path.join(__dirname, '../../routes/search-v2.js'),
+      // Query length validation is now centralized in normalizeSupplierQuery in the service
+      const serviceContent = fs.readFileSync(
+        path.join(__dirname, '../../services/searchService.js'),
         'utf8'
       );
 
-      const supplierSection = routeContent.slice(
-        routeContent.indexOf("router.get('/suppliers'"),
-        routeContent.indexOf("router.get('/suppliers'") + 2000
-      );
-
-      expect(supplierSection).toContain('query.q.length > 200');
-      expect(supplierSection).toContain('Search query too long');
+      // The normalization caps query at 200 characters via .slice(0, 200)
+      expect(serviceContent).toContain('slice(0, 200)');
+      expect(serviceContent).toContain('normalizeSupplierQuery');
     });
 
     it('should validate saved search name', () => {
@@ -405,12 +402,14 @@ describe('Search V2 API Integration Tests', () => {
     });
 
     it('should support page parameter', () => {
-      const routeContent = fs.readFileSync(
-        path.join(__dirname, '../../routes/search-v2.js'),
+      // Page parameter normalization is handled in the service layer
+      const serviceContent = fs.readFileSync(
+        path.join(__dirname, '../../services/searchService.js'),
         'utf8'
       );
 
-      expect(routeContent).toContain('req.query.page');
+      // normalizeSupplierQuery parses and clamps page
+      expect(serviceContent).toContain('parseInt(raw.page');
     });
 
     it('should support skip parameter for history', () => {
@@ -456,30 +455,36 @@ describe('Search V2 API Integration Tests', () => {
 
   describe('Phase 4 Filter Parameters', () => {
     it('should pass eventType to search query', () => {
-      const routeContent = fs.readFileSync(
-        path.join(__dirname, '../../routes/search-v2.js'),
+      // eventType normalization is now in normalizeSupplierQuery in the service
+      const serviceContent = fs.readFileSync(
+        path.join(__dirname, '../../services/searchService.js'),
         'utf8'
       );
 
-      expect(routeContent).toContain('eventType: req.query.eventType');
+      expect(serviceContent).toContain('eventType');
+      expect(serviceContent).toContain('raw.eventType');
     });
 
     it('should pass verifiedOnly to search query', () => {
-      const routeContent = fs.readFileSync(
-        path.join(__dirname, '../../routes/search-v2.js'),
+      // verifiedOnly is forwarded via req.query passed directly to the service
+      const serviceContent = fs.readFileSync(
+        path.join(__dirname, '../../services/searchService.js'),
         'utf8'
       );
 
-      expect(routeContent).toContain('verifiedOnly: req.query.verifiedOnly');
+      expect(serviceContent).toContain('verifiedOnly');
+      expect(serviceContent).toContain('raw.verifiedOnly');
     });
 
     it('should pass minRating to search query', () => {
-      const routeContent = fs.readFileSync(
-        path.join(__dirname, '../../routes/search-v2.js'),
+      // minRating normalization is now in the service
+      const serviceContent = fs.readFileSync(
+        path.join(__dirname, '../../services/searchService.js'),
         'utf8'
       );
 
-      expect(routeContent).toContain('minRating: req.query.minRating');
+      expect(serviceContent).toContain('minRating');
+      expect(serviceContent).toContain('raw.minRating');
     });
   });
 
@@ -513,29 +518,32 @@ describe('Search V2 API Integration Tests', () => {
 
   describe('Input validation in route', () => {
     it('should validate sortBy against allowed values', () => {
-      const routeContent = fs.readFileSync(
-        path.join(__dirname, '../../routes/search-v2.js'),
+      // Sort validation is now centralized in the service via VALID_SUPPLIER_SORT_VALUES
+      const serviceContent = fs.readFileSync(
+        path.join(__dirname, '../../services/searchService.js'),
         'utf8'
       );
-      expect(routeContent).toContain('VALID_SORT_VALUES');
-      expect(routeContent).toContain("'priceAsc'");
-      expect(routeContent).toContain("'distance'");
+      expect(serviceContent).toContain('VALID_SUPPLIER_SORT_VALUES');
+      expect(serviceContent).toContain("'priceAsc'");
+      expect(serviceContent).toContain("'distance'");
     });
 
     it('should validate eventType max length', () => {
-      const routeContent = fs.readFileSync(
-        path.join(__dirname, '../../routes/search-v2.js'),
+      // eventType max length is enforced via .slice(0, 100) in normalizeSupplierQuery
+      const serviceContent = fs.readFileSync(
+        path.join(__dirname, '../../services/searchService.js'),
         'utf8'
       );
-      expect(routeContent).toContain('eventType.length > 100');
+      expect(serviceContent).toContain('slice(0, 100)');
     });
 
     it('should sanitize eventType input by trimming', () => {
-      const routeContent = fs.readFileSync(
-        path.join(__dirname, '../../routes/search-v2.js'),
+      // eventType is trimmed in normalizeSupplierQuery in the service
+      const serviceContent = fs.readFileSync(
+        path.join(__dirname, '../../services/searchService.js'),
         'utf8'
       );
-      expect(routeContent).toContain('String(req.query.eventType).trim()');
+      expect(serviceContent).toContain('String(raw.eventType).trim()');
     });
   });
 
@@ -546,6 +554,97 @@ describe('Search V2 API Integration Tests', () => {
         'utf8'
       );
       expect(suppliersSrc).toContain('totalPages = data.pagination.pages');
+    });
+  });
+
+  describe('Phase 1 improvements — service-level normalisation and ranking', () => {
+    it('should export normalizeSupplierQuery from searchService', () => {
+      const searchService = require('../../services/searchService');
+      expect(typeof searchService.normalizeSupplierQuery).toBe('function');
+    });
+
+    it('should export normalizePackageQuery from searchService', () => {
+      const searchService = require('../../services/searchService');
+      expect(typeof searchService.normalizePackageQuery).toBe('function');
+    });
+
+    it('should export VALID_SUPPLIER_SORT_VALUES from searchService', () => {
+      const searchService = require('../../services/searchService');
+      expect(Array.isArray(searchService.VALID_SUPPLIER_SORT_VALUES)).toBe(true);
+      expect(searchService.VALID_SUPPLIER_SORT_VALUES).toContain('relevance');
+      expect(searchService.VALID_SUPPLIER_SORT_VALUES).toContain('distance');
+    });
+
+    it('should export VALID_PACKAGE_SORT_VALUES from searchService', () => {
+      const searchService = require('../../services/searchService');
+      expect(Array.isArray(searchService.VALID_PACKAGE_SORT_VALUES)).toBe(true);
+      expect(searchService.VALID_PACKAGE_SORT_VALUES).toContain('relevance');
+      expect(searchService.VALID_PACKAGE_SORT_VALUES).toContain('priceAsc');
+      // 'distance' is not valid for packages
+      expect(searchService.VALID_PACKAGE_SORT_VALUES).not.toContain('distance');
+    });
+
+    it('should include appliedSort field in supplier search response', async () => {
+      const dbUnified = require('../../db-unified');
+      jest.mock('../../db-unified');
+      dbUnified.read = jest.fn(collection => {
+        if (collection === 'suppliers') {
+          return Promise.resolve([
+            { id: 's1', name: 'Test', category: 'Photography', approved: true },
+          ]);
+        }
+        return Promise.resolve([]);
+      });
+
+      const searchService = require('../../services/searchService');
+      const result = await searchService.searchSuppliers({ sortBy: 'rating' });
+      expect(result).toHaveProperty('appliedSort');
+      expect(result.appliedSort).toBe('rating');
+    });
+
+    it('should include appliedSort field in package search response', async () => {
+      const dbUnified = require('../../db-unified');
+      jest.mock('../../db-unified');
+      dbUnified.read = jest.fn(collection => {
+        if (collection === 'suppliers') {
+          return Promise.resolve([
+            { id: 's1', name: 'Test', category: 'Photography', approved: true },
+          ]);
+        }
+        if (collection === 'packages') {
+          return Promise.resolve([
+            { id: 'p1', supplierId: 's1', title: 'Test Pkg', price: 500, approved: true },
+          ]);
+        }
+        return Promise.resolve([]);
+      });
+
+      const searchService = require('../../services/searchService');
+      const result = await searchService.searchPackages({ sortBy: 'priceDesc' });
+      expect(result).toHaveProperty('appliedSort');
+      expect(result.appliedSort).toBe('priceDesc');
+    });
+
+    it('should export calculateProfileCompleteness from searchWeighting', () => {
+      const { calculateProfileCompleteness } = require('../../utils/searchWeighting');
+      expect(typeof calculateProfileCompleteness).toBe('function');
+    });
+
+    it('should have sortBy tracking in analytics call within route', () => {
+      const routeContent = fs.readFileSync(
+        path.join(__dirname, '../../routes/search-v2.js'),
+        'utf8'
+      );
+      // The route now tracks appliedSort from the results object
+      expect(routeContent).toContain('results.appliedSort');
+    });
+
+    it('should track page number in analytics filters', () => {
+      const routeContent = fs.readFileSync(
+        path.join(__dirname, '../../routes/search-v2.js'),
+        'utf8'
+      );
+      expect(routeContent).toContain('results.pagination.page');
     });
   });
 });
