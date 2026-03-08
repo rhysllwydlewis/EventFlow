@@ -800,17 +800,18 @@ async function loadCustomerPlans(preloadedPlans) {
 
     container.innerHTML = plans.map(plan => {
       const packageCount = (plan.packages || []).length;
+      const displayName = plan.name || plan.eventName || plan.eventType || 'Untitled Event';
       return `
         <div class="customer-plan-item">
           <div class="customer-plan-item__header">
             <div>
-              <strong class="customer-plan-item__name">${escapeHtml(plan.eventName || plan.eventType || 'Untitled Event')}</strong>
+              <strong class="customer-plan-item__name">${escapeHtml(displayName)}</strong>
               ${plan.eventType ? `<span class="small customer-plan-item__type">${escapeHtml(plan.eventType)}</span>` : ''}
             </div>
             <span class="small customer-plan-item__count">${packageCount} packages</span>
           </div>
           ${plan.location ? `<p class="small customer-plan-item__detail">📍 ${escapeHtml(plan.location)}</p>` : ''}
-          ${plan.date ? `<p class="small customer-plan-item__detail">📅 ${escapeHtml(plan.date)}</p>` : ''}
+          ${plan.date ? `<p class="small customer-plan-item__detail">📅 ${escapeHtml(formatPlanDate(plan.date) || plan.date)}</p>` : ''}
         </div>
       `;
     }).join('');
@@ -825,6 +826,17 @@ function escapeHtml(unsafe) {
   const div = document.createElement('div');
   div.textContent = unsafe;
   return div.innerHTML;
+}
+
+function formatPlanDate(dateString) {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return '';
+  try {
+    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  } catch (_) {
+    return '';
+  }
 }
 
 // Check authentication on page load
