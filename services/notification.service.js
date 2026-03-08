@@ -252,10 +252,12 @@ class NotificationService {
    */
   async getUnreadCount(userId) {
     return await this.collection.countDocuments({
-      userId,
-      isRead: false,
-      isDismissed: { $ne: true },
-      $or: this._buildExpiryFilter(),
+      $and: [
+        { userId },
+        { isRead: false },
+        { isDismissed: { $ne: true } },
+        { $or: this._buildExpiryFilter() },
+      ],
     });
   }
 

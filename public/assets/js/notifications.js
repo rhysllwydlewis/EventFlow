@@ -326,8 +326,8 @@
         }
 
         const data = await response.json();
-        state.notifications = data.notifications;
-        state.unreadCount = data.unreadCount;
+        state.notifications = data.notifications || [];
+        state.unreadCount = data.unreadCount || 0;
 
         updateUI();
         return data;
@@ -337,7 +337,7 @@
       }
     }
 
-    console.error('Error fetching notifications: max retries exceeded');
+    console.error('Error fetching notifications: all retries exhausted');
     return null;
   }
 
