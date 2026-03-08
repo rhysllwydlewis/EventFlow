@@ -559,19 +559,19 @@
         <div id="enquiry-trend-chart"></div>
 
         <!-- ROI Analytics Widgets: Conversion Funnel + Response Time -->
-        <section aria-labelledby="roi-widgets-heading" style="margin-top:1.5rem;">
-          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;margin-bottom:1rem;">
-            <h2 id="roi-widgets-heading" style="margin:0;font-size:1.125rem;font-weight:700;color:#0B1220;">Performance Overview</h2>
-            <div style="display:flex;align-items:center;gap:0.5rem;">
-              <label for="roi-date-range" style="font-size:0.875rem;color:#6B7280;">Period:</label>
-              <select id="roi-date-range" aria-label="Analytics date range" style="padding:0.375rem 0.75rem;border:1px solid #E5E7EB;border-radius:8px;font-size:0.875rem;background:white;cursor:pointer;">
+        <section aria-labelledby="roi-widgets-heading" class="sd-roi-section">
+          <div class="sd-roi-header">
+            <h2 id="roi-widgets-heading" class="sd-roi-heading">Performance Overview</h2>
+            <div class="sd-roi-period">
+              <label for="roi-date-range">Period:</label>
+              <select id="roi-date-range" aria-label="Analytics date range">
                 <option value="7">Last 7 days</option>
                 <option value="30" selected>Last 30 days</option>
                 <option value="90">Last 90 days</option>
               </select>
             </div>
           </div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;">
+          <div class="sd-roi-grid">
             <div id="supplier-conversion-funnel"></div>
             <div id="supplier-response-time"></div>
           </div>
@@ -581,7 +581,6 @@
         <section
           id="earnings-overview"
           class="card glass-card glass-card--teal ef-card"
-          style="margin-top: 2rem"
           aria-labelledby="earnings-heading"
         >
           <div class="ef-card-header">
@@ -661,243 +660,70 @@
         <!-- Calendar & Availability Widget - Compact Design -->
         <section
           id="availability-calendar"
-          class="card"
-          style="margin-top: 2rem; padding: 1.75rem"
+          class="card sd-card"
           aria-labelledby="calendar-heading"
         >
-          <div
-            style="
-              display: flex;
-              align-items: center;
-              justify-content: space-between;
-              margin-bottom: 1.25rem;
-              flex-wrap: wrap;
-              gap: 1rem;
-            "
-          >
-            <div style="display: flex; align-items: center; gap: 0.75rem">
-              <div
-                style="
-                  width: 40px;
-                  height: 40px;
-                  background: linear-gradient(
-                    135deg,
-                    rgba(99, 102, 241, 0.1) 0%,
-                    rgba(139, 92, 246, 0.1) 100%
-                  );
-                  border-radius: 10px;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  font-size: 1.25rem;
-                "
-              >
-                📅
+          <div class="sd-availability-section">
+            <div class="sd-availability-header">
+              <div class="sd-availability-title-row">
+                <div class="sd-availability-icon" aria-hidden="true">📅</div>
+                <div>
+                  <h2 id="calendar-heading" class="sd-availability-heading">
+                    Availability Calendar
+                  </h2>
+                  <p class="sd-availability-subtitle">Manage your bookable dates</p>
+                </div>
               </div>
-              <div>
-                <h2
-                  id="calendar-heading"
-                  style="font-size: 1.25rem; margin: 0; color: var(--ef-text, #0b1220)"
-                >
-                  Availability Calendar
-                </h2>
-                <p class="small" style="margin: 0; color: #6b7280; font-size: 0.875rem">
-                  Manage your bookable dates
-                </p>
-              </div>
+              <span class="sd-in-dev-badge">In Development</span>
             </div>
-            <span
-              style="
-                padding: 0.375rem 0.875rem;
-                background: rgba(99, 102, 241, 0.1);
-                color: #6366f1;
-                font-size: 0.75rem;
-                font-weight: 600;
-                border-radius: 20px;
-              "
-              >In Development</span
-            >
-          </div>
 
-          <div
-            style="
-              background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
-              padding: 1.5rem;
-              border-radius: 10px;
-              border: 1px solid #e5e7eb;
-            "
-          >
-            <div
-              style="
-                display: grid;
-                grid-template-columns: auto 1fr;
-                gap: 1.25rem;
-                align-items: center;
-              "
-            >
-              <div
-                style="
-                  width: 80px;
-                  height: 80px;
-                  background: white;
-                  border-radius: 12px;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  font-size: 2.5rem;
-                  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-                "
-              >
-                📆
-              </div>
-              <div>
-                <h3
-                  style="font-size: 1.125rem; margin: 0 0 0.5rem 0; color: var(--ef-text, #0b1220)"
-                >
-                  Interactive Calendar Coming Soon
-                </h3>
-                <p style="color: #6b7280; margin: 0 0 1rem 0; font-size: 0.875rem">
-                  Block unavailable dates, set recurring availability, and track bookings all in one
-                  place
-                </p>
-                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap">
-                  <span
-                    style="
-                      padding: 0.375rem 0.75rem;
-                      background: white;
-                      border-radius: 6px;
-                      border: 1px solid #e5e7eb;
-                      font-size: 0.75rem;
-                      display: flex;
-                      align-items: center;
-                      gap: 0.375rem;
-                    "
-                  >
-                    <span>✅</span>
-                    <span>View bookings</span>
-                  </span>
-                  <span
-                    style="
-                      padding: 0.375rem 0.75rem;
-                      background: white;
-                      border-radius: 6px;
-                      border: 1px solid #e5e7eb;
-                      font-size: 0.75rem;
-                      display: flex;
-                      align-items: center;
-                      gap: 0.375rem;
-                    "
-                  >
-                    <span>🚫</span>
-                    <span>Block dates</span>
-                  </span>
-                  <span
-                    style="
-                      padding: 0.375rem 0.75rem;
-                      background: white;
-                      border-radius: 6px;
-                      border: 1px solid #e5e7eb;
-                      font-size: 0.75rem;
-                      display: flex;
-                      align-items: center;
-                      gap: 0.375rem;
-                    "
-                  >
-                    <span>🔄</span>
-                    <span>Recurring</span>
-                  </span>
+            <div class="sd-calendar-placeholder">
+              <div class="sd-calendar-placeholder__inner">
+                <div class="sd-calendar-placeholder__icon" aria-hidden="true">📆</div>
+                <div>
+                  <h3 class="sd-calendar-placeholder__title">
+                    Interactive Calendar Coming Soon
+                  </h3>
+                  <p class="sd-calendar-placeholder__desc">
+                    Block unavailable dates, set recurring availability, and track bookings all in one
+                    place
+                  </p>
+                  <div class="sd-calendar-placeholder__chips">
+                    <span class="sd-calendar-chip"><span>✅</span><span>View bookings</span></span>
+                    <span class="sd-calendar-chip"><span>🚫</span><span>Block dates</span></span>
+                    <span class="sd-calendar-chip"><span>🔄</span><span>Recurring</span></span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        <!-- Section Divider with Liquid Glass -->
-        <div style="margin: 3rem 0 2rem; position: relative">
-          <div
-            style="
-              position: absolute;
-              left: 0;
-              right: 0;
-              top: 50%;
-              height: 1px;
-              background: linear-gradient(90deg, transparent, rgba(11, 128, 115, 0.2), transparent);
-            "
-          ></div>
-          <div
-            style="
-              position: relative;
-              width: fit-content;
-              margin: 0 auto;
-              background: white;
-              padding: 0 1rem;
-            "
-          >
-            <span
-              style="
-                font-size: 0.75rem;
-                color: var(--ef-text-muted, #667085);
-                text-transform: uppercase;
-                letter-spacing: 0.1em;
-                font-weight: 600;
-              "
-              >Profile Management</span
-            >
-          </div>
+        <!-- Section Divider -->
+        <div class="sd-section-divider" role="separator" aria-hidden="true">
+          <span class="sd-section-divider__label">Profile Management</span>
         </div>
 
         <!-- Your Supplier Profiles - Enhanced Header -->
         <div
-          class="card"
+          class="card sd-card"
           role="region"
           aria-labelledby="profiles-heading"
-          style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px)"
         >
-          <div
-            class="supplier-card-header"
-            style="
-              background: linear-gradient(
-                135deg,
-                rgba(11, 128, 115, 0.03) 0%,
-                rgba(16, 185, 129, 0.02) 100%
-              );
-              border-bottom: 1px solid rgba(11, 128, 115, 0.1);
-              border-radius: 10px 10px 0 0;
-              padding: 1.5rem;
-            "
-          >
-            <div class="supplier-card-header__content">
-              <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem">
-                <div
-                  style="
-                    width: 36px;
-                    height: 36px;
-                    background: linear-gradient(
-                      135deg,
-                      var(--ef-primary, #0b8073) 0%,
-                      var(--ef-success, #10b981) 100%
-                    );
-                    border-radius: 8px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 1.125rem;
-                  "
-                >
-                  👤
-                </div>
-                <h2
-                  id="profiles-heading"
-                  style="margin: 0; font-size: 1.375rem; color: var(--ef-text, #0b1220)"
-                >
+          <div class="supplier-card-header sd-card-header sd-card-header--teal">
+            <div class="sd-card-header__left">
+              <div class="sd-card-header__title-row">
+                <div class="sd-card-header__icon sd-card-header__icon--teal" aria-hidden="true">👤</div>
+                <h2 id="profiles-heading" class="sd-card-header__heading">
                   Your Supplier Profiles
                 </h2>
               </div>
-              <p class="small" style="margin: 0 0 0 3rem; color: #6b7280">
+              <p class="sd-card-header__subtitle">
                 Create and manage your supplier listings. Each profile gets a health score based on
                 completeness.
               </p>
             </div>
+            <div class="sd-card-header__actions">
             <button
               type="button"
               class="form-toggle-btn"
@@ -931,6 +757,7 @@
               </svg>
               <span class="label">Create Profile</span>
             </button>
+            </div>
           </div>
 
           <div id="my-suppliers" class="section" data-test="my-suppliers-list">
@@ -1177,80 +1004,26 @@
         </script>
 
         <!-- Section Divider -->
-        <div style="margin: 3rem 0 2rem; position: relative">
-          <div
-            style="
-              position: absolute;
-              left: 0;
-              right: 0;
-              top: 50%;
-              height: 1px;
-              background: linear-gradient(90deg, transparent, rgba(11, 128, 115, 0.2), transparent);
-            "
-          ></div>
-          <div
-            style="
-              position: relative;
-              width: fit-content;
-              margin: 0 auto;
-              background: white;
-              padding: 0 1rem;
-            "
-          >
-            <span
-              style="
-                font-size: 0.75rem;
-                color: var(--ef-text-muted, #667085);
-                text-transform: uppercase;
-                letter-spacing: 0.1em;
-                font-weight: 600;
-              "
-              >Packages & Services</span
-            >
-          </div>
+        <div class="sd-section-divider" role="separator" aria-hidden="true">
+          <span class="sd-section-divider__label">Packages &amp; Services</span>
         </div>
 
         <div
-          class="card supplier-dashboard-card"
-          style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px)"
+          class="card sd-card supplier-dashboard-card"
+          role="region"
+          aria-labelledby="packages-heading"
         >
-          <div
-            class="supplier-card-header"
-            style="
-              background: linear-gradient(
-                135deg,
-                rgba(99, 102, 241, 0.03) 0%,
-                rgba(139, 92, 246, 0.02) 100%
-              );
-              border-bottom: 1px solid rgba(99, 102, 241, 0.1);
-              border-radius: 10px 10px 0 0;
-              padding: 1.5rem;
-            "
-          >
-            <div class="supplier-card-header__content">
-              <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem">
-                <div
-                  style="
-                    width: 36px;
-                    height: 36px;
-                    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-                    border-radius: 8px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 1.125rem;
-                  "
-                >
-                  📦
-                </div>
-                <h3 style="margin: 0; font-size: 1.375rem; color: var(--ef-text, #0b1220)">
-                  Your Packages
-                </h3>
+          <div class="supplier-card-header sd-card-header sd-card-header--indigo">
+            <div class="sd-card-header__left">
+              <div class="sd-card-header__title-row">
+                <div class="sd-card-header__icon sd-card-header__icon--indigo" aria-hidden="true">📦</div>
+                <h3 id="packages-heading" class="sd-card-header__heading">Your Packages</h3>
               </div>
-              <p class="small" id="pkg-limit-note" style="margin: 0 0 0 3rem; color: #6b7280">
+              <p id="pkg-limit-note" class="sd-card-header__subtitle">
                 Checking your package allowance…
               </p>
             </div>
+            <div class="sd-card-header__actions">
             <button
               type="button"
               class="form-toggle-btn"
@@ -1280,6 +1053,7 @@
               </svg>
               <span class="label">Create Package</span>
             </button>
+            </div>
           </div>
 
           <div id="my-packages" class="section" data-test="my-packages-list">
@@ -1383,79 +1157,24 @@
 
         <!-- Subscription Card -->
         <!-- Section Divider -->
-        <div style="margin: 3rem 0 2rem; position: relative">
-          <div
-            style="
-              position: absolute;
-              left: 0;
-              right: 0;
-              top: 50%;
-              height: 1px;
-              background: linear-gradient(90deg, transparent, rgba(11, 128, 115, 0.2), transparent);
-            "
-          ></div>
-          <div
-            style="
-              position: relative;
-              width: fit-content;
-              margin: 0 auto;
-              background: white;
-              padding: 0 1rem;
-            "
-          >
-            <span
-              style="
-                font-size: 0.75rem;
-                color: var(--ef-text-muted, #667085);
-                text-transform: uppercase;
-                letter-spacing: 0.1em;
-                font-weight: 600;
-              "
-              >Account & Support</span
-            >
-          </div>
+        <div class="sd-section-divider" role="separator" aria-hidden="true">
+          <span class="sd-section-divider__label">Account &amp; Support</span>
         </div>
+
+        <!-- Subscription + Lead Quality: side-by-side on desktop -->
+        <div class="sd-two-col">
 
         <!-- Subscription Card - Enhanced -->
         <div
-          class="card supplier-dashboard-card"
-          style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px)"
+          class="card sd-card supplier-dashboard-card"
         >
-          <div
-            class="supplier-card-header"
-            style="
-              background: linear-gradient(
-                135deg,
-                rgba(99, 102, 241, 0.05) 0%,
-                rgba(139, 92, 246, 0.03) 100%
-              );
-              border-bottom: 1px solid rgba(99, 102, 241, 0.1);
-              padding: 1.5rem;
-            "
-          >
-            <div class="supplier-card-header__content">
-              <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem">
-                <div
-                  style="
-                    width: 36px;
-                    height: 36px;
-                    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-                    border-radius: 8px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 1.125rem;
-                  "
-                >
-                  💳
-                </div>
-                <h3 style="margin: 0; font-size: 1.375rem; color: var(--ef-text, #0b1220)">
-                  Subscription
-                </h3>
+          <div class="supplier-card-header sd-card-header sd-card-header--indigo">
+            <div class="sd-card-header__left">
+              <div class="sd-card-header__title-row">
+                <div class="sd-card-header__icon sd-card-header__icon--indigo" aria-hidden="true">💳</div>
+                <h3 class="sd-card-header__heading">Subscription</h3>
               </div>
-              <p class="small" style="margin: 0 0 0 3rem; color: #6b7280">
-                Manage your plan and billing
-              </p>
+              <p class="sd-card-header__subtitle">Manage your plan and billing</p>
             </div>
           </div>
           <div id="supplier-subscription-card" class="section">
@@ -1465,44 +1184,15 @@
 
         <!-- Lead Quality Card - Enhanced -->
         <div
-          class="card supplier-dashboard-card"
-          style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px)"
+          class="card sd-card supplier-dashboard-card"
         >
-          <div
-            class="supplier-card-header"
-            style="
-              background: linear-gradient(
-                135deg,
-                rgba(59, 130, 246, 0.05) 0%,
-                rgba(37, 99, 235, 0.03) 100%
-              );
-              border-bottom: 1px solid rgba(59, 130, 246, 0.1);
-              padding: 1.5rem;
-            "
-          >
-            <div class="supplier-card-header__content">
-              <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem">
-                <div
-                  style="
-                    width: 36px;
-                    height: 36px;
-                    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-                    border-radius: 8px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 1.125rem;
-                  "
-                >
-                  📈
-                </div>
-                <h3 style="margin: 0; font-size: 1.375rem; color: var(--ef-text, #0b1220)">
-                  Lead Quality Overview
-                </h3>
+          <div class="supplier-card-header sd-card-header sd-card-header--blue">
+            <div class="sd-card-header__left">
+              <div class="sd-card-header__title-row">
+                <div class="sd-card-header__icon sd-card-header__icon--blue" aria-hidden="true">📈</div>
+                <h3 class="sd-card-header__heading">Lead Quality Overview</h3>
               </div>
-              <p class="small" style="margin: 0 0 0 3rem; color: #6b7280">
-                Track the quality of your enquiries
-              </p>
+              <p class="sd-card-header__subtitle">Track the quality of your enquiries</p>
             </div>
           </div>
           <div id="lead-quality-breakdown" class="section">
@@ -1511,59 +1201,24 @@
           </div>
         </div>
 
+        </div><!-- end .sd-two-col -->
+
         <section
-          class="card supplier-dashboard-card"
+          class="card sd-card supplier-dashboard-card"
           role="region"
           aria-labelledby="tickets-heading"
-          style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px)"
         >
-          <div
-            class="supplier-card-header"
-            style="
-              background: linear-gradient(
-                135deg,
-                rgba(239, 68, 68, 0.05) 0%,
-                rgba(220, 38, 38, 0.03) 100%
-              );
-              border-bottom: 1px solid rgba(239, 68, 68, 0.1);
-              padding: 1.5rem;
-            "
-          >
-            <div
-              style="
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                flex-wrap: wrap;
-                gap: 1rem;
-                width: 100%;
-              "
-            >
-              <div style="display: flex; align-items: center; gap: 0.75rem">
-                <div
-                  style="
-                    width: 36px;
-                    height: 36px;
-                    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-                    border-radius: 8px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 1.125rem;
-                  "
-                >
-                  🎫
-                </div>
+          <div class="supplier-card-header sd-card-header sd-card-header--red">
+            <div class="sd-card-header__left">
+              <div class="sd-card-header__title-row">
+                <div class="sd-card-header__icon sd-card-header__icon--red" aria-hidden="true">🎫</div>
                 <div>
-                  <h3
-                    id="tickets-heading"
-                    style="margin: 0; font-size: 1.375rem; color: var(--ef-text, #0b1220)"
-                  >
-                    Support Tickets
-                  </h3>
-                  <p class="small" style="margin: 0; color: #6b7280">Get help when you need it</p>
+                  <h3 id="tickets-heading" class="sd-card-header__heading">Support Tickets</h3>
+                  <p class="sd-card-header__subtitle" style="padding-left: 0;">Get help when you need it</p>
                 </div>
               </div>
+            </div>
+            <div class="sd-card-header__actions">
               <button
                 class="glass-btn glass-btn--primary"
                 id="createSupplierTicketBtn"
@@ -1577,6 +1232,7 @@
                   width="16"
                   height="16"
                   style="margin-right: 0.5rem; display: inline-block; vertical-align: middle"
+                  aria-hidden="true"
                 >
                   <line x1="12" y1="5" x2="12" y2="19" />
                   <line x1="5" y1="12" x2="19" y2="12" />
@@ -1592,64 +1248,21 @@
         </section>
 
         <section
-          class="card supplier-dashboard-card"
+          class="card sd-card supplier-dashboard-card"
           role="region"
           aria-labelledby="messages-heading"
-          style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px)"
         >
-          <div
-            class="supplier-card-header"
-            style="
-              background: linear-gradient(
-                135deg,
-                rgba(59, 130, 246, 0.05) 0%,
-                rgba(37, 99, 235, 0.03) 100%
-              );
-              border-bottom: 1px solid rgba(59, 130, 246, 0.1);
-              padding: 1.5rem;
-            "
-          >
-            <div
-              style="
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                width: 100%;
-                flex-wrap: wrap;
-                gap: 1rem;
-              "
-            >
-              <div style="display: flex; align-items: center; gap: 1rem">
-                <div
-                  style="
-                    width: 36px;
-                    height: 36px;
-                    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-                    border-radius: 8px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 1.125rem;
-                  "
-                >
-                  💬
-                </div>
+          <div class="supplier-card-header sd-card-header sd-card-header--blue">
+            <div class="sd-card-header__left">
+              <div class="sd-card-header__title-row">
+                <div class="sd-card-header__icon sd-card-header__icon--blue" aria-hidden="true">💬</div>
                 <div style="display: flex; align-items: center; gap: 0.75rem">
-                  <h3
-                    id="messages-heading"
-                    style="margin: 0; font-size: 1.375rem; color: var(--ef-text, #0b1220)"
-                  >
-                    Messages
-                  </h3>
+                  <h3 id="messages-heading" class="sd-card-header__heading">Messages</h3>
                   <span
                     id="unreadMessageBadge"
                     class="badge badge-info supplier-unread-badge"
                     style="
-                      background: linear-gradient(
-                        135deg,
-                        rgba(59, 130, 246, 0.15) 0%,
-                        rgba(37, 99, 235, 0.15) 100%
-                      );
+                      background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(37, 99, 235, 0.15) 100%);
                       backdrop-filter: blur(8px);
                       border: 1px solid rgba(59, 130, 246, 0.3);
                       color: #1e40af;
@@ -1663,79 +1276,43 @@
                   >
                 </div>
               </div>
-              
-              <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; flex: 1;">
-                <!-- Mini search bar -->
-                <input 
-                  type="search" 
-                  id="widget-search-input-supplier"
-                  placeholder="Search conversations..." 
-                  style="
-                    flex: 1;
-                    min-width: 150px;
-                    padding: 6px 12px;
-                    border: 1px solid #E5E7EB;
-                    border-radius: 8px;
-                    font-size: 14px;
-                  "
-                />
-                
-                <!-- Filter dropdown -->
-                <select id="widget-filter-select-supplier" style="
-                  padding: 6px 12px;
-                  border: 1px solid #E5E7EB;
-                  border-radius: 8px;
-                  font-size: 14px;
-                  background: white;
-                ">
-                  <option value="all">All</option>
-                  <option value="unread">Unread</option>
-                  <option value="starred">Starred</option>
-                  <option value="high">High Quality</option>
-                  <option value="medium">Medium Quality</option>
-                  <option value="low">Low Quality</option>
-                </select>
+            </div>
 
-                <!-- Sort dropdown -->
-                <select id="widget-sort-select-supplier" aria-label="Sort conversations" style="
-                  padding: 6px 12px;
-                  border: 1px solid #E5E7EB;
-                  border-radius: 8px;
-                  font-size: 14px;
-                  background: white;
-                ">
-                  <option value="newest">Newest</option>
-                  <option value="oldest">Oldest</option>
-                  <option value="score-high">Lead Score ↑</option>
-                  <option value="score-low">Lead Score ↓</option>
-                </select>
-                
-                <button
-                  id="export-enquiries-btn"
-                  class="glass-btn"
-                  style="
-                    padding: 0.5rem 1rem;
-                    font-size: 0.875rem;
-                    display: flex;
-                    align-items: center;
-                    gap: 0.5rem;
-                  "
-                >
-                  <svg
-                    width="16"
-                    height="16"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
-                  </svg>
-                  <span>Export CSV</span>
-                </button>
-              </div>
+            <!-- Messages toolbar: search, filter, sort, export -->
+            <div class="sd-messages-toolbar">
+              <input
+                type="search"
+                id="widget-search-input-supplier"
+                placeholder="Search conversations…"
+                class="sd-messages-toolbar__search"
+                aria-label="Search conversations"
+              />
+              <select id="widget-filter-select-supplier" class="sd-messages-toolbar__select" aria-label="Filter conversations">
+                <option value="all">All</option>
+                <option value="unread">Unread</option>
+                <option value="starred">Starred</option>
+                <option value="high">High Quality</option>
+                <option value="medium">Medium Quality</option>
+                <option value="low">Low Quality</option>
+              </select>
+              <select id="widget-sort-select-supplier" class="sd-messages-toolbar__select" aria-label="Sort conversations">
+                <option value="newest">Newest</option>
+                <option value="oldest">Oldest</option>
+                <option value="score-high">Lead Score ↑</option>
+                <option value="score-low">Lead Score ↓</option>
+              </select>
+              <button
+                id="export-enquiries-btn"
+                class="glass-btn sd-messages-toolbar__export"
+                aria-label="Export conversations as CSV"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                <span>Export CSV</span>
+              </button>
             </div>
           </div>
           <!-- Lead Quality Summary Stats -->
@@ -1758,49 +1335,17 @@
 
         <!-- Reviews & Ratings Section - Enhanced -->
         <section
-          class="card supplier-dashboard-card"
+          class="card sd-card supplier-dashboard-card"
           role="region"
           aria-labelledby="reviews-heading"
-          style="background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(8px)"
         >
-          <div
-            class="supplier-card-header"
-            style="
-              background: linear-gradient(
-                135deg,
-                rgba(245, 158, 11, 0.05) 0%,
-                rgba(251, 191, 36, 0.03) 100%
-              );
-              border-bottom: 1px solid rgba(245, 158, 11, 0.1);
-              padding: 1.5rem;
-            "
-          >
-            <div class="supplier-card-header__content">
-              <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem">
-                <div
-                  style="
-                    width: 36px;
-                    height: 36px;
-                    background: linear-gradient(135deg, #f59e0b 0%, #fbb936 100%);
-                    border-radius: 8px;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-size: 1.125rem;
-                  "
-                >
-                  ⭐
-                </div>
-                <h3
-                  id="reviews-heading"
-                  style="margin: 0; font-size: 1.375rem; color: var(--ef-text, #0b1220)"
-                >
-                  Reviews & Ratings
-                </h3>
+          <div class="supplier-card-header sd-card-header sd-card-header--amber">
+            <div class="sd-card-header__left">
+              <div class="sd-card-header__title-row">
+                <div class="sd-card-header__icon sd-card-header__icon--amber" aria-hidden="true">⭐</div>
+                <h3 id="reviews-heading" class="sd-card-header__heading">Reviews &amp; Ratings</h3>
               </div>
-              <p class="small" style="margin: 0 0 0 3rem; color: #6b7280">
-                Build trust with customer testimonials
-              </p>
+              <p class="sd-card-header__subtitle">Build trust with customer testimonials</p>
             </div>
           </div>
           <div id="supplier-reviews-section" class="section">

@@ -4258,3 +4258,456 @@ html {
   color: #0b8073;
   outline: none;
 }
+
+/* ===========================================
+   DASHBOARD LAYOUT OVERHAUL v3.0
+   Reusable section header patterns, desktop 2-col layout,
+   compact dividers, and messages toolbar responsiveness.
+   Replaces repetitive inline styles throughout dashboard-supplier.html
+   =========================================== */
+
+/* ------------------------------------------
+   SD CARD — shared glass card base
+   ------------------------------------------ */
+.sd-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--ef-border, #e7eaf0);
+  border-radius: var(--ef-radius-md, 10px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+/* ------------------------------------------
+   SD SECTION HEADER — reusable header pattern
+   Replaces the inline-styled .supplier-card-header blocks
+   ------------------------------------------ */
+.sd-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 0; /* reset supplier-card-header margin when both classes co-exist */
+  border-radius: 8px;
+  border-bottom: 1px solid var(--sd-header-border, rgba(11, 128, 115, 0.1));
+  background: var(--sd-header-bg, linear-gradient(135deg, rgba(11, 128, 115, 0.04) 0%, rgba(16, 185, 129, 0.03) 100%));
+}
+
+/* Colour variants */
+.sd-card-header--teal {
+  --sd-header-bg: linear-gradient(135deg, rgba(11, 128, 115, 0.04) 0%, rgba(16, 185, 129, 0.03) 100%);
+  --sd-header-border: rgba(11, 128, 115, 0.1);
+}
+.sd-card-header--blue {
+  --sd-header-bg: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(37, 99, 235, 0.03) 100%);
+  --sd-header-border: rgba(59, 130, 246, 0.1);
+}
+.sd-card-header--red {
+  --sd-header-bg: linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, rgba(220, 38, 38, 0.03) 100%);
+  --sd-header-border: rgba(239, 68, 68, 0.1);
+}
+.sd-card-header--amber {
+  --sd-header-bg: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(251, 191, 36, 0.03) 100%);
+  --sd-header-border: rgba(245, 158, 11, 0.1);
+}
+.sd-card-header--indigo {
+  --sd-header-bg: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(139, 92, 246, 0.03) 100%);
+  --sd-header-border: rgba(99, 102, 241, 0.1);
+}
+
+/* Left column: icon + title + subtitle stack */
+.sd-card-header__left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.sd-card-header__title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Icon box */
+.sd-card-header__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.125rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.sd-card-header__icon--teal   { background: linear-gradient(135deg, #0b8073 0%, #10b981 100%); }
+.sd-card-header__icon--blue   { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
+.sd-card-header__icon--red    { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+.sd-card-header__icon--amber  { background: linear-gradient(135deg, #f59e0b 0%, #fbb936 100%); }
+.sd-card-header__icon--indigo { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); }
+
+/* Heading */
+.sd-card-header__heading {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--ef-text, #0b1220);
+  line-height: 1.3;
+}
+
+/* Subtitle — visually indented to align with heading (icon width + gap) */
+.sd-card-header__subtitle {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #6b7280;
+  padding-left: calc(36px + 0.75rem);
+  line-height: 1.4;
+}
+
+/* Right column: action buttons / badges */
+.sd-card-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .sd-card-header {
+    padding: 1rem 1.125rem;
+  }
+  .sd-card-header__subtitle {
+    padding-left: 0;
+  }
+}
+
+/* ------------------------------------------
+   SD SECTION DIVIDER — compact decorative label bar
+   Replaces inline div with margin: 3rem 0 2rem
+   ------------------------------------------ */
+.sd-section-divider {
+  margin: 1.75rem 0 0.75rem;
+  position: relative;
+  height: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sd-section-divider::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(11, 128, 115, 0.2), transparent);
+}
+
+.sd-section-divider__label {
+  position: relative;
+  background: white;
+  padding: 0 1rem;
+  font-size: 0.6875rem;
+  color: var(--ef-text-muted, #667085);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------
+   SD ROI SECTION — compact analytics header/grid
+   Replaces inline-styled ROI widget wrapper
+   ------------------------------------------ */
+.sd-roi-section {
+  margin-top: 1rem;
+}
+
+.sd-roi-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.sd-roi-heading {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--ef-text, #0b1220);
+}
+
+.sd-roi-period {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sd-roi-period label {
+  font-size: 0.8125rem;
+  color: #6b7280;
+}
+
+.sd-roi-period select {
+  padding: 0.325rem 0.625rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  background: white;
+  cursor: pointer;
+}
+
+.sd-roi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+/* ------------------------------------------
+   SD DESKTOP 2-COLUMN LAYOUT
+   Group related cards side-by-side on wide screens.
+   Use .sd-two-col as a flex/grid wrapper.
+   ------------------------------------------ */
+.sd-two-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (min-width: 1024px) {
+  .sd-two-col {
+    flex-direction: row;
+    align-items: stretch;
+    gap: 1.25rem;
+  }
+
+  .sd-two-col > * {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}
+
+/* ------------------------------------------
+   SD MESSAGES TOOLBAR — responsive search/filter row
+   Replaces inline-styled toolbar in the messages section header
+   ------------------------------------------ */
+.sd-messages-toolbar {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.sd-messages-toolbar__search {
+  flex: 1 1 140px;
+  min-width: 120px;
+  padding: 6px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  background: white;
+  transition: border-color 0.15s ease;
+}
+
+.sd-messages-toolbar__search:focus {
+  outline: none;
+  border-color: var(--ef-primary, #0b8073);
+  box-shadow: 0 0 0 2px rgba(11, 128, 115, 0.12);
+}
+
+.sd-messages-toolbar__select {
+  padding: 6px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  background: white;
+  cursor: pointer;
+  min-width: 0;
+  flex-shrink: 0;
+  transition: border-color 0.15s ease;
+}
+
+.sd-messages-toolbar__select:focus {
+  outline: none;
+  border-color: var(--ef-primary, #0b8073);
+}
+
+.sd-messages-toolbar__export {
+  padding: 0.45rem 0.875rem;
+  font-size: 0.8125rem;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* Collapse on very narrow screens: search goes full width, selects inline */
+@media (max-width: 600px) {
+  .sd-messages-toolbar {
+    width: 100%;
+  }
+
+  .sd-messages-toolbar__search {
+    flex-basis: 100%;
+    min-width: 0;
+  }
+
+  .sd-messages-toolbar__select {
+    flex: 1;
+  }
+}
+
+/* ------------------------------------------
+   SD COMING-SOON SECTION — compact placeholder cards
+   Applied to Earnings and Calendar sections
+   ------------------------------------------ */
+.sd-coming-soon {
+  margin-top: 1rem;
+}
+
+.sd-coming-soon .ef-card,
+.sd-coming-soon.card {
+  margin-top: 0;
+}
+
+/* Calendar inner content box */
+.sd-calendar-placeholder {
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+  padding: 1rem 1.25rem;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+}
+
+.sd-calendar-placeholder__inner {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1rem;
+  align-items: center;
+}
+
+.sd-calendar-placeholder__icon {
+  width: 56px;
+  height: 56px;
+  background: white;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.875rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  flex-shrink: 0;
+}
+
+.sd-calendar-placeholder__title {
+  font-size: 1rem;
+  margin: 0 0 0.375rem 0;
+  color: var(--ef-text, #0b1220);
+  font-weight: 600;
+}
+
+.sd-calendar-placeholder__desc {
+  color: #6b7280;
+  margin: 0 0 0.75rem 0;
+  font-size: 0.8125rem;
+}
+
+.sd-calendar-placeholder__chips {
+  display: flex;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+}
+
+.sd-calendar-chip {
+  padding: 0.3rem 0.625rem;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  font-size: 0.6875rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* Availability section wrapper */
+.sd-availability-section {
+  padding: 1.25rem 1.5rem;
+}
+
+.sd-availability-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.875rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.sd-availability-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.sd-availability-icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.sd-availability-heading {
+  font-size: 1.125rem;
+  margin: 0;
+  color: var(--ef-text, #0b1220);
+  font-weight: 600;
+}
+
+.sd-availability-subtitle {
+  margin: 0;
+  color: #6b7280;
+  font-size: 0.8125rem;
+}
+
+.sd-in-dev-badge {
+  padding: 0.3rem 0.75rem;
+  background: rgba(99, 102, 241, 0.1);
+  color: #6366f1;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------
+   REDUCED-MOTION SAFEGUARD for new components
+   ------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  .sd-card-header,
+  .sd-section-divider {
+    transition: none;
+  }
+}
+
+/* Prevent double top-margin on direct children of sd-two-col */
+.sd-two-col > .supplier-dashboard-card,
+.sd-two-col > .card {
+  margin-top: 0;
+}

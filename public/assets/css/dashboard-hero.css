@@ -9,8 +9,8 @@
    ============================================ */
 :root {
   --dashboard-hero-height: auto;
-  --dashboard-hero-padding: clamp(32px, 5vw, 48px);
-  --dashboard-hero-gap: clamp(24px, 4vw, 40px);
+  --dashboard-hero-padding: clamp(24px, 4vw, 36px);
+  --dashboard-hero-gap: clamp(16px, 3vw, 28px);
   
   /* Colors */
   --dashboard-primary: #10b981;
@@ -40,9 +40,9 @@
    ============================================ */
 .dashboard-hero {
   position: relative;
-  min-height: 280px;
-  margin-bottom: var(--ef-space-6, 32px);
-  border-radius: 24px;
+  min-height: 200px;
+  margin-bottom: var(--ef-space-5, 24px);
+  border-radius: 20px;
   overflow: hidden;
   isolation: isolate;
 }
@@ -157,7 +157,7 @@
 
 .dashboard-hero__title {
   margin: 0;
-  font-size: clamp(28px, 5vw, 42px);
+  font-size: clamp(24px, 4vw, 36px);
   font-weight: 800;
   line-height: 1.15;
   letter-spacing: -0.03em;
@@ -193,8 +193,8 @@
    ============================================ */
 .dashboard-hero__stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--ef-space-4, 16px);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--ef-space-3, 12px);
 }
 
 @media (min-width: 1024px) {
@@ -210,15 +210,15 @@
   backdrop-filter: blur(var(--dashboard-glass-blur));
   -webkit-backdrop-filter: blur(var(--dashboard-glass-blur));
   border: 1px solid var(--dashboard-glass-border);
-  border-radius: 16px;
-  padding: var(--ef-space-4, 20px);
+  border-radius: 14px;
+  padding: var(--ef-space-3, 16px);
   box-shadow: 
     var(--dashboard-shadow-md),
     inset 0 1px 2px rgba(255, 255, 255, 0.9);
   transition: all var(--dashboard-transition-bounce);
   display: flex;
   flex-direction: column;
-  gap: var(--ef-space-3, 12px);
+  gap: var(--ef-space-2, 10px);
   min-width: 0;
   overflow: hidden;
 }
@@ -279,11 +279,11 @@
 }
 
 .dashboard-stat-card__value {
-  font-size: clamp(28px, 4vw, 36px);
+  font-size: clamp(24px, 3.5vw, 32px);
   font-weight: 800;
   line-height: 1;
   color: var(--dashboard-text);
-  margin-bottom: var(--ef-space-1, 6px);
+  margin-bottom: var(--ef-space-1, 4px);
 }
 
 .dashboard-stat-card__label {
@@ -350,14 +350,14 @@
 .dashboard-action-chip {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
+  gap: 6px;
+  padding: 9px 16px;
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border: 1.5px solid rgba(255, 255, 255, 0.6);
-  border-radius: 12px;
-  font-size: 14px;
+  border-radius: 10px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--dashboard-text);
   cursor: pointer;
@@ -512,12 +512,12 @@
    ============================================ */
 @media (max-width: 768px) {
   .dashboard-hero {
-    border-radius: 16px;
+    border-radius: 14px;
   }
   
   .dashboard-hero__content {
-    padding: var(--ef-space-5, 24px);
-    gap: var(--ef-space-5, 24px);
+    padding: var(--ef-space-4, 20px);
+    gap: var(--ef-space-4, 20px);
   }
   
   .dashboard-hero__stats {
@@ -528,11 +528,11 @@
   .dashboard-hero__actions {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
+    gap: 10px;
   }
   
   .dashboard-action-chip {
-    padding: 10px 8px;
+    padding: 8px 6px;
     font-size: 12px;
     flex-direction: column;
     text-align: center;
@@ -542,8 +542,8 @@
   }
   
   .dashboard-action-chip svg {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
   }
   
   .dashboard-hero__tip {

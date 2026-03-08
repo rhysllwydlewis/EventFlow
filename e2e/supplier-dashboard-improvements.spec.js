@@ -209,4 +209,139 @@ test.describe('Supplier Dashboard Improvements @backend', () => {
       expect(transform).not.toBe('none');
     }
   });
+
+  // ─── Responsive layout overhaul tests ─────────────────────────────────────
+
+  test('messages toolbar search input should be accessible on narrow screens', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto('/dashboard-supplier.html');
+    await page.waitForLoadState('networkidle');
+
+    const searchInput = page.locator('#widget-search-input-supplier');
+    if ((await searchInput.count()) > 0) {
+      await expect(searchInput).toBeVisible();
+
+      // Verify search input is reachable and wraps cleanly (no overflow)
+      const boundingBox = await searchInput.boundingBox();
+      expect(boundingBox).not.toBeNull();
+      // Should be within the page width with some tolerance
+      expect(boundingBox.x + boundingBox.width).toBeLessThanOrEqual(375 + 2);
+    }
+  });
+
+  test('messages toolbar filter and sort selects should be visible', async ({ page }) => {
+    await page.goto('/dashboard-supplier.html');
+    await page.waitForLoadState('networkidle');
+
+    const filterSelect = page.locator('#widget-filter-select-supplier');
+    const sortSelect = page.locator('#widget-sort-select-supplier');
+
+    if ((await filterSelect.count()) > 0) {
+      await expect(filterSelect).toBeVisible();
+    }
+    if ((await sortSelect.count()) > 0) {
+      await expect(sortSelect).toBeVisible();
+    }
+  });
+
+  test('section headers use reusable sd-card-header class', async ({ page }) => {
+    await page.goto('/dashboard-supplier.html');
+    await page.waitForLoadState('networkidle');
+
+    // Verify key section headers use the new CSS class
+    const sdHeaders = page.locator('.sd-card-header');
+    expect(await sdHeaders.count()).toBeGreaterThanOrEqual(5);
+  });
+
+  test('section dividers are compact and use sd-section-divider class', async ({ page }) => {
+    await page.goto('/dashboard-supplier.html');
+    await page.waitForLoadState('networkidle');
+
+    const dividers = page.locator('.sd-section-divider');
+    if ((await dividers.count()) > 0) {
+      for (let i = 0; i < await dividers.count(); i++) {
+        const divider = dividers.nth(i);
+        const box = await divider.boundingBox();
+        if (box) {
+          // Dividers should be compact (under 40px tall)
+          expect(box.height).toBeLessThan(40);
+        }
+      }
+    }
+  });
+
+  test('availability calendar section uses compact CSS classes', async ({ page }) => {
+    await page.goto('/dashboard-supplier.html');
+    await page.waitForLoadState('networkidle');
+
+    const calendar = page.locator('#availability-calendar');
+    if ((await calendar.count()) > 0) {
+      await expect(calendar).toBeVisible();
+      // Should use sd-card class for consistent styling
+      const hasClass = await calendar.evaluate(el => el.classList.contains('sd-card'));
+      expect(hasClass).toBe(true);
+    }
+  });
+
+  test('desktop layout: subscription and lead quality are side-by-side at 1200px', async ({ page }) => {
+    await page.setViewportSize({ width: 1200, height: 800 });
+    await page.goto('/dashboard-supplier.html');
+    await page.waitForLoadState('networkidle');
+
+    const twoColWrapper = page.locator('.sd-two-col').first();
+    if ((await twoColWrapper.count()) > 0) {
+      const flexDir = await twoColWrapper.evaluate(el => {
+        return window.getComputedStyle(el).flexDirection;
+      });
+      // At 1200px, should be row (side-by-side)
+      expect(flexDir).toBe('row');
+    }
+  });
+
+  test('mobile layout: sd-two-col stacks vertically at 375px', async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 667 });
+    await page.goto('/dashboard-supplier.html');
+    await page.waitForLoadState('networkidle');
+
+    const twoColWrapper = page.locator('.sd-two-col').first();
+    if ((await twoColWrapper.count()) > 0) {
+      const flexDir = await twoColWrapper.evaluate(el => {
+        return window.getComputedStyle(el).flexDirection;
+      });
+      // On mobile, should stack (column)
+      expect(flexDir).toBe('column');
+    }
+  });
+
+  test('no horizontal overflow at common breakpoints', async ({ page }) => {
+    const viewports = [
+      { width: 375, height: 667 },
+      { width: 768, height: 1024 },
+      { width: 1280, height: 800 },
+    ];
+
+    for (const vp of viewports) {
+      await page.setViewportSize(vp);
+      await page.goto('/dashboard-supplier.html');
+      await page.waitForLoadState('networkidle');
+
+      // Check body scroll width does not exceed viewport width significantly
+      const scrollWidth = await page.evaluate(() => document.body.scrollWidth);
+      expect(scrollWidth).toBeLessThanOrEqual(vp.width + 20); // 20px tolerance for scrollbar
+    }
+  });
+
+  test('critical sections are visible at desktop viewport', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto('/dashboard-supplier.html');
+    await page.waitForLoadState('networkidle');
+
+    // These critical sections should be present in the DOM
+    await expect(page.locator('#welcome-section, .dashboard-hero').first()).toBeAttached();
+    await expect(page.locator('#supplier-stats-grid')).toBeAttached();
+    await expect(page.locator('#my-suppliers')).toBeAttached();
+    await expect(page.locator('#my-packages')).toBeAttached();
+    await expect(page.locator('#threads-sup')).toBeAttached();
+    await expect(page.locator('#tickets-sup')).toBeAttached();
+  });
 });
