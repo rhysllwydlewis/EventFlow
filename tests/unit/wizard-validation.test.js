@@ -88,7 +88,8 @@ describe('WizardValidation', () => {
       });
 
       it('should fail for a past date', () => {
-        const result = window.WizardValidation.validateField('date', '2000-01-01');
+        const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+        const result = window.WizardValidation.validateField('date', yesterday);
         expect(result.valid).toBe(false);
         expect(result.errors[0]).toMatch(/future/i);
       });

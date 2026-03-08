@@ -1218,13 +1218,13 @@
       const date = document.getElementById('wizard-date')?.value || '';
       const guests = document.getElementById('wizard-guests')?.value || null;
       const budget = document.getElementById('wizard-budget')?.value || '';
-      const parsedGuests = guests ? parseInt(guests, 10) : NaN;
+      const parsedGuests = guests ? parseInt(guests, 10) : null;
 
       window.WizardState.saveStep(currentStep, {
         eventName,
         location,
         date,
-        guests: !isNaN(parsedGuests) ? parsedGuests : null,
+        guests: parsedGuests !== null && !isNaN(parsedGuests) ? parsedGuests : null,
         budget,
       });
     }
