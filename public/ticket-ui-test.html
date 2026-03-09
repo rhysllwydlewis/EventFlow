@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Tickets UI Test</title>
+<style>
+/* ===== Base styles (from styles.css / components.css essentials) ===== */
+*, *::before, *::after { box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 16px; color: #1f2937; margin: 0; padding: 16px; background: #f3f4f6; }
+h1,h2,h3,h4 { margin: 0; }
+p { margin: 0; }
+input,select,textarea,button { font-family: inherit; font-size: inherit; }
+.small { font-size: 0.875rem; }
+label { display: block; margin: 8px 0 6px; font-weight: 600; color: #1f2937; }
+.form-row { display: grid; gap: 12px; margin-bottom: 12px; }
+.form-row input, .form-row textarea, .form-row select { width: 100%; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px; }
+.form-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 8px; }
+.section { padding: 24px 16px; }
+.container { max-width: 1400px; margin: 0 auto; }
+.data-section { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.25rem; margin-bottom: 1.25rem; }
+
+/* === Badges === */
+.badge { display: inline-block; padding: 0.2em 0.55em; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+.badge-open { background: #fef3c7; color: #92400e; }
+.badge-in_progress, .badge-in-progress { background: #dbeafe; color: #1e40af; }
+.badge-resolved { background: #dcfce7; color: #166534; }
+.badge-closed { background: #e4e4e7; color: #52525b; }
+.badge-priority-low { background: #f3f4f6; color: #374151; }
+.badge-priority-medium { background: #dbeafe; color: #1e3a8a; }
+.badge-priority-high { background: #fef3c7; color: #92400e; }
+.badge-priority-urgent { background: #fee2e2; color: #991b1b; }
+
+/* === Tier badges === */
+.tier-badge { display: inline-block; padding: 0.15em 0.5em; border-radius: 4px; font-size: 0.7rem; font-weight: 600; color: #fff; vertical-align: middle; }
+.tier-badge--pro_plus { background: #7c3aed; }
+.tier-badge--pro { background: #2563eb; }
+.tier-badge--free { background: #6b7280; }
+
+/* === Stale indicator === */
+.stale-indicator { color: #7c3aed; font-size: 0.75rem; font-weight: 500; margin-left: 0.35rem; }
+
+/* === Buttons === */
+.btn { padding: 8px 16px; font-size: 14px; font-weight: 500; border-radius: 6px; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; display: inline-flex; align-items: center; gap: 0.5rem; }
+.btn-primary { background: linear-gradient(135deg, #0B8073 0%, #13B6A2 100%); color: white; border: none; }
+.btn-secondary { background: #f3f4f6; color: #374151; border-color: #e5e7eb; }
+.btn-sm { padding: 4px 10px; font-size: 12px; border-radius: 4px; cursor: pointer; border: 1px solid transparent; background: linear-gradient(135deg, #0B8073 0%, #13B6A2 100%); color: white; }
+
+/* === Admin Toolbar === */
+.admin-toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 1rem; }
+.admin-toolbar input[type="text"], .admin-toolbar select { flex: 0 1 auto; width: auto; padding: 6px 10px; border: 1px solid #e5e7eb; border-radius: 6px; }
+.admin-toolbar .search-input { flex: 1 1 220px; min-width: 180px; max-width: 340px; }
+.admin-toolbar .filter-select { flex: 0 1 140px; min-width: 120px; }
+
+/* === Summary cards === */
+.ticket-summary-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 0.75rem; margin-bottom: 1.25rem; }
+.ticket-summary-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.ticket-summary-card__label { font-size: 0.75rem; font-weight: 500; color: #6b7280; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 0.35rem; }
+.ticket-summary-card__value { font-size: 1.75rem; font-weight: 700; line-height: 1; color: #1f2937; }
+.ticket-summary-card--open .ticket-summary-card__value { color: #92400e; }
+.ticket-summary-card--progress .ticket-summary-card__value { color: #1e3a8a; }
+.ticket-summary-card--resolved .ticket-summary-card__value { color: #166534; }
+.ticket-summary-card--urgent .ticket-summary-card__value { color: #991b1b; }
+.ticket-summary-card--stale .ticket-summary-card__value { color: #7c3aed; }
+.ticket-summary-card--warning .ticket-summary-card__value { color: #b45309; }
+.ticket-summary-card--pro_plus .ticket-summary-card__value { color: #7c3aed; }
+.ticket-summary-card--pro .ticket-summary-card__value { color: #2563eb; }
+
+/* === Table === */
+.table-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid #e5e7eb; }
+th { font-size: 0.75rem; font-weight: 600; color: #6b7280; text-transform: uppercase; background: #f9fafb; }
+tbody tr:hover { background: #f9fafb; }
+
+/* === Ticket Modal === */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 16px; overflow-y: auto; }
+.modal { background: #fff; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.2); width: 100%; }
+.ticket-modal { max-width: 780px; }
+.ticket-create-modal { max-width: 500px; }
+.ticket-view-modal { max-width: 600px; }
+.modal-header { display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem; border-bottom: 1px solid #e5e7eb; }
+.modal-body { padding: 1.5rem; }
+.modal-footer { padding: 1rem 1.5rem; border-top: 1px solid #e5e7eb; }
+.modal-close { background: none; border: none; cursor: pointer; font-size: 1.25rem; color: #6b7280; padding: 4px 8px; }
+
+/* === Ticket modal BEM === */
+.ticket-modal__sender { margin: 0 0 0.25rem; color: #6b7280; }
+.ticket-modal__subject { margin: 0 0 0.5rem; }
+.ticket-modal__meta { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; color: #6b7280; }
+.ticket-modal__message { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 0.75rem; white-space: pre-wrap; margin: 0 0 1rem; }
+.ticket-modal__controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; margin: 0 0 1rem; }
+.ticket-modal__controls label { display: flex; flex-direction: column; gap: 4px; }
+.ticket-modal__controls select, .ticket-modal__controls input { padding: 6px 10px; border: 1px solid #e5e7eb; border-radius: 6px; }
+.ticket-modal__section-heading { margin: 0 0 0.5rem; }
+.ticket-modal__responses { margin-bottom: 1rem; }
+.ticket-modal__reply-label { display: block; margin-bottom: 0.5rem; }
+.ticket-modal__footer { display: flex; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
+.ticket-modal__footer-actions { display: flex; gap: 0.5rem; }
+textarea { width: 100%; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px; resize: vertical; }
+
+/* === Response bubbles === */
+.ticket-response { border: 1px solid #e5e7eb; border-radius: 8px; padding: 0.75rem; margin-bottom: 0.75rem; }
+.ticket-response--admin { background: #eff6ff; border-left: 3px solid #3b82f6; }
+.ticket-response--user { background: #fafafa; border-left: 3px solid #9ca3af; }
+.ticket-response__header { display: flex; justify-content: space-between; align-items: baseline; gap: 0.75rem; margin-bottom: 0.4rem; }
+.ticket-response__timestamp { color: #9ca3af; }
+.ticket-response__body { margin: 0; white-space: pre-wrap; }
+
+/* === Ticket detail (customer/supplier modal) === */
+.ticket-detail__header { margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px solid #e4e4e7; }
+.ticket-detail__status-row { display: flex; justify-content: space-between; margin-bottom: 0.5rem; }
+.ticket-detail__subject { margin: 0.5rem 0; }
+.ticket-detail__message { margin: 0.5rem 0; }
+.ticket-detail__status-desc { color: #6b7280; margin: 0.5rem 0 0; }
+.ticket-detail__timestamp { color: #9ca3af; margin: 0.25rem 0 0; }
+.ticket-detail__no-responses { color: #9ca3af; }
+
+/* === Reply form === */
+.ticket-reply-form { margin-top: 1rem; border-top: 1px solid #e5e7eb; padding-top: 1rem; }
+.ticket-reply-form__label { display: block; margin-bottom: 0.5rem; color: #4b5563; }
+.ticket-reply-form__textarea { width: 100%; }
+.ticket-reply-form__actions { margin-top: 0.75rem; display: flex; justify-content: flex-end; }
+
+/* === Customer/Supplier ticket items === */
+.ticket-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.customer-ticket-item { background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1rem; cursor: pointer; }
+.customer-ticket-item__header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem; }
+.customer-ticket-item__badges { display: flex; gap: 0.5rem; }
+.customer-ticket-item__preview { color: #6b7280; font-size: 0.875rem; margin: 0.5rem 0; }
+.customer-ticket-item__meta { color: #9ca3af; font-size: 0.8rem; }
+.supplier-ticket-item { border: 1px solid #e4e4e7; padding: 1rem; margin-bottom: 0.5rem; border-radius: 4px; cursor: pointer; background: #fff; }
+.supplier-ticket-item__header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem; }
+.supplier-ticket-item__badges { display: flex; gap: 0.5rem; }
+.supplier-ticket-item__preview { color: #6b7280; margin: 0.5rem 0; }
+.supplier-ticket-item__meta { color: #9ca3af; }
+
+/* === Empty state === */
+.empty-state { text-align: center; padding: 60px 20px; color: #666; }
+.empty-state-icon { font-size: 64px; margin-bottom: 20px; opacity: 0.5; }
+
+/* === RESPONSIVE BREAKPOINTS === */
+@media (max-width: 768px) {
+  .ticket-modal { max-width: 100%; margin: 0.5rem; }
+  .ticket-modal__controls { grid-template-columns: 1fr; }
+  .ticket-modal__footer { flex-direction: column; }
+  .ticket-modal__footer-actions { width: 100%; }
+  .ticket-modal__footer-actions .btn { flex: 1; }
+  .ticket-summary-grid { grid-template-columns: repeat(2, 1fr); }
+  .table-wrapper { overflow-x: auto; }
+}
+@media (max-width: 480px) {
+  .admin-toolbar { flex-direction: column; align-items: stretch; }
+  .admin-toolbar .search-input, .admin-toolbar .filter-select { width: 100%; max-width: 100%; flex-basis: auto; min-width: 0; }
+  .admin-toolbar .btn-secondary { width: 100%; }
+  .ticket-summary-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 320px) {
+  .ticket-summary-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .ticket-create-modal, .ticket-view-modal { max-width: 100%; }
+}
+
+/* ===== Section titles ===== */
+h2.section-title { font-size: 1rem; font-weight: 700; color: #374151; margin: 1.5rem 0 0.75rem; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.5rem; }
+</style>
+</head>
+<body>
+
+<h1 style="margin-bottom:1.5rem;color:#0B8073;">Tickets UI — Visual Test</h1>
+
+<!-- ADMIN TOOLBAR -->
+<h2 class="section-title">Admin Toolbar</h2>
+<div class="data-section">
+  <div class="admin-toolbar">
+    <input type="text" class="search-input" placeholder="Search tickets..." />
+    <select class="filter-select"><option>All Status</option><option>Open</option><option>In Progress</option></select>
+    <select class="filter-select"><option>All Priorities</option><option>Urgent</option><option>High</option></select>
+    <select class="filter-select"><option>All Tickets</option><option>Unassigned</option><option>Assigned</option></select>
+    <select class="filter-select"><option>All Tiers</option><option>Pro Plus</option><option>Pro</option></select>
+    <select class="filter-select"><option>Newest first</option><option>Priority</option></select>
+    <button class="btn btn-secondary">Refresh</button>
+  </div>
+</div>
+
+<!-- SUMMARY CARDS -->
+<h2 class="section-title">Summary Cards</h2>
+<div class="ticket-summary-grid">
+  <div class="ticket-summary-card ticket-summary-card--open"><div class="ticket-summary-card__label">Open</div><div class="ticket-summary-card__value">7</div></div>
+  <div class="ticket-summary-card ticket-summary-card--progress"><div class="ticket-summary-card__label">In Progress</div><div class="ticket-summary-card__value">3</div></div>
+  <div class="ticket-summary-card ticket-summary-card--resolved"><div class="ticket-summary-card__label">Resolved</div><div class="ticket-summary-card__value">12</div></div>
+  <div class="ticket-summary-card ticket-summary-card--urgent"><div class="ticket-summary-card__label">Urgent</div><div class="ticket-summary-card__value">2</div></div>
+  <div class="ticket-summary-card ticket-summary-card--warning"><div class="ticket-summary-card__label">Unassigned (active)</div><div class="ticket-summary-card__value">4</div></div>
+  <div class="ticket-summary-card ticket-summary-card--stale"><div class="ticket-summary-card__label">Stale (&gt;48h)</div><div class="ticket-summary-card__value">1</div></div>
+  <div class="ticket-summary-card ticket-summary-card--pro_plus"><div class="ticket-summary-card__label">Pro Plus tickets</div><div class="ticket-summary-card__value">5</div></div>
+  <div class="ticket-summary-card ticket-summary-card--pro"><div class="ticket-summary-card__label">Pro tickets</div><div class="ticket-summary-card__value">3</div></div>
+</div>
+
+<!-- TICKETS TABLE -->
+<h2 class="section-title">Tickets Table</h2>
+<div class="data-section">
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Subject</th><th>From / Tier</th><th>Status</th><th>Priority</th><th>Created</th><th>Assigned</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Can't upload photos</strong> <span class="stale-indicator">⚠ stale</span><br><span class="small">2 replies</span></td>
+          <td>Jane Smith<br><span class="small">jane@example.com</span><br><span class="tier-badge tier-badge--pro_plus">Pro Plus</span></td>
+          <td><span class="badge badge-open">open</span></td>
+          <td><span class="badge badge-priority-urgent">urgent</span></td>
+          <td class="small">2 days ago</td>
+          <td class="small"><em>Unassigned</em></td>
+          <td><button class="btn-sm">Manage</button></td>
+        </tr>
+        <tr>
+          <td><strong>Payment issue</strong><br><span class="small">0 replies</span></td>
+          <td>Bob Jones<br><span class="small">bob@example.com</span><br><span class="tier-badge tier-badge--pro">Pro</span></td>
+          <td><span class="badge badge-in_progress">in progress</span></td>
+          <td><span class="badge badge-priority-high">high</span></td>
+          <td class="small">5 hours ago</td>
+          <td class="small">admin@event-flow.co.uk</td>
+          <td><button class="btn-sm">Manage</button></td>
+        </tr>
+        <tr>
+          <td><strong>Feature request</strong><br><span class="small">1 reply</span></td>
+          <td>Free User<br><span class="small">free@example.com</span><br><span class="tier-badge tier-badge--free">Free</span></td>
+          <td><span class="badge badge-open">open</span></td>
+          <td><span class="badge badge-priority-medium">medium</span></td>
+          <td class="small">1 week ago</td>
+          <td class="small"><em>Unassigned</em></td>
+          <td><button class="btn-sm">Manage</button></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ADMIN TICKET MANAGE MODAL -->
+<h2 class="section-title">Admin Manage Modal (inline render)</h2>
+<div class="data-section" style="position:relative;">
+  <div class="modal" style="position:relative;box-shadow:none;border:1px solid #e5e7eb;">
+    <div class="modal ticket-modal" style="max-width:100%;">
+      <div class="modal-header">
+        <h3>Manage Ticket</h3>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="small ticket-modal__sender">From Jane Smith</p>
+        <h4 class="ticket-modal__subject">Can't upload photos to my profile</h4>
+        <div class="ticket-modal__meta">
+          <span class="tier-badge tier-badge--pro_plus">Pro Plus</span>
+          <span class="small">Account tier: <strong>Pro Plus</strong></span>
+          <span class="small">• Priority source: <strong>Auto (account tier)</strong></span>
+        </div>
+        <p class="ticket-modal__message">I've been trying to upload photos for my supplier profile but keep getting an error message. I've tried three different browsers and the issue persists.</p>
+        <div class="ticket-modal__controls">
+          <label class="small">Status <select><option selected>Open</option><option>In Progress</option><option>Resolved</option></select></label>
+          <label class="small">Priority (admin override) <select><option>Low</option><option>Medium</option><option selected>Urgent</option></select></label>
+          <label class="small">Assigned To <input value="admin@event-flow.co.uk" /></label>
+        </div>
+        <h4 class="ticket-modal__section-heading">Conversation</h4>
+        <div class="ticket-modal__responses">
+          <div class="ticket-response ticket-response--user">
+            <div class="ticket-response__header">
+              <strong>Jane Smith</strong>
+              <span class="small ticket-response__timestamp">2 days ago</span>
+            </div>
+            <p class="ticket-response__body">Still happening after clearing cache too!</p>
+          </div>
+          <div class="ticket-response ticket-response--admin">
+            <div class="ticket-response__header">
+              <strong>Support Team <span class="badge badge-in_progress">Admin</span></strong>
+              <span class="small ticket-response__timestamp">1 day ago</span>
+            </div>
+            <p class="ticket-response__body">We're investigating. Can you try in incognito mode?</p>
+          </div>
+        </div>
+        <label for="adminReply" class="small ticket-modal__reply-label">Reply to user</label>
+        <textarea id="adminReply" rows="4" placeholder="Write your reply..."></textarea>
+      </div>
+      <div class="modal-footer ticket-modal__footer">
+        <button type="button" class="btn btn-secondary">Mark Resolved</button>
+        <div class="ticket-modal__footer-actions">
+          <button type="button" class="btn btn-secondary">Save Changes</button>
+          <button type="button" class="btn btn-primary">Send Reply</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CUSTOMER/SUPPLIER TICKET LIST -->
+<h2 class="section-title">Customer Ticket List</h2>
+<div class="data-section">
+  <div class="ticket-list">
+    <div class="customer-ticket-item ticket-item" role="button" tabindex="0">
+      <div class="customer-ticket-item__header">
+        <strong>Can't upload photos</strong>
+        <div class="customer-ticket-item__badges">
+          <span class="badge badge-open">open</span>
+        </div>
+      </div>
+      <p class="small customer-ticket-item__preview">I've been trying to upload photos for my profile but keep getting an error...</p>
+      <div class="small customer-ticket-item__meta">Created 2 days ago • 2 responses</div>
+    </div>
+    <div class="customer-ticket-item ticket-item" role="button" tabindex="0">
+      <div class="customer-ticket-item__header">
+        <strong>Question about billing</strong>
+        <div class="customer-ticket-item__badges">
+          <span class="badge badge-in_progress">in progress</span>
+        </div>
+      </div>
+      <p class="small customer-ticket-item__preview">I noticed a charge on my account that I don't recognize...</p>
+      <div class="small customer-ticket-item__meta">Created 5 hours ago • 1 response</div>
+    </div>
+  </div>
+</div>
+
+<!-- SUPPLIER TICKET LIST -->
+<h2 class="section-title">Supplier Ticket List</h2>
+<div class="data-section">
+  <div class="ticket-list">
+    <div class="supplier-ticket-item ticket-item" role="button" tabindex="0">
+      <div class="supplier-ticket-item__header">
+        <strong>Profile not showing in search</strong>
+        <div class="supplier-ticket-item__badges">
+          <span class="badge badge-open">open</span>
+        </div>
+      </div>
+      <p class="small supplier-ticket-item__preview">My profile disappeared from search results after the last update...</p>
+      <div class="small supplier-ticket-item__meta">Created 1 hour ago • 0 responses</div>
+    </div>
+  </div>
+</div>
+
+<!-- CUSTOMER/SUPPLIER VIEW MODAL -->
+<h2 class="section-title">Customer/Supplier View Modal (inline)</h2>
+<div class="data-section">
+  <div class="modal ticket-view-modal" style="max-width:100%;box-shadow:none;border:1px solid #e5e7eb;">
+    <div class="modal-header">
+      <h3>Support Ticket</h3>
+      <button class="modal-close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="ticket-detail__header">
+        <div class="ticket-detail__status-row">
+          <span class="badge badge-open">open</span>
+        </div>
+        <h4 class="ticket-detail__subject">Can't upload photos to my profile</h4>
+        <p class="ticket-detail__message">I've been trying to upload photos for my supplier profile but keep getting an error message.</p>
+        <p class="small ticket-detail__status-desc">Your ticket has been received and is awaiting review.</p>
+        <p class="small ticket-detail__timestamp">Created 2 days ago</p>
+      </div>
+
+      <h4>Conversation</h4>
+      <div class="responses-list">
+        <div class="ticket-response ticket-response--user">
+          <div class="ticket-response__header">
+            <strong>Jane Smith</strong>
+            <span class="small ticket-response__timestamp">2 days ago</span>
+          </div>
+          <p class="ticket-response__body">Still happening after clearing cache too!</p>
+        </div>
+        <div class="ticket-response ticket-response--admin">
+          <div class="ticket-response__header">
+            <strong>Support Team <span class="badge badge-in_progress">Admin</span></strong>
+            <span class="small ticket-response__timestamp">1 day ago</span>
+          </div>
+          <p class="ticket-response__body">We're investigating. Can you try in incognito mode?</p>
+        </div>
+      </div>
+
+      <form class="ticket-reply-form">
+        <label for="replyMsg" class="small ticket-reply-form__label">Add a reply</label>
+        <textarea id="replyMsg" class="ticket-reply-form__textarea" rows="4" placeholder="Add more details for support..."></textarea>
+        <div class="ticket-reply-form__actions">
+          <button type="submit" class="btn btn-primary">Send Reply</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- CREATE TICKET MODAL -->
+<h2 class="section-title">Create Ticket Modal (inline)</h2>
+<div class="data-section">
+  <div class="modal ticket-create-modal" style="max-width:100%;box-shadow:none;border:1px solid #e5e7eb;">
+    <div class="modal-header">
+      <h3>Create Support Ticket</h3>
+      <button class="modal-close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form>
+        <div class="form-row">
+          <label for="ts">Subject *</label>
+          <input type="text" id="ts" placeholder="Brief description of your issue">
+        </div>
+        <div class="form-row">
+          <label for="tm">Message *</label>
+          <textarea id="tm" rows="6" placeholder="Describe your issue in detail"></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Submit Ticket</button>
+          <button type="button" class="btn btn-secondary">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- EMPTY STATE -->
+<h2 class="section-title">Empty State</h2>
+<div class="data-section">
+  <div class="empty-state">
+    <div class="empty-state-icon">🎫</div>
+    <h3>No tickets found</h3>
+    <p class="small">No tickets match your current filters.</p>
+  </div>
+</div>
+
+</body>
+</html>
