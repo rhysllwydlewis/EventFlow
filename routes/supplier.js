@@ -559,4 +559,127 @@ router.get('/reviews/stats', authRequired, async (req, res) => {
   }
 });
 
+const {
+  VERIFICATION_STATES,
+  normaliseState,
+  canTransition,
+} = require('../utils/supplierVerificationStateMachine');
+
+/**
+ * GET /api/supplier/verification/status
+ * Returns the current verification state for the authenticated supplier.
+ */
+router.get('/verification/status', authRequired, async (req, res) => {
+  try {
+    if (req.user.role !== 'supplier') {
+      return res.status(403).json({ error: 'Only suppliers can access verification status' });
+    }
+
+    const suppliers = await dbUnified.read('suppliers');
+    const supplier = suppliers.find(s => s.ownerUserId === req.user.id);
+
+    if (!supplier) {
+      return res.status(404).json({ error: 'Supplier profile not found' });
+    }
+
+    const state = normaliseState(supplier.verificationStatus, supplier.verified);
+
+    res.json({
+      verificationStatus: state,
+      verified: supplier.verified || false,
+      submittedAt: supplier.verificationSubmittedAt || null,
+      reviewedAt: supplier.verifiedAt || supplier.rejectedAt || null,
+      verificationNotes:
+        state === VERIFICATION_STATES.NEEDS_CHANGES || state === VERIFICATION_STATES.REJECTED
+          ? supplier.verificationNotes || ''
+          : undefined,
+    });
+  } catch (error) {
+    logger.error('Error fetching verification status:', error);
+    res.status(500).json({ error: 'Failed to fetch verification status' });
+  }
+});
+
+/**
+ * POST /api/supplier/verification/submit
+ * Supplier submits their profile for verification review.
+ * Required fields: businessName, category, description, phone, address
+ */
+router.post('/verification/submit', authRequired, csrfProtection, async (req, res) => {
+  try {
+    if (req.user.role !== 'supplier') {
+      return res.status(403).json({ error: 'Only suppliers can submit verification' });
+    }
+
+    const suppliers = await dbUnified.read('suppliers');
+    const supplierIndex = suppliers.findIndex(s => s.ownerUserId === req.user.id);
+
+    if (supplierIndex === -1) {
+      return res.status(404).json({ error: 'Supplier profile not found' });
+    }
+
+    const supplier = suppliers[supplierIndex];
+    const currentState = normaliseState(supplier.verificationStatus, supplier.verified);
+    const check = canTransition(currentState, VERIFICATION_STATES.PENDING_REVIEW, 'supplier');
+
+    if (!check.allowed) {
+      return res.status(409).json({ error: check.reason });
+    }
+
+    // Server-side validation of required profile fields
+    const requiredFields = {
+      name: 'Business name',
+      category: 'Category',
+      email: 'Contact email',
+      phone: 'Contact phone',
+      location: 'Location / address',
+    };
+
+    const missingFields = Object.entries(requiredFields)
+      .filter(([field]) => !supplier[field] && !req.body[field])
+      .map(([, label]) => label);
+
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        error: 'Required fields are missing',
+        missingFields,
+      });
+    }
+
+    const now = new Date().toISOString();
+    const updates = {
+      verificationStatus: VERIFICATION_STATES.PENDING_REVIEW,
+      verificationSubmittedAt: now,
+      updatedAt: now,
+    };
+
+    // Apply any profile updates supplied in the body
+    const profileFields = [
+      'name',
+      'category',
+      'email',
+      'phone',
+      'location',
+      'description_short',
+      'description_long',
+    ];
+    for (const field of profileFields) {
+      if (req.body[field] !== undefined) {
+        updates[field] = req.body[field];
+      }
+    }
+
+    await dbUnified.updateOne('suppliers', { id: supplier.id }, { $set: updates });
+
+    res.json({
+      message: 'Verification submitted successfully. An admin will review your profile shortly.',
+      verificationStatus: VERIFICATION_STATES.PENDING_REVIEW,
+      submittedAt: now,
+    });
+  } catch (error) {
+    logger.error('Error submitting verification:', error);
+    res.status(500).json({ error: 'Failed to submit verification' });
+  }
+});
+
 module.exports = router;

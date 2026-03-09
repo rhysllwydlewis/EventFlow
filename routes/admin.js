@@ -583,7 +583,12 @@ router.get(
     try {
       const suppliers = (await dbUnified.read('suppliers')) || [];
       const pending = suppliers.filter(
-        s => !s.verified && (!s.verificationStatus || s.verificationStatus === 'pending')
+        s =>
+          !s.verified &&
+          (!s.verificationStatus ||
+            s.verificationStatus === 'pending' ||
+            s.verificationStatus === 'unverified' ||
+            s.verificationStatus === 'pending_review')
       );
 
       res.json({
@@ -594,6 +599,8 @@ router.get(
           location: s.location,
           ownerUserId: s.ownerUserId,
           createdAt: s.createdAt,
+          verificationStatus: s.verificationStatus || 'unverified',
+          submittedAt: s.verificationSubmittedAt || null,
         })),
         count: pending.length,
       });

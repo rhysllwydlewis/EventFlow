@@ -944,7 +944,7 @@ router.post(
 
 /**
  * POST /api/admin/suppliers/:id/verify
- * Verify a supplier account
+ * Verify (approve) or reject a supplier account using the state machine.
  * Body: { verified: boolean, verificationNotes: string }
  */
 router.post(
@@ -955,6 +955,13 @@ router.post(
   async (req, res) => {
     try {
       const { verified, verificationNotes } = req.body;
+      const {
+        VERIFICATION_STATES,
+        normaliseState,
+        canTransition,
+        isVerifiedFromState,
+      } = require('../utils/supplierVerificationStateMachine');
+
       const suppliers = await dbUnified.read('suppliers');
       const supplierIndex = suppliers.findIndex(s => s.id === req.params.id);
 
@@ -963,35 +970,38 @@ router.post(
       }
 
       const supplier = suppliers[supplierIndex];
+      const nextState = verified ? VERIFICATION_STATES.APPROVED : VERIFICATION_STATES.REJECTED;
+      const currentState = normaliseState(supplier.verificationStatus, supplier.verified);
+      const check = canTransition(currentState, nextState, 'admin');
+
+      if (!check.allowed) {
+        return res.status(409).json({ error: check.reason });
+      }
+
+      if (!verified && !verificationNotes) {
+        return res.status(400).json({ error: 'A rejection reason is required' });
+      }
+
       const now = new Date().toISOString();
+      const updates = {
+        verified: isVerifiedFromState(nextState),
+        verifiedAt: verified ? now : null,
+        verifiedBy: verified ? req.user.id : null,
+        verificationNotes: verificationNotes || '',
+        verificationStatus: nextState,
+        updatedAt: now,
+      };
+      if (!verified) {
+        updates.rejectedAt = now;
+        updates.rejectedBy = req.user.id;
+      }
 
-      supplier.verified = !!verified;
-      supplier.verifiedAt = verified ? now : null;
-      supplier.verifiedBy = verified ? req.user.id : null;
-      supplier.verificationNotes = verificationNotes || '';
-      supplier.verificationStatus = verified ? 'verified' : 'rejected';
-      supplier.updatedAt = now;
+      await dbUnified.updateOne('suppliers', { id: supplier.id }, { $set: updates });
 
-      await dbUnified.updateOne(
-        'suppliers',
-        { id: supplier.id },
-        {
-          $set: {
-            verified: supplier.verified,
-            verifiedAt: supplier.verifiedAt,
-            verifiedBy: supplier.verifiedBy,
-            verificationNotes: supplier.verificationNotes,
-            verificationStatus: supplier.verificationStatus,
-            updatedAt: supplier.updatedAt,
-          },
-        }
-      );
-
-      // Create audit log
       auditLog({
         adminId: req.user.id,
         adminEmail: req.user.email,
-        action: verified ? AUDIT_ACTIONS.SUPPLIER_VERIFIED : AUDIT_ACTIONS.SUPPLIER_REJECTED,
+        action: verified ? AUDIT_ACTIONS.SUPPLIER_APPROVED : AUDIT_ACTIONS.SUPPLIER_REJECTED,
         targetType: 'supplier',
         targetId: supplier.id,
         details: { name: supplier.name, notes: verificationNotes },
@@ -1002,8 +1012,8 @@ router.post(
         supplier: {
           id: supplier.id,
           name: supplier.name,
-          verified: supplier.verified,
-          verificationStatus: supplier.verificationStatus,
+          verified: updates.verified,
+          verificationStatus: updates.verificationStatus,
         },
       });
     } catch (error) {

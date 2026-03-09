@@ -45,16 +45,22 @@
     document.getElementById('supplierName').textContent = supplierData.name || 'Unknown Supplier';
 
     let statusHtml = '';
-    if (supplierData.approved) {
-      statusHtml += '<span class="badge badge-success">Approved</span> ';
-    } else {
-      statusHtml += '<span class="badge badge-warning">Pending Approval</span> ';
-    }
+    const vs =
+      supplierData.verificationStatus || (supplierData.verified ? 'approved' : 'unverified');
 
-    if (supplierData.verified) {
-      statusHtml += '<span class="badge badge-info">Verified</span>';
-    } else {
-      statusHtml += '<span class="badge badge-secondary">Unverified</span>';
+    const STATE_BADGE = {
+      unverified: '<span class="badge badge-secondary">Unverified</span>',
+      pending_review: '<span class="badge badge-warning">Pending Review</span>',
+      needs_changes: '<span class="badge badge-warning">Needs Changes</span>',
+      approved: '<span class="badge badge-success">Approved</span>',
+      verified: '<span class="badge badge-success">Approved</span>', // legacy
+      rejected: '<span class="badge badge-danger">Rejected</span>',
+      suspended: '<span class="badge badge-danger">Suspended</span>',
+    };
+    statusHtml += `${STATE_BADGE[vs] || `<span class="badge badge-secondary">${vs}</span>`} `;
+
+    if (supplierData.approved) {
+      statusHtml += '<span class="badge badge-info">Listing Active</span>';
     }
 
     document.getElementById('supplierStatus').innerHTML = statusHtml;
@@ -74,6 +80,10 @@
         }
       </div>
       <div class="supplier-meta-item">
+        <strong>Verification Status:</strong> ${AdminShared.escapeHtml(supplierData.verificationStatus || 'unverified')}
+      </div>
+      ${supplierData.verificationNotes ? `<div class="supplier-meta-item"><strong>Verification Notes:</strong> ${AdminShared.escapeHtml(supplierData.verificationNotes)}</div>` : ''}
+      <div class="supplier-meta-item">
         <strong>Health Score:</strong> ${supplierData.healthScore || 0}/100
       </div>
       <div class="supplier-meta-item">
@@ -82,18 +92,53 @@
     `;
     document.getElementById('supplierMeta').innerHTML = metaHtml;
 
-    // Update verify button state
+    // Update button visibility based on current verification state
+    const stateForButtons =
+      supplierData.verificationStatus || (supplierData.verified ? 'approved' : 'unverified');
+
     const verifyBtn = document.getElementById('verifySupplierBtn');
     if (verifyBtn) {
-      if (supplierData.verified) {
+      if (stateForButtons === 'approved' || stateForButtons === 'verified') {
         verifyBtn.disabled = true;
-        verifyBtn.textContent = 'Already Verified';
-        verifyBtn.title = 'This supplier has already been verified';
+        verifyBtn.textContent = 'Already Approved';
+        verifyBtn.title = 'This supplier has already been approved';
       } else {
         verifyBtn.disabled = false;
         verifyBtn.textContent = 'Verify Supplier';
         verifyBtn.title = "Manually verify this supplier's identity";
       }
+    }
+
+    // Approve button: enabled unless already approved or suspended
+    const approveBtn = document.getElementById('approveBtn');
+    if (approveBtn) {
+      const canApprove = [
+        'unverified',
+        'pending_review',
+        'needs_changes',
+        'rejected',
+        'suspended',
+        'pending',
+      ].includes(stateForButtons);
+      approveBtn.disabled = !canApprove;
+    }
+
+    // Request Changes: only from pending_review
+    const reqChangesBtn = document.getElementById('requestChangesBtn');
+    if (reqChangesBtn) {
+      reqChangesBtn.disabled = stateForButtons !== 'pending_review';
+    }
+
+    // Reject: cannot reject if already rejected
+    const rejectBtn = document.getElementById('rejectBtn');
+    if (rejectBtn) {
+      rejectBtn.disabled = stateForButtons === 'rejected';
+    }
+
+    // Suspend: only when approved
+    const suspendBtn = document.getElementById('suspendBtn');
+    if (suspendBtn) {
+      suspendBtn.disabled = stateForButtons !== 'approved' && stateForButtons !== 'verified';
     }
 
     // Business info
@@ -317,40 +362,114 @@
 
   // Action handlers
   document.getElementById('approveBtn')?.addEventListener('click', async () => {
-    if (
-      !(await AdminShared.showConfirmModal({
-        title: 'Approve Supplier',
-        message: 'Approve this supplier?',
-        confirmText: 'Approve',
-      }))
-    ) {
+    const notesResult = await AdminShared.showInputModal({
+      title: 'Approve Supplier',
+      message: 'Approve this supplier? You can add optional notes.',
+      label: 'Approval Notes (optional)',
+      placeholder: 'e.g., Documents verified, identity confirmed.',
+      required: false,
+      type: 'textarea',
+    });
+
+    if (!notesResult.confirmed) {
       return;
     }
+
     try {
-      await AdminShared.api(`/api/admin/suppliers/${supplierId}/approve`, 'POST');
+      await AdminShared.api(`/api/admin/suppliers/${supplierId}/approve`, 'POST', {
+        notes: notesResult.value || '',
+      });
       AdminShared.showToast('Supplier approved', 'success');
       loadSupplier();
     } catch (err) {
-      AdminShared.showToast('Failed to approve supplier', 'error');
+      AdminShared.showToast(
+        `Failed to approve supplier: ${err.message || 'Unknown error'}`,
+        'error'
+      );
     }
   });
 
   document.getElementById('rejectBtn')?.addEventListener('click', async () => {
-    if (
-      !(await AdminShared.showConfirmModal({
-        title: 'Reject Supplier',
-        message: 'Reject this supplier?',
-        confirmText: 'Reject',
-      }))
-    ) {
+    const reasonResult = await AdminShared.showInputModal({
+      title: 'Reject Supplier',
+      message: 'Please provide a reason for rejecting this supplier.',
+      label: 'Rejection Reason',
+      placeholder: 'e.g., Incomplete documentation, failed identity check, etc.',
+      required: true,
+      type: 'textarea',
+    });
+
+    if (!reasonResult.confirmed) {
       return;
     }
+
     try {
-      await AdminShared.api(`/api/admin/suppliers/${supplierId}/reject`, 'POST');
+      await AdminShared.api(`/api/admin/suppliers/${supplierId}/reject`, 'POST', {
+        reason: reasonResult.value,
+      });
       AdminShared.showToast('Supplier rejected', 'success');
       loadSupplier();
     } catch (err) {
-      AdminShared.showToast('Failed to reject supplier', 'error');
+      AdminShared.showToast(
+        `Failed to reject supplier: ${err.message || 'Unknown error'}`,
+        'error'
+      );
+    }
+  });
+
+  document.getElementById('requestChangesBtn')?.addEventListener('click', async () => {
+    const reasonResult = await AdminShared.showInputModal({
+      title: 'Request Changes',
+      message: 'Describe what changes the supplier needs to make before approval.',
+      label: 'Changes Required',
+      placeholder: 'e.g., Please upload proof of insurance and update your business address.',
+      required: true,
+      type: 'textarea',
+    });
+
+    if (!reasonResult.confirmed) {
+      return;
+    }
+
+    try {
+      await AdminShared.api(`/api/admin/suppliers/${supplierId}/request-changes`, 'POST', {
+        reason: reasonResult.value,
+      });
+      AdminShared.showToast('Changes requested from supplier', 'success');
+      loadSupplier();
+    } catch (err) {
+      AdminShared.showToast(
+        `Failed to request changes: ${err.message || 'Unknown error'}`,
+        'error'
+      );
+    }
+  });
+
+  document.getElementById('suspendBtn')?.addEventListener('click', async () => {
+    const reasonResult = await AdminShared.showInputModal({
+      title: 'Suspend Supplier',
+      message: 'Please provide a reason for suspending this supplier.',
+      label: 'Suspension Reason',
+      placeholder: 'e.g., Reported policy violation under investigation.',
+      required: true,
+      type: 'textarea',
+    });
+
+    if (!reasonResult.confirmed) {
+      return;
+    }
+
+    try {
+      await AdminShared.api(`/api/admin/suppliers/${supplierId}/suspend`, 'POST', {
+        reason: reasonResult.value,
+      });
+      AdminShared.showToast('Supplier suspended', 'success');
+      loadSupplier();
+    } catch (err) {
+      AdminShared.showToast(
+        `Failed to suspend supplier: ${err.message || 'Unknown error'}`,
+        'error'
+      );
     }
   });
 
