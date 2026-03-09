@@ -302,6 +302,7 @@
           class="mobile-nav-pill"
           data-test="nav-settings"
           title="Settings"
+          style="text-decoration: none; color: inherit;"
         >
           ⚙️ <span class="pill-text">Settings</span>
         </a>
@@ -416,7 +417,7 @@
                     <div
                       class="dashboard-stat-card__value stat-number"
                       id="quick-stat-enquiries"
-                      data-target="12"
+                      data-target="0"
                     >
                       0
                     </div>
@@ -445,7 +446,7 @@
                     <div
                       class="dashboard-stat-card__value stat-number"
                       id="quick-stat-profiles"
-                      data-target="4"
+                      data-target="0"
                     >
                       0
                     </div>
@@ -1525,6 +1526,13 @@
                 }
               } catch (err) {
                 console.error('Error fetching analytics:', err);
+              }
+
+              // Update hero quick-stat cards with real API data
+              const quickStatEnquiries = document.getElementById('quick-stat-enquiries');
+              if (quickStatEnquiries) {
+                quickStatEnquiries.setAttribute('data-target', String(totalEnquiries));
+                quickStatEnquiries.textContent = String(totalEnquiries);
               }
 
               // Create statistics widgets with real data

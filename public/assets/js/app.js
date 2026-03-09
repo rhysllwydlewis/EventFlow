@@ -2727,15 +2727,20 @@ async function initDashSupplier() {
             )
             .join('');
 
-          // Safe access to all fields with defaults
+          // Safe access to all fields with defaults — escape all user-supplied values to prevent XSS
           const supplierId = String(s.id || '').replace(/"/g, '&quot;');
-          const name = String(s.name || 'Unnamed Supplier');
+          const name = escapeHtml(String(s.name || 'Unnamed Supplier'));
           const photos = s.photos && Array.isArray(s.photos) ? s.photos : [];
-          const photoUrl = photos[0] || '/assets/images/collage-venue.svg';
-          const location = String(s.location || 'Location not set');
-          const category = String(s.category || 'Uncategorized');
-          const priceDisplay = s.price_display ? ` · ${s.price_display}` : '';
-          const description = String(s.description_short || '');
+          // Validate photoUrl to allow only safe http/https/relative URLs
+          const rawPhotoUrl = photos[0] || '';
+          const photoUrl =
+            rawPhotoUrl && /^(https?:\/\/|\/[^:])/i.test(rawPhotoUrl)
+              ? escapeHtml(rawPhotoUrl)
+              : '/assets/images/collage-venue.svg';
+          const location = escapeHtml(String(s.location || 'Location not set'));
+          const category = escapeHtml(String(s.category || 'Uncategorized'));
+          const priceDisplay = s.price_display ? ` · ${escapeHtml(String(s.price_display))}` : '';
+          const description = escapeHtml(String(s.description_short || ''));
           const approved = !!s.approved;
 
           return `<div class="supplier-card card" style="margin-bottom:10px" data-supplier-id="${supplierId}">
