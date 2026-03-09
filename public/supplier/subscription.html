@@ -7,12 +7,12 @@
     <meta name="description" content="Manage your EventFlow Pro subscription and upgrade your supplier profile" />
     
     <!-- Stylesheets -->
-    <link rel="stylesheet" href="/assets/css/styles.css?v=18.3.0" />
-    <link rel="stylesheet" href="/assets/css/components.css?v=18.3.0" />
-    <link rel="stylesheet" href="/assets/css/navbar.css?v=18.3.0" />
-    <link rel="stylesheet" href="css/subscription.css?v=18.3.0" />
-    <link rel="stylesheet" href="/assets/css/liquid-glass.css?v=18.3.0" />
-    <link rel="stylesheet" href="/assets/css/supplier-dashboard-improvements.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/styles.css?v=18.4.0" />
+    <link rel="stylesheet" href="/assets/css/components.css?v=18.4.0" />
+    <link rel="stylesheet" href="/assets/css/navbar.css?v=18.4.0" />
+    <link rel="stylesheet" href="/assets/css/liquid-glass.css?v=18.4.0" />
+    <link rel="stylesheet" href="/assets/css/supplier-dashboard-improvements.css?v=18.4.0" />
+    <link rel="stylesheet" href="css/subscription.css?v=18.4.0" />
   </head>
   <body>
     <!-- Header -->
@@ -118,6 +118,11 @@
     <!-- Main Content -->
     <main class="section">
       <div class="container subscription-page">
+        <!-- Breadcrumb Navigation -->
+        <nav aria-label="Breadcrumb" class="supplier-breadcrumb" style="margin-bottom: 1.5rem;">
+          <a href="/dashboard/supplier" class="supplier-breadcrumb-link">← Back to Dashboard</a>
+        </nav>
+
         <!-- Header -->
         <div class="subscription-header">
           <h1>Subscription Plans</h1>
@@ -138,7 +143,7 @@
         <div id="subscription-plans"></div>
 
         <!-- Additional Information -->
-        <div class="card subscription-faq-card">
+        <div class="subscription-faq-card">
           <h3>Frequently Asked Questions</h3>
           
           <details class="faq-item">
@@ -197,7 +202,7 @@
         </div>
 
         <!-- Support -->
-        <div class="card subscription-support-card">
+        <div class="subscription-support-card">
           <h3>Need Help?</h3>
           <p class="small">
             Have questions about our subscription plans? Contact our support team.

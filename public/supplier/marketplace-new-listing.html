@@ -8,14 +8,16 @@
   <title>Create Marketplace Listing — EventFlow</title>
   <meta name="description" content="List your pre-loved event items on the EventFlow marketplace. Free to list, reach customers across the UK.">
   
-  <link rel="preload" href="/assets/css/styles.css?v=18.3.0" as="style">
-  <link rel="stylesheet" href="/assets/css/styles.css?v=18.3.0">
-  <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0">
-  <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0">
-  <link rel="stylesheet" href="/assets/css/components.css?v=18.3.0">
-  <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.3.0">
-  <link rel="stylesheet" href="/assets/css/navbar.css?v=18.3.0" />
-  <link rel="stylesheet" href="css/marketplace-listing.css?v=18.3.0">
+  <link rel="preload" href="/assets/css/styles.css?v=18.4.0" as="style">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=18.4.0">
+  <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.4.0">
+  <link rel="stylesheet" href="/assets/css/utilities.css?v=18.4.0">
+  <link rel="stylesheet" href="/assets/css/components.css?v=18.4.0">
+  <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.4.0">
+  <link rel="stylesheet" href="/assets/css/navbar.css?v=18.4.0" />
+  <link rel="stylesheet" href="/assets/css/liquid-glass.css?v=18.4.0" />
+  <link rel="stylesheet" href="/assets/css/supplier-dashboard-improvements.css?v=18.4.0" />
+  <link rel="stylesheet" href="css/marketplace-listing.css?v=18.4.0">
   <link rel="icon" href="/favicon.svg">
 </head>
 <body>
@@ -120,6 +122,11 @@
     <script src="/assets/js/navbar.js" defer></script>
 
 <main id="main-content" class="form-container">
+  <!-- Breadcrumb Navigation -->
+  <nav aria-label="Breadcrumb" class="supplier-breadcrumb">
+    <a href="/dashboard/supplier" class="supplier-breadcrumb-link">← Back to Dashboard</a>
+  </nav>
+
   <div class="form-header">
     <h1>List an Item</h1>
     <p class="small">List your pre-loved event items for free on the EventFlow marketplace</p>
@@ -262,16 +269,7 @@
 </main>
 
 <footer class="footer" role="contentinfo">
-  <div
-    class="container"
-    style="
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      flex-wrap: wrap;
-    "
-  >
+  <div class="container supplier-footer-content">
     <div>
       <strong>EventFlow</strong><br /><span class="small">Event planning made simple.</span>
     </div>
