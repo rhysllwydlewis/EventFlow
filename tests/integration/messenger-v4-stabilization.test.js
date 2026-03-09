@@ -70,11 +70,12 @@ describe('Notification service consolidation', () => {
 
   it('getDbInstance is not called inside the per-recipient loop (hoisted for efficiency)', () => {
     // The loop body should access the already-resolved dbInstance, not call getDbInstance() again
-    const sendMsgHandler = routerSrc.slice(
-      routerSrc.indexOf('for (const recipientId of recipientIds)')
-    );
-    const loopEnd = sendMsgHandler.indexOf('\n        }');
-    const loopBody = sendMsgHandler.slice(0, loopEnd > 0 ? loopEnd : 500);
+    const loopStart = routerSrc.indexOf('for (const recipientId of recipientIds)');
+    expect(loopStart).toBeGreaterThan(-1); // confirm the loop exists in the source
+    const afterLoop = routerSrc.slice(loopStart);
+    const loopEnd = afterLoop.indexOf('\n        }');
+    expect(loopEnd).toBeGreaterThan(-1); // confirm we found the closing brace
+    const loopBody = afterLoop.slice(0, loopEnd);
     expect(loopBody).not.toContain('getDbInstance()');
   });
 

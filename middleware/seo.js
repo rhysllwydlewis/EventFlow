@@ -27,24 +27,25 @@ function noindexMiddleware() {
     '/my-marketplace-listings.html',
   ];
 
-  // Prefix patterns for non-public directory paths
-  const noindexPrefixes = ['/messenger/', '/messenger', '/chat/', '/chat'];
+  // Root prefixes for non-public SPA directories.
+  // A path is matched if it equals the prefix exactly, equals it with a trailing slash,
+  // or starts with the prefix followed by a slash (sub-paths like /messenger/index.html).
+  const noindexPrefixes = ['/messenger', '/chat'];
 
   return (req, res, next) => {
-    // Check if path matches a noindex page (exact match)
-    if (noindexPaths.includes(req.path)) {
-      res.setHeader('X-Robots-Tag', 'noindex, nofollow');
-      logger.info(`X-Robots-Tag noindex applied to ${req.path}`);
-    }
+    const p = req.path;
 
-    // Noindex authenticated SPA directories (/messenger/, /chat/)
-    if (noindexPrefixes.some(prefix => req.path === prefix || req.path.startsWith(`${prefix}/`))) {
-      res.setHeader('X-Robots-Tag', 'noindex, nofollow');
-    }
+    const isLegacyPage = noindexPaths.includes(p);
+    const isSpaPath = noindexPrefixes.some(
+      prefix => p === prefix || p === `${prefix}/` || p.startsWith(`${prefix}/`)
+    );
+    const isAdminPage = p.startsWith('/admin') && p.endsWith('.html');
 
-    // Also apply to admin pages (already blocked by middleware, but extra defense)
-    if (req.path.startsWith('/admin') && req.path.endsWith('.html')) {
+    if (isLegacyPage || isSpaPath || isAdminPage) {
       res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+      if (isLegacyPage) {
+        logger.info(`X-Robots-Tag noindex applied to ${p}`);
+      }
     }
 
     next();
