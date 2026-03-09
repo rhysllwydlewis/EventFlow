@@ -8,12 +8,14 @@
 const express = require('express');
 const validator = require('validator');
 const logger = require('../utils/logger');
+const { uid } = require('../store');
 const router = express.Router();
 
 // Input length limits for contact form fields
 const CONTACT_MAX_NAME_LENGTH = 100;
 const CONTACT_MAX_EMAIL_LENGTH = 200;
 const CONTACT_MAX_MESSAGE_LENGTH = 2000;
+const CONTACT_MAX_SUBJECT_LENGTH = 200;
 
 // These will be injected by server.js during route mounting
 let dbUnified;
@@ -203,13 +205,16 @@ router.post('/contact', applyWriteLimiter, async (req, res) => {
     const email = String(req.body.email || '')
       .trim()
       .slice(0, CONTACT_MAX_EMAIL_LENGTH);
+    const subject = String(req.body.subject || '')
+      .trim()
+      .slice(0, CONTACT_MAX_SUBJECT_LENGTH);
     const message = String(req.body.message || '')
       .trim()
       .slice(0, CONTACT_MAX_MESSAGE_LENGTH);
 
     // Validate required fields
-    if (!name || !email || !message) {
-      return res.status(400).json({ error: 'Name, email, and message are required' });
+    if (!name || !email || !subject || !message) {
+      return res.status(400).json({ error: 'Name, email, subject and message are required' });
     }
 
     // Basic email format check
@@ -223,8 +228,27 @@ router.post('/contact', applyWriteLimiter, async (req, res) => {
       return res.status(400).json({ error: captchaResult.error || 'CAPTCHA verification failed' });
     }
 
-    // Log the contact enquiry (email sending handled separately if postmark is configured)
-    logger.info('Contact form submission', { name, email });
+    // Persist to contact_enquiries collection for admin review
+    const now = new Date().toISOString();
+    const enquiry = {
+      id: uid('ceq'),
+      senderType: 'external',
+      senderName: validator.escape(name),
+      senderEmail: validator.normalizeEmail(email) || email,
+      subject: validator.escape(subject),
+      message: validator.escape(message),
+      status: 'new',
+      responses: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    await dbUnified.insertOne('contact_enquiries', enquiry);
+
+    logger.info('Contact form submission saved', {
+      id: enquiry.id,
+      senderEmail: enquiry.senderEmail,
+    });
 
     return res.json({
       success: true,

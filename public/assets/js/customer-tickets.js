@@ -97,7 +97,7 @@ function showCreateTicketModal() {
   const modal = document.createElement('div');
   modal.className = 'modal-overlay active';
   modal.innerHTML = `
-    <div class="modal" style="max-width:500px;">
+    <div class="modal ticket-create-modal">
       <div class="modal-header">
         <h3>Create Support Ticket</h3>
         <button class="modal-close" type="button" aria-label="Close">&times;</button>
@@ -112,7 +112,7 @@ function showCreateTicketModal() {
             <label for="ticketMessage">Message *</label>
             <textarea id="ticketMessage" rows="6" required placeholder="Describe your issue in detail"></textarea>
           </div>
-          <div class="form-actions" style="margin-top:1rem;">
+          <div class="form-actions">
             <button type="submit" class="btn btn-primary">Submit Ticket</button>
             <button type="button" class="btn btn-secondary modal-close-btn">Cancel</button>
           </div>
@@ -198,7 +198,7 @@ function viewTicket(ticketId) {
   const modal = document.createElement('div');
   modal.className = 'modal-overlay active';
   modal.innerHTML = `
-    <div class="modal" style="max-width:600px;">
+    <div class="modal ticket-view-modal">
       <div class="modal-header">
         <h3>Support Ticket</h3>
         <button class="modal-close" type="button" aria-label="Close">&times;</button>
@@ -252,14 +252,14 @@ function viewTicket(ticketId) {
     const statusDescription = statusDescriptions[status] || '';
 
     let html = `
-      <div style="margin-bottom:1rem;padding-bottom:1rem;border-bottom:1px solid #e4e4e7;">
-        <div style="display:flex;justify-content:space-between;margin-bottom:0.5rem;">
+      <div class="ticket-detail__header">
+        <div class="ticket-detail__status-row">
           <span class="badge ${statusClass}">${status.replace('_', ' ')}</span>
         </div>
-        <h4 style="margin:0.5rem 0;">${escapeHtml(ticket.subject)}</h4>
-        <p style="margin:0.5rem 0;">${escapeHtml(message)}</p>
-        <p class="small" style="color:#6b7280;margin:0.5rem 0 0;">${escapeHtml(statusDescription)}</p>
-        <p class="small" style="color:#9ca3af;margin:0.25rem 0 0;">Created ${createdAt}</p>
+        <h4 class="ticket-detail__subject">${escapeHtml(ticket.subject)}</h4>
+        <p class="ticket-detail__message">${escapeHtml(message)}</p>
+        <p class="small ticket-detail__status-desc">${escapeHtml(statusDescription)}</p>
+        <p class="small ticket-detail__timestamp">Created ${createdAt}</p>
       </div>
     `;
 
@@ -276,12 +276,12 @@ function viewTicket(ticketId) {
         const displayName = response.userName || response.responderName || 'Support';
 
         html += `
-          <div style="margin-bottom:1rem;padding:1rem;background:${isAdmin ? '#eff6ff' : '#fafafa'};border-radius:8px;border-left:3px solid ${isAdmin ? '#3b82f6' : '#9ca3af'};">
-            <div style="display:flex;justify-content:space-between;margin-bottom:0.5rem;gap:0.75rem;">
+          <div class="ticket-response ticket-response--${isAdmin ? 'admin' : 'user'}">
+            <div class="ticket-response__header">
               <strong>${escapeHtml(displayName)} ${isAdmin ? '<span class="badge badge-in_progress">Admin</span>' : ''}</strong>
-              <span class="small" style="color:#9ca3af;">${respTimestamp}</span>
+              <span class="small ticket-response__timestamp">${respTimestamp}</span>
             </div>
-            <p style="margin:0;">${escapeHtml(response.message)}</p>
+            <p class="ticket-response__body">${escapeHtml(response.message)}</p>
           </div>
         `;
       });
@@ -289,15 +289,15 @@ function viewTicket(ticketId) {
       html += '</div>';
     } else {
       html +=
-        '<p class="small" style="color:#9ca3af;">No responses yet. Our team will reply soon.</p>';
+        '<p class="small ticket-detail__no-responses">No responses yet. Our team will reply soon.</p>';
     }
 
     if (status !== 'closed') {
       html += `
-        <form id="ticketReplyForm" style="margin-top:1rem;border-top:1px solid #e5e7eb;padding-top:1rem;">
-          <label for="ticketReplyMessage" class="small" style="display:block;margin-bottom:0.5rem;color:#4b5563;">Add a reply</label>
-          <textarea id="ticketReplyMessage" rows="4" required placeholder="Add more details for support..." style="width:100%;"></textarea>
-          <div style="margin-top:0.75rem;display:flex;justify-content:flex-end;">
+        <form id="ticketReplyForm" class="ticket-reply-form">
+          <label for="ticketReplyMessage" class="small ticket-reply-form__label">Add a reply</label>
+          <textarea id="ticketReplyMessage" class="ticket-reply-form__textarea" rows="4" required placeholder="Add more details for support..."></textarea>
+          <div class="ticket-reply-form__actions">
             <button type="submit" class="btn btn-primary">Send Reply</button>
           </div>
         </form>

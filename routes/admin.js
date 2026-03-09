@@ -19,6 +19,8 @@ const dbUnified = require('../db-unified');
 const { normalizeTicketRecord } = require('../utils/ticketNormalization');
 const { PRIORITY_RANK } = require('../utils/tierPriority');
 const photoUpload = require('../photo-upload');
+const postmark = require('../utils/postmark');
+const { FROM_SUPPORT: POSTMARK_FROM_SUPPORT_ADDR } = postmark;
 
 const router = express.Router();
 
@@ -3076,17 +3078,23 @@ router.get('/tickets', authRequired, roleRequired('admin'), async (_req, res) =>
       // 1. Active tickets before resolved/closed
       const aActive = ACTIVE_STATUSES.has(a.status) ? 1 : 0;
       const bActive = ACTIVE_STATUSES.has(b.status) ? 1 : 0;
-      if (bActive !== aActive) return bActive - aActive;
+      if (bActive !== aActive) {
+        return bActive - aActive;
+      }
 
       // 2. Higher priority first (urgent > high > medium > low)
       const aPriority = PRIORITY_RANK[a.priority] || 2;
       const bPriority = PRIORITY_RANK[b.priority] || 2;
-      if (bPriority !== aPriority) return bPriority - aPriority;
+      if (bPriority !== aPriority) {
+        return bPriority - aPriority;
+      }
 
       // 3. Unassigned before assigned (unassigned needs attention sooner)
       const aUnassigned = a.assignedTo ? 0 : 1;
       const bUnassigned = b.assignedTo ? 0 : 1;
-      if (bUnassigned !== aUnassigned) return bUnassigned - aUnassigned;
+      if (bUnassigned !== aUnassigned) {
+        return bUnassigned - aUnassigned;
+      }
 
       // 4. Oldest first within the same bucket (FIFO within priority)
       const aTime = new Date(a.createdAt || 0).getTime();
@@ -3192,7 +3200,7 @@ router.put(
 
 /**
  * POST /api/admin/tickets/:id/reply
- * Add a reply to a ticket
+ * Add a reply to a ticket and notify the ticket creator by email.
  */
 router.post(
   '/tickets/:id/reply',
@@ -3216,13 +3224,14 @@ router.post(
       }
 
       const ticket = tickets[index];
+      const now = new Date().toISOString();
       const reply = {
         id: uid('reply'),
         userId: req.user.id,
         userName: req.user.name || req.user.email,
         userRole: 'admin',
         message,
-        createdAt: new Date().toISOString(),
+        createdAt: now,
       };
 
       ticket.responses = Array.isArray(ticket.responses)
@@ -3231,7 +3240,9 @@ router.post(
           ? ticket.replies
           : [];
       ticket.responses.push(reply);
-      ticket.updatedAt = new Date().toISOString();
+      ticket.updatedAt = now;
+      ticket.lastReplyAt = now;
+      ticket.lastReplyBy = 'admin';
       if (ticket.status === 'open') {
         ticket.status = 'in_progress';
       }
@@ -3241,15 +3252,300 @@ router.post(
         'tickets',
         { id: ticket.id },
         {
-          $set: { responses: ticket.responses, updatedAt: ticket.updatedAt, status: ticket.status },
+          $set: {
+            responses: ticket.responses,
+            updatedAt: ticket.updatedAt,
+            status: ticket.status,
+            lastReplyAt: ticket.lastReplyAt,
+            lastReplyBy: ticket.lastReplyBy,
+          },
           $unset: { replies: '' },
         }
       );
+
+      // Notify the ticket creator by email (best-effort, non-blocking)
+      if (ticket.senderEmail) {
+        const baseUrl =
+          process.env.BASE_URL || process.env.APP_BASE_URL || 'https://event-flow.co.uk';
+        const ticketUrl = `${baseUrl}/support`;
+        const senderName = ticket.senderName || 'there';
+        const subjectText = ticket.subject || 'your support ticket';
+
+        // Escape user-supplied values before embedding in HTML to prevent XSS
+        const escapeHtml = str =>
+          String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+
+        const safeSenderName = escapeHtml(senderName);
+        const safeSubjectText = escapeHtml(subjectText);
+        const safeMessage = escapeHtml(message).replace(/\n/g, '<br>');
+
+        try {
+          await postmark.sendMail({
+            to: ticket.senderEmail,
+            from: process.env.POSTMARK_FROM_SUPPORT || process.env.POSTMARK_FROM,
+            subject: `Re: ${subjectText}`,
+            text: [
+              `Hi ${senderName},`,
+              '',
+              `You have received a reply to your support ticket: "${subjectText}"`,
+              '',
+              `Reply from support team:`,
+              message,
+              '',
+              `To view and respond to your ticket, please visit:`,
+              ticketUrl,
+              '',
+              '— The EventFlow Support Team',
+            ].join('\n'),
+            html: `
+              <p>Hi ${safeSenderName},</p>
+              <p>You have received a reply to your support ticket: <strong>${safeSubjectText}</strong></p>
+              <blockquote style="border-left:3px solid #0B8073;padding:0.5rem 1rem;margin:1rem 0;background:#f0fdfa;border-radius:4px;">
+                ${safeMessage}
+              </blockquote>
+              <p><a href="${ticketUrl}" style="display:inline-block;padding:10px 20px;background:linear-gradient(135deg,#0B8073,#13B6A2);color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">View your ticket</a></p>
+              <p style="color:#6b7280;font-size:0.875rem;">— The EventFlow Support Team</p>
+            `,
+            messageStream: 'outbound',
+          });
+          logger.info(
+            `📧 Admin reply notification sent to ${ticket.senderEmail} for ticket ${ticket.id}`
+          );
+        } catch (emailError) {
+          // Non-fatal — log but do not fail the API response
+          logger.error(
+            `Failed to send admin reply notification email for ticket ${ticket.id}:`,
+            emailError
+          );
+        }
+      }
+
+      // Audit log
+      auditLog({
+        adminId: req.user.id,
+        adminEmail: req.user.email,
+        action: 'TICKET_REPLIED',
+        targetType: 'ticket',
+        targetId: ticket.id,
+        details: { subject: ticket.subject, replyBy: 'admin', notified: !!ticket.senderEmail },
+      });
 
       res.json({ ticket, reply });
     } catch (error) {
       logger.error('Error replying to admin ticket:', error);
       res.status(500).json({ error: 'Failed to reply to ticket' });
+    }
+  }
+);
+
+// ---------- Contact Enquiries (External / Contact Form) ----------
+
+const CONTACT_ENQUIRY_STATUSES = ['new', 'in_progress', 'resolved', 'closed'];
+
+/**
+ * GET /api/admin/contact-enquiries
+ * List all contact form enquiries from external visitors
+ */
+router.get('/contact-enquiries', authRequired, roleRequired('admin'), async (_req, res) => {
+  try {
+    const enquiries = await dbUnified.read('contact_enquiries');
+    // Sort: newest first
+    enquiries.sort(
+      (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+    );
+    res.json({ items: enquiries });
+  } catch (error) {
+    logger.error('Error loading contact enquiries:', error);
+    res.status(500).json({ error: 'Failed to load contact enquiries' });
+  }
+});
+
+/**
+ * PUT /api/admin/contact-enquiries/:id
+ * Update enquiry status or assignment
+ */
+router.put(
+  '/contact-enquiries/:id',
+  authRequired,
+  roleRequired('admin'),
+  csrfProtection,
+  async (req, res) => {
+    try {
+      const enquiries = await dbUnified.read('contact_enquiries');
+      const index = enquiries.findIndex(e => e.id === req.params.id);
+      if (index < 0) {
+        return res.status(404).json({ error: 'Enquiry not found' });
+      }
+
+      const { status, assignedTo } = req.body;
+      const enquiry = enquiries[index];
+
+      if (status) {
+        if (!CONTACT_ENQUIRY_STATUSES.includes(status)) {
+          return res.status(400).json({ error: 'Invalid status' });
+        }
+        enquiry.status = status;
+      }
+      if (assignedTo !== undefined) {
+        enquiry.assignedTo = assignedTo || null;
+      }
+
+      enquiry.updatedAt = new Date().toISOString();
+      enquiry.updatedBy = req.user.id;
+
+      await dbUnified.updateOne(
+        'contact_enquiries',
+        { id: enquiry.id },
+        {
+          $set: {
+            status: enquiry.status,
+            assignedTo: enquiry.assignedTo,
+            updatedAt: enquiry.updatedAt,
+            updatedBy: enquiry.updatedBy,
+          },
+        }
+      );
+
+      res.json({ enquiry });
+    } catch (error) {
+      logger.error('Error updating contact enquiry:', error);
+      res.status(500).json({ error: 'Failed to update contact enquiry' });
+    }
+  }
+);
+
+/**
+ * POST /api/admin/contact-enquiries/:id/reply
+ * Reply to a contact form enquiry — sends email to the original sender via Postmark
+ */
+router.post(
+  '/contact-enquiries/:id/reply',
+  authRequired,
+  roleRequired('admin'),
+  csrfProtection,
+  async (req, res) => {
+    try {
+      const enquiries = await dbUnified.read('contact_enquiries');
+      const index = enquiries.findIndex(e => e.id === req.params.id);
+      if (index < 0) {
+        return res.status(404).json({ error: 'Enquiry not found' });
+      }
+
+      const message = typeof req.body.message === 'string' ? req.body.message.trim() : '';
+      if (!message) {
+        return res.status(400).json({ error: 'Message is required' });
+      }
+
+      const enquiry = enquiries[index];
+      const now = new Date().toISOString();
+
+      const reply = {
+        id: uid('reply'),
+        userId: req.user.id,
+        userName: req.user.name || req.user.email,
+        userRole: 'admin',
+        message,
+        createdAt: now,
+      };
+
+      if (!Array.isArray(enquiry.responses)) {
+        enquiry.responses = [];
+      }
+      enquiry.responses.push(reply);
+      enquiry.updatedAt = now;
+      enquiry.lastReplyAt = now;
+      if (enquiry.status === 'new') {
+        enquiry.status = 'in_progress';
+      }
+
+      await dbUnified.updateOne(
+        'contact_enquiries',
+        { id: enquiry.id },
+        {
+          $set: {
+            responses: enquiry.responses,
+            updatedAt: enquiry.updatedAt,
+            lastReplyAt: enquiry.lastReplyAt,
+            status: enquiry.status,
+          },
+        }
+      );
+
+      // Email the original sender via Postmark (best-effort, non-blocking)
+      if (enquiry.senderEmail) {
+        const baseUrl =
+          process.env.BASE_URL || process.env.APP_BASE_URL || 'https://event-flow.co.uk';
+        const senderName = enquiry.senderName || 'there';
+        const subjectText = enquiry.subject || 'your enquiry';
+
+        // XSS-escape user content before embedding in HTML
+        const escapeHtml = str =>
+          String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+
+        const safeName = escapeHtml(senderName);
+        const safeSubject = escapeHtml(subjectText);
+        const safeMessage = escapeHtml(message).replace(/\n/g, '<br>');
+
+        try {
+          await postmark.sendMail({
+            to: enquiry.senderEmail,
+            from: POSTMARK_FROM_SUPPORT_ADDR,
+            subject: `Re: ${subjectText}`,
+            text: [
+              `Hi ${senderName},`,
+              '',
+              `Thank you for contacting EventFlow. We have a reply to your enquiry: "${subjectText}"`,
+              '',
+              message,
+              '',
+              'If you have any further questions, please visit our contact page:',
+              `${baseUrl}/contact`,
+              '',
+              '— The EventFlow Team',
+            ].join('\n'),
+            html: `
+              <p>Hi ${safeName},</p>
+              <p>Thank you for contacting EventFlow. We have a reply to your enquiry: <strong>${safeSubject}</strong></p>
+              <blockquote style="border-left:3px solid #0B8073;padding:0.5rem 1rem;margin:1rem 0;background:#f0fdfa;border-radius:4px;">
+                ${safeMessage}
+              </blockquote>
+              <p>If you have further questions, feel free to <a href="${baseUrl}/contact">contact us again</a>.</p>
+              <p style="color:#6b7280;font-size:0.875rem;">— The EventFlow Team</p>
+            `,
+            messageStream: 'outbound',
+          });
+          logger.info(
+            `📧 Contact enquiry reply sent to ${enquiry.senderEmail} for enquiry ${enquiry.id}`
+          );
+        } catch (emailError) {
+          logger.error(`Failed to send contact enquiry reply email for ${enquiry.id}:`, emailError);
+        }
+      }
+
+      // Audit log
+      auditLog({
+        adminId: req.user.id,
+        adminEmail: req.user.email,
+        action: 'CONTACT_ENQUIRY_REPLIED',
+        targetType: 'contact_enquiry',
+        targetId: enquiry.id,
+        details: { subject: enquiry.subject, notified: !!enquiry.senderEmail },
+      });
+
+      res.json({ enquiry, reply });
+    } catch (error) {
+      logger.error('Error replying to contact enquiry:', error);
+      res.status(500).json({ error: 'Failed to reply to contact enquiry' });
     }
   }
 );
