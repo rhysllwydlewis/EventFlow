@@ -1,7 +1,10 @@
 /**
- * EventFlow Admin UI/UX Improvements
- * Version: 1.0.0
- * 
+ * Admin UI/UX Improvements — Layer 6: Checkboxes, Toggles, Bulk Actions
+ * =======================================================================
+ * Layer: admin-ui-improvements.css (Layer 6 of 6 — see admin-tokens.css)
+ * Scope: Table checkboxes, form checkboxes, toggle switches, bulk-action
+ *        bar, and small interactive component refinements.
+ *
  * Fixes:
  * - Checkbox/toggle alignment issues
  * - Oversized checkboxes in tables

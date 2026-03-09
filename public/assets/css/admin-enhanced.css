@@ -1,6 +1,9 @@
 /**
- * Enhanced Admin Dashboard Styles
- * Modern, sleek design with gradients and smooth animations
+ * Enhanced Admin Dashboard Styles — Layer 3: Notifications, Modals, Cards
+ * ========================================================================
+ * Layer: admin-enhanced.css (Layer 3 of 6 — see admin-tokens.css for order)
+ * Scope: Notifications, modal dialogs, stat/metric cards, modal overlays.
+ * Modern, sleek design with gradients and smooth animations.
  */
 
 /* Notification Styles */
@@ -2570,5 +2573,31 @@ tbody tr.selected td {
   input[type="radio"] {
     width: 20px;
     height: 20px;
+  }
+}
+
+/* ─── Reduced-motion: enhanced layer animations ───────────────────────────
+   Suppresses notification slide animations and card hover transitions
+   when the OS "Reduce motion" preference is enabled.
+   ──────────────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .notification {
+    animation: none;
+  }
+
+  .stat-metric-card,
+  .stat-card,
+  .admin-card {
+    transition: none;
+    transform: none;
+  }
+
+  .modal-content,
+  .modal-dialog {
+    animation: none;
+  }
+
+  .modal-overlay {
+    animation: none;
   }
 }

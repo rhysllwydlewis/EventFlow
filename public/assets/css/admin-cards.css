@@ -1,6 +1,8 @@
 /**
- * Admin Card Component Styles
- * Reusable card layouts for EventFlow admin dashboard
+ * Admin Card Component Styles — Layer 5: Reusable Cards
+ * =======================================================
+ * Layer: admin-cards.css (Layer 5 of 6 — see admin-tokens.css for order)
+ * Scope: .admin-card, .stat-card, and related card/grid components.
  */
 
 /* Base Card */

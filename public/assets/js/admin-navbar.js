@@ -31,8 +31,9 @@
 
     if (hamburger && nav) {
       hamburger.addEventListener('click', () => {
-        hamburger.classList.toggle('active');
+        const isExpanded = hamburger.classList.toggle('active');
         nav.classList.toggle('show');
+        hamburger.setAttribute('aria-expanded', String(isExpanded));
       });
 
       // Close menu when clicking outside
@@ -44,6 +45,17 @@
         ) {
           hamburger.classList.remove('active');
           nav.classList.remove('show');
+          hamburger.setAttribute('aria-expanded', 'false');
+        }
+      });
+
+      // Close menu when pressing Escape
+      document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && nav.classList.contains('show')) {
+          hamburger.classList.remove('active');
+          nav.classList.remove('show');
+          hamburger.setAttribute('aria-expanded', 'false');
+          hamburger.focus();
         }
       });
 
@@ -54,6 +66,7 @@
           if (window.innerWidth <= 768) {
             hamburger.classList.remove('active');
             nav.classList.remove('show');
+            hamburger.setAttribute('aria-expanded', 'false');
           }
         });
       });
@@ -70,13 +83,24 @@
     if (userBtn && dropdownMenu) {
       userBtn.addEventListener('click', e => {
         e.stopPropagation();
-        dropdownMenu.classList.toggle('show');
+        const isOpen = dropdownMenu.classList.toggle('show');
+        userBtn.setAttribute('aria-expanded', String(isOpen));
       });
 
       // Close dropdown when clicking outside
       document.addEventListener('click', e => {
         if (!userBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
           dropdownMenu.classList.remove('show');
+          userBtn.setAttribute('aria-expanded', 'false');
+        }
+      });
+
+      // Close dropdown when pressing Escape
+      document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && dropdownMenu.classList.contains('show')) {
+          dropdownMenu.classList.remove('show');
+          userBtn.setAttribute('aria-expanded', 'false');
+          userBtn.focus();
         }
       });
     }
@@ -124,14 +148,17 @@
           statusBadge.className = 'db-status-badge db-mongodb';
           statusBadge.innerHTML = `${dot} MongoDB`;
           statusBadge.title = 'Connected to MongoDB';
+          statusBadge.setAttribute('aria-label', 'Database status: Connected to MongoDB');
         } else if (dbType === 'local') {
           statusBadge.className = 'db-status-badge db-local';
           statusBadge.innerHTML = `${dot} Local Storage`;
           statusBadge.title = 'Using local file storage';
+          statusBadge.setAttribute('aria-label', 'Database status: Using local file storage');
         } else {
           statusBadge.className = 'db-status-badge db-loading';
           statusBadge.innerHTML = `${dot} Unknown`;
           statusBadge.title = 'Database status unknown';
+          statusBadge.setAttribute('aria-label', 'Database status: Unknown');
         }
       })
       .catch(error => {
@@ -139,6 +166,7 @@
         statusBadge.className = 'db-status-badge db-local';
         statusBadge.innerHTML = '<span class="db-status-dot"></span> Local Storage';
         statusBadge.title = 'Using local file storage';
+        statusBadge.setAttribute('aria-label', 'Database status: Using local file storage');
       });
   }
 
@@ -153,8 +181,10 @@
       const href = link.getAttribute('href');
       if (href && currentPath.includes(href.replace('/', ''))) {
         link.classList.add('active');
+        link.setAttribute('aria-current', 'page');
       } else {
         link.classList.remove('active');
+        link.removeAttribute('aria-current');
       }
     });
   }

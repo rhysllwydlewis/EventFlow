@@ -1,0 +1,116 @@
+/**
+ * Admin UI Design Tokens
+ * ======================
+ * CSS custom properties shared across all admin CSS layers.
+ *
+ * Layer loading order (applied in every admin page):
+ *   1. admin-tokens.css  — CSS variables / design tokens  (this file)
+ *   2. admin.css         — Base primitives, tables, layout
+ *   3. admin-enhanced.css — Notifications, modals, stat/metric cards
+ *   4. admin-navbar.css  — Top navigation bar
+ *   5. admin-cards.css   — Reusable card components
+ *   6. admin-ui-improvements.css — Checkboxes, toggles, bulk-action bar
+ *
+ * Rules for contributors:
+ *   - Add new design values HERE, not inline or in page-specific files.
+ *   - Use var(--admin-*) in admin CSS files instead of hardcoding hex values.
+ *   - Do NOT put component rules in this file — tokens only.
+ */
+
+:root {
+  /* ─── Brand colours ─────────────────────────────────────────────────── */
+  --admin-brand:          #0B8073;
+  --admin-brand-light:    #13B6A2;
+  --admin-brand-tint:     rgba(11, 128, 115, 0.10);
+
+  /* ─── Semantic / status colours ─────────────────────────────────────── */
+  --admin-success:        #10b981;
+  --admin-success-bg:     #d1fae5;
+  --admin-success-text:   #065f46;
+
+  --admin-warning:        #f59e0b;
+  --admin-warning-bg:     #fef3c7;
+  --admin-warning-text:   #92400e;
+
+  --admin-danger:         #ef4444;
+  --admin-danger-bg:      #fee2e2;
+  --admin-danger-text:    #991b1b;
+
+  --admin-info:           #3b82f6;
+  --admin-info-bg:        #dbeafe;
+  --admin-info-text:      #1e40af;
+
+  /* ─── Neutral / text colours ─────────────────────────────────────────── */
+  --admin-text-primary:   #1f2937;
+  --admin-text-secondary: #374151;
+  --admin-text-muted:     #6b7280;
+  --admin-text-faint:     #9ca3af;
+
+  /* ─── Surface & border colours ──────────────────────────────────────── */
+  --admin-surface:        #ffffff;
+  --admin-bg:             #f8f9fa;
+  --admin-bg-alt:         #f3f4f6;
+  --admin-border:         #e5e7eb;
+  --admin-border-light:   #f3f4f6;
+
+  /* ─── Spacing scale ──────────────────────────────────────────────────── */
+  --admin-space-1:   4px;
+  --admin-space-2:   8px;
+  --admin-space-3:   12px;
+  --admin-space-4:   16px;
+  --admin-space-5:   20px;
+  --admin-space-6:   24px;
+  --admin-space-8:   32px;
+
+  /* ─── Border radius ──────────────────────────────────────────────────── */
+  --admin-radius-sm:   6px;
+  --admin-radius-md:   10px;
+  --admin-radius-lg:   16px;
+  --admin-radius-pill: 999px;
+
+  /* ─── Elevation / shadows ────────────────────────────────────────────── */
+  --admin-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --admin-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --admin-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --admin-shadow-lg: 0 8px 20px rgba(0, 0, 0, 0.10);
+  --admin-shadow-xl: 0 10px 25px rgba(0, 0, 0, 0.12);
+
+  /* ─── Transitions ────────────────────────────────────────────────────── */
+  --admin-transition-fast:   0.15s ease;
+  --admin-transition:        0.20s ease;
+  --admin-transition-slow:   0.30s ease;
+
+  /* ─── Focus ring ─────────────────────────────────────────────────────── */
+  --admin-focus-ring:        0 0 0 3px rgba(11, 128, 115, 0.30);
+  --admin-focus-outline:     2px solid #0B8073;
+
+  /* ─── Navbar ─────────────────────────────────────────────────────────── */
+  --admin-navbar-height:     70px;
+  --admin-navbar-z:          1000;
+
+  /* ─── Typography ─────────────────────────────────────────────────────── */
+  --admin-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                       'Helvetica Neue', Arial, sans-serif;
+  --admin-font-size-xs:   11px;
+  --admin-font-size-sm:   12px;
+  --admin-font-size-base: 14px;
+  --admin-font-size-md:   16px;
+  --admin-font-size-lg:   18px;
+  --admin-font-size-xl:   24px;
+}
+
+/* ─── Reduced-motion baseline ────────────────────────────────────────────
+   Respects the OS "Reduce motion" accessibility setting. Individual
+   animation rules in other admin CSS layers may add their own
+   @media (prefers-reduced-motion) overrides as needed.
+   ──────────────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

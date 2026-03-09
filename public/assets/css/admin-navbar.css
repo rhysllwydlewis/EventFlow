@@ -1,6 +1,9 @@
 /**
  * Modern Admin Top Navbar Styles
  * EventFlow-themed navigation bar for admin panel
+ *
+ * Layer: admin-navbar.css (Layer 4 of 6 — see admin-tokens.css for order)
+ * Scope: .admin-top-navbar and all child elements.
  */
 
 /* Top Navbar Container */
@@ -479,5 +482,32 @@ body.admin {
   
   body.admin {
     padding-top: 0;
+  }
+}
+
+/* ─── Reduced-motion: navbar animations ──────────────────────────────────
+   Suppresses slide and pulse animations when the OS "Reduce motion"
+   preference is enabled.
+   ──────────────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .admin-nav-btn,
+  .admin-user-btn,
+  .navbar-icon-btn,
+  .admin-dropdown-item,
+  .admin-hamburger span {
+    transition: none;
+  }
+
+  .db-status-dot {
+    animation: none;
+  }
+
+  .admin-dropdown-menu.show {
+    animation: none;
+  }
+
+  .admin-hamburger.active span:nth-child(1),
+  .admin-hamburger.active span:nth-child(3) {
+    transition: none;
   }
 }
