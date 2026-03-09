@@ -857,3 +857,15 @@ body.customer-dashboard-page .card .error-state-action {
     border-radius: 0;
   }
 }
+
+/* Bottom nav Settings link — compact the bottom nav when 6 items are visible (logged-in state).
+   Reduces per-item min-width so all 6 items fit even on 360 px-wide screens. */
+body.customer-dashboard-page .ef-bottom-nav.logged-in .ef-bottom-link {
+  min-width: 44px;
+  padding: 6px 4px;
+}
+
+body.customer-dashboard-page .ef-bottom-nav.logged-in #ef-bottom-menu {
+  min-width: 44px;
+  padding: 6px 4px;
+}
