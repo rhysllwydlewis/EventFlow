@@ -768,7 +768,16 @@
     document.body.appendChild(overlay);
     overlay.querySelector('#closeContactModal').focus();
 
-    const close = () => overlay.remove();
+    const close = () => {
+      overlay.remove();
+      document.removeEventListener('keydown', handleContactKeydown);
+    };
+    const handleContactKeydown = e => {
+      if (e.key === 'Escape') {
+        close();
+      }
+    };
+    document.addEventListener('keydown', handleContactKeydown);
     overlay.querySelector('#cancelContactModal').addEventListener('click', close);
     overlay.querySelector('#closeContactModal').addEventListener('click', close);
     overlay.addEventListener('click', e => {
