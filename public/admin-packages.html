@@ -18,19 +18,6 @@
 <link rel='stylesheet' href='/assets/css/admin-cards.css?v=18.3.0'>
 <link rel='stylesheet' href='/assets/css/admin-packages-enhanced.css?v=18.3.0'>
 <link rel='icon' href='/favicon.svg'>
-<style>
-  .filter-btn.active {
-    background: #0B8073 !important;
-    color: white !important;
-    border-color: #0B8073 !important;
-  }
-  .filter-btn:hover {
-    background: #f3f4f6;
-  }
-  .filter-btn.active:hover {
-    background: #0a6d61 !important;
-  }
-</style>
 <script src="/assets/js/admin-shared.js?v=18.3.0"></script>
 <script src="/assets/js/components.js?v=18.3.0" defer></script>
 <script src="/assets/js/admin-navbar.js?v=18.3.0" defer></script>
@@ -263,13 +250,13 @@
 
     <div class="card">
       <h2>All Packages</h2>
-      <div class="mb-1" style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
-        <input type="text" id="searchInput" placeholder="Search packages..." style="padding:0.5rem;border:1px solid #d4d4d8;border-radius:4px;width:300px;">
-        <div class="test-data-filter" style="display: flex; gap: 0.5rem; align-items: center;">
-          <label style="font-weight: 600; color: #6b7280; font-size: 0.9rem;">Show:</label>
-          <button class="filter-btn active" data-filter="all" style="padding: 0.4rem 0.75rem; border: 1px solid #d4d4d8; border-radius: 4px; background: #fff; cursor: pointer; font-size: 0.875rem; transition: all 0.2s;">All</button>
-          <button class="filter-btn" data-filter="real" style="padding: 0.4rem 0.75rem; border: 1px solid #d4d4d8; border-radius: 4px; background: #fff; cursor: pointer; font-size: 0.875rem; transition: all 0.2s;">Real Only</button>
-          <button class="filter-btn" data-filter="test" style="padding: 0.4rem 0.75rem; border: 1px solid #d4d4d8; border-radius: 4px; background: #fff; cursor: pointer; font-size: 0.875rem; transition: all 0.2s;">Test Only</button>
+      <div class="mb-1 packages-toolbar">
+        <input type="text" id="searchInput" placeholder="Search packages..." class="packages-search-input">
+        <div class="test-data-filter packages-filter-group">
+          <label class="packages-filter-label">Show:</label>
+          <button class="filter-btn active" data-filter="all">All</button>
+          <button class="filter-btn" data-filter="real">Real Only</button>
+          <button class="filter-btn" data-filter="test">Test Only</button>
         </div>
       </div>
       <div id="packagesContainer"></div>

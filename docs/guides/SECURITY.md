@@ -69,33 +69,38 @@ This document outlines security considerations, current protections, and recomme
 
 ### 2. CSRF Protection
 
-**Status:** Not implemented  
-**Risk Level:** Medium  
-**Description:** The application uses cookie-based authentication without CSRF tokens for state-changing operations.
+**Status:** Implemented (Double-Submit Cookie pattern)
+**Risk Level:** Low
+**Description:** All state-changing admin and API operations are protected with CSRF tokens using the Double-Submit Cookie pattern.
 
-**Mitigation:**
+**Implementation:**
 
-- All authenticated endpoints require valid JWT token
-- SameSite cookie attribute provides partial protection
-- Rate limiting prevents automated attacks
+- Two cookies are set: `csrf` and `csrfToken` (non-HttpOnly so client JS can read them)
+- Client reads the cookie value and sends it as the `X-CSRF-Token` request header
+- Server validates that the header value matches the cookie value
+- Admin frontend uses `AdminShared.api()` which automatically attaches the CSRF token for POST/PUT/DELETE requests
 
-**Recommended Fix:**
+**Client-side pattern (via `AdminShared.api()`):**
 
 ```javascript
-// Install csurf package
-npm install csurf
+// AdminShared.api() handles CSRF automatically for write operations:
+await AdminShared.api('/api/admin/packages/123/approve', 'POST');
 
-// Add CSRF middleware
-const csrf = require('csurf');
-const csrfProtection = csrf({ cookie: true });
-
-// Apply to state-changing routes
-app.post('/api/reviews', csrfProtection, authRequired, ...);
-app.post('/api/photos/upload', csrfProtection, authRequired, ...);
-// etc.
+// For custom fetch calls, read the token from the cookie:
+function getCsrfToken() {
+  const match = document.cookie.match(/(?:^|;\s*)csrfToken=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : (window.__CSRF_TOKEN__ || window.csrfToken || '');
+}
+fetch('/api/...', {
+  method: 'POST',
+  headers: { 'X-CSRF-Token': getCsrfToken() },
+  credentials: 'include',
+});
 ```
 
-### 2. Two-Factor Authentication
+**Server-side middleware:** `middleware/csrf.js` — `csrfProtection()` function validates the `X-CSRF-Token` header against the cookie value.
+
+### 3. Two-Factor Authentication
 
 **Status:** Not implemented  
 **Risk Level:** Medium  
@@ -107,7 +112,7 @@ app.post('/api/photos/upload', csrfProtection, authRequired, ...);
 - SMS verification using Twilio
 - Backup codes for account recovery
 
-### 3. Data Encryption at Rest
+### 4. Data Encryption at Rest
 
 **Status:** Not implemented (relies on MongoDB Atlas)  
 **Risk Level:** Low (if using Atlas with encryption)  
@@ -119,7 +124,7 @@ app.post('/api/photos/upload', csrfProtection, authRequired, ...);
 - For self-hosted: Enable MongoDB encryption
 - Never store plain text passwords (using bcrypt)
 
-### 4. API Versioning
+### 5. API Versioning
 
 **Status:** Not implemented  
 **Risk Level:** Low  

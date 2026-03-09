@@ -953,3 +953,67 @@ button.btn-sm.btn-primary:hover {
     padding: 0.5rem 0.875rem;
   }
 }
+
+/* -----------------------------------------------------------------------
+ * Admin Messenger table — class-based replacements for former inline styles
+ * ----------------------------------------------------------------------- */
+.admin-messenger-row {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.admin-messenger-cell {
+  padding: 12px 16px;
+  font-size: 0.82rem;
+}
+
+.admin-messenger-cell--participants {
+  font-size: 0.85rem;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-messenger-cell--preview {
+  color: #6b7280;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-messenger-cell--meta {
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.admin-messenger-type-badge {
+  background: rgba(11, 128, 115, 0.1);
+  color: #0b8073;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.admin-messenger-link {
+  font-size: 0.82rem;
+  color: #0b8073;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.admin-messenger-state {
+  padding: 32px;
+  text-align: center;
+}
+
+.admin-messenger-state--loading {
+  color: #9ca3af;
+}
+
+.admin-messenger-state--empty {
+  color: #9ca3af;
+}
+
+.admin-messenger-state--error {
+  color: #dc2626;
+}

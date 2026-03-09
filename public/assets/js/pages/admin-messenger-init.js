@@ -32,7 +32,7 @@
     const tbody = document.getElementById('conversationsBody');
     const summary = document.getElementById('resultsSummary');
     tbody.innerHTML =
-      '<tr><td colspan="6" style="padding:32px;text-align:center;color:#9ca3af;">Loading…</td></tr>';
+      '<tr><td colspan="6" class="admin-messenger-state admin-messenger-state--loading">Loading…</td></tr>';
 
     try {
       const params = new URLSearchParams({
@@ -46,21 +46,10 @@
         params.set('status', currentStatus);
       }
 
-      const res = await fetch(`/api/v4/messenger/admin/conversations?${params.toString()}`, {
-        credentials: 'include',
-        headers: { Accept: 'application/json' },
-      });
+      const data = await AdminShared.api(
+        `/api/v4/messenger/admin/conversations?${params.toString()}`
+      );
 
-      if (res.status === 403) {
-        tbody.innerHTML =
-          '<tr><td colspan="6" style="padding:32px;text-align:center;color:#dc2626;">Access denied. Admin role required.</td></tr>';
-        return;
-      }
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
-
-      const data = await res.json();
       totalConversations = data.total || 0;
       const conversations = data.conversations || [];
 
@@ -71,7 +60,7 @@
 
       if (conversations.length === 0) {
         tbody.innerHTML =
-          '<tr><td colspan="6" style="padding:32px;text-align:center;color:#9ca3af;">No conversations found.</td></tr>';
+          '<tr><td colspan="6" class="admin-messenger-state admin-messenger-state--empty">No conversations found.</td></tr>';
         updatePagination();
         return;
       }
@@ -88,17 +77,17 @@
           const updated = formatDate(conv.updatedAt);
           const status = escapeHtml(conv.status || 'active');
           const id = escapeHtml(conv._id || conv.id || '');
-          return `<tr style="border-bottom:1px solid rgba(0,0,0,0.05);">
-          <td style="padding:12px 16px;font-size:0.85rem;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${names}">${names}</td>
-          <td style="padding:12px 16px;font-size:0.82rem;"><span style="background:rgba(11,128,115,0.1);color:#0b8073;padding:2px 8px;border-radius:4px;">${type}</span></td>
-          <td style="padding:12px 16px;font-size:0.82rem;color:#6b7280;max-width:240px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${preview}">${preview}</td>
-          <td style="padding:12px 16px;font-size:0.82rem;color:#6b7280;white-space:nowrap;">${updated}</td>
-          <td style="padding:12px 16px;font-size:0.82rem;">${status}</td>
-          <td style="padding:12px 16px;">
+          return `<tr class="admin-messenger-row">
+          <td class="admin-messenger-cell admin-messenger-cell--participants" title="${names}">${names}</td>
+          <td class="admin-messenger-cell"><span class="admin-messenger-type-badge">${type}</span></td>
+          <td class="admin-messenger-cell admin-messenger-cell--preview" title="${preview}">${preview}</td>
+          <td class="admin-messenger-cell admin-messenger-cell--meta">${updated}</td>
+          <td class="admin-messenger-cell admin-messenger-cell--meta">${status}</td>
+          <td class="admin-messenger-cell">
             ${
               id
                 ? `<a href="/messenger/?conversation=${id}" target="_blank" rel="noopener"
-                      style="font-size:0.82rem;color:#0b8073;text-decoration:none;font-weight:600;">Open ↗</a>`
+                      class="admin-messenger-link">Open ↗</a>`
                 : '—'
             }
           </td>
@@ -108,9 +97,9 @@
 
       updatePagination();
     } catch (err) {
-      console.error('Admin messenger: fetch failed', err);
+      AdminShared.debugError('Admin messenger: fetch failed', err);
       tbody.innerHTML =
-        '<tr><td colspan="6" style="padding:32px;text-align:center;color:#dc2626;">Failed to load conversations. Please try again.</td></tr>';
+        '<tr><td colspan="6" class="admin-messenger-state admin-messenger-state--error">Failed to load conversations. Please try again.</td></tr>';
     }
   }
 

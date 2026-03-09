@@ -273,6 +273,81 @@ Each log entry includes:
    - Regularly review admin users
    - Revoke access when no longer needed
 
+## Admin Architecture
+
+This section describes the technical conventions used across the admin frontend and backend. Follow these patterns when contributing to or extending admin pages.
+
+### Route Structure
+
+All admin API endpoints are mounted under `/api/admin/` and handled in `routes/admin.js`. Data access is done through the `dbUnified` abstraction (see `utils/dbUnified.js`), which supports both the legacy flat-file store and MongoDB without requiring changes at the route level.
+
+```
+GET  /api/admin/users              # list users
+PUT  /api/admin/users/:id          # update a user
+POST /api/admin/users/:id/ban      # ban action
+GET  /api/admin/suppliers          # list suppliers
+...
+```
+
+All admin routes apply the `applyAuthRequired` middleware and then check `req.user.role === 'admin'` before proceeding.
+
+### Frontend API Convention: `AdminShared.api()`
+
+Admin pages **must** use `AdminShared.api()` for API calls instead of raw `fetch()`. This shared wrapper:
+
+- Attaches `credentials: 'include'` automatically
+- Attaches the `X-CSRF-Token` header for state-changing methods (POST, PUT, DELETE)
+- Parses the JSON response and throws a descriptive `Error` on non-2xx status
+- Redirects to `/auth` on 401 responses
+
+**Usage:**
+
+```javascript
+// GET request
+const data = await AdminShared.api('/api/admin/packages');
+
+// POST request (CSRF token attached automatically)
+await AdminShared.api('/api/admin/packages/123/approve', 'POST');
+
+// PUT with body
+await AdminShared.api('/api/admin/users/456', 'PUT', { name: 'New Name' });
+```
+
+### CSRF Handling
+
+EventFlow implements CSRF protection using the **Double-Submit Cookie** pattern:
+
+1. On page load the server sets two cookies: `csrf` and `csrfToken` (both non-HttpOnly).
+2. `AdminShared.api()` reads `window.__CSRF_TOKEN__` (populated by `admin-shared.js` on init) and sends it as the `X-CSRF-Token` request header on write operations.
+3. Server-side `middleware/csrf.js` validates that the header value matches the cookie.
+
+This is handled transparently by `AdminShared.api()`. If you ever need to make a raw `fetch()` call in an admin page (avoid this where possible), attach the token manually:
+
+```javascript
+const token = window.__CSRF_TOKEN__ || '';
+fetch('/api/admin/...', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token },
+  credentials: 'include',
+  body: JSON.stringify(payload),
+});
+```
+
+### Avoiding Inline Styles
+
+Inline `style="..."` attributes and `<style>` blocks inside admin HTML files are **not permitted** for new code. All visual styling must live in the scoped admin CSS files:
+
+| CSS file | Purpose |
+| --- | --- |
+| `public/assets/css/admin.css` | Core admin layout and typography |
+| `public/assets/css/admin-enhanced.css` | Enhanced admin components |
+| `public/assets/css/admin-navbar.css` | Top navigation bar |
+| `public/assets/css/admin-cards.css` | Card and panel components |
+| `public/assets/css/admin-packages-enhanced.css` | Package management page |
+| `public/assets/css/admin-ui-improvements.css` | Misc UI improvements |
+
+When a JS-rendered table row or element needs styling, add a class to the relevant CSS file and apply it via `className` in the template string — **do not** set `style` attributes in JS.
+
 ## API Endpoints
 
 All admin endpoints require authentication and admin role.
