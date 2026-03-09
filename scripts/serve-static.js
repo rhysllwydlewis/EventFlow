@@ -122,6 +122,39 @@ canonicalPages.forEach(page => {
   });
 });
 
+// Admin pages — serve clean URLs (matching server.js canonical redirect behavior)
+// Both /<page> and /<page>.html serve the same file so static-mode E2E tests
+// can navigate via clean URLs (matching production redirects) or via .html paths.
+const adminPages = [
+  'admin',
+  'admin-audit',
+  'admin-content',
+  'admin-content-dates',
+  'admin-homepage',
+  'admin-marketplace',
+  'admin-messenger',
+  'admin-packages',
+  'admin-payments',
+  'admin-pexels',
+  'admin-photos',
+  'admin-reports',
+  'admin-settings',
+  'admin-supplier-detail',
+  'admin-suppliers',
+  'admin-tickets',
+  'admin-user-detail',
+  'admin-users',
+];
+
+adminPages.forEach(page => {
+  // Serve admin page at clean URL
+  app.get(`/${page}`, (req, res) => {
+    res.sendFile(path.join(PUBLIC_DIR, `${page}.html`));
+  });
+  // In static-mode we keep .html paths working too (no redirect) so that
+  // existing E2E tests that navigate to /<page>.html are not broken.
+});
+
 // Article pages — serve clean URLs and redirect .html to canonical
 app.get('/articles/:slug', (req, res, next) => {
   const slug = req.params.slug;

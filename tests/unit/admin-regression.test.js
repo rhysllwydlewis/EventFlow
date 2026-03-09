@@ -186,7 +186,46 @@ describe('Admin Regression — Route Error Resilience', () => {
   });
 });
 
-// ─── Route Ordering — Specific Before Wildcard ────────────────────────────────
+// ─── Navigation URL Consistency ──────────────────────────────────────────────
+
+describe('Admin Regression — Navigation Button URLs (clean, no .html)', () => {
+  // All quick-action and moderation-queue buttons must use canonical clean URLs
+  // (no .html extension). The server redirects .html→clean, but:
+  //  a) hash fragments (#...) are lost in server-side redirects
+  //  b) canonical URLs are the correct production behaviour
+  const expectedMappings = [
+    ['userManagementBtn', '/admin-users'],
+    ['packageManagementBtn', '/admin-packages'],
+    ['homepageChangesBtn', '/admin-homepage'],
+    ['supportTicketsBtn', '/admin-tickets'],
+    ['paymentsAnalyticsBtn', '/admin-payments'],
+    ['reportsQueueBtn', '/admin-reports'],
+    ['auditLogBtn', '/admin-audit'],
+    ['adminSettingsBtn', '/admin-settings'],
+    ['reviewPhotosBtn', '/admin-photos'],
+    ['reviewReportsBtn', '/admin-reports'],
+    // verifySuppliersBtn previously pointed to /admin-users.html#suppliers which
+    // (a) used the wrong page and (b) lost the hash in the server-side redirect
+    ['verifySuppliersBtn', '/admin-suppliers'],
+  ];
+
+  expectedMappings.forEach(([btnId, expectedHref]) => {
+    it(`setupNavButton('${btnId}', ...) targets '${expectedHref}' (no .html)`, () => {
+      // Match the exact setupNavButton call in admin-init.js
+      const pattern = new RegExp(
+        `setupNavButton\\(['"]${btnId}['"],\\s*['"]${expectedHref}['"]\\)`
+      );
+      expect(adminInitContent).toMatch(pattern);
+    });
+
+    it(`setupNavButton('${btnId}', ...) does NOT use .html extension`, () => {
+      const htmlPattern = new RegExp(
+        `setupNavButton\\(['"]${btnId}['"],\\s*['"][^'"]*\\.html[^'"]*['"]\\)`
+      );
+      expect(adminInitContent).not.toMatch(htmlPattern);
+    });
+  });
+});
 
 describe('Admin Regression — Route ordering (specific before wildcard)', () => {
   let userMgmtContent;

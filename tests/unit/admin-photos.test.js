@@ -121,6 +121,25 @@ describe('Admin Photos — Page JS (admin-photos-init.js)', () => {
   it('shows toast on error instead of native alert', () => {
     expect(photosInitContent).toContain('showToast');
   });
+
+  it('rejectPhoto function calls /reject endpoint (not /approve)', () => {
+    // Critical bug fix: rejectPhoto must call the /reject endpoint, not /approve.
+    // Calling /approve with {approved:false} was silently approving photos.
+    const rejectFnStart = photosInitContent.indexOf('window.rejectPhoto');
+    expect(rejectFnStart).toBeGreaterThan(-1);
+    const rejectFnBody = photosInitContent.substring(rejectFnStart, rejectFnStart + 500);
+    expect(rejectFnBody).toContain('/reject');
+    expect(rejectFnBody).not.toContain('/approve');
+  });
+
+  it('batch reject uses /reject endpoint for each photo (not /approve)', () => {
+    // batchReject must call /reject, not /approve with {approved:false}
+    const batchRejectStart = photosInitContent.indexOf('batchReject.addEventListener');
+    expect(batchRejectStart).toBeGreaterThan(-1);
+    const batchBody = photosInitContent.substring(batchRejectStart, batchRejectStart + 600);
+    expect(batchBody).toContain('/reject');
+    expect(batchBody).not.toContain('/approve');
+  });
 });
 
 describe('Admin Photos — HTML Page exists', () => {

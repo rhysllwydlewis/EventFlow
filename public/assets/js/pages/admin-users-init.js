@@ -38,7 +38,7 @@
 
     try {
       // Use AdminShared.api for consistent error handling
-      const data = await AdminShared.api('/api/admin/users', { method: 'GET' });
+      const data = await AdminShared.api('/api/admin/users');
       allUsers = (data && data.items) || [];
 
       renderUsers();
@@ -709,9 +709,7 @@
 
     // Load subscription history using AdminShared.api
     try {
-      const data = await AdminShared.api(`/api/admin/users/${userId}/subscription-history`, {
-        method: 'GET',
-      });
+      const data = await AdminShared.api(`/api/admin/users/${userId}/subscription-history`);
       const history = data.history || [];
 
       if (history.length === 0) {

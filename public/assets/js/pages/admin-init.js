@@ -1511,19 +1511,19 @@
         }
       }
 
-      setupNavButton('userManagementBtn', '/admin-users.html');
-      setupNavButton('packageManagementBtn', '/admin-packages.html');
-      setupNavButton('homepageChangesBtn', '/admin-homepage.html');
-      setupNavButton('supportTicketsBtn', '/admin-tickets.html');
-      setupNavButton('paymentsAnalyticsBtn', '/admin-payments.html');
-      setupNavButton('reportsQueueBtn', '/admin-reports.html');
-      setupNavButton('auditLogBtn', '/admin-audit.html');
-      setupNavButton('adminSettingsBtn', '/admin-settings.html');
+      setupNavButton('userManagementBtn', '/admin-users');
+      setupNavButton('packageManagementBtn', '/admin-packages');
+      setupNavButton('homepageChangesBtn', '/admin-homepage');
+      setupNavButton('supportTicketsBtn', '/admin-tickets');
+      setupNavButton('paymentsAnalyticsBtn', '/admin-payments');
+      setupNavButton('reportsQueueBtn', '/admin-reports');
+      setupNavButton('auditLogBtn', '/admin-audit');
+      setupNavButton('adminSettingsBtn', '/admin-settings');
 
       // Moderation queue buttons
-      setupNavButton('reviewPhotosBtn', '/admin-photos.html');
-      setupNavButton('reviewReportsBtn', '/admin-reports.html');
-      setupNavButton('verifySuppliersBtn', '/admin-users.html#suppliers');
+      setupNavButton('reviewPhotosBtn', '/admin-photos');
+      setupNavButton('reviewReportsBtn', '/admin-reports');
+      setupNavButton('verifySuppliersBtn', '/admin-suppliers');
 
       const reviewReviewsBtn = document.getElementById('reviewReviewsBtn');
       if (reviewReviewsBtn) {

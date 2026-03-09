@@ -178,7 +178,7 @@
     }
 
     try {
-      await AdminShared.api(`/api/admin/photos/${photoId}/approve`, 'POST', { approved: false });
+      await AdminShared.api(`/api/admin/photos/${photoId}/reject`, 'POST', {});
       await loadPhotos();
       AdminShared.showToast('Photo rejected', 'success');
     } catch (err) {
@@ -234,7 +234,7 @@
 
     try {
       const promises = Array.from(selectedPhotos).map(id =>
-        AdminShared.api(`/api/admin/photos/${id}/approve`, 'POST', { approved: false })
+        AdminShared.api(`/api/admin/photos/${id}/reject`, 'POST', {})
       );
 
       await Promise.all(promises);

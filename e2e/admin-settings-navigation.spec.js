@@ -3,8 +3,8 @@
  * Tests that admin settings links navigate correctly from admin pages
  *
  * Validates:
- * - Dropdown settings link navigates to /admin-settings.html
- * - Quick action settings button navigates to /admin-settings.html
+ * - Dropdown settings link navigates to /admin-settings (canonical clean URL)
+ * - Quick action settings button navigates to /admin-settings
  */
 
 import { test, expect } from '@playwright/test';
@@ -41,7 +41,7 @@ test.describe('Admin Settings Navigation', () => {
     });
   });
 
-  test('Admin dropdown settings link navigates to admin-settings.html', async ({ page }) => {
+  test('Admin dropdown settings link navigates to /admin-settings', async ({ page }) => {
     // Navigate to admin dashboard
     await page.goto('/admin.html');
 
@@ -55,18 +55,12 @@ test.describe('Admin Settings Navigation', () => {
     const settingsLink = page.locator('a.admin-dropdown-item:has-text("Settings")');
     await expect(settingsLink).toBeVisible();
 
-    // Verify the link has correct href
+    // Verify the link has correct href (canonical clean URL, no .html extension)
     const href = await settingsLink.getAttribute('href');
-    expect(href).toBe('/admin-settings.html');
-
-    // Click the link
-    await settingsLink.click();
-
-    // Verify navigation to admin-settings.html
-    await expect(page).toHaveURL(/.*admin-settings\.html/);
+    expect(href).toBe('/admin-settings');
   });
 
-  test('Quick action settings button navigates to admin-settings.html', async ({ page }) => {
+  test('Quick action settings button navigates to /admin-settings', async ({ page }) => {
     // Navigate to admin dashboard
     await page.goto('/admin.html');
 
@@ -83,8 +77,8 @@ test.describe('Admin Settings Navigation', () => {
     // Click the button
     await settingsButton.click();
 
-    // Verify navigation to admin-settings.html
-    await expect(page).toHaveURL(/.*admin-settings\.html/);
+    // Verify navigation to /admin-settings (canonical clean URL)
+    await expect(page).toHaveURL(/\/admin-settings$/);
   });
 
   test('Settings dropdown link is correct on admin-users page', async ({ page }) => {
@@ -101,9 +95,9 @@ test.describe('Admin Settings Navigation', () => {
     const settingsLink = page.locator('a.admin-dropdown-item:has-text("Settings")');
     await expect(settingsLink).toBeVisible();
 
-    // Verify the link has correct href (should be admin-settings, not settings)
+    // Verify the link has correct href (canonical clean URL, no .html extension)
     const href = await settingsLink.getAttribute('href');
-    expect(href).toBe('/admin-settings.html');
+    expect(href).toBe('/admin-settings');
   });
 
   test('Settings dropdown link is correct on admin-packages page', async ({ page }) => {
@@ -120,8 +114,8 @@ test.describe('Admin Settings Navigation', () => {
     const settingsLink = page.locator('a.admin-dropdown-item:has-text("Settings")');
     await expect(settingsLink).toBeVisible();
 
-    // Verify the link has correct href (should be admin-settings, not settings)
+    // Verify the link has correct href (canonical clean URL, no .html extension)
     const href = await settingsLink.getAttribute('href');
-    expect(href).toBe('/admin-settings.html');
+    expect(href).toBe('/admin-settings');
   });
 });
