@@ -83,13 +83,7 @@ router.post(
   async (req, res) => {
     try {
       const userId = req.user.id;
-      const {
-        senderType,
-        senderName,
-        senderEmail,
-        subject,
-        message,
-      } = req.body;
+      const { senderType, senderName, senderEmail, subject, message } = req.body;
 
       // Validation
       if (!subject || !message) {

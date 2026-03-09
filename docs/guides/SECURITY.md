@@ -89,7 +89,7 @@ await AdminShared.api('/api/admin/packages/123/approve', 'POST');
 // For custom fetch calls, read the token from the cookie:
 function getCsrfToken() {
   const match = document.cookie.match(/(?:^|;\s*)csrfToken=([^;]+)/);
-  return match ? decodeURIComponent(match[1]) : (window.__CSRF_TOKEN__ || window.csrfToken || '');
+  return match ? decodeURIComponent(match[1]) : window.__CSRF_TOKEN__ || window.csrfToken || '';
 }
 fetch('/api/...', {
   method: 'POST',

@@ -1370,7 +1370,8 @@
 
       // Store plan ID (if returned) for the "View Your Plan" link on the success screen
       if (saveResult && saveResult.status !== 401) {
-        savedPlanId = saveResult.plan?.id || saveResult.plan?._id || saveResult._id || saveResult.id || null;
+        savedPlanId =
+          saveResult.plan?.id || saveResult.plan?._id || saveResult._id || saveResult.id || null;
       }
 
       // Mark wizard as completed and disable beforeunload warning

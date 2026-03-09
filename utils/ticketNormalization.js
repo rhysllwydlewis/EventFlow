@@ -68,7 +68,10 @@ function normalizeTicketRecord(rawTicket = {}, options = {}) {
     ticket.accountTier = null; // legacy ticket — unknown tier
   }
 
-  if (typeof ticket.prioritySource === 'string' && VALID_PRIORITY_SOURCES.has(ticket.prioritySource)) {
+  if (
+    typeof ticket.prioritySource === 'string' &&
+    VALID_PRIORITY_SOURCES.has(ticket.prioritySource)
+  ) {
     // keep as-is
   } else {
     ticket.prioritySource = 'auto'; // legacy ticket — assume auto-assigned
