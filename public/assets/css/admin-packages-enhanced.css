@@ -558,3 +558,61 @@
     justify-content: center;
   }
 }
+
+/* -----------------------------------------------------------------------
+ * Filter button state styles (moved from inline <style> in admin-packages.html)
+ * ----------------------------------------------------------------------- */
+.filter-btn.active {
+  background: #0B8073 !important;
+  color: white !important;
+  border-color: #0B8073 !important;
+}
+
+.filter-btn:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.filter-btn.active:hover {
+  background: #0a6d61 !important;
+}
+
+/* -----------------------------------------------------------------------
+ * Package list toolbar — class-based replacements for former inline styles
+ * ----------------------------------------------------------------------- */
+.packages-toolbar {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.packages-search-input {
+  padding: 0.5rem;
+  border: 1px solid #d4d4d8;
+  border-radius: 4px;
+  width: 300px;
+}
+
+.packages-filter-group {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.packages-filter-label {
+  font-weight: 600;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.filter-btn {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid #d4d4d8;
+  border-radius: 4px;
+  background: #fff;
+  color: #374151;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}

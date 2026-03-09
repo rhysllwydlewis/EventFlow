@@ -1867,6 +1867,12 @@ if (document.readyState === 'loading') {
   AdminShared.init();
 }
 
+// Expose on window so that ES module scripts (type="module") can access
+// window.AdminShared.api() — const declarations are not added to window automatically.
+if (typeof window !== 'undefined') {
+  window.AdminShared = AdminShared;
+}
+
 // Export for ES modules
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = AdminShared;

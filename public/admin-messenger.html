@@ -85,47 +85,46 @@
   <div class="container">
     <div class="card">
       <!-- Toolbar -->
-      <div class="admin-toolbar" style="display:flex;gap:12px;flex-wrap:wrap;padding:16px;border-bottom:1px solid rgba(0,0,0,0.08);">
+      <div class="admin-toolbar admin-messenger-toolbar">
         <input type="text" id="messengerSearch" placeholder="Search conversations…"
-               style="flex:1;min-width:200px;" aria-label="Search conversations">
+               class="admin-messenger-search" aria-label="Search conversations">
         <select id="statusFilter" aria-label="Filter by status">
           <option value="">All statuses</option>
           <option value="active">Active</option>
           <option value="archived">Archived</option>
           <option value="deleted">Deleted</option>
         </select>
-        <button id="searchBtn" class="btn btn-primary" style="min-width:100px;">Search</button>
+        <button id="searchBtn" class="btn btn-primary admin-messenger-search-btn">Search</button>
       </div>
 
       <!-- Results summary -->
-      <p id="resultsSummary" style="padding:8px 16px;font-size:0.85rem;color:#6b7280;margin:0;"></p>
+      <p id="resultsSummary" class="admin-messenger-summary"></p>
 
       <!-- Table -->
-      <div style="overflow-x:auto;">
-        <table style="width:100%;border-collapse:collapse;" id="conversationsTable" aria-label="Conversations">
+      <div class="admin-messenger-table-wrap">
+        <table class="admin-messenger-table" id="conversationsTable" aria-label="Conversations">
           <thead>
-            <tr style="background:rgba(11,128,115,0.06);text-align:left;">
-              <th style="padding:12px 16px;font-size:0.82rem;color:#374151;">Participants</th>
-              <th style="padding:12px 16px;font-size:0.82rem;color:#374151;">Type</th>
-              <th style="padding:12px 16px;font-size:0.82rem;color:#374151;">Last message</th>
-              <th style="padding:12px 16px;font-size:0.82rem;color:#374151;">Updated</th>
-              <th style="padding:12px 16px;font-size:0.82rem;color:#374151;">Status</th>
-              <th style="padding:12px 16px;font-size:0.82rem;color:#374151;">Actions</th>
+            <tr class="admin-messenger-thead-row">
+              <th class="admin-messenger-th">Participants</th>
+              <th class="admin-messenger-th">Type</th>
+              <th class="admin-messenger-th">Last message</th>
+              <th class="admin-messenger-th">Updated</th>
+              <th class="admin-messenger-th">Status</th>
+              <th class="admin-messenger-th">Actions</th>
             </tr>
           </thead>
           <tbody id="conversationsBody">
             <tr>
-              <td colspan="6" style="padding:32px;text-align:center;color:#9ca3af;">Loading…</td>
+              <td colspan="6" class="admin-messenger-state admin-messenger-state--loading">Loading…</td>
             </tr>
           </tbody>
         </table>
       </div>
 
       <!-- Pagination -->
-      <div id="paginationControls"
-           style="display:flex;align-items:center;gap:12px;padding:14px 16px;border-top:1px solid rgba(0,0,0,0.06);">
+      <div id="paginationControls" class="admin-messenger-pagination">
         <button id="prevPageBtn" class="btn btn-secondary" disabled>← Prev</button>
-        <span id="pageInfo" style="font-size:0.85rem;color:#6b7280;flex:1;text-align:center;"></span>
+        <span id="pageInfo" class="admin-messenger-page-info"></span>
         <button id="nextPageBtn" class="btn btn-secondary" disabled>Next →</button>
       </div>
     </div>
