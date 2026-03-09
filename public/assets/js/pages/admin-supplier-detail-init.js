@@ -18,6 +18,10 @@
       document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
       btn.classList.add('active');
       document.getElementById(tab).classList.add('active');
+      // Lazy-load verification audit when that tab is first opened
+      if (tab === 'verification') {
+        loadVerificationAudit();
+      }
     });
   });
 
@@ -109,7 +113,7 @@
       }
     }
 
-    // Approve button: enabled unless already approved or suspended
+    // Approve button: enabled unless already approved; shows "Reinstate" when suspended
     const approveBtn = document.getElementById('approveBtn');
     if (approveBtn) {
       const canApprove = [
@@ -121,6 +125,7 @@
         'pending',
       ].includes(stateForButtons);
       approveBtn.disabled = !canApprove;
+      approveBtn.textContent = stateForButtons === 'suspended' ? 'Reinstate' : 'Approve';
     }
 
     // Request Changes: only from pending_review
@@ -360,12 +365,88 @@
     }
   }
 
+  async function loadVerificationAudit() {
+    const container = document.getElementById('verificationTimeline');
+    if (!container) {
+      return;
+    }
+
+    try {
+      const data = await AdminShared.api(`/api/admin/suppliers/${supplierId}/audit`);
+      const entries = data.audit || [];
+
+      if (entries.length === 0) {
+        container.innerHTML = '<p class="timeline-empty">No verification events recorded yet.</p>';
+        return;
+      }
+
+      const ACTION_LABELS = {
+        supplier_approved: '✅ Approved',
+        supplier_rejected: '❌ Rejected',
+        supplier_needs_changes: '⚠️ Changes Requested',
+        supplier_suspended: '🚫 Suspended',
+        supplier_reinstated: '🔄 Reinstated',
+        supplier_verified: '✅ Verified',
+        supplier_verification_submitted: '📋 Submitted for Review',
+      };
+
+      const ACTION_CLASS = {
+        supplier_approved: 'entry-approved',
+        supplier_verified: 'entry-approved',
+        supplier_rejected: 'entry-rejected',
+        supplier_needs_changes: 'entry-needs_changes',
+        supplier_suspended: 'entry-suspended',
+        supplier_reinstated: 'entry-approved',
+        supplier_verification_submitted: 'entry-submitted',
+      };
+
+      container.innerHTML = entries
+        .map(entry => {
+          const label = ACTION_LABELS[entry.action] || entry.action.replace(/_/g, ' ');
+          const cls = ACTION_CLASS[entry.action] || '';
+          const ts = entry.timestamp
+            ? new Date(entry.timestamp).toLocaleString('en-GB', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              })
+            : 'Unknown time';
+
+          const notesText = entry.details?.notes || entry.details?.reason || '';
+          const notesHtml = notesText
+            ? `<div class="timeline-notes">"${AdminShared.escapeHtml(notesText)}"</div>`
+            : '';
+
+          return `
+            <div class="timeline-entry ${cls}">
+              <div class="timeline-action">${label}</div>
+              <div class="timeline-actor">by ${AdminShared.escapeHtml(entry.actor || 'System')} · ${ts}</div>
+              ${notesHtml}
+            </div>
+          `;
+        })
+        .join('');
+    } catch (err) {
+      console.error('Failed to load verification audit:', err);
+      container.innerHTML = '<p class="timeline-empty">Unable to load verification history.</p>';
+    }
+  }
+
   // Action handlers
   document.getElementById('approveBtn')?.addEventListener('click', async () => {
+    const isSuspended = supplierData?.verificationStatus === 'suspended';
+    const actionTitle = isSuspended ? 'Reinstate Supplier' : 'Approve Supplier';
+    const actionMessage = isSuspended
+      ? 'Reinstate this supplier? They will be fully approved and visible again.'
+      : 'Approve this supplier? You can add optional notes.';
+    const successMessage = isSuspended ? 'Supplier reinstated' : 'Supplier approved';
+
     const notesResult = await AdminShared.showInputModal({
-      title: 'Approve Supplier',
-      message: 'Approve this supplier? You can add optional notes.',
-      label: 'Approval Notes (optional)',
+      title: actionTitle,
+      message: actionMessage,
+      label: 'Notes (optional)',
       placeholder: 'e.g., Documents verified, identity confirmed.',
       required: false,
       type: 'textarea',
@@ -379,13 +460,10 @@
       await AdminShared.api(`/api/admin/suppliers/${supplierId}/approve`, 'POST', {
         notes: notesResult.value || '',
       });
-      AdminShared.showToast('Supplier approved', 'success');
+      AdminShared.showToast(successMessage, 'success');
       loadSupplier();
     } catch (err) {
-      AdminShared.showToast(
-        `Failed to approve supplier: ${err.message || 'Unknown error'}`,
-        'error'
-      );
+      AdminShared.showToast(`Failed: ${err.message || 'Unknown error'}`, 'error');
     }
   });
 

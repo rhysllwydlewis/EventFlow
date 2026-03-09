@@ -42,7 +42,7 @@
       const tbody = document.getElementById('suppliersTableBody');
       if (tbody) {
         tbody.innerHTML =
-          '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #ef4444;">⚠️ Error loading suppliers. Please refresh the page.</td></tr>';
+          '<tr><td colspan="9" style="text-align: center; padding: 40px; color: #ef4444;">⚠️ Error loading suppliers. Please refresh the page.</td></tr>';
       }
     }
   }
@@ -250,7 +250,7 @@
 
     if (pageSuppliers.length === 0) {
       tbody.innerHTML =
-        '<tr><td colspan="8" style="text-align: center; padding: 40px; color: #9ca3af;">No suppliers found</td></tr>';
+        '<tr><td colspan="9" style="text-align: center; padding: 40px; color: #9ca3af;">No suppliers found</td></tr>';
       updatePagination();
       return;
     }
@@ -264,12 +264,17 @@
           supplier.healthBreakdown
         );
 
+        const verificationBadge = getVerificationBadge(
+          supplier.verificationStatus || (supplier.verified ? 'approved' : 'unverified')
+        );
+
         return `
         <tr>
           <td><input type="checkbox" ${isSelected ? 'checked' : ''} onchange="window.toggleSupplierSelection('${escapeHtml(supplier.id)}')"></td>
           <td><a href="/admin-supplier-detail?id=${escapeHtml(supplier.id)}" style="color: #667eea; font-weight: 500;">${escapeHtml(supplier.name || 'Unknown')}</a></td>
           <td>${escapeHtml(supplier.email || '')}</td>
           <td>${supplier.approved ? '<span style="color: #10b981;">✓ Yes</span>' : '<span style="color: #f59e0b;">Pending</span>'}</td>
+          <td>${verificationBadge}</td>
           <td>${subscriptionBadge}</td>
           <td>${healthScoreBadge}</td>
           <td><span style="font-size: 12px; color: #6b7280;">${escapeHtml(supplier.tags?.join(', ') || 'None')}</span></td>
@@ -337,6 +342,31 @@
       pro_plus: '<span class="subscription-badge badge-pro-plus">PRO+</span>',
     };
     return badges[tier] || badges.free;
+  }
+
+  // Get verification status badge HTML
+  function getVerificationBadge(status) {
+    const STYLES = {
+      unverified: 'background:#e5e7eb;color:#374151',
+      pending_review: 'background:#fef3c7;color:#92400e',
+      needs_changes: 'background:#fed7aa;color:#9a3412',
+      approved: 'background:#d1fae5;color:#065f46',
+      verified: 'background:#d1fae5;color:#065f46',
+      rejected: 'background:#fee2e2;color:#991b1b',
+      suspended: 'background:#f3f4f6;color:#374151',
+    };
+    const LABELS = {
+      unverified: 'Unverified',
+      pending_review: 'Pending Review',
+      needs_changes: 'Needs Changes',
+      approved: 'Approved',
+      verified: 'Approved',
+      rejected: 'Rejected',
+      suspended: 'Suspended',
+    };
+    const style = STYLES[status] || STYLES.unverified;
+    const label = LABELS[status] || status;
+    return `<span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:999px;${style}">${label}</span>`;
   }
 
   // Update pagination

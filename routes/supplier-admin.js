@@ -9,6 +9,7 @@ const express = require('express');
 const logger = require('../utils/logger');
 const { auditLog, AUDIT_ACTIONS } = require('../middleware/audit');
 const { writeLimiter, apiLimiter } = require('../middleware/rateLimits');
+const postmark = require('../utils/postmark');
 const {
   VERIFICATION_STATES,
   normaliseState,
@@ -86,9 +87,102 @@ function applyCsrfProtection(req, res, next) {
 }
 
 /**
- * GET /api/admin/suppliers
- * List all suppliers with Pro status
+ * Send a verification status notification email to the supplier.
+ * Errors are caught and logged — they must never break the API response.
+ *
+ * @param {{ email: string, name: string }} supplier
+ * @param {'approved'|'rejected'|'needs_changes'|'suspended'} action
+ * @param {string} [notes] - Optional reason / notes for the supplier
  */
+async function sendVerificationEmail(supplier, action, notes) {
+  if (!supplier.email) {
+    return;
+  }
+
+  const BASE_URL = process.env.BASE_URL || process.env.APP_BASE_URL || 'https://event-flow.co.uk';
+  const supplierName = supplier.name || 'Supplier';
+  const dashboardUrl = `${BASE_URL}/dashboard-supplier`;
+
+  const subjects = {
+    approved: '🎉 Your EventFlow supplier profile has been approved',
+    rejected: 'Your EventFlow supplier application — update required',
+    needs_changes: 'Action required: changes needed on your EventFlow supplier profile',
+    suspended: 'Your EventFlow supplier account has been suspended',
+  };
+
+  const bodies = {
+    approved: [
+      `Hi ${supplierName},`,
+      '',
+      'Great news — your supplier profile has been reviewed and approved! 🎉',
+      '',
+      'You can now appear in search results, receive enquiries, and accept bookings on EventFlow.',
+      '',
+      `Visit your dashboard: ${dashboardUrl}`,
+      '',
+      '— The EventFlow Team',
+    ].join('\n'),
+
+    rejected: [
+      `Hi ${supplierName},`,
+      '',
+      "Thank you for applying to join EventFlow. Unfortunately, after review, we're unable to approve your profile at this time.",
+      notes ? `\nReason: ${notes}` : '',
+      '',
+      'You may resubmit your application after addressing the points above.',
+      '',
+      `Visit your dashboard: ${dashboardUrl}`,
+      '',
+      '— The EventFlow Team',
+    ].join('\n'),
+
+    needs_changes: [
+      `Hi ${supplierName},`,
+      '',
+      'We have reviewed your supplier profile and need a few changes before we can approve it.',
+      notes ? `\nWhat we need from you:\n${notes}` : '',
+      '',
+      'Please log in to your dashboard, make the updates, and resubmit for review.',
+      '',
+      `Visit your dashboard: ${dashboardUrl}`,
+      '',
+      '— The EventFlow Team',
+    ].join('\n'),
+
+    suspended: [
+      `Hi ${supplierName},`,
+      '',
+      'Your EventFlow supplier account has been temporarily suspended.',
+      notes ? `\nReason: ${notes}` : '',
+      '',
+      'If you believe this is in error, please contact our support team.',
+      '',
+      '— The EventFlow Team',
+    ].join('\n'),
+  };
+
+  const subject = subjects[action];
+  const text = bodies[action];
+
+  if (!subject || !text) {
+    return;
+  }
+
+  try {
+    await postmark.sendMail({
+      to: supplier.email,
+      from: process.env.POSTMARK_FROM_HELLO || process.env.POSTMARK_FROM,
+      subject,
+      text,
+    });
+  } catch (emailErr) {
+    logger.warn('Failed to send verification email to supplier:', {
+      supplierId: supplier.id,
+      action,
+      error: emailErr.message,
+    });
+  }
+}
 router.get('/suppliers', applyAuthRequired, applyRoleRequired('admin'), async (_req, res) => {
   try {
     const raw = await dbUnified.read('suppliers');
@@ -192,6 +286,9 @@ router.post(
         details: { name: s.name, notes: updates.verificationNotes },
       });
 
+      // Non-blocking email notification to supplier
+      sendVerificationEmail(s, 'approved', updates.verificationNotes).catch(() => {});
+
       res.json({ ok: true, supplier: { ...s, ...updates } });
     } catch (error) {
       logger.error('Error approving supplier:', error);
@@ -253,6 +350,9 @@ router.post(
         details: { name: s.name, reason },
       });
 
+      // Non-blocking email notification to supplier
+      sendVerificationEmail(s, 'rejected', reason).catch(() => {});
+
       res.json({ ok: true, supplier: { ...s, ...updates } });
     } catch (error) {
       logger.error('Error rejecting supplier:', error);
@@ -311,6 +411,9 @@ router.post(
         targetId: s.id,
         details: { name: s.name, reason },
       });
+
+      // Non-blocking email notification to supplier
+      sendVerificationEmail(s, 'needs_changes', reason).catch(() => {});
 
       res.json({ ok: true, supplier: { ...s, ...updates } });
     } catch (error) {
@@ -371,6 +474,9 @@ router.post(
         targetId: s.id,
         details: { name: s.name, reason },
       });
+
+      // Non-blocking email notification to supplier
+      sendVerificationEmail(s, 'suspended', reason).catch(() => {});
 
       res.json({ ok: true, supplier: { ...s, ...updates } });
     } catch (error) {
