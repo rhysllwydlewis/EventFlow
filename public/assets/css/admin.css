@@ -441,10 +441,13 @@ select:focus-visible {
 .ticket-modal__sender {
   margin: 0 0 0.25rem;
   color: #6b7280;
+  font-size: 0.875rem;
 }
 
 .ticket-modal__subject {
   margin: 0 0 0.5rem;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .ticket-modal__meta {
@@ -454,6 +457,7 @@ select:focus-visible {
   margin-bottom: 0.75rem;
   flex-wrap: wrap;
   color: #6b7280;
+  font-size: 0.875rem;
 }
 
 .ticket-modal__message {
@@ -462,6 +466,8 @@ select:focus-visible {
   border-radius: 8px;
   padding: 0.75rem;
   white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
   margin: 0 0 1rem;
 }
 
@@ -472,12 +478,21 @@ select:focus-visible {
   margin: 0 0 1rem;
 }
 
+.ticket-modal__controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .ticket-modal__section-heading {
   margin: 0 0 0.5rem;
 }
 
 .ticket-modal__responses {
   margin-bottom: 1rem;
+  max-height: 320px;
+  overflow-y: auto;
+  scroll-behavior: smooth;
 }
 
 .ticket-modal__reply-label {
@@ -583,17 +598,12 @@ select:focus-visible {
 
   .ticket-modal__footer-actions .btn {
     flex: 1;
+    justify-content: center;
   }
 
   /* Summary cards: 2-up grid */
   .ticket-summary-grid {
     grid-template-columns: repeat(2, 1fr);
-  }
-
-  /* Ensure table scrolls horizontally */
-  .table-wrapper {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
   }
 }
 
@@ -615,11 +625,21 @@ select:focus-visible {
 
   .admin-toolbar .btn-secondary {
     width: 100%;
+    justify-content: center;
   }
 
   /* Summary cards: 2-up on small screens */
   .ticket-summary-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* Tighten modal padding on small phones */
+  .ticket-modal .modal-body {
+    padding: 1rem;
+  }
+
+  .ticket-modal .modal-footer {
+    padding: 0.75rem 1rem;
   }
 }
 
@@ -628,5 +648,10 @@ select:focus-visible {
   /* Summary cards: single column on tiny screens */
   .ticket-summary-grid {
     grid-template-columns: 1fr;
+  }
+
+  /* Further reduce padding on very small screens */
+  .ticket-modal .modal-body {
+    padding: 0.75rem;
   }
 }

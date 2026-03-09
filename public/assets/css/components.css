@@ -4183,10 +4183,14 @@ body.cookie-prefs-open {
 
 .ticket-detail__subject {
   margin: 0.5rem 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .ticket-detail__message {
   margin: 0.5rem 0;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .ticket-detail__status-desc {
@@ -4220,17 +4224,29 @@ body.cookie-prefs-open {
 .ticket-response__header {
   display: flex;
   justify-content: space-between;
+  align-items: baseline;
   margin-bottom: 0.5rem;
   gap: 0.75rem;
+  min-width: 0;
+}
+
+.ticket-response__header strong {
+  min-width: 0;
+  overflow-wrap: break-word;
+  flex: 1;
 }
 
 .ticket-response__timestamp {
   color: #9ca3af;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .ticket-response__body {
   margin: 0;
   white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .ticket-detail__no-responses {
@@ -4265,5 +4281,14 @@ body.cookie-prefs-open {
   .ticket-create-modal,
   .ticket-view-modal {
     max-width: 100%;
+  }
+
+  .ticket-reply-form__actions {
+    justify-content: stretch;
+  }
+
+  .ticket-reply-form__actions .btn {
+    width: 100%;
+    justify-content: center;
   }
 }
