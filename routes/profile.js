@@ -111,10 +111,7 @@ router.put('/', writeLimiter, authRequired, csrfProtection, async (req, res) => 
     }
 
     if (location !== undefined) {
-      if (!location || !String(location).trim()) {
-        return res.status(400).json({ error: 'Location is required' });
-      }
-      profileUpdates.location = String(location).trim().slice(0, 100);
+      profileUpdates.location = location ? String(location).trim().slice(0, 100) : null;
     }
 
     // Role-specific validation

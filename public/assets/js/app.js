@@ -2804,7 +2804,8 @@ async function initDashSupplier() {
         const toggleBtn = document.getElementById('toggle-profile-form');
         if (toggleBtn) {
           const labelSpan = toggleBtn.querySelector('.label');
-          if (labelSpan && !formSection?.classList.contains('expanded')) {
+          const profileFormSection = document.getElementById('profile-form-section');
+          if (labelSpan && !profileFormSection?.classList.contains('expanded')) {
             labelSpan.textContent = 'Edit Profile';
           }
         }
