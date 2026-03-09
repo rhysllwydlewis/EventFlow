@@ -26,7 +26,6 @@ const routerSrc = read('routes/messenger-v4.js');
 const svcSrc = read('services/notification.service.js');
 const notifSvcSrc = read('services/notificationService.js');
 const modelSrc = read('models/ConversationV4.js');
-const contextConstantsSrc = read('utils/messengerContextTypes.js');
 const routeIndexSrc = read('routes/index.js');
 const unreadBadgeSrc = read('public/assets/js/unread-badge-manager.js');
 const messengerAppV4Src = read('public/messenger/js/MessengerAppV4.js');
@@ -172,5 +171,84 @@ describe('Unread count consistency', () => {
   it('messenger-v4 route exposes GET /unread-count endpoint', () => {
     expect(routerSrc).toContain("'/unread-count'");
     expect(routerSrc).toContain('getUnreadCount');
+  });
+
+  it('UnreadBadgeManager.updatePageTitle matches /messenger/ path (not just /messages)', () => {
+    // '/messenger/'.includes('messages') === false — must check 'messenger' explicitly
+    expect(unreadBadgeSrc).toContain("pathname.includes('messenger')");
+  });
+
+  it('UnreadBadgeManager.updatePageTitle uses canonical page title "Messenger | EventFlow"', () => {
+    expect(unreadBadgeSrc).toContain('Messenger | EventFlow');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 5. Frontend context type usage
+// ---------------------------------------------------------------------------
+
+describe('Frontend data-context-type attribute values', () => {
+  const VALID_CONTEXT_TYPES = [
+    'package',
+    'supplier_profile',
+    'marketplace_listing',
+    'find_a_supplier',
+  ];
+
+  // Search all HTML and JS files in public/ for data-context-type= usages
+  // Excludes JSDoc/comment lines (lines starting with * or // after trim)
+  function collectContextTypeValues() {
+    const found = [];
+    const publicDir = path.join(ROOT, 'public');
+
+    function walk(dir) {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          walk(fullPath);
+          continue;
+        }
+        if (!entry.name.endsWith('.html') && !entry.name.endsWith('.js')) {
+          continue;
+        }
+        const src = fs.readFileSync(fullPath, 'utf8');
+        for (const line of src.split('\n')) {
+          // Skip comment lines (JSDoc, inline comments)
+          const trimmed = line.trimStart();
+          if (trimmed.startsWith('*') || trimmed.startsWith('//')) {
+            continue;
+          }
+          const regex = /data-context-type=["']([^"']+)["']/g;
+          let m;
+          while ((m = regex.exec(line)) !== null) {
+            found.push({ value: m[1], file: path.relative(ROOT, fullPath) });
+          }
+        }
+      }
+    }
+
+    walk(publicDir);
+    return found;
+  }
+
+  it('all data-context-type values in public/ HTML/JS are valid CONVERSATION_CONTEXT_TYPES', () => {
+    const usages = collectContextTypeValues();
+    const invalid = usages.filter(u => !VALID_CONTEXT_TYPES.includes(u.value));
+    if (invalid.length > 0) {
+      const details = invalid.map(u => `  "${u.value}" in ${u.file}`).join('\n');
+      throw new Error(
+        `Found invalid data-context-type values (must be one of: ${VALID_CONTEXT_TYPES.join(', ')}):\n${details}`
+      );
+    }
+    // At least one usage must exist to confirm the attribute is in use
+    expect(usages.length).toBeGreaterThan(0);
+  });
+
+  it('supplier.html uses supplier_profile (not the bare "supplier") as context type', () => {
+    const supplierHtml = read('public/supplier.html');
+    const matches = [...supplierHtml.matchAll(/data-context-type=["']([^"']+)["']/g)];
+    matches.forEach(m => {
+      expect(VALID_CONTEXT_TYPES).toContain(m[1]);
+    });
   });
 });

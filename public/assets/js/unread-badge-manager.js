@@ -91,12 +91,15 @@ class UnreadBadgeManager {
   }
 
   /**
-   * Update page title with unread count (e.g., "(3) Messages - EventFlow")
+   * Update page title with unread count (e.g., "(3) Messenger - EventFlow")
+   * Works on the canonical /messenger/ path and legacy /messages paths.
    * @param {number} count - Unread count
    */
   updatePageTitle(count) {
-    if (window.location.pathname.includes('messages')) {
-      const baseTitle = 'Messages - EventFlow';
+    const { pathname } = window.location;
+    // Match /messenger/ (canonical) and /messages* (legacy redirect targets)
+    if (pathname.includes('messenger') || pathname.includes('messages')) {
+      const baseTitle = 'Messenger | EventFlow';
       document.title = count > 0 ? `(${count}) ${baseTitle}` : baseTitle;
     }
   }
