@@ -47,6 +47,7 @@
       mobileLogout: document.getElementById('ef-mobile-logout'),
       bottomDashboard: document.getElementById('ef-bottom-dashboard'),
       bottomAlerts: document.getElementById('ef-bottom-alerts'),
+      bottomSettings: document.getElementById('ef-bottom-settings'),
 
       // Notifications
       notificationBtn: document.getElementById('ef-notification-btn'),
@@ -252,10 +253,18 @@
         elements.bottomDashboard.style.display = 'flex';
       }
 
+      // Show bottom settings link when logged in
+      if (elements.bottomSettings) {
+        elements.bottomSettings.style.display = 'flex';
+      }
+
       // Hide bottom alerts button when logged in
       if (elements.bottomAlerts) {
         elements.bottomAlerts.style.display = 'none';
       }
+
+      // Re-run active-page highlighting now that dashboard href is resolved
+      setCurrentPage();
 
       // Show notification bell ONLY when logged in (desktop)
       // Re-query DOM to ensure fresh reference
@@ -308,6 +317,11 @@
       // Hide bottom dashboard
       if (elements.bottomDashboard) {
         elements.bottomDashboard.style.display = 'none';
+      }
+
+      // Hide bottom settings link when logged out
+      if (elements.bottomSettings) {
+        elements.bottomSettings.style.display = 'none';
       }
 
       // Show bottom alerts button when logged out
