@@ -205,7 +205,7 @@ router.post('/contact', applyWriteLimiter, async (req, res) => {
     const email = String(req.body.email || '')
       .trim()
       .slice(0, CONTACT_MAX_EMAIL_LENGTH);
-    const subject = String(req.body.subject || 'General Enquiry')
+    const subject = String(req.body.subject || '')
       .trim()
       .slice(0, CONTACT_MAX_SUBJECT_LENGTH);
     const message = String(req.body.message || '')
@@ -213,8 +213,8 @@ router.post('/contact', applyWriteLimiter, async (req, res) => {
       .slice(0, CONTACT_MAX_MESSAGE_LENGTH);
 
     // Validate required fields
-    if (!name || !email || !message) {
-      return res.status(400).json({ error: 'Name, email, and message are required' });
+    if (!name || !email || !subject || !message) {
+      return res.status(400).json({ error: 'Name, email, subject and message are required' });
     }
 
     // Basic email format check

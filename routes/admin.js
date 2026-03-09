@@ -20,6 +20,7 @@ const { normalizeTicketRecord } = require('../utils/ticketNormalization');
 const { PRIORITY_RANK } = require('../utils/tierPriority');
 const photoUpload = require('../photo-upload');
 const postmark = require('../utils/postmark');
+const { FROM_SUPPORT: POSTMARK_FROM_SUPPORT_ADDR } = postmark;
 
 const router = express.Router();
 
@@ -3498,7 +3499,7 @@ router.post(
         try {
           await postmark.sendMail({
             to: enquiry.senderEmail,
-            from: process.env.POSTMARK_FROM_SUPPORT || process.env.POSTMARK_FROM,
+            from: POSTMARK_FROM_SUPPORT_ADDR,
             subject: `Re: ${subjectText}`,
             text: [
               `Hi ${senderName},`,
