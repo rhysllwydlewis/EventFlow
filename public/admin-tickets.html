@@ -178,8 +178,8 @@
       <div class="dashboard-header">
         <div class="header-content">
           <div>
-            <h1 class="dashboard-title">Support Tickets</h1>
-            <p class="dashboard-subtitle">Manage support requests — tickets are prioritized automatically by account tier (Pro Plus → Urgent, Pro → High, Free → Medium)</p>
+            <h1 class="dashboard-title">Support Tickets &amp; Enquiries</h1>
+            <p class="dashboard-subtitle">Manage support requests and external contact form enquiries. Tickets are prioritized automatically by account tier (Pro Plus → Urgent, Pro → High, Free → Medium)</p>
           </div>
           <div class="header-actions">
             <button class="btn-secondary" id="backToDashboard">← Back to Dashboard</button>
@@ -188,7 +188,19 @@
       </div>
 
       <div class="container">
-        <div class="data-section">
+        <!-- Tab navigation -->
+        <div class="admin-tabs" role="tablist" aria-label="Ticket sections">
+          <button class="admin-tab admin-tab--active" id="tab-tickets" role="tab" aria-selected="true" aria-controls="panel-tickets" data-tab="tickets">
+            🎫 Support Tickets
+          </button>
+          <button class="admin-tab" id="tab-contacts" role="tab" aria-selected="false" aria-controls="panel-contacts" data-tab="contacts">
+            📬 External Contacts
+            <span class="admin-tab-badge" id="contactEnquiriesBadge" style="display:none;"></span>
+          </button>
+        </div>
+
+        <!-- PANEL: Support Tickets -->
+        <div id="panel-tickets" class="admin-tab-panel data-section" role="tabpanel" aria-labelledby="tab-tickets">
           <div class="admin-toolbar">
             <input
               type="text"
@@ -228,13 +240,45 @@
               <option value="updated">Last updated</option>
               <option value="oldest">Oldest first</option>
             </select>
-            <button class="btn-secondary" id="refreshTicketsBtn" type="button">Refresh</button>
+            <button class="btn-secondary" id="refreshTicketsBtn" type="button">↻ Refresh</button>
           </div>
 
           <div id="ticketSummaryCards" class="ticket-summary-grid"></div>
 
           <div id="ticketsContainer">
             <p class="small">Loading tickets...</p>
+          </div>
+        </div>
+
+        <!-- PANEL: External Contacts -->
+        <div id="panel-contacts" class="admin-tab-panel data-section" role="tabpanel" aria-labelledby="tab-contacts" style="display:none;">
+          <div class="admin-toolbar">
+            <input
+              type="text"
+              id="contactSearch"
+              placeholder="Search enquiries..."
+              class="search-input"
+              aria-label="Search contact enquiries"
+            />
+            <select id="contactStatusFilter" class="filter-select" aria-label="Filter by status">
+              <option value="">All Status</option>
+              <option value="new">New</option>
+              <option value="in_progress">In Progress</option>
+              <option value="resolved">Resolved</option>
+              <option value="closed">Closed</option>
+            </select>
+            <select id="contactSortOrder" class="filter-select" aria-label="Sort enquiries">
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="updated">Last updated</option>
+            </select>
+            <button class="btn-secondary" id="refreshContactsBtn" type="button">↻ Refresh</button>
+          </div>
+
+          <div id="contactSummaryCards" class="ticket-summary-grid"></div>
+
+          <div id="contactsContainer">
+            <p class="small">Loading enquiries...</p>
           </div>
         </div>
       </div>

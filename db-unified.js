@@ -134,6 +134,10 @@ async function createIndexes() {
     await enquiriesCollection.createIndex({ supplierId: 1 });
     await enquiriesCollection.createIndex({ senderEmail: 1 });
     await enquiriesCollection.createIndex({ createdAt: -1 });
+    const contactEnquiriesCollection = mongodb.collection('contact_enquiries');
+    await contactEnquiriesCollection.createIndex({ senderEmail: 1 });
+    await contactEnquiriesCollection.createIndex({ status: 1 });
+    await contactEnquiriesCollection.createIndex({ createdAt: -1 });
     const shortlistsCollection = mongodb.collection('shortlists');
     await shortlistsCollection.createIndex({ userId: 1 }, { unique: true });
     const notificationsCollection = mongodb.collection('notifications');

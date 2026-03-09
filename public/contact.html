@@ -137,14 +137,18 @@
     <input id="contact-email" name="email" type="email" required aria-required="true" autocomplete="email" placeholder="you@example.com">
   </div>
   <div class="form-row">
+    <label for="contact-subject">Subject</label>
+    <input id="contact-subject" name="subject" type="text" required aria-required="true" placeholder="How can we help?">
+  </div>
+  <div class="form-row">
     <label for="contact-message">Message</label>
-    <textarea id="contact-message" name="message" rows="5" required aria-required="true" placeholder="How can we help?"></textarea>
+    <textarea id="contact-message" name="message" rows="5" required aria-required="true" placeholder="Tell us more..."></textarea>
   </div>
   <div class="form-row" id="contact-hcaptcha-container">
     <!-- hCaptcha widget rendered here by JavaScript -->
   </div>
   <div class="form-actions">
-    <button class="cta" type="submit">Send message</button>
+    <button class="cta" type="submit" id="contact-submit-btn">Send message</button>
     <span class="small" id="contact-status" role="status" aria-live="polite"></span>
   </div>
 </form>
@@ -171,18 +175,26 @@
 document.addEventListener('DOMContentLoaded', function () {
   var form = document.getElementById('contact-form');
   var status = document.getElementById('contact-status');
+  var submitBtn = document.getElementById('contact-submit-btn');
   if (!form) return;
   form.addEventListener('submit', async function (e) {
     e.preventDefault();
     var captchaToken = (window.hcaptcha && typeof window.__contactHCaptchaWidgetId !== 'undefined')
       ? window.hcaptcha.getResponse(window.__contactHCaptchaWidgetId) : null;
     if (window.hcaptcha && !captchaToken) {
-      if (status) status.textContent = 'Please complete the CAPTCHA verification.';
+      if (status) { status.textContent = 'Please complete the CAPTCHA verification.'; status.style.color = '#dc2626'; }
       return;
     }
     var name = document.getElementById('contact-name').value.trim();
     var email = document.getElementById('contact-email').value.trim();
+    var subject = document.getElementById('contact-subject').value.trim();
     var message = document.getElementById('contact-message').value.trim();
+    if (!name || !email || !subject || !message) {
+      if (status) { status.textContent = 'Please fill in all fields.'; status.style.color = '#dc2626'; }
+      return;
+    }
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Sending…'; }
+    if (status) { status.textContent = ''; status.style.color = ''; }
     try {
       var headers = { 'Content-Type': 'application/json' };
       if (window.__CSRF_TOKEN__) headers['x-csrf-token'] = window.__CSRF_TOKEN__;
@@ -190,20 +202,22 @@ document.addEventListener('DOMContentLoaded', function () {
         method: 'POST',
         headers: headers,
         credentials: 'include',
-        body: JSON.stringify({ name: name, email: email, message: message, captchaToken: captchaToken })
+        body: JSON.stringify({ name: name, email: email, subject: subject, message: message, captchaToken: captchaToken })
       });
       if (r.ok) {
-        if (status) status.textContent = 'Thank you! We\'ll be in touch soon.';
+        if (status) { status.textContent = 'Thank you! We\'ll be in touch soon.'; status.style.color = '#0B8073'; }
         form.reset();
         if (window.hcaptcha && typeof window.__contactHCaptchaWidgetId !== 'undefined') {
           window.hcaptcha.reset(window.__contactHCaptchaWidgetId);
         }
       } else {
         var d = {}; try { d = await r.json(); } catch (_) {}
-        if (status) status.textContent = d.error || 'Something went wrong. Please try again.';
+        if (status) { status.textContent = d.error || 'Something went wrong. Please try again.'; status.style.color = '#dc2626'; }
       }
     } catch (err) {
-      if (status) status.textContent = 'Something went wrong. Please try again.';
+      if (status) { status.textContent = 'Something went wrong. Please try again.'; status.style.color = '#dc2626'; }
+    } finally {
+      if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Send message'; }
     }
   });
 });

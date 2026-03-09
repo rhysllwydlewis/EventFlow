@@ -449,4 +449,382 @@
 
   setupFilterListeners();
   loadTickets();
+
+  // =============================================
+  // Tab switching
+  // =============================================
+  document.querySelectorAll('.admin-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const targetTab = tab.dataset.tab;
+      document.querySelectorAll('.admin-tab').forEach(t => {
+        t.classList.remove('admin-tab--active');
+        t.setAttribute('aria-selected', 'false');
+      });
+      document.querySelectorAll('.admin-tab-panel').forEach(p => {
+        p.style.display = 'none';
+      });
+      tab.classList.add('admin-tab--active');
+      tab.setAttribute('aria-selected', 'true');
+      const panel = document.getElementById(`panel-${targetTab}`);
+      if (panel) {
+        panel.style.display = 'block';
+      }
+      if (targetTab === 'contacts') {
+        loadContactEnquiries();
+      }
+    });
+  });
+})();
+
+// =============================================
+// External Contact Enquiries Module
+// =============================================
+(function () {
+  'use strict';
+
+  let allEnquiries = [];
+
+  const CONTACT_STATUS_LABELS = {
+    new: 'New',
+    in_progress: 'In Progress',
+    resolved: 'Resolved',
+    closed: 'Closed',
+  };
+
+  const CONTACT_STATUS_BADGE = {
+    new: 'badge-new',
+    in_progress: 'badge-contact-in_progress',
+    resolved: 'badge-resolved',
+    closed: 'badge-closed',
+  };
+
+  function escHtml(str) {
+    if (!str) {
+      return '';
+    }
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function relativeTime(dateStr) {
+    if (!dateStr) {
+      return '—';
+    }
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 2) {
+      return 'just now';
+    }
+    if (mins < 60) {
+      return `${mins}m ago`;
+    }
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) {
+      return `${hrs}h ago`;
+    }
+    const days = Math.floor(hrs / 24);
+    return `${days}d ago`;
+  }
+
+  window.loadContactEnquiries = async function () {
+    const container = document.getElementById('contactsContainer');
+    if (!container) {
+      return;
+    }
+    try {
+      const data = await AdminShared.api('/api/admin/contact-enquiries', 'GET');
+      allEnquiries = data.items || [];
+      renderContactEnquiries();
+      updateContactSummaryCards();
+      updateContactBadge();
+    } catch (err) {
+      if (container) {
+        container.innerHTML = `<p class="small" style="color:#ef4444;">Failed to load enquiries: ${escHtml(err.message)}</p>`;
+      }
+    }
+  };
+
+  function updateContactBadge() {
+    const badge = document.getElementById('contactEnquiriesBadge');
+    if (!badge) {
+      return;
+    }
+    const newCount = allEnquiries.filter(e => e.status === 'new').length;
+    if (newCount > 0) {
+      badge.textContent = newCount;
+      badge.style.display = 'inline-flex';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+
+  function updateContactSummaryCards() {
+    const container = document.getElementById('contactSummaryCards');
+    if (!container) {
+      return;
+    }
+    const total = allEnquiries.length;
+    const newCount = allEnquiries.filter(e => e.status === 'new').length;
+    const inProgress = allEnquiries.filter(e => e.status === 'in_progress').length;
+    const resolved = allEnquiries.filter(e => e.status === 'resolved').length;
+    container.innerHTML = `
+      <div class="ticket-summary-card ticket-summary-card--open">
+        <div class="ticket-summary-card__label">New</div>
+        <div class="ticket-summary-card__value">${newCount}</div>
+      </div>
+      <div class="ticket-summary-card ticket-summary-card--progress">
+        <div class="ticket-summary-card__label">In Progress</div>
+        <div class="ticket-summary-card__value">${inProgress}</div>
+      </div>
+      <div class="ticket-summary-card ticket-summary-card--resolved">
+        <div class="ticket-summary-card__label">Resolved</div>
+        <div class="ticket-summary-card__value">${resolved}</div>
+      </div>
+      <div class="ticket-summary-card">
+        <div class="ticket-summary-card__label">Total</div>
+        <div class="ticket-summary-card__value">${total}</div>
+      </div>
+    `;
+  }
+
+  function getFilteredEnquiries() {
+    const search = (document.getElementById('contactSearch')?.value || '').toLowerCase();
+    const statusFilter = document.getElementById('contactStatusFilter')?.value || '';
+    const sortOrder = document.getElementById('contactSortOrder')?.value || 'newest';
+
+    const items = allEnquiries.filter(e => {
+      if (statusFilter && e.status !== statusFilter) {
+        return false;
+      }
+      if (search) {
+        const haystack = [e.senderName, e.senderEmail, e.subject, e.message]
+          .join(' ')
+          .toLowerCase();
+        if (!haystack.includes(search)) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    items.sort((a, b) => {
+      if (sortOrder === 'newest') {
+        return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+      }
+      if (sortOrder === 'oldest') {
+        return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+      }
+      if (sortOrder === 'updated') {
+        return new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0);
+      }
+      return 0;
+    });
+
+    return items;
+  }
+
+  function renderContactEnquiries() {
+    const container = document.getElementById('contactsContainer');
+    if (!container) {
+      return;
+    }
+    const items = getFilteredEnquiries();
+
+    if (items.length === 0) {
+      container.innerHTML = `<p class="small" style="color:#6b7280;padding:1.5rem 0;">No contact enquiries found.</p>`;
+      return;
+    }
+
+    const tableHtml = `
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>From</th>
+              <th>Subject</th>
+              <th>Status</th>
+              <th>Received</th>
+              <th>Replies</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${items
+              .map(
+                e => `
+              <tr>
+                <td>
+                  <strong>${escHtml(e.senderName)}</strong><br>
+                  <span class="small">${escHtml(e.senderEmail)}</span>
+                </td>
+                <td>${escHtml(e.subject || '—')}</td>
+                <td>
+                  <span class="badge ${CONTACT_STATUS_BADGE[e.status] || 'badge'}">
+                    ${escHtml(CONTACT_STATUS_LABELS[e.status] || e.status)}
+                  </span>
+                </td>
+                <td class="small">${relativeTime(e.createdAt)}</td>
+                <td class="small">${Array.isArray(e.responses) ? e.responses.length : 0}</td>
+                <td>
+                  <button class="btn-sm btn-primary" data-contact-manage="${escHtml(e.id)}">Manage</button>
+                </td>
+              </tr>
+            `
+              )
+              .join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+
+    container.innerHTML = tableHtml;
+
+    container.querySelectorAll('[data-contact-manage]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.contactManage;
+        const enquiry = allEnquiries.find(e => e.id === id);
+        if (enquiry) {
+          openContactModal(enquiry);
+        }
+      });
+    });
+  }
+
+  function openContactModal(enquiry) {
+    const existing = document.getElementById('contactManageModal');
+    if (existing) {
+      existing.remove();
+    }
+
+    const responses = Array.isArray(enquiry.responses) ? enquiry.responses : [];
+    const responsesHtml =
+      responses.length === 0
+        ? '<p class="small" style="color:#6b7280;font-style:italic;">No replies yet.</p>'
+        : responses
+            .map(
+              r => `
+          <div class="ticket-response ${r.userRole === 'admin' ? 'ticket-response--admin' : 'ticket-response--user'}">
+            <div class="ticket-response__header">
+              <strong>${escHtml(r.userName || (r.userRole === 'admin' ? 'Support Team' : 'Visitor'))}</strong>
+              <span class="small ticket-response__timestamp">${relativeTime(r.createdAt)}</span>
+            </div>
+            <p class="ticket-response__body">${escHtml(r.message)}</p>
+          </div>
+        `
+            )
+            .join('');
+
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay active';
+    overlay.id = 'contactManageModal';
+    overlay.innerHTML = `
+      <div class="modal contact-modal ticket-modal" role="dialog" aria-modal="true" aria-labelledby="contactModalTitle">
+        <div class="modal-header">
+          <div>
+            <p class="ticket-modal__sender">From: ${escHtml(enquiry.senderName)} &lt;${escHtml(enquiry.senderEmail)}&gt;</p>
+            <h3 id="contactModalTitle" class="ticket-modal__subject">${escHtml(enquiry.subject || 'General Enquiry')}</h3>
+            <div class="ticket-modal__meta">
+              <span class="badge ${CONTACT_STATUS_BADGE[enquiry.status] || 'badge'}">${escHtml(CONTACT_STATUS_LABELS[enquiry.status] || enquiry.status)}</span>
+              <span>Received ${relativeTime(enquiry.createdAt)}</span>
+            </div>
+          </div>
+          <button class="modal-close" id="closeContactModal" aria-label="Close">×</button>
+        </div>
+        <div class="modal-body">
+          <p class="ticket-modal__message">${escHtml(enquiry.message)}</p>
+
+          <div class="ticket-modal__controls">
+            <label class="small">Status
+              <select id="contactStatusUpdate">
+                <option value="new"${enquiry.status === 'new' ? ' selected' : ''}>New</option>
+                <option value="in_progress"${enquiry.status === 'in_progress' ? ' selected' : ''}>In Progress</option>
+                <option value="resolved"${enquiry.status === 'resolved' ? ' selected' : ''}>Resolved</option>
+                <option value="closed"${enquiry.status === 'closed' ? ' selected' : ''}>Closed</option>
+              </select>
+            </label>
+          </div>
+
+          <h4 class="ticket-modal__section-heading">Conversation</h4>
+          <div class="ticket-modal__responses">${responsesHtml}</div>
+
+          <label for="contactReplyMessage" class="ticket-modal__reply-label">
+            Reply to ${escHtml(enquiry.senderName)} — sends email via Postmark
+          </label>
+          <textarea id="contactReplyMessage" rows="4" placeholder="Write your reply…"></textarea>
+        </div>
+        <div class="modal-footer ticket-modal__footer">
+          <button type="button" class="btn btn-secondary" id="saveContactStatusBtn">Save Status</button>
+          <div class="ticket-modal__footer-actions">
+            <button type="button" class="btn btn-secondary" id="cancelContactModal">Cancel</button>
+            <button type="button" class="btn btn-primary" id="sendContactReplyBtn">Send Reply</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+    overlay.querySelector('#closeContactModal').focus();
+
+    const close = () => overlay.remove();
+    overlay.querySelector('#cancelContactModal').addEventListener('click', close);
+    overlay.querySelector('#closeContactModal').addEventListener('click', close);
+    overlay.addEventListener('click', e => {
+      if (e.target === overlay) {
+        close();
+      }
+    });
+
+    overlay.querySelector('#saveContactStatusBtn').addEventListener('click', async () => {
+      const newStatus = overlay.querySelector('#contactStatusUpdate').value;
+      try {
+        await AdminShared.api(`/api/admin/contact-enquiries/${enquiry.id}`, 'PUT', {
+          status: newStatus,
+        });
+        Toast?.success?.('Status updated');
+        close();
+        await window.loadContactEnquiries();
+      } catch (err) {
+        Toast?.error?.(err.message || 'Failed to update status');
+      }
+    });
+
+    overlay.querySelector('#sendContactReplyBtn').addEventListener('click', async () => {
+      const message = overlay.querySelector('#contactReplyMessage').value.trim();
+      if (!message) {
+        Toast?.warning?.('Please write a reply');
+        return;
+      }
+      const btn = overlay.querySelector('#sendContactReplyBtn');
+      btn.disabled = true;
+      btn.textContent = 'Sending…';
+      try {
+        await AdminShared.api(`/api/admin/contact-enquiries/${enquiry.id}/reply`, 'POST', {
+          message,
+        });
+        Toast?.success?.('Reply sent via email');
+        close();
+        await window.loadContactEnquiries();
+      } catch (err) {
+        Toast?.error?.(err.message || 'Failed to send reply');
+        btn.disabled = false;
+        btn.textContent = 'Send Reply';
+      }
+    });
+  }
+
+  // Filter listeners
+  ['contactSearch', 'contactStatusFilter', 'contactSortOrder'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) {
+      return;
+    }
+    el.addEventListener(id === 'contactSearch' ? 'input' : 'change', renderContactEnquiries);
+  });
+
+  document
+    .getElementById('refreshContactsBtn')
+    ?.addEventListener('click', window.loadContactEnquiries);
 })();
