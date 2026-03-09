@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin CSS Preview</title>
+  <link rel="stylesheet" href="/assets/css/tokens.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-tokens.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/components.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/animations.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-enhanced.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-cards.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.3.0">
+</head>
+<body class="has-admin-navbar admin">
+
+<nav class="admin-top-navbar" aria-label="Admin navigation">
+  <div class="admin-navbar-content">
+    <div class="admin-navbar-brand">
+      <a href="#" class="admin-navbar-logo">EventFlow</a>
+      <span class="admin-navbar-title">Admin Panel</span>
+    </div>
+    <button class="admin-hamburger" id="adminHamburger" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="adminNavbarNav">
+      <span></span><span></span><span></span>
+    </button>
+    <div class="admin-navbar-nav" id="adminNavbarNav">
+      <a href="#" class="admin-nav-btn active" aria-current="page"><span class="nav-icon" aria-hidden="true">📊</span><span class="nav-label">Dashboard</span></a>
+      <a href="#" class="admin-nav-btn"><span class="nav-icon" aria-hidden="true">👥</span><span class="nav-label">Users</span></a>
+      <a href="#" class="admin-nav-btn"><span class="nav-icon" aria-hidden="true">🏢</span><span class="nav-label">Suppliers</span></a>
+      <a href="#" class="admin-nav-btn"><span class="nav-icon" aria-hidden="true">📦</span><span class="nav-label">Packages</span></a>
+      <a href="#" class="admin-nav-btn"><span class="nav-icon" aria-hidden="true">🎫</span><span class="nav-label">Tickets</span></a>
+      <a href="#" class="admin-nav-btn"><span class="nav-icon" aria-hidden="true">⚙️</span><span class="nav-label">Settings</span></a>
+    </div>
+    <div class="admin-navbar-actions">
+      <div class="db-status-badge db-connected" id="dbStatusBadge" aria-live="polite" aria-label="Database connected">
+        <span class="db-status-dot" aria-hidden="true"></span> Connected
+      </div>
+      <button class="navbar-icon-btn" aria-label="Refresh data">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+        </svg>
+      </button>
+      <div class="admin-user-dropdown">
+        <button class="admin-user-btn" aria-haspopup="true" aria-expanded="false">
+          <div class="admin-user-avatar" aria-hidden="true">A</div>
+          <span>Admin</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<main id="main-content" class="section">
+  <div class="dashboard-header">
+    <div class="header-content">
+      <div>
+        <h1 class="dashboard-title">User Management</h1>
+        <p class="dashboard-subtitle">Overview of all accounts registered on EventFlow</p>
+      </div>
+      <div class="header-actions">
+        <a href="#" class="btn-secondary">📥 Export Marketing List</a>
+      </div>
+    </div>
+  </div>
+  
+  <div class="container">
+    <div class="card">
+      <div class="admin-toolbar" role="search" aria-label="Filter users">
+        <input type="text" placeholder="Search by name, email..." aria-label="Search users" style="flex:1;min-width:200px;">
+        <select aria-label="Filter by role"><option>All Roles</option><option>Admin</option><option>Customer</option></select>
+        <select aria-label="Filter by subscription"><option>All Subscriptions</option><option>Free</option><option>Pro</option></select>
+        <button class="btn btn-secondary">Clear</button>
+      </div>
+      
+      <div class="bulk-actions-bar" role="toolbar" aria-label="Bulk actions">
+        <div class="bulk-actions-content">
+          <span class="bulk-selected-count" aria-live="polite">3 users selected</span>
+          <select class="bulk-action-select" aria-label="Choose bulk action"><option>Select action...</option><option>Verify</option><option>Suspend</option></select>
+          <button class="btn btn-primary btn-sm">Execute</button>
+          <button class="btn btn-secondary btn-sm">Clear Selection</button>
+        </div>
+      </div>
+      
+      <div style="overflow-x:auto;margin-top:10px">
+        <table class="table" aria-label="Users list">
+          <thead><tr>
+            <th scope="col"><input type="checkbox" aria-label="Select all users" class="table-checkbox"></th>
+            <th scope="col">Name</th><th scope="col">Email</th><th scope="col">Role</th>
+            <th scope="col">Subscription</th><th scope="col">Verified</th><th scope="col">Actions</th>
+          </tr></thead>
+          <tbody>
+            <tr><td><input type="checkbox" class="table-checkbox"></td><td>Alice Smith</td><td>alice@example.com</td><td><span class="role-badge">Customer</span></td><td><span class="sub-badge sub-pro">Pro</span></td><td><span style="color:#10b981">✓</span></td><td><button class="btn btn-secondary btn-sm">Edit</button></td></tr>
+            <tr><td><input type="checkbox" class="table-checkbox"></td><td>Bob Jones</td><td>bob@example.com</td><td><span class="role-badge">Supplier</span></td><td><span class="sub-badge sub-free">Free</span></td><td><span style="color:#ef4444">✗</span></td><td><button class="btn btn-secondary btn-sm">Edit</button></td></tr>
+            <tr><td><input type="checkbox" class="table-checkbox"></td><td>Carol White</td><td>carol@example.com</td><td><span class="role-badge role-admin">Admin</span></td><td><span class="sub-badge sub-pro-plus">Pro+</span></td><td><span style="color:#10b981">✓</span></td><td><button class="btn btn-secondary btn-sm">Edit</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    
+    <!-- Supplier bulk actions bar preview -->
+    <div class="supplier-bulk-actions" style="margin-top:20px;">
+      <span>3 suppliers selected</span>
+      <div style="display:flex;gap:12px;">
+        <button class="btn-sm btn-bulk-approve">✓ Approve</button>
+        <button class="btn-sm btn-bulk-danger">✗ Reject</button>
+        <button class="btn-sm btn-bulk-action">🤖 Smart Tag</button>
+      </div>
+    </div>
+    
+    <!-- Feature flags status -->
+    <div style="margin-top:20px;">
+      <div class="feature-flags-status feature-flags-status-saved">✅ Settings saved successfully.</div>
+      <div class="feature-flags-status feature-flags-status-error">❌ An error occurred while saving.</div>
+      <div class="feature-flags-status feature-flags-status-loading">⏳ Loading feature flags...</div>
+    </div>
+  </div>
+</main>
+
+<footer class="footer" role="contentinfo">
+  <div class="container flex-between">
+    <div><strong>EventFlow</strong><br><span class="small">Admin Panel</span></div>
+    <div class="small"><a href="#">Dashboard</a> · <a href="#">Users</a> · <a href="#">Legal Hub</a></div>
+  </div>
+</footer>
+</body>
+</html>
