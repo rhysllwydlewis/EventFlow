@@ -189,6 +189,15 @@ describe('Admin Regression — Route Error Resilience', () => {
 // ─── Route Ordering — Specific Before Wildcard ────────────────────────────────
 
 describe('Admin Regression — Route ordering (specific before wildcard)', () => {
+  let userMgmtContent;
+
+  beforeAll(() => {
+    userMgmtContent = fs.readFileSync(
+      path.join(__dirname, '../../routes/admin-user-management.js'),
+      'utf8'
+    );
+  });
+
   it('GET /suppliers/pending-verification is defined before GET /suppliers/:id', () => {
     const specificIdx = adminContent.indexOf("'/suppliers/pending-verification'");
     const wildcardIdx = adminContent.indexOf("'/suppliers/:id'");
@@ -220,5 +229,16 @@ describe('Admin Regression — Route ordering (specific before wildcard)', () =>
     );
     expect(section).toContain('suppliers:');
     expect(section).toContain('count:');
+  });
+
+  it('GET /users/segments is defined before GET /users/:id (admin-user-management.js)', () => {
+    // Only a GET wildcard can shadow a GET specific route — find the GET wildcard specifically
+    const specificIdx = userMgmtContent.indexOf("'/users/segments'");
+    // Find router.get('/users/:id' (not PUT/POST which have different methods)
+    const wildcardIdx = userMgmtContent.indexOf("router.get('/users/:id'");
+    expect(specificIdx).toBeGreaterThan(-1);
+    expect(wildcardIdx).toBeGreaterThan(-1);
+    // The specific route MUST appear before the wildcard to prevent it being swallowed
+    expect(specificIdx).toBeLessThan(wildcardIdx);
   });
 });

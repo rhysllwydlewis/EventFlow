@@ -2071,6 +2071,139 @@ router.post(
   }
 );
 
+router.get('/users/segments', authRequired, roleRequired('admin'), async (req, res) => {
+  try {
+    const users = await dbUnified.read('users');
+    const suppliers = await dbUnified.read('suppliers');
+    const plans = await dbUnified.read('plans');
+    const messages = await dbUnified.read('messages');
+
+    // Segment 1: Active Customers (have created plans)
+    const activeCustomers = users.filter(u => {
+      const userPlans = plans.filter(p => p.userId === u.id);
+      return u.role === 'customer' && userPlans.length > 0;
+    });
+
+    // Segment 2: Inactive Customers (registered but no plans)
+    const inactiveCustomers = users.filter(u => {
+      const userPlans = plans.filter(p => p.userId === u.id);
+      return u.role === 'customer' && userPlans.length === 0;
+    });
+
+    // Segment 3: Premium Suppliers (have subscription)
+    const premiumSuppliers = suppliers.filter(s => s.subscription && s.subscription !== 'free');
+
+    // Segment 4: Free Suppliers (no subscription or free tier)
+    const freeSuppliers = suppliers.filter(s => !s.subscription || s.subscription === 'free');
+
+    // Segment 5: Active Suppliers (sent messages in last 30 days)
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const activeSuppliers = suppliers.filter(s => {
+      const recentMessages = messages.filter(
+        m => m.senderId === s.userId && new Date(m.createdAt) > thirtyDaysAgo
+      );
+      return recentMessages.length > 0;
+    });
+
+    // Segment 6: At-Risk Suppliers (inactive for 60+ days)
+    const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
+    const atRiskSuppliers = suppliers.filter(s => {
+      const recentMessages = messages.filter(
+        m => m.senderId === s.userId && new Date(m.createdAt) > sixtyDaysAgo
+      );
+      return recentMessages.length === 0;
+    });
+
+    // Segment 7: High-Value Customers (multiple events planned)
+    const highValueCustomers = users.filter(u => {
+      const userPlans = plans.filter(p => p.userId === u.id);
+      return u.role === 'customer' && userPlans.length >= 2;
+    });
+
+    // Segment 8: New Users (registered in last 7 days)
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const newUsers = users.filter(u => new Date(u.createdAt || 0) > sevenDaysAgo);
+
+    const segments = {
+      activeCustomers: {
+        count: activeCustomers.length,
+        users: activeCustomers.map(u => ({
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          createdAt: u.createdAt,
+        })),
+      },
+      inactiveCustomers: {
+        count: inactiveCustomers.length,
+        users: inactiveCustomers.map(u => ({
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          createdAt: u.createdAt,
+        })),
+      },
+      premiumSuppliers: {
+        count: premiumSuppliers.length,
+        suppliers: premiumSuppliers.map(s => ({
+          id: s.id,
+          name: s.name,
+          subscription: s.subscription,
+        })),
+      },
+      freeSuppliers: {
+        count: freeSuppliers.length,
+        suppliers: freeSuppliers.map(s => ({
+          id: s.id,
+          name: s.name,
+        })),
+      },
+      activeSuppliers: {
+        count: activeSuppliers.length,
+        suppliers: activeSuppliers.map(s => ({
+          id: s.id,
+          name: s.name,
+        })),
+      },
+      atRiskSuppliers: {
+        count: atRiskSuppliers.length,
+        suppliers: atRiskSuppliers.map(s => ({
+          id: s.id,
+          name: s.name,
+        })),
+      },
+      highValueCustomers: {
+        count: highValueCustomers.length,
+        users: highValueCustomers.map(u => ({
+          id: u.id,
+          name: u.name,
+          email: u.email,
+        })),
+      },
+      newUsers: {
+        count: newUsers.length,
+        users: newUsers.map(u => ({
+          id: u.id,
+          name: u.name,
+          role: u.role,
+          createdAt: u.createdAt,
+        })),
+      },
+    };
+
+    res.json({
+      success: true,
+      segments,
+      totalUsers: users.length,
+      totalSuppliers: suppliers.length,
+      generatedAt: new Date().toISOString(),
+    });
+  } catch (error) {
+    logger.error('Error generating user segments:', error);
+    res.status(500).json({ error: 'Failed to generate user segments', details: error.message });
+  }
+});
+
 // ---------- User Detail Operations ----------
 
 /**
@@ -2799,139 +2932,6 @@ router.post('/users/stop-impersonate', authRequired, csrfProtection, async (req,
   } catch (error) {
     logger.error('Error stopping impersonation:', error);
     res.status(500).json({ error: 'Failed to stop impersonation', details: error.message });
-  }
-});
-
-router.get('/users/segments', authRequired, roleRequired('admin'), async (req, res) => {
-  try {
-    const users = await dbUnified.read('users');
-    const suppliers = await dbUnified.read('suppliers');
-    const plans = await dbUnified.read('plans');
-    const messages = await dbUnified.read('messages');
-
-    // Segment 1: Active Customers (have created plans)
-    const activeCustomers = users.filter(u => {
-      const userPlans = plans.filter(p => p.userId === u.id);
-      return u.role === 'customer' && userPlans.length > 0;
-    });
-
-    // Segment 2: Inactive Customers (registered but no plans)
-    const inactiveCustomers = users.filter(u => {
-      const userPlans = plans.filter(p => p.userId === u.id);
-      return u.role === 'customer' && userPlans.length === 0;
-    });
-
-    // Segment 3: Premium Suppliers (have subscription)
-    const premiumSuppliers = suppliers.filter(s => s.subscription && s.subscription !== 'free');
-
-    // Segment 4: Free Suppliers (no subscription or free tier)
-    const freeSuppliers = suppliers.filter(s => !s.subscription || s.subscription === 'free');
-
-    // Segment 5: Active Suppliers (sent messages in last 30 days)
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const activeSuppliers = suppliers.filter(s => {
-      const recentMessages = messages.filter(
-        m => m.senderId === s.userId && new Date(m.createdAt) > thirtyDaysAgo
-      );
-      return recentMessages.length > 0;
-    });
-
-    // Segment 6: At-Risk Suppliers (inactive for 60+ days)
-    const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
-    const atRiskSuppliers = suppliers.filter(s => {
-      const recentMessages = messages.filter(
-        m => m.senderId === s.userId && new Date(m.createdAt) > sixtyDaysAgo
-      );
-      return recentMessages.length === 0;
-    });
-
-    // Segment 7: High-Value Customers (multiple events planned)
-    const highValueCustomers = users.filter(u => {
-      const userPlans = plans.filter(p => p.userId === u.id);
-      return u.role === 'customer' && userPlans.length >= 2;
-    });
-
-    // Segment 8: New Users (registered in last 7 days)
-    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const newUsers = users.filter(u => new Date(u.createdAt || 0) > sevenDaysAgo);
-
-    const segments = {
-      activeCustomers: {
-        count: activeCustomers.length,
-        users: activeCustomers.map(u => ({
-          id: u.id,
-          name: u.name,
-          email: u.email,
-          createdAt: u.createdAt,
-        })),
-      },
-      inactiveCustomers: {
-        count: inactiveCustomers.length,
-        users: inactiveCustomers.map(u => ({
-          id: u.id,
-          name: u.name,
-          email: u.email,
-          createdAt: u.createdAt,
-        })),
-      },
-      premiumSuppliers: {
-        count: premiumSuppliers.length,
-        suppliers: premiumSuppliers.map(s => ({
-          id: s.id,
-          name: s.name,
-          subscription: s.subscription,
-        })),
-      },
-      freeSuppliers: {
-        count: freeSuppliers.length,
-        suppliers: freeSuppliers.map(s => ({
-          id: s.id,
-          name: s.name,
-        })),
-      },
-      activeSuppliers: {
-        count: activeSuppliers.length,
-        suppliers: activeSuppliers.map(s => ({
-          id: s.id,
-          name: s.name,
-        })),
-      },
-      atRiskSuppliers: {
-        count: atRiskSuppliers.length,
-        suppliers: atRiskSuppliers.map(s => ({
-          id: s.id,
-          name: s.name,
-        })),
-      },
-      highValueCustomers: {
-        count: highValueCustomers.length,
-        users: highValueCustomers.map(u => ({
-          id: u.id,
-          name: u.name,
-          email: u.email,
-        })),
-      },
-      newUsers: {
-        count: newUsers.length,
-        users: newUsers.map(u => ({
-          id: u.id,
-          name: u.name,
-          role: u.role,
-          createdAt: u.createdAt,
-        })),
-      },
-    };
-
-    res.json({
-      success: true,
-      segments,
-      totalUsers: users.length,
-      totalSuppliers: suppliers.length,
-      generatedAt: new Date().toISOString(),
-    });
-  } catch (error) {
-    logger.error('Error generating user segments:', error);
-    res.status(500).json({ error: 'Failed to generate user segments', details: error.message });
   }
 });
 
