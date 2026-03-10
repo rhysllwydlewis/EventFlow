@@ -205,52 +205,164 @@
     <script src="/assets/js/websocket-client.js" defer></script>
 
     <main id="main-content">
-      <div class="marketplace-hero">
-        <div class="container">
-          <div class="hero-content">
-            <nav class="breadcrumb" aria-label="Breadcrumb">
-              <a href="/">Home</a> 
-              <span aria-hidden="true">/</span> 
+      <!-- =============================================
+           MARKETPLACE HERO — Full-bleed redesign
+           ============================================= -->
+      <section class="mkt-hero" aria-label="Event Marketplace">
+        <!-- Decorative background orbs -->
+        <div class="mkt-hero__orb mkt-hero__orb--1" aria-hidden="true"></div>
+        <div class="mkt-hero__orb mkt-hero__orb--2" aria-hidden="true"></div>
+        <div class="mkt-hero__orb mkt-hero__orb--3" aria-hidden="true"></div>
+
+        <!-- Main two-column grid -->
+        <div class="mkt-hero__inner">
+
+          <!-- Left: Content -->
+          <div class="mkt-hero__content">
+            <nav class="mkt-hero__breadcrumb" aria-label="Breadcrumb">
+              <a href="/">Home</a>
+              <span aria-hidden="true">/</span>
               <span aria-current="page">Marketplace</span>
             </nav>
-            <h1>Event Marketplace</h1>
-            <p class="hero-subtitle">
-              Buy and sell pre-loved event items — free to use, no platform fees
-            </p>
-          </div>
-          <!-- Premium glass panel — desktop right column, hidden on mobile -->
-          <div class="mh-glass-panel" aria-label="Marketplace highlights">
-            <div class="mh-glass-panel__header">
-              <span class="mh-glass-panel__badge">UK Marketplace</span>
-              <h2 class="mh-glass-panel__title">Buy &amp; sell with ease</h2>
+
+            <div class="mkt-hero__overline" aria-hidden="true">
+              <span class="mkt-hero__dot"></span>
+              UK Marketplace &nbsp;·&nbsp; Free to use
             </div>
-            <ul class="mh-feature-list" role="list">
-              <li class="mh-feature">
-                <span class="mh-feature__icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><circle cx="7" cy="7" r="1" fill="currentColor" stroke="none"/></svg>
-                </span>
-                <strong>Zero listing fees</strong>
-              </li>
-              <li class="mh-feature">
-                <span class="mh-feature__icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-                </span>
-                <strong>UK buyers &amp; sellers</strong>
-              </li>
-              <li class="mh-feature">
-                <span class="mh-feature__icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                </span>
-                <strong>Direct &amp; transparent</strong>
-              </li>
-            </ul>
-            <a href="/auth" class="mh-cta-btn">
-              Start selling today
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-            </a>
+
+            <h1 class="mkt-hero__title">
+              Buy &amp; sell
+              <span class="mkt-hero__title-accent">pre-loved event&nbsp;items</span>
+            </h1>
+
+            <p class="mkt-hero__sub">
+              Zero fees. Direct sales. A trusted community of UK buyers and sellers — no middleman, no commission.
+            </p>
+
+            <div class="mkt-hero__actions">
+              <a href="#marketplace-results" class="mkt-hero__btn mkt-hero__btn--primary">
+                Browse listings
+              </a>
+              <a href="/auth" class="mkt-hero__btn mkt-hero__btn--secondary">
+                List an item free
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              </a>
+            </div>
+
+            <div class="mkt-hero__stats" aria-label="Marketplace highlights">
+              <div class="mkt-hero__stat">
+                <strong>£0</strong>
+                <span>Listing fees</span>
+              </div>
+              <div class="mkt-hero__stat-divider" aria-hidden="true"></div>
+              <div class="mkt-hero__stat">
+                <strong>UK-wide</strong>
+                <span>Community</span>
+              </div>
+              <div class="mkt-hero__stat-divider" aria-hidden="true"></div>
+              <div class="mkt-hero__stat">
+                <strong>Direct</strong>
+                <span>No middleman</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Floating illustrative item cards (decorative) -->
+          <div class="mkt-hero__cards" aria-hidden="true">
+            <div class="mkt-hero__card mkt-hero__card--1">
+              <div class="mkt-hero__card-img mkt-hero__card-img--dress">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2C10 5 7 6 5 6l1 14h12L19 6c-2 0-5-1-7-4z"/>
+                  <path d="M9 6c0 2 1.5 3 3 3s3-1 3-3"/>
+                </svg>
+              </div>
+              <div class="mkt-hero__card-body">
+                <span class="mkt-hero__card-cat">👗 Attire</span>
+                <p class="mkt-hero__card-title">Ivory Bridal Gown</p>
+                <div class="mkt-hero__card-footer">
+                  <strong class="mkt-hero__card-price">£285</strong>
+                  <span class="mkt-hero__card-loc">📍 London</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="mkt-hero__card mkt-hero__card--2">
+              <div class="mkt-hero__card-img mkt-hero__card-img--decor">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+                </svg>
+              </div>
+              <div class="mkt-hero__card-body">
+                <span class="mkt-hero__card-cat">🎨 Décor</span>
+                <p class="mkt-hero__card-title">Table Centrepieces × 20</p>
+                <div class="mkt-hero__card-footer">
+                  <strong class="mkt-hero__card-price">£120</strong>
+                  <span class="mkt-hero__card-loc">📍 Manchester</span>
+                </div>
+              </div>
+              <!-- New listing badge sits on card 2 -->
+              <div class="mkt-hero__new-badge">✨ New listing</div>
+            </div>
+
+            <div class="mkt-hero__card mkt-hero__card--3">
+              <div class="mkt-hero__card-img mkt-hero__card-img--av">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="6" width="14" height="12" rx="2"/>
+                  <path d="M16 10l5-2v8l-5-2"/>
+                </svg>
+              </div>
+              <div class="mkt-hero__card-body">
+                <span class="mkt-hero__card-cat">🔊 AV Equipment</span>
+                <p class="mkt-hero__card-title">PA System &amp; Speakers</p>
+                <div class="mkt-hero__card-footer">
+                  <strong class="mkt-hero__card-price">£450</strong>
+                  <span class="mkt-hero__card-loc">📍 Birmingham</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+
+        <!-- Scrolling category ticker -->
+        <div class="mkt-hero__ticker" aria-hidden="true">
+          <div class="mkt-hero__ticker-track">
+            <span>👗 Wedding Dresses</span>
+            <span class="mkt-hero__ticker-dot">•</span>
+            <span>🎨 Table Décor</span>
+            <span class="mkt-hero__ticker-dot">•</span>
+            <span>🔊 AV Equipment</span>
+            <span class="mkt-hero__ticker-dot">•</span>
+            <span>📸 Camera Gear</span>
+            <span class="mkt-hero__ticker-dot">•</span>
+            <span>🎉 Party Supplies</span>
+            <span class="mkt-hero__ticker-dot">•</span>
+            <span>🌸 Florals &amp; Vases</span>
+            <span class="mkt-hero__ticker-dot">•</span>
+            <span>🍾 Champagne Towers</span>
+            <span class="mkt-hero__ticker-dot">•</span>
+            <span>💡 Lighting Rigs</span>
+            <span class="mkt-hero__ticker-dot">•</span>
+            <!-- Duplicate for seamless loop -->
+            <span>👗 Wedding Dresses</span>
+            <span class="mkt-hero__ticker-dot">•</span>
+            <span>🎨 Table Décor</span>
+            <span class="mkt-hero__ticker-dot">•</span>
+            <span>🔊 AV Equipment</span>
+            <span class="mkt-hero__ticker-dot">•</span>
+            <span>📸 Camera Gear</span>
+            <span class="mkt-hero__ticker-dot">•</span>
+            <span>🎉 Party Supplies</span>
+            <span class="mkt-hero__ticker-dot">•</span>
+            <span>🌸 Florals &amp; Vases</span>
+            <span class="mkt-hero__ticker-dot">•</span>
+            <span>🍾 Champagne Towers</span>
+            <span class="mkt-hero__ticker-dot">•</span>
+            <span>💡 Lighting Rigs</span>
+            <span class="mkt-hero__ticker-dot">•</span>
+          </div>
+        </div>
+      </section>
 
       <section class="section">
         <div class="container marketplace-container">
