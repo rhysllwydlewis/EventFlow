@@ -114,6 +114,15 @@
   line-height: 1.6;
 }
 
+/* Outer flex row: holds the glass search wrap + Search button side-by-side on desktop */
+.guides-hero__search-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 480px;
+  margin: 0 auto 18px;
+}
+
 /* Liquid-glass search panel */
 .guides-hero__search-wrap {
   background: rgba(255,255,255,0.14);
@@ -124,14 +133,51 @@
   box-shadow: 0 8px 32px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.35);
   display: flex;
   align-items: center;
-  max-width: 560px;
-  margin: 0 auto 18px;
+  flex: 1;
   padding: 6px 6px 6px 20px;
   transition: box-shadow var(--guides-transition);
 }
 
 .guides-hero__search-wrap:focus-within {
   box-shadow: 0 8px 40px rgba(0,0,0,0.18), 0 0 0 3px rgba(255,255,255,0.4), inset 0 1px 0 rgba(255,255,255,0.35);
+}
+
+/* Actions wrapper: contains Search button (and All Guides on mobile) */
+.guides-hero__search-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Search button sits inside the actions wrapper on desktop */
+.guides-hero__search-btn {
+  flex-shrink: 0;
+  background: #fff;
+  color: var(--guides-teal);
+  border: none;
+  border-radius: 999px;
+  padding: 10px 22px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  /* Override any global min-height/width from mobile-optimizations */
+  min-height: 0;
+  min-width: 0;
+  width: auto;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  transition: background var(--guides-transition), transform var(--guides-transition), box-shadow var(--guides-transition);
+}
+
+.guides-hero__search-btn:hover {
+  background: #f0fdfa;
+  transform: scale(1.03);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.20);
+}
+
+.guides-hero__search-btn:focus-visible {
+  outline: 2px solid rgba(255,255,255,0.85);
+  outline-offset: 3px;
 }
 
 .guides-search-icon {
@@ -178,29 +224,6 @@
 
 .guides-search-clear.visible {
   display: flex;
-}
-
-.guides-hero__search-btn {
-  flex-shrink: 0;
-  background: #fff;
-  color: var(--guides-teal);
-  border: none;
-  border-radius: 999px;
-  padding: 10px 22px;
-  font-weight: 700;
-  font-size: 0.9rem;
-  cursor: pointer;
-  /* Override any global min-height/width from mobile-optimizations */
-  min-height: 0;
-  min-width: 0;
-  width: auto;
-  transition: background var(--guides-transition), transform var(--guides-transition), box-shadow var(--guides-transition);
-}
-
-.guides-hero__search-btn:hover {
-  background: #f0fdfa;
-  transform: scale(1.03);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.14);
 }
 
 /* Hero CTA row */
@@ -778,6 +801,7 @@
   display: flex;
   flex-direction: column;
   position: relative;
+  cursor: pointer;
   transition: transform var(--guides-transition), box-shadow var(--guides-transition), border-color var(--guides-transition);
   box-shadow: 0 2px 12px rgba(11,128,115,0.06);
 }
@@ -1305,17 +1329,21 @@
   .guides-filter-bar {
     padding: 10px 0;
   }
-  /* Fix search button on mobile — prevent full-width override */
+  /* Search row: tighten gap between wrap + button on mid-mobile */
+  .guides-hero__search-row {
+    gap: 8px;
+  }
   .guides-hero__search-wrap {
     padding: 5px 5px 5px 14px;
+  }
+  .guides-hero__search-actions {
+    gap: 6px;
   }
   .guides-hero__search-btn {
     padding: 9px 14px;
     font-size: 0.82rem;
-    flex-shrink: 0;
     min-width: 0;
     min-height: 0;
-    width: auto;
   }
 }
 
@@ -1334,36 +1362,49 @@
   .guides-tools__grid {
     grid-template-columns: 1fr;
   }
-  /* Search: input on first row, Search btn + All Guides on second row */
-  .guides-hero__search-wrap {
+  /* Search row: wrap to two rows at smallest screens */
+  .guides-hero__search-row {
     flex-wrap: wrap;
-    flex-direction: row;
+    max-width: 100%;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+  /* Search wrap: full-width on its own first row */
+  .guides-hero__search-wrap {
+    flex: 1 1 100%;
     border-radius: 16px;
     padding: 10px 12px;
     gap: 6px;
-    align-items: center;
+    min-width: 0;
   }
   .guides-search-icon {
     display: none;
   }
   .guides-hero__search {
-    flex: 1 1 100%;
     padding: 6px 0;
     font-size: 1rem;
   }
   .guides-search-clear {
     display: none !important;
   }
+  /* Actions wrapper: takes its own second row, shows button + All Guides side-by-side */
+  .guides-hero__search-actions {
+    flex: 1 1 100%;
+    gap: 6px;
+  }
+  /* Search button: compact, auto-width — left side of second row */
   .guides-hero__search-btn {
-    flex: 0 0 auto;
+    flex-grow: 0;
+    max-width: max-content;
     border-radius: 10px;
-    padding: 9px 14px;
+    padding: 9px 16px;
     min-height: 0;
     min-width: 0;
-    width: auto;
     font-size: 0.83rem;
+    box-shadow: none;
+    align-self: center;
   }
-  /* Show the mobile All Guides companion button */
+  /* All Guides link: visible, takes remaining width on second row */
   .guides-hero__all-guides-mobile {
     display: inline-flex;
     align-items: center;
@@ -1386,10 +1427,6 @@
   .guides-hero__all-guides-mobile:hover {
     background: rgba(255,255,255,0.28);
   }
-  .guides-hero__all-guides-mobile:focus-visible {
-    outline: 2px solid rgba(255,255,255,0.9);
-    outline-offset: 3px;
-  }
 }
 
 /* ============================================================
@@ -1398,16 +1435,17 @@
 .guides-chip:focus-visible,
 .guides-sort-select:focus-visible,
 .guides-clear-btn:focus-visible,
-.guides-hero__search-btn:focus-visible,
-.guides-hero__cta:focus-visible,
 .featured-card:focus-visible,
 .guides-tool-card:focus-visible {
   outline: 2px solid var(--guides-teal);
   outline-offset: 3px;
 }
 
-/* White focus ring for cards shown on the teal hero background */
-.hero-side-card:focus-visible {
+/* White focus rings for elements displayed on the teal hero background */
+.hero-side-card:focus-visible,
+.guides-hero__search-btn:focus-visible,
+.guides-hero__cta:focus-visible,
+.guides-hero__all-guides-mobile:focus-visible {
   outline: 2px solid rgba(255, 255, 255, 0.9);
   outline-offset: 3px;
 }
