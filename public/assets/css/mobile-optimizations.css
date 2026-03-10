@@ -1519,3 +1519,20 @@ h4 {
     height: 120px !important;
   }
 }
+
+/* ============================================
+   SEO INTRO TEXT — Hidden on mobile
+   These paragraphs improve crawlability but
+   are not needed on small screens where every
+   pixel counts. Text remains in the HTML so
+   search engines index it on desktop renders.
+   ============================================ */
+@media (max-width: 768px) {
+  .seo-intro {
+    display: none !important;
+  }
+
+  .seo-intro-section {
+    display: none !important;
+  }
+}

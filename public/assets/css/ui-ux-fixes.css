@@ -1447,7 +1447,7 @@ main.section > .section {
 /* Fix: marketplace — the .section immediately after the hero
    banner should use tighter top padding (64px feels excessive
    after a visually-distinct hero). */
-.marketplace-hero + .section {
+.mkt-hero + .section {
   padding-top: 32px;
 }
 

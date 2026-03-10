@@ -2165,22 +2165,26 @@ html[data-theme='dark'] .skeleton-card {
 
 /* Floating Shortlist Button */
 .shortlist-float-btn {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
+  position: fixed !important;
+  bottom: 24px !important;
+  right: 24px !important;
+  width: 56px !important;
+  height: 56px !important;
+  border-radius: 50% !important;
   background: var(--ink, #0b8073);
   color: white;
   border: none;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   cursor: pointer;
-  display: flex;
+  display: flex !important;
   align-items: center;
   justify-content: center;
   z-index: 999;
-  transition: all 0.3s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+  padding: 0 !important;
+  margin: 0 !important;
+  min-height: unset !important;
+  font-size: unset !important;
 }
 
 .shortlist-float-btn:hover {
@@ -2738,8 +2742,8 @@ html[data-theme='dark'] .skeleton-card {
   }
 
   .shortlist-float-btn {
-    bottom: 16px;
-    right: 16px;
+    bottom: 80px !important; /* clear the mobile bottom nav */
+    right: 16px !important;
   }
 }
 
@@ -3033,11 +3037,20 @@ html[data-theme='dark'] .skeleton-card {
   }
 
   .listing-card-actions {
-    flex-direction: column;
+    flex-direction: row;
+    align-items: stretch;
   }
 
-  .listing-card-actions .btn {
-    width: 100%;
+  .listing-card-actions .btn-primary {
+    flex: 1;
+  }
+
+  /* Shortlist button: compact but meets 44px min touch target height */
+  .listing-card-actions .btn-shortlist {
+    flex: 0 0 auto;
+    padding: 10px 16px;
+    font-size: 13px;
+    min-height: 44px;
   }
 }
 

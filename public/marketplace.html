@@ -11,20 +11,20 @@
     <!-- Canonical Base URL for SEO helper (ensures correct URLs in all environments) -->
     <script>window.EF_CANONICAL_BASE = 'https://event-flow.co.uk';</script>
     
-    <title>Marketplace - EventFlow | Buy & Sell Pre-Loved Event Items</title>
+    <title>UK Event Marketplace — Buy &amp; Sell Pre-Loved Wedding &amp; Event Items | EventFlow</title>
     <meta
       name="description"
-      content="Buy and sell pre-loved event items on the EventFlow marketplace. Dresses, décor, AV gear and more. Free to list, UK-focused, no platform fees."
+      content="Shop the UK's event marketplace to buy and sell pre-loved wedding dresses, décor, AV equipment, party supplies and more. Free to list, no platform fees. Buyers and sellers across the UK."
     />
     <link rel="canonical" href="https://event-flow.co.uk/marketplace" />
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://event-flow.co.uk/marketplace" />
-    <meta property="og:title" content="Event Marketplace — Buy & Sell Pre-Loved Event Items" />
+    <meta property="og:title" content="UK Event Marketplace — Buy &amp; Sell Pre-Loved Wedding &amp; Event Items | EventFlow" />
     <meta
       property="og:description"
-      content="Buy and sell pre-loved event items. UK-focused, no platform fees."
+      content="Buy and sell pre-loved wedding dresses, décor, AV equipment and more. UK-focused, free to list, no platform fees."
     />
     <meta
       property="og:image"
@@ -35,10 +35,10 @@
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:url" content="https://event-flow.co.uk/marketplace" />
-    <meta name="twitter:title" content="Event Marketplace — Buy & Sell Pre-Loved Event Items" />
+    <meta name="twitter:title" content="UK Event Marketplace — Buy &amp; Sell Pre-Loved Wedding &amp; Event Items | EventFlow" />
     <meta
       name="twitter:description"
-      content="Buy and sell pre-loved event items. UK-focused, no platform fees."
+      content="Buy and sell pre-loved wedding dresses, décor, AV equipment and more. UK-focused, free to list, no platform fees."
     />
     <meta
       name="twitter:image"
@@ -79,9 +79,9 @@
       {
         "@context": "https://schema.org",
         "@type": "WebPage",
-        "name": "Event Marketplace",
+        "name": "UK Event Marketplace — Buy & Sell Pre-Loved Wedding & Event Items",
         "url": "https://event-flow.co.uk/marketplace",
-        "description": "Buy and sell pre-loved event items — dresses, décor, AV gear and more. UK-focused marketplace with no platform fees.",
+        "description": "Shop the UK's event marketplace to buy and sell pre-loved wedding dresses, décor, AV equipment, party supplies and more. Free to list, no platform fees.",
         "isPartOf": {
           "@type": "WebSite",
           "name": "EventFlow",
@@ -205,21 +205,246 @@
     <script src="/assets/js/websocket-client.js" defer></script>
 
     <main id="main-content">
-      <div class="marketplace-hero">
-        <div class="container">
-          <div class="hero-content">
-            <nav class="breadcrumb" aria-label="Breadcrumb">
-              <a href="/">Home</a> 
-              <span aria-hidden="true">/</span> 
-              <span aria-current="page">Marketplace</span>
+      <!-- =============================================
+           MARKETPLACE HERO — Full-bleed redesign
+           ============================================= -->
+      <!-- BreadcrumbList structured data — production URLs are intentional for SEO canonical signals -->
+      <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://event-flow.co.uk/" },
+          { "@type": "ListItem", "position": 2, "name": "Marketplace", "item": "https://event-flow.co.uk/marketplace" }
+        ]
+      }
+      </script>
+      <section class="mkt-hero" aria-label="Event Marketplace">
+        <!-- Decorative background orbs -->
+        <div class="mkt-hero__orb mkt-hero__orb--1" aria-hidden="true"></div>
+        <div class="mkt-hero__orb mkt-hero__orb--2" aria-hidden="true"></div>
+        <div class="mkt-hero__orb mkt-hero__orb--3" aria-hidden="true"></div>
+
+        <!-- Main two-column grid -->
+        <div class="mkt-hero__inner">
+
+          <!-- Left: Content -->
+          <div class="mkt-hero__content">
+            <nav class="mkt-hero__breadcrumb" aria-label="Breadcrumb">
+              <ol class="mkt-hero__breadcrumb-list">
+                <li>
+                  <a href="/">Home</a>
+                </li>
+                <li aria-hidden="true" class="mkt-hero__breadcrumb-sep">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+                </li>
+                <li>
+                  <span aria-current="page">Marketplace</span>
+                </li>
+              </ol>
             </nav>
-            <h1>Event Marketplace</h1>
-            <p class="hero-subtitle">
-              Buy and sell pre-loved event items — free to use, no platform fees
+
+            <div class="mkt-hero__overline mkt-hero__animate mkt-hero__animate--1" aria-hidden="true">
+              <span class="mkt-hero__dot"></span>
+              UK Marketplace &nbsp;·&nbsp; Free to use
+            </div>
+
+            <h1 class="mkt-hero__title mkt-hero__animate mkt-hero__animate--2">
+              Buy &amp; sell
+              <span class="mkt-hero__title-accent">pre-loved event&nbsp;items</span>
+            </h1>
+
+            <p class="mkt-hero__sub mkt-hero__animate mkt-hero__animate--3">
+              Zero fees. Direct sales. A trusted community of UK buyers and sellers — no middleman, no commission.
             </p>
+
+            <div class="mkt-hero__actions mkt-hero__animate mkt-hero__animate--4">
+              <a href="#marketplace-results" class="mkt-hero__btn mkt-hero__btn--primary">
+                <span class="mkt-hero__btn-shimmer" aria-hidden="true"></span>
+                Browse listings
+              </a>
+              <a href="/auth" class="mkt-hero__btn mkt-hero__btn--secondary">
+                List an item free
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              </a>
+            </div>
+
+            <div class="mkt-hero__stats mkt-hero__animate mkt-hero__animate--5" aria-label="Marketplace highlights">
+              <div class="mkt-hero__stat">
+                <strong>£0</strong>
+                <span>Listing fees</span>
+              </div>
+              <div class="mkt-hero__stat-divider" aria-hidden="true"></div>
+              <div class="mkt-hero__stat">
+                <strong>UK-wide</strong>
+                <span>Community</span>
+              </div>
+              <div class="mkt-hero__stat-divider" aria-hidden="true"></div>
+              <div class="mkt-hero__stat">
+                <strong>Direct</strong>
+                <span>No middleman</span>
+              </div>
+            </div>
+
+            <!-- Scroll cue -->
+            <div class="mkt-hero__scroll-cue mkt-hero__animate mkt-hero__animate--6" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10l5 5 5-5"/></svg>
+            </div>
+          </div>
+
+          <!-- Right: Floating illustrative item cards (decorative) -->
+          <div class="mkt-hero__cards" aria-hidden="true" id="mkt-hero-cards">
+            <div class="mkt-hero__card mkt-hero__card--1">
+              <div class="mkt-hero__card-img mkt-hero__card-img--dress">
+                <!-- aria-hidden on parent container means alt="" is correct here -->
+                <img
+                  src="https://images.unsplash.com/photo-1519741497674-611481863552?w=432&h=168&q=80&auto=format&fit=crop&crop=top"
+                  srcset="https://images.unsplash.com/photo-1519741497674-611481863552?w=216&h=84&q=80&auto=format&fit=crop&crop=top 1x,
+                          https://images.unsplash.com/photo-1519741497674-611481863552?w=432&h=168&q=80&auto=format&fit=crop&crop=top 2x"
+                  alt=""
+                  loading="lazy"
+                  width="216"
+                  height="84"
+                >
+              </div>
+              <div class="mkt-hero__card-body">
+                <span class="mkt-hero__card-cat">👗 Attire</span>
+                <p class="mkt-hero__card-title">Ivory Bridal Gown</p>
+                <div class="mkt-hero__card-footer">
+                  <strong class="mkt-hero__card-price">£285</strong>
+                  <span class="mkt-hero__card-loc">📍 London</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="mkt-hero__card mkt-hero__card--2">
+              <div class="mkt-hero__card-img mkt-hero__card-img--decor">
+                <!-- aria-hidden on parent container means alt="" is correct here -->
+                <img
+                  src="https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=432&h=168&q=80&auto=format&fit=crop"
+                  srcset="https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=216&h=84&q=80&auto=format&fit=crop 1x,
+                          https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=432&h=168&q=80&auto=format&fit=crop 2x"
+                  alt=""
+                  loading="lazy"
+                  width="216"
+                  height="84"
+                >
+              </div>
+              <div class="mkt-hero__card-body">
+                <span class="mkt-hero__card-cat">🎨 Décor</span>
+                <p class="mkt-hero__card-title">Table Centrepieces × 20</p>
+                <div class="mkt-hero__card-footer">
+                  <strong class="mkt-hero__card-price">£120</strong>
+                  <span class="mkt-hero__card-loc">📍 Manchester</span>
+                </div>
+              </div>
+              <!-- New listing badge sits on card 2 -->
+              <div class="mkt-hero__new-badge">✨ New listing</div>
+            </div>
+
+            <div class="mkt-hero__card mkt-hero__card--3">
+              <div class="mkt-hero__card-img mkt-hero__card-img--av">
+                <!-- aria-hidden on parent container means alt="" is correct here -->
+                <img
+                  src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=432&h=168&q=80&auto=format&fit=crop"
+                  srcset="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=216&h=84&q=80&auto=format&fit=crop 1x,
+                          https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=432&h=168&q=80&auto=format&fit=crop 2x"
+                  alt=""
+                  loading="lazy"
+                  width="216"
+                  height="84"
+                >
+              </div>
+              <div class="mkt-hero__card-body">
+                <span class="mkt-hero__card-cat">🔊 AV Equipment</span>
+                <p class="mkt-hero__card-title">PA System &amp; Speakers</p>
+                <div class="mkt-hero__card-footer">
+                  <strong class="mkt-hero__card-price">£450</strong>
+                  <span class="mkt-hero__card-loc">📍 Birmingham</span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+
+        <!-- Scrolling category ticker with gradient fade masks -->
+        <div class="mkt-hero__ticker" aria-hidden="true">
+          <div class="mkt-hero__ticker-fade mkt-hero__ticker-fade--left" aria-hidden="true"></div>
+          <div class="mkt-hero__ticker-fade mkt-hero__ticker-fade--right" aria-hidden="true"></div>
+          <div class="mkt-hero__ticker-track">
+            <span>👗 Wedding Dresses</span>
+            <span class="mkt-hero__ticker-dot">•</span>
+            <span>🎨 Table Décor</span>
+            <span class="mkt-hero__ticker-dot">•</span>
+            <span>🔊 AV Equipment</span>
+            <span class="mkt-hero__ticker-dot">•</span>
+            <span>📸 Camera Gear</span>
+            <span class="mkt-hero__ticker-dot">•</span>
+            <span>🎉 Party Supplies</span>
+            <span class="mkt-hero__ticker-dot">•</span>
+            <span>🌸 Florals &amp; Vases</span>
+            <span class="mkt-hero__ticker-dot">•</span>
+            <span>🍾 Champagne Towers</span>
+            <span class="mkt-hero__ticker-dot">•</span>
+            <span>💡 Lighting Rigs</span>
+            <span class="mkt-hero__ticker-dot">•</span>
+            <!-- Duplicate for seamless loop -->
+            <span>👗 Wedding Dresses</span>
+            <span class="mkt-hero__ticker-dot">•</span>
+            <span>🎨 Table Décor</span>
+            <span class="mkt-hero__ticker-dot">•</span>
+            <span>🔊 AV Equipment</span>
+            <span class="mkt-hero__ticker-dot">•</span>
+            <span>📸 Camera Gear</span>
+            <span class="mkt-hero__ticker-dot">•</span>
+            <span>🎉 Party Supplies</span>
+            <span class="mkt-hero__ticker-dot">•</span>
+            <span>🌸 Florals &amp; Vases</span>
+            <span class="mkt-hero__ticker-dot">•</span>
+            <span>🍾 Champagne Towers</span>
+            <span class="mkt-hero__ticker-dot">•</span>
+            <span>💡 Lighting Rigs</span>
+            <span class="mkt-hero__ticker-dot">•</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Marketplace hero mouse-parallax -->
+      <script>
+        (function () {
+          if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+          var hero = document.querySelector('.mkt-hero');
+          var cards = document.querySelectorAll('.mkt-hero__card');
+          if (!hero || !cards.length) return;
+
+          /* Named constants — rotation matches CSS keyframes, parallax factors control depth */
+          var CARD_ROTATIONS = [-4, 1.5, -2.5];
+          var PARALLAX_X     = [10, 16, 6];
+          var PARALLAX_Y     = [8,  12, 5];
+
+          var ticking = false;
+          hero.addEventListener('mousemove', function (e) {
+            if (ticking) return;
+            ticking = true;
+            requestAnimationFrame(function () {
+              var rect = hero.getBoundingClientRect();
+              var cx = (e.clientX - rect.left)  / rect.width  - 0.5;
+              var cy = (e.clientY - rect.top)    / rect.height - 0.5;
+              for (var i = 0; i < cards.length; i++) {
+                cards[i].style.transform =
+                  'rotate(' + CARD_ROTATIONS[i] + 'deg) ' +
+                  'translate(' + (-cx * PARALLAX_X[i]) + 'px,' + (-cy * PARALLAX_Y[i]) + 'px)';
+              }
+              ticking = false;
+            });
+          });
+          hero.addEventListener('mouseleave', function () {
+            for (var i = 0; i < cards.length; i++) {
+              cards[i].style.transform = '';
+            }
+          });
+        }());
+      </script>
 
       <section class="section">
         <div class="container marketplace-container">

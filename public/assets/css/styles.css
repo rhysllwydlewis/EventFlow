@@ -729,7 +729,7 @@ body.legacy-nav-open .legacy-nav-menu{
 }
 
 /* Better buttons */
-button:not(.auth-tab):not(.role-pill):not(.ef-search-bar__button):not(.back-to-top):not(.ef-mobile-toggle):not(.ef-icon-btn):not(.carousel-prev):not(.carousel-next):not([data-cookie-prefs]), .cta{
+button:not(.auth-tab):not(.role-pill):not(.ef-search-bar__button):not(.back-to-top):not(.ef-mobile-toggle):not(.ef-icon-btn):not(.carousel-prev):not(.carousel-next):not([data-cookie-prefs]):not(.shortlist-float-btn), .cta{
   border-radius: 12px !important;
   padding: 10px 18px !important;
   font-size: 15px !important;
@@ -741,7 +741,7 @@ button:not(.auth-tab):not(.role-pill):not(.ef-search-bar__button):not(.back-to-t
 @media(max-width:600px){
   body{ padding: 10px; }
   .card{ margin: 12px 0 !important; }
-  button:not(.auth-tab):not(.role-pill):not(.ef-search-bar__button):not(.back-to-top):not(.ef-mobile-toggle):not(.ef-icon-btn):not(.carousel-prev):not(.carousel-next):not([data-cookie-prefs]), .cta{ width: 100%; margin-top: 6px; }
+  button:not(.auth-tab):not(.role-pill):not(.ef-search-bar__button):not(.back-to-top):not(.ef-mobile-toggle):not(.ef-icon-btn):not(.carousel-prev):not(.carousel-next):not([data-cookie-prefs]):not(.shortlist-float-btn), .cta{ width: 100%; margin-top: 6px; }
 }
 
 
@@ -1605,67 +1605,608 @@ textarea:focus:not(:focus-visible) {
    ============================================ */
 
 /* ============================================
-   MARKETPLACE HERO - Compact & Modern
+   MARKETPLACE HERO — Full-bleed redesign 2026 (polish pass)
    ============================================ */
-.marketplace-hero {
-  background: linear-gradient(135deg, #13B6A2 0%, #0F8A75 100%);
-  padding: 40px 0;
+.mkt-hero {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  /* Rich mesh gradient: deep navy → brand teal → bright teal */
+  background: linear-gradient(135deg, #0B1220 0%, #0B8073 48%, #13B6A2 100%);
   color: white;
 }
 
-.marketplace-hero .container {
-  max-width: 1200px;
+/* ---- Decorative background orbs (slow drift) ---- */
+.mkt-hero__orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  pointer-events: none;
+  will-change: transform;
+}
+.mkt-hero__orb--1 {
+  width: 640px;
+  height: 640px;
+  background: radial-gradient(circle, rgba(19, 182, 162, 0.4) 0%, transparent 70%);
+  top: -260px;
+  right: -80px;
+  animation: mkt-orb-1 18s ease-in-out infinite;
+}
+.mkt-hero__orb--2 {
+  width: 480px;
+  height: 480px;
+  background: radial-gradient(circle, rgba(11, 128, 115, 0.5) 0%, transparent 70%);
+  bottom: -120px;
+  left: 0;
+  animation: mkt-orb-2 22s ease-in-out infinite;
+}
+.mkt-hero__orb--3 {
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.06) 0%, transparent 70%);
+  top: 20px;
+  left: 28%;
+  animation: mkt-orb-3 26s ease-in-out infinite;
+}
+@keyframes mkt-orb-1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-30px, 20px) scale(1.06); }
+  66% { transform: translate(20px, -30px) scale(0.95); }
+}
+@keyframes mkt-orb-2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  40% { transform: translate(40px, -25px) scale(1.08); }
+  70% { transform: translate(-20px, 15px) scale(0.97); }
+}
+@keyframes mkt-orb-3 {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(25px, 20px); }
+}
+
+/* ---- Inner two-column grid ---- */
+.mkt-hero__inner {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr 460px;
+  align-items: center;
+  gap: 48px;
+  max-width: 1360px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 56px 40px 44px;
 }
 
-.marketplace-hero .hero-content {
-  max-width: 800px;
+/* ---- Staggered entrance animations ---- */
+@keyframes mkt-enter {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-
-.marketplace-hero .breadcrumb {
-  font-size: 0.875rem;
-  margin-bottom: 12px;
-  opacity: 0.9;
+.mkt-hero__animate {
+  animation: mkt-enter 0.65s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
+.mkt-hero__animate--1 { animation-delay: 0.08s; }
+.mkt-hero__animate--2 { animation-delay: 0.18s; }
+.mkt-hero__animate--3 { animation-delay: 0.28s; }
+.mkt-hero__animate--4 { animation-delay: 0.38s; }
+.mkt-hero__animate--5 { animation-delay: 0.50s; }
+.mkt-hero__animate--6 { animation-delay: 0.64s; }
 
-.marketplace-hero .breadcrumb a {
-  color: white;
+/* ---- Breadcrumb ---- */
+.mkt-hero__breadcrumb {
+  margin-bottom: 20px;
+}
+.mkt-hero__breadcrumb-list {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.8rem;
+}
+.mkt-hero__breadcrumb-list li {
+  display: flex;
+  align-items: center;
+}
+.mkt-hero__breadcrumb-list a {
+  color: rgba(255, 255, 255, 0.75);
   text-decoration: none;
-  transition: opacity 0.2s;
+  transition: color 0.2s;
 }
-
-.marketplace-hero .breadcrumb a:hover {
-  opacity: 0.8;
+.mkt-hero__breadcrumb-list a:hover {
+  color: white;
   text-decoration: underline;
 }
+.mkt-hero__breadcrumb-list [aria-current="page"] {
+  color: white;
+  font-weight: 600;
+}
+.mkt-hero__breadcrumb-sep {
+  color: rgba(255, 255, 255, 0.4);
+  line-height: 0;
+}
+.mkt-hero__breadcrumb-sep svg {
+  width: 13px;
+  height: 13px;
+}
 
-.marketplace-hero h1 {
-  font-size: 2rem;
+/* ---- Overline pill ---- */
+.mkt-hero__overline {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 0.72rem;
   font-weight: 700;
-  margin: 0 0 12px 0;
-  line-height: 1.2;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.11);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 100px;
+  padding: 5px 16px;
+  margin-bottom: 22px;
+}
+.mkt-hero__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #9be7d9;
+  flex-shrink: 0;
+  animation: mkt-pulse 2.2s ease-in-out infinite;
+}
+@keyframes mkt-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.65); }
 }
 
-.marketplace-hero .hero-subtitle {
-  font-size: 1.125rem;
-  margin: 0;
-  opacity: 0.95;
-  line-height: 1.5;
+/* ---- Headline ---- */
+.mkt-hero__title {
+  font-size: clamp(2.3rem, 3.8vw, 3.5rem);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -0.025em;
+  margin: 0 0 20px;
+}
+.mkt-hero__title-accent {
+  display: block;
+  background: linear-gradient(90deg, #9be7d9 0%, #ffffff 60%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-/* Mobile adjustments */
-@media (max-width: 768px) {
-  .marketplace-hero {
-    padding: 30px 0;
+/* ---- Sub-headline ---- */
+.mkt-hero__sub {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  opacity: 0.88;
+  max-width: 500px;
+  margin: 0 0 34px;
+}
+
+/* ---- CTA buttons ---- */
+.mkt-hero__actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 38px;
+}
+.mkt-hero__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 700;
+  border-radius: 12px;
+  padding: 14px 30px;
+  text-decoration: none;
+  white-space: nowrap;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, background 0.22s ease, color 0.22s ease;
+}
+.mkt-hero__btn--primary {
+  background: white;
+  color: #0B8073;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+}
+.mkt-hero__btn--primary:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
+  color: #0a6d61;
+  text-decoration: none;
+}
+/* Shimmer sweep on primary button */
+.mkt-hero__btn-shimmer {
+  position: absolute;
+  top: 0;
+  left: -75%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 100%
+  );
+  transform: skewX(-20deg);
+  animation: mkt-shimmer 3.5s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes mkt-shimmer {
+  0%   { left: -75%; }
+  40%, 100% { left: 130%; }
+}
+.mkt-hero__btn--secondary {
+  background: rgba(255, 255, 255, 0.13);
+  color: white;
+  border: 1.5px solid rgba(255, 255, 255, 0.38);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.mkt-hero__btn--secondary:hover {
+  background: rgba(255, 255, 255, 0.22);
+  transform: translateY(-3px);
+  color: white;
+  text-decoration: none;
+}
+.mkt-hero__btn--secondary svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+.mkt-hero__btn--secondary:hover svg {
+  transform: translateX(5px);
+}
+
+/* ---- Stats row ---- */
+.mkt-hero__stats {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  flex-wrap: wrap;
+}
+.mkt-hero__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.mkt-hero__stat strong {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: white;
+  line-height: 1;
+}
+.mkt-hero__stat span {
+  font-size: 0.72rem;
+  opacity: 0.68;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.mkt-hero__stat-divider {
+  width: 1px;
+  height: 34px;
+  background: rgba(255, 255, 255, 0.22);
+  flex-shrink: 0;
+}
+
+/* ---- Scroll cue ---- */
+.mkt-hero__scroll-cue {
+  margin-top: 28px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  opacity: 0.45;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.mkt-hero__scroll-cue svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  animation: mkt-scroll-bounce 1.8s ease-in-out infinite;
+}
+@keyframes mkt-scroll-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(6px); }
+}
+
+/* ---- Floating item cards (right column) ---- */
+.mkt-hero__cards {
+  position: relative;
+  height: 350px;
+}
+.mkt-hero__card {
+  position: absolute;
+  width: 216px;
+  background: white;
+  border-radius: 18px;
+  overflow: visible;
+  box-shadow:
+    0 24px 64px rgba(0, 0, 0, 0.25),
+    0 4px 18px rgba(0, 0, 0, 0.12);
+  transition: box-shadow 0.3s ease, transform 0.35s ease;
+}
+.mkt-hero__card:hover {
+  box-shadow: 0 34px 80px rgba(0, 0, 0, 0.3);
+  /* lift handled via animation override — but also works for parallax-off state */
+}
+/* Staggered positions & rotations */
+.mkt-hero__card--1 {
+  left: 0;
+  top: 18px;
+  z-index: 2;
+  animation: mkt-float-1 4.2s ease-in-out infinite, mkt-card-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
+}
+.mkt-hero__card--2 {
+  left: 120px;
+  top: 48px;
+  z-index: 3;
+  animation: mkt-float-2 4.8s ease-in-out infinite, mkt-card-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.5s both;
+}
+.mkt-hero__card--3 {
+  left: 248px;
+  top: 110px;
+  z-index: 2;
+  animation: mkt-float-3 5.4s ease-in-out infinite, mkt-card-in 0.55s cubic-bezier(0.22, 1, 0.36, 1) 0.7s both;
+}
+@keyframes mkt-card-in {
+  from { opacity: 0; transform: translateY(30px) scale(0.92); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes mkt-float-1 {
+  0%, 100% { transform: rotate(-4deg) translateY(0); }
+  50% { transform: rotate(-4deg) translateY(-12px); }
+}
+@keyframes mkt-float-2 {
+  0%, 100% { transform: rotate(1.5deg) translateY(0); }
+  50% { transform: rotate(1.5deg) translateY(-16px); }
+}
+@keyframes mkt-float-3 {
+  0%, 100% { transform: rotate(-2.5deg) translateY(0); }
+  50% { transform: rotate(-2.5deg) translateY(-9px); }
+}
+
+/* Card image strip */
+/* Card image strip — real photos with cover crop */
+.mkt-hero__card-img {
+  height: 84px;
+  border-radius: 18px 18px 0 0;
+  overflow: hidden;
+  background: #e2e8f0; /* fallback while photo loads */
+}
+.mkt-hero__card-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  transition: transform 0.4s ease;
+}
+.mkt-hero__card:hover .mkt-hero__card-img img {
+  transform: scale(1.06);
+}
+/* Fallback tints if photo fails to load */
+.mkt-hero__card-img--dress  { background: linear-gradient(135deg, #f3e8ff, #ddd6fe); }
+.mkt-hero__card-img--decor  { background: linear-gradient(135deg, #fef9c3, #fde68a); }
+.mkt-hero__card-img--av     { background: linear-gradient(135deg, #dbeafe, #bfdbfe); }
+
+/* Card body */
+.mkt-hero__card-body {
+  padding: 12px 14px 14px;
+}
+.mkt-hero__card-cat {
+  display: block;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+  margin-bottom: 4px;
+}
+.mkt-hero__card-title {
+  font-size: 0.87rem;
+  font-weight: 700;
+  color: #0B1220;
+  margin: 0 0 10px;
+  line-height: 1.3;
+}
+.mkt-hero__card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.mkt-hero__card-price {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #0B8073;
+}
+.mkt-hero__card-loc {
+  font-size: 0.65rem;
+  color: #94a3b8;
+}
+
+/* "New listing" badge on card 2 */
+.mkt-hero__new-badge {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  background: linear-gradient(135deg, #13B6A2, #0B8073);
+  color: white;
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 100px;
+  box-shadow: 0 4px 16px rgba(11, 128, 115, 0.45);
+  white-space: nowrap;
+  animation: mkt-badge-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.8s both;
+}
+@keyframes mkt-badge-pop {
+  from { transform: scale(0) rotate(-15deg); opacity: 0; }
+  to { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+/* ---- Scrolling category ticker ---- */
+.mkt-hero__ticker {
+  position: relative;
+  z-index: 1;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+  padding: 11px 0;
+}
+/* Left/right gradient fade masks */
+.mkt-hero__ticker-fade {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 80px;
+  z-index: 2;
+  pointer-events: none;
+}
+.mkt-hero__ticker-fade--left {
+  left: 0;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.18) 0%, transparent 100%);
+}
+.mkt-hero__ticker-fade--right {
+  right: 0;
+  background: linear-gradient(270deg, rgba(0, 0, 0, 0.18) 0%, transparent 100%);
+}
+.mkt-hero__ticker-track {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  white-space: nowrap;
+  width: max-content;
+  animation: mkt-ticker 30s linear infinite;
+}
+.mkt-hero__ticker-track:hover {
+  animation-play-state: paused;
+}
+.mkt-hero__ticker-track span {
+  font-size: 0.8rem;
+  font-weight: 500;
+  opacity: 0.82;
+  flex-shrink: 0;
+}
+.mkt-hero__ticker-track .mkt-hero__ticker-dot {
+  opacity: 0.3;
+}
+@keyframes mkt-ticker {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+/* ============================================
+   MARKETPLACE HERO — Responsive
+   ============================================ */
+@media (max-width: 1100px) {
+  .mkt-hero__inner {
+    grid-template-columns: 1fr 380px;
+    gap: 36px;
+    padding: 48px 28px 40px;
   }
-  
-  .marketplace-hero h1 {
-    font-size: 1.75rem;
+  .mkt-hero__card--3 {
+    display: none;
   }
-  
-  .marketplace-hero .hero-subtitle {
+  .mkt-hero__cards {
+    height: 290px;
+  }
+  .mkt-hero__card--2 {
+    left: 110px;
+  }
+}
+
+@media (max-width: 820px) {
+  .mkt-hero__inner {
+    grid-template-columns: 1fr;
+    padding: 40px 24px 36px;
+    gap: 0;
+  }
+  .mkt-hero__cards {
+    display: none;
+  }
+  .mkt-hero__title {
+    font-size: 2.2rem;
+  }
+  .mkt-hero__sub {
     font-size: 1rem;
+    max-width: 100%;
+  }
+  .mkt-hero__scroll-cue {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .mkt-hero__inner {
+    padding: 32px 20px 28px;
+  }
+  .mkt-hero__title {
+    font-size: 1.9rem;
+  }
+  .mkt-hero__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .mkt-hero__btn {
+    justify-content: center;
+    padding: 14px 20px;
+    font-size: 0.95rem;
+  }
+  .mkt-hero__stats {
+    gap: 14px;
+  }
+  .mkt-hero__stat strong {
+    font-size: 1.15rem;
+  }
+  .mkt-hero__ticker-track span {
+    font-size: 0.72rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .mkt-hero__title {
+    font-size: 1.65rem;
+  }
+  .mkt-hero__overline {
+    font-size: 0.65rem;
+    padding: 4px 12px;
+  }
+}
+
+/* ---- Accessibility: honour prefers-reduced-motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  .mkt-hero__orb,
+  .mkt-hero__animate,
+  .mkt-hero__dot,
+  .mkt-hero__btn-shimmer,
+  .mkt-hero__scroll-cue svg,
+  .mkt-hero__card,
+  .mkt-hero__new-badge,
+  .mkt-hero__ticker-track {
+    animation: none;
+    transition: none;
+  }
+  /* Ensure cards are visible without entrance animation */
+  .mkt-hero__card--1 {
+    transform: rotate(-4deg);
+  }
+  .mkt-hero__card--2 {
+    transform: rotate(1.5deg);
+  }
+  .mkt-hero__card--3 {
+    transform: rotate(-2.5deg);
+  }
+  .mkt-hero__animate {
+    opacity: 1;
+  }
+  .mkt-hero__ticker-track {
+    /* Freeze ticker so it's still readable */
+    animation-play-state: paused;
   }
 }
 
