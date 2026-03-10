@@ -408,6 +408,17 @@ async function initMarketplacePage() {
     renderResults();
   });
 
+  // Keep card shortlist buttons in sync whenever the shortlist changes externally
+  // (e.g. item removed from the shortlist drawer panel)
+  shortlistManager.onChange(() => {
+    resultsContainer.querySelectorAll('.btn-shortlist').forEach(btn => {
+      const listingId = btn.dataset.listingId;
+      const inShortlist = shortlistManager.hasItem('listing', listingId);
+      btn.classList.toggle('btn-shortlist-active', inShortlist);
+      btn.textContent = inShortlist ? '❤️ Saved' : '♡ Save';
+    });
+  });
+
   // Initial render
   populateFiltersFromURL();
   renderResults();
