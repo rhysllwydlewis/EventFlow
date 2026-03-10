@@ -197,63 +197,56 @@
        ====================================================== -->
   <section class="guides-hero" aria-labelledby="guides-hero-title">
     <div class="container guides-hero__inner">
-      <div class="guides-hero__eyebrow" aria-hidden="true">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-        Free planning resources
-      </div>
-      <h1 class="guides-hero__title" id="guides-hero-title">Event Planning Guides</h1>
-      <p class="guides-hero__sub">Expert tips, inspiration, and step-by-step advice to help you plan the perfect event — from budget to timeline, venues to photography.</p>
 
-      <!-- Search bar -->
-      <div class="guides-hero__search-wrap" role="search">
-        <svg class="guides-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <input
-          type="search"
-          id="guides-search-input"
-          class="guides-hero__search"
-          placeholder="Search guides, tips, topics…"
-          aria-label="Search guides"
-          autocomplete="off"
-        />
-        <button class="guides-search-clear" id="guides-search-clear" type="button" aria-label="Clear search">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-        <button class="guides-hero__search-btn" type="button" aria-hidden="true">Search</button>
+      <!-- Left featured card (carousel) -->
+      <div class="guides-hero__side guides-hero__side--left">
+        <div id="hero-card-left" class="hero-side-card-wrap"></div>
       </div>
 
-      <!-- Hero CTAs -->
-      <div class="guides-hero__cta-row">
-        <a href="#all-guides" class="guides-hero__cta guides-hero__cta--primary">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-          Browse all guides
-        </a>
-        <a href="/start" class="guides-hero__cta guides-hero__cta--ghost">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-          Start planning
-        </a>
-        <a href="/suppliers" class="guides-hero__cta guides-hero__cta--ghost">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-          Explore suppliers
-        </a>
-      </div>
-    </div>
-  </section>
+      <!-- Centre content -->
+      <div class="guides-hero__center">
+        <h1 class="guides-hero__title" id="guides-hero-title">Event Planning Guides</h1>
+        <p class="guides-hero__sub">Expert tips, inspiration, and step-by-step advice to help you plan the perfect event — from budget to timeline, venues to photography.</p>
 
-  <!-- ======================================================
-       FEATURED GUIDES
-       ====================================================== -->
-  <section class="guides-section" id="featured-guides" aria-labelledby="featured-guides-title">
-    <div class="container">
-      <div class="guides-section__header">
-        <h2 class="guides-section__title" id="featured-guides-title">Featured Guides</h2>
-        <a href="#all-guides" class="guides-section__link">
-          View all guides
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </a>
+        <!-- Search bar -->
+        <div class="guides-hero__search-wrap" role="search">
+          <svg class="guides-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input
+            type="search"
+            id="guides-search-input"
+            class="guides-hero__search"
+            placeholder="Search guides, tips, topics…"
+            aria-label="Search guides"
+            autocomplete="off"
+          />
+          <button class="guides-search-clear" id="guides-search-clear" type="button" aria-label="Clear search">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+          <button class="guides-hero__search-btn" type="button" aria-label="Search guides">Search</button>
+        </div>
+
+        <!-- Hero CTAs -->
+        <div class="guides-hero__cta-row">
+          <a href="#all-guides" class="guides-hero__cta guides-hero__cta--primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+            Browse all guides
+          </a>
+          <a href="/start" class="guides-hero__cta guides-hero__cta--ghost">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            Start planning
+          </a>
+          <a href="/suppliers" class="guides-hero__cta guides-hero__cta--ghost">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            Explore suppliers
+          </a>
+        </div>
       </div>
-      <div class="featured-grid" id="featured-guides-grid" aria-live="polite">
-        <!-- Featured cards injected by JS -->
+
+      <!-- Right featured card (carousel) -->
+      <div class="guides-hero__side guides-hero__side--right">
+        <div id="hero-card-right" class="hero-side-card-wrap"></div>
       </div>
+
     </div>
   </section>
 
@@ -268,7 +261,7 @@
       <div class="guides-filter-controls">
         <label for="guides-sort" class="sr-only">Sort guides by</label>
         <select id="guides-sort" class="guides-sort-select" aria-label="Sort guides">
-          <option value="featured">Featured</option>
+          <option value="newest">Newest first</option>
           <option value="az">A–Z</option>
           <option value="za">Z–A</option>
           <option value="category">Category</option>
@@ -608,7 +601,7 @@
     // ──────────────────────────────────────────────
     let activeFilter = '';
     let searchQuery  = '';
-    let sortOrder    = 'featured';
+    let sortOrder    = 'newest';
 
     const searchInput  = document.getElementById('guides-search-input');
     const searchClear  = document.getElementById('guides-search-clear');
@@ -622,46 +615,79 @@
     const resetBtn     = document.getElementById('guides-reset-btn');
     const resultsCount = document.getElementById('guides-results-count');
     const backToTop    = document.getElementById('guides-back-to-top');
-    const featuredGrid = document.getElementById('featured-guides-grid');
 
     // ──────────────────────────────────────────────
-    //  FEATURED GUIDES
+    //  HERO CAROUSEL
     // ──────────────────────────────────────────────
-    function renderFeatured() {
-      if (!featuredGrid) return;
-      const featured = articles.filter(a => a.featured)
-        .sort((a, b) => a.featuredOrder - b.featuredOrder);
-
-      featured.forEach((article, i) => {
-        const isHero = i === 0;
-        const card = document.createElement('a');
-        card.href = article.link;
-        card.className = `featured-card featured-card--${isHero ? 'hero' : 'secondary'} animate-in`;
-        card.style.animationDelay = `${i * 0.08}s`;
-        card.setAttribute('aria-label', `Read guide: ${escHtml(article.title)}`);
-
-        card.innerHTML = `
-          <div class="featured-card__image-wrap">
-            <img src="${escHtml(article.image)}" alt="" class="featured-card__image" loading="eager" width="800" height="450">
+    function buildSideCardHTML(article) {
+      return `
+        <a href="${escHtml(article.link)}" class="hero-side-card" aria-label="Read guide: ${escHtml(article.title)}">
+          <div class="hero-side-card__image-wrap">
+            <img src="${escHtml(article.image)}" alt="" class="hero-side-card__image" loading="lazy" width="400" height="260">
           </div>
-          <div class="featured-card__body">
-            <span class="featured-card__category">${categoryEmoji[article.category] || ''} ${escHtml(article.category)}</span>
-            ${article.affiliate ? '<span class="guide-card__partner-badge" style="margin-left:6px;">Partner</span>' : ''}
-            <h3 class="featured-card__title">${escHtml(article.title)}</h3>
-            ${isHero ? `<p class="featured-card__excerpt">${escHtml(article.excerpt)}</p>` : ''}
-            <div class="featured-card__meta">
-              <span class="featured-card__meta-item">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                ${article.readTime} min read
-              </span>
-            </div>
-            <span class="featured-card__cta">
-              Read guide
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          <div class="hero-side-card__body">
+            <span class="hero-side-card__category">${categoryEmoji[article.category] || ''} ${escHtml(article.category)}</span>
+            <p class="hero-side-card__title">${escHtml(article.title)}</p>
+            <span class="hero-side-card__meta">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              ${article.readTime} min read
             </span>
           </div>
-        `;
-        featuredGrid.appendChild(card);
+        </a>
+      `;
+    }
+
+    function initHeroCarousel() {
+      const leftWrap  = document.getElementById('hero-card-left');
+      const rightWrap = document.getElementById('hero-card-right');
+      if (!leftWrap || !rightWrap) return;
+
+      const featured = articles.filter(a => a.featured)
+        .sort((a, b) => a.featuredOrder - b.featuredOrder);
+      if (featured.length < 2) return;
+
+      let idx = 0;
+      let carouselInterval = null;
+      const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+      function showPair() {
+        const left  = featured[idx % featured.length];
+        const right = featured[(idx + 1) % featured.length];
+
+        if (motionQuery.matches) {
+          leftWrap.innerHTML  = buildSideCardHTML(left);
+          rightWrap.innerHTML = buildSideCardHTML(right);
+        } else {
+          leftWrap.style.opacity  = '0';
+          rightWrap.style.opacity = '0';
+          setTimeout(() => {
+            leftWrap.innerHTML  = buildSideCardHTML(left);
+            rightWrap.innerHTML = buildSideCardHTML(right);
+            leftWrap.style.opacity  = '1';
+            rightWrap.style.opacity = '1';
+          }, 300);
+        }
+        idx = (idx + 1) % featured.length;
+      }
+
+      function startInterval() {
+        if (carouselInterval) clearInterval(carouselInterval);
+        if (!motionQuery.matches) {
+          carouselInterval = setInterval(showPair, 5000);
+        }
+      }
+
+      showPair();
+      startInterval();
+
+      // Respond to live changes in the user's motion preference
+      motionQuery.addEventListener('change', () => {
+        if (motionQuery.matches) {
+          clearInterval(carouselInterval);
+          carouselInterval = null;
+        } else {
+          startInterval();
+        }
       });
     }
 
@@ -739,9 +765,9 @@
     function resetAll() {
       activeFilter = '';
       searchQuery  = '';
-      sortOrder    = 'featured';
+      sortOrder    = 'newest';
       if (searchInput) searchInput.value = '';
-      if (sortSelect)  sortSelect.value  = 'featured';
+      if (sortSelect)  sortSelect.value  = 'newest';
       searchClear.classList.remove('visible');
       chipsWrap.querySelectorAll('.guides-chip').forEach(b => {
         const isAll = b.dataset.filter === '';
@@ -781,12 +807,8 @@
       } else if (sortOrder === 'category') {
         list = list.slice().sort((a, b) => a.category.localeCompare(b.category));
       } else {
-        // featured: featured articles first, then by id
-        list = list.slice().sort((a, b) => {
-          if (a.featured && !b.featured) return -1;
-          if (!a.featured && b.featured) return 1;
-          return a.id - b.id;
-        });
+        // newest: sort by id descending (higher id = more recently added)
+        list = list.slice().sort((a, b) => b.id - a.id);
       }
       return list;
     }
@@ -866,7 +888,7 @@
     // ──────────────────────────────────────────────
     //  INIT
     // ──────────────────────────────────────────────
-    renderFeatured();
+    initHeroCarousel();
     buildChips();
     renderGrid();
   });
