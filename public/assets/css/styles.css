@@ -1971,30 +1971,28 @@ textarea:focus:not(:focus-visible) {
 }
 
 /* Card image strip */
+/* Card image strip — real photos with cover crop */
 .mkt-hero__card-img {
   height: 84px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   border-radius: 18px 18px 0 0;
+  overflow: hidden;
+  background: #e2e8f0; /* fallback while photo loads */
 }
-.mkt-hero__card-img svg {
-  width: 38px;
-  height: 38px;
-  opacity: 0.85;
+.mkt-hero__card-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  transition: transform 0.4s ease;
 }
-.mkt-hero__card-img--dress {
-  background: linear-gradient(135deg, #f3e8ff, #ddd6fe);
-  color: #7c3aed;
+.mkt-hero__card:hover .mkt-hero__card-img img {
+  transform: scale(1.06);
 }
-.mkt-hero__card-img--decor {
-  background: linear-gradient(135deg, #fef9c3, #fde68a);
-  color: #92400e;
-}
-.mkt-hero__card-img--av {
-  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
-  color: #1d4ed8;
-}
+/* Fallback tints if photo fails to load */
+.mkt-hero__card-img--dress  { background: linear-gradient(135deg, #f3e8ff, #ddd6fe); }
+.mkt-hero__card-img--decor  { background: linear-gradient(135deg, #fef9c3, #fde68a); }
+.mkt-hero__card-img--av     { background: linear-gradient(135deg, #dbeafe, #bfdbfe); }
 
 /* Card body */
 .mkt-hero__card-body {
