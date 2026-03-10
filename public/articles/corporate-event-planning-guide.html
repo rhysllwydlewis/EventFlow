@@ -58,7 +58,7 @@
         <a href="/start" class="ef-nav-link">Plan</a>
         <a href="/suppliers" class="ef-nav-link">Suppliers</a>
         <a href="/marketplace" class="ef-nav-link">Marketplace</a>
-        <a href="/blog" class="ef-nav-link">Guides</a>
+        <a href="/blog" class="ef-nav-link" aria-current="page">Guides</a>
         <a href="/pricing" class="ef-nav-link">Pricing</a>
       </nav>
 
@@ -386,6 +386,7 @@
     <div class="version">Version: <span id="ef-version-label">loading…</span></div>
     <div class="small">
       <a href="/blog">Guides</a> ·
+      <a href="/marketplace">Marketplace</a> ·
       <a href="/credits">Credits</a> ·
       <a href="/contact">Contact</a> ·
       <a href="/legal">Legal Hub</a> ·
@@ -459,23 +460,7 @@
 </nav>
 
 <script src="/assets/js/app.js"></script>
-<script id="article-progress-bar-script">
-  (function(){
-    var bar = document.getElementById("article-progress-bar");
-    if (!bar) return;
-    var backTop = document.getElementById("article-back-to-top");
-    window.addEventListener("scroll", function(){
-      var doc = document.documentElement;
-      var scrollTop = doc.scrollTop || document.body.scrollTop;
-      var totalHeight = doc.scrollHeight - doc.clientHeight;
-      var pct = totalHeight > 0 ? Math.min(100, Math.round((scrollTop / totalHeight) * 100)) : 0;
-      bar.style.width = pct + "%";
-      bar.setAttribute("aria-valuenow", pct);
-      if (backTop) backTop.classList.toggle("visible", scrollTop > 500);
-    }, { passive: true });
-    if (backTop) backTop.addEventListener("click", function(){ window.scrollTo({ top: 0, behavior: "smooth" }); });
-  })();
-</script>
+<script src="/assets/js/article-progress.js" defer></script>
 
 <script src="/assets/js/utils/p3-features.js" defer></script>
 <script src="/assets/js/blog-enhancements.js" defer></script>

@@ -7,29 +7,31 @@
   'use strict';
 
   /**
-   * Add reading time estimate to article
+   * Add reading time estimate to article — only if the article header
+   * does not already contain a read-time element (guides articles do).
    */
   function addReadingTime() {
-    // Find article content
+    // Skip if the article already has a meta/read-time block rendered in HTML
+    if (document.querySelector('.article-header__meta, .article-header__meta-item')) {
+      return;
+    }
+
     const article = document.querySelector('article, .article-content, main');
     if (!article) {
       return;
     }
 
-    // Calculate reading time
     const content = article.textContent || '';
 
     if (typeof calculateReadingTime === 'function') {
       const minutes = calculateReadingTime(content);
 
-      // Create or update reading time display
       let container = document.getElementById('reading-time');
       if (!container) {
         container = document.createElement('div');
         container.id = 'reading-time';
         container.className = 'reading-time';
 
-        // Insert at the beginning of article or after title
         const title = article.querySelector('h1');
         if (title) {
           title.insertAdjacentElement('afterend', container);
@@ -44,10 +46,15 @@
   }
 
   /**
-   * Add breadcrumbs to article
+   * Add breadcrumbs to article — only if no breadcrumb nav already exists
+   * (guides articles include .article-breadcrumb in their HTML).
    */
   function addArticleBreadcrumbs() {
-    // Get article title
+    // Skip if an article-level breadcrumb is already present in the HTML
+    if (document.querySelector('.article-breadcrumb, nav[aria-label="Breadcrumb"]')) {
+      return;
+    }
+
     const title = document.querySelector('h1')?.textContent || 'Article';
 
     const breadcrumbs = [
@@ -57,7 +64,6 @@
     ];
 
     if (typeof renderBreadcrumbs === 'function') {
-      // Create container if it doesn't exist
       let container = document.getElementById('breadcrumb-container');
       if (!container) {
         container = document.createElement('div');

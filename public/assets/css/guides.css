@@ -974,158 +974,6 @@
 }
 
 /* ============================================================
-   9. DARK MODE SUPPORT
-   ============================================================ */
-[data-theme="dark"] .guides-filter-bar,
-.dark-mode .guides-filter-bar {
-  background: rgba(11,18,32,0.90);
-  border-bottom-color: rgba(255,255,255,0.08);
-}
-
-[data-theme="dark"] .guide-card,
-.dark-mode .guide-card {
-  background: #1a2332;
-  border-color: rgba(255,255,255,0.08);
-}
-
-[data-theme="dark"] .guide-card:hover,
-.dark-mode .guide-card:hover {
-  border-color: rgba(11,128,115,0.35);
-}
-
-[data-theme="dark"] .guide-card__title,
-.dark-mode .guide-card__title,
-[data-theme="dark"] .guides-section__title,
-.dark-mode .guides-section__title {
-  color: #f1f5f9;
-}
-
-[data-theme="dark"] .guide-card__excerpt,
-.dark-mode .guide-card__excerpt {
-  color: #94a3b8;
-}
-
-[data-theme="dark"] .featured-card,
-.dark-mode .featured-card {
-  background: #1a2332;
-  border-color: rgba(255,255,255,0.08);
-}
-
-[data-theme="dark"] .featured-card__title,
-.dark-mode .featured-card__title {
-  color: #f1f5f9;
-}
-
-[data-theme="dark"] .featured-card--hero .featured-card__body,
-.dark-mode .featured-card--hero .featured-card__body {
-  background: rgba(26,35,50,0.97);
-  border-top-color: rgba(255,255,255,0.08);
-}
-
-[data-theme="dark"] .guides-chip,
-.dark-mode .guides-chip {
-  background: #1a2332;
-  border-color: rgba(255,255,255,0.12);
-  color: #e2e8f0;
-}
-
-[data-theme="dark"] .guides-chip:hover,
-.dark-mode .guides-chip:hover {
-  background: rgba(11,128,115,0.15);
-  border-color: var(--guides-teal);
-}
-
-[data-theme="dark"] .guides-sort-select,
-.dark-mode .guides-sort-select {
-  background-color: #1a2332;
-  border-color: rgba(255,255,255,0.12);
-  color: #e2e8f0;
-}
-
-[data-theme="dark"] .guides-section--alt,
-.dark-mode .guides-section--alt {
-  background: rgba(11,128,115,0.08);
-}
-
-[data-theme="dark"] .guides-results-count,
-.dark-mode .guides-results-count {
-  color: #94a3b8;
-}
-
-[data-theme="dark"] .guides-results-count strong,
-.dark-mode .guides-results-count strong {
-  color: #e2e8f0;
-}
-
-[data-theme="dark"] .guides-empty__title,
-.dark-mode .guides-empty__title {
-  color: #f1f5f9;
-}
-
-[data-theme="dark"] .guides-empty__text,
-.dark-mode .guides-empty__text {
-  color: #94a3b8;
-}
-
-/* System dark mode */
-@media (prefers-color-scheme: dark) {
-  body:not([data-theme="light"]) .guides-filter-bar {
-    background: rgba(11,18,32,0.90);
-    border-bottom-color: rgba(255,255,255,0.08);
-  }
-  body:not([data-theme="light"]) .guide-card {
-    background: #1a2332;
-    border-color: rgba(255,255,255,0.08);
-  }
-  body:not([data-theme="light"]) .guide-card:hover {
-    border-color: rgba(11,128,115,0.35);
-  }
-  body:not([data-theme="light"]) .guide-card__title,
-  body:not([data-theme="light"]) .guides-section__title {
-    color: #f1f5f9;
-  }
-  body:not([data-theme="light"]) .guide-card__excerpt {
-    color: #94a3b8;
-  }
-  body:not([data-theme="light"]) .featured-card {
-    background: #1a2332;
-    border-color: rgba(255,255,255,0.08);
-  }
-  body:not([data-theme="light"]) .featured-card__title {
-    color: #f1f5f9;
-  }
-  body:not([data-theme="light"]) .featured-card--hero .featured-card__body {
-    background: rgba(26,35,50,0.97);
-    border-top-color: rgba(255,255,255,0.08);
-  }
-  body:not([data-theme="light"]) .guides-chip {
-    background: #1a2332;
-    border-color: rgba(255,255,255,0.12);
-    color: #e2e8f0;
-  }
-  body:not([data-theme="light"]) .guides-sort-select {
-    background-color: #1a2332;
-    border-color: rgba(255,255,255,0.12);
-    color: #e2e8f0;
-  }
-  body:not([data-theme="light"]) .guides-section--alt {
-    background: rgba(11,128,115,0.08);
-  }
-  body:not([data-theme="light"]) .guides-results-count {
-    color: #94a3b8;
-  }
-  body:not([data-theme="light"]) .guides-results-count strong {
-    color: #e2e8f0;
-  }
-  body:not([data-theme="light"]) .guides-empty__title {
-    color: #f1f5f9;
-  }
-  body:not([data-theme="light"]) .guides-empty__text {
-    color: #94a3b8;
-  }
-}
-
-/* ============================================================
    10. REDUCED MOTION
    ============================================================ */
 @media (prefers-reduced-motion: reduce) {
@@ -1571,45 +1419,6 @@
   box-shadow: 0 8px 28px rgba(11,128,115,0.35);
 }
 
-/* Dark mode for article elements */
-[data-theme="dark"] .article-toc,
-.dark-mode .article-toc {
-  background: rgba(11,128,115,0.10);
-  border-color: rgba(11,128,115,0.25);
-}
-
-[data-theme="dark"] .article-toc__item a,
-.dark-mode .article-toc__item a {
-  color: #e2e8f0;
-}
-
-[data-theme="dark"] .article-related-card,
-.dark-mode .article-related-card {
-  background: #1a2332;
-  border-color: rgba(255,255,255,0.08);
-}
-
-[data-theme="dark"] .article-related-card__title,
-.dark-mode .article-related-card__title {
-  color: #f1f5f9;
-}
-
-[data-theme="dark"] .article-header__title,
-.dark-mode .article-header__title {
-  color: #f1f5f9;
-}
-
-[data-theme="dark"] .article-tip,
-.dark-mode .article-tip {
-  background: rgba(34,197,94,0.08);
-  color: #86efac;
-}
-
-[data-theme="dark"] .article-note,
-.dark-mode .article-note {
-  background: rgba(59,130,246,0.08);
-  color: #93c5fd;
-}
 
 /* Back to top */
 .guides-back-to-top {
@@ -1667,4 +1476,265 @@
   .featured-card.animate-in {
     animation: none;
   }
+}
+
+/* ============================================================
+   15. ARTICLE CONTENT — styled prose
+   Replaces most inline styles used in article HTML files.
+   ============================================================ */
+
+/* Article page layout */
+.section { padding: 32px 0 64px; background: #fff; }
+
+/* Hero image for articles */
+.article-hero-image,
+article .container img[style*="height: 400px"],
+article img[style*="height: 400px"],
+article img[style*="height:400px"],
+article > img:first-of-type {
+  width: 100%;
+  height: 360px;
+  object-fit: cover;
+  border-radius: var(--guides-radius);
+  margin: 0 0 2rem;
+  display: block;
+}
+
+/* Article content typography */
+.article-content {
+  font-size: 1.05rem;
+  line-height: 1.85;
+  color: #374151;
+}
+
+.article-content > p:first-child {
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: var(--guides-teal);
+  line-height: 1.7;
+  margin-bottom: 2rem;
+}
+
+.article-content h2 {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #0b1220;
+  margin: 2.5rem 0 1rem;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  border-bottom: 2px solid var(--guides-teal-pale);
+  padding-bottom: 8px;
+}
+
+.article-content h3 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 2rem 0 0.75rem;
+  line-height: 1.3;
+}
+
+.article-content h4 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--guides-teal);
+  margin: 1.5rem 0 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.85rem;
+}
+
+.article-content p { margin: 0 0 1.2rem; }
+
+.article-content ul,
+.article-content ol {
+  margin: 0.75rem 0 1.5rem 1.5rem;
+  line-height: 1.85;
+}
+
+.article-content li { margin-bottom: 0.4rem; }
+.article-content li:last-child { margin-bottom: 0; }
+
+.article-content strong { color: #111827; }
+.article-content em { color: #6b7280; }
+
+.article-content a {
+  color: var(--guides-teal);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.article-content a:hover { color: #0a7069; }
+
+/* Inline-styled tip/warning boxes — we target the pattern used in article HTML */
+/* Yellow tip (background: #fff3cd) */
+.article-content [style*="#fff3cd"],
+.article-content [style*="ffc107"] {
+  background: #fffbeb !important;
+  border-left: 4px solid #f59e0b !important;
+  border-radius: 8px !important;
+  padding: 1.25rem 1.5rem !important;
+  margin: 1.75rem 0 !important;
+  color: #92400e;
+}
+.article-content [style*="#fff3cd"] strong,
+.article-content [style*="ffc107"] strong {
+  color: #78350f;
+}
+
+/* Grey info box (background: #f7fafc) */
+.article-content [style*="#f7fafc"],
+.article-content [style*="f7fafc"] {
+  background: #f8faff !important;
+  border: 1px solid rgba(11,128,115,0.12) !important;
+  border-left: 4px solid var(--guides-teal) !important;
+  border-radius: 8px !important;
+  padding: 1.5rem 1.75rem !important;
+  margin: 1.75rem 0 !important;
+}
+.article-content [style*="#f7fafc"] h4,
+.article-content [style*="f7fafc"] h4 {
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--guides-teal);
+  margin-bottom: 0.75rem;
+}
+
+/* CTA box inside article content */
+.article-content [style*="background: #E8F7F5"],
+.article-content [style*="background:#E8F7F5"],
+.article-content [style*="#E8F7F5"] {
+  background: var(--guides-teal-pale) !important;
+  border-radius: 12px !important;
+  padding: 2rem !important;
+  margin: 2.5rem 0 !important;
+  border: 1px solid rgba(11,128,115,0.15) !important;
+}
+
+/* Print button */
+.print-button,
+#print-article-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 22px;
+  border: 1px solid rgba(11,128,115,0.20);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--guides-teal);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 2rem;
+  text-decoration: none;
+}
+
+.print-button:hover,
+#print-article-btn:hover {
+  background: var(--guides-teal-pale);
+  border-color: var(--guides-teal);
+  transform: none;
+}
+
+/* Article reading progress bar */
+.article-progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0%;
+  height: 3px;
+  background: linear-gradient(90deg, var(--guides-teal), var(--guides-teal-light));
+  z-index: 9999;
+  transition: width 0.1s linear;
+  pointer-events: none;
+}
+
+/* Article breadcrumb */
+.article-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 0.82rem;
+  color: #6b7280;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(11,128,115,0.10);
+}
+
+.article-breadcrumb a {
+  color: var(--guides-teal);
+  text-decoration: none;
+  font-weight: 500;
+}
+.article-breadcrumb a:hover { text-decoration: underline; }
+.article-breadcrumb__sep { color: #d1d5db; font-size: 0.9rem; }
+.article-breadcrumb [aria-current="page"] { color: #374151; font-weight: 600; }
+
+/* Article header */
+.article-header { margin-bottom: 28px; }
+.article-header__title {
+  font-size: clamp(1.65rem, 4vw, 2.3rem);
+  font-weight: 900;
+  letter-spacing: -0.025em;
+  color: #0b1220;
+  line-height: 1.2;
+  margin: 12px 0 16px;
+}
+
+.article-header__meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 0.82rem;
+  color: #6b7280;
+}
+
+.article-header__meta-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.article-header__meta-item svg { flex-shrink: 0; opacity: 0.7; }
+
+.article-header__meta-sep {
+  display: inline-block;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #d1d5db;
+  flex-shrink: 0;
+}
+
+/* Guides section alt background */
+.guides-section--alt { background: #f8fffe; }
+
+/* Filter bar color fix - ensure proper teal border-top */
+.guides-filter-bar {
+  border-top: 3px solid var(--guides-teal) !important;
+}
+
+/* Guide card - remove image area grey on empty cards */
+.guide-card__image-wrap {
+  background: linear-gradient(135deg, var(--guides-teal-pale) 0%, #e0f2f0 100%);
+}
+
+/* ============================================================
+   16. ARTICLE PAGE — RESPONSIVE
+   ============================================================ */
+@media (max-width: 768px) {
+  .article-header__title { font-size: 1.6rem; }
+  .article-content h2 { font-size: 1.35rem; }
+  .article-content h3 { font-size: 1.1rem; }
+  article.container { padding: 0 16px; }
+
+  .article-hero-image,
+  article > img:first-of-type { height: 220px; border-radius: 10px; }
+
+  .article-related__grid { grid-template-columns: 1fr; }
+  .article-end-cta { flex-direction: column; }
+  .article-end-cta__back, .article-end-cta__tool { text-align: center; justify-content: center; }
 }
