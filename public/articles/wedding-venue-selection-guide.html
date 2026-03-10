@@ -24,6 +24,7 @@
   <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/navbar.css?v=18.3.0">
   <link rel="icon" href="/favicon.svg">
+  <link rel="stylesheet" href="/assets/css/guides.css?v=19.0.0" />
   
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="article">
@@ -38,6 +39,8 @@
   <link rel="stylesheet" href="/assets/css/p3-features.css?v=18.3.0">
 </head>
 <body>
+<!-- Reading progress bar -->
+<div class="article-progress-bar" id="article-progress-bar" role="progressbar" aria-label="Reading progress" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
 <!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
 <header class="ef-header" role="banner">
   <div class="ef-container">
@@ -142,16 +145,23 @@
 
 <main class="section">
   <article class="container" style="max-width: 800px;">
-    <nav style="margin-bottom: 2rem; font-size: 0.9rem; color: #6c757d;">
-      <a href="/" style="text-decoration: none; color: inherit;">Home</a> / 
-      <a href="/blog" style="text-decoration: none; color: inherit;">Guides</a> / 
-      <span>Wedding Venue Selection Guide</span>
+    <nav class="article-breadcrumb" aria-label="Breadcrumb">
+      <a href="/">Home</a>
+      <span class="article-breadcrumb__sep" aria-hidden="true">›</span>
+      <a href="/blog">Guides</a>
+      <span class="article-breadcrumb__sep" aria-hidden="true">›</span>
+      <span aria-current="page">Wedding Venue Selection Guide</span>
     </nav>
 
-    <header style="margin-bottom: 2rem;">
-      <span class="badge" style="background: #13B6A2; color: white; padding: 4px 12px; border-radius: 4px; font-size: 0.85rem; display: inline-block; margin-bottom: 1rem;">Venues</span>
-      <h1 style="margin: 0 0 1rem 0; font-size: 2.5rem; line-height: 1.2;">The Ultimate Wedding Venue Selection Guide 2026</h1>
-      <p style="color: #6c757d; font-size: 0.95rem;">Updated: March 2026 | Read time: 8 minutes</p>
+    <header class="article-header">
+      <span class="article-header__category">🏛️ Venues</span>
+      <h1 class="article-header__title">The Ultimate Wedding Venue Selection Guide 2026</h1>
+      <div class="article-header__meta">
+        <span class="article-header__meta-item">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Updated: March 2026</span><span class="article-header__meta-sep" aria-hidden="true"></span><span class="article-header__meta-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Read time: 8 minutes
+        </span>
+      </div>
     </header>
 
     <img src="/assets/images/hero-venue.jpg" alt="Beautiful wedding venue with elegant decorations" style="width: 100%; height: 400px; object-fit: cover; border-radius: 12px; margin-bottom: 2rem;">
@@ -296,8 +306,34 @@
 
     </div>
 
-    <div style="margin-top: 3rem; padding-top: 2rem; border-top: 1px solid #e3e9ef;">
-      <a href="/blog" style="color: #13B6A2; text-decoration: none; font-weight: 600;">← Back to all articles</a>
+        <div class="article-related">
+      <h3 class="article-related__title">Related Guides</h3>
+      <div class="article-related__grid">
+      <a href="/articles/event-photography-complete-guide" class="article-related-card">
+        <span class="article-related-card__category">Photography</span>
+        <h4 class="article-related-card__title">Complete Guide to Event Photography</h4>
+        <span class="article-related-card__cta">Read guide <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+      </a>
+      <a href="/articles/perfect-wedding-day-timeline-guide" class="article-related-card">
+        <span class="article-related-card__category">Timelines</span>
+        <h4 class="article-related-card__title">Perfect Wedding Day Timeline Guide</h4>
+        <span class="article-related-card__cta">Read guide <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+      </a>
+      <a href="/articles/event-budget-management-guide" class="article-related-card">
+        <span class="article-related-card__category">Budget</span>
+        <h4 class="article-related-card__title">Event Budget Management Guide</h4>
+        <span class="article-related-card__cta">Read guide <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+      </a>
+      </div>
+      <div class="article-end-cta">
+        <a href="/blog" class="article-end-cta__back">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+          All Guides
+        </a>
+        <a href="/suppliers" class="article-end-cta__tool">
+          Find Venues →
+        </a>
+      </div>
     </div>
   </article>
 </main>
@@ -390,5 +426,9 @@
 <!-- JadeAssist Chat Widget -->
 <script src="https://cdn.jsdelivr.net/gh/rhysllwydlewis/JadeAssist@abbf580487e0bcf7739a0857d4d940213fe2e176/packages/widget/dist/jade-widget.js" defer></script>
 <script src="/assets/js/jadeassist-init.v2.js" defer></script>
+<!-- Back to top -->
+<button class="guides-back-to-top" id="article-back-to-top" type="button" aria-label="Back to top">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="18 15 12 9 6 15"/></svg>
+</button>
 </body>
 </html>

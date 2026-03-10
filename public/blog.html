@@ -42,7 +42,8 @@
   <link rel="stylesheet" href="/assets/css/components.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/animations.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.3.0">
-    <link rel="stylesheet" href="/assets/css/navbar.css?v=18.3.0" />
+  <link rel="stylesheet" href="/assets/css/navbar.css?v=18.3.0" />
+  <link rel="stylesheet" href="/assets/css/guides.css?v=19.0.0" />
   <link rel="icon" href="/favicon.svg">
   <script type="application/ld+json">
   {
@@ -170,28 +171,191 @@
 <script src="/assets/js/search.js" defer></script>
 <script src="/assets/js/websocket-client.js" defer></script>
 
-<main id="main-content">
-  <section class="hero hero--subpage">
-    <div class="container">
-      <h1>Guides</h1>
-      <p class="lead">Expert tips, inspiration, and practical advice for planning your perfect event</p>
+<main id="main-content" class="guides-page">
+
+  <!-- ======================================================
+       HERO SECTION
+       ====================================================== -->
+  <section class="guides-hero" aria-labelledby="guides-hero-title">
+    <div class="container guides-hero__inner">
+      <div class="guides-hero__eyebrow" aria-hidden="true">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        Free planning resources
+      </div>
+      <h1 class="guides-hero__title" id="guides-hero-title">Event Planning Guides</h1>
+      <p class="guides-hero__sub">Expert tips, inspiration, and step-by-step advice to help you plan the perfect event — from budget to timeline, venues to photography.</p>
+
+      <!-- Search bar -->
+      <div class="guides-hero__search-wrap" role="search">
+        <svg class="guides-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input
+          type="search"
+          id="guides-search-input"
+          class="guides-hero__search"
+          placeholder="Search guides, tips, topics…"
+          aria-label="Search guides"
+          autocomplete="off"
+        />
+        <button class="guides-search-clear" id="guides-search-clear" type="button" aria-label="Clear search">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+        <button class="guides-hero__search-btn" type="button" aria-hidden="true">Search</button>
+      </div>
+
+      <!-- Hero CTAs -->
+      <div class="guides-hero__cta-row">
+        <a href="#all-guides" class="guides-hero__cta guides-hero__cta--primary">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+          Browse all guides
+        </a>
+        <a href="/start" class="guides-hero__cta guides-hero__cta--ghost">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          Start planning
+        </a>
+        <a href="/suppliers" class="guides-hero__cta guides-hero__cta--ghost">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          Explore suppliers
+        </a>
+      </div>
     </div>
   </section>
 
-  <section class="section">
+  <!-- ======================================================
+       FEATURED GUIDES
+       ====================================================== -->
+  <section class="guides-section" id="featured-guides" aria-labelledby="featured-guides-title">
     <div class="container">
-      <!-- Tag Filter Buttons -->
-      <div id="tag-filters" class="tag-filters" style="margin-bottom: 2rem;">
-        <!-- Filter buttons will be loaded here -->
+      <div class="guides-section__header">
+        <h2 class="guides-section__title" id="featured-guides-title">Featured Guides</h2>
+        <a href="#all-guides" class="guides-section__link">
+          View all guides
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </a>
       </div>
-      
-      <div id="blog-articles" class="articles-grid" aria-live="polite">
-        <p class="blog-loading-placeholder" aria-hidden="true" style="grid-column:1/-1;text-align:center;color:#667085;padding:2rem 0;">Loading guides…</p>
-        <noscript><p style="grid-column:1/-1;text-align:center;padding:2rem 0;">JavaScript is required to view the guides. Please enable JavaScript in your browser.</p></noscript>
+      <div class="featured-grid" id="featured-guides-grid" aria-live="polite">
+        <!-- Featured cards injected by JS -->
       </div>
     </div>
   </section>
+
+  <!-- ======================================================
+       FILTER BAR (sticky)
+       ====================================================== -->
+  <div class="guides-filter-bar" role="toolbar" aria-label="Filter and sort guides">
+    <div class="container guides-filter-bar__inner">
+      <div class="guides-filter-chips" id="guides-chips" role="group" aria-label="Filter by topic">
+        <!-- chips injected by JS -->
+      </div>
+      <div class="guides-filter-controls">
+        <label for="guides-sort" class="sr-only">Sort guides by</label>
+        <select id="guides-sort" class="guides-sort-select" aria-label="Sort guides">
+          <option value="featured">Featured</option>
+          <option value="az">A–Z</option>
+          <option value="za">Z–A</option>
+          <option value="category">Category</option>
+        </select>
+        <button class="guides-clear-btn" id="guides-clear-all" type="button" aria-label="Clear all filters and search">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Clear all
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================
+       ALL GUIDES
+       ====================================================== -->
+  <section class="guides-section" id="all-guides" aria-labelledby="all-guides-title">
+    <div class="container">
+      <div class="guides-section__header">
+        <h2 class="guides-section__title" id="all-guides-title">All Guides</h2>
+        <!-- Results bar -->
+        <div class="guides-results-bar" id="guides-results-bar" aria-live="polite" aria-atomic="true">
+          <p class="guides-results-count" id="guides-results-count"></p>
+        </div>
+      </div>
+
+      <div class="guides-grid" id="guides-grid" aria-live="polite" aria-atomic="false">
+        <p style="grid-column:1/-1;text-align:center;color:#667085;padding:2rem 0;" id="guides-loading">Loading guides…</p>
+        <noscript><p style="grid-column:1/-1;text-align:center;padding:2rem 0;">JavaScript is required to view the guides. Please enable JavaScript in your browser.</p></noscript>
+      </div>
+
+      <!-- Empty state -->
+      <div class="guides-empty" id="guides-empty" role="status" aria-live="polite">
+        <div class="guides-empty__icon" aria-hidden="true">🔍</div>
+        <h3 class="guides-empty__title">No guides found</h3>
+        <p class="guides-empty__text" id="guides-empty-msg">Try adjusting your search or filter to find what you're looking for.</p>
+        <button class="guides-empty__reset" id="guides-reset-btn" type="button">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/></svg>
+          Reset filters
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ======================================================
+       PLANNING TOOLS / PRODUCT CTA
+       ====================================================== -->
+  <section class="guides-tools" aria-labelledby="guides-tools-title">
+    <div class="container guides-tools__inner">
+      <div class="guides-tools__header">
+        <div class="guides-tools__eyebrow">Put it into action</div>
+        <h2 class="guides-tools__title" id="guides-tools-title">Plan with EventFlow</h2>
+        <p class="guides-tools__sub">Use these free tools to turn guide knowledge into real event plans — all in one place.</p>
+      </div>
+      <div class="guides-tools__grid">
+        <a href="/budget" class="guides-tool-card" aria-label="Open budget planner tool">
+          <div class="guides-tool-card__icon" aria-hidden="true">💰</div>
+          <p class="guides-tool-card__name">Budget Planner</p>
+          <p class="guides-tool-card__desc">Track every cost, set allocations, and stay on budget across all suppliers.</p>
+          <span class="guides-tool-card__arrow">Open tool <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+        </a>
+        <a href="/guests" class="guides-tool-card" aria-label="Open guest manager tool">
+          <div class="guides-tool-card__icon" aria-hidden="true">👥</div>
+          <p class="guides-tool-card__name">Guest Manager</p>
+          <p class="guides-tool-card__desc">Invite, track RSVPs, manage dietary needs, and seat everyone seamlessly.</p>
+          <span class="guides-tool-card__arrow">Open tool <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+        </a>
+        <a href="/timeline" class="guides-tool-card" aria-label="Open timeline builder tool">
+          <div class="guides-tool-card__icon" aria-hidden="true">📅</div>
+          <p class="guides-tool-card__name">Timeline Builder</p>
+          <p class="guides-tool-card__desc">Build a complete event day schedule with drag-and-drop simplicity.</p>
+          <span class="guides-tool-card__arrow">Open tool <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+        </a>
+        <a href="/suppliers" class="guides-tool-card" aria-label="Find suppliers">
+          <div class="guides-tool-card__icon" aria-hidden="true">🔍</div>
+          <p class="guides-tool-card__name">Find Suppliers</p>
+          <p class="guides-tool-card__desc">Discover vetted photographers, caterers, venues, and more near you.</p>
+          <span class="guides-tool-card__arrow">Find suppliers <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+        </a>
+        <a href="/marketplace" class="guides-tool-card" aria-label="Open marketplace">
+          <div class="guides-tool-card__icon" aria-hidden="true">🛍️</div>
+          <p class="guides-tool-card__name">Marketplace</p>
+          <p class="guides-tool-card__desc">Browse and book curated event packages from top UK suppliers.</p>
+          <span class="guides-tool-card__arrow">Browse <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+        </a>
+        <a href="/start" class="guides-tool-card" aria-label="Start planning your event">
+          <div class="guides-tool-card__icon" aria-hidden="true">✨</div>
+          <p class="guides-tool-card__name">Start Planning</p>
+          <p class="guides-tool-card__desc">Answer a few questions and get a personalised event plan in minutes.</p>
+          <span class="guides-tool-card__arrow">Get started <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></span>
+        </a>
+      </div>
+      <div class="guides-tools__cta">
+        <a href="/start" class="guides-tools__cta-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          Start planning your event for free
+        </a>
+      </div>
+    </div>
+  </section>
+
 </main>
+
+<!-- Back to top button -->
+<button class="guides-back-to-top" id="guides-back-to-top" type="button" aria-label="Back to top">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="18 15 12 9 6 15"/></svg>
+</button>
 
 <!-- BOTTOM NAVBAR - GOLD STANDARD REBUILD (Mobile Only) -->
 <nav class="ef-bottom-nav" role="navigation" aria-label="Mobile bottom navigation">
@@ -278,188 +442,414 @@
   window.__EF_PAGE__ = 'blog';
 
   document.addEventListener('DOMContentLoaded', () => {
-    const container = document.getElementById('blog-articles');
-    if (!container) return;
 
-    // Helper function to capitalize tag names for display
-    function capitalizeTag(tag) {
-      return tag
-        .split(/[-\s]/)
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
-    }
-
-    // Sample articles - in production, these would come from a CMS or API
+    // ──────────────────────────────────────────────
+    //  DATA
+    // ──────────────────────────────────────────────
     const articles = [
       {
+        id: 1,
         title: 'The Ultimate Wedding Venue Selection Guide 2026',
         excerpt: 'Discover how to choose the perfect wedding venue with our comprehensive guide. Expert tips on location, capacity, budget, and must-have amenities for your dream wedding.',
         image: '/assets/images/hero-venue.jpg',
+        category: 'Venues',
         tags: ['venues', 'wedding', 'planning'],
         link: '/articles/wedding-venue-selection-guide',
-        affiliate: false
+        readTime: 8,
+        featured: true,
+        featuredOrder: 1,
+        affiliate: false,
+        tool: { label: 'Find venues', href: '/suppliers' }
       },
       {
+        id: 2,
         title: "Wedding Catering Trends 2026: What's Hot in Event Food & Beverage",
-        excerpt: "Explore the latest food and beverage trends that will make your event menu stand out. From sustainable sourcing to interactive food stations, discover what's making waves in event catering.",
+        excerpt: "Explore the latest food and beverage trends that will make your event menu stand out. From sustainable sourcing to interactive food stations, discover what's making waves.",
         image: '/assets/images/collage-catering.jpg',
+        category: 'Catering',
         tags: ['catering', 'wedding', 'trends'],
         link: '/articles/wedding-catering-trends-2024',
-        affiliate: true
+        readTime: 6,
+        featured: true,
+        featuredOrder: 2,
+        affiliate: true,
+        tool: { label: 'Browse caterers', href: '/suppliers' }
       },
       {
+        id: 3,
         title: 'Complete Guide to Event Photography: Tips for Perfect Memories',
-        excerpt: 'Master event photography with our comprehensive guide. Learn expert tips on capturing special moments, working with photographers, and creating lasting memories of your event.',
+        excerpt: 'Master event photography with our comprehensive guide. Learn expert tips on capturing special moments, working with photographers, and creating lasting memories.',
         image: '/assets/images/collage-photography.jpg',
+        category: 'Photography',
         tags: ['photography', 'tips', 'wedding'],
         link: '/articles/event-photography-complete-guide',
-        affiliate: false
+        readTime: 10,
+        featured: true,
+        featuredOrder: 3,
+        affiliate: false,
+        tool: { label: 'Find photographers', href: '/suppliers' }
       },
       {
+        id: 4,
         title: 'Perfect Wedding Day Timeline: Hour-by-Hour Planning Guide 2026',
         excerpt: 'Create the perfect wedding day timeline with our comprehensive hour-by-hour guide. Expert tips on scheduling, timing, and coordinating every moment for a stress-free celebration.',
         image: '/assets/images/collage-venue.jpg',
-        tags: ['planning', 'wedding', 'tips'],
+        category: 'Timelines',
+        tags: ['planning', 'wedding', 'timeline'],
         link: '/articles/perfect-wedding-day-timeline-guide',
-        affiliate: false
+        readTime: 12,
+        featured: false,
+        affiliate: false,
+        tool: { label: 'Build your timeline', href: '/timeline' }
       },
       {
+        id: 5,
         title: 'Sustainable Event Planning Guide',
         excerpt: 'Plan eco-friendly events with our comprehensive sustainability guide. Discover how to reduce waste, choose green vendors, and create memorable events while protecting the environment.',
         image: '/assets/images/hero-planning.jpg',
+        category: 'Sustainability',
         tags: ['planning', 'sustainability', 'tips'],
         link: '/articles/sustainable-event-planning-guide',
-        affiliate: false
+        readTime: 9,
+        featured: false,
+        affiliate: false,
+        tool: { label: 'Find eco suppliers', href: '/suppliers' }
       },
       {
+        id: 6,
         title: 'Event Budget Management: Complete Guide',
         excerpt: 'Master event budgeting with expert strategies for tracking expenses, negotiating with vendors, and maximizing value while staying on budget.',
         image: '/assets/images/collage-venue.jpg',
+        category: 'Budget',
         tags: ['planning', 'budget', 'tips'],
         link: '/articles/event-budget-management-guide',
-        affiliate: false
+        readTime: 11,
+        featured: false,
+        affiliate: false,
+        tool: { label: 'Open budget planner', href: '/budget' }
       },
       {
+        id: 7,
         title: 'Corporate Event Planning: The Ultimate Guide',
         excerpt: 'Plan successful corporate events from conferences to team building. Expert tips on venue selection, catering, technology, and creating engaging professional experiences.',
         image: '/assets/images/collage-entertainment.jpg',
+        category: 'Corporate',
         tags: ['corporate', 'planning', 'venues'],
         link: '/articles/corporate-event-planning-guide',
-        affiliate: false
+        readTime: 14,
+        featured: false,
+        affiliate: false,
+        tool: { label: 'Find venues', href: '/suppliers' }
       },
       {
+        id: 8,
         title: 'Birthday Party Planning Guide for All Ages',
         excerpt: 'Create unforgettable birthday celebrations with our comprehensive planning guide. Tips for themes, venues, entertainment, and catering for children and adults.',
         image: '/assets/images/hero-venue.jpg',
+        category: 'Parties',
         tags: ['parties', 'planning', 'venues'],
         link: '/articles/birthday-party-planning-guide',
-        affiliate: false
+        readTime: 7,
+        featured: false,
+        affiliate: false,
+        tool: { label: 'Plan your party', href: '/start' }
       }
     ];
 
-    // Remove loading placeholder before rendering articles
-    const loadingPlaceholder = container.querySelector('.blog-loading-placeholder');
-    if (loadingPlaceholder) loadingPlaceholder.remove();
+    // Category emoji map
+    const categoryEmoji = {
+      'Venues': '🏛️',
+      'Catering': '🍽️',
+      'Photography': '📸',
+      'Timelines': '📅',
+      'Sustainability': '🌿',
+      'Budget': '💰',
+      'Corporate': '💼',
+      'Parties': '🎉',
+      'Wedding': '💍',
+      'Planning': '📋',
+      'Tips': '💡',
+      'Trends': '✨',
+    };
 
-    articles.forEach(article => {
-      const card = document.createElement('article');
-      card.className = 'article-card';
-      card.dataset.tags = article.tags.join(',');
-      
-      const link = document.createElement('a');
-      link.href = article.link;
-      link.className = 'article-card-link';
-      
-      const img = document.createElement('img');
-      img.src = article.image;
-      img.alt = article.title;
-      img.className = 'article-card-image';
-      img.loading = 'lazy';
-      
-      const content = document.createElement('div');
-      content.className = 'article-card-content';
-      
-      // Add all tags as badges
-      const tagsContainer = document.createElement('div');
-      tagsContainer.className = 'article-card-tags';
-      article.tags.forEach(tag => {
-        const tagBadge = document.createElement('span');
-        tagBadge.className = 'article-card-tag';
-        tagBadge.textContent = capitalizeTag(tag);
-        tagsContainer.appendChild(tagBadge);
+    // ──────────────────────────────────────────────
+    //  HELPERS
+    // ──────────────────────────────────────────────
+    function escHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // ──────────────────────────────────────────────
+    //  STATE
+    // ──────────────────────────────────────────────
+    let activeFilter = '';
+    let searchQuery  = '';
+    let sortOrder    = 'featured';
+
+    const searchInput  = document.getElementById('guides-search-input');
+    const searchClear  = document.getElementById('guides-search-clear');
+    const guidesGrid   = document.getElementById('guides-grid');
+    const guidesLoading = document.getElementById('guides-loading');
+    const guidesEmpty  = document.getElementById('guides-empty');
+    const emptyMsg     = document.getElementById('guides-empty-msg');
+    const chipsWrap    = document.getElementById('guides-chips');
+    const sortSelect   = document.getElementById('guides-sort');
+    const clearAllBtn  = document.getElementById('guides-clear-all');
+    const resetBtn     = document.getElementById('guides-reset-btn');
+    const resultsCount = document.getElementById('guides-results-count');
+    const backToTop    = document.getElementById('guides-back-to-top');
+    const featuredGrid = document.getElementById('featured-guides-grid');
+
+    // ──────────────────────────────────────────────
+    //  FEATURED GUIDES
+    // ──────────────────────────────────────────────
+    function renderFeatured() {
+      if (!featuredGrid) return;
+      const featured = articles.filter(a => a.featured)
+        .sort((a, b) => a.featuredOrder - b.featuredOrder);
+
+      featured.forEach((article, i) => {
+        const isHero = i === 0;
+        const card = document.createElement('a');
+        card.href = article.link;
+        card.className = `featured-card featured-card--${isHero ? 'hero' : 'secondary'} animate-in`;
+        card.style.animationDelay = `${i * 0.08}s`;
+        card.setAttribute('aria-label', `Read guide: ${escHtml(article.title)}`);
+
+        card.innerHTML = `
+          <div class="featured-card__image-wrap">
+            <img src="${escHtml(article.image)}" alt="" class="featured-card__image" loading="lazy" width="800" height="450">
+          </div>
+          <div class="featured-card__body">
+            <span class="featured-card__category">${categoryEmoji[article.category] || ''} ${escHtml(article.category)}</span>
+            ${article.affiliate ? '<span class="guide-card__partner-badge" style="margin-left:6px;">Partner</span>' : ''}
+            <h3 class="featured-card__title">${escHtml(article.title)}</h3>
+            ${isHero ? `<p class="featured-card__excerpt">${escHtml(article.excerpt)}</p>` : ''}
+            <div class="featured-card__meta">
+              <span class="featured-card__meta-item">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                ${article.readTime} min read
+              </span>
+            </div>
+            <span class="featured-card__cta">
+              Read guide
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </span>
+          </div>
+        `;
+        featuredGrid.appendChild(card);
       });
-      content.appendChild(tagsContainer);
-      
-      if (article.affiliate) {
-        const affiliateBadge = document.createElement('span');
-        affiliateBadge.className = 'article-card-affiliate';
-        affiliateBadge.textContent = 'Partner';
-        affiliateBadge.style.display = 'inline-block';
-        affiliateBadge.style.marginTop = '4px';
-        content.appendChild(affiliateBadge);
+    }
+
+    // ──────────────────────────────────────────────
+    //  FILTER CHIPS
+    // ──────────────────────────────────────────────
+    function buildChips() {
+      if (!chipsWrap) return;
+      const categories = [...new Set(articles.map(a => a.category))].sort();
+
+      let html = `<button class="guides-chip active" data-filter="" role="radio" aria-checked="true">All guides</button>`;
+      categories.forEach(cat => {
+        const em = categoryEmoji[cat] || '';
+        html += `<button class="guides-chip" data-filter="${cat}" role="radio" aria-checked="false">
+          <span class="guides-chip__icon" aria-hidden="true">${em}</span> ${cat}
+        </button>`;
+      });
+      chipsWrap.innerHTML = html;
+
+      chipsWrap.querySelectorAll('.guides-chip').forEach(btn => {
+        btn.addEventListener('click', () => {
+          activeFilter = btn.dataset.filter;
+          chipsWrap.querySelectorAll('.guides-chip').forEach(b => {
+            b.classList.toggle('active', b === btn);
+            b.setAttribute('aria-checked', b === btn ? 'true' : 'false');
+          });
+          updateClearBtn();
+          renderGrid();
+        });
+      });
+    }
+
+    // ──────────────────────────────────────────────
+    //  SEARCH
+    // ──────────────────────────────────────────────
+    function handleSearch() {
+      searchQuery = searchInput.value.trim().toLowerCase();
+      searchClear.classList.toggle('visible', searchQuery.length > 0);
+      updateClearBtn();
+      renderGrid();
+    }
+
+    if (searchInput) {
+      searchInput.addEventListener('input', handleSearch);
+      searchInput.addEventListener('keydown', e => {
+        if (e.key === 'Escape') { clearSearch(); }
+      });
+    }
+
+    if (searchClear) {
+      searchClear.addEventListener('click', clearSearch);
+    }
+
+    function clearSearch() {
+      if (searchInput) searchInput.value = '';
+      searchQuery = '';
+      searchClear.classList.remove('visible');
+      updateClearBtn();
+      renderGrid();
+    }
+
+    // ──────────────────────────────────────────────
+    //  SORT
+    // ──────────────────────────────────────────────
+    if (sortSelect) {
+      sortSelect.addEventListener('change', () => {
+        sortOrder = sortSelect.value;
+        renderGrid();
+      });
+    }
+
+    // ──────────────────────────────────────────────
+    //  CLEAR ALL
+    // ──────────────────────────────────────────────
+    function resetAll() {
+      activeFilter = '';
+      searchQuery  = '';
+      sortOrder    = 'featured';
+      if (searchInput) searchInput.value = '';
+      if (sortSelect)  sortSelect.value  = 'featured';
+      searchClear.classList.remove('visible');
+      chipsWrap.querySelectorAll('.guides-chip').forEach(b => {
+        const isAll = b.dataset.filter === '';
+        b.classList.toggle('active', isAll);
+        b.setAttribute('aria-checked', isAll ? 'true' : 'false');
+      });
+      updateClearBtn();
+      renderGrid();
+    }
+
+    clearAllBtn.addEventListener('click', resetAll);
+    resetBtn.addEventListener('click', resetAll);
+
+    function updateClearBtn() {
+      const hasFilter = activeFilter !== '' || searchQuery !== '';
+      clearAllBtn.classList.toggle('visible', hasFilter);
+    }
+
+    // ──────────────────────────────────────────────
+    //  FILTER + SORT
+    // ──────────────────────────────────────────────
+    function getFiltered() {
+      let list = articles.filter(a => {
+        const matchCat    = !activeFilter || a.category === activeFilter;
+        const matchSearch = !searchQuery
+          || a.title.toLowerCase().includes(searchQuery)
+          || a.excerpt.toLowerCase().includes(searchQuery)
+          || a.category.toLowerCase().includes(searchQuery)
+          || a.tags.some(t => t.toLowerCase().includes(searchQuery));
+        return matchCat && matchSearch;
+      });
+
+      if (sortOrder === 'az') {
+        list = list.slice().sort((a, b) => a.title.localeCompare(b.title));
+      } else if (sortOrder === 'za') {
+        list = list.slice().sort((a, b) => b.title.localeCompare(a.title));
+      } else if (sortOrder === 'category') {
+        list = list.slice().sort((a, b) => a.category.localeCompare(b.category));
+      } else {
+        // featured: featured articles first, then by id
+        list = list.slice().sort((a, b) => {
+          if (a.featured && !b.featured) return -1;
+          if (!a.featured && b.featured) return 1;
+          return a.id - b.id;
+        });
       }
-      
-      const title = document.createElement('h3');
-      title.className = 'article-card-title';
-      title.textContent = article.title;
-      content.appendChild(title);
-      
-      const excerpt = document.createElement('p');
-      excerpt.className = 'article-card-excerpt';
-      excerpt.textContent = article.excerpt;
-      content.appendChild(excerpt);
-      
-      const cta = document.createElement('span');
-      cta.className = 'article-card-cta';
-      cta.textContent = 'Read more →';
-      content.appendChild(cta);
-      
-      link.appendChild(img);
-      link.appendChild(content);
-      card.appendChild(link);
-      container.appendChild(card);
-    });
+      return list;
+    }
 
-    // Render tag filters
-    renderTagFilters();
+    // ──────────────────────────────────────────────
+    //  RENDER GRID
+    // ──────────────────────────────────────────────
+    function renderGrid() {
+      const list = getFiltered();
 
-    function renderTagFilters() {
-      const allTags = new Set();
-      articles.forEach(article => {
-        article.tags.forEach(tag => allTags.add(tag));
-      });
+      // Remove all existing cards (not loading/empty placeholders)
+      guidesGrid.querySelectorAll('.guide-card').forEach(c => c.remove());
 
-      const sortedTags = Array.from(allTags).sort();
-      const filterContainer = document.getElementById('tag-filters');
-      
-      let html = '<button class="tag-filter active" data-tag="">All</button>';
-      sortedTags.forEach(tag => {
-        const displayTag = capitalizeTag(tag);
-        html += `<button class="tag-filter" data-tag="${tag}">${displayTag}</button>`;
-      });
-      
-      filterContainer.innerHTML = html;
-      
-      // Add click handlers
-      document.querySelectorAll('.tag-filter').forEach(btn => {
-        btn.addEventListener('click', () => filterByTag(btn.dataset.tag));
+      if (guidesLoading) guidesLoading.style.display = 'none';
+
+      if (list.length === 0) {
+        guidesEmpty.classList.add('visible');
+        if (searchQuery && activeFilter) {
+          emptyMsg.textContent = `No guides match "${searchInput.value}" in ${activeFilter}. Try clearing a filter.`;
+        } else if (searchQuery) {
+          emptyMsg.textContent = `No guides match "${searchInput.value}". Try a different search term.`;
+        } else {
+          emptyMsg.textContent = `No guides in this category yet. More coming soon!`;
+        }
+        resultsCount.innerHTML = '';
+      } else {
+        guidesEmpty.classList.remove('visible');
+        const totalLabel = list.length === 1 ? '1 guide' : `${list.length} guides`;
+        const filterLabel = activeFilter ? ` in <strong>${escHtml(activeFilter)}</strong>` : '';
+        const searchLabel = searchQuery ? ` matching "<strong>${escHtml(searchInput.value)}</strong>"` : '';
+        resultsCount.innerHTML = `Showing <strong>${escHtml(totalLabel)}</strong>${filterLabel}${searchLabel}`;
+      }
+
+      list.forEach((article, i) => {
+        const card = document.createElement('article');
+        card.className = 'guide-card animate-in';
+        card.style.animationDelay = `${Math.min(i * 0.05, 0.3)}s`;
+        card.innerHTML = `
+          <div class="guide-card__image-wrap">
+            <img src="${escHtml(article.image)}" alt="" class="guide-card__image" loading="lazy" width="640" height="360">
+          </div>
+          <div class="guide-card__body">
+            <span class="guide-card__category">${categoryEmoji[article.category] || ''} ${escHtml(article.category)}</span>
+            <h3 class="guide-card__title">${escHtml(article.title)}</h3>
+            <p class="guide-card__excerpt">${escHtml(article.excerpt)}</p>
+            <div class="guide-card__meta">
+              <span class="guide-card__meta-item">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                ${article.readTime} min read
+              </span>
+              ${article.affiliate ? '<span class="guide-card__partner-badge">Partner</span>' : ''}
+            </div>
+            <div class="guide-card__cta-row">
+              <a href="${escHtml(article.link)}" class="guide-card__cta" aria-label="Read guide: ${escHtml(article.title)}">
+                Read guide <span class="guide-card__cta-arrow" aria-hidden="true">→</span>
+              </a>
+              ${article.tool ? `<a href="${escHtml(article.tool.href)}" class="article-end-cta__tool guide-card__tool-link" aria-label="${escHtml(article.tool.label)}">${escHtml(article.tool.label)}</a>` : ''}
+            </div>
+          </div>
+        `;
+        guidesGrid.appendChild(card);
       });
     }
 
-    function filterByTag(tag) {
-      const articleCards = document.querySelectorAll('.article-card');
-      
-      articleCards.forEach(card => {
-        const articleTags = card.dataset.tags.split(',');
-        const matches = !tag || articleTags.includes(tag);
-        card.style.display = matches ? '' : 'none';
-      });
-      
-      // Update active button
-      document.querySelectorAll('.tag-filter').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.tag === tag);
+    // ──────────────────────────────────────────────
+    //  BACK TO TOP
+    // ──────────────────────────────────────────────
+    if (backToTop) {
+      window.addEventListener('scroll', () => {
+        backToTop.classList.toggle('visible', window.scrollY > 600);
+      }, { passive: true });
+      backToTop.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       });
     }
+
+    // ──────────────────────────────────────────────
+    //  INIT
+    // ──────────────────────────────────────────────
+    renderFeatured();
+    buildChips();
+    renderGrid();
   });
 </script>
 <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
