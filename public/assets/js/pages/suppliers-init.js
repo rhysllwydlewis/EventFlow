@@ -39,19 +39,22 @@ function generateSupplierGradient(name) {
 // Enhanced supplier card with shortlist and quote features
 function createSupplierCard(supplier, position) {
   const supplierInitial = supplier.name ? supplier.name.charAt(0).toUpperCase() : 'S';
+
+  // Build avatar HTML using new sp-card classes
   const avatarHtml = supplier.logo
-    ? `<img src="${escapeHtml(supplier.logo)}" alt="${escapeHtml(supplier.name)} logo" class="supplier-card-avatar" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-       <div class="supplier-card-avatar-fallback" style="display: none; background: ${generateSupplierGradient(supplier.name)};">${supplierInitial}</div>`
-    : `<div class="supplier-card-avatar-fallback" style="background: ${generateSupplierGradient(supplier.name)};">${supplierInitial}</div>`;
+    ? `<img src="${escapeHtml(supplier.logo)}" alt="${escapeHtml(supplier.name)} logo" class="sp-card-avatar" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+       <div class="sp-card-avatar-fallback" style="display:none; background:${generateSupplierGradient(supplier.name)};">${supplierInitial}</div>`
+    : `<div class="sp-card-avatar-fallback" style="background:${generateSupplierGradient(supplier.name)};">${supplierInitial}</div>`;
 
   const isInShortlist = shortlistManager.hasItem('supplier', supplier.id);
-  const shortlistBtnClass = isInShortlist ? 'btn-shortlist-active' : '';
+  const shortlistActiveClass = isInShortlist ? 'sp-btn--shortlist-active' : 'sp-btn--shortlist';
   const shortlistBtnText = isInShortlist ? '❤️ Saved' : '♡ Save';
 
   // Build badges — use subscriptionTier field first (most reliable), then isPro fallback
   const tier =
     supplier.subscriptionTier || supplier.subscription?.tier || (supplier.isPro ? 'pro' : null);
   const badges = [];
+
   // Founding supplier badge
   if (
     supplier.isFounding ||
@@ -62,125 +65,138 @@ function createSupplierCard(supplier, position) {
       ? ` (${escapeHtml(String(supplier.foundingYear))})`
       : '';
     badges.push(
-      `<span class="badge badge-founding" title="Founding Supplier - Original member since 2024">⭐ Founding${yearLabel}</span>`
+      `<span class="sp-badge sp-badge--founding badge-founding" title="Founding Supplier - Original member since 2024">⭐ Founding${yearLabel}</span>`
     );
   }
   if (supplier.verified || supplier.approved) {
-    badges.push('<span class="badge badge-verified">✓ Verified</span>');
+    badges.push('<span class="sp-badge sp-badge--verified badge-verified">✓ Verified</span>');
   }
   if (tier === 'pro_plus') {
-    badges.push('<span class="badge badge-pro-plus">Pro Plus</span>');
+    badges.push('<span class="sp-badge sp-badge--pro-plus">✦ Pro Plus</span>');
   } else if (tier === 'pro') {
-    badges.push('<span class="badge badge-pro">Pro</span>');
+    badges.push('<span class="sp-badge sp-badge--pro">Pro</span>');
   }
   if (supplier.featuredSupplier) {
-    badges.push('<span class="badge badge-featured">Featured</span>');
+    badges.push('<span class="sp-badge sp-badge--featured">Featured</span>');
   }
   // Verification badges from verifications object
   if (supplier.verifications) {
     if (supplier.verifications.email && supplier.verifications.email.verified) {
-      badges.push('<span class="badge badge-email-verified">✓ Email</span>');
+      badges.push('<span class="sp-badge sp-badge--email badge-email-verified">✓ Email</span>');
     }
     if (supplier.verifications.phone && supplier.verifications.phone.verified) {
-      badges.push('<span class="badge badge-phone-verified">✓ Phone</span>');
+      badges.push('<span class="sp-badge sp-badge--phone badge-phone-verified">✓ Phone</span>');
     }
     if (supplier.verifications.business && supplier.verifications.business.verified) {
-      badges.push('<span class="badge badge-business-verified">✓ Business</span>');
+      badges.push('<span class="sp-badge sp-badge--business badge-business-verified">✓ Business</span>');
     }
   }
 
   // Inline tier icon — use shared EFTierIcon helper if available (tier-icon.js)
   const tierIcon = typeof EFTierIcon !== 'undefined' ? EFTierIcon.render(supplier) : '';
 
-  const rating = supplier.averageRating
-    ? `⭐ ${Number(supplier.averageRating).toFixed(1)}${supplier.reviewCount ? ` (${supplier.reviewCount})` : ''}`
-    : supplier.rating
-      ? `⭐ ${supplier.rating}`
-      : '';
+  // Rating display
+  const ratingValue = supplier.averageRating || supplier.rating;
+  const ratingHtml = ratingValue
+    ? `<span class="sp-card-rating">★ ${Number(ratingValue).toFixed(1)}${supplier.reviewCount ? `<span style="color:#9ca3af;font-weight:400;"> (${supplier.reviewCount})</span>` : ''}</span>`
+    : '';
+
   const priceDisplay = supplier.price_display || 'Contact for quote';
+
+  // Distance badge
   const distanceBadge =
     typeof supplier.distanceMiles === 'number'
-      ? `<span class="badge badge-distance">📍 ${supplier.distanceMiles < 1 ? '< 1' : supplier.distanceMiles.toFixed(1)} mi</span>`
+      ? `<span class="sp-badge sp-badge--distance">📍 ${supplier.distanceMiles < 1 ? '< 1' : supplier.distanceMiles.toFixed(1)} mi</span>`
       : '';
 
+  // Meta items
+  const metaParts = [];
+  if (supplier.category) metaParts.push(escapeHtml(supplier.category));
+  if (supplier.location) metaParts.push(escapeHtml(supplier.location));
+
+  // Card tier class for avatar ring
+  const tierCardClass = tier === 'pro_plus' ? 'sp-card--pro-plus' : tier === 'pro' ? 'sp-card--pro' : '';
+
   return `
-    <div class="card supplier-card" data-supplier-id="${escapeHtml(supplier.id)}">
-      ${avatarHtml}
-      <div class="supplier-card-content">
-        <h3 class="supplier-card-name">
-          <a href="/supplier?id=${encodeURIComponent(supplier.id)}" 
-             data-position="${position}"
-             class="supplier-card-link">
-            ${escapeHtml(supplier.name)}
-          </a>${tierIcon}
-        </h3>
-        <div class="supplier-card-meta">
-          ${escapeHtml(supplier.category || '')}
-          ${supplier.location ? `• ${escapeHtml(supplier.location)}` : ''}
-          ${rating ? `• ${rating}` : ''}
-        </div>
-        <p class="supplier-card-description">${escapeHtml(supplier.description_short || '')}</p>
-        <div class="supplier-card-badges">${badges.join('')}${distanceBadge}</div>
-        <div class="supplier-card-price">${escapeHtml(priceDisplay)}</div>
-        <div class="supplier-card-actions">
-          <button class="btn btn-primary btn-quote" data-supplier-id="${escapeHtml(supplier.id)}">
-            Request Quote
-          </button>
-          ${
-            supplier.ownerUserId
-              ? `
-          <button class="btn btn-secondary btn-contact-supplier"
-                  data-quick-compose="true"
-                  data-recipient-id="${escapeHtml(supplier.ownerUserId)}"
-                  data-context-type="supplier_profile"
-                  data-context-id="${escapeHtml(supplier.id)}"
-                  data-context-title="${escapeHtml(supplier.name)}"
-                  style="font-size: 13px; padding: 6px 12px;">
-            💬 Message
-          </button>
-          `
-              : ''
-          }
-          <button class="btn btn-secondary btn-shortlist ${shortlistBtnClass}" 
-                  data-supplier-id="${escapeHtml(supplier.id)}"
-                  data-supplier-name="${escapeHtml(supplier.name)}"
-                  data-supplier-category="${escapeHtml(supplier.category || '')}"
-                  data-supplier-location="${escapeHtml(supplier.location || '')}"
-                  data-supplier-image="${escapeHtml(supplier.logo || '')}"
-                  data-supplier-price="${escapeHtml(priceDisplay)}"
-                  data-supplier-rating="${supplier.rating || ''}">
-            ${shortlistBtnText}
-          </button>
-          <a href="/supplier?id=${encodeURIComponent(supplier.id)}" 
-             class="btn btn-tertiary">
-            View Profile
-          </a>
-        </div>
+    <article class="sp-card ${tierCardClass}" data-supplier-id="${escapeHtml(supplier.id)}" aria-label="${escapeHtml(supplier.name)}">
+      <div class="sp-card-avatar-wrap">
+        ${avatarHtml}
       </div>
-    </div>
+      <div class="sp-card-content">
+        <div class="sp-card-header">
+          <h3 class="sp-card-name">
+            <a href="/supplier?id=${encodeURIComponent(supplier.id)}"
+               data-position="${position}"
+               class="sp-card-link">
+              ${escapeHtml(supplier.name)}
+            </a>${tierIcon}
+          </h3>
+        </div>
+        <div class="sp-card-meta">
+          ${metaParts.map((p, i) => i === 0 ? p : `<span class="sp-card-meta-dot" aria-hidden="true"></span>${p}`).join('')}
+          ${ratingHtml ? `<span class="sp-card-meta-dot" aria-hidden="true"></span>${ratingHtml}` : ''}
+        </div>
+        <p class="sp-card-description">${escapeHtml(supplier.description_short || '')}</p>
+        <div class="sp-card-badges">
+          ${badges.join('')}${distanceBadge}
+        </div>
+        <div class="sp-card-price">${escapeHtml(priceDisplay)}</div>
+      </div>
+      <div class="sp-card-actions">
+        <button class="sp-btn sp-btn--primary btn-quote" data-supplier-id="${escapeHtml(supplier.id)}" aria-label="Request a quote from ${escapeHtml(supplier.name)}">
+          Request Quote
+        </button>
+        ${
+          supplier.ownerUserId
+            ? `<button class="sp-btn sp-btn--secondary btn-contact-supplier"
+                       data-quick-compose="true"
+                       data-recipient-id="${escapeHtml(supplier.ownerUserId)}"
+                       data-context-type="supplier_profile"
+                       data-context-id="${escapeHtml(supplier.id)}"
+                       data-context-title="${escapeHtml(supplier.name)}"
+                       aria-label="Send a message to ${escapeHtml(supplier.name)}">
+                💬 Message
+              </button>`
+            : ''
+        }
+        <button class="sp-btn ${shortlistActiveClass} btn-shortlist"
+                data-supplier-id="${escapeHtml(supplier.id)}"
+                data-supplier-name="${escapeHtml(supplier.name)}"
+                data-supplier-category="${escapeHtml(supplier.category || '')}"
+                data-supplier-location="${escapeHtml(supplier.location || '')}"
+                data-supplier-image="${escapeHtml(supplier.logo || '')}"
+                data-supplier-price="${escapeHtml(priceDisplay)}"
+                data-supplier-rating="${supplier.rating || ''}"
+                aria-label="${isInShortlist ? 'Remove from' : 'Save to'} shortlist">
+          ${shortlistBtnText}
+        </button>
+        <a href="/supplier?id=${encodeURIComponent(supplier.id)}"
+           class="sp-btn sp-btn--ghost"
+           aria-label="View ${escapeHtml(supplier.name)} profile">
+          View Profile
+        </a>
+      </div>
+    </article>
   `;
 }
 
 // Skeleton loading cards
 function createSkeletonCards(count = 3) {
-  const card = `
-    <div class="skeleton-supplier-card-full skeleton-card" aria-hidden="true">
-      <div class="skeleton-supplier-header">
-        <div class="skeleton skeleton-avatar-large"></div>
-        <div style="flex:1">
-          <div class="skeleton skeleton-title"></div>
-          <div class="skeleton skeleton-text skeleton-text-medium"></div>
-        </div>
+  const colors = ['55%', '45%', '60%'];
+  return Array.from({ length: count }, (_, i) => `
+    <div class="sp-card" aria-hidden="true" style="opacity:0.7;">
+      <div class="sp-card-avatar-fallback" style="background:linear-gradient(135deg,#e5e7eb,#d1d5db);width:64px;height:64px;border-radius:10px;"></div>
+      <div class="sp-card-content">
+        <div style="height:16px;background:linear-gradient(135deg,#e5e7eb,#d1d5db);border-radius:4px;width:${colors[i % 3]};margin-bottom:8px;"></div>
+        <div style="height:13px;background:linear-gradient(135deg,#f3f4f6,#e5e7eb);border-radius:4px;width:35%;margin-bottom:6px;"></div>
+        <div style="height:13px;background:linear-gradient(135deg,#f3f4f6,#e5e7eb);border-radius:4px;width:80%;"></div>
       </div>
-      <div class="skeleton skeleton-text skeleton-text-long"></div>
-      <div class="skeleton skeleton-text skeleton-text-medium"></div>
-      <div class="skeleton-supplier-meta">
-        <div class="skeleton skeleton-text skeleton-text-short"></div>
-        <div class="skeleton skeleton-text skeleton-text-short"></div>
+      <div class="sp-card-actions" style="opacity:0.3;">
+        <div style="height:32px;background:#e5e7eb;border-radius:6px;"></div>
+        <div style="height:32px;background:#e5e7eb;border-radius:6px;"></div>
       </div>
     </div>
-  `;
-  return Array(count).fill(card).join('');
+  `).join('');
 }
 
 // Empty state
@@ -197,13 +213,13 @@ function createEmptyState(filters) {
     filters.maxDistance;
 
   return `
-    <div class="empty-state">
-      <div class="empty-state-icon">🔍</div>
-      <h2>No suppliers found</h2>
-      <p>${hasFilters ? 'No suppliers match your current filters.' : 'No suppliers available at the moment.'}</p>
-      <div class="empty-state-actions">
-        ${hasFilters ? '<button class="btn btn-secondary" id="clear-filters-btn">Clear filters</button>' : ''}
-        <a href="/start" class="btn btn-primary">Start planning</a>
+    <div class="sp-empty-state" role="status">
+      <span class="sp-empty-icon" aria-hidden="true">🔍</span>
+      <h2 class="sp-empty-title">No suppliers found</h2>
+      <p class="sp-empty-text">${hasFilters ? 'No suppliers match your current filters. Try adjusting or clearing your search.' : 'No suppliers are available at the moment. Check back soon.'}</p>
+      <div class="sp-empty-actions">
+        ${hasFilters ? '<button class="sp-btn sp-btn--secondary" id="clear-filters-btn">Clear filters</button>' : ''}
+        <a href="/start" class="sp-btn sp-btn--primary">Start planning</a>
       </div>
     </div>
   `;
@@ -222,26 +238,26 @@ function createFallbackState(filters, fallback) {
 
   const relaxedNote =
     relaxedFilters.length > 0
-      ? `<p class="fallback-relaxed-note">Filters relaxed: ${escapeHtml(relaxedFilters.join(', '))}</p>`
+      ? `<p style="font-size:13px;color:#667085;margin:4px 0 0;">Filters relaxed: ${escapeHtml(relaxedFilters.join(', '))}</p>`
       : '';
 
   return `
-    <div class="fallback-state">
-      <div class="fallback-state-header">
-        <div class="empty-state-icon">🔍</div>
-        <h2>No exact matches</h2>
-        <p class="fallback-message">${escapeHtml(message || 'No suppliers matched your search. Here are some alternatives.')}</p>
+    <div>
+      <div class="sp-fallback-header" role="status">
+        <span class="sp-empty-icon" aria-hidden="true">🔍</span>
+        <h2 class="sp-empty-title">No exact matches</h2>
+        <p class="sp-empty-text">${escapeHtml(message || 'No suppliers matched your search. Here are some alternatives.')}</p>
         ${relaxedNote}
-        <div class="empty-state-actions">
-          ${hasFilters ? '<button class="btn btn-secondary" id="clear-filters-btn">Clear filters</button>' : ''}
-          <a href="/suppliers" class="btn btn-primary">Browse all suppliers</a>
+        <div class="sp-empty-actions">
+          ${hasFilters ? '<button class="sp-btn sp-btn--secondary" id="clear-filters-btn">Clear filters</button>' : ''}
+          <a href="/suppliers" class="sp-btn sp-btn--primary">Browse all suppliers</a>
         </div>
       </div>
       ${
         suggestionCards
-          ? `<div class="fallback-suggestions">
-               <h3 class="fallback-suggestions-title">You might also like</h3>
-               <div class="supplier-cards-grid">${suggestionCards}</div>
+          ? `<div>
+               <h3 class="sp-fallback-suggestions-title">You might also like</h3>
+               ${suggestionCards}
              </div>`
           : ''
       }
@@ -467,8 +483,8 @@ async function initSuppliersPage() {
       }
       const chipLabel = label(value);
       activeChips.push(
-        `<button class="filter-chip" data-filter-key="${escapeHtml(key)}" type="button" aria-label="Remove filter: ${escapeHtml(chipLabel)}">
-          ${escapeHtml(chipLabel)} <span aria-hidden="true">×</span>
+        `<button class="sp-filter-chip" data-filter-key="${escapeHtml(key)}" type="button" aria-label="Remove filter: ${escapeHtml(chipLabel)}">
+          ${escapeHtml(chipLabel)} <span aria-hidden="true" style="margin-left:2px;opacity:0.7;">×</span>
         </button>`
       );
     });
@@ -481,11 +497,11 @@ async function initSuppliersPage() {
 
     activeFiltersChipsEl.innerHTML = `${activeChips.join(
       ''
-    )}<button class="filter-chip filter-chip--clear-all" type="button" aria-label="Clear all filters">Clear all</button>`;
+    )}<button class="sp-filter-chip" style="background:rgba(239,68,68,0.08);border-color:rgba(239,68,68,0.2);color:#dc2626;" type="button" id="chip-clear-all" aria-label="Clear all filters">Clear all ×</button>`;
     activeFiltersChipsEl.hidden = false;
 
     // Wire up individual chip removal
-    activeFiltersChipsEl.querySelectorAll('.filter-chip[data-filter-key]').forEach(chip => {
+    activeFiltersChipsEl.querySelectorAll('.sp-filter-chip[data-filter-key]').forEach(chip => {
       chip.addEventListener('click', () => {
         const key = chip.dataset.filterKey;
         if (key === 'verifiedOnly') {
@@ -522,7 +538,7 @@ async function initSuppliersPage() {
     });
 
     // Wire up clear-all chip
-    const clearAllChip = activeFiltersChipsEl.querySelector('.filter-chip--clear-all');
+    const clearAllChip = activeFiltersChipsEl.querySelector('#chip-clear-all');
     if (clearAllChip) {
       clearAllChip.addEventListener('click', clearFilters);
     }
@@ -587,7 +603,8 @@ async function initSuppliersPage() {
 
       // Update result count
       if (resultCountEl) {
-        resultCountEl.textContent = `${pagination.total} supplier${pagination.total !== 1 ? 's' : ''} found`;
+        const total = pagination.total;
+        resultCountEl.innerHTML = `<strong>${total.toLocaleString()}</strong> supplier${total !== 1 ? 's' : ''} found`;
       }
 
       // Update human-readable context summary
@@ -640,11 +657,11 @@ async function initSuppliersPage() {
         return;
       }
       resultsContainer.innerHTML = `
-        <div class="error-state" role="status" aria-live="polite">
-          <div class="error-state-icon">⚠️</div>
-          <div class="error-state-title">Unable to load suppliers</div>
-          <div class="error-state-description">Please check your connection and try again.</div>
-          <button class="error-state-action" id="retry-suppliers-btn">Try Again</button>
+        <div class="sp-error-state" role="alert">
+          <span class="sp-error-icon" aria-hidden="true">⚠️</span>
+          <h2 class="sp-error-title">Unable to load suppliers</h2>
+          <p class="sp-error-text">Please check your connection and try again.</p>
+          <button class="sp-btn sp-btn--primary error-state-action" id="retry-suppliers-btn">Try Again</button>
         </div>
       `;
       const retryBtn = resultsContainer.querySelector('#retry-suppliers-btn');
@@ -664,9 +681,10 @@ async function initSuppliersPage() {
     }
 
     const loadMoreHTML = `
-      <div style="text-align: center; margin: 2rem 0;">
-        <button id="load-more-btn" class="btn btn-secondary">
-          Load More (${pagination.page} of ${pagination.totalPages})
+      <div class="sp-load-more-wrap">
+        <button id="load-more-btn" class="sp-load-more-btn" aria-label="Load more suppliers (page ${pagination.page} of ${pagination.totalPages})">
+          Load more suppliers
+          <span style="font-size:12px;color:#9ca3af;">${pagination.page} / ${pagination.totalPages}</span>
         </button>
       </div>
     `;
@@ -674,8 +692,17 @@ async function initSuppliersPage() {
 
     const loadMoreBtn = document.getElementById('load-more-btn');
     loadMoreBtn.addEventListener('click', async () => {
+      loadMoreBtn.disabled = true;
+      const originalHTML = loadMoreBtn.innerHTML;
+      loadMoreBtn.textContent = 'Loading…';
       currentFilters.page = (currentFilters.page || 1) + 1;
       await renderResults(true);
+      // Button is removed after renderResults appends content, so no need to restore
+      const btn = document.getElementById('load-more-btn');
+      if (btn) {
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
+      }
     });
   }
 
@@ -686,12 +713,14 @@ async function initSuppliersPage() {
       btn.addEventListener('click', async e => {
         e.preventDefault();
         const supplierId = btn.dataset.supplierId;
-        const isActive = btn.classList.contains('btn-shortlist-active');
+        const isActive = btn.classList.contains('sp-btn--shortlist-active');
 
         if (isActive) {
           await shortlistManager.removeItem('supplier', supplierId);
-          btn.classList.remove('btn-shortlist-active');
+          btn.classList.remove('sp-btn--shortlist-active');
+          btn.classList.add('sp-btn--shortlist');
           btn.textContent = '♡ Save';
+          btn.setAttribute('aria-label', 'Save to shortlist');
         } else {
           const item = {
             type: 'supplier',
@@ -704,8 +733,10 @@ async function initSuppliersPage() {
             rating: btn.dataset.supplierRating ? parseFloat(btn.dataset.supplierRating) : null,
           };
           await shortlistManager.addItem(item);
-          btn.classList.add('btn-shortlist-active');
+          btn.classList.remove('sp-btn--shortlist');
+          btn.classList.add('sp-btn--shortlist-active');
           btn.textContent = '❤️ Saved';
+          btn.setAttribute('aria-label', 'Remove from shortlist');
           trackShortlistAdd('supplier', supplierId);
         }
       });
@@ -716,29 +747,35 @@ async function initSuppliersPage() {
       btn.addEventListener('click', e => {
         e.preventDefault();
         const supplierId = btn.dataset.supplierId;
-        const card = btn.closest('.supplier-card');
-        const shortlistBtn = card.querySelector('.btn-shortlist');
+        const card = btn.closest('.sp-card');
+        const shortlistBtn = card?.querySelector('.btn-shortlist') ?? null;
 
-        // Get supplier data from card
-        const supplier = {
-          id: supplierId,
-          name: shortlistBtn.dataset.supplierName,
-          category: shortlistBtn.dataset.supplierCategory,
-        };
+        // Get supplier data — prefer shortlist button data-attrs, fall back to heading text
+        let supplierName = shortlistBtn?.dataset.supplierName ?? '';
+        if (!supplierName && card) {
+          const nameLink = card.querySelector('.sp-card-name a');
+          supplierName = nameLink?.textContent?.trim() ?? '';
+        }
+        const supplierCategory = shortlistBtn?.dataset.supplierCategory ?? '';
+
+        if (!supplierId) {
+          return;
+        }
 
         // Dispatch event to open quote modal
         window.dispatchEvent(
           new CustomEvent('openQuoteRequestModal', {
-            detail: { items: [supplier] },
+            detail: { items: [{ id: supplierId, name: supplierName, category: supplierCategory }] },
           })
         );
       });
     });
 
     // Track result clicks
-    resultsContainer.querySelectorAll('.supplier-card-link').forEach(link => {
+    resultsContainer.querySelectorAll('.sp-card-link').forEach(link => {
       link.addEventListener('click', _e => {
-        const supplierId = link.closest('.supplier-card').dataset.supplierId;
+        const card = link.closest('.sp-card');
+        const supplierId = card ? card.dataset.supplierId : '';
         const position = parseInt(link.dataset.position, 10);
         trackResultClick('supplier', supplierId, position);
       });
@@ -772,7 +809,7 @@ async function initSuppliersPage() {
     listEl.id = 'search-suggestions';
     listEl.setAttribute('role', 'listbox');
     listEl.setAttribute('aria-label', 'Search suggestions');
-    listEl.className = 'search-suggestions-list';
+    listEl.className = 'sp-suggestions-list';
     listEl.hidden = true;
     filterQueryEl.parentElement.style.position = 'relative';
     filterQueryEl.parentElement.appendChild(listEl);
@@ -819,7 +856,7 @@ async function initSuppliersPage() {
           .slice(0, 6)
           .map(
             (s, i) =>
-              `<li class="search-suggestion-item" role="option" id="suggestion-item-${i}" tabindex="-1">${escapeHtml(s)}</li>`
+              `<li class="sp-suggestion-item" role="option" id="suggestion-item-${i}" tabindex="-1">${escapeHtml(s)}</li>`
           )
           .join('');
         listEl.hidden = false;
@@ -836,7 +873,7 @@ async function initSuppliersPage() {
     });
 
     listEl.addEventListener('click', e => {
-      const item = e.target.closest('.search-suggestion-item');
+      const item = e.target.closest('.sp-suggestion-item');
       if (!item) {
         return;
       }
@@ -850,11 +887,11 @@ async function initSuppliersPage() {
 
     // Keyboard navigation inside the suggestion list
     filterQueryEl.addEventListener('keydown', e => {
-      const items = listEl.querySelectorAll('.search-suggestion-item');
+      const items = listEl.querySelectorAll('.sp-suggestion-item');
       if (!items.length || listEl.hidden) {
         return;
       }
-      const focused = listEl.querySelector('.search-suggestion-item:focus');
+      const focused = listEl.querySelector('.sp-suggestion-item:focus');
       if (e.key === 'ArrowDown') {
         e.preventDefault();
         if (focused) {
@@ -883,7 +920,7 @@ async function initSuppliersPage() {
 
     listEl.addEventListener('keydown', e => {
       if (e.key === 'Enter') {
-        const focused = listEl.querySelector('.search-suggestion-item:focus');
+        const focused = listEl.querySelector('.sp-suggestion-item:focus');
         if (focused) {
           filterQueryEl.value = focused.textContent;
           currentFilters.q = focused.textContent;
