@@ -65,11 +65,11 @@ function createSupplierCard(supplier, position) {
       ? ` (${escapeHtml(String(supplier.foundingYear))})`
       : '';
     badges.push(
-      `<span class="sp-badge sp-badge--founding" title="Founding Supplier - Original member since 2024">⭐ Founding${yearLabel}</span>`
+      `<span class="sp-badge sp-badge--founding badge-founding" title="Founding Supplier - Original member since 2024">⭐ Founding${yearLabel}</span>`
     );
   }
   if (supplier.verified || supplier.approved) {
-    badges.push('<span class="sp-badge sp-badge--verified">✓ Verified</span>');
+    badges.push('<span class="sp-badge sp-badge--verified badge-verified">✓ Verified</span>');
   }
   if (tier === 'pro_plus') {
     badges.push('<span class="sp-badge sp-badge--pro-plus">✦ Pro Plus</span>');
@@ -82,13 +82,13 @@ function createSupplierCard(supplier, position) {
   // Verification badges from verifications object
   if (supplier.verifications) {
     if (supplier.verifications.email && supplier.verifications.email.verified) {
-      badges.push('<span class="sp-badge sp-badge--email">✓ Email</span>');
+      badges.push('<span class="sp-badge sp-badge--email badge-email-verified">✓ Email</span>');
     }
     if (supplier.verifications.phone && supplier.verifications.phone.verified) {
-      badges.push('<span class="sp-badge sp-badge--phone">✓ Phone</span>');
+      badges.push('<span class="sp-badge sp-badge--phone badge-phone-verified">✓ Phone</span>');
     }
     if (supplier.verifications.business && supplier.verifications.business.verified) {
-      badges.push('<span class="sp-badge sp-badge--business">✓ Business</span>');
+      badges.push('<span class="sp-badge sp-badge--business badge-business-verified">✓ Business</span>');
     }
   }
 
@@ -661,7 +661,7 @@ async function initSuppliersPage() {
           <span class="sp-error-icon" aria-hidden="true">⚠️</span>
           <h2 class="sp-error-title">Unable to load suppliers</h2>
           <p class="sp-error-text">Please check your connection and try again.</p>
-          <button class="sp-btn sp-btn--primary" id="retry-suppliers-btn">Try Again</button>
+          <button class="sp-btn sp-btn--primary error-state-action" id="retry-suppliers-btn">Try Again</button>
         </div>
       `;
       const retryBtn = resultsContainer.querySelector('#retry-suppliers-btn');
