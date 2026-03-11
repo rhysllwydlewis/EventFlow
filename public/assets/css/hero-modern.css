@@ -7,10 +7,13 @@
    ========================================================================== */
 
 :root {
-  /* Hero section spacing - FURTHER REDUCED FOR MINIMAL TOP SPACE */
+  /* Hero section spacing */
   --hero-padding-top: clamp(12px, 2vw, 24px);
   --hero-padding-bottom: clamp(16px, 3vw, 32px);
   --hero-gap: clamp(24px, 4vw, 48px);
+
+  /* Uniform hero element spacing — one token for all vertical gaps */
+  --hero-stack-gap: 12px;
 
   /* Typography scaling */
   --hero-h1-size: clamp(26px, 4vw + 1rem, 52px);
@@ -145,11 +148,52 @@
 
 /* Subcopy paragraph */
 .hero-modern-subcopy {
-  margin: 16px 0 0 0;
+  margin: 0;
   font-size: 18px;
   line-height: 1.7;
   color: #475569;
   max-width: 660px;
+}
+
+/* ==========================================================================
+   Hero Content Inner — uniform vertical rhythm for all hero elements
+   ========================================================================== */
+.hero-content-inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--hero-stack-gap);
+}
+
+/* Reset individual element margins now handled by the flex gap */
+.hero-content-inner h1 {
+  margin-bottom: 0 !important;
+}
+
+.hero-content-inner .ef-search-bar {
+  margin-top: 0;
+  /* Left-align on desktop — don't center within flex column */
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.hero-content-inner .ef-quick-tags {
+  margin-top: 0;
+  justify-content: flex-start;
+}
+
+.hero-content-inner .hero-modern-ctas {
+  margin-top: 0 !important;
+}
+
+/* Mobile/tablet: center-align elements within hero content */
+@media (max-width: 1023px) {
+  .hero-content-inner .ef-search-bar {
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .hero-content-inner .ef-quick-tags {
+    justify-content: center;
+  }
 }
 
 /* Staggered entrance animations for search elements */
@@ -617,8 +661,8 @@
 /* Two-column hero grid */
 @media (min-width: 1024px) {
   .hero-modern {
-    padding-top: clamp(44px, 5.5vw, 64px);
-    padding-bottom: clamp(36px, 4vw, 52px);
+    padding-top: clamp(24px, 3vw, 40px);
+    padding-bottom: clamp(20px, 2.5vw, 36px);
   }
 
   .hero-modern .hero-grid {
@@ -629,8 +673,10 @@
   }
 
   .hero-modern .hero-grid > div:first-child {
-    display: grid;
-    align-content: start;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: var(--hero-stack-gap);
   }
 
   .hero-modern .hero-grid > div:last-child {
@@ -1329,4 +1375,20 @@
 .hero-cta-primary:hover,
 .hero-cta-secondary:hover {
   will-change: transform, box-shadow;
+}
+
+/* ==========================================================================
+   Homepage Section Spacing — intentional rhythm below the hero
+   ========================================================================== */
+
+/* Featured packages directly after the hero — tight, clean transition */
+.home-featured-section {
+  padding-top: 1.5rem;
+}
+
+/* Spotlight and subsequent sections — consistent vertical rhythm */
+.home-spotlight-section,
+.home-category-section,
+.home-trust-section {
+  padding-top: 3rem;
 }

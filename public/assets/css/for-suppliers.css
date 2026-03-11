@@ -1,0 +1,372 @@
+/**
+ * For Suppliers Page — Dedicated stylesheet
+ * Improves layout, spacing, visual hierarchy and responsiveness
+ */
+
+/* ==========================================================================
+   Page Hero
+   ========================================================================== */
+
+.suppliers-hero {
+  background: linear-gradient(135deg, #0f172a 0%, #0B8073 60%, #059669 100%);
+  color: #fff;
+  padding: clamp(3rem, 6vw, 5rem) 0 clamp(2.5rem, 5vw, 4rem);
+  position: relative;
+  overflow: hidden;
+}
+
+.suppliers-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.06) 1px, transparent 0);
+  background-size: 24px 24px;
+  pointer-events: none;
+}
+
+.suppliers-hero__inner {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+@media (min-width: 768px) {
+  .suppliers-hero__inner {
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+  }
+}
+
+.suppliers-hero__eyebrow {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(167, 243, 208, 0.9);
+  margin-bottom: 0.75rem;
+}
+
+.suppliers-hero__title {
+  font-size: clamp(1.75rem, 4vw, 2.75rem);
+  font-weight: 700;
+  line-height: 1.15;
+  margin: 0 0 1rem;
+  color: #fff;
+}
+
+.suppliers-hero__lead {
+  font-size: clamp(1rem, 1.5vw, 1.15rem);
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0 0 1.75rem;
+  max-width: 520px;
+}
+
+.suppliers-hero__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.85rem 1.75rem;
+  background: #fff;
+  color: #0B8073;
+  font-weight: 700;
+  font-size: 1rem;
+  border-radius: 14px;
+  text-decoration: none;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.suppliers-hero__cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+  text-decoration: none;
+}
+
+.suppliers-hero__image-wrap {
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.3);
+}
+
+.suppliers-hero__image-wrap img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  aspect-ratio: 16 / 10;
+}
+
+/* ==========================================================================
+   Page Body
+   ========================================================================== */
+
+.suppliers-body {
+  padding: clamp(2.5rem, 5vw, 4.5rem) 0;
+  background: #f8fafc;
+}
+
+/* ==========================================================================
+   Section headings
+   ========================================================================== */
+
+.suppliers-section-title {
+  font-size: clamp(1.25rem, 2.5vw, 1.6rem);
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 0.4rem;
+  line-height: 1.25;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #d1fae5;
+  display: inline-block;
+}
+
+.suppliers-section-subtitle {
+  font-size: 1rem;
+  color: #64748b;
+  margin: 0 0 2rem;
+  line-height: 1.6;
+}
+
+/* ==========================================================================
+   Benefits grid ("Why join EventFlow?")
+   ========================================================================== */
+
+.suppliers-benefits-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 640px) {
+  .suppliers-benefits-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.suppliers-benefit-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.suppliers-benefit-card:hover {
+  box-shadow: 0 4px 20px rgba(11, 128, 115, 0.1);
+  transform: translateY(-2px);
+}
+
+.suppliers-benefit-card__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  color: #059669;
+  font-size: 1.2rem;
+}
+
+.suppliers-benefit-card__text {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #334155;
+  margin: 0;
+  font-weight: 500;
+}
+
+/* ==========================================================================
+   How it works steps
+   ========================================================================== */
+
+.suppliers-steps {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  position: relative;
+}
+
+@media (min-width: 640px) {
+  .suppliers-steps {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+}
+
+/* Step hover effect on non-touch devices */
+@media (min-width: 640px) {
+  .suppliers-step:hover {
+    box-shadow: 0 4px 16px rgba(11, 128, 115, 0.1);
+    transform: translateY(-2px);
+  }
+}
+
+.suppliers-step {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  position: relative;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+@media (max-width: 639px) {
+  .suppliers-step {
+    border-radius: 0;
+    border-bottom: none;
+  }
+
+  .suppliers-step:first-child {
+    border-radius: 16px 16px 0 0;
+  }
+
+  .suppliers-step:last-child {
+    border-radius: 0 0 16px 16px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+}
+
+.suppliers-step__number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0B8073 0%, #059669 100%);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(11, 128, 115, 0.3);
+}
+
+.suppliers-step__text {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #334155;
+  margin: 0;
+}
+
+/* ==========================================================================
+   Profile features list
+   ========================================================================== */
+
+.suppliers-features-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.6rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+@media (min-width: 640px) {
+  .suppliers-features-list {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.suppliers-features-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.95rem;
+  color: #334155;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  line-height: 1.5;
+}
+
+.suppliers-features-list li::before {
+  content: '✓';
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #059669;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   Content card wrapper (shared)
+   ========================================================================== */
+
+.suppliers-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: clamp(1.5rem, 3vw, 2.5rem);
+}
+
+/* Spacing between stacked cards outside the two-col grid */
+.suppliers-two-col + .suppliers-card {
+  margin-top: 1.5rem;
+}
+
+/* ==========================================================================
+   CTA section
+   ========================================================================== */
+
+.suppliers-cta-section {
+  background: linear-gradient(135deg, #0f172a 0%, #0B8073 100%);
+  border-radius: 20px;
+  padding: clamp(2rem, 4vw, 3rem);
+  text-align: center;
+  color: #fff;
+  margin-top: 2rem;
+}
+
+.suppliers-cta-section__title {
+  font-size: clamp(1.3rem, 3vw, 1.9rem);
+  font-weight: 700;
+  margin: 0 0 0.75rem;
+}
+
+.suppliers-cta-section__subtitle {
+  font-size: 1rem;
+  color: rgba(255,255,255,0.8);
+  margin: 0 0 1.75rem;
+  line-height: 1.6;
+}
+
+.suppliers-cta-section .suppliers-hero__cta {
+  font-size: 1.05rem;
+}
+
+/* ==========================================================================
+   Two-column layout for benefits + steps
+   ========================================================================== */
+
+.suppliers-two-col {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+@media (min-width: 900px) {
+  .suppliers-two-col {
+    grid-template-columns: 1fr 1fr;
+  }
+}

@@ -197,7 +197,14 @@ html {
   position: relative;
   background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 50%, #E2E8F0 100%) !important;
   overflow: hidden;
-  padding: clamp(32px, 4vw, 48px) 0 clamp(48px, 8vw, 96px) !important;
+  /* Minimal, intentional padding — desktop override below */
+  padding: clamp(20px, 3vw, 36px) 0 !important;
+}
+
+@media (min-width: 1024px) {
+  .hero-modern {
+    padding: clamp(24px, 3vw, 40px) 0 clamp(20px, 2.5vw, 36px) !important;
+  }
 }
 
 /* Animated gradient mesh orbs */
@@ -301,7 +308,7 @@ html {
   letter-spacing: -0.035em !important;
   line-height: 1.1 !important;
   color: var(--modern-gray-900);
-  margin-bottom: 24px !important;
+  margin-bottom: 0 !important; /* Spacing handled by flex gap on .hero-content-inner */
 }
 
 .hero-line-1,
@@ -351,7 +358,7 @@ html {
   line-height: 1.6 !important;
   color: var(--modern-gray-500) !important;
   max-width: 600px;
-  margin-bottom: 32px !important;
+  margin-bottom: 0 !important; /* Spacing handled by flex gap on .hero-content-inner */
   font-weight: 400;
 }
 
@@ -444,7 +451,7 @@ html {
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
-  margin-top: 32px;
+  margin-top: 0; /* Spacing handled by flex gap on .hero-content-inner */
 }
 
 /* ========================================
@@ -667,7 +674,7 @@ html {
 
 @media (max-width: 768px) {
   .hero-modern {
-    padding: clamp(48px, 8vw, 80px) 0 clamp(32px, 6vw, 64px) !important;
+    padding: 16px 0 !important;
   }
 
   /* Keep CTA actions on one row and less visually heavy on tablet/mobile */
