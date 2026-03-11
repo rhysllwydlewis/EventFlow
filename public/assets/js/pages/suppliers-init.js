@@ -185,7 +185,7 @@ function createSkeletonCards(count = 3) {
   const colors = ['55%', '45%', '60%'];
   return Array.from({ length: count }, (_, i) => `
     <div class="sp-card" aria-hidden="true" style="opacity:0.7;">
-      <div class="sp-card-avatar-fallback" style="background:linear-gradient(135deg,#e5e7eb,#d1d5db);width:68px;height:68px;border-radius:10px;"></div>
+      <div class="sp-card-avatar-fallback" style="background:linear-gradient(135deg,#e5e7eb,#d1d5db);width:64px;height:64px;border-radius:10px;"></div>
       <div class="sp-card-content">
         <div style="height:16px;background:linear-gradient(135deg,#e5e7eb,#d1d5db);border-radius:4px;width:${colors[i % 3]};margin-bottom:8px;"></div>
         <div style="height:13px;background:linear-gradient(135deg,#f3f4f6,#e5e7eb);border-radius:4px;width:35%;margin-bottom:6px;"></div>
@@ -748,17 +748,15 @@ async function initSuppliersPage() {
         e.preventDefault();
         const supplierId = btn.dataset.supplierId;
         const card = btn.closest('.sp-card');
-        const shortlistBtn = card ? card.querySelector('.btn-shortlist') : null;
+        const shortlistBtn = card?.querySelector('.btn-shortlist') ?? null;
 
-        // Get supplier data from card — prefer shortlist button data-attrs; fall back to heading
-        const supplierName = shortlistBtn
-          ? shortlistBtn.dataset.supplierName
-          : card
-            ? (card.querySelector('.sp-card-name a') || {}).textContent || ''
-            : '';
-        const supplierCategory = shortlistBtn
-          ? shortlistBtn.dataset.supplierCategory
-          : '';
+        // Get supplier data — prefer shortlist button data-attrs, fall back to heading text
+        let supplierName = shortlistBtn?.dataset.supplierName ?? '';
+        if (!supplierName && card) {
+          const nameLink = card.querySelector('.sp-card-name a');
+          supplierName = nameLink?.textContent?.trim() ?? '';
+        }
+        const supplierCategory = shortlistBtn?.dataset.supplierCategory ?? '';
 
         if (!supplierId) {
           return;

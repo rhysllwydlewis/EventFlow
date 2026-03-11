@@ -379,6 +379,7 @@
 
 .sp-card {
   display: grid;
+  /* avatar(64px) | content(flex) | actions(116px fixed) */
   grid-template-columns: 64px 1fr auto;
   gap: 12px;
   align-items: start;
