@@ -122,13 +122,23 @@ function createSupplierCard(supplier, position) {
   // Inline tier icon — use shared EFTierIcon helper if available (tier-icon.js)
   const tierIcon = typeof EFTierIcon !== 'undefined' ? EFTierIcon.render(supplier) : '';
 
-  // Rating display
+  // Star rating widget — replaces the old "Contact for quote" text.
+  // Shows a filled star with the score when reviews exist; an empty star otherwise.
   const ratingValue = supplier.averageRating || supplier.rating;
-  const ratingHtml = ratingValue
-    ? `<div class="sp-card-rating">★ ${Number(ratingValue).toFixed(1)}${supplier.reviewCount ? `<span class="sp-card-rating-count"> (${supplier.reviewCount})</span>` : ''}</div>`
+  const reviewCountLabel = supplier.reviewCount
+    ? `<span class="sp-rating-count">(${supplier.reviewCount})</span>`
     : '';
+  const ratingWidget = ratingValue
+    ? `<div class="sp-card-rating-widget sp-card-rating-widget--rated" title="${Number(ratingValue).toFixed(1)} out of 5">
+         <span class="sp-rating-star" aria-hidden="true">★</span>
+         <span class="sp-rating-score">${Number(ratingValue).toFixed(1)}</span>
+         ${reviewCountLabel}
+       </div>`
+    : `<div class="sp-card-rating-widget" title="No reviews yet">
+         <span class="sp-rating-star sp-rating-star--empty" aria-hidden="true">☆</span>
+       </div>`;
 
-  const priceDisplay = supplier.price_display || 'Contact for quote';
+  const priceDisplay = supplier.price_display || '';
 
   // Distance badge
   const distanceBadge =
@@ -199,8 +209,7 @@ function createSupplierCard(supplier, position) {
         </h3>
         ${supplier.category ? `<p class="sp-card-category">📂 ${escapeHtml(supplier.category)}</p>` : ''}
         ${supplier.location ? `<p class="sp-card-location">📍 ${escapeHtml(supplier.location)}</p>` : ''}
-        ${ratingHtml}
-        <p class="sp-card-price-tag">${escapeHtml(priceDisplay)}</p>
+        ${ratingWidget}
         ${badges.length || distanceBadge ? `<div class="sp-card-badges">${badges.slice(0, 3).join('')}${distanceBadge}</div>` : ''}
         ${supplier.description_short ? `<p class="sp-card-description">${escapeHtml(supplier.description_short)}</p>` : ''}
       </div>
@@ -237,7 +246,7 @@ function createSupplierCard(supplier, position) {
                 data-context-title="${escapeHtml(supplier.name)}"
                 ${supplier.logo ? `data-context-image="${escapeHtml(supplier.logo)}"` : ''}
                 aria-label="Message ${escapeHtml(supplier.name)}">
-          💬 Message
+          Message
         </button>
       </div>
     </article>

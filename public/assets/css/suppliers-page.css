@@ -509,25 +509,36 @@
   width: 100%;
 }
 
-.sp-card-rating {
-  display: inline-flex;
+/* Star rating widget — replaces the old "Contact for quote" text */
+.sp-card-rating-widget {
+  display: flex;
   align-items: center;
-  gap: 3px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #d97706;
+  gap: 4px;
+  margin: 2px 0;
 }
 
-.sp-card-rating-count {
-  color: #9ca3af;
-  font-weight: 400;
+.sp-rating-star {
+  font-size: 18px;
+  line-height: 1;
+  color: #f59e0b;
 }
 
-.sp-card-price-tag {
-  margin: 0;
-  font-size: 11px;
+.sp-rating-star--empty {
+  color: #d1d5db;
+}
+
+.sp-rating-score {
+  font-size: 13px;
   font-weight: 700;
-  color: #0b8073;
+  color: #d97706;
+  line-height: 1;
+}
+
+.sp-rating-count {
+  font-size: 10px;
+  font-weight: 400;
+  color: #9ca3af;
+  line-height: 1;
 }
 
 .sp-card-description {
