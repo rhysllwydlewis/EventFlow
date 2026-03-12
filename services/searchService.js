@@ -320,9 +320,18 @@ async function searchSuppliers(query) {
   results = results.slice(skip, skip + limit);
 
   // Enrich paginated results with top packages (for the card carousel)
+  // Build a Map first to avoid O(n*m) inner filter on every supplier
+  const pkgsBySupplier = new Map();
+  for (const p of allPackages) {
+    if (p.approved === false) continue;
+    if (!pkgsBySupplier.has(p.supplierId)) {
+      pkgsBySupplier.set(p.supplierId, []);
+    }
+    pkgsBySupplier.get(p.supplierId).push(p);
+  }
+
   results = results.map(supplier => {
-    const supplierPkgs = allPackages
-      .filter(p => p.supplierId === supplier.id && p.approved !== false)
+    const supplierPkgs = (pkgsBySupplier.get(supplier.id) || [])
       .slice(0, 3)
       .map(p => ({
         id: p.id,

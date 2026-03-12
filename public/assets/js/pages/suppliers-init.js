@@ -22,6 +22,9 @@ function escapeHtml(unsafe) {
   return div.innerHTML;
 }
 
+// Track which result containers already have the delegated carousel listener
+const _delegatedCarouselContainers = new WeakSet();
+
 // Minimal toast helper — shown when a logged-out user tries to save a supplier
 function showToast(message, type = 'info') {
   const toast = document.createElement('div');
@@ -829,10 +832,10 @@ async function initSuppliersPage() {
       });
     });
 
-    // Package carousel — delegated listener registered once on first call
-    if (!resultsContainer._carouselDelegated) {
+    // Package carousel — delegated listener registered once per container (via WeakSet)
+    if (!_delegatedCarouselContainers.has(resultsContainer)) {
       resultsContainer.addEventListener('click', _carouselClickHandler);
-      resultsContainer._carouselDelegated = true;
+      _delegatedCarouselContainers.add(resultsContainer);
     }
 
     // Attach QuickComposeV4 to any new compose triggers
