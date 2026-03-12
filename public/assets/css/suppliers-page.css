@@ -629,15 +629,21 @@
   border-color: #ddd6fe;
 }
 
-/* ─── MIDDLE COLUMN: Package mini-cards ───────────────── */
+/* ─── MIDDLE COLUMN: Package horizontal carousel ───────────────── */
+
+/* Card width token — used by .sp-pkg-mini and referenced in attachCarousels() JS fallback */
+:root {
+  --sp-pkg-mini-width: 148px;
+}
 
 .sp-card-packages {
   display: flex;
   flex-direction: column;
-  padding: 12px 10px;
+  padding: 10px 8px;
   min-width: 0;
-  gap: 6px;
+  gap: 5px;
   overflow: hidden;
+  justify-content: center;
 }
 
 .sp-pkg-label {
@@ -648,41 +654,71 @@
   color: #9ca3af;
 }
 
-/* Scrollable list of mini-cards */
-.sp-pkg-mini-list {
+/* ── Carousel outer shell ──────────────────────────────── */
+.sp-pkg-carousel {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+}
+
+/* Clipping viewport — hides off-screen cards */
+.sp-pkg-carousel-viewport {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Sliding track — transformed by JS */
+.sp-pkg-carousel-track {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+
+/* ── Arrow navigation buttons ─────────────────────────── */
+.sp-pkg-arrow {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid #e5e7eb;
+  background: rgba(255, 255, 255, 0.9);
+  color: #374151;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, opacity 0.15s;
+}
+
+.sp-pkg-arrow:hover:not(:disabled) {
+  background: #f0fdf9;
+  border-color: rgba(11, 128, 115, 0.4);
+  color: #0b8073;
+}
+
+.sp-pkg-arrow:disabled {
+  opacity: 0.3;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* ── Individual mini-card — fixed width, vertical layout ─ */
+.sp-pkg-mini {
+  flex-shrink: 0;
+  width: var(--sp-pkg-mini-width, 148px);
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  overflow-y: auto;
-  max-height: 260px;
-  flex: 1;
-  min-height: 0;
-  scrollbar-width: thin;
-  scrollbar-color: #d1d5db transparent;
-}
-
-.sp-pkg-mini-list::-webkit-scrollbar {
-  width: 4px;
-}
-
-.sp-pkg-mini-list::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.sp-pkg-mini-list::-webkit-scrollbar-thumb {
-  background: #d1d5db;
-  border-radius: 2px;
-}
-
-/* Individual mini-card */
-.sp-pkg-mini {
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
   background: rgba(248, 250, 252, 0.8);
   border: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: 10px;
-  padding: 8px;
+  overflow: hidden;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
@@ -691,17 +727,15 @@
   box-shadow: 0 2px 8px rgba(11, 128, 115, 0.08);
 }
 
-/* Thumbnail */
+/* Thumbnail — full-width at top of card */
 .sp-pkg-mini-thumb {
-  flex-shrink: 0;
-  width: 48px;
-  height: 48px;
-  border-radius: 7px;
-  overflow: hidden;
-  background: #f3f4f6;
+  width: 100%;
+  height: 54px;
+  background: linear-gradient(135deg, #e0f7f4 0%, #e8f4fd 100%);
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .sp-pkg-mini-img {
@@ -712,23 +746,22 @@
 }
 
 .sp-pkg-mini-img-fallback {
-  font-size: 20px;
+  font-size: 22px;
   line-height: 1;
-  color: #9ca3af;
 }
 
-/* Text body */
+/* Text body — below the thumbnail */
 .sp-pkg-mini-body {
-  flex: 1;
-  min-width: 0;
+  padding: 7px 8px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
+  flex: 1;
 }
 
 .sp-pkg-mini-title {
   margin: 0;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: #0b1220;
   line-height: 1.3;
@@ -744,30 +777,24 @@
   color: #0b8073;
 }
 
+/* Description hidden in carousel cards — saves vertical space */
 .sp-pkg-mini-desc {
-  margin: 0;
-  font-size: 11px;
-  color: #6b7280;
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  display: none;
 }
 
-/* Add to plan button */
+/* Add to plan button — pinned to bottom of card */
 .sp-btn--plan {
-  margin-top: 5px;
-  padding: 5px 10px;
-  min-height: 28px;
+  margin-top: auto;
+  padding: 5px 8px;
+  min-height: 27px;
   font-size: 11px;
   font-weight: 700;
   border-radius: 7px;
   background: #f0fdf9;
   color: #0b8073;
   border: 1px solid #a7f3e4;
-  width: auto;
-  align-self: flex-start;
+  width: 100%;
+  cursor: pointer;
   transition: background 0.15s, border-color 0.15s, transform 0.12s;
 }
 
@@ -777,7 +804,7 @@
   transform: translateY(-1px);
 }
 
-/* Empty state */
+/* ── Empty state ──────────────────────────────────────── */
 .sp-pkg-empty {
   flex: 1;
   display: flex;

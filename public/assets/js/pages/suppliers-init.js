@@ -149,7 +149,7 @@ function createSupplierCard(supplier, position) {
   const tierCardClass =
     tier === 'pro_plus' ? 'sp-card--pro-plus' : tier === 'pro' ? 'sp-card--pro' : '';
 
-  // ── Package mini-cards ──────────────────────────────────────────────────
+  // ── Package horizontal carousel ──────────────────────────────────────────
   const packages = Array.isArray(supplier.topPackages) ? supplier.topPackages : [];
   let packagesHtml;
 
@@ -161,24 +161,20 @@ function createSupplierCard(supplier, position) {
         <a href="/supplier?id=${encodeURIComponent(supplier.id)}" class="sp-pkg-empty-link">View profile</a>
       </div>`;
   } else {
-    // Show up to 4 mini-cards — enough to preview key packages without excessive card height
+    // Show up to 4 packages — 2 visible at a time; arrows slide through the rest
     const miniCards = packages
       .slice(0, 4)
       .map(pkg => {
         const imgHtml = pkg.image
           ? `<img src="${escapeHtml(pkg.image)}" alt="${escapeHtml(pkg.title)}" class="sp-pkg-mini-img" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-           <div class="sp-pkg-mini-img-fallback" style="display:none;" aria-hidden="true">📦</div>`
+             <div class="sp-pkg-mini-img-fallback" style="display:none;" aria-hidden="true">📦</div>`
           : `<div class="sp-pkg-mini-img-fallback" aria-hidden="true">📦</div>`;
-        const descHtml = pkg.description
-          ? `<p class="sp-pkg-mini-desc">${escapeHtml(pkg.description)}</p>`
-          : '';
         return `
         <div class="sp-pkg-mini">
           <div class="sp-pkg-mini-thumb">${imgHtml}</div>
           <div class="sp-pkg-mini-body">
             <p class="sp-pkg-mini-title">${escapeHtml(pkg.title)}</p>
             <p class="sp-pkg-mini-price">${escapeHtml(pkg.price)}</p>
-            ${descHtml}
             <button class="sp-btn sp-btn--plan btn-add-to-plan"
                     data-package-id="${escapeHtml(pkg.id || '')}"
                     data-package-title="${escapeHtml(pkg.title)}"
@@ -192,7 +188,18 @@ function createSupplierCard(supplier, position) {
       })
       .join('');
 
-    packagesHtml = `<div class="sp-pkg-mini-list">${miniCards}</div>`;
+    const total = Math.min(packages.length, 4);
+    const nextDisabled = total <= 2 ? ' disabled' : '';
+    packagesHtml = `
+      <div class="sp-pkg-carousel">
+        <button class="sp-pkg-arrow sp-pkg-arrow--prev" aria-label="Show previous packages" disabled>&#8249;</button>
+        <div class="sp-pkg-carousel-viewport">
+          <div class="sp-pkg-carousel-track">
+            ${miniCards}
+          </div>
+        </div>
+        <button class="sp-pkg-arrow sp-pkg-arrow--next" aria-label="Show next packages"${nextDisabled}>&#8250;</button>
+      </div>`;
   }
 
   return `
@@ -892,6 +899,70 @@ async function initSuppliersPage() {
     if (window.QuickComposeV4 && typeof window.QuickComposeV4.attachAll === 'function') {
       window.QuickComposeV4.attachAll();
     }
+
+    // Wire up horizontal package carousels
+    attachCarousels();
+  }
+
+  // Activate left/right navigation on every .sp-pkg-carousel in resultsContainer
+  function attachCarousels() {
+    const VISIBLE = 2; // cards shown at once
+
+    resultsContainer.querySelectorAll('.sp-pkg-carousel').forEach(carousel => {
+      const track = carousel.querySelector('.sp-pkg-carousel-track');
+      const prevBtn = carousel.querySelector('.sp-pkg-arrow--prev');
+      const nextBtn = carousel.querySelector('.sp-pkg-arrow--next');
+
+      if (!track || !prevBtn || !nextBtn) {
+        return;
+      }
+
+      const items = [...track.querySelectorAll('.sp-pkg-mini')];
+      const total = items.length;
+
+      if (total <= VISIBLE) {
+        // Nothing to scroll — keep both arrows permanently disabled
+        prevBtn.disabled = true;
+        nextBtn.disabled = true;
+        return;
+      }
+
+      let idx = 0;
+      const maxIdx = total - VISIBLE;
+
+      function getStepPx() {
+        const item = items[0];
+        if (!item) {
+          // Fallback matches the CSS --sp-pkg-mini-width custom property (148px) + track gap (6px)
+          return 154;
+        }
+        // Gap between cards comes from the track's column-gap / gap property
+        const gap = parseFloat(getComputedStyle(track).columnGap) || 6;
+        return item.getBoundingClientRect().width + gap;
+      }
+
+      function updateCarousel() {
+        track.style.transform = `translateX(${-idx * getStepPx()}px)`;
+        prevBtn.disabled = idx === 0;
+        nextBtn.disabled = idx >= maxIdx;
+      }
+
+      prevBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        if (idx > 0) {
+          idx--;
+          updateCarousel();
+        }
+      });
+
+      nextBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        if (idx < maxIdx) {
+          idx++;
+          updateCarousel();
+        }
+      });
+    });
   }
 
   function attachEmptyStateHandlers() {
