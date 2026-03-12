@@ -29,21 +29,22 @@ describe('Shortlist API Integration Tests', () => {
       );
 
       expect(routeContent).toContain("router.get('/'");
-      expect(routeContent).toContain('getUserFromCookie');
+      // GET now requires auth — guest shortlist mode is disabled (Option A)
+      expect(routeContent).toContain('authRequired');
     });
 
-    it('should return empty array for unauthenticated users (not 401)', () => {
+    it('should require authentication on GET (no guest shortlist)', () => {
       const routeContent = fs.readFileSync(
         path.join(__dirname, '../../routes/shortlist.js'),
         'utf8'
       );
 
-      // Check that GET endpoint doesn't use authRequired
+      // GET endpoint must use authRequired — no more guest localStorage fallback
       const getRouteMatch = routeContent.match(/router\.get\('\/'.+?(?=router\.)/s);
       expect(getRouteMatch).toBeTruthy();
-      expect(getRouteMatch[0]).not.toContain('authRequired');
-      expect(getRouteMatch[0]).toContain('getUserFromCookie');
-      expect(getRouteMatch[0]).toContain('items: []');
+      expect(getRouteMatch[0]).toContain('authRequired');
+      // Should use findOne to fetch only the authenticated user's shortlist
+      expect(getRouteMatch[0]).toContain('findOne');
     });
 
     it('should define POST / endpoint with auth and CSRF protection', () => {
@@ -449,35 +450,44 @@ describe('Client-Side Analytics Safety', () => {
   });
 });
 
-describe('Shortlist Manager Auto-Merge', () => {
-  describe('Merge on Login Behavior', () => {
-    it('should implement mergeLocalStorageOnLogin function', () => {
+describe('Shortlist Manager Auth Requirement', () => {
+  describe('Guest shortlist disabled (Option A)', () => {
+    it('should NOT contain mergeLocalStorageOnLogin (removed in Option A)', () => {
       const managerContent = fs.readFileSync(
         path.join(__dirname, '../../public/assets/js/utils/shortlist-manager.js'),
         'utf8'
       );
 
-      expect(managerContent).toContain('mergeLocalStorageOnLogin');
+      expect(managerContent).not.toContain('mergeLocalStorageOnLogin');
     });
 
-    it('should use merge flag to run only once', () => {
+    it('should gate addItem behind authentication', () => {
       const managerContent = fs.readFileSync(
         path.join(__dirname, '../../public/assets/js/utils/shortlist-manager.js'),
         'utf8'
       );
 
-      expect(managerContent).toContain('eventflow_shortlist_merged');
-      expect(managerContent).toContain('Already merged');
+      expect(managerContent).toContain('requiresAuth');
     });
 
-    it('should prevent duplicates during merge', () => {
+    it('should gate hasItem behind authentication', () => {
       const managerContent = fs.readFileSync(
         path.join(__dirname, '../../public/assets/js/utils/shortlist-manager.js'),
         'utf8'
       );
 
-      expect(managerContent).toContain('existingIds');
-      expect(managerContent).toContain('has(itemKey)');
+      // hasItem returns false when not authenticated
+      expect(managerContent).toContain('isAuthenticated');
+    });
+
+    it('should clear stale localStorage keys via _clearLocalStorage', () => {
+      const managerContent = fs.readFileSync(
+        path.join(__dirname, '../../public/assets/js/utils/shortlist-manager.js'),
+        'utf8'
+      );
+
+      expect(managerContent).toContain('_clearLocalStorage');
+      expect(managerContent).toContain('eventflow_shortlist');
     });
   });
 });

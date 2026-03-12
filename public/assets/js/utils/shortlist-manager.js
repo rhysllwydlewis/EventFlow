@@ -1,6 +1,7 @@
 /**
  * Shortlist Manager
- * Manages shortlist state with localStorage fallback and server sync
+ * Manages shortlist state with server sync.
+ * Guest/unauthenticated mode is intentionally disabled — shortlist requires login.
  */
 
 class ShortlistManager {
@@ -49,8 +50,9 @@ class ShortlistManager {
       // Load from server
       await this.loadFromServer();
     } else {
-      // Load from localStorage
-      this.loadFromLocalStorage();
+      // Guest mode is disabled: clear any stale localStorage data and start empty
+      this._clearLocalStorage();
+      this.items = [];
       this.notifyListeners();
     }
   }
@@ -82,98 +84,31 @@ class ShortlistManager {
         const data = await response.json();
         this.items = data.data.items || [];
 
-        // Merge with localStorage if present (auto-merge on login)
-        await this.mergeLocalStorageOnLogin();
-
-        this.saveToLocalStorage();
         this.notifyListeners();
       } else if (response.status === 401) {
-        // User not authenticated - fail silently, use localStorage
-        this.loadFromLocalStorage();
+        // Session expired or revoked — treat as unauthenticated
+        this.isAuthenticated = false;
+        this.items = [];
+        this._clearLocalStorage();
         this.notifyListeners();
       }
     } catch (error) {
       console.error('Failed to load shortlist from server:', error);
-      this.loadFromLocalStorage();
+      this.items = [];
       this.notifyListeners();
     }
   }
 
   /**
-   * Merge localStorage items into server on login (one-time operation)
+   * Clear stale localStorage shortlist keys (backward-compatibility cleanup).
+   * @private
    */
-  async mergeLocalStorageOnLogin() {
+  _clearLocalStorage() {
     try {
-      // Check if we've already merged (flag in localStorage)
-      const mergeKey = 'eventflow_shortlist_merged';
-      if (localStorage.getItem(mergeKey)) {
-        return; // Already merged
-      }
-
-      // Get items from localStorage
-      const stored = localStorage.getItem('eventflow_shortlist');
-      if (!stored) {
-        // No local items to merge
-        localStorage.setItem(mergeKey, 'true');
-        return;
-      }
-
-      const localData = JSON.parse(stored);
-      const localItems = localData.items || [];
-
-      if (localItems.length === 0) {
-        localStorage.setItem(mergeKey, 'true');
-        return;
-      }
-
-      // Merge local items into server (skip duplicates)
-      const existingIds = new Set(this.items.map(item => `${item.type}:${item.id}`));
-
-      for (const item of localItems) {
-        const itemKey = `${item.type}:${item.id}`;
-        if (!existingIds.has(itemKey)) {
-          // Add new item to server
-          await this.addItem(item);
-        }
-      }
-
-      // Mark as merged
-      localStorage.setItem(mergeKey, 'true');
-    } catch (error) {
-      console.error('Failed to merge localStorage on login:', error);
-    }
-  }
-
-  /**
-   * Load shortlist from localStorage
-   */
-  loadFromLocalStorage() {
-    try {
-      const stored = localStorage.getItem('eventflow_shortlist');
-      if (stored) {
-        const data = JSON.parse(stored);
-        this.items = data.items || [];
-      }
-    } catch (error) {
-      console.error('Failed to load shortlist from localStorage:', error);
-      this.items = [];
-    }
-  }
-
-  /**
-   * Save shortlist to localStorage
-   */
-  saveToLocalStorage() {
-    try {
-      localStorage.setItem(
-        'eventflow_shortlist',
-        JSON.stringify({
-          items: this.items,
-          lastUpdated: new Date().toISOString(),
-        })
-      );
-    } catch (error) {
-      console.error('Failed to save shortlist to localStorage:', error);
+      localStorage.removeItem('eventflow_shortlist');
+      localStorage.removeItem('eventflow_shortlist_merged');
+    } catch (_e) {
+      // Ignore storage errors
     }
   }
 
@@ -181,6 +116,10 @@ class ShortlistManager {
    * Add item to shortlist
    */
   async addItem(item) {
+    if (!this.isAuthenticated) {
+      return { success: false, requiresAuth: true };
+    }
+
     const normalizedType = this.normalizeKey(item.type);
     const normalizedId = this.normalizeKey(item.id);
 
@@ -200,36 +139,30 @@ class ShortlistManager {
       addedAt: new Date().toISOString(),
     });
 
-    // Save to localStorage
-    this.saveToLocalStorage();
+    // Sync to server
+    try {
+      const response = await fetch('/api/v1/shortlist', {
+        method: 'POST',
+        headers: this.addCsrfHeaders({
+          'Content-Type': 'application/json',
+        }),
+        credentials: 'include',
+        body: JSON.stringify(item),
+      });
 
-    // Sync to server if authenticated
-    if (this.isAuthenticated) {
-      try {
-        const response = await fetch('/api/v1/shortlist', {
-          method: 'POST',
-          headers: this.addCsrfHeaders({
-            'Content-Type': 'application/json',
-          }),
-          credentials: 'include',
-          body: JSON.stringify(item),
-        });
-
-        if (!response.ok) {
-          // Rollback on server error
-          this.items = this.items.filter(
-            i =>
-              !(
-                this.normalizeKey(i.type) === normalizedType &&
-                this.normalizeKey(i.id) === normalizedId
-              )
-          );
-          this.saveToLocalStorage();
-          return { success: false, error: 'Failed to sync to server' };
-        }
-      } catch (error) {
-        console.error('Failed to sync shortlist add to server:', error);
+      if (!response.ok) {
+        // Rollback on server error
+        this.items = this.items.filter(
+          i =>
+            !(
+              this.normalizeKey(i.type) === normalizedType &&
+              this.normalizeKey(i.id) === normalizedId
+            )
+        );
+        return { success: false, error: 'Failed to sync to server' };
       }
+    } catch (error) {
+      console.error('Failed to sync shortlist add to server:', error);
     }
 
     this.notifyListeners();
@@ -240,6 +173,10 @@ class ShortlistManager {
    * Remove item from shortlist
    */
   async removeItem(type, id) {
+    if (!this.isAuthenticated) {
+      return { success: false, requiresAuth: true };
+    }
+
     const normalizedType = this.normalizeKey(type);
     const normalizedId = this.normalizeKey(id);
 
@@ -249,20 +186,15 @@ class ShortlistManager {
         !(this.normalizeKey(i.type) === normalizedType && this.normalizeKey(i.id) === normalizedId)
     );
 
-    // Save to localStorage
-    this.saveToLocalStorage();
-
-    // Sync to server if authenticated
-    if (this.isAuthenticated) {
-      try {
-        await fetch(`/api/v1/shortlist/${type}/${id}`, {
-          method: 'DELETE',
-          headers: this.addCsrfHeaders({}),
-          credentials: 'include',
-        });
-      } catch (error) {
-        console.error('Failed to sync shortlist remove to server:', error);
-      }
+    // Sync to server
+    try {
+      await fetch(`/api/v1/shortlist/${type}/${id}`, {
+        method: 'DELETE',
+        headers: this.addCsrfHeaders({}),
+        credentials: 'include',
+      });
+    } catch (error) {
+      console.error('Failed to sync shortlist remove to server:', error);
     }
 
     this.notifyListeners();
@@ -274,7 +206,6 @@ class ShortlistManager {
    */
   async clearAll() {
     this.items = [];
-    this.saveToLocalStorage();
 
     if (this.isAuthenticated) {
       try {
@@ -296,6 +227,9 @@ class ShortlistManager {
    * Check if item is in shortlist
    */
   hasItem(type, id) {
+    if (!this.isAuthenticated) {
+      return false;
+    }
     const normalizedType = this.normalizeKey(type);
     const normalizedId = this.normalizeKey(id);
     return this.items.some(

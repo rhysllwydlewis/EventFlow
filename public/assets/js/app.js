@@ -3945,7 +3945,7 @@ document.addEventListener('DOMContentLoaded', () => {
                   location.pathname === '/dashboard/supplier'
                 ? 'dash_supplier'
                 : location.pathname.endsWith('suppliers.html') || location.pathname === '/suppliers'
-                  ? 'results'
+                  ? 'suppliers'
                   : location.pathname.endsWith('supplier.html') ||
                       location.pathname.startsWith('/supplier')
                     ? 'supplier'

@@ -149,3 +149,80 @@ test.describe('Supplier Search and Filtering @backend', () => {
     expect(focusedElement).toBeTruthy();
   });
 });
+
+test.describe('Supplier shortlist — unauthenticated (Option A)', () => {
+  test.beforeEach(async ({ page }) => {
+    // Ensure no session cookies exist so the user is logged out
+    await page.context().clearCookies();
+  });
+
+  test('clicking Save while logged out redirects to /auth with correct redirect param', async ({
+    page,
+  }) => {
+    // Navigate to suppliers page with query params so they are preserved
+    await page.goto('/suppliers?category=Venues&q=barn');
+    await page.waitForLoadState('networkidle');
+
+    const saveBtn = page.locator('.btn-shortlist').first();
+    if ((await saveBtn.count()) === 0) {
+      test.skip(); // No supplier cards rendered, skip gracefully
+      return;
+    }
+
+    // Intercept navigation so we can inspect the target URL without a full redirect
+    let navigatedTo = '';
+    page.on('framenavigated', frame => {
+      if (frame === page.mainFrame()) {
+        navigatedTo = frame.url();
+      }
+    });
+
+    await saveBtn.click();
+
+    // Wait up to 3 s for the redirect (includes the 800 ms toast delay)
+    await page.waitForTimeout(1200);
+
+    // Either we already navigated, or wait for a navigation event
+    if (!navigatedTo.includes('/auth')) {
+      await page.waitForURL(url => url.pathname === '/auth', { timeout: 5000 }).catch(() => {});
+      navigatedTo = page.url();
+    }
+
+    // The URL should be /auth with a redirect param pointing back to the suppliers page
+    const url = new URL(navigatedTo);
+    expect(url.pathname).toBe('/auth');
+
+    const redirectParam = url.searchParams.get('redirect');
+    expect(redirectParam).toBeTruthy();
+
+    // The decoded redirect must start with / (relative path)
+    expect(redirectParam.startsWith('/')).toBe(true);
+
+    // It should preserve the original path + query
+    expect(redirectParam).toContain('/suppliers');
+    expect(redirectParam).toContain('category=Venues');
+    expect(redirectParam).toContain('q=barn');
+  });
+
+  test('logged-out users do not see supplier cards pre-marked as Saved', async ({ page }) => {
+    // Seed a stale shortlist entry in localStorage before visiting
+    await page.goto('/suppliers');
+    await page.evaluate(() => {
+      localStorage.setItem(
+        'eventflow_shortlist',
+        JSON.stringify({
+          items: [{ type: 'supplier', id: 'any-supplier-id', name: 'Test', addedAt: new Date().toISOString() }],
+          lastUpdated: new Date().toISOString(),
+        })
+      );
+    });
+
+    // Reload so shortlist-manager picks up localStorage (it should ignore it)
+    await page.reload();
+    await page.waitForLoadState('networkidle');
+
+    // No shortlist button should show the "Saved / active" state
+    const activeButtons = page.locator('.sp-btn--shortlist-active, .btn-shortlist-active');
+    expect(await activeButtons.count()).toBe(0);
+  });
+});

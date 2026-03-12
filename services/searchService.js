@@ -234,6 +234,9 @@ async function searchSuppliers(query) {
   const startTime = Date.now();
   const suppliers = await dbUnified.read('suppliers');
 
+  // Pre-load packages to embed top 3 per supplier (for carousel in search results)
+  const allPackages = await dbUnified.read('packages');
+
   // Geocode postcode for distance filtering/sorting
   let userCoords = null;
   if (normalizedQuery.postcode) {
@@ -315,6 +318,30 @@ async function searchSuppliers(query) {
   const { page, limit } = normalizedQuery;
   const skip = (page - 1) * limit;
   results = results.slice(skip, skip + limit);
+
+  // Enrich paginated results with top packages (for the card carousel)
+  // Build a Map first to avoid O(n*m) inner filter on every supplier
+  const pkgsBySupplier = new Map();
+  for (const p of allPackages) {
+    if (p.approved === false) continue;
+    if (!pkgsBySupplier.has(p.supplierId)) {
+      pkgsBySupplier.set(p.supplierId, []);
+    }
+    pkgsBySupplier.get(p.supplierId).push(p);
+  }
+
+  results = results.map(supplier => {
+    const supplierPkgs = (pkgsBySupplier.get(supplier.id) || [])
+      .slice(0, 3)
+      .map(p => ({
+        id: p.id,
+        title: p.title || '',
+        price: p.price || '',
+        image: p.image || null,
+        description: p.description || '',
+      }));
+    return { ...supplier, topPackages: supplierPkgs };
+  });
 
   // Calculate facets — reuse the already-loaded suppliers array (avoid a second DB read)
   const facets = calculateFacets(suppliers.filter(s => s.approved));
