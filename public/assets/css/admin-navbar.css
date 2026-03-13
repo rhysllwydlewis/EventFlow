@@ -101,7 +101,8 @@
   transform: translateY(-1px);
 }
 
-.admin-nav-btn.active {
+.admin-nav-btn.active,
+.admin-nav-btn[aria-current="page"] {
   background: linear-gradient(135deg, #0B8073 0%, #13B6A2 100%);
   color: #ffffff;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
@@ -205,7 +206,7 @@
   background: white;
   color: #4b5563;
   cursor: pointer;
-  transition: all 0.2s, transform 0.6s ease;
+  transition: background 0.2s, border-color 0.2s, color 0.2s, box-shadow 0.2s, transform 0.2s;
 }
 
 .navbar-icon-btn svg {
@@ -225,6 +226,15 @@
 
 .navbar-icon-btn:active {
   transform: scale(0.98) rotate(180deg);
+}
+
+@keyframes navbar-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.navbar-icon-btn.spinning {
+  animation: navbar-spin 0.6s ease;
 }
 
 /* User Dropdown */
