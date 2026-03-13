@@ -360,7 +360,10 @@ router.delete(
         return;
       }
 
-      await dbUnified.deleteOne('packages', req.params.id);
+      await dbUnified.deleteOne('packages', {
+        id: req.params.id,
+        supplierId: result.pkg.supplierId,
+      });
       res.json({ ok: true, message: 'Package deleted successfully' });
     } catch (error) {
       logger.error('Error deleting supplier package:', error);

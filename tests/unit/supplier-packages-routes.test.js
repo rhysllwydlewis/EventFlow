@@ -38,8 +38,10 @@ describe('Supplier Packages — Auth & Role Guards', () => {
     if (start === -1) {
       return null;
     }
-    // Grab up to 500 chars after the marker to capture middleware list
-    return routesContent.substring(start, start + 500);
+    // Find the start of the next router.* definition to avoid truncating the block.
+    const afterStart = routesContent.indexOf('\nrouter.', start + marker.length);
+    const end = afterStart === -1 ? routesContent.length : afterStart;
+    return routesContent.substring(start, end);
   }
 
   it('GET /me/packages/:id requires applyAuthRequired', () => {
