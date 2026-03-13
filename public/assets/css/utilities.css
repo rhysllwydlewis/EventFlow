@@ -262,7 +262,7 @@ button:focus {
 .nav-toggle,
 .icon-button,
 button[type="submit"]:not(.ef-search-bar__button),
-button[type="button"]:not(.ef-search-bar__button):not(.back-to-top):not(.carousel-prev):not(.carousel-next) {
+button[type="button"]:not(.ef-search-bar__button):not(.back-to-top):not(.carousel-prev):not(.carousel-next):not(.package-gallery-nav) {
   min-height: 44px;
   min-width: 44px;
 }

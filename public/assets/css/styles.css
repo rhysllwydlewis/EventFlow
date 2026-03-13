@@ -729,7 +729,7 @@ body.legacy-nav-open .legacy-nav-menu{
 }
 
 /* Better buttons */
-button:not(.auth-tab):not(.role-pill):not(.ef-search-bar__button):not(.back-to-top):not(.ef-mobile-toggle):not(.ef-icon-btn):not(.carousel-prev):not(.carousel-next):not([data-cookie-prefs]):not(.shortlist-float-btn), .cta{
+button:not(.auth-tab):not(.role-pill):not(.ef-search-bar__button):not(.back-to-top):not(.ef-mobile-toggle):not(.ef-icon-btn):not(.carousel-prev):not(.carousel-next):not([data-cookie-prefs]):not(.shortlist-float-btn):not(.package-gallery-nav), .cta{
   border-radius: 12px !important;
   padding: 10px 18px !important;
   font-size: 15px !important;
@@ -741,7 +741,7 @@ button:not(.auth-tab):not(.role-pill):not(.ef-search-bar__button):not(.back-to-t
 @media(max-width:600px){
   body{ padding: 10px; }
   .card{ margin: 12px 0 !important; }
-  button:not(.auth-tab):not(.role-pill):not(.ef-search-bar__button):not(.back-to-top):not(.ef-mobile-toggle):not(.ef-icon-btn):not(.carousel-prev):not(.carousel-next):not([data-cookie-prefs]):not(.shortlist-float-btn), .cta{ width: 100%; margin-top: 6px; }
+  button:not(.auth-tab):not(.role-pill):not(.ef-search-bar__button):not(.back-to-top):not(.ef-mobile-toggle):not(.ef-icon-btn):not(.carousel-prev):not(.carousel-next):not([data-cookie-prefs]):not(.shortlist-float-btn):not(.package-gallery-nav), .cta{ width: 100%; margin-top: 6px; }
 }
 
 

@@ -135,6 +135,60 @@ app.get('/api/v2/search/suppliers', (req, res) => {
   });
 });
 
+// Stub package detail API — returns a mock package so E2E tests can render the detail page
+app.get('/api/packages/:slug', (req, res) => {
+  const { slug } = req.params;
+  // Use real Pexels photos (images.pexels.com is explicitly allowed by the image sanitizer)
+  const mockPackage = {
+    package: {
+      id: 'mock-pkg-detail-1',
+      slug,
+      title: 'Barn Exclusive Hire',
+      description:
+        'Transform our stunning rustic barn into your dream event space. ' +
+        'The exclusive hire package includes full access to the venue, on-site coordinator, ' +
+        'decorative lighting, and a dedicated events team to ensure your special day runs perfectly. ' +
+        'Perfect for weddings, milestone birthdays, and corporate celebrations.',
+      price: 1200,
+      price_display: '£1,200',
+      location: 'Herefordshire, UK',
+      featured: true,
+      tags: ['rustic', 'barn', 'exclusive', 'wedding', 'celebration'],
+      eventTypes: ['Weddings', 'Birthdays', 'Corporate Events', 'Anniversaries'],
+      gallery: [
+        {
+          url: '/assets/images/collage-venue.jpg',
+          alt: 'Rustic barn exterior with fairy lights',
+        },
+        {
+          url: '/assets/images/collage-catering.jpg',
+          alt: 'Elegant event catering and table settings',
+        },
+        {
+          url: '/assets/images/collage-entertainment.jpg',
+          alt: 'Live entertainment at the venue',
+        },
+      ],
+    },
+    supplier: {
+      id: 'mock-sup-1',
+      name: 'The Rustic Barn Venue',
+      blurb: 'Award-winning rural event venue in the heart of Herefordshire',
+      description_long:
+        'We have been hosting unforgettable events since 2008. ' +
+        'Our barn has been lovingly restored to offer a unique blend of rustic charm and modern amenities.',
+      category: 'Venues',
+      location: 'Herefordshire, UK',
+      logo: '',
+      verified: true,
+      subscriptionTier: 'pro',
+      ownerUserId: 'mock-owner-1',
+    },
+    categories: [{ slug: 'venues', name: 'Venues', icon: '🏛️' }],
+  };
+  res.json(mockPackage);
+});
+
 // Stub shortlist API endpoints (auth-gated in real server; return 401 here)
 app.get('/api/shortlist', (req, res) => {
   res.status(401).json({ error: 'Unauthorized' });
@@ -157,6 +211,15 @@ app.get('/marketplace', (req, res) => {
 
 app.get('/marketplace.html', (req, res) => {
   res.redirect(301, '/marketplace');
+});
+
+app.get('/package', (req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, 'package.html'));
+});
+
+app.get('/package.html', (req, res) => {
+  const qs = req.originalUrl.split('?').slice(1).join('?');
+  res.redirect(301, `/package${qs ? `?${qs}` : ''}`);
 });
 
 app.get('/suppliers', (req, res) => {
