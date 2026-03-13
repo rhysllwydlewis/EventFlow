@@ -2641,6 +2641,7 @@ async function initDashSupplier() {
 
       // On 403 with a CSRF error, refresh the token and retry once
       if (isWriteMethod && r.status === 403) {
+        // Clone the response before reading its body so the original stays intact if no retry occurs
         const data = await r.clone().json().catch(() => ({}));
         if (/csrf/i.test(data?.error || '')) {
           try {
