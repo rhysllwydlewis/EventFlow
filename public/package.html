@@ -384,7 +384,7 @@
       border-top: 1px solid rgba(0,0,0,0.07);
     }
 
-    /* Save Package button — outlined bookmark style */
+    /* Save Package button — matches sp-btn--secondary brand style */
     .pkg-btn {
       display: inline-flex;
       align-items: center;
@@ -409,25 +409,25 @@
     }
     .pkg-btn:active { transform: scale(0.97); }
 
-    /* Save Package: soft purple/blue outline */
+    /* Save Package: brand secondary style (white/teal, mirrors sp-btn--secondary) */
     .pkg-btn--save {
-      background: #f5f3ff;
-      color: #7c3aed;
-      border-color: #ddd6fe;
+      background: #F6FAF9;
+      color: #0b8073;
+      border-color: #CFEDEA;
     }
     .pkg-btn--save:hover {
-      background: #ede9fe;
-      border-color: #c4b5fd;
+      background: #EDF7F5;
+      border-color: rgba(11, 128, 115, 0.45);
       transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(124,58,237,0.12);
+      box-shadow: 0 4px 12px rgba(11, 128, 115, 0.12);
     }
     .pkg-btn--save-active {
-      background: #ede9fe;
-      color: #6d28d9;
-      border-color: #c4b5fd;
+      background: #EDF7F5;
+      color: #0b8073;
+      border-color: #a7f3e4;
     }
 
-    /* Add to Plan: solid teal (matches brand) */
+    /* Add to Plan: solid teal gradient (matches sp-btn--primary / brand CTA) */
     .pkg-btn--plan {
       background: linear-gradient(180deg, #16c3ad 0%, #0ea896 100%);
       color: #fff;
@@ -629,11 +629,11 @@
               <div class="pkg-action-row" role="group" aria-label="Package actions">
                 <button class="pkg-btn pkg-btn--save" id="pkg-save-package-btn" type="button"
                         aria-label="Save this package">
-                  🔖 Save Package
+                  ♡ Save Package
                 </button>
                 <button class="pkg-btn pkg-btn--plan" id="pkg-add-to-plan-btn" type="button"
                         aria-label="Add this package to your plan">
-                  📋 Add to Plan
+                  + Add to Plan
                 </button>
               </div>
             </div>
@@ -999,7 +999,7 @@
     const sm = window.shortlistManager;
     if (sm && sm.isAuthenticated && pkg.id && sm.hasItem('package', pkg.id)) {
       savePkgBtn.classList.add('pkg-btn--save-active');
-      savePkgBtn.textContent = '🔖 Saved';
+      savePkgBtn.textContent = '❤️ Saved';
       savePkgBtn.setAttribute('aria-label', 'Remove this package from saved');
     }
 
@@ -1015,7 +1015,7 @@
       if (isActive) {
         await mgr.removeItem('package', pkg.id);
         savePkgBtn.classList.remove('pkg-btn--save-active');
-        savePkgBtn.textContent = '🔖 Save Package';
+        savePkgBtn.textContent = '♡ Save Package';
         savePkgBtn.setAttribute('aria-label', 'Save this package');
       } else {
         const rawPrice = pkg.price_display || pkg.price;
@@ -1028,7 +1028,7 @@
           priceHint: rawPrice ? String(rawPrice) : '',
         });
         savePkgBtn.classList.add('pkg-btn--save-active');
-        savePkgBtn.textContent = '🔖 Saved';
+        savePkgBtn.textContent = '❤️ Saved';
         savePkgBtn.setAttribute('aria-label', 'Remove this package from saved');
       }
     });

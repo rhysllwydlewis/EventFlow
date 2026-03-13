@@ -6,6 +6,11 @@
 // Constants
 const PLACEHOLDER_IMAGE = '/assets/images/placeholders/package-event.svg';
 
+// Swipe gesture thresholds
+const SWIPE_AXIS_LOCK_PX = 8; // horizontal movement (px) before scroll is suppressed
+const SWIPE_DISTANCE_PX = 40; // minimum swipe distance to trigger navigation
+const SWIPE_HORIZONTAL_BIAS = 1.5; // horizontal-to-vertical ratio required for swipe intent
+
 class PackageGallery {
   constructor(containerId, images = []) {
     this.container = document.getElementById(containerId);
@@ -72,48 +77,46 @@ class PackageGallery {
         background: #e5e7eb url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="%23999" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>') center center no-repeat;
       }
 
-      /* ── Nav arrows: edge-flush, small, non-intrusive ── */
+      /* ── Nav arrows: edge-flush tabs, small but visible ── */
       .package-gallery-nav {
         position: absolute;
         top: 50%;
         transform: translateY(-50%);
-        /* Semi-transparent pill flush to the edge */
-        background-color: rgba(0, 0, 0, 0.38);
+        /* Semi-transparent pill flush to the edge — visible against any image */
+        background-color: rgba(0, 0, 0, 0.42);
         color: white;
         border: none;
         padding: 0;
         cursor: pointer;
-        font-size: 18px;
-        border-radius: 0 6px 6px 0;
-        width: 28px;
-        height: 52px;
+        font-size: 20px;
+        width: 32px;
+        height: 56px;
         display: flex;
         align-items: center;
         justify-content: center;
         transition: background-color 0.18s ease, width 0.18s ease;
         z-index: 2;
-        /* Don't disrupt the image layout */
         flex-shrink: 0;
       }
 
       .package-gallery-nav:hover,
       .package-gallery-nav:focus-visible {
-        background-color: rgba(0, 0, 0, 0.62);
-        width: 34px;
+        background-color: rgba(0, 0, 0, 0.65);
+        width: 38px;
         outline: none;
       }
 
       .package-gallery-nav.prev {
         left: 0;
-        border-radius: 0 6px 6px 0;
+        border-radius: 0 8px 8px 0;
       }
 
       .package-gallery-nav.next {
         right: 0;
-        border-radius: 6px 0 0 6px;
+        border-radius: 8px 0 0 8px;
       }
 
-      /* Swipe hint: fade out the arrows when user swipes */
+      /* Fade arrows slightly during swipe gesture */
       .package-gallery-main.swiping .package-gallery-nav {
         opacity: 0.3;
         pointer-events: none;
@@ -206,15 +209,15 @@ class PackageGallery {
           border-radius: 10px;
         }
 
-        /* Arrows stay the same edge-flush design; just slightly taller on mobile */
+        /* Arrows: slightly narrower on mobile but still clearly tappable */
         .package-gallery-nav {
-          width: 26px;
-          height: 48px;
-          font-size: 16px;
+          width: 30px;
+          height: 52px;
+          font-size: 18px;
         }
         .package-gallery-nav:hover,
         .package-gallery-nav:focus-visible {
-          width: 30px;
+          width: 34px;
         }
 
         .package-gallery-counter {
@@ -455,7 +458,7 @@ class PackageGallery {
         const dx = e.touches[0].clientX - startX;
         const dy = e.touches[0].clientY - startY;
         // If movement is more horizontal than vertical, prevent scroll
-        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) {
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > SWIPE_AXIS_LOCK_PX) {
           e.preventDefault();
         }
       },
@@ -471,8 +474,11 @@ class PackageGallery {
         isDragging = false;
         const dx = e.changedTouches[0].clientX - startX;
         const dy = e.changedTouches[0].clientY - startY;
-        // Only trigger on predominantly horizontal swipes of > 40px
-        if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+        // Only trigger on predominantly horizontal swipes of > SWIPE_DISTANCE_PX
+        if (
+          Math.abs(dx) > SWIPE_DISTANCE_PX &&
+          Math.abs(dx) > Math.abs(dy) * SWIPE_HORIZONTAL_BIAS
+        ) {
           this.navigate(dx < 0 ? 1 : -1);
         }
       },
