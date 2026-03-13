@@ -240,6 +240,139 @@ router.post(
 );
 
 /**
+ * Fetch a package by ID and verify the authenticated user owns it via their supplier profile.
+ * Returns { pkg, own } on success, or sends an error response and returns null.
+ * @param {string} id - Package ID
+ * @param {Object} req - Express request
+ * @param {Object} res - Express response
+ * @returns {Promise<{pkg: Object, own: Object}|null>}
+ */
+async function resolveOwnedPackage(id, req, res) {
+  const [packages, suppliers] = await Promise.all([
+    dbUnified.read('packages'),
+    dbUnified.read('suppliers'),
+  ]);
+
+  const pkg = packages.find(p => p.id === id);
+  if (!pkg) {
+    res.status(404).json({ error: 'Package not found' });
+    return null;
+  }
+
+  const own = suppliers.find(s => s.id === pkg.supplierId && s.ownerUserId === req.user.id);
+  if (!own) {
+    res.status(403).json({ error: 'Forbidden' });
+    return null;
+  }
+
+  return { pkg, own };
+}
+
+/**
+ * GET /api/me/packages/:id
+ * Get a single package belonging to the authenticated supplier
+ */
+router.get(
+  '/me/packages/:id',
+  applyWriteLimiter,
+  applyAuthRequired,
+  applyRoleRequired('supplier'),
+  async (req, res) => {
+    try {
+      const result = await resolveOwnedPackage(req.params.id, req, res);
+      if (!result) {
+        return;
+      }
+      res.json(result.pkg);
+    } catch (error) {
+      logger.error('Error fetching supplier package:', error);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+);
+
+/**
+ * PUT /api/me/packages/:id
+ * Update a package belonging to the authenticated supplier
+ */
+router.put(
+  '/me/packages/:id',
+  applyWriteLimiter,
+  applyAuthRequired,
+  applyRoleRequired('supplier'),
+  applyCsrfProtection,
+  async (req, res) => {
+    try {
+      const result = await resolveOwnedPackage(req.params.id, req, res);
+      if (!result) {
+        return;
+      }
+      const { pkg } = result;
+
+      const pkgUpdates = {};
+      if (req.body.title !== undefined) {
+        pkgUpdates.title = String(req.body.title).slice(0, 120);
+      }
+      if (req.body.description !== undefined) {
+        pkgUpdates.description = String(req.body.description).slice(0, 1500);
+      }
+      if (req.body.price !== undefined) {
+        pkgUpdates.price = String(req.body.price).slice(0, 60);
+      }
+      if (req.body.image !== undefined) {
+        pkgUpdates.image = req.body.image;
+      }
+      if (req.body.primaryCategoryKey !== undefined) {
+        pkgUpdates.primaryCategoryKey = String(req.body.primaryCategoryKey);
+      }
+      if (req.body.eventTypes !== undefined && Array.isArray(req.body.eventTypes)) {
+        const validEventTypes = req.body.eventTypes.filter(t => t === 'wedding' || t === 'other');
+        if (validEventTypes.length > 0) {
+          pkgUpdates.eventTypes = validEventTypes;
+        }
+      }
+      pkgUpdates.updatedAt = new Date().toISOString();
+
+      await dbUnified.updateOne('packages', { id: pkg.id }, { $set: pkgUpdates });
+
+      res.json({ ok: true, package: { ...pkg, ...pkgUpdates } });
+    } catch (error) {
+      logger.error('Error updating supplier package:', error);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+);
+
+/**
+ * DELETE /api/me/packages/:id
+ * Delete a package belonging to the authenticated supplier
+ */
+router.delete(
+  '/me/packages/:id',
+  applyWriteLimiter,
+  applyAuthRequired,
+  applyRoleRequired('supplier'),
+  applyCsrfProtection,
+  async (req, res) => {
+    try {
+      const result = await resolveOwnedPackage(req.params.id, req, res);
+      if (!result) {
+        return;
+      }
+
+      await dbUnified.deleteOne('packages', {
+        id: req.params.id,
+        supplierId: result.pkg.supplierId,
+      });
+      res.json({ ok: true, message: 'Package deleted successfully' });
+    } catch (error) {
+      logger.error('Error deleting supplier package:', error);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+);
+
+/**
  * POST /api/me/packages/:id/photos
  * Upload package photo (base64)
  */
