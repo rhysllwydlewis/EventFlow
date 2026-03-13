@@ -3038,6 +3038,10 @@ async function initDashSupplier() {
     }
   }
 
+  // Expose populateSupplierForm globally so editProfile() (defined outside this
+  // closure) can delegate to it and benefit from the complete field population logic
+  window._efPopulateSupplierForm = populateSupplierForm;
+
   async function loadPackages() {
     try {
       if (!pkgsWrap) {
@@ -3705,7 +3709,7 @@ async function editProfile(supplierId) {
       // Fallback: fetch all suppliers directly (avoids dependency on closure-scoped api())
       const r = await fetch('/api/me/suppliers', { credentials: 'include' });
       if (!r.ok) {
-        throw new Error(`HTTP ${r.status}`);
+        throw new Error(`Failed to fetch suppliers: ${r.status} ${r.statusText}`);
       }
       const d = await r.json();
       const items = d?.items && Array.isArray(d.items) ? d.items : [];
@@ -3717,27 +3721,33 @@ async function editProfile(supplierId) {
       throw new Error('Supplier not found');
     }
 
-    // Populate form fields (null-safe element access)
-    const setVal = (id, val) => {
-      const el = document.getElementById(id);
-      if (el) {
-        el.value = val || '';
+    // Delegate form population to the comprehensive helper from initDashSupplier.
+    // This populates all fields (basic, banner, tagline, theme, highlights, social links, etc.)
+    // and keeps the internal currentEditingSupplierId in sync.
+    if (typeof window._efPopulateSupplierForm === 'function') {
+      window._efPopulateSupplierForm(supplier);
+    } else {
+      // Fallback: populate basic fields manually if helper is not yet available
+      const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.value = val || '';
+        }
+      };
+      setVal('sup-id', supplier.id);
+      setVal('sup-name', supplier.name);
+      setVal('sup-category', supplier.category);
+      setVal('sup-location', supplier.location);
+      setVal('sup-price', supplier.price_display);
+      setVal('sup-short', supplier.description_short);
+      setVal('sup-long', supplier.description_long);
+      setVal('sup-website', supplier.website);
+      setVal('sup-license', supplier.license);
+      setVal('sup-amenities', supplier.amenities);
+      setVal('sup-max', supplier.maxGuests);
+      if (supplier.venuePostcode) {
+        setVal('sup-venue-postcode', supplier.venuePostcode);
       }
-    };
-    setVal('sup-id', supplier.id);
-    setVal('sup-name', supplier.name);
-    setVal('sup-category', supplier.category);
-    setVal('sup-location', supplier.location);
-    setVal('sup-price', supplier.price_display);
-    setVal('sup-short', supplier.description_short);
-    setVal('sup-long', supplier.description_long);
-    setVal('sup-website', supplier.website);
-    setVal('sup-license', supplier.license);
-    setVal('sup-amenities', supplier.amenities);
-    setVal('sup-max', supplier.maxGuests);
-
-    if (supplier.venuePostcode) {
-      setVal('sup-venue-postcode', supplier.venuePostcode);
     }
 
     // Update form heading with truncated name if necessary
