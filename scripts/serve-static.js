@@ -138,6 +138,7 @@ app.get('/api/v2/search/suppliers', (req, res) => {
 // Stub package detail API — returns a mock package so E2E tests can render the detail page
 app.get('/api/packages/:slug', (req, res) => {
   const { slug } = req.params;
+  // Use real Pexels photos (images.pexels.com is explicitly allowed by the image sanitizer)
   const mockPackage = {
     package: {
       id: 'mock-pkg-detail-1',
@@ -155,8 +156,18 @@ app.get('/api/packages/:slug', (req, res) => {
       tags: ['rustic', 'barn', 'exclusive', 'wedding', 'celebration'],
       eventTypes: ['Weddings', 'Birthdays', 'Corporate Events', 'Anniversaries'],
       gallery: [
-        { url: '/assets/images/placeholders/package-event.svg', alt: 'Barn exterior' },
-        { url: '/assets/images/placeholders/package-event.svg', alt: 'Interior setup' },
+        {
+          url: '/assets/images/collage-venue.jpg',
+          alt: 'Rustic barn exterior with fairy lights',
+        },
+        {
+          url: '/assets/images/collage-catering.jpg',
+          alt: 'Elegant event catering and table settings',
+        },
+        {
+          url: '/assets/images/collage-entertainment.jpg',
+          alt: 'Live entertainment at the venue',
+        },
       ],
     },
     supplier: {

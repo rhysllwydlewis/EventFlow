@@ -37,58 +37,78 @@
 
     /* ── Package detail page visual polish ─────────────────────── */
 
-    /* Gallery row: full-width at the top; below it: details left + sidebar right */
+    /* ─ Layout: single-column mobile → 2-col desktop ─ */
     .pkg-layout {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 28px;
+      gap: 20px;
       align-items: start;
     }
     @media (min-width: 768px) {
       .pkg-layout {
-        grid-template-columns: 2fr 1fr;
+        grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+        gap: 28px;
       }
-      /* Gallery spans all columns */
       .pkg-gallery-col {
         grid-column: 1 / -1;
       }
     }
+    @media (min-width: 1024px) {
+      .pkg-layout {
+        grid-template-columns: minmax(0, 2.2fr) 340px;
+      }
+    }
 
-    /* Details column: header card + description stacked */
+    /* Details column */
     .pkg-details-col {
       display: flex;
       flex-direction: column;
-      gap: 24px;
+      gap: 16px;
+    }
+    @media (min-width: 768px) {
+      .pkg-details-col { gap: 20px; }
     }
 
-    /* Sidebar column: supplier card + message panel */
+    /* Sidebar column */
     .pkg-sidebar-col {
       display: flex;
       flex-direction: column;
-      gap: 12px;
+      gap: 0;
     }
     @media (min-width: 768px) {
       .pkg-sidebar-col {
         position: sticky;
-        top: 88px; /* below fixed navbar */
+        top: 80px;
       }
     }
 
-    /* Override generic card hover lift on detail page content cards */
-    #package-content .card:not(.supplier-card) {
+    /* Suppress hover-lift on content cards */
+    #package-content .card:not(.pkg-sup-widget) {
       transform: none !important;
       transition: box-shadow 0.2s;
     }
 
-    /* Header card accent border */
+    /* Header card */
     #package-header-card {
       border-top: 3px solid var(--accent, #13B6A2);
       margin-top: 0;
+      padding: 20px;
+    }
+    @media (min-width: 768px) {
+      #package-header-card { padding: 24px 28px; }
+    }
+
+    /* Package title */
+    #package-title {
+      font-size: clamp(1.4rem, 4vw, 2rem);
+      font-weight: 800;
+      margin: 0 0 10px;
+      line-height: 1.2;
     }
 
     /* Price display */
     #package-price {
-      font-size: 2rem;
+      font-size: clamp(1.4rem, 3vw, 1.8rem);
       font-weight: 700;
       line-height: 1.1;
     }
@@ -102,16 +122,27 @@
       50%       { box-shadow: 0 0 0 6px rgba(19,182,162,0); }
     }
 
-    /* Description card accent border */
+    /* Description card */
     #package-desc-card {
       border-left: 4px solid var(--accent, #13B6A2);
       margin-top: 0;
+      padding: 20px;
     }
-    #package-description {
-      line-height: 1.8;
+    @media (min-width: 768px) {
+      #package-desc-card { padding: 24px 28px; }
+    }
+    #package-description { line-height: 1.8; margin-bottom: 0; }
+
+    /* Event types card */
+    #package-event-types-section {
+      margin-top: 0;
+      padding: 20px;
+    }
+    @media (min-width: 768px) {
+      #package-event-types-section { padding: 24px 28px; }
     }
 
-    /* Tags — pill style with hover animation */
+    /* Tags */
     #package-tags .pkg-tag {
       background: var(--color-bg-secondary, #f0fdf9);
       color: #0b8073;
@@ -130,32 +161,25 @@
     }
 
     /* Category pill links */
-    #package-categories a {
-      transition: background 0.15s, color 0.15s;
-    }
+    #package-categories a { transition: background 0.15s, color 0.15s; }
     #package-categories a:hover {
       background: var(--accent, #13B6A2) !important;
       color: #fff !important;
     }
 
-    /* Breadcrumb with chevron separators */
+    /* Breadcrumb */
     #package-breadcrumb {
       display: flex;
       align-items: center;
       flex-wrap: wrap;
       gap: 4px;
-      margin-bottom: 24px;
+      margin-bottom: 20px;
       font-size: 0.85rem;
       color: var(--color-text-secondary, #6c757d);
     }
-    #package-breadcrumb .pkg-bc-sep {
-      color: #d1d5db;
-    }
+    #package-breadcrumb .pkg-bc-sep { color: #d1d5db; }
 
-    /* What's Included / Event types section */
-    #package-event-types-section {
-      margin-top: 0;
-    }
+    /* Event type pills */
     .pkg-event-type-pill {
       display: inline-flex;
       align-items: center;
@@ -169,77 +193,181 @@
       font-weight: 500;
     }
 
-    /* Supplier sidebar card — prominent shadow + rounded corners */
-    #supplier-card-container .card,
-    #supplier-card-container > * {
-      border-radius: 12px;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    /* ── Supplier sidebar widget ─────────────────────────────── */
+    .pkg-sup-widget {
+      padding: 0;
+      overflow: hidden;
+      border-top: 3px solid var(--accent, #13B6A2);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.09);
+      margin-top: 0;
     }
 
-    /* Supplier card in sidebar: tighter padding & smaller name to fit the column */
-    #supplier-card-container .supplier-card {
-      margin-top: 0 !important;
-      padding: 20px !important;
-      border-top: 3px solid var(--accent, #13B6A2) !important;
+    .pkg-sup-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 18px 18px 14px;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
     }
-    @media (min-width: 769px) {
-      #supplier-card-container .supplier-card {
-        padding: 24px !important;
-      }
-    }
-    #supplier-card-container .supplier-card-name {
-      font-size: 1.15rem !important;
-    }
-    #supplier-card-container .supplier-card-header {
-      gap: 16px !important;
-      margin-bottom: 16px !important;
-    }
-    #supplier-card-container .supplier-card-logo {
-      width: 64px !important;
-      height: 64px !important;
-    }
-    @media (min-width: 769px) {
-      #supplier-card-container .supplier-card-logo {
-        width: 72px !important;
-        height: 72px !important;
-      }
-    }
-    #supplier-card-container .supplier-card-meta {
-      grid-template-columns: 1fr !important;
-      gap: 10px !important;
-      padding: 14px 0 !important;
-      margin-top: 14px !important;
-    }
-    #supplier-card-container .supplier-card-description {
-      font-size: 0.9rem !important;
-      margin-bottom: 14px !important;
+    @media (min-width: 768px) {
+      .pkg-sup-header { padding: 20px 20px 16px; }
     }
 
-    /* Message Supplier button — full-width teal, matches sidebar width */
-    #message-supplier-panel button[data-quick-compose] {
-      display: block !important;
-      width: 100% !important;
-      padding: 14px 20px !important;
-      background: var(--accent, #13B6A2) !important;
-      color: #fff !important;
-      border: none !important;
-      border-radius: 10px !important;
-      font-size: 1rem !important;
-      font-weight: 600 !important;
-      cursor: pointer !important;
-      transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease !important;
-      box-shadow: 0 2px 8px rgba(19, 182, 162, 0.25) !important;
-      margin-top: 0 !important;
-      text-align: center !important;
+    .pkg-sup-avatar {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: white;
+      overflow: hidden;
+      background: #e5e7eb;
     }
-    #message-supplier-panel button[data-quick-compose]:hover {
-      background: #0b8073 !important;
-      transform: translateY(-2px) !important;
-      box-shadow: 0 4px 14px rgba(19, 182, 162, 0.35) !important;
+    .pkg-sup-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
-    #message-supplier-panel button[data-quick-compose]:focus {
-      outline: 2px solid var(--accent, #13B6A2) !important;
-      outline-offset: 2px !important;
+
+    .pkg-sup-info { flex: 1; min-width: 0; }
+    .pkg-sup-name {
+      font-size: 1rem;
+      font-weight: 700;
+      margin: 0 0 4px;
+      color: #1a202c;
+      line-height: 1.3;
+      word-break: break-word;
+    }
+    .pkg-sup-blurb {
+      font-size: 0.82rem;
+      color: #6c757d;
+      margin: 0 0 7px;
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .pkg-sup-meta {
+      padding: 10px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 0.85rem;
+      color: #6c757d;
+      border-bottom: 1px solid rgba(0,0,0,0.06);
+    }
+    @media (min-width: 768px) {
+      .pkg-sup-meta { padding: 12px 20px; }
+    }
+    .pkg-sup-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    /* Action buttons area */
+    .pkg-sup-actions {
+      padding: 14px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    @media (min-width: 768px) {
+      .pkg-sup-actions { padding: 16px 20px; }
+    }
+
+    /* ── sp-btn styles (mirrors suppliers-page.css) ─────────── */
+    .sp-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 12px 16px;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 700;
+      font-family: inherit;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, color 0.15s,
+                  box-shadow 0.16s, transform 0.14s;
+      text-decoration: none;
+      white-space: nowrap;
+      line-height: 1;
+      min-height: 44px;
+      width: 100%;
+      letter-spacing: 0.01em;
+      box-sizing: border-box;
+      text-align: center;
+    }
+    .sp-btn:active { transform: scale(0.97); }
+
+    /* Save / shortlist */
+    .sp-btn--shortlist {
+      background: #fff;
+      color: #667085;
+      border-color: #e7eaf0;
+    }
+    .sp-btn--shortlist:hover {
+      background: #fef2f2;
+      color: #ef4444;
+      border-color: #fca5a5;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(239,68,68,0.12);
+    }
+    .sp-btn--shortlist-active {
+      background: #fef2f2;
+      color: #dc2626;
+      border-color: #fca5a5;
+    }
+    .sp-btn--shortlist-active:hover {
+      background: #fee2e2;
+      transform: translateY(-1px);
+    }
+
+    /* View Profile */
+    .sp-btn--secondary {
+      background: #F6FAF9;
+      color: #0b8073;
+      border-color: #CFEDEA;
+    }
+    .sp-btn--secondary:hover {
+      background: #EDF7F5;
+      border-color: rgba(11,128,115,0.45);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(11,128,115,0.12);
+    }
+
+    /* Message — teal gradient */
+    .sp-btn--primary {
+      background: linear-gradient(180deg, #16c3ad 0%, #0ea896 100%);
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 2px 10px rgba(14,168,150,0.28);
+    }
+    .sp-btn--primary:hover {
+      background: linear-gradient(180deg, #13b6a2 0%, #0d9b8a 100%);
+      box-shadow: 0 4px 16px rgba(14,168,150,0.38);
+      transform: translateY(-2px);
+    }
+    .sp-btn--primary:focus {
+      outline: 2px solid var(--accent, #13B6A2);
+      outline-offset: 2px;
+    }
+
+    /* ── Small-mobile tweaks (≤480px) ───────────────────────── */
+    @media (max-width: 480px) {
+      #package-breadcrumb { font-size: 0.8rem; }
+      .pkg-layout { gap: 14px; }
+      #package-header-card,
+      #package-desc-card,
+      #package-event-types-section { padding: 16px; }
     }
   </style>
 </head>
@@ -381,20 +509,20 @@
           <div class="pkg-details-col">
             <!-- Package Header -->
             <div class="card" id="package-header-card">
-              <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 16px;">
-                <div style="flex: 1; min-width: 200px;">
-                  <h1 id="package-title" style="margin: 0 0 12px 0;">Package Title</h1>
-                  <div id="package-categories" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;"></div>
-                  <div style="display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; align-items: baseline;">
-                    <div id="package-price" style="color: var(--accent, #13B6A2);"></div>
-                    <div id="package-location" style="font-size: 1rem; color: var(--color-text-secondary, #6c757d);"></div>
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+                <div style="flex:1;min-width:0;">
+                  <h1 id="package-title" style="margin:0 0 10px;">Package Title</h1>
+                  <div id="package-categories" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;"></div>
+                  <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:baseline;">
+                    <div id="package-price" style="color:var(--accent,#13B6A2);"></div>
+                    <div id="package-location" style="font-size:0.95rem;color:var(--color-text-secondary,#6c757d);"></div>
                   </div>
                 </div>
-                <div style="display: flex; flex-direction: column; gap: 8px; align-items: flex-end;">
-                  <div id="package-featured-badge" style="display: none; background-color: var(--accent, #13B6A2); color: white; padding: 8px 16px; border-radius: 20px; font-weight: 600;" aria-label="Featured package">
+                <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;">
+                  <div id="package-featured-badge" style="display:none;background-color:var(--accent,#13B6A2);color:#fff;padding:6px 14px;border-radius:20px;font-weight:600;font-size:0.85rem;" aria-label="Featured package">
                     <span aria-hidden="true">⭐</span> Featured
                   </div>
-                  <div id="package-test-badge" style="display: none; background: #fef3c7; color: #92400e; border: 1px solid #f59e0b; padding: 8px 16px; border-radius: 20px; font-weight: 600;">
+                  <div id="package-test-badge" style="display:none;background:#fef3c7;color:#92400e;border:1px solid #f59e0b;padding:6px 14px;border-radius:20px;font-weight:600;font-size:0.85rem;">
                     🧪 Test data
                   </div>
                 </div>
@@ -403,25 +531,49 @@
 
             <!-- Package Description -->
             <div class="card" id="package-desc-card">
-              <h2 style="margin-top: 0;">About this package</h2>
-              <p id="package-description" style="color: var(--color-text-primary, #212529);"></p>
-              <div id="package-tags" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px;"></div>
+              <h2 style="margin-top:0;font-size:clamp(1.1rem,3vw,1.4rem);">About this package</h2>
+              <p id="package-description" style="color:var(--color-text-primary,#212529);margin-bottom:0;"></p>
+              <div id="package-tags" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;"></div>
             </div>
 
             <!-- What's Included (event types) -->
-            <div class="card" id="package-event-types-section" style="display: none;">
-              <h2 style="margin-top: 0;">What's included</h2>
-              <div id="package-event-types" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+            <div class="card" id="package-event-types-section" style="display:none;">
+              <h2 style="margin-top:0;font-size:clamp(1.1rem,3vw,1.4rem);">What's included</h2>
+              <div id="package-event-types" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
             </div>
           </div>
 
-          <!-- BELOW RIGHT: Supplier sidebar -->
+          <!-- BELOW RIGHT: Supplier sidebar widget -->
           <div class="pkg-sidebar-col">
-            <!-- Supplier Card -->
-            <div id="supplier-card-container"></div>
-
-            <!-- Message Supplier Panel -->
-            <div id="message-supplier-panel"></div>
+            <div class="pkg-sup-widget card" id="pkg-supplier-sidebar" style="display:none;" aria-label="About the supplier">
+              <!-- Header: avatar + name + tier -->
+              <div class="pkg-sup-header">
+                <div class="pkg-sup-avatar" id="pkg-sup-avatar" aria-hidden="true"></div>
+                <div class="pkg-sup-info">
+                  <h3 class="pkg-sup-name" id="pkg-sup-name">Supplier Name</h3>
+                  <p class="pkg-sup-blurb" id="pkg-sup-blurb"></p>
+                  <div id="pkg-sup-tier"></div>
+                </div>
+              </div>
+              <!-- Meta: category + location -->
+              <div class="pkg-sup-meta" id="pkg-sup-meta"></div>
+              <!-- Three action buttons -->
+              <div class="pkg-sup-actions">
+                <button class="sp-btn sp-btn--shortlist" id="pkg-save-btn" type="button"
+                        aria-label="Save supplier to shortlist">
+                  ♡ Save Supplier
+                </button>
+                <a class="sp-btn sp-btn--secondary" id="pkg-view-profile-btn" href="#"
+                   aria-label="View supplier profile">
+                  View Profile
+                </a>
+                <button class="sp-btn sp-btn--primary" id="pkg-message-btn" type="button"
+                        data-quick-compose="true"
+                        aria-label="Message this supplier">
+                  ✉️ Message Supplier
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -448,14 +600,13 @@
 <script src="/assets/js/utils/tier-icon.js"></script>
 <script src="/assets/js/components/auth-gate.js"></script>
 <script src="/assets/js/utils/pexels-client.js"></script>
+<script type="module" src="/assets/js/utils/shortlist-manager.js"></script>
 <script src="/assets/js/components/package-gallery.js"></script>
-<script src="/assets/js/components/supplier-card.js"></script>
 <script>
-  /* global PackageGallery, SupplierCard */
+  /* global PackageGallery */
   window.__EF_PAGE__ = 'package';
 
   document.addEventListener('DOMContentLoaded', () => {
-    // Get package slug from URL
     const urlParams = new URLSearchParams(window.location.search);
     const slug = urlParams.get('slug');
 
@@ -465,153 +616,259 @@
       return;
     }
 
-    // Load package details
     fetch(`/api/packages/${slug}`)
       .then(res => {
-        if (!res.ok) {
-          throw new Error('Package not found');
-        }
+        if (!res.ok) throw new Error('Package not found');
         return res.json();
       })
       .then(data => {
         const { package: pkg, supplier, categories } = data;
 
-        // Hide loading, show content
         document.getElementById('package-loading').style.display = 'none';
         document.getElementById('package-content').style.display = 'block';
 
-        // Update page title
         document.title = `${pkg.title} — EventFlow`;
 
-        // Update breadcrumb
+        // Breadcrumb
         if (categories && categories.length > 0) {
-          const categoryLinks = categories.map(cat => 
-            `<a href="/category?slug=${cat.slug}" style="text-decoration: none; color: inherit;">${cat.name}</a>`
-          ).join(' · ');
-          document.getElementById('breadcrumb-category').innerHTML = categoryLinks;
+          document.getElementById('breadcrumb-category').innerHTML = categories
+            .map(c => `<a href="/category?slug=${encodeURIComponent(c.slug)}" style="text-decoration:none;color:inherit;">${c.name}</a>`)
+            .join(' · ');
         }
         document.getElementById('breadcrumb-package').textContent = pkg.title;
 
-        // Display gallery
-        if (pkg.gallery && pkg.gallery.length > 0) {
-          const galleryImages = pkg.gallery.filter(img => img.approved !== false);
-          if (galleryImages.length > 0) {
-            if (typeof PackageGallery !== 'undefined') {
-              new PackageGallery('package-gallery-container', galleryImages);
-            }
-          } else if (pkg.image) {
-            // All gallery images unapproved — fall back to main image
-            if (typeof PackageGallery !== 'undefined') {
-              new PackageGallery('package-gallery-container', [{ url: pkg.image }]);
-            }
-          }
-        } else if (pkg.image) {
-          if (typeof PackageGallery !== 'undefined') {
-            new PackageGallery('package-gallery-container', [{ url: pkg.image }]);
-          }
+        // Gallery
+        const rawGallery =
+          (pkg.gallery && pkg.gallery.length > 0)
+            ? pkg.gallery.filter(img => img.approved !== false)
+            : [];
+        const galleryImages = rawGallery.length > 0 ? rawGallery : (pkg.image ? [{ url: pkg.image }] : []);
+        if (galleryImages.length > 0 && typeof PackageGallery !== 'undefined') {
+          new PackageGallery('package-gallery-container', galleryImages);
         }
 
-        // Display package header
+        // Title + badges
         document.getElementById('package-title').textContent = pkg.title;
-
         if (pkg.featured || pkg.isFeatured) {
-          document.getElementById('package-featured-badge').style.display = 'block';
+          document.getElementById('package-featured-badge').style.display = 'inline-flex';
         }
-
         if (pkg.isTest) {
-          document.getElementById('package-test-badge').style.display = 'block';
+          document.getElementById('package-test-badge').style.display = 'inline-flex';
         }
 
-        // Display categories
+        // Categories
         if (categories && categories.length > 0) {
-          const categoriesHtml = categories.map(cat => 
-            `<a href="/category?slug=${cat.slug}" 
-                style="background-color: var(--color-bg-secondary, #f8f9fa); 
-                       color: var(--color-text-secondary, #6c757d); 
-                       padding: 6px 12px; 
-                       border-radius: 16px; 
-                       font-size: 0.85rem; 
-                       font-weight: 500;
-                       text-decoration: none;
-                       display: inline-block;">
-              ${cat.icon || ''} ${cat.name}
-            </a>`
-          ).join('');
-          document.getElementById('package-categories').innerHTML = categoriesHtml;
+          document.getElementById('package-categories').innerHTML = categories
+            .map(c => `<a href="/category?slug=${encodeURIComponent(c.slug)}"
+                style="background:#f8f9fa;color:#6c757d;padding:5px 12px;border-radius:16px;
+                       font-size:0.82rem;font-weight:500;text-decoration:none;display:inline-block;">
+              ${c.icon || ''} ${c.name}
+            </a>`)
+            .join('');
         }
 
-        // Display price and location
-        const priceDisplay = pkg.price_display || pkg.price;
-        const formattedPrice = priceDisplay ? 
-          (/^\d+(\.\d+)?$/.test(String(priceDisplay)) ? `£${priceDisplay}` : priceDisplay) :
-          'Contact for price';
-        document.getElementById('package-price').textContent = formattedPrice;
+        // Price + location
+        const rawPrice = pkg.price_display || pkg.price;
+        const formatted = rawPrice
+          ? (/^\d+(\.\d+)?$/.test(String(rawPrice)) ? `£${rawPrice}` : rawPrice)
+          : 'Contact for price';
+        document.getElementById('package-price').textContent = formatted;
         if (pkg.location) {
           document.getElementById('package-location').innerHTML = `📍 ${pkg.location}`;
         }
 
-        // Display description
-        document.getElementById('package-description').textContent = pkg.description || 'No description available.';
+        // Description
+        document.getElementById('package-description').textContent =
+          pkg.description || 'No description available.';
 
-        // Display tags
+        // Tags
         if (pkg.tags && pkg.tags.length > 0) {
-          const tagsHtml = pkg.tags.map(tag => 
-            `<span class="pkg-tag">#${tag}</span>`
-          ).join('');
-          document.getElementById('package-tags').innerHTML = tagsHtml;
+          document.getElementById('package-tags').innerHTML = pkg.tags
+            .map(t => `<span class="pkg-tag">#${t}</span>`)
+            .join('');
         }
 
-        // Display event types / what's included section
+        // Event types
         if (pkg.eventTypes && pkg.eventTypes.length > 0) {
           const etSection = document.getElementById('package-event-types-section');
           if (etSection) etSection.style.display = 'block';
           const etContainer = document.getElementById('package-event-types');
           if (etContainer) {
-            etContainer.innerHTML = pkg.eventTypes.map(et => {
-              const label = typeof et === 'string' ? et : (et.name || et.label || String(et));
-              return `<span class="pkg-event-type-pill"><span aria-hidden="true">🎉</span> ${label}</span>`;
-            }).join('');
+            etContainer.innerHTML = pkg.eventTypes
+              .map(et => {
+                const label = typeof et === 'string' ? et : (et.name || et.label || String(et));
+                return `<span class="pkg-event-type-pill"><span aria-hidden="true">🎉</span> ${label}</span>`;
+              })
+              .join('');
           }
         }
 
-        // Display supplier card
-        if (typeof SupplierCard !== 'undefined') {
-          const supplierCard = new SupplierCard('supplier-card-container', supplier);
-        }
-
-        // Display message panel
-        if (typeof MessageSupplierPanel !== 'undefined') {
-          const messagePanel = new MessageSupplierPanel('message-supplier-panel', {
-            supplierId: supplier.id,
-            packageId: pkg.id,
-            supplierName: supplier.name,
-          });
-        }
-
-        // Wire QuickComposeV4 if the supplier owner is known
-        if (supplier.ownerUserId && window.QuickComposeV4) {
-          const msgPanel = document.getElementById('message-supplier-panel');
-          if (msgPanel) {
-            const qcBtn = document.createElement('button');
-            qcBtn.className = 'btn btn-primary';
-            qcBtn.style.cssText = 'margin-top:12px;width:100%;';
-            qcBtn.textContent = '✉️ Message Supplier';
-            qcBtn.dataset.quickCompose = 'true';
-            qcBtn.dataset.recipientId = supplier.ownerUserId;
-            qcBtn.dataset.contextType = 'package';
-            qcBtn.dataset.contextId = pkg.id;
-            qcBtn.dataset.contextTitle = pkg.title;
-            msgPanel.appendChild(qcBtn);
-            window.QuickComposeV4.attachAll();
-          }
-        }
+        // ── Supplier sidebar widget ──────────────────────────────
+        buildSupplierSidebar(supplier, pkg);
       })
-      .catch(error => {
-        console.error('Error loading package:', error);
+      .catch(err => {
+        console.error('Error loading package:', err);
         document.getElementById('package-loading').style.display = 'none';
         document.getElementById('package-error').style.display = 'block';
       });
   });
+
+  /**
+   * Populate and wire the supplier sidebar widget.
+   * Mirrors the Save / View Profile / Message pattern from the suppliers page.
+   */
+  function buildSupplierSidebar(supplier, pkg) {
+    const sidebar = document.getElementById('pkg-supplier-sidebar');
+    if (!sidebar || !supplier) return;
+
+    // Avatar
+    const avatarEl = document.getElementById('pkg-sup-avatar');
+    const FALLBACK_INITIAL = 'S';
+    const initial = supplier.name ? supplier.name.charAt(0).toUpperCase() : FALLBACK_INITIAL;
+    const palettes = [
+      ['#13B6A2', '#0B8073'], ['#8B5CF6', '#6D28D9'], ['#F59E0B', '#D97706'],
+      ['#10B981', '#059669'], ['#3B82F6', '#2563EB'], ['#EC4899', '#DB2777'],
+    ];
+    const pi = supplier.name ? supplier.name.charCodeAt(0) % palettes.length : 0;
+    const [c1, c2] = palettes[pi];
+
+    function showAvatarInitial() {
+      avatarEl.innerHTML = '';
+      avatarEl.style.background = `linear-gradient(135deg, ${c1} 0%, ${c2} 100%)`;
+      avatarEl.textContent = initial;
+    }
+
+    if (supplier.logo) {
+      const img = document.createElement('img');
+      img.src = supplier.logo;
+      img.alt = `${supplier.name} logo`;
+      img.addEventListener('error', showAvatarInitial);
+      avatarEl.appendChild(img);
+    } else {
+      showAvatarInitial();
+    }
+
+    // Name
+    document.getElementById('pkg-sup-name').textContent = supplier.name || 'Supplier';
+
+    // Blurb
+    const blurbEl = document.getElementById('pkg-sup-blurb');
+    const blurb = supplier.blurb || supplier.description_short || '';
+    if (blurb) {
+      blurbEl.textContent = blurb;
+    } else {
+      blurbEl.style.display = 'none';
+    }
+
+    // Tier badge
+    const tierEl = document.getElementById('pkg-sup-tier');
+    const tier = supplier.subscriptionTier || supplier.subscription?.tier;
+    if (tier) {
+      const tierMap = {
+        pro_plus: { label: 'Professional Plus', bg: '#7c3aed', icon: '💎' },
+        pro:      { label: 'Professional',      bg: '#d97706', icon: '⭐' },
+        featured: { label: 'Featured',          bg: '#0b8073', icon: '✨' },
+      };
+      const t = tierMap[tier] || { label: tier, bg: '#6b7280', icon: '' };
+      tierEl.innerHTML =
+        `<span style="display:inline-flex;align-items:center;gap:4px;
+                      background:${t.bg};color:#fff;padding:2px 10px;
+                      border-radius:20px;font-size:0.75rem;font-weight:700;">
+           ${t.icon} ${t.label}
+         </span>`;
+    }
+
+    // Meta (category + location)
+    const metaEl = document.getElementById('pkg-sup-meta');
+    const metas = [];
+    if (supplier.category) metas.push(`<div class="pkg-sup-meta-item"><span>📂</span> ${supplier.category}</div>`);
+    if (supplier.location) metas.push(`<div class="pkg-sup-meta-item"><span>📍</span> ${supplier.location}</div>`);
+    if (metas.length) {
+      metaEl.innerHTML = metas.join('');
+    } else {
+      metaEl.style.display = 'none';
+    }
+
+    // View Profile link
+    const viewBtn = document.getElementById('pkg-view-profile-btn');
+    if (supplier.id) {
+      viewBtn.href = `/supplier?id=${encodeURIComponent(supplier.id)}`;
+    }
+
+    // Save / shortlist button
+    const saveBtn = document.getElementById('pkg-save-btn');
+    saveBtn.dataset.supplierId = supplier.id || '';
+    saveBtn.dataset.supplierName = supplier.name || '';
+    saveBtn.dataset.supplierCategory = supplier.category || '';
+    saveBtn.dataset.supplierLocation = supplier.location || '';
+    saveBtn.dataset.supplierImage = supplier.logo || '';
+
+    // Reflect current shortlist state
+    const sm = window.shortlistManager;
+    if (sm && sm.isAuthenticated && sm.hasItem('supplier', supplier.id)) {
+      saveBtn.classList.replace('sp-btn--shortlist', 'sp-btn--shortlist-active');
+      saveBtn.innerHTML = '❤️ Saved';
+      saveBtn.setAttribute('aria-label', 'Remove from shortlist');
+    }
+
+    saveBtn.addEventListener('click', async () => {
+      const mgr = window.shortlistManager;
+      // Auth gate — redirect unauthenticated users
+      if (!mgr || !mgr.isAuthenticated) {
+        const returnTo = window.location.pathname + window.location.search;
+        window.location.href = `/auth?redirect=${encodeURIComponent(returnTo)}&intent=save`;
+        return;
+      }
+      const isActive = saveBtn.classList.contains('sp-btn--shortlist-active');
+      if (isActive) {
+        await mgr.removeItem('supplier', supplier.id);
+        saveBtn.classList.replace('sp-btn--shortlist-active', 'sp-btn--shortlist');
+        saveBtn.innerHTML = '♡ Save Supplier';
+        saveBtn.setAttribute('aria-label', 'Save supplier to shortlist');
+      } else {
+        await mgr.addItem({
+          type: 'supplier',
+          id: supplier.id,
+          name: supplier.name,
+          category: supplier.category || '',
+          location: supplier.location || '',
+          imageUrl: supplier.logo || '',
+        });
+        saveBtn.classList.replace('sp-btn--shortlist', 'sp-btn--shortlist-active');
+        saveBtn.innerHTML = '❤️ Saved';
+        saveBtn.setAttribute('aria-label', 'Remove from shortlist');
+      }
+    });
+
+    // Message button — wire up QuickComposeV4
+    const msgBtn = document.getElementById('pkg-message-btn');
+    if (supplier.ownerUserId) {
+      msgBtn.dataset.recipientId = supplier.ownerUserId;
+    }
+    msgBtn.dataset.contextType = 'package';
+    msgBtn.dataset.contextId = pkg.id || '';
+    msgBtn.dataset.contextTitle = pkg.title || '';
+    if (supplier.logo) msgBtn.dataset.contextImage = supplier.logo;
+
+    // Auth gate for message button (before QuickComposeV4 fires)
+    msgBtn.addEventListener('click', e => {
+      const mgr = window.shortlistManager;
+      if (!mgr || !mgr.isAuthenticated) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        const returnTo = window.location.pathname + window.location.search;
+        window.location.href = `/auth?redirect=${encodeURIComponent(returnTo)}&intent=message`;
+      }
+    });
+
+    // Show the sidebar
+    sidebar.style.display = '';
+
+    // Attach QuickComposeV4 if loaded
+    if (window.QuickComposeV4) {
+      window.QuickComposeV4.attachAll();
+    }
+  }
 </script>
 <script src="/assets/js/components/footer-nav.js" defer></script>
 <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
