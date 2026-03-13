@@ -274,6 +274,7 @@ async function resolveOwnedPackage(id, req, res) {
  */
 router.get(
   '/me/packages/:id',
+  applyWriteLimiter,
   applyAuthRequired,
   applyRoleRequired('supplier'),
   async (req, res) => {
@@ -348,6 +349,7 @@ router.put(
  */
 router.delete(
   '/me/packages/:id',
+  applyWriteLimiter,
   applyAuthRequired,
   applyRoleRequired('supplier'),
   applyCsrfProtection,
