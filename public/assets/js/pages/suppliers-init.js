@@ -505,6 +505,19 @@ async function initSuppliersPage() {
     if (filterDistanceEl && currentFilters.maxDistance) {
       filterDistanceEl.value = currentFilters.maxDistance;
     }
+    syncQuickButtonActiveState(currentFilters.category);
+  }
+
+  // Sync the active class on quick-category buttons to reflect current filter
+  function syncQuickButtonActiveState(activeCategory) {
+    document.querySelectorAll('[data-quick-category]').forEach(btn => {
+      const btnCategory = btn.getAttribute('data-quick-category');
+      btn.classList.toggle('active', !!activeCategory && btnCategory === activeCategory);
+      btn.setAttribute(
+        'aria-pressed',
+        !!activeCategory && btnCategory === activeCategory ? 'true' : 'false'
+      );
+    });
   }
 
   // Update the "Sorted by:" indicator below the filter panel
@@ -666,6 +679,7 @@ async function initSuppliersPage() {
     if (filterDistanceEl) {
       filterDistanceEl.value = '';
     }
+    syncQuickButtonActiveState(null);
     renderResults();
   }
 
@@ -1139,6 +1153,7 @@ async function initSuppliersPage() {
     filterCategoryEl.addEventListener('change', e => {
       currentFilters.category = e.target.value;
       currentFilters.page = 1;
+      syncQuickButtonActiveState(e.target.value);
       updateURL(currentFilters);
       renderResults();
       trackFilterChange('category', e.target.value);
@@ -1240,6 +1255,7 @@ async function initSuppliersPage() {
       if (filterCategoryEl) {
         filterCategoryEl.value = category;
       }
+      syncQuickButtonActiveState(category);
       updateURL(currentFilters);
       renderResults();
     });

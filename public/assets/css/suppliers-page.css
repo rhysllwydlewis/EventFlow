@@ -253,8 +253,8 @@
 .sp-shortcut-btn {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  padding: 3px 10px;
+  gap: 5px;
+  padding: 5px 11px;
   border-radius: 20px;
   background: rgba(11, 128, 115, 0.07);
   border: 1px solid rgba(11, 128, 115, 0.18);
@@ -264,12 +264,33 @@
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s, transform 0.1s;
   white-space: nowrap;
+  min-height: 30px;
+}
+
+.sp-shortcut-icon {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+  vertical-align: middle;
 }
 
 .sp-shortcut-btn:hover {
   background: rgba(11, 128, 115, 0.13);
   border-color: rgba(11, 128, 115, 0.3);
   transform: translateY(-1px);
+}
+
+.sp-shortcut-btn.active {
+  background: rgba(11, 128, 115, 0.18);
+  border-color: rgba(11, 128, 115, 0.5);
+  color: #0b6e64;
+  font-weight: 600;
+  box-shadow: inset 0 1px 2px rgba(11, 128, 115, 0.1);
+}
+
+.sp-shortcut-btn.active:hover {
+  background: rgba(11, 128, 115, 0.24);
+  border-color: rgba(11, 128, 115, 0.6);
 }
 
 .sp-clear-btn {
@@ -1355,7 +1376,7 @@
 
   .sp-shortcut-btn {
     font-size: 11px;
-    padding: 2px 8px;
+    padding: 4px 8px;
   }
 }
 
@@ -1474,10 +1495,15 @@
 }
 
 .sp-shortcut-btn {
-  padding: 3px 10px !important;
+  padding: 5px 11px !important;
   font-size: 12px !important;
   font-weight: 500 !important;
   border-radius: 20px !important;
+  min-height: 30px !important;
+}
+
+.sp-shortcut-btn.active {
+  font-weight: 600 !important;
 }
 
 .sp-clear-btn {
@@ -1568,7 +1594,7 @@
   }
 
   .sp-shortcut-btn {
-    padding: 2px 8px !important;
+    padding: 4px 8px !important;
     font-size: 11px !important;
   }
 }

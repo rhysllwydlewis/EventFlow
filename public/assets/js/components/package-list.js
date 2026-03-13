@@ -42,7 +42,7 @@ class PackageList {
         display: grid;
         grid-template-columns: 1fr;
         gap: clamp(16px, 3vw, 24px);
-        margin-top: clamp(16px, 3vw, 24px);
+        margin-top: 0;
         contain: layout style;
       }
 
@@ -353,24 +353,36 @@ class PackageList {
     card.className = 'package-card';
     card.setAttribute('role', 'article');
     card.setAttribute('tabindex', '0');
+    if (pkg.title) {
+      card.setAttribute('aria-label', `View ${pkg.title} package details`);
+    }
 
-    // Make card keyboard accessible
+    // Navigate to package detail page
+    function navigateToPackage() {
+      if (pkg.slug) {
+        window.location.href = `/package?slug=${encodeURIComponent(pkg.slug)}`;
+      } else if (pkg.id) {
+        // Fallback when slug is unavailable: pass id as query param
+        // (package.html currently requires a slug, but this at least avoids
+        //  navigating to /package?slug= with an empty value)
+        window.location.href = `/package?id=${encodeURIComponent(String(pkg.id))}`;
+      }
+      // If neither slug nor id is available, don't navigate
+    }
+
+    // Make card clickable
     card.addEventListener('click', e => {
       // Don't navigate if clicking on supplier link
       if (e.target.closest('.package-card-supplier-link')) {
         return;
       }
-      // Properly encode slug for URL to prevent XSS
-      const safeSlug = encodeURIComponent(pkg.slug || '');
-      window.location.href = `/package?slug=${safeSlug}`;
+      navigateToPackage();
     });
 
     card.addEventListener('keydown', e => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
-        // Properly encode slug for URL to prevent XSS
-        const safeSlug = encodeURIComponent(pkg.slug || '');
-        window.location.href = `/package?slug=${safeSlug}`;
+        navigateToPackage();
       }
     });
 
@@ -527,7 +539,7 @@ class PackageList {
         ${supplierHtml}
         <div class="package-card-meta">
           <div class="package-card-price">${price}</div>
-          ${location ? `<div class="package-card-location"><span aria-hidden="true">📍</span> ${location}</div>` : ''}
+          ${location ? `<div class="package-card-location"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> ${location}</div>` : ''}
         </div>
       </div>
     `;
