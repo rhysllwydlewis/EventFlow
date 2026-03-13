@@ -559,7 +559,7 @@
     } // User cancelled
 
     try {
-      await AdminShared.api(`/api/admin/suppliers/${supplierId}/verify`, 'POST', {
+      await AdminShared.api(`/api/v2/admin/suppliers/${supplierId}/verify`, 'POST', {
         verified: true,
         verificationNotes: notesResult.value || 'Manual verification by admin',
       });

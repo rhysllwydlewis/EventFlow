@@ -159,8 +159,19 @@
     `;
   }
 
-  // Helper: derive the effective verification status for a supplier,
-  // falling back gracefully for records without a verificationStatus field.
+  // Helper: derive the effective subscription tier for a supplier.
+  // admin-user-management.js stores subscription.tier (rich model, supports pro_plus).
+  // supplier-admin.js /pro endpoint stores isPro boolean (legacy model).
+  // Both are kept in sync — subscription.tier is the source of truth when present.
+  function getEffectiveSubscriptionTier(supplier) {
+    const tier = supplier.subscription?.tier;
+    if (tier && tier !== 'free' && tier !== 'cancelled') {
+      return tier; // 'pro' or 'pro_plus' from rich model
+    }
+    return supplier.isPro ? 'pro' : 'free';
+  }
+
+  // Helper: falling back gracefully for records without a verificationStatus field.
   function getEffectiveVerificationStatus(supplier) {
     return supplier.verificationStatus || (supplier.verified ? 'approved' : 'unverified');
   }
@@ -172,7 +183,7 @@
       const vs = getEffectiveVerificationStatus(s);
       return vs === 'pending_review' || vs === 'unverified';
     }).length;
-    const pro = allSuppliers.filter(s => s.isPro).length;
+    const pro = allSuppliers.filter(s => getEffectiveSubscriptionTier(s) !== 'free').length;
     const avgScore = allSuppliers.reduce((sum, s) => sum + (s.healthScore || 0), 0) / total || 0;
 
     document.getElementById('totalSuppliers').textContent = total;
@@ -233,10 +244,11 @@
         (approval === 'rejected' &&
           (supplier.rejected || supplier.verificationStatus === 'rejected'));
 
+      const supplierTier = getEffectiveSubscriptionTier(supplier);
       const matchesSubscription =
         subscription === 'all' ||
-        (subscription === 'pro' && supplier.isPro) ||
-        (subscription === 'free' && !supplier.isPro);
+        (subscription === 'pro' && supplierTier !== 'free') ||
+        (subscription === 'free' && supplierTier === 'free');
 
       const supplierVerification = getEffectiveVerificationStatus(supplier);
       const matchesVerification = verification === 'all' || supplierVerification === verification;
@@ -278,7 +290,7 @@
     tbody.innerHTML = pageSuppliers
       .map(supplier => {
         const isSelected = selectedSuppliers.has(supplier.id);
-        const subscriptionBadge = getSubscriptionBadge(supplier.isPro ? 'pro' : 'free');
+        const subscriptionBadge = getSubscriptionBadge(getEffectiveSubscriptionTier(supplier));
         const healthScoreBadge = getHealthScoreBadge(
           supplier.healthScore || 0,
           supplier.healthBreakdown
@@ -305,13 +317,17 @@
                 <button onclick="window.deleteSupplier('${escapeHtml(supplier.id)}')" class="btn-xs" style="background: #ef4444; color: white;" title="Delete">🗑️</button>
               </div>
               <div style="display: flex; gap: 4px; align-items: center; flex-wrap: wrap;">
-                <select id="sub-dur-${escapeHtml(supplier.id)}" class="btn-xs" style="padding: 2px 4px; font-size: 11px;" title="Duration">
-                  <option value="1d">1 day</option>
-                  <option value="7d" selected>7 days</option>
-                  <option value="1m">1 month</option>
-                  <option value="1y">1 year</option>
+                <select id="sub-tier-${escapeHtml(supplier.id)}" class="btn-xs" style="padding: 2px 4px; font-size: 11px;" title="Subscription tier">
+                  <option value="pro">Pro</option>
+                  <option value="pro_plus">Pro+</option>
                 </select>
-                <button onclick="window.grantSubscription('${escapeHtml(supplier.id)}')" class="btn-xs" style="background: #667eea; color: white; font-size: 11px;" title="Grant Pro subscription">Grant Pro</button>
+                <select id="sub-dur-${escapeHtml(supplier.id)}" class="btn-xs" style="padding: 2px 4px; font-size: 11px;" title="Duration">
+                  <option value="7">7 days</option>
+                  <option value="30" selected>30 days</option>
+                  <option value="90">90 days</option>
+                  <option value="365">1 year</option>
+                </select>
+                <button onclick="window.grantSubscription('${escapeHtml(supplier.id)}')" class="btn-xs" style="background: #667eea; color: white; font-size: 11px;" title="Grant subscription">Grant</button>
                 <button onclick="window.removeSubscription('${escapeHtml(supplier.id)}')" class="btn-xs" style="background: #6b7280; color: white; font-size: 11px;" title="Remove subscription">Remove</button>
               </div>
             </div>
@@ -570,7 +586,7 @@
       s.category || '',
       s.approved ? 'Yes' : 'No',
       getEffectiveVerificationStatus(s),
-      s.isPro ? 'pro' : 'free',
+      getEffectiveSubscriptionTier(s),
       s.healthScore || 0,
       s.tags?.join(';') || '',
     ]);
@@ -647,27 +663,26 @@
   };
 
   window.grantSubscription = async function (id) {
+    const tierSel = document.getElementById(`sub-tier-${id}`);
     const durSel = document.getElementById(`sub-dur-${id}`);
-    if (!durSel) {
+    if (!tierSel || !durSel) {
       showToast('Could not find subscription controls', 'error');
       return;
     }
-    const duration = durSel.value;
-    const durationLabel = durSel.options[durSel.selectedIndex]?.text || duration;
+    const tier = tierSel.value;
+    const days = parseInt(durSel.value, 10);
+    const tierName = tier === 'pro_plus' ? 'Pro+' : 'Pro';
     const confirmed = await AdminShared.showConfirmModal({
-      title: 'Grant Pro Subscription',
-      message: `Grant Pro subscription for ${durationLabel} to this supplier?`,
+      title: 'Grant Subscription',
+      message: `Grant ${tierName} subscription for ${days} day(s) to this supplier?`,
       confirmText: 'Grant',
     });
     if (!confirmed) {
       return;
     }
     try {
-      await AdminShared.api(`/api/admin/suppliers/${id}/pro`, 'POST', {
-        mode: 'duration',
-        duration,
-      });
-      showToast(`Pro subscription granted for ${durationLabel}`, 'success');
+      await AdminShared.api(`/api/admin/suppliers/${id}/subscription`, 'POST', { tier, days });
+      showToast(`${tierName} subscription granted for ${days} day(s)`, 'success');
       await loadSuppliers();
       renderTable();
     } catch (error) {
@@ -679,14 +694,14 @@
   window.removeSubscription = async function (id) {
     const confirmed = await AdminShared.showConfirmModal({
       title: 'Remove Subscription',
-      message: "Remove this supplier's Pro subscription? They will lose Pro features immediately.",
+      message: "Remove this supplier's subscription? They will lose Pro/Pro+ features immediately.",
       confirmText: 'Remove',
     });
     if (!confirmed) {
       return;
     }
     try {
-      await AdminShared.api(`/api/admin/suppliers/${id}/pro`, 'POST', { mode: 'cancel' });
+      await AdminShared.api(`/api/admin/suppliers/${id}/subscription`, 'DELETE');
       showToast('Subscription removed', 'success');
       await loadSuppliers();
       renderTable();
