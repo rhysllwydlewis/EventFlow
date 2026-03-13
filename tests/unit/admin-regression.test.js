@@ -227,6 +227,46 @@ describe('Admin Regression — Navigation Button URLs (clean, no .html)', () => 
   });
 });
 
+// ─── Subscription Endpoint Regression ────────────────────────────────────────
+
+describe('Admin Regression — Subscription endpoint alignment (admin-suppliers-init.js)', () => {
+  it('grantSubscription uses /subscription POST endpoint (supports pro_plus tiers)', () => {
+    // Must use the full-featured subscription endpoint (admin-user-management.js) that supports pro_plus
+    // Find the function definition (not the inline onclick reference)
+    const grantIdx = suppliersInitContent.indexOf('window.grantSubscription = async');
+    expect(grantIdx).toBeGreaterThan(-1);
+    const section = suppliersInitContent.substring(grantIdx, grantIdx + 900);
+    expect(section).toContain('/subscription');
+    expect(section).toContain("'POST'");
+    // Should NOT fall through to simple /pro endpoint (which doesn't support pro_plus)
+    expect(section).not.toMatch(/\/suppliers.*\/pro.*POST/);
+  });
+
+  it('removeSubscription uses DELETE /subscription endpoint', () => {
+    // Find the function definition (not the inline onclick reference)
+    const removeIdx = suppliersInitContent.indexOf('window.removeSubscription = async');
+    expect(removeIdx).toBeGreaterThan(-1);
+    const section = suppliersInitContent.substring(removeIdx, removeIdx + 700);
+    expect(section).toContain('/subscription');
+    expect(section).toContain("'DELETE'");
+  });
+
+  it('getEffectiveSubscriptionTier helper defined and used for badge, stats, filter, CSV', () => {
+    expect(suppliersInitContent).toContain('getEffectiveSubscriptionTier');
+    expect(suppliersInitContent).toContain('getSubscriptionBadge(getEffectiveSubscriptionTier(');
+  });
+
+  it('subscription filter does not use supplier.subscription?.tier directly', () => {
+    // The old broken pattern checked a field that was always undefined on supplier records
+    expect(suppliersInitContent).not.toContain('supplier.subscription?.tier === subscription');
+  });
+
+  it('getSubscriptionBadge renders PRO+ badge with correct class', () => {
+    expect(suppliersInitContent).toContain('badge-pro-plus');
+    expect(suppliersInitContent).toContain('PRO+');
+  });
+});
+
 describe('Admin Regression — Route ordering (specific before wildcard)', () => {
   let userMgmtContent;
 
