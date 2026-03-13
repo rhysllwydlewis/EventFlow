@@ -129,7 +129,7 @@ class SupplierCard {
       }
 
       .supplier-card-actions {
-        margin-top: 24px !important;
+        margin-top: 8px !important;
         display: flex !important;
         gap: 12px !important;
         flex-wrap: wrap !important;
