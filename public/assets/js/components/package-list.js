@@ -362,9 +362,12 @@ class PackageList {
       if (pkg.slug) {
         window.location.href = `/package?slug=${encodeURIComponent(pkg.slug)}`;
       } else if (pkg.id) {
-        // Fallback: use id if slug is missing (e.g. legacy packages)
-        window.location.href = `/package?slug=${encodeURIComponent(String(pkg.id))}`;
+        // Fallback when slug is unavailable: pass id as query param
+        // (package.html currently requires a slug, but this at least avoids
+        //  navigating to /package?slug= with an empty value)
+        window.location.href = `/package?id=${encodeURIComponent(String(pkg.id))}`;
       }
+      // If neither slug nor id is available, don't navigate
     }
 
     // Make card clickable
