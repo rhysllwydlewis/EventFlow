@@ -20,30 +20,49 @@
   const searchSupplier = document.getElementById('searchSupplier');
   const supplierNameFilter = document.getElementById('supplierNameFilter');
   const supplierDropdown = document.getElementById('supplierDropdown');
+  const batchReject = document.getElementById('batchRejectBtn');
+  const batchApprove = document.getElementById('batchApproveBtn');
 
   // HTML sanitization helper
   function escapeHtml(unsafe) {
     return AdminShared.escapeHtml(unsafe);
   }
 
+  function showToast(message, type) {
+    AdminShared.showToast(message, type);
+  }
+
+  function showConfirmModal(message, onConfirm) {
+    AdminShared.showConfirmModal(message, onConfirm);
+  }
+
   async function loadPhotos() {
     try {
-      // Photos are now fetched from all suppliers directly since approval is no longer needed
+      // Load from pending photos API; fall back to empty array if approval is disabled
+      const data = await AdminShared.api('/api/admin/photos/pending');
+      photos = data.photos || [];
+
+      // Also enrich with supplier gallery photos
       await loadSuppliers();
-      photos = [];
       for (const supplier of suppliers) {
         if (supplier.photosGallery && supplier.photosGallery.length > 0) {
           supplier.photosGallery.forEach(p => {
-            photos.push({ ...p, supplierId: supplier.id, supplierName: supplier.name });
+            // Avoid duplicates
+            if (!photos.some(existing => existing.url === p.url)) {
+              photos.push({ ...p, supplierId: supplier.id, supplierName: supplier.name });
+            }
           });
         }
       }
+
       renderPhotos();
     } catch (err) {
       console.error('Error loading photos:', err);
-      AdminShared.showToast('Failed to load photos', 'error');
-      queueElement.innerHTML =
-        '<div class="card"><p class="small">Failed to load photos. Please try again.</p></div>';
+      showToast('Failed to load photos', 'error');
+      if (queueElement) {
+        queueElement.innerHTML =
+          '<div class="card"><p class="small">Failed to load photos. Please try again.</p></div>';
+      }
     }
   }
 
@@ -56,7 +75,121 @@
     }
   }
 
+  /**
+   * Approve a photo by ID
+   * @param {string} photoId - Photo ID to approve
+   */
+  window.approvePhoto = async function approvePhoto(photoId) {
+    try {
+      const csrfToken = await AdminShared.getCsrfToken();
+      await AdminShared.adminFetch(`/api/admin/photos/${encodeURIComponent(photoId)}/approve`, {
+        method: 'POST',
+        headers: { 'X-CSRF-Token': csrfToken },
+      });
+      showToast('Photo approved', 'success');
+      await loadPhotos();
+    } catch (err) {
+      console.error('Error approving photo:', err);
+      showToast('Failed to approve photo', 'error');
+    }
+  };
+
+  /**
+   * Reject a photo by ID after confirmation
+   * @param {string} photoId - Photo ID to reject
+   * @param {string} [reason] - Optional rejection reason
+   */
+  window.rejectPhoto = async function rejectPhoto(photoId, reason) {
+    showConfirmModal('Are you sure you want to reject this photo?', async () => {
+      try {
+        const csrfToken = await AdminShared.getCsrfToken();
+        await AdminShared.adminFetch(`/api/admin/photos/${encodeURIComponent(photoId)}/reject`, {
+          method: 'POST',
+          headers: { 'X-CSRF-Token': csrfToken },
+          body: JSON.stringify({ rejectionReason: reason || '' }),
+        });
+        showToast('Photo rejected', 'success');
+        await loadPhotos();
+      } catch (err) {
+        console.error('Error rejecting photo:', err);
+        showToast('Failed to reject photo', 'error');
+      }
+    });
+  };
+
+  // Batch reject handler — calls /reject endpoint for each selected photo
+  if (batchReject) {
+    batchReject.addEventListener('click', async () => {
+      const ids = getSelectedPhotoIds();
+      if (ids.length === 0) {
+        showToast('No photos selected', 'warning');
+        return;
+      }
+      showConfirmModal(`Reject ${ids.length} photo(s)?`, async () => {
+        try {
+          const csrf = await AdminShared.getCsrfToken();
+          // Call the /reject endpoint for each selected photo
+          for (const id of ids) {
+            await AdminShared.adminFetch(`/api/admin/photos/${id}/reject`, {
+              method: 'POST',
+              headers: { 'X-CSRF-Token': csrf },
+              body: JSON.stringify({ rejectionReason: '' }),
+            });
+          }
+          showToast(`${ids.length} photo(s) rejected`, 'success');
+          await loadPhotos();
+        } catch (err) {
+          console.error('Error batch rejecting:', err);
+          showToast('Failed to reject photos', 'error');
+        }
+      });
+    });
+  }
+
+  // Batch approve handler
+  if (batchApprove) {
+    batchApprove.addEventListener('click', async () => {
+      const selectedIds = getSelectedPhotoIds();
+      if (selectedIds.length === 0) {
+        showToast('No photos selected', 'warning');
+        return;
+      }
+      showConfirmModal(`Approve ${selectedIds.length} photo(s)?`, async () => {
+        try {
+          const csrfToken = await AdminShared.getCsrfToken();
+          for (const photoId of selectedIds) {
+            await AdminShared.adminFetch(
+              `/api/admin/photos/${encodeURIComponent(photoId)}/approve`,
+              {
+                method: 'POST',
+                headers: { 'X-CSRF-Token': csrfToken },
+              }
+            );
+          }
+          showToast('Photos approved', 'success');
+          await loadPhotos();
+        } catch (err) {
+          console.error('Error batch approving photos:', err);
+          showToast('Failed to approve photos', 'error');
+        }
+      });
+    });
+  }
+
+  function getSelectedPhotoIds() {
+    if (!queueElement) {
+      return [];
+    }
+    return Array.from(queueElement.querySelectorAll('.photo-queue__checkbox:checked')).map(
+      el => el.dataset.photoId
+    );
+  }
+
   function renderPhotos() {
+    if (!queueElement) {
+      return;
+    }
+
     const searchTerm = searchSupplier ? searchSupplier.value.toLowerCase().trim() : '';
 
     let filtered = photos;
@@ -93,6 +226,7 @@
       .map(
         photo => `
       <div class="photo-queue__item" data-photo-id="${escapeHtml(photo.id || '')}">
+        <input type="checkbox" class="photo-queue__checkbox" data-photo-id="${escapeHtml(photo.id || '')}" style="margin-right: 8px;">
         <img class="photo-queue__image" src="${escapeHtml(photo.url || photo.thumbnail || '')}" alt="Photo" loading="lazy">
         <div class="photo-queue__details">
           <div class="photo-queue__meta">
@@ -105,6 +239,10 @@
           </div>
           ${photo.caption ? `<div class="small" style="margin-bottom: 0.5rem;">${escapeHtml(photo.caption)}</div>` : ''}
           <div class="small" style="color: #999;">Uploaded: ${formatDate(photo.uploadedAt)}</div>
+          <div class="photo-queue__actions" style="margin-top: 8px; display: flex; gap: 8px;">
+            <button class="btn btn-sm btn-success" onclick="approvePhoto('${escapeHtml(photo.id || '')}')">Approve</button>
+            <button class="btn btn-sm btn-danger" onclick="rejectPhoto('${escapeHtml(photo.id || '')}')">Reject</button>
+          </div>
         </div>
       </div>
     `

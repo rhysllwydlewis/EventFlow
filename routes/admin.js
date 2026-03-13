@@ -1525,58 +1525,268 @@ router.get('/users/search', authRequired, roleRequired('admin'), async (req, res
   }
 });
 
-// ---------- Photo Moderation (deprecated) ----------
+// ---------- Photo Moderation ----------
 
 /**
  * GET /api/admin/photos/pending
- * @deprecated Photos are now auto-approved on upload
+ * Returns pending photos for admin moderation, enriched with supplier information.
+ * Reads from the 'photos' collection (legacy explicit photo records with status field).
  */
-router.get('/photos/pending', authRequired, roleRequired('admin'), (req, res) => {
-  res.json({ photos: [], message: 'Photo approval is no longer required. Photos are auto-approved on upload.' });
+router.get('/photos/pending', authRequired, roleRequired('admin'), async (req, res) => {
+  try {
+    const photos = await dbUnified.read('photos');
+    const suppliers = await dbUnified.read('suppliers');
+
+    const pendingPhotos = photos
+      .filter(p => p.status === 'pending')
+      .map(p => {
+        const supplier = suppliers.find(s => s.id === p.supplierId);
+        return {
+          ...p,
+          supplierName: supplier ? supplier.name : 'Unknown',
+        };
+      });
+
+    res.json({ success: true, count: pendingPhotos.length, photos: pendingPhotos });
+  } catch (error) {
+    logger.error('Error fetching pending photos:', error);
+    res.status(500).json({ error: 'Failed to fetch pending photos', details: error.message });
+  }
 });
 
 /**
  * POST /api/admin/photos/:id/approve
- * @deprecated Photos are now auto-approved on upload
+ * Approve a photo record and add it to the supplier's photosGallery.
  */
 router.post(
   '/photos/:id/approve',
   authRequired,
   roleRequired('admin'),
   csrfProtection,
-  (req, res) => {
-    res.json({ success: true, message: 'Photo approval is no longer required. Photos are auto-approved on upload.' });
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const photos = await dbUnified.read('photos');
+      const photoIndex = photos.findIndex(p => p.id === id);
+
+      if (photoIndex === -1) {
+        return res.status(404).json({ error: 'Photo not found' });
+      }
+
+      const photo = photos[photoIndex];
+      const now = new Date().toISOString();
+
+      photo.status = 'approved';
+      photo.approvedAt = now;
+      photo.approvedBy = req.user.id;
+
+      await dbUnified.updateOne(
+        'photos',
+        { id: photo.id },
+        {
+          $set: {
+            status: photo.status,
+            approvedAt: photo.approvedAt,
+            approvedBy: photo.approvedBy,
+          },
+        }
+      );
+
+      // Add photo to supplier's photosGallery if not already there
+      const suppliers = await dbUnified.read('suppliers');
+      const supplierIndex = suppliers.findIndex(s => s.id === photo.supplierId);
+
+      if (supplierIndex !== -1) {
+        if (!suppliers[supplierIndex].photosGallery) {
+          suppliers[supplierIndex].photosGallery = [];
+        }
+        const alreadyInGallery = suppliers[supplierIndex].photosGallery.some(
+          p => p.url === photo.url
+        );
+        if (!alreadyInGallery) {
+          suppliers[supplierIndex].photosGallery.push({
+            url: photo.url,
+            approved: true,
+            uploadedAt: photo.uploadedAt || Date.now(),
+          });
+          await dbUnified.updateOne(
+            'suppliers',
+            { id: suppliers[supplierIndex].id },
+            { $set: { photosGallery: suppliers[supplierIndex].photosGallery } }
+          );
+        }
+      }
+
+      await auditLog({
+        action: AUDIT_ACTIONS.CONTENT_APPROVED,
+        adminId: req.user.id,
+        targetId: id,
+        targetType: 'photo',
+        details: { photoUrl: photo.url, supplierId: photo.supplierId },
+      });
+
+      res.json({ success: true, message: 'Photo approved successfully', photo });
+    } catch (error) {
+      logger.error('Error approving photo:', error);
+      res.status(500).json({ error: 'Failed to approve photo', details: error.message });
+    }
   }
 );
 
 /**
  * POST /api/admin/photos/:id/reject
- * @deprecated Photos are now auto-approved on upload
+ * Reject a photo record with an optional rejection reason.
  */
 router.post(
   '/photos/:id/reject',
   authRequired,
   roleRequired('admin'),
   csrfProtection,
-  (req, res) => {
-    res.json({ success: true, message: 'Photo approval is no longer required. Photos are auto-approved on upload.' });
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { rejectionReason } = req.body || {};
+
+      const photos = await dbUnified.read('photos');
+      const photoIndex = photos.findIndex(p => p.id === id);
+
+      if (photoIndex === -1) {
+        return res.status(404).json({ error: 'Photo not found' });
+      }
+
+      const photo = photos[photoIndex];
+      const now = new Date().toISOString();
+
+      photo.status = 'rejected';
+      photo.rejectedAt = now;
+      photo.rejectedBy = req.user.id;
+      photo.rejectionReason = rejectionReason || '';
+
+      await dbUnified.updateOne(
+        'photos',
+        { id: photo.id },
+        {
+          $set: {
+            status: photo.status,
+            rejectedAt: photo.rejectedAt,
+            rejectedBy: photo.rejectedBy,
+            rejectionReason: photo.rejectionReason,
+          },
+        }
+      );
+
+      await auditLog({
+        action: AUDIT_ACTIONS.CONTENT_REJECTED,
+        adminId: req.user.id,
+        targetId: id,
+        targetType: 'photo',
+        details: { rejectionReason, supplierId: photo.supplierId },
+      });
+
+      res.json({ success: true, message: 'Photo rejected successfully', photo });
+    } catch (error) {
+      logger.error('Error rejecting photo:', error);
+      res.status(500).json({ error: 'Failed to reject photo', details: error.message });
+    }
   }
 );
 
 /**
  * POST /api/admin/photos/batch-approve
- * @deprecated Photos are now auto-approved on upload
+ * Batch approve or reject multiple photos by ID.
+ * Body: { photoIds: string[], action: 'approve' | 'reject', rejectionReason?: string }
  */
 router.post(
   '/photos/batch-approve',
   authRequired,
   roleRequired('admin'),
   csrfProtection,
-  (req, res) => {
-    res.json({ success: true, message: 'Photo approval is no longer required. Photos are auto-approved on upload.', results: { total: 0, succeeded: 0, failed: 0, details: { success: [], failed: [] } } });
+  async (req, res) => {
+    try {
+      const { photoIds, action, rejectionReason } = req.body || {};
+
+      if (!Array.isArray(photoIds) || photoIds.length === 0) {
+        return res.status(400).json({ error: 'photoIds must be a non-empty array' });
+      }
+
+      if (action !== 'approve' && action !== 'reject') {
+        return res.status(400).json({ error: 'action must be approve or reject' });
+      }
+
+      const photos = await dbUnified.read('photos');
+      const suppliers = await dbUnified.read('suppliers');
+      const results = { success: [], failed: [] };
+
+      for (const photoId of photoIds) {
+        const photoIndex = photos.findIndex(p => p.id === photoId);
+        if (photoIndex === -1) {
+          results.failed.push({ id: photoId, error: 'Not found' });
+          continue;
+        }
+
+        const photo = photos[photoIndex];
+        const now = new Date().toISOString();
+
+        try {
+          if (action === 'approve') {
+            const approveSet = { status: 'approved', approvedAt: now, approvedBy: req.user.id };
+            await dbUnified.updateOne('photos', { id: photoId }, { $set: approveSet });
+            Object.assign(photo, approveSet);
+
+            // Persist photo URL to supplier photosGallery
+            const supplierIndex = suppliers.findIndex(s => s.id === photo.supplierId);
+            if (supplierIndex !== -1) {
+              if (!suppliers[supplierIndex].photosGallery) {
+                suppliers[supplierIndex].photosGallery = [];
+              }
+              const alreadyInGallery = suppliers[supplierIndex].photosGallery.some(
+                p => p.url === photo.url
+              );
+              if (!alreadyInGallery) {
+                suppliers[supplierIndex].photosGallery.push({
+                  url: photo.url,
+                  approved: true,
+                  uploadedAt: photo.uploadedAt || Date.now(),
+                });
+                await dbUnified.updateOne(
+                  'suppliers',
+                  { id: suppliers[supplierIndex].id },
+                  { $set: { photosGallery: suppliers[supplierIndex].photosGallery } }
+                );
+              }
+            }
+          } else {
+            const rejectSet = {
+              status: 'rejected',
+              rejectedAt: now,
+              rejectedBy: req.user.id,
+              rejectionReason: rejectionReason || '',
+            };
+            await dbUnified.updateOne('photos', { id: photoId }, { $set: rejectSet });
+          }
+          results.success.push(photoId);
+        } catch (err) {
+          results.failed.push({ id: photoId, error: err.message });
+        }
+      }
+
+      res.json({
+        success: true,
+        results: {
+          total: photoIds.length,
+          succeeded: results.success.length,
+          failed: results.failed.length,
+          details: results,
+        },
+      });
+    } catch (error) {
+      logger.error('Error in batch photo action:', error);
+      res
+        .status(500)
+        .json({ error: 'Failed to process batch photo action', details: error.message });
+    }
   }
 );
-
 
 // ---------- Smart Tagging ----------
 

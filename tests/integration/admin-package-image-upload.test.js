@@ -117,17 +117,13 @@ describe('Admin Package Image Upload Error Handling', () => {
       expect(processImageFunc).toContain('Image processing failed');
     });
 
-    it('should have error context in saveToLocal function', () => {
+    it('saveToLocal has been removed: photo-upload.js is MongoDB-only', () => {
       const photoUploadContent = fs.readFileSync('photo-upload.js', 'utf8');
-
-      // Find saveToLocal function
-      const saveToLocalStart = photoUploadContent.indexOf('async function saveToLocal(');
-      const saveToLocalEnd = photoUploadContent.indexOf('}', saveToLocalStart + 800);
-      const saveToLocalFunc = photoUploadContent.substring(saveToLocalStart, saveToLocalEnd);
-
-      // Verify error wrapping
-      expect(saveToLocalFunc).toContain('FilesystemError');
-      expect(saveToLocalFunc).toContain('Failed to save image to local filesystem');
+      // Local filesystem storage has been removed — MongoDB is the only backend
+      expect(photoUploadContent).not.toContain('async function saveToLocal(');
+      expect(photoUploadContent).not.toContain('STORAGE_TYPE');
+      // Confirm MongoDB error type is still present
+      expect(photoUploadContent).toContain('MongoDBStorageError');
     });
 
     it('should have error context in saveToMongoDB function', () => {
@@ -283,26 +279,17 @@ describe('Admin Package Image Upload Error Handling', () => {
   });
 
   describe('Directory Creation', () => {
-    it('should ensure directories exist before saving in saveToLocal', () => {
+    it('saveToLocal removed: no directory creation needed (MongoDB-only)', () => {
       const photoUploadContent = fs.readFileSync('photo-upload.js', 'utf8');
-
-      // Find saveToLocal function
-      const saveToLocalStart = photoUploadContent.indexOf('async function saveToLocal(');
-      const saveToLocalEnd = photoUploadContent.indexOf('}', saveToLocalStart + 800);
-      const saveToLocalFunc = photoUploadContent.substring(saveToLocalStart, saveToLocalEnd);
-
-      // Verify directory creation
-      expect(saveToLocalFunc).toContain('fs.mkdir');
-      expect(saveToLocalFunc).toContain('recursive: true');
+      // Local filesystem storage was removed; no directory creation code should exist
+      expect(photoUploadContent).not.toContain('async function saveToLocal(');
+      expect(photoUploadContent).not.toContain('function ensureDirectoriesExist()');
     });
 
-    it('should create directories on module load', () => {
+    it('MongoDB-only storage: no mkdirSync on module load', () => {
       const photoUploadContent = fs.readFileSync('photo-upload.js', 'utf8');
-
-      // Verify directory creation function exists and is called
-      expect(photoUploadContent).toContain('function ensureDirectoriesExist()');
-      expect(photoUploadContent).toContain('ensureDirectoriesExist()');
-      expect(photoUploadContent).toContain('mkdirSync');
+      // MongoDB storage does not require directory creation on module load
+      expect(photoUploadContent).not.toContain('ensureDirectoriesExist()');
     });
   });
 

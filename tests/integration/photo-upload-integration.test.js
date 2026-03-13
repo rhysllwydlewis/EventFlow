@@ -167,19 +167,20 @@ describe('Photo Upload — Storage Path (contract)', () => {
     expect(src).toContain('results.original = `/api/photos/${originalId}`');
   });
 
-  it('local storage path builds /uploads/<size>/<filename> URLs', () => {
+  it('MongoDB-only: no local /uploads/ paths in source (filesystem fallback removed)', () => {
     const src = readSrc('photo-upload.js');
-    expect(src).toContain('/uploads/optimized/');
-    expect(src).toContain('/uploads/thumbnails/');
-    expect(src).toContain('/uploads/large/');
+    // Confirm local filesystem storage code has been removed
+    expect(src).not.toContain('STORAGE_TYPE');
+    expect(src).not.toContain('saveToLocal');
+    // Confirm MongoDB paths are the only storage backend
+    expect(src).toContain('/api/photos/');
   });
 
-  it('photo-upload.js handles MongoDB unavailability gracefully', () => {
+  it('photo-upload.js throws MongoDBUnavailableError when MongoDB is unavailable', () => {
     const src = readSrc('photo-upload.js');
-    // Graceful degradation: tries MongoDB first, falls back to local
-    expect(src).toContain("STORAGE_TYPE = 'local'");
-    expect(src).toContain('MongoDB not available - using local storage');
-    expect(src).toContain("STORAGE_TYPE === 'mongodb'");
+    // MongoDB-only: unavailability throws an error rather than falling back to local storage
+    expect(src).toContain('MongoDBUnavailableError');
+    expect(src).toContain('MongoDB is not available for photo storage');
   });
 });
 
@@ -331,12 +332,13 @@ describe('Photo Upload — Validation Utility (uploadValidation.js)', () => {
 });
 
 describe('Photo Upload — Graceful Degradation', () => {
-  it('photo-upload.js falls back to local storage when MongoDB is unavailable', () => {
+  it('photo-upload.js throws on MongoDB unavailability (no local filesystem fallback)', () => {
     const src = readSrc('photo-upload.js');
-    // Verifies the fallback logic is present
-    expect(src).toContain('checkMongoDBAvailability');
-    expect(src).toContain("STORAGE_TYPE = 'local'");
-    expect(src).toContain('using local storage');
+    // MongoDB-only: no STORAGE_TYPE toggle, no local storage fallback
+    expect(src).not.toContain('checkMongoDBAvailability');
+    expect(src).not.toContain("STORAGE_TYPE = 'local'");
+    // Confirms MongoDBUnavailableError is thrown instead of silently falling back
+    expect(src).toContain('MongoDBUnavailableError');
   });
 
   it('routes/photos.js returns 503 when photo upload service is not initialised', () => {

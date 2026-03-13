@@ -255,6 +255,8 @@ const AUDIT_ACTIONS = {
   REVIEW_DELETED: 'review_deleted',
   PHOTO_APPROVED: 'photo_approved',
   PHOTO_REJECTED: 'photo_rejected',
+  CONTENT_APPROVED: 'content_approved',
+  CONTENT_REJECTED: 'content_rejected',
 
   // Report handling
   REPORT_RESOLVED: 'report_resolved',

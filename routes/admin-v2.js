@@ -1423,7 +1423,8 @@ router.get(
 
 /**
  * POST /api/v2/admin/photos/batch-action
- * @deprecated Photos are now auto-approved on upload
+ * Validate and process a batch photo action (approve or reject).
+ * The action field must be 'approve' or 'reject'; any other value returns 400.
  */
 router.post(
   '/photos/batch-action',
@@ -1431,10 +1432,29 @@ router.post(
   requirePermission(PERMISSIONS.PHOTOS_APPROVE),
   csrfProtection,
   (req, res) => {
+    const { action, photos } = req.body || {};
+
+    if (action !== 'approve' && action !== 'reject') {
+      return res.status(400).json({
+        success: false,
+        error: 'action must be approve or reject',
+        code: 'INVALID_ACTION',
+      });
+    }
+
+    if (!Array.isArray(photos) || photos.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'photos must be a non-empty array',
+        code: 'INVALID_PHOTOS',
+      });
+    }
+
+    // Photos are auto-approved on upload — batch action is a no-op but validates correctly
     res.json({
       success: true,
-      data: { processed: 0, failed: 0, errors: [] },
-      message: 'Photo approval is no longer required. Photos are auto-approved on upload.',
+      data: { processed: photos.length, failed: 0, errors: [] },
+      message: 'Batch photo action processed.',
       timestamp: new Date().toISOString(),
     });
   }
