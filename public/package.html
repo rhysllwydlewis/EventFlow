@@ -361,6 +361,104 @@
       outline-offset: 2px;
     }
 
+    /* ── Package action buttons (Save Package / Add to Plan) ─── */
+
+    /* Section label above package actions */
+    .pkg-action-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #9ca3af;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    /* Package actions — appear at bottom of header card */
+    .pkg-action-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 16px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(0,0,0,0.07);
+    }
+
+    /* Save Package button — outlined bookmark style */
+    .pkg-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      font-family: inherit;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, color 0.15s,
+                  box-shadow 0.15s, transform 0.13s;
+      text-decoration: none;
+      white-space: nowrap;
+      line-height: 1;
+      text-align: center;
+      min-height: 40px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .pkg-btn:active { transform: scale(0.97); }
+
+    /* Save Package: soft purple/blue outline */
+    .pkg-btn--save {
+      background: #f5f3ff;
+      color: #7c3aed;
+      border-color: #ddd6fe;
+    }
+    .pkg-btn--save:hover {
+      background: #ede9fe;
+      border-color: #c4b5fd;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(124,58,237,0.12);
+    }
+    .pkg-btn--save-active {
+      background: #ede9fe;
+      color: #6d28d9;
+      border-color: #c4b5fd;
+    }
+
+    /* Add to Plan: solid teal (matches brand) */
+    .pkg-btn--plan {
+      background: linear-gradient(180deg, #16c3ad 0%, #0ea896 100%);
+      color: #fff;
+      border-color: transparent;
+      box-shadow: 0 2px 8px rgba(14,168,150,0.25);
+    }
+    .pkg-btn--plan:hover {
+      background: linear-gradient(180deg, #13b6a2 0%, #0d9b8a 100%);
+      box-shadow: 0 4px 14px rgba(14,168,150,0.35);
+      transform: translateY(-1px);
+    }
+    .pkg-btn--plan:focus { outline: 2px solid var(--accent,#13B6A2); outline-offset: 2px; }
+
+    /* On very narrow screens, stack buttons */
+    @media (max-width: 360px) {
+      .pkg-action-row { grid-template-columns: 1fr; }
+    }
+
+    /* ── Supplier section label ───────────────────────────── */
+    .pkg-sup-section-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #9ca3af;
+      padding: 10px 18px 4px;
+    }
+    @media (min-width: 768px) {
+      .pkg-sup-section-label { padding: 12px 20px 4px; }
+    }
+
     /* ── Small-mobile tweaks (≤480px) ───────────────────────── */
     @media (max-width: 480px) {
       #package-breadcrumb { font-size: 0.8rem; }
@@ -527,6 +625,17 @@
                   </div>
                 </div>
               </div>
+              <!-- Package action buttons -->
+              <div class="pkg-action-row" role="group" aria-label="Package actions">
+                <button class="pkg-btn pkg-btn--save" id="pkg-save-package-btn" type="button"
+                        aria-label="Save this package">
+                  🔖 Save Package
+                </button>
+                <button class="pkg-btn pkg-btn--plan" id="pkg-add-to-plan-btn" type="button"
+                        aria-label="Add this package to your plan">
+                  📋 Add to Plan
+                </button>
+              </div>
             </div>
 
             <!-- Package Description -->
@@ -546,6 +655,8 @@
           <!-- BELOW RIGHT: Supplier sidebar widget -->
           <div class="pkg-sidebar-col">
             <div class="pkg-sup-widget card" id="pkg-supplier-sidebar" style="display:none;" aria-label="About the supplier">
+              <!-- Section label -->
+              <div class="pkg-sup-section-label" aria-hidden="true">About the Supplier</div>
               <!-- Header: avatar + name + tier -->
               <div class="pkg-sup-header">
                 <div class="pkg-sup-avatar" id="pkg-sup-avatar" aria-hidden="true"></div>
@@ -705,6 +816,9 @@
 
         // ── Supplier sidebar widget ──────────────────────────────
         buildSupplierSidebar(supplier, pkg);
+
+        // ── Package action buttons ───────────────────────────────
+        wirePackageActions(pkg, supplier);
       })
       .catch(err => {
         console.error('Error loading package:', err);
@@ -723,7 +837,7 @@
 
     // Avatar
     const avatarEl = document.getElementById('pkg-sup-avatar');
-    const FALLBACK_INITIAL = 'S';
+    const FALLBACK_INITIAL = '?'; // generic character when supplier name is not yet available
     const initial = supplier.name ? supplier.name.charAt(0).toUpperCase() : FALLBACK_INITIAL;
     const palettes = [
       ['#13B6A2', '#0B8073'], ['#8B5CF6', '#6D28D9'], ['#F59E0B', '#D97706'],
@@ -868,6 +982,70 @@
     if (window.QuickComposeV4) {
       window.QuickComposeV4.attachAll();
     }
+  }
+
+  /**
+   * Wire the "Save Package" and "Add to Plan" buttons.
+   * Save Package uses shortlistManager (type='package').
+   * Add to Plan navigates to /start with packageId + supplierId context.
+   * Both gate behind auth when not logged in.
+   */
+  function wirePackageActions(pkg, supplier) {
+    const savePkgBtn = document.getElementById('pkg-save-package-btn');
+    const addPlanBtn = document.getElementById('pkg-add-to-plan-btn');
+    if (!savePkgBtn || !addPlanBtn) return;
+
+    // Reflect current shortlist state for this package
+    const sm = window.shortlistManager;
+    if (sm && sm.isAuthenticated && pkg.id && sm.hasItem('package', pkg.id)) {
+      savePkgBtn.classList.add('pkg-btn--save-active');
+      savePkgBtn.textContent = '🔖 Saved';
+      savePkgBtn.setAttribute('aria-label', 'Remove this package from saved');
+    }
+
+    // Save Package handler
+    savePkgBtn.addEventListener('click', async () => {
+      const mgr = window.shortlistManager;
+      if (!mgr || !mgr.isAuthenticated) {
+        const returnTo = window.location.pathname + window.location.search;
+        window.location.href = `/auth?redirect=${encodeURIComponent(returnTo)}&intent=save`;
+        return;
+      }
+      const isActive = savePkgBtn.classList.contains('pkg-btn--save-active');
+      if (isActive) {
+        await mgr.removeItem('package', pkg.id);
+        savePkgBtn.classList.remove('pkg-btn--save-active');
+        savePkgBtn.textContent = '🔖 Save Package';
+        savePkgBtn.setAttribute('aria-label', 'Save this package');
+      } else {
+        const rawPrice = pkg.price_display || pkg.price;
+        await mgr.addItem({
+          type: 'package',
+          id: pkg.id,
+          name: pkg.title,
+          category: (supplier && supplier.category) || '',
+          location: pkg.location || '',
+          priceHint: rawPrice ? String(rawPrice) : '',
+        });
+        savePkgBtn.classList.add('pkg-btn--save-active');
+        savePkgBtn.textContent = '🔖 Saved';
+        savePkgBtn.setAttribute('aria-label', 'Remove this package from saved');
+      }
+    });
+
+    // Add to Plan handler
+    addPlanBtn.addEventListener('click', () => {
+      const mgr = window.shortlistManager;
+      if (!mgr || !mgr.isAuthenticated) {
+        const returnTo = window.location.pathname + window.location.search;
+        window.location.href = `/auth?redirect=${encodeURIComponent(returnTo)}&intent=plan`;
+        return;
+      }
+      const query = new URLSearchParams();
+      if (pkg.id) query.set('packageId', pkg.id);
+      if (supplier && supplier.id) query.set('supplierId', supplier.id);
+      window.location.href = `/start?${query.toString()}`;
+    });
   }
 </script>
 <script src="/assets/js/components/footer-nav.js" defer></script>

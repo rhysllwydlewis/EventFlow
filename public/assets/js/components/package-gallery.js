@@ -43,6 +43,9 @@ class PackageGallery {
         display: flex;
         align-items: center;
         justify-content: center;
+        /* Prevent text selection during swipe */
+        user-select: none;
+        -webkit-user-select: none;
       }
 
       .package-gallery-image {
@@ -53,6 +56,8 @@ class PackageGallery {
         animation: fadeIn 0.3s ease-in;
         background-color: #e5e7eb;
         transition: opacity 0.3s ease-in-out;
+        /* Allow touch events to reach the swipe handler */
+        pointer-events: none;
       }
 
       .package-gallery-image.active {
@@ -67,62 +72,89 @@ class PackageGallery {
         background: #e5e7eb url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="%23999" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>') center center no-repeat;
       }
 
+      /* ── Nav arrows: edge-flush, small, non-intrusive ── */
       .package-gallery-nav {
         position: absolute;
         top: 50%;
         transform: translateY(-50%);
-        background-color: rgba(0, 0, 0, 0.5);
+        /* Semi-transparent pill flush to the edge */
+        background-color: rgba(0, 0, 0, 0.38);
         color: white;
         border: none;
-        padding: 16px;
+        padding: 0;
         cursor: pointer;
-        font-size: 20px;
-        border-radius: 50%;
-        width: 48px;
-        height: 48px;
+        font-size: 18px;
+        border-radius: 0 6px 6px 0;
+        width: 28px;
+        height: 52px;
         display: flex;
         align-items: center;
         justify-content: center;
-        transition: background-color 0.2s ease;
+        transition: background-color 0.18s ease, width 0.18s ease;
         z-index: 2;
+        /* Don't disrupt the image layout */
+        flex-shrink: 0;
       }
 
-      .package-gallery-nav:hover {
-        background-color: rgba(0, 0, 0, 0.7);
+      .package-gallery-nav:hover,
+      .package-gallery-nav:focus-visible {
+        background-color: rgba(0, 0, 0, 0.62);
+        width: 34px;
+        outline: none;
       }
 
       .package-gallery-nav.prev {
-        left: 16px;
+        left: 0;
+        border-radius: 0 6px 6px 0;
       }
 
       .package-gallery-nav.next {
-        right: 16px;
+        right: 0;
+        border-radius: 6px 0 0 6px;
+      }
+
+      /* Swipe hint: fade out the arrows when user swipes */
+      .package-gallery-main.swiping .package-gallery-nav {
+        opacity: 0.3;
+        pointer-events: none;
       }
 
       .package-gallery-counter {
         position: absolute;
-        bottom: 16px;
+        bottom: 12px;
         left: 50%;
         transform: translateX(-50%);
-        background-color: rgba(0, 0, 0, 0.7);
+        background-color: rgba(0, 0, 0, 0.55);
         color: white;
-        padding: 8px 16px;
+        padding: 4px 12px;
         border-radius: 20px;
-        font-size: 0.9rem;
+        font-size: 0.8rem;
+        font-weight: 600;
         z-index: 2;
+        pointer-events: none;
+        white-space: nowrap;
       }
 
       .package-gallery-thumbnails {
         display: flex;
-        gap: 12px;
-        margin-top: 16px;
+        gap: 10px;
+        margin-top: 12px;
         overflow-x: auto;
-        padding: 8px 0;
+        padding: 4px 2px 8px;
+        scrollbar-width: thin;
+        scrollbar-color: #d1d5db transparent;
+      }
+      .package-gallery-thumbnails::-webkit-scrollbar {
+        height: 4px;
+      }
+      .package-gallery-thumbnails::-webkit-scrollbar-thumb {
+        background: #d1d5db;
+        border-radius: 4px;
       }
 
       .package-gallery-thumbnail {
-        width: 120px;
-        height: 90px;
+        width: 100px;
+        height: 70px;
         object-fit: cover;
         border-radius: 8px;
         cursor: pointer;
@@ -165,23 +197,49 @@ class PackageGallery {
         to { opacity: 1; }
       }
 
-      @media (max-width: 768px) {
+      /* ── Mobile: taller aspect ratio, smaller thumbnails ── */
+      @media (max-width: 767px) {
         .package-gallery-main,
         .package-gallery-empty {
           aspect-ratio: 4 / 3;
-          min-height: 220px;
+          min-height: 200px;
+          border-radius: 10px;
         }
 
+        /* Arrows stay the same edge-flush design; just slightly taller on mobile */
         .package-gallery-nav {
-          width: 40px;
-          height: 40px;
-          padding: 12px;
+          width: 26px;
+          height: 48px;
           font-size: 16px;
+        }
+        .package-gallery-nav:hover,
+        .package-gallery-nav:focus-visible {
+          width: 30px;
+        }
+
+        .package-gallery-counter {
+          font-size: 0.75rem;
+          padding: 3px 10px;
+          bottom: 10px;
         }
 
         .package-gallery-thumbnail {
-          width: 80px;
-          height: 60px;
+          width: 72px;
+          height: 52px;
+          border-radius: 6px;
+        }
+
+        .package-gallery-thumbnails {
+          gap: 8px;
+          margin-top: 8px;
+        }
+      }
+
+      /* ── Very small screens ── */
+      @media (max-width: 380px) {
+        .package-gallery-thumbnail {
+          width: 60px;
+          height: 44px;
         }
       }
     `;
@@ -272,9 +330,9 @@ class PackageGallery {
       // Add error handling for image loading
       image.onerror = () => {
         console.warn(`Failed to load gallery image: ${image.src}`);
-        // Only try to fallback if we're not already showing the placeholder
-        // Use endsWith because browser resolves relative paths to absolute URLs
-        if (!image.src.endsWith(PLACEHOLDER_IMAGE) && !image.src.includes('placeholder')) {
+        // Guard against infinite loop: don't replace if already showing the placeholder.
+        // Check includes('/placeholders/') since browsers resolve the path to an absolute URL.
+        if (!image.src.includes('/placeholders/')) {
           image.src = PLACEHOLDER_IMAGE;
           image.alt = 'Image failed to load - placeholder shown';
         }
@@ -337,8 +395,9 @@ class PackageGallery {
         // Add error handling for thumbnail loading
         thumb.onerror = () => {
           console.warn(`Failed to load thumbnail: ${thumb.src}`);
-          // Use endsWith because browser resolves relative paths to absolute URLs
-          if (!thumb.src.endsWith(PLACEHOLDER_IMAGE) && !thumb.src.includes('placeholder')) {
+          // Guard against infinite loop: browsers resolve relative paths to absolute URLs,
+          // so check includes('/placeholders/') rather than endsWith with a relative path.
+          if (!thumb.src.includes('/placeholders/')) {
             thumb.src = PLACEHOLDER_IMAGE;
           }
         };
@@ -361,6 +420,64 @@ class PackageGallery {
 
     // Store references for navigation
     this.galleryElement = gallery;
+
+    // Attach touch/swipe support on the main container
+    if (this.images.length > 1) {
+      this._attachSwipe(mainContainer);
+    }
+  }
+
+  /**
+   * Attach touch-swipe handlers so users can swipe left/right on mobile.
+   * A horizontal swipe of > 40px triggers navigation.
+   */
+  _attachSwipe(el) {
+    let startX = 0;
+    let startY = 0;
+    let isDragging = false;
+
+    el.addEventListener(
+      'touchstart',
+      e => {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        isDragging = true;
+      },
+      { passive: true }
+    );
+
+    el.addEventListener(
+      'touchmove',
+      e => {
+        if (!isDragging) {
+          return;
+        }
+        const dx = e.touches[0].clientX - startX;
+        const dy = e.touches[0].clientY - startY;
+        // If movement is more horizontal than vertical, prevent scroll
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) {
+          e.preventDefault();
+        }
+      },
+      { passive: false }
+    );
+
+    el.addEventListener(
+      'touchend',
+      e => {
+        if (!isDragging) {
+          return;
+        }
+        isDragging = false;
+        const dx = e.changedTouches[0].clientX - startX;
+        const dy = e.changedTouches[0].clientY - startY;
+        // Only trigger on predominantly horizontal swipes of > 40px
+        if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+          this.navigate(dx < 0 ? 1 : -1);
+        }
+      },
+      { passive: true }
+    );
   }
 
   navigate(direction) {
