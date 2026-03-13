@@ -480,12 +480,12 @@ function renderPackageFallback(container, items) {
   // Validate and sanitize URLs to prevent XSS
   const sanitizeUrl = url => {
     if (!url) {
-      return '/assets/images/placeholder-package.jpg';
+      return '/assets/images/placeholders/package-event.svg';
     }
     const urlStr = String(url);
     // Block javascript:, data:, vbscript:, and file: URLs
     if (/^(javascript|data|vbscript|file):/i.test(urlStr)) {
-      return '/assets/images/placeholder-package.jpg';
+      return '/assets/images/placeholders/package-event.svg';
     }
     return escape(urlStr);
   };

@@ -18,6 +18,7 @@ const { writeLimiter, apiLimiter } = require('../middleware/rateLimits');
 const dbUnified = require('../db-unified');
 const { normalizeTicketRecord } = require('../utils/ticketNormalization');
 const { PRIORITY_RANK } = require('../utils/tierPriority');
+const { PLACEHOLDER_PACKAGE_IMAGE } = require('../utils/constants');
 const photoUpload = require('../photo-upload');
 const postmark = require('../utils/postmark');
 const { FROM_SUPPORT: POSTMARK_FROM_SUPPORT_ADDR } = postmark;
@@ -1008,7 +1009,7 @@ router.post('/packages', authRequired, roleRequired('admin'), csrfProtection, as
       slug,
       description: description || '',
       price_display: price_display || 'Contact for pricing',
-      image: image || '/assets/images/placeholders/package-event.svg',
+      image: image || PLACEHOLDER_PACKAGE_IMAGE,
       approved: approved === true,
       featured: featured === true,
       createdAt: now,

@@ -7,6 +7,7 @@
 
 const express = require('express');
 const { uploadLimiter, apiLimiter } = require('../middleware/rateLimits');
+const { PLACEHOLDER_PACKAGE_IMAGE } = require('../utils/constants');
 const router = express.Router();
 
 // These will be injected by server.js during route mounting
@@ -514,7 +515,11 @@ router.post(
         }
         pkg.gallery.push(photoRecord);
 
-        await dbUnified.updateOne('packages', { id: pkg.id }, { $set: { gallery: pkg.gallery } });
+        const updateFields = { gallery: pkg.gallery };
+        if (!pkg.image || pkg.image === PLACEHOLDER_PACKAGE_IMAGE || pkg.image === '') {
+          updateFields.image = photoRecord.url;
+        }
+        await dbUnified.updateOne('packages', { id: pkg.id }, { $set: updateFields });
 
         return res.json({
           success: true,
