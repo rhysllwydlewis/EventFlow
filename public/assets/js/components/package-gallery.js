@@ -186,6 +186,11 @@ class PackageGallery {
       return PLACEHOLDER_IMAGE;
     }
 
+    // Allow relative paths (e.g. /uploads/...) and data URLs as-is
+    if (url.startsWith('/') || url.startsWith('data:')) {
+      return url;
+    }
+
     // Check if URL is from a blocked or problematic source
     const blockedDomains = ['source.unsplash.com', 'unsplash.com'];
     try {
@@ -195,7 +200,7 @@ class PackageGallery {
         return PLACEHOLDER_IMAGE;
       }
     } catch (e) {
-      // Invalid URL, use placeholder
+      // Unrecognized URL format — use placeholder
       console.warn(`Invalid image URL: ${url}, using placeholder`);
       return PLACEHOLDER_IMAGE;
     }
@@ -229,10 +234,15 @@ class PackageGallery {
       }
 
       // Sanitize the image URL before setting src
-      const originalUrl = img.url || img;
+      // Support multiple property names used by different API versions
+      const originalUrl =
+        typeof img === 'string' ? img : img.url || img.src || img.path || img.image || '';
       const sanitizedUrl = this.sanitizeImageUrl(originalUrl);
       image.src = sanitizedUrl;
-      image.alt = img.alt || `Gallery image ${index + 1} of ${this.images.length}`;
+      image.alt =
+        typeof img === 'object' && img.alt
+          ? img.alt
+          : `Gallery image ${index + 1} of ${this.images.length}`;
       image.loading = 'lazy'; // Enable native lazy loading
 
       // Add loading state
@@ -300,7 +310,9 @@ class PackageGallery {
         }
 
         // Sanitize thumbnail URL
-        const originalUrl = img.url || img;
+        // Support multiple property names used by different API versions
+        const originalUrl =
+          typeof img === 'string' ? img : img.url || img.src || img.path || img.image || '';
         const sanitizedUrl = this.sanitizeImageUrl(originalUrl);
         thumb.src = sanitizedUrl;
         thumb.alt = `Thumbnail ${index + 1} of ${this.images.length}`;
