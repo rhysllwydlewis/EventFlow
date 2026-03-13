@@ -67,6 +67,11 @@
 
     setup() {
       document.addEventListener('keydown', e => {
+        // Don't intercept typing in form fields
+        const tag = (e.target.tagName || '').toLowerCase();
+        if (['input', 'textarea', 'select'].includes(tag) || e.target.isContentEditable) {
+          return;
+        }
         const key = this.getKeyCombo(e);
         const handler = this.shortcuts.get(key);
         if (handler) {
@@ -100,7 +105,7 @@
         parts.push('meta');
       }
 
-      const key = e.key.toLowerCase();
+      const key = (e.key || '').toLowerCase();
       if (!['control', 'alt', 'shift', 'meta'].includes(key)) {
         parts.push(key);
       }

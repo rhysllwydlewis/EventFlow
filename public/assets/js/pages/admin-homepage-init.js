@@ -644,6 +644,13 @@
             ${hasImage ? `<button class="remove-btn" data-category-id="${escapeHtml(category.id)}">Remove Image</button>` : ''}
             <div class="success-message" id="success-${escapeHtml(category.id)}" style="display: none;">Image updated successfully!</div>
             <div class="error-message" id="error-${escapeHtml(category.id)}" style="display: none;">Failed to update image.</div>
+            <div class="category-card-visibility" style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+              <span style="font-size:11px;font-weight:600;">Visible on homepage:</span>
+              <label class="admin-category-card-visibility-toggle">
+                <input type="checkbox" class="hero-visibility-toggle" data-id="${escapeHtml(category.id)}" ${category.visible !== false ? 'checked' : ''}>
+                <span class="admin-category-card-visibility-slider"></span>
+              </label>
+            </div>
           </div>
         </div>
       `;
@@ -673,6 +680,13 @@
 
       if (removeBtn) {
         removeBtn.addEventListener('click', () => removeImage(category.id));
+      }
+
+      const heroToggle = document.querySelector(`.hero-visibility-toggle[data-id="${category.id}"]`);
+      if (heroToggle) {
+        heroToggle.addEventListener('change', e => {
+          toggleCategoryVisibility(category.id, e.target.checked, '.hero-visibility-toggle');
+        });
       }
     });
   }
@@ -928,6 +942,7 @@
     document.getElementById('categoryId').value = '';
     document.getElementById('categoryVisible').checked = true;
     clearPexelsResults();
+    resetImageTabState();
     categoryModal.classList.add('show');
     categoryModal.style.display = 'flex';
   }
@@ -961,6 +976,7 @@
     }
 
     clearPexelsResults();
+    resetImageTabState();
     categoryModal.classList.add('show');
     categoryModal.style.display = 'flex';
   }
@@ -996,7 +1012,7 @@
     };
 
     try {
-      const csrfResponse = await fetch('/api/v1/auth/csrf', {
+      const csrfResponse = await fetch('/api/v1/csrf-token', {
         credentials: 'include',
       });
       const csrfData = await csrfResponse.json();
@@ -1028,6 +1044,31 @@
       }
 
       if (response.ok) {
+        // If a custom image file was selected, upload it now
+        const customImageInput = document.getElementById('categoryCustomImage');
+        const customFile = customImageInput && customImageInput.files[0];
+        if (customFile) {
+          const savedCategory = await response.json();
+          const targetId = savedCategory.category?.id ?? editingCategoryId;
+          if (targetId) {
+            try {
+              const uploadCsrfResp = await fetch('/api/v1/csrf-token', { credentials: 'include' });
+              const uploadCsrfData = await uploadCsrfResp.json();
+              const uploadFormData = new FormData();
+              uploadFormData.append('image', customFile);
+              await fetch(`/api/v1/admin/categories/${targetId}/hero-image`, {
+                method: 'POST',
+                headers: { 'X-CSRF-Token': uploadCsrfData.csrfToken },
+                credentials: 'include',
+                body: uploadFormData,
+              });
+            } catch (uploadErr) {
+              console.error('Custom image upload failed:', uploadErr);
+              AdminShared.showToast('Category saved but image upload failed', 'warning');
+            }
+          }
+        }
+
         closeCategoryModalFunc();
         await loadAllCategories();
         AdminShared.showToast('Category saved successfully!', 'success');
@@ -1060,7 +1101,7 @@
     }
 
     try {
-      const csrfResponse = await fetch('/api/v1/auth/csrf', {
+      const csrfResponse = await fetch('/api/v1/csrf-token', {
         credentials: 'include',
       });
       const csrfData = await csrfResponse.json();
@@ -1090,9 +1131,16 @@
     }
   }
 
-  async function toggleCategoryVisibility(categoryId, visible) {
+  /**
+   * Toggle a category's homepage visibility.
+   * @param {string} categoryId - The category to update.
+   * @param {boolean} visible - Whether the category should be visible.
+   * @param {string} [toggleSelector] - CSS selector for the toggle checkbox to revert on error.
+   *   Defaults to '.visibility-toggle'. Use '.hero-visibility-toggle' for the Hero Images section.
+   */
+  async function toggleCategoryVisibility(categoryId, visible, toggleSelector) {
     try {
-      const csrfResponse = await fetch('/api/v1/auth/csrf', {
+      const csrfResponse = await fetch('/api/v1/csrf-token', {
         credentials: 'include',
       });
       const csrfData = await csrfResponse.json();
@@ -1109,10 +1157,14 @@
       });
 
       if (response.ok) {
-        // Update local state
-        const category = allCategories.find(c => c.id === categoryId);
-        if (category) {
-          category.visible = visible;
+        // Update local state in both sections
+        const categoryInCards = allCategories.find(c => c.id === categoryId);
+        if (categoryInCards) {
+          categoryInCards.visible = visible;
+        }
+        const categoryInHero = categories.find(c => c.id === categoryId);
+        if (categoryInHero) {
+          categoryInHero.visible = visible;
         }
       } else {
         const errorData = await response.json();
@@ -1120,8 +1172,9 @@
           `Failed to toggle visibility: ${errorData.error || 'Unknown error'}`,
           'error'
         );
-        // Revert toggle
-        const toggle = document.querySelector(`.visibility-toggle[data-id="${categoryId}"]`);
+        // Revert toggle — check the specific selector first, then fall back to .visibility-toggle
+        const selector = toggleSelector || '.visibility-toggle';
+        const toggle = document.querySelector(`${selector}[data-id="${categoryId}"]`);
         if (toggle) {
           toggle.checked = !visible;
         }
@@ -1242,8 +1295,72 @@
     document.getElementById('pexelsSearchQuery').value = '';
   }
 
+  function resetImageTabState() {
+    // Always start on the Pexels tab when opening the modal
+    document.getElementById('pexelsPanel').style.display = '';
+    document.getElementById('uploadPanel').style.display = 'none';
+    document.getElementById('imgTabPexels').className = 'btn btn-primary';
+    document.getElementById('imgTabUpload').className = 'btn btn-secondary';
+    // Clear custom file input and preview
+    const customInput = document.getElementById('categoryCustomImage');
+    if (customInput) {
+      customInput.value = '';
+    }
+    document.getElementById('customImagePreviewWrap').style.display = 'none';
+  }
+
   // Clear selected image
   document.getElementById('clearSelectedImage').addEventListener('click', () => {
+    document.getElementById('categoryHeroImage').value = '';
+    document.getElementById('categoryPexelsAttribution').value = '';
+    document.getElementById('selectedImagePreview').style.display = 'none';
+    // Also clear the custom upload input
+    const customInput = document.getElementById('categoryCustomImage');
+    if (customInput) {
+      customInput.value = '';
+    }
+    document.getElementById('customImagePreviewWrap').style.display = 'none';
+  });
+
+  // Image source tab switching (Pexels vs Custom Upload)
+  document.getElementById('imgTabPexels').addEventListener('click', () => {
+    document.getElementById('pexelsPanel').style.display = '';
+    document.getElementById('uploadPanel').style.display = 'none';
+    document.getElementById('imgTabPexels').className = 'btn btn-primary';
+    document.getElementById('imgTabUpload').className = 'btn btn-secondary';
+  });
+
+  document.getElementById('imgTabUpload').addEventListener('click', () => {
+    document.getElementById('pexelsPanel').style.display = 'none';
+    document.getElementById('uploadPanel').style.display = '';
+    document.getElementById('imgTabPexels').className = 'btn btn-secondary';
+    document.getElementById('imgTabUpload').className = 'btn btn-primary';
+  });
+
+  // Custom image file selection — show preview and store file for upload
+  document.getElementById('categoryCustomImage').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) {
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      AdminShared.showToast('Please select an image file', 'error');
+      e.target.value = '';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      AdminShared.showToast('File size must be less than 5 MB', 'error');
+      e.target.value = '';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const previewImg = document.getElementById('customImagePreview');
+      previewImg.src = ev.target.result;
+      document.getElementById('customImagePreviewWrap').style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+    // Clear any Pexels selection when a custom file is chosen
     document.getElementById('categoryHeroImage').value = '';
     document.getElementById('categoryPexelsAttribution').value = '';
     document.getElementById('selectedImagePreview').style.display = 'none';

@@ -476,26 +476,96 @@
       { key: 'description_short', label: 'Short Description' },
     ];
 
-    const fieldList = EDITABLE_FIELDS.map(f => `• ${f.label}`).join('\n');
+    // Build a select-dropdown modal so the user doesn't have to type the field name exactly
+    const matched = await new Promise(resolve => {
+      // Lock body scroll (consistent with AdminShared modals)
+      const originalOverflow = document.body.style.overflow;
+      const originalPaddingRight = document.body.style.paddingRight;
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      document.body.style.overflow = 'hidden';
+      if (scrollbarWidth > 0) {
+        document.body.style.paddingRight = `${scrollbarWidth}px`;
+      }
 
-    const fieldResult = await AdminShared.showInputModal({
-      title: 'Edit Supplier — Select Field',
-      message: `Which field would you like to edit?\n\n${fieldList}\n\nType the field name exactly as listed above (e.g. "Business Name").`,
-      label: 'Field name',
-      placeholder: 'e.g. Business Name',
-      required: true,
-      type: 'text',
+      const overlay = document.createElement('div');
+      overlay.style.cssText =
+        'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;' +
+        'align-items:center;justify-content:center;z-index:10001;animation:fadeIn 0.2s ease;';
+      overlay.setAttribute('role', 'dialog');
+      overlay.setAttribute('aria-modal', 'true');
+      overlay.setAttribute('aria-labelledby', 'edit-field-modal-title');
+
+      const optionsHtml = EDITABLE_FIELDS.map(
+        f => `<option value="${f.key}">${f.label}</option>`
+      ).join('');
+
+      const dialog = document.createElement('div');
+      dialog.style.cssText =
+        'background:white;border-radius:8px;padding:1.5rem;max-width:480px;width:90%;' +
+        'box-shadow:0 10px 40px rgba(0,0,0,0.3);animation:slideUp 0.3s ease;';
+      dialog.innerHTML = `
+        <h3 id="edit-field-modal-title" style="margin:0 0 0.5rem 0;font-size:1.25rem;font-weight:600;color:#1f2937;">
+          Edit Supplier — Select Field
+        </h3>
+        <p style="margin:0 0 1rem 0;color:#6b7280;font-size:0.875rem;line-height:1.5;">Choose the field you would like to edit:</p>
+        <div style="margin-bottom:1rem;">
+          <label for="edit-field-select" style="display:block;margin-bottom:0.5rem;font-weight:600;color:#374151;font-size:0.875rem;">Field</label>
+          <select id="edit-field-select" style="width:100%;padding:0.5rem 0.75rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.875rem;background:white;cursor:pointer;">
+            ${optionsHtml}
+          </select>
+        </div>
+        <div style="display:flex;gap:0.75rem;justify-content:flex-end;">
+          <button id="edit-field-cancel" style="padding:0.5rem 1rem;border:1px solid #d1d5db;background:white;color:#374151;border-radius:6px;cursor:pointer;font-size:0.875rem;font-weight:500;">Cancel</button>
+          <button id="edit-field-confirm" style="padding:0.5rem 1rem;border:none;background:#3b82f6;color:white;border-radius:6px;cursor:pointer;font-size:0.875rem;font-weight:500;">Confirm</button>
+        </div>
+      `;
+
+      overlay.appendChild(dialog);
+      document.body.appendChild(overlay);
+
+      // Restore scroll on close
+      const cleanup = () => {
+        overlay.remove();
+        document.body.style.overflow = originalOverflow;
+        document.body.style.paddingRight = originalPaddingRight;
+      };
+
+      // Auto-focus the select
+      setTimeout(() => {
+        const sel = dialog.querySelector('#edit-field-select');
+        if (sel) sel.focus();
+      }, 50);
+
+      dialog.querySelector('#edit-field-confirm').addEventListener('click', () => {
+        const key = dialog.querySelector('#edit-field-select').value;
+        cleanup();
+        resolve(EDITABLE_FIELDS.find(f => f.key === key) || null);
+      });
+
+      dialog.querySelector('#edit-field-cancel').addEventListener('click', () => {
+        cleanup();
+        resolve(null);
+      });
+
+      overlay.addEventListener('click', e => {
+        if (e.target === overlay) {
+          cleanup();
+          resolve(null);
+        }
+      });
+
+      // Escape key closes the modal
+      const onKeyDown = e => {
+        if (e.key === 'Escape') {
+          document.removeEventListener('keydown', onKeyDown);
+          cleanup();
+          resolve(null);
+        }
+      };
+      document.addEventListener('keydown', onKeyDown);
     });
 
-    if (!fieldResult.confirmed) {
-      return;
-    }
-
-    const matched = EDITABLE_FIELDS.find(
-      f => f.label.toLowerCase() === fieldResult.value.trim().toLowerCase()
-    );
     if (!matched) {
-      AdminShared.showToast(`Unknown field: "${fieldResult.value}"`, 'error');
       return;
     }
 
