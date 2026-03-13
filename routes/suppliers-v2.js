@@ -170,7 +170,7 @@ router.post(
       return res.status(400).json({ error: 'Invalid image' });
     }
     const photosGallery = s.photosGallery || [];
-    photosGallery.push({ url, approved: false, uploadedAt: Date.now() });
+    photosGallery.push({ url, approved: true, uploadedAt: Date.now() });
     await dbUnified.updateOne('suppliers', { id: req.params.id }, { $set: { photosGallery } });
     res.json({ ok: true, url });
   }

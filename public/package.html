@@ -50,9 +50,7 @@
         grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
         gap: 28px;
       }
-      .pkg-gallery-col {
-        grid-column: 1 / -1;
-      }
+      /* gallery stays in left column on desktop */
     }
     @media (min-width: 1024px) {
       .pkg-layout {
@@ -599,13 +597,12 @@
 
       <div id="package-content" style="display: none;">
         <div class="pkg-layout">
-          <!-- TOP: Gallery — full width across all columns -->
-          <div class="pkg-gallery-col">
-            <div id="package-gallery-container"></div>
-          </div>
-
-          <!-- BELOW LEFT: Package details column -->
+          <!-- LEFT: Package details column (includes gallery above header) -->
           <div class="pkg-details-col">
+            <!-- Gallery — sits inside left column on desktop -->
+            <div class="pkg-gallery-col">
+              <div id="package-gallery-container"></div>
+            </div>
             <!-- Package Header -->
             <div class="card" id="package-header-card">
               <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
@@ -750,10 +747,7 @@
         document.getElementById('breadcrumb-package').textContent = pkg.title;
 
         // Gallery
-        const rawGallery =
-          (pkg.gallery && pkg.gallery.length > 0)
-            ? pkg.gallery.filter(img => img.approved !== false)
-            : [];
+        const rawGallery = pkg.gallery || [];
         const galleryImages = rawGallery.length > 0 ? rawGallery : (pkg.image ? [{ url: pkg.image }] : []);
         if (galleryImages.length > 0 && typeof PackageGallery !== 'undefined') {
           new PackageGallery('package-gallery-container', galleryImages);

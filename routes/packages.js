@@ -276,7 +276,7 @@ router.post(
     if (!p.gallery) {
       p.gallery = [];
     }
-    p.gallery.push({ url, approved: false, uploadedAt: Date.now() });
+    p.gallery.push({ url, approved: true, uploadedAt: Date.now() });
     await dbUnified.updateOne('packages', { id: req.params.id }, { $set: { gallery: p.gallery } });
     res.json({ ok: true, url });
   }

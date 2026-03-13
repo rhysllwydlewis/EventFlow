@@ -1399,202 +1399,44 @@ router.post(
 );
 
 // ========================================
-// Photo Moderation Endpoints
+// Photo Moderation Endpoints (deprecated)
 // ========================================
 
 /**
  * GET /api/v2/admin/photos/pending
- * Get pending photos
+ * @deprecated Photos are now auto-approved on upload
  */
 router.get(
   '/photos/pending',
   authRequired,
   requirePermission(PERMISSIONS.PHOTOS_READ),
-  async (req, res) => {
-    try {
-      const pendingPhotos = [];
-
-      // Get pending supplier photos
-      const suppliers = await dbUnified.read('suppliers');
-      for (const supplier of suppliers) {
-        if (supplier.photosGallery) {
-          const pending = supplier.photosGallery
-            .filter(p => !p.approved)
-            .map(p => ({
-              ...p,
-              type: 'supplier',
-              supplierId: supplier.id,
-              supplierName: supplier.name,
-            }));
-          pendingPhotos.push(...pending);
-        }
-      }
-
-      // Get pending package photos
-      const packages = await dbUnified.read('packages');
-      for (const pkg of packages) {
-        if (pkg.gallery) {
-          const pending = pkg.gallery
-            .filter(p => !p.approved)
-            .map(p => ({
-              ...p,
-              type: 'package',
-              packageId: pkg.id,
-              packageTitle: pkg.title,
-            }));
-          pendingPhotos.push(...pending);
-        }
-      }
-
-      // Sort by upload time (newest first)
-      pendingPhotos.sort((a, b) => (b.uploadedAt || 0) - (a.uploadedAt || 0));
-
-      res.json({
-        success: true,
-        data: pendingPhotos,
-        count: pendingPhotos.length,
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error) {
-      logger.error('Failed to get pending photos', { error: error.message });
-      res.status(500).json({
-        success: false,
-        error: error.message,
-        code: 'GET_PENDING_PHOTOS_FAILED',
-        timestamp: new Date().toISOString(),
-      });
-    }
+  (req, res) => {
+    res.json({
+      success: true,
+      data: [],
+      count: 0,
+      message: 'Photo approval is no longer required. Photos are auto-approved on upload.',
+      timestamp: new Date().toISOString(),
+    });
   }
 );
 
 /**
  * POST /api/v2/admin/photos/batch-action
- * Bulk approve/reject photos
+ * @deprecated Photos are now auto-approved on upload
  */
 router.post(
   '/photos/batch-action',
   authRequired,
   requirePermission(PERMISSIONS.PHOTOS_APPROVE),
   csrfProtection,
-  async (req, res) => {
-    try {
-      const { action, photos } = req.body;
-
-      if (!action || !Array.isArray(photos) || photos.length === 0) {
-        return res.status(400).json({
-          success: false,
-          error: 'Action and photos array are required',
-          code: 'INVALID_INPUT',
-          timestamp: new Date().toISOString(),
-        });
-      }
-
-      // Limit batch size to prevent overload
-      const MAX_BATCH_SIZE = 100;
-      if (photos.length > MAX_BATCH_SIZE) {
-        return res.status(400).json({
-          success: false,
-          error: `Batch size cannot exceed ${MAX_BATCH_SIZE} items`,
-          code: 'BATCH_SIZE_EXCEEDED',
-          timestamp: new Date().toISOString(),
-        });
-      }
-
-      if (!['approve', 'reject'].includes(action)) {
-        return res.status(400).json({
-          success: false,
-          error: 'Action must be approve or reject',
-          code: 'INVALID_ACTION',
-          timestamp: new Date().toISOString(),
-        });
-      }
-
-      const results = {
-        processed: 0,
-        failed: 0,
-        errors: [],
-      };
-
-      for (const photo of photos) {
-        try {
-          if (photo.type === 'supplier') {
-            const suppliers = await dbUnified.read('suppliers');
-            const supplier = suppliers.find(s => s.id === photo.supplierId);
-
-            if (supplier && supplier.photosGallery) {
-              const photoObj = supplier.photosGallery.find(p => p.url === photo.url);
-              if (photoObj) {
-                photoObj.approved = action === 'approve';
-                photoObj.approvedAt = Date.now();
-                photoObj.approvedBy = req.user.id;
-                await dbUnified.updateOne(
-                  'suppliers',
-                  { id: supplier.id },
-                  { $set: { photosGallery: supplier.photosGallery } }
-                );
-                results.processed++;
-              }
-            }
-          } else if (photo.type === 'package') {
-            const packages = await dbUnified.read('packages');
-            const pkg = packages.find(p => p.id === photo.packageId);
-
-            if (pkg && pkg.gallery) {
-              const photoObj = pkg.gallery.find(p => p.url === photo.url);
-              if (photoObj) {
-                photoObj.approved = action === 'approve';
-                photoObj.approvedAt = Date.now();
-                photoObj.approvedBy = req.user.id;
-                await dbUnified.updateOne(
-                  'packages',
-                  { id: pkg.id },
-                  { $set: { gallery: pkg.gallery } }
-                );
-                results.processed++;
-              }
-            }
-          }
-        } catch (error) {
-          results.failed++;
-          results.errors.push({ photo: photo.url, error: error.message });
-        }
-      }
-
-      // Create audit log
-      await createAuditLog({
-        actor: {
-          id: req.user.id,
-          email: req.user.email,
-          role: req.user.role,
-        },
-        action: action === 'approve' ? 'PHOTOS_BATCH_APPROVED' : 'PHOTOS_BATCH_REJECTED',
-        resource: {
-          type: 'photo',
-          id: 'batch',
-        },
-        details: {
-          count: results.processed,
-          action,
-        },
-        ipAddress: req.ip,
-        userAgent: req.get('user-agent'),
-      });
-
-      res.json({
-        success: true,
-        data: results,
-        message: `${results.processed} photo(s) ${action}d successfully`,
-        timestamp: new Date().toISOString(),
-      });
-    } catch (error) {
-      logger.error('Batch photo action failed', { error: error.message });
-      res.status(500).json({
-        success: false,
-        error: error.message,
-        code: 'BATCH_PHOTO_ACTION_FAILED',
-        timestamp: new Date().toISOString(),
-      });
-    }
+  (req, res) => {
+    res.json({
+      success: true,
+      data: { processed: 0, failed: 0, errors: [] },
+      message: 'Photo approval is no longer required. Photos are auto-approved on upload.',
+      timestamp: new Date().toISOString(),
+    });
   }
 );
 

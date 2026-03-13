@@ -149,15 +149,15 @@ The owner account (`admin@event-flow.co.uk`) has special protections:
 
 ### 4. Photo Moderation
 
-**Access:** Click "Review Photos" from admin dashboard or navigate to `/admin-photos.html`
+Photos are now **auto-approved on upload** — the manual approval workflow has been removed. All photos uploaded by suppliers are immediately visible to users without requiring admin action.
+
+**Access:** Navigate to `/admin-photos` to browse uploaded photos by supplier.
 
 **Features:**
 
-- View all pending photos in grid layout
-- Approve or reject individual photos
-- Batch operations for multiple photos
-- Filter by status (pending, approved, rejected)
-- Search by supplier name
+- View all uploaded photos in grid layout
+- Filter by supplier name
+- Photos are automatically approved when uploaded
 
 ### 5. Review Moderation
 

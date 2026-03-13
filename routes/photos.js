@@ -455,7 +455,7 @@ router.post(
         thumbnail: images.thumbnail,
         large: images.large,
         original: images.original,
-        approved: false, // Requires admin approval
+        approved: true,
         uploadedAt: Date.now(),
         uploadedBy: req.user.id,
         metadata: metadata,
@@ -490,7 +490,7 @@ router.post(
         return res.json({
           success: true,
           photo: photoRecord,
-          message: 'Photo uploaded successfully. Pending admin approval.',
+          message: 'Photo uploaded successfully.',
         });
       } else if (type === 'package') {
         const packages = await dbUnified.read('packages');
@@ -519,7 +519,7 @@ router.post(
         return res.json({
           success: true,
           photo: photoRecord,
-          message: 'Photo uploaded successfully. Pending admin approval.',
+          message: 'Photo uploaded successfully.',
         });
       } else {
         return res
@@ -689,7 +689,7 @@ router.post(
             thumbnail: images.thumbnail,
             large: images.large,
             original: images.original,
-            approved: false,
+            approved: true,
             uploadedAt: Date.now(),
             uploadedBy: req.user.id,
             metadata: metadata,
@@ -837,7 +837,7 @@ router.post(
         uploaded: uploadedPhotos.length,
         photos: uploadedPhotos,
         errors: errors,
-        message: `${uploadedPhotos.length} photo(s) uploaded successfully. Pending admin approval.`,
+        message: `${uploadedPhotos.length} photo(s) uploaded successfully.`,
       });
     } catch (error) {
       // Enhanced error logging for batch uploads
@@ -935,75 +935,16 @@ router.delete('/photos/delete', applyAuthRequired, applyCsrfProtection, async (r
 });
 
 /**
- * Approve photo (admin only)
+ * Approve photo (deprecated — photos are now auto-approved on upload)
  * POST /api/photos/approve
- * Body: { type, id, photoUrl, approved }
  */
 router.post(
   '/photos/approve',
   applyAuthRequired,
   applyRoleRequired('admin'),
   applyCsrfProtection,
-  async (req, res) => {
-    try {
-      const { type, id, photoUrl, approved } = req.body;
-
-      if (!type || !id || !photoUrl || typeof approved !== 'boolean') {
-        return res.status(400).json({ error: 'Missing required parameters' });
-      }
-
-      if (type === 'supplier') {
-        const suppliers = await dbUnified.read('suppliers');
-        const supplier = suppliers.find(s => s.id === id);
-
-        if (!supplier) {
-          return res.status(404).json({ error: 'Supplier not found' });
-        }
-
-        if (supplier.photosGallery) {
-          const photo = supplier.photosGallery.find(p => p.url === photoUrl);
-          if (photo) {
-            photo.approved = approved;
-            photo.approvedAt = Date.now();
-            photo.approvedBy = req.user.id;
-            await dbUnified.updateOne(
-              'suppliers',
-              { id: supplier.id },
-              { $set: { photosGallery: supplier.photosGallery } }
-            );
-          }
-        }
-      } else if (type === 'package') {
-        const packages = await dbUnified.read('packages');
-        const pkg = packages.find(p => p.id === id);
-
-        if (!pkg) {
-          return res.status(404).json({ error: 'Package not found' });
-        }
-
-        if (pkg.gallery) {
-          const photo = pkg.gallery.find(p => p.url === photoUrl);
-          if (photo) {
-            photo.approved = approved;
-            photo.approvedAt = Date.now();
-            photo.approvedBy = req.user.id;
-            await dbUnified.updateOne(
-              'packages',
-              { id: pkg.id },
-              { $set: { gallery: pkg.gallery } }
-            );
-          }
-        }
-      }
-
-      res.json({
-        success: true,
-        message: approved ? 'Photo approved' : 'Photo rejected',
-      });
-    } catch (error) {
-      logger.error('Approve photo error:', error);
-      res.status(500).json({ error: 'Failed to approve photo', details: error.message });
-    }
+  (req, res) => {
+    res.json({ success: true, message: 'Photo approval is no longer required. Photos are auto-approved on upload.' });
   }
 );
 
@@ -1039,58 +980,11 @@ router.post('/photos/crop', applyAuthRequired, applyCsrfProtection, async (req, 
 });
 
 /**
- * Get pending photos for moderation (admin only)
+ * Get pending photos for moderation (deprecated — photos are now auto-approved on upload)
  * GET /api/photos/pending
  */
-router.get('/photos/pending', applyAuthRequired, applyRoleRequired('admin'), async (req, res) => {
-  try {
-    const pendingPhotos = [];
-
-    // Get pending supplier photos
-    const suppliers = await dbUnified.read('suppliers');
-    for (const supplier of suppliers) {
-      if (supplier.photosGallery) {
-        const pending = supplier.photosGallery
-          .filter(p => !p.approved)
-          .map(p => ({
-            ...p,
-            type: 'supplier',
-            supplierId: supplier.id,
-            supplierName: supplier.name,
-          }));
-        pendingPhotos.push(...pending);
-      }
-    }
-
-    // Get pending package photos
-    const packages = await dbUnified.read('packages');
-    for (const pkg of packages) {
-      if (pkg.gallery) {
-        const pending = pkg.gallery
-          .filter(p => !p.approved)
-          .map(p => ({
-            ...p,
-            type: 'package',
-            packageId: pkg.id,
-            packageTitle: pkg.title,
-            supplierId: pkg.supplierId,
-          }));
-        pendingPhotos.push(...pending);
-      }
-    }
-
-    // Sort by upload time (newest first)
-    pendingPhotos.sort((a, b) => b.uploadedAt - a.uploadedAt);
-
-    res.json({
-      success: true,
-      count: pendingPhotos.length,
-      photos: pendingPhotos,
-    });
-  } catch (error) {
-    logger.error('Get pending photos error:', error);
-    res.status(500).json({ error: 'Failed to get pending photos', details: error.message });
-  }
+router.get('/photos/pending', apiLimiter, applyAuthRequired, applyRoleRequired('admin'), (req, res) => {
+  res.json({ success: true, count: 0, photos: [], message: 'Photo approval is no longer required. Photos are auto-approved on upload.' });
 });
 
 /**

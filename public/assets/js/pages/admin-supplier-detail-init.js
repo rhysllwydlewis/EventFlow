@@ -290,14 +290,7 @@
         <div class="photo-item">
           <img src="${photo.url}" alt="Photo">
           <div class="photo-actions">
-            ${
-              !photo.approved
-                ? `
-              <button class="btn btn-small btn-success" data-action="approvePhoto" data-id="${photo.id}">Approve</button>
-              <button class="btn btn-small btn-danger" data-action="rejectPhoto" data-id="${photo.id}">Reject</button>
-            `
-                : `<button class="btn btn-small btn-danger" data-action="deletePhoto" data-id="${photo.id}">Delete</button>`
-            }
+            <button class="btn btn-small btn-danger" data-action="deletePhoto" data-id="${photo.id}">Delete</button>
           </div>
         </div>
       `
