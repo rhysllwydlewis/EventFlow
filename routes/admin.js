@@ -687,7 +687,9 @@ router.post('/suppliers/:id/approve', authRequired, roleRequired('admin'), csrfP
       const now = new Date().toISOString();
       const updates = {
         approved,
-        verifiedAt: approved ? (all[i].verifiedAt || now) : all[i].verifiedAt,
+        // Record when first approved; preserve existing timestamp on re-approval.
+        // Do not clear verifiedAt on unapproval — the record of previous approval is retained.
+        ...(approved ? { verifiedAt: all[i].verifiedAt || now } : {}),
         ...(notes ? { verificationNotes: notes } : {}),
       };
       await dbUnified.updateOne('suppliers', { id: req.params.id }, { $set: updates });

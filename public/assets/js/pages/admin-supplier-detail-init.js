@@ -476,7 +476,6 @@
       { key: 'description_short', label: 'Short Description' },
     ];
 
-    const currentField = EDITABLE_FIELDS[0];
     const fieldList = EDITABLE_FIELDS.map(f => `• ${f.label}`).join('\n');
 
     const fieldResult = await AdminShared.showInputModal({
@@ -504,7 +503,7 @@
       title: `Edit — ${matched.label}`,
       message: `Enter a new value for "${matched.label}":`,
       label: matched.label,
-      initialValue: AdminShared.escapeHtml(String(supplierData[matched.key] || '')),
+      initialValue: String(supplierData[matched.key] || ''),
       placeholder: `New ${matched.label}`,
       required: false,
       type: matched.key === 'description_short' ? 'textarea' : 'text',
