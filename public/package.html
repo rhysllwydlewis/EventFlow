@@ -37,27 +37,41 @@
 
     /* ── Package detail page visual polish ─────────────────────── */
 
-    /* Two-column layout on desktop: gallery left (60%), info right (40%) */
+    /* Gallery row: full-width at the top; below it: details left + sidebar right */
     .pkg-layout {
       display: grid;
       grid-template-columns: 1fr;
-      gap: 32px;
+      gap: 28px;
       align-items: start;
     }
     @media (min-width: 768px) {
       .pkg-layout {
-        grid-template-columns: 3fr 2fr;
+        grid-template-columns: 2fr 1fr;
+      }
+      /* Gallery spans all columns */
+      .pkg-gallery-col {
+        grid-column: 1 / -1;
       }
     }
 
-    /* Gallery column */
-    .pkg-gallery-col {}
-
-    /* Info column: header card + description stacked */
-    .pkg-info-col {
+    /* Details column: header card + description stacked */
+    .pkg-details-col {
       display: flex;
       flex-direction: column;
       gap: 24px;
+    }
+
+    /* Sidebar column: supplier card + message panel */
+    .pkg-sidebar-col {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    @media (min-width: 768px) {
+      .pkg-sidebar-col {
+        position: sticky;
+        top: 88px; /* below fixed navbar */
+      }
     }
 
     /* Override generic card hover lift on detail page content cards */
@@ -97,7 +111,7 @@
       line-height: 1.8;
     }
 
-    /* Tags — pill style */
+    /* Tags — pill style with hover animation */
     #package-tags .pkg-tag {
       background: var(--color-bg-secondary, #f0fdf9);
       color: #0b8073;
@@ -106,12 +120,13 @@
       border-radius: 20px;
       font-size: 0.8rem;
       font-weight: 500;
-      transition: background 0.15s, border-color 0.15s;
+      transition: background 0.15s, border-color 0.15s, transform 0.15s;
       display: inline-block;
     }
     #package-tags .pkg-tag:hover {
       background: #d1faf2;
       border-color: #0b8073;
+      transform: translateY(-2px);
     }
 
     /* Category pill links */
@@ -152,6 +167,13 @@
       border-radius: 20px;
       font-size: 0.85rem;
       font-weight: 500;
+    }
+
+    /* Supplier sidebar card — prominent shadow + rounded corners */
+    #supplier-card-container .card,
+    #supplier-card-container > * {
+      border-radius: 12px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
     }
   </style>
 </head>
@@ -284,14 +306,13 @@
 
       <div id="package-content" style="display: none;">
         <div class="pkg-layout">
-          <!-- LEFT: Gallery column -->
+          <!-- TOP: Gallery — full width across all columns -->
           <div class="pkg-gallery-col">
-            <!-- Gallery Section -->
             <div id="package-gallery-container"></div>
           </div>
 
-          <!-- RIGHT: Info column -->
-          <div class="pkg-info-col">
+          <!-- BELOW LEFT: Package details column -->
+          <div class="pkg-details-col">
             <!-- Package Header -->
             <div class="card" id="package-header-card">
               <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 16px;">
@@ -326,7 +347,10 @@
               <h2 style="margin-top: 0;">What's included</h2>
               <div id="package-event-types" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
             </div>
+          </div>
 
+          <!-- BELOW RIGHT: Supplier sidebar -->
+          <div class="pkg-sidebar-col">
             <!-- Supplier Card -->
             <div id="supplier-card-container"></div>
 

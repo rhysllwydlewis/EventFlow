@@ -30,14 +30,13 @@ class PackageGallery {
       .package-gallery {
         position: relative;
         width: 100%;
-        max-width: 800px;
-        margin: 0 auto;
       }
 
       .package-gallery-main {
         position: relative;
         width: 100%;
-        height: 500px;
+        aspect-ratio: 16 / 7;
+        min-height: 320px;
         border-radius: 12px;
         overflow: hidden;
         background-color: #f8f9fa;
@@ -122,18 +121,20 @@ class PackageGallery {
       }
 
       .package-gallery-thumbnail {
-        width: 100px;
-        height: 80px;
+        width: 120px;
+        height: 90px;
         object-fit: cover;
         border-radius: 8px;
         cursor: pointer;
         border: 2px solid transparent;
-        transition: border-color 0.2s ease, opacity 0.2s ease;
+        transition: border-color 0.2s ease, opacity 0.2s ease, transform 0.15s ease;
         flex-shrink: 0;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
       }
 
       .package-gallery-thumbnail:hover {
-        opacity: 0.8;
+        opacity: 0.85;
+        transform: translateY(-2px);
       }
 
       .package-gallery-thumbnail.active {
@@ -142,13 +143,21 @@ class PackageGallery {
 
       .package-gallery-empty {
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
-        height: 500px;
-        background-color: var(--color-bg-secondary, #f8f9fa);
+        gap: 12px;
+        aspect-ratio: 16 / 7;
+        min-height: 320px;
+        background: linear-gradient(135deg, #f0fdf9 0%, #e6f7f5 100%);
         border-radius: 12px;
+        border: 2px dashed #a7f3e4;
         color: var(--color-text-secondary, #6c757d);
-        font-size: 1.1rem;
+        font-size: 1rem;
+      }
+      .package-gallery-empty-icon {
+        font-size: 2.5rem;
+        opacity: 0.45;
       }
 
       @keyframes fadeIn {
@@ -157,8 +166,10 @@ class PackageGallery {
       }
 
       @media (max-width: 768px) {
-        .package-gallery-main {
-          height: 300px;
+        .package-gallery-main,
+        .package-gallery-empty {
+          aspect-ratio: 4 / 3;
+          min-height: 220px;
         }
 
         .package-gallery-nav {
@@ -212,8 +223,9 @@ class PackageGallery {
   render() {
     if (!this.images || this.images.length === 0) {
       this.container.innerHTML = `
-        <div class="package-gallery-empty">
-          No images available
+        <div class="package-gallery-empty" role="img" aria-label="No images available">
+          <span class="package-gallery-empty-icon" aria-hidden="true">🖼️</span>
+          <span>No images available</span>
         </div>
       `;
       return;
@@ -261,7 +273,8 @@ class PackageGallery {
       image.onerror = () => {
         console.warn(`Failed to load gallery image: ${image.src}`);
         // Only try to fallback if we're not already showing the placeholder
-        if (image.src !== PLACEHOLDER_IMAGE && !image.src.includes('placeholder')) {
+        // Use endsWith because browser resolves relative paths to absolute URLs
+        if (!image.src.endsWith(PLACEHOLDER_IMAGE) && !image.src.includes('placeholder')) {
           image.src = PLACEHOLDER_IMAGE;
           image.alt = 'Image failed to load - placeholder shown';
         }
@@ -324,8 +337,8 @@ class PackageGallery {
         // Add error handling for thumbnail loading
         thumb.onerror = () => {
           console.warn(`Failed to load thumbnail: ${thumb.src}`);
-          // Only try to fallback if we're not already showing the placeholder
-          if (thumb.src !== PLACEHOLDER_IMAGE && !thumb.src.includes('placeholder')) {
+          // Use endsWith because browser resolves relative paths to absolute URLs
+          if (!thumb.src.endsWith(PLACEHOLDER_IMAGE) && !thumb.src.includes('placeholder')) {
             thumb.src = PLACEHOLDER_IMAGE;
           }
         };
