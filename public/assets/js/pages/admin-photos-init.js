@@ -32,8 +32,9 @@
     AdminShared.showToast(message, type);
   }
 
-  function showConfirmModal(message, onConfirm) {
-    AdminShared.showConfirmModal(message, onConfirm);
+  async function showConfirmModal(message) {
+    const result = await AdminShared.showConfirmModal({ title: 'Confirm', message });
+    return result && result.confirmed;
   }
 
   async function loadPhotos() {
@@ -81,10 +82,8 @@
    */
   window.approvePhoto = async function approvePhoto(photoId) {
     try {
-      const csrfToken = await AdminShared.getCsrfToken();
       await AdminShared.adminFetch(`/api/admin/photos/${encodeURIComponent(photoId)}/approve`, {
         method: 'POST',
-        headers: { 'X-CSRF-Token': csrfToken },
       });
       showToast('Photo approved', 'success');
       await loadPhotos();
@@ -100,21 +99,21 @@
    * @param {string} [reason] - Optional rejection reason
    */
   window.rejectPhoto = async function rejectPhoto(photoId, reason) {
-    showConfirmModal('Are you sure you want to reject this photo?', async () => {
-      try {
-        const csrfToken = await AdminShared.getCsrfToken();
-        await AdminShared.adminFetch(`/api/admin/photos/${encodeURIComponent(photoId)}/reject`, {
-          method: 'POST',
-          headers: { 'X-CSRF-Token': csrfToken },
-          body: JSON.stringify({ rejectionReason: reason || '' }),
-        });
-        showToast('Photo rejected', 'success');
-        await loadPhotos();
-      } catch (err) {
-        console.error('Error rejecting photo:', err);
-        showToast('Failed to reject photo', 'error');
-      }
-    });
+    const confirmed = await showConfirmModal('Are you sure you want to reject this photo?');
+    if (!confirmed) {
+      return;
+    }
+    try {
+      await AdminShared.adminFetch(`/api/admin/photos/${encodeURIComponent(photoId)}/reject`, {
+        method: 'POST',
+        body: { rejectionReason: reason || '' },
+      });
+      showToast('Photo rejected', 'success');
+      await loadPhotos();
+    } catch (err) {
+      console.error('Error rejecting photo:', err);
+      showToast('Failed to reject photo', 'error');
+    }
   };
 
   // Batch reject handler — calls /reject endpoint for each selected photo
@@ -125,24 +124,24 @@
         showToast('No photos selected', 'warning');
         return;
       }
-      showConfirmModal(`Reject ${ids.length} photo(s)?`, async () => {
-        try {
-          const csrf = await AdminShared.getCsrfToken();
-          // Call the /reject endpoint for each selected photo
-          for (const id of ids) {
-            await AdminShared.adminFetch(`/api/admin/photos/${id}/reject`, {
-              method: 'POST',
-              headers: { 'X-CSRF-Token': csrf },
-              body: JSON.stringify({ rejectionReason: '' }),
-            });
-          }
-          showToast(`${ids.length} photo(s) rejected`, 'success');
-          await loadPhotos();
-        } catch (err) {
-          console.error('Error batch rejecting:', err);
-          showToast('Failed to reject photos', 'error');
+      const confirmed = await showConfirmModal(`Reject ${ids.length} photo(s)?`);
+      if (!confirmed) {
+        return;
+      }
+      try {
+        // Call the /reject endpoint for each selected photo
+        for (const id of ids) {
+          await AdminShared.adminFetch(`/api/admin/photos/${id}/reject`, {
+            method: 'POST',
+            body: { rejectionReason: '' },
+          });
         }
-      });
+        showToast(`${ids.length} photo(s) rejected`, 'success');
+        await loadPhotos();
+      } catch (err) {
+        console.error('Error batch rejecting:', err);
+        showToast('Failed to reject photos', 'error');
+      }
     });
   }
 
@@ -154,25 +153,22 @@
         showToast('No photos selected', 'warning');
         return;
       }
-      showConfirmModal(`Approve ${selectedIds.length} photo(s)?`, async () => {
-        try {
-          const csrfToken = await AdminShared.getCsrfToken();
-          for (const photoId of selectedIds) {
-            await AdminShared.adminFetch(
-              `/api/admin/photos/${encodeURIComponent(photoId)}/approve`,
-              {
-                method: 'POST',
-                headers: { 'X-CSRF-Token': csrfToken },
-              }
-            );
-          }
-          showToast('Photos approved', 'success');
-          await loadPhotos();
-        } catch (err) {
-          console.error('Error batch approving photos:', err);
-          showToast('Failed to approve photos', 'error');
+      const confirmed = await showConfirmModal(`Approve ${selectedIds.length} photo(s)?`);
+      if (!confirmed) {
+        return;
+      }
+      try {
+        for (const photoId of selectedIds) {
+          await AdminShared.adminFetch(`/api/admin/photos/${encodeURIComponent(photoId)}/approve`, {
+            method: 'POST',
+          });
         }
-      });
+        showToast('Photos approved', 'success');
+        await loadPhotos();
+      } catch (err) {
+        console.error('Error batch approving photos:', err);
+        showToast('Failed to approve photos', 'error');
+      }
     });
   }
 

@@ -173,7 +173,7 @@ router.post(
       return res.status(503).json({ error: 'Photo storage unavailable', details: e.message });
     }
     const photosGallery = s.photosGallery || [];
-    photosGallery.push({ url, approved: true, uploadedAt: Date.now() });
+    photosGallery.push({ url, approved: true, uploadedAt: new Date().toISOString() });
     await dbUnified.updateOne('suppliers', { id: req.params.id }, { $set: { photosGallery } });
     res.json({ ok: true, url });
   }

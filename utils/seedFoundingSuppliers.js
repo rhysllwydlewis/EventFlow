@@ -556,7 +556,7 @@ async function seedFoundingSuppliers() {
         const photosGallery = photos.map(url => ({
           url,
           approved: true,
-          uploadedAt: Date.now(),
+          uploadedAt: new Date().toISOString(),
         }));
 
         // Create supplier with complete data
@@ -666,7 +666,7 @@ async function seedFoundingSuppliers() {
       const photosGallery = photos.map(url => ({
         url,
         approved: true,
-        uploadedAt: Date.now(),
+        uploadedAt: new Date().toISOString(),
       }));
 
       const supplier = {

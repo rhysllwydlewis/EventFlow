@@ -767,7 +767,7 @@ router.post(
       }
 
       let score = 40;
-      if (Array.isArray(s.photos) && s.photos.length) {
+      if (Array.isArray(s.photosGallery) && s.photosGallery.length) {
         score += 20;
       }
       if ((s.description_short || '').length > 40) {

@@ -1607,7 +1607,7 @@ router.post(
           suppliers[supplierIndex].photosGallery.push({
             url: photo.url,
             approved: true,
-            uploadedAt: photo.uploadedAt || Date.now(),
+            uploadedAt: photo.uploadedAt || new Date().toISOString(),
           });
           await dbUnified.updateOne(
             'suppliers',
@@ -1709,6 +1709,12 @@ router.post(
         return res.status(400).json({ error: 'photoIds must be a non-empty array' });
       }
 
+      if (photoIds.length > BATCH_PHOTO_LIMIT) {
+        return res
+          .status(400)
+          .json({ error: `Batch size cannot exceed ${BATCH_PHOTO_LIMIT} photos` });
+      }
+
       if (action !== 'approve' && action !== 'reject') {
         return res.status(400).json({ error: 'action must be approve or reject' });
       }
@@ -1746,7 +1752,7 @@ router.post(
                 suppliers[supplierIndex].photosGallery.push({
                   url: photo.url,
                   approved: true,
-                  uploadedAt: photo.uploadedAt || Date.now(),
+                  uploadedAt: photo.uploadedAt || new Date().toISOString(),
                 });
                 await dbUnified.updateOne(
                   'suppliers',

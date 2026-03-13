@@ -1642,7 +1642,7 @@
                   hasProfile = suppliers.length > 0;
                   if (hasProfile && suppliers[0]) {
                     const supplier = suppliers[0];
-                    hasPhotos = supplier.photos && supplier.photos.length >= 5;
+                    hasPhotos = supplier.photosGallery && supplier.photosGallery.length >= 5;
                     hasBanner = !!supplier.bannerUrl;
                     hasTagline = !!supplier.tagline;
                     hasHighlights = supplier.highlights && supplier.highlights.length >= 3;

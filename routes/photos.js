@@ -456,7 +456,7 @@ router.post(
         large: images.large,
         original: images.original,
         approved: true,
-        uploadedAt: Date.now(),
+        uploadedAt: new Date().toISOString(),
         uploadedBy: req.user.id,
         metadata: metadata,
       };
@@ -690,7 +690,7 @@ router.post(
             large: images.large,
             original: images.original,
             approved: true,
-            uploadedAt: Date.now(),
+            uploadedAt: new Date().toISOString(),
             uploadedBy: req.user.id,
             metadata: metadata,
           };
@@ -1257,7 +1257,7 @@ router.post(
         suppliers[supplierIndex].photosGallery.push({
           url: photo.url,
           approved: true,
-          uploadedAt: photo.uploadedAt || Date.now(),
+          uploadedAt: photo.uploadedAt || new Date().toISOString(),
         });
         await dbUnified.updateOne(
           'suppliers',
