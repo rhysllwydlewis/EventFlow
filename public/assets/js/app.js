@@ -3957,25 +3957,6 @@ async function initAdmin() {
   }
 }
 
-// Simple HTML escape for safe admin rendering
-function efEscapeHtml(str) {
-  return String(str || '').replace(/[&<>"']/g, c => {
-    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-  });
-}
-
-// Simple date formatter for admin tables
-function efFormatDate(dateStr) {
-  if (!dateStr) {
-    return '';
-  }
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) {
-    return '';
-  }
-  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-}
-
 document.addEventListener('DOMContentLoaded', () => {
   const page =
     window.__EF_PAGE__ ||
