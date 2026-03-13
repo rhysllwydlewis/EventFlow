@@ -168,6 +168,16 @@
         <option value="pro">Pro</option>
         <option value="pro_plus">Pro+</option>
       </select>
+      <label for="verificationFilter" class="sr-only">Filter by verification status</label>
+      <select id="verificationFilter" class="filter-select" aria-label="Filter by verification status" style="padding: 10px 16px; border: 1px solid #e5e7eb; border-radius: 8px;">
+        <option value="all">All Verification</option>
+        <option value="unverified">Unverified</option>
+        <option value="pending_review">Pending Review</option>
+        <option value="needs_changes">Needs Changes</option>
+        <option value="approved">Approved</option>
+        <option value="rejected">Rejected</option>
+        <option value="suspended">Suspended</option>
+      </select>
       <button id="clearFiltersBtn" class="btn-sm">Clear Filters</button>
     </div>
   </div>
@@ -202,7 +212,7 @@
         </thead>
         <tbody id="suppliersTableBody">
           <tr>
-            <td colspan="8" style="text-align: center; padding: 40px; color: #9ca3af;">Loading suppliers...</td>
+            <td colspan="9" style="text-align: center; padding: 40px; color: #9ca3af;">Loading suppliers...</td>
           </tr>
         </tbody>
       </table>

@@ -88,6 +88,25 @@ function applyCsrfProtection(req, res, next) {
 }
 
 /**
+ * Sanitise free-text input: trim, strip HTML tags, and enforce max length.
+ * @param {string} input
+ * @param {number} [maxLength=2000]
+ * @returns {string}
+ */
+function sanitiseText(input, maxLength = 2000) {
+  if (typeof input !== 'string') {
+    return '';
+  }
+  let text = input;
+  let prev;
+  do {
+    prev = text;
+    text = text.replace(/<[^>]*>/g, '');
+  } while (text !== prev);
+  return text.trim().slice(0, maxLength);
+}
+
+/**
  * Send a verification status notification email to the supplier.
  * Errors are caught and logged — they must never break the API response.
  *
@@ -272,7 +291,7 @@ router.post(
         verificationStatus: VERIFICATION_STATES.APPROVED,
         verifiedAt: now,
         verifiedBy: req.user.id,
-        verificationNotes: (req.body && req.body.notes) || s.verificationNotes || '',
+        verificationNotes: sanitiseText((req.body && req.body.notes) || s.verificationNotes || ''),
         updatedAt: now,
       };
 
@@ -322,7 +341,7 @@ router.post(
         return res.status(409).json({ error: check.reason });
       }
 
-      const reason = (req.body && req.body.reason) || '';
+      const reason = sanitiseText((req.body && req.body.reason) || '');
       if (!reason) {
         return res.status(400).json({ error: 'A rejection reason is required' });
       }
@@ -387,7 +406,7 @@ router.post(
         return res.status(409).json({ error: check.reason });
       }
 
-      const reason = (req.body && req.body.reason) || '';
+      const reason = sanitiseText((req.body && req.body.reason) || '');
       if (!reason) {
         return res.status(400).json({ error: 'A reason for requesting changes is required' });
       }
@@ -449,7 +468,7 @@ router.post(
         return res.status(409).json({ error: check.reason });
       }
 
-      const reason = (req.body && req.body.reason) || '';
+      const reason = sanitiseText((req.body && req.body.reason) || '');
       if (!reason) {
         return res.status(400).json({ error: 'A suspension reason is required' });
       }
@@ -660,12 +679,8 @@ router.put(
         supplierUpdates[field] = req.body[field];
       }
     }
-    if (typeof req.body.approved === 'boolean') {
-      supplierUpdates.approved = req.body.approved;
-    }
-    if (typeof req.body.verified === 'boolean') {
-      supplierUpdates.verified = req.body.verified;
-    }
+    // Note: verified and approved are managed by the verification state machine endpoints
+    // (approve, reject, request-changes, suspend). They cannot be set directly here.
 
     supplierUpdates.updatedAt = now;
 

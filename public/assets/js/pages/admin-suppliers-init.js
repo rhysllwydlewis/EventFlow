@@ -162,7 +162,10 @@
   // Update statistics
   function updateStats() {
     const total = allSuppliers.length;
-    const pending = allSuppliers.filter(s => !s.approved).length;
+    const pending = allSuppliers.filter(s => {
+      const vs = s.verificationStatus || (s.verified ? 'approved' : 'unverified');
+      return vs === 'pending_review' || vs === 'unverified';
+    }).length;
     const pro = allSuppliers.filter(s => s.subscription?.tier === 'pro_plus').length;
     const avgScore = allSuppliers.reduce((sum, s) => sum + (s.healthScore || 0), 0) / total || 0;
 
@@ -180,6 +183,7 @@
     // Filters
     document.getElementById('approvalFilter')?.addEventListener('change', handleFilters);
     document.getElementById('subscriptionFilter')?.addEventListener('change', handleFilters);
+    document.getElementById('verificationFilter')?.addEventListener('change', handleFilters);
     document.getElementById('clearFiltersBtn')?.addEventListener('click', clearFilters);
 
     // Bulk actions
@@ -207,6 +211,7 @@
     const search = document.getElementById('searchInput')?.value.toLowerCase() || '';
     const approval = document.getElementById('approvalFilter')?.value || 'all';
     const subscription = document.getElementById('subscriptionFilter')?.value || 'all';
+    const verification = document.getElementById('verificationFilter')?.value || 'all';
 
     filteredSuppliers = allSuppliers.filter(supplier => {
       const matchesSearch =
@@ -216,13 +221,20 @@
       const matchesApproval =
         approval === 'all' ||
         (approval === 'approved' && supplier.approved) ||
-        (approval === 'pending' && !supplier.approved && !supplier.rejected) ||
-        (approval === 'rejected' && supplier.rejected);
+        (approval === 'pending' &&
+          !supplier.approved &&
+          supplier.verificationStatus !== 'rejected') ||
+        (approval === 'rejected' &&
+          (supplier.rejected || supplier.verificationStatus === 'rejected'));
 
       const matchesSubscription =
         subscription === 'all' || supplier.subscription?.tier === subscription;
 
-      return matchesSearch && matchesApproval && matchesSubscription;
+      const supplierVerification =
+        supplier.verificationStatus || (supplier.verified ? 'approved' : 'unverified');
+      const matchesVerification = verification === 'all' || supplierVerification === verification;
+
+      return matchesSearch && matchesApproval && matchesSubscription && matchesVerification;
     });
 
     currentPage = 1;
@@ -234,6 +246,7 @@
     document.getElementById('searchInput').value = '';
     document.getElementById('approvalFilter').value = 'all';
     document.getElementById('subscriptionFilter').value = 'all';
+    document.getElementById('verificationFilter').value = 'all';
     handleFilters();
   }
 
@@ -542,13 +555,24 @@
 
   // Helper: Convert to CSV
   function convertToCSV(data) {
-    const headers = ['Name', 'Email', 'Approved', 'Subscription', 'Score', 'Tags'];
+    const headers = [
+      'Name',
+      'Email',
+      'Category',
+      'Approved',
+      'Verification',
+      'Subscription',
+      'Health Score',
+      'Tags',
+    ];
     const rows = data.map(s => [
       s.name || '',
       s.email || '',
+      s.category || '',
       s.approved ? 'Yes' : 'No',
+      s.verificationStatus || (s.verified ? 'approved' : 'unverified'),
       s.subscription?.tier || 'free',
-      s.score || 0,
+      s.healthScore || 0,
       s.tags?.join(';') || '',
     ]);
 

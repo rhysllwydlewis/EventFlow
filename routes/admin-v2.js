@@ -33,6 +33,31 @@ const {
 } = require('../services/adminService');
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
+const {
+  VERIFICATION_STATES,
+  normaliseState,
+  canTransition,
+} = require('../utils/supplierVerificationStateMachine');
+
+/**
+ * Sanitise free-text input: trim, strip HTML tags, and enforce max length.
+ * Iterates until no more tags are found to handle nested/malformed markup.
+ * @param {string} input
+ * @param {number} [maxLength=2000]
+ * @returns {string}
+ */
+function sanitiseText(input, maxLength = 2000) {
+  if (typeof input !== 'string') {
+    return '';
+  }
+  let text = input;
+  let prev;
+  do {
+    prev = text;
+    text = text.replace(/<[^>]*>/g, '');
+  } while (text !== prev);
+  return text.trim().slice(0, maxLength);
+}
 
 const router = express.Router();
 
@@ -891,9 +916,22 @@ router.post(
       }
 
       const supplier = suppliers[supplierIndex];
-      supplier.verified = true;
-      supplier.verifiedAt = new Date().toISOString();
-      supplier.verifiedBy = req.user.id;
+
+      const currentState = normaliseState(supplier.verificationStatus, supplier.verified);
+      const check = canTransition(currentState, VERIFICATION_STATES.APPROVED, 'admin');
+      if (!check.allowed) {
+        return res.status(409).json({
+          success: false,
+          error: check.reason,
+          code: 'TRANSITION_NOT_ALLOWED',
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      const now = new Date().toISOString();
+      const verificationNotes = sanitiseText(
+        (req.body && req.body.verificationNotes) || supplier.verificationNotes || ''
+      );
 
       await dbUnified.updateOne(
         'suppliers',
@@ -901,11 +939,23 @@ router.post(
         {
           $set: {
             verified: true,
-            verifiedAt: supplier.verifiedAt,
-            verifiedBy: supplier.verifiedBy,
+            approved: true,
+            verificationStatus: VERIFICATION_STATES.APPROVED,
+            verifiedAt: now,
+            verifiedBy: req.user.id,
+            verificationNotes,
+            updatedAt: now,
           },
         }
       );
+
+      supplier.verified = true;
+      supplier.approved = true;
+      supplier.verificationStatus = VERIFICATION_STATES.APPROVED;
+      supplier.verifiedAt = now;
+      supplier.verifiedBy = req.user.id;
+      supplier.verificationNotes = verificationNotes;
+      supplier.updatedAt = now;
 
       // Create audit log
       await createAuditLog({
