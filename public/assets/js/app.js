@@ -3976,52 +3976,6 @@ function efFormatDate(dateStr) {
   return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
-// Admin users page: list all users in a table
-async function initAdminUsers() {
-  const summary = document.getElementById('user-summary');
-  const tbody = document.querySelector('table.table tbody');
-  if (!summary || !tbody) {
-    return;
-  }
-
-  summary.textContent = 'Loading users…';
-
-  try {
-    const data = await fetchJSON('/api/admin/users');
-    const items = (data && data.items) || [];
-
-    summary.textContent = items.length
-      ? `${items.length} user${items.length === 1 ? '' : 's'} registered.`
-      : 'No users found.';
-
-    if (!items.length) {
-      tbody.innerHTML = '<tr><td colspan="7" class="small">No users found.</td></tr>';
-      return;
-    }
-
-    tbody.innerHTML = items
-      .map(u => {
-        return (
-          `<tr>` +
-          `<td>${efEscapeHtml(u.name || '')}</td>` +
-          `<td>${efEscapeHtml(u.email || '')}</td>` +
-          `<td>${efEscapeHtml(u.role || '')}</td>` +
-          `<td>${u.verified ? 'Yes' : 'No'}</td>` +
-          `<td>${u.marketingOptIn ? 'Yes' : 'No'}</td>` +
-          `<td>${efFormatDate(u.createdAt)}</td>` +
-          `<td>${u.lastLoginAt ? efFormatDate(u.lastLoginAt) : 'Never'}</td>` +
-          `</tr>`
-        );
-      })
-      .join('');
-  } catch (e) {
-    console.error('Admin users load failed', e);
-    summary.textContent = 'Forbidden (admin only).';
-    tbody.innerHTML =
-      '<tr><td colspan="7" class="small">You must be signed in as an admin to view this page.</td></tr>';
-  }
-}
-
 document.addEventListener('DOMContentLoaded', () => {
   const page =
     window.__EF_PAGE__ ||
@@ -4097,9 +4051,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (page === 'admin') {
     initAdmin && initAdmin();
   }
-  if (page === 'admin_users') {
-    initAdminUsers && initAdminUsers();
-  }
+  // Note: page === 'admin_users' is handled by admin-users-init.js
   // Note: page === 'verify' is now handled by verify-init.js
 
   // Global header behaviour: scroll hide/show
