@@ -1012,7 +1012,7 @@
     };
 
     try {
-      const csrfResponse = await fetch('/api/v1/auth/csrf', {
+      const csrfResponse = await fetch('/api/v1/csrf-token', {
         credentials: 'include',
       });
       const csrfData = await csrfResponse.json();
@@ -1049,7 +1049,7 @@
         const customFile = customImageInput && customImageInput.files[0];
         if (customFile) {
           const savedCategory = await response.json();
-          const targetId = savedCategory.id || editingCategoryId;
+          const targetId = savedCategory.category?.id ?? editingCategoryId;
           if (targetId) {
             try {
               const uploadCsrfResp = await fetch('/api/v1/csrf-token', { credentials: 'include' });
@@ -1101,7 +1101,7 @@
     }
 
     try {
-      const csrfResponse = await fetch('/api/v1/auth/csrf', {
+      const csrfResponse = await fetch('/api/v1/csrf-token', {
         credentials: 'include',
       });
       const csrfData = await csrfResponse.json();
@@ -1131,9 +1131,16 @@
     }
   }
 
+  /**
+   * Toggle a category's homepage visibility.
+   * @param {string} categoryId - The category to update.
+   * @param {boolean} visible - Whether the category should be visible.
+   * @param {string} [toggleSelector] - CSS selector for the toggle checkbox to revert on error.
+   *   Defaults to '.visibility-toggle'. Use '.hero-visibility-toggle' for the Hero Images section.
+   */
   async function toggleCategoryVisibility(categoryId, visible, toggleSelector) {
     try {
-      const csrfResponse = await fetch('/api/v1/auth/csrf', {
+      const csrfResponse = await fetch('/api/v1/csrf-token', {
         credentials: 'include',
       });
       const csrfData = await csrfResponse.json();

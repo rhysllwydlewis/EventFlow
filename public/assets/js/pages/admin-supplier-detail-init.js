@@ -478,12 +478,22 @@
 
     // Build a select-dropdown modal so the user doesn't have to type the field name exactly
     const matched = await new Promise(resolve => {
+      // Lock body scroll (consistent with AdminShared modals)
+      const originalOverflow = document.body.style.overflow;
+      const originalPaddingRight = document.body.style.paddingRight;
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+      document.body.style.overflow = 'hidden';
+      if (scrollbarWidth > 0) {
+        document.body.style.paddingRight = `${scrollbarWidth}px`;
+      }
+
       const overlay = document.createElement('div');
       overlay.style.cssText =
         'position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;' +
-        'align-items:center;justify-content:center;z-index:10001;';
+        'align-items:center;justify-content:center;z-index:10001;animation:fadeIn 0.2s ease;';
       overlay.setAttribute('role', 'dialog');
       overlay.setAttribute('aria-modal', 'true');
+      overlay.setAttribute('aria-labelledby', 'edit-field-modal-title');
 
       const optionsHtml = EDITABLE_FIELDS.map(
         f => `<option value="${f.key}">${f.label}</option>`
@@ -492,15 +502,15 @@
       const dialog = document.createElement('div');
       dialog.style.cssText =
         'background:white;border-radius:8px;padding:1.5rem;max-width:480px;width:90%;' +
-        'box-shadow:0 10px 40px rgba(0,0,0,0.3);';
+        'box-shadow:0 10px 40px rgba(0,0,0,0.3);animation:slideUp 0.3s ease;';
       dialog.innerHTML = `
-        <h3 style="margin:0 0 1rem 0;font-size:1.25rem;font-weight:600;color:#1f2937;">
+        <h3 id="edit-field-modal-title" style="margin:0 0 0.5rem 0;font-size:1.25rem;font-weight:600;color:#1f2937;">
           Edit Supplier — Select Field
         </h3>
-        <p style="margin:0 0 1rem 0;color:#6b7280;">Choose the field you would like to edit:</p>
+        <p style="margin:0 0 1rem 0;color:#6b7280;font-size:0.875rem;line-height:1.5;">Choose the field you would like to edit:</p>
         <div style="margin-bottom:1rem;">
-          <label for="edit-field-select" style="display:block;margin-bottom:0.5rem;font-weight:600;color:#374151;">Field</label>
-          <select id="edit-field-select" style="width:100%;padding:0.5rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.875rem;">
+          <label for="edit-field-select" style="display:block;margin-bottom:0.5rem;font-weight:600;color:#374151;font-size:0.875rem;">Field</label>
+          <select id="edit-field-select" style="width:100%;padding:0.5rem 0.75rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.875rem;background:white;cursor:pointer;">
             ${optionsHtml}
           </select>
         </div>
@@ -513,7 +523,18 @@
       overlay.appendChild(dialog);
       document.body.appendChild(overlay);
 
-      const cleanup = () => overlay.remove();
+      // Restore scroll on close
+      const cleanup = () => {
+        overlay.remove();
+        document.body.style.overflow = originalOverflow;
+        document.body.style.paddingRight = originalPaddingRight;
+      };
+
+      // Auto-focus the select
+      setTimeout(() => {
+        const sel = dialog.querySelector('#edit-field-select');
+        if (sel) sel.focus();
+      }, 50);
 
       dialog.querySelector('#edit-field-confirm').addEventListener('click', () => {
         const key = dialog.querySelector('#edit-field-select').value;
@@ -532,6 +553,16 @@
           resolve(null);
         }
       });
+
+      // Escape key closes the modal
+      const onKeyDown = e => {
+        if (e.key === 'Escape') {
+          document.removeEventListener('keydown', onKeyDown);
+          cleanup();
+          resolve(null);
+        }
+      };
+      document.addEventListener('keydown', onKeyDown);
     });
 
     if (!matched) {
