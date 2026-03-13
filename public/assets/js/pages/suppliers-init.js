@@ -955,8 +955,8 @@ async function initSuppliersPage() {
       function getStepPx() {
         const item = items[0];
         if (!item) {
-          // Fallback matches the CSS --sp-pkg-mini-width custom property (148px) + track gap (6px)
-          return 154;
+          // Fallback matches the CSS --sp-pkg-mini-width custom property (200px) + track gap (12px)
+          return 212;
         }
         // Gap between cards comes from the track's column-gap / gap property
         const gap = parseFloat(getComputedStyle(track).columnGap) || 6;

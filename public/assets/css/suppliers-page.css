@@ -654,7 +654,7 @@
 
 /* Card width token — used by .sp-pkg-mini and referenced in attachCarousels() JS fallback */
 :root {
-  --sp-pkg-mini-width: 148px;
+  --sp-pkg-mini-width: 200px;
 }
 
 .sp-card-packages {
@@ -694,7 +694,7 @@
 .sp-pkg-carousel-track {
   display: flex;
   flex-direction: row;
-  gap: 6px;
+  gap: 12px;
   transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: transform;
 }
@@ -733,7 +733,7 @@
 /* ── Individual mini-card — fixed width, vertical layout ─ */
 .sp-pkg-mini {
   flex-shrink: 0;
-  width: var(--sp-pkg-mini-width, 148px);
+  width: var(--sp-pkg-mini-width, 200px);
   display: flex;
   flex-direction: column;
   background: rgba(248, 250, 252, 0.8);
@@ -748,7 +748,7 @@
 
 .sp-pkg-mini:hover {
   border-color: rgba(11, 128, 115, 0.18);
-  box-shadow: 0 2px 8px rgba(11, 128, 115, 0.08);
+  box-shadow: 0 4px 12px rgba(11, 128, 115, 0.14);
 }
 
 .sp-pkg-mini:focus-visible {
@@ -759,7 +759,7 @@
 /* Thumbnail — full-width at top of card */
 .sp-pkg-mini-thumb {
   width: 100%;
-  height: 54px;
+  height: 100px;
   background: linear-gradient(135deg, #e0f7f4 0%, #e8f4fd 100%);
   display: flex;
   align-items: center;
@@ -781,27 +781,28 @@
 
 /* Text body — below the thumbnail */
 .sp-pkg-mini-body {
-  padding: 7px 8px;
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 5px;
   flex: 1;
 }
 
 .sp-pkg-mini-title {
   margin: 0;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   color: #0b1220;
   line-height: 1.3;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .sp-pkg-mini-price {
   margin: 0;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 700;
   color: #0b8073;
 }
@@ -814,9 +815,9 @@
 /* Add to plan button — pinned to bottom of card */
 .sp-btn--plan {
   margin-top: auto;
-  padding: 5px 8px;
-  min-height: 27px;
-  font-size: 11px;
+  padding: 6px 12px;
+  min-height: 34px;
+  font-size: 13px;
   font-weight: 700;
   border-radius: 7px;
   background: #f0fdf9;

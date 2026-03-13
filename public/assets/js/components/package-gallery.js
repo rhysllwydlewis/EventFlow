@@ -192,6 +192,7 @@ class PackageGallery {
     }
 
     // Check if URL is from a blocked or problematic source
+    // Note: images.pexels.com is explicitly allowed — do NOT add it to blockedDomains
     const blockedDomains = ['source.unsplash.com', 'unsplash.com'];
     try {
       const urlObj = new URL(url);

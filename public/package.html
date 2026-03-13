@@ -30,8 +30,129 @@
     #package-content .card h2,
     #package-content .card h3,
     #package-content .card p,
-    #package-content .card span { color: #212529; }
+    #package-content .card span:not(#package-price) { color: #212529; }
     #package-content .card a { color: inherit; }
+    /* Keep the teal accent on the price element */
+    #package-price { color: var(--accent, #13B6A2) !important; }
+
+    /* ── Package detail page visual polish ─────────────────────── */
+
+    /* Two-column layout on desktop: gallery left (60%), info right (40%) */
+    .pkg-layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 32px;
+      align-items: start;
+    }
+    @media (min-width: 768px) {
+      .pkg-layout {
+        grid-template-columns: 3fr 2fr;
+      }
+    }
+
+    /* Gallery column */
+    .pkg-gallery-col {}
+
+    /* Info column: header card + description stacked */
+    .pkg-info-col {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* Override generic card hover lift on detail page content cards */
+    #package-content .card:not(.supplier-card) {
+      transform: none !important;
+      transition: box-shadow 0.2s;
+    }
+
+    /* Header card accent border */
+    #package-header-card {
+      border-top: 3px solid var(--accent, #13B6A2);
+      margin-top: 0;
+    }
+
+    /* Price display */
+    #package-price {
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1.1;
+    }
+
+    /* Featured badge with subtle pulse */
+    #package-featured-badge {
+      animation: pkg-badge-pulse 2.4s ease-in-out infinite;
+    }
+    @keyframes pkg-badge-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(19,182,162,0.35); }
+      50%       { box-shadow: 0 0 0 6px rgba(19,182,162,0); }
+    }
+
+    /* Description card accent border */
+    #package-desc-card {
+      border-left: 4px solid var(--accent, #13B6A2);
+      margin-top: 0;
+    }
+    #package-description {
+      line-height: 1.8;
+    }
+
+    /* Tags — pill style */
+    #package-tags .pkg-tag {
+      background: var(--color-bg-secondary, #f0fdf9);
+      color: #0b8073;
+      border: 1px solid #a7f3e4;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      transition: background 0.15s, border-color 0.15s;
+      display: inline-block;
+    }
+    #package-tags .pkg-tag:hover {
+      background: #d1faf2;
+      border-color: #0b8073;
+    }
+
+    /* Category pill links */
+    #package-categories a {
+      transition: background 0.15s, color 0.15s;
+    }
+    #package-categories a:hover {
+      background: var(--accent, #13B6A2) !important;
+      color: #fff !important;
+    }
+
+    /* Breadcrumb with chevron separators */
+    #package-breadcrumb {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-bottom: 24px;
+      font-size: 0.85rem;
+      color: var(--color-text-secondary, #6c757d);
+    }
+    #package-breadcrumb .pkg-bc-sep {
+      color: #d1d5db;
+    }
+
+    /* What's Included / Event types section */
+    #package-event-types-section {
+      margin-top: 0;
+    }
+    .pkg-event-type-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--color-bg-secondary, #f0fdf9);
+      border: 1px solid #a7f3e4;
+      color: #0b8073;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
   </style>
 </head>
 <body>
@@ -144,9 +265,11 @@
 <main id="main-content">
   <section class="section">
     <div class="container">
-      <div id="package-breadcrumb" style="margin-bottom: 16px; font-size: 0.9rem; color: var(--color-text-secondary, #6c757d);">
-        <a href="/" style="text-decoration: none; color: inherit;">Home</a> / 
-        <span id="breadcrumb-category"></span> /
+      <div id="package-breadcrumb">
+        <a href="/" style="text-decoration: none; color: inherit;">Home</a>
+        <span class="pkg-bc-sep" aria-hidden="true">›</span>
+        <span id="breadcrumb-category"></span>
+        <span class="pkg-bc-sep" aria-hidden="true">›</span>
         <span id="breadcrumb-package">Package</span>
       </div>
 
@@ -160,43 +283,57 @@
       </div>
 
       <div id="package-content" style="display: none;">
-        <!-- Gallery Section -->
-        <div id="package-gallery-container"></div>
+        <div class="pkg-layout">
+          <!-- LEFT: Gallery column -->
+          <div class="pkg-gallery-col">
+            <!-- Gallery Section -->
+            <div id="package-gallery-container"></div>
+          </div>
 
-        <!-- Package Header -->
-        <div class="card" style="margin-top: 24px;">
-          <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 16px;">
-            <div style="flex: 1; min-width: 200px;">
-              <h1 id="package-title" style="margin: 0 0 12px 0;">Package Title</h1>
-              <div id="package-categories" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;"></div>
-              <div style="display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px;">
-                <div id="package-price" style="font-size: 1.5rem; font-weight: 600; color: var(--accent, #13B6A2);"></div>
-                <div id="package-location" style="font-size: 1rem; color: var(--color-text-secondary, #6c757d);"></div>
+          <!-- RIGHT: Info column -->
+          <div class="pkg-info-col">
+            <!-- Package Header -->
+            <div class="card" id="package-header-card">
+              <div style="display: flex; justify-content: space-between; align-items: start; flex-wrap: wrap; gap: 16px;">
+                <div style="flex: 1; min-width: 200px;">
+                  <h1 id="package-title" style="margin: 0 0 12px 0;">Package Title</h1>
+                  <div id="package-categories" style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px;"></div>
+                  <div style="display: flex; gap: 16px; flex-wrap: wrap; margin-top: 12px; align-items: baseline;">
+                    <div id="package-price" style="color: var(--accent, #13B6A2);"></div>
+                    <div id="package-location" style="font-size: 1rem; color: var(--color-text-secondary, #6c757d);"></div>
+                  </div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px; align-items: flex-end;">
+                  <div id="package-featured-badge" style="display: none; background-color: var(--accent, #13B6A2); color: white; padding: 8px 16px; border-radius: 20px; font-weight: 600;" aria-label="Featured package">
+                    <span aria-hidden="true">⭐</span> Featured
+                  </div>
+                  <div id="package-test-badge" style="display: none; background: #fef3c7; color: #92400e; border: 1px solid #f59e0b; padding: 8px 16px; border-radius: 20px; font-weight: 600;">
+                    🧪 Test data
+                  </div>
+                </div>
               </div>
             </div>
-            <div style="display: flex; flex-direction: column; gap: 8px; align-items: flex-end;">
-              <div id="package-featured-badge" style="display: none; background-color: var(--accent, #13B6A2); color: white; padding: 8px 16px; border-radius: 20px; font-weight: 600;">
-                Featured
-              </div>
-              <div id="package-test-badge" style="display: none; background: #fef3c7; color: #92400e; border: 1px solid #f59e0b; padding: 8px 16px; border-radius: 20px; font-weight: 600;">
-                🧪 Test data
-              </div>
+
+            <!-- Package Description -->
+            <div class="card" id="package-desc-card">
+              <h2 style="margin-top: 0;">About this package</h2>
+              <p id="package-description" style="color: var(--color-text-primary, #212529);"></p>
+              <div id="package-tags" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px;"></div>
             </div>
+
+            <!-- What's Included (event types) -->
+            <div class="card" id="package-event-types-section" style="display: none;">
+              <h2 style="margin-top: 0;">What's included</h2>
+              <div id="package-event-types" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+            </div>
+
+            <!-- Supplier Card -->
+            <div id="supplier-card-container"></div>
+
+            <!-- Message Supplier Panel -->
+            <div id="message-supplier-panel"></div>
           </div>
         </div>
-
-        <!-- Package Description -->
-        <div class="card" style="margin-top: 24px;">
-          <h2 style="margin-top: 0;">About this package</h2>
-          <p id="package-description" style="line-height: 1.8; color: var(--color-text-primary, #212529);"></p>
-          <div id="package-tags" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px;"></div>
-        </div>
-
-        <!-- Supplier Card -->
-        <div id="supplier-card-container"></div>
-
-        <!-- Message Supplier Panel -->
-        <div id="message-supplier-panel"></div>
       </div>
     </div>
   </section>
@@ -260,7 +397,7 @@
         if (categories && categories.length > 0) {
           const categoryLinks = categories.map(cat => 
             `<a href="/category?slug=${cat.slug}" style="text-decoration: none; color: inherit;">${cat.name}</a>`
-          ).join(', ');
+          ).join(' · ');
           document.getElementById('breadcrumb-category').innerHTML = categoryLinks;
         }
         document.getElementById('breadcrumb-package').textContent = pkg.title;
@@ -268,12 +405,19 @@
         // Display gallery
         if (pkg.gallery && pkg.gallery.length > 0) {
           const galleryImages = pkg.gallery.filter(img => img.approved !== false);
-          if (typeof PackageGallery !== 'undefined') {
-            const gallery = new PackageGallery('package-gallery-container', galleryImages);
+          if (galleryImages.length > 0) {
+            if (typeof PackageGallery !== 'undefined') {
+              new PackageGallery('package-gallery-container', galleryImages);
+            }
+          } else if (pkg.image) {
+            // All gallery images unapproved — fall back to main image
+            if (typeof PackageGallery !== 'undefined') {
+              new PackageGallery('package-gallery-container', [{ url: pkg.image }]);
+            }
           }
         } else if (pkg.image) {
           if (typeof PackageGallery !== 'undefined') {
-            const gallery = new PackageGallery('package-gallery-container', [{ url: pkg.image }]);
+            new PackageGallery('package-gallery-container', [{ url: pkg.image }]);
           }
         }
 
@@ -322,15 +466,22 @@
         // Display tags
         if (pkg.tags && pkg.tags.length > 0) {
           const tagsHtml = pkg.tags.map(tag => 
-            `<span style="background-color: var(--color-bg-secondary, #f8f9fa); 
-                          color: var(--color-text-secondary, #6c757d); 
-                          padding: 4px 10px; 
-                          border-radius: 12px; 
-                          font-size: 0.8rem;">
-              #${tag}
-            </span>`
+            `<span class="pkg-tag">#${tag}</span>`
           ).join('');
           document.getElementById('package-tags').innerHTML = tagsHtml;
+        }
+
+        // Display event types / what's included section
+        if (pkg.eventTypes && pkg.eventTypes.length > 0) {
+          const etSection = document.getElementById('package-event-types-section');
+          if (etSection) etSection.style.display = 'block';
+          const etContainer = document.getElementById('package-event-types');
+          if (etContainer) {
+            etContainer.innerHTML = pkg.eventTypes.map(et => {
+              const label = typeof et === 'string' ? et : (et.name || et.label || String(et));
+              return `<span class="pkg-event-type-pill"><span aria-hidden="true">🎉</span> ${label}</span>`;
+            }).join('');
+          }
         }
 
         // Display supplier card
