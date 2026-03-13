@@ -2844,6 +2844,16 @@ async function initDashSupplier() {
           .filter(s => s && s.id && s.name)
           .map(s => `<option value="${s.id}">${s.name}</option>`)
           .join('');
+        // Sync hidden supplierId input to the selected supplier
+        const hiddenInput = document.getElementById('pkg-supplier-id-hidden');
+        if (hiddenInput) {
+          // Set initial value
+          hiddenInput.value = select.value;
+          // Keep in sync when the user changes the dropdown (attach once via onchange)
+          select.onchange = () => {
+            hiddenInput.value = select.value;
+          };
+        }
       }
 
       // Auto-populate form with supplier's data
@@ -3317,6 +3327,14 @@ async function initDashSupplier() {
           payload[k] = v;
         }
       });
+
+      // Ensure supplierId is set from the dropdown when creating a new package
+      if (!payload.supplierId) {
+        const supplierSelect = document.getElementById('pkg-supplier');
+        if (supplierSelect && supplierSelect.value) {
+          payload.supplierId = supplierSelect.value;
+        }
+      }
 
       // Validate required fields
       if (!payload.primaryCategoryKey) {
