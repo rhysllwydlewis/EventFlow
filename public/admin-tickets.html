@@ -25,153 +25,122 @@
   </head>
   <body class="has-admin-navbar admin">
     <!-- Modern Top Navbar -->
-    <nav class="admin-top-navbar">
-      <div class="admin-navbar-content">
-        <!-- Brand -->
-        <div class="admin-navbar-brand">
-          <a href="/admin" class="admin-navbar-logo">EventFlow</a>
-          <span class="admin-navbar-title">Admin Panel</span>
-        </div>
+    <nav class="admin-top-navbar" aria-label="Admin navigation">
+  <div class="admin-navbar-content">
+    <!-- Brand -->
+    <div class="admin-navbar-brand">
+      <a href="/admin" class="admin-navbar-logo">EventFlow</a>
+      <span class="admin-navbar-title">Admin Panel</span>
+    </div>
 
-        <!-- Mobile Hamburger -->
-        <button class="admin-hamburger" id="adminHamburger" aria-label="Toggle menu">
-          <span></span>
-          <span></span>
-          <span></span>
+    <!-- Mobile Hamburger -->
+    <button class="admin-hamburger" id="adminHamburger" aria-label="Toggle navigation menu" aria-expanded="false" aria-controls="adminNavbarNav">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+
+    <!-- Navigation Links -->
+    <div class="admin-navbar-nav" id="adminNavbarNav">
+      <a href="/admin" class="admin-nav-btn">
+        <span class="nav-icon" aria-hidden="true">📊</span>
+        <span class="nav-label">Dashboard</span>
+      </a>
+      <a href="/admin-users" class="admin-nav-btn">
+        <span class="nav-icon" aria-hidden="true">👥</span>
+        <span class="nav-label">Users</span>
+      </a>
+      <a href="/admin-suppliers" class="admin-nav-btn">
+        <span class="nav-icon" aria-hidden="true">🏢</span>
+        <span class="nav-label">Suppliers</span>
+      </a>
+      <a href="/admin-packages" class="admin-nav-btn">
+        <span class="nav-icon" aria-hidden="true">📦</span>
+        <span class="nav-label">Packages</span>
+      </a>
+      <a href="/admin-marketplace" class="admin-nav-btn">
+        <span class="nav-icon" aria-hidden="true">🛒</span>
+        <span class="nav-label">Marketplace</span>
+      </a>
+      <a href="/admin-photos" class="admin-nav-btn">
+        <span class="nav-icon" aria-hidden="true">📸</span>
+        <span class="nav-label">Photos</span>
+      </a>
+      <a href="/admin-tickets" class="admin-nav-btn">
+        <span class="nav-icon" aria-hidden="true">🎫</span>
+        <span class="nav-label">Tickets</span>
+      </a>
+      <a href="/admin-reports" class="admin-nav-btn">
+        <span class="nav-icon" aria-hidden="true">📈</span>
+        <span class="nav-label">Reports</span>
+      </a>
+      <a href="/admin-audit" class="admin-nav-btn">
+        <span class="nav-icon" aria-hidden="true">📋</span>
+        <span class="nav-label">Audit</span>
+      </a>
+      <a href="/admin-homepage" class="admin-nav-btn">
+        <span class="nav-icon" aria-hidden="true">🏠</span>
+        <span class="nav-label">Homepage</span>
+      </a>
+      <a href="/admin-payments" class="admin-nav-btn">
+        <span class="nav-icon" aria-hidden="true">💳</span>
+        <span class="nav-label">Payments</span>
+      </a>
+      <a href="/admin-content" class="admin-nav-btn">
+        <span class="nav-icon" aria-hidden="true">✏️</span>
+        <span class="nav-label">Content</span>
+      </a>
+      <a href="/admin-settings" class="admin-nav-btn">
+        <span class="nav-icon" aria-hidden="true">⚙️</span>
+        <span class="nav-label">Settings</span>
+      </a>
+    </div>
+
+    <!-- Right Actions -->
+    <div class="admin-navbar-actions">
+      <!-- Database Status -->
+      <div class="db-status-badge db-loading" id="dbStatusBadge" title="Database status" aria-live="polite" aria-label="Database status: Loading">
+        <span class="db-status-dot" aria-hidden="true"></span> Loading...
+      </div>
+
+      <!-- Refresh Button -->
+      <button class="navbar-icon-btn" id="navRefreshBtn" title="Refresh data" aria-label="Refresh data">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+        </svg>
+      </button>
+
+      <!-- User Dropdown -->
+      <div class="admin-user-dropdown">
+        <button class="admin-user-btn" id="adminUserBtn" aria-haspopup="true" aria-expanded="false" aria-controls="adminDropdownMenu">
+          <div class="admin-user-avatar" aria-hidden="true">A</div>
+          <span>Admin</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
         </button>
-
-        <!-- Navigation Links -->
-        <div class="admin-navbar-nav" id="adminNavbarNav">
-          <a href="/admin" class="admin-nav-btn">
-            <span class="nav-icon">📊</span>
-            <span class="nav-label">Dashboard</span>
-          </a>
-          <a href="/admin-users" class="admin-nav-btn">
-            <span class="nav-icon">👥</span>
-            <span class="nav-label">Users</span>
-          </a>
-          <a href="/admin-suppliers" class="admin-nav-btn">
-            <span class="nav-icon">🏢</span>
-            <span class="nav-label">Suppliers</span>
-          </a>
-          <a href="/admin-packages" class="admin-nav-btn">
-            <span class="nav-icon">📦</span>
-            <span class="nav-label">Packages</span>
-          </a>
-          <a href="/admin-marketplace" class="admin-nav-btn">
-            <span class="nav-icon">🛒</span>
-            <span class="nav-label">Marketplace</span>
-          </a>
-          <a href="/admin-photos" class="admin-nav-btn">
-            <span class="nav-icon">📸</span>
-            <span class="nav-label">Photos</span>
-          </a>
-          <a href="/admin-tickets" class="admin-nav-btn active">
-            <span class="nav-icon">🎫</span>
-            <span class="nav-label">Tickets</span>
-          </a>
-          <a href="/admin-reports" class="admin-nav-btn">
-            <span class="nav-icon">📈</span>
-            <span class="nav-label">Reports</span>
-          </a>
-          <a href="/admin-audit" class="admin-nav-btn">
-            <span class="nav-icon">📋</span>
-            <span class="nav-label">Audit</span>
-          </a>
-          <a href="/admin-homepage" class="admin-nav-btn">
-            <span class="nav-icon">🏠</span>
-            <span class="nav-label">Homepage</span>
-          </a>
-          <a href="/admin-payments" class="admin-nav-btn">
-            <span class="nav-icon">💳</span>
-            <span class="nav-label">Payments</span>
-          </a>
-          <a href="/admin-content" class="admin-nav-btn">
-            <span class="nav-icon">✏️</span>
-            <span class="nav-label">Content</span>
-          </a>
-          <a href="/admin-settings" class="admin-nav-btn">
-            <span class="nav-icon">⚙️</span>
-            <span class="nav-label">Settings</span>
-          </a>
-        </div>
-
-        <!-- Right Actions -->
-        <div class="admin-navbar-actions">
-          <!-- Database Status -->
-          <div class="db-status-badge db-loading" id="dbStatusBadge" title="Database status">
-            <span class="db-status-dot"></span> Loading...
-          </div>
-
-          <!-- Refresh Button -->
-          <button class="navbar-icon-btn" id="navRefreshBtn" title="Refresh data">
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <polyline points="23 4 23 10 17 10"></polyline>
-              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+        <div class="admin-dropdown-menu" id="adminDropdownMenu" role="menu" aria-labelledby="adminUserBtn">
+          <a href="/admin-settings" class="admin-dropdown-item" role="menuitem">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path d="M12 1v6m0 6v6m4.22-13.22l-4.24 4.24m0 5.96l-4.24 4.24M23 12h-6m-6 0H1m18.78 4.22l-4.24-4.24m-5.96 0l-4.24 4.24"></path>
             </svg>
+            Settings
+          </a>
+          <div class="admin-dropdown-divider" role="separator"></div>
+          <button class="admin-dropdown-item" id="adminLogoutBtn" role="menuitem">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            Sign Out
           </button>
-
-          <!-- User Dropdown -->
-          <div class="admin-user-dropdown">
-            <button class="admin-user-btn" id="adminUserBtn">
-              <div class="admin-user-avatar">A</div>
-              <span>Admin</span>
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <polyline points="6 9 12 15 18 9"></polyline>
-              </svg>
-            </button>
-            <div class="admin-dropdown-menu" id="adminDropdownMenu">
-              <a href="/admin-settings" class="admin-dropdown-item">
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <circle cx="12" cy="12" r="3"></circle>
-                  <path
-                    d="M12 1v6m0 6v6m4.22-13.22l-4.24 4.24m0 5.96l-4.24 4.24M23 12h-6m-6 0H1m18.78 4.22l-4.24-4.24m-5.96 0l-4.24 4.24"
-                  ></path>
-                </svg>
-                Settings
-              </a>
-              <div class="admin-dropdown-divider"></div>
-              <button class="admin-dropdown-item" id="adminLogoutBtn">
-                <svg
-                  width="18"
-                  height="18"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                >
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                  <polyline points="16 17 21 12 16 7"></polyline>
-                  <line x1="21" y1="12" x2="9" y2="12"></line>
-                </svg>
-                Sign Out
-              </button>
-            </div>
-          </div>
         </div>
       </div>
-    </nav>
+    </div>
+  </div>
+</nav>
 
     <main id="main-content" class="section">
       <!-- Modern Dashboard Header -->

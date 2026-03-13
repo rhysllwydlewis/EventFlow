@@ -20,6 +20,8 @@
     highlightActivePage();
     initBadgeCounts();
     updateNavbarUser();
+    initRefreshButton();
+    initLogoutButton();
   }
 
   /**
@@ -179,7 +181,13 @@
 
     navLinks.forEach(link => {
       const href = link.getAttribute('href');
-      if (href && currentPath.includes(href.replace('/', ''))) {
+      // Use exact match for /admin to avoid matching every /admin-* route
+      const isActive = href
+        ? href === '/admin'
+          ? currentPath === '/admin'
+          : currentPath.startsWith(href)
+        : false;
+      if (isActive) {
         link.classList.add('active');
         link.setAttribute('aria-current', 'page');
       } else {
@@ -329,54 +337,60 @@
   /**
    * Refresh button handler
    */
-  const refreshBtn = document.getElementById('navRefreshBtn');
-  if (refreshBtn) {
-    refreshBtn.addEventListener('click', () => {
-      // Add spin animation
-      refreshBtn.style.transform = 'rotate(360deg)';
-      setTimeout(() => {
-        refreshBtn.style.transform = 'rotate(0deg)';
-      }, 600);
+  function initRefreshButton() {
+    const refreshBtn = document.getElementById('navRefreshBtn');
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', () => {
+        // Trigger spin animation via CSS class
+        refreshBtn.classList.add('spinning');
+        refreshBtn.addEventListener('animationend', () => {
+          refreshBtn.classList.remove('spinning');
+        }, { once: true });
 
-      // Refresh data
-      updateDatabaseStatus();
-      updateBadgeCounts();
+        // Refresh data
+        updateDatabaseStatus();
+        updateBadgeCounts();
 
-      // Trigger page refresh if there's a refresh function
-      if (typeof window.refreshDashboardData === 'function') {
-        window.refreshDashboardData();
-      }
-    });
+        // Trigger page-specific refresh, or fall back to full reload
+        if (typeof window.refreshDashboardData === 'function') {
+          window.refreshDashboardData();
+        } else {
+          window.location.reload();
+        }
+      });
+    }
   }
 
   /**
    * Logout handler
    */
-  const logoutBtn = document.getElementById('adminLogoutBtn');
-  if (logoutBtn) {
-    logoutBtn.addEventListener('click', async e => {
-      e.preventDefault();
-      if (confirm('Are you sure you want to sign out?')) {
-        try {
-          // Call POST logout endpoint with CSRF token if available
-          await fetch('/api/v1/auth/logout', {
-            method: 'POST',
-            headers: { 'X-CSRF-Token': window.__CSRF_TOKEN__ || '' },
-            credentials: 'include',
-          });
-        } catch (_) {
-          /* Ignore logout errors */
+  function initLogoutButton() {
+    const logoutBtn = document.getElementById('adminLogoutBtn');
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', async e => {
+        e.preventDefault();
+        if (confirm('Are you sure you want to sign out?')) {
+          try {
+            // Call POST logout endpoint with CSRF token if available
+            await fetch('/api/v1/auth/logout', {
+              method: 'POST',
+              headers: { 'X-CSRF-Token': window.__CSRF_TOKEN__ || '' },
+              credentials: 'include',
+            });
+          } catch (_) {
+            /* Ignore logout errors */
+          }
+          // Clear any auth-related storage
+          try {
+            localStorage.removeItem('eventflow_onboarding_new');
+            sessionStorage.clear();
+          } catch (_) {
+            /* Ignore storage errors */
+          }
+          // Force full reload with cache-busting to ensure clean state
+          window.location.href = `/?t=${Date.now()}`;
         }
-        // Clear any auth-related storage
-        try {
-          localStorage.removeItem('eventflow_onboarding_new');
-          sessionStorage.clear();
-        } catch (_) {
-          /* Ignore storage errors */
-        }
-        // Force full reload with cache-busting to ensure clean state
-        window.location.href = `/?t=${Date.now()}`;
-      }
-    });
+      });
+    }
   }
 })();
