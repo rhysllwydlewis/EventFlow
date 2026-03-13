@@ -181,12 +181,9 @@
 
     navLinks.forEach(link => {
       const href = link.getAttribute('href');
-      // Use exact match for /admin to avoid matching every /admin-* route
-      const isActive = href
-        ? href === '/admin'
-          ? currentPath === '/admin'
-          : currentPath.startsWith(href)
-        : false;
+      // Exact match or sub-path (e.g. /admin-suppliers/123) — but NOT prefix-only
+      // (e.g. /admin-content must NOT match /admin-content-dates)
+      const isActive = href ? currentPath === href || currentPath.startsWith(`${href}/`) : false;
       if (isActive) {
         link.classList.add('active');
         link.setAttribute('aria-current', 'page');
@@ -343,19 +340,23 @@
       refreshBtn.addEventListener('click', () => {
         // Trigger spin animation via CSS class
         refreshBtn.classList.add('spinning');
-        refreshBtn.addEventListener('animationend', () => {
-          refreshBtn.classList.remove('spinning');
-        }, { once: true });
+        refreshBtn.addEventListener(
+          'animationend',
+          () => {
+            refreshBtn.classList.remove('spinning');
+          },
+          { once: true }
+        );
 
         // Refresh data
         updateDatabaseStatus();
         updateBadgeCounts();
 
-        // Trigger page-specific refresh, or fall back to full reload
+        // Trigger page-specific refresh, or fall back to full reload after animation completes
         if (typeof window.refreshDashboardData === 'function') {
           window.refreshDashboardData();
         } else {
-          window.location.reload();
+          setTimeout(() => window.location.reload(), 600);
         }
       });
     }
