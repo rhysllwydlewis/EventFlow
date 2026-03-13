@@ -105,10 +105,12 @@ function sanitiseText(input, maxLength = 2000) {
   }
   let text = input;
   let prev;
+  let iterations = 0;
+  const MAX_ITERATIONS = 20; // guard against adversarial deeply-nested tag input
   do {
     prev = text;
     text = text.replace(/<[^>]*>/g, '');
-  } while (text !== prev);
+  } while (text !== prev && ++iterations < MAX_ITERATIONS);
   // Remove any remaining lone `<` (unclosed tags such as `<script` with no `>`)
   text = text.replace(/</g, '');
   return text.trim().slice(0, maxLength);

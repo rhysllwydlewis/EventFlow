@@ -196,13 +196,14 @@
     const sub = supplierData.subscription;
     const hasActiveSub =
       (sub && sub.tier && sub.tier !== 'free' && sub.status === 'active') ||
-      (supplierData.proPlan && supplierData.proPlanExpiry);
+      (supplierData.proPlan && supplierData.proPlanExpiry) ||
+      supplierData.isPro; // simple isPro boolean set by /pro endpoint
 
     let proPlanHtml = '<p>No active subscription</p>';
     if (hasActiveSub) {
       const tierLabel =
         sub?.tier === 'pro_plus' || supplierData.proPlan === 'Pro+' ? 'Pro+' : 'Pro';
-      const expiryDate = sub?.endDate || supplierData.proPlanExpiry;
+      const expiryDate = sub?.endDate || supplierData.proPlanExpiry || supplierData.proExpiresAt;
       const expiryDisplay = expiryDate ? new Date(expiryDate).toLocaleString() : 'No expiry set';
       proPlanHtml = `
         <p><strong>Plan:</strong> ${tierLabel}</p>
