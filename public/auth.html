@@ -633,8 +633,42 @@
           window.__EF_PAGE__ = 'auth';
         </script>
 
-        <!-- ALTCHA: load web component self-hosted to avoid browser tracking prevention blocking cdn.jsdelivr.net storage access -->
+        <!-- ALTCHA: loader shim that dynamically fetches the widget from CDN sources -->
         <script src="/assets/js/vendor/altcha.min.js" defer></script>
+
+        <!-- ALTCHA widget initialisation: show loading state and re-create widget once custom element is ready -->
+        <script>
+          (function () {
+            var regContainer = document.getElementById('reg-altcha-container');
+            if (!regContainer) return;
+
+            var altchaReady = customElements.get('altcha-widget') !== undefined;
+            if (altchaReady) return;
+
+            regContainer.innerHTML = '<p class="small" style="color:#666;margin:0;">Loading verification\u2026</p>';
+
+            function onAltchaLoaded() {
+              altchaReady = true;
+              regContainer.innerHTML = '';
+              var widget = document.createElement('altcha-widget');
+              widget.setAttribute('challengeurl', '/api/v1/altcha/challenge');
+              widget.id = 'reg-altcha-widget';
+              regContainer.appendChild(widget);
+            }
+
+            document.addEventListener('altcha-loaded', onAltchaLoaded, { once: true });
+
+            // Timeout fallback: if widget never loads allow registration without CAPTCHA
+            setTimeout(function () {
+              if (!altchaReady) {
+                document.removeEventListener('altcha-loaded', onAltchaLoaded);
+                regContainer.innerHTML = '<p class="small" style="color:#b45309;">\u26a0 Verification unavailable. You can still create an account.</p>';
+                var stuck = document.getElementById('reg-altcha-widget');
+                if (stuck) stuck.remove();
+              }
+            }, 15000);
+          })();
+        </script>
 
         <!-- Fetch CSRF token on page load using api-client -->
         <script>

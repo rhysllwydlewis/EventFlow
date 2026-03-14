@@ -5,9 +5,17 @@
  */
 
 const ALTCHA_CDN_URL = '/assets/js/vendor/altcha.min.js';
+const ALTCHA_FALLBACK_URLS = [
+  'https://cdn.jsdelivr.net/npm/altcha@2/dist/altcha.min.js',
+  'https://unpkg.com/altcha@2/dist/altcha.min.js',
+];
 
 /**
- * Load ALTCHA script from CDN
+ * Load ALTCHA script, waiting for the custom element to be defined.
+ * The vendor shim (altcha.min.js) dispatches an `altcha-loaded` event on
+ * document when the widget is ready. We listen for that event as the primary
+ * signal, with an interval-based fallback for environments where the event
+ * is not fired (e.g. the element was already registered before this call).
  * @returns {Promise<void>}
  */
 export function loadAltchaScript() {
@@ -18,28 +26,61 @@ export function loadAltchaScript() {
       return;
     }
 
-    // Check if script tag already exists
-    if (document.querySelector(`script[src*="altcha"]`)) {
-      const checkInterval = setInterval(() => {
-        if (customElements.get('altcha-widget')) {
-          clearInterval(checkInterval);
-          resolve();
-        }
-      }, 100);
-      setTimeout(() => {
+    // Listen for the altcha-loaded event dispatched by the vendor shim
+    const onLoaded = () => {
+      clearInterval(checkInterval);
+      clearTimeout(timeoutId);
+      resolve();
+    };
+    document.addEventListener('altcha-loaded', onLoaded, { once: true });
+
+    // Also poll in case the shim loaded the element before this listener was attached
+    const checkInterval = setInterval(() => {
+      if (customElements.get('altcha-widget')) {
         clearInterval(checkInterval);
-        reject(new Error('ALTCHA script load timeout'));
-      }, 10000);
-      return;
+        clearTimeout(timeoutId);
+        document.removeEventListener('altcha-loaded', onLoaded);
+        resolve();
+      }
+    }, 100);
+
+    // Check if script tag already exists; if not, inject the shim
+    if (!document.querySelector(`script[src*="altcha"]`)) {
+      const script = document.createElement('script');
+      script.src = ALTCHA_CDN_URL;
+      script.async = true;
+      script.onerror = () => {
+        // Shim failed to load; attempt direct CDN sources sequentially as last resort
+        console.warn(
+          '[ALTCHA] Failed to load shim from',
+          ALTCHA_CDN_URL,
+          ', trying CDN fallbacks…'
+        );
+        let fallbackIndex = 0;
+        function tryFallback() {
+          if (fallbackIndex >= ALTCHA_FALLBACK_URLS.length) {
+            return;
+          }
+          const url = ALTCHA_FALLBACK_URLS[fallbackIndex++];
+          const fallback = document.createElement('script');
+          fallback.src = url;
+          fallback.type = 'module';
+          fallback.onerror = () => {
+            console.warn('[ALTCHA] Fallback failed:', url);
+            tryFallback();
+          };
+          document.head.appendChild(fallback);
+        }
+        tryFallback();
+      };
+      document.head.appendChild(script);
     }
 
-    const script = document.createElement('script');
-    script.src = ALTCHA_CDN_URL;
-    script.async = true;
-    script.defer = true;
-    script.onload = () => resolve();
-    script.onerror = () => reject(new Error('Failed to load ALTCHA script'));
-    document.head.appendChild(script);
+    const timeoutId = setTimeout(() => {
+      clearInterval(checkInterval);
+      document.removeEventListener('altcha-loaded', onLoaded);
+      reject(new Error('ALTCHA script load timeout'));
+    }, 10000);
   });
 }
 
@@ -75,17 +116,14 @@ export async function renderAltchaWidget(container, options = {}) {
  * @returns {string|null} Base64-encoded payload or null if not yet solved
  */
 export function getAltchaPayload(widgetOrForm) {
-  const el =
-    typeof widgetOrForm === 'string' ? document.querySelector(widgetOrForm) : widgetOrForm;
+  const el = typeof widgetOrForm === 'string' ? document.querySelector(widgetOrForm) : widgetOrForm;
 
   if (!el) {
     return null;
   }
 
   // If it's the widget itself, look for the hidden input sibling or inside
-  const input = el.querySelector
-    ? el.querySelector('input[name="altcha"]')
-    : null;
+  const input = el.querySelector ? el.querySelector('input[name="altcha"]') : null;
 
   if (input) {
     return input.value || null;

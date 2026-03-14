@@ -152,13 +152,44 @@
     <span class="small" id="contact-status" role="status" aria-live="polite"></span>
   </div>
 </form>
-<script src="/assets/js/vendor/altcha.min.js" defer></script><!-- Self-hosted to avoid browser tracking prevention blocking cdn.jsdelivr.net storage access -->
+<script src="/assets/js/vendor/altcha.min.js" defer></script><!-- Loader shim: tries CDN sources to ensure the altcha-widget custom element is registered -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   var form = document.getElementById('contact-form');
   var status = document.getElementById('contact-status');
   var submitBtn = document.getElementById('contact-submit-btn');
   if (!form) return;
+
+  // Handle async widget initialisation: show a loading placeholder until the
+  // altcha-widget custom element is defined, then replace it with a live widget.
+  var altchaContainer = document.getElementById('contact-altcha-container');
+  var altchaReady = customElements.get('altcha-widget') !== undefined;
+
+  if (altchaContainer && !altchaReady) {
+    altchaContainer.innerHTML = '<p class="small" style="color:#666;margin:0;">Loading verification\u2026</p>';
+
+    function onAltchaLoaded() {
+      altchaReady = true;
+      altchaContainer.innerHTML = '';
+      var widget = document.createElement('altcha-widget');
+      widget.setAttribute('challengeurl', '/api/v1/altcha/challenge');
+      widget.id = 'contact-altcha-widget';
+      altchaContainer.appendChild(widget);
+    }
+
+    document.addEventListener('altcha-loaded', onAltchaLoaded, { once: true });
+
+    // Timeout fallback: if the widget never loads, allow submission without CAPTCHA
+    setTimeout(function () {
+      if (!altchaReady) {
+        document.removeEventListener('altcha-loaded', onAltchaLoaded);
+        altchaContainer.innerHTML = '<p class="small" style="color:#b45309;">\u26a0 Verification unavailable. You can still submit the form.</p>';
+        var stuck = document.getElementById('contact-altcha-widget');
+        if (stuck) stuck.remove();
+      }
+    }, 15000);
+  }
+
   form.addEventListener('submit', async function (e) {
     e.preventDefault();
     var altchaWidget = document.getElementById('contact-altcha-widget');

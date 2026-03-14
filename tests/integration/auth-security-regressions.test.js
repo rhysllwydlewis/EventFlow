@@ -46,6 +46,14 @@ describe('auth.html – security regressions', () => {
     it('points the widget at the challenge endpoint', () => {
       expect(content).toContain('/api/v1/altcha/challenge');
     });
+
+    it('contains altcha-loaded event handling for widget initialisation', () => {
+      expect(content).toContain('altcha-loaded');
+    });
+
+    it('contains a timeout fallback for when the widget fails to load', () => {
+      expect(content).toContain('Verification unavailable');
+    });
   });
 
   describe('waitForApiClient retry loop is bounded', () => {
@@ -87,6 +95,53 @@ describe('contact.html – ALTCHA widget is present', () => {
   it('does not contain unused dead variable csrfMeta', () => {
     // csrfMeta was declared but never used (dead code referencing a non-existent meta tag)
     expect(content).not.toContain('var csrfMeta = document.querySelector');
+  });
+
+  it('contains altcha-loaded event handling for widget initialisation', () => {
+    expect(content).toContain('altcha-loaded');
+  });
+
+  it('contains a timeout fallback for when the widget fails to load', () => {
+    expect(content).toContain('Verification unavailable');
+  });
+});
+
+describe('altcha.min.js vendor shim – loader logic', () => {
+  let content;
+
+  beforeAll(() => {
+    content = fs.readFileSync(
+      path.join(__dirname, '../../public/assets/js/vendor/altcha.min.js'),
+      'utf8'
+    );
+  });
+
+  it('checks customElements.get before loading', () => {
+    expect(content).toContain('customElements.get');
+  });
+
+  it('dispatches altcha-loaded custom event when widget is ready', () => {
+    expect(content).toContain('altcha-loaded');
+  });
+
+  it('defines a tryLoad function to iterate CDN sources', () => {
+    expect(content).toContain('tryLoad');
+  });
+
+  it('loads the ALTCHA widget as an ES module (type="module")', () => {
+    expect(content).toContain("type = 'module'");
+  });
+
+  it('includes a CDN fallback source', () => {
+    expect(content).toContain('cdn.jsdelivr.net');
+  });
+
+  it('includes a secondary CDN fallback source (unpkg)', () => {
+    expect(content).toContain('unpkg.com');
+  });
+
+  it('logs an error when all sources fail', () => {
+    expect(content).toContain('Failed to load widget from all sources');
   });
 });
 
