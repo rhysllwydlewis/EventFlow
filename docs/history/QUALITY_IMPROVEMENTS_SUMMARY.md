@@ -150,7 +150,7 @@ All pages use identical navbar structure:
 1. `public/assets/js/components/package-list.js` - Complete redesign
 2. `public/assets/js/auth-nav.js` - Navbar class fix
 3. `public/assets/css/mobile-optimizations.css` - Class compatibility
-4. `public/assets/js/utils/hcaptcha.js` - ESLint fixes
+4. `public/assets/js/utils/altcha.js` - ESLint fixes
 5. `jest.config.js` - Coverage thresholds
 6. `TESTING.md` - New documentation
 

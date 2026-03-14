@@ -38,22 +38,13 @@ describe('auth.html – security regressions', () => {
     });
   });
 
-  describe('hCaptcha init retry loop is bounded', () => {
-    it('defines CAPTCHA_MAX_RETRIES to cap the retry loop', () => {
-      expect(content).toContain('CAPTCHA_MAX_RETRIES');
+  describe('ALTCHA widget is present', () => {
+    it('contains the altcha-widget element in the registration form', () => {
+      expect(content).toContain('altcha-widget');
     });
 
-    it('checks retry count before calling setTimeout again', () => {
-      // The guard must appear before setTimeout in the captcha init section
-      const captchaSection = content.slice(
-        content.indexOf('initRegisterCaptcha'),
-        content.indexOf('initRegisterCaptcha') + 600
-      );
-      const retryCheckPos = captchaSection.indexOf('captchaRetries < CAPTCHA_MAX_RETRIES');
-      const setTimeoutPos = captchaSection.indexOf('setTimeout(initRegisterCaptcha');
-      expect(retryCheckPos).toBeGreaterThan(-1);
-      expect(setTimeoutPos).toBeGreaterThan(-1);
-      expect(retryCheckPos).toBeLessThan(setTimeoutPos);
+    it('points the widget at the challenge endpoint', () => {
+      expect(content).toContain('/api/v1/altcha/challenge');
     });
   });
 
@@ -78,19 +69,19 @@ describe('auth.html – security regressions', () => {
   });
 });
 
-describe('contact.html – hCaptcha init retry loop is bounded', () => {
+describe('contact.html – ALTCHA widget is present', () => {
   let content;
 
   beforeAll(() => {
     content = fs.readFileSync(path.join(__dirname, '../../public/contact.html'), 'utf8');
   });
 
-  it('defines CAPTCHA_MAX_RETRIES to cap the retry loop', () => {
-    expect(content).toContain('CAPTCHA_MAX_RETRIES');
+  it('contains the altcha-widget element in the contact form', () => {
+    expect(content).toContain('altcha-widget');
   });
 
-  it('guards setTimeout with retry counter check', () => {
-    expect(content).toContain('captchaRetries < CAPTCHA_MAX_RETRIES');
+  it('points the widget at the challenge endpoint', () => {
+    expect(content).toContain('/api/v1/altcha/challenge');
   });
 
   it('does not contain unused dead variable csrfMeta', () => {

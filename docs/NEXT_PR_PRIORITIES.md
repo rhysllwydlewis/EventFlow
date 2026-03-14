@@ -47,7 +47,7 @@ This is a practical, execution-focused backlog to drive upcoming PRs.
 - **Outcome:**
   - Backend `utils/sentry.js`: added `release` field (`eventflow@{version}`), replaced `console.*` with `logger`.
   - Frontend `public/assets/js/utils/sentry-browser-init.js` created: reads DSN from meta tag or `/api/v1/config`.
-  - `/api/v1/config` now exposes `sentryDsn` (from `SENTRY_DSN_FRONTEND`) and `hcaptchaSitekey`.
+  - `/api/v1/config` now exposes `sentryDsn` (from `SENTRY_DSN_FRONTEND`) and `altchaSitekey`.
   - `sentry-browser-init.js` loaded on all 17 pages that carry `global-error-handler.js`.
   - Coverage tested by `tests/integration/sentry-frontend-coverage.test.js`.
 - **Validation:** `npm run lint && npm test`

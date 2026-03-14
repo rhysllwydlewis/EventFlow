@@ -2,7 +2,7 @@
 
 ## Overview
 
-This PR implements critical trust and verification features for the EventFlow platform. The implementation focuses on three main areas: lead quality display, verification badges, and bot protection via hCaptcha.
+This PR implements critical trust and verification features for the EventFlow platform. The implementation focuses on three main areas: lead quality display, verification badges, and bot protection via ALTCHA.
 
 ## ✅ What Was Implemented
 
@@ -101,7 +101,7 @@ const badgesHTML = renderVerificationBadges(supplier, {
 const verificationSectionHTML = renderVerificationSection(supplier);
 ```
 
-### 3. hCaptcha Bot Protection
+### 3. ALTCHA Bot Protection
 
 **Status:** 🔄 Backend Complete, Frontend Guide Created
 
@@ -114,8 +114,8 @@ const verificationSectionHTML = renderVerificationSection(supplier);
 
 #### Frontend (Implementation Guide):
 
-- ✅ Created comprehensive **`HCAPTCHA_IMPLEMENTATION_GUIDE.md`**
-- ✅ Added `HCAPTCHA_SITE_KEY` and `HCAPTCHA_SECRET_KEY` to `.env.example`
+- ✅ Created comprehensive **`ALTCHA_IMPLEMENTATION_GUIDE.md`**
+- ✅ Added `ALTCHA_HMAC_KEY` and `ALTCHA_HMAC_KEY` to `.env.example`
 
 #### Implementation Guide Includes:
 
@@ -137,8 +137,8 @@ const verificationSectionHTML = renderVerificationSection(supplier);
 
 ## 📁 Files Created
 
-1. **`docs/HCAPTCHA_IMPLEMENTATION_GUIDE.md`** (9.6 KB)
-   - Complete implementation guide for hCaptcha
+1. **`docs/ALTCHA_IMPLEMENTATION_GUIDE.md`** (9.6 KB)
+   - Complete implementation guide for ALTCHA
 
 2. **`public/assets/js/utils/verification-badges.js`** (9.4 KB)
    - Verification badges utility module
@@ -149,7 +149,7 @@ const verificationSectionHTML = renderVerificationSection(supplier);
 ## 📝 Files Modified
 
 1. **`.env.example`**
-   - Added hCaptcha configuration section with SITE_KEY and SECRET_KEY
+   - Added ALTCHA configuration section with SITE_KEY and SECRET_KEY
 
 2. **`public/assets/js/supplier-analytics-chart.js`**
    - Fixed lead quality API endpoint URL
@@ -183,8 +183,8 @@ const verificationSectionHTML = renderVerificationSection(supplier);
 | Verification Badges Utility | N/A         | ✅ New module     | ✅ Complete     |
 | Verification Badge CSS      | N/A         | ✅ Enhanced       | ✅ Complete     |
 | Profile Badge Display       | N/A         | ✅ Integrated     | ✅ Complete     |
-| hCaptcha Backend            | ✅ Complete | N/A               | ✅ Complete     |
-| hCaptcha Frontend           | N/A         | 📚 Guide created  | 🔄 To implement |
+| ALTCHA Backend            | ✅ Complete | N/A               | ✅ Complete     |
+| ALTCHA Frontend           | N/A         | 📚 Guide created  | 🔄 To implement |
 
 ## 🧪 Testing Requirements
 
@@ -205,19 +205,19 @@ const verificationSectionHTML = renderVerificationSection(supplier);
 
 ### Requires Production Setup:
 
-- [ ] Add hCaptcha keys to environment variables
-- [ ] Implement hCaptcha widgets on forms (using guide)
-- [ ] Test hCaptcha verification flow
+- [ ] Add ALTCHA keys to environment variables
+- [ ] Implement ALTCHA widgets on forms (using guide)
+- [ ] Test ALTCHA verification flow
 - [ ] Test form submission with captcha validation
 
 ## 🔐 Security Notes
 
-### hCaptcha Implementation:
+### ALTCHA Implementation:
 
 - Secret key should NEVER be in frontend code
 - Always validate captcha server-side
-- Development mode bypasses captcha (if HCAPTCHA_SECRET not set)
-- Production requires valid hCaptcha credentials
+- Development mode bypasses captcha (if ALTCHA_HMAC_KEY not set)
+- Production requires valid ALTCHA credentials
 
 ### Verification Data:
 
@@ -229,8 +229,8 @@ const verificationSectionHTML = renderVerificationSection(supplier);
 
 ### New Documents:
 
-1. **`docs/HCAPTCHA_IMPLEMENTATION_GUIDE.md`**
-   - Complete guide for implementing hCaptcha
+1. **`docs/ALTCHA_IMPLEMENTATION_GUIDE.md`**
+   - Complete guide for implementing ALTCHA
    - Includes code examples, testing checklist, troubleshooting
 
 2. **`docs/PR2_IMPLEMENTATION_SUMMARY.md`** (This file)
@@ -255,8 +255,8 @@ const verificationSectionHTML = renderVerificationSection(supplier);
 ### After Merging:
 
 - [ ] Verify lead quality widget works on deployed dashboard
-- [ ] Add hCaptcha keys to production environment
-- [ ] Implement hCaptcha on forms (following guide)
+- [ ] Add ALTCHA keys to production environment
+- [ ] Implement ALTCHA on forms (following guide)
 - [ ] Test all features in production environment
 - [ ] Monitor for any errors or issues
 
@@ -315,7 +315,7 @@ Ensure supplier objects include these fields:
 1. Lead quality data displays correctly on supplier dashboard
 2. Suppliers can filter and sort leads by quality
 3. Verification badges appear on supplier profiles
-4. hCaptcha implementation guide is complete and accurate
+4. ALTCHA implementation guide is complete and accurate
 5. All code is production-ready and documented
 6. No breaking changes introduced
 
@@ -333,7 +333,7 @@ None currently identified.
 
 For questions or issues:
 
-- Refer to `docs/HCAPTCHA_IMPLEMENTATION_GUIDE.md` for hCaptcha setup
+- Refer to `docs/ALTCHA_IMPLEMENTATION_GUIDE.md` for ALTCHA setup
 - Check badge module code comments for usage
 - Review existing lead quality implementation in `supplier-messages.js`
 

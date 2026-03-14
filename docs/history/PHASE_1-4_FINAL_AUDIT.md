@@ -1139,7 +1139,7 @@ All critical issues have been resolved in Phases 1-4.
 
 ---
 
-#### 3. hCaptcha Integration Missing
+#### 3. ALTCHA Integration Missing
 
 **Issue**: Lead scoring exists but no bot protection on forms
 
@@ -1149,7 +1149,7 @@ All critical issues have been resolved in Phases 1-4.
 
 **Remediation**:
 
-1. Add hCaptcha widget to enquiry forms
+1. Add ALTCHA widget to enquiry forms
 2. Update server-side verification
 3. Connect to lead scoring algorithm
 
@@ -1280,7 +1280,7 @@ All critical issues have been resolved in Phases 1-4.
 | -------------------- | -------- | -------- | -------- | ------------- |
 | CSP Inline Handlers  | Medium   | Medium   | 2-3 days | Sprint 5      |
 | Lead Quality Display | Medium   | High     | 2 days   | Sprint 5      |
-| hCaptcha Integration | Medium   | High     | 1 day    | Sprint 5      |
+| ALTCHA Integration | Medium   | High     | 1 day    | Sprint 5      |
 | xlsx Vulnerability   | Low      | Medium   | 1 day    | Sprint 6      |
 | Stripe Payment Flow  | High     | High     | 3-5 days | Sprint 5-6    |
 | Trust Badges Display | Low      | Medium   | 2 days   | Sprint 6      |
@@ -1315,7 +1315,7 @@ All critical issues have been resolved in Phases 1-4.
 
 ---
 
-#### 2. Integrate hCaptcha ⭐⭐⭐
+#### 2. Integrate ALTCHA ⭐⭐⭐
 
 **Why**: Protects lead quality from bot spam
 
@@ -1325,7 +1325,7 @@ All critical issues have been resolved in Phases 1-4.
 
 **Tasks**:
 
-- Add hCaptcha widget to enquiry forms
+- Add ALTCHA widget to enquiry forms
 - Implement server-side verification
 - Update lead scoring to use CAPTCHA result
 - Test with real submissions
@@ -1739,7 +1739,7 @@ EventFlow has successfully completed a comprehensive Phase 1-4 implementation, d
 ### Areas for Improvement
 
 1. **Frontend Polish**: Lead quality display, trust badges, skeleton loaders
-2. **Bot Protection**: hCaptcha integration needed before marketing push
+2. **Bot Protection**: ALTCHA integration needed before marketing push
 3. **Monetization**: Stripe payment flow required for self-serve subscriptions
 4. **Security Hardening**: CSP inline handlers should be refactored (not urgent)
 5. **Test Coverage**: Can be increased incrementally (current coverage acceptable)
@@ -1752,7 +1752,7 @@ EventFlow has successfully completed a comprehensive Phase 1-4 implementation, d
 
 **Recommended Timeline**:
 
-- Week 1: Complete high-priority items (Lead display, hCaptcha)
+- Week 1: Complete high-priority items (Lead display, ALTCHA)
 - Week 2-3: Implement Stripe payment flow
 - Week 4: Internal testing and final validation
 - Week 5+: Staged rollout (10% → 50% → 100%)
@@ -1779,7 +1779,7 @@ EventFlow has successfully completed a comprehensive Phase 1-4 implementation, d
 
 ### Final Recommendation
 
-**PROCEED WITH PRODUCTION DEPLOYMENT** following the staged rollout plan. Complete high-priority items from Sprint 5 (Lead display, hCaptcha, Stripe) before full marketing push. Continue with iterative improvements post-launch based on user feedback and data.
+**PROCEED WITH PRODUCTION DEPLOYMENT** following the staged rollout plan. Complete high-priority items from Sprint 5 (Lead display, ALTCHA, Stripe) before full marketing push. Continue with iterative improvements post-launch based on user feedback and data.
 
 ---
 

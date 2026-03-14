@@ -92,7 +92,7 @@ After a self-review pass the following bugs introduced in the initial commit wer
 
 **Changes:**
 
-- Marked items 1 (Dashboard Analytics), 2 (Skeleton Loaders), 3 (Trust Badges), 4 (hCaptcha), 5 (Lead Quality Display), 13 (PWA Install Prompt) as ✅ Implemented with notes on what was shipped
+- Marked items 1 (Dashboard Analytics), 2 (Skeleton Loaders), 3 (Trust Badges), 4 (ALTCHA), 5 (Lead Quality Display), 13 (PWA Install Prompt) as ✅ Implemented with notes on what was shipped
 - Updated item 7 (Faceted Search) to ⚠️ Partially Implemented — Phase 4 added marketplace filters but distance/availability are stubs
 - Updated item 9 (Stripe) to ⚠️ Partially Implemented — Phase 4 improved upgrade flow
 - Removed already-completed items from Quick Wins section; listed remaining ones

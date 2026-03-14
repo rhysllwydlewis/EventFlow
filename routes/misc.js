@@ -9,6 +9,7 @@ const express = require('express');
 const validator = require('validator');
 const logger = require('../utils/logger');
 const { uid } = require('../store');
+const { createChallenge } = require('altcha-lib');
 const router = express.Router();
 
 // Input length limits for contact form fields
@@ -23,7 +24,7 @@ let authRequired;
 let csrfProtection;
 let writeLimiter;
 let geocoding;
-let verifyHCaptcha;
+let verifyAltcha;
 
 /**
  * Initialize dependencies from server.js
@@ -41,7 +42,7 @@ function initializeDependencies(deps) {
     'csrfProtection',
     'writeLimiter',
     'geocoding',
-    'verifyHCaptcha',
+    'verifyAltcha',
   ];
 
   const missing = required.filter(key => deps[key] === undefined);
@@ -54,7 +55,7 @@ function initializeDependencies(deps) {
   csrfProtection = deps.csrfProtection;
   writeLimiter = deps.writeLimiter;
   geocoding = deps.geocoding;
-  verifyHCaptcha = deps.verifyHCaptcha;
+  verifyAltcha = deps.verifyAltcha;
 }
 
 /**
@@ -175,10 +176,33 @@ router.get('/venues/near', async (req, res) => {
 
 // ---------- CAPTCHA Verification ----------
 
+// ---------- ALTCHA Challenge ----------
+
+router.get('/altcha/challenge', async (req, res) => {
+  try {
+    if (!process.env.ALTCHA_HMAC_KEY) {
+      // In development, return a dummy challenge so the widget can still render
+      if (process.env.NODE_ENV !== 'production') {
+        const challenge = await createChallenge({ hmacKey: 'dev-only-key', maxNumber: 100000 });
+        return res.json(challenge);
+      }
+      return res.status(503).json({ error: 'ALTCHA not configured' });
+    }
+    const challenge = await createChallenge({
+      hmacKey: process.env.ALTCHA_HMAC_KEY,
+      maxNumber: 100000,
+    });
+    res.json(challenge);
+  } catch (error) {
+    logger.error('Error generating ALTCHA challenge:', error);
+    res.status(500).json({ error: 'Failed to generate challenge' });
+  }
+});
+
 router.post('/verify-captcha', applyWriteLimiter, async (req, res) => {
   try {
     const { token } = req.body || {};
-    const result = await verifyHCaptcha(token);
+    const result = await verifyAltcha(token);
 
     if (result.success) {
       return res.json(result);
@@ -222,8 +246,8 @@ router.post('/contact', applyWriteLimiter, async (req, res) => {
       return res.status(400).json({ error: 'Invalid email address' });
     }
 
-    // Verify hCaptcha
-    const captchaResult = await verifyHCaptcha(captchaToken);
+    // Verify ALTCHA
+    const captchaResult = await verifyAltcha(captchaToken);
     if (!captchaResult.success) {
       return res.status(400).json({ error: captchaResult.error || 'CAPTCHA verification failed' });
     }

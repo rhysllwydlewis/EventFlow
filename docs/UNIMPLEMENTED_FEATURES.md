@@ -41,16 +41,16 @@ Based on review of FUTURE_IMPROVEMENTS.md, ROADMAP_PROGRESS.md, ADMIN_DASHBOARD_
 
 ---
 
-### 4. hCaptcha Integration for Lead Quality 🤖
+### 4. ALTCHA Integration for Lead Quality 🤖
 
-**Status**: ✅ Implemented (PR: implement-hcaptcha-integration)
+**Status**: ✅ Implemented (PR: implement-altcha-integration)
 **What was done**:
 
-- ✅ hCaptcha widget added to `public/auth.html` registration form
-- ✅ hCaptcha widget added to `public/contact.html` contact form
+- ✅ ALTCHA widget added to `public/auth.html` registration form
+- ✅ ALTCHA widget added to `public/contact.html` contact form
 - ✅ Server-side verification via `verifyHCaptcha()` in `routes/auth.js` (register) and `routes/misc.js` (contact)
 - ✅ Lead scoring already penalises `captchaPassed: false` (`-50` pts) in `utils/leadScoring.js`
-- ✅ Sitekey read from `HCAPTCHA_SITE_KEY` env var via `<meta name="hcaptcha-sitekey">` or `/api/v1/config`
+- ✅ Sitekey read from `ALTCHA_HMAC_KEY` env var via `<meta name="altcha-sitekey">` or `/api/v1/config`
 - ✅ Enquiry threads (`routes/threads.js`) already integrate captcha + lead scoring
 
 ---
@@ -252,7 +252,7 @@ Items previously listed as quick wins that have now been completed:
 - ✅ Skeleton loaders (shipped Phase 3)
 - ✅ Founding supplier / trust badges (shipped Phase 2/3)
 - ✅ Lead quality display on supplier dashboard (shipped Phase 3/4)
-- ✅ hCaptcha integration (shipped Phase 2)
+- ✅ ALTCHA integration (shipped Phase 2)
 - ✅ Dashboard charts / Chart.js visualizations (shipped Phase 3/4)
 - ✅ PWA install prompt (shipped Phase 3/4)
 
