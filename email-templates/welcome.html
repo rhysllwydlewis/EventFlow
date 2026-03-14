@@ -4,177 +4,91 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Welcome to EventFlow!</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      background-color: #f9fafb;
-      color: #0B1220;
-      line-height: 1.6;
-    }
-    .email-container {
-      max-width: 600px;
-      margin: 40px auto;
-      background-color: #ffffff;
-      border-radius: 14px;
-      overflow: hidden;
-      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
-    }
-    .email-header {
-      background: linear-gradient(180deg, #16c3ad, #0ea896);
-      padding: 32px 24px;
-      text-align: center;
-    }
-    .logo {
-      width: 48px;
-      height: 48px;
-      margin: 0 auto 12px;
-      border-radius: 12px;
-      background: conic-gradient(from 180deg, #9be7d9, #13B6A2 25%, #0B8073 55%, #0B1220 75%, #9be7d9);
-    }
-    .email-header h1 {
-      margin: 0;
-      color: #ffffff;
-      font-size: 24px;
-      font-weight: 800;
-    }
-    .email-body {
-      padding: 32px 24px;
-    }
-    .email-body h2 {
-      margin: 0 0 16px;
-      font-size: 20px;
-      font-weight: 700;
-      color: #0B1220;
-    }
-    .email-body p {
-      margin: 0 0 16px;
-      color: #667085;
-      font-size: 15px;
-    }
-    .cta-button {
-      display: inline-block;
-      margin: 12px 8px;
-      padding: 14px 28px;
-      background: linear-gradient(180deg, #16c3ad, #0ea896);
-      color: #ffffff;
-      text-decoration: none;
-      border-radius: 12px;
-      font-weight: 700;
-      font-size: 16px;
-      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.1);
-    }
-    .cta-button.secondary {
-      background: #F6FAF9;
-      color: #0B8073;
-      border: 1px solid #CFEDEA;
-      box-shadow: none;
-    }
-    .feature-box {
-      margin: 24px 0;
-      padding: 20px;
-      background-color: #F2FBF9;
-      border-left: 4px solid #13B6A2;
-      border-radius: 8px;
-    }
-    .feature-box h3 {
-      margin: 0 0 8px;
-      font-size: 16px;
-      font-weight: 700;
-      color: #0B8073;
-    }
-    .feature-box p {
-      margin: 0;
-      color: #667085;
-      font-size: 14px;
-    }
-    .email-footer {
-      padding: 24px;
-      background-color: #f9fafb;
-      border-top: 1px solid #E7EAF0;
-      text-align: center;
-    }
-    .email-footer p {
-      margin: 0 0 8px;
-      font-size: 13px;
-      color: #98A2B3;
-    }
-    .email-footer a {
-      color: #0B8073;
-      text-decoration: none;
-    }
-    .divider {
-      margin: 24px 0;
-      border: 0;
-      border-top: 1px solid #E7EAF0;
-    }
-    @media only screen and (max-width: 600px) {
-      .email-container {
-        margin: 20px;
-        border-radius: 10px;
-      }
-      .email-header {
-        padding: 24px 16px;
-      }
-      .email-body {
-        padding: 24px 16px;
-      }
-      .cta-button {
-        display: block;
-        text-align: center;
-        margin: 12px 0;
-      }
-    }
-  </style>
 </head>
-<body>
-  <div class="email-container">
-    <div class="email-header">
-      <div class="logo" aria-hidden="true"></div>
-      <h1>EventFlow</h1>
-    </div>
-    <div class="email-body">
-      <h2>🎉 Welcome to EventFlow!</h2>
-      <p>Hi {{name}},</p>
-      <p>Your email has been verified! You're all set to start planning your perfect event with EventFlow.</p>
-      <p>Here's what you can do next:</p>
-      
-      <div class="feature-box">
-        <h3>🔍 Discover Suppliers</h3>
-        <p>Browse verified venues, caterers, photographers, and more. Filter by location, price, and ratings to find the perfect fit.</p>
-      </div>
-      
-      <div class="feature-box">
-        <h3>📋 Create Your Plan</h3>
-        <p>Build your event checklist, track tasks, and manage your budget all in one place.</p>
-      </div>
-      
-      <div class="feature-box">
-        <h3>💬 Connect & Collaborate</h3>
-        <p>Message suppliers directly, ask questions, and get quotes without leaving the platform.</p>
-      </div>
-      
-      <div style="text-align: center; margin-top: 32px;">
-        <a href="{{baseUrl}}/start" class="cta-button">Start Planning</a>
-        <a href="{{baseUrl}}/suppliers" class="cta-button secondary">Browse Suppliers</a>
-      </div>
-      
-      <hr class="divider">
-      
-      <p style="font-size: 14px; color: #98A2B3;"><strong>💡 Pro Tip:</strong> Press <strong>Cmd+K</strong> (or <strong>Ctrl+K</strong>) anytime to quickly search for suppliers across the platform.</p>
-      
-      <p style="font-size: 14px; color: #98A2B3;">Need help getting started? Check out our <a href="{{baseUrl}}/faq" style="color: #0B8073;">FAQ</a> or email us at <a href="mailto:hello@event-flow.co.uk" style="color: #0B8073;">hello@event-flow.co.uk</a>.</p>
-    </div>
-    <div class="email-footer">
-      <p><strong>EventFlow</strong> — Event planning made simple.</p>
-      <p>
-        <a href="{{baseUrl}}/privacy">Privacy Policy</a> · 
-        <a href="{{baseUrl}}/terms">Terms of Service</a> · 
-        <a href="{{baseUrl}}/contact">Contact Us</a>
-      </p>
-      <p>© {{year}} EventFlow. All rights reserved.</p>
-    </div>
-  </div>
+<body style="margin:0;padding:0;background-color:#EBF7F5;font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#EBF7F5;">
+    <tr>
+      <td align="center" style="padding:40px 16px;">
+        <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(11,128,115,0.13);">
+
+          <!-- ── Gradient Header ─────────────────────────────── -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#0B8073 0%,#13B6A2 100%);padding:40px 40px 32px;text-align:center;">
+              <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto 14px auto;">
+                <tr>
+                  <td style="width:52px;height:52px;background:rgba(255,255,255,0.18);border-radius:14px;text-align:center;vertical-align:middle;font-size:20px;font-weight:900;color:#ffffff;letter-spacing:-1px;line-height:52px;">EF</td>
+                </tr>
+              </table>
+              <div style="font-size:24px;font-weight:800;letter-spacing:-0.5px;color:#ffffff;margin-bottom:5px;">EventFlow</div>
+              <div style="font-size:12px;color:rgba(255,255,255,0.72);letter-spacing:0.3px;">Operated by VEXI</div>
+            </td>
+          </tr>
+
+          <!-- ── Body ────────────────────────────────────────── -->
+          <tr>
+            <td style="background-color:#ffffff;padding:40px 40px 32px;">
+              <p style="margin:0 0 4px;font-size:28px;text-align:center;">🎉</p>
+              <h1 style="margin:0 0 20px;font-size:22px;font-weight:700;color:#0B1220;line-height:1.35;">Welcome to EventFlow!</h1>
+              <p style="margin:0 0 16px;font-size:15px;color:#334155;line-height:1.75;">Hi {{name}},</p>
+              <p style="margin:0 0 28px;font-size:15px;color:#334155;line-height:1.75;">Your account is ready. You're all set to start planning your perfect event. Here's what you can do right away:</p>
+
+              <!-- Feature list -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:12px;">
+                <tr>
+                  <td style="background-color:#F2FBF9;border-left:4px solid #13B6A2;border-radius:0 10px 10px 0;padding:14px 18px 14px 16px;">
+                    <p style="margin:0 0 3px;font-size:14px;font-weight:700;color:#0B8073;">🔍 Discover Suppliers</p>
+                    <p style="margin:0;font-size:13px;color:#334155;line-height:1.6;">Browse verified venues, caterers, photographers and more — filtered by location, price and reviews.</p>
+                  </td>
+                </tr>
+              </table>
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:12px;">
+                <tr>
+                  <td style="background-color:#F2FBF9;border-left:4px solid #13B6A2;border-radius:0 10px 10px 0;padding:14px 18px 14px 16px;">
+                    <p style="margin:0 0 3px;font-size:14px;font-weight:700;color:#0B8073;">📋 Build Your Plan</p>
+                    <p style="margin:0;font-size:13px;color:#334155;line-height:1.6;">Create your event checklist, track tasks and manage your budget all in one place.</p>
+                  </td>
+                </tr>
+              </table>
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:28px;">
+                <tr>
+                  <td style="background-color:#F2FBF9;border-left:4px solid #13B6A2;border-radius:0 10px 10px 0;padding:14px 18px 14px 16px;">
+                    <p style="margin:0 0 3px;font-size:14px;font-weight:700;color:#0B8073;">💬 Message Suppliers</p>
+                    <p style="margin:0;font-size:13px;color:#334155;line-height:1.6;">Request quotes, ask questions and manage conversations — without leaving the platform.</p>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- CTA button -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
+                <tr>
+                  <td align="center">
+                    <a href="{{baseUrl}}/start" style="display:inline-block;padding:15px 40px;background:linear-gradient(135deg,#0B8073,#13B6A2);color:#ffffff;text-decoration:none;border-radius:10px;font-weight:700;font-size:15px;letter-spacing:0.2px;">Start Planning</a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin:0;font-size:13px;color:#667085;line-height:1.7;text-align:center;">Need help? Visit our <a href="{{baseUrl}}/faq" style="color:#0B8073;text-decoration:none;">FAQ</a> or email <a href="mailto:hello@event-flow.co.uk" style="color:#0B8073;text-decoration:none;">hello@event-flow.co.uk</a></p>
+            </td>
+          </tr>
+
+          <!-- ── Footer ───────────────────────────────────────── -->
+          <tr>
+            <td style="background-color:#F2FBF9;padding:24px 40px;text-align:center;border-top:1px solid #D9F0EC;">
+              <p style="margin:0 0 8px;font-size:13px;color:#667085;">© 2025–2026 EventFlow. All rights reserved. &nbsp;·&nbsp; Operated by VEXI</p>
+              <p style="margin:0 0 8px;font-size:12px;color:#98A2B3;">
+                <a href="{{baseUrl}}/privacy" style="color:#0B8073;text-decoration:none;">Privacy Policy</a>
+                &nbsp;·&nbsp;
+                <a href="{{baseUrl}}/terms" style="color:#0B8073;text-decoration:none;">Terms of Service</a>
+                &nbsp;·&nbsp;
+                <a href="{{baseUrl}}/contact" style="color:#0B8073;text-decoration:none;">Contact Us</a>
+              </p>
+              <p style="margin:0;font-size:12px;color:#98A2B3;"><a href="{{baseUrl}}" style="color:#0B8073;text-decoration:none;">event-flow.co.uk</a></p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>

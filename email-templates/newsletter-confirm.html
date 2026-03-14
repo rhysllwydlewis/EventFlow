@@ -3,122 +3,80 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Confirm your EventFlow newsletter subscription</title>
-  <style>
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      line-height: 1.6;
-      color: #333;
-      background-color: #f4f4f4;
-      margin: 0;
-      padding: 0;
-    }
-    .container {
-      max-width: 600px;
-      margin: 40px auto;
-      background: white;
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    .header {
-      background: linear-gradient(135deg, #0B8073 0%, #0a6b5f 100%);
-      color: white;
-      padding: 40px 30px;
-      text-align: center;
-    }
-    .header h1 {
-      margin: 0;
-      font-size: 28px;
-      font-weight: 600;
-    }
-    .content {
-      padding: 40px 30px;
-    }
-    .content p {
-      margin: 0 0 20px 0;
-      font-size: 16px;
-      color: #555;
-    }
-    .button {
-      display: inline-block;
-      background: #0B8073;
-      color: white !important;
-      padding: 14px 32px;
-      text-decoration: none;
-      border-radius: 6px;
-      font-weight: 600;
-      font-size: 16px;
-      margin: 20px 0;
-      text-align: center;
-    }
-    .button:hover {
-      background: #0a6b5f;
-    }
-    .note {
-      color: #6b7280;
-      font-size: 14px;
-      margin-top: 30px;
-      padding-top: 20px;
-      border-top: 1px solid #e5e7eb;
-    }
-    .footer {
-      background: #f9fafb;
-      padding: 30px;
-      text-align: center;
-      color: #9ca3af;
-      font-size: 12px;
-      border-top: 1px solid #e5e7eb;
-    }
-    .footer a {
-      color: #0B8073;
-      text-decoration: none;
-    }
-    .logo {
-      font-size: 20px;
-      font-weight: 700;
-      margin-bottom: 10px;
-    }
-  </style>
+  <title>Confirm Your Newsletter Subscription - EventFlow</title>
 </head>
-<body>
-  <div class="container">
-    <div class="header">
-      <div class="logo">EventFlow</div>
-      <h1>Confirm your subscription</h1>
-    </div>
-    
-    <div class="content">
-      <p>Hi there,</p>
-      
-      <p>Thanks for subscribing to the EventFlow newsletter! We're excited to keep you updated with:</p>
-      
-      <ul style="color: #555; margin: 20px 0; padding-left: 20px;">
-        <li>New suppliers and venues</li>
-        <li>Event planning tips and guides</li>
-        <li>Exclusive offers and early access</li>
-        <li>Platform updates and new features</li>
-      </ul>
-      
-      <p>Click the button below to confirm your email address:</p>
-      
-      <center>
-        <a href="{{confirmLink}}" class="button">Confirm Subscription</a>
-      </center>
-      
-      <div class="note">
-        <p><strong>Note:</strong> This link will expire in 24 hours.</p>
-        <p>If you didn't subscribe to our newsletter, you can safely ignore this email.</p>
-      </div>
-    </div>
-    
-    <div class="footer">
-      <p><strong>EventFlow</strong></p>
-      <p>Everything you need to organise an event in one place</p>
-      <p style="margin-top: 15px;">
-        <a href="https://event-flow.co.uk">event-flow.co.uk</a>
-      </p>
-    </div>
-  </div>
+<body style="margin:0;padding:0;background-color:#EBF7F5;font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#EBF7F5;">
+    <tr>
+      <td align="center" style="padding:40px 16px;">
+        <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(11,128,115,0.13);">
+
+          <!-- ── Gradient Header ─────────────────────────────── -->
+          <tr>
+            <td style="background:linear-gradient(135deg,#0B8073 0%,#13B6A2 100%);padding:40px 40px 32px;text-align:center;">
+              <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto 14px auto;">
+                <tr>
+                  <td style="width:52px;height:52px;background:rgba(255,255,255,0.18);border-radius:14px;text-align:center;vertical-align:middle;font-size:20px;font-weight:900;color:#ffffff;letter-spacing:-1px;line-height:52px;">EF</td>
+                </tr>
+              </table>
+              <div style="font-size:24px;font-weight:800;letter-spacing:-0.5px;color:#ffffff;margin-bottom:5px;">EventFlow</div>
+              <div style="font-size:12px;color:rgba(255,255,255,0.72);letter-spacing:0.3px;">Operated by VEXI</div>
+            </td>
+          </tr>
+
+          <!-- ── Body ────────────────────────────────────────── -->
+          <tr>
+            <td style="background-color:#ffffff;padding:40px 40px 32px;">
+              <h1 style="margin:0 0 20px;font-size:22px;font-weight:700;color:#0B1220;line-height:1.35;">Confirm your subscription</h1>
+              <p style="margin:0 0 16px;font-size:15px;color:#334155;line-height:1.75;">Hi there,</p>
+              <p style="margin:0 0 24px;font-size:15px;color:#334155;line-height:1.75;">Thanks for subscribing to the EventFlow newsletter! Click confirm below to stay up to date with:</p>
+
+              <!-- Checklist -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:28px;">
+                <tr><td style="padding:6px 0;font-size:14px;color:#334155;"><span style="color:#0B8073;font-weight:700;margin-right:10px;">✓</span>New suppliers and venues</td></tr>
+                <tr><td style="padding:6px 0;font-size:14px;color:#334155;"><span style="color:#0B8073;font-weight:700;margin-right:10px;">✓</span>Event planning tips and guides</td></tr>
+                <tr><td style="padding:6px 0;font-size:14px;color:#334155;"><span style="color:#0B8073;font-weight:700;margin-right:10px;">✓</span>Exclusive offers and early access</td></tr>
+                <tr><td style="padding:6px 0;font-size:14px;color:#334155;"><span style="color:#0B8073;font-weight:700;margin-right:10px;">✓</span>Platform updates and new features</td></tr>
+              </table>
+
+              <!-- CTA button -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;">
+                <tr>
+                  <td align="center">
+                    <a href="{{confirmLink}}" style="display:inline-block;padding:15px 40px;background:linear-gradient(135deg,#0B8073,#13B6A2);color:#ffffff;text-decoration:none;border-radius:10px;font-weight:700;font-size:15px;letter-spacing:0.2px;">Confirm Subscription</a>
+                  </td>
+                </tr>
+              </table>
+
+              <!-- Note -->
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td style="background-color:#E8FAF7;border-left:4px solid #13B6A2;border-radius:0 8px 8px 0;padding:14px 18px;">
+                    <p style="margin:0;font-size:13px;color:#0B6B61;line-height:1.6;"><strong>Note:</strong> This confirmation link expires in 24 hours. If you didn't subscribe to our newsletter, you can safely ignore this email.</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <!-- ── Footer ───────────────────────────────────────── -->
+          <tr>
+            <td style="background-color:#F2FBF9;padding:24px 40px;text-align:center;border-top:1px solid #D9F0EC;">
+              <p style="margin:0 0 8px;font-size:13px;color:#667085;">© 2025–2026 EventFlow. All rights reserved. &nbsp;·&nbsp; Operated by VEXI</p>
+              <p style="margin:0 0 8px;font-size:12px;color:#98A2B3;">
+                <a href="{{baseUrl}}/privacy" style="color:#0B8073;text-decoration:none;">Privacy Policy</a>
+                &nbsp;·&nbsp;
+                <a href="{{baseUrl}}/terms" style="color:#0B8073;text-decoration:none;">Terms of Service</a>
+                &nbsp;·&nbsp;
+                <a href="{{baseUrl}}/contact" style="color:#0B8073;text-decoration:none;">Contact Us</a>
+              </p>
+              <p style="margin:0;font-size:12px;color:#98A2B3;"><a href="{{baseUrl}}" style="color:#0B8073;text-decoration:none;">event-flow.co.uk</a></p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>

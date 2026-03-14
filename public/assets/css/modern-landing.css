@@ -139,19 +139,6 @@ html {
   }
 }
 
-/* Enhanced logo with simplified teal gradient */
-.ef-logo-inner {
-  background: conic-gradient(
-    from 180deg,
-    #9be7d9 0deg,
-    #13B6A2 120deg,
-    #0B8073 240deg,
-    #9be7d9 360deg
-  ) !important;
-  box-shadow: 0 4px 16px rgba(11, 128, 115, 0.4),
-              0 0 0 2px rgba(255, 255, 255, 0.5) !important;
-}
-
 /* Modern navigation links */
 .ef-nav-link {
   font-weight: 500;
