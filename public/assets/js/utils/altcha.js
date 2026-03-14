@@ -4,8 +4,7 @@
  * ALTCHA is a privacy-focused, self-hosted alternative that requires no third-party tracking.
  */
 
-const ALTCHA_CDN_URL =
-  'https://cdn.jsdelivr.net/npm/@altcha-org/altcha/dist/altcha.min.js';
+const ALTCHA_CDN_URL = '/assets/js/vendor/altcha.min.js';
 
 /**
  * Load ALTCHA script from CDN

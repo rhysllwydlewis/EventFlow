@@ -1,7 +1,8 @@
 /**
- * Integration tests for JadeAssist widget pinning
- * Ensures all HTML files use an immutable commit SHA instead of @main
- * This prevents CDN caching issues with moving references
+ * Integration tests for JadeAssist widget loading
+ * Ensures all HTML files use the self-hosted vendor script instead of the CDN.
+ * Self-hosting avoids browser Tracking Prevention (Edge, Brave, Firefox, Safari)
+ * blocking cdn.jsdelivr.net from accessing storage, which prevented widget initialization.
  */
 
 const path = require('path');
@@ -46,50 +47,34 @@ describe('JadeAssist Widget Pinning', () => {
       expect(filesWithMain).toEqual([]);
     });
 
-    it('should use pinned commit SHA in widget script tags', () => {
-      // Find all HTML files that include JadeAssist
+    it('should use self-hosted vendor script instead of CDN in all HTML files', () => {
+      // All HTML files must reference the local vendor file, not the CDN
       const htmlFiles = findHtmlFiles(publicDir);
 
-      const expectedCommitSHA = 'abbf580487e0bcf7739a0857d4d940213fe2e176';
-      const filesWithWidget = [];
-      const filesWithCorrectSHA = [];
+      const filesWithCDN = [];
+      const filesWithLocalScript = [];
 
       for (const filePath of htmlFiles) {
         const content = fs.readFileSync(filePath, 'utf8');
 
         if (content.includes('cdn.jsdelivr.net/gh/rhysllwydlewis/JadeAssist@')) {
-          const relativePath = path.relative(publicDir, filePath);
-          filesWithWidget.push(relativePath);
+          filesWithCDN.push(path.relative(publicDir, filePath));
+        }
 
-          if (content.includes(`JadeAssist@${expectedCommitSHA}`)) {
-            filesWithCorrectSHA.push(relativePath);
-          }
+        if (content.includes('/assets/js/vendor/jade-widget.js')) {
+          filesWithLocalScript.push(path.relative(publicDir, filePath));
         }
       }
 
-      // All files with widget should use the pinned SHA
-      expect(filesWithCorrectSHA.length).toBe(filesWithWidget.length);
-      expect(filesWithWidget.length).toBeGreaterThan(0);
+      // No HTML files should reference the CDN directly
+      expect(filesWithCDN).toEqual([]);
+      // At least some HTML files should load the self-hosted vendor script
+      expect(filesWithLocalScript.length).toBeGreaterThan(0);
     });
 
-    it('should use correct widget file path', () => {
-      const htmlFiles = findHtmlFiles(publicDir);
-
-      const expectedPath = '/packages/widget/dist/jade-widget.js';
-      const filesWithIncorrectPath = [];
-
-      for (const filePath of htmlFiles) {
-        const content = fs.readFileSync(filePath, 'utf8');
-
-        // If file has JadeAssist reference, verify the path
-        if (content.includes('cdn.jsdelivr.net/gh/rhysllwydlewis/JadeAssist@')) {
-          if (!content.includes(expectedPath)) {
-            filesWithIncorrectPath.push(path.relative(publicDir, filePath));
-          }
-        }
-      }
-
-      expect(filesWithIncorrectPath).toEqual([]);
+    it('should have self-hosted vendor file present', () => {
+      const vendorPath = path.join(publicDir, 'assets/js/vendor/jade-widget.js');
+      expect(fs.existsSync(vendorPath)).toBe(true);
     });
   });
 

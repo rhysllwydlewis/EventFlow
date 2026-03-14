@@ -633,8 +633,8 @@
           window.__EF_PAGE__ = 'auth';
         </script>
 
-        <!-- ALTCHA: load web component and widget in the registration form -->
-        <script src="https://cdn.jsdelivr.net/npm/@altcha-org/altcha/dist/altcha.min.js" async defer></script>
+        <!-- ALTCHA: load web component self-hosted to avoid browser tracking prevention blocking cdn.jsdelivr.net storage access -->
+        <script src="/assets/js/vendor/altcha.min.js" defer></script>
 
         <!-- Fetch CSRF token on page load using api-client -->
         <script>
@@ -913,7 +913,7 @@
 
     <!-- JadeAssist Chat Widget -->
     <script
-      src="https://cdn.jsdelivr.net/gh/rhysllwydlewis/JadeAssist@abbf580487e0bcf7739a0857d4d940213fe2e176/packages/widget/dist/jade-widget.js"
+      src="/assets/js/vendor/jade-widget.js"
       defer
     ></script>
     <script src="/assets/js/jadeassist-init.v2.js" defer></script>

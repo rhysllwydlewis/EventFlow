@@ -74,8 +74,8 @@ router.get('/altcha/challenge', async (req, res) => {
 ### Auth Registration Form (`public/auth.html`)
 
 ```html
-<!-- Load ALTCHA web component -->
-<script src="https://cdn.jsdelivr.net/npm/@altcha-org/altcha/dist/altcha.min.js" async defer></script>
+<!-- Load ALTCHA web component (self-hosted to avoid browser tracking prevention) -->
+<script src="/assets/js/vendor/altcha.min.js" defer></script>
 
 <!-- Widget in the form -->
 <altcha-widget challengeurl="/api/v1/altcha/challenge" id="reg-altcha-widget"></altcha-widget>
@@ -119,12 +119,14 @@ const captchaToken = getPayload();
 
 ## Security / CSP (✅ Complete)
 
-The ALTCHA CDN (`cdn.jsdelivr.net`) is already in the CSP `scriptSrc`, `scriptSrcElem`, and `connectSrc` directives. No additional CSP changes are needed. Unlike hCaptcha, ALTCHA does not use iframes.
+The ALTCHA widget is now self-hosted at `/assets/js/vendor/altcha.min.js`, served from the same origin. This avoids browser Tracking Prevention features (Edge, Brave, Firefox, Safari) blocking `cdn.jsdelivr.net` from accessing storage, which previously prevented the `<altcha-widget>` web component from initialising.
+
+`cdn.jsdelivr.net` is still in the CSP `scriptSrc`, `scriptSrcElem`, and `connectSrc` directives for any remaining CDN usage, but no additional CSP changes are needed for ALTCHA itself.
 
 ## NPM Dependencies
 
 - `altcha-lib` — Server-side challenge creation and verification (no external API calls)
-- ALTCHA frontend widget is loaded from `cdn.jsdelivr.net` (already in CSP)
+- ALTCHA frontend widget is self-hosted at `/assets/js/vendor/altcha.min.js` (sourced from the `altcha` npm package)
 
 ## Lead Scoring
 
