@@ -28,11 +28,17 @@ const TOKEN_GRACE_PERIOD_MINUTES = parseInt(process.env.TOKEN_GRACE_PERIOD_MINUT
 const TOKEN_VERSION = 1; // Increment this to invalidate all existing tokens
 const PENDING_USER_ID = 'pending'; // Used for email verification tokens when user ID is not yet assigned
 
-// Warn if using default secret in production
-if (JWT_SECRET === 'change_me_in_production' && process.env.NODE_ENV === 'production') {
-  logger.error(
-    '❌ CRITICAL: JWT_SECRET is not set! Using default secret is INSECURE in production!'
-  );
+// Warn if using default secret in any environment — this is a dev-only placeholder.
+if (JWT_SECRET === 'change_me_in_production') {
+  if (process.env.NODE_ENV === 'production') {
+    logger.error(
+      '❌ CRITICAL: JWT_SECRET is not set! Using default secret is INSECURE in production!'
+    );
+  } else {
+    logger.warn(
+      '⚠️  JWT_SECRET is using the dev-only default. Set JWT_SECRET before deploying to production.'
+    );
+  }
 }
 
 /**

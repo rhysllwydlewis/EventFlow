@@ -147,9 +147,7 @@ async function verifyAltcha(payload) {
     if (process.env.NODE_ENV === 'production') {
       return { success: false, error: 'CAPTCHA verification not configured' };
     }
-    logger.warn(
-      'ALTCHA verification skipped - ALTCHA_HMAC_KEY not configured (development only)'
-    );
+    logger.warn('ALTCHA verification skipped - ALTCHA_HMAC_KEY not configured (development only)');
     return { success: true, warning: 'Captcha verification disabled in development' };
   }
 
@@ -640,7 +638,7 @@ ensureDirs();
 // Canonical auth/me and auth/login inline definitions
 // These ensure consistent behaviour and allow tests to verify patterns in server.js.
 // The OWNER_EMAIL constant enforces the platform owner admin role.
-const OWNER_EMAIL = 'admin@event-flow.co.uk';
+const OWNER_EMAIL = process.env.OWNER_EMAIL || 'admin@event-flow.co.uk';
 
 app.get('/api/auth/me', async (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');

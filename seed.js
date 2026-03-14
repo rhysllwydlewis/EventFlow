@@ -109,47 +109,63 @@ async function seed(options = {}) {
 
     // Always ensure owner account exists (protected from deletion)
     const ownerEmail = process.env.OWNER_EMAIL || 'admin@event-flow.co.uk';
-    const ownerPassword = process.env.OWNER_PASSWORD || 'Admin123!'; // Default for dev only
-    const ownerExists = existingUsers.find(u => u.email.toLowerCase() === ownerEmail.toLowerCase());
-    if (!ownerExists) {
-      const owner = {
-        id: uid('usr'),
-        name: 'EventFlow Owner',
-        email: ownerEmail,
-        role: 'admin',
-        passwordHash: bcrypt.hashSync(ownerPassword, 10),
-        createdAt: now,
-        notify: true,
-        notify_account: true, // Transactional emails enabled
-        notify_marketing: false, // No marketing emails for owner
-        marketingOptIn: false,
-        verified: true, // Owner is always verified (skip email verification)
-        isOwner: true, // Special flag to protect from deletion
-      };
-      existingUsers.push(owner);
-      usersModified = true;
-      logger.info(`✅ Created owner account: ${ownerEmail}`);
-      if (!process.env.OWNER_PASSWORD && process.env.NODE_ENV === 'production') {
-        logger.warn(
-          '⚠️  WARNING: Using default owner password in production. Set OWNER_PASSWORD environment variable.'
-        );
-      }
+    // In production, OWNER_PASSWORD must be explicitly set — no default fallback.
+    // In development, fall back to 'Admin123!' so the app starts without configuration.
+    const isProduction = process.env.NODE_ENV === 'production';
+    const ownerPassword = process.env.OWNER_PASSWORD || (isProduction ? null : 'Admin123!');
+    if (!ownerPassword) {
+      // In production, refuse to create the owner account with a default password.
+      // This prevents accidentally deploying with a known weak credential.
+      logger.error(
+        '❌ CRITICAL: OWNER_PASSWORD is not set. Refusing to create owner account in production. ' +
+          'Set the OWNER_PASSWORD environment variable to a strong, unique password.'
+      );
     } else {
-      // Owner exists - ensure it has the correct flags
-      const ownerIdx = existingUsers.findIndex(
+      const ownerExists = existingUsers.find(
         u => u.email.toLowerCase() === ownerEmail.toLowerCase()
       );
-      if (!existingUsers[ownerIdx].isOwner || !existingUsers[ownerIdx].verified) {
-        existingUsers[ownerIdx].isOwner = true;
-        existingUsers[ownerIdx].verified = true;
-        existingUsers[ownerIdx].role = 'admin';
+      if (!ownerExists) {
+        const owner = {
+          id: uid('usr'),
+          name: 'EventFlow Owner',
+          email: ownerEmail,
+          role: 'admin',
+          passwordHash: bcrypt.hashSync(ownerPassword, 10),
+          createdAt: now,
+          notify: true,
+          notify_account: true, // Transactional emails enabled
+          notify_marketing: false, // No marketing emails for owner
+          marketingOptIn: false,
+          verified: true, // Owner is always verified (skip email verification)
+          isOwner: true, // Special flag to protect from deletion
+        };
+        existingUsers.push(owner);
         usersModified = true;
-        logger.info(`✅ Updated owner account flags: ${ownerEmail}`);
+        logger.info(`✅ Created owner account: ${ownerEmail}`);
+        if (!process.env.OWNER_PASSWORD) {
+          // Dev-only fallback password is in use; warn so developers know to set it.
+          logger.warn(
+            '⚠️  Using dev-only default owner password. Set OWNER_PASSWORD before deploying to production.'
+          );
+        }
+      } else {
+        // Owner exists - ensure it has the correct flags
+        const ownerIdx = existingUsers.findIndex(
+          u => u.email.toLowerCase() === ownerEmail.toLowerCase()
+        );
+        if (!existingUsers[ownerIdx].isOwner || !existingUsers[ownerIdx].verified) {
+          existingUsers[ownerIdx].isOwner = true;
+          existingUsers[ownerIdx].verified = true;
+          existingUsers[ownerIdx].role = 'admin';
+          usersModified = true;
+          logger.info(`✅ Updated owner account flags: ${ownerEmail}`);
+        }
       }
     }
 
-    // Create demo users only if skipIfExists is false (demo/dev mode)
-    if (!skipIfExists) {
+    // Create demo users only if skipIfExists is false (demo/dev mode).
+    // Never create demo accounts with known passwords in production.
+    if (!skipIfExists && process.env.NODE_ENV !== 'production') {
       // Check and create demo admin if it doesn't exist
       const demoAdminEmail = 'admin@eventflow.local';
       if (!existingUsers.find(u => u.email === demoAdminEmail)) {

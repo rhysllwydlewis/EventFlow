@@ -18,14 +18,31 @@ const KEY_LENGTH = 32;
  * @returns {Buffer} Encryption key
  */
 function getEncryptionKey() {
-  const secret = process.env.ENCRYPTION_KEY || process.env.JWT_SECRET || 'change_me';
+  const secret = process.env.ENCRYPTION_KEY || process.env.JWT_SECRET;
 
-  if (process.env.NODE_ENV === 'production' && (secret === 'change_me' || !secret)) {
-    throw new Error('ENCRYPTION_KEY or JWT_SECRET must be set in production');
+  if (!secret || secret === 'change_me' || secret === 'change_me_in_production') {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('ENCRYPTION_KEY or JWT_SECRET must be set in production');
+    }
+    // Dev-only: use a deterministic placeholder so the app starts without configuration.
+    // Data encrypted with this key is NOT compatible with production-encrypted data.
+    // Never deploy without setting ENCRYPTION_KEY or JWT_SECRET.
+    logger.warn(
+      '⚠️  ENCRYPTION_KEY is not set. Using dev-only placeholder. Set ENCRYPTION_KEY before deploying to production.'
+    );
+    return crypto.pbkdf2Sync(
+      'dev-only-placeholder',
+      Buffer.from('eventflow-encryption-salt'),
+      100000,
+      KEY_LENGTH,
+      'sha256'
+    );
   }
 
-  // Derive a key from the secret using PBKDF2
-  const salt = Buffer.from('eventflow-encryption-salt'); // Fixed salt for consistency
+  // The salt is fixed by default for deterministic key derivation, ensuring data encrypted
+  // in one process can be decrypted in another without storing the salt alongside each record.
+  // Override via ENCRYPTION_SALT if you need to rotate or customise the salt.
+  const salt = Buffer.from(process.env.ENCRYPTION_SALT || 'eventflow-encryption-salt');
   return crypto.pbkdf2Sync(secret, salt, 100000, KEY_LENGTH, 'sha256');
 }
 

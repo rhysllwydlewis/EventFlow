@@ -10,16 +10,22 @@ const logger = require('../utils/logger');
 
 const JWT_SECRET = String(process.env.JWT_SECRET || 'change_me');
 
-// Validate JWT secret at module load time in production
-if (process.env.NODE_ENV === 'production') {
-  if (
-    !process.env.JWT_SECRET ||
-    process.env.JWT_SECRET.trim() === '' ||
-    process.env.JWT_SECRET === 'change_me'
-  ) {
+// Validate JWT secret at module load time
+if (
+  !process.env.JWT_SECRET ||
+  process.env.JWT_SECRET.trim() === '' ||
+  process.env.JWT_SECRET === 'change_me'
+) {
+  if (process.env.NODE_ENV === 'production') {
     throw new Error(
       'FATAL: JWT_SECRET is missing, blank, or set to default value in production. ' +
         'Please set a strong JWT_SECRET environment variable.'
+    );
+  } else {
+    // Warn developers so they remember to set this before deploying.
+    const logger = require('../utils/logger');
+    logger.warn(
+      '⚠️  JWT_SECRET is using the dev-only default ("change_me"). Set JWT_SECRET before deploying to production.'
     );
   }
 }

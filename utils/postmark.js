@@ -5,11 +5,12 @@
  * Environment Variables Required:
  * - POSTMARK_API_KEY: Your Postmark Server API key
  * - POSTMARK_FROM: Default sender email address (must be verified in Postmark - use noreply@event-flow.co.uk)
- * - POSTMARK_FROM_BILLING: Billing emails sender (billing@event-flow.co.uk)
- * - POSTMARK_FROM_SUPPORT: Support emails sender (support@event-flow.co.uk)
- * - POSTMARK_FROM_HELLO: Welcome/friendly emails sender (hello@event-flow.co.uk)
- * - POSTMARK_FROM_INFO: Newsletter/info emails sender (info@event-flow.co.uk)
- * - POSTMARK_FROM_ADMIN: Admin/system emails sender (admin@event-flow.co.uk)
+ * - EMAIL_DOMAIN: Base domain for all sender addresses (default: event-flow.co.uk). Set this to customise all FROM addresses at once.
+ * - POSTMARK_FROM_BILLING: Billing emails sender (overrides EMAIL_DOMAIN-derived default)
+ * - POSTMARK_FROM_SUPPORT: Support emails sender (overrides EMAIL_DOMAIN-derived default)
+ * - POSTMARK_FROM_HELLO: Welcome/friendly emails sender (overrides EMAIL_DOMAIN-derived default)
+ * - POSTMARK_FROM_INFO: Newsletter/info emails sender (overrides EMAIL_DOMAIN-derived default)
+ * - POSTMARK_FROM_ADMIN: Admin/system emails sender (overrides EMAIL_DOMAIN-derived default)
  * - BASE_URL or APP_BASE_URL: Application base URL for email links
  *
  * TEMPLATE USAGE:
@@ -54,14 +55,16 @@ const APP_BASE_URL = process.env.APP_BASE_URL || process.env.BASE_URL || 'http:/
 const UNSUBSCRIBE_SECRET = process.env.UNSUBSCRIBE_SECRET || process.env.JWT_SECRET;
 
 // Named sender addresses per email category.
-// Each can be overridden via a specific env var; all fall back to POSTMARK_FROM.
-const POSTMARK_FROM = process.env.POSTMARK_FROM || 'noreply@event-flow.co.uk';
-const FROM_NOREPLY = process.env.POSTMARK_FROM_NOREPLY || 'noreply@event-flow.co.uk';
-const FROM_HELLO = process.env.POSTMARK_FROM_HELLO || 'hello@event-flow.co.uk';
-const FROM_BILLING = process.env.POSTMARK_FROM_BILLING || 'billing@event-flow.co.uk';
-const FROM_SUPPORT = process.env.POSTMARK_FROM_SUPPORT || 'support@event-flow.co.uk';
-const FROM_INFO = process.env.POSTMARK_FROM_INFO || 'info@event-flow.co.uk';
-const FROM_ADMIN = process.env.POSTMARK_FROM_ADMIN || 'admin@event-flow.co.uk';
+// All addresses derive from EMAIL_DOMAIN by default, so forks only need to set one variable.
+// Each address can still be overridden individually via its own env var.
+const EMAIL_DOMAIN = process.env.EMAIL_DOMAIN || 'event-flow.co.uk';
+const POSTMARK_FROM = process.env.POSTMARK_FROM || `noreply@${EMAIL_DOMAIN}`;
+const FROM_NOREPLY = process.env.POSTMARK_FROM_NOREPLY || `noreply@${EMAIL_DOMAIN}`;
+const FROM_HELLO = process.env.POSTMARK_FROM_HELLO || `hello@${EMAIL_DOMAIN}`;
+const FROM_BILLING = process.env.POSTMARK_FROM_BILLING || `billing@${EMAIL_DOMAIN}`;
+const FROM_SUPPORT = process.env.POSTMARK_FROM_SUPPORT || `support@${EMAIL_DOMAIN}`;
+const FROM_INFO = process.env.POSTMARK_FROM_INFO || `info@${EMAIL_DOMAIN}`;
+const FROM_ADMIN = process.env.POSTMARK_FROM_ADMIN || `admin@${EMAIL_DOMAIN}`;
 
 /**
  * Initialize Postmark client
