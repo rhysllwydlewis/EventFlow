@@ -130,62 +130,38 @@ try {
   logger.info('   To enable AI features, install openai package and set OPENAI_API_KEY');
 }
 
-// HTTP client for external API calls
+// ALTCHA proof-of-work challenge verification
+const { verifySolution } = require('altcha-lib');
 
 /**
- * Verify hCaptcha token
- * @param {string} token - hCaptcha token
- * @returns {Promise<{success: boolean, error?: string, errors?: string[]}>}
+ * Verify ALTCHA proof-of-work solution
+ * @param {string} payload - Base64-encoded ALTCHA payload from the widget
+ * @returns {Promise<{success: boolean, error?: string, warning?: string}>}
  */
-async function verifyHCaptcha(token) {
-  if (!token) {
-    return { success: false, error: 'No captcha token provided' };
+async function verifyAltcha(payload) {
+  if (!payload) {
+    return { success: false, error: 'No ALTCHA payload provided' };
   }
 
-  if (!process.env.HCAPTCHA_SECRET) {
+  if (!process.env.ALTCHA_HMAC_KEY) {
     if (process.env.NODE_ENV === 'production') {
       return { success: false, error: 'CAPTCHA verification not configured' };
     }
     logger.warn(
-      'hCaptcha verification skipped - HCAPTCHA_SECRET not configured (development only)'
+      'ALTCHA verification skipped - ALTCHA_HMAC_KEY not configured (development only)'
     );
     return { success: true, warning: 'Captcha verification disabled in development' };
   }
 
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
-
-    const verifyResponse = await fetch('https://hcaptcha.com/siteverify', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        secret: process.env.HCAPTCHA_SECRET,
-        response: token,
-      }),
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-    const data = await verifyResponse.json();
-
-    if (data.success) {
+    const ok = await verifySolution(payload, process.env.ALTCHA_HMAC_KEY);
+    if (ok) {
       return { success: true };
     } else {
-      return {
-        success: false,
-        error: 'Captcha verification failed',
-        errors: data['error-codes'],
-      };
+      return { success: false, error: 'ALTCHA verification failed' };
     }
   } catch (error) {
-    if (error.name === 'AbortError') {
-      logger.error('hCaptcha verification timeout');
-      return { success: false, error: 'Captcha verification timeout' };
-    }
-    logger.error('Error verifying captcha:', error);
+    logger.error('Error verifying ALTCHA payload:', error);
     return { success: false, error: 'Captcha verification error' };
   }
 }
@@ -845,7 +821,7 @@ mountRoutes(app, {
   logger,
   sentry,
   sendMail,
-  verifyHCaptcha,
+  verifyAltcha,
   geocoding,
   calculateLeadScore,
   supplierIsProActive,

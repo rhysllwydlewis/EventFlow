@@ -20,7 +20,6 @@
     <link rel="stylesheet" href="/assets/css/p3-features.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/liquid-glass.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/auth.css?v=18.3.0" />
-    <meta name="hcaptcha-sitekey" content="" />
     <meta name="sentry-dsn" content="" />
     <meta name="sentry-release" content="eventflow@18.1.0" />
     <meta name="sentry-environment" content="production" />
@@ -603,8 +602,8 @@
                   </label>
                 </div>
 
-                <div class="auth-field form-row" id="reg-hcaptcha-container">
-                  <!-- hCaptcha widget rendered here by JavaScript -->
+                <div class="auth-field form-row" id="reg-altcha-container">
+                  <altcha-widget challengeurl="/api/v1/altcha/challenge" id="reg-altcha-widget"></altcha-widget>
                 </div>
 
                 <button class="auth-submit cta ef-btn ef-btn-primary auth-submit--full" type="submit">
@@ -634,40 +633,8 @@
           window.__EF_PAGE__ = 'auth';
         </script>
 
-        <!-- hCaptcha: load API script and render widget in the registration form -->
-        <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
-        <script>
-          (function () {
-            var CAPTCHA_MAX_RETRIES = 25; // 25 × 200 ms = 5 s max wait
-            var captchaRetries = 0;
-            function initRegisterCaptcha() {
-              var container = document.getElementById('reg-hcaptcha-container');
-              if (!container || !window.hcaptcha) {
-                captchaRetries++;
-                if (captchaRetries < CAPTCHA_MAX_RETRIES) {
-                  setTimeout(initRegisterCaptcha, 200);
-                }
-                return;
-              }
-              // Sitekey priority: meta tag → EVENTFLOW_CONFIG (from /api/v1/config) → dev test key
-              var meta = document.querySelector('meta[name="hcaptcha-sitekey"]');
-              var sitekey =
-                (meta && meta.getAttribute('content')) ||
-                (window.EVENTFLOW_CONFIG && window.EVENTFLOW_CONFIG.hcaptchaSitekey) ||
-                '10000000-ffff-ffff-ffff-000000000001';
-              var widgetId = window.hcaptcha.render(container, {
-                sitekey: sitekey,
-                theme: 'light',
-              });
-              window.__regHCaptchaWidgetId = widgetId;
-            }
-            if (document.readyState === 'loading') {
-              document.addEventListener('DOMContentLoaded', initRegisterCaptcha);
-            } else {
-              initRegisterCaptcha();
-            }
-          })();
-        </script>
+        <!-- ALTCHA: load web component and widget in the registration form -->
+        <script src="https://cdn.jsdelivr.net/npm/@altcha-org/altcha/dist/altcha.min.js" async defer></script>
 
         <!-- Fetch CSRF token on page load using api-client -->
         <script>

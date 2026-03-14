@@ -49,7 +49,7 @@ This document summarizes the completed work for the EventFlow 0-90 Day Product R
 
 **Remaining Work**:
 
-- Add hCaptcha integration
+- Add ALTCHA integration
 - Update supplier dashboard to display lead quality
 - Add filter/sort by lead quality in messages view
 
@@ -137,7 +137,7 @@ This document summarizes the completed work for the EventFlow 0-90 Day Product R
 
 ### Immediate Priorities
 
-1. **Add hCaptcha** (1 day)
+1. **Add ALTCHA** (1 day)
    - Integrate on enquiry forms
    - Verify server-side
    - Update lead scoring to use CAPTCHA result

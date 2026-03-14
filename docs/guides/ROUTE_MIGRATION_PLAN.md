@@ -336,7 +336,7 @@ DELETE / api / admin / cache / clear; // Clear cache
 
 // Miscellaneous
 GET / api / user; // Get user info (alias)
-POST / api / verify - captcha; // Verify hCaptcha
+POST / api / verify - captcha; // Verify ALTCHA
 POST / api / csp - report; // CSP violation reporting
 GET / api / me / settings; // Get user settings
 POST / api / me / settings; // Update user settings

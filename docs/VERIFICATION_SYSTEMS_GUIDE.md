@@ -494,7 +494,7 @@ Both email and phone verification can display badges using the existing verifica
 renderVerificationBadges(['email-verified', 'phone-verified'], element);
 ```
 
-See `docs/HCAPTCHA_IMPLEMENTATION_GUIDE.md` for badge integration examples.
+See `docs/ALTCHA_IMPLEMENTATION_GUIDE.md` for badge integration examples.
 
 ---
 

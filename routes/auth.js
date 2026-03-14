@@ -35,7 +35,7 @@ const JWT_SECRET = String(process.env.JWT_SECRET || 'change_me');
 // This will be set by the main server.js when mounting these routes (legacy compatibility)
 // eslint-disable-next-line no-unused-vars
 let _sendMailFn = null;
-let _verifyHCaptcha = null;
+let _verifyAltcha = null;
 
 /**
  * Set the sendMail function (injected from server.js) - legacy compatibility
@@ -50,8 +50,8 @@ function setSendMailFunction(fn) {
  * @param {Object} deps - Dependencies object
  */
 function initializeDependencies(deps) {
-  if (deps.verifyHCaptcha) {
-    _verifyHCaptcha = deps.verifyHCaptcha;
+  if (deps.verifyAltcha) {
+    _verifyAltcha = deps.verifyAltcha;
   }
 }
 
@@ -177,9 +177,9 @@ router.post(
       captchaToken,
     } = req.body || {};
 
-    // Verify hCaptcha token when the verifier is available
-    if (_verifyHCaptcha) {
-      const captchaResult = await _verifyHCaptcha(captchaToken);
+    // Verify ALTCHA token when the verifier is available
+    if (_verifyAltcha) {
+      const captchaResult = await _verifyAltcha(captchaToken);
       if (!captchaResult.success) {
         return res
           .status(400)

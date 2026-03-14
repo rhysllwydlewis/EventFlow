@@ -262,32 +262,28 @@ Display lead score badges in supplier dashboard:
 
 ## CAPTCHA Integration
 
-To prevent bot spam, integrate hCaptcha:
+To prevent bot spam, EventFlow uses [ALTCHA](https://altcha.org) — a privacy-focused, self-hosted proof-of-work CAPTCHA:
 
-1. **Sign up** for hCaptcha (free tier available)
+1. **Set `ALTCHA_HMAC_KEY`** environment variable (generate with `openssl rand -base64 32`)
 2. **Add to enquiry form**:
 
    ```html
+   <script src="https://cdn.jsdelivr.net/npm/@altcha-org/altcha/dist/altcha.min.js" async defer></script>
    <form id="enquiry-form">
      <!-- form fields -->
-     <div class="h-captcha" data-sitekey="YOUR_SITE_KEY"></div>
+     <altcha-widget challengeurl="/api/v1/altcha/challenge"></altcha-widget>
      <button type="submit">Send Enquiry</button>
    </form>
-   <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
    ```
 
-3. **Verify server-side**:
+3. **Verify server-side** (no external API calls):
 
    ```javascript
-   const axios = require('axios');
+   const { verifySolution } = require('altcha-lib');
 
-   async function verifyCaptcha(token) {
-     const response = await axios.post('https://hcaptcha.com/siteverify', {
-       secret: process.env.HCAPTCHA_SECRET,
-       response: token,
-     });
-
-     return response.data.success;
+   async function verifyCaptcha(payload) {
+     const ok = await verifySolution(payload, process.env.ALTCHA_HMAC_KEY);
+     return ok;
    }
    ```
 

@@ -27,7 +27,7 @@ describe('Contact Form Endpoint', () => {
     });
 
     it('verifies captcha before accepting submission', () => {
-      expect(miscContent).toContain('verifyHCaptcha(captchaToken)');
+      expect(miscContent).toContain('verifyAltcha(captchaToken)');
       expect(miscContent).toContain('captchaResult.success');
     });
 
@@ -55,8 +55,8 @@ describe('Contact Form Endpoint', () => {
       expect(topLines).toContain("require('validator')");
     });
 
-    it('has verifyHCaptcha in required dependencies list', () => {
-      expect(miscContent).toContain("'verifyHCaptcha'");
+    it('has verifyAltcha in required dependencies list', () => {
+      expect(miscContent).toContain("'verifyAltcha'");
     });
   });
 
@@ -82,13 +82,13 @@ describe('Contact Form Endpoint', () => {
       expect(authContent).toContain('captchaToken');
     });
 
-    it('auth.js has initializeDependencies to receive verifyHCaptcha', () => {
+    it('auth.js has initializeDependencies to receive verifyAltcha', () => {
       expect(authContent).toContain('initializeDependencies');
-      expect(authContent).toContain('_verifyHCaptcha');
+      expect(authContent).toContain('_verifyAltcha');
     });
 
     it('auth.js calls captcha verification during registration', () => {
-      expect(authContent).toContain('_verifyHCaptcha(captchaToken)');
+      expect(authContent).toContain('_verifyAltcha(captchaToken)');
     });
 
     it('auth.js exports initializeDependencies', () => {

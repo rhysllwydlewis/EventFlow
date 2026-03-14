@@ -37,6 +37,7 @@
   },
   "dependencies": {
     "@sentry/node": "^8.0.0",
+    "altcha-lib": "^1.4.1",
     "bcryptjs": "^2.4.3",
     "chart.js": "^4.4.6",
     "cloudinary": "^2.9.0",

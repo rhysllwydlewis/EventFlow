@@ -146,7 +146,7 @@ This roadmap transforms EventFlow from an empty marketplace into a competitive, 
 **Next Steps**:
 
 - [ ] Update Thread/Message schema with lead scoring fields
-- [ ] Integrate hCaptcha for bot protection
+- [ ] Integrate ALTCHA for bot protection
 - [ ] Add lead score badge UI components
 - [ ] Integrate scoring into enquiry submission endpoint
 - [ ] Create supplier dashboard view showing lead quality breakdown

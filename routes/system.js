@@ -175,7 +175,7 @@ router.get('/config', apiLimiter, async (req, res) => {
     googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || '',
     version: APP_VERSION,
     sentryDsn: process.env.SENTRY_DSN_FRONTEND || '',
-    hcaptchaSitekey: process.env.HCAPTCHA_SITE_KEY || '',
+    altchaChallengeUrl: '/api/v1/altcha/challenge',
   });
 });
 
