@@ -130,6 +130,7 @@ function configureHelmet(isProduction = false) {
         ],
         // Clickjacking protection: prefer frame-ancestors over X-Frame-Options
         frameAncestors: ["'none'"],
+        workerSrc: ["'self'", "blob:"],
         objectSrc: ["'none'"],
         upgradeInsecureRequests: [],
         reportUri: '/api/csp-report',
