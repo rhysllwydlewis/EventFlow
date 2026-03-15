@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes">
+  <meta name="theme-color" content="#0B8073">
+  <title>How to Use EventFlow's Budget Planner | EventFlow</title>
+  <meta name="description" content="Step-by-step guide to using EventFlow's Budget Planner tool. Learn how to set your budget, track spending, manage supplier payments, and keep your event costs on track.">
+  <meta name="keywords" content="EventFlow budget planner, event budget tool, wedding budget tracker, track event spending, supplier payment tracker, event planning budget UK">
+  <link rel="dns-prefetch" href="https://images.pexels.com" />
+  <link rel="preconnect" href="https://images.pexels.com" />
+  <link rel="canonical" href="https://event-flow.co.uk/articles/budget-planner-guide">
+  <meta property="og:type" content="article">
+  <meta property="og:title" content="How to Use EventFlow's Budget Planner | EventFlow">
+  <meta property="og:description" content="Step-by-step guide to using EventFlow's Budget Planner tool. Learn how to set your budget, track spending, manage supplier payments, and keep your event costs on track.">
+  <meta property="og:url" content="https://event-flow.co.uk/articles/budget-planner-guide">
+  <meta property="og:image" content="https://images.pexels.com/photos/4386431/pexels-photo-4386431.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1">
+  <meta property="og:image:width" content="1260">
+  <meta property="og:image:height" content="750">
+  <meta property="og:site_name" content="EventFlow">
+  <meta property="article:published_time" content="2026-03-07">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@EventFlowUK">
+  <meta name="twitter:title" content="How to Use EventFlow's Budget Planner | EventFlow">
+  <meta name="twitter:description" content="Step-by-step guide to using EventFlow's Budget Planner tool. Learn how to set your budget, track spending, manage supplier payments, and keep your event costs on track.">
+  <meta name="twitter:image" content="https://images.pexels.com/photos/4386431/pexels-photo-4386431.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/components.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/animations.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/navbar.css?v=18.3.0">
+  <link rel="icon" href="/favicon.svg">
+  <link rel="stylesheet" href="/assets/css/guides.css?v=19.0.0" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "How to Use EventFlow's Budget Planner",
+    "description": "Step-by-step guide to using EventFlow's Budget Planner tool. Learn how to set your budget, track spending, manage supplier payments, and keep your event costs on track.",
+    "image": "https://images.pexels.com/photos/4386431/pexels-photo-4386431.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1",
+    "author": { "@type": "Organization", "name": "EventFlow", "url": "https://event-flow.co.uk" },
+    "publisher": { "@type": "Organization", "name": "EventFlow", "url": "https://event-flow.co.uk", "logo": { "@type": "ImageObject", "url": "https://event-flow.co.uk/favicon.svg" } },
+    "datePublished": "2026-03-07",
+    "mainEntityOfPage": { "@type": "WebPage", "@id": "https://event-flow.co.uk/articles/budget-planner-guide" },
+    "url": "https://event-flow.co.uk/articles/budget-planner-guide",
+    "isPartOf": { "@type": "WebSite", "name": "EventFlow", "url": "https://event-flow.co.uk" }
+  }
+  </script>
+  <link rel="stylesheet" href="/assets/css/p3-features.css?v=18.3.0">
+</head>
+<body>
+<div class="article-progress-bar" id="article-progress-bar" role="progressbar" aria-label="Reading progress" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+<header class="ef-header" role="banner">
+  <div class="ef-container">
+    <div class="ef-header-content">
+      <a href="/" class="ef-brand" aria-label="EventFlow - Return to homepage">
+        <div class="ef-logo" aria-hidden="true"><div class="ef-logo-inner"></div></div>
+        <span class="ef-brand-text">EventFlow</span>
+      </a>
+      <nav class="ef-nav-desktop" aria-label="Main navigation">
+        <a href="/start" class="ef-nav-link">Plan</a>
+        <a href="/suppliers" class="ef-nav-link">Suppliers</a>
+        <a href="/marketplace" class="ef-nav-link">Marketplace</a>
+        <a href="/guides" class="ef-nav-link" aria-current="page">Guides</a>
+        <a href="/pricing" class="ef-nav-link">Pricing</a>
+      </nav>
+      <div class="ef-header-actions">
+        <button id="ef-notification-btn" class="ef-icon-btn" type="button" aria-label="View notifications" style="display: none;">
+          <svg class="ef-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span id="ef-notification-badge" class="ef-badge" style="display: none;">0</span>
+        </button>
+        <a href="/auth" id="ef-auth-link" class="ef-btn ef-btn-primary">Log in</a>
+        <a href="#" id="ef-dashboard-link" class="ef-nav-link" style="display: none;">Dashboard</a>
+        <button id="ef-mobile-toggle" class="ef-mobile-toggle" type="button" aria-label="Toggle menu" aria-expanded="false" aria-controls="ef-mobile-menu">
+          <span class="ef-toggle-line"></span>
+          <span class="ef-toggle-line"></span>
+          <span class="ef-toggle-line"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+  <div id="ef-mobile-menu" class="ef-mobile-menu" role="dialog" aria-modal="true" aria-label="Mobile navigation">
+    <nav class="ef-mobile-nav" aria-label="Primary navigation">
+      <a href="/start" class="ef-mobile-link">Plan an Event</a>
+      <a href="/suppliers" class="ef-mobile-link">Browse Suppliers</a>
+      <a href="/marketplace" class="ef-mobile-link">Marketplace</a>
+      <a href="/guides" class="ef-mobile-link">Guides</a>
+      <a href="/pricing" class="ef-mobile-link">Pricing</a>
+      <a href="/for-suppliers" class="ef-mobile-link">For Suppliers</a>
+      <a href="/faq" class="ef-mobile-link">FAQ</a>
+      <div class="ef-mobile-divider"></div>
+      <a href="/auth" id="ef-mobile-auth" class="ef-mobile-link ef-mobile-primary">Log in</a>
+      <a href="#" id="ef-mobile-dashboard" class="ef-mobile-link" style="display: none;">Dashboard</a>
+      <a href="#" id="ef-mobile-logout" class="ef-mobile-link" style="display: none;">Log out</a>
+    </nav>
+  </div>
+</header>
+
+<div id="notification-dropdown" class="notification-dropdown" style="display: none;">
+  <div class="notification-header">
+    <h3>Notifications</h3>
+    <button class="notification-mark-all" id="notification-mark-all-read">Mark all as read</button>
+  </div>
+  <div class="notification-list"></div>
+  <div class="notification-footer"><a href="/notifications" class="notification-view-all">View all</a></div>
+</div>
+
+<script src="/assets/js/utils/auth-state.js" defer></script>
+<script src="/assets/js/burger-menu.js" defer></script>
+<script src="/assets/js/navbar.js" defer></script>
+<script src="/assets/js/websocket-client.js" defer></script>
+
+<main id="main-content" class="section">
+  <div class="container" style="max-width: 900px;">
+    <article>
+      <header>
+        <div style="text-align: center; margin-bottom: 32px;">
+          <p class="small" style="color: var(--ink, #0B8073); font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Tools</p>
+          <h1 style="margin: 12px 0;">How to Use EventFlow's Budget Planner</h1>
+          <p class="lead" style="color: #667085; font-size: 1.125rem;">Set your budget, track spending, and manage supplier payments — all in one place</p>
+          <p class="small" style="color: #667085; margin-top: 16px;">📚 6 min read • Updated March 2026</p>
+          <div class="article-byline" style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin:20px 0 32px;padding:16px 20px;background:var(--bg-secondary,#f8f9fa);border-radius:8px;font-size:0.875rem;color:#667085;">
+            <span>✍️ <strong>EventFlow Team</strong></span>
+            <span>📅 Published: <time datetime="2026-03-07">7 March 2026</time></span>
+          </div>
+        </div>
+      </header>
+
+      <div class="card">
+        <h2 class="h3">🚀 Getting Started with the Budget Planner</h2>
+        <p>EventFlow's Budget Planner is designed to give you a clear, real-time picture of your event finances from the first deposit to the final balance. It removes the need for complicated spreadsheets and keeps all of your financial information in one secure place.</p>
+        <p>To access the Budget Planner, log in to your EventFlow account and navigate to your event dashboard. Select your event and click <strong>Budget</strong> in the left-hand menu. If you haven't created an event yet, head to <a href="/start">Plan an Event</a> to get started.</p>
+
+        <h3 class="h4">Step 1: Set Your Total Budget</h3>
+        <p>The first thing the planner asks for is your overall event budget. Enter the maximum amount you are willing to spend across all categories. This becomes your ceiling — the planner will track how much of it you've allocated and spent as you add items.</p>
+        <p>If you're splitting costs (for example, contributions from both sets of parents at a wedding), enter the total combined figure and note the contributions separately in the notes field.</p>
+
+        <h3 class="h4">Step 2: Add Budget Categories</h3>
+        <p>The planner comes pre-loaded with the most common event categories, and you can add custom ones as needed. Standard categories include:</p>
+        <ul>
+          <li>Venue hire</li>
+          <li>Catering and beverages</li>
+          <li>Photography and videography</li>
+          <li>Entertainment (band, DJ, photo booth)</li>
+          <li>Flowers and décor</li>
+          <li>Stationery and signage</li>
+          <li>Transport (guest buses, wedding car)</li>
+          <li>Attire (dress, suit, accessories)</li>
+          <li>Hair and beauty</li>
+          <li>Cake</li>
+          <li>Accommodation (for couple and/or guests)</li>
+          <li>Honeymoon deposit</li>
+          <li>Contingency (we recommend 10% of your total budget)</li>
+        </ul>
+
+        <div style="background: #F9FAFB; border-left: 4px solid var(--ink, #0B8073); padding: 16px; margin: 24px 0;">
+          <p style="margin: 0;"><strong>Always include a contingency category</strong> of at least 10% of your total budget. Unexpected costs — overtime charges, last-minute additions, items damaged on the day — are almost inevitable.</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="h3">💳 Tracking Deposits and Final Payments</h2>
+        <p>One of the Budget Planner's most useful features is its ability to track the split between deposits paid and balances outstanding.</p>
+
+        <h3 class="h4">Adding a Supplier Payment</h3>
+        <ol>
+          <li>Open a budget category and click <strong>Add payment</strong></li>
+          <li>Enter the supplier name and total agreed price</li>
+          <li>Mark the deposit as paid, entering the amount and date</li>
+          <li>Set a reminder for the final balance due date</li>
+          <li>When the balance is paid, mark it as complete</li>
+        </ol>
+
+        <h3 class="h4">Deposit Due Dates</h3>
+        <p>The planner displays an upcoming payments calendar so you can see at a glance which balances are due in the coming weeks. This is particularly useful in the final two to three months before your event when multiple supplier balances often fall due simultaneously.</p>
+
+        <h3 class="h4">Linking Payments to Suppliers</h3>
+        <p>If you've booked a supplier through EventFlow's supplier directory, you can link their entry directly to the budget line item. This means you can jump straight to their contact details or quote without leaving the budget screen.</p>
+      </div>
+
+      <div class="card">
+        <h2 class="h3">📊 Generating Budget Reports</h2>
+        <p>The Budget Planner gives you two key summary views at all times:</p>
+        <ul>
+          <li><strong>Allocated vs total budget:</strong> How much of your budget has been committed to suppliers (including amounts not yet paid)</li>
+          <li><strong>Spent vs allocated:</strong> How much you have actually paid out versus what is still outstanding</li>
+        </ul>
+
+        <h3 class="h4">Category Breakdown</h3>
+        <p>The category breakdown view shows you exactly where your money is going in a visual chart format. This is useful for identifying areas where you've over-allocated and may need to trim, or where you have room to add something extra.</p>
+
+        <h3 class="h4">Exporting Your Budget</h3>
+        <p>You can export the full budget breakdown as a PDF or CSV file at any time. This is helpful for sharing with a partner, parents contributing to costs, or a wedding planner who needs an overview of your financial position.</p>
+      </div>
+
+      <div class="card">
+        <h2 class="h3">💡 Tips for Saving Money</h2>
+        <p>The Budget Planner doesn't just track spending — used well, it can actively help you save money.</p>
+
+        <h3 class="h4">Set Category Limits Before Quoting</h3>
+        <p>Decide your maximum spend for each category before you start approaching suppliers. Once you have a figure in mind, it's much easier to assess whether a quote represents good value — and to negotiate confidently.</p>
+
+        <h3 class="h4">Compare Multiple Quotes</h3>
+        <p>For each category, get at least two or three quotes from different suppliers. The planner lets you add multiple quote entries per category so you can compare them side by side before committing.</p>
+
+        <h3 class="h4">Watch the Contingency Carefully</h3>
+        <p>Never dip into your contingency to fund planned expenses — it exists only for genuine unexpected costs. If you find you're tempted to use it, that's a sign to look at reducing spend elsewhere.</p>
+
+        <h3 class="h4">Common Budget Mistakes to Avoid</h3>
+        <ul>
+          <li>Forgetting VAT — many supplier quotes are ex-VAT, which adds 20% to the headline price</li>
+          <li>Not accounting for gratuities and service charges</li>
+          <li>Overlooking one-off costs: postage for invitations, dress alterations, transport to the venue for setup</li>
+          <li>Setting a contingency that's too small (less than 5% of total budget)</li>
+          <li>Failing to track deposits, meaning balances due come as a surprise</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h2 class="h3">🔗 Integrating with Your Planning Timeline</h2>
+        <p>The Budget Planner works best when used alongside EventFlow's planning checklist and timeline tools. Budget items can be linked to timeline milestones — for example, the stationery budget line can be connected to the "Send invitations" task, so you're reminded to finalise costs at the right point in your planning journey.</p>
+
+        <h3 class="h4">Payment Reminders</h3>
+        <p>Set payment reminders for every supplier balance due date. EventFlow will notify you by email and on-platform notification in advance of each payment, giving you time to arrange funds without a last-minute scramble.</p>
+
+        <h3 class="h4">Post-Event Review</h3>
+        <p>After your event, the completed budget acts as a useful record — particularly for any insurance claims, tax purposes (for corporate events), or simply for helping friends who are planning their own events in the future.</p>
+
+        <div class="card" style="background: linear-gradient(135deg, #0B8073 0%, #088770 100%); color: white; text-align: center; margin-top: 32px;">
+          <h2 style="color: white;">Start Tracking Your Budget Today</h2>
+          <p>Open the EventFlow Budget Planner and take control of your event finances from day one.</p>
+          <div style="margin-top: 24px;">
+            <a href="/budget" class="cta" style="background: white; color: #0B8073;">Open budget planner →</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="article-related">
+        <h3 class="article-related__title">Related Guides</h3>
+        <div class="article-related__grid">
+          <a href="/articles/event-budget-management-guide" class="article-related-card">
+            <span class="article-related-card__category">Budget</span>
+            <h4 class="article-related-card__title">Event Budget Management: Complete Guide 2026</h4>
+            <span class="article-related-card__cta">Read guide →</span>
+          </a>
+          <a href="/articles/wedding-venue-selection-guide" class="article-related-card">
+            <span class="article-related-card__category">Venues</span>
+            <h4 class="article-related-card__title">The Ultimate Wedding Venue Selection Guide 2026</h4>
+            <span class="article-related-card__cta">Read guide →</span>
+          </a>
+          <a href="/articles/marketplace-guide" class="article-related-card">
+            <span class="article-related-card__category">Marketplace</span>
+            <h4 class="article-related-card__title">EventFlow Marketplace: Complete Guide for Buyers &amp; Sellers</h4>
+            <span class="article-related-card__cta">Read guide →</span>
+          </a>
+        </div>
+        <div class="article-end-cta">
+          <a href="/guides" class="article-end-cta__back">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+            All Guides
+          </a>
+          <a href="/budget" class="article-end-cta__tool">Open budget planner →</a>
+        </div>
+      </div>
+    </article>
+  </div>
+</main>
+
+<footer class="footer" role="contentinfo">
+  <div class="container" style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+    <div><strong>EventFlow</strong><br><span class="small">Event planning made simple.</span></div>
+    <div class="small">© {{COPYRIGHT_YEAR}} VEXI. All rights reserved.</div>
+    <div class="small" style="margin-top:0.5rem;"><button type="button" data-cookie-prefs style="background:none;border:none;color:inherit;text-decoration:underline;cursor:pointer;font-size:inherit;padding:0;">Cookie preferences</button></div>
+  </div>
+  <div class="small" style="margin-top: 8px; text-align: center;">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
+</footer>
+
+<button class="guides-back-to-top" id="article-back-to-top" type="button" aria-label="Back to top">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="18 15 12 9 6 15"/></svg>
+</button>
+<script src="/assets/js/app.js"></script>
+<script src="/assets/js/article-progress.js" defer></script>
+</body>
+</html>
