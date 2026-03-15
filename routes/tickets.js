@@ -13,6 +13,9 @@ const { writeLimiter } = require('../middleware/rateLimits');
 const { featureRequired } = require('../middleware/features');
 const { auditLog } = require('../middleware/audit');
 const dbUnified = require('../db-unified');
+const mongoDb = require('../db');
+const postmark = require('../utils/postmark');
+const NotificationService = require('../services/notification.service');
 const { uid } = require('../store');
 const {
   normalizeTicketRecord,
@@ -28,6 +31,23 @@ const TICKET_ROLES = ['customer', 'supplier'];
 const TICKET_SORTS = ['newest', 'oldest', 'updated'];
 const MAX_SUBJECT_LENGTH = 180;
 const MAX_MESSAGE_LENGTH = 5000;
+
+/**
+ * Get a NotificationService instance using the live DB and WebSocket server.
+ * @param {Object} req - Express request (used to resolve the WS server)
+ * @returns {Promise<NotificationService|null>}
+ */
+async function getNotificationService(req) {
+  try {
+    const db = await mongoDb.getDb();
+    const wsServer =
+      req && req.app ? req.app.get('wsServerV2') || req.app.get('wsServer') || null : null;
+    return new NotificationService(db, wsServer);
+  } catch (err) {
+    logger.warn('Could not create NotificationService for tickets route:', err.message);
+    return null;
+  }
+}
 
 function normalizeLimit(rawLimit, defaultValue = 50, maxValue = 200) {
   const parsed = Number.parseInt(rawLimit, 10);
@@ -155,6 +175,46 @@ router.post(
 
       tickets.push(newTicket);
       await dbUnified.insertOne('tickets', newTicket);
+
+      // Notify admin users about the new ticket
+      try {
+        const allUsers = await dbUnified.read('users');
+        const adminUsers = allUsers.filter(u => u.role === 'admin');
+        const notifSvc = await getNotificationService(req);
+        const baseUrl = process.env.BASE_URL || 'https://event-flow.co.uk';
+        const ticketCreatorName =
+          newTicket.senderName || req.user.name || req.user.firstName || 'User';
+
+        for (const adminUser of adminUsers) {
+          if (notifSvc) {
+            await notifSvc.notifyNewTicket(
+              adminUser.id,
+              ticketCreatorName,
+              newTicket.id,
+              newTicket.subject
+            );
+          }
+          if (adminUser.email) {
+            await postmark
+              .sendEmail({
+                to: adminUser.email,
+                subject: `New support ticket: ${newTicket.subject}`,
+                text: `A new support ticket has been submitted.\n\nFrom: ${ticketCreatorName}\nSubject: ${newTicket.subject}\n\nView and manage tickets at: ${baseUrl}/admin-tickets`,
+                html: `
+                <h2>New Support Ticket</h2>
+                <p><strong>From:</strong> ${ticketCreatorName}</p>
+                <p><strong>Subject:</strong> ${newTicket.subject}</p>
+                <p><a href="${baseUrl}/admin-tickets">View Ticket</a></p>
+              `,
+              })
+              .catch(emailErr => {
+                logger.error('Failed to send new ticket email to admin:', emailErr);
+              });
+          }
+        }
+      } catch (notifError) {
+        logger.error('Failed to send admin notifications for new ticket:', notifError);
+      }
 
       // Audit log
       auditLog({
@@ -520,7 +580,6 @@ router.post('/:id/reply', authRequired, csrfProtection, writeLimiter, async (req
     // Send email notification to ticket creator (if reply is from admin)
     if (userRole === 'admin' && ticket.senderEmail) {
       try {
-        const postmark = require('../utils/postmark');
         await postmark.sendEmail({
           to: ticket.senderEmail,
           subject: `Reply to your support ticket: ${ticket.subject}`,
@@ -535,6 +594,44 @@ router.post('/:id/reply', authRequired, csrfProtection, writeLimiter, async (req
         });
       } catch (emailError) {
         logger.error('Failed to send reply notification email:', emailError);
+      }
+    }
+
+    // Notify admin users when a non-admin replies to a ticket
+    if (userRole !== 'admin') {
+      try {
+        const allUsers = await dbUnified.read('users');
+        const adminUsers = allUsers.filter(u => u.role === 'admin');
+        const notifSvc = await getNotificationService(req);
+        const baseUrl = process.env.BASE_URL || 'https://event-flow.co.uk';
+        const replierName = reply.userName || 'User';
+
+        for (const adminUser of adminUsers) {
+          if (notifSvc) {
+            await notifSvc.notifyTicketReply(adminUser.id, replierName, ticket.id, ticket.subject);
+          }
+          if (adminUser.email) {
+            await postmark
+              .sendEmail({
+                to: adminUser.email,
+                subject: `New reply on ticket: ${ticket.subject}`,
+                text: `${replierName} has replied to a support ticket.\n\nTicket: ${ticket.subject}\n\nReply: ${message}\n\nView and manage tickets at: ${baseUrl}/admin-tickets`,
+                html: `
+                <h2>New Reply on Support Ticket</h2>
+                <p><strong>From:</strong> ${replierName}</p>
+                <p><strong>Ticket:</strong> ${ticket.subject}</p>
+                <p><strong>Reply:</strong></p>
+                <p>${message.replace(/\n/g, '<br>')}</p>
+                <p><a href="${baseUrl}/admin-tickets">View Ticket</a></p>
+              `,
+              })
+              .catch(emailErr => {
+                logger.error('Failed to send ticket reply email to admin:', emailErr);
+              });
+          }
+        }
+      } catch (notifError) {
+        logger.error('Failed to send admin notifications for ticket reply:', notifError);
       }
     }
 

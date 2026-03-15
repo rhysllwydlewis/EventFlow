@@ -150,7 +150,7 @@ describe('Admin Badge Counts Endpoint', () => {
     it('should display errors to user', () => {
       const updateBadgeCountsSection = adminNavbarContent.substring(
         adminNavbarContent.indexOf('function updateBadgeCounts'),
-        adminNavbarContent.indexOf('function updateBadgeCounts') + 3000
+        adminNavbarContent.indexOf('function updateBadgeCounts') + 4000
       );
 
       expect(updateBadgeCountsSection).toContain('catch');
@@ -161,7 +161,7 @@ describe('Admin Badge Counts Endpoint', () => {
     it('should hide badges when count is zero', () => {
       const updateBadgeCountsSection = adminNavbarContent.substring(
         adminNavbarContent.indexOf('function updateBadgeCounts'),
-        adminNavbarContent.indexOf('function updateBadgeCounts') + 3000
+        adminNavbarContent.indexOf('function updateBadgeCounts') + 4000
       );
 
       expect(updateBadgeCountsSection).toContain("style.display = 'none'");
@@ -170,7 +170,7 @@ describe('Admin Badge Counts Endpoint', () => {
     it('should show badges when count is greater than zero', () => {
       const updateBadgeCountsSection = adminNavbarContent.substring(
         adminNavbarContent.indexOf('function updateBadgeCounts'),
-        adminNavbarContent.indexOf('function updateBadgeCounts') + 3000
+        adminNavbarContent.indexOf('function updateBadgeCounts') + 4000
       );
 
       expect(updateBadgeCountsSection).toContain("style.display = 'flex'");
@@ -179,7 +179,7 @@ describe('Admin Badge Counts Endpoint', () => {
     it('should handle HTTP errors with status code', () => {
       const updateBadgeCountsSection = adminNavbarContent.substring(
         adminNavbarContent.indexOf('function updateBadgeCounts'),
-        adminNavbarContent.indexOf('function updateBadgeCounts') + 3000
+        adminNavbarContent.indexOf('function updateBadgeCounts') + 4000
       );
 
       expect(updateBadgeCountsSection).toContain('response.status');
@@ -189,7 +189,7 @@ describe('Admin Badge Counts Endpoint', () => {
     it('should check for error in response data', () => {
       const updateBadgeCountsSection = adminNavbarContent.substring(
         adminNavbarContent.indexOf('function updateBadgeCounts'),
-        adminNavbarContent.indexOf('function updateBadgeCounts') + 3000
+        adminNavbarContent.indexOf('function updateBadgeCounts') + 4000
       );
 
       expect(updateBadgeCountsSection).toContain('data.error');

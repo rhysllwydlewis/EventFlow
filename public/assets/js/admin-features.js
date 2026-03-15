@@ -242,6 +242,18 @@
           }
         }
       });
+
+      // Update open tickets nav badge
+      const openTicketsBadge = document.getElementById('openTicketsBadge');
+      if (openTicketsBadge) {
+        const count = (counts.pending && counts.pending.tickets) || counts.openTickets || 0;
+        if (count > 0) {
+          openTicketsBadge.textContent = count;
+          openTicketsBadge.style.display = 'flex';
+        } else {
+          openTicketsBadge.style.display = 'none';
+        }
+      }
     }
   }
 

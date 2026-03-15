@@ -37,6 +37,14 @@ jest.mock('../../db-unified', () => ({
   deleteOne: jest.fn(),
 }));
 
+jest.mock('../../db', () => ({
+  getDb: jest.fn().mockRejectedValue(new Error('MongoDB not available in test')),
+}));
+
+jest.mock('../../utils/postmark', () => ({
+  sendEmail: jest.fn().mockResolvedValue({ MessageID: 'mock-id' }),
+}));
+
 const dbUnified = require('../../db-unified');
 const ticketsRoutes = require('../../routes/tickets');
 
