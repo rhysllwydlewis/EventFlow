@@ -4835,10 +4835,9 @@ document.addEventListener('DOMContentLoaded', () => {
           // Include ALTCHA payload if the widget is present in the form
           const altchaWidget = document.getElementById('reg-altcha-widget');
           if (altchaWidget) {
-            const altchaInput = altchaWidget.querySelector
-              ? altchaWidget.querySelector('input[name="altcha"]')
-              : null;
-            payload.captchaToken = (altchaInput && altchaInput.value) || altchaWidget.value || null;
+            // Use the payload captured via the statechange event (window.__altchaRegPayload),
+            // falling back to the .value property exposed by ALTCHA v2.
+            payload.captchaToken = window.__altchaRegPayload || altchaWidget.value || null;
           }
 
           const r = await fetch('/api/v1/auth/register', {

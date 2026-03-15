@@ -81,21 +81,56 @@ router.get('/altcha/challenge', async (req, res) => {
 <altcha-widget challengeurl="/api/v1/altcha/challenge" id="reg-altcha-widget"></altcha-widget>
 ```
 
-The ALTCHA payload is read from the widget on form submit:
+The ALTCHA payload is captured via the widget's `statechange` event and stored in `window.__altchaRegPayload`. The hidden input rendered by the widget lives inside its **Shadow DOM** and is not reachable via a normal `querySelector`, so the event-driven approach is required:
 
 ```javascript
+// In auth.html's IIFE — bind once (and again when widget is dynamically recreated)
+function bindAltchaEvents(widget) {
+  if (!widget) return;
+  widget.addEventListener('statechange', function (e) {
+    if (e.detail && e.detail.state === 'verified') {
+      window.__altchaRegPayload = e.detail.payload;
+    } else {
+      window.__altchaRegPayload = null;
+    }
+  });
+}
+
+// In app.js — registration form submit handler
 const altchaWidget = document.getElementById('reg-altcha-widget');
-const altchaInput = altchaWidget ? altchaWidget.querySelector('input[name="altcha"]') : null;
-payload.captchaToken = (altchaInput && altchaInput.value) || altchaWidget.value || null;
+if (altchaWidget) {
+  payload.captchaToken = window.__altchaRegPayload || altchaWidget.value || null;
+}
 ```
 
 ### Contact Form (`public/contact.html`)
 
-Same pattern — the `<altcha-widget>` is rendered and the payload is read on submit.
+Same event-driven pattern — a `captchaPayload` variable is updated via `statechange` and read on submit:
+
+```javascript
+var captchaPayload = null;
+
+function bindAltchaEvents(widget) {
+  if (!widget) return;
+  widget.addEventListener('statechange', function (e) {
+    if (e.detail && e.detail.state === 'verified') {
+      captchaPayload = e.detail.payload;
+    } else {
+      captchaPayload = null;
+    }
+  });
+}
+
+// On submit
+var captchaToken = captchaPayload || (altchaWidget && altchaWidget.value) || null;
+```
+
+> **Why not `querySelector('input[name="altcha"]')`?**  
+> The hidden `<input name="altcha">` is rendered inside the `<altcha-widget>` **Shadow DOM**. Standard `querySelector` cannot cross the Shadow DOM boundary and always returns `null`. The `statechange` event approach is the correct, spec-compliant way to read the payload.
 
 ### Utility Module (`public/assets/js/utils/altcha.js`)
 
-A reusable ALTCHA utility module is available for other forms:
+A reusable ALTCHA utility module is available for other forms. `getAltchaPayload()` tries Shadow DOM → light DOM → form-level → `.value` in order:
 
 ```javascript
 import { addAltchaToForm, getAltchaPayload } from '/assets/js/utils/altcha.js';

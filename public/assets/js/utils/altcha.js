@@ -111,7 +111,8 @@ export async function renderAltchaWidget(container, options = {}) {
 
 /**
  * Get the ALTCHA payload from a widget element
- * The payload is stored in a hidden input named "altcha" inside the form
+ * The hidden input lives inside the widget's Shadow DOM, so we must use
+ * shadowRoot.querySelector() rather than a light-DOM querySelector().
  * @param {HTMLElement|string} widgetOrForm - The altcha-widget element or the form containing it
  * @returns {string|null} Base64-encoded payload or null if not yet solved
  */
@@ -122,20 +123,23 @@ export function getAltchaPayload(widgetOrForm) {
     return null;
   }
 
-  // If it's the widget itself, look for the hidden input sibling or inside
-  const input = el.querySelector ? el.querySelector('input[name="altcha"]') : null;
-
-  if (input) {
-    return input.value || null;
+  // 1. Try shadow DOM — the hidden input lives inside the widget's shadow root
+  if (el.shadowRoot) {
+    const shadowInput = el.shadowRoot.querySelector('input[name="altcha"]');
+    if (shadowInput && shadowInput.value) return shadowInput.value;
   }
 
-  // If it's a form element, look for the hidden input inside the form
+  // 2. Try light DOM (in case the widget injects the input into light DOM)
+  const input = el.querySelector ? el.querySelector('input[name="altcha"]') : null;
+  if (input && input.value) return input.value;
+
+  // 3. Try form-level search
   if (el.tagName === 'FORM' || el.elements) {
     const formInput = el.querySelector('input[name="altcha"]');
-    return formInput ? formInput.value || null : null;
+    if (formInput && formInput.value) return formInput.value;
   }
 
-  // Try the value property on the widget (some versions expose it directly)
+  // 4. Try the value property on the widget (ALTCHA v2 exposes this directly)
   return el.value || null;
 }
 

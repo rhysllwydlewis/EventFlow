@@ -643,7 +643,23 @@
             if (!regContainer) return;
 
             var altchaReady = customElements.get('altcha-widget') !== undefined;
-            if (altchaReady) return;
+
+            function bindAltchaEvents(widget) {
+              if (!widget) return;
+              widget.addEventListener('statechange', function (e) {
+                if (e.detail && e.detail.state === 'verified') {
+                  window.__altchaRegPayload = e.detail.payload;
+                } else {
+                  window.__altchaRegPayload = null;
+                }
+              });
+            }
+
+            // If the custom element is already registered the initial widget is live
+            if (altchaReady) {
+              bindAltchaEvents(document.getElementById('reg-altcha-widget'));
+              return;
+            }
 
             regContainer.innerHTML = '<p class="small" style="color:#666;margin:0;">Loading verification\u2026</p>';
 
@@ -654,6 +670,7 @@
               widget.setAttribute('challengeurl', '/api/v1/altcha/challenge');
               widget.id = 'reg-altcha-widget';
               regContainer.appendChild(widget);
+              bindAltchaEvents(widget);
             }
 
             document.addEventListener('altcha-loaded', onAltchaLoaded, { once: true });

@@ -165,6 +165,23 @@ document.addEventListener('DOMContentLoaded', function () {
   var altchaContainer = document.getElementById('contact-altcha-container');
   var altchaReady = customElements.get('altcha-widget') !== undefined;
 
+  // Payload captured via statechange event — avoids Shadow DOM querySelector issues
+  var captchaPayload = null;
+
+  function bindAltchaEvents(widget) {
+    if (!widget) return;
+    widget.addEventListener('statechange', function (e) {
+      if (e.detail && e.detail.state === 'verified') {
+        captchaPayload = e.detail.payload;
+      } else {
+        captchaPayload = null;
+      }
+    });
+  }
+
+  // Bind events on the initial widget if it is already available
+  bindAltchaEvents(document.getElementById('contact-altcha-widget'));
+
   if (altchaContainer && !altchaReady) {
     altchaContainer.innerHTML = '<p class="small" style="color:#666;margin:0;">Loading verification\u2026</p>';
 
@@ -175,6 +192,7 @@ document.addEventListener('DOMContentLoaded', function () {
       widget.setAttribute('challengeurl', '/api/v1/altcha/challenge');
       widget.id = 'contact-altcha-widget';
       altchaContainer.appendChild(widget);
+      bindAltchaEvents(widget);
     }
 
     document.addEventListener('altcha-loaded', onAltchaLoaded, { once: true });
@@ -193,8 +211,7 @@ document.addEventListener('DOMContentLoaded', function () {
   form.addEventListener('submit', async function (e) {
     e.preventDefault();
     var altchaWidget = document.getElementById('contact-altcha-widget');
-    var altchaInput = altchaWidget ? altchaWidget.querySelector('input[name="altcha"]') : null;
-    var captchaToken = (altchaInput && altchaInput.value) || (altchaWidget && altchaWidget.value) || null;
+    var captchaToken = captchaPayload || (altchaWidget && altchaWidget.value) || null;
     if (altchaWidget && !captchaToken) {
       if (status) { status.textContent = 'Please complete the CAPTCHA verification.'; status.style.color = '#dc2626'; }
       return;
