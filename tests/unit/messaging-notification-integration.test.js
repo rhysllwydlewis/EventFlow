@@ -95,6 +95,41 @@ describe('Messaging-Notification Integration', () => {
       // Should use canonical /messenger/?conversation= format (not the legacy /messages.html redirect)
       expect(notifyNewMessageFn).toContain('/messenger/?conversation=');
     });
+
+    it('has notifyNewTicket helper method for admin ticket notifications', () => {
+      expect(notificationServiceJs).toContain('async notifyNewTicket');
+    });
+
+    it('notifyNewTicket uses high priority and ticket type', () => {
+      const fn = notificationServiceJs.substring(
+        notificationServiceJs.indexOf('async notifyNewTicket('),
+        notificationServiceJs.indexOf('async notifyTicketReply(')
+      );
+      expect(fn).toContain("type: 'ticket'");
+      expect(fn).toContain("priority: 'high'");
+      expect(fn).toContain('/admin-tickets');
+      expect(fn).toContain('ticketId');
+      expect(fn).toContain('metadata');
+    });
+
+    it('has notifyTicketReply helper method for admin ticket reply notifications', () => {
+      expect(notificationServiceJs).toContain('async notifyTicketReply');
+    });
+
+    it('notifyTicketReply uses normal priority and ticket type', () => {
+      const startIdx = notificationServiceJs.indexOf('async notifyTicketReply(');
+      const fn = notificationServiceJs.substring(startIdx, startIdx + 600);
+      expect(fn).toContain("type: 'ticket'");
+      expect(fn).toContain("priority: 'normal'");
+      expect(fn).toContain('/admin-tickets');
+    });
+
+    it('has ticket icon in _getDefaultIcon map', () => {
+      const iconMapStart = notificationServiceJs.indexOf('_getDefaultIcon(type)');
+      const iconMapFn = notificationServiceJs.substring(iconMapStart, iconMapStart + 1000);
+      expect(iconMapFn).toContain('ticket:');
+      expect(iconMapFn).toContain('🎫');
+    });
   });
 
   (messagingJsExists ? describe : describe.skip)('Frontend messaging.js integration', () => {

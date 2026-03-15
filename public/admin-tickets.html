@@ -69,6 +69,7 @@
       <a href="/admin-tickets" class="admin-nav-btn">
         <span class="nav-icon" aria-hidden="true">🎫</span>
         <span class="nav-label">Tickets</span>
+        <span class="admin-nav-badge" id="openTicketsBadge" style="display:none;" aria-label="Open tickets"></span>
       </a>
       <a href="/admin-reports" class="admin-nav-btn">
         <span class="nav-icon" aria-hidden="true">📈</span>
@@ -161,6 +162,7 @@
         <div class="admin-tabs" role="tablist" aria-label="Ticket sections">
           <button class="admin-tab admin-tab--active" id="tab-tickets" role="tab" aria-selected="true" aria-controls="panel-tickets" data-tab="tickets">
             🎫 Support Tickets
+            <span class="admin-tab-badge" id="openSupportTicketsBadge" style="display:none;"></span>
           </button>
           <button class="admin-tab" id="tab-contacts" role="tab" aria-selected="false" aria-controls="panel-contacts" data-tab="contacts">
             📬 External Contacts

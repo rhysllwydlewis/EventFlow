@@ -2013,6 +2013,11 @@ router.get('/badge-counts', authRequired, roleRequired('admin'), async (req, res
       }
     });
 
+    const allTickets = await dbUnified.read('tickets');
+    const openTickets = allTickets.filter(
+      t => t.status === 'open' || t.status === 'in_progress'
+    ).length;
+
     res.json({
       pending: {
         suppliers: pendingSuppliers,
@@ -2020,6 +2025,7 @@ router.get('/badge-counts', authRequired, roleRequired('admin'), async (req, res
         photos: pendingPhotos,
         reviews: pendingReviews,
         reports: pendingReports,
+        tickets: openTickets,
       },
       totals: {
         suppliers: totalSuppliers,
@@ -2027,6 +2033,7 @@ router.get('/badge-counts', authRequired, roleRequired('admin'), async (req, res
         reviews: totalReviews,
         reports: totalReports,
       },
+      openTickets,
     });
   } catch (error) {
     logger.error('Error fetching badge counts:', error);
@@ -2039,6 +2046,7 @@ router.get('/badge-counts', authRequired, roleRequired('admin'), async (req, res
         photos: 0,
         reviews: 0,
         reports: 0,
+        tickets: 0,
       },
       totals: {
         suppliers: 0,
@@ -2046,6 +2054,7 @@ router.get('/badge-counts', authRequired, roleRequired('admin'), async (req, res
         reviews: 0,
         reports: 0,
       },
+      openTickets: 0,
     });
   }
 });

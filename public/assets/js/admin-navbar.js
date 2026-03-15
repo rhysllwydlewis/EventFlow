@@ -315,6 +315,18 @@
             reportsBadge.style.display = 'none';
           }
         }
+
+        // Open tickets badge
+        const openTicketsBadge = document.getElementById('openTicketsBadge');
+        if (openTicketsBadge) {
+          const count = pending.tickets || data.openTickets || 0;
+          if (count > 0) {
+            openTicketsBadge.textContent = count;
+            openTicketsBadge.style.display = 'flex';
+          } else {
+            openTicketsBadge.style.display = 'none';
+          }
+        }
       })
       .catch(error => {
         console.error('Failed to fetch badge counts:', error);

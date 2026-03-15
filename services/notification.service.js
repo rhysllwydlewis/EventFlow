@@ -298,6 +298,7 @@ class NotificationService {
       reminder: '⏰',
       approval: '✅',
       update: '🔔',
+      ticket: '🎫',
     };
 
     return icons[type] || '🔔';
@@ -384,6 +385,40 @@ class NotificationService {
       actionUrl,
       actionText: actionUrl ? 'View Details' : null,
       priority: 'normal',
+    });
+  }
+
+  /**
+   * Create notification for new support ticket (sent to admin)
+   */
+  async notifyNewTicket(adminUserId, senderName, ticketId, subject) {
+    return await this.create({
+      userId: adminUserId,
+      type: 'ticket',
+      title: 'New Support Ticket',
+      message: `${senderName} submitted a new ticket: ${subject}`,
+      actionUrl: '/admin-tickets',
+      actionText: 'View Ticket',
+      priority: 'high',
+      icon: '🎫',
+      metadata: { ticketId, senderName, subject },
+    });
+  }
+
+  /**
+   * Create notification for a reply on an existing ticket (sent to admin)
+   */
+  async notifyTicketReply(adminUserId, senderName, ticketId, subject) {
+    return await this.create({
+      userId: adminUserId,
+      type: 'ticket',
+      title: 'New Ticket Reply',
+      message: `${senderName} replied to ticket: ${subject}`,
+      actionUrl: '/admin-tickets',
+      actionText: 'View Ticket',
+      priority: 'normal',
+      icon: '🎫',
+      metadata: { ticketId, senderName, subject },
     });
   }
 }
