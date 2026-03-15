@@ -33,6 +33,20 @@ const MAX_SUBJECT_LENGTH = 180;
 const MAX_MESSAGE_LENGTH = 5000;
 
 /**
+ * Escape HTML special characters to prevent injection in email bodies.
+ * @param {string} str - Raw string
+ * @returns {string} HTML-safe string
+ */
+function escHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
  * Get a NotificationService instance using the live DB and WebSocket server.
  * @param {Object} req - Express request (used to resolve the WS server)
  * @returns {Promise<NotificationService|null>}
@@ -202,9 +216,9 @@ router.post(
                 text: `A new support ticket has been submitted.\n\nFrom: ${ticketCreatorName}\nSubject: ${newTicket.subject}\n\nView and manage tickets at: ${baseUrl}/admin-tickets`,
                 html: `
                 <h2>New Support Ticket</h2>
-                <p><strong>From:</strong> ${ticketCreatorName}</p>
-                <p><strong>Subject:</strong> ${newTicket.subject}</p>
-                <p><a href="${baseUrl}/admin-tickets">View Ticket</a></p>
+                <p><strong>From:</strong> ${escHtml(ticketCreatorName)}</p>
+                <p><strong>Subject:</strong> ${escHtml(newTicket.subject)}</p>
+                <p><a href="${escHtml(`${baseUrl}/admin-tickets`)}">View Ticket</a></p>
               `,
               })
               .catch(emailErr => {
@@ -580,16 +594,17 @@ router.post('/:id/reply', authRequired, csrfProtection, writeLimiter, async (req
     // Send email notification to ticket creator (if reply is from admin)
     if (userRole === 'admin' && ticket.senderEmail) {
       try {
+        const emailBaseUrl = process.env.BASE_URL || 'https://event-flow.co.uk';
         await postmark.sendEmail({
           to: ticket.senderEmail,
           subject: `Reply to your support ticket: ${ticket.subject}`,
-          text: `You have received a reply to your support ticket.\n\nTicket: ${ticket.subject}\n\nReply: ${message}\n\nView your ticket at: ${process.env.BASE_URL || 'https://event-flow.co.uk'}/tickets/${ticket.id}`,
+          text: `You have received a reply to your support ticket.\n\nTicket: ${ticket.subject}\n\nReply: ${message}\n\nView your ticket at: ${emailBaseUrl}/tickets/${ticket.id}`,
           html: `
             <h2>Reply to Your Support Ticket</h2>
-            <p><strong>Ticket:</strong> ${ticket.subject}</p>
+            <p><strong>Ticket:</strong> ${escHtml(ticket.subject)}</p>
             <p><strong>Reply:</strong></p>
-            <p>${message.replace(/\n/g, '<br>')}</p>
-            <p><a href="${process.env.BASE_URL || 'https://event-flow.co.uk'}/tickets/${ticket.id}">View Ticket</a></p>
+            <p>${escHtml(message).replace(/\n/g, '<br>')}</p>
+            <p><a href="${escHtml(`${emailBaseUrl}/tickets/${ticket.id}`)}">View Ticket</a></p>
           `,
         });
       } catch (emailError) {
@@ -618,11 +633,11 @@ router.post('/:id/reply', authRequired, csrfProtection, writeLimiter, async (req
                 text: `${replierName} has replied to a support ticket.\n\nTicket: ${ticket.subject}\n\nReply: ${message}\n\nView and manage tickets at: ${baseUrl}/admin-tickets`,
                 html: `
                 <h2>New Reply on Support Ticket</h2>
-                <p><strong>From:</strong> ${replierName}</p>
-                <p><strong>Ticket:</strong> ${ticket.subject}</p>
+                <p><strong>From:</strong> ${escHtml(replierName)}</p>
+                <p><strong>Ticket:</strong> ${escHtml(ticket.subject)}</p>
                 <p><strong>Reply:</strong></p>
-                <p>${message.replace(/\n/g, '<br>')}</p>
-                <p><a href="${baseUrl}/admin-tickets">View Ticket</a></p>
+                <p>${escHtml(message).replace(/\n/g, '<br>')}</p>
+                <p><a href="${escHtml(`${baseUrl}/admin-tickets`)}">View Ticket</a></p>
               `,
               })
               .catch(emailErr => {

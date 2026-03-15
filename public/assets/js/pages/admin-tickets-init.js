@@ -109,6 +109,29 @@
     const proPlusCount = allTickets.filter(t => t.accountTier === 'pro_plus').length;
     const proCount = allTickets.filter(t => t.accountTier === 'pro').length;
 
+    // Update the Support Tickets tab badge with active (open + in_progress) count
+    const openActiveCount = open + inProgress;
+    const tabBadge = document.getElementById('openSupportTicketsBadge');
+    if (tabBadge) {
+      if (openActiveCount > 0) {
+        tabBadge.textContent = openActiveCount;
+        tabBadge.style.display = 'inline-flex';
+      } else {
+        tabBadge.style.display = 'none';
+      }
+    }
+
+    // Also keep the navbar badge in sync
+    const navBadge = document.getElementById('openTicketsBadge');
+    if (navBadge) {
+      if (openActiveCount > 0) {
+        navBadge.textContent = openActiveCount;
+        navBadge.style.display = 'flex';
+      } else {
+        navBadge.style.display = 'none';
+      }
+    }
+
     const cards = [
       { label: 'Open', value: open, mod: 'open' },
       { label: 'In Progress', value: inProgress, mod: 'progress' },
