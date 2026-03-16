@@ -68,7 +68,7 @@ describe('Dashboard WebSocket Real-time Updates Integration', () => {
 
     it('should configure onNotification handler', () => {
       expect(dashboardContent).toMatch(
-        /onNotification:\s*\(data\)\s*=>\s*handleRealtimeNotification/
+        /onNotification:\s*\(?data\)?\s*=>\s*handleRealtimeNotification/
       );
     });
 

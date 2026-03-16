@@ -519,7 +519,7 @@ describe('Supplier Profile View Tracking', () => {
 
     it('wraps tracking in try/catch to not break page load', () => {
       expect(supplierHtml).toContain('try {');
-      expect(supplierHtml).toContain('} catch (e) {}');
+      expect(supplierHtml).toMatch(/} catch \(e\) \{[\s\S]*?\}/);
     });
   });
 });

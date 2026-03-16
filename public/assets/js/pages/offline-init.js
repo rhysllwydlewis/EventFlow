@@ -29,11 +29,8 @@ window.addEventListener('offline', updateStatus);
 setInterval(() => {
   fetch('/api/health', { method: 'HEAD', cache: 'no-store' })
     .then(() => {
-      if (!navigator.onLine) {
-        // Force online status update
-        navigator.onLine = true;
-        updateStatus();
-      }
+      // Network reachable — re-check connection status via standard event
+      updateStatus();
     })
     .catch(() => {
       // Still offline
