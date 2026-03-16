@@ -25,13 +25,13 @@ function isDebugEnabled() {
 class SEOHelper {
   constructor() {
     this.defaultMeta = {
-      title: 'EventFlow — Plan your event the simple way',
+      title: 'Plan your event the simple way',
       description:
         'Find suppliers, build your plan and keep everything in one place — beautifully simple on mobile and desktop.',
       keywords: 'event planning, wedding planning, suppliers, venues, catering',
       author: 'EventFlow',
       type: 'website',
-      image: '/assets/images/og-default.jpg',
+      image: '/assets/images/eventflow-og-image.png',
       twitterCard: 'summary_large_image',
     };
   }
@@ -39,10 +39,21 @@ class SEOHelper {
   /**
    * Update page title
    * @param {string} title - Page title
-   * @param {boolean} includeSiteName - Whether to include site name
+   * @param {boolean} includeSiteName - Whether to append the site name suffix
+   *   When true the suffix " — EventFlow" is appended, but only if the title
+   *   does not already contain the brand (prevents "EventFlow … — EventFlow").
    */
   setTitle(title, includeSiteName = true) {
-    const fullTitle = includeSiteName ? `${title} — EventFlow` : title;
+    let fullTitle;
+    if (includeSiteName) {
+      // Avoid double-branding: skip the suffix when the title already ends with
+      // "— EventFlow" / "| EventFlow" (any case) or starts with "EventFlow —".
+      const alreadyBranded =
+        /[—|]\s*eventflow\s*$/i.test(title) || /^eventflow\s*[—]/i.test(title);
+      fullTitle = alreadyBranded ? title : `${title} — EventFlow`;
+    } else {
+      fullTitle = title;
+    }
     document.title = fullTitle;
 
     // Update Open Graph title
