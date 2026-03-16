@@ -325,20 +325,7 @@
         <div class="small" style="margin-top: 8px; text-align: center;">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
   </footer>
 
-    <script>
-      // Log cancellation for analytics (optional)
-      try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const sessionId = urlParams.get('session_id');
-        
-        if (sessionId) {
-          console.log('Payment cancelled for session:', sessionId);
-          // You could send this to an analytics service here
-        }
-      } catch (error) {
-        console.error('Error logging cancellation:', error);
-      }
-    </script>
+    <script src="/assets/js/pages/payment-cancel-init.js"></script>
   
 <!-- JadeAssist Chat Widget -->
 <script src="/assets/js/vendor/jade-widget.js" defer></script>

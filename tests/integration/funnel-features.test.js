@@ -494,10 +494,13 @@ describe('Shortlist Manager Auth Requirement', () => {
 
 describe('Supplier Profile View Tracking', () => {
   describe('supplier.html client-side analytics ping', () => {
-    const supplierHtml = fs.readFileSync(
+    const supplierHtml = `${fs.readFileSync(
       path.join(__dirname, '../../public/supplier.html'),
       'utf8'
-    );
+    )}\n${fs.readFileSync(
+      path.join(__dirname, '../../public/assets/js/pages/supplier-init.js'),
+      'utf8'
+    )}`;
 
     it('fires POST /api/analytics/track on page load', () => {
       expect(supplierHtml).toContain('/api/analytics/track');
@@ -516,7 +519,7 @@ describe('Supplier Profile View Tracking', () => {
 
     it('wraps tracking in try/catch to not break page load', () => {
       expect(supplierHtml).toContain('try {');
-      expect(supplierHtml).toContain('} catch (e) {}');
+      expect(supplierHtml).toMatch(/} catch \(e\) \{[\s\S]*?\}/);
     });
   });
 });

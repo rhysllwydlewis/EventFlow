@@ -2,6 +2,7 @@
 <html lang="en-GB">
   <head>
     <meta charset="utf-8" />
+  <meta name="ef-page" content="auth">
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes"
@@ -628,190 +629,21 @@
         <script src="/assets/js/utils/mobile-enhancements.js" defer></script>
 
         <script src="/assets/js/pages/auth-init.js" defer></script>
-        <script src="/assets/js/app.js" defer></script>
-        <script>
-          window.__EF_PAGE__ = 'auth';
-        </script>
+        <script src="/assets/js/config/page-init.js"></script>
+  <script src="/assets/js/app.js" defer></script>
+        
 
         <!-- ALTCHA: loader shim that dynamically fetches the widget from CDN sources -->
         <script src="/assets/js/vendor/altcha.min.js" defer></script>
 
         <!-- ALTCHA widget initialisation: show loading state and re-create widget once custom element is ready -->
-        <script>
-          (function () {
-            var regContainer = document.getElementById('reg-altcha-container');
-            if (!regContainer) return;
-
-            var altchaReady = customElements.get('altcha-widget') !== undefined;
-
-            function bindAltchaEvents(widget) {
-              if (!widget) return;
-              widget.addEventListener('statechange', function (e) {
-                if (e.detail && e.detail.state === 'verified') {
-                  window.__altchaRegPayload = e.detail.payload;
-                } else {
-                  window.__altchaRegPayload = null;
-                }
-              });
-            }
-
-            // If the custom element is already registered the initial widget is live
-            if (altchaReady) {
-              bindAltchaEvents(document.getElementById('reg-altcha-widget'));
-              return;
-            }
-
-            regContainer.innerHTML = '<p class="small" style="color:#666;margin:0;">Loading verification\u2026</p>';
-
-            function onAltchaLoaded() {
-              altchaReady = true;
-              regContainer.innerHTML = '';
-              var widget = document.createElement('altcha-widget');
-              widget.setAttribute('challengeurl', '/api/v1/altcha/challenge');
-              widget.id = 'reg-altcha-widget';
-              regContainer.appendChild(widget);
-              bindAltchaEvents(widget);
-            }
-
-            document.addEventListener('altcha-loaded', onAltchaLoaded, { once: true });
-
-            // Timeout fallback: if widget never loads allow registration without CAPTCHA
-            setTimeout(function () {
-              if (!altchaReady) {
-                document.removeEventListener('altcha-loaded', onAltchaLoaded);
-                regContainer.innerHTML = '<p class="small" style="color:#b45309;">\u26a0 Verification unavailable. You can still create an account.</p>';
-                var stuck = document.getElementById('reg-altcha-widget');
-                if (stuck) stuck.remove();
-              }
-            }, 15000);
-          })();
-        </script>
+        <script src="/assets/js/pages/auth-altcha-init.js"></script>
 
         <!-- Fetch CSRF token on page load using api-client -->
-        <script>
-          (async function () {
-            // Wait for api-client to load (max 3 s / 60 attempts at 50 ms)
-            const API_CLIENT_MAX_WAIT = 60;
-            function waitForApiClient(attempt) {
-              return new Promise((resolve, reject) => {
-                if (window.apiClient) {
-                  resolve();
-                } else if ((attempt || 0) >= API_CLIENT_MAX_WAIT) {
-                  reject(new Error('api-client did not load in time'));
-                } else {
-                  setTimeout(() => waitForApiClient((attempt || 0) + 1).then(resolve, reject), 50);
-                }
-              });
-            }
-
-            try {
-              await waitForApiClient();
-              const response = await window.apiClient.get('csrf-token');
-              if (response.ok) {
-                const data = await response.json();
-                window.csrfToken = data.csrfToken;
-                window.__CSRF_TOKEN__ = data.csrfToken; // Backward compatibility
-              } else {
-                console.error('Failed to fetch CSRF token:', response.statusText);
-              }
-            } catch (error) {
-              console.error('Error fetching CSRF token:', error);
-            }
-          })();
-        </script>
+        <script src="/assets/js/pages/auth-api-init.js"></script>
 
         <!-- Initialize form validation -->
-        <script defer>
-          // Wait for dependencies to load before initializing (max 3 s / 60 × 50 ms)
-          var FORM_INIT_MAX_RETRIES = 60;
-          var formInitRetries = 0;
-          function initFormValidation() {
-            // Check if dependencies are loaded
-            if (typeof FormValidator === 'undefined' || typeof ErrorBoundary === 'undefined') {
-              formInitRetries++;
-              if (formInitRetries < FORM_INIT_MAX_RETRIES) {
-                // Retry after a short delay
-                setTimeout(initFormValidation, 50);
-              }
-              return;
-            }
-
-            // Initialize error boundary
-            window.errorBoundary = new ErrorBoundary({
-              onError: function (errorInfo) {
-                console.error('Error caught:', errorInfo);
-              },
-            });
-
-            // Initialize form validation for login form
-            const loginForm = document.querySelector('#login-form');
-            if (loginForm) {
-              const loginValidator = new FormValidator(loginForm, {
-                validateOnBlur: true,
-                validateOnInput: false,
-              });
-
-              // Store reference to validator for other scripts
-              loginForm._validator = loginValidator;
-
-              // Override the handleSubmit to also show #login-error
-              const originalHandleSubmit = loginValidator.handleSubmit.bind(loginValidator);
-              loginValidator.handleSubmit = function (e) {
-                const result = originalHandleSubmit(e);
-                const loginErrorEl = document.getElementById('login-error');
-
-                // Show #login-error if validation failed
-                if (!result && loginErrorEl) {
-                  const errors = loginValidator.getErrors();
-                  if (errors.length > 0) {
-                    const errorMessages = errors.map(([field, msg]) => msg).join(', ');
-                    loginErrorEl.textContent = errorMessages || 'Please fix the errors above';
-                    loginErrorEl.style.display = 'block';
-                  }
-                } else if (result && loginErrorEl) {
-                  // Clear errors when validation passes
-                  loginErrorEl.textContent = '';
-                  loginErrorEl.style.display = 'none';
-                }
-                // Don't clear the error here - let app.js manage #login-error for API responses
-                return result;
-              };
-
-              // Listen for valid submissions
-              loginForm.addEventListener('validsubmit', function (e) {
-                // The existing auth-init.js will handle the actual submission
-              });
-            }
-
-            // Initialize form validation for registration form
-            const registerForm = document.querySelector('#register-form');
-            if (registerForm) {
-              const registerValidator = new FormValidator(registerForm, {
-                validateOnBlur: true,
-                validateOnInput: false,
-              });
-
-              // Add custom password strength validation
-              registerValidator.addValidator('reg-password', {
-                required: true,
-                password: true,
-                minLength: 8,
-              });
-
-              // Listen for valid submissions
-              registerForm.addEventListener('validsubmit', function (e) {
-                // The existing auth-init.js will handle the actual submission
-              });
-            }
-          }
-
-          // Start initialization when DOM is ready
-          if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initFormValidation);
-          } else {
-            initFormValidation();
-          }
-        </script>
+        <script src="/assets/js/pages/auth-form-init.js" defer></script>
 
     <!-- BOTTOM NAVBAR - GOLD STANDARD REBUILD (Mobile Only) -->
     <nav class="ef-bottom-nav" role="navigation" aria-label="Mobile bottom navigation">

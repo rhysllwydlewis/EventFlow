@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#0B8073" />
 
     <!-- Canonical Base URL for SEO helper (ensures correct URLs in all environments) -->
-    <script>window.EF_CANONICAL_BASE = 'https://event-flow.co.uk';</script>
+    <script src="/assets/js/config/canonical-base.js"></script>
     
     <title>UK Event Marketplace — Buy &amp; Sell Pre-Loved Wedding &amp; Event Items | EventFlow</title>
     <meta
@@ -409,41 +409,7 @@
       </section>
 
       <!-- Marketplace hero mouse-parallax -->
-      <script>
-        (function () {
-          if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-          var hero = document.querySelector('.mkt-hero');
-          var cards = document.querySelectorAll('.mkt-hero__card');
-          if (!hero || !cards.length) return;
-
-          /* Named constants — rotation matches CSS keyframes, parallax factors control depth */
-          var CARD_ROTATIONS = [-4, 1.5, -2.5];
-          var PARALLAX_X     = [10, 16, 6];
-          var PARALLAX_Y     = [8,  12, 5];
-
-          var ticking = false;
-          hero.addEventListener('mousemove', function (e) {
-            if (ticking) return;
-            ticking = true;
-            requestAnimationFrame(function () {
-              var rect = hero.getBoundingClientRect();
-              var cx = (e.clientX - rect.left)  / rect.width  - 0.5;
-              var cy = (e.clientY - rect.top)    / rect.height - 0.5;
-              for (var i = 0; i < cards.length; i++) {
-                cards[i].style.transform =
-                  'rotate(' + CARD_ROTATIONS[i] + 'deg) ' +
-                  'translate(' + (-cx * PARALLAX_X[i]) + 'px,' + (-cy * PARALLAX_Y[i]) + 'px)';
-              }
-              ticking = false;
-            });
-          });
-          hero.addEventListener('mouseleave', function () {
-            for (var i = 0; i < cards.length; i++) {
-              cards[i].style.transform = '';
-            }
-          });
-        }());
-      </script>
+      <script src="/assets/js/pages/marketplace-hero-init.js"></script>
 
       <section class="section">
         <div class="container marketplace-container">
@@ -750,27 +716,7 @@
     <script src="/assets/js/marketplace.js" defer></script>
     <script src="/messenger/js/QuickComposeV4.js" defer></script>
     
-    <script defer>
-      // Initialize core utilities
-      document.addEventListener('DOMContentLoaded', function () {
-        // Initialize error boundary
-        window.errorBoundary = new ErrorBoundary({
-          showErrorDetails: window.location.hostname === 'localhost',
-        });
-
-        // Update SEO for marketplace page
-        if (window.seoHelper) {
-          window.seoHelper.setAll({
-            title: 'Event Marketplace — Buy & Sell Pre-Loved Event Items',
-            description:
-              'Buy and sell pre-loved event items. UK-focused marketplace with no platform fees. Physical items only — arrange payments directly.',
-            keywords: ['event marketplace', 'wedding dress resale', 'event décor', 'AV equipment', 'UK marketplace'],
-            canonical: '/marketplace',
-            type: 'website',
-          });
-        }
-      });
-    </script>
+    <script src="/assets/js/pages/marketplace-dom-init.js" defer></script>
     <script src="/assets/js/utils/p3-features.js" defer></script>
     <script src="/assets/js/keyboard-shortcuts.js" defer></script>
 

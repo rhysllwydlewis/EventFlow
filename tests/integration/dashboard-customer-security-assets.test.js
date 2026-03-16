@@ -11,10 +11,17 @@ describe('Dashboard customer security-oriented script loading', () => {
   let ticketsJs;
 
   beforeAll(() => {
-    dashboardContent = fs.readFileSync(
+    const pagesDir = path.resolve(__dirname, '..', '..', 'public', 'assets', 'js', 'pages');
+    dashboardContent = `${fs.readFileSync(
       path.resolve(__dirname, '..', '..', 'public', 'dashboard-customer.html'),
       'utf8'
-    );
+    )}\n${fs.readFileSync(
+      path.join(pagesDir, 'dashboard-customer-module.js'),
+      'utf8'
+    )}\n${fs.readFileSync(
+      path.join(pagesDir, 'dashboard-customer-init.js'),
+      'utf8'
+    )}\n${fs.readFileSync(path.join(pagesDir, 'dashboard-customer-messenger.js'), 'utf8')}`;
     ticketsJs = fs.readFileSync(
       path.resolve(__dirname, '..', '..', 'public', 'assets', 'js', 'customer-tickets.js'),
       'utf8'

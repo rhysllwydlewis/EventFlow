@@ -202,8 +202,8 @@
       <div class="demo-card">
         <h2>🔌 Connection Status</h2>
         <p>Test real-time connection status indicator with WebSocket reconnection.</p>
-        <button class="demo-button" onclick="testConnection()">Test Connection</button>
-        <button class="demo-button secondary" onclick="simulateDisconnect()">Simulate Disconnect</button>
+        <button class="demo-button">Test Connection</button>
+        <button class="demo-button secondary">Simulate Disconnect</button>
         <div id="connectionStatus" class="demo-status info">
           Status: Ready to test
         </div>
@@ -217,8 +217,8 @@
       <div class="demo-card">
         <h2>⌨️ Typing Indicators</h2>
         <p>See the animated typing indicator in action with debouncing.</p>
-        <button class="demo-button" onclick="testTyping()">Simulate Typing</button>
-        <button class="demo-button secondary" onclick="stopTyping()">Stop Typing</button>
+        <button class="demo-button">Simulate Typing</button>
+        <button class="demo-button secondary">Stop Typing</button>
         <div class="typing-demo-container" id="typingContainer">
           <div style="color: #64748b; font-style: italic;">Typing indicator will appear here...</div>
         </div>
@@ -229,7 +229,7 @@
         <h2>💬 Message Sending</h2>
         <p>Send messages with optimistic UI updates and error handling.</p>
         <input type="text" id="demoMessage" placeholder="Type a message..." style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 12px;">
-        <button class="demo-button" onclick="sendDemoMessage()">Send Message</button>
+        <button class="demo-button">Send Message</button>
         <div id="messageList" style="margin-top: 16px;">
           <!-- Messages will appear here -->
         </div>
@@ -292,23 +292,6 @@ if (window.QuickComposeV4) {
 
   <!-- Load dependencies -->
   <script src="/assets/js/toast-notifications.js"></script>
-  <script>
-    // Legacy messaging.js has been removed – this demo page is superseded by Messenger v4.
-    // Navigate to /messenger/ for the current messaging experience.
-    console.info('[EventFlow] messaging-demo.html: legacy messaging.js removed. Use /messenger/ instead.');
-
-    // Stub functions so demo buttons do not throw
-    window.testConnection = function() {
-      const status = document.getElementById('connectionStatus');
-      if (status) {
-        status.className = 'demo-status info';
-        status.textContent = 'Legacy demo superseded – visit /messenger/ for Messenger v4.';
-      }
-    };
-    window.simulateDisconnect = window.testConnection;
-    window.testTyping = window.testConnection;
-    window.stopTyping = window.testConnection;
-    window.sendDemoMessage = window.testConnection;
-  </script>
+  <script src="/assets/js/pages/messaging-demo-init.js"></script>
 </body>
 </html>

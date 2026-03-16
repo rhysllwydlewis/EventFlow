@@ -138,16 +138,16 @@
     <div class="test-section">
       <h2>📢 Basic Notifications</h2>
       <div class="test-grid">
-        <button class="test-btn btn-success" onclick="testSuccess()">
+        <button class="test-btn btn-success">
           ✓ Success
         </button>
-        <button class="test-btn btn-error" onclick="testError()">
+        <button class="test-btn btn-error">
           ✗ Error
         </button>
-        <button class="test-btn btn-warning" onclick="testWarning()">
+        <button class="test-btn btn-warning">
           ⚠ Warning
         </button>
-        <button class="test-btn btn-info" onclick="testInfo()">
+        <button class="test-btn btn-info">
           ℹ Info
         </button>
       </div>
@@ -156,13 +156,13 @@
     <div class="test-section">
       <h2>🔥 Stress Tests</h2>
       <div class="test-grid">
-        <button class="test-btn btn-purple" onclick="testSpam()">
+        <button class="test-btn btn-purple">
           Spam Test (10)
         </button>
-        <button class="test-btn btn-purple" onclick="testLongMessage()">
+        <button class="test-btn btn-purple">
           Long Message
         </button>
-        <button class="test-btn btn-gray" onclick="clearAll()">
+        <button class="test-btn btn-gray">
           Clear All
         </button>
       </div>
@@ -171,13 +171,13 @@
     <div class="test-section">
       <h2>⏱️ Duration Tests</h2>
       <div class="test-grid">
-        <button class="test-btn btn-info" onclick="testShort()">
+        <button class="test-btn btn-info">
           2 Seconds
         </button>
-        <button class="test-btn btn-info" onclick="testLong()">
+        <button class="test-btn btn-info">
           10 Seconds
         </button>
-        <button class="test-btn btn-info" onclick="testPersistent()">
+        <button class="test-btn btn-info">
           Persistent (No auto-close)
         </button>
       </div>
@@ -209,100 +209,6 @@
 
   <!-- Load notification system -->
   <script src="/assets/js/notification-system.js"></script>
-  
-  <script>
-    // Test functions
-    function testSuccess() {
-      EventFlowNotifications.success('✓ Operation completed successfully!');
-    }
-
-    function testError() {
-      EventFlowNotifications.error('✗ Something went wrong. Please try again.');
-    }
-
-    function testWarning() {
-      EventFlowNotifications.warning('⚠ This action requires your attention.');
-    }
-
-    function testInfo() {
-      EventFlowNotifications.info('ℹ Here is some helpful information for you.');
-    }
-
-    function testSpam() {
-      for (let i = 1; i <= 10; i++) {
-        setTimeout(() => {
-          const types = ['success', 'error', 'warning', 'info'];
-          const messages = [
-            'Task completed',
-            'Error occurred',
-            'Warning issued',
-            'Info provided'
-          ];
-          const type = types[i % types.length];
-          const message = messages[i % messages.length];
-          EventFlowNotifications.show(`${message} #${i}`, type);
-        }, i * 150);
-      }
-    }
-
-    function testLongMessage() {
-      EventFlowNotifications.info('This is a very long notification message to test how the notification system handles text wrapping and maintains good visual appearance even with extended content that spans multiple lines. The glassmorphism effect should remain beautiful regardless of content length.');
-    }
-
-    function testShort() {
-      EventFlowNotifications.info('This notification will disappear in 2 seconds', 2000);
-    }
-
-    function testLong() {
-      EventFlowNotifications.warning('This notification will stay for 10 seconds', 10000);
-    }
-
-    function testPersistent() {
-      EventFlowNotifications.info('This notification will not auto-close. Click × to dismiss.', 0);
-    }
-
-    function clearAll() {
-      EventFlowNotifications.clearAll();
-    }
-
-    // Check system status
-    window.addEventListener('DOMContentLoaded', () => {
-      setTimeout(() => {
-        // Check if EventFlowNotifications is loaded
-        if (typeof EventFlowNotifications !== 'undefined') {
-          document.getElementById('status-system').innerHTML = 
-            '<span style="color: #10b981;">✓</span> EventFlowNotifications loaded successfully';
-        } else {
-          document.getElementById('status-system').innerHTML = 
-            '<span style="color: #ef4444;">✗</span> EventFlowNotifications not loaded';
-        }
-
-        // Check if glassmorphism CSS is available
-        const testEl = document.createElement('div');
-        testEl.className = 'ef-notification';
-        testEl.style.display = 'none';
-        document.body.appendChild(testEl);
-        const styles = window.getComputedStyle(testEl);
-        if (styles.backdropFilter && styles.backdropFilter !== 'none') {
-          document.getElementById('status-css').innerHTML = 
-            '<span style="color: #10b981;">✓</span> Glassmorphism CSS loaded (backdrop-filter supported)';
-        } else {
-          document.getElementById('status-css').innerHTML = 
-            '<span style="color: #f59e0b;">⚠</span> Glassmorphism CSS loaded (backdrop-filter not supported in this browser)';
-        }
-        document.body.removeChild(testEl);
-
-        // Check responsive
-        const isMobile = window.innerWidth < 640;
-        document.getElementById('status-responsive').innerHTML = 
-          `<span style="color: #10b981;">✓</span> Screen width: ${window.innerWidth}px ${isMobile ? '(Mobile)' : '(Desktop)'}`;
-
-        // Show welcome notification
-        setTimeout(() => {
-          EventFlowNotifications.success('Welcome! All systems operational. Click buttons above to test.');
-        }, 500);
-      }, 100);
-    });
-  </script>
+  <script src="/assets/js/pages/test-notifications-init.js"></script>
 </body>
 </html>

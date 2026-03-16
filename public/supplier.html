@@ -2,6 +2,7 @@
 <html lang='en-GB'>
 <head>
   <meta charset='utf-8'>
+  <meta name="ef-page" content="supplier">
   <meta name='viewport' content='width=device-width,initial-scale=1'>
   <title id="page-title">Supplier Profile — EventFlow</title>
   
@@ -168,7 +169,6 @@
           id="hero-banner" 
           src="/assets/images/placeholder-banner.svg" 
           alt="Supplier banner"
-          onerror="this.onerror=null;this.src='/assets/images/placeholder-banner.svg'"
         />
         <div class="hero-badges" id="hero-badges">
           <!-- Badges will be dynamically inserted here -->
@@ -233,10 +233,11 @@
   </div>
 </div>
 <div id="supplier-badges-section"></div>
-<script src="/assets/js/app.js"></script>
+<script src="/assets/js/config/page-init.js"></script>
+  <script src="/assets/js/app.js"></script>
 <script src="/assets/js/utils/tier-icon.js"></script>
 <script type="module" src="/assets/js/supplier-profile.js"></script>
-<script>window.__EF_PAGE__='supplier'</script>
+
 </div></main>
 <footer class="footer" role="contentinfo">
   <div class="container supplier-footer-content">
@@ -264,20 +265,6 @@
 <script src="/messenger/js/MessengerTrigger.js" defer></script>
 
 <!-- Profile view analytics tracking -->
-<script>
-(function () {
-  try {
-    var params = new URLSearchParams(window.location.search);
-    var supplierId = params.get('id');
-    if (supplierId) {
-      fetch('/api/analytics/track', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'profile_view', supplierId: supplierId }),
-      }).catch(function () {});
-    }
-  } catch (e) {}
-})();
-</script>
+<script src="/assets/js/pages/supplier-init.js"></script>
 <script src="/assets/js/pwa-install.js" defer></script>
 </body></html>

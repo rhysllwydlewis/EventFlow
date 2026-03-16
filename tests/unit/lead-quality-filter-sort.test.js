@@ -282,7 +282,13 @@ describe('supplier-messages.js – lead quality filter/sort', () => {
 // ─── Dashboard HTML – filter/sort controls ───────────────────────────────────
 
 describe('dashboard-supplier.html – lead quality controls', () => {
-  const html = fs.readFileSync(path.join(process.cwd(), 'public/dashboard-supplier.html'), 'utf8');
+  const html = `${fs.readFileSync(
+    path.join(process.cwd(), 'public/dashboard-supplier.html'),
+    'utf8'
+  )}\n${fs.readFileSync(
+    path.join(process.cwd(), 'public/assets/js/pages/dashboard-supplier-module.js'),
+    'utf8'
+  )}`;
 
   it('has lead quality High filter option', () => {
     expect(html).toContain('<option value="high">High Quality</option>');
@@ -504,7 +510,16 @@ describe('MessengerWidgetV4.js – lead quality badge rendering', () => {
 // ─── dashboard-supplier.html – date range selector + summary stats ────────────
 
 describe('dashboard-supplier.html – ROI widgets date range + summary stats', () => {
-  const html = fs.readFileSync(path.join(process.cwd(), 'public/dashboard-supplier.html'), 'utf8');
+  const html = `${fs.readFileSync(
+    path.join(process.cwd(), 'public/dashboard-supplier.html'),
+    'utf8'
+  )}\n${fs.readFileSync(
+    path.join(process.cwd(), 'public/assets/js/pages/dashboard-supplier-module.js'),
+    'utf8'
+  )}\n${fs.readFileSync(
+    path.join(process.cwd(), 'public/assets/js/pages/dashboard-supplier-threads.js'),
+    'utf8'
+  )}`;
 
   it('has date range selector for ROI analytics widgets', () => {
     expect(html).toContain('id="roi-date-range"');

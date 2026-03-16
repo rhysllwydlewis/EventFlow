@@ -8,12 +8,13 @@
 const express = require('express');
 const router = express.Router();
 
+const logger = require('../utils/logger');
+
 // Import route modules
 const systemRoutes = require('./system');
 const publicRoutes = require('./public');
 const authRoutes = require('./auth');
 const adminRoutes = require('./admin');
-const adminDebugRoutes = require('./admin-debug');
 const newsletterRoutes = require('./newsletter');
 const paymentsRoutes = require('./payments');
 const pexelsRoutes = require('./pexels');
@@ -94,8 +95,25 @@ function mountRoutes(app, deps) {
   app.use('/api/admin', adminRoutes); // Backward compatibility
 
   // Admin debug routes (emergency auth debugging)
-  app.use('/api/v1/admin/debug', adminDebugRoutes);
-  app.use('/api/admin/debug', adminDebugRoutes); // Backward compatibility
+  // SECURITY: Only mounted in non-production environments with explicit opt-in.
+  // Set ENABLE_ADMIN_DEBUG_ROUTES=true to enable (never default to true in production).
+  const isProduction = process.env.NODE_ENV === 'production';
+  const debugRoutesEnabled = process.env.ENABLE_ADMIN_DEBUG_ROUTES === 'true';
+
+  if (!isProduction && debugRoutesEnabled) {
+    const adminDebugRoutes = require('./admin-debug');
+    app.use('/api/v1/admin/debug', adminDebugRoutes);
+    app.use('/api/admin/debug', adminDebugRoutes); // Backward compatibility
+    logger.info(
+      '[admin-debug] Debug routes ENABLED (non-production + ENABLE_ADMIN_DEBUG_ROUTES=true)'
+    );
+  } else {
+    logger.info(
+      `[admin-debug] Debug routes DISABLED and NOT mounted${
+        isProduction ? ' (production environment)' : ' (ENABLE_ADMIN_DEBUG_ROUTES not set to true)'
+      }`
+    );
+  }
 
   // Newsletter routes (public, no auth required)
   app.use('/api/v1/newsletter', newsletterRoutes);
