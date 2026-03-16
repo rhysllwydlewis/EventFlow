@@ -45,8 +45,10 @@ describe('Phase 2 Initialization', () => {
       expect(messagesContent).toContain('url=/messenger/');
     });
 
-    test('should redirect to /messenger/ via script', () => {
-      expect(messagesContent).toContain("window.location.replace('/messenger/')");
+    test('should redirect to /messenger/ via meta refresh only (CSP hardening removed inline script)', () => {
+      // Redirect is now handled by <meta http-equiv="refresh"> only (CSP hardening)
+      expect(messagesContent).toContain('url=/messenger/');
+      expect(messagesContent).not.toContain("window.location.replace('/messenger/')");
     });
 
     test('should include a fallback link to /messenger/', () => {

@@ -494,10 +494,13 @@ describe('Shortlist Manager Auth Requirement', () => {
 
 describe('Supplier Profile View Tracking', () => {
   describe('supplier.html client-side analytics ping', () => {
-    const supplierHtml = fs.readFileSync(
+    const supplierHtml = `${fs.readFileSync(
       path.join(__dirname, '../../public/supplier.html'),
       'utf8'
-    );
+    )}\n${fs.readFileSync(
+      path.join(__dirname, '../../public/assets/js/pages/supplier-init.js'),
+      'utf8'
+    )}`;
 
     it('fires POST /api/analytics/track on page load', () => {
       expect(supplierHtml).toContain('/api/analytics/track');

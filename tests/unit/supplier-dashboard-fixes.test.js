@@ -15,10 +15,18 @@ const path = require('path');
 
 // ─── file content fixtures ────────────────────────────────────────────────────
 
-const dashboardHtml = fs.readFileSync(
+const pagesDir = path.join(process.cwd(), 'public/assets/js/pages');
+const dashboardHtml = `${fs.readFileSync(
   path.join(process.cwd(), 'public/dashboard-supplier.html'),
   'utf8'
-);
+)}\n${fs.readFileSync(path.join(pagesDir, 'dashboard-supplier-module.js'), 'utf8')}\n${
+  fs.existsSync(path.join(pagesDir, 'dashboard-supplier-inline.js'))
+    ? fs.readFileSync(path.join(pagesDir, 'dashboard-supplier-inline.js'), 'utf8')
+    : ''
+}\n${fs.readFileSync(
+  path.join(pagesDir, 'dashboard-supplier-threads.js'),
+  'utf8'
+)}\n${fs.readFileSync(path.join(pagesDir, 'dashboard-supplier-category.js'), 'utf8')}`;
 
 const errorHandlerJs = fs.readFileSync(
   path.join(process.cwd(), 'public/assets/js/utils/global-error-handler.js'),

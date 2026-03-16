@@ -14,8 +14,20 @@ describe('Dashboard WebSocket Real-time Updates Integration', () => {
   beforeAll(() => {
     // Use path.resolve from project root for robustness
     const dashboardPath = path.resolve(__dirname, '..', '..', 'public', 'dashboard-supplier.html');
+    const modulePath = path.resolve(
+      __dirname,
+      '..',
+      '..',
+      'public',
+      'assets',
+      'js',
+      'pages',
+      'dashboard-supplier-module.js'
+    );
     if (fs.existsSync(dashboardPath)) {
-      dashboardContent = fs.readFileSync(dashboardPath, 'utf8');
+      dashboardContent = `${fs.readFileSync(dashboardPath, 'utf8')}\n${
+        fs.existsSync(modulePath) ? fs.readFileSync(modulePath, 'utf8') : ''
+      }`;
     }
   });
 
