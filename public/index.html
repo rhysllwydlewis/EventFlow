@@ -1120,27 +1120,6 @@
     
     <script src="/assets/js/pages/home-init.js" defer></script>
     <script src="/assets/js/home.js" defer></script>
-    <script defer>
-      // Initialize core utilities
-      document.addEventListener('DOMContentLoaded', function () {
-        // Initialize error boundary
-        window.errorBoundary = new ErrorBoundary({
-          showErrorDetails: window.location.hostname === 'localhost',
-        });
-
-        // Update SEO for homepage
-        if (window.seoHelper) {
-          window.seoHelper.setAll({
-            title: 'Plan your event the simple way',
-            description:
-              'Find suppliers, build your plan and keep everything in one place — beautifully simple on mobile and desktop.',
-            keywords: ['event planning', 'suppliers', 'venues', 'catering', 'corporate events', 'birthday parties'],
-            canonical: '/',
-            type: 'website',
-          });
-        }
-      });
-    </script>
     <script src="/assets/js/pages/index-init.js" defer></script>
 
     <!-- JadeAssist Chat Widget - Using local build with positioning API -->

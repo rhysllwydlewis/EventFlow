@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Update SEO for homepage
   if (window.seoHelper) {
     window.seoHelper.setAll({
-      title: 'EventFlow — Plan your event the simple way',
+      title: 'Plan your event the simple way',
       description:
         'Find suppliers, build your plan and keep everything in one place — beautifully simple on mobile and desktop.',
       keywords: [
