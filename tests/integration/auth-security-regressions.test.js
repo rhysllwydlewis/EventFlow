@@ -16,7 +16,14 @@ describe('auth.html – security regressions', () => {
   let content;
 
   beforeAll(() => {
-    content = fs.readFileSync(path.join(__dirname, '../../public/auth.html'), 'utf8');
+    const pagesDir = path.join(__dirname, '../../public/assets/js/pages');
+    content = `${fs.readFileSync(
+      path.join(__dirname, '../../public/auth.html'),
+      'utf8'
+    )}\n${fs.readFileSync(path.join(pagesDir, 'auth-altcha-init.js'), 'utf8')}\n${fs.readFileSync(
+      path.join(pagesDir, 'auth-api-init.js'),
+      'utf8'
+    )}\n${fs.readFileSync(path.join(pagesDir, 'auth-form-init.js'), 'utf8')}`;
   });
 
   describe('No sensitive data in console output', () => {
@@ -81,7 +88,13 @@ describe('contact.html – ALTCHA widget is present', () => {
   let content;
 
   beforeAll(() => {
-    content = fs.readFileSync(path.join(__dirname, '../../public/contact.html'), 'utf8');
+    content = `${fs.readFileSync(
+      path.join(__dirname, '../../public/contact.html'),
+      'utf8'
+    )}\n${fs.readFileSync(
+      path.join(__dirname, '../../public/assets/js/pages/contact-form-init.js'),
+      'utf8'
+    )}`;
   });
 
   it('contains the altcha-widget element in the contact form', () => {

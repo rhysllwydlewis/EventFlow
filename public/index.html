@@ -9,7 +9,7 @@
     <meta name="theme-color" content="#0B8073" />
 
     <!-- Canonical Base URL for SEO helper (ensures correct URLs in all environments) -->
-    <script>window.EF_CANONICAL_BASE = 'https://event-flow.co.uk';</script>
+    <script src="/assets/js/config/canonical-base.js"></script>
 
     <!-- SEO Meta Tags -->
     <title>EventFlow — Find UK Event Suppliers, Venues &amp; Packages | Plan Your Event</title>
@@ -201,22 +201,13 @@
     <link rel="stylesheet" href="/assets/css/modern-landing.css?v=18.3.0" />
     
     <!-- Non-critical CSS - Defer via preload -->
-    <link rel="preload" href="/assets/css/navbar.css?v=18.3.0" as="style" onload="this.onload=null;this.rel='stylesheet'" />
-    <link rel="preload" href="/assets/css/eventflow-17.0.0.css?v=18.3.0" as="style" onload="this.onload=null;this.rel='stylesheet'" />
-    <link rel="preload" href="/assets/css/utilities.css?v=18.3.0" as="style" onload="this.onload=null;this.rel='stylesheet'" />
-    <link rel="preload" href="/assets/css/animations.css?v=18.3.0" as="style" onload="this.onload=null;this.rel='stylesheet'" />
-    <link rel="preload" href="/assets/css/mobile-optimizations.css?v=18.3.0" as="style" onload="this.onload=null;this.rel='stylesheet'" />
-    <link rel="preload" href="/assets/css/ui-ux-fixes.css?v=18.3.0" as="style" onload="this.onload=null;this.rel='stylesheet'" />
-    <link rel="preload" href="/assets/css/navigation-enhancements.css?v=18.3.0" as="style" onload="this.onload=null;this.rel='stylesheet'" />
-    <noscript>
-      <link rel="stylesheet" href="/assets/css/navbar.css?v=18.3.0" />
-      <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0" />
-      <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0" />
-      <link rel="stylesheet" href="/assets/css/animations.css?v=18.3.0" />
-      <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.3.0" />
-      <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.3.0" />
-      <link rel="stylesheet" href="/assets/css/navigation-enhancements.css?v=18.3.0" />
-    </noscript>
+    <link rel="stylesheet" href="/assets/css/navbar.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/animations.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/navigation-enhancements.css?v=18.3.0" />
     
     <link rel="icon" href="/favicon.svg" />
     
@@ -1126,27 +1117,7 @@
     
     <script src="/assets/js/pages/home-init.js" defer></script>
     <script src="/assets/js/home.js" defer></script>
-    <script defer>
-      // Initialize core utilities
-      document.addEventListener('DOMContentLoaded', function () {
-        // Initialize error boundary
-        window.errorBoundary = new ErrorBoundary({
-          showErrorDetails: window.location.hostname === 'localhost',
-        });
-
-        // Update SEO for homepage
-        if (window.seoHelper) {
-          window.seoHelper.setAll({
-            title: 'EventFlow — Plan your event the simple way',
-            description:
-              'Find suppliers, build your plan and keep everything in one place — beautifully simple on mobile and desktop.',
-            keywords: ['event planning', 'suppliers', 'venues', 'catering', 'corporate events', 'birthday parties'],
-            canonical: '/',
-            type: 'website',
-          });
-        }
-      });
-    </script>
+    <script src="/assets/js/pages/index-init.js" defer></script>
 
     <!-- JadeAssist Chat Widget - Using local build with positioning API -->
     <script

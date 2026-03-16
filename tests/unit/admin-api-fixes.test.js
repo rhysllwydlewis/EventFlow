@@ -126,10 +126,14 @@ describe('Admin API Fixes', () => {
     it('should use public maintenance message endpoint', () => {
       const fs = require('fs');
       const path = require('path');
-      const content = fs.readFileSync(
+      // The maintenance page now uses an external JS file for CSP hardening
+      const content = `${fs.readFileSync(
         path.join(__dirname, '../../public/maintenance.html'),
         'utf8'
-      );
+      )}\n${fs.readFileSync(
+        path.join(__dirname, '../../public/assets/js/pages/maintenance-init.js'),
+        'utf8'
+      )}`;
 
       // Should fetch from public endpoint (not admin-only)
       expect(content).toContain('/api/maintenance/message');

@@ -419,12 +419,6 @@
 
 <script src="/assets/js/pages/admin-marketplace-init.js?v=18.3.0" defer></script>
 <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
-<script>
-  document.addEventListener('DOMContentLoaded', function () {
-    document.querySelector('[data-action="bulk-approve"]').addEventListener('click', function () { bulkApprove(); });
-    document.querySelector('[data-action="bulk-mark-sold"]').addEventListener('click', function () { bulkMarkSold(); });
-    document.querySelector('[data-action="bulk-delete"]').addEventListener('click', function () { bulkDelete(); });
-  });
-</script>
+<script src="/assets/js/pages/admin-marketplace-dom-init.js"></script>
 </body>
 </html>

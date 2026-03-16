@@ -312,12 +312,7 @@
 
 <script src="/assets/js/components/footer-nav.js" defer></script>
 <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
-<script>
-  // Fix CSP violation - move inline onclick to event listener
-  document.getElementById('add-first-guest-btn')?.addEventListener('click', () => {
-    document.getElementById('add-guest')?.click();
-  });
-</script>
+<script src="/assets/js/pages/guests-init.js"></script>
 
 <!-- JadeAssist Chat Widget -->
 <script src="/assets/js/vendor/jade-widget.js" defer></script>

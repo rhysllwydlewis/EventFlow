@@ -14,10 +14,18 @@ describe('Supplier Profile Save Fixes', () => {
   let geocodingContent;
 
   beforeAll(() => {
-    dashboardSupplierHtml = fs.readFileSync(
+    const pagesDir = path.join(__dirname, '../../public/assets/js/pages');
+    dashboardSupplierHtml = `${fs.readFileSync(
       path.join(__dirname, '../../public/dashboard-supplier.html'),
       'utf8'
-    );
+    )}\n${fs.readFileSync(
+      path.join(pagesDir, 'dashboard-supplier-module.js'),
+      'utf8'
+    )}\n${fs.readFileSync(path.join(pagesDir, 'dashboard-supplier-category.js'), 'utf8')}\n${
+      fs.existsSync(path.join(pagesDir, 'dashboard-supplier-inline.js'))
+        ? fs.readFileSync(path.join(pagesDir, 'dashboard-supplier-inline.js'), 'utf8')
+        : ''
+    }\n${fs.readFileSync(path.join(pagesDir, 'dashboard-supplier-threads.js'), 'utf8')}`;
     appJsContent = fs.readFileSync(path.join(__dirname, '../../public/assets/js/app.js'), 'utf8');
     supplierGalleryContent = fs.readFileSync(
       path.join(__dirname, '../../public/assets/js/supplier-gallery.js'),
