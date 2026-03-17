@@ -1033,6 +1033,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **[Performance Testing Guide](docs/PERFORMANCE_TESTING.md)** - Performance verification and testing
 - **[AWS_SES_SETUP.md](AWS_SES_SETUP.md)** - Email service setup
 - **[2FA_IMPLEMENTATION.md](2FA_IMPLEMENTATION.md)** - Two-factor auth (planned)
+- **[PWA Icons Guide](docs/PWA_ICONS.md)** - PWA icon assets, locations, and regeneration steps
 
 ---
 

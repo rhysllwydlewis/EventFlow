@@ -5,7 +5,7 @@
 
 const isDevelopment =
   self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
-const CACHE_VERSION = 'eventflow-v18.5.0';
+const CACHE_VERSION = 'eventflow-v18.6.0';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const DYNAMIC_CACHE = `${CACHE_VERSION}-dynamic`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
@@ -19,6 +19,8 @@ const STATIC_ASSETS = [
   '/assets/js/utils/storage.js',
   '/assets/js/components/ErrorBoundary.js',
   '/site.webmanifest',
+  '/favicon.svg',
+  '/favicon.ico',
   '/icon-192.png',
   '/icon-512.png',
   '/icon-maskable-512.png',
