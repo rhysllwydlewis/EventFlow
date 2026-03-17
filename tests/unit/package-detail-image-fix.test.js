@@ -75,6 +75,12 @@ describe('package-init.js — gallery item filtering', () => {
     expect(packageInitContent).toContain('.filter(');
   });
 
+  it('guards against null/undefined gallery items (avoids TypeError)', () => {
+    // The filter must bail out early when img is falsy — check the block form used
+    expect(packageInitContent).toContain('if (!img) {');
+    expect(packageInitContent).toContain('return false;');
+  });
+
   it('filters out placeholder path entries from the gallery', () => {
     expect(packageInitContent).toContain('PLACEHOLDER_PATH');
     expect(packageInitContent).toContain('/assets/images/placeholders/');
@@ -116,5 +122,31 @@ describe('PackageGallery — first image uses eager loading', () => {
   it('does not set loading="lazy" unconditionally for all images', () => {
     // The old unconditional assignment must no longer be present
     expect(packageGalleryContent).not.toMatch(/image\.loading\s*=\s*'lazy'\s*;/);
+  });
+});
+
+// ─── package.html breadcrumb fix ─────────────────────────────────────────────
+
+describe('package.html — breadcrumb double-separator fix', () => {
+  let packageHtmlContent;
+
+  beforeAll(() => {
+    const htmlPath = path.join(__dirname, '../../public/package.html');
+    packageHtmlContent = fs.readFileSync(htmlPath, 'utf8');
+  });
+
+  it('wraps the category crumb in a group hidden by default', () => {
+    expect(packageHtmlContent).toContain('id="breadcrumb-category-group"');
+    expect(packageHtmlContent).toContain('style="display:none;"');
+  });
+
+  it('package-init.js reveals the category group only when categories exist', () => {
+    expect(packageInitContent).toContain('breadcrumb-category-group');
+    expect(packageInitContent).toContain('catGroup.style.display');
+  });
+
+  it('package.html OG/Twitter URL uses clean path without .html extension', () => {
+    expect(packageHtmlContent).not.toContain('package.html"');
+    expect(packageHtmlContent).toContain('event-flow.co.uk/package"');
   });
 });

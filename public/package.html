@@ -17,7 +17,7 @@
   
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:url" content="https://event-flow.co.uk/package.html" />
+  <meta name="twitter:url" content="https://event-flow.co.uk/package" />
   <meta name="twitter:title" content="Package Details — EventFlow" />
   <meta name="twitter:description" content="View package details on EventFlow." />
   <meta name="twitter:image" content="https://event-flow.co.uk/assets/images/eventflow-og-image.png" />
@@ -468,6 +468,24 @@
       #package-desc-card,
       #package-event-types-section { padding: 16px; }
     }
+
+    /* ── Skeleton loading state ──────────────────────────────── */
+    @keyframes pkg-skeleton-shine {
+      0%   { background-position: -400px 0; }
+      100% { background-position: 400px 0; }
+    }
+    .pkg-skeleton {
+      background: linear-gradient(90deg,#e5e7eb 25%,#f3f4f6 50%,#e5e7eb 75%);
+      background-size: 800px 100%;
+      animation: pkg-skeleton-shine 1.4s ease-in-out infinite;
+      border-radius: 8px;
+      margin-bottom: 12px;
+    }
+    .pkg-skeleton--img  { height: 220px; border-radius: 12px; margin-bottom: 16px; }
+    .pkg-skeleton--title { height: 28px; width: 60%; }
+    .pkg-skeleton--line  { height: 14px; width: 90%; }
+    .pkg-skeleton--line-short { width: 45%; }
+    .pkg-skeleton-card { padding: 20px; }
   </style>
 </head>
 <body>
@@ -582,14 +600,19 @@
     <div class="container">
       <div id="package-breadcrumb">
         <a href="/" style="text-decoration: none; color: inherit;">Home</a>
-        <span class="pkg-bc-sep" aria-hidden="true">›</span>
-        <span id="breadcrumb-category"></span>
+        <span id="breadcrumb-category-group" style="display:none;">
+          <span class="pkg-bc-sep" aria-hidden="true">›</span>
+          <span id="breadcrumb-category"></span>
+        </span>
         <span class="pkg-bc-sep" aria-hidden="true">›</span>
         <span id="breadcrumb-package">Package</span>
       </div>
 
-      <div id="package-loading" class="card">
-        <p>Loading package details...</p>
+      <div id="package-loading" class="card pkg-skeleton-card" aria-busy="true" aria-label="Loading package details">
+        <div class="pkg-skeleton pkg-skeleton--img"></div>
+        <div class="pkg-skeleton pkg-skeleton--title"></div>
+        <div class="pkg-skeleton pkg-skeleton--line"></div>
+        <div class="pkg-skeleton pkg-skeleton--line pkg-skeleton--line-short"></div>
       </div>
 
       <div id="package-error" style="display: none;" class="card">

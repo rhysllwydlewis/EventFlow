@@ -38,6 +38,11 @@ document.addEventListener('DOMContentLoaded', () => {
               `<a href="/category?slug=${encodeURIComponent(c.slug)}" style="text-decoration:none;color:inherit;">${c.name}</a>`
           )
           .join(' · ');
+        // Show the category segment (hidden by default to avoid 'Home › › Package')
+        const catGroup = document.getElementById('breadcrumb-category-group');
+        if (catGroup) {
+          catGroup.style.display = '';
+        }
       }
       document.getElementById('breadcrumb-package').textContent = pkg.title;
 
@@ -46,6 +51,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const rawGallery = pkg.gallery || [];
       const PLACEHOLDER_PATH = '/assets/images/placeholders/';
       const validGalleryImages = rawGallery.filter(img => {
+        if (!img) {
+          return false;
+        }
         const url =
           typeof img === 'string' ? img : img.url || img.src || img.path || img.image || '';
         return url && !url.includes(PLACEHOLDER_PATH);
