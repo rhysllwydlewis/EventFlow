@@ -199,6 +199,73 @@ app.get('/api/v1/auth/me', (req, res) => {
   res.status(401).json({ error: 'Not authenticated' });
 });
 
+// Stub spotlight + featured package carousel endpoints
+// Deliberately includes packages where pkg.image is the placeholder but gallery has real images,
+// to exercise and visually verify the resolvePackageImage() fix.
+const PLACEHOLDER_IMG = '/assets/images/placeholders/package-event.svg';
+const mockCarouselPackages = [
+  {
+    id: 'mock-spot-1',
+    slug: 'barn-exclusive-hire',
+    title: 'Barn Exclusive Hire',
+    supplier_name: 'The Rustic Barn Venue',
+    description: 'Transform our stunning rustic barn into your dream event space.',
+    price_display: '£1,200',
+    // image is placeholder — resolver must fall back to gallery
+    image: PLACEHOLDER_IMG,
+    gallery: [{ url: '/assets/images/collage-venue.jpg' }],
+    featured: true,
+  },
+  {
+    id: 'mock-spot-2',
+    slug: 'wedding-full-day-photography',
+    title: 'Wedding Full Day Photography',
+    supplier_name: 'Pixel Perfect Photography',
+    description: 'Full day wedding photography from prep to reception.',
+    price_display: '£1,800',
+    // image is a real path — resolver must use it directly
+    image: '/assets/images/collage-photography.jpg',
+    gallery: [],
+    featured: false,
+  },
+  {
+    id: 'mock-spot-3',
+    slug: 'corporate-catering-package',
+    title: 'Corporate Catering Package',
+    supplier_name: 'Simply Catering Co',
+    description: 'Fresh, locally-sourced catering for events of all sizes.',
+    price_display: '£650',
+    // both image and gallery are absent — resolver must return placeholder
+    image: PLACEHOLDER_IMG,
+    gallery: [],
+    featured: false,
+  },
+  {
+    id: 'mock-spot-4',
+    slug: 'garden-party-package',
+    title: 'Garden Party Package',
+    supplier_name: 'The Grand Venue',
+    description: 'Full outdoor garden setup with catering and staff included.',
+    price_display: '£950',
+    image: PLACEHOLDER_IMG,
+    gallery: ['/assets/images/collage-catering.jpg'],
+    featured: false,
+  },
+];
+
+app.get('/api/packages/spotlight', (req, res) => {
+  res.json({ items: mockCarouselPackages });
+});
+
+app.get('/api/packages/featured', (req, res) => {
+  res.json({ items: mockCarouselPackages });
+});
+
+// Stub public stats
+app.get('/api/stats/public', (req, res) => {
+  res.json({ suppliers: 500, packages: 1200, events: 3400 });
+});
+
 // Canonical URL redirects (matching server.js behavior)
 // These redirects are needed because express.static serves files directly without redirection
 app.get('/index.html', (req, res) => {

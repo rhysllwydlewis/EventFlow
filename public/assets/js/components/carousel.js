@@ -358,29 +358,39 @@ class Carousel {
         : rawDesc;
     const description = escapeHtml(truncatedRawDesc);
     const price = escapeHtml(formatPrice(item.price_display || item.price));
-    // Resolve the best available image: prefer item.image, fall back to gallery
-    const resolvedImage = (() => {
-      const placeholder = '/assets/images/placeholders/package-event.svg';
-      if (item.image && item.image !== placeholder) {
-        return item.image;
-      }
-      if (Array.isArray(item.gallery) && item.gallery.length > 0) {
-        for (const img of item.gallery) {
-          const url = typeof img === 'string' ? img : img.url || img.src || img.path || img.image;
-          if (url && url !== placeholder) {
-            return url;
-          }
-        }
-      }
-      return item.image || null;
-    })();
-    const image = sanitizeUrl(resolvedImage);
+    // Resolve the best available image via the shared utility when loaded,
+    // otherwise fall back to the same inline strategy for resilience.
+    const resolvedRaw =
+      typeof resolvePackageImage === 'function'
+        ? resolvePackageImage(item)
+        : (() => {
+            const placeholder = '/assets/images/placeholders/package-event.svg';
+            if (item.image && item.image !== placeholder) {
+              return item.image;
+            }
+            if (Array.isArray(item.gallery) && item.gallery.length > 0) {
+              for (const img of item.gallery) {
+                const url =
+                  typeof img === 'string' ? img : img.url || img.src || img.path || img.image;
+                if (url && url !== placeholder) {
+                  return url;
+                }
+              }
+            }
+            return placeholder;
+          })();
+    const image = sanitizeUrl(resolvedRaw);
+    // Emit debug info when debug mode is active (?debugImages=1 or localStorage)
+    if (typeof debugPackageImage === 'function') {
+      debugPackageImage(item, image);
+    }
     const slug = validateSlug(item.slug, item.id);
 
     return `
       <div class="carousel-item">
         <a href="/package?slug=${encodeURIComponent(slug)}" class="featured-package-card">
-          <img src="${image}" alt="${title}" loading="lazy">
+          <img src="${image}" alt="${title}" loading="lazy"
+               onerror="this.onerror=null;this.src='/assets/images/placeholders/package-event.svg';">
           <div class="package-info">
             <h3>${title}</h3>
             ${supplierName ? `<p class="package-supplier">${supplierName}</p>` : ''}
