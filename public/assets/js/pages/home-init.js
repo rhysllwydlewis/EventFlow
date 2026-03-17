@@ -523,23 +523,25 @@ function renderPackageFallback(container, items) {
       const price = escape(formatPrice(item.price_display || item.price));
       // Resolve the best available image via the shared utility when loaded,
       // otherwise fall back to the same inline strategy for resilience.
-      const resolvedImage = (typeof resolvePackageImage === 'function')
-        ? resolvePackageImage(item)
-        : (() => {
-            const placeholder = '/assets/images/placeholders/package-event.svg';
-            if (item.image && item.image !== placeholder) {
-              return item.image;
-            }
-            if (Array.isArray(item.gallery) && item.gallery.length > 0) {
-              for (const img of item.gallery) {
-                const url = typeof img === 'string' ? img : img.url || img.src || img.path || img.image;
-                if (url && url !== placeholder) {
-                  return url;
+      const resolvedImage =
+        typeof resolvePackageImage === 'function'
+          ? resolvePackageImage(item)
+          : (() => {
+              const placeholder = '/assets/images/placeholders/package-event.svg';
+              if (item.image && item.image !== placeholder) {
+                return item.image;
+              }
+              if (Array.isArray(item.gallery) && item.gallery.length > 0) {
+                for (const img of item.gallery) {
+                  const url =
+                    typeof img === 'string' ? img : img.url || img.src || img.path || img.image;
+                  if (url && url !== placeholder) {
+                    return url;
+                  }
                 }
               }
-            }
-            return item.image || placeholder;
-          })();
+              return placeholder;
+            })();
       const imgSrc = sanitizeUrl(resolvedImage);
       // Emit debug info when debug mode is active (?debugImages=1 or localStorage)
       if (typeof debugPackageImage === 'function') {
@@ -550,7 +552,8 @@ function renderPackageFallback(container, items) {
       return `
         <div class="card featured-fallback-card">
           <a href="/package?slug=${slug}" class="featured-fallback-link">
-            <img src="${imgSrc}" alt="${title}" class="featured-fallback-img">
+            <img src="${imgSrc}" alt="${title}" class="featured-fallback-img"
+                 onerror="this.onerror=null;this.src='/assets/images/placeholders/package-event.svg';">
             <div class="featured-fallback-content">
               <h3 class="featured-fallback-title">${title}</h3>
               ${supplierName ? `<p class="featured-fallback-supplier">${supplierName}</p>` : ''}

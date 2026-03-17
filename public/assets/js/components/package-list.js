@@ -414,23 +414,25 @@ class PackageList {
     // Resolve the best available image: prefer pkg.image, fall back to gallery.
     // Uses resolvePackageImage() from package-image-resolver.js when available,
     // otherwise applies the same inline strategy for safety.
-    const rawImageUrl = (typeof resolvePackageImage === 'function')
-      ? resolvePackageImage(pkg)
-      : (() => {
-          const placeholder = '/assets/images/placeholders/package-event.svg';
-          if (pkg.image && pkg.image !== placeholder) {
-            return pkg.image;
-          }
-          if (Array.isArray(pkg.gallery) && pkg.gallery.length > 0) {
-            for (const img of pkg.gallery) {
-              const url = typeof img === 'string' ? img : img.url || img.src || img.path || img.image;
-              if (url && url !== placeholder) {
-                return url;
+    const rawImageUrl =
+      typeof resolvePackageImage === 'function'
+        ? resolvePackageImage(pkg)
+        : (() => {
+            const placeholder = '/assets/images/placeholders/package-event.svg';
+            if (pkg.image && pkg.image !== placeholder) {
+              return pkg.image;
+            }
+            if (Array.isArray(pkg.gallery) && pkg.gallery.length > 0) {
+              for (const img of pkg.gallery) {
+                const url =
+                  typeof img === 'string' ? img : img.url || img.src || img.path || img.image;
+                if (url && url !== placeholder) {
+                  return url;
+                }
               }
             }
-          }
-          return pkg.image || placeholder;
-        })();
+            return placeholder;
+          })();
     const sanitizedImageUrl = this.sanitizeImageUrl(rawImageUrl);
     // Emit debug info when debug mode is active (?debugImages=1 or localStorage)
     if (typeof debugPackageImage === 'function') {
@@ -552,7 +554,8 @@ class PackageList {
 
     card.innerHTML = `
       ${badgesHtml}
-      <img class="package-card-image" src="${imageUrl}" alt="${title}" loading="lazy">
+      <img class="package-card-image" src="${imageUrl}" alt="${title}" loading="lazy"
+           onerror="this.onerror=null;this.src='/assets/images/placeholders/package-event.svg';">
       <div class="package-card-content">
         <h3 class="package-card-title">${title}</h3>
         <p class="package-card-description">${description}</p>
