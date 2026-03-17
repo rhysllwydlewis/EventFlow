@@ -1536,3 +1536,41 @@ h4 {
     display: none !important;
   }
 }
+
+/* ============================================
+   PWA INSTALL BANNER — MOBILE SAFE AREA
+   Ensures the fixed install prompt respects
+   the device safe area (notch / home indicator)
+   and adds body bottom padding so page content
+   is never hidden underneath the banner.
+   ============================================ */
+
+/* Body padding-bottom placeholder — applied by JS when banner is visible */
+body.ef-pwa-banner-visible {
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+}
+
+/* Tighter banner on small screens */
+@media (max-width: 480px) {
+  #ef-pwa-install-banner {
+    /* Respect notch / home indicator on iOS */
+    bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+    /* Full-width strip instead of floating pill */
+    left: 0;
+    right: 0;
+    transform: none;
+    border-radius: 0;
+    max-width: 100%;
+    width: 100%;
+    padding: 0.6rem 1rem;
+    font-size: 0.85rem;
+    gap: 0.5rem;
+  }
+}
+
+/* Keyboard-open state: hide banner to avoid overlapping the soft keyboard */
+@media (max-height: 400px) {
+  #ef-pwa-install-banner {
+    display: none !important;
+  }
+}

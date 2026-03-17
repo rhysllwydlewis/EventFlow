@@ -33,6 +33,7 @@
     if (banner) {
       banner.remove();
     }
+    document.body.classList.remove('ef-pwa-banner-visible');
   }
 
   function injectStyles() {
@@ -127,6 +128,7 @@
     banner.querySelector('.ef-pwa-install-btn').addEventListener('click', onInstall);
     banner.querySelector('.ef-pwa-dismiss-btn').addEventListener('click', onDismiss);
     document.body.appendChild(banner);
+    document.body.classList.add('ef-pwa-banner-visible');
     return banner;
   }
 
@@ -192,6 +194,7 @@
           removeBanner();
         });
         document.body.appendChild(banner);
+        document.body.classList.add('ef-pwa-banner-visible');
       }, 2000);
     }
   })();
