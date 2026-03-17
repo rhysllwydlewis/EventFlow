@@ -302,7 +302,7 @@ class DateManagementService {
       if (this.dbUnified) {
         try {
           await this.dbUnified.insertOne('audit_logs', {
-            id: `audit_${Date.now()}_${crypto.randomUUID().replace(/-/g, '').substring(0, 11)}`,
+            id: `audit_${Date.now()}_${crypto.randomBytes(6).toString('hex')}`,
             userId,
             action: manual ? 'MANUAL_DATE_UPDATE' : 'AUTO_DATE_UPDATE',
             details: {
@@ -510,7 +510,7 @@ class DateManagementService {
       await Promise.all(
         admins.map(admin =>
           this.dbUnified.insertOne('notifications', {
-            id: `notif_${Date.now()}_${crypto.randomUUID().replace(/-/g, '').substring(0, 11)}`,
+            id: `notif_${Date.now()}_${crypto.randomBytes(6).toString('hex')}`,
             userId: admin.id,
             type: 'system',
             title: 'Legal Document Dates Updated',
