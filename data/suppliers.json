@@ -10,7 +10,8 @@
     "tags": [
       "legacy"
     ],
-    "createdAt": "2026-01-02T00:08:56.778Z"
+    "createdAt": "2026-01-02T00:08:56.778Z",
+    "ownerUserId": "usr_c472375cccb7eb22mmv456pw"
   },
   {
     "id": "supplier-002",
@@ -58,5 +59,17 @@
     "location": "Cardiff",
     "latitude": 51.48,
     "longitude": -3.18
+  },
+  {
+    "id": "sup_xmkgxc6kd04f",
+    "name": "Demo Photography",
+    "ownerUserId": "usr_c472375cccb7eb22mmv456pw",
+    "approved": true,
+    "isPro": true,
+    "category": "Photography",
+    "location": "London",
+    "description": "Professional wedding photography",
+    "gallery": [],
+    "createdAt": "2026-01-01T00:00:00.000Z"
   }
 ]

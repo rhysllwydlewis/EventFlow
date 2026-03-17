@@ -4,7 +4,7 @@
     "supplierId": "sup_xmkgxc6kd04f",
     "slug": "barn-exclusive",
     "title": "Barn Exclusive",
-    "price": "£3,500",
+    "price": "\u00a33,500",
     "location": "Monmouthshire, South Wales",
     "description": "Full-day venue hire, ceremony & reception areas. Includes indoor and outdoor spaces, tables and chairs, parking for 50 cars.",
     "image": "https://source.unsplash.com/featured/800x600/?rustic,venue",
@@ -38,7 +38,7 @@
     "supplierId": "sup_suj0sb6kd04f",
     "slug": "seasonal-feast",
     "title": "Seasonal Feast",
-    "price": "£45 pp",
+    "price": "\u00a345 pp",
     "location": "Cardiff & South Wales",
     "description": "Three-course seasonal menu with staff & setup. Includes locally sourced ingredients, vegan options available.",
     "image": "https://source.unsplash.com/featured/800x600/?banquet,catering",
@@ -66,7 +66,7 @@
     "supplierId": "sup_5n2run6kd04f",
     "slug": "full-day-capture",
     "title": "Full Day Capture",
-    "price": "£1,200",
+    "price": "\u00a31,200",
     "location": "Bristol & South West",
     "description": "Prep through first dance, private gallery. Includes all edited photos, online gallery access, and print rights.",
     "image": "https://source.unsplash.com/featured/800x600/?camera,photography",
@@ -95,7 +95,7 @@
     "title": "Test Package Auto Generated",
     "slug": "test-package-auto-generated",
     "description": "This is a test package created by the verification script",
-    "price_display": "£999",
+    "price_display": "\u00a3999",
     "image": "/assets/images/placeholder-package.jpg",
     "approved": true,
     "featured": false,
@@ -110,7 +110,7 @@
     "title": "Full Day Wedding Package",
     "slug": "the-grand-manor-estate-full-day-wedding-package",
     "description": "Complete venue hire from 10am-midnight including ceremony space, reception area, and exclusive use of grounds",
-    "price": "£4,500",
+    "price": "\u00a34,500",
     "location": "London",
     "categories": [
       "venues"
@@ -125,7 +125,7 @@
     "title": "Evening Reception Package",
     "slug": "the-grand-manor-estate-evening-reception-package",
     "description": "Evening venue hire from 6pm-midnight, perfect for those having ceremony elsewhere",
-    "price": "£2,200",
+    "price": "\u00a32,200",
     "location": "London",
     "categories": [
       "venues"
@@ -140,7 +140,7 @@
     "title": "Full Day Wedding Package",
     "slug": "riverside-pavilion-full-day-wedding-package",
     "description": "Complete venue hire from 10am-midnight including ceremony space, reception area, and exclusive use of grounds",
-    "price": "£4,500",
+    "price": "\u00a34,500",
     "location": "Manchester",
     "categories": [
       "venues"
@@ -155,7 +155,7 @@
     "title": "Evening Reception Package",
     "slug": "riverside-pavilion-evening-reception-package",
     "description": "Evening venue hire from 6pm-midnight, perfect for those having ceremony elsewhere",
-    "price": "£2,200",
+    "price": "\u00a32,200",
     "location": "Manchester",
     "categories": [
       "venues"
@@ -170,7 +170,7 @@
     "title": "Full Day Wedding Package",
     "slug": "the-castle-keep-full-day-wedding-package",
     "description": "Complete venue hire from 10am-midnight including ceremony space, reception area, and exclusive use of grounds",
-    "price": "£4,500",
+    "price": "\u00a34,500",
     "location": "Edinburgh",
     "categories": [
       "venues"
@@ -185,7 +185,7 @@
     "title": "Evening Reception Package",
     "slug": "the-castle-keep-evening-reception-package",
     "description": "Evening venue hire from 6pm-midnight, perfect for those having ceremony elsewhere",
-    "price": "£2,200",
+    "price": "\u00a32,200",
     "location": "Edinburgh",
     "categories": [
       "venues"
@@ -200,7 +200,7 @@
     "title": "Full Day Wedding Package",
     "slug": "botanical-glasshouse-full-day-wedding-package",
     "description": "Complete venue hire from 10am-midnight including ceremony space, reception area, and exclusive use of grounds",
-    "price": "£4,500",
+    "price": "\u00a34,500",
     "location": "Birmingham",
     "categories": [
       "venues"
@@ -215,7 +215,7 @@
     "title": "Evening Reception Package",
     "slug": "botanical-glasshouse-evening-reception-package",
     "description": "Evening venue hire from 6pm-midnight, perfect for those having ceremony elsewhere",
-    "price": "£2,200",
+    "price": "\u00a32,200",
     "location": "Birmingham",
     "categories": [
       "venues"
@@ -230,7 +230,7 @@
     "title": "Full Day Coverage",
     "slug": "emma-clarke-photography-full-day-coverage",
     "description": "10 hours coverage, online gallery, print rights, and engagement shoot included",
-    "price": "£2,200",
+    "price": "\u00a32,200",
     "location": "London",
     "categories": [
       "photography"
@@ -245,7 +245,7 @@
     "title": "Half Day Package",
     "slug": "emma-clarke-photography-half-day-package",
     "description": "6 hours coverage from preparations to first dance, online gallery included",
-    "price": "£1,400",
+    "price": "\u00a31,400",
     "location": "London",
     "categories": [
       "photography"
@@ -260,7 +260,7 @@
     "title": "Full Day Coverage",
     "slug": "james-wilson-photography-full-day-coverage",
     "description": "10 hours coverage, online gallery, print rights, and engagement shoot included",
-    "price": "£2,200",
+    "price": "\u00a32,200",
     "location": "Manchester",
     "categories": [
       "photography"
@@ -275,7 +275,7 @@
     "title": "Half Day Package",
     "slug": "james-wilson-photography-half-day-package",
     "description": "6 hours coverage from preparations to first dance, online gallery included",
-    "price": "£1,400",
+    "price": "\u00a31,400",
     "location": "Manchester",
     "categories": [
       "photography"
@@ -290,7 +290,7 @@
     "title": "Full Day Coverage",
     "slug": "sarah-mitchell-photo-film-full-day-coverage",
     "description": "10 hours coverage, online gallery, print rights, and engagement shoot included",
-    "price": "£2,200",
+    "price": "\u00a32,200",
     "location": "Bristol",
     "categories": [
       "photography"
@@ -305,7 +305,7 @@
     "title": "Half Day Package",
     "slug": "sarah-mitchell-photo-film-half-day-package",
     "description": "6 hours coverage from preparations to first dance, online gallery included",
-    "price": "£1,400",
+    "price": "\u00a31,400",
     "location": "Bristol",
     "categories": [
       "photography"
@@ -319,8 +319,8 @@
     "supplierId": "sup_v9w30vccr3dwsn",
     "title": "Three Course Wedding Breakfast",
     "slug": "the-artisan-kitchen-three-course-wedding-breakfast",
-    "description": "Canapés on arrival, three course meal, wine service, and evening buffet",
-    "price": "£75 per head",
+    "description": "Canap\u00e9s on arrival, three course meal, wine service, and evening buffet",
+    "price": "\u00a375 per head",
     "location": "London",
     "categories": [
       "catering"
@@ -334,8 +334,8 @@
     "supplierId": "sup_v9w30vccr3dwsn",
     "title": "Cocktail Reception",
     "slug": "the-artisan-kitchen-cocktail-reception",
-    "description": "Selection of canapés and drinks for 2 hours",
-    "price": "£35 per head",
+    "description": "Selection of canap\u00e9s and drinks for 2 hours",
+    "price": "\u00a335 per head",
     "location": "London",
     "categories": [
       "catering"
@@ -349,8 +349,8 @@
     "supplierId": "sup_fi09jltkr3dwsn",
     "title": "Three Course Wedding Breakfast",
     "slug": "spice-route-catering-three-course-wedding-breakfast",
-    "description": "Canapés on arrival, three course meal, wine service, and evening buffet",
-    "price": "£75 per head",
+    "description": "Canap\u00e9s on arrival, three course meal, wine service, and evening buffet",
+    "price": "\u00a375 per head",
     "location": "Birmingham",
     "categories": [
       "catering"
@@ -364,8 +364,8 @@
     "supplierId": "sup_fi09jltkr3dwsn",
     "title": "Cocktail Reception",
     "slug": "spice-route-catering-cocktail-reception",
-    "description": "Selection of canapés and drinks for 2 hours",
-    "price": "£35 per head",
+    "description": "Selection of canap\u00e9s and drinks for 2 hours",
+    "price": "\u00a335 per head",
     "location": "Birmingham",
     "categories": [
       "catering"
@@ -379,8 +379,8 @@
     "supplierId": "sup_h8fqy1t6r3dwsn",
     "title": "Three Course Wedding Breakfast",
     "slug": "coastal-seafood-co--three-course-wedding-breakfast",
-    "description": "Canapés on arrival, three course meal, wine service, and evening buffet",
-    "price": "£75 per head",
+    "description": "Canap\u00e9s on arrival, three course meal, wine service, and evening buffet",
+    "price": "\u00a375 per head",
     "location": "Brighton",
     "categories": [
       "catering"
@@ -394,8 +394,8 @@
     "supplierId": "sup_h8fqy1t6r3dwsn",
     "title": "Cocktail Reception",
     "slug": "coastal-seafood-co--cocktail-reception",
-    "description": "Selection of canapés and drinks for 2 hours",
-    "price": "£35 per head",
+    "description": "Selection of canap\u00e9s and drinks for 2 hours",
+    "price": "\u00a335 per head",
     "location": "Brighton",
     "categories": [
       "catering"
@@ -410,7 +410,7 @@
     "title": "Full Evening Performance",
     "slug": "the-groove-collective-full-evening-performance",
     "description": "2 x 60 minute sets, PA system, lighting, and DJ service between sets",
-    "price": "£2,500",
+    "price": "\u00a32,500",
     "location": "Manchester",
     "categories": [
       "entertainment"
@@ -425,7 +425,7 @@
     "title": "Full Evening Performance",
     "slug": "dj-marcus-cole-full-evening-performance",
     "description": "2 x 60 minute sets, PA system, lighting, and DJ service between sets",
-    "price": "£2,500",
+    "price": "\u00a32,500",
     "location": "London",
     "categories": [
       "entertainment"
@@ -440,7 +440,7 @@
     "title": "Full Evening Performance",
     "slug": "string-quartet-elegance-full-evening-performance",
     "description": "2 x 60 minute sets, PA system, lighting, and DJ service between sets",
-    "price": "£2,500",
+    "price": "\u00a32,500",
     "location": "Edinburgh",
     "categories": [
       "entertainment"
@@ -455,7 +455,7 @@
     "title": "Complete Floral Package",
     "slug": "bloom-co-floristry-complete-floral-package",
     "description": "Bridal bouquet, bridesmaid bouquets, buttonholes, ceremony arrangements, and table centerpieces",
-    "price": "£1,800",
+    "price": "\u00a31,800",
     "location": "Cardiff",
     "categories": [
       "decor-styling"
@@ -470,7 +470,7 @@
     "title": "Complete Floral Package",
     "slug": "luna-event-styling-complete-floral-package",
     "description": "Bridal bouquet, bridesmaid bouquets, buttonholes, ceremony arrangements, and table centerpieces",
-    "price": "£1,800",
+    "price": "\u00a31,800",
     "location": "London",
     "categories": [
       "decor-styling"
@@ -485,7 +485,7 @@
     "title": "Full Wedding Planning",
     "slug": "perfect-day-planning-full-wedding-planning",
     "description": "Complete planning service from 12 months out, including vendor management and day-of coordination",
-    "price": "£4,500",
+    "price": "\u00a34,500",
     "location": "London",
     "categories": [
       "event-planning"
@@ -500,7 +500,7 @@
     "title": "Day-of Coordination",
     "slug": "perfect-day-planning-day-of-coordination",
     "description": "Professional coordination on your wedding day to ensure everything runs smoothly",
-    "price": "£750",
+    "price": "\u00a3750",
     "location": "London",
     "categories": [
       "event-planning"
@@ -515,7 +515,7 @@
     "title": "Full Wedding Planning",
     "slug": "northern-events-ltd-full-wedding-planning",
     "description": "Complete planning service from 12 months out, including vendor management and day-of coordination",
-    "price": "£4,500",
+    "price": "\u00a34,500",
     "location": "Leeds",
     "categories": [
       "event-planning"
@@ -530,7 +530,7 @@
     "title": "Day-of Coordination",
     "slug": "northern-events-ltd-day-of-coordination",
     "description": "Professional coordination on your wedding day to ensure everything runs smoothly",
-    "price": "£750",
+    "price": "\u00a3750",
     "location": "Leeds",
     "categories": [
       "event-planning"
@@ -545,7 +545,7 @@
     "title": "Full Day Wedding Package",
     "slug": "the-clocktower-full-day-wedding-package",
     "description": "Complete venue hire from 10am-midnight including ceremony space, reception area, and exclusive use of grounds",
-    "price": "£4,500",
+    "price": "\u00a34,500",
     "location": "Liverpool",
     "categories": [
       "venues"
@@ -560,7 +560,7 @@
     "title": "Evening Reception Package",
     "slug": "the-clocktower-evening-reception-package",
     "description": "Evening venue hire from 6pm-midnight, perfect for those having ceremony elsewhere",
-    "price": "£2,200",
+    "price": "\u00a32,200",
     "location": "Liverpool",
     "categories": [
       "venues"
@@ -575,7 +575,7 @@
     "title": "Full Day Coverage",
     "slug": "highland-lens-photography-full-day-coverage",
     "description": "10 hours coverage, online gallery, print rights, and engagement shoot included",
-    "price": "£2,200",
+    "price": "\u00a32,200",
     "location": "Glasgow",
     "categories": [
       "photography"
@@ -590,7 +590,7 @@
     "title": "Half Day Package",
     "slug": "highland-lens-photography-half-day-package",
     "description": "6 hours coverage from preparations to first dance, online gallery included",
-    "price": "£1,400",
+    "price": "\u00a31,400",
     "location": "Glasgow",
     "categories": [
       "photography"
@@ -598,5 +598,23 @@
     "approved": true,
     "featured": false,
     "isFeatured": false
+  },
+  {
+    "id": "pkg_test_unapproved_001",
+    "supplierId": "sup_xmkgxc6kd04f",
+    "title": "Wedding Photography Package",
+    "description": "Full-day wedding photography with two photographers.",
+    "price": "\u00a31,200",
+    "price_display": "\u00a31,200",
+    "image": "",
+    "slug": "wedding-photography-package",
+    "primaryCategoryKey": "photography",
+    "eventTypes": [
+      "wedding"
+    ],
+    "approved": false,
+    "featured": false,
+    "gallery": [],
+    "createdAt": "2026-03-17T00:00:00.000Z"
   }
 ]
