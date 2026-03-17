@@ -521,23 +521,30 @@ function renderPackageFallback(container, items) {
       const truncDesc =
         description.length > 100 ? `${description.substring(0, 100)}...` : description;
       const price = escape(formatPrice(item.price_display || item.price));
-      // Resolve the best available image: prefer item.image, fall back to gallery
-      const resolvedImage = (() => {
-        const placeholder = '/assets/images/placeholders/package-event.svg';
-        if (item.image && item.image !== placeholder) {
-          return item.image;
-        }
-        if (Array.isArray(item.gallery) && item.gallery.length > 0) {
-          for (const img of item.gallery) {
-            const url = typeof img === 'string' ? img : img.url || img.src || img.path || img.image;
-            if (url && url !== placeholder) {
-              return url;
+      // Resolve the best available image via the shared utility when loaded,
+      // otherwise fall back to the same inline strategy for resilience.
+      const resolvedImage = (typeof resolvePackageImage === 'function')
+        ? resolvePackageImage(item)
+        : (() => {
+            const placeholder = '/assets/images/placeholders/package-event.svg';
+            if (item.image && item.image !== placeholder) {
+              return item.image;
             }
-          }
-        }
-        return item.image || null;
-      })();
+            if (Array.isArray(item.gallery) && item.gallery.length > 0) {
+              for (const img of item.gallery) {
+                const url = typeof img === 'string' ? img : img.url || img.src || img.path || img.image;
+                if (url && url !== placeholder) {
+                  return url;
+                }
+              }
+            }
+            return item.image || placeholder;
+          })();
       const imgSrc = sanitizeUrl(resolvedImage);
+      // Emit debug info when debug mode is active (?debugImages=1 or localStorage)
+      if (typeof debugPackageImage === 'function') {
+        debugPackageImage(item, imgSrc);
+      }
       const slug = encodeURIComponent(validateSlug(item.slug, item.id));
 
       return `

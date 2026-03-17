@@ -411,9 +411,31 @@ class PackageList {
       return div.innerHTML;
     };
 
-    // Sanitize image URL before escaping HTML
-    const rawImageUrl = pkg.image || '/assets/images/placeholders/package-event.svg';
+    // Resolve the best available image: prefer pkg.image, fall back to gallery.
+    // Uses resolvePackageImage() from package-image-resolver.js when available,
+    // otherwise applies the same inline strategy for safety.
+    const rawImageUrl = (typeof resolvePackageImage === 'function')
+      ? resolvePackageImage(pkg)
+      : (() => {
+          const placeholder = '/assets/images/placeholders/package-event.svg';
+          if (pkg.image && pkg.image !== placeholder) {
+            return pkg.image;
+          }
+          if (Array.isArray(pkg.gallery) && pkg.gallery.length > 0) {
+            for (const img of pkg.gallery) {
+              const url = typeof img === 'string' ? img : img.url || img.src || img.path || img.image;
+              if (url && url !== placeholder) {
+                return url;
+              }
+            }
+          }
+          return pkg.image || placeholder;
+        })();
     const sanitizedImageUrl = this.sanitizeImageUrl(rawImageUrl);
+    // Emit debug info when debug mode is active (?debugImages=1 or localStorage)
+    if (typeof debugPackageImage === 'function') {
+      debugPackageImage(pkg, sanitizedImageUrl);
+    }
     const imageUrl = escapeHtml(sanitizedImageUrl);
     const title = escapeHtml(pkg.title);
     const description = escapeHtml(pkg.description || '');
