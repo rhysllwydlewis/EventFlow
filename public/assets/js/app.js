@@ -3106,15 +3106,25 @@ async function initDashSupplier() {
           const priceDisplay = String(p.price_display || '');
           const description = String(p.description || '');
           const featured = !!p.featured;
+          const approved = !!p.approved;
+          const slug = String(p.slug || '').replace(/"/g, '&quot;');
+
+          const approvalBadge = approved
+            ? ''
+            : '<span class="badge badge-pending" title="This package is awaiting admin approval before it appears publicly">Awaiting review</span>';
+          const viewBtn = approved && slug
+            ? `<a href="/package?slug=${slug}" target="_blank" class="card-action-btn view-btn">View</a>`
+            : '';
 
           return `<div class="card package-card" data-package-id="${packageId}">
       <img src="${image}" alt="${title} image" onerror="this.src='/assets/images/package-placeholder.svg'; this.onerror=null;">
       <div>
         <h3>${title}</h3>
-        <div class="small"><span class="badge">${priceDisplay}</span> ${featured ? '<span class="badge">Featured</span>' : ''}</div>
+        <div class="small"><span class="badge">${priceDisplay}</span> ${featured ? '<span class="badge">Featured</span>' : ''} ${approvalBadge}</div>
         <p class="small">${description}</p>
         <div class="card-actions">
           <button type="button" class="card-action-btn edit-btn" data-action="edit-package" data-package-id="${packageId}">Edit</button>
+          ${viewBtn}
           <button type="button" class="card-action-btn delete-btn" data-action="delete-package" data-package-id="${packageId}">Delete</button>
         </div>
       </div>
@@ -3187,6 +3197,15 @@ async function initDashSupplier() {
       const profileId = target.getAttribute('data-profile-id');
       if (profileId) {
         deleteProfile(profileId);
+      }
+    }
+
+    // Handle gallery photo delete buttons
+    if (target.matches('.pkg-gallery-delete')) {
+      const photoUrl = target.getAttribute('data-url');
+      const packageId = target.getAttribute('data-package-id');
+      if (photoUrl && packageId) {
+        deletePackagePhoto(packageId, photoUrl, target);
       }
     }
   });
@@ -3358,6 +3377,13 @@ async function initDashSupplier() {
       const path = id ? `/api/me/packages/${encodeURIComponent(id)}` : '/api/me/packages';
       const method = id ? 'PUT' : 'POST';
 
+      const saveBtn = pkgForm.querySelector('button[type="submit"]');
+      const origLabel = saveBtn ? saveBtn.textContent : '';
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+      }
+
       try {
         await api(path, {
           method,
@@ -3367,8 +3393,22 @@ async function initDashSupplier() {
         await loadPackages();
         alert('Saved package.');
         pkgForm.reset();
+        const galleryExisting = document.getElementById('pkg-gallery-existing');
+        if (galleryExisting) {
+          galleryExisting.innerHTML = '';
+          galleryExisting.style.display = 'none';
+        }
+        const galleryRow = document.getElementById('pkg-gallery-row');
+        if (galleryRow) {
+          galleryRow.style.display = 'none';
+        }
       } catch (err) {
         alert(`Error saving package: ${err.message || 'Please try again'}`);
+      } finally {
+        if (saveBtn) {
+          saveBtn.disabled = false;
+          saveBtn.textContent = origLabel;
+        }
       }
     });
   }
@@ -3574,6 +3614,39 @@ function editPackage(packageId) {
         document.getElementById('pkg-event-other').checked = pkg.eventTypes.includes('other');
       }
 
+      // Populate existing gallery photos for editing
+      const galleryExisting = document.getElementById('pkg-gallery-existing');
+      const galleryRow = document.getElementById('pkg-gallery-row');
+      if (galleryExisting) {
+        const galleryPhotos = pkg.gallery || [];
+        const validPhotos = galleryPhotos.filter(item => {
+          const photoUrl = typeof item === 'string' ? item : item.url || '';
+          return !!photoUrl;
+        });
+        if (validPhotos.length > 0) {
+          galleryExisting.innerHTML = validPhotos
+            .map(item => {
+              const photoUrl = typeof item === 'string' ? item : item.url || '';
+              const safeUrl = photoUrl.replace(/"/g, '&quot;');
+              return `<div class="pkg-gallery-item">
+                <img src="${safeUrl}" alt="Gallery photo" style="width:80px;height:80px;object-fit:cover;border-radius:4px;">
+                <button type="button" class="pkg-gallery-delete" data-url="${safeUrl}" data-package-id="${pkg.id}" aria-label="Delete photo" title="Delete photo">✕</button>
+              </div>`;
+            })
+            .join('');
+          galleryExisting.style.display = '';
+          if (galleryRow) {
+            galleryRow.style.display = '';
+          }
+        } else {
+          galleryExisting.innerHTML = '';
+          galleryExisting.style.display = 'none';
+          if (galleryRow) {
+            galleryRow.style.display = 'none';
+          }
+        }
+      }
+
       // Update form heading
       const heading = formSection.querySelector('.supplier-section-header');
       if (heading) {
@@ -3622,6 +3695,56 @@ async function deletePackage(packageId) {
   } catch (e) {
     console.error('Error deleting package:', e);
     alert('Failed to delete package. Please try again.');
+  }
+}
+
+async function deletePackagePhoto(packageId, photoUrl, btnEl) {
+  if (!confirm('Remove this photo from the gallery?')) {
+    return;
+  }
+  const csrfToken = window.__CSRF_TOKEN__ || '';
+  if (btnEl) {
+    btnEl.disabled = true;
+  }
+  try {
+    const response = await fetch(`/api/me/packages/${encodeURIComponent(packageId)}/photos`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken,
+      },
+      credentials: 'include',
+      body: JSON.stringify({ url: photoUrl }),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      alert(`Failed to delete photo: ${err.error || 'Unknown error'}`);
+      if (btnEl) {
+        btnEl.disabled = false;
+      }
+      return;
+    }
+    // Remove the photo item from the gallery UI
+    const item = btnEl ? btnEl.closest('.pkg-gallery-item') : null;
+    if (item) {
+      item.remove();
+    }
+    // Hide gallery container if no photos remain
+    const galleryExisting = document.getElementById('pkg-gallery-existing');
+    if (galleryExisting && !galleryExisting.querySelector('.pkg-gallery-item')) {
+      galleryExisting.innerHTML = '';
+      galleryExisting.style.display = 'none';
+      const galleryRow = document.getElementById('pkg-gallery-row');
+      if (galleryRow) {
+        galleryRow.style.display = 'none';
+      }
+    }
+  } catch (e) {
+    console.error('Error deleting package photo:', e);
+    alert('Failed to delete photo. Please try again.');
+    if (btnEl) {
+      btnEl.disabled = false;
+    }
   }
 }
 
@@ -3814,6 +3937,7 @@ async function deleteProfile(supplierId) {
 window.togglePackageForm = togglePackageForm;
 window.editPackage = editPackage;
 window.deletePackage = deletePackage;
+window.deletePackagePhoto = deletePackagePhoto;
 window.toggleProfileForm = toggleProfileForm;
 window.editProfile = editProfile;
 window.deleteProfile = deleteProfile;

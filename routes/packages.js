@@ -442,6 +442,51 @@ router.post(
 );
 
 /**
+ * DELETE /api/me/packages/:id/photos
+ * Remove a photo from a package gallery by URL
+ */
+router.delete(
+  '/me/packages/:id/photos',
+  applyAuthRequired,
+  applyCsrfProtection,
+  async (req, res) => {
+    const { url } = req.body || {};
+    if (!url) {
+      return res.status(400).json({ error: 'Missing url' });
+    }
+    const pkgs = await dbUnified.read('packages');
+    const p = pkgs.find(x => x.id === req.params.id);
+    if (!p) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+    const suppliers = await dbUnified.read('suppliers');
+    const own = suppliers.find(x => x.id === p.supplierId && x.ownerUserId === req.userId);
+    if (!own) {
+      return res.status(403).json({ error: 'Not owner' });
+    }
+    const gallery = p.gallery || [];
+    const newGallery = gallery.filter(item => {
+      const itemUrl = typeof item === 'string' ? item : item.url || '';
+      return itemUrl !== url;
+    });
+    const updateFields = { gallery: newGallery };
+    if (p.image === url) {
+      const nextPhoto = newGallery.find(item => {
+        const itemUrl = typeof item === 'string' ? item : item.url || '';
+        return !!itemUrl;
+      });
+      updateFields.image = nextPhoto
+        ? typeof nextPhoto === 'string'
+          ? nextPhoto
+          : nextPhoto.url
+        : PLACEHOLDER_PACKAGE_IMAGE || '';
+    }
+    await dbUnified.updateOne('packages', { id: req.params.id }, { $set: updateFields });
+    res.json({ ok: true, gallery: newGallery, image: updateFields.image !== undefined ? updateFields.image : p.image });
+  }
+);
+
+/**
  * GET /api/admin/packages
  * List all packages (admin only)
  */
