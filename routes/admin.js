@@ -8,6 +8,7 @@
 const path = require('path');
 const logger = require('../utils/logger');
 const fs = require('fs');
+const crypto = require('crypto');
 const express = require('express');
 const multer = require('multer');
 const { uid } = require('../store');
@@ -1961,11 +1962,10 @@ function generateUniqueId(prefix) {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return `${prefix}_${crypto.randomUUID()}`;
   }
-  // Fallback for older Node versions
+  // Fallback for older Node versions using cryptographically secure randomBytes
   const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(2, 15);
-  const random2 = Math.random().toString(36).substring(2, 15);
-  return `${prefix}_${timestamp}_${random}${random2}`;
+  const random = crypto.randomBytes(8).toString('hex');
+  return `${prefix}_${timestamp}_${random}`;
 }
 
 /**
@@ -2177,7 +2177,7 @@ const heroImageUpload = multer({
       cb(null, heroImageUploadDir);
     },
     filename: function (req, file, cb) {
-      const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+      const uniqueSuffix = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}`;
       const ext = path.extname(file.originalname);
       cb(null, `hero-${uniqueSuffix}${ext}`);
     },
@@ -2702,7 +2702,7 @@ router.put(
   csrfProtection,
   async (req, res) => {
     const startTime = Date.now();
-    const requestId = `features-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+    const requestId = `features-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
 
     logger.info(`[${requestId}] Starting feature flags update by ${req.user.email}`);
 
@@ -3919,7 +3919,7 @@ const collageUpload = multer({
       cb(null, collageUploadDir);
     },
     filename: function (req, file, cb) {
-      const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+      const uniqueSuffix = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}`;
       const ext = path.extname(file.originalname);
       cb(null, `collage-${uniqueSuffix}${ext}`);
     },

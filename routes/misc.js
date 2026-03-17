@@ -8,6 +8,7 @@
 const express = require('express');
 const validator = require('validator');
 const logger = require('../utils/logger');
+const crypto = require('crypto');
 const { uid } = require('../store');
 const { createChallenge } = require('altcha-lib');
 const router = express.Router();
@@ -322,7 +323,7 @@ router.post('/contact-supplier', applyWriteLimiter, async (req, res) => {
 
     // Persist the enquiry in the database
     const enquiry = {
-      id: `enq_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      id: `enq_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`,
       supplierId,
       supplierName: supplier.name || '',
       senderName: validator.escape(name),

@@ -5,10 +5,11 @@
 
 'use strict';
 
-const { execSync } = require('child_process');
+const { spawnSync } = require('child_process');
 const path = require('path');
 const schedule = require('node-schedule');
 const fs = require('fs');
+const crypto = require('crypto');
 
 class DateManagementService {
   /**
@@ -60,19 +61,26 @@ class DateManagementService {
       }
 
       // Get last commit date for this path
-      // Using -- before path ensures it's treated as a file path, not a git option
-      const command = `git log -1 --format=%cI -- "${filePath}"`;
-      const result = execSync(command, {
+      // Using spawnSync with an args array to prevent shell injection —
+      // no shell is invoked so special characters cannot be interpreted.
+      // The '--' separator ensures filePath is treated as a file path, not a git option.
+      const result = spawnSync('git', ['log', '-1', '--format=%cI', '--', filePath], {
         cwd: repoRoot,
         encoding: 'utf8',
-      }).trim();
+      });
 
-      if (!result) {
+      if (result.error) {
+        throw result.error;
+      }
+
+      const output = (result.stdout || '').trim();
+
+      if (!output) {
         this.logger.warn(`No git history found for: ${filePath}`);
         return null;
       }
 
-      return new Date(result);
+      return new Date(output);
     } catch (error) {
       this.logger.error(`Error getting git commit date for ${filePath}:`, error);
       return null;
@@ -294,7 +302,7 @@ class DateManagementService {
       if (this.dbUnified) {
         try {
           await this.dbUnified.insertOne('audit_logs', {
-            id: `audit_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+            id: `audit_${Date.now()}_${crypto.randomUUID().replace(/-/g, '').substring(0, 11)}`,
             userId,
             action: manual ? 'MANUAL_DATE_UPDATE' : 'AUTO_DATE_UPDATE',
             details: {
@@ -502,7 +510,7 @@ class DateManagementService {
       await Promise.all(
         admins.map(admin =>
           this.dbUnified.insertOne('notifications', {
-            id: `notif_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+            id: `notif_${Date.now()}_${crypto.randomUUID().replace(/-/g, '').substring(0, 11)}`,
             userId: admin.id,
             type: 'system',
             title: 'Legal Document Dates Updated',

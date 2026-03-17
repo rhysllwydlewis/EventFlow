@@ -5,6 +5,7 @@
 
 'use strict';
 const logger = require('./utils/logger');
+const crypto = require('crypto');
 
 const { getCollection } = require('./db');
 
@@ -186,7 +187,7 @@ async function count(collectionName, filter = {}) {
  * @returns {string} Unique identifier
  */
 function uid(prefix = 'id') {
-  const s = Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(2);
+  const s = crypto.randomBytes(8).toString('hex') + Date.now().toString(36);
   return `${prefix}_${s}`;
 }
 

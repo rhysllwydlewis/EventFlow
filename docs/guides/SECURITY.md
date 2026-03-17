@@ -270,6 +270,13 @@ For security issues or vulnerabilities:
 
 ## Version History
 
+- **v1.1** (2026-03-17): Critical security fixes applied
+  - **Fixed (Critical):** `store.js` and `db-utils.js` `uid()` replaced `Math.random()` with `crypto.randomBytes()`. Previously, all entity IDs including password reset tokens, email verification tokens, and guest plan tokens were generated using `Math.random()`, which is not cryptographically secure and could allow an attacker to predict or brute-force token values.
+  - **Fixed (Medium):** `services/dateManagementService.js` replaced `execSync` (shell command string) with `spawnSync` (argument array). The previous implementation invoked a shell to run `git log`, which could be exploited for shell injection if the input validation regex were ever bypassed. Using `spawnSync` with an explicit argument array eliminates shell interpretation entirely.
+  - **Fixed (Medium):** Upload file naming in `routes/admin.js` (hero image and collage upload) replaced `Math.random()` with `crypto.randomBytes()` to prevent guessable file names.
+  - **Fixed (Low):** Various non-security-critical IDs (request IDs, enquiry IDs, history entry IDs, category IDs) updated to use `crypto.randomBytes()` or `crypto.randomUUID()` for consistency.
+  - **Known (Medium):** `details: error.message` is included in 500 responses throughout route handlers. This may disclose internal implementation details (e.g., MongoDB field names, file paths) to clients. Mitigated by the existing `middleware/errorHandler.js` for unhandled errors; future work should guard inline 500 responses behind a `NODE_ENV !== 'production'` check.
+
 - **v1.0** (2024-12-09): Initial security documentation
   - Documented current security measures
   - Identified CSRF protection gap

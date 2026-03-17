@@ -1,6 +1,7 @@
 const fs = require('fs');
 const logger = require('./utils/logger');
 const path = require('path');
+const crypto = require('crypto');
 
 const DATA_DIR = path.join(__dirname, 'data');
 
@@ -131,7 +132,7 @@ function write(name, data) {
 }
 
 function uid(prefix = 'id') {
-  const s = Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(2);
+  const s = crypto.randomBytes(8).toString('hex') + Date.now().toString(36);
   return `${prefix}_${s}`;
 }
 

@@ -519,7 +519,7 @@ router.post(
 
       // Generate unique ID
       const newCategory = {
-        id: `cat_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+        id: uid('cat'),
         name,
         slug,
         description: description || '',
