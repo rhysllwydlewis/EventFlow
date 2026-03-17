@@ -85,7 +85,12 @@ router.get('/', authRequired, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching referrals:', error);
-    res.status(500).json({ error: 'Failed to fetch referrals', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to fetch referrals',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -168,7 +173,12 @@ router.patch('/:id/activate', writeLimiter, authRequired, csrfProtection, async 
     res.json({ success: true, message: 'Referral activated' });
   } catch (error) {
     logger.error('Error activating referral:', error);
-    res.status(500).json({ error: 'Failed to activate referral', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to activate referral',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -222,7 +232,12 @@ router.get('/stats', authRequired, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching referral stats:', error);
-    res.status(500).json({ error: 'Failed to fetch referral stats', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to fetch referral stats',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 

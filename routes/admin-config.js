@@ -440,7 +440,10 @@ router.post(
       // Generic error fallback
       res.status(500).json({
         error: 'Failed to upload image',
-        details: error.message || 'An unexpected error occurred',
+        details:
+          process.env.NODE_ENV !== 'production'
+            ? error.message || 'An unexpected error occurred'
+            : undefined,
       });
     }
   }
@@ -488,7 +491,12 @@ router.delete(
       });
     } catch (error) {
       logger.error('Error removing category hero image:', error);
-      res.status(500).json({ error: 'Failed to remove image', details: error.message });
+      res
+        .status(500)
+        .json({
+          error: 'Failed to remove image',
+          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+        });
     }
   }
 );
@@ -519,7 +527,7 @@ router.post(
 
       // Generate unique ID
       const newCategory = {
-        id: `cat_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+        id: uid('cat'),
         name,
         slug,
         description: description || '',
@@ -538,7 +546,12 @@ router.post(
       });
     } catch (error) {
       logger.error('Error creating category:', error);
-      res.status(500).json({ error: 'Failed to create category', details: error.message });
+      res
+        .status(500)
+        .json({
+          error: 'Failed to create category',
+          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+        });
     }
   }
 );
@@ -597,7 +610,12 @@ router.put(
       });
     } catch (error) {
       logger.error('Error reordering categories:', error);
-      res.status(500).json({ error: 'Failed to reorder categories', details: error.message });
+      res
+        .status(500)
+        .json({
+          error: 'Failed to reorder categories',
+          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+        });
     }
   }
 );
@@ -663,7 +681,12 @@ router.put(
       });
     } catch (error) {
       logger.error('Error updating category:', error);
-      res.status(500).json({ error: 'Failed to update category', details: error.message });
+      res
+        .status(500)
+        .json({
+          error: 'Failed to update category',
+          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+        });
     }
   }
 );
@@ -697,7 +720,12 @@ router.delete(
       });
     } catch (error) {
       logger.error('Error deleting category:', error);
-      res.status(500).json({ error: 'Failed to delete category', details: error.message });
+      res
+        .status(500)
+        .json({
+          error: 'Failed to delete category',
+          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+        });
     }
   }
 );
@@ -735,7 +763,12 @@ router.put(
       });
     } catch (error) {
       logger.error('Error toggling category visibility:', error);
-      res.status(500).json({ error: 'Failed to toggle visibility', details: error.message });
+      res
+        .status(500)
+        .json({
+          error: 'Failed to toggle visibility',
+          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+        });
     }
   }
 );

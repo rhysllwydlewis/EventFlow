@@ -33,7 +33,12 @@ router.get('/', authRequired, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching plans:', error);
-    res.status(500).json({ error: 'Failed to fetch plans', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to fetch plans',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -55,7 +60,12 @@ router.get('/:id', authRequired, async (req, res) => {
     res.json({ plan });
   } catch (error) {
     logger.error('Error fetching plan:', error);
-    res.status(500).json({ error: 'Failed to fetch plan', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to fetch plan',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -164,7 +174,12 @@ router.post('/', authRequired, csrfProtection, writeLimiter, async (req, res) =>
     });
   } catch (error) {
     logger.error('Error creating plan:', error);
-    res.status(500).json({ error: 'Failed to create plan', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to create plan',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -233,7 +248,12 @@ router.patch('/:id', authRequired, csrfProtection, writeLimiter, async (req, res
     });
   } catch (error) {
     logger.error('Error updating plan:', error);
-    res.status(500).json({ error: 'Failed to update plan', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to update plan',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -260,7 +280,12 @@ router.delete('/:id', authRequired, csrfProtection, writeLimiter, async (req, re
     });
   } catch (error) {
     logger.error('Error deleting plan:', error);
-    res.status(500).json({ error: 'Failed to delete plan', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to delete plan',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -292,7 +317,12 @@ router.get('/:planId/budget', authRequired, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching budget:', error);
-    res.status(500).json({ error: 'Failed to fetch budget', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to fetch budget',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -448,7 +478,12 @@ router.get('/:id/export', authRequired, async (req, res) => {
     logger.error('Error exporting plan to PDF:', error);
     // If headers not sent yet, send error response
     if (!res.headersSent) {
-      res.status(500).json({ error: 'Failed to export PDF', details: error.message });
+      res
+        .status(500)
+        .json({
+          error: 'Failed to export PDF',
+          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+        });
     }
   }
 });
@@ -504,7 +539,12 @@ router.post('/:planId/budget', authRequired, csrfProtection, writeLimiter, async
     });
   } catch (error) {
     logger.error('Error saving budget:', error);
-    res.status(500).json({ error: 'Failed to save budget', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to save budget',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 

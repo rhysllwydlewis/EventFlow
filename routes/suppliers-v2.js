@@ -139,7 +139,12 @@ router.get('/:id/photos', applyAuthRequired, async (req, res) => {
     });
   } catch (error) {
     logger.error('List photos error:', error);
-    res.status(500).json({ error: 'Failed to list photos', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to list photos',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -239,7 +244,12 @@ router.delete('/:id/photos/:photoId', applyAuthRequired, applyCsrfProtection, as
     });
   } catch (error) {
     logger.error('Delete photo error:', error);
-    res.status(500).json({ error: 'Failed to delete photo', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to delete photo',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 

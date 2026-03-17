@@ -355,7 +355,12 @@ router.post('/lead-score', authRequired, csrfProtection, async (req, res) => {
     });
   } catch (error) {
     logger.error('Lead scoring error:', error);
-    res.status(500).json({ error: 'Failed to calculate lead score', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to calculate lead score',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 

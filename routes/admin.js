@@ -8,6 +8,7 @@
 const path = require('path');
 const logger = require('../utils/logger');
 const fs = require('fs');
+const crypto = require('crypto');
 const express = require('express');
 const multer = require('multer');
 const { uid } = require('../store');
@@ -1574,7 +1575,12 @@ router.get('/photos/pending', authRequired, roleRequired('admin'), async (req, r
     res.json({ success: true, count: pendingPhotos.length, photos: pendingPhotos });
   } catch (error) {
     logger.error('Error fetching pending photos:', error);
-    res.status(500).json({ error: 'Failed to fetch pending photos', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to fetch pending photos',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -1652,7 +1658,12 @@ router.post(
       res.json({ success: true, message: 'Photo approved successfully', photo });
     } catch (error) {
       logger.error('Error approving photo:', error);
-      res.status(500).json({ error: 'Failed to approve photo', details: error.message });
+      res
+        .status(500)
+        .json({
+          error: 'Failed to approve photo',
+          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+        });
     }
   }
 );
@@ -1710,7 +1721,12 @@ router.post(
       res.json({ success: true, message: 'Photo rejected successfully', photo });
     } catch (error) {
       logger.error('Error rejecting photo:', error);
-      res.status(500).json({ error: 'Failed to reject photo', details: error.message });
+      res
+        .status(500)
+        .json({
+          error: 'Failed to reject photo',
+          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+        });
     }
   }
 );
@@ -1813,7 +1829,10 @@ router.post(
       logger.error('Error in batch photo action:', error);
       res
         .status(500)
-        .json({ error: 'Failed to process batch photo action', details: error.message });
+        .json({
+          error: 'Failed to process batch photo action',
+          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+        });
     }
   }
 );
@@ -1944,7 +1963,12 @@ router.post(
       });
     } catch (error) {
       logger.error('Error generating smart tags:', error);
-      res.status(500).json({ error: 'Failed to generate smart tags', details: error.message });
+      res
+        .status(500)
+        .json({
+          error: 'Failed to generate smart tags',
+          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+        });
     }
   }
 );
@@ -1961,11 +1985,10 @@ function generateUniqueId(prefix) {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return `${prefix}_${crypto.randomUUID()}`;
   }
-  // Fallback for older Node versions
+  // Fallback for older Node versions using cryptographically secure randomBytes
   const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(2, 15);
-  const random2 = Math.random().toString(36).substring(2, 15);
-  return `${prefix}_${timestamp}_${random}${random2}`;
+  const random = crypto.randomBytes(8).toString('hex');
+  return `${prefix}_${timestamp}_${random}`;
 }
 
 /**
@@ -2177,7 +2200,7 @@ const heroImageUpload = multer({
       cb(null, heroImageUploadDir);
     },
     filename: function (req, file, cb) {
-      const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+      const uniqueSuffix = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}`;
       const ext = path.extname(file.originalname);
       cb(null, `hero-${uniqueSuffix}${ext}`);
     },
@@ -2702,7 +2725,7 @@ router.put(
   csrfProtection,
   async (req, res) => {
     const startTime = Date.now();
-    const requestId = `features-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+    const requestId = `features-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
 
     logger.info(`[${requestId}] Starting feature flags update by ${req.user.email}`);
 
@@ -3919,7 +3942,7 @@ const collageUpload = multer({
       cb(null, collageUploadDir);
     },
     filename: function (req, file, cb) {
-      const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+      const uniqueSuffix = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}`;
       const ext = path.extname(file.originalname);
       cb(null, `collage-${uniqueSuffix}${ext}`);
     },
@@ -4644,7 +4667,7 @@ router.get('/public/pexels-collage', async (req, res) => {
       error: 'Failed to fetch Pexels images',
       message: error.userFriendlyMessage || error.message,
       errorType: error.type || 'unknown',
-      details: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
     });
   }
 });
@@ -4814,7 +4837,7 @@ router.get('/public/pexels-video', async (req, res) => {
       error: 'Failed to fetch Pexels videos',
       message: error.userFriendlyMessage || error.message,
       errorType: error.type || 'unknown',
-      details: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
     });
   }
 });
@@ -4926,7 +4949,7 @@ router.put(
         return res.status(500).json({
           error: 'Configuration updated but cache clearing failed',
           message: 'Changes may not be visible until server restart. Please contact administrator.',
-          details: err.message,
+          details: process.env.NODE_ENV !== 'production' ? err.message : undefined,
         });
       }
 
@@ -5037,7 +5060,12 @@ router.get('/audit/export', authRequired, roleRequired('admin'), async (req, res
     }
   } catch (error) {
     logger.error('Error exporting audit logs:', error);
-    res.status(500).json({ error: 'Failed to export audit logs', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to export audit logs',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -5128,7 +5156,12 @@ router.post(
       });
     } catch (error) {
       logger.error('Error creating backup:', error);
-      res.status(500).json({ error: 'Failed to create backup', details: error.message });
+      res
+        .status(500)
+        .json({
+          error: 'Failed to create backup',
+          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+        });
     }
   }
 );
@@ -5162,7 +5195,12 @@ router.get('/backup/list', authRequired, roleRequired('admin'), writeLimiter, as
     res.json({ backups: files });
   } catch (error) {
     logger.error('Error listing backups:', error);
-    res.status(500).json({ error: 'Failed to list backups', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to list backups',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -5228,7 +5266,12 @@ router.post(
       });
     } catch (error) {
       logger.error('Error restoring backup:', error);
-      res.status(500).json({ error: 'Failed to restore backup', details: error.message });
+      res
+        .status(500)
+        .json({
+          error: 'Failed to restore backup',
+          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+        });
     }
   }
 );
@@ -5291,7 +5334,12 @@ router.post(
       });
     } catch (error) {
       logger.error('Error duplicating package:', error);
-      res.status(500).json({ error: 'Failed to duplicate package', details: error.message });
+      res
+        .status(500)
+        .json({
+          error: 'Failed to duplicate package',
+          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+        });
     }
   }
 );
@@ -5348,7 +5396,7 @@ router.get('/pexels/test', authRequired, roleRequired('admin'), async (req, res)
     res.status(500).json({
       success: false,
       error: 'Failed to test Pexels API',
-      details: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
     });
   }
 });
@@ -5416,7 +5464,12 @@ router.get('/analytics/competitors', authRequired, roleRequired('admin'), async 
     });
   } catch (error) {
     logger.error('Error analyzing competitors:', error);
-    res.status(500).json({ error: 'Failed to analyze competitors', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to analyze competitors',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 

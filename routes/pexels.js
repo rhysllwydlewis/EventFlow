@@ -72,7 +72,7 @@ router.get('/search', authRequired, roleRequired(['admin', 'supplier']), async (
       error: 'Failed to search photos',
       message: error.userFriendlyMessage || error.message,
       errorType: error.type || 'unknown',
-      details: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
     });
   }
 });
@@ -109,7 +109,7 @@ router.get('/curated', authRequired, roleRequired(['admin', 'supplier']), async 
       error: 'Failed to fetch curated photos',
       message: error.userFriendlyMessage || error.message,
       errorType: error.type || 'unknown',
-      details: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
     });
   }
 });
@@ -152,7 +152,7 @@ router.get('/photo/:id', authRequired, roleRequired('admin'), async (req, res) =
       error: 'Failed to fetch photo',
       message: error.userFriendlyMessage || error.message,
       errorType: error.type || 'unknown',
-      details: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
     });
   }
 });
@@ -324,7 +324,7 @@ router.get('/videos/search', authRequired, roleRequired('admin'), async (req, re
       error: 'Failed to search videos',
       message: error.userFriendlyMessage || error.message,
       errorType: error.type || 'unknown',
-      details: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
     });
   }
 });
@@ -362,7 +362,7 @@ router.get('/videos/popular', authRequired, roleRequired('admin'), async (req, r
       error: 'Failed to fetch popular videos',
       message: error.userFriendlyMessage || error.message,
       errorType: error.type || 'unknown',
-      details: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
     });
   }
 });
@@ -406,7 +406,7 @@ router.get('/videos/:id', authRequired, roleRequired('admin'), async (req, res) 
       error: 'Failed to fetch video',
       message: error.userFriendlyMessage || error.message,
       errorType: error.type || 'unknown',
-      details: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
     });
   }
 });
@@ -444,7 +444,7 @@ router.get('/collections/featured', authRequired, roleRequired('admin'), async (
       error: 'Failed to fetch featured collections',
       message: error.userFriendlyMessage || error.message,
       errorType: error.type || 'unknown',
-      details: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
     });
   }
 });
@@ -482,7 +482,7 @@ router.get('/collections', authRequired, roleRequired('admin'), async (req, res)
       error: 'Failed to fetch user collections',
       message: error.userFriendlyMessage || error.message,
       errorType: error.type || 'unknown',
-      details: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
     });
   }
 });
@@ -521,7 +521,7 @@ router.get('/collections/:id', authRequired, roleRequired('admin'), async (req, 
       error: 'Failed to fetch collection media',
       message: error.userFriendlyMessage || error.message,
       errorType: error.type || 'unknown',
-      details: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
     });
   }
 });
@@ -560,7 +560,7 @@ router.get('/collection/:id/media', authRequired, roleRequired('admin'), async (
       error: 'Failed to fetch collection media',
       message: error.userFriendlyMessage || error.message,
       errorType: error.type || 'unknown',
-      details: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
     });
   }
 });

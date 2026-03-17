@@ -8,6 +8,7 @@
 const express = require('express');
 const validator = require('validator');
 const logger = require('../utils/logger');
+const crypto = require('crypto');
 const { uid } = require('../store');
 const { createChallenge } = require('altcha-lib');
 const router = express.Router();
@@ -169,7 +170,7 @@ router.get('/venues/near', async (req, res) => {
     logger.error('Venue proximity search error:', error);
     res.status(500).json({
       error: 'Failed to search venues',
-      details: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
     });
   }
 });
@@ -322,7 +323,7 @@ router.post('/contact-supplier', applyWriteLimiter, async (req, res) => {
 
     // Persist the enquiry in the database
     const enquiry = {
-      id: `enq_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      id: `enq_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`,
       supplierId,
       supplierName: supplier.name || '',
       senderName: validator.escape(name),

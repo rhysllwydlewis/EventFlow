@@ -246,3 +246,62 @@ describe('HTML Inline Event Handler Regression', () => {
     expect(violations).toEqual([]);
   });
 });
+
+// ─── D) Error detail disclosure regression ────────────────────────────────────
+
+describe('Error Detail Disclosure Regression', () => {
+  const routesDir = path.join(__dirname, '../../routes');
+
+  it('no route file exposes error.message in details without a NODE_ENV guard', () => {
+    const violations = [];
+    const files = fs.readdirSync(routesDir).filter(f => f.endsWith('.js'));
+
+    for (const file of files) {
+      const content = fs.readFileSync(path.join(routesDir, file), 'utf8');
+      // Find any line with `details: error.message` or `details: err.message`
+      // that is NOT guarded by a NODE_ENV check on the same line.
+      const lines = content.split('\n');
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (/details:\s*(error|err)\.message/.test(line) && !/NODE_ENV/.test(line)) {
+          violations.push(`${file}:${i + 1}: ${line.trim()}`);
+        }
+      }
+    }
+
+    if (violations.length > 0) {
+      console.error(`Unguarded error detail disclosures found:\n${violations.join('\n')}`);
+    }
+    expect(violations).toEqual([]);
+  });
+
+  it('route files use process.env.NODE_ENV !== production guard for error details', () => {
+    const routeFiles = fs.readdirSync(routesDir).filter(f => f.endsWith('.js'));
+    // Collect all guarded patterns — they must use the correct operator
+    const incorrectGuards = [];
+
+    for (const file of routeFiles) {
+      const content = fs.readFileSync(path.join(routesDir, file), 'utf8');
+      const lines = content.split('\n');
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        // Look for lines that have error.message with NODE_ENV but use === production (should be !==)
+        if (
+          /details:.*NODE_ENV\s*===\s*['"]production['"].*error\.message/.test(line) ||
+          /details:.*NODE_ENV\s*===\s*['"]production['"].*err\.message/.test(line)
+        ) {
+          incorrectGuards.push(`${file}:${i + 1}: ${line.trim()}`);
+        }
+      }
+    }
+
+    if (incorrectGuards.length > 0) {
+      console.error(
+        `Incorrectly guarded error detail disclosures (shows details ONLY in production):\n${incorrectGuards.join(
+          '\n'
+        )}`
+      );
+    }
+    expect(incorrectGuards).toEqual([]);
+  });
+});

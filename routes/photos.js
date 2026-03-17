@@ -115,7 +115,7 @@ function applyPhotoUploadFields(fields) {
         if (err.message && err.message.includes('Invalid file type')) {
           return res.status(415).json({
             error: 'Unsupported file type',
-            details: err.message,
+            details: process.env.NODE_ENV !== 'production' ? err.message : undefined,
             errorType: 'UnsupportedMediaType',
             allowedTypes: [
               'image/jpeg',
@@ -155,7 +155,7 @@ function applyPhotoUploadFields(fields) {
 
         return res.status(400).json({
           error: 'File upload error',
-          details: err.message,
+          details: process.env.NODE_ENV !== 'production' ? err.message : undefined,
           errorType: 'MulterError',
         });
       }
@@ -548,7 +548,7 @@ router.post(
 
       res.status(statusCode).json({
         error: userMessage,
-        details: error.message,
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
         errorType: errorType,
       });
     }
@@ -861,7 +861,7 @@ router.post(
 
       res.status(statusCode).json({
         error: userMessage,
-        details: error.message,
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
         errorType: errorType,
       });
     }
@@ -935,7 +935,12 @@ router.delete('/photos/delete', applyAuthRequired, applyCsrfProtection, async (r
     res.json({ success: true, message: 'Photo deleted successfully' });
   } catch (error) {
     logger.error('Delete photo error:', error);
-    res.status(500).json({ error: 'Failed to delete photo', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to delete photo',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -983,7 +988,12 @@ router.post('/photos/crop', applyAuthRequired, applyCsrfProtection, async (req, 
     });
   } catch (error) {
     logger.error('Crop image error:', error);
-    res.status(500).json({ error: 'Failed to crop image', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to crop image',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -1030,7 +1040,12 @@ router.put('/photos/:id', applyAuthRequired, applyCsrfProtection, async (req, re
     });
   } catch (error) {
     logger.error('Update photo metadata error:', error);
-    res.status(500).json({ error: 'Failed to update photo metadata', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to update photo metadata',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -1065,7 +1080,12 @@ router.post(
       });
     } catch (error) {
       logger.error('Replace photo error:', error);
-      res.status(500).json({ error: 'Failed to replace photo', details: error.message });
+      res
+        .status(500)
+        .json({
+          error: 'Failed to replace photo',
+          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+        });
     }
   }
 );
@@ -1094,7 +1114,12 @@ router.post('/photos/bulk-edit', applyAuthRequired, applyCsrfProtection, async (
     });
   } catch (error) {
     logger.error('Bulk edit photos error:', error);
-    res.status(500).json({ error: 'Failed to bulk edit photos', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to bulk edit photos',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -1125,7 +1150,12 @@ router.post('/photos/:id/filters', applyAuthRequired, applyCsrfProtection, async
     });
   } catch (error) {
     logger.error('Apply filters error:', error);
-    res.status(500).json({ error: 'Failed to apply filters', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to apply filters',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -1150,7 +1180,12 @@ router.post('/photos/reorder', applyAuthRequired, applyCsrfProtection, async (re
     });
   } catch (error) {
     logger.error('Reorder photos error:', error);
-    res.status(500).json({ error: 'Failed to reorder photos', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to reorder photos',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -1211,7 +1246,12 @@ router.get('/admin/photos', applyAuthRequired, applyRoleRequired('admin'), async
     });
   } catch (error) {
     logger.error('Error fetching supplier photos:', error);
-    res.status(500).json({ error: 'Failed to fetch photos', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to fetch photos',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 

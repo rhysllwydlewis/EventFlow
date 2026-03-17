@@ -53,7 +53,12 @@ router.get('/', authRequired, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching saved items:', error);
-    res.status(500).json({ error: 'Failed to fetch saved items', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to fetch saved items',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -117,7 +122,12 @@ router.post('/', writeLimiter, authRequired, csrfProtection, async (req, res) =>
     });
   } catch (error) {
     logger.error('Error saving item:', error);
-    res.status(500).json({ error: 'Failed to save item', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to save item',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -170,7 +180,12 @@ router.delete('/by-item', writeLimiter, authRequired, csrfProtection, async (req
     });
   } catch (error) {
     logger.error('Error removing saved item by item:', error);
-    res.status(500).json({ error: 'Failed to remove saved item', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to remove saved item',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -199,7 +214,12 @@ router.delete('/:id', writeLimiter, authRequired, csrfProtection, async (req, re
     });
   } catch (error) {
     logger.error('Error removing saved item:', error);
-    res.status(500).json({ error: 'Failed to remove saved item', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to remove saved item',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 

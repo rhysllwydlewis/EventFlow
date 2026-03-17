@@ -65,7 +65,12 @@ router.get('/suppliers', searchLimiter, async (req, res) => {
     });
   } catch (error) {
     logger.error('Search error:', error);
-    res.status(500).json({ error: 'Search failed', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Search failed',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -85,7 +90,12 @@ router.get('/history', searchLimiter, applyAuthRequired, async (req, res) => {
     });
   } catch (error) {
     logger.error('Get search history error:', error);
-    res.status(500).json({ error: 'Failed to get search history', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to get search history',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -104,7 +114,12 @@ router.get('/categories', async (req, res) => {
     });
   } catch (error) {
     logger.error('Get categories error:', error);
-    res.status(500).json({ error: 'Failed to get categories', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to get categories',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -123,7 +138,12 @@ router.get('/amenities', async (req, res) => {
     });
   } catch (error) {
     logger.error('Get amenities error:', error);
-    res.status(500).json({ error: 'Failed to get amenities', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to get amenities',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 

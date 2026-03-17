@@ -1952,7 +1952,12 @@ router.patch(
       });
     } catch (error) {
       logger.error('Error updating seasonal tags:', error);
-      res.status(500).json({ error: 'Failed to update seasonal tags', details: error.message });
+      res
+        .status(500)
+        .json({
+          error: 'Failed to update seasonal tags',
+          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+        });
     }
   }
 );
@@ -2232,7 +2237,12 @@ router.get('/users/segments', authRequired, roleRequired('admin'), async (req, r
     });
   } catch (error) {
     logger.error('Error generating user segments:', error);
-    res.status(500).json({ error: 'Failed to generate user segments', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to generate user segments',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -2910,7 +2920,12 @@ router.post(
       });
     } catch (error) {
       logger.error('Error starting impersonation:', error);
-      res.status(500).json({ error: 'Failed to start impersonation', details: error.message });
+      res
+        .status(500)
+        .json({
+          error: 'Failed to start impersonation',
+          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+        });
     }
   }
 );
@@ -2971,7 +2986,12 @@ router.post('/users/stop-impersonate', authRequired, csrfProtection, async (req,
     });
   } catch (error) {
     logger.error('Error stopping impersonation:', error);
-    res.status(500).json({ error: 'Failed to stop impersonation', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to stop impersonation',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 

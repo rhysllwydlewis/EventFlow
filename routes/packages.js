@@ -681,7 +681,10 @@ router.post(
       // Generic error fallback
       res.status(500).json({
         error: 'Failed to upload image',
-        details: error.message || 'An unexpected error occurred',
+        details:
+          process.env.NODE_ENV !== 'production'
+            ? error.message || 'An unexpected error occurred'
+            : undefined,
       });
     }
   }

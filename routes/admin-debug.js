@@ -256,7 +256,7 @@ router.post(
       logger.error('Email test failed:', error);
       res.status(500).json({
         error: 'Email send failed',
-        details: error.message,
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
       });
     }
   }

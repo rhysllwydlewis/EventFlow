@@ -86,7 +86,12 @@ router.post('/trial/activate', authRequired, csrfProtection, async (req, res) =>
     });
   } catch (error) {
     logger.error('Error activating trial:', error);
-    res.status(500).json({ error: 'Failed to activate trial', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to activate trial',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -126,7 +131,12 @@ router.get('/analytics', authRequired, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching analytics:', error);
-    res.status(500).json({ error: 'Failed to fetch analytics', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to fetch analytics',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -243,7 +253,12 @@ router.get('/analytics/legacy', authRequired, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching analytics:', error);
-    res.status(500).json({ error: 'Failed to fetch analytics', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to fetch analytics',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -298,7 +313,12 @@ router.get('/invoices', authRequired, async (req, res) => {
     res.json({ invoices: formattedInvoices });
   } catch (error) {
     logger.error('Error fetching invoices:', error);
-    res.status(500).json({ error: 'Failed to fetch invoices', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to fetch invoices',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -342,7 +362,12 @@ router.get('/invoices/:id/download', authRequired, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching invoice download:', error);
-    res.status(500).json({ error: 'Failed to fetch invoice', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to fetch invoice',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -419,7 +444,12 @@ router.get('/enquiries/export', authRequired, async (req, res) => {
     res.send(csv);
   } catch (error) {
     logger.error('Error exporting enquiries:', error);
-    res.status(500).json({ error: 'Failed to export enquiries', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to export enquiries',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -497,7 +527,12 @@ router.get('/lead-quality', authRequired, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching lead quality:', error);
-    res.status(500).json({ error: 'Failed to fetch lead quality', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to fetch lead quality',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -556,7 +591,12 @@ router.get('/reviews/stats', authRequired, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching review stats:', error);
-    res.status(500).json({ error: 'Failed to fetch review stats', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to fetch review stats',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 

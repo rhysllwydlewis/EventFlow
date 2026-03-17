@@ -59,7 +59,12 @@ router.get('/:planId/guests', authRequired, verifyPlanOwnership, async (req, res
     });
   } catch (error) {
     logger.error('Error fetching guests:', error);
-    res.status(500).json({ error: 'Failed to fetch guests', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to fetch guests',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -119,7 +124,12 @@ router.post(
       });
     } catch (error) {
       logger.error('Error adding guest:', error);
-      res.status(500).json({ error: 'Failed to add guest', details: error.message });
+      res
+        .status(500)
+        .json({
+          error: 'Failed to add guest',
+          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+        });
     }
   }
 );
@@ -195,7 +205,12 @@ router.patch(
       });
     } catch (error) {
       logger.error('Error updating guest:', error);
-      res.status(500).json({ error: 'Failed to update guest', details: error.message });
+      res
+        .status(500)
+        .json({
+          error: 'Failed to update guest',
+          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+        });
     }
   }
 );
@@ -245,7 +260,12 @@ router.delete(
       });
     } catch (error) {
       logger.error('Error deleting guest:', error);
-      res.status(500).json({ error: 'Failed to delete guest', details: error.message });
+      res
+        .status(500)
+        .json({
+          error: 'Failed to delete guest',
+          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+        });
     }
   }
 );

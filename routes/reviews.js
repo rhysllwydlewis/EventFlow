@@ -244,7 +244,12 @@ router.get('/suppliers/:supplierId/reviews', async (req, res) => {
     });
   } catch (error) {
     logger.error('Get reviews error:', error);
-    res.status(500).json({ error: 'Failed to get reviews', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to get reviews',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -270,7 +275,12 @@ router.get('/reviews/supplier/:supplierId', async (req, res) => {
     });
   } catch (error) {
     logger.error('Get reviews error:', error);
-    res.status(500).json({ error: 'Failed to get reviews', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to get reviews',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -289,7 +299,12 @@ router.get('/reviews/supplier/:supplierId/distribution', async (req, res) => {
     });
   } catch (error) {
     logger.error('Get rating distribution error:', error);
-    res.status(500).json({ error: 'Failed to get rating distribution', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to get rating distribution',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -431,7 +446,12 @@ router.get(
       });
     } catch (error) {
       logger.error('Get supplier dashboard reviews error:', error);
-      res.status(500).json({ error: 'Failed to get dashboard data', details: error.message });
+      res
+        .status(500)
+        .json({
+          error: 'Failed to get dashboard data',
+          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+        });
     }
   }
 );
@@ -462,7 +482,12 @@ router.get('/admin/reviews', applyAuthRequired, applyRoleRequired('admin'), asyn
     });
   } catch (error) {
     logger.error('Get admin reviews error:', error);
-    res.status(500).json({ error: 'Failed to get reviews', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to get reviews',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -485,7 +510,12 @@ router.get(
       });
     } catch (error) {
       logger.error('Get flagged reviews error:', error);
-      res.status(500).json({ error: 'Failed to get flagged reviews', details: error.message });
+      res
+        .status(500)
+        .json({
+          error: 'Failed to get flagged reviews',
+          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+        });
     }
   }
 );
@@ -509,7 +539,12 @@ router.get(
       });
     } catch (error) {
       logger.error('Get pending reviews error:', error);
-      res.status(500).json({ error: 'Failed to get pending reviews', details: error.message });
+      res
+        .status(500)
+        .json({
+          error: 'Failed to get pending reviews',
+          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+        });
     }
   }
 );

@@ -98,7 +98,7 @@ router.get('/supplier/:id', async (req, res) => {
     logger.error('Get supplier reviews error:', error);
     res.status(500).json({
       error: 'Failed to get reviews',
-      details: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
     });
   }
 });
@@ -152,7 +152,7 @@ router.put('/:id', writeLimiter, authRequired, csrfProtection, async (req, res) 
     logger.error('Update review error:', error);
     res.status(500).json({
       error: 'Failed to update review',
-      details: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
     });
   }
 });
@@ -188,7 +188,7 @@ router.delete('/:id', writeLimiter, authRequired, csrfProtection, async (req, re
     logger.error('Delete review error:', error);
     res.status(500).json({
       error: 'Failed to delete review',
-      details: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
     });
   }
 });
@@ -345,7 +345,7 @@ router.put(
       logger.error('Update response error:', error);
       res.status(500).json({
         error: 'Failed to update response',
-        details: error.message,
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
       });
     }
   }
@@ -384,7 +384,7 @@ router.get(
       logger.error('Get moderation queue error:', error);
       res.status(500).json({
         error: 'Failed to get moderation queue',
-        details: error.message,
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
       });
     }
   }
@@ -522,7 +522,7 @@ router.get(
       logger.error('Get moderation stats error:', error);
       res.status(500).json({
         error: 'Failed to get moderation statistics',
-        details: error.message,
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
       });
     }
   }
@@ -595,7 +595,7 @@ router.get('/disputes', authRequired, reviewModeration.canModerateReviews, async
     logger.error('Get disputes error:', error);
     res.status(500).json({
       error: 'Failed to get disputes',
-      details: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
     });
   }
 });
@@ -667,7 +667,7 @@ router.get('/supplier/:id/analytics', async (req, res) => {
     logger.error('Get supplier analytics error:', error);
     res.status(500).json({
       error: 'Failed to get analytics',
-      details: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
     });
   }
 });
@@ -692,7 +692,7 @@ router.get('/analytics/trends', async (req, res) => {
     logger.error('Get platform analytics error:', error);
     res.status(500).json({
       error: 'Failed to get analytics',
-      details: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
     });
   }
 });
@@ -734,7 +734,7 @@ router.get('/analytics/sentiment', async (req, res) => {
     logger.error('Get sentiment analytics error:', error);
     res.status(500).json({
       error: 'Failed to get sentiment analytics',
-      details: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
     });
   }
 });
@@ -765,7 +765,7 @@ router.get('/analytics/distribution', async (req, res) => {
     logger.error('Get distribution analytics error:', error);
     res.status(500).json({
       error: 'Failed to get distribution analytics',
-      details: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
     });
   }
 });
@@ -798,7 +798,7 @@ router.get('/bookings/:bookingId/eligible', authRequired, async (req, res) => {
     logger.error('Check eligibility error:', error);
     res.status(500).json({
       error: 'Failed to check eligibility',
-      details: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
     });
   }
 });
@@ -822,7 +822,7 @@ router.get('/verified-count/:supplierId', async (req, res) => {
     logger.error('Get verified count error:', error);
     res.status(500).json({
       error: 'Failed to get verified count',
-      details: error.message,
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
     });
   }
 });

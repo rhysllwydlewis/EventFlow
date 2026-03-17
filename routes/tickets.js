@@ -243,7 +243,12 @@ router.post(
       res.status(201).json({ ticketId: newTicket.id, ticket: newTicket });
     } catch (error) {
       logger.error('Error creating ticket:', error);
-      res.status(500).json({ error: 'Failed to create ticket', details: error.message });
+      res
+        .status(500)
+        .json({
+          error: 'Failed to create ticket',
+          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+        });
     }
   }
 );
@@ -331,7 +336,12 @@ router.get('/', authRequired, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching tickets:', error);
-    res.status(500).json({ error: 'Failed to fetch tickets', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to fetch tickets',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -360,7 +370,12 @@ router.get('/:id', authRequired, async (req, res) => {
     res.json({ ticket });
   } catch (error) {
     logger.error('Error fetching ticket:', error);
-    res.status(500).json({ error: 'Failed to fetch ticket', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to fetch ticket',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -473,7 +488,12 @@ router.put('/:id', authRequired, csrfProtection, writeLimiter, async (req, res) 
     res.json({ ticket });
   } catch (error) {
     logger.error('Error updating ticket:', error);
-    res.status(500).json({ error: 'Failed to update ticket', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to update ticket',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -516,7 +536,12 @@ router.delete('/:id', authRequired, csrfProtection, writeLimiter, async (req, re
     res.json({ success: true });
   } catch (error) {
     logger.error('Error deleting ticket:', error);
-    res.status(500).json({ error: 'Failed to delete ticket', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to delete ticket',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -667,7 +692,12 @@ router.post('/:id/reply', authRequired, csrfProtection, writeLimiter, async (req
     });
   } catch (error) {
     logger.error('Error adding ticket reply:', error);
-    res.status(500).json({ error: 'Failed to add reply', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to add reply',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 

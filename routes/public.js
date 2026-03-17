@@ -220,7 +220,12 @@ router.post('/faq/vote', writeLimiter, csrfProtection, async (req, res) => {
     res.json({ success: true, message: 'Thank you for your feedback!' });
   } catch (error) {
     logger.error('Error recording FAQ vote:', error);
-    res.status(500).json({ error: 'Failed to record vote', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to record vote',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 
@@ -302,7 +307,12 @@ router.get('/recommendations', async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching recommendations:', error);
-    res.status(500).json({ error: 'Failed to fetch recommendations', details: error.message });
+    res
+      .status(500)
+      .json({
+        error: 'Failed to fetch recommendations',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
   }
 });
 

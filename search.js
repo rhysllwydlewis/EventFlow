@@ -7,6 +7,7 @@
 
 const dbUnified = require('./db-unified');
 const { geocodeLocation, calculateDistance } = require('./utils/geocoding');
+const crypto = require('crypto');
 
 /**
  * Search suppliers with advanced filters
@@ -380,7 +381,7 @@ async function saveSearchHistory(userId, query) {
   const searchHistory = (await dbUnified.read('searchHistory')) || [];
 
   const historyEntry = {
-    id: `hist_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    id: `hist_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`,
     userId,
     query: query.q || '',
     category: query.category || '',

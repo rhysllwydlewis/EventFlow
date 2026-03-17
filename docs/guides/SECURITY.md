@@ -270,6 +270,16 @@ For security issues or vulnerabilities:
 
 ## Version History
 
+- **v1.2** (2026-03-17): Error detail disclosure fixed
+  - **Fixed (Medium):** 117 route handler catch blocks across 21 files that included `details: error.message` in `500` JSON responses now guard the value behind `process.env.NODE_ENV !== 'production' ? error.message : undefined`. When `NODE_ENV=production` the `details` key is omitted from the JSON response entirely (JSON.stringify drops `undefined` values), preventing internal error messages (file paths, MongoDB field names, stack details) from leaking to clients.
+  - **Added:** Regression tests in `tests/unit/security-regression.test.js` (section D) to prevent reintroduction — any new route file that exposes `details: error.message` without a `NODE_ENV` guard will cause CI to fail.
+
+- **v1.1** (2026-03-17): Critical security fixes applied
+  - **Fixed (Critical):** `store.js` and `db-utils.js` `uid()` replaced `Math.random()` with `crypto.randomBytes()`. Previously, all entity IDs including password reset tokens, email verification tokens, and guest plan tokens were generated using `Math.random()`, which is not cryptographically secure and could allow an attacker to predict or brute-force token values.
+  - **Fixed (Medium):** `services/dateManagementService.js` replaced `execSync` (shell command string) with `spawnSync` (argument array). The previous implementation invoked a shell to run `git log`, which could be exploited for shell injection if the input validation regex were ever bypassed. Using `spawnSync` with an explicit argument array eliminates shell interpretation entirely.
+  - **Fixed (Medium):** Upload file naming in `routes/admin.js` (hero image and collage upload) replaced `Math.random()` with `crypto.randomBytes()` to prevent guessable file names.
+  - **Fixed (Low):** Various non-security-critical IDs (request IDs, enquiry IDs, history entry IDs, category IDs) updated to use `crypto.randomBytes()` or `crypto.randomUUID()` for consistency.
+
 - **v1.0** (2024-12-09): Initial security documentation
   - Documented current security measures
   - Identified CSRF protection gap
