@@ -447,6 +447,7 @@ router.post(
  */
 router.delete(
   '/me/packages/:id/photos',
+  applyWriteLimiter,
   applyAuthRequired,
   applyCsrfProtection,
   async (req, res) => {

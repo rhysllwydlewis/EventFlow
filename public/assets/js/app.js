@@ -3627,10 +3627,10 @@ function editPackage(packageId) {
           galleryExisting.innerHTML = validPhotos
             .map(item => {
               const photoUrl = typeof item === 'string' ? item : item.url || '';
-              const safeUrl = photoUrl.replace(/"/g, '&quot;');
+              const escapedUrl = photoUrl.replace(/"/g, '&quot;');
               return `<div class="pkg-gallery-item">
-                <img src="${safeUrl}" alt="Gallery photo" style="width:80px;height:80px;object-fit:cover;border-radius:4px;">
-                <button type="button" class="pkg-gallery-delete" data-url="${safeUrl}" data-package-id="${pkg.id}" aria-label="Delete photo" title="Delete photo">✕</button>
+                <img src="${escapedUrl}" alt="Gallery photo" style="width:80px;height:80px;object-fit:cover;border-radius:4px;">
+                <button type="button" class="pkg-gallery-delete" data-url="${escapedUrl}" data-package-id="${pkg.id}" aria-label="Delete photo" title="Delete photo">✕</button>
               </div>`;
             })
             .join('');
