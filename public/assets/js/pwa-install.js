@@ -1,8 +1,8 @@
 /**
  * PWA Install Prompt
- * Shows an install banner when the app is installable and not previously dismissed.
- * Handles both the beforeinstallprompt (Chrome/Android) flow and
- * a static iOS guide fallback.
+ * Shows an install banner when the app is installable, not previously dismissed,
+ * and the user is on a desktop device.
+ * Mobile and tablet devices (including iOS) are intentionally excluded.
  */
 
 (function () {
@@ -10,6 +10,23 @@
 
   const DISMISSED_KEY = 'ef_pwa_install_dismissed';
   const BANNER_ID = 'ef-pwa-install-banner';
+
+  /**
+   * Returns true only on desktop devices.
+   * Uses the repo's documented breakpoint (desktop > 768px) as the primary check,
+   * with a secondary UA check to block tablets/phones even on wide viewports.
+   */
+  function isDesktopInstallAllowed() {
+    // Consistent with repo breakpoint docs: Desktop > 768px
+    const isDesktopWidth = window.matchMedia('(min-width: 769px)').matches;
+
+    // Block common mobile/tablet UAs even if viewport appears wide.
+    // Note: UA sniffing is a best-effort heuristic and may not cover all devices.
+    const ua = navigator.userAgent || '';
+    const isMobileUA = /Android|iPhone|iPad|iPod/i.test(ua);
+
+    return isDesktopWidth && !isMobileUA;
+  }
 
   // Bail if already dismissed
   function isDismissed() {
@@ -120,7 +137,7 @@
       <span class="ef-pwa-icon" aria-hidden="true">📲</span>
       <span class="ef-pwa-text">
         <strong>Install EventFlow</strong>
-        Add to your home screen for quick access
+        Install on your computer for quick access
       </span>
       <button class="ef-pwa-install-btn" type="button">Install</button>
       <button class="ef-pwa-dismiss-btn" type="button" aria-label="Dismiss install prompt">✕</button>
@@ -132,10 +149,15 @@
     return banner;
   }
 
-  // Standard (Chrome/Android) flow
+  // Standard (Chrome/desktop) flow
   let deferredPrompt = null;
 
   window.addEventListener('beforeinstallprompt', e => {
+    // Only show the install banner on desktop devices
+    if (!isDesktopInstallAllowed()) {
+      return;
+    }
+
     if (isDismissed()) {
       return;
     }
@@ -166,36 +188,4 @@
     );
   });
 
-  // iOS Safari fallback: show a static guide if standalone not active
-  (function () {
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-    const isStandalone =
-      window.navigator.standalone === true ||
-      window.matchMedia('(display-mode: standalone)').matches;
-
-    if (isIOS && !isStandalone && !isDismissed()) {
-      // Delay slightly so the page loads first
-      setTimeout(() => {
-        injectStyles();
-        const banner = document.createElement('div');
-        banner.id = BANNER_ID;
-        banner.setAttribute('role', 'banner');
-        banner.setAttribute('aria-label', 'Install EventFlow app on iOS');
-        banner.innerHTML = `
-          <span class="ef-pwa-icon" aria-hidden="true">📲</span>
-          <span class="ef-pwa-text">
-            <strong>Install EventFlow</strong>
-            Tap <strong>Share</strong> then <strong>Add to Home Screen</strong>
-          </span>
-          <button class="ef-pwa-dismiss-btn" type="button" aria-label="Dismiss install prompt">✕</button>
-        `;
-        banner.querySelector('.ef-pwa-dismiss-btn').addEventListener('click', () => {
-          markDismissed();
-          removeBanner();
-        });
-        document.body.appendChild(banner);
-        document.body.classList.add('ef-pwa-banner-visible');
-      }, 2000);
-    }
-  })();
 })();
