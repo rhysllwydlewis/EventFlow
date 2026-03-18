@@ -266,6 +266,16 @@ app.get('/api/stats/public', (req, res) => {
   res.json({ suppliers: 500, packages: 1200, events: 3400 });
 });
 
+// Stub for homepage stats section (used by home-init.js fetchPublicStats)
+app.get('/api/v1/public/stats', (req, res) => {
+  res.json({
+    suppliersVerified: 500,
+    packagesApproved: 1200,
+    marketplaceListingsActive: 150,
+    reviewsApproved: 500,
+  });
+});
+
 // Canonical URL redirects (matching server.js behavior)
 // These redirects are needed because express.static serves files directly without redirection
 app.get('/index.html', (req, res) => {

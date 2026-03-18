@@ -591,6 +591,9 @@
 }
 
 .badge.info {
+  background: #dbeafe;
+  color: #1e40af;
+}
 
 /* Progress Bar Component */
 .progress {
@@ -956,6 +959,9 @@
 /* Disable hover scale on touch devices */
 @media (hover: none) and (pointer: coarse) {
   .back-to-top:hover {
+    transform: none;
+  }
+}
 
 /* Stats Grid Component */
 .stats-grid {
@@ -1464,12 +1470,16 @@
 }
 
 .footer-theme-btn:hover {
+  opacity: 0.8;
+}
 
 .footer-theme-btn .theme-icon-sun {
   display: inline;
 }
 
 .footer-theme-btn .theme-icon-moon {
+  display: none;
+}
 
 /* Cookie Consent Banner - UK GDPR Compliant */
 .cookie-consent-banner {
@@ -1619,6 +1629,10 @@
   }
 
   .cookie-consent-btn {
+    font-size: 0.875rem;
+    padding: 0.625rem 1.25rem;
+  }
+}
 
 /* Accessibility - Reduced motion */
 @media (prefers-reduced-motion: reduce) {
@@ -1672,6 +1686,9 @@
 }
 
 .badge-secondary {
+  background: #6b7280;
+  color: #fff;
+}
 
 .messages-list {
   display: flex;
@@ -1779,6 +1796,9 @@
 
 @media (max-width: 640px) {
   .quick-plan-row {
+    grid-template-columns: 1fr;
+  }
+}
 
 /* Skeleton loading cards */
 .skeleton-carousel {
@@ -1814,6 +1834,9 @@
 
 @media (max-width: 480px) {
   .skeleton-card {
+    flex: 0 0 calc(100% - 1rem);
+  }
+}
 
 /* Hero Search Component */
 .hero-search input:focus {

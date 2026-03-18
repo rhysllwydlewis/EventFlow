@@ -3,17 +3,107 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
   <title>Verify Your Email - EventFlow</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+    }
+
+    /* ── Base layout ───────────────────────────────────── */
+    .email-container {
+      max-width: 600px;
+      width: 100%;
+      margin: 0 auto;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 8px 32px rgba(11, 128, 115, 0.13);
+    }
+
+    .email-header {
+      background: linear-gradient(135deg, #0B8073 0%, #13B6A2 100%);
+      padding: 40px 40px 32px;
+      text-align: center;
+    }
+
+    .email-body {
+      background-color: #ffffff;
+      padding: 40px 40px 32px;
+    }
+
+    .email-footer {
+      background-color: #F2FBF9;
+      padding: 24px 40px;
+      text-align: center;
+      border-top: 1px solid #D9F0EC;
+    }
+
+    /* ── CTA ───────────────────────────────────────────── */
+    .cta-button {
+      display: inline-block;
+      padding: 15px 40px;
+      background: linear-gradient(135deg, #0B8073, #13B6A2);
+      color: #ffffff !important;
+      text-decoration: none;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: 0.2px;
+    }
+
+    /* ── Mobile responsive ─────────────────────────────── */
+    @media only screen and (max-width: 600px) {
+      .email-container {
+        border-radius: 0 !important;
+        box-shadow: none !important;
+      }
+
+      .email-header,
+      .email-body,
+      .email-footer {
+        padding-left: 20px !important;
+        padding-right: 20px !important;
+      }
+
+      .cta-button {
+        display: block !important;
+        text-align: center !important;
+        padding: 14px 20px !important;
+      }
+    }
+
+    /* ── Dark mode ─────────────────────────────────────── */
+    @media (prefers-color-scheme: dark) {
+      .email-body {
+        background-color: #1a2332 !important;
+        color: #e2e8f0 !important;
+      }
+
+      .email-footer {
+        background-color: #1a2f2b !important;
+        border-top-color: #2a4a45 !important;
+      }
+
+      .email-body h1 {
+        color: #f1f5f9 !important;
+      }
+
+      .email-body p {
+        color: #cbd5e1 !important;
+      }
+    }
+  </style>
 </head>
 <body style="margin:0;padding:0;background-color:#EBF7F5;font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#EBF7F5;">
     <tr>
       <td align="center" style="padding:40px 16px;">
-        <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(11,128,115,0.13);">
+        <table class="email-container" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(11,128,115,0.13);">
 
           <!-- ── Gradient Header ─────────────────────────────── -->
           <tr>
-            <td style="background:linear-gradient(135deg,#0B8073 0%,#13B6A2 100%);padding:40px 40px 32px;text-align:center;">
+            <td class="email-header" style="background:linear-gradient(135deg,#0B8073 0%,#13B6A2 100%);padding:40px 40px 32px;text-align:center;">
               <!-- EF badge -->
               <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto 14px auto;">
                 <tr>
@@ -27,7 +117,7 @@
 
           <!-- ── Body ────────────────────────────────────────── -->
           <tr>
-            <td style="background-color:#ffffff;padding:40px 40px 32px;">
+            <td class="email-body" style="background-color:#ffffff;padding:40px 40px 32px;">
               <h1 style="margin:0 0 20px;font-size:22px;font-weight:700;color:#0B1220;line-height:1.35;">Verify your email address</h1>
               <p style="margin:0 0 16px;font-size:15px;color:#334155;line-height:1.75;">Hi {{name}},</p>
               <p style="margin:0 0 28px;font-size:15px;color:#334155;line-height:1.75;">Thanks for creating your EventFlow account! To complete your registration and unlock all features, please verify your email address by clicking the button below.</p>
@@ -36,7 +126,7 @@
               <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:28px;">
                 <tr>
                   <td align="center">
-                    <a href="{{verificationLink}}" style="display:inline-block;padding:15px 40px;background:linear-gradient(135deg,#0B8073,#13B6A2);color:#ffffff;text-decoration:none;border-radius:10px;font-weight:700;font-size:15px;letter-spacing:0.2px;">Verify Email Address</a>
+                    <a href="{{verificationLink}}" class="cta-button" style="display:inline-block;padding:15px 40px;background:linear-gradient(135deg,#0B8073,#13B6A2);color:#ffffff;text-decoration:none;border-radius:10px;font-weight:700;font-size:15px;letter-spacing:0.2px;">Verify Email Address</a>
                   </td>
                 </tr>
               </table>
@@ -62,7 +152,7 @@
 
           <!-- ── Footer ───────────────────────────────────────── -->
           <tr>
-            <td style="background-color:#F2FBF9;padding:24px 40px;text-align:center;border-top:1px solid #D9F0EC;">
+            <td class="email-footer" style="background-color:#F2FBF9;padding:24px 40px;text-align:center;border-top:1px solid #D9F0EC;">
               <p style="margin:0 0 8px;font-size:13px;color:#667085;">© 2025–2026 EventFlow. All rights reserved. &nbsp;·&nbsp; Operated by VEXI</p>
               <p style="margin:0 0 8px;font-size:12px;color:#98A2B3;">
                 <a href="{{baseUrl}}/privacy" style="color:#0B8073;text-decoration:none;">Privacy Policy</a>

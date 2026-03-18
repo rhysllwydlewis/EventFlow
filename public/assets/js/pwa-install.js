@@ -23,9 +23,25 @@
     // Block common mobile/tablet UAs even if viewport appears wide.
     // Note: UA sniffing is a best-effort heuristic and may not cover all devices.
     const ua = navigator.userAgent || '';
-    const isMobileUA = /Android|iPhone|iPad|iPod/i.test(ua);
+    const isMobileUA = /iPad|iPhone|iPod|Android/i.test(ua);
 
     return isDesktopWidth && !isMobileUA;
+  }
+
+  /**
+   * Returns true if the app is already running in standalone mode.
+   * This covers both standard display-mode and the iOS Safari navigator.standalone flag.
+   */
+  function isAlreadyInstalled() {
+    // Standard PWA display mode check
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      return true;
+    }
+    // iOS Safari standalone fallback
+    if (navigator.standalone === true) {
+      return true;
+    }
+    return false;
   }
 
   // Bail if already dismissed
@@ -158,6 +174,11 @@
       return;
     }
 
+    // Don't show if already installed in standalone mode
+    if (isAlreadyInstalled()) {
+      return;
+    }
+
     if (isDismissed()) {
       return;
     }
@@ -187,5 +208,4 @@
       }
     );
   });
-
 })();
