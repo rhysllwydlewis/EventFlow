@@ -143,16 +143,4 @@
 /* ========================================
    DARK MODE TOKENS (future use)
    ======================================== */
-@media (prefers-color-scheme: dark) {
-  :root[data-theme="system"] {
-    --ef-bg: #0f172a;
-    --ef-bg-muted: #1e293b;
-    --ef-bg-subtle: #334155;
-    --ef-surface: #1e293b;
-    --ef-text: #f1f5f9;
-    --ef-text-muted: #94a3b8;
-    --ef-text-subtle: #64748b;
-    --ef-border: #334155;
-    --ef-border-muted: #475569;
-  }
-}
+

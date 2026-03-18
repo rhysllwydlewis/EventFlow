@@ -360,15 +360,6 @@
 }
 
 /* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .stat-number {
-    color: var(--text, #f9fafb);
-  }
-
-  .progress-bar-container {
-    background: rgba(255, 255, 255, 0.1);
-  }
-}
 
 /* Mobile optimizations */
 @media (max-width: 768px) {

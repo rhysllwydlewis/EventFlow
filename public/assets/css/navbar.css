@@ -1287,27 +1287,6 @@ body {
    DARK MODE (Optional)
    ======================================== */
 
-@media (prefers-color-scheme: dark) {
-  html[data-theme='dark'] {
-    --ef-bg-white: #1f2937;
-    --ef-bg-gray: #111827;
-    --ef-text-dark: #f9fafb;
-    --ef-text-gray: #d1d5db;
-    --ef-text-light: #9ca3af;
-    --ef-border: #374151;
-  }
-
-  html[data-theme='dark'] .ef-header,
-  html[data-theme='dark'] .ef-mobile-menu,
-  html[data-theme='dark'] .ef-bottom-nav {
-    background: rgba(31, 41, 55, 0.95);
-  }
-
-  html[data-theme='dark'] .ef-toggle-line {
-    background: var(--ef-text-dark);
-  }
-}
-
 /* ========================================
    MOBILE MENU VISIBILITY GUARANTEE
    Added to ensure menu is visible above all overlays

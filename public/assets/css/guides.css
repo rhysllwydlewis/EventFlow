@@ -1361,13 +1361,23 @@
   .guides-hero {
     padding: 20px 0 16px;
   }
+  /* Hide "Browse all guides" — "All Guides" in the search row already serves this purpose */
+  .guides-hero__cta--primary {
+    display: none;
+  }
+  /* Show remaining ghost CTAs as a side-by-side row */
   .guides-hero__cta-row {
-    flex-direction: column;
-    align-items: center;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
   }
   .guides-hero__cta {
-    width: 100%;
+    flex: 1 1 0;
+    min-width: 0;
     justify-content: center;
+    padding: 10px 12px;
+    font-size: 0.85rem;
   }
   .guides-tools__grid {
     grid-template-columns: 1fr;

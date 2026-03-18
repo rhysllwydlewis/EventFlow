@@ -453,35 +453,8 @@ class TimelineBuilder {
       }
 
       .timeline-event {
-        position: relative;
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        border-left: 4px solid var(--ink, #0B8073);
-        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
-        transition: all 0.3s ease;
-      }
-
-      html[data-theme="dark"] .timeline-event {
-        background: #1F2937;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-      }
 
       .timeline-event::before {
-        content: '';
-        position: absolute;
-        left: -44px;
-        top: 24px;
-        width: 12px;
-        height: 12px;
-        background: currentColor;
-        border-radius: 50%;
-        border: 2px solid white;
-      }
-
-      html[data-theme="dark"] .timeline-event::before {
-        border-color: #111827;
-      }
 
       .timeline-event.draggable {
         cursor: move;
@@ -512,15 +485,6 @@ class TimelineBuilder {
       }
 
       .timeline-event-title {
-        font-size: 1.125rem;
-        font-weight: 600;
-        margin: 0;
-        color: var(--ink-dark, #0F172A);
-      }
-
-      html[data-theme="dark"] .timeline-event-title {
-        color: #F9FAFB;
-      }
 
       .timeline-event-duration {
         font-size: 0.875rem;
@@ -529,15 +493,6 @@ class TimelineBuilder {
       }
 
       .timeline-event-description {
-        font-size: 0.9375rem;
-        color: #475569;
-        margin: 8px 0;
-        line-height: 1.6;
-      }
-
-      html[data-theme="dark"] .timeline-event-description {
-        color: #94A3B8;
-      }
 
       .timeline-event-supplier {
         margin-top: 12px;

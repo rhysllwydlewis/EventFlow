@@ -94,20 +94,6 @@
 }
 
 /* Dark theme support */
-@media (prefers-color-scheme: dark) {
-  .skeleton-card,
-  .skeleton-list-item {
-    background: #1f2937;
-    border-color: #374151;
-  }
-  
-  .skeleton-image,
-  .skeleton-text,
-  .skeleton-avatar {
-    background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
-    background-size: 200% 100%;
-  }
-}
 
 /* Responsive adjustments */
 @media (max-width: 768px) {

@@ -1449,52 +1449,6 @@
    DARK MODE (basic support)
    ========================================================= */
 
-@media (prefers-color-scheme: dark) {
-  .sp-filter-panel {
-    background: rgba(30, 41, 59, 0.9);
-    border-color: rgba(71, 85, 105, 0.5);
-  }
-
-  .sp-filter-control {
-    background: #1e293b;
-    border-color: #475569;
-    color: #f1f5f9;
-  }
-
-  .sp-filter-control::placeholder {
-    color: #64748b;
-  }
-
-  .sp-filter-label {
-    color: #64748b;
-  }
-
-  .sp-filter-checkbox-label {
-    color: #e2e8f0;
-  }
-
-  .sp-card {
-    background: #1e293b;
-    border-color: #334155;
-  }
-
-  .sp-card-name a {
-    color: #f1f5f9;
-  }
-
-  .sp-card-description {
-    color: #94a3b8;
-  }
-
-  .sp-results-count {
-    color: #94a3b8;
-  }
-
-  .sp-results-count strong {
-    color: #f1f5f9;
-  }
-}
-
 /* =========================================================
    OVERRIDES — defeat global styles.css button rules
    styles.css applies: padding:10px 18px !important;

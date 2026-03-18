@@ -419,19 +419,6 @@ a:hover {
   .collage .frame:hover,
   .card:hover,
   .pack:hover {
-    transform: none;
-  }
-}
-
-/* ========================================
-   DARK MODE ENHANCEMENTS
-   Better contrast and visual appeal
-   ======================================== */
-
-html[data-theme="dark"] .card:hover,
-html[data-theme="dark"] .pack:hover {
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-}
 
 /* ========================================
    TESTIMONIALS CAROUSEL STYLES
@@ -935,5 +922,4 @@ html[data-theme="dark"] .pack:hover {
   color: inherit;
   transition: color 0.3s ease;
 }
-
 

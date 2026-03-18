@@ -349,26 +349,4 @@
 }
 
 /* Dark mode support (if needed) */
-@media (prefers-color-scheme: dark) {
-  .skeleton {
-    background: linear-gradient(90deg, #2d3748 0px, #374151 40px, #2d3748 80px);
-  }
 
-  .skeleton-card,
-  .skeleton-supplier-card-full,
-  .skeleton-stat-card,
-  .skeleton-thread,
-  .skeleton-search-result {
-    background: #1f2937;
-    border-color: #374151;
-  }
-
-  .empty-state-title {
-    color: var(--border, #E7EAF0);
-  }
-
-  .empty-state-description,
-  .loading-text {
-    color: #9ca3af;
-  }
-}

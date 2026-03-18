@@ -446,29 +446,4 @@
 /* ===========================================
    DARK MODE SUPPORT
    =========================================== */
-@media (prefers-color-scheme: dark) {
-  .conversation-card {
-    background: rgba(31, 41, 55, 0.85);
-    border-color: rgba(75, 85, 99, 0.5);
-  }
-  
-  .conversation-card:hover {
-    background: rgba(31, 41, 55, 0.95);
-    border-color: rgba(75, 85, 99, 0.7);
-  }
-  
-  .message-bubble--received {
-    background: rgba(55, 65, 81, 0.95);
-    color: #f3f4f6;
-  }
-  
-  #messageInput {
-    background: rgba(31, 41, 55, 0.9) !important;
-    border-color: rgba(75, 85, 99, 0.5) !important;
-    color: #f3f4f6;
-  }
-  
-  #messageInput:focus {
-    background: rgba(31, 41, 55, 1) !important;
-  }
-}
+
