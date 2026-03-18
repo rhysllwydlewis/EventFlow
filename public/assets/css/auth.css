@@ -1435,6 +1435,42 @@ body.auth-page .auth-card .checkbox-label-right {
 }
 
 /* ─────────────────────────────────────────────────────────────
+   19a. ULTRA-SMALL SCREENS ( ≤ 320px )
+───────────────────────────────────────────────────────────────*/
+@media (max-width: 320px) {
+  body.auth-page .auth-split-right {
+    padding: 0.75rem 0.625rem;
+    padding-top: calc(var(--ef-header-height, 64px) + 0.75rem);
+  }
+
+  body.auth-page form.auth-card {
+    padding: 1rem !important;
+  }
+
+  .auth-label-row {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  .auth-label {
+    font-size: 0.8125rem;
+  }
+
+  body.auth-page .auth-card .auth-input,
+  body.auth-page .auth-card input.auth-input,
+  body.auth-page .auth-card select.auth-input {
+    height: 42px;
+    font-size: 0.875rem;
+    padding: 0 12px;
+  }
+
+  .auth-submit {
+    font-size: 0.875rem;
+    padding: 0.625rem 1rem;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
    20. REDUCED MOTION
 ───────────────────────────────────────────────────────────────*/
 @media (prefers-reduced-motion: reduce) {

@@ -1,6 +1,7 @@
 /**
  * Dark Mode Toggle Component
- * Manages theme switching with localStorage persistence and system preference detection
+ * Dark mode has been disabled — EventFlow uses light theme only.
+ * This file forces light theme and removes any persisted dark preference.
  */
 
 class DarkModeToggle {
@@ -9,129 +10,26 @@ class DarkModeToggle {
   }
 
   init() {
-    // Check for saved theme preference or default to system preference
-    const savedTheme = localStorage.getItem('theme');
-    const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-    if (savedTheme) {
-      this.setTheme(savedTheme);
-    } else if (systemPrefersDark) {
-      this.setTheme('dark');
-    } else {
-      this.setTheme('light');
-    }
-
-    // Listen for system theme changes
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-      try {
-        if (!localStorage.getItem('theme')) {
-          this.setTheme(e.matches ? 'dark' : 'light');
-        }
-      } catch (err) {
-        this.setTheme(e.matches ? 'dark' : 'light');
-      }
-    });
-
-    // React to consent changes
-    window.addEventListener('cookieConsentChanged', e => {
-      if (!e.detail) {
-        return;
-      }
-      try {
-        if (e.detail.functional) {
-          // Consent granted — persist the current theme
-          const current = document.documentElement.getAttribute('data-theme');
-          if (current) {
-            localStorage.setItem('theme', current);
-          }
-        } else {
-          // Consent withdrawn — clear the saved theme
-          localStorage.removeItem('theme');
-        }
-      } catch (err) {
-        /* ignore */
-      }
-    });
-
-    // Create toggle button
-    this.createToggleButton();
+    // Always enforce light theme — dark mode is disabled site-wide
+    this.setTheme('light');
   }
 
   setTheme(theme) {
-    document.documentElement.setAttribute('data-theme', theme);
-
-    // Only persist to localStorage when functional cookies are consented
+    document.documentElement.setAttribute('data-theme', 'light');
     try {
-      const consent = window.CookieConsent && window.CookieConsent.getConsent();
-      if (consent && consent.functional) {
-        localStorage.setItem('theme', theme);
-      }
+      // Clear any previously saved dark preference
+      localStorage.removeItem('theme');
     } catch (e) {
       // localStorage may be unavailable; proceed silently
-    }
-
-    // Update button icon if it exists
-    const button = document.querySelector('.dark-mode-toggle');
-    if (button) {
-      this.updateButtonIcon(button, theme);
     }
   }
 
   toggleTheme() {
-    const currentTheme = document.documentElement.getAttribute('data-theme');
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    this.setTheme(newTheme);
-  }
-
-  createToggleButton() {
-    // Check if button already exists
-    if (document.querySelector('.dark-mode-toggle')) {
-      return;
-    }
-
-    const button = document.createElement('button');
-    button.className = 'dark-mode-toggle';
-    button.setAttribute('aria-label', 'Toggle dark mode');
-    button.setAttribute('title', 'Toggle dark mode');
-
-    // Create icons
-    const sunIcon = document.createElement('span');
-    sunIcon.className = 'icon-sun';
-    sunIcon.innerHTML = '☀️';
-
-    const moonIcon = document.createElement('span');
-    moonIcon.className = 'icon-moon';
-    moonIcon.innerHTML = '🌙';
-
-    button.appendChild(sunIcon);
-    button.appendChild(moonIcon);
-
-    // Add click handler
-    button.addEventListener('click', () => this.toggleTheme());
-
-    // Append to body
-    document.body.appendChild(button);
-
-    // Update icon based on current theme
-    const currentTheme = document.documentElement.getAttribute('data-theme');
-    this.updateButtonIcon(button, currentTheme);
-  }
-
-  updateButtonIcon(button, theme) {
-    const sunIcon = button.querySelector('.icon-sun');
-    const moonIcon = button.querySelector('.icon-moon');
-
-    if (theme === 'dark') {
-      sunIcon.style.display = 'block';
-      moonIcon.style.display = 'none';
-    } else {
-      sunIcon.style.display = 'none';
-      moonIcon.style.display = 'block';
-    }
+    // No-op: dark mode is disabled
   }
 }
 
-// Initialize dark mode toggle when DOM is ready
+// Initialize when DOM is ready to clear any residual dark theme
 if (typeof document !== 'undefined') {
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {

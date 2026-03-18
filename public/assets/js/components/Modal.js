@@ -76,12 +76,6 @@ class Modal {
       }
 
       .modal-close:hover {
-        background-color: rgba(0, 0, 0, 0.05);
-      }
-
-      [data-theme="dark"] .modal-close:hover {
-        background-color: rgba(255, 255, 255, 0.1);
-      }
 
       .modal-body {
         padding: 24px;

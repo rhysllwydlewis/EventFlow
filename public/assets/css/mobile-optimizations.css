@@ -13,10 +13,8 @@
 @media (max-width: 768px) {
   /* Ensure interactive elements in main content areas meet minimum size */
   /* Excludes navigation, header, and specific UI components */
-  main a:not(.ef-nav-link):not(.ef-mobile-link):not(.ef-bottom-link),
-  main button:not(.ef-icon-btn):not(.ef-mobile-toggle):not(.ef-btn):not(.ef-search-bar__button):not(.back-to-top):not(.carousel-prev):not(.carousel-next):not(.package-gallery-nav),
-  .section a:not(.ef-nav-link):not(.ef-mobile-link):not(.ef-bottom-link),
-  .card a:not(.ef-nav-link),
+  main a:not(.ef-nav-link):not(.ef-mobile-link):not(.ef-bottom-link):not([class*="ef-btn"]):not(.auth-tab):not(.auth-forgot-link):not(.auth-link),
+  main button:not(.ef-icon-btn):not(.ef-mobile-toggle):not(.ef-btn):not(.ef-search-bar__button):not(.back-to-top):not(.carousel-prev):not(.carousel-next):not(.package-gallery-nav):not(.guides-chip),
   .form-row input[type="submit"],
   .form-row input[type="button"],
   .form-row input[type="checkbox"],

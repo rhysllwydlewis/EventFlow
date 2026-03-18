@@ -41,24 +41,6 @@ class Toast {
       }
 
       .toast {
-        display: flex;
-        align-items: center;
-        padding: 16px 20px;
-        margin-bottom: 12px;
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        animation: slideIn 0.3s ease-out;
-        transition: transform 0.2s ease, opacity 0.2s ease;
-        min-width: 300px;
-        max-width: 400px;
-      }
-
-      [data-theme="dark"] .toast {
-        background: #2d2d2d;
-        color: #f8f9fa;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-      }
 
       .toast.removing {
         animation: slideOut 0.3s ease-in forwards;
@@ -81,13 +63,6 @@ class Toast {
       }
 
       .toast-message {
-        font-size: 13px;
-        color: #6c757d;
-      }
-
-      [data-theme="dark"] .toast-message {
-        color: #adb5bd;
-      }
 
       .toast-close {
         background: none;
@@ -107,12 +82,6 @@ class Toast {
       }
 
       .toast-close:hover {
-        background-color: rgba(0, 0, 0, 0.05);
-      }
-
-      [data-theme="dark"] .toast-close:hover {
-        background-color: rgba(255, 255, 255, 0.1);
-      }
 
       .toast-success {
         border-left: 4px solid #28a745;

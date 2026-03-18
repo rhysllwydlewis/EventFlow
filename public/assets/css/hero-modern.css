@@ -465,6 +465,28 @@
   }
 }
 
+/* Stack CTA buttons vertically at 320px to prevent clipping */
+@media (max-width: 320px) {
+  .hero-modern-ctas {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .hero-cta-primary,
+  .hero-cta-secondary {
+    flex: none;
+    width: 100%;
+    justify-content: center;
+    height: 40px;
+    padding: 0 12px;
+    font-size: 13px;
+  }
+
+  .hero-cta-primary svg {
+    display: none;
+  }
+}
+
 /* Small tablets: Side by side but allow wrap */
 @media (min-width: 480px) and (max-width: 639px) {
   .hero-modern-ctas {

@@ -268,26 +268,6 @@
 
 /* Skeleton Loading */
 .skeleton {
-  background: linear-gradient(
-    90deg,
-    rgba(148, 163, 184, 0.1) 0%,
-    rgba(148, 163, 184, 0.2) 50%,
-    rgba(148, 163, 184, 0.1) 100%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-  border-radius: 4px;
-}
-
-html[data-theme="dark"] .skeleton {
-  background: linear-gradient(
-    90deg,
-    rgba(31, 41, 55, 0.3) 0%,
-    rgba(31, 41, 55, 0.5) 50%,
-    rgba(31, 41, 55, 0.3) 100%
-  );
-  background-size: 200% 100%;
-}
 
 .skeleton-text {
   height: 1rem;
@@ -318,17 +298,6 @@ html[data-theme="dark"] .skeleton {
 }
 
 .ripple {
-  position: absolute;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.6);
-  transform: scale(0);
-  animation: ripple 0.6s ease-out;
-  pointer-events: none;
-}
-
-html[data-theme="dark"] .ripple {
-  background: rgba(94, 234, 212, 0.3);
-}
 
 /* Hover Effects */
 .hover-lift {
@@ -371,13 +340,6 @@ html[data-theme="dark"] .ripple {
 }
 
 .focus-ring:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(11, 128, 115, 0.3);
-}
-
-html[data-theme="dark"] .focus-ring:focus {
-  box-shadow: 0 0 0 3px rgba(94, 234, 212, 0.3);
-}
 
 /* Loading Spinner */
 .spinner {

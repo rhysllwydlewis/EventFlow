@@ -523,52 +523,12 @@ class SupplierComparison {
       }
 
       .comparison-grid {
-        display: grid;
-        gap: 1px;
-        background: #E2E8F0;
-        border-radius: 12px;
-        overflow: hidden;
-      }
-
-      html[data-theme="dark"] .comparison-grid {
-        background: #374151;
-      }
 
       .comparison-cell {
-        background: white;
-        padding: 16px;
-        min-height: 60px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      html[data-theme="dark"] .comparison-cell {
-        background: #1F2937;
-      }
 
       .comparison-header-cell {
-        background: #F8FAFC;
-      }
-
-      html[data-theme="dark"] .comparison-header-cell {
-        background: #111827;
-      }
 
       .comparison-label-cell {
-        background: #F8FAFC;
-        justify-content: flex-start;
-        font-weight: 500;
-        color: #475569;
-        position: sticky;
-        left: 0;
-        z-index: 10;
-      }
-
-      html[data-theme="dark"] .comparison-label-cell {
-        background: #111827;
-        color: #94A3B8;
-      }
 
       .comparison-supplier-header {
         background: var(--ink, #0B8073);
@@ -668,17 +628,6 @@ class SupplierComparison {
       }
 
       .amenity-tag {
-        display: inline-block;
-        padding: 2px 8px;
-        background: #F1F5F9;
-        border-radius: 8px;
-        font-size: 0.75rem;
-        margin: 2px;
-      }
-
-      html[data-theme="dark"] .amenity-tag {
-        background: #374151;
-      }
 
       .text-success {
         color: #10B981;

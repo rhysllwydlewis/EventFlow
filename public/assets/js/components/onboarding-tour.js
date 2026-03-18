@@ -396,20 +396,6 @@
       }
 
       .onboarding-tooltip {
-        position: fixed;
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.25);
-        max-width: 320px;
-        width: 85%;
-        z-index: 10003;
-        animation: slideInUp 0.3s ease-out;
-        pointer-events: auto;
-      }
-
-      html[data-theme="dark"] .onboarding-tooltip {
-        background: #1F2937;
-      }
 
       @keyframes slideInUp {
         from {
@@ -423,16 +409,6 @@
       }
 
       .onboarding-tooltip-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 12px 16px;
-        border-bottom: 1px solid #E5E7EB;
-      }
-
-      html[data-theme="dark"] .onboarding-tooltip-header {
-        border-bottom-color: #374151;
-      }
 
       .onboarding-step-indicator {
         font-size: 0.875rem;
@@ -466,37 +442,10 @@
       }
 
       .onboarding-title {
-        margin: 0 0 8px 0;
-        font-size: 1.125rem;
-        color: var(--ink-dark, #0F172A);
-      }
-
-      html[data-theme="dark"] .onboarding-title {
-        color: #F9FAFB;
-      }
 
       .onboarding-description {
-        margin: 0;
-        font-size: 0.875rem;
-        color: #4B5563;
-        line-height: 1.5;
-      }
-
-      html[data-theme="dark"] .onboarding-description {
-        color: #9CA3AF;
-      }
 
       .onboarding-tooltip-footer {
-        padding: 12px 16px;
-        border-top: 1px solid #E5E7EB;
-        display: flex;
-        justify-content: space-between;
-        gap: 12px;
-      }
-
-      html[data-theme="dark"] .onboarding-tooltip-footer {
-        border-top-color: #374151;
-      }
 
       @media (max-width: 640px) {
         .onboarding-tooltip {

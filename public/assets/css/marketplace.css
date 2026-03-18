@@ -66,6 +66,14 @@
   padding: 32px 0;
 }
 
+/* Intermediate breakpoint: narrow tablet (640–767px) — reduce sidebar width */
+@media (min-width: 640px) and (max-width: 767px) {
+  .marketplace-container {
+    grid-template-columns: 220px 1fr;
+    gap: 16px;
+  }
+}
+
 /* Sidebar */
 .marketplace-sidebar {
   position: sticky;

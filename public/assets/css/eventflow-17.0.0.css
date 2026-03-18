@@ -43,13 +43,6 @@
 }
 
 .icon-button:hover {
-  background: rgba(15,23,42,.06);
-  transform: translateY(-1px);
-}
-
-html[data-theme="dark"] .icon-button:hover {
-  background: rgba(55,65,81,.6);
-}
 
 /* Notification bell styling */
 .notification-icon {
@@ -110,19 +103,6 @@ html[data-theme="dark"] .icon-button:hover {
 }
 
 .theme-icon-moon {
-  opacity: 0;
-  transform: scale(0.85);
-}
-
-html[data-theme="dark"] .theme-icon-sun {
-  opacity: 0;
-  transform: scale(0.85);
-}
-
-html[data-theme="dark"] .theme-icon-moon {
-  opacity: 1;
-  transform: scale(1);
-}
 
 /* ========================================
    LEGACY NAV TOGGLE - FOR LEGACY PAGES ONLY
@@ -158,18 +138,6 @@ html[data-theme="dark"] .theme-icon-moon {
 
 /* Hide internal bars */
 .legacy-nav-toggle-bar {
-  display: none;
-}
-
-/* Dark mode support for burger */
-html[data-theme="dark"] .legacy-nav-toggle {
-  background: rgba(31,41,55,.9);
-  border-color: rgba(255,255,255,.16);
-}
-
-html[data-theme="dark"] .legacy-nav-toggle:hover {
-  background: rgba(55,65,81,.9);
-}
 
 /* 4) Ensure brand text is always visible */
 @media (max-width: 520px) {
@@ -186,28 +154,6 @@ html[data-theme="dark"] .legacy-nav-toggle:hover {
 
 /* 5) Fixed footer navigation bar */
 .footer-nav {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 56px;
-  background: rgba(255,255,255,0.95);
-  backdrop-filter: blur(10px);
-  border-top: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 100;
-  padding: 0 16px;
-  box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
-  pointer-events: auto;
-}
-
-html[data-theme="dark"] .footer-nav {
-  background: rgba(31,41,55,0.95);
-  border-top-color: #374151;
-  box-shadow: 0 -2px 10px rgba(0,0,0,0.3);
-}
 
 .footer-nav-content {
   display: flex;
@@ -236,13 +182,6 @@ html[data-theme="dark"] .footer-nav {
 }
 
 .footer-nav-link:hover {
-  background: rgba(15,23,42,.06);
-  text-decoration: none;
-}
-
-html[data-theme="dark"] .footer-nav-link:hover {
-  background: rgba(55,65,81,.6);
-}
 
 .footer-theme-btn {
   border: none;
@@ -259,12 +198,6 @@ html[data-theme="dark"] .footer-nav-link:hover {
 }
 
 .footer-theme-btn:hover {
-  background: rgba(15,23,42,.06);
-}
-
-html[data-theme="dark"] .footer-theme-btn:hover {
-  background: rgba(55,65,81,.6);
-}
 
 /* Add padding to body to account for fixed footer */
 body {
@@ -303,17 +236,6 @@ body {
 }
 
 .footer-theme-icon-btn:hover {
-  background: rgba(15,23,42,.06);
-  transform: scale(1.1);
-}
-
-html[data-theme="dark"] .footer-theme-icon-btn {
-  color: var(--text);
-}
-
-html[data-theme="dark"] .footer-theme-icon-btn:hover {
-  background: rgba(55,65,81,.6);
-}
 
 /* SVG icon transitions */
 .theme-icon-light,
@@ -328,19 +250,3 @@ html[data-theme="dark"] .footer-theme-icon-btn:hover {
 }
 
 .theme-icon-dark {
-  opacity: 0;
-  transform: rotate(-90deg) scale(0.5);
-  position: absolute;
-}
-
-html[data-theme="dark"] .theme-icon-light {
-  opacity: 0;
-  transform: rotate(90deg) scale(0.5);
-  position: absolute;
-}
-
-html[data-theme="dark"] .theme-icon-dark {
-  opacity: 1;
-  transform: rotate(0deg) scale(1);
-  position: static;
-}

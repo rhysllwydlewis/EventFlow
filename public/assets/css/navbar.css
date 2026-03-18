@@ -1147,13 +1147,15 @@ body {
   }
 
   .ef-header-actions {
-    gap: 6px;
+    gap: 4px;
+    flex-shrink: 0;
   }
 
   #ef-auth-link {
-    min-width: 64px;
-    padding: 8px 10px;
+    min-width: auto;
+    padding: 7px 10px;
     font-size: 0.78rem;
+    flex-shrink: 0;
   }
 
   .ef-bottom-nav {
@@ -1163,7 +1165,7 @@ body {
 
   .ef-bottom-link {
     padding: 6px 1px;
-    min-width: 44px; /* Maintain WCAG tap target */
+    min-width: 36px; /* Reduced from 44px for 320px screens */
     max-width: 60px;
     gap: 2px;
     flex: 1 1 auto;
@@ -1183,7 +1185,7 @@ body {
   }
 
   #ef-bottom-menu {
-    min-width: 44px;
+    min-width: 36px;
     max-width: 56px;
     padding: 6px 2px;
     flex: 0 1 auto;
@@ -1192,7 +1194,7 @@ body {
   /* Ensure labels stay visible but compact */
   .ef-bottom-nav.logged-in .ef-bottom-link {
     padding: 6px 1px;
-    min-width: 40px;
+    min-width: 36px;
   }
 }
 
@@ -1284,27 +1286,6 @@ body {
 /* ========================================
    DARK MODE (Optional)
    ======================================== */
-
-@media (prefers-color-scheme: dark) {
-  html[data-theme='dark'] {
-    --ef-bg-white: #1f2937;
-    --ef-bg-gray: #111827;
-    --ef-text-dark: #f9fafb;
-    --ef-text-gray: #d1d5db;
-    --ef-text-light: #9ca3af;
-    --ef-border: #374151;
-  }
-
-  html[data-theme='dark'] .ef-header,
-  html[data-theme='dark'] .ef-mobile-menu,
-  html[data-theme='dark'] .ef-bottom-nav {
-    background: rgba(31, 41, 55, 0.95);
-  }
-
-  html[data-theme='dark'] .ef-toggle-line {
-    background: var(--ef-text-dark);
-  }
-}
 
 /* ========================================
    MOBILE MENU VISIBILITY GUARANTEE

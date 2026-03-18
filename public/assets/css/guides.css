@@ -616,7 +616,7 @@
   -webkit-backdrop-filter: blur(16px) saturate(180%);
   border-bottom: 1px solid rgba(11,128,115,0.10);
   box-shadow: 0 2px 16px rgba(11,128,115,0.06);
-  padding: 14px 0;
+  padding: 6px 0;
   transition: background var(--guides-transition);
 }
 
@@ -649,7 +649,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 7px 16px;
+  padding: 3px 12px;
   border-radius: 999px;
   border: 1.5px solid rgba(11,128,115,0.20);
   background: #fff;
@@ -660,6 +660,7 @@
   transition: all var(--guides-transition);
   white-space: nowrap;
   user-select: none;
+  flex-shrink: 0;
 }
 
 .guides-chip:hover {
@@ -1329,7 +1330,7 @@
   }
   /* Compact filter chips on mobile */
   .guides-chip {
-    padding: 5px 10px;
+    padding: 2px 8px;
     font-size: 0.75rem;
     gap: 3px;
   }
@@ -1337,7 +1338,7 @@
     font-size: 0.72rem;
   }
   .guides-filter-bar {
-    padding: 10px 0;
+    padding: 5px 0;
   }
   /* Search row: tighten gap between wrap + button on mid-mobile */
   .guides-hero__search-row {
@@ -1361,13 +1362,23 @@
   .guides-hero {
     padding: 20px 0 16px;
   }
+  /* Hide "Browse all guides" — "All Guides" in the search row already serves this purpose */
+  .guides-hero__cta--primary {
+    display: none;
+  }
+  /* Show remaining ghost CTAs as a side-by-side row */
   .guides-hero__cta-row {
-    flex-direction: column;
-    align-items: center;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
   }
   .guides-hero__cta {
-    width: 100%;
+    flex: 1 1 auto;
+    min-width: 120px;
     justify-content: center;
+    padding: 10px 12px;
+    font-size: 0.85rem;
   }
   .guides-tools__grid {
     grid-template-columns: 1fr;

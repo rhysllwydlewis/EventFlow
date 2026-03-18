@@ -124,37 +124,8 @@ class ErrorBoundary {
     style.id = 'error-boundary-styles';
     style.textContent = `
       .error-boundary-fallback {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(255, 255, 255, 0.98);
-        z-index: 9999;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-        backdrop-filter: blur(10px);
-      }
-
-      [data-theme="dark"] .error-boundary-fallback {
-        background: rgba(2, 6, 23, 0.98);
-      }
 
       .error-boundary-content {
-        max-width: 600px;
-        text-align: center;
-        background: white;
-        padding: 40px;
-        border-radius: 16px;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-      }
-
-      [data-theme="dark"] .error-boundary-content {
-        background: #1F2937;
-        color: #E5E7EB;
-      }
 
       .error-icon {
         font-size: 64px;
@@ -162,66 +133,14 @@ class ErrorBoundary {
       }
 
       .error-boundary-content h2 {
-        margin: 0 0 16px;
-        font-size: 28px;
-        font-weight: 700;
-        color: #1F2937;
-      }
-
-      [data-theme="dark"] .error-boundary-content h2 {
-        color: #F9FAFB;
-      }
 
       .error-boundary-content p {
-        color: #6B7280;
-        line-height: 1.6;
-        margin-bottom: 24px;
-      }
-
-      [data-theme="dark"] .error-boundary-content p {
-        color: #9CA3AF;
-      }
 
       .error-details {
-        margin: 20px 0;
-        text-align: left;
-        background: #F9FAFB;
-        padding: 16px;
-        border-radius: 8px;
-        border: 1px solid #E5E7EB;
-      }
-
-      [data-theme="dark"] .error-details {
-        background: #111827;
-        border-color: #374151;
-      }
 
       .error-details summary {
-        cursor: pointer;
-        font-weight: 600;
-        margin-bottom: 12px;
-        color: #374151;
-      }
-
-      [data-theme="dark"] .error-details summary {
-        color: #D1D5DB;
-      }
 
       .error-details pre {
-        background: white;
-        padding: 12px;
-        border-radius: 6px;
-        overflow-x: auto;
-        font-size: 12px;
-        font-family: 'Monaco', 'Menlo', monospace;
-        color: #DC2626;
-        margin: 8px 0;
-      }
-
-      [data-theme="dark"] .error-details pre {
-        background: #000;
-        color: #FCA5A5;
-      }
 
       .error-actions {
         display: flex;
