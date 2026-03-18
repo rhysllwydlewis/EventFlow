@@ -8,6 +8,7 @@
 const express = require('express');
 const { uploadLimiter, apiLimiter } = require('../middleware/rateLimits');
 const { PLACEHOLDER_PACKAGE_IMAGE } = require('../utils/constants');
+const suppliersRouter = require('./suppliers');
 const router = express.Router();
 
 // These will be injected by server.js during route mounting
@@ -521,6 +522,8 @@ router.post(
         }
         await dbUnified.updateOne('packages', { id: pkg.id }, { $set: updateFields });
 
+        suppliersRouter.invalidatePackageCaches();
+
         return res.json({
           success: true,
           photo: photoRecord,
@@ -832,7 +835,13 @@ router.post(
         }
         pkg.gallery.push(...uploadedPhotos);
 
-        await dbUnified.updateOne('packages', { id: pkg.id }, { $set: { gallery: pkg.gallery } });
+        const updateFields = { gallery: pkg.gallery };
+        if (!pkg.image || pkg.image === PLACEHOLDER_PACKAGE_IMAGE || pkg.image === '') {
+          updateFields.image = uploadedPhotos[0].url;
+        }
+        await dbUnified.updateOne('packages', { id: pkg.id }, { $set: updateFields });
+
+        suppliersRouter.invalidatePackageCaches();
       } else {
         return res.status(400).json({ error: 'Invalid type' });
       }
@@ -935,12 +944,10 @@ router.delete('/photos/delete', applyAuthRequired, applyCsrfProtection, async (r
     res.json({ success: true, message: 'Photo deleted successfully' });
   } catch (error) {
     logger.error('Delete photo error:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to delete photo',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to delete photo',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 
@@ -988,12 +995,10 @@ router.post('/photos/crop', applyAuthRequired, applyCsrfProtection, async (req, 
     });
   } catch (error) {
     logger.error('Crop image error:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to crop image',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to crop image',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 
@@ -1040,12 +1045,10 @@ router.put('/photos/:id', applyAuthRequired, applyCsrfProtection, async (req, re
     });
   } catch (error) {
     logger.error('Update photo metadata error:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to update photo metadata',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to update photo metadata',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 
@@ -1080,12 +1083,10 @@ router.post(
       });
     } catch (error) {
       logger.error('Replace photo error:', error);
-      res
-        .status(500)
-        .json({
-          error: 'Failed to replace photo',
-          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-        });
+      res.status(500).json({
+        error: 'Failed to replace photo',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
     }
   }
 );
@@ -1114,12 +1115,10 @@ router.post('/photos/bulk-edit', applyAuthRequired, applyCsrfProtection, async (
     });
   } catch (error) {
     logger.error('Bulk edit photos error:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to bulk edit photos',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to bulk edit photos',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 
@@ -1150,12 +1149,10 @@ router.post('/photos/:id/filters', applyAuthRequired, applyCsrfProtection, async
     });
   } catch (error) {
     logger.error('Apply filters error:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to apply filters',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to apply filters',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 
@@ -1180,12 +1177,10 @@ router.post('/photos/reorder', applyAuthRequired, applyCsrfProtection, async (re
     });
   } catch (error) {
     logger.error('Reorder photos error:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to reorder photos',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to reorder photos',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 
@@ -1246,12 +1241,10 @@ router.get('/admin/photos', applyAuthRequired, applyRoleRequired('admin'), async
     });
   } catch (error) {
     logger.error('Error fetching supplier photos:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to fetch photos',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to fetch photos',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 

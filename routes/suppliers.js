@@ -110,6 +110,18 @@ let spotlightPackagesCacheTime = 0;
 const SPOTLIGHT_PACKAGES_CACHE_TTL = 3600000; // 1 hour (they rotate hourly anyway)
 
 /**
+ * Invalidate the featured and spotlight package caches.
+ * Call this after any package photo upload so the next carousel request
+ * reflects the newly-uploaded image instead of serving stale placeholder data.
+ */
+function invalidatePackageCaches() {
+  featuredPackagesCache = null;
+  featuredPackagesCacheTime = 0;
+  spotlightPackagesCache = null;
+  spotlightPackagesCacheTime = 0;
+}
+
+/**
  * GET /api/suppliers
  * List all suppliers with filtering and smart sorting
  */
@@ -267,7 +279,11 @@ router.get('/suppliers/:id/packages', async (req, res) => {
     const pkgs = (await dbUnified.read('packages')).filter(
       p => p.supplierId === supplier.id && p.approved
     );
-    res.json({ items: pkgs });
+    const items = pkgs.map(pkg => ({
+      ...pkg,
+      image: resolvePackageImage(pkg),
+    }));
+    res.json({ items });
   } catch (error) {
     logger.error('Error reading supplier packages:', error);
     return res.status(500).json({ error: 'Internal server error' });
@@ -509,7 +525,7 @@ router.get('/packages/search', async (req, res) => {
       return true;
     });
 
-    res.json({ items });
+    res.json({ items: items.map(pkg => ({ ...pkg, image: resolvePackageImage(pkg) })) });
   } catch (error) {
     logger.error('Error searching packages:', error);
     return res.status(500).json({ error: 'Internal server error' });
@@ -558,3 +574,4 @@ router.get('/packages/:slug', async (req, res) => {
 // Export router and initialization function
 module.exports = router;
 module.exports.initializeDependencies = initializeDependencies;
+module.exports.invalidatePackageCaches = invalidatePackageCaches;
