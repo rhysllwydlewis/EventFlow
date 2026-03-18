@@ -591,6 +591,9 @@
 }
 
 .badge.info {
+  background: #dbeafe;
+  color: #1e40af;
+}
 
 /* Progress Bar Component */
 .progress {
