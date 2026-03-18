@@ -15,15 +15,21 @@ document.addEventListener('DOMContentLoaded', () => {
   // Prefer slug for SEO-friendly URLs; fall back to id-based lookup
   const slugOrId = encodeURIComponent(slug || id);
 
-  fetch(`/api/packages/${slugOrId}`)
-    .then(res => {
+  // Fetch package data and current user in parallel
+  Promise.all([
+    fetch(`/api/packages/${slugOrId}`).then(res => {
       if (!res.ok) {
         throw new Error('Package not found');
       }
       return res.json();
-    })
-    .then(data => {
+    }),
+    fetch('/api/v1/auth/me', { credentials: 'include' })
+      .then(res => (res.ok ? res.json() : { user: null }))
+      .catch(() => ({ user: null })),
+  ])
+    .then(([data, authData]) => {
       const { package: pkg, supplier, categories } = data;
+      const currentUser = authData && authData.user ? authData.user : null;
 
       document.getElementById('package-loading').style.display = 'none';
       document.getElementById('package-content').style.display = 'block';
@@ -132,10 +138,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       // ── Supplier sidebar widget ──────────────────────────────
-      buildSupplierSidebar(supplier, pkg);
+      buildSupplierSidebar(supplier, pkg, currentUser);
 
       // ── Package action buttons ───────────────────────────────
-      wirePackageActions(pkg, supplier);
+      wirePackageActions(pkg, supplier, currentUser);
     })
     .catch(err => {
       console.error('Error loading package:', err);
@@ -148,7 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
  * Populate and wire the supplier sidebar widget.
  * Mirrors the Save / View Profile / Message pattern from the suppliers page.
  */
-function buildSupplierSidebar(supplier, pkg) {
+function buildSupplierSidebar(supplier, pkg, currentUser) {
   const sidebar = document.getElementById('pkg-supplier-sidebar');
   if (!sidebar || !supplier) {
     return;
@@ -282,26 +288,38 @@ function buildSupplierSidebar(supplier, pkg) {
 
   // Message button — wire up QuickComposeV4
   const msgBtn = document.getElementById('pkg-message-btn');
-  if (supplier.ownerUserId) {
-    msgBtn.dataset.recipientId = supplier.ownerUserId;
-  }
-  msgBtn.dataset.contextType = 'package';
-  msgBtn.dataset.contextId = pkg.id || '';
-  msgBtn.dataset.contextTitle = pkg.title || '';
-  if (supplier.logo) {
-    msgBtn.dataset.contextImage = supplier.logo;
-  }
+  const isOwnSupplier =
+    currentUser && supplier.ownerUserId && currentUser.id === supplier.ownerUserId;
 
-  // Auth gate for message button (before QuickComposeV4 fires)
-  msgBtn.addEventListener('click', e => {
-    const mgr = window.shortlistManager;
-    if (!mgr || !mgr.isAuthenticated) {
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      const returnTo = window.location.pathname + window.location.search;
-      window.location.href = `/auth?redirect=${encodeURIComponent(returnTo)}&intent=message`;
+  if (isOwnSupplier) {
+    // Supplier viewing their own package — disable message button
+    msgBtn.disabled = true;
+    msgBtn.setAttribute('aria-label', 'This is your own listing');
+    msgBtn.style.opacity = '0.45';
+    msgBtn.style.cursor = 'not-allowed';
+    msgBtn.textContent = '✉️ Your listing';
+  } else {
+    if (supplier.ownerUserId) {
+      msgBtn.dataset.recipientId = supplier.ownerUserId;
     }
-  });
+    msgBtn.dataset.contextType = 'package';
+    msgBtn.dataset.contextId = pkg.id || '';
+    msgBtn.dataset.contextTitle = pkg.title || '';
+    if (supplier.logo) {
+      msgBtn.dataset.contextImage = supplier.logo;
+    }
+
+    // Auth gate for message button (before QuickComposeV4 fires)
+    msgBtn.addEventListener('click', e => {
+      const mgr = window.shortlistManager;
+      if (!mgr || !mgr.isAuthenticated) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        const returnTo = window.location.pathname + window.location.search;
+        window.location.href = `/auth?redirect=${encodeURIComponent(returnTo)}&intent=message`;
+      }
+    });
+  }
 
   // Show the sidebar
   sidebar.style.display = '';
@@ -317,11 +335,27 @@ function buildSupplierSidebar(supplier, pkg) {
  * Save Package uses shortlistManager (type='package').
  * Add to Plan navigates to /start with packageId + supplierId context.
  * Both gate behind auth when not logged in.
+ * When the current user owns this package's supplier, both buttons are disabled.
  */
-function wirePackageActions(pkg, supplier) {
+function wirePackageActions(pkg, supplier, currentUser) {
   const savePkgBtn = document.getElementById('pkg-save-package-btn');
   const addPlanBtn = document.getElementById('pkg-add-to-plan-btn');
   if (!savePkgBtn || !addPlanBtn) {
+    return;
+  }
+
+  const isOwnSupplier =
+    currentUser && supplier && supplier.ownerUserId && currentUser.id === supplier.ownerUserId;
+
+  if (isOwnSupplier) {
+    // Supplier viewing their own package — disable plan/save actions
+    [savePkgBtn, addPlanBtn].forEach(btn => {
+      btn.disabled = true;
+      btn.style.opacity = '0.45';
+      btn.style.cursor = 'not-allowed';
+    });
+    addPlanBtn.textContent = 'Your listing';
+    savePkgBtn.textContent = 'Your listing';
     return;
   }
 

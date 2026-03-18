@@ -7,6 +7,7 @@
 
 const express = require('express');
 const { PLACEHOLDER_PACKAGE_IMAGE } = require('../utils/constants');
+const suppliersRouter = require('./suppliers');
 const router = express.Router();
 
 // Dependencies injected by server.js
@@ -483,7 +484,12 @@ router.delete(
         : PLACEHOLDER_PACKAGE_IMAGE || '';
     }
     await dbUnified.updateOne('packages', { id: req.params.id }, { $set: updateFields });
-    res.json({ ok: true, gallery: newGallery, image: updateFields.image !== undefined ? updateFields.image : p.image });
+    suppliersRouter.invalidatePackageCaches();
+    res.json({
+      ok: true,
+      gallery: newGallery,
+      image: updateFields.image !== undefined ? updateFields.image : p.image,
+    });
   }
 );
 

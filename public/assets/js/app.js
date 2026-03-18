@@ -3112,9 +3112,10 @@ async function initDashSupplier() {
           const approvalBadge = approved
             ? ''
             : '<span class="badge badge-pending" title="This package is awaiting admin approval before it appears publicly">Awaiting review</span>';
-          const viewBtn = approved && slug
-            ? `<a href="/package?slug=${slug}" target="_blank" class="card-action-btn view-btn">View</a>`
-            : '';
+          const viewBtn =
+            approved && slug
+              ? `<a href="/package?slug=${slug}" target="_blank" class="card-action-btn view-btn">View</a>`
+              : '';
 
           return `<div class="card package-card" data-package-id="${packageId}">
       <img src="${image}" alt="${title} image" onerror="this.src='/assets/images/package-placeholder.svg'; this.onerror=null;">
@@ -3619,17 +3620,32 @@ function editPackage(packageId) {
       const galleryRow = document.getElementById('pkg-gallery-row');
       if (galleryExisting) {
         const galleryPhotos = pkg.gallery || [];
+        const PLACEHOLDER_PATH = '/assets/images/placeholders/';
+        // Collect gallery photo URLs to avoid duplicating the main image
+        const galleryUrls = new Set(
+          galleryPhotos.map(item => (typeof item === 'string' ? item : item.url || ''))
+        );
         const validPhotos = galleryPhotos.filter(item => {
           const photoUrl = typeof item === 'string' ? item : item.url || '';
           return !!photoUrl;
         });
+        // If the main package image is a real photo not already in the gallery list, show it first
+        if (
+          pkg.image &&
+          !pkg.image.includes(PLACEHOLDER_PATH) &&
+          pkg.image !== '' &&
+          !galleryUrls.has(pkg.image)
+        ) {
+          validPhotos.unshift({ url: pkg.image, _isMainImage: true });
+        }
         if (validPhotos.length > 0) {
           galleryExisting.innerHTML = validPhotos
             .map(item => {
               const photoUrl = typeof item === 'string' ? item : item.url || '';
               const escapedUrl = photoUrl.replace(/"/g, '&quot;');
+              const label = item._isMainImage ? 'Main package photo' : 'Gallery photo';
               return `<div class="pkg-gallery-item">
-                <img src="${escapedUrl}" alt="Gallery photo" style="width:80px;height:80px;object-fit:cover;border-radius:4px;">
+                <img src="${escapedUrl}" alt="${label}" style="width:80px;height:80px;object-fit:cover;border-radius:4px;">
                 <button type="button" class="pkg-gallery-delete" data-url="${escapedUrl}" data-package-id="${pkg.id}" aria-label="Delete photo" title="Delete photo">✕</button>
               </div>`;
             })
