@@ -135,7 +135,73 @@ app.get('/api/v2/search/suppliers', (req, res) => {
   });
 });
 
-// Stub package detail API — returns a mock package so E2E tests can render the detail page
+// Stub spotlight + featured package carousel endpoints.
+// These MUST be registered before /api/packages/:slug or Express will treat
+// "spotlight" / "featured" as slug parameters and return the package detail stub.
+// Deliberately includes packages where pkg.image is the placeholder but gallery
+// has real images, to exercise and visually verify the resolvePackageImage() fix
+// (the client-side resolver in home-init.js falls back to gallery when image is placeholder).
+const PLACEHOLDER_IMG = '/assets/images/placeholders/package-event.svg';
+const mockCarouselPackages = [
+  {
+    id: 'mock-spot-1',
+    slug: 'barn-exclusive-hire',
+    title: 'Barn Exclusive Hire',
+    supplier_name: 'The Rustic Barn Venue',
+    description: 'Transform our stunning rustic barn into your dream event space.',
+    price_display: '£1,200',
+    // image is placeholder — client-side resolver must fall back to gallery[0]
+    image: PLACEHOLDER_IMG,
+    gallery: [{ url: '/assets/images/collage-venue.jpg' }],
+    featured: true,
+  },
+  {
+    id: 'mock-spot-2',
+    slug: 'wedding-full-day-photography',
+    title: 'Wedding Full Day Photography',
+    supplier_name: 'Pixel Perfect Photography',
+    description: 'Full day wedding photography from prep to reception.',
+    price_display: '£1,800',
+    // image is a real path — resolver must use it directly
+    image: '/assets/images/collage-photography.jpg',
+    gallery: [],
+    featured: false,
+  },
+  {
+    id: 'mock-spot-3',
+    slug: 'corporate-catering-package',
+    title: 'Corporate Catering Package',
+    supplier_name: 'Simply Catering Co',
+    description: 'Fresh, locally-sourced catering for events of all sizes.',
+    price_display: '£650',
+    // both image and gallery are absent — resolver must return placeholder
+    image: PLACEHOLDER_IMG,
+    gallery: [],
+    featured: false,
+  },
+  {
+    id: 'mock-spot-4',
+    slug: 'garden-party-package',
+    title: 'Garden Party Package',
+    supplier_name: 'The Grand Venue',
+    description: 'Full outdoor garden setup with catering and staff included.',
+    price_display: '£950',
+    image: PLACEHOLDER_IMG,
+    gallery: ['/assets/images/collage-catering.jpg'],
+    featured: false,
+  },
+];
+
+app.get('/api/packages/spotlight', (req, res) => {
+  res.json({ items: mockCarouselPackages });
+});
+
+app.get('/api/packages/featured', (req, res) => {
+  res.json({ items: mockCarouselPackages });
+});
+
+// Stub package detail API — returns a mock package so E2E tests can render the detail page.
+// Must be registered AFTER the specific /spotlight and /featured routes above.
 app.get('/api/packages/:slug', (req, res) => {
   const { slug } = req.params;
   // Use real Pexels photos (images.pexels.com is explicitly allowed by the image sanitizer)
@@ -194,71 +260,23 @@ app.get('/api/shortlist', (req, res) => {
   res.status(401).json({ error: 'Unauthorized' });
 });
 
-// Stub auth check — always returns unauthenticated for E2E logged-out tests
+// Stub auth check.
+// Default: returns 401 (logged-out) for normal E2E tests.
+// Test override: if the request carries the cookie `test_auth=owner`, return the mock
+// supplier owner so the "Your listing" disabled-button state can be exercised in E2E tests.
 app.get('/api/v1/auth/me', (req, res) => {
+  const cookies = req.headers.cookie || '';
+  if (cookies.includes('test_auth=owner')) {
+    return res.json({
+      user: {
+        id: 'mock-owner-1',
+        name: 'Test Supplier Owner',
+        email: 'owner@example.com',
+        role: 'supplier',
+      },
+    });
+  }
   res.status(401).json({ error: 'Not authenticated' });
-});
-
-// Stub spotlight + featured package carousel endpoints
-// Deliberately includes packages where pkg.image is the placeholder but gallery has real images,
-// to exercise and visually verify the resolvePackageImage() fix.
-const PLACEHOLDER_IMG = '/assets/images/placeholders/package-event.svg';
-const mockCarouselPackages = [
-  {
-    id: 'mock-spot-1',
-    slug: 'barn-exclusive-hire',
-    title: 'Barn Exclusive Hire',
-    supplier_name: 'The Rustic Barn Venue',
-    description: 'Transform our stunning rustic barn into your dream event space.',
-    price_display: '£1,200',
-    // image is placeholder — resolver must fall back to gallery
-    image: PLACEHOLDER_IMG,
-    gallery: [{ url: '/assets/images/collage-venue.jpg' }],
-    featured: true,
-  },
-  {
-    id: 'mock-spot-2',
-    slug: 'wedding-full-day-photography',
-    title: 'Wedding Full Day Photography',
-    supplier_name: 'Pixel Perfect Photography',
-    description: 'Full day wedding photography from prep to reception.',
-    price_display: '£1,800',
-    // image is a real path — resolver must use it directly
-    image: '/assets/images/collage-photography.jpg',
-    gallery: [],
-    featured: false,
-  },
-  {
-    id: 'mock-spot-3',
-    slug: 'corporate-catering-package',
-    title: 'Corporate Catering Package',
-    supplier_name: 'Simply Catering Co',
-    description: 'Fresh, locally-sourced catering for events of all sizes.',
-    price_display: '£650',
-    // both image and gallery are absent — resolver must return placeholder
-    image: PLACEHOLDER_IMG,
-    gallery: [],
-    featured: false,
-  },
-  {
-    id: 'mock-spot-4',
-    slug: 'garden-party-package',
-    title: 'Garden Party Package',
-    supplier_name: 'The Grand Venue',
-    description: 'Full outdoor garden setup with catering and staff included.',
-    price_display: '£950',
-    image: PLACEHOLDER_IMG,
-    gallery: ['/assets/images/collage-catering.jpg'],
-    featured: false,
-  },
-];
-
-app.get('/api/packages/spotlight', (req, res) => {
-  res.json({ items: mockCarouselPackages });
-});
-
-app.get('/api/packages/featured', (req, res) => {
-  res.json({ items: mockCarouselPackages });
 });
 
 // Stub public stats
