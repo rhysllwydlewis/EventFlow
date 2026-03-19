@@ -79,27 +79,53 @@ function isFeaturedPackage(pkg) {
   return pkg.featured === true || pkg.isFeatured === true;
 }
 
+/**
+ * All known placeholder image paths (server-side mirror of the client-side KNOWN_PLACEHOLDERS
+ * set in public/assets/js/utils/package-image-resolver.js).
+ * Extend this set if additional placeholder variants are added to the repo.
+ * @type {Set<string>}
+ */
+const KNOWN_PLACEHOLDERS_SERVER = new Set([
+  '/assets/images/placeholders/package-event.svg',
+]);
+
+/**
+ * Return true when a URL is a known placeholder, absent, empty, or whitespace-only.
+ * @param {string|null|undefined} url
+ * @returns {boolean}
+ */
+function isPlaceholderImage(url) {
+  if (!url || typeof url !== 'string') {
+    return true;
+  }
+  const trimmed = url.trim();
+  if (!trimmed) {
+    return true;
+  }
+  return KNOWN_PLACEHOLDERS_SERVER.has(trimmed);
+}
+
 // Helper function to resolve the best available image for a package
 function resolvePackageImage(pkg) {
   const placeholder = PLACEHOLDER_PACKAGE_IMAGE;
-  // If the main image is set and isn't the placeholder, use it
-  if (pkg.image && pkg.image !== placeholder) {
+  // If the main image is set and isn't a placeholder, use it
+  if (pkg.image && !isPlaceholderImage(pkg.image)) {
     return pkg.image;
   }
-  // Fall back to the first gallery image
+  // Fall back to the first non-placeholder gallery image
   if (Array.isArray(pkg.gallery) && pkg.gallery.length > 0) {
     for (const img of pkg.gallery) {
       const url =
         typeof img === 'string'
           ? img
           : img.url || img.src || img.path || img.image || img.originalUrl || img.thumbnail;
-      if (url && url !== placeholder) {
+      if (url && !isPlaceholderImage(url)) {
         return url;
       }
     }
   }
-  // Return the canonical placeholder instead of null to prevent mismatched fallbacks
-  return pkg.image || placeholder;
+  // Always return the canonical placeholder constant on final fallback
+  return placeholder;
 }
 
 // Cache for featured packages

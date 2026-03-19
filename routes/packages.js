@@ -194,6 +194,13 @@ router.post(
       return res.status(400).json({ error: 'Missing required fields: supplierId and title' });
     }
 
+    // Price is required — suppliers must provide a specific figure
+    if (!price || !String(price).trim()) {
+      return res
+        .status(400)
+        .json({ error: 'A price is required. Please enter a specific price for this package.' });
+    }
+
     // Validate new required fields for wizard compatibility
     if (!primaryCategoryKey) {
       return res.status(400).json({ error: 'Primary category is required' });
@@ -243,13 +250,32 @@ router.post(
     const baseSlug = generateSlug(title);
     const slug = baseSlug ? `${baseSlug}-${pkgId.slice(-6)}` : pkgId;
 
+    // Process image: if a base64 data URL was submitted through the form, convert it
+    // to a stored file URL via the image pipeline. Add it to the gallery so that the
+    // detail page and mini-card carousels always have a consistent source of truth.
+    let resolvedImage = '';
+    const gallery = [];
+    if (image && typeof image === 'string' && image.startsWith('data:')) {
+      try {
+        const rand = Math.random().toString(36).slice(2, 8);
+        resolvedImage = await saveImageBase64(image, `package_${pkgId}_${Date.now()}_${rand}`);
+        gallery.push({ url: resolvedImage, approved: true, uploadedAt: Date.now() });
+      } catch (e) {
+        logger.warn('Package create: image processing failed, storing without image:', e.message);
+      }
+    } else if (image && typeof image === 'string' && image.trim()) {
+      resolvedImage = image.trim();
+      gallery.push({ url: resolvedImage, approved: true, uploadedAt: Date.now() });
+    }
+
     const pkg = {
       id: pkgId,
       supplierId,
       title: String(title).slice(0, 120),
       description: String(description || '').slice(0, 1500),
-      price: String(price || '').slice(0, 60),
-      image: image || '',
+      price: String(price).trim().slice(0, 60),
+      image: resolvedImage,
+      gallery,
       slug,
       primaryCategoryKey: String(primaryCategoryKey),
       eventTypes: validEventTypes,
@@ -258,6 +284,7 @@ router.post(
       createdAt: new Date().toISOString(),
     };
     await dbUnified.insertOne('packages', pkg);
+    suppliersRouter.invalidatePackageCaches();
     res.json({ ok: true, package: pkg });
   }
 );
@@ -343,7 +370,49 @@ router.put(
         pkgUpdates.price = String(req.body.price).slice(0, 60);
       }
       if (req.body.image !== undefined) {
-        pkgUpdates.image = req.body.image;
+        const newImage = req.body.image;
+        if (newImage && typeof newImage === 'string' && newImage.startsWith('data:')) {
+          // Process base64 image through the storage pipeline so we store a file URL,
+          // not raw base64, which keeps the DB lean and consistent with gallery items.
+          try {
+            const storedUrl = await saveImageBase64(
+              newImage,
+              `package_${pkg.id}_${Date.now()}`
+            );
+            pkgUpdates.image = storedUrl;
+            // Also add to gallery if not already present so detail view stays in sync
+            const existingGallery = pkg.gallery || [];
+            const alreadyInGallery = existingGallery.some(item => {
+              const u = typeof item === 'string' ? item : item.url || '';
+              return u === storedUrl;
+            });
+            if (!alreadyInGallery) {
+              pkgUpdates.gallery = [
+                { url: storedUrl, approved: true, uploadedAt: Date.now() },
+                ...existingGallery,
+              ];
+            }
+          } catch (e) {
+            logger.warn('Package update: image processing failed, keeping existing image:', e.message);
+          }
+        } else if (newImage && typeof newImage === 'string' && newImage.trim() &&
+                   newImage !== PLACEHOLDER_PACKAGE_IMAGE) {
+          // Plain URL provided (e.g. admin set it directly)
+          pkgUpdates.image = newImage.trim();
+          const existingGallery = pkg.gallery || [];
+          const alreadyInGallery = existingGallery.some(item => {
+            const u = typeof item === 'string' ? item : item.url || '';
+            return u === pkgUpdates.image;
+          });
+          if (!alreadyInGallery) {
+            pkgUpdates.gallery = [
+              { url: pkgUpdates.image, approved: true, uploadedAt: Date.now() },
+              ...existingGallery,
+            ];
+          }
+        } else {
+          pkgUpdates.image = newImage || '';
+        }
       }
       if (req.body.primaryCategoryKey !== undefined) {
         pkgUpdates.primaryCategoryKey = String(req.body.primaryCategoryKey);
@@ -357,6 +426,7 @@ router.put(
       pkgUpdates.updatedAt = new Date().toISOString();
 
       await dbUnified.updateOne('packages', { id: pkg.id }, { $set: pkgUpdates });
+      suppliersRouter.invalidatePackageCaches();
 
       res.json({ ok: true, package: { ...pkg, ...pkgUpdates } });
     } catch (error) {

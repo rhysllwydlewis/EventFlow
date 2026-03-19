@@ -214,6 +214,12 @@ class PackageList {
         white-space: nowrap;
       }
 
+      .package-card-price .price-not-set {
+        color: var(--color-text-secondary, #6c757d);
+        font-weight: 400;
+        font-style: italic;
+      }
+
       .package-card-location {
         font-size: clamp(0.8rem, 2vw, 0.85rem);
         color: var(--color-text-secondary, #6c757d);
@@ -442,8 +448,10 @@ class PackageList {
     const title = escapeHtml(pkg.title);
     const description = escapeHtml(pkg.description || '');
     // Use price_display as primary source, fallback to price for consistency across all views
-    const priceValue = pkg.price_display || pkg.price || 'Contact for price';
-    const price = escapeHtml(priceValue);
+    const priceValue = pkg.price_display || pkg.price;
+    const price = priceValue
+      ? escapeHtml(priceValue)
+      : '<span class="price-not-set">Price not set</span>';
     const location = pkg.location ? escapeHtml(pkg.location) : '';
 
     // Build supplier info section if available

@@ -103,8 +103,17 @@ document.addEventListener('DOMContentLoaded', () => {
         ? /^\d+(\.\d+)?$/.test(String(rawPrice))
           ? `£${rawPrice}`
           : rawPrice
-        : 'Contact for price';
-      document.getElementById('package-price').textContent = formatted;
+        : null;
+      const priceEl = document.getElementById('package-price');
+      if (priceEl) {
+        if (formatted) {
+          priceEl.textContent = formatted;
+          priceEl.classList.remove('price-not-set');
+        } else {
+          priceEl.textContent = 'Price not set';
+          priceEl.classList.add('price-not-set');
+        }
+      }
       if (pkg.location) {
         document.getElementById('package-location').innerHTML = `📍 ${pkg.location}`;
       }

@@ -143,14 +143,28 @@
       if (bannerPreview) {
         const imgDiv = document.createElement('div');
         imgDiv.className = 'photo-preview-item';
-        imgDiv.style.cssText = 'width:100%;height:150px;border-radius:8px;overflow:hidden;';
+        imgDiv.style.cssText = 'width:100%;height:150px;border-radius:8px;position:relative;';
 
         const img = document.createElement('img');
         img.src = supplier.bannerUrl;
         img.alt = 'Banner preview';
-        img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+        img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:8px;';
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'photo-preview-remove';
+        removeBtn.setAttribute('aria-label', 'Remove banner image');
+        removeBtn.textContent = '\u2715';
+        removeBtn.addEventListener('click', () => {
+          imgDiv.remove();
+          const bannerInput = document.getElementById('sup-banner');
+          if (bannerInput) {
+            bannerInput.value = '';
+          }
+        });
 
         imgDiv.appendChild(img);
+        imgDiv.appendChild(removeBtn);
         bannerPreview.innerHTML = '';
         bannerPreview.appendChild(imgDiv);
       }
@@ -352,12 +366,22 @@
     // Initialize banner upload drop zone
     // efSetupPhotoDropZone is defined in app.js which is loaded before this script
     if (typeof window.efSetupPhotoDropZone === 'function') {
-      window.efSetupPhotoDropZone('sup-banner-drop', 'sup-banner-preview', dataUrl => {
-        const input = document.getElementById('sup-banner');
-        if (input) {
-          input.value = dataUrl;
+      window.efSetupPhotoDropZone(
+        'sup-banner-drop',
+        'sup-banner-preview',
+        dataUrl => {
+          const input = document.getElementById('sup-banner');
+          if (input) {
+            input.value = dataUrl;
+          }
+        },
+        () => {
+          const input = document.getElementById('sup-banner');
+          if (input) {
+            input.value = '';
+          }
         }
-      });
+      );
     }
 
     // Initialize Pexels stock photo selector
@@ -417,17 +441,31 @@
     // Create preview container
     const container = document.createElement('div');
     container.className = 'photo-preview-item';
-    container.style.cssText = 'width:100%;height:150px;border-radius:8px;overflow:hidden;';
+    container.style.cssText = 'width:100%;height:150px;border-radius:8px;position:relative;';
 
     // Create image element using DOM (safer than innerHTML)
     const imgElement = document.createElement('img');
     imgElement.alt = 'Selected banner';
-    imgElement.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+    imgElement.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:8px;';
 
     // Set src via DOM property (safe after validation)
     imgElement.src = imageUrl;
 
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'photo-preview-remove';
+    removeBtn.setAttribute('aria-label', 'Remove banner image');
+    removeBtn.textContent = '\u2715';
+    removeBtn.addEventListener('click', () => {
+      container.remove();
+      const bannerInput = document.getElementById('sup-banner');
+      if (bannerInput) {
+        bannerInput.value = '';
+      }
+    });
+
     container.appendChild(imgElement);
+    container.appendChild(removeBtn);
     bannerPreview.appendChild(container);
   }
 

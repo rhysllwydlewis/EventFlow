@@ -337,7 +337,7 @@ class Carousel {
     // Format price with £ symbol if it's a number
     const formatPrice = priceDisplay => {
       if (!priceDisplay) {
-        return 'Contact for pricing';
+        return null; // Signal "not set" so the caller can emit a styled placeholder
       }
       const priceStr = String(priceDisplay);
       // If it's a plain number (integer or decimal), format as £X
@@ -357,7 +357,10 @@ class Carousel {
         ? `${rawDesc.substring(0, DESCRIPTION_MAX_LENGTH)}...`
         : rawDesc;
     const description = escapeHtml(truncatedRawDesc);
-    const price = escapeHtml(formatPrice(item.price_display || item.price));
+    const rawPrice = formatPrice(item.price_display || item.price);
+    const price = rawPrice
+      ? escapeHtml(rawPrice)
+      : '<span class="price-not-set">Price not set</span>';
     // Resolve the best available image via the shared utility when loaded,
     // otherwise fall back to the same inline strategy for resilience.
     const resolvedRaw =

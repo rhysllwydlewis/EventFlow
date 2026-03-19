@@ -54,9 +54,10 @@ describe('Supplier Dashboard – .indexOf() null/undefined guards', () => {
 
   it('app.js guards file.type before calling .indexOf()', () => {
     const appJs = fs.readFileSync(path.join(process.cwd(), 'public/assets/js/app.js'), 'utf8');
-    // Accept various guard patterns: !file.type ||, file.type &&, or optional chaining
+    // Accept various guard patterns: !file.type ||, file.type &&, optional chaining,
+    // or a safe Set/object-lookup approach that avoids .indexOf() entirely.
     expect(appJs).toMatch(
-      /(?:!file\.type\s*\|\|\s*file\.type\.indexOf|file\.type\?\.indexOf|file\.type\s*&&\s*file\.type\.indexOf)/
+      /(?:!file\.type\s*\|\|\s*file\.type\.indexOf|file\.type\?\.indexOf|file\.type\s*&&\s*file\.type\.indexOf|ALLOWED_TYPES\.has\(file\.type\)|ALLOWED_TYPES\[file\.type\]|!file\.type\s*\|\|\s*!ALLOWED_TYPES)/
     );
   });
 });

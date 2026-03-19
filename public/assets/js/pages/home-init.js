@@ -502,7 +502,7 @@ function renderPackageFallback(container, items) {
   // Format price with £ symbol if it's a number
   const formatPrice = priceDisplay => {
     if (!priceDisplay) {
-      return 'Contact for pricing';
+      return null; // Signal "not set" so the caller can emit a styled placeholder
     }
     const priceStr = String(priceDisplay);
     // If it's a plain number (integer or decimal), format as £X
@@ -520,7 +520,10 @@ function renderPackageFallback(container, items) {
       const description = escape(item.description || '');
       const truncDesc =
         description.length > 100 ? `${description.substring(0, 100)}...` : description;
-      const price = escape(formatPrice(item.price_display || item.price));
+      const rawPrice = formatPrice(item.price_display || item.price);
+      const price = rawPrice
+        ? escape(rawPrice)
+        : '<span class="price-not-set">Price not set</span>';
       // Resolve the best available image via the shared utility when loaded,
       // otherwise fall back to the same inline strategy for resilience.
       const resolvedImage =

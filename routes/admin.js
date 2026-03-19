@@ -1032,7 +1032,7 @@ router.post('/packages', authRequired, roleRequired('admin'), csrfProtection, as
       title,
       slug,
       description: description || '',
-      price_display: price_display || 'Contact for pricing',
+      price_display: price_display || '',
       image: image || PLACEHOLDER_PACKAGE_IMAGE,
       approved: approved === true,
       featured: featured === true,

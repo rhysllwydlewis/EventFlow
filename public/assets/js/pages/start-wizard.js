@@ -1070,7 +1070,11 @@
           ${pkg.image ? `<img src="${escapeHtml(pkg.image)}" alt="${escapeHtml(pkg.title)}">` : ''}
           <h4>${escapeHtml(pkg.title)}</h4>
           ${distanceInfo}
-          <p class="small">${escapeHtml(pkg.price_display || pkg.price || 'Contact for pricing')}</p>
+          ${
+            pkg.price_display || pkg.price
+              ? `<p class="small">${escapeHtml(pkg.price_display || pkg.price)}</p>`
+              : '<p class="small price-not-set">Price not set</p>'
+          }
           ${isSelected ? '<div class="wizard-package-selected">✓ Selected</div>' : ''}
         </div>
       `;
