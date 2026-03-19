@@ -9,7 +9,9 @@
  *                                    callers to clear the underlying input/storage.
  */
 function efSetupPhotoDropZone(dropId, previewId, onImage, onRemove) {
-  // Maximum allowed file size (5 MB — matches the server-side upload validation limit)
+  // Maximum allowed file size (5 MB — a conservative client-side gate before the server
+  // limit; server-side limit for supplier uploads is MAX_FILE_SIZE_SUPPLIER in
+  // utils/uploadValidation.js, defaulting to 10 MB).
   const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
   // Strictly allowed image MIME types. Extend here to support new formats.
   // client-side mirror of the server-side allowed-types list in routes/packages.js
