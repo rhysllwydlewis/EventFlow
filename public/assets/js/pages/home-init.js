@@ -534,7 +534,14 @@ function renderPackageFallback(container, items) {
               if (Array.isArray(item.gallery) && item.gallery.length > 0) {
                 for (const img of item.gallery) {
                   const url =
-                    typeof img === 'string' ? img : img.url || img.src || img.path || img.image;
+                    typeof img === 'string'
+                      ? img
+                      : img.url ||
+                        img.src ||
+                        img.path ||
+                        img.image ||
+                        img.originalUrl ||
+                        img.thumbnail;
                   if (url && url !== placeholder) {
                     return url;
                   }
@@ -3421,7 +3428,10 @@ async function fetchTestimonials() {
 
     // Update dot navigation to match the number of rendered reviews
     const dotsContainer = document.querySelector('.ef-testimonials-dots');
-    if (dotsContainer && displayed.length !== dotsContainer.querySelectorAll('.ef-testimonial-dot').length) {
+    if (
+      dotsContainer &&
+      displayed.length !== dotsContainer.querySelectorAll('.ef-testimonial-dot').length
+    ) {
       dotsContainer.innerHTML = displayed
         .map(
           (_, i) =>

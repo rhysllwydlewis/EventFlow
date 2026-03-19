@@ -438,6 +438,7 @@ router.post(
       updateFields.image = url;
     }
     await dbUnified.updateOne('packages', { id: req.params.id }, { $set: updateFields });
+    suppliersRouter.invalidatePackageCaches();
     res.json({ ok: true, url });
   }
 );
@@ -489,6 +490,72 @@ router.delete(
       ok: true,
       gallery: newGallery,
       image: updateFields.image !== undefined ? updateFields.image : p.image,
+    });
+  }
+);
+
+/**
+ * PUT /api/me/packages/:id/gallery/order
+ * Reorder the photos in a package gallery.
+ * Body: { urls: [string, ...] }  — full ordered list of gallery photo URLs.
+ * The first URL becomes pkg.image (the card thumbnail shown everywhere).
+ */
+router.put(
+  '/me/packages/:id/gallery/order',
+  applyWriteLimiter,
+  applyAuthRequired,
+  applyCsrfProtection,
+  async (req, res) => {
+    const { urls } = req.body || {};
+    if (!Array.isArray(urls)) {
+      return res.status(400).json({ error: 'urls must be an array' });
+    }
+
+    const pkgs = await dbUnified.read('packages');
+    const p = pkgs.find(x => x.id === req.params.id);
+    if (!p) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+
+    const suppliers = await dbUnified.read('suppliers');
+    const own = suppliers.find(x => x.id === p.supplierId && x.ownerUserId === req.userId);
+    if (!own) {
+      return res.status(403).json({ error: 'Not owner' });
+    }
+
+    // Build an ordered gallery by matching incoming URL order against existing gallery objects
+    // so that metadata (thumbnail, uploadedAt, etc.) is preserved.
+    const existingByUrl = new Map();
+    (p.gallery || []).forEach(item => {
+      const itemUrl = typeof item === 'string' ? item : item.url || '';
+      if (itemUrl) {
+        existingByUrl.set(itemUrl, item);
+      }
+    });
+
+    // Only accept URLs that are actually in the existing gallery (no injection)
+    const orderedGallery = urls
+      .filter(u => typeof u === 'string' && existingByUrl.has(u))
+      .map(u => existingByUrl.get(u));
+
+    const updateFields = { gallery: orderedGallery };
+
+    // Sync pkg.image to the first gallery item so card thumbnails update immediately
+    if (orderedGallery.length > 0) {
+      const first = orderedGallery[0];
+      updateFields.image =
+        typeof first === 'string' ? first : first.url || PLACEHOLDER_PACKAGE_IMAGE;
+    } else {
+      updateFields.image = PLACEHOLDER_PACKAGE_IMAGE;
+    }
+
+    await dbUnified.updateOne('packages', { id: req.params.id }, { $set: updateFields });
+    suppliersRouter.invalidatePackageCaches();
+
+    res.json({
+      ok: true,
+      gallery: orderedGallery,
+      image: updateFields.image,
     });
   }
 );

@@ -130,6 +130,32 @@ describe('resolvePackageImage', () => {
       expect(resolvePackageImage(pkg)).toBe('/uploads/packages/gallery-image.jpg');
     });
 
+    it('supports gallery item as object with .originalUrl field', () => {
+      const pkg = {
+        gallery: [{ originalUrl: '/uploads/packages/gallery-original.jpg' }],
+      };
+      expect(resolvePackageImage(pkg)).toBe('/uploads/packages/gallery-original.jpg');
+    });
+
+    it('supports gallery item as object with .thumbnail field', () => {
+      const pkg = {
+        gallery: [{ thumbnail: '/uploads/packages/gallery-thumb.jpg' }],
+      };
+      expect(resolvePackageImage(pkg)).toBe('/uploads/packages/gallery-thumb.jpg');
+    });
+
+    it('prefers .url over .thumbnail when both are present', () => {
+      const pkg = {
+        gallery: [
+          {
+            url: '/uploads/packages/gallery-optimized.jpg',
+            thumbnail: '/uploads/packages/gallery-thumb.jpg',
+          },
+        ],
+      };
+      expect(resolvePackageImage(pkg)).toBe('/uploads/packages/gallery-optimized.jpg');
+    });
+
     it('returns placeholder when all gallery entries are placeholders', () => {
       const pkg = {
         image: PLACEHOLDER_PACKAGE_IMAGE,

@@ -971,8 +971,15 @@
                 <div id="pkg-photo-preview" class="photo-preview-grid"></div>
               </div>
               <div class="form-row" id="pkg-gallery-row" style="display:none">
-                <label>Existing gallery photos</label>
-                <div id="pkg-gallery-existing" class="photo-preview-grid" style="display:none"></div>
+                <div class="pkg-gallery-row-header">
+                  <label>Gallery photos</label>
+                  <span class="pkg-gallery-hint">Drag to reorder<span aria-hidden="true"> &bull;</span> first photo is the card thumbnail</span>
+                </div>
+                <div id="pkg-gallery-existing" class="pkg-gallery-sortable photo-preview-grid" style="display:none"></div>
+                <div id="pkg-gallery-reorder-bar" class="pkg-gallery-reorder-bar" style="display:none">
+                  <button type="button" id="pkg-gallery-save-order" class="cta cta-sm">Save order</button>
+                  <span id="pkg-gallery-order-status" class="pkg-gallery-order-status"></span>
+                </div>
               </div>
               <div class="form-actions supplier-form-actions">
                 <button class="cta" type="submit">Save package</button>

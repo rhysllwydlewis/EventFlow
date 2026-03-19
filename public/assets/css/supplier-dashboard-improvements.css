@@ -5660,3 +5660,142 @@ body:not(.supplier-dashboard-page) .section > .container {
 .pkg-gallery-delete:hover {
   background: #dc2626;
 }
+
+/* ── Package gallery row header ──────────────────────────────────────────── */
+.pkg-gallery-row-header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.4rem;
+}
+
+.pkg-gallery-row-header label {
+  margin-bottom: 0;
+  font-weight: 600;
+}
+
+.pkg-gallery-hint {
+  font-size: 0.78rem;
+  color: #6b7280;
+}
+
+/* ── Sortable gallery grid ───────────────────────────────────────────────── */
+.pkg-gallery-sortable {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+/* ── Individual gallery card ─────────────────────────────────────────────── */
+.pkg-gallery-item {
+  position: relative;
+  width: 90px;
+  height: 90px;
+  border-radius: 6px;
+  overflow: visible;
+  cursor: grab;
+  border: 2px solid transparent;
+  transition: border-color 0.15s, transform 0.12s, box-shadow 0.12s;
+  flex-shrink: 0;
+}
+
+.pkg-gallery-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 5px;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+}
+
+.pkg-gallery-item:hover {
+  border-color: rgba(99, 102, 241, 0.55);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.18);
+}
+
+/* Drag in progress */
+.pkg-gallery-item.pkg-gallery-dragging {
+  opacity: 0.45;
+  cursor: grabbing;
+  transform: scale(0.96);
+}
+
+/* Drop target highlight */
+.pkg-gallery-item.pkg-gallery-drag-over {
+  border-color: #6366f1;
+  background: rgba(99, 102, 241, 0.08);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
+}
+
+/* ── Drag handle ─────────────────────────────────────────────────────────── */
+.pkg-gallery-drag-handle {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 12px;
+  line-height: 18px;
+  text-align: center;
+  border-radius: 3px;
+  cursor: grab;
+  user-select: none;
+  z-index: 2;
+  transition: background 0.15s;
+}
+
+.pkg-gallery-item:hover .pkg-gallery-drag-handle {
+  background: rgba(0, 0, 0, 0.68);
+}
+
+/* ── "Cover" badge on the first photo ───────────────────────────────────── */
+.pkg-gallery-first-badge {
+  position: absolute;
+  bottom: 3px;
+  left: 3px;
+  padding: 1px 5px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  background: #6366f1;
+  color: #fff;
+  border-radius: 3px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* ── Delete button (override legacy styles) ──────────────────────────────── */
+.pkg-gallery-item .pkg-gallery-delete {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 20px;
+  height: 20px;
+  z-index: 3;
+}
+
+/* ── Save order toolbar ──────────────────────────────────────────────────── */
+.pkg-gallery-reorder-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-top: 8px;
+}
+
+.cta-sm {
+  padding: 5px 14px;
+  font-size: 0.82rem;
+  border-radius: 6px;
+}
+
+.pkg-gallery-order-status {
+  font-size: 0.82rem;
+  color: #16a34a;
+  font-weight: 500;
+}

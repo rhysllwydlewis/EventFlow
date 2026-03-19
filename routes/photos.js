@@ -933,8 +933,25 @@ router.delete('/photos/delete', applyAuthRequired, applyCsrfProtection, async (r
       }
 
       if (pkg.gallery) {
-        pkg.gallery = pkg.gallery.filter(p => p.url !== decodedUrl);
-        await dbUnified.updateOne('packages', { id: pkg.id }, { $set: { gallery: pkg.gallery } });
+        // Handle gallery items stored as strings or objects
+        pkg.gallery = pkg.gallery.filter(p => {
+          const itemUrl = typeof p === 'string' ? p : p.url || '';
+          return itemUrl !== decodedUrl;
+        });
+
+        const updateFields = { gallery: pkg.gallery };
+        // Sync pkg.image with first remaining gallery photo (or placeholder)
+        if (!pkg.image || pkg.image === PLACEHOLDER_PACKAGE_IMAGE || pkg.image === decodedUrl) {
+          const firstGalleryItem = pkg.gallery[0];
+          updateFields.image = firstGalleryItem
+            ? typeof firstGalleryItem === 'string'
+              ? firstGalleryItem
+              : firstGalleryItem.url || PLACEHOLDER_PACKAGE_IMAGE
+            : PLACEHOLDER_PACKAGE_IMAGE;
+        }
+
+        await dbUnified.updateOne('packages', { id: pkg.id }, { $set: updateFields });
+        suppliersRouter.invalidatePackageCaches();
 
         // Delete physical files
         await photoUpload.deleteImage(decodedUrl);

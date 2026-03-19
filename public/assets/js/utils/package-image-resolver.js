@@ -62,7 +62,9 @@ function resolvePackageImage(pkg) {
   if (Array.isArray(pkg.gallery) && pkg.gallery.length > 0) {
     for (const img of pkg.gallery) {
       const url =
-        typeof img === 'string' ? img : img.url || img.src || img.path || img.image;
+        typeof img === 'string'
+          ? img
+          : img.url || img.src || img.path || img.image || img.originalUrl || img.thumbnail;
       if (url && !isPlaceholderImage(url)) {
         return url;
       }
@@ -91,8 +93,7 @@ function debugPackageImage(pkg, chosenUrl) {
   }
   try {
     const params = new URLSearchParams(window.location.search);
-    const storageFlag =
-      window.localStorage && window.localStorage.getItem('debugImages') === '1';
+    const storageFlag = window.localStorage && window.localStorage.getItem('debugImages') === '1';
     if (params.get('debugImages') !== '1' && !storageFlag) {
       return;
     }

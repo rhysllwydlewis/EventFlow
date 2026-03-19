@@ -89,7 +89,10 @@ function resolvePackageImage(pkg) {
   // Fall back to the first gallery image
   if (Array.isArray(pkg.gallery) && pkg.gallery.length > 0) {
     for (const img of pkg.gallery) {
-      const url = typeof img === 'string' ? img : img.url || img.src || img.path || img.image;
+      const url =
+        typeof img === 'string'
+          ? img
+          : img.url || img.src || img.path || img.image || img.originalUrl || img.thumbnail;
       if (url && url !== placeholder) {
         return url;
       }

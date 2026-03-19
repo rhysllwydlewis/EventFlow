@@ -371,7 +371,14 @@ class Carousel {
             if (Array.isArray(item.gallery) && item.gallery.length > 0) {
               for (const img of item.gallery) {
                 const url =
-                  typeof img === 'string' ? img : img.url || img.src || img.path || img.image;
+                  typeof img === 'string'
+                    ? img
+                    : img.url ||
+                      img.src ||
+                      img.path ||
+                      img.image ||
+                      img.originalUrl ||
+                      img.thumbnail;
                 if (url && url !== placeholder) {
                   return url;
                 }

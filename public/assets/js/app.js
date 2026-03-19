@@ -3209,6 +3209,11 @@ async function initDashSupplier() {
         deletePackagePhoto(packageId, photoUrl, target);
       }
     }
+
+    // Handle gallery save-order button
+    if (target.matches('#pkg-gallery-save-order')) {
+      savePkgGalleryOrder();
+    }
   });
 
   function buildSupplierPayload(form) {
@@ -3639,26 +3644,25 @@ function editPackage(packageId) {
           validPhotos.unshift({ url: pkg.image, _isMainImage: true });
         }
         if (validPhotos.length > 0) {
-          galleryExisting.innerHTML = validPhotos
-            .map(item => {
-              const photoUrl = typeof item === 'string' ? item : item.url || '';
-              const escapedUrl = photoUrl.replace(/"/g, '&quot;');
-              const label = item._isMainImage ? 'Main package photo' : 'Gallery photo';
-              return `<div class="pkg-gallery-item">
-                <img src="${escapedUrl}" alt="${label}" style="width:80px;height:80px;object-fit:cover;border-radius:4px;">
-                <button type="button" class="pkg-gallery-delete" data-url="${escapedUrl}" data-package-id="${pkg.id}" aria-label="Delete photo" title="Delete photo">✕</button>
-              </div>`;
-            })
-            .join('');
+          renderPkgGallery(galleryExisting, validPhotos, pkg.id);
           galleryExisting.style.display = '';
           if (galleryRow) {
             galleryRow.style.display = '';
+          }
+          // Show reorder bar only when there are ≥2 photos
+          const reorderBar = document.getElementById('pkg-gallery-reorder-bar');
+          if (reorderBar) {
+            reorderBar.style.display = validPhotos.length >= 2 ? '' : 'none';
           }
         } else {
           galleryExisting.innerHTML = '';
           galleryExisting.style.display = 'none';
           if (galleryRow) {
             galleryRow.style.display = 'none';
+          }
+          const reorderBar = document.getElementById('pkg-gallery-reorder-bar');
+          if (reorderBar) {
+            reorderBar.style.display = 'none';
           }
         }
       }
@@ -3760,6 +3764,204 @@ async function deletePackagePhoto(packageId, photoUrl, btnEl) {
     alert('Failed to delete photo. Please try again.');
     if (btnEl) {
       btnEl.disabled = false;
+    }
+  }
+}
+
+/**
+ * Render the editable package gallery with drag-to-reorder support.
+ * Items can be dragged by their handle (≡) to change order.
+ * The first item carries a "Cover" badge as a visual cue that it becomes the card thumbnail.
+ *
+ * @param {HTMLElement} container  - The #pkg-gallery-existing element
+ * @param {Array}       photos     - Ordered array of gallery items (string URLs or objects with .url)
+ * @param {string}      packageId  - Package ID used by the delete buttons
+ */
+function renderPkgGallery(container, photos, packageId) {
+  container.innerHTML = photos
+    .map((item, index) => {
+      const photoUrl = typeof item === 'string' ? item : item.url || '';
+      const escapedUrl = photoUrl.replace(/"/g, '&quot;');
+      const isFirst = index === 0;
+      return `<div class="pkg-gallery-item" draggable="true" data-url="${escapedUrl}">
+        <span class="pkg-gallery-drag-handle" title="Drag to reorder" aria-hidden="true">⠿</span>
+        ${isFirst ? '<span class="pkg-gallery-first-badge">Cover</span>' : ''}
+        <img src="${escapedUrl}" alt="Gallery photo" loading="lazy">
+        <button type="button" class="pkg-gallery-delete" data-url="${escapedUrl}" data-package-id="${packageId}" aria-label="Delete photo" title="Delete photo">✕</button>
+      </div>`;
+    })
+    .join('');
+
+  // Wire up HTML5 drag-and-drop on the container
+  _attachGalleryDragDrop(container);
+}
+
+/**
+ * Attach HTML5 drag-and-drop handlers to a rendered pkg-gallery-sortable container.
+ * Uses event delegation on the container for efficiency.
+ */
+function _attachGalleryDragDrop(container) {
+  let dragSrc = null;
+
+  container.addEventListener('dragstart', e => {
+    const item = e.target.closest('.pkg-gallery-item');
+    if (!item) {
+      return;
+    }
+    dragSrc = item;
+    item.classList.add('pkg-gallery-dragging');
+    e.dataTransfer.effectAllowed = 'move';
+  });
+
+  container.addEventListener('dragend', e => {
+    const item = e.target.closest('.pkg-gallery-item');
+    if (item) {
+      item.classList.remove('pkg-gallery-dragging');
+    }
+    container.querySelectorAll('.pkg-gallery-item').forEach(el => {
+      el.classList.remove('pkg-gallery-drag-over');
+    });
+    dragSrc = null;
+    // Refresh the "Cover" badge so it's always on the first card
+    _refreshFirstBadge(container);
+    // Show/hide the save-order bar based on whether order changed
+    _markGalleryOrderDirty();
+  });
+
+  container.addEventListener('dragover', e => {
+    e.preventDefault();
+    const item = e.target.closest('.pkg-gallery-item');
+    if (!item || item === dragSrc) {
+      return;
+    }
+    container.querySelectorAll('.pkg-gallery-item').forEach(el => {
+      el.classList.remove('pkg-gallery-drag-over');
+    });
+    item.classList.add('pkg-gallery-drag-over');
+    e.dataTransfer.dropEffect = 'move';
+  });
+
+  container.addEventListener('dragleave', e => {
+    const item = e.target.closest('.pkg-gallery-item');
+    if (item) {
+      item.classList.remove('pkg-gallery-drag-over');
+    }
+  });
+
+  container.addEventListener('drop', e => {
+    e.preventDefault();
+    const target = e.target.closest('.pkg-gallery-item');
+    if (!target || !dragSrc || target === dragSrc) {
+      return;
+    }
+    target.classList.remove('pkg-gallery-drag-over');
+
+    // Determine insertion position: before or after target based on pointer position
+    const rect = target.getBoundingClientRect();
+    const midX = rect.left + rect.width / 2;
+    if (e.clientX < midX) {
+      container.insertBefore(dragSrc, target);
+    } else {
+      container.insertBefore(dragSrc, target.nextSibling);
+    }
+  });
+}
+
+/**
+ * Refresh the "Cover" badge so it appears only on the first gallery item.
+ */
+function _refreshFirstBadge(container) {
+  const items = container.querySelectorAll('.pkg-gallery-item');
+  items.forEach((item, idx) => {
+    let badge = item.querySelector('.pkg-gallery-first-badge');
+    if (idx === 0) {
+      if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'pkg-gallery-first-badge';
+        badge.textContent = 'Cover';
+        item.insertBefore(badge, item.firstChild.nextSibling); // after drag handle
+      }
+    } else if (badge) {
+      badge.remove();
+    }
+  });
+}
+
+/**
+ * Show the Save Order bar so the user can persist the new order.
+ */
+function _markGalleryOrderDirty() {
+  const bar = document.getElementById('pkg-gallery-reorder-bar');
+  if (bar) {
+    bar.style.display = '';
+    const status = document.getElementById('pkg-gallery-order-status');
+    if (status) {
+      status.textContent = '';
+    }
+  }
+}
+
+/**
+ * Collect the current gallery order from the DOM and save it via the API.
+ * Called when the supplier clicks "Save order".
+ */
+async function savePkgGalleryOrder() {
+  const container = document.getElementById('pkg-gallery-existing');
+  const packageId = document.getElementById('pkg-id-hidden')?.value;
+  if (!container || !packageId) {
+    return;
+  }
+
+  const urls = Array.from(container.querySelectorAll('.pkg-gallery-item[data-url]')).map(el =>
+    el.getAttribute('data-url')
+  );
+
+  const saveBtn = document.getElementById('pkg-gallery-save-order');
+  const status = document.getElementById('pkg-gallery-order-status');
+  if (saveBtn) {
+    saveBtn.disabled = true;
+  }
+  if (status) {
+    status.textContent = 'Saving…';
+  }
+
+  try {
+    const csrfToken = window.__CSRF_TOKEN__ || '';
+    const response = await fetch(
+      `/api/me/packages/${encodeURIComponent(packageId)}/gallery/order`,
+      {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken,
+        },
+        credentials: 'include',
+        body: JSON.stringify({ urls }),
+      }
+    );
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      if (status) {
+        status.textContent = `Error: ${err.error || 'Could not save order'}`;
+      }
+    } else {
+      if (status) {
+        status.textContent = '✓ Order saved';
+        setTimeout(() => {
+          status.textContent = '';
+        }, 3000);
+      }
+      // Refresh "Cover" badge in case the server order differs
+      _refreshFirstBadge(container);
+    }
+  } catch (e) {
+    if (status) {
+      status.textContent = 'Network error — please try again';
+    }
+  } finally {
+    if (saveBtn) {
+      saveBtn.disabled = false;
     }
   }
 }
@@ -3954,6 +4156,7 @@ window.togglePackageForm = togglePackageForm;
 window.editPackage = editPackage;
 window.deletePackage = deletePackage;
 window.deletePackagePhoto = deletePackagePhoto;
+window.savePkgGalleryOrder = savePkgGalleryOrder;
 window.toggleProfileForm = toggleProfileForm;
 window.editProfile = editProfile;
 window.deleteProfile = deleteProfile;
