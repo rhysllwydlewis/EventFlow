@@ -1,4 +1,14 @@
 function efSetupPhotoDropZone(dropId, previewId, onImage) {
+  // Maximum allowed file size (5 MB — matches the server-side upload validation limit)
+  var MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+  // Strictly allowed image MIME types
+  var ALLOWED_TYPES = {
+    'image/jpeg': true,
+    'image/png': true,
+    'image/webp': true,
+    'image/gif': true,
+  };
+
   const drop = document.getElementById(dropId);
   if (!drop) {
     return;
@@ -10,14 +20,111 @@ function efSetupPhotoDropZone(dropId, previewId, onImage) {
     e.stopPropagation();
   }
 
+  /** Format a byte count as a human-readable string (e.g. "4.2MB" or "512KB"). */
+  function formatBytes(bytes) {
+    if (bytes >= 1024 * 1024) {
+      return (bytes / (1024 * 1024)).toFixed(1) + 'MB';
+    }
+    return Math.round(bytes / 1024) + 'KB';
+  }
+
+  /** Show a brief inline error message below the drop zone. */
+  function showDropError(message) {
+    const parent = drop.parentNode;
+    if (!parent) {
+      return;
+    }
+    const existing = parent.querySelector('.photo-drop-error');
+    if (existing) {
+      existing.remove();
+    }
+    const err = document.createElement('p');
+    err.className = 'photo-drop-error';
+    err.textContent = message;
+    parent.insertBefore(err, drop.nextSibling);
+    setTimeout(function () {
+      if (err.parentNode) {
+        err.remove();
+      }
+    }, 8000);
+  }
+
+  /** Show an error via Toast if available, otherwise fall back to inline message. */
+  function showError(message) {
+    if (
+      window.EventFlowNotifications &&
+      typeof window.EventFlowNotifications.error === 'function'
+    ) {
+      window.EventFlowNotifications.error(message);
+    } else {
+      showDropError(message);
+    }
+  }
+
+  /**
+   * Add a thumbnail to the preview container.
+   * @param {string|null} dataUrl  - Base-64 data URL, or null for failed items.
+   * @param {string|null} errorMsg - Reason the file was rejected, or null on success.
+   */
+  function addPreviewItem(dataUrl, errorMsg) {
+    if (!preview) {
+      return;
+    }
+    const wrapper = document.createElement('div');
+    wrapper.className = 'photo-preview-item' + (errorMsg ? ' photo-preview-failed' : '');
+
+    if (dataUrl) {
+      const img = document.createElement('img');
+      img.src = dataUrl;
+      wrapper.appendChild(img);
+    }
+
+    if (errorMsg) {
+      const badge = document.createElement('span');
+      badge.className = 'photo-preview-error-badge';
+      badge.textContent = errorMsg;
+      wrapper.appendChild(badge);
+    }
+
+    // Remove (✕) button present on every preview item
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'photo-preview-remove';
+    removeBtn.setAttribute('aria-label', 'Remove image');
+    removeBtn.textContent = '\u2715';
+    removeBtn.addEventListener('click', function () {
+      wrapper.remove();
+    });
+    wrapper.appendChild(removeBtn);
+
+    preview.appendChild(wrapper);
+  }
+
   function handleFiles(files) {
     if (!files || !files.length) {
       return;
     }
     Array.prototype.slice.call(files).forEach(file => {
-      if (!file.type || file.type.indexOf('image/') !== 0) {
+      // Validate MIME type
+      if (!file.type || !ALLOWED_TYPES[file.type]) {
+        showError(`\u201c${file.name}\u201d is not a supported image type. Please use JPEG, PNG, WebP or GIF.`);
+        addPreviewItem(null, 'Invalid file type');
         return;
       }
+
+      // Validate file size
+      if (file.size > MAX_FILE_SIZE_BYTES) {
+        showError(
+          `\u201c${file.name}\u201d is too large (${formatBytes(file.size)}). Maximum allowed size is ${formatBytes(MAX_FILE_SIZE_BYTES)}.`
+        );
+        addPreviewItem(
+          null,
+          `File too large (${formatBytes(file.size)}) \u2014 max ${formatBytes(MAX_FILE_SIZE_BYTES)}`
+        );
+        return;
+      }
+
+      // File passed validation — read and display preview
       const reader = new FileReader();
       reader.addEventListener('load', ev => {
         const dataUrl = ev.target && ev.target.result;
@@ -27,11 +134,7 @@ function efSetupPhotoDropZone(dropId, previewId, onImage) {
         if (typeof onImage === 'function') {
           onImage(dataUrl, file);
         }
-        if (preview) {
-          const img = document.createElement('img');
-          img.src = dataUrl;
-          preview.appendChild(img);
-        }
+        addPreviewItem(dataUrl, null);
       });
       reader.readAsDataURL(file);
     });
@@ -62,7 +165,7 @@ function efSetupPhotoDropZone(dropId, previewId, onImage) {
   drop.addEventListener('click', () => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = 'image/*';
+    input.accept = 'image/jpeg,image/png,image/webp,image/gif';
     input.multiple = true;
     input.addEventListener('change', () => {
       handleFiles(input.files);
