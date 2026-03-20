@@ -53,6 +53,7 @@ const adminConfigRoutes = require('./admin-config');
 const twoFactorRoutes = require('./twoFactor');
 const phoneVerificationRoutes = require('./phoneVerification');
 const emailVerificationRoutes = require('./emailVerification');
+const catalogRoutes = require('./catalog');
 
 /**
  * Mount all route modules
@@ -66,6 +67,9 @@ function mountRoutes(app, deps) {
   }
   app.use('/api/v1', systemRoutes);
   app.use('/api', systemRoutes); // Backward compatibility
+
+  // JadeAssist catalog API (read-only, API-key protected when CATALOG_API_KEY is set)
+  app.use('/api/catalog', catalogRoutes);
 
   // Public routes (no auth required) - mount early to avoid auth middleware
   app.use('/api/v1/public', publicRoutes);

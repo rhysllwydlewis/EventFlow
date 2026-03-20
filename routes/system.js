@@ -180,6 +180,9 @@ router.get('/config', apiLimiter, async (req, res) => {
       process.env.JADEASSIST_API_BASE_URL ||
       // Keep this default in sync with API_BASE_URL in public/assets/js/jadeassist-init.v2.js
       'https://jadeassistbackend-production.up.railway.app',
+    // Base URL for the EventFlow catalog API consumed by JadeAssist.
+    // Defaults to the same origin so JadeAssist can construct absolute URLs.
+    catalogApiBaseUrl: process.env.CATALOG_API_BASE_URL || '',
   });
 });
 

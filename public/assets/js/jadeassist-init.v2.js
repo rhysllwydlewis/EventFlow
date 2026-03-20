@@ -33,6 +33,12 @@
     (window.JADEASSIST_CONFIG && window.JADEASSIST_CONFIG.apiBaseUrl) ||
     'https://jadeassistbackend-production.up.railway.app';
 
+  // EventFlow catalog API base URL — used by JadeAssist backend to fetch supplier/venue data.
+  // Injected via window.JADEASSIST_CONFIG.catalogApiBaseUrl (populated from /api/config).
+  // Falls back to empty string, meaning JadeAssist will use its own configured value.
+  const CATALOG_API_BASE_URL =
+    (window.JADEASSIST_CONFIG && window.JADEASSIST_CONFIG.catalogApiBaseUrl) || '';
+
   const MAX_RETRIES = 50; // Maximum retry attempts (5 seconds with 100ms interval)
   const RETRY_INTERVAL = 100; // Retry interval in milliseconds
   const INIT_DELAY = 2000; // Delay before init attempt (ms) — prioritize page content first
@@ -577,6 +583,7 @@
         verifyAvatarLoad(avatarUrl);
         console.log('[JadeAssist] Init config:', {
           apiBaseUrl: API_BASE_URL,
+          catalogApiBaseUrl: CATALOG_API_BASE_URL || '(not set)',
           primaryColor: '#00B2A9',
           assistantName: 'Jade',
           avatarUrl,
@@ -595,6 +602,9 @@
       window.JadeWidget.init({
         // Backend API (Railway-hosted JadeAssist service)
         apiBaseUrl: API_BASE_URL,
+
+        // EventFlow catalog API base URL (for JadeAssist to fetch supplier/venue data)
+        ...(CATALOG_API_BASE_URL ? { catalogApiBaseUrl: CATALOG_API_BASE_URL } : {}),
 
         // Brand colors
         primaryColor: '#00B2A9',
