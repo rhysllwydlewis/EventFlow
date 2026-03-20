@@ -135,7 +135,7 @@
         <div class="card supplier-page-header pc-header-card">
           <h1 class="supplier-page-title">✨ Profile Customization</h1>
           <p class="supplier-page-subtitle">
-            Make your profile stand out with custom branding, highlights, and personalization
+            Craft a compelling profile that converts visitors into enquiries. Your profile is your marketplace listing — make it count.
           </p>
         </div>
 
@@ -154,6 +154,7 @@
 
             <!-- ── Section: Banner & Identity ─────────────────── -->
             <h3 class="pc-section-heading">🖼️ Banner &amp; Identity</h3>
+            <p class="pc-section-desc">Your banner is the first thing visitors see. A strong, relevant image dramatically improves first impressions.</p>
 
             <!-- Banner Image Section -->
             <div class="form-row">
@@ -166,42 +167,44 @@
                   🖼️ Select Stock Photo
                 </button>
                 <span class="form-hint" style="margin: 0; flex: 1;">
-                  Or choose a professional photo from our stock library
+                  Or choose a professional photo from our free stock library
                 </span>
               </div>
               <div id="sup-banner-preview" class="photo-preview-grid"></div>
               <input type="hidden" id="sup-banner" name="bannerUrl">
-              <p class="form-hint">Add a custom banner image to make your profile stand out (recommended: 1200x400px)</p>
+              <p class="form-hint">Recommended: 1200×400px. A real photo of your work converts better than generic images.</p>
             </div>
 
             <!-- Tagline -->
             <div class="form-row">
               <label>Tagline <span class="label-optional">(optional)</span></label>
               <input id="sup-tagline" name="tagline" placeholder="e.g. Creating magical moments for over 10 years" maxlength="100">
-              <p class="form-hint">A catchy tagline that describes your business (max 100 characters)</p>
+              <div class="pc-char-count" id="tagline-count" aria-live="polite">0 / 100</div>
+              <p class="form-hint">A punchy, memorable one-liner. Keep it specific: include what you do and what makes you different.</p>
             </div>
 
             <!-- ── Section: Highlights & Services ─────────────── -->
             <h3 class="pc-section-heading pc-section-heading--spaced">✅ Highlights &amp; Services</h3>
+            <p class="pc-section-desc">These appear prominently on your public profile and help buyers quickly understand your strengths.</p>
 
             <!-- Key Highlights -->
             <div class="form-row">
-              <label>Key Highlights <span class="label-optional">(optional)</span></label>
+              <label>Key Highlights <span class="label-optional">(up to 5)</span></label>
               <div id="highlights-container" class="highlights-stack">
-                <input id="sup-highlight-1" class="highlight-input" placeholder="e.g. Award-winning service" maxlength="60">
+                <input id="sup-highlight-1" class="highlight-input" placeholder="e.g. Award-winning service since 2018" maxlength="60">
                 <input id="sup-highlight-2" class="highlight-input" placeholder="e.g. Fully licensed and insured" maxlength="60">
-                <input id="sup-highlight-3" class="highlight-input" placeholder="e.g. 5-star reviews" maxlength="60">
-                <input id="sup-highlight-4" class="highlight-input" placeholder="e.g. 10+ years experience" maxlength="60">
-                <input id="sup-highlight-5" class="highlight-input" placeholder="e.g. Professional equipment" maxlength="60">
+                <input id="sup-highlight-3" class="highlight-input" placeholder="e.g. 5-star reviews across 100+ events" maxlength="60">
+                <input id="sup-highlight-4" class="highlight-input" placeholder="e.g. 10+ years of experience" maxlength="60">
+                <input id="sup-highlight-5" class="highlight-input" placeholder="e.g. Professional-grade equipment" maxlength="60">
               </div>
-              <p class="form-hint">Add up to 5 key highlights about your business</p>
+              <p class="form-hint">Short, punchy facts. Think: what would make a buyer choose you over a competitor?</p>
             </div>
 
             <!-- Featured Services -->
             <div class="form-row">
               <label>Featured Services <span class="label-optional">(optional)</span></label>
-              <textarea id="sup-featured-services" name="featuredServices" rows="5" placeholder="Enter each service on a new line&#10;e.g.:&#10;Wedding Photography&#10;Engagement Shoots&#10;Photo Albums"></textarea>
-              <p class="form-hint">List your main services, one per line (max 10)</p>
+              <textarea id="sup-featured-services" name="featuredServices" rows="5" placeholder="Enter each service on a new line&#10;e.g.:&#10;Wedding Photography&#10;Engagement Shoots&#10;Corporate Events&#10;Photo Albums"></textarea>
+              <p class="form-hint">List your main services, one per line (max 10). These appear as clickable tags on your profile.</p>
             </div>
 
             <!-- Brand Theme Color -->
@@ -246,43 +249,44 @@
 
             <!-- Social Media Links -->
             <h3 class="pc-section-heading pc-section-heading--spaced">🔗 Social Media Links</h3>
+            <p class="pc-section-desc">Social proof matters. Suppliers with linked profiles receive more enquiries.</p>
             <div class="form-row">
               <label>Social Profiles <span class="label-optional">(optional)</span></label>
               <div class="social-links-grid">
                 <div>
                   <label class="social-label">📘 Facebook</label>
-                  <input id="sup-social-facebook" class="social-input" placeholder="https://facebook.com/yourpage">
+                  <input id="sup-social-facebook" class="social-input" placeholder="https://facebook.com/yourpage" type="url">
                 </div>
                 <div>
                   <label class="social-label">📷 Instagram</label>
-                  <input id="sup-social-instagram" class="social-input" placeholder="https://instagram.com/yourpage">
+                  <input id="sup-social-instagram" class="social-input" placeholder="https://instagram.com/yourpage" type="url">
                 </div>
                 <div>
-                  <label class="social-label">🐦 Twitter</label>
-                  <input id="sup-social-twitter" class="social-input" placeholder="https://twitter.com/yourpage">
+                  <label class="social-label">𝕏 Twitter / X</label>
+                  <input id="sup-social-twitter" class="social-input" placeholder="https://twitter.com/yourpage" type="url">
                 </div>
                 <div>
                   <label class="social-label">💼 LinkedIn</label>
-                  <input id="sup-social-linkedin" class="social-input" placeholder="https://linkedin.com/company/yourpage">
+                  <input id="sup-social-linkedin" class="social-input" placeholder="https://linkedin.com/company/yourpage" type="url">
                 </div>
                 <div>
                   <label class="social-label">▶️ YouTube</label>
-                  <input id="sup-social-youtube" class="social-input" placeholder="https://youtube.com/@yourpage">
+                  <input id="sup-social-youtube" class="social-input" placeholder="https://youtube.com/@yourpage" type="url">
                 </div>
                 <div>
                   <label class="social-label">🎵 TikTok</label>
-                  <input id="sup-social-tiktok" class="social-input" placeholder="https://tiktok.com/@yourpage">
+                  <input id="sup-social-tiktok" class="social-input" placeholder="https://tiktok.com/@yourpage" type="url">
                 </div>
               </div>
-              <p class="form-hint">Add links to your social media profiles to help customers connect with you</p>
+              <p class="form-hint">Paste full profile URLs (including https://). Only filled fields appear on your public profile.</p>
             </div>
 
             <!-- Form Actions -->
             <div class="supplier-form-actions">
-              <button class="cta" type="submit">💾 Save Customization</button>
-              <button type="button" id="sup-preview" class="cta secondary">👁️ Preview Profile</button>
+              <button class="cta" type="submit" id="sup-save-btn">💾 Save Changes</button>
+              <button type="button" id="sup-preview" class="cta secondary">👁️ Preview Public Profile</button>
               <a href="/dashboard/supplier" class="cta secondary">Cancel</a>
-              <span class="small" id="sup-status"></span>
+              <span class="small" id="sup-status" aria-live="polite"></span>
             </div>
           </form>
         </div>

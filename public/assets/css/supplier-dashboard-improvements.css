@@ -5966,3 +5966,29 @@ body:not(.supplier-dashboard-page) .section > .container {
   font-weight: 400;
   font-style: italic;
 }
+
+/* ── Profile Customization — additional helper styles ───────────────────── */
+
+/* Section description text below headings */
+.pc-section-desc {
+  font-size: 0.875rem;
+  color: #667085;
+  margin: -0.375rem 0 1rem 0;
+  line-height: 1.55;
+}
+
+/* Character counter under inputs */
+.pc-char-count {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  text-align: right;
+  margin-top: 0.25rem;
+}
+
+.pc-char-count.pc-char-count--warn {
+  color: #f59e0b;
+}
+
+.pc-char-count.pc-char-count--over {
+  color: #ef4444;
+}

@@ -2,7 +2,7 @@
 <html lang='en-GB'>
 <head>
   <meta charset='utf-8'>
-  <meta name="ef-page" content="supplier">
+  <meta name="ef-page" content="supplier_profile">
   <meta name='viewport' content='width=device-width,initial-scale=1'>
   <title id="page-title">Supplier Profile — EventFlow</title>
   
@@ -165,44 +165,48 @@
     </div>
 
     <!-- Hero Section -->
-    <section class="supplier-hero" id="supplier-hero">
+    <section class="supplier-hero" id="supplier-hero" aria-label="Supplier hero">
       <div class="hero-media">
         <img 
           id="hero-banner" 
           src="/assets/images/placeholder-banner.svg" 
           alt="Supplier banner"
         />
-        <div class="hero-badges" id="hero-badges">
+        <div class="hero-badges" id="hero-badges" aria-label="Supplier badges">
           <!-- Badges will be dynamically inserted here -->
         </div>
       </div>
       
       <div class="hero-content">
-        <h1 id="hero-title" aria-busy="true"><span class="sr-only">Loading supplier profile</span><span aria-hidden="true" class="skeleton skeleton-title" style="display:inline-block;width:220px;height:1.75rem;vertical-align:middle;"></span><span id="hero-tier-icon"></span></h1>
-        <p class="supplier-tagline" id="hero-tagline"></p>
-        
-        <div class="supplier-meta" id="hero-meta" style="display:none;">
-          <!-- Meta information will be dynamically inserted here -->
+        <div class="hero-identity">
+          <h1 id="hero-title" aria-busy="true"><span class="sr-only">Loading supplier profile</span><span aria-hidden="true" class="skeleton skeleton-title" style="display:inline-block;width:220px;height:1.75rem;vertical-align:middle;"></span><span id="hero-tier-icon"></span></h1>
+          <p class="supplier-tagline" id="hero-tagline"></p>
+          <div class="supplier-meta" id="hero-meta" style="display:none;" aria-label="Supplier details">
+            <!-- Meta information will be dynamically inserted here -->
+          </div>
         </div>
-        
+
         <div class="hero-actions">
           <button class="btn btn-primary" id="btn-enquiry" aria-label="Send enquiry to supplier">
-            📧 Send Enquiry
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            Send Enquiry
           </button>
           <button class="btn btn-secondary" id="btn-message-supplier"
                   data-messenger-action="new-conversation"
                   data-context-type="supplier_profile"
                   aria-label="Message this supplier">
-            💬 Message
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            Message
           </button>
-          <a class="btn btn-secondary" id="btn-call" href="#" aria-label="Call supplier">
-            📞 Call Now
+          <a class="btn btn-secondary" id="btn-call" href="#" aria-label="Call supplier" style="display:none;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.17h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.9a16 16 0 0 0 6.29 6.29l1.9-1.83a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            Call Now
           </a>
-          <button class="btn btn-tertiary" id="btn-save" aria-label="Save supplier to favorites">
-            🔖 Save
+          <button class="btn btn-icon" id="btn-save" aria-label="Save supplier to favourites" title="Save to favourites">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
           </button>
-          <button class="btn btn-tertiary" id="btn-share" aria-label="Share supplier profile">
-            🔗 Share
+          <button class="btn btn-icon" id="btn-share" aria-label="Share supplier profile" title="Share">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
           </button>
         </div>
       </div>
@@ -212,31 +216,68 @@
     <script src="/assets/js/burger-menu.js" defer></script>
     <script src="/assets/js/navbar.js" defer></script>
     <script src="/assets/js/notifications.js" defer></script>
-<script src="/assets/js/websocket-client.js" defer></script>
-<main id="main-content" class='section'><div class='container'>
-<h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border-width:0;">Supplier Profile</h1>
-<div id="supplier-container">
-  <div class="spc-skeleton" aria-hidden="true" aria-label="Loading supplier profile content">
-    <div class="spc-skeleton__section">
-      <div class="skeleton skeleton-title" style="width:60%;margin-bottom:0.5rem;"></div>
-      <div class="skeleton skeleton-text skeleton-text-long" style="margin-bottom:0.4rem;"></div>
-      <div class="skeleton skeleton-text skeleton-text-medium"></div>
-    </div>
-    <div class="spc-skeleton__section">
-      <div class="skeleton skeleton-title" style="width:40%;margin-bottom:0.75rem;"></div>
-      <div class="skeleton skeleton-text skeleton-text-long" style="margin-bottom:0.4rem;"></div>
-      <div class="skeleton skeleton-text skeleton-text-long" style="margin-bottom:0.4rem;"></div>
-      <div class="skeleton skeleton-text skeleton-text-medium"></div>
-    </div>
-  </div>
-</div>
-<div id="supplier-badges-section"></div>
-<script src="/assets/js/config/page-init.js"></script>
-  <script src="/assets/js/app.js"></script>
-<script src="/assets/js/utils/tier-icon.js"></script>
-<script type="module" src="/assets/js/supplier-profile.js"></script>
+    <script src="/assets/js/websocket-client.js" defer></script>
 
-</div></main>
+    <!-- Supplier Profile Page Layout -->
+    <main id="main-content" aria-label="Supplier profile content">
+      <h1 class="sr-only">Supplier Profile</h1>
+
+      <div class="sp-page">
+        <div class="sp-page-grid">
+
+          <!-- Primary Column -->
+          <div class="sp-page-main" id="sp-page-main">
+
+            <!-- About / Description (rendered by supplier-profile.js) -->
+            <div id="sp-section-about" class="sp-section" aria-label="About this supplier">
+              <!-- Loading skeleton -->
+              <div class="sp-card sp-section-skeleton" aria-hidden="true">
+                <div class="skeleton skeleton-title" style="width:40%;margin-bottom:0.75rem;"></div>
+                <div class="skeleton skeleton-text skeleton-text-long" style="margin-bottom:0.4rem;"></div>
+                <div class="skeleton skeleton-text skeleton-text-long" style="margin-bottom:0.4rem;"></div>
+                <div class="skeleton skeleton-text skeleton-text-medium"></div>
+              </div>
+            </div>
+
+            <!-- Gallery (rendered by supplier-profile.js) -->
+            <div id="sp-section-gallery" class="sp-section" aria-label="Photo gallery"></div>
+
+            <!-- Packages &amp; Services (rendered by supplier-profile.js) -->
+            <div id="sp-section-packages" class="sp-section" aria-label="Packages and services"></div>
+
+            <!-- Reviews (rendered by supplier-profile.js + reviews.js) -->
+            <div id="sp-section-reviews" class="sp-section" aria-label="Customer reviews"></div>
+
+          </div><!-- /sp-page-main -->
+
+          <!-- Sticky Sidebar -->
+          <aside class="sp-page-aside" aria-label="Quick contact and supplier info">
+            <div class="sp-aside-sticky" id="sp-aside-sticky">
+
+              <!-- Quick Enquiry CTA Card (rendered by supplier-profile.js) -->
+              <div id="sp-sidebar-enquiry"></div>
+
+              <!-- Trust &amp; Verification Card (rendered by supplier-profile.js) -->
+              <div id="sp-sidebar-trust"></div>
+
+              <!-- Key Details Card (rendered by supplier-profile.js) -->
+              <div id="sp-sidebar-details"></div>
+
+            </div>
+          </aside><!-- /sp-page-aside -->
+
+        </div><!-- /sp-page-grid -->
+
+        <!-- Badges &amp; Recognition — full width below grid (rendered by supplier-profile.js) -->
+        <div id="sp-section-badges"></div>
+
+      </div><!-- /sp-page -->
+    </main>
+
+    <script src="/assets/js/config/page-init.js"></script>
+    <script src="/assets/js/app.js"></script>
+    <script src="/assets/js/utils/tier-icon.js"></script>
+    <script type="module" src="/assets/js/supplier-profile.js"></script>
 <footer class="footer" role="contentinfo">
   <div class="container supplier-footer-content">
     <div><strong>EventFlow</strong><br><span class="small">Event planning made simple.</span></div>

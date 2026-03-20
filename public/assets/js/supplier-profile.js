@@ -1,8 +1,19 @@
 /**
- * Supplier Profile Page - Reviews and Package Cards
- * Handles reviews loading and package card interactions
- * Phase 1: Added hero section rendering and SEO meta tags
- * Phase 5: Converted to ES module — imports verification-badges directly
+ * Supplier Profile Page — Authoritative Renderer
+ *
+ * This module is the single source of truth for rendering the public
+ * supplier profile page (/supplier.html). It replaces the previous
+ * split between app.js initSupplier() and this file.
+ *
+ * Rendering responsibilities:
+ *  - updateMetaTags        — SEO meta (client-side best-effort)
+ *  - renderHeroSection     — banner, badges, title, tagline, meta, CTAs
+ *  - renderAboutSection    — description, stats, highlights, services, social, trust
+ *  - renderGallerySection  — photo gallery (featured + thumbs)
+ *  - renderPackagesSection — premium package cards
+ *  - renderReviewsSection  — reviews widget scaffold + ReviewsManager init
+ *  - renderSidebarSection  — CTA card, trust card, key details
+ *  - renderBadgesSection   — badges & recognition (full-width bottom)
  */
 
 import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verification-badges.js';
@@ -13,336 +24,315 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
   let supplierId = null;
   let supplierData = null;
 
+  // ─── Utilities ──────────────────────────────────────────────────────────────
+
   /**
-   * Update SEO meta tags dynamically based on supplier data
-   * @param {Object} supplier - Supplier data
-   *
-   * NOTE: These meta tags are updated client-side via JavaScript. Search engines and
-   * social media link preview crawlers (Facebook, Twitter/X, Slack, etc.) do NOT
-   * execute JavaScript, so they will always see the generic default meta values from
-   * the static HTML. For proper SEO and social sharing previews, server-side rendering
-   * (SSR) or a prerender service is required to inject per-supplier meta tags into the
-   * HTML response before it reaches the client.
+   * Escape HTML to prevent XSS
+   */
+  function escapeHtml(unsafe) {
+    if (typeof unsafe !== 'string') {
+      return '';
+    }
+    return unsafe
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  /**
+   * Format a relative date string
+   */
+  function formatDate(date) {
+    if (!date) {
+      return '';
+    }
+    try {
+      const d = new Date(date);
+      const now = new Date();
+      const diffDays = Math.floor(Math.abs(now - d) / (1000 * 60 * 60 * 24));
+      if (diffDays === 0) return 'Today';
+      if (diffDays === 1) return 'Yesterday';
+      if (diffDays < 7) return `${diffDays} days ago`;
+      if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+      if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`;
+      return d.toLocaleDateString('en-GB', { year: 'numeric', month: 'short' });
+    } catch (_) {
+      return '';
+    }
+  }
+
+  /**
+   * Clamp years-active to at least 1
+   */
+  function yearsActive(createdAt) {
+    if (!createdAt) return null;
+    const years = Math.floor(
+      (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24 * 365.25)
+    );
+    return years >= 1 ? years : null;
+  }
+
+  /**
+   * Generate star rating HTML using CSS classes
+   */
+  function generateStars(rating) {
+    const full = Math.floor(rating);
+    const empty = 5 - full;
+    let html = '';
+    for (let i = 0; i < full; i++) {
+      html += '<span class="sp-star-full" aria-hidden="true">★</span>';
+    }
+    for (let i = 0; i < empty; i++) {
+      html += '<span class="sp-star-empty" aria-hidden="true">★</span>';
+    }
+    return html;
+  }
+
+  // ─── Meta Tags ───────────────────────────────────────────────────────────────
+
+  /**
+   * Update SEO meta tags with supplier data (client-side best-effort).
+   * NOTE: crawlers do not execute JS — server-side rendering is needed for
+   * true SEO/social preview support.
    */
   function updateMetaTags(supplier) {
-    if (!supplier) {
-      return;
-    }
+    if (!supplier) return;
 
     const title = `${supplier.name} — EventFlow`;
     const description =
       supplier.metaDescription ||
       supplier.description ||
-      `View ${supplier.name} on EventFlow - the UK's leading event planning platform.`;
+      `View ${supplier.name} on EventFlow — the UK's leading event planning platform.`;
     const image =
       supplier.openGraphImage ||
+      supplier.bannerUrl ||
       supplier.coverImage ||
       supplier.logo ||
       'https://event-flow.co.uk/assets/images/eventflow-og-image.png';
-    const url = `https://event-flow.co.uk/supplier.html?id=${supplier.id}`;
+    const url = `https://event-flow.co.uk/supplier?id=${supplier.id}`;
 
-    // Update page title
     document.title = title;
-    const pageTitle = document.getElementById('page-title');
-    if (pageTitle) {
-      pageTitle.textContent = title;
-    }
 
-    // Update meta description
-    const metaDesc = document.getElementById('meta-description');
-    if (metaDesc) {
-      metaDesc.setAttribute('content', description);
-    }
+    const setContent = (id, value) => {
+      const el = document.getElementById(id);
+      if (el) el.setAttribute('content', value);
+    };
+    const setText = (id, value) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value;
+    };
 
-    // Update Open Graph tags
-    const ogTitle = document.getElementById('og-title');
-    if (ogTitle) {
-      ogTitle.setAttribute('content', title);
-    }
-
-    const ogDesc = document.getElementById('og-description');
-    if (ogDesc) {
-      ogDesc.setAttribute('content', description);
-    }
-
-    const ogImage = document.getElementById('og-image');
-    if (ogImage) {
-      ogImage.setAttribute('content', image);
-    }
-
-    const ogUrl = document.getElementById('og-url');
-    if (ogUrl) {
-      ogUrl.setAttribute('content', url);
-    }
-
-    // Update Twitter Card tags
-    const twitterTitle = document.getElementById('twitter-title');
-    if (twitterTitle) {
-      twitterTitle.setAttribute('content', title);
-    }
-
-    const twitterDesc = document.getElementById('twitter-description');
-    if (twitterDesc) {
-      twitterDesc.setAttribute('content', description);
-    }
-
-    const twitterImage = document.getElementById('twitter-image');
-    if (twitterImage) {
-      twitterImage.setAttribute('content', image);
-    }
-
-    const twitterUrl = document.getElementById('twitter-url');
-    if (twitterUrl) {
-      twitterUrl.setAttribute('content', url);
-    }
+    setText('page-title', title);
+    setContent('meta-description', description);
+    setContent('og-title', title);
+    setContent('og-description', description);
+    setContent('og-image', image);
+    setContent('og-url', url);
+    setContent('twitter-title', title);
+    setContent('twitter-description', description);
+    setContent('twitter-image', image);
+    setContent('twitter-url', url);
   }
 
-  /**
-   * Render hero section with supplier data
-   * @param {Object} supplier - Supplier data
-   */
-  function renderHeroSection(supplier) {
-    if (!supplier) {
-      return;
-    }
+  // ─── Hero Section ────────────────────────────────────────────────────────────
 
-    // Update banner image — DB field is bannerUrl; coverImage is a legacy alias
+  function renderHeroSection(supplier) {
+    if (!supplier) return;
+
+    // Banner image
     const heroBanner = document.getElementById('hero-banner');
     const bannerUrl = supplier.bannerUrl || supplier.coverImage || null;
     if (heroBanner) {
       if (bannerUrl) {
         heroBanner.src = bannerUrl;
         heroBanner.alt = `${supplier.name} banner`;
-        heroBanner.style.objectFit = 'cover';
-        heroBanner.style.opacity = '1';
       } else {
-        // No custom banner — keep the placeholder SVG; apply a tinted overlay via parent section
         heroBanner.src = '/assets/images/placeholder-banner.svg';
         heroBanner.alt = `${supplier.name} banner`;
-        heroBanner.style.opacity = '1';
-        // Apply brand theme colour tint to the section if available
+        // Apply brand theme tint
         const heroSection = document.getElementById('supplier-hero');
         if (heroSection && supplier.themeColor && /^#[0-9A-F]{6}$/i.test(supplier.themeColor)) {
-          heroSection.style.setProperty('--supplier-theme', supplier.themeColor);
+          const heroMedia = heroSection.querySelector('.hero-media');
+          if (heroMedia) heroMedia.style.setProperty('--supplier-theme', supplier.themeColor);
         }
       }
     }
 
-    // Render badges using verification-badges utility (imported at module scope above)
+    // Prioritized hero badges — show max 3 high-value badges only
     const badgesContainer = document.getElementById('hero-badges');
     if (badgesContainer) {
-      if (typeof renderVerificationBadges !== 'undefined') {
-        // Use the utility function if available
-        badgesContainer.innerHTML = renderVerificationBadges(supplier, { size: 'normal' });
+      // Use verification-badges utility if available
+      if (typeof renderVerificationBadges === 'function') {
+        badgesContainer.innerHTML = renderVerificationBadges(supplier, { size: 'normal', limit: 3 });
       } else {
-        // Fallback to inline rendering
-        const badges = [];
-
-        // Founding Supplier
-        if (supplier.isFoundingSupplier || supplier.isFounding) {
-          badges.push(
-            '<span class="badge badge-founding" aria-label="Founding supplier" title="Founding Supplier - Original member since 2024">Founding</span>'
-          );
-        }
-
-        // Pro+ Badge
-        if (supplier.subscription?.tier === 'pro_plus' || supplier.proPlan === 'Pro+') {
-          badges.push(
-            '<span class="badge badge-pro-plus" aria-label="Pro Plus supplier" title="Pro Plus - Premium features">Pro+</span>'
-          );
-        }
-        // Pro Badge
-        else if (supplier.isPro || supplier.subscription?.tier === 'pro') {
-          const now = new Date();
-          const proExpiry = supplier.proExpiresAt ? new Date(supplier.proExpiresAt) : null;
-          const isProActive = !proExpiry || proExpiry > now;
-
-          if (isProActive) {
-            badges.push(
-              '<span class="badge badge-pro" aria-label="Pro supplier" title="Pro - Enhanced features">Pro</span>'
-            );
-          }
-        }
-
-        // Email Verified
-        if (
-          supplier.emailVerified ||
-          supplier.verifications?.email?.verified ||
-          supplier.verified
-        ) {
-          badges.push(
-            '<span class="badge badge-email-verified" aria-label="Email verified" title="Email address verified">Email</span>'
-          );
-        }
-
-        // Phone Verified
-        if (supplier.phoneVerified || supplier.verifications?.phone?.verified) {
-          badges.push(
-            '<span class="badge badge-phone-verified" aria-label="Phone verified" title="Phone number verified">Phone</span>'
-          );
-        }
-
-        // Business Verified
-        if (supplier.businessVerified || supplier.verifications?.business?.verified) {
-          badges.push(
-            '<span class="badge badge-business-verified" aria-label="Business verified" title="Business documents verified">Business</span>'
-          );
-        }
-
-        badgesContainer.innerHTML = badges.join('');
+        const heroBadges = _buildHeroBadges(supplier);
+        badgesContainer.innerHTML = heroBadges.slice(0, 3).join('');
       }
     }
 
-    // Update title with inline tier icon
+    // Title + tier icon
     const heroTitle = document.getElementById('hero-title');
     if (heroTitle) {
       heroTitle.removeAttribute('aria-busy');
       heroTitle.textContent = supplier.name;
       const tierIconEl = document.getElementById('hero-tier-icon');
       if (tierIconEl) {
-        // Prefer shared EFTierIcon helper (tier-icon.js), fall back to module-imported renderTierIcon
         const iconFn =
           (typeof EFTierIcon !== 'undefined' && EFTierIcon.render) ||
-          (typeof renderTierIcon !== 'undefined' && renderTierIcon);
-        if (iconFn) {
-          tierIconEl.innerHTML = iconFn(supplier);
-        }
+          (typeof renderTierIcon === 'function' && renderTierIcon);
+        if (iconFn) tierIconEl.innerHTML = iconFn(supplier);
       }
     }
 
-    // Update breadcrumb
+    // Breadcrumb
     const breadcrumbName = document.getElementById('breadcrumb-supplier-name');
     if (breadcrumbName) {
       breadcrumbName.removeAttribute('aria-busy');
       breadcrumbName.textContent = supplier.name;
     }
 
-    // Update tagline
+    // Tagline
     const heroTagline = document.getElementById('hero-tagline');
     if (heroTagline) {
-      heroTagline.textContent = supplier.tagline || supplier.description?.substring(0, 150) || '';
-      heroTagline.style.display = heroTagline.textContent ? 'block' : 'none';
+      const tagText = supplier.tagline || '';
+      heroTagline.textContent = tagText;
+      heroTagline.style.display = tagText ? 'block' : 'none';
     }
 
-    // Render meta information
+    // Meta strip
     const heroMeta = document.getElementById('hero-meta');
     if (heroMeta) {
-      const metaItems = [];
+      const items = [];
 
-      // Category
       if (supplier.category) {
-        metaItems.push(`
-          <div class="meta-item meta-category">
-            <span aria-hidden="true">🏷️</span>
-            <span>${escapeHtml(supplier.category)}</span>
-          </div>
-        `);
+        items.push(
+          `<span class="meta-item meta-category"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>${escapeHtml(supplier.category)}</span>`
+        );
       }
 
-      // Rating
       if (supplier.rating && supplier.reviewCount) {
-        const rating = Number(supplier.rating).toFixed(1);
-        const reviewCount = Number(supplier.reviewCount);
-        metaItems.push(`
-          <div class="meta-item meta-rating">
-            <span class="star-icon" aria-hidden="true">⭐</span>
-            <span>${rating} (${reviewCount} reviews)</span>
-          </div>
-        `);
+        const r = Number(supplier.rating).toFixed(1);
+        const rc = Number(supplier.reviewCount);
+        items.push(
+          `<span class="meta-item meta-rating"><span class="star-icon" aria-hidden="true">★</span>${r} <span style="font-weight:400;opacity:0.7;">(${rc})</span></span>`
+        );
       }
 
-      // Location
       if (supplier.location) {
-        const location = escapeHtml(supplier.location);
-        const postcode = supplier.postcode ? escapeHtml(supplier.postcode) : '';
-        metaItems.push(`
-          <div class="meta-item meta-location">
-            <span aria-hidden="true">📍</span>
-            <span>${location}${postcode ? `, ${postcode}` : ''}</span>
-          </div>
-        `);
+        const loc = escapeHtml(supplier.location);
+        const pc = supplier.postcode ? `, ${escapeHtml(supplier.postcode)}` : '';
+        items.push(
+          `<span class="meta-item"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${loc}${pc}</span>`
+        );
       }
 
-      // Price range
       if (supplier.priceRange) {
-        const priceRange = escapeHtml(supplier.priceRange);
-        metaItems.push(`
-          <div class="meta-item meta-price">
-            <span aria-hidden="true">💰</span>
-            <span>${priceRange}</span>
-          </div>
-        `);
+        items.push(
+          `<span class="meta-item meta-price"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>${escapeHtml(supplier.priceRange)}</span>`
+        );
       }
 
-      if (metaItems.length > 0) {
-        heroMeta.innerHTML = metaItems.join('');
+      if (items.length > 0) {
+        heroMeta.innerHTML = items.join('');
         heroMeta.style.display = '';
       } else {
         heroMeta.style.display = 'none';
       }
     }
 
-    // Setup CTA buttons
+    // Wire up CTA buttons
+    _wireHeroCTAs(supplier);
+  }
+
+  /**
+   * Build prioritized hero badge list (high-value first, max 3 shown)
+   */
+  function _buildHeroBadges(supplier) {
+    const badges = [];
+
+    // Tier — highest priority
+    const tier =
+      supplier.subscription?.tier ||
+      (supplier.isPro ? 'pro' : 'free');
+    if (tier === 'pro_plus') {
+      badges.push('<span class="badge badge-pro-plus" aria-label="Pro Plus">Pro+</span>');
+    } else if (tier === 'pro') {
+      badges.push('<span class="badge badge-pro" aria-label="Pro supplier">Pro</span>');
+    }
+
+    // Founding
+    if (supplier.isFoundingSupplier || supplier.isFounding || supplier.founding) {
+      badges.push('<span class="badge badge-founding" aria-label="Founding supplier">Founding</span>');
+    }
+
+    // Featured
+    if (supplier.featured || supplier.featuredSupplier) {
+      badges.push('<span class="badge badge-featured" aria-label="Featured supplier">Featured</span>');
+    }
+
+    // Verified (only if no other badge used the slot)
+    if (
+      badges.length < 3 &&
+      (supplier.emailVerified || supplier.verifications?.email?.verified || supplier.verified)
+    ) {
+      badges.push('<span class="badge badge-email-verified" aria-label="Verified">✓ Verified</span>');
+    }
+
+    return badges;
+  }
+
+  /**
+   * Wire up hero CTA button click handlers
+   */
+  function _wireHeroCTAs(supplier) {
+    // Enquiry
     const btnEnquiry = document.getElementById('btn-enquiry');
     if (btnEnquiry) {
       btnEnquiry.onclick = () => {
-        const recipientId = supplier.ownerUserId;
-        if (!recipientId) {
-          if (window.EventFlowNotifications) {
-            window.EventFlowNotifications.info(
-              'This supplier cannot receive messages at this time.'
-            );
-          }
+        if (!supplier.ownerUserId) {
+          window.EventFlowNotifications?.info('This supplier cannot receive messages at this time.');
           return;
         }
-        // Sanitize supplier name for safe use in prefill message
-        // Remove potentially harmful characters while preserving readability
-        const supplierName =
-          (supplier.name || 'Supplier').replace(/[<>'"&]/g, '').trim() || 'Supplier';
-
-        // Use QuickComposeV4 slide-up panel if available
+        const safeName = (supplier.name || 'Supplier').replace(/[<>'"&]/g, '').trim() || 'Supplier';
         if (window.QuickComposeV4) {
           window.QuickComposeV4.open({
-            recipientId: recipientId,
+            recipientId: supplier.ownerUserId,
             contextType: 'supplier_profile',
             contextId: supplier.id,
             contextTitle: supplier.name,
-            prefill: `Hi ${supplierName}! I'd like to enquire about your services.`,
+            prefill: `Hi ${safeName}! I'd like to enquire about your services.`,
           });
-          return;
+        } else {
+          const params = new URLSearchParams({
+            new: 'true',
+            recipientId: supplier.ownerUserId,
+            contextType: 'supplier',
+            contextId: supplier.id,
+            contextTitle: supplier.name,
+            prefill: `Hi ${safeName}! I'd like to enquire about your services.`,
+          });
+          window.location.href = `/messenger/?${params.toString()}`;
         }
-
-        // Fallback: navigate to messenger
-        const params = new URLSearchParams({
-          new: 'true',
-          recipientId: recipientId,
-          contextType: 'supplier',
-          contextId: supplier.id,
-          contextTitle: supplier.name,
-          prefill: `Hi ${supplierName}! I'd like to enquire about your services.`,
-        });
-        window.location.href = `/messenger/?${params.toString()}`;
       };
     }
 
-    // Setup message button
-    const btnMessage = document.getElementById('btn-message-supplier');
-    if (btnMessage && supplier.ownerUserId) {
-      btnMessage.setAttribute('data-quick-compose', 'true');
-      btnMessage.setAttribute('data-recipient-id', supplier.ownerUserId);
-      btnMessage.setAttribute('data-context-type', 'supplier_profile');
-      btnMessage.setAttribute('data-context-id', supplier.id);
-      btnMessage.setAttribute('data-context-title', supplier.name);
-      // Remove legacy action attribute to avoid MessengerTrigger conflict
-      btnMessage.removeAttribute('data-messenger-action');
-      // Re-attach QuickComposeV4 handler once attributes are set
-      if (window.QuickComposeV4 && typeof window.QuickComposeV4.attachAll === 'function') {
-        window.QuickComposeV4.attachAll();
-      }
-    } else if (btnMessage) {
-      btnMessage.style.display = 'none'; // Hide if no owner user ID
+    // Message
+    const btnMsg = document.getElementById('btn-message-supplier');
+    if (btnMsg && supplier.ownerUserId) {
+      btnMsg.setAttribute('data-quick-compose', 'true');
+      btnMsg.setAttribute('data-recipient-id', supplier.ownerUserId);
+      btnMsg.setAttribute('data-context-type', 'supplier_profile');
+      btnMsg.setAttribute('data-context-id', supplier.id);
+      btnMsg.setAttribute('data-context-title', supplier.name);
+      btnMsg.removeAttribute('data-messenger-action');
+      if (window.QuickComposeV4?.attachAll) window.QuickComposeV4.attachAll();
+    } else if (btnMsg) {
+      btnMsg.style.display = 'none';
     }
 
+    // Call
     const btnCall = document.getElementById('btn-call');
     if (btnCall && supplier.phone) {
       btnCall.href = `tel:${supplier.phone}`;
@@ -351,6 +341,7 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
       btnCall.style.display = 'none';
     }
 
+    // Save
     const btnSave = document.getElementById('btn-save');
     if (btnSave) {
       btnSave.onclick = async () => {
@@ -373,37 +364,25 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
               rating: supplier.rating || null,
             }),
           });
-
           const data = await response.json();
-
           if (response.ok) {
-            if (window.EventFlowNotifications) {
-              window.EventFlowNotifications.success('Saved to your shortlist!');
-            }
+            window.EventFlowNotifications?.success('Saved to your shortlist!');
             btnSave.setAttribute('aria-pressed', 'true');
             btnSave.title = 'Saved to shortlist';
-          } else if (response.status === 409 && data.error === 'Item already in shortlist') {
-            if (window.EventFlowNotifications) {
-              window.EventFlowNotifications.info('Already in your shortlist');
-            }
+          } else if (response.status === 409) {
+            window.EventFlowNotifications?.info('Already in your shortlist');
           } else if (response.status === 401 || response.status === 403) {
-            if (window.EventFlowNotifications) {
-              window.EventFlowNotifications.info('Please sign in to save suppliers');
-            }
+            window.EventFlowNotifications?.info('Please sign in to save suppliers');
           } else {
-            if (window.EventFlowNotifications) {
-              window.EventFlowNotifications.error('Could not save — please try again');
-            }
+            window.EventFlowNotifications?.error('Could not save — please try again');
           }
-        } catch (err) {
-          console.error('Save to shortlist error:', err);
-          if (window.EventFlowNotifications) {
-            window.EventFlowNotifications.error('Could not save — please try again');
-          }
+        } catch (_) {
+          window.EventFlowNotifications?.error('Could not save — please try again');
         }
       };
     }
 
+    // Share
     const btnShare = document.getElementById('btn-share');
     if (btnShare) {
       btnShare.onclick = async () => {
@@ -412,133 +391,679 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
           text: supplier.description || `Check out ${supplier.name} on EventFlow`,
           url: window.location.href,
         };
-
         if (navigator.share) {
-          try {
-            await navigator.share(shareData);
-          } catch (err) {
-            if (err.name !== 'AbortError') {
-              console.error('Error sharing:', err);
-            }
-          }
+          try { await navigator.share(shareData); }
+          catch (e) { if (e.name !== 'AbortError') console.error(e); }
         } else {
-          // Fallback: Copy to clipboard
-          navigator.clipboard.writeText(window.location.href);
-          if (window.EventFlowNotifications) {
-            window.EventFlowNotifications.success('Link copied to clipboard!');
-          }
+          await navigator.clipboard.writeText(window.location.href);
+          window.EventFlowNotifications?.success('Link copied to clipboard!');
         }
       };
     }
   }
 
-  /**
-   * Render the dedicated "Badges & Recognition" section on the profile page.
-   * Uses a card layout (icon + name + description) for earned badges.
-   * Groups: Subscription → Earned/Performance → Founding/Featured → Verification
-   */
-  function renderBadgesSection(supplier) {
-    const container = document.getElementById('supplier-badges-section');
-    if (!container || !supplier) {
+  // ─── About Section ───────────────────────────────────────────────────────────
+
+  function renderAboutSection(supplier) {
+    const container = document.getElementById('sp-section-about');
+    if (!container) return;
+
+    // Remove loading skeleton
+    container.innerHTML = '';
+
+    const hasDescription = !!(supplier.description_long || supplier.description_short || supplier.description);
+    const hasHighlights = Array.isArray(supplier.highlights) && supplier.highlights.length > 0;
+    const hasFeaturedServices = Array.isArray(supplier.featuredServices) && supplier.featuredServices.length > 0;
+    const hasSocialLinks = supplier.socialLinks && Object.keys(supplier.socialLinks).filter(k => supplier.socialLinks[k]).length > 0;
+    const hasTrust = _hasTrustItems(supplier);
+    const hasStats = _hasStats(supplier);
+
+    // If nothing meaningful to show, hide the section
+    if (!hasDescription && !hasHighlights && !hasFeaturedServices) {
+      container.style.display = 'none';
       return;
     }
 
+    // Stats strip
+    const statsHtml = hasStats ? _renderStatsStrip(supplier) : '';
+
+    // Highlights
+    const highlightsHtml = hasHighlights ? _renderHighlights(supplier.highlights) : '';
+
+    // Description
+    const descText = supplier.description_long || supplier.description_short || supplier.description || '';
+    const descHtml = descText
+      ? `<p class="sp-about__description">${escapeHtml(descText)}</p>`
+      : '';
+
+    // About meta (phone, website, etc.)
+    const metaParts = [];
+    if (supplier.website) {
+      metaParts.push(`<a href="${escapeHtml(supplier.website)}" target="_blank" rel="noopener noreferrer">${escapeHtml(supplier.website)}</a>`);
+    }
+    if (supplier.phone) {
+      metaParts.push(`<a href="tel:${escapeHtml(supplier.phone)}">${escapeHtml(supplier.phone)}</a>`);
+    }
+    if (supplier.maxGuests) {
+      metaParts.push(`Max ${escapeHtml(String(supplier.maxGuests))} guests`);
+    }
+    const aboutMetaHtml = metaParts.length > 0
+      ? `<p class="sp-about__meta">${metaParts.join(' · ')}</p>`
+      : '';
+
+    // Amenities
+    const amenitiesHtml = Array.isArray(supplier.amenities) && supplier.amenities.length > 0
+      ? `<div class="sp-services" style="margin-top:0.75rem;"><div class="sp-services__list">${supplier.amenities.map(a => `<span class="sp-service-tag">${escapeHtml(a)}</span>`).join('')}</div></div>`
+      : '';
+
+    // Featured services
+    const servicesHtml = hasFeaturedServices ? _renderFeaturedServices(supplier.featuredServices) : '';
+
+    // Social links
+    const socialHtml = hasSocialLinks ? _renderSocialLinks(supplier.socialLinks) : '';
+
+    // Assemble
+    const html = `
+      ${statsHtml}
+      ${highlightsHtml}
+      <div class="sp-card sp-fade-in">
+        <h2 class="sp-card-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
+          About
+        </h2>
+        ${descHtml}
+        ${aboutMetaHtml}
+        ${amenitiesHtml}
+        ${servicesHtml}
+        ${socialHtml}
+      </div>
+    `;
+
+    container.innerHTML = html;
+    container.style.display = '';
+    container.removeAttribute('aria-hidden');
+  }
+
+  function _hasTrustItems(supplier) {
+    return !!(
+      supplier.verifications?.email ||
+      supplier.verifications?.phone ||
+      supplier.verifications?.business ||
+      supplier.emailVerified ||
+      supplier.phoneVerified ||
+      supplier.businessVerified ||
+      supplier.insurance ||
+      supplier.license
+    );
+  }
+
+  function _hasStats(supplier) {
+    return !!(supplier.completedEvents || supplier.createdAt || supplier.avgResponseTime || supplier.reviewCount);
+  }
+
+  function _renderStatsStrip(supplier) {
+    const items = [];
+
+    if (supplier.completedEvents) {
+      items.push(`<div class="sp-stat"><div class="sp-stat__value">${escapeHtml(String(supplier.completedEvents))}</div><div class="sp-stat__label">Events</div></div>`);
+    }
+
+    const yrs = yearsActive(supplier.createdAt);
+    if (yrs) {
+      items.push(`<div class="sp-stat"><div class="sp-stat__value">${yrs}</div><div class="sp-stat__label">Years Active</div></div>`);
+    }
+
+    if (supplier.avgResponseTime) {
+      items.push(`<div class="sp-stat"><div class="sp-stat__value">${Math.round(supplier.avgResponseTime)}h</div><div class="sp-stat__label">Response</div></div>`);
+    }
+
+    if (supplier.reviewCount) {
+      items.push(`<div class="sp-stat"><div class="sp-stat__value">${escapeHtml(String(supplier.reviewCount))}</div><div class="sp-stat__label">Reviews</div></div>`);
+    }
+
+    if (items.length === 0) return '';
+    return `<div class="sp-stats sp-fade-in">${items.join('')}</div>`;
+  }
+
+  function _renderHighlights(highlights) {
+    const items = highlights
+      .map(h => `<div class="sp-highlight-item"><span class="sp-highlight-check" aria-hidden="true">✓</span><span>${escapeHtml(h)}</span></div>`)
+      .join('');
+    return `
+      <div class="sp-highlights sp-fade-in">
+        <div class="sp-highlights__title">Key Highlights</div>
+        <div class="sp-highlights__grid">${items}</div>
+      </div>
+    `;
+  }
+
+  function _renderFeaturedServices(services) {
+    const tags = services
+      .map(s => `<span class="sp-service-tag">${escapeHtml(s)}</span>`)
+      .join('');
+    return `
+      <div class="sp-services">
+        <div class="sp-services__title">Featured Services</div>
+        <div class="sp-services__list">${tags}</div>
+      </div>
+    `;
+  }
+
+  function _renderSocialLinks(socialLinks) {
+    const platforms = {
+      facebook:  { label: 'Facebook',  icon: '📘', cls: 'facebook' },
+      instagram: { label: 'Instagram', icon: '📷', cls: 'instagram' },
+      twitter:   { label: 'Twitter/X', icon: '𝕏',  cls: 'twitter' },
+      linkedin:  { label: 'LinkedIn',  icon: '💼', cls: 'linkedin' },
+      youtube:   { label: 'YouTube',   icon: '▶',  cls: 'youtube' },
+      tiktok:    { label: 'TikTok',    icon: '🎵', cls: 'tiktok' },
+    };
+
+    const links = Object.entries(platforms)
+      .filter(([key]) => socialLinks[key])
+      .map(([key, p]) => {
+        const href = escapeHtml(socialLinks[key]);
+        return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="sp-social-link sp-social-link--${p.cls}" aria-label="${p.label}">${p.icon} ${p.label}</a>`;
+      });
+
+    if (links.length === 0) return '';
+    return `<div class="sp-social-links">${links.join('')}</div>`;
+  }
+
+  // ─── Gallery Section ─────────────────────────────────────────────────────────
+
+  function renderGallerySection(supplier) {
+    const container = document.getElementById('sp-section-gallery');
+    if (!container) return;
+
+    const photos = Array.isArray(supplier.photosGallery)
+      ? supplier.photosGallery.map(p => (typeof p === 'string' ? p : p.url)).filter(Boolean)
+      : [];
+
+    // Hide section if no photos
+    if (photos.length === 0) {
+      container.style.display = 'none';
+      return;
+    }
+
+    let galleryHtml = '';
+
+    if (photos.length >= 3) {
+      // Featured layout: large left + 2-col right
+      const extra = photos.length > 5 ? photos.length - 5 : 0;
+      const visible = photos.slice(0, 5);
+
+      const thumbs = visible.slice(1).map((url, idx) => {
+        const isLast = idx === 3 && extra > 0;
+        return `
+          <div class="sp-gallery__thumb" role="img" aria-label="Gallery photo ${idx + 2}" tabindex="0">
+            <img loading="lazy" src="${escapeHtml(url)}" alt="${escapeHtml(supplier.name)} — photo ${idx + 2}">
+            ${isLast ? `<div class="sp-gallery__more-overlay">+${extra} more</div>` : `<div class="sp-gallery__overlay" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>`}
+          </div>`;
+      }).join('');
+
+      galleryHtml = `
+        <div class="sp-gallery">
+          <div class="sp-gallery__featured" role="img" aria-label="Main gallery photo" tabindex="0">
+            <img src="${escapeHtml(visible[0])}" alt="${escapeHtml(supplier.name)} — main photo">
+            <div class="sp-gallery__overlay" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+          </div>
+          ${thumbs}
+        </div>`;
+    } else {
+      // Simple compact grid for 1-2 photos
+      const items = photos.map((url, idx) => `
+        <div class="sp-gallery__${idx === 0 ? 'featured' : 'thumb'}" role="img" aria-label="Gallery photo ${idx + 1}" tabindex="0">
+          <img ${idx > 0 ? 'loading="lazy"' : ''} src="${escapeHtml(url)}" alt="${escapeHtml(supplier.name)} — photo ${idx + 1}">
+          <div class="sp-gallery__overlay" aria-hidden="true">🔍</div>
+        </div>`).join('');
+
+      galleryHtml = `<div class="sp-gallery--compact">${items}</div>`;
+    }
+
+    container.innerHTML = `
+      <div class="sp-card sp-fade-in" style="padding: 1.25rem 1.25rem 1.25rem;">
+        <h2 class="sp-card-title" style="margin-bottom: 0.875rem;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          Photo Gallery
+        </h2>
+        ${galleryHtml}
+      </div>
+    `;
+
+    container.style.display = '';
+
+    // Wire up gallery lightbox if image-carousel.js is available
+    _initGalleryLightbox(container, photos, supplier.name);
+  }
+
+  function _initGalleryLightbox(container, photos, supplierName) {
+    const thumbEls = container.querySelectorAll('.sp-gallery__featured, .sp-gallery__thumb');
+    thumbEls.forEach((el, idx) => {
+      el.addEventListener('click', () => {
+        if (window.EFImageCarousel?.open) {
+          window.EFImageCarousel.open(photos, idx);
+        } else if (window.initImageCarousel) {
+          window.initImageCarousel(photos, idx, supplierName);
+        }
+      });
+      el.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          el.click();
+        }
+      });
+    });
+  }
+
+  // ─── Packages Section ────────────────────────────────────────────────────────
+
+  function renderPackagesSection(packages) {
+    const container = document.getElementById('sp-section-packages');
+    if (!container) return;
+
+    if (!packages || packages.length === 0) {
+      container.style.display = 'none';
+      return;
+    }
+
+    const cards = packages.map(p => _renderPackageCard(p)).join('');
+
+    container.innerHTML = `
+      <div class="sp-card sp-fade-in">
+        <h2 class="sp-card-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><polyline points="16 3 12 7 8 3"/></svg>
+          Packages &amp; Services
+        </h2>
+        <div class="sp-packages-grid">${cards}</div>
+      </div>
+    `;
+
+    container.style.display = '';
+
+    // Wire up package card click handlers
+    container.querySelectorAll('[data-package-id]').forEach(card => {
+      const pkgId = card.getAttribute('data-package-id');
+      const pkgSlug = card.getAttribute('data-package-slug');
+
+      card.addEventListener('click', () => {
+        const dest = pkgSlug
+          ? `/package/${encodeURIComponent(pkgSlug)}`
+          : `/package?id=${encodeURIComponent(pkgId)}`;
+        window.location.href = dest;
+      });
+
+      card.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          card.click();
+        }
+      });
+    });
+  }
+
+  function _renderPackageCard(p) {
+    const title = escapeHtml(p.title || p.name || 'Package');
+    const desc = escapeHtml((p.description || p.description_short || '').substring(0, 160));
+    const price = escapeHtml(p.price_display || p.priceDisplay || '');
+    const imageUrl = p.image || p.imageUrl || '';
+    const pkgId = escapeHtml(p.id || '');
+    const pkgSlug = escapeHtml(p.slug || '');
+
+    const imageHtml = imageUrl
+      ? `<img class="sp-pkg-card__image" src="${escapeHtml(imageUrl)}" alt="${title}" loading="lazy">`
+      : `<div class="sp-pkg-card__image-placeholder"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>`;
+
+    return `
+      <div class="sp-pkg-card"
+           role="button"
+           tabindex="0"
+           data-package-id="${pkgId}"
+           ${pkgSlug ? `data-package-slug="${pkgSlug}"` : ''}
+           aria-label="View ${title} package">
+        ${imageHtml}
+        <div class="sp-pkg-card__body">
+          <h3 class="sp-pkg-card__title">${title}</h3>
+          ${desc ? `<p class="sp-pkg-card__desc">${desc}</p>` : ''}
+          <div class="sp-pkg-card__footer">
+            <span class="sp-pkg-card__price">${price || 'Contact for price'}</span>
+            <span class="sp-pkg-card__cta">
+              View
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
+            </span>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // ─── Reviews Section ─────────────────────────────────────────────────────────
+
+  function renderReviewsSection(suppId, supplier) {
+    const container = document.getElementById('sp-section-reviews');
+    if (!container) return;
+
+    const supplierName = escapeHtml(supplier ? supplier.name : 'this supplier');
+
+    // Render the reviews widget HTML scaffold (consumed by reviews.js ReviewsManager)
+    container.innerHTML = `
+      <div class="sp-card sp-fade-in">
+        <div class="reviews-widget" id="reviews-widget" role="region" aria-label="Customer reviews and ratings">
+          <section class="reviews-section">
+            <div class="review-summary">
+              <div class="review-summary-score">
+                <div class="review-average-rating sp-reviews-average" aria-label="Average rating">New</div>
+                <div class="review-stars-large sp-reviews-stars-lg" aria-hidden="true">☆☆☆☆☆</div>
+                <div class="review-count sp-reviews-count">No reviews yet</div>
+              </div>
+              <div class="review-summary-details">
+                <div class="sp-reviews-header-row">
+                  <h2>Customer Reviews &amp; Ratings</h2>
+                </div>
+                <div class="rating-distribution" aria-label="Rating distribution"></div>
+                <div class="review-trust-section">
+                  <div class="review-badges" id="supplier-badges" aria-label="Supplier badges"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="reviews-header">
+              <h3 class="reviews-title">All Reviews</h3>
+              <div class="review-actions">
+                <button id="btn-write-review" class="btn-write-review" aria-label="Write a review for ${supplierName}">✍️ Write a Review</button>
+              </div>
+            </div>
+
+            <div class="review-controls" role="search" aria-label="Filter and sort reviews">
+              <div class="review-filter-group">
+                <label class="review-filter-label" for="filter-min-rating">Minimum Rating:</label>
+                <select id="filter-min-rating" class="review-filter-select" aria-label="Filter by minimum rating">
+                  <option value="">All Ratings</option>
+                  <option value="5">5 Stars</option>
+                  <option value="4">4+ Stars</option>
+                  <option value="3">3+ Stars</option>
+                </select>
+              </div>
+              <div class="review-filter-group">
+                <label class="review-filter-label" for="filter-sort-by">Sort By:</label>
+                <select id="filter-sort-by" class="review-filter-select" aria-label="Sort reviews">
+                  <option value="date">Most Recent</option>
+                  <option value="rating">Highest Rating</option>
+                  <option value="helpful">Most Helpful</option>
+                </select>
+              </div>
+              <label class="review-verified-filter">
+                <input type="checkbox" id="filter-verified" aria-label="Show only verified customers">
+                <span>✓ Verified Customers Only</span>
+              </label>
+            </div>
+
+            <div id="reviews-list" class="reviews-list" role="list" aria-live="polite" aria-label="Customer reviews">
+              <div class="reviews-loading">
+                <div class="loading-spinner" role="status" aria-label="Loading reviews"></div>
+                <p style="margin-top: 1rem; color: #6b7280;">Loading reviews…</p>
+              </div>
+            </div>
+            <div id="review-pagination" class="review-pagination" style="display:none;" role="navigation" aria-label="Review pagination"></div>
+          </section>
+        </div>
+      </div>
+    `;
+
+    container.style.display = '';
+
+    // Wire write-review scroll
+    const writeBtn = container.querySelector('#btn-write-review');
+    if (writeBtn) {
+      writeBtn.addEventListener('click', () => {
+        const widget = document.getElementById('reviews-widget');
+        if (widget) widget.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+
+    // Initialize ReviewsManager (with retry for deferred reviews.js)
+    _initReviewsManager(suppId);
+  }
+
+  function _initReviewsManager(suppId) {
+    const doInit = () => {
+      try {
+        window.reviewsManager.init(suppId, null);
+      } catch (e) {
+        console.error('ReviewsManager init error:', e);
+      }
+    };
+
+    if (window.reviewsManager) {
+      doInit();
+      return;
+    }
+
+    // Retry until reviews.js loads (it's deferred)
+    let attempts = 0;
+    const interval = setInterval(() => {
+      attempts++;
+      if (window.reviewsManager) {
+        clearInterval(interval);
+        doInit();
+      } else if (attempts >= 30) {
+        clearInterval(interval);
+        const reviewsList = document.getElementById('reviews-list');
+        if (reviewsList) {
+          reviewsList.innerHTML =
+            '<p class="small" style="color:#6b7280;padding:1rem;">Reviews temporarily unavailable.</p>';
+        }
+      }
+    }, 100);
+  }
+
+  // ─── Sidebar Section ─────────────────────────────────────────────────────────
+
+  function renderSidebarSection(supplier) {
+    _renderSidebarEnquiry(supplier);
+    _renderSidebarTrust(supplier);
+    _renderSidebarDetails(supplier);
+  }
+
+  function _renderSidebarEnquiry(supplier) {
+    const container = document.getElementById('sp-sidebar-enquiry');
+    if (!container) return;
+
+    const supplierName = escapeHtml(supplier.name || 'this supplier');
+
+    container.innerHTML = `
+      <div class="sp-cta-card">
+        <div class="sp-cta-card__name">Get in touch with</div>
+        <div class="sp-cta-card__title">${supplierName}</div>
+        <div class="sp-cta-card__actions">
+          <button class="sp-cta-btn sp-cta-btn--primary" id="sidebar-btn-enquiry" aria-label="Send enquiry to ${supplierName}">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            Send Enquiry
+          </button>
+          <button class="sp-cta-btn sp-cta-btn--secondary" id="sidebar-btn-message" aria-label="Message ${supplierName}">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            Message
+          </button>
+        </div>
+        <p class="sp-cta-card__note">Usually responds within 24 hours</p>
+      </div>
+    `;
+
+    // Wire sidebar CTA buttons
+    const sidebarEnquiry = document.getElementById('sidebar-btn-enquiry');
+    if (sidebarEnquiry) {
+      sidebarEnquiry.addEventListener('click', () => {
+        const heroEnquiry = document.getElementById('btn-enquiry');
+        if (heroEnquiry) heroEnquiry.click();
+      });
+    }
+
+    const sidebarMsg = document.getElementById('sidebar-btn-message');
+    if (sidebarMsg) {
+      sidebarMsg.addEventListener('click', () => {
+        const heroMsg = document.getElementById('btn-message-supplier');
+        if (heroMsg) heroMsg.click();
+      });
+    }
+  }
+
+  function _renderSidebarTrust(supplier) {
+    const container = document.getElementById('sp-sidebar-trust');
+    if (!container) return;
+
+    const items = [];
+
+    if (supplier.emailVerified || supplier.verifications?.email?.verified || supplier.verified) {
+      items.push(`<div class="sp-trust-item"><span class="sp-trust-icon" aria-hidden="true">✓</span><span>Email verified</span></div>`);
+    }
+    if (supplier.phoneVerified || supplier.verifications?.phone?.verified) {
+      items.push(`<div class="sp-trust-item"><span class="sp-trust-icon" aria-hidden="true">✓</span><span>Phone verified</span></div>`);
+    }
+    if (supplier.businessVerified || supplier.verifications?.business?.verified) {
+      items.push(`<div class="sp-trust-item"><span class="sp-trust-icon" aria-hidden="true">✓</span><span>Business verified</span></div>`);
+    }
+    if (supplier.insurance) {
+      items.push(`<div class="sp-trust-item"><span class="sp-trust-icon" aria-hidden="true">✓</span><span>Insured</span></div>`);
+    }
+    if (supplier.license) {
+      items.push(`<div class="sp-trust-item"><span class="sp-trust-icon" aria-hidden="true">✓</span><span>Licensed</span></div>`);
+    }
+
+    if (items.length === 0) {
+      container.style.display = 'none';
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="sp-trust-card">
+        <div class="sp-trust-card__title">Trust &amp; Safety</div>
+        <div class="sp-trust-list">${items.join('')}</div>
+      </div>
+    `;
+    container.style.display = '';
+  }
+
+  function _renderSidebarDetails(supplier) {
+    const container = document.getElementById('sp-sidebar-details');
+    if (!container) return;
+
+    const rows = [];
+
+    if (supplier.category) {
+      rows.push({ icon: '🏷️', label: 'Category', value: escapeHtml(supplier.category) });
+    }
+
+    if (supplier.location) {
+      const loc = supplier.postcode
+        ? `${escapeHtml(supplier.location)}, ${escapeHtml(supplier.postcode)}`
+        : escapeHtml(supplier.location);
+      rows.push({ icon: '📍', label: 'Location', value: loc });
+    }
+
+    if (supplier.priceRange) {
+      rows.push({ icon: '💰', label: 'Price Range', value: escapeHtml(supplier.priceRange) });
+    }
+
+    const yrs = yearsActive(supplier.createdAt);
+    if (yrs) {
+      rows.push({ icon: '📅', label: 'Since', value: `${yrs} year${yrs !== 1 ? 's' : ''} active` });
+    }
+
+    if (supplier.avgResponseTime) {
+      rows.push({ icon: '⚡', label: 'Response', value: `~${Math.round(supplier.avgResponseTime)}h` });
+    }
+
+    if (rows.length === 0) {
+      container.style.display = 'none';
+      return;
+    }
+
+    const rowsHtml = rows
+      .map(r => `
+        <div class="sp-detail-row">
+          <span class="sp-detail-row__icon" aria-hidden="true">${r.icon}</span>
+          <span class="sp-detail-row__label">${r.label}</span>
+          <span class="sp-detail-row__value">${r.value}</span>
+        </div>`)
+      .join('');
+
+    container.innerHTML = `
+      <div class="sp-details-card">
+        <div class="sp-details-card__title">Key Details</div>
+        <div class="sp-details-list">${rowsHtml}</div>
+      </div>
+    `;
+    container.style.display = '';
+  }
+
+  // ─── Badges Section ──────────────────────────────────────────────────────────
+
+  function renderBadgesSection(supplier) {
+    const container = document.getElementById('sp-section-badges');
+    if (!container || !supplier) return;
+
     const sections = [];
 
-    // --- Group 1: Subscription tier badges ---
+    // Subscription tier
     const tier =
       typeof EFTierIcon !== 'undefined'
         ? EFTierIcon.resolve(supplier)
-        : supplier.subscriptionTier ||
-          supplier.subscription?.tier ||
-          (supplier.isPro ? 'pro' : 'free');
+        : supplier.subscription?.tier || (supplier.isPro ? 'pro' : 'free');
 
-    const tierBadgesHtml = [];
+    const tierBadges = [];
     if (tier === 'pro_plus') {
-      tierBadgesHtml.push(
-        '<span class="badge badge-pro-plus" title="Professional Plus — Premium subscription" aria-label="Pro Plus subscriber">Pro Plus</span>'
-      );
+      tierBadges.push('<span class="badge badge-pro-plus" aria-label="Pro Plus">Pro Plus</span>');
     } else if (tier === 'pro') {
-      tierBadgesHtml.push(
-        '<span class="badge badge-pro" title="Professional — Enhanced subscription" aria-label="Pro subscriber">Pro</span>'
-      );
+      tierBadges.push('<span class="badge badge-pro" aria-label="Pro">Pro</span>');
+    }
+    if (tierBadges.length > 0) {
+      sections.push(`<p class="sp-badges-group-label">Subscription</p><div class="sp-badges-row">${tierBadges.join('')}</div>`);
     }
 
-    if (tierBadgesHtml.length > 0) {
-      sections.push(`
-        <p class="badges-section__group-label">Subscription</p>
-        <div class="profile-badges">${tierBadgesHtml.join('')}</div>
-      `);
-    }
-
-    // --- Group 2: Earned / auto-awarded performance badges (from badgeDetails) ---
+    // Earned badges (from badgeDetails, excluding tier/verif/founder)
     const SKIP_TYPES = new Set(['pro', 'pro-plus', 'founder', 'verified', 'featured']);
-    const earnedBadges = Array.isArray(supplier.badgeDetails)
+    const earned = Array.isArray(supplier.badgeDetails)
       ? supplier.badgeDetails.filter(b => !SKIP_TYPES.has(b.type))
       : [];
-
-    if (earnedBadges.length > 0) {
-      const cards = earnedBadges
-        .map(
-          b => `
-        <div class="badge-card">
-          <div class="badge-card__icon" aria-hidden="true">${b.icon || '🏅'}</div>
-          <div class="badge-card__body">
-            <div class="badge-card__name">${escapeHtml(b.name)}</div>
-            ${b.description ? `<div class="badge-card__desc">${escapeHtml(b.description)}</div>` : ''}
-          </div>
-        </div>
-      `
-        )
+    if (earned.length > 0) {
+      const cards = earned
+        .map(b => `
+          <div class="sp-badge-card">
+            <div class="sp-badge-card__icon" aria-hidden="true">${b.icon || '🏅'}</div>
+            <div class="sp-badge-card__body">
+              <div class="sp-badge-card__name">${escapeHtml(b.name)}</div>
+              ${b.description ? `<div class="sp-badge-card__desc">${escapeHtml(b.description)}</div>` : ''}
+            </div>
+          </div>`)
         .join('');
-
-      sections.push(`
-        <p class="badges-section__group-label">Earned Achievements</p>
-        <div class="badge-cards-grid">${cards}</div>
-      `);
+      sections.push(`<p class="sp-badges-group-label">Earned Achievements</p><div class="sp-badge-cards-grid">${cards}</div>`);
     }
 
-    // --- Group 3: Founding / Featured ---
+    // Recognition: founding + featured
     const honorBadges = [];
     if (supplier.isFoundingSupplier || supplier.isFounding || supplier.founding) {
-      honorBadges.push(
-        '<span class="badge badge-founding" title="Founding Supplier — One of our first partners" aria-label="Founding supplier">Founding</span>'
-      );
+      honorBadges.push('<span class="badge badge-founding" aria-label="Founding supplier">Founding</span>');
     }
     if (supplier.featured || supplier.featuredSupplier) {
-      honorBadges.push(
-        '<span class="badge badge-featured" title="Featured Supplier" aria-label="Featured supplier">Featured</span>'
-      );
+      honorBadges.push('<span class="badge badge-featured" aria-label="Featured supplier">Featured</span>');
     }
     if (honorBadges.length > 0) {
-      sections.push(`
-        <p class="badges-section__group-label">Recognition</p>
-        <div class="profile-badges">${honorBadges.join('')}</div>
-      `);
+      sections.push(`<p class="sp-badges-group-label">Recognition</p><div class="sp-badges-row">${honorBadges.join('')}</div>`);
     }
 
-    // --- Group 4: Verification badges ---
+    // Verification
     const verifyBadges = [];
     if (supplier.emailVerified || supplier.verifications?.email?.verified || supplier.verified) {
-      verifyBadges.push(
-        '<span class="badge badge-email-verified" title="Email address verified" aria-label="Email verified">Email</span>'
-      );
+      verifyBadges.push('<span class="badge badge-email-verified" aria-label="Email verified">Email</span>');
     }
     if (supplier.phoneVerified || supplier.verifications?.phone?.verified) {
-      verifyBadges.push(
-        '<span class="badge badge-phone-verified" title="Phone number verified" aria-label="Phone verified">Phone</span>'
-      );
+      verifyBadges.push('<span class="badge badge-phone-verified" aria-label="Phone verified">Phone</span>');
     }
     if (supplier.businessVerified || supplier.verifications?.business?.verified) {
-      verifyBadges.push(
-        '<span class="badge badge-business-verified" title="Business documents verified" aria-label="Business verified">Business</span>'
-      );
+      verifyBadges.push('<span class="badge badge-business-verified" aria-label="Business verified">Business</span>');
     }
     if (verifyBadges.length > 0) {
-      sections.push(`
-        <p class="badges-section__group-label">Verification</p>
-        <div class="profile-badges">${verifyBadges.join('')}</div>
-      `);
+      sections.push(`<p class="sp-badges-group-label">Verification</p><div class="sp-badges-row">${verifyBadges.join('')}</div>`);
     }
 
     if (sections.length === 0) {
@@ -547,377 +1072,111 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     }
 
     container.innerHTML = `
-      <div class="badges-section">
-        <h2 class="badges-section__title">Badges &amp; Recognition</h2>
+      <div class="sp-card sp-badges-section sp-fade-in">
+        <h2 class="sp-card-title">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></svg>
+          Badges &amp; Recognition
+        </h2>
         ${sections.join('')}
       </div>
     `;
+    container.style.display = '';
   }
 
-  /**
-   * Load supplier data and render hero
-   */
-  async function loadSupplierData() {
-    if (!supplierId) {
-      return;
+  // ─── Error state ─────────────────────────────────────────────────────────────
+
+  function showPageError() {
+    const heroTitle = document.getElementById('hero-title');
+    if (heroTitle) {
+      heroTitle.removeAttribute('aria-busy');
+      heroTitle.textContent = 'Supplier Not Found';
     }
 
-    try {
-      const response = await fetch(`/api/suppliers/${supplierId}`, {
-        credentials: 'include',
-      });
+    const aboutSection = document.getElementById('sp-section-about');
+    if (aboutSection) {
+      aboutSection.innerHTML = `
+        <div class="sp-error-state" role="status" aria-live="polite">
+          <div class="sp-error-state__icon">⚠️</div>
+          <div class="sp-error-state__title">Unable to load supplier</div>
+          <div class="sp-error-state__desc">This supplier profile could not be loaded. Please try again.</div>
+          <button class="sp-error-state__btn" id="sp-retry-btn">Try Again</button>
+        </div>
+      `;
+      const retryBtn = aboutSection.querySelector('#sp-retry-btn');
+      if (retryBtn) retryBtn.addEventListener('click', loadAllData);
+    }
+  }
 
-      if (!response.ok) {
+  // ─── Data loading ─────────────────────────────────────────────────────────────
+
+  async function loadAllData() {
+    if (!supplierId) return;
+
+    try {
+      // Fetch supplier data and packages in parallel
+      const [supplierResp, packagesResp] = await Promise.allSettled([
+        fetch(`/api/suppliers/${encodeURIComponent(supplierId)}`, { credentials: 'include' }),
+        fetch(`/api/suppliers/${encodeURIComponent(supplierId)}/packages`, { credentials: 'include' }),
+      ]);
+
+      // Supplier data is required
+      if (supplierResp.status === 'rejected' || !supplierResp.value.ok) {
         throw new Error('Failed to load supplier data');
       }
 
-      supplierData = await response.json();
+      supplierData = await supplierResp.value.json();
+      let packages = [];
+      if (packagesResp.status === 'fulfilled' && packagesResp.value.ok) {
+        const pkgData = await packagesResp.value.json();
+        packages = pkgData.items || pkgData.packages || [];
+      }
 
-      // Update meta tags
+      // Render all sections
       updateMetaTags(supplierData);
-
-      // Render hero section
       renderHeroSection(supplierData);
-
-      // Render dedicated badges section
+      renderAboutSection(supplierData);
+      renderGallerySection(supplierData);
+      renderPackagesSection(packages);
+      renderReviewsSection(supplierId, supplierData);
+      renderSidebarSection(supplierData);
       renderBadgesSection(supplierData);
+
     } catch (error) {
-      console.error('Error loading supplier data:', error);
-      const heroTitle = document.getElementById('hero-title');
-      if (heroTitle) {
-        heroTitle.removeAttribute('aria-busy');
-        heroTitle.textContent = 'Supplier Not Found';
-      }
-      const container = document.getElementById('supplier-container');
-      if (container) {
-        container.innerHTML = `
-          <div class="error-state" role="status" aria-live="polite">
-            <div class="error-state-icon">⚠️</div>
-            <div class="error-state-title">Unable to load supplier</div>
-            <div class="error-state-description">The supplier profile could not be loaded. Please try again.</div>
-            <button class="error-state-action" id="retry-supplier-btn">Try Again</button>
-          </div>
-        `;
-        const retryBtn = container.querySelector('#retry-supplier-btn');
-        if (retryBtn) {
-          retryBtn.addEventListener('click', loadSupplierData);
-        }
-      }
+      console.error('Error loading supplier profile:', error);
+      showPageError();
     }
   }
 
-  /**
-   * Initialize supplier profile page
-   */
+  // ─── Init ────────────────────────────────────────────────────────────────────
+
   function init() {
-    const urlParams = new URLSearchParams(window.location.search);
-    supplierId = urlParams.get('id');
+    const params = new URLSearchParams(window.location.search);
+    supplierId = params.get('id');
 
     if (!supplierId) {
-      console.warn('No supplier ID found');
+      console.warn('[supplier-profile] No supplier ID in URL');
       return;
     }
 
-    // Validate supplierId format before making API calls (expected format: sup_xxxxx)
+    // Validate format
     if (!/^sup_[a-zA-Z0-9_-]+$/.test(supplierId)) {
-      console.warn('Invalid supplier ID format:', supplierId);
+      console.warn('[supplier-profile] Invalid supplier ID format:', supplierId);
       return;
     }
 
-    // Show preview-mode banner when ?preview=true
-    if (urlParams.get('preview') === 'true') {
-      const previewBanner = document.getElementById('preview-mode-banner');
-      if (previewBanner) {
-        previewBanner.style.display = 'flex';
-        // Push body down so the fixed banner doesn't overlap content
+    // Preview mode banner
+    if (params.get('preview') === 'true') {
+      const banner = document.getElementById('preview-mode-banner');
+      if (banner) {
+        banner.style.display = 'flex';
         document.body.style.paddingTop = '42px';
       }
     }
 
-    loadSupplierData();
-    loadReviews();
-    initializePackageCards();
+    loadAllData();
   }
 
-  /**
-   * Load reviews for supplier
-   */
-  async function loadReviews() {
-    const reviewsContainer = document.getElementById('reviews-container');
-    if (!reviewsContainer) {
-      return;
-    }
-
-    showLoadingState(reviewsContainer);
-
-    try {
-      const response = await fetch(`/api/v1/reviews?supplierId=${supplierId}`, {
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to load reviews');
-      }
-
-      const data = await response.json();
-      const reviews = data.reviews || data.items || [];
-
-      if (reviews.length === 0) {
-        showEmptyState(reviewsContainer);
-      } else {
-        renderReviews(reviewsContainer, reviews);
-      }
-    } catch (error) {
-      console.error('Error loading reviews:', error);
-      showErrorState(reviewsContainer, error.message);
-    }
-  }
-
-  /**
-   * Show loading state
-   */
-  function showLoadingState(container) {
-    container.setAttribute('aria-hidden', 'true');
-    container.innerHTML = `
-      <div class="skeleton-list-item"><div class="skeleton skeleton-avatar"></div><div style="flex:1"><div class="skeleton skeleton-text skeleton-text-medium" style="margin-bottom:0.25rem;"></div><div class="skeleton skeleton-text skeleton-text-short"></div></div></div>
-      <div class="skeleton-list-item"><div class="skeleton skeleton-avatar"></div><div style="flex:1"><div class="skeleton skeleton-text skeleton-text-medium" style="margin-bottom:0.25rem;"></div><div class="skeleton skeleton-text skeleton-text-short"></div></div></div>
-      <div class="skeleton-list-item"><div class="skeleton skeleton-avatar"></div><div style="flex:1"><div class="skeleton skeleton-text skeleton-text-medium" style="margin-bottom:0.25rem;"></div><div class="skeleton skeleton-text skeleton-text-short"></div></div></div>
-    `;
-  }
-
-  /**
-   * Show empty state
-   */
-  function showEmptyState(container) {
-    container.removeAttribute('aria-hidden');
-    container.innerHTML = `
-      <div class="reviews-empty" style="text-align: center; padding: 3rem 1rem; color: var(--muted);">
-        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin: 0 auto 1rem; opacity: 0.5;">
-          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-        </svg>
-        <h3 style="margin-bottom: 0.5rem;">No reviews yet</h3>
-        <p>Be the first to review this supplier</p>
-      </div>
-    `;
-  }
-
-  /**
-   * Show error state with retry button
-   */
-  function showErrorState(container, errorMessage) {
-    container.removeAttribute('aria-hidden');
-    container.innerHTML = `
-      <div class="reviews-error" style="text-align: center; padding: 3rem 1rem;">
-        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin: 0 auto 1rem; color: #ef4444; opacity: 0.8;">
-          <circle cx="12" cy="12" r="10"/>
-          <line x1="12" y1="8" x2="12" y2="12"/>
-          <line x1="12" y1="16" x2="12.01" y2="16"/>
-        </svg>
-        <h3 style="margin-bottom: 0.5rem; color: #ef4444;">Failed to load reviews</h3>
-        <p style="color: var(--muted); margin-bottom: 1rem;">${escapeHtml(errorMessage || 'An unexpected error occurred.')}</p>
-        <button id="retry-reviews-btn" class="btn btn-primary">Retry</button>
-      </div>
-    `;
-
-    document.getElementById('retry-reviews-btn').addEventListener('click', loadReviews);
-  }
-
-  /**
-   * Render reviews
-   */
-  function renderReviews(container, reviews) {
-    container.removeAttribute('aria-hidden');
-    const reviewsHTML = reviews
-      .map((review, index) => {
-        const rating = Math.max(1, Math.min(5, review.rating || 0));
-        const starsHTML = generateStarRating(rating);
-
-        return `
-        <div class="review-card" style="padding: 1.5rem; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 1rem;">
-          <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 1rem;">
-            <div>
-              <div class="review-stars" style="margin-bottom: 0.5rem;" aria-label="${rating} out of 5 stars">
-                ${starsHTML}
-              </div>
-              <div style="font-weight: 500;">${escapeHtml(review.customerName || 'Anonymous')}</div>
-              <div class="small" style="color: var(--muted);">${formatDate(review.createdAt)}</div>
-            </div>
-          </div>
-          <div class="review-content" data-review-index="${index}"></div>
-        </div>
-      `;
-      })
-      .join('');
-
-    container.innerHTML = `
-      <div class="reviews-list">
-        <h2 style="margin-bottom: 1.5rem;">Customer Reviews</h2>
-        ${reviewsHTML}
-      </div>
-    `;
-
-    reviews.forEach((review, index) => {
-      const reviewElement = container.querySelector(`[data-review-index="${index}"]`);
-      if (reviewElement) {
-        reviewElement.textContent = review.comment || review.content || 'No comment provided';
-      }
-    });
-  }
-
-  /**
-   * Generate star rating HTML
-   */
-  function generateStarRating(rating) {
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 >= 0.5;
-    const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
-
-    let html = '';
-
-    for (let i = 0; i < fullStars; i++) {
-      html += '<span style="color: #fbbf24; font-size: 1.25rem;">★</span>';
-    }
-
-    if (hasHalfStar) {
-      html += '<span style="color: #fbbf24; font-size: 1.25rem;">⯨</span>';
-    }
-
-    for (let i = 0; i < emptyStars; i++) {
-      html += '<span style="color: #d1d5db; font-size: 1.25rem;">★</span>';
-    }
-
-    return html;
-  }
-
-  /**
-   * Format date for display
-   */
-  function formatDate(date) {
-    if (!date) {
-      return '';
-    }
-
-    try {
-      const d = new Date(date);
-      const now = new Date();
-      const diffTime = Math.abs(now - d);
-      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-      if (diffDays === 0) {
-        return 'Today';
-      }
-      if (diffDays === 1) {
-        return 'Yesterday';
-      }
-      if (diffDays < 7) {
-        return `${diffDays} days ago`;
-      }
-      if (diffDays < 30) {
-        return `${Math.floor(diffDays / 7)} weeks ago`;
-      }
-      if (diffDays < 365) {
-        return `${Math.floor(diffDays / 30)} months ago`;
-      }
-
-      return d.toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' });
-    } catch (e) {
-      return '';
-    }
-  }
-
-  /**
-   * Initialize package card click handlers
-   */
-  function initializePackageCards() {
-    const packageCards = document.querySelectorAll('[data-package-id]');
-
-    packageCards.forEach(card => {
-      const packageId = card.getAttribute('data-package-id');
-
-      card.setAttribute('role', 'button');
-      card.setAttribute('tabindex', '0');
-      card.setAttribute('aria-label', `View details for package ${packageId}`);
-      card.classList.add('package-card-interactive');
-
-      card.addEventListener('click', () => handlePackageClick(packageId));
-
-      card.addEventListener('keydown', e => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          handlePackageClick(packageId);
-        }
-      });
-
-      card.addEventListener('mouseenter', () => {
-        card.classList.add('package-card-hover');
-      });
-
-      card.addEventListener('mouseleave', () => {
-        card.classList.remove('package-card-hover');
-      });
-    });
-
-    if (packageCards.length > 0) {
-      addPackageCardStyles();
-    }
-  }
-
-  /**
-   * Handle package card click
-   */
-  function handlePackageClick(packageId) {
-    window.location.href = `/package?id=${packageId}`;
-  }
-
-  /**
-   * Add CSS styles for package cards
-   */
-  function addPackageCardStyles() {
-    if (document.getElementById('package-card-styles')) {
-      return;
-    }
-
-    const style = document.createElement('style');
-    style.id = 'package-card-styles';
-    style.textContent = `
-      .package-card-interactive {
-        cursor: pointer;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-      }
-      
-      .package-card-interactive:hover,
-      .package-card-hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
-      }
-      
-      .package-card-interactive:focus {
-        outline: 2px solid #0B8073;
-        outline-offset: 2px;
-      }
-      
-      .package-card-interactive:active {
-        transform: translateY(-2px);
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
-  /**
-   * Escape HTML to prevent XSS
-   */
-  function escapeHtml(unsafe) {
-    if (typeof unsafe !== 'string') {
-      return '';
-    }
-
-    return unsafe
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-  }
+  // ─── Boot ────────────────────────────────────────────────────────────────────
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

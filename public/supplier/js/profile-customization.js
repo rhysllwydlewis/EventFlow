@@ -32,6 +32,24 @@
       .replace(/'/g, '&#39;');
   }
 
+  /**
+   * Validate a social media URL is a recognised HTTPS URL.
+   * Returns an error string or null if valid.
+   */
+  function validateSocialUrl(value) {
+    if (!value || !value.trim()) return null; // optional field
+    const trimmed = value.trim();
+    try {
+      const u = new URL(trimmed);
+      if (u.protocol !== 'https:' && u.protocol !== 'http:') {
+        return 'Please enter a full URL (e.g. https://instagram.com/yourpage)';
+      }
+      return null;
+    } catch (_) {
+      return 'Please enter a valid URL (e.g. https://instagram.com/yourpage)';
+    }
+  }
+
   // Helper to get CSRF token
   async function ensureCsrfToken() {
     try {
@@ -270,6 +288,14 @@
       for (const platform of platforms) {
         const input = document.getElementById(`sup-social-${platform}`);
         if (input && input.value.trim()) {
+          const urlError = validateSocialUrl(input.value.trim());
+          if (urlError) {
+            if (statusEl) {
+              statusEl.textContent = `${platform.charAt(0).toUpperCase() + platform.slice(1)}: ${urlError}`;
+              statusEl.style.color = '#ef4444';
+            }
+            return;
+          }
           socialLinks[platform] = input.value.trim();
         }
       }
@@ -361,6 +387,21 @@
     const previewBtn = document.getElementById('sup-preview');
     if (previewBtn) {
       previewBtn.addEventListener('click', handlePreview);
+    }
+
+    // Tagline character counter
+    const taglineInput = document.getElementById('sup-tagline');
+    const taglineCount = document.getElementById('tagline-count');
+    if (taglineInput && taglineCount) {
+      const updateCount = () => {
+        const len = taglineInput.value.length;
+        const max = Number(taglineInput.maxLength) || 100;
+        taglineCount.textContent = `${len} / ${max}`;
+        taglineCount.className = 'pc-char-count' +
+          (len > max ? ' pc-char-count--over' : len > max * 0.85 ? ' pc-char-count--warn' : '');
+      };
+      taglineInput.addEventListener('input', updateCount);
+      updateCount();
     }
 
     // Initialize banner upload drop zone
