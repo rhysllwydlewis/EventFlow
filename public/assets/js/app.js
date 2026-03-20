@@ -3576,11 +3576,29 @@ async function initDashSupplier() {
         if (galleryRow) {
           galleryRow.style.display = 'none';
         }
+
+        // Form has been reset to create mode. Re-apply limit restrictions if needed
+        // so the user cannot immediately attempt to create a new package over the limit.
+        if (window._pkgAtLimit) {
+          pkgForm.querySelectorAll('input, textarea, select, button[type="submit"]').forEach(el => {
+            el.disabled = true;
+          });
+          const pkgStatusPost = document.getElementById('pkg-status');
+          if (pkgStatusPost) {
+            pkgStatusPost.textContent =
+              'You have reached the package limit on the free plan. Upgrade to Pro to add more.';
+          }
+        }
       } catch (err) {
         alert(`Error saving package: ${err.message || 'Please try again'}`);
       } finally {
         if (saveBtn) {
-          saveBtn.disabled = false;
+          // Only re-enable the save button if NOT at the limit in create mode
+          // (pkg-id-hidden is empty after reset, meaning we're in create mode).
+          const isInEditModeAfterSave = !!document.getElementById('pkg-id-hidden')?.value;
+          if (!window._pkgAtLimit || isInEditModeAfterSave) {
+            saveBtn.disabled = false;
+          }
           saveBtn.textContent = origLabel;
         }
       }

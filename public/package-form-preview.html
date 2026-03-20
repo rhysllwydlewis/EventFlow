@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Package Form Preview</title>
+<link rel="stylesheet" href="/assets/css/styles.css">
+<link rel="stylesheet" href="/assets/css/supplier-dashboard-improvements.css">
+<style>
+body { background: #f0f2f5; padding: 32px; font-family: system-ui, sans-serif; }
+.container { max-width: 860px; margin: 0 auto; }
+h2 { font-size: 1.1rem; margin-bottom: 16px; color: #667085; font-weight: 500; }
+.card { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 1px 4px rgba(0,0,0,.08); margin-bottom: 32px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h2>Package Form — Layout Preview (new)</h2>
+
+  <div class="card">
+    <div id="package-form-section" class="form-section-collapsible expanded">
+      <h3 class="supplier-section-header">Create a package</h3>
+      <form id="package-form" action="#">
+        <!-- Row 1: Supplier / Title / Price -->
+        <div class="form-row supplier-form-grid">
+          <div>
+            <label>For supplier</label>
+            <select id="pkg-supplier"><option>Demo Supplier Ltd</option></select>
+          </div>
+          <div>
+            <label>Title <span class="form-required">*</span></label>
+            <input id="pkg-title" name="title" required placeholder="e.g. Wedding Photography Package" />
+          </div>
+          <div>
+            <label>Price <span class="form-required">*</span></label>
+            <input id="pkg-price" name="price" placeholder="e.g. £999 or £45 pp" required />
+          </div>
+        </div>
+
+        <!-- Row 2: Primary Category (own row) -->
+        <div class="form-row supplier-form-grid">
+          <div>
+            <label>Primary Category <span class="form-required">*</span></label>
+            <select id="pkg-category" name="primaryCategoryKey" required>
+              <option value="">Choose a category…</option>
+              <option value="photography" selected>Photography</option>
+              <option value="venues">Venues</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Row 3: Event Types (below Primary Category) -->
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Event Types <span class="required">*</span></label>
+            <div class="checkbox-group">
+              <label class="checkbox-inline">
+                <input type="checkbox" id="pkg-event-wedding" name="eventTypes" value="wedding" class="form-checkbox" checked />
+                <span class="checkbox-text">Wedding</span>
+              </label>
+              <label class="checkbox-inline">
+                <input type="checkbox" id="pkg-event-other" name="eventTypes" value="other" class="form-checkbox" />
+                <span class="checkbox-text">Other Events</span>
+              </label>
+            </div>
+            <p class="form-help">Select at least one</p>
+          </div>
+        </div>
+
+        <!-- Row 4: Description -->
+        <div class="form-row">
+          <label>Description</label>
+          <textarea id="pkg-desc" name="description" rows="4" placeholder="Describe your package…"></textarea>
+        </div>
+
+        <!-- Actions -->
+        <div class="form-actions supplier-form-actions">
+          <button class="cta" type="submit">Save package</button>
+          <span class="small" id="pkg-status"></span>
+        </div>
+        <input type="hidden" name="id" id="pkg-id-hidden" />
+      </form>
+    </div>
+  </div>
+
+  <h2>Same form — at free-tier limit (create mode disabled)</h2>
+  <div class="card">
+    <div id="package-form-section-2" class="form-section-collapsible expanded">
+      <h3 class="supplier-section-header">Create a package</h3>
+      <form id="package-form-limit" action="#">
+        <div class="form-row supplier-form-grid">
+          <div>
+            <label>For supplier</label>
+            <select disabled><option>Demo Supplier Ltd</option></select>
+          </div>
+          <div>
+            <label>Title <span class="form-required">*</span></label>
+            <input name="title" required disabled placeholder="e.g. Wedding Photography Package" />
+          </div>
+          <div>
+            <label>Price <span class="form-required">*</span></label>
+            <input name="price" disabled placeholder="e.g. £999 or £45 pp" required />
+          </div>
+        </div>
+        <div class="form-row supplier-form-grid">
+          <div>
+            <label>Primary Category <span class="form-required">*</span></label>
+            <select name="primaryCategoryKey" disabled required>
+              <option value="">Choose a category…</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Event Types <span class="required">*</span></label>
+            <div class="checkbox-group">
+              <label class="checkbox-inline">
+                <input type="checkbox" disabled class="form-checkbox" />
+                <span class="checkbox-text">Wedding</span>
+              </label>
+              <label class="checkbox-inline">
+                <input type="checkbox" disabled class="form-checkbox" />
+                <span class="checkbox-text">Other Events</span>
+              </label>
+            </div>
+            <p class="form-help">Select at least one</p>
+          </div>
+        </div>
+        <div class="form-row">
+          <label>Description</label>
+          <textarea rows="2" disabled placeholder="Describe your package…"></textarea>
+        </div>
+        <div class="form-actions supplier-form-actions">
+          <button class="cta" type="submit" disabled>Save package</button>
+          <span class="small" id="pkg-status-2">You have reached the package limit on the free plan. Upgrade to Pro to add more.</span>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+</body>
+</html>
