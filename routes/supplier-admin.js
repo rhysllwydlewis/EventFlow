@@ -16,6 +16,7 @@ const {
   normaliseState,
   canTransition,
 } = require('../utils/supplierVerificationStateMachine');
+const catalogCache = require('../services/catalogCache');
 const router = express.Router();
 
 // Dependencies injected by server.js
@@ -321,6 +322,11 @@ router.post(
         logger.warn('Verification email delivery failed', { error: emailErr.message });
       });
 
+      // Bust catalog cache so JadeAssist sees the updated approval state immediately
+      catalogCache
+        .invalidate()
+        .catch(e => logger.warn('[catalogCache] invalidate error:', e.message));
+
       res.json({ ok: true, supplier: { ...s, ...updates } });
     } catch (error) {
       logger.error('Error approving supplier:', error);
@@ -387,6 +393,11 @@ router.post(
         logger.warn('Verification email delivery failed', { error: emailErr.message });
       });
 
+      // Bust catalog cache — rejected supplier must no longer appear
+      catalogCache
+        .invalidate()
+        .catch(e => logger.warn('[catalogCache] invalidate error:', e.message));
+
       res.json({ ok: true, supplier: { ...s, ...updates } });
     } catch (error) {
       logger.error('Error rejecting supplier:', error);
@@ -450,6 +461,11 @@ router.post(
       sendVerificationEmail(s, 'needs_changes', reason).catch(emailErr => {
         logger.warn('Verification email delivery failed', { error: emailErr.message });
       });
+
+      // Bust catalog cache — status changed, keep listing fresh
+      catalogCache
+        .invalidate()
+        .catch(e => logger.warn('[catalogCache] invalidate error:', e.message));
 
       res.json({ ok: true, supplier: { ...s, ...updates } });
     } catch (error) {
@@ -515,6 +531,11 @@ router.post(
       sendVerificationEmail(s, 'suspended', reason).catch(emailErr => {
         logger.warn('Verification email delivery failed', { error: emailErr.message });
       });
+
+      // Bust catalog cache — suspended supplier must not appear in results
+      catalogCache
+        .invalidate()
+        .catch(e => logger.warn('[catalogCache] invalidate error:', e.message));
 
       res.json({ ok: true, supplier: { ...s, ...updates } });
     } catch (error) {
@@ -644,6 +665,11 @@ router.post(
       await dbUnified.updateOne('suppliers', { id: req.params.id }, { $set: proUpdates });
       const updatedSupplier = { ...s, ...proUpdates };
 
+      // Bust catalog cache — Pro status affects sort order in listings
+      catalogCache
+        .invalidate()
+        .catch(e => logger.warn('[catalogCache] invalidate error:', e.message));
+
       const active = await supplierIsProActive(updatedSupplier);
       res.json({
         ok: true,
@@ -717,6 +743,11 @@ router.put(
     supplierUpdates.updatedAt = now;
 
     await dbUnified.updateOne('suppliers', { id }, { $set: supplierUpdates });
+
+    // Bust catalog cache — profile data changed
+    catalogCache
+      .invalidate()
+      .catch(e => logger.warn('[catalogCache] invalidate error:', e.message));
 
     res.json({ ok: true, supplier: { ...supplier, ...supplierUpdates } });
   }

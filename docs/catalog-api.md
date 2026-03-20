@@ -18,10 +18,11 @@ JadeAssist Backend (Railway)
 
 ## Environment Variables
 
-| Variable               | Required                      | Description                                                                                                             |
-| ---------------------- | ----------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| `CATALOG_API_KEY`      | **Recommended in production** | When set, every request must supply an `X-Catalog-Api-Key: <value>` header. When unset, the API is publicly accessible. |
-| `CATALOG_API_BASE_URL` | Optional                      | Override the catalog base URL returned in `/api/config`. Defaults to `""` (same origin).                                |
+| Variable                    | Required                      | Description                                                                                                                |
+| --------------------------- | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `CATALOG_API_KEY`           | **Recommended in production** | When set, every request must supply an `X-Catalog-Api-Key: <value>` header. When unset, the API is publicly accessible.    |
+| `CATALOG_API_BASE_URL`      | Optional                      | Override the catalog base URL returned in `/api/config`. Defaults to `""` (same origin).                                   |
+| `CATALOG_CACHE_TTL_SECONDS` | Optional                      | Server-side cache TTL in seconds. Defaults to `300` (5 minutes). Set lower for faster freshness, higher to reduce DB load. |
 
 ### Setting `CATALOG_API_KEY` on Railway
 
@@ -78,7 +79,7 @@ Returns the list of valid supplier categories.
 }
 ```
 
-Cache: `public, max-age=3600` (1 hour)
+Cache: `public, max-age=<CATALOG_CACHE_TTL_SECONDS>` (default 5 minutes)
 
 ---
 
@@ -128,7 +129,7 @@ Paginated list of approved, published suppliers.
 }
 ```
 
-Cache: `public, max-age=60` (1 minute)
+Cache: `public, max-age=<CATALOG_CACHE_TTL_SECONDS>` (default 5 minutes)
 
 ---
 
@@ -140,7 +141,7 @@ Single supplier by ID.
 
 Returns `404` if the supplier is not found or is not approved/published.
 
-Cache: `public, max-age=120` (2 minutes)
+Cache: `public, max-age=<CATALOG_CACHE_TTL_SECONDS>` (default 5 minutes)
 
 ---
 
@@ -179,7 +180,7 @@ Paginated list of approved, published venues (suppliers with `category = "Venues
 }
 ```
 
-Cache: `public, max-age=60` (1 minute)
+Cache: `public, max-age=<CATALOG_CACHE_TTL_SECONDS>` (default 5 minutes)
 
 ---
 
@@ -191,7 +192,7 @@ Single venue by ID.
 
 Returns `404` if not found or not a published venue.
 
-Cache: `public, max-age=120` (2 minutes)
+Cache: `public, max-age=<CATALOG_CACHE_TTL_SECONDS>` (default 5 minutes)
 
 ---
 
@@ -206,9 +207,46 @@ Only the following fields are returned (private fields such as `ownerUserId`, `e
 
 ## Rate Limiting
 
-The catalog endpoints share the `searchLimiter` (30 requests per minute per IP).
-This is appropriate for a machine-to-machine integration with light caching on the
-JadeAssist side.
+The catalog endpoints use `apiLimiter` (100 requests per 15 minutes per IP).
+This is appropriate for a machine-to-machine integration.
+
+## Server-Side Caching
+
+The catalog API uses a dedicated server-side cache (`services/catalogCache.js`) backed
+by the shared `cache.js` layer (Redis when `REDIS_URL` is set, otherwise in-memory).
+
+### How it works
+
+- **List endpoints** (`/suppliers`, `/venues`) fetch all approved/published records
+  from MongoDB on the first request and store them under namespaced keys
+  (`catalog:suppliers:all`, `catalog:venues:all`) with a TTL of
+  `CATALOG_CACHE_TTL_SECONDS` (default 300 s).
+- Subsequent requests within the TTL window are served entirely from the cache —
+  no database query is made.
+- **Automatic invalidation** — whenever an admin approves, rejects, requests changes
+  on, or suspends a supplier (`routes/supplier-admin.js`), or whenever a supplier
+  owner edits their profile (`routes/supplier-management.js`), the entire catalog
+  cache is busted via `catalogCache.invalidate()`. The next request repopulates from
+  the database automatically.
+- **Time-based refresh** — when the server starts you may optionally call
+  `catalogCache.startRefreshTimer(fn)` to pre-warm the cache on a regular interval
+  equal to the TTL, so the first request after each cycle still hits the cache.
+- Filtering, sorting, and pagination are applied **in-memory after the cache hit**,
+  so per-query results are always accurate even when the full list is cached.
+
+### TTL configuration
+
+```
+# Railway / .env
+CATALOG_CACHE_TTL_SECONDS=300   # 5 minutes (default)
+CATALOG_CACHE_TTL_SECONDS=60    # 1 minute for near-real-time freshness
+CATALOG_CACHE_TTL_SECONDS=3600  # 1 hour for high-traffic / low-churn catalogs
+```
+
+### Cache-Control headers
+
+All catalog responses include a `Cache-Control: public, max-age=<TTL>` header so
+downstream CDNs and HTTP caches also respect the same TTL.
 
 ## Config Endpoint
 
