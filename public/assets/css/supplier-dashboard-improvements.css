@@ -1065,43 +1065,72 @@ body.supplier-dashboard-page .supplier-cta-section {
 }
 
 /* ===========================================
-   3. FORM CHECKBOXES - Design Token Integration
+   3. FORM CHECKBOXES - Custom styled, brand-consistent
    =========================================== */
 .checkbox-group {
   display: flex;
-  gap: var(--ef-space-5, 24px);
+  gap: var(--ef-space-4, 16px);
   align-items: center;
-  padding-top: var(--ef-space-2, 8px);
+  padding-top: var(--ef-space-1, 4px);
   flex-wrap: wrap;
 }
 
 .checkbox-inline {
   display: inline-flex;
   align-items: center;
-  gap: var(--ef-space-2, 8px);
+  gap: 8px;
   cursor: pointer;
   user-select: none;
-  padding: var(--ef-space-1, 4px) 0;
+  padding: 2px 0;
   line-height: 1;
 }
 
+/* Hide native checkbox, replace with custom pseudo-element */
 .form-checkbox {
-  width: 16px;
-  height: 16px;
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
   flex-shrink: 0;
   cursor: pointer;
-  accent-color: var(--ef-primary, #0b8073);
   border: 1.5px solid var(--ef-border-muted, #e5e7eb);
-  border-radius: var(--ef-radius-sm, 6px);
-  transition: all var(--ef-transition-fast, 150ms cubic-bezier(0.4, 0, 0.2, 1));
+  border-radius: 5px;
+  background: #fff;
+  transition: background 150ms cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 150ms cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 150ms cubic-bezier(0.4, 0, 0.2, 1);
   margin: 0;
   vertical-align: middle;
   position: relative;
-  top: -1px;
+  display: inline-grid;
+  place-content: center;
+}
+
+/* Checkmark via pseudo-element */
+.form-checkbox::before {
+  content: '';
+  width: 10px;
+  height: 10px;
+  clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+  transform: scale(0);
+  transform-origin: center;
+  transition: transform 120ms cubic-bezier(0.4, 0, 0.2, 1);
+  background: #fff;
+}
+
+.form-checkbox:checked {
+  background: var(--ef-primary, #0b8073);
+  border-color: var(--ef-primary, #0b8073);
+}
+
+.form-checkbox:checked::before {
+  transform: scale(1);
 }
 
 .form-checkbox:hover {
   border-color: var(--ef-primary, #0b8073);
+  box-shadow: 0 0 0 3px rgba(11, 128, 115, 0.1);
 }
 
 .form-checkbox:focus-visible {
@@ -1112,7 +1141,7 @@ body.supplier-dashboard-page .supplier-cta-section {
 .checkbox-text {
   font-size: var(--ef-text-sm, 14px);
   color: var(--ef-text, #0b1220);
-  line-height: var(--ef-leading-tight, 1.2);
+  line-height: var(--ef-leading-tight, 1.25);
 }
 
 .checkbox-inline:hover .checkbox-text {
@@ -3547,6 +3576,35 @@ textarea:focus-visible {
   max-height: 3000px; /* Large enough for form content */
   opacity: 1;
   padding: var(--ef-space-5, 24px) 0;
+}
+
+/* ===========================================
+   PACKAGE FORM - COMPACT VERTICAL SPACING
+   =========================================== */
+#package-form .form-row {
+  margin-bottom: 10px;
+}
+
+#package-form .supplier-form-grid {
+  gap: 12px;
+}
+
+#package-form .form-group {
+  margin-bottom: 0;
+}
+
+#package-form .checkbox-group {
+  padding-top: 2px;
+  gap: 12px;
+}
+
+#package-form .form-help {
+  margin-top: 2px;
+}
+
+#package-form .supplier-section-header {
+  margin-top: 0;
+  margin-bottom: 10px;
 }
 
 /* Create/Edit button styles */

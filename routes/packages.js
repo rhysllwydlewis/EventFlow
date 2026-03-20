@@ -279,10 +279,21 @@ router.post(
       slug,
       primaryCategoryKey: String(primaryCategoryKey),
       eventTypes: validEventTypes,
-      approved: false,
+      approved: true,
       featured: false,
       createdAt: new Date().toISOString(),
     };
+
+    // Check if admin has enabled "Require Package Approval" — if so, new packages need manual review
+    try {
+      const settings = (await dbUnified.read('settings')) || {};
+      const features = settings.features || {};
+      if (features.requirePackageApproval === true) {
+        pkg.approved = false;
+      }
+    } catch (_e) {
+      // If settings read fails, default to auto-approved
+    }
     await dbUnified.insertOne('packages', pkg);
     suppliersRouter.invalidatePackageCaches();
     res.json({ ok: true, package: pkg });
@@ -375,10 +386,7 @@ router.put(
           // Process base64 image through the storage pipeline so we store a file URL,
           // not raw base64, which keeps the DB lean and consistent with gallery items.
           try {
-            const storedUrl = await saveImageBase64(
-              newImage,
-              `package_${pkg.id}_${Date.now()}`
-            );
+            const storedUrl = await saveImageBase64(newImage, `package_${pkg.id}_${Date.now()}`);
             pkgUpdates.image = storedUrl;
             // Also add to gallery if not already present so detail view stays in sync
             const existingGallery = pkg.gallery || [];
@@ -393,10 +401,17 @@ router.put(
               ];
             }
           } catch (e) {
-            logger.warn('Package update: image processing failed, keeping existing image:', e.message);
+            logger.warn(
+              'Package update: image processing failed, keeping existing image:',
+              e.message
+            );
           }
-        } else if (newImage && typeof newImage === 'string' && newImage.trim() &&
-                   newImage !== PLACEHOLDER_PACKAGE_IMAGE) {
+        } else if (
+          newImage &&
+          typeof newImage === 'string' &&
+          newImage.trim() &&
+          newImage !== PLACEHOLDER_PACKAGE_IMAGE
+        ) {
           // Plain URL provided (e.g. admin set it directly)
           pkgUpdates.image = newImage.trim();
           const existingGallery = pkg.gallery || [];

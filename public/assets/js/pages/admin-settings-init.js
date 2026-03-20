@@ -87,6 +87,7 @@
       'featurePhotoUploads',
       'featureSupportTickets',
       'featurePexelsCollage',
+      'featureRequirePackageApproval',
     ];
 
     checkboxes.forEach(id => {
@@ -116,6 +117,7 @@
       photoUploads: getCheckboxValue('featurePhotoUploads'),
       supportTickets: getCheckboxValue('featureSupportTickets'),
       pexelsCollage: getCheckboxValue('featurePexelsCollage'),
+      requirePackageApproval: getCheckboxValue('featureRequirePackageApproval'),
     };
 
     return JSON.stringify(current) !== JSON.stringify(originalFeatureFlags);
@@ -161,6 +163,7 @@
         photoUploads: flags.photoUploads !== false,
         supportTickets: flags.supportTickets !== false,
         pexelsCollage: flags.pexelsCollage === true,
+        requirePackageApproval: flags.requirePackageApproval === true,
       };
 
       // Set checkbox values with null checks
@@ -177,6 +180,10 @@
       setCheckboxValue('featurePhotoUploads', originalFeatureFlags.photoUploads);
       setCheckboxValue('featureSupportTickets', originalFeatureFlags.supportTickets);
       setCheckboxValue('featurePexelsCollage', originalFeatureFlags.pexelsCollage);
+      setCheckboxValue(
+        'featureRequirePackageApproval',
+        originalFeatureFlags.requirePackageApproval
+      );
 
       // Display last updated info
       const updatedTimeEl = document.getElementById('featureUpdatedTime');
@@ -222,6 +229,7 @@
       'featurePhotoUploads',
       'featureSupportTickets',
       'featurePexelsCollage',
+      'featureRequirePackageApproval',
     ];
 
     checkboxIds.forEach(id => {
@@ -286,6 +294,7 @@
       photoUploads: getCheckboxValue('featurePhotoUploads'),
       supportTickets: getCheckboxValue('featureSupportTickets'),
       pexelsCollage: getCheckboxValue('featurePexelsCollage'),
+      requirePackageApproval: getCheckboxValue('featureRequirePackageApproval'),
     };
 
     // Set saving state

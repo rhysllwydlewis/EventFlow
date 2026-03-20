@@ -1575,12 +1575,10 @@ router.get('/photos/pending', authRequired, roleRequired('admin'), async (req, r
     res.json({ success: true, count: pendingPhotos.length, photos: pendingPhotos });
   } catch (error) {
     logger.error('Error fetching pending photos:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to fetch pending photos',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to fetch pending photos',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 
@@ -1658,12 +1656,10 @@ router.post(
       res.json({ success: true, message: 'Photo approved successfully', photo });
     } catch (error) {
       logger.error('Error approving photo:', error);
-      res
-        .status(500)
-        .json({
-          error: 'Failed to approve photo',
-          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-        });
+      res.status(500).json({
+        error: 'Failed to approve photo',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
     }
   }
 );
@@ -1721,12 +1717,10 @@ router.post(
       res.json({ success: true, message: 'Photo rejected successfully', photo });
     } catch (error) {
       logger.error('Error rejecting photo:', error);
-      res
-        .status(500)
-        .json({
-          error: 'Failed to reject photo',
-          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-        });
+      res.status(500).json({
+        error: 'Failed to reject photo',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
     }
   }
 );
@@ -1827,12 +1821,10 @@ router.post(
       });
     } catch (error) {
       logger.error('Error in batch photo action:', error);
-      res
-        .status(500)
-        .json({
-          error: 'Failed to process batch photo action',
-          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-        });
+      res.status(500).json({
+        error: 'Failed to process batch photo action',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
     }
   }
 );
@@ -1963,12 +1955,10 @@ router.post(
       });
     } catch (error) {
       logger.error('Error generating smart tags:', error);
-      res
-        .status(500)
-        .json({
-          error: 'Failed to generate smart tags',
-          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-        });
+      res.status(500).json({
+        error: 'Failed to generate smart tags',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
     }
   }
 );
@@ -2692,6 +2682,7 @@ router.get('/settings/features', authRequired, roleRequired('admin'), async (req
       photoUploads: true,
       supportTickets: true,
       pexelsCollage: false,
+      requirePackageApproval: false,
     };
 
     // Ensure metadata fields are included in response
@@ -2703,6 +2694,7 @@ router.get('/settings/features', authRequired, roleRequired('admin'), async (req
       photoUploads: features.photoUploads !== false,
       supportTickets: features.supportTickets !== false,
       pexelsCollage: features.pexelsCollage === true,
+      requirePackageApproval: features.requirePackageApproval === true,
       updatedAt: features.updatedAt,
       updatedBy: features.updatedBy,
     };
@@ -2737,6 +2729,7 @@ router.put(
         photoUploads,
         supportTickets,
         pexelsCollage,
+        requirePackageApproval,
       } = req.body;
 
       logger.info(`[${requestId}] Request body validated, reading current settings...`);
@@ -2764,6 +2757,7 @@ router.put(
         'photoUploads',
         'supportTickets',
         'pexelsCollage',
+        'requirePackageApproval',
       ];
 
       for (const flag of featureFlags) {
@@ -2784,6 +2778,7 @@ router.put(
         photoUploads: photoUploads !== false,
         supportTickets: supportTickets !== false,
         pexelsCollage: pexelsCollage === true,
+        requirePackageApproval: requirePackageApproval === true,
         updatedAt: new Date().toISOString(),
         updatedBy: req.user.email,
       };
@@ -5060,12 +5055,10 @@ router.get('/audit/export', authRequired, roleRequired('admin'), async (req, res
     }
   } catch (error) {
     logger.error('Error exporting audit logs:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to export audit logs',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to export audit logs',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 
@@ -5156,12 +5149,10 @@ router.post(
       });
     } catch (error) {
       logger.error('Error creating backup:', error);
-      res
-        .status(500)
-        .json({
-          error: 'Failed to create backup',
-          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-        });
+      res.status(500).json({
+        error: 'Failed to create backup',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
     }
   }
 );
@@ -5195,12 +5186,10 @@ router.get('/backup/list', authRequired, roleRequired('admin'), writeLimiter, as
     res.json({ backups: files });
   } catch (error) {
     logger.error('Error listing backups:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to list backups',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to list backups',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 
@@ -5266,12 +5255,10 @@ router.post(
       });
     } catch (error) {
       logger.error('Error restoring backup:', error);
-      res
-        .status(500)
-        .json({
-          error: 'Failed to restore backup',
-          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-        });
+      res.status(500).json({
+        error: 'Failed to restore backup',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
     }
   }
 );
@@ -5334,12 +5321,10 @@ router.post(
       });
     } catch (error) {
       logger.error('Error duplicating package:', error);
-      res
-        .status(500)
-        .json({
-          error: 'Failed to duplicate package',
-          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-        });
+      res.status(500).json({
+        error: 'Failed to duplicate package',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
     }
   }
 );
@@ -5464,12 +5449,10 @@ router.get('/analytics/competitors', authRequired, roleRequired('admin'), async 
     });
   } catch (error) {
     logger.error('Error analyzing competitors:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to analyze competitors',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to analyze competitors',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 

@@ -149,3 +149,58 @@ describe('Admin Settings — HTML Page exists', () => {
     expect(fs.existsSync(SETTINGS_HTML)).toBe(true);
   });
 });
+
+describe('Admin Settings — requirePackageApproval Feature Flag', () => {
+  let settingsHtmlContent;
+  beforeAll(() => {
+    settingsHtmlContent = fs.readFileSync(SETTINGS_HTML, 'utf8');
+  });
+
+  it('GET /settings/features includes requirePackageApproval in response', () => {
+    expect(adminContent).toContain('requirePackageApproval');
+  });
+
+  it('PUT /settings/features validates and persists requirePackageApproval', () => {
+    const putIdx = adminContent.indexOf("router.put(\n  '/settings/features'");
+    expect(putIdx).not.toBe(-1);
+    const block = adminContent.substring(putIdx, putIdx + 3000);
+    expect(block).toContain('requirePackageApproval');
+  });
+
+  it('admin-settings.html has featureRequirePackageApproval toggle', () => {
+    expect(settingsHtmlContent).toContain('featureRequirePackageApproval');
+  });
+
+  it('admin-settings-init.js loads requirePackageApproval flag', () => {
+    expect(settingsInitContent).toContain('requirePackageApproval');
+  });
+
+  it('admin-settings-init.js includes requirePackageApproval in save payload', () => {
+    // The feature flags save payload contains pexelsCollage — use that as an anchor
+    const pexelsIdx = settingsInitContent.indexOf('pexelsCollage: getCheckboxValue');
+    expect(pexelsIdx).not.toBe(-1);
+    const block = settingsInitContent.substring(pexelsIdx - 200, pexelsIdx + 200);
+    expect(block).toContain('requirePackageApproval');
+  });
+});
+
+describe('Supplier Packages — Auto-Approval Behaviour', () => {
+  let packagesContent;
+  beforeAll(() => {
+    packagesContent = fs.readFileSync(path.join(__dirname, '../../routes/packages.js'), 'utf8');
+  });
+
+  it('POST /me/packages defaults to approved: true', () => {
+    expect(packagesContent).toContain('approved: true');
+  });
+
+  it('POST /me/packages checks requirePackageApproval feature flag', () => {
+    expect(packagesContent).toContain('requirePackageApproval');
+  });
+
+  it('POST /me/packages sets approved: false when flag is enabled', () => {
+    const flagIdx = packagesContent.indexOf('requirePackageApproval');
+    const block = packagesContent.substring(flagIdx, flagIdx + 200);
+    expect(block).toContain('pkg.approved = false');
+  });
+});

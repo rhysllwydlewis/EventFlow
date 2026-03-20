@@ -3546,6 +3546,17 @@ async function initDashSupplier() {
         await loadPackages();
         alert('Saved package.');
         pkgForm.reset();
+
+        // Clear photo preview and hidden image input so old images don't bleed into new packages
+        const pkgPhotoPreviewEl = document.getElementById('pkg-photo-preview');
+        if (pkgPhotoPreviewEl) {
+          pkgPhotoPreviewEl.innerHTML = '';
+        }
+        const pkgImageEl = document.getElementById('pkg-image');
+        if (pkgImageEl) {
+          pkgImageEl.value = '';
+        }
+
         const galleryExisting = document.getElementById('pkg-gallery-existing');
         if (galleryExisting) {
           galleryExisting.innerHTML = '';
@@ -3740,6 +3751,27 @@ function togglePackageForm() {
       form.reset();
     }
     document.getElementById('pkg-id-hidden').value = '';
+
+    // Clear photo preview and hidden image input so old images don't bleed into new packages
+    const pkgPhotoPreview = document.getElementById('pkg-photo-preview');
+    if (pkgPhotoPreview) {
+      pkgPhotoPreview.innerHTML = '';
+    }
+    const pkgImage = document.getElementById('pkg-image');
+    if (pkgImage) {
+      pkgImage.value = '';
+    }
+
+    // Clear gallery section
+    const galleryExistingReset = document.getElementById('pkg-gallery-existing');
+    if (galleryExistingReset) {
+      galleryExistingReset.innerHTML = '';
+      galleryExistingReset.style.display = 'none';
+    }
+    const galleryRowReset = document.getElementById('pkg-gallery-row');
+    if (galleryRowReset) {
+      galleryRowReset.style.display = 'none';
+    }
   } else {
     // Expand form
     formSection.classList.add('expanded');
