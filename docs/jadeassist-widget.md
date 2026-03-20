@@ -425,13 +425,13 @@ This verifies:
 ### Key Constants
 
 ```javascript
-MAX_RETRIES: 50; // Widget load retry attempts (5 seconds @ 100ms interval)
-RETRY_INTERVAL: 100; // Time between retries (ms)
-INIT_DELAY: 2000; // Delay before first init attempt (ms)
-TEASER_DELAY: 500; // Delay before showing teaser after init (ms)
-TEASER_EXPIRY_DAYS: 1; // How long dismissal persists (1 day = 24 h)
-MOBILE_BREAKPOINT: 768; // px — switches to mobile teaser copy below this width
-// Auto-dismiss: teaser is removed after 10 s (hardcoded in showTeaser())
+MAX_RETRIES: 50;               // Widget load retry attempts (5 seconds @ 100ms interval)
+RETRY_INTERVAL: 100;           // Time between retries (ms)
+INIT_DELAY: 2000;              // Delay before first init attempt (ms)
+TEASER_DELAY: 500;             // Delay before showing teaser after init (ms)
+TEASER_AUTO_DISMISS_MS: 10000; // Auto-dismiss teaser after 10 s of inactivity
+TEASER_EXPIRY_DAYS: 1;         // How long dismissal persists (1 day = 24 h)
+MOBILE_BREAKPOINT: 768;        // px — switches to mobile teaser copy below this width
 ```
 
 ## Support

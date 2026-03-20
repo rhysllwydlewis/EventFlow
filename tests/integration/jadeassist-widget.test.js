@@ -113,9 +113,22 @@ describe('JadeAssist Widget Pinning', () => {
 
     it('should contain teaser bubble constants', () => {
       expect(v2Content).toContain('TEASER_DELAY');
+      expect(v2Content).toContain('TEASER_AUTO_DISMISS_MS');
       expect(v2Content).toContain('TEASER_STORAGE_KEY');
       expect(v2Content).toContain('TEASER_EXPIRY_DAYS');
       expect(v2Content).toContain('MOBILE_BREAKPOINT');
+    });
+
+    it('should set TEASER_AUTO_DISMISS_MS to 10 seconds', () => {
+      // Verify the auto-dismiss constant is exactly 10000 ms (10 s) as specified
+      expect(v2Content).toMatch(/TEASER_AUTO_DISMISS_MS\s*=\s*10000/);
+    });
+
+    it('should use TEASER_AUTO_DISMISS_MS constant in setTimeout (not a hardcoded number)', () => {
+      // Auto-dismiss setTimeout must use the named constant, not a raw number
+      expect(v2Content).toContain('TEASER_AUTO_DISMISS_MS');
+      // Must NOT pass a bare 10000 literal to setTimeout
+      expect(v2Content).not.toMatch(/setTimeout\s*\([^,]+,\s*10000\s*\)/);
     });
 
     it('should contain A/B teaser variants', () => {
@@ -158,6 +171,23 @@ describe('JadeAssist Widget Pinning', () => {
     it('should resolve avatar URL for subpath deployments', () => {
       expect(v2Content).toContain('getAvatarUrl');
       expect(v2Content).toContain('jade-avatar.png');
+    });
+
+    it('should include Jade avatar in teaser bubble HTML', () => {
+      // Avatar image (or fallback) must be rendered inside the teaser
+      expect(v2Content).toContain('jade-teaser-avatar');
+      expect(v2Content).toContain('widgetAvatarUrl');
+    });
+
+    it('should contain startChatOpenWatcher fallback for shadow DOM launcher', () => {
+      expect(v2Content).toContain('startChatOpenWatcher');
+      // Must use JadeWidget.isOpen API check
+      expect(v2Content).toContain('JadeWidget.isOpen');
+    });
+
+    it('should dismiss teaser before opening chat in openChat()', () => {
+      // dismissTeaser must be called inside openChat so teaser hides when launcher is clicked
+      expect(v2Content).toMatch(/function openChat\s*\(\s*\)[^}]*dismissTeaser\s*\(\s*\)/s);
     });
 
     it('should disable native greetingTooltipText to avoid duplicate teaser', () => {

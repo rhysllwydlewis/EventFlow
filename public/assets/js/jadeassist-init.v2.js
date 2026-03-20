@@ -25,6 +25,7 @@
   const RETRY_INTERVAL = 100; // Retry interval in milliseconds
   const INIT_DELAY = 2000; // Delay before init attempt (ms) — prioritize page content first
   const TEASER_DELAY = 500; // Delay before showing teaser after init (ms)
+  const TEASER_AUTO_DISMISS_MS = 10000; // Auto-dismiss teaser after 10 s of inactivity
   const TEASER_STORAGE_KEY = 'jadeassist-teaser-dismissed';
   const TEASER_EXPIRY_DAYS = 1; // Teaser dismissal persists for 1 day
   const MOBILE_BREAKPOINT = 768; // px — matches CSS media query breakpoint
@@ -65,6 +66,7 @@
   let retryCount = 0;
   let warningLogged = false;
   let teaserElement = null;
+  let widgetAvatarUrl = ''; // Set once on init, used by showTeaser() for avatar display
 
   // ─── Debug helpers ────────────────────────────────────────────────────────
 
@@ -245,41 +247,71 @@
       }
 
       .jade-teaser-content {
-        padding: 16px;
+        padding: 14px 14px 14px 12px;
         display: flex;
-        align-items: flex-start;
-        gap: 12px;
+        align-items: center;
+        gap: 10px;
+      }
+
+      /* Jade avatar inside the teaser */
+      .jade-teaser-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        object-fit: cover;
+        border: 1.5px solid rgba(0,178,169,.35);
+        align-self: flex-start;
+        margin-top: 1px;
+      }
+
+      .jade-teaser-avatar-fallback {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        background: linear-gradient(135deg, #00B2A9 0%, #008C85 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        align-self: flex-start;
+        margin-top: 1px;
+        border: 1.5px solid rgba(0,178,169,.35);
       }
 
       .jade-teaser-text {
         flex: 1;
-        font-size: 14px;
-        line-height: 1.4;
-        color: #0B1220;
+        font-size: 13.5px;
+        line-height: 1.45;
+        color: #1a2332;
         font-weight: 500;
+        letter-spacing: -.01em;
       }
 
       .jade-teaser-close {
         flex-shrink: 0;
         background: none;
         border: none;
-        font-size: 20px;
+        font-size: 18px;
         line-height: 1;
-        color: #667085;
+        color: #8a99ab;
         cursor: pointer;
-        padding: 0;
-        width: 24px;
-        height: 24px;
+        padding: 2px;
+        width: 22px;
+        height: 22px;
         display: flex;
         align-items: center;
         justify-content: center;
         border-radius: 4px;
-        transition: background .2s ease, color .2s ease;
+        transition: background .15s ease, color .15s ease;
+        align-self: flex-start;
+        margin-top: 1px;
       }
 
       .jade-teaser-close:hover {
-        background: #F3F4F6;
-        color: #0B1220;
+        background: rgba(0,178,169,.1);
+        color: #00B2A9;
       }
 
       .jade-teaser-close:focus-visible {
@@ -297,7 +329,7 @@
         height: 16px;
         background: #fff;
         transform: rotate(45deg);
-        box-shadow: 2px 2px 4px rgba(0,0,0,.1);
+        box-shadow: 2px 2px 6px rgba(0,178,169,.15);
       }
 
       /* Mobile adjustments */
@@ -328,7 +360,7 @@
    * Creates and shows the teaser bubble.
    * Skipped if the user dismissed it within TEASER_EXPIRY_DAYS days.
    * Fully keyboard-accessible: Enter/Space opens chat, Escape dismisses.
-   * Auto-dismisses after 10 s.
+   * Auto-dismisses after TEASER_AUTO_DISMISS_MS (10 s).
    */
   function showTeaser() {
     if (isTeaserDismissed()) {
@@ -345,10 +377,16 @@
     teaserElement.setAttribute('role', 'button');
     teaserElement.setAttribute('tabindex', '0');
     teaserElement.setAttribute('aria-label', 'Open chat with Jade');
+
+    const avatarHtml = widgetAvatarUrl
+      ? `<img class="jade-teaser-avatar" src="${widgetAvatarUrl}" alt="" aria-hidden="true" />`
+      : `<span class="jade-teaser-avatar-fallback" aria-hidden="true">🪷</span>`;
+
     teaserElement.innerHTML = `
       <div class="jade-teaser-content">
+        ${avatarHtml}
         <span class="jade-teaser-text">${message}</span>
-        <button class="jade-teaser-close" aria-label="Dismiss message">×</button>
+        <button class="jade-teaser-close" aria-label="Dismiss message">&#10005;</button>
       </div>
     `;
     document.body.appendChild(teaserElement);
@@ -423,7 +461,7 @@
       }
     }, 50);
 
-    // Auto-dismiss after 10 s
+    // Auto-dismiss after TEASER_AUTO_DISMISS_MS (10 s)
     const autoDismissTimeoutId = setTimeout(() => {
       if (teaserElement && teaserElement.parentNode) {
         window.dispatchEvent(
@@ -436,7 +474,7 @@
           console.log('[JadeAssist] Teaser auto-dismissed after 10 s');
         }
       }
-    }, 10000);
+    }, TEASER_AUTO_DISMISS_MS);
 
     teaserElement.dataset.autoDismissTimeout = autoDismissTimeoutId.toString();
 
@@ -521,6 +559,7 @@
 
     try {
       const avatarUrl = getAvatarUrl();
+      widgetAvatarUrl = avatarUrl; // Make available to showTeaser() for avatar display
 
       if (debug) {
         verifyAvatarLoad(avatarUrl);
