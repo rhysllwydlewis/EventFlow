@@ -331,7 +331,9 @@ class PackageGallery {
       // Sanitize the image URL before setting src
       // Support multiple property names used by different API versions
       const originalUrl =
-        typeof img === 'string' ? img : img.url || img.src || img.path || img.image || '';
+        typeof img === 'string'
+          ? img
+          : img.url || img.src || img.path || img.image || img.originalUrl || img.thumbnail || '';
       const sanitizedUrl = this.sanitizeImageUrl(originalUrl);
       image.src = sanitizedUrl;
       image.alt =
@@ -408,7 +410,9 @@ class PackageGallery {
         // Sanitize thumbnail URL
         // Support multiple property names used by different API versions
         const originalUrl =
-          typeof img === 'string' ? img : img.url || img.src || img.path || img.image || '';
+          typeof img === 'string'
+            ? img
+            : img.url || img.src || img.path || img.image || img.originalUrl || img.thumbnail || '';
         const sanitizedUrl = this.sanitizeImageUrl(originalUrl);
         thumb.src = sanitizedUrl;
         thumb.alt = `Thumbnail ${index + 1} of ${this.images.length}`;

@@ -52,16 +52,20 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       document.getElementById('breadcrumb-package').textContent = pkg.title;
 
-      // Gallery — filter out entries with empty or placeholder URLs so the gallery
-      // only contains items that can actually be displayed as real images.
-      const rawGallery = pkg.gallery || [];
+      // Gallery — prefer resolvedGallery (pre-normalised by API, each item has a
+      // guaranteed `url` field and placeholder entries removed) over the raw gallery.
+      // When resolvedGallery is absent (older API or cached response) fall back to
+      // the raw gallery with our own filtering.
+      const rawGallery = pkg.resolvedGallery || pkg.gallery || [];
       const PLACEHOLDER_PATH = '/assets/images/placeholders/';
       const validGalleryImages = rawGallery.filter(img => {
         if (!img) {
           return false;
         }
         const url =
-          typeof img === 'string' ? img : img.url || img.src || img.path || img.image || '';
+          typeof img === 'string'
+            ? img
+            : img.url || img.src || img.path || img.image || img.originalUrl || img.thumbnail || '';
         return url && !url.includes(PLACEHOLDER_PATH);
       });
       // Use filtered gallery; if empty, fall back to pkg.image (already normalised by API).

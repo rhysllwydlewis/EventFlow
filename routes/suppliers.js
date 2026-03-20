@@ -85,9 +85,7 @@ function isFeaturedPackage(pkg) {
  * Extend this set if additional placeholder variants are added to the repo.
  * @type {Set<string>}
  */
-const KNOWN_PLACEHOLDERS_SERVER = new Set([
-  '/assets/images/placeholders/package-event.svg',
-]);
+const KNOWN_PLACEHOLDERS_SERVER = new Set(['/assets/images/placeholders/package-event.svg']);
 
 /**
  * Return true when a URL is a known placeholder, absent, empty, or whitespace-only.
@@ -132,6 +130,38 @@ function resolvePackageImage(pkg) {
   }
   // Always return the canonical placeholder constant on final fallback
   return placeholder;
+}
+
+/**
+ * Normalise a raw gallery array into a consistent array of objects, each with a
+ * guaranteed `url` field set to the best available image URL for that entry.
+ * Items with no usable URL or a placeholder URL are excluded.
+ *
+ * This is returned as `resolvedGallery` in the package detail API response so
+ * the client never has to guess which field name holds the URL.
+ *
+ * @param {Array} gallery  Raw gallery array (strings or objects with various URL fields)
+ * @returns {Array<{url: string}>}
+ */
+function normalizeGallery(gallery) {
+  if (!Array.isArray(gallery) || gallery.length === 0) {
+    return [];
+  }
+  const normalized = [];
+  for (const img of gallery) {
+    if (!img) {
+      continue;
+    }
+    const url =
+      typeof img === 'string'
+        ? img
+        : img.url || img.src || img.path || img.image || img.originalUrl || img.thumbnail;
+    if (url && !isPlaceholderImage(url)) {
+      // Preserve all original fields but ensure `url` is set to the resolved value
+      normalized.push(typeof img === 'string' ? { url } : { ...img, url });
+    }
+  }
+  return normalized;
 }
 
 // Cache for featured packages
@@ -595,8 +625,32 @@ router.get('/packages/:slug', async (req, res) => {
       .map(slug => categories.find(c => c.slug === slug))
       .filter(Boolean);
 
+    const resolvedImg = resolvePackageImage(pkg);
+    const resolvedGallery = normalizeGallery(pkg.gallery);
+
+    const packageResponse = {
+      ...pkg,
+      image: resolvedImg,
+      // Pre-normalised gallery: each entry has a guaranteed `url` field and all
+      // placeholder/unresolvable items have been removed.  The client should
+      // prefer this over the raw `gallery` field to avoid field-name guessing.
+      resolvedGallery,
+    };
+
+    // ?debugImages=1 — include diagnostic fields in the response.
+    // Off by default; intended for development / production troubleshooting only.
+    if (req.query.debugImages === '1') {
+      packageResponse._debug = {
+        chosenImage: resolvedImg,
+        imageFieldWasPlaceholder: isPlaceholderImage(pkg.image),
+        rawGalleryLength: Array.isArray(pkg.gallery) ? pkg.gallery.length : 0,
+        resolvedGalleryLength: resolvedGallery.length,
+        resolvedGalleryFirstUrl: resolvedGallery.length > 0 ? resolvedGallery[0].url : null,
+      };
+    }
+
     res.json({
-      package: { ...pkg, image: resolvePackageImage(pkg) },
+      package: packageResponse,
       supplier,
       categories: packageCategories,
     });
