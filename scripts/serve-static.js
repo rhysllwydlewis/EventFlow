@@ -255,6 +255,129 @@ app.get('/api/packages/:slug', (req, res) => {
   res.json(mockPackage);
 });
 
+// Stub supplier profile API — returns a rich mock supplier for the profile page
+// Supports both /api/suppliers/:id and /api/v1/suppliers/:id endpoints
+const MOCK_SUPPLIER_PROFILE = {
+  id: 'sup_demo1',
+  name: 'The Grand Rustic Venue',
+  tagline: 'A stunning countryside venue for weddings, corporate events and celebrations',
+  category: 'Venues',
+  location: 'Cotswolds',
+  postcode: 'GL54 1AB',
+  phone: '+44 1234 567890',
+  website: 'https://thegrandrustic.co.uk',
+  rating: 4.8,
+  reviewCount: 47,
+  priceRange: 'From £2,500',
+  price_display: 'From £2,500',
+  bannerUrl: null,
+  themeColor: '#0b8073',
+  description_long:
+    'Nestled in the heart of the Cotswolds, The Grand Rustic Venue offers a magical setting for your special occasion. With exposed beams, original stone walls, and sweeping countryside views, we provide an unforgettable backdrop for weddings, corporate retreats, and private celebrations of all sizes.',
+  description_short: 'A stunning countryside venue in the Cotswolds.',
+  amenities: ['Free Parking', 'Catering Kitchen', 'Bridal Suite', 'AV Equipment', 'Outdoor Space'],
+  highlights: [
+    'Stunning countryside views',
+    'Flexible layouts for up to 300 guests',
+    'Award-winning catering team',
+    'Dedicated event coordinator',
+  ],
+  completedEvents: 142,
+  avgResponseTime: 4,
+  isFoundingSupplier: true,
+  verified: true,
+  approved: true,
+  isPro: true,
+  subscription: { tier: 'pro' },
+  ownerUserId: 'user_123',
+  maxGuests: 300,
+  insurance: true,
+  createdAt: '2023-06-15T10:00:00Z',
+  verifications: { email: true, phone: true, business: true },
+  photosGallery: [
+    { url: '/assets/images/placeholder-banner.svg', approved: true },
+    { url: '/assets/images/placeholder-banner.svg', approved: true },
+  ],
+  socialLinks: {
+    instagram: 'https://instagram.com/grandrusticvenue',
+    facebook: 'https://facebook.com/grandrusticvenue',
+  },
+  featuredServices: [
+    'Wedding Hire',
+    'Corporate Events',
+    'Private Parties',
+    'Birthday Celebrations',
+  ],
+  badgeDetails: [
+    {
+      type: 'fast-responder',
+      name: 'Fast Responder',
+      icon: '⚡',
+      description: 'Typically responds within 4 hours',
+    },
+    {
+      type: 'top-rated',
+      name: 'Top Rated',
+      icon: '🌟',
+      description: 'Consistently rated 4.5+ by clients',
+    },
+  ],
+};
+
+app.get('/api/suppliers/:id', (req, res) => {
+  res.json(MOCK_SUPPLIER_PROFILE);
+});
+
+app.get('/api/v1/suppliers/:id/packages', (req, res) => {
+  res.json({
+    items: [
+      {
+        id: 'pkg-1',
+        slug: 'wedding-package',
+        title: 'Wedding Package',
+        price_display: '£4,500',
+        description: 'Full day wedding hire with catering coordination and dedicated coordinator.',
+        image: '/assets/images/placeholder-banner.svg',
+      },
+      {
+        id: 'pkg-2',
+        slug: 'corporate-day',
+        title: 'Corporate Day',
+        price_display: '£1,800',
+        description: 'Half-day or full-day corporate event hire with AV equipment.',
+        image: '/assets/images/placeholder-banner.svg',
+      },
+    ],
+  });
+});
+
+app.get('/api/v1/suppliers/:id', (req, res) => {
+  res.json(MOCK_SUPPLIER_PROFILE);
+});
+
+app.get('/api/v1/reviews', (req, res) => {
+  res.json({
+    reviews: [
+      {
+        id: 'rev-1',
+        customerName: 'Sarah J.',
+        rating: 5,
+        comment:
+          'Absolutely stunning venue. The staff were incredible and made our wedding day perfect.',
+        createdAt: new Date(Date.now() - 14 * 24 * 3600 * 1000).toISOString(),
+      },
+      {
+        id: 'rev-2',
+        customerName: 'Marcus T.',
+        rating: 5,
+        comment:
+          'We held our company away-day here and it exceeded all expectations. Highly recommended!',
+        createdAt: new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString(),
+      },
+    ],
+  });
+});
+
 // Stub shortlist API endpoints (auth-gated in real server; return 401 here)
 app.get('/api/shortlist', (req, res) => {
   res.status(401).json({ error: 'Unauthorized' });
