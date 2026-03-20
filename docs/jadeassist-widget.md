@@ -8,12 +8,32 @@ The JadeAssist widget is a chat assistant that helps users find venues and suppl
 
 ## Configuration Files
 
-The widget is configured through two initialization scripts:
+- **`public/assets/js/jadeassist-init.v2.js`** — **Current version** used across all pages. Features teaser bubble with A/B testing, full keyboard accessibility, analytics events, safe-area inset support, and debug diagnostics.
+- **`public/assets/js/jadeassist-init.js`** — Legacy version kept for reference. Not loaded by any HTML page.
 
-- **`public/assets/js/jadeassist-init.v2.js`** - Current version used across all pages
-- **`public/assets/js/jadeassist-init.js`** - Legacy version kept for backwards compatibility
+## Debug Mode
 
-Both scripts are kept in sync to ensure consistent behavior.
+Append `?jade-debug` to any page URL to enable diagnostic logs in the browser console. This works in **all environments** (production, staging, localhost).
+
+### What debug mode logs
+
+- Init config summary (colors, avatar URL, positioning offsets, scale)
+- Avatar load success or failure with the full URL tested
+- Widget initialized successfully ✅
+- Teaser triggered (method + variant + mobile flag)
+- Auto-dismiss timing
+
+### Enabling debug mode
+
+```
+# Any page, any environment
+https://www.event-flow.co.uk/?jade-debug
+
+# Specific page
+https://www.event-flow.co.uk/plan?jade-debug
+```
+
+Debug mode is also automatically enabled on `localhost`, `127.0.0.1`, `*.local`, `dev.*`, and `staging.*` hostnames.
 
 ## Avatar Image
 
@@ -189,7 +209,7 @@ The widget is **closed by default** when the page loads:
 
 - The launcher button (avatar) is visible
 - The chat panel is closed
-- A teaser bubble may appear after 500ms (if not recently dismissed)
+- A teaser bubble appears after 500 ms (if not dismissed within the last day), or immediately after the user scrolls 25% down the page — whichever is first
 
 This is enforced defensively with:
 
@@ -206,38 +226,43 @@ setTimeout(() => {
 Users can open the widget by:
 
 1. **Clicking the launcher button** (avatar icon)
-2. **Clicking the teaser bubble** (which also dismisses the teaser)
+2. **Clicking the teaser bubble** (opens chat and dismisses the teaser)
+3. **Pressing Enter or Space** while the teaser bubble is focused
 
 ### Teaser Behavior
 
 The teaser bubble:
 
-- Shows after 500ms if not recently dismissed
+- Shows after 500 ms if not recently dismissed **or** when the user scrolls 25% down the page (whichever comes first)
 - Can be dismissed by clicking the "×" button (doesn't open chat)
 - Can be clicked to open the chat (opens chat and dismisses teaser)
+- Supports keyboard navigation: **Enter/Space** opens chat, **Escape** dismisses
+- Emits analytics custom events (see [Analytics Integration](#analytics-integration))
+- Auto-dismisses after 15 s
 - Dismissal state persists for 1 day in localStorage
+- Mobile-friendly copy (shorter text on screens <768 px)
+- Safe-area inset support for iOS notch/Dynamic Island devices
 
-## CDN and Widget Library
+## Widget Library (Self-Hosted)
 
-The widget library is loaded from jsDelivr CDN with a pinned commit SHA:
+The widget bundle is self-hosted to avoid browser Tracking Prevention (Edge, Brave, Firefox, Safari blocking `cdn.jsdelivr.net` from accessing storage, which prevented widget initialization):
 
 ```html
-<script
-  src="https://cdn.jsdelivr.net/gh/rhysllwydlewis/JadeAssist@abbf580487e0bcf7739a0857d4d940213fe2e176/packages/widget/dist/jade-widget.js"
-  defer
-></script>
+<script src="/assets/js/vendor/jade-widget.js" defer></script>
 ```
 
-**Why pinned SHA?**
+The vendor file lives at `public/assets/js/vendor/jade-widget.js` and is built from the [JadeAssist repository](https://github.com/rhysllwydlewis/JadeAssist).
 
-- Ensures consistent behavior across deployments
-- Prevents CDN caching issues with moving references like `@main`
-- Allows testing before updating to newer versions
+**Why self-hosted instead of CDN?**
+
+- Avoids browser Tracking Prevention blocking CDN storage access
+- Ensures consistent behavior across all deployments
+- No dependency on jsDelivr uptime or caching
 
 **To update the widget library:**
 
-1. Test the new version in `test-jadeassist-real.html`
-2. Update the commit SHA in all HTML files that reference the widget
+1. Build the new version from [rhysllwydlewis/JadeAssist](https://github.com/rhysllwydlewis/JadeAssist) (`packages/widget`)
+2. Copy `packages/widget/dist/jade-widget.js` to `public/assets/js/vendor/jade-widget.js`
 3. Run tests: `npm run test:integration`
 4. Verify the widget works correctly on dev/staging
 
@@ -245,9 +270,9 @@ The widget library is loaded from jsDelivr CDN with a pinned commit SHA:
 
 ### Widget Not Appearing
 
-1. **Check CDN is loaded:**
-   - Open Console, look for `JadeWidget not yet available, will retry...`
-   - Check Network tab for the CDN request
+1. **Check vendor script is loaded:**
+   - Open Console, look for `[JadeAssist] Widget not yet available, will retry…`
+   - Check Network tab for `/assets/js/vendor/jade-widget.js`
    - Verify status is 200 OK
 
 2. **Check for errors:**
@@ -318,6 +343,9 @@ If the chat opens on page load unexpectedly:
    - [ ] Clicking launcher opens chat
    - [ ] Clicking teaser opens chat
    - [ ] Clicking teaser "×" dismisses without opening chat
+   - [ ] Tab to teaser → Enter/Space opens chat
+   - [ ] Tab to teaser → Escape dismisses
+   - [ ] Tab to teaser → Tab again → close button focused → Enter dismisses
 
 3. **Test on mobile:**
    - Use DevTools responsive mode (F12 → Toggle device toolbar)
@@ -334,9 +362,9 @@ npm run test:integration
 
 This verifies:
 
-- Widget CDN URLs use pinned commit SHA (not `@main`)
-- Init scripts exist and are referenced correctly
-- HTML files use the versioned init script (`.v2.js`)
+- Self-hosted vendor script is used (no CDN references)
+- All HTML pages reference `jadeassist-init.v2.js` (not the legacy script)
+- `jadeassist-init.v2.js` contains required features: teaser constants, A/B variants, keyboard accessibility keys, analytics events, safe-area CSS, scroll trigger, avatar URL resolution, and double-init guard
 
 ## Configuration Reference
 
@@ -348,7 +376,7 @@ This verifies:
   accentColor: '#008C85',            // Accent/hover color
   assistantName: 'Jade',             // Name shown in chat
   greetingText: "Hi! I'm Jade...",   // Greeting message
-  greetingTooltipText: '👋 Hi!...',  // Tooltip on hover
+  greetingTooltipText: '',             // Disabled — custom teaser bubble used instead
   avatarUrl: '/assets/images/...',   // Avatar image path
   offsetBottom: '5rem',              // Distance from bottom (desktop)
   offsetLeft: '1.5rem',              // Distance from left (desktop)
@@ -362,11 +390,12 @@ This verifies:
 ### Key Constants
 
 ```javascript
-MAX_RETRIES: 50; // Widget load retry attempts (5 seconds)
-RETRY_INTERVAL: 100; // Time between retries (100ms)
-INIT_DELAY: 1000; // Delay before first init attempt (1s)
-TEASER_DELAY: 500; // Delay before showing teaser (500ms)
+MAX_RETRIES: 50; // Widget load retry attempts (5 seconds @ 100ms interval)
+RETRY_INTERVAL: 100; // Time between retries (ms)
+INIT_DELAY: 2000; // Delay before first init attempt (ms)
+TEASER_DELAY: 500; // Delay before showing teaser after init (ms)
 TEASER_EXPIRY_DAYS: 1; // How long dismissal persists
+MOBILE_BREAKPOINT: 768; // px — switches to mobile teaser copy below this width
 ```
 
 ## Support
@@ -419,7 +448,7 @@ window.addEventListener('jadeassist:teaser-dismissed', e => {
 
 - **jadeassist:teaser-dismissed**: Fired when teaser is dismissed without opening
   - `detail.timestamp`: Time of dismissal
-  - `detail.method`: How it was dismissed ('close-button' or 'auto-dismiss')
+  - `detail.method`: How it was dismissed (`'close-button'` | `'keyboard-escape'` | `'auto-dismiss'`)
 
 ## A/B Testing
 
