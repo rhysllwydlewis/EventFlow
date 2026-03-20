@@ -7,6 +7,7 @@
 
 const express = require('express');
 const logger = require('../utils/logger');
+const catalogCache = require('../services/catalogCache');
 const router = express.Router();
 
 // Dependencies injected by server.js
@@ -375,6 +376,12 @@ router.patch(
     }
     supplierPatch.approved = false;
     await dbUnified.updateOne('suppliers', { id: req.params.id }, { $set: supplierPatch });
+
+    // Bust catalog cache — profile edit means the supplier data may have changed
+    catalogCache
+      .invalidate()
+      .catch(e => logger.warn('[catalogCache] invalidate error:', e.message));
+
     res.json({ ok: true, supplier: { ...s, ...supplierPatch } });
   }
 );
