@@ -80,89 +80,15 @@ function isFeaturedPackage(pkg) {
 }
 
 /**
- * All known placeholder image paths (server-side mirror of the client-side KNOWN_PLACEHOLDERS
- * set in public/assets/js/utils/package-image-resolver.js).
- * Extend this set if additional placeholder variants are added to the repo.
- * @type {Set<string>}
+ * Image resolution helpers — imported from the shared utils/packageImageUtils.js
+ * module so that all API endpoints use the same resolution logic as the client-side
+ * package-image-resolver.js.
  */
-const KNOWN_PLACEHOLDERS_SERVER = new Set(['/assets/images/placeholders/package-event.svg']);
-
-/**
- * Return true when a URL is a known placeholder, absent, empty, or whitespace-only.
- * @param {string|null|undefined} url
- * @returns {boolean}
- */
-function isPlaceholderImage(url) {
-  if (!url || typeof url !== 'string') {
-    return true;
-  }
-  const trimmed = url.trim();
-  if (!trimmed) {
-    return true;
-  }
-  // data: URLs are not usable as public image URLs — they are large, blocked by
-  // client-side XSS sanitizers, and should not be stored in the DB long-term.
-  // Treat them as "no usable image" so gallery fallback is attempted instead.
-  if (/^data:/i.test(trimmed)) {
-    return true;
-  }
-  return KNOWN_PLACEHOLDERS_SERVER.has(trimmed);
-}
-
-// Helper function to resolve the best available image for a package
-function resolvePackageImage(pkg) {
-  const placeholder = PLACEHOLDER_PACKAGE_IMAGE;
-  // If the main image is set and isn't a placeholder, use it
-  if (pkg.image && !isPlaceholderImage(pkg.image)) {
-    return pkg.image;
-  }
-  // Fall back to the first non-placeholder gallery image
-  if (Array.isArray(pkg.gallery) && pkg.gallery.length > 0) {
-    for (const img of pkg.gallery) {
-      const url =
-        typeof img === 'string'
-          ? img
-          : img.url || img.src || img.path || img.image || img.originalUrl || img.thumbnail;
-      if (url && !isPlaceholderImage(url)) {
-        return url;
-      }
-    }
-  }
-  // Always return the canonical placeholder constant on final fallback
-  return placeholder;
-}
-
-/**
- * Normalise a raw gallery array into a consistent array of objects, each with a
- * guaranteed `url` field set to the best available image URL for that entry.
- * Items with no usable URL or a placeholder URL are excluded.
- *
- * This is returned as `resolvedGallery` in the package detail API response so
- * the client never has to guess which field name holds the URL.
- *
- * @param {Array} gallery  Raw gallery array (strings or objects with various URL fields)
- * @returns {Array<{url: string}>}
- */
-function normalizeGallery(gallery) {
-  if (!Array.isArray(gallery) || gallery.length === 0) {
-    return [];
-  }
-  const normalized = [];
-  for (const img of gallery) {
-    if (!img) {
-      continue;
-    }
-    const url =
-      typeof img === 'string'
-        ? img
-        : img.url || img.src || img.path || img.image || img.originalUrl || img.thumbnail;
-    if (url && !isPlaceholderImage(url)) {
-      // Preserve all original fields but ensure `url` is set to the resolved value
-      normalized.push(typeof img === 'string' ? { url } : { ...img, url });
-    }
-  }
-  return normalized;
-}
+const {
+  isPlaceholderImage,
+  resolvePackageImage,
+  normalizeGallery,
+} = require('../utils/packageImageUtils');
 
 // Cache for featured packages
 let featuredPackagesCache = null;

@@ -429,6 +429,9 @@
     <script src="/assets/js/components/quote-request-modal.js" type="module" defer></script>
     <!-- Enhanced Suppliers Page -->
     <script src="/assets/js/utils/tier-icon.js" defer></script>
+    <!-- Package image resolver must load before the suppliers page init so resolvePackageImage()
+         is available as a global when mini-card image URLs are resolved -->
+    <script src="/assets/js/utils/package-image-resolver.js" defer></script>
     <script src="/assets/js/pages/suppliers-init.js" type="module" defer></script>
     <script src="/assets/js/utils/pexels-client.js" defer></script>
     <script src="/assets/js/config/page-init.js"></script>

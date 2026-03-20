@@ -162,13 +162,37 @@ function createSupplierCard(supplier, position) {
       </div>`;
   } else {
     // Show up to 4 packages — 2 visible at a time; arrows slide through the rest
+    const PKG_PLACEHOLDER = '/assets/images/placeholders/package-event.svg';
     const miniCards = packages
       .slice(0, 4)
       .map(pkg => {
-        const imgHtml = pkg.image
-          ? `<img src="${escapeHtml(pkg.image)}" alt="${escapeHtml(pkg.title)}" class="sp-pkg-mini-img" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-             <div class="sp-pkg-mini-img-fallback" style="display:none;" aria-hidden="true">📦</div>`
-          : `<div class="sp-pkg-mini-img-fallback" aria-hidden="true">📦</div>`;
+        // Prefer resolvePackageImage() if available (loaded as a global on this page),
+        // otherwise fall back to the same inline resolution strategy used elsewhere.
+        const resolvedImg =
+          typeof resolvePackageImage === 'function'
+            ? resolvePackageImage(pkg)
+            : (() => {
+                if (pkg.image && pkg.image !== PKG_PLACEHOLDER) {
+                  return pkg.image;
+                }
+                if (Array.isArray(pkg.gallery) && pkg.gallery.length > 0) {
+                  for (const g of pkg.gallery) {
+                    const url =
+                      typeof g === 'string'
+                        ? g
+                        : g.url || g.src || g.path || g.image || g.originalUrl || g.thumbnail;
+                    if (url && url !== PKG_PLACEHOLDER) {
+                      return url;
+                    }
+                  }
+                }
+                return PKG_PLACEHOLDER;
+              })();
+        const imgHtml =
+          resolvedImg && resolvedImg !== PKG_PLACEHOLDER
+            ? `<img src="${escapeHtml(resolvedImg)}" alt="${escapeHtml(pkg.title)}" class="sp-pkg-mini-img" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+               <div class="sp-pkg-mini-img-fallback" style="display:none;" aria-hidden="true">📦</div>`
+            : `<div class="sp-pkg-mini-img-fallback" aria-hidden="true">📦</div>`;
         const pkgHref = pkg.slug
           ? `/package?slug=${encodeURIComponent(pkg.slug)}`
           : pkg.id

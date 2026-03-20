@@ -7,15 +7,15 @@
     "price": "\u00a33,500",
     "location": "Monmouthshire, South Wales",
     "description": "Full-day venue hire, ceremony & reception areas. Includes indoor and outdoor spaces, tables and chairs, parking for 50 cars.",
-    "image": "https://source.unsplash.com/featured/800x600/?rustic,venue",
+    "image": "/assets/images/collage-venue.jpg",
     "gallery": [
       {
-        "url": "https://source.unsplash.com/featured/800x600/?rustic,venue",
+        "url": "/assets/images/collage-venue.jpg",
         "approved": true,
         "uploadedAt": 1765802171516
       },
       {
-        "url": "https://source.unsplash.com/featured/800x600/?barn,interior",
+        "url": "/assets/images/collage-venue.jpg",
         "approved": true,
         "uploadedAt": 1765802171516
       }
@@ -41,10 +41,10 @@
     "price": "\u00a345 pp",
     "location": "Cardiff & South Wales",
     "description": "Three-course seasonal menu with staff & setup. Includes locally sourced ingredients, vegan options available.",
-    "image": "https://source.unsplash.com/featured/800x600/?banquet,catering",
+    "image": "/assets/images/collage-catering.jpg",
     "gallery": [
       {
-        "url": "https://source.unsplash.com/featured/800x600/?banquet,catering",
+        "url": "/assets/images/collage-catering.jpg",
         "approved": true,
         "uploadedAt": 1765802171516
       }
@@ -69,10 +69,10 @@
     "price": "\u00a31,200",
     "location": "Bristol & South West",
     "description": "Prep through first dance, private gallery. Includes all edited photos, online gallery access, and print rights.",
-    "image": "https://source.unsplash.com/featured/800x600/?camera,photography",
+    "image": "/assets/images/collage-photography.jpg",
     "gallery": [
       {
-        "url": "https://source.unsplash.com/featured/800x600/?camera,photography",
+        "url": "/assets/images/collage-photography.jpg",
         "approved": true,
         "uploadedAt": 1765802171516
       }
@@ -96,13 +96,14 @@
     "slug": "test-package-auto-generated",
     "description": "This is a test package created by the verification script",
     "price_display": "\u00a3999",
-    "image": "/assets/images/placeholder-package.jpg",
+    "image": "/assets/images/collage-photography.jpg",
     "approved": true,
     "featured": false,
     "createdAt": "2025-12-23T11:22:21.194Z",
     "updatedAt": "2025-12-23T11:22:21.194Z",
     "createdBy": "usr_rmn81e0h750rah",
-    "versionHistory": []
+    "versionHistory": [],
+    "gallery": []
   },
   {
     "id": "pkg_ejv21ezgr3dwsm",
@@ -117,7 +118,9 @@
     ],
     "approved": true,
     "featured": true,
-    "isFeatured": true
+    "isFeatured": true,
+    "image": "/assets/images/collage-venue.jpg",
+    "gallery": []
   },
   {
     "id": "pkg_s8nx9qptr3dwsm",
@@ -132,7 +135,9 @@
     ],
     "approved": true,
     "featured": false,
-    "isFeatured": false
+    "isFeatured": false,
+    "image": "/assets/images/collage-venue.jpg",
+    "gallery": []
   },
   {
     "id": "pkg_td66lh5gr3dwsn",
@@ -147,7 +152,9 @@
     ],
     "approved": true,
     "featured": true,
-    "isFeatured": true
+    "isFeatured": true,
+    "image": "/assets/images/collage-venue.jpg",
+    "gallery": []
   },
   {
     "id": "pkg_zgc6e8m6r3dwsn",
@@ -162,7 +169,9 @@
     ],
     "approved": true,
     "featured": false,
-    "isFeatured": false
+    "isFeatured": false,
+    "image": "/assets/images/collage-venue.jpg",
+    "gallery": []
   },
   {
     "id": "pkg_65kqy2qwr3dwsn",
@@ -177,7 +186,9 @@
     ],
     "approved": true,
     "featured": true,
-    "isFeatured": true
+    "isFeatured": true,
+    "image": "/assets/images/collage-venue.jpg",
+    "gallery": []
   },
   {
     "id": "pkg_5vr4duorr3dwsn",
@@ -192,7 +203,9 @@
     ],
     "approved": true,
     "featured": false,
-    "isFeatured": false
+    "isFeatured": false,
+    "image": "/assets/images/collage-venue.jpg",
+    "gallery": []
   },
   {
     "id": "pkg_09vmu4uwr3dwsn",
@@ -207,7 +220,9 @@
     ],
     "approved": true,
     "featured": true,
-    "isFeatured": true
+    "isFeatured": true,
+    "image": "/assets/images/collage-venue.jpg",
+    "gallery": []
   },
   {
     "id": "pkg_65kb3sdvr3dwsn",
@@ -222,7 +237,9 @@
     ],
     "approved": true,
     "featured": false,
-    "isFeatured": false
+    "isFeatured": false,
+    "image": "/assets/images/collage-venue.jpg",
+    "gallery": []
   },
   {
     "id": "pkg_z6r9kbrpr3dwsn",
@@ -237,7 +254,9 @@
     ],
     "approved": true,
     "featured": true,
-    "isFeatured": true
+    "isFeatured": true,
+    "image": "/assets/images/collage-photography.jpg",
+    "gallery": []
   },
   {
     "id": "pkg_wqape2vdr3dwsn",
@@ -252,7 +271,9 @@
     ],
     "approved": true,
     "featured": false,
-    "isFeatured": false
+    "isFeatured": false,
+    "image": "/assets/images/collage-photography.jpg",
+    "gallery": []
   },
   {
     "id": "pkg_t1o5lsy8r3dwsn",
@@ -267,7 +288,9 @@
     ],
     "approved": true,
     "featured": true,
-    "isFeatured": true
+    "isFeatured": true,
+    "image": "/assets/images/collage-photography.jpg",
+    "gallery": []
   },
   {
     "id": "pkg_87cwwju8r3dwsn",
@@ -282,7 +305,9 @@
     ],
     "approved": true,
     "featured": false,
-    "isFeatured": false
+    "isFeatured": false,
+    "image": "/assets/images/collage-photography.jpg",
+    "gallery": []
   },
   {
     "id": "pkg_pvfqu8qwr3dwsn",
@@ -297,7 +322,9 @@
     ],
     "approved": true,
     "featured": true,
-    "isFeatured": true
+    "isFeatured": true,
+    "image": "/assets/images/collage-photography.jpg",
+    "gallery": []
   },
   {
     "id": "pkg_qq1z38ojr3dwsn",
@@ -312,7 +339,9 @@
     ],
     "approved": true,
     "featured": false,
-    "isFeatured": false
+    "isFeatured": false,
+    "image": "/assets/images/collage-photography.jpg",
+    "gallery": []
   },
   {
     "id": "pkg_i8s657lmr3dwsn",
@@ -327,7 +356,9 @@
     ],
     "approved": true,
     "featured": true,
-    "isFeatured": true
+    "isFeatured": true,
+    "image": "/assets/images/collage-catering.jpg",
+    "gallery": []
   },
   {
     "id": "pkg_7kx3bxfwr3dwsn",
@@ -342,7 +373,9 @@
     ],
     "approved": true,
     "featured": false,
-    "isFeatured": false
+    "isFeatured": false,
+    "image": "/assets/images/collage-catering.jpg",
+    "gallery": []
   },
   {
     "id": "pkg_g2pu1fz7r3dwsn",
@@ -357,7 +390,9 @@
     ],
     "approved": true,
     "featured": true,
-    "isFeatured": true
+    "isFeatured": true,
+    "image": "/assets/images/collage-catering.jpg",
+    "gallery": []
   },
   {
     "id": "pkg_jwp4fmxvr3dwsn",
@@ -372,7 +407,9 @@
     ],
     "approved": true,
     "featured": false,
-    "isFeatured": false
+    "isFeatured": false,
+    "image": "/assets/images/collage-catering.jpg",
+    "gallery": []
   },
   {
     "id": "pkg_99eu9nl0r3dwsn",
@@ -387,7 +424,9 @@
     ],
     "approved": true,
     "featured": true,
-    "isFeatured": true
+    "isFeatured": true,
+    "image": "/assets/images/collage-catering.jpg",
+    "gallery": []
   },
   {
     "id": "pkg_e4tfbyfor3dwsn",
@@ -402,7 +441,9 @@
     ],
     "approved": true,
     "featured": false,
-    "isFeatured": false
+    "isFeatured": false,
+    "image": "/assets/images/collage-catering.jpg",
+    "gallery": []
   },
   {
     "id": "pkg_zaaqme0hr3dwsn",
@@ -417,7 +458,9 @@
     ],
     "approved": true,
     "featured": true,
-    "isFeatured": true
+    "isFeatured": true,
+    "image": "/assets/images/collage-entertainment.jpg",
+    "gallery": []
   },
   {
     "id": "pkg_dbbb4z0vr3dwsn",
@@ -432,7 +475,9 @@
     ],
     "approved": true,
     "featured": true,
-    "isFeatured": true
+    "isFeatured": true,
+    "image": "/assets/images/collage-entertainment.jpg",
+    "gallery": []
   },
   {
     "id": "pkg_a7lxe89er3dwsn",
@@ -447,7 +492,9 @@
     ],
     "approved": true,
     "featured": true,
-    "isFeatured": true
+    "isFeatured": true,
+    "image": "/assets/images/collage-entertainment.jpg",
+    "gallery": []
   },
   {
     "id": "pkg_v8zv1fter3dwsn",
@@ -462,7 +509,9 @@
     ],
     "approved": true,
     "featured": true,
-    "isFeatured": true
+    "isFeatured": true,
+    "image": "/assets/images/hero-venue.jpg",
+    "gallery": []
   },
   {
     "id": "pkg_v5nvfjmjr3dwsn",
@@ -477,7 +526,9 @@
     ],
     "approved": true,
     "featured": true,
-    "isFeatured": true
+    "isFeatured": true,
+    "image": "/assets/images/hero-venue.jpg",
+    "gallery": []
   },
   {
     "id": "pkg_lfgf30kfr3dwsn",
@@ -492,7 +543,9 @@
     ],
     "approved": true,
     "featured": true,
-    "isFeatured": true
+    "isFeatured": true,
+    "image": "/assets/images/hero-planning.jpg",
+    "gallery": []
   },
   {
     "id": "pkg_pca8wy1qr3dwsn",
@@ -507,7 +560,9 @@
     ],
     "approved": true,
     "featured": false,
-    "isFeatured": false
+    "isFeatured": false,
+    "image": "/assets/images/hero-planning.jpg",
+    "gallery": []
   },
   {
     "id": "pkg_d2twfb2pr3dwsn",
@@ -522,7 +577,9 @@
     ],
     "approved": true,
     "featured": true,
-    "isFeatured": true
+    "isFeatured": true,
+    "image": "/assets/images/hero-planning.jpg",
+    "gallery": []
   },
   {
     "id": "pkg_qf0eeke8r3dwsn",
@@ -537,7 +594,9 @@
     ],
     "approved": true,
     "featured": false,
-    "isFeatured": false
+    "isFeatured": false,
+    "image": "/assets/images/hero-planning.jpg",
+    "gallery": []
   },
   {
     "id": "pkg_bkhscr0mr3dwsn",
@@ -552,7 +611,9 @@
     ],
     "approved": true,
     "featured": true,
-    "isFeatured": true
+    "isFeatured": true,
+    "image": "/assets/images/collage-venue.jpg",
+    "gallery": []
   },
   {
     "id": "pkg_nmvmy0o3r3dwsn",
@@ -567,7 +628,9 @@
     ],
     "approved": true,
     "featured": false,
-    "isFeatured": false
+    "isFeatured": false,
+    "image": "/assets/images/collage-venue.jpg",
+    "gallery": []
   },
   {
     "id": "pkg_ur6rs22zr3dwsn",
@@ -582,7 +645,9 @@
     ],
     "approved": true,
     "featured": true,
-    "isFeatured": true
+    "isFeatured": true,
+    "image": "/assets/images/collage-photography.jpg",
+    "gallery": []
   },
   {
     "id": "pkg_l4uy6xpnr3dwsn",
@@ -597,7 +662,9 @@
     ],
     "approved": true,
     "featured": false,
-    "isFeatured": false
+    "isFeatured": false,
+    "image": "/assets/images/collage-photography.jpg",
+    "gallery": []
   },
   {
     "id": "pkg_test_unapproved_001",
@@ -606,7 +673,7 @@
     "description": "Full-day wedding photography with two photographers.",
     "price": "\u00a31,200",
     "price_display": "\u00a31,200",
-    "image": "",
+    "image": "/assets/images/collage-photography.jpg",
     "slug": "wedding-photography-package",
     "primaryCategoryKey": "photography",
     "eventTypes": [
