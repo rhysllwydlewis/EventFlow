@@ -243,7 +243,7 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
         const r = Number(supplier.rating).toFixed(1);
         const rc = Number(supplier.reviewCount);
         items.push(
-          `<span class="meta-item meta-rating"><span class="star-icon" aria-hidden="true">★</span>${r} <span style="font-weight:400;opacity:0.7;">(${rc})</span></span>`
+          `<span class="meta-item meta-rating"><span class="star-icon" aria-hidden="true">★</span>${r} <span class="meta-rating-count">(${rc})</span></span>`
         );
       }
 
@@ -505,7 +505,7 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     // Amenities
     const amenitiesHtml =
       Array.isArray(supplier.amenities) && supplier.amenities.length > 0
-        ? `<div class="sp-services" style="margin-top:0.75rem;"><div class="sp-services__list">${supplier.amenities.map(a => `<span class="sp-service-tag">${escapeHtml(a)}</span>`).join('')}</div></div>`
+        ? `<div class="sp-services sp-services--amenities"><div class="sp-services__list">${supplier.amenities.map(a => `<span class="sp-service-tag">${escapeHtml(a)}</span>`).join('')}</div></div>`
         : '';
 
     // Featured services
@@ -703,8 +703,8 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     }
 
     container.innerHTML = `
-      <div class="sp-card sp-fade-in" style="padding: 1.25rem 1.25rem 1.25rem;">
-        <h2 class="sp-card-title" style="margin-bottom: 0.875rem;">
+      <div class="sp-card sp-card--gallery sp-fade-in">
+        <h2 class="sp-card-title">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
           Photo Gallery
         </h2>
@@ -886,7 +886,7 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
             <div id="reviews-list" class="reviews-list" role="list" aria-live="polite" aria-label="Customer reviews">
               <div class="reviews-loading">
                 <div class="loading-spinner" role="status" aria-label="Loading reviews"></div>
-                <p style="margin-top: 1rem; color: #6b7280;">Loading reviews…</p>
+                <p class="reviews-loading__text">Loading reviews…</p>
               </div>
             </div>
             <div id="review-pagination" class="review-pagination" style="display:none;" role="navigation" aria-label="Review pagination"></div>
@@ -938,7 +938,7 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
         const reviewsList = document.getElementById('reviews-list');
         if (reviewsList) {
           reviewsList.innerHTML =
-            '<p class="small" style="color:#6b7280;padding:1rem;">Reviews temporarily unavailable.</p>';
+            '<p class="sp-reviews-unavailable">Reviews temporarily unavailable.</p>';
         }
       }
     }, 100);

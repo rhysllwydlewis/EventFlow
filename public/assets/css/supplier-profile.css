@@ -104,6 +104,11 @@
   box-shadow: var(--sp-shadow-sm);
 }
 
+/* Gallery card — tighter padding to give photos more space */
+.sp-card--gallery {
+  padding: 1.25rem;
+}
+
 .sp-card + .sp-card {
   /* no extra gap — handled by flexbox gap in .sp-page-main */
 }
@@ -301,6 +306,12 @@
 
 .meta-rating .star-icon {
   color: #f59e0b;
+}
+
+/* Review count in parentheses — lighter weight */
+.meta-rating-count {
+  font-weight: 400;
+  opacity: 0.7;
 }
 
 .meta-price {
@@ -565,6 +576,11 @@
 
 .sp-services {
   margin-top: 0.875rem;
+}
+
+/* Amenities modifier — slightly tighter top margin */
+.sp-services--amenities {
+  margin-top: 0.75rem;
 }
 
 .sp-services__title {
@@ -1026,6 +1042,18 @@
 .sp-reviews-empty p {
   font-size: 0.9375rem;
   margin: 0;
+}
+
+.reviews-loading__text {
+  margin-top: 1rem;
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.sp-reviews-unavailable {
+  color: #6b7280;
+  font-size: 0.875rem;
+  padding: 1rem;
 }
 
 .sp-reviews-error {
