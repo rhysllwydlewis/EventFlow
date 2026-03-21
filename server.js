@@ -434,6 +434,9 @@ app.use('/', staticRoutes);
 
 // Canonical routes for other pages
 // Note: These routes let the template middleware handle file rendering
+// Note: /supplier → /suppliers and /category → /suppliers are handled explicitly below.
+// 'package' stays in this array so /package.html → /package (301) keeps working; the
+// bare /package handler below then decides whether to serve the page or redirect.
 const canonicalPages = [
   'start',
   'guides',
@@ -457,9 +460,7 @@ const canonicalPages = [
   'notifications',
   'guests',
   'messages',
-  'category',
   'package',
-  'supplier',
   'data-rights',
   'reset-password',
   'dashboard',
@@ -472,6 +473,38 @@ canonicalPages.forEach(page => {
     res.redirect(301, `/${page}${qs}`);
   });
   // The canonical URL without .html is handled by template middleware + static files
+});
+
+// Dead-end singular routes — permanently redirect to the canonical listing page.
+// /supplier and /category are ambiguous dead-ends surfaced by crawler/bot traffic;
+// redirect them to /suppliers which is the useful public listing page.
+app.get('/supplier', (req, res) => {
+  const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+  res.redirect(301, `/suppliers${qs}`);
+});
+app.get('/supplier.html', (req, res) => {
+  const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+  res.redirect(301, `/suppliers${qs}`);
+});
+
+app.get('/category', (req, res) => {
+  const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+  res.redirect(301, `/suppliers${qs}`);
+});
+app.get('/category.html', (req, res) => {
+  const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+  res.redirect(301, `/suppliers${qs}`);
+});
+
+// /package — serve the real package detail page only when a meaningful identifier is
+// present (id, packageId, or slug query param).  Bare /package with no context is a
+// dead-end for crawlers, so redirect them to /suppliers instead.
+app.get('/package', (req, res, next) => {
+  const { id, packageId, slug } = req.query;
+  if (id || packageId || slug) {
+    return next(); // Let templateMiddleware + express.static serve package.html
+  }
+  return res.redirect(301, '/suppliers');
 });
 
 // Admin pages — redirect .html to canonical clean URL
@@ -542,6 +575,32 @@ if (process.env.NODE_ENV === 'production') {
     });
   });
 }
+
+// ---------- Protected HTML Page Routes ----------
+// Server-side auth guard for pages that require authentication.
+// These explicit routes MUST come before express.static() so the HTML is never
+// sent to unauthenticated users — preventing the "flash before redirect" that
+// client-side-only guards cannot prevent.  Uses the same getUserFromCookie
+// pattern as adminPageProtectionMiddleware so behaviour is consistent.
+const protectedHtmlPages = [
+  'notifications',
+  'messages',
+  'guests',
+  'settings',
+  'plan',
+  'timeline',
+  'my-marketplace-listings',
+];
+
+protectedHtmlPages.forEach(page => {
+  app.get(`/${page}`, apiLimiter, (req, res, next) => {
+    const user = getUserFromCookie(req);
+    if (!user) {
+      return res.redirect(302, `/auth?redirect=${encodeURIComponent(req.originalUrl)}`);
+    }
+    next();
+  });
+});
 
 // ---------- Admin HTML Page Protection ----------
 // CRITICAL: This middleware MUST come before express.static()
