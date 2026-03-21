@@ -171,17 +171,81 @@ describe('Subscription Service Integration Tests', () => {
       subscriptionId = sub.id;
     });
 
-    it('should schedule downgrade to lower tier', async () => {
+    it('should schedule downgrade to lower tier (keeps current plan, sets pendingPlan)', async () => {
       const updated = await subscriptionService.downgradeSubscription(subscriptionId, 'free');
 
-      expect(updated.plan).toBe('free');
+      // plan must NOT change immediately — access is preserved until period end
+      expect(updated.plan).toBe('pro');
+      expect(updated.pendingPlan).toBe('free');
       expect(updated.cancelAtPeriodEnd).toBe(true);
     });
 
     it('should reject upgrade attempt', async () => {
       await expect(
-        subscriptionService.downgradeSubscription(subscriptionId, 'enterprise')
+        subscriptionService.downgradeSubscription(subscriptionId, 'pro_plus')
       ).rejects.toThrow('must be lower tier');
+    });
+
+    it('should reject unknown/unsupported plan (e.g. basic, enterprise)', async () => {
+      await expect(
+        subscriptionService.downgradeSubscription(subscriptionId, 'basic')
+      ).rejects.toThrow('Unknown plan: basic');
+      await expect(
+        subscriptionService.downgradeSubscription(subscriptionId, 'enterprise')
+      ).rejects.toThrow('Unknown plan: enterprise');
+    });
+  });
+
+  describe('applyPendingPlan', () => {
+    it('applies a pending downgrade and restores cancelAtPeriodEnd to false', async () => {
+      // Start at pro_plus
+      const sub = await subscriptionService.createSubscription({
+        userId: 'usr-1',
+        plan: 'pro_plus',
+        stripeSubscriptionId: 'sub_pp_test',
+        stripeCustomerId: 'cus_pp_test',
+      });
+
+      // Schedule a downgrade to pro
+      const afterDowngrade = await subscriptionService.downgradeSubscription(sub.id, 'pro');
+      expect(afterDowngrade.plan).toBe('pro_plus'); // access unchanged
+      expect(afterDowngrade.pendingPlan).toBe('pro');
+      expect(afterDowngrade.cancelAtPeriodEnd).toBe(true);
+
+      // Simulate period end — apply the pending plan
+      const afterApply = await subscriptionService.applyPendingPlan(sub.id);
+      expect(afterApply.plan).toBe('pro');
+      expect(afterApply.pendingPlan).toBeNull();
+      expect(afterApply.cancelAtPeriodEnd).toBe(false);
+    });
+
+    it('returns null when no pending plan is set', async () => {
+      const sub = await subscriptionService.createSubscription({
+        userId: 'usr-1',
+        plan: 'pro',
+        stripeSubscriptionId: null,
+        stripeCustomerId: null,
+      });
+      const result = await subscriptionService.applyPendingPlan(sub.id);
+      expect(result).toBeNull();
+    });
+
+    it('upgrade clears a pending downgrade immediately', async () => {
+      const sub = await subscriptionService.createSubscription({
+        userId: 'usr-1',
+        plan: 'pro',
+        stripeSubscriptionId: null,
+        stripeCustomerId: null,
+      });
+
+      // Schedule downgrade to free
+      await subscriptionService.downgradeSubscription(sub.id, 'free');
+
+      // Upgrade back to pro_plus — should clear pendingPlan
+      const afterUpgrade = await subscriptionService.upgradeSubscription(sub.id, 'pro_plus');
+      expect(afterUpgrade.plan).toBe('pro_plus');
+      expect(afterUpgrade.pendingPlan).toBeNull();
+      expect(afterUpgrade.cancelAtPeriodEnd).toBe(false);
     });
   });
 
@@ -310,7 +374,7 @@ describe('Subscription Service Integration Tests', () => {
       expect(stats.trialing).toBe(1);
       // All 3 subscriptions are on the 'pro' plan (one is trialing)
       expect(stats.byPlan.pro).toBe(3);
-      expect(stats.byPlan.basic).toBe(0);
+      expect(stats.byPlan.free).toBe(0);
     });
   });
 
@@ -320,12 +384,12 @@ describe('Subscription Service Integration Tests', () => {
         { id: 's1', userId: 'u1', plan: 'pro_plus', status: 'active' },
         { id: 's2', userId: 'u2', plan: 'pro', status: 'active' },
         { id: 's3', userId: 'u3', plan: 'pro_plus', status: 'trialing' },
-        { id: 's4', userId: 'u4', plan: 'basic', status: 'canceled' },
+        { id: 's4', userId: 'u4', plan: 'free', status: 'canceled' },
       ];
       const stats = await subscriptionService.getSubscriptionStats();
       expect(stats.byPlan.pro_plus).toBe(2);
       expect(stats.byPlan.pro).toBe(1);
-      expect(stats.byPlan.basic).toBe(1);
+      expect(stats.byPlan.free).toBe(1);
     });
   });
 
@@ -378,13 +442,13 @@ describe('Subscription Service Integration Tests', () => {
   });
 
   describe('getAllPlans', () => {
-    it('should return all available plans', () => {
+    it('should return only the 3 supported plans', () => {
       const plans = subscriptionService.getAllPlans();
 
-      expect(plans).toHaveLength(5);
-      expect(plans.map(p => p.id)).toEqual(['free', 'basic', 'pro', 'pro_plus', 'enterprise']);
+      expect(plans).toHaveLength(3);
+      expect(plans.map(p => p.id)).toEqual(['free', 'pro', 'pro_plus']);
       expect(plans[0].price).toBe(0);
-      expect(plans[2].features.apiAccess).toBe(true);
+      expect(plans[1].features.apiAccess).toBe(true);
     });
   });
 });

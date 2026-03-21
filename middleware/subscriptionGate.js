@@ -46,7 +46,7 @@ async function resolveEffectiveTier(userId) {
 
 /**
  * Require a minimum subscription tier
- * @param {string} minTier - Minimum tier required (free, basic, pro, pro_plus, enterprise)
+ * @param {string} minTier - Minimum tier required (free, pro, pro_plus)
  * @returns {Function} Express middleware
  */
 function requireSubscription(minTier = 'free') {

@@ -29,7 +29,7 @@ async function persistUserSubscriptionState(userId, updates) {
  * Create a new subscription
  * @param {Object} params - Subscription parameters
  * @param {string} params.userId - User ID
- * @param {string} params.plan - Plan tier (free, pro, pro_plus, enterprise)
+ * @param {string} params.plan - Plan tier (free, pro, pro_plus)
  * @param {string} params.stripeSubscriptionId - Stripe subscription ID
  * @param {string} params.stripeCustomerId - Stripe customer ID
  * @param {Date} params.trialEnd - Trial end date (optional)
@@ -70,7 +70,7 @@ async function createSubscription({
   await persistUserSubscriptionState(userId, {
     subscriptionId: subscription.id,
     subscriptionTier: plan,
-    isPro: !['free', 'basic'].includes(plan),
+    isPro: plan !== 'free',
   });
 
   return subscription;
@@ -136,7 +136,7 @@ async function updateSubscription(subscriptionId, updates) {
   if (updates.plan) {
     await persistUserSubscriptionState(subscription.userId, {
       subscriptionTier: updates.plan,
-      isPro: !['free', 'basic'].includes(updates.plan),
+      isPro: updates.plan !== 'free',
     });
   }
 
@@ -201,17 +201,13 @@ async function processSubscriptionPlanChange(subscription, newPlan) {
 
     // Look up the Stripe price ID for the new plan using the same env var convention
     // as the rest of the codebase (see routes/subscriptions-v2.js and routes/payments.js).
-    //   STRIPE_PRO_PRICE_ID       → pro plan monthly price ID
-    //   STRIPE_PRO_PLUS_PRICE_ID  → pro_plus plan monthly price ID
-    //   STRIPE_BASIC_PRICE_ID     → basic plan monthly price ID  (if using basic tier)
-    //   STRIPE_ENTERPRISE_PRICE_ID → enterprise plan monthly price ID
+    //   STRIPE_PRO_PRICE_ID      → pro plan monthly price ID
+    //   STRIPE_PRO_PLUS_PRICE_ID → pro_plus plan monthly price ID
     // Set these in your .env file (see .env.example for details).
     const PLAN_PRICE_ENV_MAP = {
       free: null, // Free plan — no Stripe price needed; cancellation is handled separately
-      basic: process.env.STRIPE_BASIC_PRICE_ID || null,
       pro: process.env.STRIPE_PRO_PRICE_ID || null,
       pro_plus: process.env.STRIPE_PRO_PLUS_PRICE_ID || null,
-      enterprise: process.env.STRIPE_ENTERPRISE_PRICE_ID || null,
     };
 
     // Changing to the free plan requires subscription cancellation, not a price change.
@@ -228,10 +224,8 @@ async function processSubscriptionPlanChange(subscription, newPlan) {
     if (!newPriceId) {
       // Map plan name to the conventional env var name used across the codebase
       const PLAN_ENV_VAR_NAMES = {
-        basic: 'STRIPE_BASIC_PRICE_ID',
         pro: 'STRIPE_PRO_PRICE_ID',
         pro_plus: 'STRIPE_PRO_PLUS_PRICE_ID',
-        enterprise: 'STRIPE_ENTERPRISE_PRICE_ID',
       };
       const envVarHint = PLAN_ENV_VAR_NAMES[newPlan] || `STRIPE_${newPlan.toUpperCase()}_PRICE_ID`;
       logger.warn(
@@ -269,9 +263,11 @@ async function processSubscriptionPlanChange(subscription, newPlan) {
 }
 
 /**
- * Upgrade subscription to a higher tier
+ * Upgrade subscription to a higher tier.
+ * The upgrade applies immediately and clears any pending downgrade.
+ *
  * @param {string} subscriptionId - Subscription ID
- * @param {string} newPlan - New plan tier
+ * @param {string} newPlan - New plan tier (must be higher than current)
  * @returns {Promise<Object>} Updated subscription
  */
 async function upgradeSubscription(subscriptionId, newPlan) {
@@ -281,9 +277,13 @@ async function upgradeSubscription(subscriptionId, newPlan) {
     throw new Error('Subscription not found');
   }
 
-  const planHierarchy = ['free', 'basic', 'pro', 'pro_plus', 'enterprise'];
+  const planHierarchy = ['free', 'pro', 'pro_plus'];
   const currentIndex = planHierarchy.indexOf(subscription.plan);
   const newIndex = planHierarchy.indexOf(newPlan);
+
+  if (newIndex === -1) {
+    throw new Error(`Unknown plan: ${newPlan}`);
+  }
 
   if (newIndex <= currentIndex) {
     throw new Error('New plan must be higher tier than current plan');
@@ -292,16 +292,22 @@ async function upgradeSubscription(subscriptionId, newPlan) {
   // Process prorated payment difference via Stripe
   await processSubscriptionPlanChange(subscription, newPlan);
 
+  // Upgrades apply immediately — clear any pending downgrade and reset cancelAtPeriodEnd
   return updateSubscription(subscriptionId, {
     plan: newPlan,
     status: 'active',
+    pendingPlan: null,
+    cancelAtPeriodEnd: false,
   });
 }
 
 /**
- * Downgrade subscription to a lower tier
+ * Schedule a downgrade to a lower tier at the end of the current billing period.
+ * The current plan (and its access rights) are preserved until `applyPendingPlan`
+ * is called when Stripe signals the period has ended.
+ *
  * @param {string} subscriptionId - Subscription ID
- * @param {string} newPlan - New plan tier
+ * @param {string} newPlan - New (lower) plan tier
  * @returns {Promise<Object>} Updated subscription
  */
 async function downgradeSubscription(subscriptionId, newPlan) {
@@ -311,20 +317,48 @@ async function downgradeSubscription(subscriptionId, newPlan) {
     throw new Error('Subscription not found');
   }
 
-  const planHierarchy = ['free', 'basic', 'pro', 'pro_plus', 'enterprise'];
+  const planHierarchy = ['free', 'pro', 'pro_plus'];
   const currentIndex = planHierarchy.indexOf(subscription.plan);
   const newIndex = planHierarchy.indexOf(newPlan);
+
+  if (newIndex === -1) {
+    throw new Error(`Unknown plan: ${newPlan}`);
+  }
 
   if (newIndex >= currentIndex) {
     throw new Error('New plan must be lower tier than current plan');
   }
 
-  // Process prorated payment difference via Stripe (downgrade scheduled at period end)
+  // Inform Stripe of the upcoming price change without immediate proration
   await processSubscriptionPlanChange(subscription, newPlan);
 
+  // Store the desired next plan but keep `plan` unchanged so the user retains
+  // their current access rights until the billing period ends.
   return updateSubscription(subscriptionId, {
-    plan: newPlan,
-    cancelAtPeriodEnd: true, // Downgrade at period end
+    pendingPlan: newPlan,
+    cancelAtPeriodEnd: true,
+  });
+}
+
+/**
+ * Apply a pending plan change when the current billing period ends.
+ * Called by the Stripe webhook when a renewal/deletion event confirms the
+ * period has ended and the scheduled downgrade should take effect.
+ *
+ * @param {string} subscriptionId - Subscription ID
+ * @returns {Promise<Object|null>} Updated subscription, or null if nothing to apply
+ */
+async function applyPendingPlan(subscriptionId) {
+  const subscription = await getSubscription(subscriptionId);
+
+  if (!subscription || !subscription.pendingPlan) {
+    return null;
+  }
+
+  return updateSubscription(subscriptionId, {
+    plan: subscription.pendingPlan,
+    pendingPlan: null,
+    cancelAtPeriodEnd: false,
   });
 }
 
@@ -498,10 +532,8 @@ async function getSubscriptionStats() {
     pastDue: subscriptions.filter(s => s.status === 'past_due').length,
     byPlan: {
       free: subscriptions.filter(s => s.plan === 'free').length,
-      basic: subscriptions.filter(s => s.plan === 'basic').length,
       pro: subscriptions.filter(s => s.plan === 'pro').length,
       pro_plus: subscriptions.filter(s => s.plan === 'pro_plus').length,
-      enterprise: subscriptions.filter(s => s.plan === 'enterprise').length,
     },
   };
 
@@ -516,6 +548,7 @@ module.exports = {
   updateSubscription,
   upgradeSubscription,
   downgradeSubscription,
+  applyPendingPlan,
   cancelSubscription,
   checkFeatureAccess,
   getUserFeatures,
