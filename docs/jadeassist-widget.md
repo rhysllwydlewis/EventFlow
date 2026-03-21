@@ -615,3 +615,96 @@ location.reload();
 ### Implementation
 
 To change the default variant or add new variants, edit the `TEASER_VARIANTS` constant in the initialization scripts (`jadeassist-init.v2.js` and `jadeassist-init.js`).
+
+---
+
+## Mobile QA Checklist
+
+Use this checklist after any widget deploy to verify mobile behaviour before signoff.
+
+### Prerequisites
+
+- Device or browser DevTools emulating a mobile viewport (e.g. 375 × 812 — iPhone 14)
+- Incognito/private window (clears localStorage dismissal state)
+- Production URL: `https://event-flow.co.uk`
+
+---
+
+### 1 — Single widget instance
+
+- [ ] Only **one** floating avatar/launcher appears in the bottom-left corner
+- [ ] No duplicate or ghost launcher visible
+- [ ] Open DevTools Console — no `[JadeAssist] Widget already initialized` warning on a fresh page load
+
+---
+
+### 2 — Single teaser bubble
+
+- [ ] After ~0.5 s on the homepage a compact teaser bubble appears above the launcher
+- [ ] The teaser shows a **non-empty** message (variant A/B/C text)
+- [ ] Only **one** teaser is visible — no duplicate or blank white rectangle
+- [ ] Teaser close button (✕) is fully visible and tappable (no clipping)
+- [ ] Tapping the close button dismisses the teaser with a fade
+- [ ] Reloading within 24 h does NOT show the teaser again (localStorage key `jadeassist-teaser-dismissed`)
+- [ ] Tapping the teaser body opens the chat **and** removes the teaser
+
+---
+
+### 3 — Teaser mobile layout
+
+- [ ] Teaser width ≤ 260 px (does not span full screen width)
+- [ ] Teaser does not cover key page CTAs (e.g. hero CTA on `/`)
+- [ ] Teaser sits above the launcher and **above** the bottom nav / safe area on iOS/Android
+- [ ] Avatar, text and close button are compact but readable
+- [ ] No large empty white card dominates the viewport
+
+---
+
+### 4 — Chat panel
+
+- [ ] Tapping the launcher opens the chat panel
+- [ ] Chat panel fits within the viewport (no vertical overflow or cut-off)
+- [ ] Closing with ✕ button works
+
+---
+
+### 5 — In-chat action menu (⋮)
+
+- [ ] The **three-dots (⋮) menu button** is visible in the chat header on mobile
+- [ ] The button has a large enough tap target (≥ 36 × 36 px)
+- [ ] Tapping ⋮ opens the menu panel
+- [ ] Menu panel is fully visible on screen (bottom-sheet style on mobile)
+- [ ] All four actions are accessible by touch:
+  - [ ] **Export chat** — tapping downloads a `.txt` file of the conversation
+  - [ ] **Mute / Unmute sounds** — label toggles between "Mute sounds" and "Unmute sounds"
+  - [ ] **Notification volume** slider — draggable, full width
+  - [ ] **Clear chat** — tapping prompts confirmation then resets messages
+- [ ] Closing the chat closes the menu panel
+
+---
+
+### 6 — Chat header layout
+
+- [ ] Assistant name (`Jade`) is visible and truncates before menu/close buttons disappear
+- [ ] No header overflow causes menu button (⋮) to be pushed off screen
+- [ ] All header controls (⋮, −, ✕) remain visible at 320 px viewport width
+
+---
+
+### 7 — No legacy conflicts
+
+- [ ] DevTools Network tab shows **only** `/assets/js/vendor/jade-widget.js` and `/assets/js/jadeassist-init.v2.js` loading for the chat widget
+- [ ] `live-chat.js` and `jadeassist-init.js` (legacy) are **NOT** loaded
+- [ ] Only one `.jade-widget-root` element in the DOM (inspect Elements panel)
+
+---
+
+### Debug helpers
+
+| Task | Command |
+|------|---------|
+| Enable debug logging | Append `?jade-debug` to any page URL |
+| Force teaser to show | `localStorage.removeItem('jadeassist-teaser-dismissed'); location.reload();` |
+| Set teaser variant | `localStorage.setItem('jadeassist-teaser-variant', 'B'); location.reload();` |
+| Inspect widget state | `window.JadeWidget.instance.state` in console |
+| Check open state | `window.JadeWidget.isOpen()` |

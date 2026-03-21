@@ -199,6 +199,15 @@
       }, 300);
       teaserElement = null;
     }
+    // Safety sweep: remove any orphaned teaser nodes not held by teaserElement
+    document.querySelectorAll('.jade-teaser').forEach(el => {
+      el.style.opacity = '0';
+      setTimeout(() => {
+        if (el.parentNode) {
+          el.parentNode.removeChild(el);
+        }
+      }, 300);
+    });
   }
 
   /** Opens the chat panel and emits an analytics event. Always dismisses the teaser first. */
@@ -350,12 +359,36 @@
         box-shadow: 2px 2px 6px rgba(0,178,169,.15);
       }
 
-      /* Mobile adjustments */
+      /* Mobile adjustments — compact bubble, clear of bottom nav */
       @media (max-width: ${MOBILE_BREAKPOINT}px) {
         .jade-teaser {
           bottom: 7.5rem; /* widget (4.5rem) + 3rem gap */
-          left: 1rem;
-          max-width: calc(100vw - 2rem);
+          left: 0.75rem;
+          max-width: min(260px, calc(100vw - 1.5rem));
+        }
+
+        .jade-teaser-content {
+          padding: 10px 10px 10px 10px;
+          gap: 8px;
+        }
+
+        .jade-teaser-avatar,
+        .jade-teaser-avatar-fallback {
+          width: 28px;
+          height: 28px;
+          font-size: 13px;
+        }
+
+        .jade-teaser-text {
+          font-size: 12.5px;
+          line-height: 1.4;
+        }
+
+        .jade-teaser-close {
+          width: 20px;
+          height: 20px;
+          font-size: 15px;
+          min-width: 20px;
         }
       }
 
@@ -385,10 +418,23 @@
       return;
     }
 
+    // DOM singleton guard — never render a second teaser bubble
+    if (document.querySelector('.jade-teaser')) {
+      return;
+    }
+
     const debug = shouldEnableDebug();
     const variant = getTeaserVariant();
     const isMobile = window.innerWidth < MOBILE_BREAKPOINT;
     const message = isMobile ? TEASER_VARIANTS[variant].mobile : TEASER_VARIANTS[variant].desktop;
+
+    // Guard against empty/invalid teaser message
+    if (!message || !message.trim()) {
+      if (debug) {
+        console.warn('[JadeAssist] Teaser message is empty — skipping render');
+      }
+      return;
+    }
 
     teaserElement = document.createElement('div');
     teaserElement.className = 'jade-teaser';
