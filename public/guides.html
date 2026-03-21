@@ -319,8 +319,37 @@
 
       <div class="guides-grid" id="guides-grid" aria-live="polite" aria-atomic="false">
         <p style="grid-column:1/-1;text-align:center;color:#667085;padding:2rem 0;" id="guides-loading">Loading guides…</p>
-        <noscript><p style="grid-column:1/-1;text-align:center;padding:2rem 0;">JavaScript is required to view the guides. Please enable JavaScript in your browser.</p></noscript>
       </div>
+
+      <!-- Static guide list: always in the DOM for crawlers / non-JS users.
+           Hidden by JavaScript once the enhanced grid has rendered. -->
+      <ul class="guides-nojs-list" id="guides-nojs-list" aria-label="All guides">
+          <li><a href="/articles/wedding-venue-selection-guide">The Ultimate Wedding Venue Selection Guide 2026</a> <span class="guides-nojs-list__cat">(Venues)</span></li>
+          <li><a href="/articles/wedding-catering-trends-2024">Wedding Catering Trends 2026: What&#39;s Hot in Event Food &amp; Beverage</a> <span class="guides-nojs-list__cat">(Catering)</span></li>
+          <li><a href="/articles/event-photography-complete-guide">Complete Guide to Event Photography: Tips for Perfect Memories</a> <span class="guides-nojs-list__cat">(Photography)</span></li>
+          <li><a href="/articles/perfect-wedding-day-timeline-guide">Perfect Wedding Day Timeline: Hour-by-Hour Planning Guide 2026</a> <span class="guides-nojs-list__cat">(Timelines)</span></li>
+          <li><a href="/articles/sustainable-event-planning-guide">Sustainable Event Planning Guide: Eco-Friendly Events</a> <span class="guides-nojs-list__cat">(Sustainability)</span></li>
+          <li><a href="/articles/event-budget-management-guide">Event Budget Management: Complete Guide 2026</a> <span class="guides-nojs-list__cat">(Budget)</span></li>
+          <li><a href="/articles/corporate-event-planning-guide">Corporate Event Planning: The Ultimate Guide 2026</a> <span class="guides-nojs-list__cat">(Corporate)</span></li>
+          <li><a href="/articles/birthday-party-planning-guide">Birthday Party Planning Guide for All Ages 2026</a> <span class="guides-nojs-list__cat">(Parties)</span></li>
+          <li><a href="/articles/marketplace-guide">EventFlow Marketplace: Complete Guide for Buyers &amp; Sellers</a> <span class="guides-nojs-list__cat">(Marketplace)</span></li>
+          <li><a href="/articles/entertainment-guide">How to Choose Your Wedding Entertainment</a> <span class="guides-nojs-list__cat">(Entertainment)</span></li>
+          <li><a href="/articles/guest-list-management-guide">Guest List Management: The Complete Guide</a> <span class="guides-nojs-list__cat">(Planning)</span></li>
+          <li><a href="/articles/budget-planner-guide">How to Use EventFlow&#39;s Budget Planner</a> <span class="guides-nojs-list__cat">(Tools)</span></li>
+          <li><a href="/articles/event-decoration-styling-guide">Event Decoration &amp; Styling on a Budget</a> <span class="guides-nojs-list__cat">(Décor)</span></li>
+          <li><a href="/articles/choosing-event-caterer-guide">Choosing the Right Event Caterer: Questions to Ask</a> <span class="guides-nojs-list__cat">(Catering)</span></li>
+          <li><a href="/articles/wedding-stationery-invitations-guide">Wedding Stationery &amp; Invitations Guide</a> <span class="guides-nojs-list__cat">(Stationery)</span></li>
+          <li><a href="/articles/destination-wedding-planning-guide">Destination Wedding Planning: UK &amp; Abroad</a> <span class="guides-nojs-list__cat">(Wedding)</span></li>
+          <li><a href="/articles/event-planning-checklist-guide">Event Planning Checklist: Week-by-Week Countdown</a> <span class="guides-nojs-list__cat">(Planning)</span></li>
+          <li><a href="/articles/how-to-write-wedding-speech">How to Write a Wedding Speech</a> <span class="guides-nojs-list__cat">(Wedding)</span></li>
+          <li><a href="/articles/second-hand-wedding-items-guide">Second-Hand Wedding Items: Buying &amp; Selling Guide</a> <span class="guides-nojs-list__cat">(Marketplace)</span></li>
+          <li><a href="/articles/seasonal-event-planning-guide">Seasonal Event Planning: Best Time of Year for Each Event Type</a> <span class="guides-nojs-list__cat">(Planning)</span></li>
+          <li><a href="/articles/accessibility-at-events-guide">Accessibility at Events: Making Your Event Inclusive</a> <span class="guides-nojs-list__cat">(Planning)</span></li>
+          <li><a href="/articles/event-insurance-guide">Event Insurance: What You Need to Know</a> <span class="guides-nojs-list__cat">(Planning)</span></li>
+          <li><a href="/articles/hiring-suppliers-on-eventflow-guide">Hiring Suppliers on EventFlow: A First-Timer&#39;s Guide</a> <span class="guides-nojs-list__cat">(Tools)</span></li>
+          <li><a href="/articles/outdoor-events-uk-guide">Outdoor Events in the UK: Weatherproofing Your Plan</a> <span class="guides-nojs-list__cat">(Venues)</span></li>
+          <li><a href="/articles/event-photography-shot-list-guide">Event Photography: Shot List Template</a> <span class="guides-nojs-list__cat">(Photography)</span></li>
+      </ul>
 
       <!-- Empty state -->
       <div class="guides-empty" id="guides-empty" role="status" aria-live="polite">

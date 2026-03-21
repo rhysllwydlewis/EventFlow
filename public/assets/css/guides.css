@@ -1850,8 +1850,7 @@
 .article-hero-image,
 article .container img[style*="height: 400px"],
 article img[style*="height: 400px"],
-article img[style*="height:400px"],
-article > img:first-of-type {
+article img[style*="height:400px"] {
   width: 100%;
   height: 360px;
   object-fit: cover;
@@ -1925,34 +1924,44 @@ article > img:first-of-type {
 }
 .article-content a:hover { color: #0a7069; }
 
-/* Inline-styled tip/warning boxes — we target the pattern used in article HTML */
+/* Inline-styled tip/warning boxes — legacy fallback for articles not yet updated */
 /* Yellow tip (background: #fff3cd) */
+.callout--tip,
 .article-content [style*="#fff3cd"],
 .article-content [style*="ffc107"] {
-  background: #fffbeb !important;
-  border-left: 4px solid #f59e0b !important;
-  border-radius: 8px !important;
-  padding: 1.25rem 1.5rem !important;
-  margin: 1.75rem 0 !important;
+  background: #fffbeb;
+  border-left: 4px solid #f59e0b;
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin: 1.75rem 0;
   color: #92400e;
 }
+.callout--tip strong,
 .article-content [style*="#fff3cd"] strong,
 .article-content [style*="ffc107"] strong {
   color: #78350f;
 }
 
-/* Grey info box (background: #f7fafc) */
+/* Grey info / pro-tip box (background: #f7fafc or #F9FAFB) */
+.callout,
+.callout--info,
 .article-content [style*="#f7fafc"],
-.article-content [style*="f7fafc"] {
-  background: #f8faff !important;
-  border: 1px solid rgba(11,128,115,0.12) !important;
-  border-left: 4px solid var(--guides-teal) !important;
-  border-radius: 8px !important;
-  padding: 1.5rem 1.75rem !important;
-  margin: 1.75rem 0 !important;
+.article-content [style*="f7fafc"],
+.article-content [style*="#F9FAFB"],
+.article-content [style*="F9FAFB"] {
+  background: #f8faff;
+  border: 1px solid rgba(11,128,115,0.12);
+  border-left: 4px solid var(--guides-teal);
+  border-radius: 8px;
+  padding: 1.5rem 1.75rem;
+  margin: 1.75rem 0;
 }
+.callout h4,
+.callout--info h4,
 .article-content [style*="#f7fafc"] h4,
-.article-content [style*="f7fafc"] h4 {
+.article-content [style*="f7fafc"] h4,
+.article-content [style*="#F9FAFB"] h4,
+.article-content [style*="F9FAFB"] h4 {
   font-size: 0.9rem;
   font-weight: 800;
   text-transform: uppercase;
@@ -1961,15 +1970,30 @@ article > img:first-of-type {
   margin-bottom: 0.75rem;
 }
 
-/* CTA box inside article content */
+/* Warning callout */
+.callout--warning {
+  background: #fff7ed;
+  border: 1px solid rgba(234,88,12,0.15);
+  border-left: 4px solid #ea580c;
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  margin: 1.75rem 0;
+  color: #7c2d12;
+}
+.callout--warning strong {
+  color: #6b2218;
+}
+
+/* CTA / action box inside article content */
+.callout--cta,
 .article-content [style*="background: #E8F7F5"],
 .article-content [style*="background:#E8F7F5"],
 .article-content [style*="#E8F7F5"] {
-  background: var(--guides-teal-pale) !important;
-  border-radius: 12px !important;
-  padding: 2rem !important;
-  margin: 2.5rem 0 !important;
-  border: 1px solid rgba(11,128,115,0.15) !important;
+  background: var(--guides-teal-pale);
+  border-radius: 12px;
+  padding: 2rem;
+  margin: 2.5rem 0;
+  border: 1px solid rgba(11,128,115,0.15);
 }
 
 /* Print button */
@@ -2092,7 +2116,9 @@ article > img:first-of-type {
   article.container { padding: 0 16px; }
 
   .article-hero-image,
-  article > img:first-of-type { height: 220px; border-radius: 10px; }
+  article .container img[style*="height: 400px"],
+  article img[style*="height: 400px"],
+  article img[style*="height:400px"] { height: 220px; border-radius: 10px; }
 
   .article-related__grid { grid-template-columns: 1fr; }
   .article-end-cta { flex-direction: column; }
@@ -2271,4 +2297,41 @@ article > img:first-of-type {
   .guides-auth-modal__btn {
     justify-content: center;
   }
+}
+
+/* ============================================================
+   16. STATIC GUIDE LIST (progressive enhancement fallback)
+   Visible when JavaScript has not yet loaded or is disabled.
+   Hidden by guides-init.js once the enhanced grid renders.
+   ============================================================ */
+.guides-nojs-list {
+  list-style: none;
+  margin: 0 0 2rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.guides-nojs-list li {
+  padding: 10px 16px;
+  border-radius: var(--guides-radius-sm);
+  background: #f8faff;
+  border: 1px solid rgba(11,128,115,0.10);
+}
+
+.guides-nojs-list a {
+  color: var(--guides-teal);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.guides-nojs-list a:hover {
+  text-decoration: underline;
+}
+
+.guides-nojs-list__cat {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin-left: 6px;
 }

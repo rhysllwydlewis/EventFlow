@@ -54,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const emptyMsg = document.getElementById('guides-empty-msg');
   const chipsWrap = document.getElementById('guides-chips');
   const sortSelect = document.getElementById('guides-sort');
+  const guidesNoJsList = document.getElementById('guides-nojs-list');
   const clearAllBtn = document.getElementById('guides-clear-all');
   const resetBtn = document.getElementById('guides-reset-btn');
   const resultsCount = document.getElementById('guides-results-count');
@@ -408,6 +409,10 @@ document.addEventListener('DOMContentLoaded', () => {
       initHeroCarousel();
       buildChips();
       renderGrid();
+      // Hide static fallback list now that the enhanced grid has rendered
+      if (guidesNoJsList) {
+        guidesNoJsList.hidden = true;
+      }
     })
     .catch(() => {
       if (guidesLoading) {
