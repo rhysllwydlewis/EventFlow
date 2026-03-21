@@ -6350,87 +6350,7 @@ body:not(.supplier-dashboard-page) .section > .container {
   }
 }
 
-/* ── Two-column layout improvements ── */
-.sd-two-col {
-  display: grid;
-  gap: 1.25rem;
-}
-@media (min-width: 768px) {
-  .sd-two-col {
-    grid-template-columns: 1fr 1fr;
-  }
-}
 
-/* ── ROI section spacing ── */
-.sd-roi-section { margin-top: 1.25rem; }
-.sd-roi-grid {
-  display: grid;
-  gap: 1.25rem;
-}
-@media (min-width: 768px) {
-  .sd-roi-grid { grid-template-columns: 1fr 1fr; }
-}
-
-/* ── Card divider between major sections ── */
-.sd-section-divider {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  margin: 2rem 0 1.25rem;
-  color: var(--ef-text-muted, #9ca3af);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-.sd-section-divider::before,
-.sd-section-divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--ef-border, rgba(0,0,0,0.07));
-}
-
-/* ── Lead quality item polish ── */
-.lead-quality-item {
-  margin-bottom: 0.875rem;
-}
-.lead-quality-item:last-of-type { margin-bottom: 0; }
-.lead-quality-header {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.8125rem;
-  margin-bottom: 0.3rem;
-}
-.lead-quality-label { font-weight: 600; color: var(--ef-text, #374151); }
-.lead-quality-value { color: var(--ef-text-muted, #6b7280); }
-.lead-quality-bar {
-  height: 7px;
-  border-radius: 999px;
-  background: rgba(0,0,0,0.06);
-  overflow: hidden;
-}
-.lead-quality-fill {
-  height: 100%;
-  border-radius: 999px;
-  transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
-}
-.lead-quality-fill--hot   { background: linear-gradient(90deg, #ef4444, #f97316); }
-.lead-quality-fill--high  { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
-.lead-quality-fill--good  { background: linear-gradient(90deg, #10b981, #34d399); }
-.lead-quality-fill--low   { background: linear-gradient(90deg, #6b7280, #9ca3af); }
-
-.lead-quality-summary {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: 1rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid rgba(0,0,0,0.07);
-  font-size: 0.875rem;
-}
-.lead-quality-summary-label { color: var(--ef-text-muted, #6b7280); font-weight: 500; }
-.lead-quality-summary-value { font-weight: 700; font-size: 1rem; color: var(--ef-text, #0b1220); }
 
 /* ── Stats grid microcopy ── */
 .stat-microcopy {
@@ -6457,4 +6377,26 @@ body:not(.supplier-dashboard-page) .section > .container {
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* ── Secondary CTA variant for empty states ── */
+.sd-empty-state__cta--secondary {
+  background: rgba(11, 128, 115, 0.1);
+  color: var(--ef-primary, #0b8073);
+  border: 1px solid rgba(11, 128, 115, 0.2);
+  box-shadow: none;
+}
+.sd-empty-state__cta--secondary:hover {
+  background: rgba(11, 128, 115, 0.18);
+  transform: translateY(-1px);
+}
+
+/* ── Trend badge SVG rotation for down trend ── */
+.dashboard-stat-card__trend--down svg {
+  transform: rotate(180deg);
+}
+
+/* ── Rating hero card empty state ── */
+#quick-stat-stars span {
+  letter-spacing: 1px;
 }

@@ -351,12 +351,12 @@
                     </div>
                     <div class="dashboard-stat-card__label">New Enquiries</div>
                   </div>
-                  <div class="dashboard-stat-card__trend dashboard-stat-card__trend--up">
+                  <div class="dashboard-stat-card__trend dashboard-stat-card__trend--up" id="enquiries-trend-badge" style="display:none">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
                       <polyline points="17 6 23 6 23 12" />
                     </svg>
-                    <span>+12%</span>
+                    <span></span>
                   </div>
                 </div>
 
@@ -392,11 +392,11 @@
                     </svg>
                   </div>
                   <div class="dashboard-stat-card__content">
-                    <div class="dashboard-stat-card__value">4.8</div>
+                    <div class="dashboard-stat-card__value" id="quick-stat-rating" aria-label="Average rating not yet available">—</div>
                     <div class="dashboard-stat-card__label">Avg. Rating</div>
                   </div>
-                  <div class="dashboard-stat-card__stars">
-                    <span>★★★★★</span>
+                  <div class="dashboard-stat-card__stars" id="quick-stat-stars" aria-hidden="true">
+                    <span style="color: var(--ef-text-muted, #9ca3af); font-size: 0.75rem;">No reviews yet</span>
                   </div>
                 </div>
               </div>
@@ -556,7 +556,7 @@
             <p class="sd-empty-state__desc">Accept booking deposits, track revenue, and manage invoices — all from your EventFlow dashboard.</p>
             <div style="display:flex;gap:0.75rem;flex-wrap:wrap;justify-content:center;margin-top:0.25rem;">
               <a href="/supplier/packages" class="sd-empty-state__cta">Set up packages</a>
-              <a href="/guides" class="sd-empty-state__cta" style="background:rgba(11,128,115,0.1);color:var(--ef-primary,#0b8073);border:1px solid rgba(11,128,115,0.2);">Learn more</a>
+              <a href="/guides" class="sd-empty-state__cta sd-empty-state__cta--secondary">Learn more</a>
             </div>
           </div>
         </section>

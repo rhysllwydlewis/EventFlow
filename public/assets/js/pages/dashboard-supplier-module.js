@@ -5,12 +5,10 @@ import {
   enforcePackageLimit,
 } from '/supplier/js/feature-access.js';
 
-import { createStatsGrid, createProfileChecklist } from '/assets/js/dashboard-widgets.js';
+import { createStatsGrid } from '/assets/js/dashboard-widgets.js';
 import {
   createPerformanceChart,
-  createAnalyticsSummary,
   createEnquiryTrendChart,
-  createLeadQualityWidget,
   loadReviewStats,
   createConversionFunnelWidget,
   createResponseTimeWidget,
@@ -46,19 +44,25 @@ function showUrgentAlert(message, type = 'warning') {
   if (existing) {
     existing.remove();
   }
-  const alert = document.createElement('div');
-  alert.className = `sd-urgent-alert sd-urgent-alert--${type}`;
-  alert.style.cssText =
-    'margin-top:1rem;padding:0.75rem 1rem;border-radius:8px;' +
-    'background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.4);' +
-    'color:inherit;font-size:0.9rem;';
-  alert.textContent = message;
-  const headerRow =
-    heroContent.querySelector('.dashboard-hero__header-row') || heroContent.firstElementChild;
-  if (headerRow && headerRow.nextSibling) {
-    heroContent.insertBefore(alert, headerRow.nextSibling);
+  const alertEl = document.createElement('div');
+  // Let CSS classes control all styling — no inline overrides
+  alertEl.className = `sd-urgent-alert sd-urgent-alert--${type}`;
+  alertEl.setAttribute('role', 'status');
+  alertEl.setAttribute('aria-live', 'polite');
+  alertEl.textContent = message;
+  // Insert after the header section (before actions bar), using nextElementSibling
+  // to skip whitespace text nodes
+  const headerSection =
+    heroContent.querySelector('.dashboard-hero__header') || heroContent.firstElementChild;
+  if (headerSection) {
+    const afterHeader = headerSection.nextElementSibling;
+    if (afterHeader) {
+      heroContent.insertBefore(alertEl, afterHeader);
+    } else {
+      heroContent.appendChild(alertEl);
+    }
   } else {
-    heroContent.appendChild(alert);
+    heroContent.appendChild(alertEl);
   }
 }
 
@@ -156,40 +160,78 @@ async function initSupplierDashboardWidgets() {
       quickStatProfiles.textContent = String(profileCount);
     }
 
-    // Update trend spans with real data; hide if unavailable
-    // Only target the enquiries stat card's trend element to avoid applying
-    // enquiry trend data to unrelated cards (views, response rate, etc.)
-    const enquiriesCard = document.getElementById('quick-stat-enquiries');
-    const enquiriesTrendWrapper = enquiriesCard
-      ?.closest('.dashboard-stat-card')
-      ?.querySelector('.dashboard-stat-card__trend');
+    // Update rating stat card from review summary
+    const ratingEl = document.getElementById('quick-stat-rating');
+    const starsEl = document.getElementById('quick-stat-stars');
+    const avgRating = summaryData?.reviews?.averageRating;
+    const totalReviews = summaryData?.reviews?.total || 0;
+    if (ratingEl) {
+      if (avgRating && avgRating > 0) {
+        ratingEl.textContent = avgRating.toFixed(1);
+        ratingEl.removeAttribute('aria-label');
+        if (starsEl) {
+          const fullStars = Math.round(avgRating);
+          starsEl.innerHTML = `<span>${'★'.repeat(fullStars)}${'☆'.repeat(5 - fullStars)}</span>`;
+        }
+      } else {
+        ratingEl.textContent = '—';
+        ratingEl.setAttribute('aria-label', 'No ratings yet');
+        if (starsEl && totalReviews === 0) {
+          starsEl.innerHTML =
+            '<span style="color: var(--ef-text-muted, #9ca3af); font-size: 0.75rem;">No reviews yet</span>';
+        }
+      }
+    }
+
+    // Update trend badge with real data; badge is hidden by default in HTML
+    // Use the dedicated id for simpler, more reliable selection
+    const enquiriesTrendWrapper = document.getElementById('enquiries-trend-badge');
     const enquiriesTrendSpan = enquiriesTrendWrapper?.querySelector('span');
     const enquiriesTrend = summaryData?.analytics?.enquiriesTrend;
     if (enquiriesTrendWrapper) {
-      if (enquiriesTrend !== undefined && enquiriesTrend !== null) {
+      if (enquiriesTrend !== undefined && enquiriesTrend !== null && enquiriesTrend !== 0) {
         if (enquiriesTrend > 0) {
           if (enquiriesTrendSpan) {
             enquiriesTrendSpan.textContent = `+${enquiriesTrend}%`;
           }
-          enquiriesTrendWrapper.classList.remove('trend--down');
-          enquiriesTrendWrapper.classList.add('trend--up');
-        } else if (enquiriesTrend < 0) {
+          enquiriesTrendWrapper.classList.remove('dashboard-stat-card__trend--down');
+          enquiriesTrendWrapper.classList.add('dashboard-stat-card__trend--up');
+          enquiriesTrendWrapper.style.display = '';
+        } else {
           if (enquiriesTrendSpan) {
             enquiriesTrendSpan.textContent = `${enquiriesTrend}%`;
           }
-          enquiriesTrendWrapper.classList.remove('trend--up');
-          enquiriesTrendWrapper.classList.add('trend--down');
-        } else {
-          enquiriesTrendWrapper.style.display = 'none';
+          enquiriesTrendWrapper.classList.remove('dashboard-stat-card__trend--up');
+          enquiriesTrendWrapper.classList.add('dashboard-stat-card__trend--down');
+          enquiriesTrendWrapper.style.display = '';
         }
-      } else {
-        enquiriesTrendWrapper.style.display = 'none';
       }
+      // If trend is 0 or unavailable, badge stays hidden (display:none set in HTML)
     }
 
     // Update welcome heading with business/profile name if available
     if (summaryData?.profile?.topProfileName) {
       updateWelcomeHeading(summaryData.profile.topProfileName);
+    }
+
+    // Update pro-tip text with context-aware tip based on data
+    const proTipEl = document.getElementById('pro-tip-text');
+    if (proTipEl && summaryData) {
+      const healthScore = summaryData.profile?.healthScore || 0;
+      const unread = summaryData.messages?.unread || 0;
+      const totalReviewCount = summaryData.reviews?.total || 0;
+      if (unread > 0) {
+        proTipEl.textContent = `💬 You have ${unread} unread message${unread !== 1 ? 's' : ''} — reply within 24 h to boost your ranking`;
+      } else if (healthScore < 60) {
+        proTipEl.textContent =
+          '✨ Complete your profile to appear in more search results and attract more enquiries';
+      } else if (totalReviewCount === 0) {
+        proTipEl.textContent =
+          '⭐ Ask your first customer for a review — social proof triples enquiry conversion';
+      } else {
+        proTipEl.textContent =
+          '🚀 Fast responses within 2 hours increase booking rates by up to 40%';
+      }
     }
 
     // Create statistics widgets with real data
@@ -274,9 +316,6 @@ async function initSupplierDashboardWidgets() {
         await createResponseTimeWidget('supplier-response-time', days);
       });
     }
-
-    // Initialize Lead Quality widget
-    await createLeadQualityWidget('lead-quality-breakdown');
 
     // Initialize Reviews & Ratings section
     await loadReviewStats('supplier-reviews-section');
@@ -506,12 +545,6 @@ async function displaySubscriptionStatus() {
       pro: 'Professional',
       pro_plus: 'Professional Plus',
       free: 'Starter (Free)',
-    };
-    const TIER_BADGES = {
-      pro: '<span style="display:inline-block;background:#7c3aed;color:#fff;font-size:0.7rem;font-weight:700;letter-spacing:0.05em;padding:0.2em 0.6em;border-radius:999px;margin-left:0.5rem;">PRO</span>',
-      pro_plus:
-        '<span style="display:inline-block;background:#d97706;color:#fff;font-size:0.7rem;font-weight:700;letter-spacing:0.05em;padding:0.2em 0.6em;border-radius:999px;margin-left:0.5rem;">PRO+</span>',
-      free: '',
     };
 
     // Also load payment record for billing details
