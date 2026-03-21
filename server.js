@@ -77,6 +77,7 @@ const { featureRequired } = require('./middleware/features');
 const { apiCacheControlMiddleware, staticCachingMiddleware } = require('./middleware/cache');
 const { noindexMiddleware } = require('./middleware/seo');
 const { adminPageProtectionMiddleware } = require('./middleware/adminPages');
+const { apiLimiter } = require('./middleware/rateLimits');
 
 // Utility modules
 const helpers = require('./utils/helpers');
