@@ -199,7 +199,7 @@ router.get('/me', authRequired, async (req, res) => {
  *             properties:
  *               plan:
  *                 type: string
- *                 enum: [free, basic, pro, enterprise]
+ *                 enum: [free, pro, pro_plus]
  *               priceId:
  *                 type: string
  *               trialDays:

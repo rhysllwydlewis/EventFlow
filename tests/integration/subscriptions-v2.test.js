@@ -185,6 +185,68 @@ describe('Subscription Service Integration Tests', () => {
         subscriptionService.downgradeSubscription(subscriptionId, 'pro_plus')
       ).rejects.toThrow('must be lower tier');
     });
+
+    it('should reject unknown/unsupported plan (e.g. basic, enterprise)', async () => {
+      await expect(
+        subscriptionService.downgradeSubscription(subscriptionId, 'basic')
+      ).rejects.toThrow('Unknown plan: basic');
+      await expect(
+        subscriptionService.downgradeSubscription(subscriptionId, 'enterprise')
+      ).rejects.toThrow('Unknown plan: enterprise');
+    });
+  });
+
+  describe('applyPendingPlan', () => {
+    it('applies a pending downgrade and restores cancelAtPeriodEnd to false', async () => {
+      // Start at pro_plus
+      const sub = await subscriptionService.createSubscription({
+        userId: 'usr-1',
+        plan: 'pro_plus',
+        stripeSubscriptionId: 'sub_pp_test',
+        stripeCustomerId: 'cus_pp_test',
+      });
+
+      // Schedule a downgrade to pro
+      const afterDowngrade = await subscriptionService.downgradeSubscription(sub.id, 'pro');
+      expect(afterDowngrade.plan).toBe('pro_plus'); // access unchanged
+      expect(afterDowngrade.pendingPlan).toBe('pro');
+      expect(afterDowngrade.cancelAtPeriodEnd).toBe(true);
+
+      // Simulate period end — apply the pending plan
+      const afterApply = await subscriptionService.applyPendingPlan(sub.id);
+      expect(afterApply.plan).toBe('pro');
+      expect(afterApply.pendingPlan).toBeNull();
+      expect(afterApply.cancelAtPeriodEnd).toBe(false);
+    });
+
+    it('returns null when no pending plan is set', async () => {
+      const sub = await subscriptionService.createSubscription({
+        userId: 'usr-1',
+        plan: 'pro',
+        stripeSubscriptionId: null,
+        stripeCustomerId: null,
+      });
+      const result = await subscriptionService.applyPendingPlan(sub.id);
+      expect(result).toBeNull();
+    });
+
+    it('upgrade clears a pending downgrade immediately', async () => {
+      const sub = await subscriptionService.createSubscription({
+        userId: 'usr-1',
+        plan: 'pro',
+        stripeSubscriptionId: null,
+        stripeCustomerId: null,
+      });
+
+      // Schedule downgrade to free
+      await subscriptionService.downgradeSubscription(sub.id, 'free');
+
+      // Upgrade back to pro_plus — should clear pendingPlan
+      const afterUpgrade = await subscriptionService.upgradeSubscription(sub.id, 'pro_plus');
+      expect(afterUpgrade.plan).toBe('pro_plus');
+      expect(afterUpgrade.pendingPlan).toBeNull();
+      expect(afterUpgrade.cancelAtPeriodEnd).toBe(false);
+    });
   });
 
   describe('cancelSubscription', () => {

@@ -122,7 +122,7 @@ const maxPackages = features.features.maxPackages;
 
 // Check subscription tier
 const subscription = await subscriptionService.getSubscriptionByUserId(userId);
-const isPro = ['pro', 'pro_plus', 'enterprise'].includes(subscription?.plan);
+const isPro = ['pro', 'pro_plus'].includes(subscription?.plan);
 ```
 
 ### Middleware
@@ -242,7 +242,7 @@ stripe trigger invoice.payment_succeeded
 {
   id: 'sub_xxx',
   userId: 'usr_xxx',
-  plan: 'pro', // free, pro, pro_plus, enterprise
+  plan: 'pro', // free, pro, pro_plus
   status: 'active', // active, trialing, past_due, canceled, unpaid
   stripeSubscriptionId: 'sub_stripe_xxx',
   stripeCustomerId: 'cus_stripe_xxx',

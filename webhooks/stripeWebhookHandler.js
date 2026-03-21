@@ -75,7 +75,7 @@ function resolvePlanTier(planName) {
     return 'pro_plus';
   }
   if (lc.includes('pro')) {
-    logger.warn(
+    logger.info(
       `resolvePlanTier: falling back to substring match for "${raw}". ` +
         'Set metadata.planId on the Stripe subscription for deterministic tier mapping.'
     );

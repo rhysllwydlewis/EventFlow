@@ -29,7 +29,7 @@ async function persistUserSubscriptionState(userId, updates) {
  * Create a new subscription
  * @param {Object} params - Subscription parameters
  * @param {string} params.userId - User ID
- * @param {string} params.plan - Plan tier (free, pro, pro_plus, enterprise)
+ * @param {string} params.plan - Plan tier (free, pro, pro_plus)
  * @param {string} params.stripeSubscriptionId - Stripe subscription ID
  * @param {string} params.stripeCustomerId - Stripe customer ID
  * @param {Date} params.trialEnd - Trial end date (optional)
@@ -201,10 +201,8 @@ async function processSubscriptionPlanChange(subscription, newPlan) {
 
     // Look up the Stripe price ID for the new plan using the same env var convention
     // as the rest of the codebase (see routes/subscriptions-v2.js and routes/payments.js).
-    //   STRIPE_PRO_PRICE_ID       → pro plan monthly price ID
-    //   STRIPE_PRO_PLUS_PRICE_ID  → pro_plus plan monthly price ID
-    //   STRIPE_BASIC_PRICE_ID     → basic plan monthly price ID  (if using basic tier)
-    //   STRIPE_ENTERPRISE_PRICE_ID → enterprise plan monthly price ID
+    //   STRIPE_PRO_PRICE_ID      → pro plan monthly price ID
+    //   STRIPE_PRO_PLUS_PRICE_ID → pro_plus plan monthly price ID
     // Set these in your .env file (see .env.example for details).
     const PLAN_PRICE_ENV_MAP = {
       free: null, // Free plan — no Stripe price needed; cancellation is handled separately
@@ -294,11 +292,12 @@ async function upgradeSubscription(subscriptionId, newPlan) {
   // Process prorated payment difference via Stripe
   await processSubscriptionPlanChange(subscription, newPlan);
 
-  // Upgrades apply immediately — clear any pending downgrade
+  // Upgrades apply immediately — clear any pending downgrade and reset cancelAtPeriodEnd
   return updateSubscription(subscriptionId, {
     plan: newPlan,
     status: 'active',
     pendingPlan: null,
+    cancelAtPeriodEnd: false,
   });
 }
 

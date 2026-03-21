@@ -183,8 +183,8 @@ const verificationSectionHTML = renderVerificationSection(supplier);
 | Verification Badges Utility | N/A         | ✅ New module     | ✅ Complete     |
 | Verification Badge CSS      | N/A         | ✅ Enhanced       | ✅ Complete     |
 | Profile Badge Display       | N/A         | ✅ Integrated     | ✅ Complete     |
-| ALTCHA Backend            | ✅ Complete | N/A               | ✅ Complete     |
-| ALTCHA Frontend           | N/A         | 📚 Guide created  | 🔄 To implement |
+| ALTCHA Backend              | ✅ Complete | N/A               | ✅ Complete     |
+| ALTCHA Frontend             | N/A         | 📚 Guide created  | 🔄 To implement |
 
 ## 🧪 Testing Requirements
 
@@ -298,7 +298,7 @@ Ensure supplier objects include these fields:
   businessVerified: boolean,
   isPro: boolean,
   subscription: {
-    tier: 'free' | 'pro' | 'pro_plus' | 'enterprise'
+    tier: 'free' | 'pro' | 'pro_plus'
   },
   verifications: {
     email: { verified: boolean, verifiedAt: ISO8601 },
