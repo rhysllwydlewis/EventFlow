@@ -35,6 +35,6 @@ describe('vendored jade-widget.js bundle', () => {
     // The fetch path must not be the old authenticated endpoint.
     // We check for the fetch string specifically to avoid false positives from
     // comment strings or error messages that might mention /api/chat.
-    expect(bundleSource).not.toMatch(/fetch\(`?\$\{[^}]+\}\/api\/chat`/);
+    expect(bundleSource).not.toMatch(/fetch\([^)]*\/api\/chat[^)]*\)/);
   });
 });
