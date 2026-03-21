@@ -359,36 +359,55 @@
         box-shadow: 2px 2px 6px rgba(0,178,169,.15);
       }
 
-      /* Mobile adjustments — compact bubble, clear of bottom nav */
+      /* Mobile adjustments — 30% below mobile UX standard guidelines.
+         Standard references: 16px body text, 12px padding, 32px avatar,
+         16px border-radius, 44px WCAG touch target.
+         All values here are standard × 0.7 (rounded to nearest px). */
       @media (max-width: ${MOBILE_BREAKPOINT}px) {
         .jade-teaser {
           bottom: 7.5rem; /* widget (4.5rem) + 3rem gap */
           left: 0.75rem;
-          max-width: min(260px, calc(100vw - 1.5rem));
+          max-width: min(200px, calc(100vw - 1.5rem)); /* ~30% less than typical 285px card */
+          border-radius: 11px; /* 16px × 0.7 */
         }
 
         .jade-teaser-content {
-          padding: 10px 10px 10px 10px;
-          gap: 8px;
+          padding: 8px; /* 12px × 0.7 */
+          gap: 6px;     /* 9px × 0.7 */
         }
 
         .jade-teaser-avatar,
         .jade-teaser-avatar-fallback {
-          width: 28px;
-          height: 28px;
-          font-size: 13px;
+          width: 22px;    /* 32px × 0.7 */
+          height: 22px;
+          font-size: 11px;
         }
 
         .jade-teaser-text {
-          font-size: 12.5px;
-          line-height: 1.4;
+          font-size: 11px;  /* 16px × 0.7 */
+          line-height: 1.35;
         }
 
+        /* Close button: visually tiny ✕ (10 px icon) inside a 28 px touch target.
+           28 px = 44px × 0.7 — 30% below the WCAG minimum touch target.
+           The transparent background makes it look like a bare small icon while
+           still giving a comfortable tap zone on mobile. */
         .jade-teaser-close {
-          width: 20px;
-          height: 20px;
-          font-size: 15px;
-          min-width: 20px;
+          width: 28px;
+          height: 28px;
+          min-width: 28px;
+          font-size: 10px;
+          padding: 0;
+          border-radius: 50%;
+          align-self: center;
+          margin-top: 0;
+          color: rgba(138, 153, 171, 0.75);
+        }
+
+        .jade-teaser-close:hover,
+        .jade-teaser-close:active {
+          background: rgba(0, 178, 169, 0.1);
+          color: #00B2A9;
         }
       }
 
