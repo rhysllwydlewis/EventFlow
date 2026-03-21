@@ -125,6 +125,19 @@ describe('Auth State Fixes', () => {
       expect(dashboardGuardContent).toContain('correctDashboard');
     });
 
+    it('dashboard-guard.js should redirect all unauthenticated users to /auth with redirect param', () => {
+      // All roles (admin, supplier, customer) should redirect to /auth?redirect=<path>
+      // rather than sending non-admin users to /
+      const authRedirectPattern =
+        /window\.location\.replace\(`\/auth\?redirect=\$\{encodeURIComponent\(currentPath\)\}`\)/g;
+      const matches = dashboardGuardContent.match(authRedirectPattern);
+      // There should be 3 redirect-to-auth calls: !response.ok, !user.id, catch block
+      expect(matches).toBeTruthy();
+      expect(matches.length).toBeGreaterThanOrEqual(3);
+      // Should NOT redirect non-admin to /
+      expect(dashboardGuardContent).not.toContain("window.location.replace('/')");
+    });
+
     it('dashboard-guard.js should show page when access is granted', () => {
       expect(dashboardGuardContent).toContain('showPage()');
       expect(dashboardGuardContent).toContain('style.remove()');

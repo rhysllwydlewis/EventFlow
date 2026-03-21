@@ -184,12 +184,8 @@
           `for page ${currentPath} (required role: ${requiredRole})`
         );
       }
-      // Failed to check auth - admin goes to login, customer/supplier go to homepage
-      if (requiredRole === 'admin') {
-        window.location.replace(`/auth?redirect=${encodeURIComponent(currentPath)}`);
-      } else {
-        window.location.replace('/');
-      }
+      // Failed to check auth - redirect to login for all roles
+      window.location.replace(`/auth?redirect=${encodeURIComponent(currentPath)}`);
       return;
     }
 
@@ -210,15 +206,12 @@
     }
 
     if (!user || !user.id) {
-      // Not authenticated - admin goes to login, customer/supplier go to homepage
+      // Not authenticated - redirect to login
       if (window.location.hostname === 'localhost') {
         console.warn('Dashboard guard: User not authenticated, redirecting');
       }
-      if (requiredRole === 'admin') {
-        window.location.replace(`/auth?redirect=${encodeURIComponent(currentPath)}`);
-      } else {
-        window.location.replace('/');
-      }
+      // Not authenticated - redirect to login for all roles
+      window.location.replace(`/auth?redirect=${encodeURIComponent(currentPath)}`);
       return;
     }
 
@@ -259,11 +252,7 @@
     showPage();
   } catch (error) {
     console.error('Dashboard guard error:', error);
-    // On error, redirect to login for admin, homepage for customer/supplier
-    if (requiredRole === 'admin') {
-      window.location.replace(`/auth?redirect=${encodeURIComponent(currentPath)}`);
-    } else {
-      window.location.replace('/');
-    }
+    // On error, redirect to login for all roles
+    window.location.replace(`/auth?redirect=${encodeURIComponent(currentPath)}`);
   }
 })();
