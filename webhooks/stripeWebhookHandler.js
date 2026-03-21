@@ -14,16 +14,14 @@ const postmark = require('../utils/postmark');
 
 /**
  * Format an internal plan tier key into a human-readable display name.
- * @param {string} tier - Internal tier key ('free' | 'basic' | 'pro' | 'pro_plus' | 'enterprise')
+ * @param {string} tier - Internal tier key ('free' | 'pro' | 'pro_plus')
  * @returns {string} Display name, e.g. 'Pro Plus'
  */
 function formatPlanName(tier) {
   const names = {
     free: 'Free',
-    basic: 'Basic',
     pro: 'Pro',
     pro_plus: 'Pro Plus',
-    enterprise: 'Enterprise',
   };
   return names[tier] || tier || 'Unknown';
 }
@@ -34,34 +32,54 @@ function formatPlanName(tier) {
  */
 const PLAN_EMAIL_FEATURES = {
   free: '<li>Basic messaging</li><li>Standard listing</li>',
-  basic: '<li>Messaging</li><li>Basic analytics</li><li>Verified badge</li>',
   pro: '<li>Unlimited messaging</li><li>Advanced analytics</li><li>Priority listing</li><li>Priority support</li>',
   pro_plus:
     '<li>Unlimited messaging</li><li>Advanced analytics</li><li>Priority listing</li>' +
     '<li>Priority support</li><li>Custom branding</li><li>Homepage carousel</li>',
-  enterprise:
-    '<li>All Pro Plus features</li><li>API access</li><li>Dedicated account manager</li><li>Custom integrations</li>',
 };
 
 /**
- * Resolve a Stripe plan name string to an internal tier key.
- * Checks pro_plus before pro to avoid false substring matches.
- * @param {string} planName - Raw plan name from Stripe metadata or price nickname
- * @returns {string} Tier: 'enterprise' | 'pro_plus' | 'pro' | 'free'
+ * Resolve a Stripe plan identifier to an internal tier key.
+ *
+ * Resolution order (most to least authoritative):
+ *   1. Exact match on a canonical planId value (set in Stripe metadata by the checkout session).
+ *      Accepted values: 'pro', 'pro_plus', 'pro_monthly', 'pro_yearly',
+ *                       'pro_plus_monthly', 'pro_plus_yearly'
+ *   2. Substring heuristic on the lower-cased name as a last-resort fallback.
+ *      'pro_plus' / 'proplus' / 'pro+' are checked before 'pro' to prevent false matches.
+ *      Note: names like "Pro Plus Monthly" (without underscore/proplus/pro+) fall through
+ *      to the 'pro' match — use metadata.planId for deterministic mapping.
+ *
+ * @param {string} planName - Raw plan identifier from Stripe metadata or price nickname
+ * @returns {string} Canonical tier: 'pro_plus' | 'pro' | 'free'
  */
 function resolvePlanTier(planName) {
-  const lc = (planName || '').toLowerCase();
-  if (lc.includes('enterprise')) {
-    return 'enterprise';
+  const raw = (planName || '').trim();
+  const lc = raw.toLowerCase();
+
+  // 1. Exact match on known canonical planId values (set by checkout session metadata)
+  const exactMap = {
+    pro: 'pro',
+    pro_monthly: 'pro',
+    pro_yearly: 'pro',
+    pro_plus: 'pro_plus',
+    pro_plus_monthly: 'pro_plus',
+    pro_plus_yearly: 'pro_plus',
+  };
+  if (Object.prototype.hasOwnProperty.call(exactMap, lc)) {
+    return exactMap[lc];
   }
-  if (lc.includes('pro_plus') || lc.includes('proplus')) {
+
+  // 2. Substring heuristic fallback — check pro_plus variants before pro to avoid false matches
+  if (lc.includes('pro_plus') || lc.includes('proplus') || lc.includes('pro+')) {
     return 'pro_plus';
   }
   if (lc.includes('pro')) {
+    logger.warn(
+      `resolvePlanTier: falling back to substring match for "${raw}". ` +
+        'Set metadata.planId on the Stripe subscription for deterministic tier mapping.'
+    );
     return 'pro';
-  }
-  if (lc.includes('basic')) {
-    return 'basic';
   }
   return 'free';
 }
@@ -295,12 +313,14 @@ async function handleSubscriptionCreated(stripeSubscription) {
     return;
   }
 
-  // Determine plan from metadata or price
-  const planName =
+  // Determine plan from metadata.planId (canonical, set by checkout session) first,
+  // then fall back to planName/price nickname for older subscriptions
+  const planId =
+    stripeSubscription.metadata?.planId ||
     stripeSubscription.metadata?.planName ||
     stripeSubscription.items.data[0]?.price?.nickname ||
     '';
-  const plan = resolvePlanTier(planName);
+  const plan = resolvePlanTier(planId);
 
   // Create subscription record
   const trialEnd = stripeSubscription.trial_end
@@ -394,15 +414,35 @@ async function handleSubscriptionUpdated(stripeSubscription) {
     updates.canceledAt = new Date(stripeSubscription.canceled_at * 1000).toISOString();
   }
 
-  // Detect plan change from Stripe price metadata
-  const planName =
-    stripeSubscription.metadata?.planName ||
-    stripeSubscription.items.data[0]?.price?.nickname ||
-    '';
-  if (planName) {
-    const newPlan = resolvePlanTier(planName);
-    if (newPlan && newPlan !== subscription.plan) {
-      updates.plan = newPlan;
+  // When a billing period renews (Stripe clears cancel_at_period_end) and a downgrade
+  // was scheduled locally, apply the pending plan now.
+  // We check both the Stripe flag (now false = period renewed) AND the local flag
+  // (was true = we set it during the downgrade) to avoid applying a pendingPlan if
+  // cancel_at_period_end happened to be false for an unrelated reason.
+  if (
+    subscription.cancelAtPeriodEnd &&
+    !stripeSubscription.cancel_at_period_end &&
+    subscription.pendingPlan
+  ) {
+    updates.plan = subscription.pendingPlan;
+    updates.pendingPlan = null;
+    logger.info(
+      `Applying pending downgrade for subscription ${subscription.id}: ` +
+        `${subscription.plan} → ${subscription.pendingPlan}`
+    );
+  } else {
+    // Detect an explicit plan change pushed via Stripe metadata (e.g. admin override)
+    // Prefer metadata.planId (canonical) then planName/nickname as fallback
+    const planIdentifier =
+      stripeSubscription.metadata?.planId ||
+      stripeSubscription.metadata?.planName ||
+      stripeSubscription.items.data[0]?.price?.nickname ||
+      '';
+    if (planIdentifier) {
+      const newPlan = resolvePlanTier(planIdentifier);
+      if (newPlan && newPlan !== subscription.plan && !subscription.pendingPlan) {
+        updates.plan = newPlan;
+      }
     }
   }
 
@@ -749,6 +789,7 @@ async function processWebhookEvent(event) {
 module.exports = {
   processWebhookEvent,
   formatPlanName,
+  resolvePlanTier,
   handleInvoiceCreated,
   handleInvoicePaymentSucceeded,
   handleInvoicePaymentFailed,

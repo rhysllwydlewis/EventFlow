@@ -168,9 +168,9 @@ describe('Payment Service Unit Tests', () => {
     beforeEach(() => {
       mockSubscriptions = [
         { status: 'active', plan: 'pro' },
-        { status: 'active', plan: 'basic' },
+        { status: 'active', plan: 'pro_plus' },
         { status: 'trialing', plan: 'pro' },
-        { status: 'canceled', plan: 'enterprise' },
+        { status: 'canceled', plan: 'pro_plus' },
         { status: 'active', plan: 'free' },
       ];
     });
@@ -178,17 +178,19 @@ describe('Payment Service Unit Tests', () => {
     it('should calculate monthly recurring revenue', async () => {
       const mrr = await paymentService.calculateMRR();
 
-      // pro: 29.99 * 2 = 59.98, basic: 9.99, free: 0
-      expect(mrr.totalMRR).toBeCloseTo(69.97, 2);
+      // pro: 29.99 * 2 = 59.98, pro_plus: 59.00, free: 0
+      expect(mrr.totalMRR).toBeCloseTo(118.98, 2);
       expect(mrr.activeSubscriptions).toBe(4); // active + trialing
       expect(mrr.byPlan.pro).toBeCloseTo(59.98, 2);
-      expect(mrr.byPlan.basic).toBe(9.99);
+      expect(mrr.byPlan.pro_plus).toBeCloseTo(59.0, 2);
     });
 
     it('should exclude canceled subscriptions from MRR', async () => {
       const mrr = await paymentService.calculateMRR();
 
-      expect(mrr.byPlan.enterprise).toBeUndefined();
+      // canceled pro_plus subscription should not be in active MRR total
+      // byPlan for pro_plus counts only the active/trialing ones
+      expect(mrr.byPlan.pro_plus).toBeCloseTo(59.0, 2); // only 1 active pro_plus
     });
 
     it('should use correct price for pro_plus (not pro price)', async () => {
@@ -216,7 +218,7 @@ describe('Payment Service Unit Tests', () => {
       mockSubscriptions = [
         // Active subscriptions created before cutoff
         { status: 'active', plan: 'pro', createdAt: thirtyDaysAgo.toISOString() },
-        { status: 'active', plan: 'basic', createdAt: thirtyDaysAgo.toISOString() },
+        { status: 'active', plan: 'pro_plus', createdAt: thirtyDaysAgo.toISOString() },
         { status: 'trialing', plan: 'pro', createdAt: thirtyDaysAgo.toISOString() },
         // Canceled within period
         {
@@ -226,7 +228,7 @@ describe('Payment Service Unit Tests', () => {
           canceledAt: twentyDaysAgo.toISOString(),
         },
         // New subscription (not counted in churn)
-        { status: 'active', plan: 'basic', createdAt: new Date().toISOString() },
+        { status: 'active', plan: 'pro_plus', createdAt: new Date().toISOString() },
       ];
 
       const churn = await paymentService.calculateChurnRate(30);

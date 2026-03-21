@@ -88,24 +88,22 @@ beforeEach(() => {
 // ── 1. Subscription model ────────────────────────────────────────────────────
 
 describe('Subscription model', () => {
-  it('getAllPlans returns all 5 plans including pro_plus', () => {
+  it('getAllPlans returns only the 3 supported plans (free, pro, pro_plus)', () => {
     const plans = getAllPlans();
     const ids = plans.map(p => p.id);
     expect(ids).toContain('free');
-    expect(ids).toContain('basic');
     expect(ids).toContain('pro');
     expect(ids).toContain('pro_plus');
-    expect(ids).toContain('enterprise');
-    expect(plans).toHaveLength(5);
+    expect(ids).not.toContain('basic');
+    expect(ids).not.toContain('enterprise');
+    expect(plans).toHaveLength(3);
   });
 
   it('plans are returned in ascending tier order', () => {
     const plans = getAllPlans();
     const ids = plans.map(p => p.id);
-    expect(ids.indexOf('free')).toBeLessThan(ids.indexOf('basic'));
-    expect(ids.indexOf('basic')).toBeLessThan(ids.indexOf('pro'));
+    expect(ids.indexOf('free')).toBeLessThan(ids.indexOf('pro'));
     expect(ids.indexOf('pro')).toBeLessThan(ids.indexOf('pro_plus'));
-    expect(ids.indexOf('pro_plus')).toBeLessThan(ids.indexOf('enterprise'));
   });
 
   it('pro_plus features include customBranding and homepageCarousel', () => {
@@ -128,21 +126,19 @@ describe('Subscription model', () => {
 // ── 2. TIER_LEVELS hierarchy ─────────────────────────────────────────────────
 
 describe('TIER_LEVELS hierarchy', () => {
-  it('includes all 5 tiers', () => {
+  it('includes exactly the 3 supported tiers', () => {
     expect(TIER_LEVELS).toMatchObject({
       free: expect.any(Number),
-      basic: expect.any(Number),
       pro: expect.any(Number),
       pro_plus: expect.any(Number),
-      enterprise: expect.any(Number),
     });
+    expect(TIER_LEVELS).not.toHaveProperty('basic');
+    expect(TIER_LEVELS).not.toHaveProperty('enterprise');
   });
 
-  it('free < basic < pro < pro_plus < enterprise', () => {
-    expect(TIER_LEVELS.free).toBeLessThan(TIER_LEVELS.basic);
-    expect(TIER_LEVELS.basic).toBeLessThan(TIER_LEVELS.pro);
+  it('free < pro < pro_plus', () => {
+    expect(TIER_LEVELS.free).toBeLessThan(TIER_LEVELS.pro);
     expect(TIER_LEVELS.pro).toBeLessThan(TIER_LEVELS.pro_plus);
-    expect(TIER_LEVELS.pro_plus).toBeLessThan(TIER_LEVELS.enterprise);
   });
 });
 
@@ -185,7 +181,7 @@ describe('requireSubscription middleware', () => {
     expect(req.subscriptionTier).toBe('pro');
   });
 
-  it('allows pro user to access basic-tier route (higher tier satisfies lower requirement)', async () => {
+  it('allows pro user to access free-tier route (higher tier satisfies lower requirement)', async () => {
     mockSubscriptions.push({
       id: 'sub-1',
       userId: 'usr-1',
@@ -196,18 +192,11 @@ describe('requireSubscription middleware', () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
-    await requireSubscription('basic')(req, res, next);
+    await requireSubscription('free')(req, res, next);
     expect(next).toHaveBeenCalled();
   });
 
-  it('blocks basic user from pro-tier route', async () => {
-    mockSubscriptions.push({
-      id: 'sub-1',
-      userId: 'usr-1',
-      plan: 'basic',
-      status: 'active',
-      currentPeriodEnd: futureDate(30),
-    });
+  it('blocks free user from pro-tier route', async () => {
     const req = makeReq();
     const res = makeRes();
     const next = jest.fn();
@@ -352,18 +341,18 @@ describe('subscriptionService.createSubscription', () => {
     );
   });
 
-  it('sets isPro=false for basic plan (basic is below pro)', async () => {
+  it('sets isPro=false for free plan', async () => {
     await subscriptionService.createSubscription({
       userId: 'usr-1',
-      plan: 'basic',
-      stripeSubscriptionId: 'sub_2',
-      stripeCustomerId: 'cus_1',
+      plan: 'free',
+      stripeSubscriptionId: null,
+      stripeCustomerId: null,
     });
     expect(dbUnified.updateOne).toHaveBeenCalledWith(
       'users',
       { id: 'usr-1' },
       expect.objectContaining({
-        $set: expect.objectContaining({ isPro: false, subscriptionTier: 'basic' }),
+        $set: expect.objectContaining({ isPro: false, subscriptionTier: 'free' }),
       })
     );
   });

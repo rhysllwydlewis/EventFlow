@@ -9,8 +9,7 @@ const { ObjectId } = require('mongodb');
 const { validateConversation, validateMessage } = require('../models/ConversationV4');
 const contentSanitizer = require('./contentSanitizer');
 const spamDetection = require('./spamDetection');
-const messagingLimits =
-  require('../config/messagingLimits').MESSAGE_LIMITS || require('../config/messagingLimits');
+const { getMessagingLimitsForTier } = require('../config/messagingLimits');
 
 class MessengerV4Service {
   constructor(db, logger) {
@@ -853,7 +852,7 @@ class MessengerV4Service {
     const user = await usersCollection.findOne({ id: userId });
 
     const tier = user?.subscriptionTier || 'free';
-    const limits = messagingLimits[tier] || messagingLimits.free;
+    const limits = getMessagingLimitsForTier(tier);
 
     // Check messages sent in the last hour
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);

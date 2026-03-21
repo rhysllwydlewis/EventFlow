@@ -171,16 +171,18 @@ describe('Subscription Service Integration Tests', () => {
       subscriptionId = sub.id;
     });
 
-    it('should schedule downgrade to lower tier', async () => {
+    it('should schedule downgrade to lower tier (keeps current plan, sets pendingPlan)', async () => {
       const updated = await subscriptionService.downgradeSubscription(subscriptionId, 'free');
 
-      expect(updated.plan).toBe('free');
+      // plan must NOT change immediately — access is preserved until period end
+      expect(updated.plan).toBe('pro');
+      expect(updated.pendingPlan).toBe('free');
       expect(updated.cancelAtPeriodEnd).toBe(true);
     });
 
     it('should reject upgrade attempt', async () => {
       await expect(
-        subscriptionService.downgradeSubscription(subscriptionId, 'enterprise')
+        subscriptionService.downgradeSubscription(subscriptionId, 'pro_plus')
       ).rejects.toThrow('must be lower tier');
     });
   });
@@ -310,7 +312,7 @@ describe('Subscription Service Integration Tests', () => {
       expect(stats.trialing).toBe(1);
       // All 3 subscriptions are on the 'pro' plan (one is trialing)
       expect(stats.byPlan.pro).toBe(3);
-      expect(stats.byPlan.basic).toBe(0);
+      expect(stats.byPlan.free).toBe(0);
     });
   });
 
@@ -320,12 +322,12 @@ describe('Subscription Service Integration Tests', () => {
         { id: 's1', userId: 'u1', plan: 'pro_plus', status: 'active' },
         { id: 's2', userId: 'u2', plan: 'pro', status: 'active' },
         { id: 's3', userId: 'u3', plan: 'pro_plus', status: 'trialing' },
-        { id: 's4', userId: 'u4', plan: 'basic', status: 'canceled' },
+        { id: 's4', userId: 'u4', plan: 'free', status: 'canceled' },
       ];
       const stats = await subscriptionService.getSubscriptionStats();
       expect(stats.byPlan.pro_plus).toBe(2);
       expect(stats.byPlan.pro).toBe(1);
-      expect(stats.byPlan.basic).toBe(1);
+      expect(stats.byPlan.free).toBe(1);
     });
   });
 
@@ -378,13 +380,13 @@ describe('Subscription Service Integration Tests', () => {
   });
 
   describe('getAllPlans', () => {
-    it('should return all available plans', () => {
+    it('should return only the 3 supported plans', () => {
       const plans = subscriptionService.getAllPlans();
 
-      expect(plans).toHaveLength(5);
-      expect(plans.map(p => p.id)).toEqual(['free', 'basic', 'pro', 'pro_plus', 'enterprise']);
+      expect(plans).toHaveLength(3);
+      expect(plans.map(p => p.id)).toEqual(['free', 'pro', 'pro_plus']);
       expect(plans[0].price).toBe(0);
-      expect(plans[2].features.apiAccess).toBe(true);
+      expect(plans[1].features.apiAccess).toBe(true);
     });
   });
 });

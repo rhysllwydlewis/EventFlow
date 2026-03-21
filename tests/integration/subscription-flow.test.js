@@ -185,7 +185,7 @@ describe('Complete Subscription Flow Integration', () => {
       expect(inTrial).toBe(true);
     });
 
-    it('should handle upgrade from Basic to Pro', async () => {
+    it('should handle upgrade from Pro to Pro Plus', async () => {
       const userId = 'usr-test-001';
 
       // Start with Pro plan
@@ -249,12 +249,12 @@ describe('Complete Subscription Flow Integration', () => {
 
   describe('Admin Dashboard Integration', () => {
     beforeEach(async () => {
-      // Create multiple subscriptions for testing
+      // Create multiple subscriptions for testing (only supported tiers)
       await subscriptionService.createSubscription({
         userId: 'usr-1',
-        plan: 'basic',
-        stripeSubscriptionId: 'sub_1',
-        stripeCustomerId: 'cus_1',
+        plan: 'free',
+        stripeSubscriptionId: null,
+        stripeCustomerId: null,
       });
 
       await subscriptionService.createSubscription({
@@ -266,7 +266,7 @@ describe('Complete Subscription Flow Integration', () => {
 
       await subscriptionService.createSubscription({
         userId: 'usr-3',
-        plan: 'enterprise',
+        plan: 'pro_plus',
         stripeSubscriptionId: 'sub_3',
         stripeCustomerId: 'cus_3',
       });
@@ -277,20 +277,19 @@ describe('Complete Subscription Flow Integration', () => {
 
       expect(stats.total).toBe(3);
       expect(stats.active).toBe(3);
+      expect(stats.byPlan.free).toBe(1);
       expect(stats.byPlan.pro).toBe(1);
-      expect(stats.byPlan.basic).toBe(1);
-      expect(stats.byPlan.enterprise).toBe(1);
+      expect(stats.byPlan.pro_plus).toBe(1);
     });
 
     it('should calculate MRR correctly', async () => {
       const mrr = await paymentService.calculateMRR();
 
-      // Basic: 9.99, Pro: 29.99, Enterprise: 99.99 = 139.97
-      expect(mrr.totalMRR).toBeCloseTo(139.97, 2);
+      // Free: 0, Pro: 29.99, Pro Plus: 59.00 = 88.99
+      expect(mrr.totalMRR).toBeCloseTo(88.99, 2);
       expect(mrr.activeSubscriptions).toBe(3);
-      expect(mrr.byPlan.basic).toBe(9.99);
       expect(mrr.byPlan.pro).toBe(29.99);
-      expect(mrr.byPlan.enterprise).toBe(99.99);
+      expect(mrr.byPlan.pro_plus).toBe(59.0);
     });
 
     it('should list subscriptions with filters', async () => {
@@ -352,7 +351,7 @@ describe('Complete Subscription Flow Integration', () => {
         { plan: 'pro', feature: 'apiAccess', expected: true },
         { plan: 'pro', feature: 'prioritySupport', expected: true },
         { plan: 'pro_plus', feature: 'customBranding', expected: true },
-        { plan: 'enterprise', feature: 'apiAccess', expected: true },
+        { plan: 'pro_plus', feature: 'apiAccess', expected: true },
       ];
 
       for (const testCase of testCases) {

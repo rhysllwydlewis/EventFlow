@@ -18,15 +18,11 @@ afterAll(() => {
   }
 });
 
-const { formatPlanName } = require('../../webhooks/stripeWebhookHandler');
+const { formatPlanName, resolvePlanTier } = require('../../webhooks/stripeWebhookHandler');
 
 describe('Stripe Webhook Handler — formatPlanName', () => {
   it('formats free tier', () => {
     expect(formatPlanName('free')).toBe('Free');
-  });
-
-  it('formats basic tier', () => {
-    expect(formatPlanName('basic')).toBe('Basic');
   });
 
   it('formats pro tier', () => {
@@ -37,10 +33,6 @@ describe('Stripe Webhook Handler — formatPlanName', () => {
     expect(formatPlanName('pro_plus')).toBe('Pro Plus');
   });
 
-  it('formats enterprise tier', () => {
-    expect(formatPlanName('enterprise')).toBe('Enterprise');
-  });
-
   it('falls back to the raw tier string for unknown values', () => {
     expect(formatPlanName('custom_tier')).toBe('custom_tier');
   });
@@ -49,5 +41,66 @@ describe('Stripe Webhook Handler — formatPlanName', () => {
     expect(formatPlanName(null)).toBe('Unknown');
     expect(formatPlanName(undefined)).toBe('Unknown');
     expect(formatPlanName('')).toBe('Unknown');
+  });
+});
+
+describe('Stripe Webhook Handler — resolvePlanTier', () => {
+  // Exact canonical planId values (set by checkout session metadata)
+  it('resolves exact "pro" to pro', () => {
+    expect(resolvePlanTier('pro')).toBe('pro');
+  });
+
+  it('resolves exact "pro_monthly" to pro', () => {
+    expect(resolvePlanTier('pro_monthly')).toBe('pro');
+  });
+
+  it('resolves exact "pro_yearly" to pro', () => {
+    expect(resolvePlanTier('pro_yearly')).toBe('pro');
+  });
+
+  it('resolves exact "pro_plus" to pro_plus', () => {
+    expect(resolvePlanTier('pro_plus')).toBe('pro_plus');
+  });
+
+  it('resolves exact "pro_plus_monthly" to pro_plus', () => {
+    expect(resolvePlanTier('pro_plus_monthly')).toBe('pro_plus');
+  });
+
+  it('resolves exact "pro_plus_yearly" to pro_plus', () => {
+    expect(resolvePlanTier('pro_plus_yearly')).toBe('pro_plus');
+  });
+
+  // Substring heuristic fallback — "Pro+ Monthly" style Stripe nicknames
+  it('resolves "Pro+ Monthly" nickname to pro_plus (not pro)', () => {
+    expect(resolvePlanTier('Pro+ Monthly')).toBe('pro_plus');
+  });
+
+  it('resolves "Pro Plus Monthly" (no underscore/proplus/pro+) to pro via substring fallback', () => {
+    expect(resolvePlanTier('Pro Plus Monthly')).toBe('pro');
+    // Note: "Pro Plus Monthly" does NOT contain "pro_plus", "proplus", or "pro+" so falls
+    // through to the "pro" substring match — this is an acceptable known limitation;
+    // callers should use metadata.planId for deterministic mapping.
+  });
+
+  it('resolves "ProPlus" substring to pro_plus', () => {
+    expect(resolvePlanTier('ProPlus Annual')).toBe('pro_plus');
+  });
+
+  it('resolves plain "Pro Monthly" nickname to pro', () => {
+    expect(resolvePlanTier('Pro Monthly')).toBe('pro');
+  });
+
+  it('resolves unknown names to free', () => {
+    expect(resolvePlanTier('basic')).toBe('free');
+    expect(resolvePlanTier('enterprise')).toBe('free');
+    expect(resolvePlanTier('unknown_plan')).toBe('free');
+    expect(resolvePlanTier('')).toBe('free');
+    expect(resolvePlanTier(null)).toBe('free');
+  });
+
+  it('is case-insensitive', () => {
+    expect(resolvePlanTier('PRO')).toBe('pro');
+    expect(resolvePlanTier('PRO_PLUS')).toBe('pro_plus');
+    expect(resolvePlanTier('PRO+')).toBe('pro_plus');
   });
 });

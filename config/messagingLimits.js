@@ -1,6 +1,8 @@
 /**
  * Message Limits Configuration
- * Defines messaging limits based on subscription tier
+ * Defines messaging limits based on subscription tier.
+ * Supported tiers: free, pro, pro_plus.
+ * Unknown/legacy tiers are mapped to free by getMessagingLimitsForTier().
  */
 
 'use strict';
@@ -12,19 +14,7 @@ const MESSAGE_LIMITS = {
     threadsPerDay: 3,
     maxMessageLength: 500,
   },
-  basic: {
-    messagesPerDay: 100,
-    messagesPerHour: 50,
-    threadsPerDay: 20,
-    maxMessageLength: 2000,
-  },
   pro: {
-    messagesPerDay: -1, // unlimited
-    messagesPerHour: 500,
-    threadsPerDay: -1, // unlimited
-    maxMessageLength: 5000,
-  },
-  premium: {
     messagesPerDay: -1, // unlimited
     messagesPerHour: 500,
     threadsPerDay: -1, // unlimited
@@ -36,12 +26,19 @@ const MESSAGE_LIMITS = {
     threadsPerDay: -1, // unlimited
     maxMessageLength: 10000,
   },
-  enterprise: {
-    messagesPerDay: -1, // unlimited
-    messagesPerHour: -1, // unlimited
-    threadsPerDay: -1, // unlimited
-    maxMessageLength: 50000,
-  },
 };
 
-module.exports = { MESSAGE_LIMITS };
+/**
+ * Return the messaging limits for the given tier.
+ * Falls back to the free-tier limits for any unrecognised or legacy tier
+ * (e.g. 'basic', 'premium', 'enterprise') so callers can never crash
+ * or receive undefined limits.
+ *
+ * @param {string} tier - Subscription tier key
+ * @returns {Object} Messaging limits for the tier
+ */
+function getMessagingLimitsForTier(tier) {
+  return MESSAGE_LIMITS[tier] || MESSAGE_LIMITS.free;
+}
+
+module.exports = { MESSAGE_LIMITS, getMessagingLimitsForTier };

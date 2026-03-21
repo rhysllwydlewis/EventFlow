@@ -32,8 +32,12 @@ const subscriptionSchema = {
           description: 'Stripe customer ID',
         },
         plan: {
-          enum: ['free', 'basic', 'pro', 'pro_plus', 'enterprise'],
+          enum: ['free', 'pro', 'pro_plus'],
           description: 'Subscription plan tier',
+        },
+        pendingPlan: {
+          enum: ['free', 'pro', 'pro_plus'],
+          description: 'Scheduled next tier (applied at period end after a downgrade)',
         },
         status: {
           enum: ['active', 'trialing', 'past_due', 'canceled', 'unpaid'],
@@ -119,7 +123,9 @@ const subscriptionSchema = {
 
 /**
  * Plan feature definitions
- * Maps plan tiers to available features
+ * Maps plan tiers to available features.
+ * Supported tiers: free, pro, pro_plus.
+ * The basic and enterprise tiers are no longer active; unknown tiers fall back to free.
  */
 const PLAN_FEATURES = {
   free: {
@@ -136,25 +142,6 @@ const PLAN_FEATURES = {
       prioritySupport: false,
       priorityListing: false,
       badge: null,
-      customBranding: false,
-      homepageCarousel: false,
-      apiAccess: false,
-    },
-  },
-  basic: {
-    name: 'Basic',
-    price: 9.99,
-    interval: 'month',
-    features: {
-      maxSuppliers: 3,
-      maxPackages: 10,
-      maxPhotos: 100,
-      maxBookings: 20,
-      messaging: true,
-      analytics: true,
-      prioritySupport: false,
-      priorityListing: false,
-      badge: 'basic',
       customBranding: false,
       homepageCarousel: false,
       apiAccess: false,
@@ -198,30 +185,11 @@ const PLAN_FEATURES = {
       apiAccess: true,
     },
   },
-  enterprise: {
-    name: 'Enterprise',
-    price: 99.99,
-    interval: 'month',
-    features: {
-      maxSuppliers: -1, // unlimited
-      maxPackages: -1, // unlimited
-      maxPhotos: -1, // unlimited
-      maxBookings: -1,
-      messaging: true,
-      analytics: true,
-      prioritySupport: true,
-      priorityListing: true,
-      badge: 'enterprise',
-      customBranding: true,
-      homepageCarousel: true,
-      apiAccess: true,
-    },
-  },
 };
 
 /**
  * Get feature configuration for a plan
- * @param {string} plan - Plan tier (free, pro, pro_plus, enterprise)
+ * @param {string} plan - Plan tier (free, pro, pro_plus)
  * @returns {Object} Feature configuration
  */
 function getPlanFeatures(plan) {
@@ -244,7 +212,7 @@ function hasFeature(plan, feature) {
  * @returns {Array} Array of plan configurations
  */
 function getAllPlans() {
-  const orderedPlans = ['free', 'basic', 'pro', 'pro_plus', 'enterprise'];
+  const orderedPlans = ['free', 'pro', 'pro_plus'];
   return orderedPlans.map(planId => ({
     id: planId,
     ...PLAN_FEATURES[planId],
@@ -258,5 +226,5 @@ module.exports = {
   hasFeature,
   getAllPlans,
   /** Tier level ordering — single source of truth for gate middleware */
-  TIER_LEVELS: { free: 0, basic: 1, pro: 2, pro_plus: 3, enterprise: 4 },
+  TIER_LEVELS: { free: 0, pro: 1, pro_plus: 2 },
 };

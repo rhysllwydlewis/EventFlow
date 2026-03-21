@@ -138,6 +138,23 @@ function buildSearchRegex(q) {
   return new RegExp(escaped, 'i');
 }
 
+/**
+ * Resolve the effective subscription tier level of a supplier for sorting.
+ * Prefers the canonical `subscriptionTier` / `subscription.tier` fields;
+ * falls back to the legacy `isPro` boolean so older records are handled correctly.
+ *
+ * Tier levels: pro_plus=2, pro=1, free=0
+ *
+ * @param {Object} supplier - Raw supplier document.
+ * @returns {number} Tier level (higher = more prominent in results).
+ */
+function getSupplierTierLevel(supplier) {
+  const LEVELS = { free: 0, pro: 1, pro_plus: 2 };
+  const tier =
+    supplier.subscription?.tier || supplier.subscriptionTier || (supplier.isPro ? 'pro' : 'free');
+  return LEVELS[tier] ?? 0;
+}
+
 // ─── Auth middleware ───────────────────────────────────────────────────────────
 
 /**
@@ -237,13 +254,11 @@ router.get('/suppliers', async (req, res) => {
 
     const total = suppliers.length;
 
-    // ── Sort: Pro suppliers first, then by name ────────────────────────────
+    // ── Sort: higher-tier suppliers first, then by name ───────────────────
     const sorted = suppliers.slice().sort((a, b) => {
-      if (a.isPro && !b.isPro) {
-        return -1;
-      }
-      if (!a.isPro && b.isPro) {
-        return 1;
+      const tierDiff = getSupplierTierLevel(b) - getSupplierTierLevel(a);
+      if (tierDiff !== 0) {
+        return tierDiff;
       }
       return (a.name || '').localeCompare(b.name || '');
     });
@@ -352,13 +367,11 @@ router.get('/venues', async (req, res) => {
 
     const total = venues.length;
 
-    // ── Sort: Pro first, then by capacity (desc), then name ─────────────────
+    // ── Sort: higher-tier venues first, then by capacity (desc), then name ─
     const sorted = venues.slice().sort((a, b) => {
-      if (a.isPro && !b.isPro) {
-        return -1;
-      }
-      if (!a.isPro && b.isPro) {
-        return 1;
+      const tierDiff = getSupplierTierLevel(b) - getSupplierTierLevel(a);
+      if (tierDiff !== 0) {
+        return tierDiff;
       }
       const capDiff = (b.maxGuests || 0) - (a.maxGuests || 0);
       if (capDiff !== 0) {
