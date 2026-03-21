@@ -156,6 +156,11 @@
       return;
     }
 
+    // DOM singleton guard — never render a second teaser bubble
+    if (document.querySelector('.jade-teaser')) {
+      return;
+    }
+
     // Get debug mode setting
     const debug = shouldEnableDebug();
 
@@ -166,9 +171,20 @@
       ? TEASER_VARIANTS[variant].mobile
       : TEASER_VARIANTS[variant].desktop;
 
+    // Guard against empty/invalid teaser message
+    if (!teaserMessage || !teaserMessage.trim()) {
+      if (debug) {
+        console.warn('[JadeAssist] Teaser message is empty — skipping render');
+      }
+      return;
+    }
+
     // Create teaser bubble
     teaserElement = document.createElement('div');
     teaserElement.className = 'jade-teaser';
+    teaserElement.setAttribute('role', 'button');
+    teaserElement.setAttribute('tabindex', '0');
+    teaserElement.setAttribute('aria-label', 'Open chat with Jade');
     teaserElement.innerHTML = `
       <div class="jade-teaser-content">
         <span class="jade-teaser-text">${teaserMessage}</span>
@@ -178,15 +194,14 @@
 
     document.body.appendChild(teaserElement);
 
-    // Keyboard accessibility
-    teaserElement.setAttribute('tabindex', '0');
-    teaserElement.setAttribute('role', 'button');
-    teaserElement.setAttribute('aria-label', 'Open chat with Jade');
-
     // Add event listeners
     const closeBtn = teaserElement.querySelector('.jade-teaser-close');
 
-    teaserElement.addEventListener('click', () => {
+    // Click on the bubble body → open chat (close button handled separately)
+    teaserElement.addEventListener('click', e => {
+      if (e.target === closeBtn || closeBtn.contains(e.target)) {
+        return;
+      }
       // Emit custom event for analytics tracking
       window.dispatchEvent(
         new CustomEvent('jadeassist:teaser-clicked', {
@@ -358,8 +373,37 @@
       @media (max-width: ${MOBILE_BREAKPOINT}px) {
         .jade-teaser {
           bottom: 7.5rem; /* Above widget on mobile (widget at 4.5rem + 3rem spacing) */
-          left: 1rem;
-          max-width: calc(100vw - 2rem);
+          left: 0.75rem;
+          max-width: min(200px, calc(100vw - 1.5rem));
+          border-radius: 11px;
+        }
+
+        .jade-teaser-content {
+          padding: 8px;
+          gap: 6px;
+        }
+
+        .jade-teaser-text {
+          font-size: 11px;
+          line-height: 1.35;
+        }
+
+        .jade-teaser-close {
+          width: 28px;
+          height: 28px;
+          min-width: 28px;
+          font-size: 10px;
+          padding: 0;
+          border-radius: 50%;
+          align-self: center;
+          margin-top: 0;
+          color: rgba(138, 153, 171, 0.75);
+        }
+
+        .jade-teaser-close:hover,
+        .jade-teaser-close:active {
+          background: rgba(0, 178, 169, 0.1);
+          color: #00B2A9;
         }
       }
 

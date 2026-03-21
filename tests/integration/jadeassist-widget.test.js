@@ -209,4 +209,36 @@ describe('JadeAssist Widget Pinning', () => {
       expect(v2Content).toContain("greetingTooltipText: ''");
     });
   });
+
+  describe('Legacy Init Script Teaser Safety (jadeassist-init.js)', () => {
+    let legacyContent;
+
+    beforeAll(() => {
+      legacyContent = fs.readFileSync(
+        path.join(publicDir, 'assets/js/jadeassist-init.js'),
+        'utf8'
+      );
+    });
+
+    it('should contain DOM singleton guard to prevent duplicate teasers', () => {
+      // Must check for an existing .jade-teaser before creating a new one
+      expect(legacyContent).toContain("document.querySelector('.jade-teaser')");
+    });
+
+    it('should guard against empty teaser messages before rendering', () => {
+      // Must validate message is non-empty before appending to DOM
+      expect(legacyContent).toMatch(/!teaserMessage\s*\|\|\s*!teaserMessage\.trim\(\)/);
+    });
+
+    it('should use compact mobile max-width instead of full-width calc', () => {
+      // Old broken value was calc(100vw - 2rem) — must be replaced with min(200px, ...)
+      expect(legacyContent).not.toContain('calc(100vw - 2rem)');
+      expect(legacyContent).toContain('min(200px, calc(100vw - 1.5rem))');
+    });
+
+    it('should isolate close button from teaser body click handler', () => {
+      // The teaser body click listener must bail out when the close button is clicked
+      expect(legacyContent).toContain('closeBtn.contains(e.target)');
+    });
+  });
 });
