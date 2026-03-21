@@ -583,6 +583,20 @@ if (process.env.NODE_ENV === 'production') {
 // sent to unauthenticated users — preventing the "flash before redirect" that
 // client-side-only guards cannot prevent.  Uses the same getUserFromCookie
 // pattern as adminPageProtectionMiddleware so behaviour is consistent.
+
+/**
+ * Returns an Express middleware that redirects unauthenticated requests to
+ * /auth?redirect=<originalUrl>.  Shared by both the page-level guards and the
+ * SPA-prefix guards so the redirect behaviour stays consistent.
+ */
+function unauthRedirect(req, res, next) {
+  const user = getUserFromCookie(req);
+  if (!user) {
+    return res.redirect(302, `/auth?redirect=${encodeURIComponent(req.originalUrl)}`);
+  }
+  return next();
+}
+
 const protectedHtmlPages = [
   'notifications',
   'messages',
@@ -591,16 +605,22 @@ const protectedHtmlPages = [
   'plan',
   'timeline',
   'my-marketplace-listings',
+  'budget',
 ];
 
 protectedHtmlPages.forEach(page => {
-  app.get(`/${page}`, apiLimiter, (req, res, next) => {
-    const user = getUserFromCookie(req);
-    if (!user) {
-      return res.redirect(302, `/auth?redirect=${encodeURIComponent(req.originalUrl)}`);
-    }
-    next();
-  });
+  app.get(`/${page}`, apiLimiter, unauthRedirect);
+});
+
+// ---------- Protected SPA Routes ----------
+// Server-side auth guard for SPA directories that require authentication.
+// app.use() matches the root path AND all subpaths (e.g. /messenger/,
+// /messenger/index.html) so the HTML shell is never served to unauthenticated
+// users — including crawling bots that reach deep links directly.
+// MUST come before express.static().
+const protectedSpaPrefixes = ['/messenger', '/chat'];
+protectedSpaPrefixes.forEach(prefix => {
+  app.use(prefix, apiLimiter, unauthRedirect);
 });
 
 // ---------- Admin HTML Page Protection ----------
