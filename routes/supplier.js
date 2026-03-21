@@ -785,10 +785,13 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
         responseRate: current.responseRate,
         avgResponseTime: current.avgResponseTime,
         dailyData: current.dailyData,
-        viewsTrend: Math.round(((current.totalViews - prevViews) / Math.max(prevViews, 1)) * 100),
-        enquiriesTrend: Math.round(
-          ((current.totalEnquiries - prevEnquiries) / Math.max(prevEnquiries, 1)) * 100
-        ),
+        // Return null when previous period has no data, to avoid misleading percentages
+        viewsTrend:
+          prevViews > 0 ? Math.round(((current.totalViews - prevViews) / prevViews) * 100) : null,
+        enquiriesTrend:
+          prevEnquiries > 0
+            ? Math.round(((current.totalEnquiries - prevEnquiries) / prevEnquiries) * 100)
+            : null,
         // Response rate is computed across all threads (not time-windowed), so trend is not available
         responseTrend: 0,
       };
@@ -816,9 +819,10 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
       },
     };
     try {
+      // supplier is already found above; get all profiles for this user from the same array
       const supplierProfiles = suppliers.filter(s => s.ownerUserId === userId);
       const profileCount = supplierProfiles.length;
-      const topProfile = supplierProfiles[0] || supplier;
+      const topProfile = supplier; // supplier is the first match (already found via find)
 
       const hasDescription = !!(topProfile.description_short || '').trim();
       const hasLocation = !!(topProfile.location || '').trim();
@@ -887,10 +891,22 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
     try {
       const allPackages = (await dbUnified.read('packages')) || [];
       const supplierPackages = allPackages.filter(p => p.supplierId === supplierId);
+      // Count active and draft in a single pass to avoid iterating twice
+      const counts = supplierPackages.reduce(
+        (acc, p) => {
+          if (p.approved === false) {
+            acc.draft++;
+          } else {
+            acc.active++;
+          }
+          return acc;
+        },
+        { active: 0, draft: 0 }
+      );
       packagesData = {
         total: supplierPackages.length,
-        active: supplierPackages.filter(p => p.approved !== false).length, // approved or pending review
-        draft: supplierPackages.filter(p => p.approved === false).length, // explicitly not approved
+        active: counts.active,
+        draft: counts.draft,
       };
     } catch (err) {
       logger.error('dashboard-summary: packages sub-query failed:', err);

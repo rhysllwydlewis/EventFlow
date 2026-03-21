@@ -6400,3 +6400,26 @@ body:not(.supplier-dashboard-page) .section > .container {
 #quick-stat-stars span {
   letter-spacing: 1px;
 }
+
+/* ── Initially-hidden elements (JS toggles) ── */
+.js-hidden { display: none; }
+
+/* ── Empty state for rating star placeholder ── */
+.quick-stat-stars__empty {
+  color: var(--ef-text-muted, #9ca3af);
+  font-size: 0.75rem;
+}
+
+/* ── Earnings empty state actions row ── */
+.sd-empty-state__actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 0.25rem;
+}
+
+/* ── Compact empty state padding modifier ── */
+.sd-empty-state--compact {
+  padding: 1.25rem 1rem 0.5rem;
+}

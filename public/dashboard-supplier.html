@@ -351,7 +351,7 @@
                     </div>
                     <div class="dashboard-stat-card__label">New Enquiries</div>
                   </div>
-                  <div class="dashboard-stat-card__trend dashboard-stat-card__trend--up" id="enquiries-trend-badge" style="display:none">
+                  <div class="dashboard-stat-card__trend dashboard-stat-card__trend--up js-hidden" id="enquiries-trend-badge">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
                       <polyline points="17 6 23 6 23 12" />
@@ -396,7 +396,7 @@
                     <div class="dashboard-stat-card__label">Avg. Rating</div>
                   </div>
                   <div class="dashboard-stat-card__stars" id="quick-stat-stars" aria-hidden="true">
-                    <span style="color: var(--ef-text-muted, #9ca3af); font-size: 0.75rem;">No reviews yet</span>
+                    <span class="quick-stat-stars__empty">No reviews yet</span>
                   </div>
                 </div>
               </div>
@@ -550,11 +550,11 @@
             </div>
           </div>
 
-          <div class="sd-empty-state" style="padding: 1.25rem 1rem 0.5rem;">
+          <div class="sd-empty-state sd-empty-state--compact">
             <div class="sd-empty-state__icon">💳</div>
             <h4 class="sd-empty-state__title">Payments launching soon</h4>
             <p class="sd-empty-state__desc">Accept booking deposits, track revenue, and manage invoices — all from your EventFlow dashboard.</p>
-            <div style="display:flex;gap:0.75rem;flex-wrap:wrap;justify-content:center;margin-top:0.25rem;">
+            <div class="sd-empty-state__actions">
               <a href="/supplier/packages" class="sd-empty-state__cta">Set up packages</a>
               <a href="/guides" class="sd-empty-state__cta sd-empty-state__cta--secondary">Learn more</a>
             </div>

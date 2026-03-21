@@ -177,14 +177,13 @@ async function initSupplierDashboardWidgets() {
         ratingEl.textContent = '—';
         ratingEl.setAttribute('aria-label', 'No ratings yet');
         if (starsEl && totalReviews === 0) {
-          starsEl.innerHTML =
-            '<span style="color: var(--ef-text-muted, #9ca3af); font-size: 0.75rem;">No reviews yet</span>';
+          // Use CSS class instead of inline styles for the empty state text
+          starsEl.innerHTML = '<span class="quick-stat-stars__empty">No reviews yet</span>';
         }
       }
     }
 
-    // Update trend badge with real data; badge is hidden by default in HTML
-    // Use the dedicated id for simpler, more reliable selection
+    // Update trend badge with real data; badge is hidden by default via .js-hidden class
     const enquiriesTrendWrapper = document.getElementById('enquiries-trend-badge');
     const enquiriesTrendSpan = enquiriesTrendWrapper?.querySelector('span');
     const enquiriesTrend = summaryData?.analytics?.enquiriesTrend;
@@ -196,17 +195,17 @@ async function initSupplierDashboardWidgets() {
           }
           enquiriesTrendWrapper.classList.remove('dashboard-stat-card__trend--down');
           enquiriesTrendWrapper.classList.add('dashboard-stat-card__trend--up');
-          enquiriesTrendWrapper.style.display = '';
+          enquiriesTrendWrapper.classList.remove('js-hidden');
         } else {
           if (enquiriesTrendSpan) {
             enquiriesTrendSpan.textContent = `${enquiriesTrend}%`;
           }
           enquiriesTrendWrapper.classList.remove('dashboard-stat-card__trend--up');
           enquiriesTrendWrapper.classList.add('dashboard-stat-card__trend--down');
-          enquiriesTrendWrapper.style.display = '';
+          enquiriesTrendWrapper.classList.remove('js-hidden');
         }
       }
-      // If trend is 0 or unavailable, badge stays hidden (display:none set in HTML)
+      // If trend is 0 or unavailable, badge stays hidden via .js-hidden
     }
 
     // Update welcome heading with business/profile name if available
@@ -221,7 +220,7 @@ async function initSupplierDashboardWidgets() {
       const unread = summaryData.messages?.unread || 0;
       const totalReviewCount = summaryData.reviews?.total || 0;
       if (unread > 0) {
-        proTipEl.textContent = `💬 You have ${unread} unread message${unread !== 1 ? 's' : ''} — reply within 24 h to boost your ranking`;
+        proTipEl.textContent = `💬 You have ${unread} unread message${unread !== 1 ? 's' : ''} — reply within 24 hours to boost your ranking`;
       } else if (healthScore < 60) {
         proTipEl.textContent =
           '✨ Complete your profile to appear in more search results and attract more enquiries';
