@@ -97,14 +97,7 @@ async function generateSitemap(baseUrl) {
       });
     }
 
-    // Guide index + individual article pages — derived from guides.json
-    xml += '  <url>\n';
-    xml += `    <loc>${baseUrl}/guides</loc>\n`;
-    xml += `    <lastmod>${now}</lastmod>\n`;
-    xml += `    <changefreq>weekly</changefreq>\n`;
-    xml += `    <priority>0.8</priority>\n`;
-    xml += '  </url>\n';
-
+    // Individual article pages — derived from guides.json
     const guideEntries = loadGuideEntries();
     guideEntries.forEach(({ slug, publishedDate }) => {
       if (!slug) return;

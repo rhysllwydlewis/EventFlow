@@ -55,8 +55,10 @@ describe('generateSitemap', () => {
     expect(xml).toContain(`<loc>${BASE_URL}/pricing</loc>`);
   });
 
-  test('includes /guides page', () => {
-    expect(xml).toContain(`<loc>${BASE_URL}/guides</loc>`);
+  test('includes /guides page exactly once', () => {
+    // Use split count to avoid regex metacharacter issues with BASE_URL
+    const count = xml.split(`<loc>${BASE_URL}/guides</loc>`).length - 1;
+    expect(count).toBe(1);
   });
 
   test('includes all article URLs from guides.json', () => {
@@ -75,7 +77,8 @@ describe('generateSitemap', () => {
       m => m[1]
     );
     for (const url of allArticleUrls) {
-      expect(url.startsWith(BASE_URL)).toBe(true);
+      // Each article URL must begin with the exact base URL string
+      expect(url.indexOf(BASE_URL)).toBe(0);
     }
   });
 
