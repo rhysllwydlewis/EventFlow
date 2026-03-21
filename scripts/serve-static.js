@@ -50,6 +50,44 @@ app.use((req, res, next) => {
   next();
 });
 
+// ---------- Protected page guard (static/E2E server) ----------
+// Prevents sensitive pages from being served to unauthenticated requests.
+// In the static test server, authentication is signalled by the test_auth cookie.
+// This mirrors the server-side authRequired middleware in the production server and
+// ensures that the HTML is never sent before auth is confirmed — eliminating the
+// "flash before redirect" window that client-side-only guards cannot prevent.
+const protectedStaticPaths = [
+  '/notifications',
+  '/messages',
+  '/guests',
+  '/my-marketplace-listings',
+  '/settings',
+  '/plan',
+  '/timeline',
+  '/dashboard',
+  '/dashboard/customer',
+  '/dashboard/supplier',
+  '/messenger',
+  '/chat',
+];
+
+app.use((req, res, next) => {
+  const path = req.path.replace(/\.html$/, '');
+  const isProtected = protectedStaticPaths.some(
+    p => path === p || path.startsWith(`${p}/`)
+  );
+  if (!isProtected) {
+    return next();
+  }
+
+  const cookies = req.headers.cookie || '';
+  const isAuthed = cookies.includes('test_auth=');
+  if (!isAuthed) {
+    return res.redirect(302, `/auth?redirect=${encodeURIComponent(req.originalUrl)}`);
+  }
+  next();
+});
+
 // Stub /api/health endpoint for Playwright health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', mode: 'static' });
@@ -486,13 +524,42 @@ app.get('/marketplace.html', (req, res) => {
   res.redirect(301, '/marketplace');
 });
 
+// /package — serve the real package detail page only when a meaningful identifier is
+// present (id, packageId, or slug query param).  A bare /package with no context is
+// a dead-end, so redirect crawlers/users to /suppliers instead.
 app.get('/package', (req, res) => {
-  res.sendFile(path.join(PUBLIC_DIR, 'package.html'));
+  const { id, packageId, slug } = req.query;
+  if (id || packageId || slug) {
+    return res.sendFile(path.join(PUBLIC_DIR, 'package.html'));
+  }
+  return res.redirect(301, '/suppliers');
 });
 
 app.get('/package.html', (req, res) => {
   const qs = req.originalUrl.split('?').slice(1).join('?');
   res.redirect(301, `/package${qs ? `?${qs}` : ''}`);
+});
+
+// Dead-end singular routes — permanently redirect to the canonical plural/listing page.
+// Crawlers hitting /supplier or /category land here via old links; send them somewhere useful.
+app.get('/supplier', (req, res) => {
+  const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+  res.redirect(301, `/suppliers${qs}`);
+});
+
+app.get('/supplier.html', (req, res) => {
+  const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+  res.redirect(301, `/suppliers${qs}`);
+});
+
+app.get('/category', (req, res) => {
+  const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+  res.redirect(301, `/suppliers${qs}`);
+});
+
+app.get('/category.html', (req, res) => {
+  const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+  res.redirect(301, `/suppliers${qs}`);
 });
 
 app.get('/suppliers', (req, res) => {
@@ -520,6 +587,9 @@ app.get('/chat/', (req, res) => {
 });
 
 // Canonical routes for other pages (matching server.js behavior)
+// Note: /supplier, /category, and /package are all handled by explicit route handlers
+// above (including redirects and conditional package-detail serving).  Do not add
+// them back here.
 const canonicalPages = [
   'start',
   'guides',
@@ -543,9 +613,6 @@ const canonicalPages = [
   'notifications',
   'guests',
   'messages',
-  'category',
-  'package',
-  'supplier',
 ];
 
 canonicalPages.forEach(page => {
