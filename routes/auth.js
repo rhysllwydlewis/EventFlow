@@ -163,7 +163,6 @@ router.post(
     const {
       firstName,
       lastName,
-      name,
       email,
       password,
       role,
@@ -186,8 +185,7 @@ router.post(
       }
     }
 
-    // firstName and lastName are required; name is accepted for backward compatibility
-    // but firstName/lastName take precedence
+    // Both firstName and lastName are required fields
     const userFirstName = (firstName || '').trim();
     const userLastName = (lastName || '').trim();
     const userFullName = userFirstName && userLastName ? `${userFirstName} ${userLastName}` : '';
