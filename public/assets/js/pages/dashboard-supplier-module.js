@@ -5,12 +5,10 @@ import {
   enforcePackageLimit,
 } from '/supplier/js/feature-access.js';
 
-import { createStatsGrid, createProfileChecklist } from '/assets/js/dashboard-widgets.js';
+import { createStatsGrid } from '/assets/js/dashboard-widgets.js';
 import {
   createPerformanceChart,
-  createAnalyticsSummary,
   createEnquiryTrendChart,
-  createLeadQualityWidget,
   loadReviewStats,
   createConversionFunnelWidget,
   createResponseTimeWidget,
@@ -36,6 +34,56 @@ window.showEarningsComingSoon = function () {
   }
 };
 
+// Insert a styled alert inside the hero content area
+function showUrgentAlert(message, type = 'warning') {
+  const heroContent = document.querySelector('#welcome-section .dashboard-hero__content');
+  if (!heroContent) {
+    return;
+  }
+  const existing = heroContent.querySelector('.sd-urgent-alert');
+  if (existing) {
+    existing.remove();
+  }
+  const alertEl = document.createElement('div');
+  // Let CSS classes control all styling — no inline overrides
+  alertEl.className = `sd-urgent-alert sd-urgent-alert--${type}`;
+  alertEl.setAttribute('role', 'status');
+  alertEl.setAttribute('aria-live', 'polite');
+  alertEl.textContent = message;
+  // Insert after the header section (before actions bar), using nextElementSibling
+  // to skip whitespace text nodes
+  const headerSection =
+    heroContent.querySelector('.dashboard-hero__header') || heroContent.firstElementChild;
+  if (headerSection) {
+    const afterHeader = headerSection.nextElementSibling;
+    if (afterHeader) {
+      heroContent.insertBefore(alertEl, afterHeader);
+    } else {
+      heroContent.appendChild(alertEl);
+    }
+  } else {
+    heroContent.appendChild(alertEl);
+  }
+}
+
+/**
+ * Update the hero welcome heading with a business/profile name.
+ * @param {string} name - Business name to display
+ */
+function updateWelcomeHeading(name) {
+  if (!name) {
+    return;
+  }
+  const titleMain = document.querySelector('.dashboard-hero__title-main');
+  const titleHighlight = document.querySelector('.dashboard-hero__title-highlight');
+  if (titleMain) {
+    titleMain.textContent = 'Welcome back,';
+  }
+  if (titleHighlight) {
+    titleHighlight.textContent = name;
+  }
+}
+
 // Initialize supplier dashboard widgets
 async function initSupplierDashboardWidgets() {
   try {
@@ -46,33 +94,54 @@ async function initSupplierDashboardWidgets() {
     let responseRate = 100;
     let avgResponseTime = 0;
 
+    // Try the consolidated dashboard-summary endpoint first
+    let summaryData = null;
     try {
-      // Fetch analytics using the real tracking system
-      const analyticsResponse = await fetch('/api/supplier/analytics?days=7', {
+      const summaryResponse = await fetch('/api/supplier/dashboard-summary?days=30', {
         credentials: 'include',
       });
-      if (analyticsResponse.ok) {
-        const analyticsData = await analyticsResponse.json();
-        analytics = analyticsData.analytics;
-
-        // Extract values from real analytics
-        totalEnquiries = analytics.totalEnquiries || 0;
-        views7d = analytics.totalViews || 0;
-        responseRate = analytics.responseRate || 100;
-        avgResponseTime = analytics.avgResponseTime || 0;
-      } else {
-        console.warn('Analytics API not available, fetching conversations for basic stats');
-        // Fallback to basic conversation count
-        const threadsResponse = await fetch('/api/v4/messenger/conversations', {
-          credentials: 'include',
-        });
-        if (threadsResponse.ok) {
-          const threadsData = await threadsResponse.json();
-          totalEnquiries = (threadsData.conversations || []).length;
-        }
+      if (summaryResponse.ok) {
+        summaryData = await summaryResponse.json();
       }
     } catch (err) {
-      console.error('Error fetching analytics:', err);
+      console.warn('Dashboard summary not available, falling back to individual API calls:', err);
+    }
+
+    if (summaryData) {
+      analytics = summaryData.analytics || null;
+      totalEnquiries = summaryData.analytics?.totalEnquiries || 0;
+      views7d = summaryData.analytics?.totalViews || 0;
+      responseRate = summaryData.analytics?.responseRate || 100;
+      avgResponseTime = summaryData.analytics?.avgResponseTime || 0;
+    } else {
+      try {
+        // Fetch analytics using the real tracking system
+        const analyticsResponse = await fetch('/api/supplier/analytics?days=7', {
+          credentials: 'include',
+        });
+        if (analyticsResponse.ok) {
+          const analyticsData = await analyticsResponse.json();
+          analytics = analyticsData.analytics;
+
+          // Extract values from real analytics
+          totalEnquiries = analytics.totalEnquiries || 0;
+          views7d = analytics.totalViews || 0;
+          responseRate = analytics.responseRate || 100;
+          avgResponseTime = analytics.avgResponseTime || 0;
+        } else {
+          console.warn('Analytics API not available, fetching conversations for basic stats');
+          // Fallback to basic conversation count
+          const threadsResponse = await fetch('/api/v4/messenger/conversations', {
+            credentials: 'include',
+          });
+          if (threadsResponse.ok) {
+            const threadsData = await threadsResponse.json();
+            totalEnquiries = (threadsData.conversations || []).length;
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching analytics:', err);
+      }
     }
 
     // Update hero quick-stat cards with real API data
@@ -80,6 +149,88 @@ async function initSupplierDashboardWidgets() {
     if (quickStatEnquiries) {
       quickStatEnquiries.setAttribute('data-target', String(totalEnquiries));
       quickStatEnquiries.textContent = String(totalEnquiries);
+    }
+
+    // Update profile count stat card
+    const quickStatProfiles = document.getElementById('quick-stat-profiles');
+    if (quickStatProfiles) {
+      const profileCount =
+        summaryData?.profile?.profileCount ?? (summaryData?.profile?.topProfileName ? 1 : 0);
+      quickStatProfiles.setAttribute('data-target', String(profileCount));
+      quickStatProfiles.textContent = String(profileCount);
+    }
+
+    // Update rating stat card from review summary
+    const ratingEl = document.getElementById('quick-stat-rating');
+    const starsEl = document.getElementById('quick-stat-stars');
+    const avgRating = summaryData?.reviews?.averageRating;
+    const totalReviews = summaryData?.reviews?.total || 0;
+    if (ratingEl) {
+      if (avgRating && avgRating > 0) {
+        ratingEl.textContent = avgRating.toFixed(1);
+        ratingEl.removeAttribute('aria-label');
+        if (starsEl) {
+          const fullStars = Math.round(avgRating);
+          starsEl.innerHTML = `<span>${'★'.repeat(fullStars)}${'☆'.repeat(5 - fullStars)}</span>`;
+        }
+      } else {
+        ratingEl.textContent = '—';
+        ratingEl.setAttribute('aria-label', 'No ratings yet');
+        if (starsEl && totalReviews === 0) {
+          // Use CSS class instead of inline styles for the empty state text
+          starsEl.innerHTML = '<span class="quick-stat-stars__empty">No reviews yet</span>';
+        }
+      }
+    }
+
+    // Update trend badge with real data; badge is hidden by default via .js-hidden class
+    const enquiriesTrendWrapper = document.getElementById('enquiries-trend-badge');
+    const enquiriesTrendSpan = enquiriesTrendWrapper?.querySelector('span');
+    const enquiriesTrend = summaryData?.analytics?.enquiriesTrend;
+    if (enquiriesTrendWrapper) {
+      if (enquiriesTrend !== undefined && enquiriesTrend !== null && enquiriesTrend !== 0) {
+        if (enquiriesTrend > 0) {
+          if (enquiriesTrendSpan) {
+            enquiriesTrendSpan.textContent = `+${enquiriesTrend}%`;
+          }
+          enquiriesTrendWrapper.classList.remove('dashboard-stat-card__trend--down');
+          enquiriesTrendWrapper.classList.add('dashboard-stat-card__trend--up');
+          enquiriesTrendWrapper.classList.remove('js-hidden');
+        } else {
+          if (enquiriesTrendSpan) {
+            enquiriesTrendSpan.textContent = `${enquiriesTrend}%`;
+          }
+          enquiriesTrendWrapper.classList.remove('dashboard-stat-card__trend--up');
+          enquiriesTrendWrapper.classList.add('dashboard-stat-card__trend--down');
+          enquiriesTrendWrapper.classList.remove('js-hidden');
+        }
+      }
+      // If trend is 0 or unavailable, badge stays hidden via .js-hidden
+    }
+
+    // Update welcome heading with business/profile name if available
+    if (summaryData?.profile?.topProfileName) {
+      updateWelcomeHeading(summaryData.profile.topProfileName);
+    }
+
+    // Update pro-tip text with context-aware tip based on data
+    const proTipEl = document.getElementById('pro-tip-text');
+    if (proTipEl && summaryData) {
+      const healthScore = summaryData.profile?.healthScore || 0;
+      const unread = summaryData.messages?.unread || 0;
+      const totalReviewCount = summaryData.reviews?.total || 0;
+      if (unread > 0) {
+        proTipEl.textContent = `💬 You have ${unread} unread message${unread !== 1 ? 's' : ''} — reply within 24 hours to boost your ranking`;
+      } else if (healthScore < 60) {
+        proTipEl.textContent =
+          '✨ Complete your profile to appear in more search results and attract more enquiries';
+      } else if (totalReviewCount === 0) {
+        proTipEl.textContent =
+          '⭐ Ask your first customer for a review — social proof triples enquiry conversion';
+      } else {
+        proTipEl.textContent =
+          '🚀 Fast responses within 2 hours increase booking rates by up to 40%';
+      }
     }
 
     // Create statistics widgets with real data
@@ -165,9 +316,6 @@ async function initSupplierDashboardWidgets() {
       });
     }
 
-    // Initialize Lead Quality widget
-    await createLeadQualityWidget('lead-quality-breakdown');
-
     // Initialize Reviews & Ratings section
     await loadReviewStats('supplier-reviews-section');
 
@@ -199,6 +347,21 @@ async function initSupplierDashboardWidgets() {
           if (window.ProfileHealthWidget) {
             window.ProfileHealthWidget.init('profile-completeness-widget', supplier);
           }
+        }
+
+        // Update profile count stat card from live data if not already set by summary
+        if (!summaryData) {
+          const quickStatProfilesFallback = document.getElementById('quick-stat-profiles');
+          if (quickStatProfilesFallback) {
+            const count = suppliers.length;
+            quickStatProfilesFallback.setAttribute('data-target', String(count));
+            quickStatProfilesFallback.textContent = String(count);
+          }
+        }
+
+        // Update welcome heading with business name from live profile if not set by summary
+        if (!summaryData?.profile?.topProfileName && suppliers[0]?.name) {
+          updateWelcomeHeading(suppliers[0].name);
         }
       }
     } catch (err) {
@@ -232,6 +395,21 @@ async function initSupplierDashboardWidgets() {
       }
     } catch (err) {
       console.error('Error checking email verification:', err);
+    }
+
+    // Show the most important urgent alert based on summary data
+    const healthScore = summaryData?.profile?.healthScore;
+    const unreadMessages = summaryData?.messages?.unread || 0;
+    if (healthScore !== undefined && healthScore < 40) {
+      showUrgentAlert(
+        '⚠️ Your profile health is low — complete your profile to attract more enquiries',
+        'warning'
+      );
+    } else if (unreadMessages > 0) {
+      showUrgentAlert(
+        `💬 You have ${unreadMessages} unread message${unreadMessages !== 1 ? 's' : ''} waiting for a response`,
+        'info'
+      );
     }
 
     // Note: Profile Health Widget is now initialized when supplier data is fetched above
@@ -346,6 +524,9 @@ window.addEventListener('load', () => {
   }, 500);
 });
 
+// Expose init function for external callers
+window.initSupplierDashboardWidgets = initSupplierDashboardWidgets;
+
 async function displaySubscriptionStatus() {
   const container = document.getElementById('supplier-subscription-card');
   if (!container) {
@@ -364,12 +545,6 @@ async function displaySubscriptionStatus() {
       pro_plus: 'Professional Plus',
       free: 'Starter (Free)',
     };
-    const TIER_BADGES = {
-      pro: '<span style="display:inline-block;background:#7c3aed;color:#fff;font-size:0.7rem;font-weight:700;letter-spacing:0.05em;padding:0.2em 0.6em;border-radius:999px;margin-left:0.5rem;">PRO</span>',
-      pro_plus:
-        '<span style="display:inline-block;background:#d97706;color:#fff;font-size:0.7rem;font-weight:700;letter-spacing:0.05em;padding:0.2em 0.6em;border-radius:999px;margin-left:0.5rem;">PRO+</span>',
-      free: '',
-    };
 
     // Also load payment record for billing details
     const paymentsResponse = await fetch('/api/payments', { credentials: 'include' });
@@ -387,25 +562,41 @@ async function displaySubscriptionStatus() {
 
     if (currentTier !== 'free') {
       const planLabel = TIER_LABELS[currentTier] || currentTier;
-      const badge = TIER_BADGES[currentTier] || '';
       let billingHtml = '';
       if (activeSubscription?.subscriptionDetails?.currentPeriodEnd) {
         const endDate = new Date(activeSubscription.subscriptionDetails.currentPeriodEnd);
-        billingHtml = `<p class="small"><strong>Renews:</strong> ${endDate.toLocaleDateString('en-GB')}</p>`;
+        billingHtml = `<p class="sd-subscription-active__billing">Renews ${endDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>`;
       }
 
       container.innerHTML = `
-            <p class="small"><strong>Active Plan:</strong> ${planLabel}${badge}</p>
-            ${billingHtml}
-            <p class="small"><strong>Status:</strong> <span class="subscription-status-active">✓ Active</span></p>
-            <a href="/supplier/subscription" class="btn btn-secondary subscription-action-btn">Manage Subscription</a>
-          `;
+        <div class="sd-subscription-active">
+          <div class="sd-subscription-active__plan-row">
+            <span class="sd-subscription-active__badge sd-subscription-active__badge--${currentTier}">${planLabel}</span>
+            <span class="sd-subscription-active__status">Active</span>
+          </div>
+          ${billingHtml}
+          <a href="/supplier/subscription" class="sd-subscription-manage-btn">Manage subscription →</a>
+        </div>
+      `;
     } else {
       container.innerHTML = `
-            <p class="small">You're currently on the <strong>Starter (Free) Plan</strong></p>
-            <p class="small">Upgrade to Pro or Professional Plus to unlock premium features and boost your visibility!</p>
-            <a href="/pricing" class="btn btn-primary subscription-action-btn">View Upgrade Options</a>
-          `;
+        <div class="sd-subscription-free">
+          <div class="sd-subscription-free__plan">
+            <span class="sd-subscription-free__badge">Starter</span>
+            <span class="sd-subscription-free__label">Free Plan</span>
+          </div>
+          <ul class="sd-subscription-limits">
+            <li>✓ 1 supplier profile</li>
+            <li>✓ 2 packages</li>
+            <li>✓ Basic analytics</li>
+            <li class="sd-subscription-limits__locked">🔒 Priority visibility</li>
+            <li class="sd-subscription-limits__locked">🔒 Unlimited packages</li>
+            <li class="sd-subscription-limits__locked">🔒 Advanced analytics</li>
+          </ul>
+          <a href="/pricing" class="sd-subscription-upgrade-btn">Upgrade to Pro →</a>
+          <p class="sd-subscription-upgrade-reason">Pro suppliers get <strong>3x more enquiries</strong> on average</p>
+        </div>
+      `;
     }
 
     // Update package limit display
@@ -507,8 +698,14 @@ async function displayLeadQualityBreakdown() {
     }
 
     if (threads.length === 0) {
-      container.innerHTML =
-        '<p class="small">No enquiries yet. Lead quality statistics will appear here when customers contact you.</p>';
+      container.innerHTML = `
+        <div class="sd-empty-state">
+          <div class="sd-empty-state__icon">📊</div>
+          <h4 class="sd-empty-state__title">No enquiries yet</h4>
+          <p class="sd-empty-state__desc">Lead quality statistics appear once customers start contacting you. Complete your profile to attract more enquiries.</p>
+          <a href="#profile-completeness-widget" class="sd-empty-state__cta">Improve your profile →</a>
+        </div>
+      `;
       return;
     }
 

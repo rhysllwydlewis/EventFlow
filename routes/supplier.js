@@ -86,12 +86,10 @@ router.post('/trial/activate', authRequired, csrfProtection, async (req, res) =>
     });
   } catch (error) {
     logger.error('Error activating trial:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to activate trial',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to activate trial',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 
@@ -131,12 +129,10 @@ router.get('/analytics', authRequired, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching analytics:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to fetch analytics',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to fetch analytics',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 
@@ -253,12 +249,10 @@ router.get('/analytics/legacy', authRequired, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching analytics:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to fetch analytics',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to fetch analytics',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 
@@ -313,12 +307,10 @@ router.get('/invoices', authRequired, async (req, res) => {
     res.json({ invoices: formattedInvoices });
   } catch (error) {
     logger.error('Error fetching invoices:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to fetch invoices',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to fetch invoices',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 
@@ -362,12 +354,10 @@ router.get('/invoices/:id/download', authRequired, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching invoice download:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to fetch invoice',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to fetch invoice',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 
@@ -444,12 +434,10 @@ router.get('/enquiries/export', authRequired, async (req, res) => {
     res.send(csv);
   } catch (error) {
     logger.error('Error exporting enquiries:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to export enquiries',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to export enquiries',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 
@@ -527,12 +515,10 @@ router.get('/lead-quality', authRequired, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching lead quality:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to fetch lead quality',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to fetch lead quality',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 
@@ -591,12 +577,10 @@ router.get('/reviews/stats', authRequired, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching review stats:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to fetch review stats',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to fetch review stats',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 
@@ -733,5 +717,307 @@ router.post(
     }
   }
 );
+
+/**
+ * GET /api/supplier/dashboard-summary
+ * Aggregated dashboard data in a single call
+ */
+router.get('/dashboard-summary', authRequired, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    if (req.user.role !== 'supplier') {
+      return res.status(403).json({ error: 'Only suppliers can access the dashboard summary' });
+    }
+
+    const suppliers = await dbUnified.read('suppliers');
+    const supplier = suppliers.find(s => s.ownerUserId === userId);
+
+    if (!supplier) {
+      return res.status(404).json({ error: 'Supplier profile not found' });
+    }
+
+    const supplierId = supplier.id;
+    const days = Math.min(
+      parseInt(req.query.days) || DEFAULT_ANALYTICS_WINDOW_DAYS,
+      MAX_ANALYTICS_WINDOW_DAYS
+    );
+
+    const now = new Date();
+    const periodStart = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+    const prevPeriodStart = new Date(periodStart.getTime() - days * 24 * 60 * 60 * 1000);
+
+    // --- Analytics ---
+    let analyticsData = {
+      totalViews: 0,
+      totalEnquiries: 0,
+      responseRate: 100,
+      avgResponseTime: 0,
+      dailyData: [],
+      viewsTrend: 0,
+      enquiriesTrend: 0,
+      responseTrend: 0,
+    };
+    try {
+      const supplierAnalytics = require('../utils/supplierAnalytics');
+      const { EVENT_TYPES } = supplierAnalytics;
+
+      // Fetch current-period analytics and raw events in parallel
+      const [current, allEvents] = await Promise.all([
+        supplierAnalytics.getSupplierAnalytics(supplierId, days),
+        dbUnified
+          .read('events')
+          .then(evts => (evts || []).filter(e => e.supplierId === supplierId)),
+      ]);
+
+      const periodStartStr = periodStart.toISOString();
+      const prevPeriodStartStr = prevPeriodStart.toISOString();
+
+      const prevEvents = allEvents.filter(
+        e => e.timestamp >= prevPeriodStartStr && e.timestamp < periodStartStr
+      );
+      const prevViews = prevEvents.filter(e => e.type === EVENT_TYPES.PROFILE_VIEW).length;
+      const prevEnquiries = prevEvents.filter(e => e.type === EVENT_TYPES.ENQUIRY_SENT).length;
+
+      analyticsData = {
+        totalViews: current.totalViews,
+        totalEnquiries: current.totalEnquiries,
+        responseRate: current.responseRate,
+        avgResponseTime: current.avgResponseTime,
+        dailyData: current.dailyData,
+        // Return null when previous period has no data, to avoid misleading percentages
+        viewsTrend:
+          prevViews > 0 ? Math.round(((current.totalViews - prevViews) / prevViews) * 100) : null,
+        enquiriesTrend:
+          prevEnquiries > 0
+            ? Math.round(((current.totalEnquiries - prevEnquiries) / prevEnquiries) * 100)
+            : null,
+        // Response rate is computed across all threads (not time-windowed), so trend is not available
+        responseTrend: 0,
+      };
+    } catch (err) {
+      logger.error('dashboard-summary: analytics sub-query failed:', err);
+    }
+
+    // --- Profile ---
+    let profileData = {
+      hasProfile: false,
+      profileCount: 0,
+      topProfileId: null,
+      topProfileName: null,
+      healthScore: 0,
+      isApproved: false,
+      completionFlags: {
+        hasPhotos: false,
+        hasBanner: false,
+        hasTagline: false,
+        hasHighlights: false,
+        hasSocialLinks: false,
+        hasDescription: false,
+        hasLocation: false,
+        hasPrice: false,
+      },
+    };
+    try {
+      // supplier is already found above; get all profiles for this user from the same array
+      const supplierProfiles = suppliers.filter(s => s.ownerUserId === userId);
+      const profileCount = supplierProfiles.length;
+      const topProfile = supplier; // supplier is the first match (already found via find)
+
+      const hasDescription = !!(topProfile.description_short || '').trim();
+      const hasLocation = !!(topProfile.location || '').trim();
+      const hasPhotos =
+        Array.isArray(topProfile.photosGallery) && topProfile.photosGallery.length >= 3;
+      const hasBanner = !!(topProfile.bannerUrl || '').trim();
+      const hasTagline = !!(topProfile.tagline || '').trim();
+      const hasHighlights =
+        Array.isArray(topProfile.highlights) && topProfile.highlights.length >= 2;
+      const hasSocialLinks =
+        topProfile.socialLinks &&
+        typeof topProfile.socialLinks === 'object' &&
+        Object.values(topProfile.socialLinks).some(v => v && String(v).trim());
+      const hasPrice = !!(topProfile.startingPrice || topProfile.price_range || topProfile.price);
+
+      let healthScore = 0;
+      if (hasDescription) {
+        healthScore += 20;
+      }
+      if (hasLocation) {
+        healthScore += 15;
+      }
+      if (hasPhotos) {
+        healthScore += 20;
+      }
+      if (hasBanner) {
+        healthScore += 10;
+      }
+      if (hasTagline) {
+        healthScore += 10;
+      }
+      if (hasHighlights) {
+        healthScore += 10;
+      }
+      if (hasSocialLinks) {
+        healthScore += 10;
+      }
+      if (hasPrice) {
+        healthScore += 5;
+      }
+
+      profileData = {
+        hasProfile: profileCount > 0,
+        profileCount,
+        topProfileId: topProfile.id || null,
+        topProfileName: topProfile.name || null,
+        healthScore,
+        isApproved: !!(topProfile.approved || topProfile.verified),
+        completionFlags: {
+          hasPhotos,
+          hasBanner,
+          hasTagline,
+          hasHighlights,
+          hasSocialLinks,
+          hasDescription,
+          hasLocation,
+          hasPrice,
+        },
+      };
+    } catch (err) {
+      logger.error('dashboard-summary: profile sub-query failed:', err);
+    }
+
+    // --- Packages ---
+    let packagesData = { total: 0, active: 0, draft: 0 };
+    try {
+      const allPackages = (await dbUnified.read('packages')) || [];
+      const supplierPackages = allPackages.filter(p => p.supplierId === supplierId);
+      // Count active and draft in a single pass to avoid iterating twice
+      const counts = supplierPackages.reduce(
+        (acc, p) => {
+          if (p.approved === false) {
+            acc.draft++;
+          } else {
+            acc.active++;
+          }
+          return acc;
+        },
+        { active: 0, draft: 0 }
+      );
+      packagesData = {
+        total: supplierPackages.length,
+        active: counts.active,
+        draft: counts.draft,
+      };
+    } catch (err) {
+      logger.error('dashboard-summary: packages sub-query failed:', err);
+    }
+
+    // --- Messages ---
+    let messagesData = { total: 0, unread: 0, latestAt: null };
+    try {
+      const conversations = (await dbUnified.read('conversationsV4')) || [];
+      const supplierConversations = conversations.filter(c => {
+        if (Array.isArray(c.participants)) {
+          return c.participants.some(p => p.userId === userId);
+        }
+        return c.supplierId === supplierId || c.userId === userId;
+      });
+
+      const total = supplierConversations.length;
+      let unread = 0;
+      let latestAt = null;
+
+      supplierConversations.forEach(c => {
+        if (Array.isArray(c.participants)) {
+          const me = c.participants.find(p => p.userId === userId);
+          if (me && (me.unreadCount || 0) > 0) {
+            unread++;
+          }
+        }
+        const ts = c.lastMessageAt || c.updatedAt || c.createdAt;
+        if (ts && (!latestAt || new Date(ts) > new Date(latestAt))) {
+          latestAt = ts;
+        }
+      });
+
+      messagesData = { total, unread, latestAt };
+    } catch (err) {
+      logger.error('dashboard-summary: messages sub-query failed:', err);
+    }
+
+    // --- Reviews ---
+    let reviewsData = { total: 0, averageRating: 0, pending: 0 };
+    try {
+      const allReviews = (await dbUnified.read('reviews')) || [];
+      const supplierReviews = allReviews.filter(r => r.supplierId === supplierId);
+      const total = supplierReviews.length;
+      const averageRating =
+        total > 0
+          ? parseFloat(
+              (
+                supplierReviews.reduce((sum, r) => sum + (Number(r.rating) || 0), 0) / total
+              ).toFixed(2)
+            )
+          : 0;
+      const pending = supplierReviews.filter(
+        r => r.status === 'pending' || r.moderation?.state === 'pending'
+      ).length;
+
+      reviewsData = { total, averageRating, pending };
+    } catch (err) {
+      logger.error('dashboard-summary: reviews sub-query failed:', err);
+    }
+
+    // --- Tickets ---
+    let ticketsData = { total: 0, open: 0, inProgress: 0 };
+    try {
+      const allTickets = (await dbUnified.read('tickets')) || [];
+      const supplierTickets = allTickets.filter(
+        t => t.senderId === userId && t.senderType === 'supplier'
+      );
+      ticketsData = {
+        total: supplierTickets.length,
+        open: supplierTickets.filter(t => t.status === 'open').length,
+        inProgress: supplierTickets.filter(t => t.status === 'in_progress').length,
+      };
+    } catch (err) {
+      logger.error('dashboard-summary: tickets sub-query failed:', err);
+    }
+
+    // --- Subscription ---
+    let subscriptionData = {
+      tier: 'free',
+      status: 'active',
+      renewsAt: null,
+      trialEndsAt: null,
+    };
+    try {
+      subscriptionData = {
+        tier: supplier.subscription?.tier || (supplier.isPro ? 'pro' : 'free'),
+        status: supplier.subscriptionStatus || supplier.subscription?.status || 'active',
+        renewsAt: supplier.subscriptionRenewsAt || supplier.subscription?.renewsAt || null,
+        trialEndsAt: supplier.trialEndsAt || null,
+      };
+    } catch (err) {
+      logger.error('dashboard-summary: subscription sub-query failed:', err);
+    }
+
+    res.json({
+      analytics: analyticsData,
+      profile: profileData,
+      packages: packagesData,
+      messages: messagesData,
+      reviews: reviewsData,
+      tickets: ticketsData,
+      subscription: subscriptionData,
+    });
+  } catch (error) {
+    logger.error('Error fetching dashboard summary:', error);
+    res.status(500).json({
+      error: 'Failed to fetch dashboard summary',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
+  }
+});
 
 module.exports = router;

@@ -27,4 +27,45 @@ document.addEventListener('DOMContentLoaded', () => {
         .scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }
+
+  // Copy review link button
+  const copyReviewLinkBtn = document.getElementById('copyReviewLinkBtn');
+  if (copyReviewLinkBtn) {
+    copyReviewLinkBtn.addEventListener('click', async function () {
+      // Try to get the supplier's profile slug for a direct-to-profile review link
+      let url = `${window.location.origin}/suppliers`;
+      try {
+        const res = await fetch('/api/me/suppliers', { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          const slug = data.items?.[0]?.slug || data.items?.[0]?.id;
+          if (slug) {
+            url = `${window.location.origin}/suppliers/${slug}`;
+          }
+        }
+      } catch (_e) {
+        /* use fallback url */
+      }
+      const originalText = this.textContent;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).then(
+          () => {
+            if (typeof Toast !== 'undefined') {
+              Toast.success('Review link copied!');
+            } else {
+              this.textContent = '✅ Copied!';
+              setTimeout(() => {
+                this.textContent = originalText;
+              }, 2000);
+            }
+          },
+          () => {
+            window.prompt('Copy this link:', url);
+          }
+        );
+      } else {
+        window.prompt('Copy this link:', url);
+      }
+    });
+  }
 });

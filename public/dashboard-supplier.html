@@ -323,7 +323,7 @@
                 >
                 <h1 id="welcome-heading" class="dashboard-hero__title">
                   <span class="dashboard-hero__title-main">Your Dashboard</span>
-                  <span class="dashboard-hero__title-highlight">Command Center</span>
+                  <span class="dashboard-hero__title-highlight">Control Centre</span>
                 </h1>
                 <p class="dashboard-hero__subtitle">
                   Manage your business, track performance, and grow your presence
@@ -351,12 +351,12 @@
                     </div>
                     <div class="dashboard-stat-card__label">New Enquiries</div>
                   </div>
-                  <div class="dashboard-stat-card__trend dashboard-stat-card__trend--up">
+                  <div class="dashboard-stat-card__trend dashboard-stat-card__trend--up js-hidden" id="enquiries-trend-badge">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
                       <polyline points="17 6 23 6 23 12" />
                     </svg>
-                    <span>+12%</span>
+                    <span></span>
                   </div>
                 </div>
 
@@ -392,11 +392,11 @@
                     </svg>
                   </div>
                   <div class="dashboard-stat-card__content">
-                    <div class="dashboard-stat-card__value">4.8</div>
+                    <div class="dashboard-stat-card__value" id="quick-stat-rating" aria-label="Average rating not yet available">—</div>
                     <div class="dashboard-stat-card__label">Avg. Rating</div>
                   </div>
-                  <div class="dashboard-stat-card__stars">
-                    <span>★★★★★</span>
+                  <div class="dashboard-stat-card__stars" id="quick-stat-stars" aria-hidden="true">
+                    <span class="quick-stat-stars__empty">No reviews yet</span>
                   </div>
                 </div>
               </div>
@@ -535,59 +535,28 @@
           <div class="ef-grid-auto ef-mb-xl">
             <div class="ef-stat-card">
               <div class="ef-stat-label">Total Revenue</div>
-              <div class="ef-stat-value">£0.00</div>
-              <div class="ef-stat-change">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  width="12"
-                  height="12"
-                >
-                  <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
-                  <polyline points="17 6 23 6 23 12" />
-                </svg>
-                <span>All time</span>
-              </div>
+              <div class="ef-stat-value" aria-label="Not available">—</div>
+              <div class="ef-stat-change" style="color: var(--ef-text-light, #9ca3af)">Not yet tracked</div>
             </div>
             <div class="ef-stat-card">
               <div class="ef-stat-label">This Month</div>
-              <div class="ef-stat-value">£0.00</div>
-              <div class="ef-stat-change" style="color: var(--ef-text-light, #9ca3af)">
-                Current period
-              </div>
+              <div class="ef-stat-value" aria-label="Not available">—</div>
+              <div class="ef-stat-change" style="color: var(--ef-text-light, #9ca3af)">Coming soon</div>
             </div>
             <div class="ef-stat-card">
               <div class="ef-stat-label">Pending</div>
-              <div class="ef-stat-value">£0.00</div>
-              <div class="ef-stat-change ef-text-warning">Processing</div>
+              <div class="ef-stat-value" aria-label="Not available">—</div>
+              <div class="ef-stat-change" style="color: var(--ef-text-light, #9ca3af)">Coming soon</div>
             </div>
           </div>
 
-          <div
-            class="ef-stat-card ef-flex-start ef-gap-lg"
-            style="background: rgba(255, 255, 255, 0.5)"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              width="20"
-              height="20"
-              style="color: var(--ef-primary, #0b8073); flex-shrink: 0"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 16v-4" />
-              <path d="M12 8h.01" />
-            </svg>
-            <div style="flex: 1">
-              <div class="ef-font-semibold ef-mb-sm">Payment features launching soon</div>
-              <div class="ef-text-sm ef-text-muted">
-                Accept payments, track bookings, and manage invoices all in one place. We'll notify
-                you when it's ready!
-              </div>
+          <div class="sd-empty-state sd-empty-state--compact">
+            <div class="sd-empty-state__icon">💳</div>
+            <h4 class="sd-empty-state__title">Payments launching soon</h4>
+            <p class="sd-empty-state__desc">Accept booking deposits, track revenue, and manage invoices — all from your EventFlow dashboard.</p>
+            <div class="sd-empty-state__actions">
+              <a href="/supplier/packages" class="sd-empty-state__cta">Set up packages</a>
+              <a href="/guides" class="sd-empty-state__cta sd-empty-state__cta--secondary">Learn more</a>
             </div>
           </div>
         </section>
@@ -1188,58 +1157,66 @@
           </div>
           <div id="supplier-reviews-section" class="section">
             <div class="sd-reviews-placeholder">
-              <div class="sd-reviews-placeholder__hero">
-                <div class="sd-reviews-placeholder__stars" aria-hidden="true">⭐⭐⭐⭐⭐</div>
-                <h4 class="sd-reviews-placeholder__title">Ready to earn your first review!</h4>
-                <p class="sd-reviews-placeholder__desc">
-                  Customer reviews will appear here after your first completed booking
-                </p>
-              </div>
+  <div class="sd-reviews-placeholder__hero">
+    <div class="sd-reviews-placeholder__stars" aria-hidden="true">⭐⭐⭐⭐⭐</div>
+    <h4 class="sd-reviews-placeholder__title">Ready to earn your first review!</h4>
+    <p class="sd-reviews-placeholder__desc">
+      Customer reviews build trust and help you rank higher in search results. Ask recent customers for feedback to get started.
+    </p>
+    <div class="sd-reviews-placeholder__cta-group">
+      <button class="sd-reviews-cta-btn sd-reviews-cta-btn--primary" id="copyReviewLinkBtn">
+        📋 Copy Review Link
+      </button>
+      <a href="/guides" class="sd-reviews-cta-btn sd-reviews-cta-btn--secondary">
+        Learn how reviews work →
+      </a>
+    </div>
+  </div>
 
-              <div class="sd-reviews-stats-grid">
-                <div class="sd-reviews-stat-card">
-                  <div class="sd-reviews-stat-card__label">Average Rating</div>
-                  <div class="sd-reviews-stat-card__value">0.0</div>
-                  <div class="sd-reviews-stat-card__sub">No ratings yet</div>
-                </div>
-                <div class="sd-reviews-stat-card">
-                  <div class="sd-reviews-stat-card__label">Total Reviews</div>
-                  <div class="sd-reviews-stat-card__value">0</div>
-                  <div class="sd-reviews-stat-card__sub">Building trust</div>
-                </div>
-                <div class="sd-reviews-stat-card">
-                  <div class="sd-reviews-stat-card__label">Response Rate</div>
-                  <div class="sd-reviews-stat-card__value">-</div>
-                  <div class="sd-reviews-stat-card__sub">Coming soon</div>
-                </div>
-              </div>
+  <div class="sd-reviews-stats-grid">
+    <div class="sd-reviews-stat-card">
+      <div class="sd-reviews-stat-card__label">Average Rating</div>
+      <div class="sd-reviews-stat-card__value" aria-label="No data yet">—</div>
+      <div class="sd-reviews-stat-card__sub">No ratings yet</div>
+    </div>
+    <div class="sd-reviews-stat-card">
+      <div class="sd-reviews-stat-card__label">Total Reviews</div>
+      <div class="sd-reviews-stat-card__value">0</div>
+      <div class="sd-reviews-stat-card__sub">Building trust</div>
+    </div>
+    <div class="sd-reviews-stat-card">
+      <div class="sd-reviews-stat-card__label">Response Rate</div>
+      <div class="sd-reviews-stat-card__value" aria-label="Not available">—</div>
+      <div class="sd-reviews-stat-card__sub">Coming soon</div>
+    </div>
+  </div>
 
-              <div class="sd-reviews-tip">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  width="20"
-                  height="20"
-                  class="sd-reviews-tip__icon"
-                  aria-hidden="true"
-                >
-                  <path
-                    d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
-                    fill="currentColor"
-                  />
-                </svg>
-                <div>
-                  <div class="sd-reviews-tip__title">💡 Pro tip for getting great reviews</div>
-                  <ul class="sd-reviews-tip__list">
-                    <li>Respond quickly to enquiries (within 24 hours)</li>
-                    <li>Deliver exceptional service at every booking</li>
-                    <li>Follow up after events to gather feedback</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
+  <div class="sd-reviews-tip">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      width="20"
+      height="20"
+      class="sd-reviews-tip__icon"
+      aria-hidden="true"
+    >
+      <path
+        d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+        fill="currentColor"
+      />
+    </svg>
+    <div>
+      <div class="sd-reviews-tip__title">💡 How to get great reviews faster</div>
+      <ul class="sd-reviews-tip__list">
+        <li>Reply to every enquiry within 2 hours — fast responders get more bookings</li>
+        <li>Deliver exceptional service and follow up after each event</li>
+        <li>Share your EventFlow profile link with satisfied customers and ask directly</li>
+      </ul>
+    </div>
+  </div>
+</div>
           </div>
         </section>
 
