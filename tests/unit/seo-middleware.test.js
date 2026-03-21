@@ -45,6 +45,7 @@ describe('SEO noindex middleware — authenticated pages', () => {
     '/guests.html',
     '/checkout.html',
     '/my-marketplace-listings.html',
+    '/budget.html',
     // Canonical messenger SPA
     '/messenger',
     '/messenger/',

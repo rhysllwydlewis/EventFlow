@@ -137,6 +137,15 @@ describe('server.js — protectedSpaPrefixes block', () => {
     // app.use(prefix, ...) handles all subpaths; app.get() would only match exact path
     expect(serverSrc).toContain('app.use(prefix, apiLimiter');
   });
+
+  it('both page and SPA guards use the shared unauthRedirect function', () => {
+    // Verify the shared helper is defined and used by both guards
+    expect(serverSrc).toContain('function unauthRedirect(req, res, next)');
+    expect(serverSrc).toContain('getUserFromCookie(req)');
+    // Both loops delegate to unauthRedirect rather than inline callbacks
+    expect(serverSrc).toContain('app.get(`/${page}`, apiLimiter, unauthRedirect)');
+    expect(serverSrc).toContain('app.use(prefix, apiLimiter, unauthRedirect)');
+  });
 });
 
 describe('server.js — SPA guard is registered before express.static()', () => {

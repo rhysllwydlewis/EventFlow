@@ -25,6 +25,7 @@ function noindexMiddleware() {
     '/guests.html',
     '/checkout.html',
     '/my-marketplace-listings.html',
+    '/budget.html',
   ];
 
   // Root prefixes for non-public SPA directories.
