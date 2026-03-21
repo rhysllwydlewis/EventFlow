@@ -27,4 +27,32 @@ document.addEventListener('DOMContentLoaded', () => {
         .scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }
+
+  // Copy review link button
+  const copyReviewLinkBtn = document.getElementById('copyReviewLinkBtn');
+  if (copyReviewLinkBtn) {
+    copyReviewLinkBtn.addEventListener('click', function () {
+      const url = `${window.location.origin}/suppliers`;
+      const originalText = this.textContent;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(url).then(
+          () => {
+            if (typeof Toast !== 'undefined') {
+              Toast.success('Review link copied!');
+            } else {
+              this.textContent = '✅ Copied!';
+              setTimeout(() => {
+                this.textContent = originalText;
+              }, 2000);
+            }
+          },
+          () => {
+            window.prompt('Copy this link:', url);
+          }
+        );
+      } else {
+        window.prompt('Copy this link:', url);
+      }
+    });
+  }
 });

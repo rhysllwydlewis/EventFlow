@@ -62,6 +62,24 @@ function showUrgentAlert(message, type = 'warning') {
   }
 }
 
+/**
+ * Update the hero welcome heading with a business/profile name.
+ * @param {string} name - Business name to display
+ */
+function updateWelcomeHeading(name) {
+  if (!name) {
+    return;
+  }
+  const titleMain = document.querySelector('.dashboard-hero__title-main');
+  const titleHighlight = document.querySelector('.dashboard-hero__title-highlight');
+  if (titleMain) {
+    titleMain.textContent = 'Welcome back,';
+  }
+  if (titleHighlight) {
+    titleHighlight.textContent = name;
+  }
+}
+
 // Initialize supplier dashboard widgets
 async function initSupplierDashboardWidgets() {
   try {
@@ -171,14 +189,7 @@ async function initSupplierDashboardWidgets() {
 
     // Update welcome heading with business/profile name if available
     if (summaryData?.profile?.topProfileName) {
-      const titleMain = document.querySelector('.dashboard-hero__title-main');
-      const titleHighlight = document.querySelector('.dashboard-hero__title-highlight');
-      if (titleMain) {
-        titleMain.textContent = 'Welcome back,';
-      }
-      if (titleHighlight) {
-        titleHighlight.textContent = summaryData.profile.topProfileName;
-      }
+      updateWelcomeHeading(summaryData.profile.topProfileName);
     }
 
     // Create statistics widgets with real data
@@ -312,14 +323,7 @@ async function initSupplierDashboardWidgets() {
 
         // Update welcome heading with business name from live profile if not set by summary
         if (!summaryData?.profile?.topProfileName && suppliers[0]?.name) {
-          const titleMain = document.querySelector('.dashboard-hero__title-main');
-          const titleHighlight = document.querySelector('.dashboard-hero__title-highlight');
-          if (titleMain) {
-            titleMain.textContent = 'Welcome back,';
-          }
-          if (titleHighlight) {
-            titleHighlight.textContent = suppliers[0].name;
-          }
+          updateWelcomeHeading(suppliers[0].name);
         }
       }
     } catch (err) {

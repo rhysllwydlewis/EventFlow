@@ -6255,12 +6255,12 @@ body:not(.supplier-dashboard-page) .section > .container {
 
 /* ── Improved card glass surfaces ── */
 .sd-card {
-  border-radius: 16px !important;
+  border-radius: 16px;
   overflow: hidden;
   transition: box-shadow 0.2s;
 }
 .sd-card:hover {
-  box-shadow: 0 8px 32px rgba(11, 18, 32, 0.1) !important;
+  box-shadow: 0 8px 32px rgba(11, 18, 32, 0.1);
 }
 
 /* ── Package card status chips ── */
@@ -6327,26 +6327,26 @@ body:not(.supplier-dashboard-page) .section > .container {
 
 /* ── Messages section unread badge ── */
 .supplier-unread-badge {
-  font-size: 0.7rem !important;
-  font-weight: 700 !important;
-  padding: 0.2em 0.65em !important;
-  border-radius: 999px !important;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.2em 0.65em;
+  border-radius: 999px;
 }
 .supplier-unread-badge--blue {
-  background: rgba(59, 130, 246, 0.12) !important;
-  color: #1e40af !important;
-  border: 1px solid rgba(59, 130, 246, 0.25) !important;
+  background: rgba(59, 130, 246, 0.12);
+  color: #1e40af;
+  border: 1px solid rgba(59, 130, 246, 0.25);
 }
 
 /* ── Hero quick actions — tighter on desktop ── */
 .dashboard-hero__actions {
   flex-wrap: wrap;
-  gap: 0.5rem !important;
+  gap: 0.5rem;
 }
 @media (min-width: 1024px) {
   .dashboard-hero__actions .dashboard-action-chip {
-    padding: 0.45rem 0.875rem !important;
-    font-size: 0.8125rem !important;
+    padding: 0.45rem 0.875rem;
+    font-size: 0.8125rem;
   }
 }
 

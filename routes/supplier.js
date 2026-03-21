@@ -86,12 +86,10 @@ router.post('/trial/activate', authRequired, csrfProtection, async (req, res) =>
     });
   } catch (error) {
     logger.error('Error activating trial:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to activate trial',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to activate trial',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 
@@ -131,12 +129,10 @@ router.get('/analytics', authRequired, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching analytics:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to fetch analytics',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to fetch analytics',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 
@@ -253,12 +249,10 @@ router.get('/analytics/legacy', authRequired, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching analytics:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to fetch analytics',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to fetch analytics',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 
@@ -313,12 +307,10 @@ router.get('/invoices', authRequired, async (req, res) => {
     res.json({ invoices: formattedInvoices });
   } catch (error) {
     logger.error('Error fetching invoices:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to fetch invoices',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to fetch invoices',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 
@@ -362,12 +354,10 @@ router.get('/invoices/:id/download', authRequired, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching invoice download:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to fetch invoice',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to fetch invoice',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 
@@ -444,12 +434,10 @@ router.get('/enquiries/export', authRequired, async (req, res) => {
     res.send(csv);
   } catch (error) {
     logger.error('Error exporting enquiries:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to export enquiries',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to export enquiries',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 
@@ -527,12 +515,10 @@ router.get('/lead-quality', authRequired, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching lead quality:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to fetch lead quality',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to fetch lead quality',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 
@@ -591,12 +577,10 @@ router.get('/reviews/stats', authRequired, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching review stats:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to fetch review stats',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to fetch review stats',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 
@@ -754,7 +738,10 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
     }
 
     const supplierId = supplier.id;
-    const days = Math.min(parseInt(req.query.days) || DEFAULT_ANALYTICS_WINDOW_DAYS, MAX_ANALYTICS_WINDOW_DAYS);
+    const days = Math.min(
+      parseInt(req.query.days) || DEFAULT_ANALYTICS_WINDOW_DAYS,
+      MAX_ANALYTICS_WINDOW_DAYS
+    );
 
     const now = new Date();
     const periodStart = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
@@ -778,7 +765,9 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
       // Fetch current-period analytics and raw events in parallel
       const [current, allEvents] = await Promise.all([
         supplierAnalytics.getSupplierAnalytics(supplierId, days),
-        dbUnified.read('events').then(evts => (evts || []).filter(e => e.supplierId === supplierId)),
+        dbUnified
+          .read('events')
+          .then(evts => (evts || []).filter(e => e.supplierId === supplierId)),
       ]);
 
       const periodStartStr = periodStart.toISOString();
@@ -797,7 +786,9 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
         avgResponseTime: current.avgResponseTime,
         dailyData: current.dailyData,
         viewsTrend: Math.round(((current.totalViews - prevViews) / Math.max(prevViews, 1)) * 100),
-        enquiriesTrend: Math.round(((current.totalEnquiries - prevEnquiries) / Math.max(prevEnquiries, 1)) * 100),
+        enquiriesTrend: Math.round(
+          ((current.totalEnquiries - prevEnquiries) / Math.max(prevEnquiries, 1)) * 100
+        ),
         // Response rate is computed across all threads (not time-windowed), so trend is not available
         responseTrend: 0,
       };
@@ -831,23 +822,43 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
 
       const hasDescription = !!(topProfile.description_short || '').trim();
       const hasLocation = !!(topProfile.location || '').trim();
-      const hasPhotos = Array.isArray(topProfile.photosGallery) && topProfile.photosGallery.length >= 3;
+      const hasPhotos =
+        Array.isArray(topProfile.photosGallery) && topProfile.photosGallery.length >= 3;
       const hasBanner = !!(topProfile.bannerUrl || '').trim();
       const hasTagline = !!(topProfile.tagline || '').trim();
-      const hasHighlights = Array.isArray(topProfile.highlights) && topProfile.highlights.length >= 2;
-      const hasSocialLinks = topProfile.socialLinks && typeof topProfile.socialLinks === 'object' &&
+      const hasHighlights =
+        Array.isArray(topProfile.highlights) && topProfile.highlights.length >= 2;
+      const hasSocialLinks =
+        topProfile.socialLinks &&
+        typeof topProfile.socialLinks === 'object' &&
         Object.values(topProfile.socialLinks).some(v => v && String(v).trim());
       const hasPrice = !!(topProfile.startingPrice || topProfile.price_range || topProfile.price);
 
       let healthScore = 0;
-      if (hasDescription) healthScore += 20;
-      if (hasLocation) healthScore += 15;
-      if (hasPhotos) healthScore += 20;
-      if (hasBanner) healthScore += 10;
-      if (hasTagline) healthScore += 10;
-      if (hasHighlights) healthScore += 10;
-      if (hasSocialLinks) healthScore += 10;
-      if (hasPrice) healthScore += 5;
+      if (hasDescription) {
+        healthScore += 20;
+      }
+      if (hasLocation) {
+        healthScore += 15;
+      }
+      if (hasPhotos) {
+        healthScore += 20;
+      }
+      if (hasBanner) {
+        healthScore += 10;
+      }
+      if (hasTagline) {
+        healthScore += 10;
+      }
+      if (hasHighlights) {
+        healthScore += 10;
+      }
+      if (hasSocialLinks) {
+        healthScore += 10;
+      }
+      if (hasPrice) {
+        healthScore += 5;
+      }
 
       profileData = {
         hasProfile: profileCount > 0,
@@ -879,7 +890,7 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
       packagesData = {
         total: supplierPackages.length,
         active: supplierPackages.filter(p => p.approved !== false).length, // approved or pending review
-        draft: supplierPackages.filter(p => p.approved === false).length,  // explicitly not approved
+        draft: supplierPackages.filter(p => p.approved === false).length, // explicitly not approved
       };
     } catch (err) {
       logger.error('dashboard-summary: packages sub-query failed:', err);
@@ -903,7 +914,9 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
       supplierConversations.forEach(c => {
         if (Array.isArray(c.participants)) {
           const me = c.participants.find(p => p.userId === userId);
-          if (me && (me.unreadCount || 0) > 0) unread++;
+          if (me && (me.unreadCount || 0) > 0) {
+            unread++;
+          }
         }
         const ts = c.lastMessageAt || c.updatedAt || c.createdAt;
         if (ts && (!latestAt || new Date(ts) > new Date(latestAt))) {
@@ -922,11 +935,16 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
       const allReviews = (await dbUnified.read('reviews')) || [];
       const supplierReviews = allReviews.filter(r => r.supplierId === supplierId);
       const total = supplierReviews.length;
-      const averageRating = total > 0
-        ? Math.round((supplierReviews.reduce((sum, r) => sum + (Number(r.rating) || 0), 0) / total) * 100) / 100
-        : 0;
-      const pending = supplierReviews.filter(r =>
-        r.status === 'pending' || r.moderation?.state === 'pending'
+      const averageRating =
+        total > 0
+          ? parseFloat(
+              (
+                supplierReviews.reduce((sum, r) => sum + (Number(r.rating) || 0), 0) / total
+              ).toFixed(2)
+            )
+          : 0;
+      const pending = supplierReviews.filter(
+        r => r.status === 'pending' || r.moderation?.state === 'pending'
       ).length;
 
       reviewsData = { total, averageRating, pending };

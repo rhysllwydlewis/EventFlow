@@ -1164,7 +1164,7 @@
       Customer reviews build trust and help you rank higher in search results. Ask recent customers for feedback to get started.
     </p>
     <div class="sd-reviews-placeholder__cta-group">
-      <button class="sd-reviews-cta-btn sd-reviews-cta-btn--primary" onclick="(function(btn){var url=window.location.origin+'/suppliers';if(navigator.clipboard){navigator.clipboard.writeText(url).then(function(){if(typeof Toast!=='undefined')Toast.success('Link copied!');else{btn.textContent='✅ Copied!';setTimeout(function(){btn.textContent='📋 Copy Review Link';},2000);}},function(){window.prompt('Copy this link:',url);});}else{window.prompt('Copy this link:',url);}})(this)">
+      <button class="sd-reviews-cta-btn sd-reviews-cta-btn--primary" id="copyReviewLinkBtn">
         📋 Copy Review Link
       </button>
       <a href="/guides" class="sd-reviews-cta-btn sd-reviews-cta-btn--secondary">
