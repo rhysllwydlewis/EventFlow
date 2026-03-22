@@ -2601,3 +2601,250 @@ tbody tr.selected td {
     animation: none;
   }
 }
+
+/* ─── Subscription Modal Enhancements ──────────────────────────────────────── */
+
+/* Modal header with subtitle */
+.modal-header--subscription {
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.modal-header-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.modal-subtitle {
+  font-size: 13px;
+  color: #6b7280;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Subscription status card variants */
+.subscription-status-card--pro {
+  background: linear-gradient(135deg, #0B8073 0%, #13B6A2 100%);
+  color: white;
+  padding: 18px 20px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.subscription-status-card--pro-plus {
+  background: linear-gradient(135deg, #7c3aed 0%, #c026d3 100%);
+  color: white;
+  padding: 18px 20px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.subscription-status-card--free {
+  background: #f9fafb;
+  border: 2px dashed #e5e7eb;
+  color: #374151;
+  padding: 18px 20px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Top row: tier name + status badge */
+.sub-status-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.sub-tier-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sub-tier-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.sub-tier-name {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+/* Individual label/value rows */
+.sub-status-row {
+  font-size: 13px;
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.sub-label {
+  font-weight: 600;
+  opacity: 0.8;
+  white-space: nowrap;
+}
+
+.sub-status-reason {
+  margin-top: 2px;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+/* Expiry countdown */
+.sub-countdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+  margin-top: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  width: fit-content;
+}
+
+.sub-countdown--expired {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.subscription-status-card--free .sub-countdown--expired {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.sub-countdown--urgent {
+  background: rgba(251, 191, 36, 0.2);
+  color: #92400e;
+}
+
+.subscription-status-card--free .sub-countdown--urgent {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.sub-countdown--lifetime {
+  background: rgba(255, 255, 255, 0.2);
+  letter-spacing: 0.02em;
+}
+
+.sub-countdown-icon {
+  font-size: 14px;
+}
+
+/* Skeleton loading placeholder for status */
+.sub-status-skeleton {
+  padding: 4px 0;
+}
+
+/* History item improvements */
+.sub-history-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.sub-history-tier {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.sub-history-date {
+  margin-left: auto;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.sub-history-meta {
+  font-size: 12px;
+  color: #6b7280;
+  margin-top: 2px;
+  line-height: 1.5;
+}
+
+/* Action badge: color-coded by action type */
+.sub-action-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sub-action--granted {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.sub-action--renewed {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.sub-action--upgraded {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+.sub-action--downgraded {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.sub-action--cancelled {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.sub-action--default {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+/* Section dividers */
+.subscription-status-section,
+.subscription-form-section,
+.subscription-remove-section {
+  padding-bottom: 24px;
+  border-bottom: 1px solid #f3f4f6;
+  margin-bottom: 24px;
+}
+
+.subscription-history-section {
+  margin-bottom: 16px;
+}
+
+/* Section headings: uppercase label style */
+.subscription-status-section h4,
+.subscription-form-section h4,
+.subscription-remove-section h4,
+.subscription-history-section h4 {
+  margin: 0 0 14px 0;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #9ca3af;
+}

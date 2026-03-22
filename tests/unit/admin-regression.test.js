@@ -378,10 +378,11 @@ describe('Admin Regression — Subscription management button works for admin-ro
     expect(helperSection).toContain('_id.toString()');
   });
 
-  it('subscription POST updateOne uses effectiveId not the raw URL param id', () => {
-    // When a user only has _id, the updateOne filter { id } would match nothing and the
-    // change would be silently dropped.  Using effectiveId ensures the right document is
-    // updated regardless of how the user was originally created.
+  it('subscription POST updateOne uses a resolved filter not the raw URL param id', () => {
+    // When a user only has _id (no explicit id field), filtering by { id: rawUrlParam } would
+    // match nothing and the change would be silently dropped. The code must resolve a correct
+    // DB filter (either { id: user.id } or { _id: user._id }) so the right document is updated
+    // regardless of how the user was originally created.
     const postSubscriptionIdx = userMgmtContent.indexOf("'/users/:id/subscription',");
     expect(postSubscriptionIdx).toBeGreaterThan(-1);
     // Find the matching router.delete for subscription (comes after the POST)
@@ -393,8 +394,12 @@ describe('Admin Regression — Subscription management button works for admin-ro
       postSubscriptionIdx,
       deleteSubscriptionIdx > -1 ? deleteSubscriptionIdx : postSubscriptionIdx + 3000
     );
-    expect(postSection).toContain('effectiveId');
-    expect(postSection).toContain('{ id: effectiveId }');
+    // Must resolve a DB-safe filter — either named updateFilter or effectiveId approach
+    const hasUpdateFilter =
+      postSection.includes('updateFilter') || postSection.includes('effectiveId');
+    expect(hasUpdateFilter).toBe(true);
+    // Must NOT use the raw URL param directly as the filter (would silently miss _id-only users)
+    expect(postSection).not.toMatch(/updateOne\(\s*'users',\s*\{\s*id\s*\}\s*,/);
   });
 
   // ── Modal visibility: .active class ──────────────────────────────────────────
