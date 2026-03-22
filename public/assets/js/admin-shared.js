@@ -1307,9 +1307,12 @@ const AdminShared = (function () {
   }
 
   function closeModals() {
-    // Close all modals with class 'modal-overlay'
+    // Close all modals with class 'modal-overlay'.
+    // Also remove the .active class so that components.css opacity/visibility transitions
+    // are properly reset (modals using the active-class pattern become invisible again).
     document.querySelectorAll('.modal-overlay').forEach(modal => {
       modal.style.display = 'none';
+      modal.classList.remove('active');
     });
 
     // Close command palette

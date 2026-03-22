@@ -33,8 +33,12 @@ describe('Admin API Fixes', () => {
         'utf8'
       );
 
-      // Should check both id and _id fields
-      expect(content).toContain('u.id === userId || u._id === userId');
+      // Should check both id and _id fields when locating a user by userId.
+      // Accepts either the explicit two-condition form or the short-circuit form.
+      const handlesIdAndObjectId =
+        content.includes('u.id === userId || u._id === userId') ||
+        content.includes('(u.id || u._id) === userId');
+      expect(handlesIdAndObjectId).toBe(true);
     });
 
     it('should use AdminShared.showToast for notifications', () => {

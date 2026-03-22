@@ -240,9 +240,12 @@
 
 <!-- Subscription Management Modal -->
 <div id="subscriptionModal" class="modal-overlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="subscriptionModalTitle">
-  <div class="modal-dialog" style="max-width: 600px;">
-    <div class="modal-header">
-      <h3 class="modal-title" id="subscriptionModalTitle">Manage Subscription</h3>
+  <div class="modal-dialog modal-dialog--subscription" style="max-width: 620px;">
+    <div class="modal-header modal-header--subscription">
+      <div class="modal-header-info">
+        <h3 class="modal-title" id="subscriptionModalTitle">Manage Subscription</h3>
+        <p class="modal-subtitle" id="subscriptionModalSubtitle" aria-live="polite"></p>
+      </div>
       <button class="modal-close" id="closeSubscriptionModal" aria-label="Close subscription modal">&times;</button>
     </div>
     <div class="modal-body">
@@ -250,8 +253,8 @@
         <!-- Current Status -->
         <div class="subscription-status-section">
           <h4>Current Status</h4>
-          <div id="currentSubscriptionStatus" class="current-status-display">
-            Loading...
+          <div id="currentSubscriptionStatus" class="current-status-display" aria-live="polite">
+            <div class="sub-status-skeleton"><div class="skeleton-list-item" style="height:72px;border-radius:10px;"></div></div>
           </div>
         </div>
 
@@ -265,13 +268,13 @@
               <label for="subscriptionTier">Tier</label>
               <select id="subscriptionTier" name="tier" class="form-control" required>
                 <option value="">Select tier...</option>
-                <option value="free">Free</option>
-                <option value="pro">Pro</option>
-                <option value="pro_plus">Pro+</option>
+                <option value="free">Free (remove subscription)</option>
+                <option value="pro">✦ Pro</option>
+                <option value="pro_plus">⭐ Pro+</option>
               </select>
             </div>
 
-            <div class="form-group">
+            <div class="form-group" id="subscriptionDurationGroup">
               <label for="subscriptionDuration">Duration</label>
               <select id="subscriptionDuration" name="duration" class="form-control" required>
                 <option value="">Select duration...</option>
@@ -279,13 +282,13 @@
                 <option value="30d">30 Days</option>
                 <option value="90d">90 Days (3 months)</option>
                 <option value="1y">1 Year</option>
-                <option value="lifetime">Lifetime</option>
+                <option value="lifetime">♾️ Lifetime</option>
               </select>
             </div>
 
             <div class="form-group">
-              <label for="subscriptionReason">Reason/Notes</label>
-              <textarea id="subscriptionReason" name="reason" class="form-control" rows="3" placeholder="Why are you granting this subscription?"></textarea>
+              <label for="subscriptionReason">Reason / Notes</label>
+              <textarea id="subscriptionReason" name="reason" class="form-control" rows="2" placeholder="Why are you granting this subscription?"></textarea>
             </div>
 
             <div class="form-actions">
@@ -298,14 +301,15 @@
         <!-- Remove Subscription -->
         <div class="subscription-remove-section">
           <h4>Remove Subscription</h4>
+          <p class="text-muted" style="margin-bottom:12px;font-size:13px;">Removes the user's active subscription and sets their tier to Free. A reason prompt will appear.</p>
           <button type="button" class="btn btn-danger" id="removeSubscriptionBtn">Remove Current Subscription</button>
         </div>
 
         <!-- Subscription History -->
         <div class="subscription-history-section">
           <h4>Subscription History</h4>
-          <div id="subscriptionHistory" class="subscription-history-list">
-            Loading...
+          <div id="subscriptionHistory" class="subscription-history-list" aria-live="polite">
+            <div class="text-muted">Loading...</div>
           </div>
         </div>
       </div>

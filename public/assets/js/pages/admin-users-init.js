@@ -645,17 +645,99 @@
   // Subscription Modal Management
   let currentSubscriptionUserId = null;
 
+  /**
+   * Returns a human-readable countdown string for a subscription end date.
+   * e.g. "Expires in 28 days", "Expired 3 days ago", "Expires today"
+   */
+  function expiryCountdown(endDateStr) {
+    if (!endDateStr) {
+      return null;
+    }
+    try {
+      const now = new Date();
+      const end = new Date(endDateStr);
+      const diffMs = end.getTime() - now.getTime();
+      const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+      if (diffDays < 0) {
+        const absDays = Math.abs(diffDays);
+        return { label: `Expired ${absDays} day${absDays === 1 ? '' : 's'} ago`, expired: true };
+      }
+      if (diffDays === 0) {
+        return { label: 'Expires today', urgent: true };
+      }
+      if (diffDays <= 7) {
+        return { label: `Expires in ${diffDays} day${diffDays === 1 ? '' : 's'}`, urgent: true };
+      }
+      return { label: `Expires in ${diffDays} day${diffDays === 1 ? '' : 's'}`, expired: false };
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /**
+   * Returns CSS class name for a history action type.
+   */
+  function historyActionClass(action) {
+    const map = {
+      granted: 'sub-action--granted',
+      renewed: 'sub-action--renewed',
+      upgraded: 'sub-action--upgraded',
+      downgraded: 'sub-action--downgraded',
+      cancelled: 'sub-action--cancelled',
+      removed: 'sub-action--cancelled',
+    };
+    return map[action] || 'sub-action--default';
+  }
+
+  /**
+   * Render tier label from tier string.
+   */
+  function tierLabel(tier) {
+    if (tier === 'pro_plus') {
+      return 'Pro+';
+    }
+    if (tier === 'pro') {
+      return 'Pro';
+    }
+    return 'Free';
+  }
+
   function openSubscriptionModal(userId) {
     currentSubscriptionUserId = userId;
     const modal = document.getElementById('subscriptionModal');
     if (!modal) {
+      console.error(
+        '[AdminUsers] #subscriptionModal not found in DOM. Cannot open subscription modal.'
+      );
       return;
     }
 
+    // Show the modal. components.css uses opacity:0/visibility:hidden on .modal-overlay and
+    // only reveals it with the .active class. Setting display alone is not enough.
     modal.style.display = 'flex';
-    document.getElementById('subscriptionUserId').value = userId;
+    modal.classList.add('active');
 
-    // Load current subscription status and history
+    const userIdInput = document.getElementById('subscriptionUserId');
+    if (userIdInput) {
+      userIdInput.value = userId;
+    } else {
+      console.error('[AdminUsers] #subscriptionUserId not found in DOM.');
+    }
+
+    // Update modal title with user context
+    const user = allUsers.find(u => (u.id || u._id) === userId);
+    const titleEl = document.getElementById('subscriptionModalTitle');
+    const subtitleEl = document.getElementById('subscriptionModalSubtitle');
+    if (titleEl) {
+      titleEl.textContent = user
+        ? `Manage Subscription — ${user.name || user.email}`
+        : 'Manage Subscription';
+    }
+    if (subtitleEl) {
+      subtitleEl.textContent = user && user.name && user.email ? user.email : '';
+    }
+
+    // Load current subscription status and history (always live from API)
     loadSubscriptionData(userId);
   }
 
@@ -663,6 +745,7 @@
     const modal = document.getElementById('subscriptionModal');
     if (modal) {
       modal.style.display = 'none';
+      modal.classList.remove('active');
     }
     currentSubscriptionUserId = null;
 
@@ -678,62 +761,93 @@
     const historyDiv = document.getElementById('subscriptionHistory');
 
     if (!statusDiv || !historyDiv) {
+      console.error(
+        '[AdminUsers] Missing required DOM elements: #currentSubscriptionStatus or #subscriptionHistory. Cannot render subscription data.'
+      );
       return;
     }
 
-    // Find user from allUsers (handle both id and _id)
-    const user = allUsers.find(u => u.id === userId || u._id === userId);
+    // Show skeleton loading states while fetching
+    statusDiv.innerHTML =
+      '<div class="sub-status-skeleton"><div class="skeleton-list-item" style="height:72px;border-radius:10px;"></div></div>';
+    historyDiv.innerHTML = '<div class="text-muted" style="padding:8px 0;">Loading history…</div>';
 
-    if (!user) {
-      statusDiv.innerHTML = '<p class="text-error">User not found</p>';
-      historyDiv.innerHTML = '<p class="text-error">Unable to load history</p>';
-      return;
-    }
-
-    // Display current subscription
-    const subscription = user.subscription || { tier: 'free', status: 'active' };
-    const tierDisplay =
-      subscription.tier === 'pro' ? 'Pro' : subscription.tier === 'pro_plus' ? 'Pro+' : 'Free';
-    const statusClass = subscription.status === 'active' ? 'badge-success' : 'badge-secondary';
-    const endDateDisplay = subscription.endDate
-      ? `Expires: ${formatDate(subscription.endDate)}`
-      : subscription.tier !== 'free'
-        ? 'Lifetime'
-        : '';
-
-    statusDiv.innerHTML = `
-      <div class="subscription-status-card">
-        <div><strong>Tier:</strong> <span class="badge ${statusClass}">${tierDisplay}</span></div>
-        <div><strong>Status:</strong> ${subscription.status || 'N/A'}</div>
-        ${endDateDisplay ? `<div><strong>${endDateDisplay}</strong></div>` : ''}
-        ${subscription.reason ? `<div><strong>Reason:</strong> ${escapeHtml(subscription.reason)}</div>` : ''}
-      </div>
-    `;
-
-    // Load subscription history using AdminShared.api
     try {
+      // Single API call returns both currentSubscription and history (newest-first)
       const data = await AdminShared.api(`/api/admin/users/${userId}/subscription-history`);
+      const subscription = data.currentSubscription || { tier: 'free', status: 'active' };
       const history = data.history || [];
 
+      // ── Current status card ───────────────────────────────────────────────────
+      const tier = subscription.tier || 'free';
+      const tLabel = tierLabel(tier);
+      const isFree = tier === 'free';
+      const isCancelled = subscription.status === 'cancelled';
+      const statusBadgeClass = isFree || isCancelled ? 'badge-secondary' : 'badge-success';
+      const statusText = isCancelled ? 'Cancelled' : subscription.status || 'Active';
+      const cardClass =
+        isFree || isCancelled
+          ? 'subscription-status-card subscription-status-card--free'
+          : `subscription-status-card subscription-status-card--${tier.replace('_', '-')}`;
+      const countdown = expiryCountdown(subscription.endDate);
+      const countdownHtml = countdown
+        ? `<div class="sub-countdown ${countdown.expired ? 'sub-countdown--expired' : countdown.urgent ? 'sub-countdown--urgent' : ''}">
+             <span class="sub-countdown-icon">${countdown.expired ? '⚠️' : '🕐'}</span>
+             ${escapeHtml(countdown.label)}
+           </div>`
+        : subscription.endDate === null && !isFree
+          ? '<div class="sub-countdown sub-countdown--lifetime">♾️ Lifetime</div>'
+          : '';
+
+      statusDiv.innerHTML = `
+        <div class="${cardClass}">
+          <div class="sub-status-top-row">
+            <div class="sub-tier-info">
+              <span class="sub-tier-icon">${tier === 'pro_plus' ? '⭐' : tier === 'pro' ? '✦' : '○'}</span>
+              <span class="sub-tier-name">${escapeHtml(tLabel)}</span>
+            </div>
+            <span class="badge ${statusBadgeClass}">${escapeHtml(statusText)}</span>
+          </div>
+          ${subscription.startDate ? `<div class="sub-status-row"><span class="sub-label">Since:</span> <span>${formatDate(subscription.startDate)}</span></div>` : ''}
+          ${subscription.endDate ? `<div class="sub-status-row"><span class="sub-label">Until:</span> <span>${formatDate(subscription.endDate)}</span></div>` : ''}
+          ${countdownHtml}
+          ${subscription.reason ? `<div class="sub-status-row sub-status-reason"><span class="sub-label">Reason:</span> <span class="text-muted">${escapeHtml(subscription.reason)}</span></div>` : ''}
+        </div>
+      `;
+
+      // Update allUsers cache so table badge reflects latest without a full reload
+      const cachedUser = allUsers.find(u => (u.id || u._id) === userId);
+      if (cachedUser) {
+        cachedUser.subscription = subscription;
+      }
+
+      // ── History list ─────────────────────────────────────────────────────────
       if (history.length === 0) {
-        historyDiv.innerHTML = '<p class="text-muted">No subscription history</p>';
+        historyDiv.innerHTML =
+          '<p class="text-muted" style="padding:4px 0;">No subscription history found.</p>';
       } else {
         historyDiv.innerHTML = history
           .map(
             h => `
-          <div class="subscription-history-item">
-            <div><strong>${h.action}</strong> - ${h.tier === 'pro' ? 'Pro' : h.tier === 'pro_plus' ? 'Pro+' : 'Free'}</div>
-            <div class="text-muted">${formatDate(h.date)}</div>
-            <div class="text-muted">By: ${escapeHtml(h.adminEmail || 'Unknown')}</div>
-            ${h.reason ? `<div class="text-muted">Reason: ${escapeHtml(h.reason)}</div>` : ''}
-            ${h.endDate ? `<div class="text-muted">End Date: ${formatDate(h.endDate)}</div>` : ''}
-          </div>
-        `
+            <div class="subscription-history-item">
+              <div class="sub-history-header">
+                <span class="sub-action-badge ${historyActionClass(h.action)}">${escapeHtml(h.action || 'changed')}</span>
+                <span class="sub-history-tier">${escapeHtml(tierLabel(h.tier))}</span>
+                <span class="sub-history-date text-muted">${formatDate(h.date)}</span>
+              </div>
+              <div class="text-muted sub-history-meta">
+                By: ${escapeHtml(h.adminEmail || 'Unknown')}
+                ${h.reason ? ` · ${escapeHtml(h.reason)}` : ''}
+                ${h.endDate ? ` · Ends: ${formatDate(h.endDate)}` : ''}
+              </div>
+            </div>
+          `
           )
           .join('');
       }
     } catch (error) {
-      AdminShared.debugError('Error loading subscription history:', error);
+      AdminShared.debugError('Error loading subscription data:', error);
+      statusDiv.innerHTML = '<p class="text-error">Failed to load subscription status</p>';
       historyDiv.innerHTML = '<p class="text-error">Failed to load subscription history</p>';
     }
   }
@@ -765,11 +879,11 @@
 
     // Handle tier change - hide duration if free is selected
     const tierSelect = document.getElementById('subscriptionTier');
-    const durationGroup = document.getElementById('subscriptionDuration')?.parentElement;
+    const durationGroup = document.getElementById('subscriptionDurationGroup');
 
     if (tierSelect && durationGroup) {
       tierSelect.addEventListener('change', e => {
-        if (e.target.value === 'free') {
+        if (e.target.value === 'free' || e.target.value === '') {
           durationGroup.style.display = 'none';
           document.getElementById('subscriptionDuration').removeAttribute('required');
         } else {
@@ -816,8 +930,10 @@
                 method: 'DELETE',
                 body: { reason: reason || 'Admin set to free tier' },
               });
-              closeSubscriptionModal();
-              loadAdminUsers(); // Reload users
+              // Reload status panel inside the modal to reflect the change
+              await loadSubscriptionData(userId);
+              // Update table row badge without a full reload
+              _updateTableSubscriptionBadge(userId, { tier: 'free', status: 'cancelled' });
               return data;
             },
             {
@@ -842,8 +958,12 @@
               method: 'POST',
               body: { tier, duration, reason },
             });
-            closeSubscriptionModal();
-            loadAdminUsers(); // Reload users
+            // Reload status panel inside the modal to reflect the new subscription
+            await loadSubscriptionData(userId);
+            // Update table row badge without a full reload
+            if (data && data.subscription) {
+              _updateTableSubscriptionBadge(userId, data.subscription);
+            }
             return data;
           },
           {
@@ -900,8 +1020,13 @@
                 body: { reason: reasonResult.value || 'Manual admin removal' },
               }
             );
-            closeSubscriptionModal();
-            loadAdminUsers(); // Reload users
+            // Reload status panel inside the modal to reflect the removal
+            await loadSubscriptionData(currentSubscriptionUserId);
+            // Update table row badge
+            _updateTableSubscriptionBadge(currentSubscriptionUserId, {
+              tier: 'free',
+              status: 'cancelled',
+            });
             return data;
           },
           {
@@ -911,6 +1036,38 @@
           }
         );
       });
+    }
+  }
+
+  /**
+   * Updates the subscription badge for a specific user row in the table without
+   * performing a full reload. This gives the admin instant visual feedback.
+   */
+  function _updateTableSubscriptionBadge(userId, subscription) {
+    const tier = subscription?.tier || 'free';
+    let badgeHtml = '';
+    if (tier === 'pro') {
+      badgeHtml = '<span class="badge badge-pro">Pro</span>';
+    } else if (tier === 'pro_plus') {
+      badgeHtml = '<span class="badge badge-pro-plus">Pro+</span>';
+    } else {
+      badgeHtml = '<span class="badge badge-free">Free</span>';
+    }
+    // Find the table row for this user and update the subscription cell (column index 4)
+    const btn = document.querySelector(`[data-manage-subscription="${CSS.escape(userId)}"]`);
+    if (btn) {
+      const row = btn.closest('tr');
+      if (row) {
+        const cells = row.querySelectorAll('td');
+        if (cells[4]) {
+          cells[4].innerHTML = badgeHtml;
+        }
+      }
+    }
+    // Also update allUsers cache
+    const cachedUser = allUsers.find(u => (u.id || u._id) === userId);
+    if (cachedUser) {
+      cachedUser.subscription = subscription;
     }
   }
 

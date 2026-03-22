@@ -87,6 +87,56 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
   }
 
   /**
+   * Show a skeleton loading state inside a container.
+   * Sets aria-hidden=true while content is loading so screen readers skip
+   * the placeholder items. Call container.removeAttribute('aria-hidden') after
+   * real content is written in.
+   * @param {HTMLElement} container
+   * @param {number} [count=3] - number of skeleton items to render
+   */
+  function showLoadingState(container, count = 3) {
+    if (!container) {
+      return;
+    }
+    container.setAttribute('aria-hidden', 'true');
+    const items = Array.from(
+      { length: count },
+      () => '<div class="skeleton-list-item"></div>'
+    ).join('');
+    container.innerHTML = `<div class="skeleton-list" aria-hidden="true">${items}</div>`;
+  }
+
+  /**
+   * Render an array of review objects into list-item HTML.
+   * Uses the index for stable key generation and aria-posinset attributes.
+   * @param {Array} reviews
+   * @returns {string} HTML string
+   */
+  function renderReviews(reviews) {
+    if (!Array.isArray(reviews) || reviews.length === 0) {
+      return '';
+    }
+    return reviews
+      .map((review, index) => {
+        const stars = generateStars(review.rating || 0);
+        const author = escapeHtml(review.authorName || review.author || 'Anonymous');
+        const body = escapeHtml(review.body || review.comment || '');
+        const date = formatDate(review.date || review.createdAt);
+        return `
+          <div class="review-item" role="listitem" aria-posinset="${index + 1}" aria-setsize="${reviews.length}">
+            <div class="review-header">
+              <span class="review-author">${author}</span>
+              <span class="review-stars" aria-label="${review.rating || 0} out of 5 stars">${stars}</span>
+              ${date ? `<span class="review-date">${date}</span>` : ''}
+            </div>
+            ${body ? `<p class="review-body">${body}</p>` : ''}
+          </div>
+        `;
+      })
+      .join('');
+  }
+
+  /**
    * Generate star rating HTML using CSS classes
    */
   function generateStars(rating) {
@@ -1203,7 +1253,7 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
 
   // ─── Error state ─────────────────────────────────────────────────────────────
 
-  function showPageError() {
+  function showPageError(errorMessage) {
     const heroTitle = document.getElementById('hero-title');
     if (heroTitle) {
       heroTitle.removeAttribute('aria-busy');
@@ -1216,11 +1266,11 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
         <div class="sp-error-state" role="status" aria-live="polite">
           <div class="sp-error-state__icon">⚠️</div>
           <div class="sp-error-state__title">Unable to load supplier</div>
-          <div class="sp-error-state__desc">This supplier profile could not be loaded. Please try again.</div>
-          <button class="sp-error-state__btn" id="sp-retry-btn">Try Again</button>
+          <div class="sp-error-state__desc">${escapeHtml(errorMessage || 'An unexpected error occurred.')}</div>
+          <button class="error-state-action sp-error-state__btn" id="retry-supplier-btn">Try Again</button>
         </div>
       `;
-      const retryBtn = aboutSection.querySelector('#sp-retry-btn');
+      const retryBtn = aboutSection.querySelector('#retry-supplier-btn');
       if (retryBtn) {
         retryBtn.addEventListener('click', loadAllData);
       }
@@ -1270,7 +1320,7 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
       renderBadgesSection(supplierData);
     } catch (error) {
       console.error('Error loading supplier profile:', error);
-      showPageError();
+      showPageError('This supplier profile could not be loaded. Please try again.');
     }
   }
 

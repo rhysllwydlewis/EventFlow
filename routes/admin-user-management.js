@@ -1952,12 +1952,10 @@ router.patch(
       });
     } catch (error) {
       logger.error('Error updating seasonal tags:', error);
-      res
-        .status(500)
-        .json({
-          error: 'Failed to update seasonal tags',
-          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-        });
+      res.status(500).json({
+        error: 'Failed to update seasonal tags',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
     }
   }
 );
@@ -2237,12 +2235,10 @@ router.get('/users/segments', authRequired, roleRequired('admin'), async (req, r
     });
   } catch (error) {
     logger.error('Error generating user segments:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to generate user segments',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to generate user segments',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 
@@ -2477,8 +2473,11 @@ router.post(
         return res.status(404).json({ error: 'User not found' });
       }
 
-      // Resolve the filter key that will match this document in updateOne
-      const effectiveId = user.id || (user._id ? user._id.toString() : id);
+      // Resolve the DB filter that will match this document in updateOne.
+      // Users created via the normal signup flow have an explicit `id` field.
+      // Older admin-created accounts may only have a MongoDB `_id`.
+      // Using the wrong filter key results in a silent no-op update.
+      const updateFilter = user.id ? { id: user.id } : { _id: user._id };
 
       const now = new Date();
       const startDate = now.toISOString();
@@ -2535,27 +2534,24 @@ router.post(
         },
       ];
 
-      // Save updated user – use effectiveId so the filter matches whether the record
+      // Save updated user – updateFilter correctly targets the record whether it
       // was found via its explicit `id` field or its MongoDB _id.
-      await dbUnified.updateOne(
-        'users',
-        { id: effectiveId },
-        {
-          $set: {
-            subscription: user.subscription,
-            subscriptionHistory,
-            updatedAt: new Date().toISOString(),
-          },
-        }
-      );
+      await dbUnified.updateOne('users', updateFilter, {
+        $set: {
+          subscription: user.subscription,
+          subscriptionHistory,
+          updatedAt: new Date().toISOString(),
+        },
+      });
 
       // Log to audit
+      const auditTargetId = user.id || (user._id ? user._id.toString() : id);
       auditLog({
         adminId: req.user.id,
         adminEmail: req.user.email,
         action: 'USER_SUBSCRIPTION_GRANTED',
         targetType: 'user',
-        targetId: effectiveId,
+        targetId: auditTargetId,
         details: { tier, duration, reason, endDate },
       });
 
@@ -2597,7 +2593,10 @@ router.delete(
         return res.status(400).json({ error: 'User has no active subscription to remove' });
       }
 
-      const effectiveId = user.id || (user._id ? user._id.toString() : id);
+      // Resolve the DB filter that will match this document in updateOne.
+      // Users created via the normal signup flow have an explicit `id` field.
+      // Older admin-created accounts may only have a MongoDB `_id`.
+      const updateFilter = user.id ? { id: user.id } : { _id: user._id };
       const previousTier = user.subscription.tier;
       const now = new Date().toISOString();
 
@@ -2628,22 +2627,20 @@ router.delete(
         },
       ];
 
-      // Save updated user – use effectiveId to match whether the user was found by `id` or `_id`
-      await dbUnified.updateOne(
-        'users',
-        { id: effectiveId },
-        {
-          $set: { subscription: newSubscription, subscriptionHistory, updatedAt: now },
-        }
-      );
+      // Save updated user – updateFilter correctly targets the record whether it
+      // was found via its explicit `id` field or its MongoDB _id.
+      await dbUnified.updateOne('users', updateFilter, {
+        $set: { subscription: newSubscription, subscriptionHistory, updatedAt: now },
+      });
 
       // Log to audit
+      const auditTargetId = user.id || (user._id ? user._id.toString() : id);
       auditLog({
         adminId: req.user.id,
         adminEmail: req.user.email,
         action: 'USER_SUBSCRIPTION_REMOVED',
         targetType: 'user',
-        targetId: effectiveId,
+        targetId: auditTargetId,
         details: { previousTier, reason },
       });
 
@@ -2679,9 +2676,16 @@ router.get(
 
       const history = user.subscriptionHistory || [];
 
+      // Return history newest-first so the UI can render without reversing.
+      // Parse dates once (Schwartzian transform) to avoid redundant Date construction.
+      const sortedHistory = history
+        .map(h => ({ h, t: h.date ? new Date(h.date).getTime() : 0 }))
+        .sort((a, b) => b.t - a.t)
+        .map(({ h }) => h);
+
       res.json({
         success: true,
-        history,
+        history: sortedHistory,
         currentSubscription: user.subscription || null,
       });
     } catch (error) {
@@ -2920,12 +2924,10 @@ router.post(
       });
     } catch (error) {
       logger.error('Error starting impersonation:', error);
-      res
-        .status(500)
-        .json({
-          error: 'Failed to start impersonation',
-          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-        });
+      res.status(500).json({
+        error: 'Failed to start impersonation',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
     }
   }
 );
@@ -2986,12 +2988,10 @@ router.post('/users/stop-impersonate', authRequired, csrfProtection, async (req,
     });
   } catch (error) {
     logger.error('Error stopping impersonation:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to stop impersonation',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to stop impersonation',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 
