@@ -56,6 +56,12 @@
     '/admin-users.html': 'admin',
     '/admin-messenger': 'admin',
     '/admin-messenger.html': 'admin',
+    '/admin-messenger-view': 'admin',
+    '/admin-messenger-view.html': 'admin',
+    '/admin-media': 'admin',
+    '/admin-media.html': 'admin',
+    '/admin-search': 'admin',
+    '/admin-search.html': 'admin',
   };
 
   // Check if current page requires role check

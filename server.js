@@ -508,6 +508,25 @@ app.get('/package', (req, res, next) => {
   return res.redirect(301, '/suppliers');
 });
 
+// Deprecated admin pages — 302 to canonical replacements (query string preserved).
+// These must come BEFORE the general .html redirect so both the clean URL and the
+// .html variant are handled in a single hop rather than two hops.
+['/admin-pexels', '/admin-pexels.html'].forEach(deprecated => {
+  app.get(deprecated, (req, res) => {
+    const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+    res.redirect(302, `/admin-media${qs}`);
+  });
+});
+
+['/admin-content-dates', '/admin-content-dates.html'].forEach(deprecated => {
+  app.get(deprecated, (req, res) => {
+    const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+    // Merge any existing query params with the canonical tab param.
+    const base = qs ? `${qs}&tab=legalDates` : '?tab=legalDates';
+    res.redirect(302, `/admin-content${base}`);
+  });
+});
+
 // Admin pages — redirect .html to canonical clean URL
 app.get(/^\/admin(-[\w]+)*\.html$/, (req, res) => {
   const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';

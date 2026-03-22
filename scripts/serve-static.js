@@ -626,6 +626,24 @@ canonicalPages.forEach(page => {
   });
 });
 
+// Deprecated admin pages — redirect to canonical replacements (matches server.js).
+// These routes are registered BEFORE the adminPages serve loop so they take
+// precedence even though the HTML files still exist on disk.
+['/admin-pexels', '/admin-pexels.html'].forEach(deprecated => {
+  app.get(deprecated, staticLimiter, (req, res) => {
+    const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+    res.redirect(302, `/admin-media${qs}`);
+  });
+});
+
+['/admin-content-dates', '/admin-content-dates.html'].forEach(deprecated => {
+  app.get(deprecated, staticLimiter, (req, res) => {
+    const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+    const base = qs ? `${qs}&tab=legalDates` : '?tab=legalDates';
+    res.redirect(302, `/admin-content${base}`);
+  });
+});
+
 // Admin pages — serve clean URLs (matching server.js canonical redirect behavior)
 // Both /<page> and /<page>.html serve the same file so static-mode E2E tests
 // can navigate via clean URLs (matching production redirects) or via .html paths.
