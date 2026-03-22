@@ -15,8 +15,12 @@ const PUBLIC_DIR = path.resolve(__dirname, '../../public');
 const SERVE_STATIC_FILE = path.resolve(__dirname, '../../scripts/serve-static.js');
 
 // Load registry without triggering server dependencies
-const { REGISTRY, getAdminPagesAllowlist, getNavItems, getLegacyRedirects } =
-  require('../../config/adminRegistry');
+const {
+  REGISTRY,
+  getAdminPagesAllowlist,
+  getNavItems,
+  getLegacyRedirects,
+} = require('../../config/adminRegistry');
 
 // ── Registry structure tests ───────────────────────────────────────────────
 
@@ -140,7 +144,9 @@ describe('serve-static.js adminPages array', () => {
   function parseServeStaticAdminPages() {
     const source = fs.readFileSync(SERVE_STATIC_FILE, 'utf8');
     const match = source.match(/const adminPages\s*=\s*\[([\s\S]*?)\];/);
-    if (!match) throw new Error('Could not locate adminPages array in scripts/serve-static.js');
+    if (!match) {
+      throw new Error('Could not locate adminPages array in scripts/serve-static.js');
+    }
     return match[1]
       .split('\n')
       .map(line =>
@@ -209,7 +215,7 @@ describe('admin-navbar.js NAV_ITEMS', () => {
   it('does NOT include /admin-pexels in NAV_ITEMS', () => {
     // admin-pexels must not appear as a nav link (only as a redirect)
     // The source may reference it in comments/non-nav context — check the NAV_ITEMS block specifically
-    const navItemsMatch = navbarSrc.match(/var NAV_ITEMS\s*=\s*\[([\s\S]*?)\];/);
+    const navItemsMatch = navbarSrc.match(/(?:var|const) NAV_ITEMS\s*=\s*\[([\s\S]*?)\];/);
     expect(navItemsMatch).not.toBeNull();
     if (navItemsMatch) {
       expect(navItemsMatch[1]).not.toContain('/admin-pexels');
