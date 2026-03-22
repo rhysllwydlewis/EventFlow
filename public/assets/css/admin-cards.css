@@ -518,3 +518,74 @@
     overflow-x: auto;
   }
 }
+
+/* ── Admin Exports page ──────────────────────────────────────────────────── */
+.admin-export-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.export-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.5rem;
+}
+
+.export-card--warning {
+  border-left: 4px solid var(--color-warning, #f59e0b);
+}
+
+.export-card-icon {
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.export-card-body {
+  flex: 1;
+}
+
+.export-card-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.export-card-desc {
+  font-size: 0.9rem;
+  color: var(--color-text-muted, #6b7280);
+  margin: 0 0 0.75rem;
+  line-height: 1.5;
+}
+
+.export-card-meta {
+  font-size: 0.8rem;
+  color: var(--color-text-muted, #6b7280);
+  margin: 0;
+}
+
+.export-card-meta--warning {
+  color: var(--color-warning, #d97706);
+  font-weight: 500;
+}
+
+.export-card-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.export-btn-icon {
+  margin-right: 0.25rem;
+}
+
+@media (max-width: 600px) {
+  .admin-export-grid {
+    grid-template-columns: 1fr;
+  }
+}

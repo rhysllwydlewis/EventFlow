@@ -8,54 +8,13 @@
 
 const logger = require('../utils/logger');
 const { getUserFromCookie } = require('./auth');
+const { getAdminPagesAllowlist } = require('../config/adminRegistry');
 
-// Allowlist of valid admin pages (for security - no regex matching).
-// Both the legacy .html paths and the canonical clean URLs are included so that
+// Allowlist of valid admin pages derived from the central admin registry.
+// Both the canonical clean URLs and legacy .html variants are included so that
 // protection is enforced regardless of which form the browser requests.
-const ADMIN_PAGES = [
-  '/admin',
-  '/admin.html',
-  '/admin-audit',
-  '/admin-audit.html',
-  '/admin-content-dates',
-  '/admin-content-dates.html',
-  '/admin-content',
-  '/admin-content.html',
-  '/admin-homepage',
-  '/admin-homepage.html',
-  '/admin-marketplace',
-  '/admin-marketplace.html',
-  '/admin-messenger',
-  '/admin-messenger.html',
-  '/admin-messenger-view',
-  '/admin-messenger-view.html',
-  '/admin-packages',
-  '/admin-packages.html',
-  '/admin-payments',
-  '/admin-payments.html',
-  '/admin-pexels',
-  '/admin-pexels.html',
-  '/admin-photos',
-  '/admin-photos.html',
-  '/admin-reports',
-  '/admin-reports.html',
-  '/admin-settings',
-  '/admin-settings.html',
-  '/admin-supplier-detail',
-  '/admin-supplier-detail.html',
-  '/admin-suppliers',
-  '/admin-suppliers.html',
-  '/admin-tickets',
-  '/admin-tickets.html',
-  '/admin-user-detail',
-  '/admin-user-detail.html',
-  '/admin-users',
-  '/admin-users.html',
-  '/admin-media',
-  '/admin-media.html',
-  '/admin-search',
-  '/admin-search.html',
-];
+// Add new pages to config/adminRegistry.js — do NOT edit this list directly.
+const ADMIN_PAGES = getAdminPagesAllowlist();
 
 /**
  * Admin HTML Page Protection Middleware

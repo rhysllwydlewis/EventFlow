@@ -6,6 +6,9 @@
  * 2. Every entry in the ADMIN_PAGES allowlist has a corresponding HTML file on disk.
  * 3. Admin page JS files contain no native browser dialogs (alert/confirm/prompt).
  * 4. scripts/serve-static.js adminPages array includes all admin HTML files (E2E compat).
+ *
+ * ADMIN_PAGES is now derived from config/adminRegistry.js — see admin-registry.test.js
+ * for deeper registry integrity tests.
  */
 
 'use strict';
@@ -15,34 +18,15 @@ const path = require('path');
 
 const PUBLIC_DIR = path.resolve(__dirname, '../../public');
 const ADMIN_JS_PAGES_DIR = path.resolve(PUBLIC_DIR, 'assets/js/pages');
-const ADMIN_PAGES_FILE = path.resolve(__dirname, '../../middleware/adminPages.js');
 const SERVE_STATIC_FILE = path.resolve(__dirname, '../../scripts/serve-static.js');
 
-/**
- * Parse ADMIN_PAGES directly from the middleware source to avoid loading
- * server dependencies (winston, mongoose, etc.) in a unit test context.
- */
-function parseAdminPages() {
-  const source = fs.readFileSync(ADMIN_PAGES_FILE, 'utf8');
-  const match = source.match(/const ADMIN_PAGES\s*=\s*\[([\s\S]*?)\];/);
-  if (!match) {
-    throw new Error('Could not locate ADMIN_PAGES array in middleware/adminPages.js');
-  }
-  return match[1]
-    .split('\n')
-    .map(line =>
-      line
-        .trim()
-        .replace(/^['"]|['"],?$/g, '')
-        .trim()
-    )
-    .filter(line => line.startsWith('/'));
-}
+// Load the allowlist from the registry (the single source of truth).
+const { getAdminPagesAllowlist } = require('../../config/adminRegistry');
 
 // ─── Allowlist Drift Tests ─────────────────────────────────────────────────
 
 describe('Admin Pages Allowlist Sync', () => {
-  const ADMIN_PAGES = parseAdminPages();
+  const ADMIN_PAGES = getAdminPagesAllowlist();
   // Discover all admin HTML files in public/
   const adminHtmlFiles = fs
     .readdirSync(PUBLIC_DIR)
@@ -161,7 +145,7 @@ describe('Admin Page JS - No Native Dialogs', () => {
           return;
         }
         // Skip lines that are part of admin helper definitions/calls
-        if (/_adminConfirm|_adminToast|AdminShared\.show/.test(line)) {
+        if (/_adminConfirm|_adminToast|AdminShared\.show|AdminShared\.confirm/.test(line)) {
           return;
         }
         // Check for native dialog patterns

@@ -6,31 +6,41 @@
  * - No console errors occur
  * - The admin navbar element is visible
  *
+ * The page list is derived from the canonical routes in the admin registry
+ * (config/adminRegistry.js) so it stays in sync automatically when new pages
+ * are added.  Only canonical clean URLs are tested — legacy .html aliases are
+ * covered by the redirect tests in e2e/admin-consolidation.spec.js.
+ *
  * Uses route mocking so no backend is required (static-mode friendly).
  */
 
 import { test, expect } from '@playwright/test';
 
-// Allowlisted admin pages — must match middleware/adminPages.js ADMIN_PAGES
+// Canonical admin pages to smoke-test.
+// Sourced from config/adminRegistry.js (inNav + non-compat pages).
+// Excludes legacy compat stubs (/admin-pexels, /admin-content-dates) since
+// those are server-side redirects and are tested in admin-consolidation.spec.js.
 const ADMIN_PAGES = [
-  '/admin.html',
-  '/admin-audit.html',
-  '/admin-content-dates.html',
-  '/admin-content.html',
-  '/admin-homepage.html',
-  '/admin-marketplace.html',
-  '/admin-messenger.html',
-  '/admin-packages.html',
-  '/admin-payments.html',
-  '/admin-pexels.html',
-  '/admin-photos.html',
-  '/admin-reports.html',
-  '/admin-settings.html',
-  '/admin-supplier-detail.html',
-  '/admin-suppliers.html',
-  '/admin-tickets.html',
-  '/admin-user-detail.html',
-  '/admin-users.html',
+  '/admin',
+  '/admin-audit',
+  '/admin-content',
+  '/admin-exports',
+  '/admin-homepage',
+  '/admin-marketplace',
+  '/admin-media',
+  '/admin-messenger',
+  '/admin-messenger-view',
+  '/admin-packages',
+  '/admin-payments',
+  '/admin-photos',
+  '/admin-reports',
+  '/admin-search',
+  '/admin-settings',
+  '/admin-supplier-detail',
+  '/admin-suppliers',
+  '/admin-tickets',
+  '/admin-user-detail',
+  '/admin-users',
 ];
 
 // Browser-specific timeouts

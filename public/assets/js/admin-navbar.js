@@ -1,10 +1,44 @@
 /**
  * Admin Navbar JavaScript
- * Handles navigation functionality, mobile menu, and database status
+ * Handles navigation functionality, mobile menu, and database status.
+ *
+ * Dynamic rendering:
+ *   If a page includes `<div id="adminNavbarMount"></div>`, this script
+ *   renders the complete navbar into that element from the NAV_ITEMS registry.
+ *   Pages that already have the full hardcoded <nav> markup continue to work
+ *   without any change (backward compatible).
+ *
+ *   To migrate a page:
+ *     1. Replace the entire <nav class="admin-top-navbar">…</nav> block with
+ *        <div id="adminNavbarMount"></div>
+ *     2. Remove any skip-link adjustments — the script keeps the skip link.
  */
 
 (function () {
   'use strict';
+
+  // ── Nav items registry (browser copy of config/adminRegistry.js getNavItems) ──
+  // Update config/adminRegistry.js first; then mirror inNav=true entries here
+  // keeping the same order so the navbar stays consistent across all pages.
+  var NAV_ITEMS = [
+    { href: '/admin',            icon: '📊', label: 'Dashboard'  },
+    { href: '/admin-users',      icon: '👥', label: 'Users'      },
+    { href: '/admin-suppliers',  icon: '🏢', label: 'Suppliers'  },
+    { href: '/admin-packages',   icon: '📦', label: 'Packages'   },
+    { href: '/admin-marketplace',icon: '🛒', label: 'Marketplace'},
+    { href: '/admin-photos',     icon: '📸', label: 'Photos'     },
+    { href: '/admin-media',      icon: '🎨', label: 'Media'      },
+    { href: '/admin-tickets',    icon: '🎫', label: 'Tickets', badgeId: 'openTicketsBadge' },
+    { href: '/admin-reports',    icon: '📈', label: 'Reports'    },
+    { href: '/admin-messenger',  icon: '💬', label: 'Messages'   },
+    { href: '/admin-payments',   icon: '💳', label: 'Payments'   },
+    { href: '/admin-audit',      icon: '📋', label: 'Audit'      },
+    { href: '/admin-exports',    icon: '📤', label: 'Exports'    },
+    { href: '/admin-homepage',   icon: '🏠', label: 'Homepage'   },
+    { href: '/admin-content',    icon: '✏️',  label: 'Content'    },
+    { href: '/admin-search',     icon: '🔍', label: 'Search'     },
+    { href: '/admin-settings',   icon: '⚙️',  label: 'Settings'   },
+  ];
 
   // Initialize when DOM is ready
   if (document.readyState === 'loading') {
@@ -14,6 +48,7 @@
   }
 
   function init() {
+    renderNavMount();
     initMobileMenu();
     initUserDropdown();
     initDatabaseStatus();
@@ -24,6 +59,119 @@
     initLogoutButton();
   }
 
+  // ── Dynamic navbar rendering ───────────────────────────────────────────────
+
+  /**
+   * Renders the full admin navbar into #adminNavbarMount when that element
+   * exists.  Pages that already contain the hardcoded <nav> are left untouched.
+   */
+  function renderNavMount() {
+    var mount = document.getElementById('adminNavbarMount');
+    if (!mount) return;
+
+    mount.innerHTML = buildNavbarHTML();
+  }
+
+  function buildNavbarHTML() {
+    return [
+      '<nav class="admin-top-navbar" aria-label="Admin navigation">',
+      '  <div class="admin-navbar-content">',
+      '    <!-- Brand -->',
+      '    <div class="admin-navbar-brand">',
+      '      <a href="/admin" class="admin-navbar-logo">EventFlow</a>',
+      '      <span class="admin-navbar-title">Admin Panel</span>',
+      '    </div>',
+      '    <!-- Mobile Hamburger -->',
+      '    <button class="admin-hamburger" id="adminHamburger"',
+      '            aria-label="Toggle navigation menu"',
+      '            aria-expanded="false"',
+      '            aria-controls="adminNavbarNav">',
+      '      <span></span><span></span><span></span>',
+      '    </button>',
+      '    <!-- Navigation Links -->',
+      '    <div class="admin-navbar-nav" id="adminNavbarNav">',
+      buildNavLinksHTML(),
+      '    </div>',
+      '    <!-- Right Actions -->',
+      '    <div class="admin-navbar-actions">',
+      '      <div class="db-status-badge db-loading" id="dbStatusBadge"',
+      '           title="Database status"',
+      '           aria-live="polite"',
+      '           aria-label="Database status: Loading">',
+      '        <span class="db-status-dot" aria-hidden="true"></span> Loading...',
+      '      </div>',
+      '      <button class="navbar-icon-btn" id="navRefreshBtn"',
+      '              title="Refresh data" aria-label="Refresh data">',
+      '        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"',
+      '             stroke="currentColor" stroke-width="2" aria-hidden="true">',
+      '          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>',
+      '        </svg>',
+      '      </button>',
+      '      <div class="admin-user-dropdown">',
+      '        <button class="admin-user-btn" id="adminUserBtn"',
+      '                aria-haspopup="true" aria-expanded="false"',
+      '                aria-controls="adminDropdownMenu">',
+      '          <div class="admin-user-avatar" aria-hidden="true">A</div>',
+      '          <span>Admin</span>',
+      '          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"',
+      '               stroke="currentColor" stroke-width="2" aria-hidden="true">',
+      '            <polyline points="6 9 12 15 18 9"></polyline>',
+      '          </svg>',
+      '        </button>',
+      '        <div class="admin-dropdown-menu" id="adminDropdownMenu"',
+      '             role="menu" aria-labelledby="adminUserBtn">',
+      '          <a href="/admin-settings" class="admin-dropdown-item" role="menuitem">',
+      '            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"',
+      '                 stroke="currentColor" stroke-width="2" aria-hidden="true">',
+      '              <circle cx="12" cy="12" r="3"></circle>',
+      '              <path d="M12 1v6m0 6v6m4.22-13.22l-4.24 4.24m0 5.96l-4.24 4.24M23 12h-6m-6 0H1m18.78 4.22l-4.24-4.24m-5.96 0l-4.24 4.24"></path>',
+      '            </svg>',
+      '            Settings',
+      '          </a>',
+      '          <div class="admin-dropdown-divider" role="separator"></div>',
+      '          <button class="admin-dropdown-item" id="adminLogoutBtn" role="menuitem">',
+      '            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"',
+      '                 stroke="currentColor" stroke-width="2" aria-hidden="true">',
+      '              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>',
+      '              <polyline points="16 17 21 12 16 7"></polyline>',
+      '              <line x1="21" y1="12" x2="9" y2="12"></line>',
+      '            </svg>',
+      '            Sign Out',
+      '          </button>',
+      '        </div>',
+      '      </div>',
+      '    </div>',
+      '  </div>',
+      '</nav>',
+    ].join('\n');
+  }
+
+  function buildNavLinksHTML() {
+    return NAV_ITEMS.map(function (item) {
+      var badge = item.badgeId
+        ? '<span class="admin-nav-badge" id="' +
+          item.badgeId +
+          '" style="display:none;" aria-label="' +
+          item.label +
+          ' count"></span>'
+        : '';
+      return (
+        '      <a href="' +
+        item.href +
+        '" class="admin-nav-btn">\n' +
+        '        <span class="nav-icon" aria-hidden="true">' +
+        item.icon +
+        '</span>\n' +
+        '        <span class="nav-label">' +
+        item.label +
+        '</span>' +
+        badge +
+        '\n      </a>'
+      );
+    }).join('\n');
+  }
+
+  // ── Mobile hamburger menu toggle ───────────────────────────────────────────
   /**
    * Mobile hamburger menu toggle
    */

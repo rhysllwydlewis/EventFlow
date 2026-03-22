@@ -652,6 +652,7 @@ const adminPages = [
   'admin-audit',
   'admin-content',
   'admin-content-dates',
+  'admin-exports',
   'admin-homepage',
   'admin-marketplace',
   'admin-messenger',
