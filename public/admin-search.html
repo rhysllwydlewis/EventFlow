@@ -2,32 +2,45 @@
 <html lang="en-GB">
 <head>
   <script src="/assets/js/dashboard-guard.js?v=17.0.2"></script>
-  
-  <!-- PHASE 2: Error boundary (must load before other components) -->
-  <script src="/assets/js/utils/global-error-handler.js" defer></script>
-  <script src="/assets/js/utils/sentry-browser-init.js" defer></script>
-  
-  <!-- PHASE 3: Core components -->
-  <script src="/assets/js/components/LoadingSpinner.js" defer></script>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Supplier Details - Admin Panel</title>
-<meta name="robots" content="noindex,nofollow">
+  <title>Admin Search — EventFlow Admin</title>
+  <meta name="robots" content="noindex,nofollow">
   <link rel="stylesheet" href="/assets/css/tokens.css?v=18.3.0">
-<link rel="stylesheet" href="/assets/css/styles.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/components.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/animations.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/admin.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/admin-enhanced.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.3.0">
-  <link rel="stylesheet" href="/assets/css/admin-supplier-detail.css?v=18.3.0">
-  <link rel="icon" href="/favicon.svg">
-<script src="/assets/js/components.js?v=18.3.0" defer></script>
-<script src="/assets/js/admin-navbar.js?v=18.3.0" defer></script>
-  <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.3.0"><link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-cards.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.3.0">
+  <link rel="icon" href="/favicon.svg">
+  <script src="/assets/js/components.js?v=18.3.0" defer></script>
+  <script src="/assets/js/admin-navbar.js?v=18.3.0" defer></script>
+  <style>
+    .search-results-section { margin-bottom: 2rem; }
+    .search-results-section h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.75rem; color: #374151; border-bottom: 2px solid #e5e7eb; padding-bottom: 0.5rem; }
+    .search-result-item { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; border-bottom: 1px solid #f3f4f6; font-size: 0.9rem; }
+    .search-result-item:last-child { border-bottom: none; }
+    .search-result-item:hover { background: #f9fafb; }
+    .search-result-primary { font-weight: 600; color: #111827; }
+    .search-result-secondary { color: #6b7280; font-size: 0.8rem; margin-top: 0.15rem; }
+    .search-result-meta { display: flex; gap: 0.5rem; align-items: center; flex-shrink: 0; }
+    .search-no-results { color: #9ca3af; font-style: italic; padding: 1rem; }
+    .global-search-bar { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; }
+    .global-search-bar input { flex: 1; padding: 0.75rem 1rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 1rem; }
+    .global-search-bar button { padding: 0.75rem 1.5rem; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; font-weight: 600; }
+    .global-search-bar button:hover { background: #1d4ed8; }
+    .search-filters { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.5rem; }
+    .search-filter-chip { padding: 0.35rem 0.85rem; border-radius: 9999px; border: 1px solid #d1d5db; background: white; font-size: 0.85rem; cursor: pointer; }
+    .search-filter-chip.active { background: #2563eb; color: white; border-color: #2563eb; }
+    .search-empty-state { text-align: center; padding: 3rem; color: #9ca3af; }
+  </style>
 </head>
 <body class="has-admin-navbar admin">
 <!-- Modern Top Navbar -->
@@ -101,7 +114,7 @@
         <span class="nav-icon" aria-hidden="true">✏️</span>
         <span class="nav-label">Content</span>
       </a>
-      <a href="/admin-search" class="admin-nav-btn">
+      <a href="/admin-search" class="admin-nav-btn active">
         <span class="nav-icon" aria-hidden="true">🔍</span>
         <span class="nav-label">Search</span>
       </a>
@@ -157,138 +170,53 @@
   </div>
 </nav>
 
-
-<main id="main-content" class="section admin-main-content">
-  <div class="container-max">
-    <div style="margin-bottom: 1rem;">
-      <a href="/admin-suppliers" class="link-white">
-        <span>←</span> Back to Suppliers
-      </a>
-    </div>
-
-    <div class="supplier-header" id="supplierHeader">
-      <div class="flex-between-start">
-        <div>
-          <h1 id="supplierName">Loading...</h1>
-          <div id="supplierStatus"></div>
-        </div>
-        <div class="verification-actions">
-          <button class="btn btn-primary" id="editSupplierBtn">Edit Details</button>
-          <div class="verification-actions-divider"></div>
-          <button class="btn btn-success" id="approveBtn">Approve</button>
-          <button class="btn btn-warning" id="requestChangesBtn" title="Ask supplier to update their profile before approval">Request Changes</button>
-          <button class="btn btn-danger" id="rejectBtn">Reject</button>
-          <button class="btn btn-secondary" id="suspendBtn" title="Suspend this approved supplier">Suspend</button>
-          <div class="verification-actions-divider"></div>
-          <button class="btn btn-info" id="verifySupplierBtn" title="Manually verify this supplier's identity">Verify Supplier</button>
-          <div class="verification-actions-divider"></div>
-          <button class="btn btn-danger" id="deleteSupplierBtn" title="Permanently delete this supplier">Delete</button>
-        </div>
+<main id="main-content" class="section">
+  <div class="dashboard-header">
+    <div class="header-content">
+      <div>
+        <h1 class="dashboard-title">Admin Search</h1>
+        <p class="dashboard-subtitle">Search across users, suppliers, packages, tickets, and reports</p>
       </div>
-      <div class="supplier-meta" id="supplierMeta"></div>
-    </div>
-
-    <div class="supplier-tabs">
-      <button class="tab-btn active" data-tab="overview">Overview</button>
-      <button class="tab-btn" data-tab="packages">Packages</button>
-      <button class="tab-btn" data-tab="photos">Photos</button>
-      <button class="tab-btn" data-tab="reviews">Reviews</button>
-      <button class="tab-btn" data-tab="analytics">Analytics</button>
-      <button class="tab-btn" data-tab="verification">Verification Audit</button>
-    </div>
-
-    <div id="overview" class="tab-content active">
-      <div class="info-card">
-        <h3>Business Information</h3>
-        <div class="info-grid" id="businessInfo"></div>
+      <div class="header-actions">
+        <button class="btn-secondary" id="backToDashboard">← Back to Dashboard</button>
       </div>
+    </div>
+  </div>
 
-      <div class="info-card">
-        <h3>Contact Information</h3>
-        <div class="info-grid" id="contactInfo"></div>
+  <div class="container">
+    <div class="card">
+      <div class="global-search-bar">
+        <input type="text" id="globalSearchInput" placeholder="Search across all entities..." autocomplete="off" aria-label="Search">
+        <button id="globalSearchBtn">Search</button>
       </div>
-
-      <div class="info-card">
-        <h3>Pro Plan Status</h3>
-        <div id="proPlanInfo"></div>
+      <div class="search-filters" id="searchFilters">
+        <button class="search-filter-chip active" data-type="users">👥 Users</button>
+        <button class="search-filter-chip active" data-type="suppliers">🏢 Suppliers</button>
+        <button class="search-filter-chip active" data-type="packages">📦 Packages</button>
+        <button class="search-filter-chip active" data-type="tickets">🎫 Tickets</button>
+        <button class="search-filter-chip active" data-type="reports">📈 Reports</button>
       </div>
     </div>
 
-    <div id="packages" class="tab-content">
-      <div class="info-card">
-        <div class="flex-between-mb-1">
-          <h3 class="h3-my-0">Packages</h3>
-          <button class="btn btn-primary" id="addPackageBtn">Add New Package</button>
-        </div>
-        <div class="package-list" id="packageList"></div>
+    <div id="searchResultsContainer">
+      <div class="search-empty-state">
+        <div style="font-size:3rem;margin-bottom:1rem;">🔍</div>
+        <p>Enter a search term above to find users, suppliers, packages, tickets, and reports.</p>
       </div>
     </div>
-
-    <div id="photos" class="tab-content">
-      <div class="info-card">
-        <div class="flex-between-mb-1">
-          <h3 class="h3-my-0">Photo Gallery</h3>
-          <button class="btn btn-primary" id="uploadPhotoBtn">Upload Photo</button>
-        </div>
-        <div class="photo-grid" id="photoGallery"></div>
-      </div>
-    </div>
-
-    <div id="reviews" class="tab-content">
-      <div class="info-card">
-        <h3>Customer Reviews</h3>
-        <div id="reviewsList"></div>
-      </div>
-    </div>
-
-    <div id="analytics" class="tab-content">
-      <div class="info-card">
-        <h3>Performance Metrics</h3>
-        <div class="stats-grid">
-          <div class="stat-box stat-box-purple">
-            <h4 id="totalViews">0</h4>
-            <p>Total Views</p>
-          </div>
-          <div class="stat-box stat-box-pink">
-            <h4 id="totalBookings">0</h4>
-            <p>Total Bookings</p>
-          </div>
-          <div class="stat-box stat-box-blue">
-            <h4 id="avgRating">0.0</h4>
-            <p>Average Rating</p>
-          </div>
-          <div class="stat-box stat-box-orange">
-            <h4 id="healthScore">0</h4>
-            <p>Health Score</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div id="verification" class="tab-content">
-      <div class="info-card">
-        <h3>Verification History</h3>
-        <div id="verificationTimeline" class="verification-timeline">
-          <p class="timeline-empty">Loading verification history…</p>
-        </div>
-      </div>
-    </div>
-
   </div>
 </main>
-<footer>
+
+<footer class="footer" role="contentinfo">
   <div class="container flex-between">
     <div><strong>EventFlow</strong><br><span class="small">Admin Panel</span></div>
     <div class="small"><a href="/admin">Dashboard</a> · <a href="/legal">Legal Hub</a> · <button type="button" data-cookie-prefs>Cookie preferences</button></div>
   </div>
+  <div class="small" style="margin-top:8px;text-align:center;">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
 </footer>
 
 <script src="/assets/js/admin-shared.js?v=18.3.0"></script>
-<script src="/assets/js/notification-system.js" defer></script>
-<!-- Note: global-error-handler.js already loaded in head -->
-<script src="/assets/js/admin-features.js" defer></script>
-<script src="/assets/js/pages/admin-supplier-detail-init.js?v=18.3.0" defer></script>
+<script src="/assets/js/pages/admin-search-init.js?v=18.3.0" defer></script>
 <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
-
 </body>
 </html>

@@ -5824,5 +5824,75 @@ router.post(
   }
 );
 
+
+/**
+ * GET /api/admin/search
+ * Cross-entity admin search
+ * Query params: q (required), types (comma-separated: users,suppliers,packages,tickets,reports)
+ */
+router.get('/search', authRequired, roleRequired('admin'), async (req, res) => {
+  const { q, types } = req.query;
+  if (!q || q.trim().length < 2) {
+    return res.status(400).json({ error: 'Search query must be at least 2 characters' });
+  }
+  const term = q.trim().toLowerCase();
+  const searchTypes = types ? types.split(',').map(t => t.trim()) : ['users', 'suppliers', 'packages', 'tickets', 'reports'];
+  const results = {};
+
+  try {
+    if (searchTypes.includes('users')) {
+      const users = await dbUnified.read('users');
+      results.users = users.filter(u =>
+        (u.email && u.email.toLowerCase().includes(term)) ||
+        (u.name && u.name.toLowerCase().includes(term))
+      ).slice(0, 10).map(u => ({ id: u.id, name: u.name, email: u.email, role: u.role, createdAt: u.createdAt }));
+    }
+
+    if (searchTypes.includes('suppliers')) {
+      const suppliers = await dbUnified.read('suppliers');
+      results.suppliers = suppliers.filter(s =>
+        (s.businessName && s.businessName.toLowerCase().includes(term)) ||
+        (s.name && s.name.toLowerCase().includes(term)) ||
+        (s.email && s.email.toLowerCase().includes(term)) ||
+        (s.category && s.category.toLowerCase().includes(term))
+      ).slice(0, 10).map(s => ({ id: s.id, businessName: s.businessName || s.name, email: s.email, category: s.category, verificationStatus: s.verificationStatus }));
+    }
+
+    if (searchTypes.includes('packages')) {
+      const packages = await dbUnified.read('packages');
+      results.packages = packages.filter(p =>
+        (p.title && p.title.toLowerCase().includes(term)) ||
+        (p.description && p.description.toLowerCase().includes(term)) ||
+        (p.supplierName && p.supplierName.toLowerCase().includes(term))
+      ).slice(0, 10).map(p => ({ id: p.id, title: p.title, supplierName: p.supplierName, price: p.price, status: p.status }));
+    }
+
+    if (searchTypes.includes('tickets')) {
+      const tickets = await dbUnified.read('tickets');
+      results.tickets = tickets.filter(t =>
+        (t.subject && t.subject.toLowerCase().includes(term)) ||
+        (t.message && t.message.toLowerCase().includes(term)) ||
+        (t.senderEmail && t.senderEmail.toLowerCase().includes(term)) ||
+        (t.userEmail && t.userEmail.toLowerCase().includes(term))
+      ).slice(0, 10).map(t => ({ id: t.id, subject: t.subject, status: t.status, priority: t.priority, senderEmail: t.senderEmail || t.userEmail, createdAt: t.createdAt }));
+    }
+
+    if (searchTypes.includes('reports')) {
+      const reports = await dbUnified.read('reports');
+      results.reports = reports.filter(r =>
+        (r.type && r.type.toLowerCase().includes(term)) ||
+        (r.reason && r.reason.toLowerCase().includes(term)) ||
+        (r.reporterEmail && r.reporterEmail.toLowerCase().includes(term)) ||
+        (r.details && r.details.toLowerCase().includes(term))
+      ).slice(0, 10).map(r => ({ id: r.id, type: r.type, reason: r.reason, status: r.status, reporterEmail: r.reporterEmail, createdAt: r.createdAt }));
+    }
+
+    res.json({ query: q, results });
+  } catch (err) {
+    logger.error('Admin search error:', err);
+    res.status(500).json({ error: 'Search failed' });
+  }
+});
+
 module.exports = router;
 module.exports.setHelperFunctions = setHelperFunctions;

@@ -22,6 +22,31 @@
 <script src="/assets/js/admin-navbar.js?v=18.3.0" defer></script>
   <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.3.0">
+<style>
+  .info-card { margin-bottom: 1.5rem; }
+  .info-row { display:flex;justify-content:space-between;padding:0.75rem 0;border-bottom:1px solid #f3f4f6; }
+  .info-row:last-child { border-bottom:none; }
+  .info-label { font-weight:600;color:#6b7280; }
+  .info-value { color:#111827; }
+  .status-badge { display:inline-block;padding:0.25rem 0.75rem;border-radius:9999px;font-size:0.875rem;font-weight:600; }
+  .status-badge.enabled { background:#d1fae5;color:#065f46; }
+  .status-badge.disabled { background:#fee2e2;color:#991b1b; }
+  .status-badge.changed { background:#fef3c7;color:#92400e; }
+  .status-badge.uptodate { background:#dbeafe;color:#1e40af; }
+  .article-list { list-style:none;padding:0;margin:0; }
+  .article-item { padding:0.75rem;border-bottom:1px solid #f3f4f6;display:flex;justify-content:space-between;align-items:center; }
+  .article-item:last-child { border-bottom:none; }
+  .article-name { font-weight:500;color:#111827;text-transform:capitalize; }
+  .article-date { color:#6b7280;font-size:0.875rem; }
+  .switch { position:relative;display:inline-block;width:48px;height:24px; }
+  .switch input { opacity:0;width:0;height:0; }
+  .slider { position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background-color:#ccc;transition:.4s; }
+  .slider:before { position:absolute;content:"";height:18px;width:18px;left:3px;bottom:3px;background-color:white;transition:.4s; }
+  input:checked + .slider { background-color:#10b981; }
+  input:checked + .slider:before { transform:translateX(24px); }
+  .slider.round { border-radius:24px; }
+  .slider.round:before { border-radius:50%; }
+</style>
 </head>
 <body class="has-admin-navbar admin">
 <!-- Modern Top Navbar -->
@@ -66,6 +91,10 @@
         <span class="nav-icon" aria-hidden="true">📸</span>
         <span class="nav-label">Photos</span>
       </a>
+      <a href="/admin-media" class="admin-nav-btn">
+        <span class="nav-icon" aria-hidden="true">🎨</span>
+        <span class="nav-label">Media</span>
+      </a>
       <a href="/admin-tickets" class="admin-nav-btn">
         <span class="nav-icon" aria-hidden="true">🎫</span>
         <span class="nav-label">Tickets</span>
@@ -90,6 +119,10 @@
       <a href="/admin-content" class="admin-nav-btn">
         <span class="nav-icon" aria-hidden="true">✏️</span>
         <span class="nav-label">Content</span>
+      </a>
+      <a href="/admin-search" class="admin-nav-btn">
+        <span class="nav-icon" aria-hidden="true">🔍</span>
+        <span class="nav-label">Search</span>
       </a>
       <a href="/admin-settings" class="admin-nav-btn">
         <span class="nav-icon" aria-hidden="true">⚙️</span>
@@ -156,6 +189,7 @@
       <button class="tab-button" data-tab="announcements">Announcements</button>
       <button class="tab-button" data-tab="faqs">FAQs</button>
       <button class="tab-button" data-tab="featured">Featured Packages</button>
+      <button class="tab-button" data-tab="legalDates">Legal Dates</button>
     </div>
     
     <!-- Homepage Content Tab -->
@@ -222,6 +256,64 @@
         
         <div id="featuredPackagesList">
           <p class="small">Loading packages...</p>
+        </div>
+      </div>
+    </div>
+    <!-- Legal Dates Tab -->
+    <div id="legalDates" class="tab-content">
+      <div class="card info-card">
+        <h2>🔄 Automation Status</h2>
+        <div id="cdStatusContent">
+          <p class="small">Loading...</p>
+        </div>
+      </div>
+
+      <div class="card info-card">
+        <h2>📆 Current Legal Document Dates</h2>
+        <div id="cdCurrentDatesContent">
+          <p class="small">Loading...</p>
+        </div>
+      </div>
+
+      <div class="card info-card">
+        <h2>✏️ Manual Update</h2>
+        <p class="small">Manually override the legal document dates. Format: "Month YYYY" (e.g., "February 2026")</p>
+        <form id="cdUpdateDatesForm" action="#">
+          <div class="form-row">
+            <label for="cdLastUpdated">Last Updated Date</label>
+            <input type="text" id="cdLastUpdated" placeholder="e.g., February 2026">
+          </div>
+          <div class="form-row">
+            <label for="cdEffectiveDate">Effective Date</label>
+            <input type="text" id="cdEffectiveDate" placeholder="e.g., February 2026">
+          </div>
+          <div class="action-buttons">
+            <button type="submit" class="btn btn-primary" id="cdUpdateBtn">Update Dates</button>
+            <button type="button" class="btn btn-secondary" id="cdCheckNowBtn">Check for Updates Now</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card info-card">
+        <h2>⚙️ Automation Settings</h2>
+        <p class="small">Enable or disable automated monthly date checks (runs on 1st of each month at 2:00 AM)</p>
+        <div style="display:flex;gap:0.5rem;align-items:center;">
+          <label class="switch">
+            <input type="checkbox" id="cdAutoUpdateToggle">
+            <span class="slider round"></span>
+          </label>
+          <span id="cdAutoUpdateLabel">Loading...</span>
+        </div>
+        <div id="cdScheduleInfo" class="small" style="margin-top:1rem;padding:0.75rem;background:#f9fafb;border-radius:4px;color:#6b7280;">
+          Loading schedule information...
+        </div>
+      </div>
+
+      <div class="card info-card">
+        <h2>📝 Guide &amp; Article Dates</h2>
+        <p class="small">Automatically tracked from git commit history</p>
+        <div id="cdArticleDatesContent">
+          <p class="small">Loading...</p>
         </div>
       </div>
     </div>
