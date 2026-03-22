@@ -160,8 +160,7 @@
           <td>${escHtml(run.environment || '—')}</td>
           <td>${checks.length - failed}/${checks.length}</td>
           <td>
-            <button class="sc-expand-btn" aria-expanded="false" aria-controls="${escHtml(rowId)}"
-              onclick="(function(btn){var row=document.getElementById('${escHtml(rowId)}');var open=row.classList.toggle('hidden')==false;row.classList.toggle('hidden',!open);btn.setAttribute('aria-expanded',open?'true':'false');btn.textContent=open?'▲ Hide':'▼ Details';})(this)">
+            <button class="sc-expand-btn" aria-expanded="false" aria-controls="${escHtml(rowId)}" data-target="${escHtml(rowId)}">
               ▼ Details
             </button>
           </td>
@@ -227,6 +226,24 @@
   /* ── Bootstrap ────────────────────────────────────────────────────────────── */
   if (runBtn) {
     runBtn.addEventListener('click', triggerRun);
+  }
+
+  // Delegated click handler for history expand/collapse buttons
+  if (historyBody) {
+    historyBody.addEventListener('click', e => {
+      const btn = e.target.closest('.sc-expand-btn');
+      if (!btn) {
+        return;
+      }
+      const targetId = btn.getAttribute('data-target');
+      const row = targetId ? document.getElementById(targetId) : null;
+      if (!row) {
+        return;
+      }
+      const isOpen = row.classList.toggle('hidden') === false;
+      btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      btn.textContent = isOpen ? '▲ Hide' : '▼ Details';
+    });
   }
 
   // Load on DOMContentLoaded (AdminShared is loaded before this script)
