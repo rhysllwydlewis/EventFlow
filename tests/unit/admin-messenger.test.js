@@ -21,7 +21,6 @@ const TICKETS_INIT = path.join(__dirname, '../../public/assets/js/pages/admin-ti
 const MESSENGER_HTML = path.join(__dirname, '../../public/admin-messenger.html');
 const MESSENGER_VIEW_HTML = path.join(__dirname, '../../public/admin-messenger-view.html');
 const TICKETS_HTML = path.join(__dirname, '../../public/admin-tickets.html');
-const ADMIN_PAGES_MW = path.join(__dirname, '../../middleware/adminPages.js');
 const MESSENGER_V4_ROUTES = path.join(__dirname, '../../routes/messenger-v4.js');
 
 let adminContent;
@@ -29,7 +28,6 @@ let messengerInitContent;
 let messagesInitContent;
 let viewInitContent;
 let ticketsInitContent;
-let adminPagesMwContent;
 let messengerV4RoutesContent;
 
 beforeAll(() => {
@@ -38,7 +36,6 @@ beforeAll(() => {
   messagesInitContent = fs.readFileSync(MESSAGES_INIT, 'utf8');
   viewInitContent = fs.readFileSync(VIEW_INIT, 'utf8');
   ticketsInitContent = fs.readFileSync(TICKETS_INIT, 'utf8');
-  adminPagesMwContent = fs.readFileSync(ADMIN_PAGES_MW, 'utf8');
   messengerV4RoutesContent = fs.readFileSync(MESSENGER_V4_ROUTES, 'utf8');
 });
 
@@ -265,12 +262,17 @@ describe('Admin Messages Init (admin-messages-init.js)', () => {
 // ─── Admin Pages middleware allowlist ─────────────────────────────────────────
 
 describe('Admin Pages Middleware — allowlist', () => {
+  // The middleware derives its allowlist dynamically from the admin registry.
+  // Verify that admin-messenger-view is registered (which means it will be
+  // included in the runtime allowlist) rather than checking for a hardcoded string.
   it('includes /admin-messenger-view', () => {
-    expect(adminPagesMwContent).toContain("'/admin-messenger-view'");
+    const { getAdminPagesAllowlist } = require('../../config/adminRegistry');
+    expect(getAdminPagesAllowlist()).toContain('/admin-messenger-view');
   });
 
   it('includes /admin-messenger-view.html', () => {
-    expect(adminPagesMwContent).toContain("'/admin-messenger-view.html'");
+    const { getAdminPagesAllowlist } = require('../../config/adminRegistry');
+    expect(getAdminPagesAllowlist()).toContain('/admin-messenger-view.html');
   });
 });
 
