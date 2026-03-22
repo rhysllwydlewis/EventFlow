@@ -202,6 +202,14 @@ const REGISTRY = [
     category: 'tools',
     inNav: true,
   },
+  {
+    route: '/admin-debug',
+    htmlFile: 'admin-debug',
+    label: 'Debug',
+    icon: '🩺',
+    category: 'tools',
+    inNav: true,
+  },
 
   // ── Compatibility stubs (legacy aliases — no nav link, server-side redirect) ──
   {

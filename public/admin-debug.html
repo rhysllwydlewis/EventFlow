@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <script src="/assets/js/dashboard-guard.js?v=17.0.2"></script>
+  <meta charset="utf-8">
+  <meta name="ef-page" content="admin_debug">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Debug — EventFlow Admin</title>
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="stylesheet" href="/assets/css/tokens.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-tokens.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/components.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/animations.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-enhanced.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-cards.css?v=18.3.0">
+  <link rel="icon" href="/favicon.svg">
+  <script src="/assets/js/components.js?v=18.3.0" defer></script>
+  <script src="/assets/js/admin-shared.js?v=18.3.0"></script>
+  <script src="/assets/js/admin-navbar.js?v=18.3.0" defer></script>
+  <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.3.0">
+  <style>
+    .sc-summary-card {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+      background: var(--color-surface, #fff);
+      border: 1px solid var(--color-border, #e5e7eb);
+      border-radius: 12px;
+      padding: 1.5rem 2rem;
+      margin-bottom: 1.5rem;
+    }
+    .sc-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      font-size: 1.75rem;
+      flex-shrink: 0;
+    }
+    .sc-badge--pass { background: #dcfce7; color: #16a34a; }
+    .sc-badge--fail { background: #fee2e2; color: #dc2626; }
+    .sc-badge--none { background: #f3f4f6; color: #9ca3af; }
+    .sc-summary-meta { flex: 1; }
+    .sc-summary-title { font-size: 1.25rem; font-weight: 700; margin: 0 0 .25rem; }
+    .sc-summary-subtitle { color: var(--color-text-muted, #6b7280); font-size: .875rem; margin: 0; }
+    .sc-run-btn {
+      display: inline-flex; align-items: center; gap: .5rem;
+      padding: .625rem 1.25rem; background: var(--color-primary, #0b8073);
+      color: #fff; border: none; border-radius: 8px; cursor: pointer;
+      font-size: .875rem; font-weight: 600; transition: background .2s;
+    }
+    .sc-run-btn:hover { background: var(--color-primary-dark, #096b5f); }
+    .sc-run-btn:disabled { opacity: .6; cursor: not-allowed; }
+    .sc-check-row {
+      display: flex; align-items: center; gap: .75rem;
+      padding: .75rem 1rem; border-bottom: 1px solid var(--color-border, #e5e7eb);
+      font-size: .875rem;
+    }
+    .sc-check-row:last-child { border-bottom: none; }
+    .sc-check-status { width: 20px; text-align: center; flex-shrink: 0; }
+    .sc-check-name { font-weight: 600; min-width: 140px; }
+    .sc-check-type { color: var(--color-text-muted, #6b7280); font-size: .8rem; min-width: 60px; }
+    .sc-check-code { font-family: monospace; font-size: .8rem; color: #6b7280; min-width: 48px; }
+    .sc-check-dur  { font-size: .8rem; color: #9ca3af; min-width: 72px; }
+    .sc-check-err  { color: #dc2626; font-size: .8rem; flex: 1; }
+    .sc-check-ok   { color: #16a34a; font-size: .8rem; flex: 1; }
+    .sc-history-table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+    .sc-history-table th {
+      text-align: left; padding: .5rem .75rem;
+      background: var(--color-surface-alt, #f9fafb);
+      border-bottom: 2px solid var(--color-border, #e5e7eb);
+      font-weight: 600; color: var(--color-text-muted, #6b7280);
+      font-size: .8rem; text-transform: uppercase; letter-spacing: .04em;
+    }
+    .sc-history-table td { padding: .625rem .75rem; border-bottom: 1px solid var(--color-border, #e5e7eb); vertical-align: top; }
+    .sc-history-table tr:last-child td { border-bottom: none; }
+    .sc-history-table tr:hover td { background: var(--color-surface-hover, #f9fafb); }
+    .sc-pill {
+      display: inline-block; padding: .2rem .6rem; border-radius: 999px;
+      font-size: .75rem; font-weight: 700; letter-spacing: .02em;
+    }
+    .sc-pill--pass { background: #dcfce7; color: #15803d; }
+    .sc-pill--fail { background: #fee2e2; color: #b91c1c; }
+    .sc-expand-btn {
+      background: none; border: none; cursor: pointer; color: var(--color-primary, #0b8073);
+      font-size: .8rem; padding: .2rem .4rem; border-radius: 4px;
+    }
+    .sc-expand-btn:hover { background: var(--color-surface-alt, #f3f4f6); }
+    .sc-details-row td { background: var(--color-surface-alt, #f9fafb); padding: .5rem 1rem 1rem 2.5rem; }
+    .sc-details-row.hidden { display: none; }
+    #sc-run-status { font-size: .875rem; color: var(--color-text-muted, #6b7280); }
+    .sc-empty { text-align: center; padding: 3rem 1rem; color: var(--color-text-muted, #9ca3af); }
+    .sc-empty-icon { font-size: 3rem; margin-bottom: .75rem; }
+  </style>
+</head>
+<body class="has-admin-navbar admin">
+<a href="#main-content" class="skip-to-content">Skip to main content</a>
+<div id="adminNavbarMount"></div>
+
+<main id="main-content" class="admin-main-content">
+
+  <!-- Page Header -->
+  <div class="dashboard-header">
+    <div class="header-content">
+      <div>
+        <h1 class="dashboard-title">🩺 Debug — System Checks</h1>
+        <p class="dashboard-subtitle">Daily automated site health checks. Failures are logged here.</p>
+      </div>
+      <div class="header-actions">
+        <span id="sc-run-status" aria-live="polite"></span>
+        <button id="sc-run-btn" class="sc-run-btn" aria-label="Run system checks now">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Run Now
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+
+    <!-- Latest Run Summary -->
+    <section aria-labelledby="sc-latest-heading">
+      <h2 id="sc-latest-heading" class="section-heading" style="margin-bottom:.75rem;">Latest Run</h2>
+      <div id="sc-summary" aria-live="polite">
+        <div class="sc-summary-card">
+          <div class="sc-badge sc-badge--none">⏳</div>
+          <div class="sc-summary-meta">
+            <p class="sc-summary-title">Loading…</p>
+            <p class="sc-summary-subtitle">Fetching latest system-check run</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Failed Checks for Latest Run -->
+    <section aria-labelledby="sc-failures-heading" style="margin-top:2rem;">
+      <h2 id="sc-failures-heading" class="section-heading" style="margin-bottom:.75rem;">Check Details (Latest Run)</h2>
+      <div class="card" id="sc-checks-list">
+        <div class="sc-empty">
+          <div class="sc-empty-icon">📋</div>
+          <p>No run data yet</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- History Table -->
+    <section aria-labelledby="sc-history-heading" style="margin-top:2rem;margin-bottom:3rem;">
+      <h2 id="sc-history-heading" class="section-heading" style="margin-bottom:.75rem;">Run History</h2>
+      <div class="card" style="overflow-x:auto;">
+        <table class="sc-history-table" aria-label="System check run history">
+          <thead>
+            <tr>
+              <th scope="col">Status</th>
+              <th scope="col">Started</th>
+              <th scope="col">Duration</th>
+              <th scope="col">Environment</th>
+              <th scope="col">Passed / Total</th>
+              <th scope="col"></th>
+            </tr>
+          </thead>
+          <tbody id="sc-history-body">
+            <tr><td colspan="6" class="sc-empty"><div class="sc-empty-icon">⏳</div><p>Loading history…</p></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </div><!-- /.container -->
+</main>
+
+<script src="/assets/js/pages/admin-debug.js?v=18.3.0" defer></script>
+</body>
+</html>

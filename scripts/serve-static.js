@@ -670,6 +670,7 @@ const adminPages = [
   'admin-tickets',
   'admin-user-detail',
   'admin-users',
+  'admin-debug',
 ];
 
 adminPages.forEach(page => {

@@ -1552,6 +1552,28 @@ async function startServer() {
           );
           logger.warn('   Date automation features will not be available');
         }
+
+        // 4d. Initialize System Check Scheduler
+        logger.info('');
+        logger.info('🩺 Initializing System Check Scheduler...');
+        try {
+          const { scheduleChecks } = require('./services/systemCheckService');
+          const scheduleResult = scheduleChecks();
+
+          if (scheduleResult.scheduled) {
+            logger.info('   ✅ System checks scheduled');
+            logger.info(`   ✅ Cron: ${scheduleResult.cronExpr}`);
+            if (scheduleResult.nextRun) {
+              logger.info(`   ⏰ Next run: ${scheduleResult.nextRun.toISOString()}`);
+            }
+          } else {
+            logger.info('   ℹ️  System checks scheduler disabled');
+            logger.info('   Set SYSTEM_CHECKS_ENABLED=true to enable');
+          }
+        } catch (scsErr) {
+          logger.warn('   ⚠️  System Check Scheduler failed to initialize:', scsErr.message);
+          logger.warn('   Daily system checks will not run automatically');
+        }
       } catch (error) {
         logger.error('');
         logger.error('='.repeat(70));

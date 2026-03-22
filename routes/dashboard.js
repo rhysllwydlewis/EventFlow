@@ -91,4 +91,20 @@ router.get('/admin', apiLimiter, authRequired, async (req, res) => {
   }
 });
 
+/**
+ * GET /admin-debug
+ * Serve admin debug/system-checks page
+ */
+router.get('/admin-debug', apiLimiter, authRequired, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.redirect('/auth');
+    }
+    res.sendFile(path.join(__dirname, '..', 'public', 'admin-debug.html'));
+  } catch (error) {
+    logger.error('Error serving admin debug page:', error);
+    return res.status(500).send('Internal server error');
+  }
+});
+
 module.exports = router;

@@ -152,6 +152,9 @@ async function createIndexes() {
     await reviewModerationsCollection.createIndex({ reviewId: 1 });
     const popularSearchesCollection = mongodb.collection('popularSearches');
     await popularSearchesCollection.createIndex({ query: 1 }, { unique: true });
+    const systemChecksCollection = mongodb.collection('system_checks');
+    await systemChecksCollection.createIndex({ startedAt: -1 });
+    await systemChecksCollection.createIndex({ status: 1 });
     logger.info('✅ Database indexes created successfully');
   } catch (error) {
     logger.info('ℹ️  Database indexes:', error.message);

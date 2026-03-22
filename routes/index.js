@@ -15,6 +15,7 @@ const systemRoutes = require('./system');
 const publicRoutes = require('./public');
 const authRoutes = require('./auth');
 const adminRoutes = require('./admin');
+const systemChecksAdminRoutes = require('./system-checks-admin');
 const newsletterRoutes = require('./newsletter');
 const paymentsRoutes = require('./payments');
 const pexelsRoutes = require('./pexels');
@@ -97,6 +98,10 @@ function mountRoutes(app, deps) {
   // Admin routes
   app.use('/api/v1/admin', adminRoutes);
   app.use('/api/admin', adminRoutes); // Backward compatibility
+
+  // System-checks admin routes
+  app.use('/api/v1/admin', systemChecksAdminRoutes);
+  app.use('/api/admin', systemChecksAdminRoutes); // Backward compatibility
 
   // Admin debug routes (emergency auth debugging)
   // SECURITY: Only mounted in non-production environments with explicit opt-in.

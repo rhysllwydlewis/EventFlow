@@ -20,24 +20,25 @@
   // ── Nav items registry (browser copy of config/adminRegistry.js getNavItems) ──
   // Update config/adminRegistry.js first; then mirror inNav=true entries here
   // keeping the same order so the navbar stays consistent across all pages.
-  var NAV_ITEMS = [
-    { href: '/admin',            icon: '📊', label: 'Dashboard'  },
-    { href: '/admin-users',      icon: '👥', label: 'Users'      },
-    { href: '/admin-suppliers',  icon: '🏢', label: 'Suppliers'  },
-    { href: '/admin-packages',   icon: '📦', label: 'Packages'   },
-    { href: '/admin-marketplace',icon: '🛒', label: 'Marketplace'},
-    { href: '/admin-photos',     icon: '📸', label: 'Photos'     },
-    { href: '/admin-media',      icon: '🎨', label: 'Media'      },
-    { href: '/admin-tickets',    icon: '🎫', label: 'Tickets', badgeId: 'openTicketsBadge' },
-    { href: '/admin-reports',    icon: '📈', label: 'Reports'    },
-    { href: '/admin-messenger',  icon: '💬', label: 'Messages'   },
-    { href: '/admin-payments',   icon: '💳', label: 'Payments'   },
-    { href: '/admin-audit',      icon: '📋', label: 'Audit'      },
-    { href: '/admin-exports',    icon: '📤', label: 'Exports'    },
-    { href: '/admin-homepage',   icon: '🏠', label: 'Homepage'   },
-    { href: '/admin-content',    icon: '✏️',  label: 'Content'    },
-    { href: '/admin-search',     icon: '🔍', label: 'Search'     },
-    { href: '/admin-settings',   icon: '⚙️',  label: 'Settings'   },
+  const NAV_ITEMS = [
+    { href: '/admin', icon: '📊', label: 'Dashboard' },
+    { href: '/admin-users', icon: '👥', label: 'Users' },
+    { href: '/admin-suppliers', icon: '🏢', label: 'Suppliers' },
+    { href: '/admin-packages', icon: '📦', label: 'Packages' },
+    { href: '/admin-marketplace', icon: '🛒', label: 'Marketplace' },
+    { href: '/admin-photos', icon: '📸', label: 'Photos' },
+    { href: '/admin-media', icon: '🎨', label: 'Media' },
+    { href: '/admin-tickets', icon: '🎫', label: 'Tickets', badgeId: 'openTicketsBadge' },
+    { href: '/admin-reports', icon: '📈', label: 'Reports' },
+    { href: '/admin-messenger', icon: '💬', label: 'Messages' },
+    { href: '/admin-payments', icon: '💳', label: 'Payments' },
+    { href: '/admin-audit', icon: '📋', label: 'Audit' },
+    { href: '/admin-exports', icon: '📤', label: 'Exports' },
+    { href: '/admin-homepage', icon: '🏠', label: 'Homepage' },
+    { href: '/admin-content', icon: '✏️', label: 'Content' },
+    { href: '/admin-search', icon: '🔍', label: 'Search' },
+    { href: '/admin-debug', icon: '🩺', label: 'Debug' },
+    { href: '/admin-settings', icon: '⚙️', label: 'Settings' },
   ];
 
   // Initialize when DOM is ready
@@ -66,8 +67,10 @@
    * exists.  Pages that already contain the hardcoded <nav> are left untouched.
    */
   function renderNavMount() {
-    var mount = document.getElementById('adminNavbarMount');
-    if (!mount) return;
+    const mount = document.getElementById('adminNavbarMount');
+    if (!mount) {
+      return;
+    }
 
     mount.innerHTML = buildNavbarHTML();
   }
@@ -147,26 +150,16 @@
   }
 
   function buildNavLinksHTML() {
-    return NAV_ITEMS.map(function (item) {
-      var badge = item.badgeId
-        ? '<span class="admin-nav-badge" id="' +
-          item.badgeId +
-          '" style="display:none;" aria-label="' +
-          item.label +
-          ' count"></span>'
+    return NAV_ITEMS.map(item => {
+      const badge = item.badgeId
+        ? `<span class="admin-nav-badge" id="${item.badgeId}" style="display:none;" aria-label="${
+            item.label
+          } count"></span>`
         : '';
       return (
-        '      <a href="' +
-        item.href +
-        '" class="admin-nav-btn">\n' +
-        '        <span class="nav-icon" aria-hidden="true">' +
-        item.icon +
-        '</span>\n' +
-        '        <span class="nav-label">' +
-        item.label +
-        '</span>' +
-        badge +
-        '\n      </a>'
+        `      <a href="${item.href}" class="admin-nav-btn">\n` +
+        `        <span class="nav-icon" aria-hidden="true">${item.icon}</span>\n` +
+        `        <span class="nav-label">${item.label}</span>${badge}\n      </a>`
       );
     }).join('\n');
   }

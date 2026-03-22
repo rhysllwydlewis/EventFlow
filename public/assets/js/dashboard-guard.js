@@ -62,6 +62,8 @@
     '/admin-media.html': 'admin',
     '/admin-search': 'admin',
     '/admin-search.html': 'admin',
+    '/admin-debug': 'admin',
+    '/admin-debug.html': 'admin',
   };
 
   // Check if current page requires role check
