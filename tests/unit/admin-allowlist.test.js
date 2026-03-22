@@ -5,6 +5,7 @@
  * 1. Every admin HTML file in public/ has a matching entry in the ADMIN_PAGES allowlist.
  * 2. Every entry in the ADMIN_PAGES allowlist has a corresponding HTML file on disk.
  * 3. Admin page JS files contain no native browser dialogs (alert/confirm/prompt).
+ * 4. scripts/serve-static.js adminPages array includes all admin HTML files (E2E compat).
  */
 
 'use strict';
@@ -15,6 +16,7 @@ const path = require('path');
 const PUBLIC_DIR = path.resolve(__dirname, '../../public');
 const ADMIN_JS_PAGES_DIR = path.resolve(PUBLIC_DIR, 'assets/js/pages');
 const ADMIN_PAGES_FILE = path.resolve(__dirname, '../../middleware/adminPages.js');
+const SERVE_STATIC_FILE = path.resolve(__dirname, '../../scripts/serve-static.js');
 
 /**
  * Parse ADMIN_PAGES directly from the middleware source to avoid loading
@@ -82,6 +84,49 @@ describe('Admin Pages Allowlist Sync', () => {
   it('all ADMIN_PAGES entries should start with a forward slash', () => {
     const invalid = ADMIN_PAGES.filter(p => !p.startsWith('/'));
     expect(invalid).toEqual([]);
+  });
+});
+
+// ─── serve-static.js Admin Pages Sync ─────────────────────────────────────
+// Ensures the E2E static server serves every admin HTML page, preventing
+// broken navigation in static-mode tests when new admin pages are added.
+
+describe('serve-static.js Admin Pages Sync', () => {
+  /**
+   * Parse the adminPages array from serve-static.js without executing it.
+   * Matches: const adminPages = [ 'name', ... ];
+   */
+  function parseServeStaticAdminPages() {
+    const source = fs.readFileSync(SERVE_STATIC_FILE, 'utf8');
+    const match = source.match(/const adminPages\s*=\s*\[([\s\S]*?)\];/);
+    if (!match) {
+      throw new Error('Could not locate adminPages array in scripts/serve-static.js');
+    }
+    return match[1]
+      .split('\n')
+      .map(line =>
+        line
+          .trim()
+          .replace(/^['"]|['"],?$/g, '')
+          .trim()
+      )
+      .filter(line => line.length > 0 && !line.startsWith('/'));
+  }
+
+  it('every admin HTML file on disk should be in serve-static adminPages', () => {
+    const serveStaticPages = parseServeStaticAdminPages();
+    const adminHtmlFiles = fs
+      .readdirSync(PUBLIC_DIR)
+      .filter(f => f.startsWith('admin') && f.endsWith('.html'))
+      .map(f => f.replace(/\.html$/, ''));
+
+    const missing = adminHtmlFiles.filter(f => !serveStaticPages.includes(f));
+    expect(missing).toEqual([]);
+    if (missing.length > 0) {
+      throw new Error(
+        `Admin HTML files not in serve-static.js adminPages (E2E gap):\n  ${missing.join('\n  ')}`
+      );
+    }
   });
 });
 

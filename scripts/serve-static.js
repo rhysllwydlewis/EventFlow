@@ -637,6 +637,7 @@ const adminPages = [
   'admin-homepage',
   'admin-marketplace',
   'admin-messenger',
+  'admin-messenger-view',
   'admin-packages',
   'admin-payments',
   'admin-pexels',
