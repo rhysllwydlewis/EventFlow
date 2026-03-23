@@ -55,7 +55,16 @@
       }
       const data = await res.json();
       const user = data.user || data;
-      if (user.role !== 'partner' && user.role !== 'admin') {
+      if (!user || !user.id) {
+        window.location.replace('/partner');
+        return null;
+      }
+      // Admins should use the admin partners dashboard, not the partner portal
+      if (user.role === 'admin') {
+        window.location.replace('/admin-partners');
+        return null;
+      }
+      if (user.role !== 'partner') {
         window.location.replace('/partner');
         return null;
       }
@@ -68,6 +77,24 @@
 
   // ── Logout ────────────────────────────────────────────────────────────────────
 
+  async function getCsrfToken() {
+    // Try the global CSRF token first (set by csrf-handler.js if loaded)
+    if (window.__CSRF_TOKEN__) {
+      return window.__CSRF_TOKEN__;
+    }
+    // Fall back to fetching a fresh token
+    try {
+      const r = await fetch('/api/v1/csrf-token', { credentials: 'include' });
+      if (r.ok) {
+        const d = await r.json();
+        return d.csrfToken || '';
+      }
+    } catch (_) {
+      // Ignore fetch errors
+    }
+    return '';
+  }
+
   function initLogout() {
     const btn = document.getElementById('partner-logout-btn');
     if (!btn) {
@@ -75,9 +102,24 @@
     }
     btn.addEventListener('click', async () => {
       try {
-        await fetch('/api/v1/auth/logout', { method: 'POST', credentials: 'include' });
+        const csrfToken = await getCsrfToken();
+        await fetch('/api/v1/auth/logout', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'X-CSRF-Token': csrfToken },
+        });
       } catch (_) {
         // Best-effort logout — navigate regardless
+      }
+      // Clear any stale client-side auth state
+      try {
+        if (window.AuthStateManager) {
+          window.AuthStateManager.logout();
+        }
+        localStorage.removeItem('user');
+        sessionStorage.clear();
+      } catch (_) {
+        // Ignore storage errors
       }
       window.location.replace('/partner');
     });
@@ -112,6 +154,9 @@
   // ── Render stats ──────────────────────────────────────────────────────────────
 
   function renderStats(credits, referralCount) {
+    if (!credits || typeof credits !== 'object') {
+      return;
+    }
     document.getElementById('stat-balance').textContent = fmtCredits(credits.balance);
     document.getElementById('stat-balance-gbp').textContent = toPounds(credits.balance);
     document.getElementById('stat-earned').textContent = fmtCredits(credits.totalEarned);
@@ -341,10 +386,26 @@
       const statusLine = document.getElementById('partner-status-line');
       if (statusLine) {
         statusLine.textContent = 'Error loading dashboard data. Please refresh.';
+        statusLine.style.color = '#fca5a5';
       }
       if (nameHeading) {
         nameHeading.textContent = 'Partner';
       }
+      // Show retry button and clear loading placeholders
+      const containers = ['referrals-container', 'transactions-container'];
+      containers.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.innerHTML = `
+            <div class="partner-empty">
+              <div class="partner-empty-icon" aria-hidden="true">⚠️</div>
+              <p class="partner-empty-text">Failed to load data.</p>
+              <button type="button" class="partner-retry-btn" onclick="window.location.reload()" style="margin-top:0.75rem;padding:0.45rem 1rem;background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);border-radius:8px;color:#6ee7b7;cursor:pointer;font-size:0.85rem;">
+                Retry
+              </button>
+            </div>`;
+        }
+      });
     }
   }
 

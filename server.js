@@ -649,9 +649,13 @@ protectedSpaPrefixes.forEach(prefix => {
 app.use('/partner/dashboard', apiLimiter, (req, res, next) => {
   const user = getUserFromCookie(req);
   if (!user) {
-    return res.redirect(302, '/partner?redirect=' + encodeURIComponent(req.originalUrl));
+    return res.redirect(302, `/partner?redirect=${encodeURIComponent(req.originalUrl)}`);
   }
-  if (user.role !== 'partner' && user.role !== 'admin') {
+  // Admins are redirected to their own admin partners dashboard
+  if (user.role === 'admin') {
+    return res.redirect(302, '/admin-partners');
+  }
+  if (user.role !== 'partner') {
     return res.redirect(302, '/partner');
   }
   return next();

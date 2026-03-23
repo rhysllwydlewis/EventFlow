@@ -31,7 +31,7 @@ function noindexMiddleware() {
   // Root prefixes for non-public SPA directories.
   // A path is matched if it equals the prefix exactly, equals it with a trailing slash,
   // or starts with the prefix followed by a slash (sub-paths like /messenger/index.html).
-  const noindexPrefixes = ['/messenger', '/chat'];
+  const noindexPrefixes = ['/messenger', '/chat', '/partner'];
 
   return (req, res, next) => {
     const p = req.path;

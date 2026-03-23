@@ -706,6 +706,7 @@ const adminPages = [
   'admin-user-detail',
   'admin-users',
   'admin-debug',
+  'admin-partners',
 ];
 
 adminPages.forEach(page => {

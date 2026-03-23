@@ -19,7 +19,7 @@
   }
 
   function getCsrfToken() {
-    return fetch('/api/v1/csrf', { credentials: 'include' })
+    return fetch('/api/v1/csrf-token', { credentials: 'include' })
       .then(r => (r.ok ? r.json() : { csrfToken: '' }))
       .then(d => d.csrfToken || '')
       .catch(() => '');
@@ -40,12 +40,13 @@
       const res = await fetch('/api/v1/auth/me', { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
-        if (data && (data.role === 'partner' || (data.user && data.user.role === 'partner'))) {
+        const role = (data && data.user && data.user.role) || (data && data.role);
+        if (role === 'partner') {
           window.location.replace('/partner/dashboard');
         }
-        // Admin can access dashboard directly too
-        if (data && (data.role === 'admin' || (data.user && data.user.role === 'admin'))) {
-          window.location.replace('/partner/dashboard');
+        // Admins have their own partners overview — don't send them to the partner portal
+        if (role === 'admin') {
+          window.location.replace('/admin-partners');
         }
       }
     } catch (_) {
@@ -147,17 +148,31 @@
         const data = await res.json();
 
         if (!res.ok) {
-          showStatus(status, data.error || data.message || 'Login failed. Please check your credentials.', 'error');
+          showStatus(
+            status,
+            data.error || data.message || 'Login failed. Please check your credentials.',
+            'error'
+          );
           return;
         }
 
         const role = data.user?.role || data.role;
         if (role !== 'partner' && role !== 'admin') {
-          showStatus(status, 'This account is not a partner account. Please use the main login page.', 'error');
+          showStatus(
+            status,
+            'This account is not a partner account. Please use the main login page.',
+            'error'
+          );
           return;
         }
 
-        // Success — redirect to dashboard
+        // Admins have their own partners dashboard
+        if (role === 'admin') {
+          window.location.replace('/admin-partners');
+          return;
+        }
+
+        // Partner — redirect to partner dashboard
         window.location.replace('/partner/dashboard');
       } catch (err) {
         showStatus(status, 'Network error. Please try again.', 'error');
