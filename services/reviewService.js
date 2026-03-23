@@ -123,7 +123,11 @@ async function createReview(reviewData, userId) {
   // - Verified booking + no spam + positive/neutral sentiment = auto-approve
   // - Spam detected = pending moderation
   // - Negative sentiment = pending moderation
+  // - Admin setting autoApproveReviews=false = always pending
+  const settings = (await dbUnified.read('settings')) || {};
+  const autoApproveEnabled = (settings.features || {}).autoApproveReviews !== false;
   const autoApprove =
+    autoApproveEnabled &&
     verificationStatus === ReviewModel.VERIFICATION_TYPES.VERIFIED_BOOKING &&
     !analysis.spam.isSpam &&
     analysis.sentiment.score >= AUTO_APPROVE_SENTIMENT_THRESHOLD;
@@ -162,9 +166,11 @@ async function createReview(reviewData, userId) {
       moderatedAt: autoApprove ? new Date().toISOString() : null,
       reason: autoApprove
         ? 'Auto-approved: verified booking, no spam, positive sentiment'
-        : analysis.spam.isSpam
-          ? `Pending moderation: ${analysis.spam.indicators.join(', ')}`
-          : 'Pending manual moderation',
+        : !autoApproveEnabled
+          ? 'Pending moderation: auto-approve disabled by admin'
+          : analysis.spam.isSpam
+            ? `Pending moderation: ${analysis.spam.indicators.join(', ')}`
+            : 'Pending manual moderation',
       previousStates: [],
     },
   });

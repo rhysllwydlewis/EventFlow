@@ -42,6 +42,23 @@
     </div>
   </div>
 
+  <!-- Auto-approve Supplier Verification toggle card -->
+  <div class="card card-mt" style="margin-bottom: 24px;">
+    <div class="ap-toggle-row">
+      <div class="ap-toggle-label">
+        <label for="autoApproveVerificationToggle"><strong>Auto-approve supplier verification</strong></label>
+        <span id="autoApproveVerificationDesc">When ON, suppliers who submit for verification are automatically approved without manual admin review. When OFF, submissions enter the pending verification queue for manual review.</span>
+      </div>
+      <div class="ap-toggle-control">
+        <span class="ap-toggle-state ap-toggle-state--off" id="verificationToggleStateLabel" aria-live="polite">OFF</span>
+        <label class="toggle-switch" for="autoApproveVerificationToggle" aria-label="Toggle auto-approve supplier verification">
+          <input type="checkbox" id="autoApproveVerificationToggle" aria-describedby="autoApproveVerificationDesc">
+          <span class="toggle-slider" role="presentation"></span>
+        </label>
+      </div>
+    </div>
+  </div>
+
   <!-- Stats Overview -->
   <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px;">
     <div class="stat-card-mini">
