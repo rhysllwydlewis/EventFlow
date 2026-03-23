@@ -14,8 +14,14 @@
   }
 
   function fmtDate(iso) {
-    if (!iso) return '—';
-    return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    if (!iso) {
+      return '—';
+    }
+    return new Date(iso).toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
   }
 
   function fmtCredits(n) {
@@ -28,7 +34,9 @@
 
   function showToast(msg, type = 'success') {
     const toast = document.getElementById('partner-toast');
-    if (!toast) return;
+    if (!toast) {
+      return;
+    }
     toast.textContent = msg;
     toast.className = `partner-toast partner-toast--${type} show`;
     setTimeout(() => toast.classList.remove('show'), 3000);
@@ -40,7 +48,9 @@
     try {
       const res = await fetch('/api/v1/auth/me', { credentials: 'include' });
       if (!res.ok) {
-        window.location.replace('/partner?redirect=' + encodeURIComponent(window.location.pathname));
+        window.location.replace(
+          `/partner?redirect=${encodeURIComponent(window.location.pathname)}`
+        );
         return null;
       }
       const data = await res.json();
@@ -60,11 +70,15 @@
 
   function initLogout() {
     const btn = document.getElementById('partner-logout-btn');
-    if (!btn) return;
+    if (!btn) {
+      return;
+    }
     btn.addEventListener('click', async () => {
       try {
         await fetch('/api/v1/auth/logout', { method: 'POST', credentials: 'include' });
-      } catch (_) {}
+      } catch (_) {
+        // Best-effort logout — navigate regardless
+      }
       window.location.replace('/partner');
     });
   }
@@ -73,19 +87,25 @@
 
   async function loadPartnerData() {
     const res = await fetch('/api/v1/partner/me', { credentials: 'include' });
-    if (!res.ok) throw new Error('Failed to load partner data');
+    if (!res.ok) {
+      throw new Error('Failed to load partner data');
+    }
     return res.json();
   }
 
   async function loadReferrals() {
     const res = await fetch('/api/v1/partner/referrals', { credentials: 'include' });
-    if (!res.ok) throw new Error('Failed to load referrals');
+    if (!res.ok) {
+      throw new Error('Failed to load referrals');
+    }
     return res.json();
   }
 
   async function loadTransactions() {
     const res = await fetch('/api/v1/partner/transactions', { credentials: 'include' });
-    if (!res.ok) throw new Error('Failed to load transactions');
+    if (!res.ok) {
+      throw new Error('Failed to load transactions');
+    }
     return res.json();
   }
 
@@ -96,7 +116,9 @@
     document.getElementById('stat-balance-gbp').textContent = toPounds(credits.balance);
     document.getElementById('stat-earned').textContent = fmtCredits(credits.totalEarned);
     document.getElementById('stat-pkg-bonus').textContent = fmtCredits(credits.packageBonusTotal);
-    document.getElementById('stat-sub-bonus').textContent = fmtCredits(credits.subscriptionBonusTotal);
+    document.getElementById('stat-sub-bonus').textContent = fmtCredits(
+      credits.subscriptionBonusTotal
+    );
     document.getElementById('stat-referrals').textContent = fmtCredits(referralCount);
   }
 
@@ -104,7 +126,9 @@
 
   function renderReferrals(referrals) {
     const container = document.getElementById('referrals-container');
-    if (!container) return;
+    if (!container) {
+      return;
+    }
 
     if (!referrals || referrals.length === 0) {
       container.innerHTML = `
@@ -123,11 +147,15 @@
 
       const pkgStatus = r.packageQualified
         ? `<span class="p-badge p-badge--success">✓ Package bonus</span>`
-        : (withinWindow ? `<span class="p-badge p-badge--pending">Pending</span>` : `<span class="p-badge p-badge--inactive">—</span>`);
+        : withinWindow
+          ? `<span class="p-badge p-badge--pending">Pending</span>`
+          : `<span class="p-badge p-badge--inactive">—</span>`;
 
       const subStatus = r.subscriptionQualified
         ? `<span class="p-badge p-badge--success">✓ Sub bonus</span>`
-        : (withinWindow ? `<span class="p-badge p-badge--pending">Pending</span>` : `<span class="p-badge p-badge--inactive">—</span>`);
+        : withinWindow
+          ? `<span class="p-badge p-badge--pending">Pending</span>`
+          : `<span class="p-badge p-badge--inactive">—</span>`;
 
       return `<tr>
         <td>${esc(r.supplierName || '—')}</td>
@@ -159,7 +187,9 @@
 
   function renderTransactions(txns) {
     const container = document.getElementById('transactions-container');
-    if (!container) return;
+    if (!container) {
+      return;
+    }
 
     if (!txns || txns.length === 0) {
       container.innerHTML = `
@@ -212,7 +242,9 @@
   function initCopyButton(refLink) {
     const btn = document.getElementById('partner-copy-btn');
     const copyText = document.getElementById('copy-btn-text');
-    if (!btn || !copyText) return;
+    if (!btn || !copyText) {
+      return;
+    }
 
     btn.addEventListener('click', async () => {
       try {
@@ -246,11 +278,15 @@
     initLogout();
 
     const user = await ensureAuth();
-    if (!user) return;
+    if (!user) {
+      return;
+    }
 
     // Show user name in header
     const nameEl = document.getElementById('partner-user-name');
-    if (nameEl) nameEl.textContent = user.name || user.email || '';
+    if (nameEl) {
+      nameEl.textContent = user.name || user.email || '';
+    }
 
     const nameHeading = document.getElementById('partner-name-heading');
 
@@ -268,15 +304,16 @@
 
       // Update heading
       if (nameHeading) {
-        nameHeading.textContent = (user.firstName || (user.name || '').split(' ')[0] || 'Partner');
+        nameHeading.textContent = user.firstName || (user.name || '').split(' ')[0] || 'Partner';
       }
 
       // Update status line
       const statusLine = document.getElementById('partner-status-line');
       if (statusLine) {
-        statusLine.textContent = partner.status === 'active'
-          ? 'Your partner account is active'
-          : '⚠️ Your account is currently disabled — contact support';
+        statusLine.textContent =
+          partner.status === 'active'
+            ? 'Your partner account is active'
+            : '⚠️ Your account is currently disabled — contact support';
         if (partner.status !== 'active') {
           statusLine.style.color = '#fca5a5';
         }
@@ -288,19 +325,26 @@
       // Referral link
       const refLinkEl = document.getElementById('partner-ref-link');
       const refCodeBadge = document.getElementById('partner-ref-code-badge');
-      if (refLinkEl) refLinkEl.textContent = partner.refLink;
-      if (refCodeBadge) refCodeBadge.textContent = partner.refCode;
+      if (refLinkEl) {
+        refLinkEl.textContent = partner.refLink;
+      }
+      if (refCodeBadge) {
+        refCodeBadge.textContent = partner.refCode;
+      }
       initCopyButton(partner.refLink);
 
       // Referrals & transactions
       renderReferrals(referrals);
       renderTransactions(transactions);
-
     } catch (err) {
       console.error('Dashboard load error:', err);
       const statusLine = document.getElementById('partner-status-line');
-      if (statusLine) statusLine.textContent = 'Error loading dashboard data. Please refresh.';
-      if (nameHeading) nameHeading.textContent = 'Partner';
+      if (statusLine) {
+        statusLine.textContent = 'Error loading dashboard data. Please refresh.';
+      }
+      if (nameHeading) {
+        nameHeading.textContent = 'Partner';
+      }
     }
   }
 
