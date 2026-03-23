@@ -191,6 +191,14 @@ async function handleInvoicePaymentSucceeded(invoice) {
       );
     }
   }
+
+  // Award partner subscription bonus for first successful payment (non-blocking)
+  try {
+    const partnerService = require('../services/partnerService');
+    await partnerService.awardSubscriptionBonus(subscription.userId);
+  } catch (_pe) {
+    logger.warn('Partner subscription bonus award failed (non-blocking):', _pe.message);
+  }
 }
 
 /**

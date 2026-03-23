@@ -173,6 +173,7 @@ router.post(
       website,
       socials,
       captchaToken,
+      ref: refCode,
     } = req.body || {};
 
     // Verify ALTCHA token when the verifier is available
@@ -349,6 +350,23 @@ router.post(
 
     // Only save user after email is successfully sent
     await dbUnified.insertOne('users', user);
+
+    // Record partner referral if a valid ref code was provided (non-blocking)
+    if (refCode && roleFinal === 'supplier') {
+      try {
+        const partnerService = require('../services/partnerService');
+        const partner = await partnerService.getPartnerByRefCode(String(refCode).trim());
+        if (partner && partner.status === 'active') {
+          await partnerService.recordReferral({
+            partnerId: partner.id,
+            supplierUserId: user.id,
+            supplierCreatedAt: user.createdAt,
+          });
+        }
+      } catch (_refErr) {
+        logger.warn('Partner referral recording failed (non-blocking):', _refErr.message);
+      }
+    }
 
     // Update last login timestamp (non-blocking)
     await updateLastLogin(user.id);

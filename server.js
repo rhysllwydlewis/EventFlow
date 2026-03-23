@@ -643,6 +643,33 @@ protectedSpaPrefixes.forEach(prefix => {
   app.use(prefix, apiLimiter, unauthRedirect);
 });
 
+// ---------- Partner Portal HTML Protection ----------
+// /partner/dashboard requires partner role; unauthenticated users are redirected to /partner
+// The entry page (/partner) is public (no auth required) so partners can sign up / log in
+app.use('/partner/dashboard', apiLimiter, (req, res, next) => {
+  const user = getUserFromCookie(req);
+  if (!user) {
+    return res.redirect(302, '/partner?redirect=' + encodeURIComponent(req.originalUrl));
+  }
+  if (user.role !== 'partner' && user.role !== 'admin') {
+    return res.redirect(302, '/partner');
+  }
+  return next();
+});
+
+// ---------- Admin Partner Page Protection ----------
+// /admin-partners requires admin role
+app.get('/admin-partners', apiLimiter, (req, res, next) => {
+  const user = getUserFromCookie(req);
+  if (!user) {
+    return res.redirect(302, `/auth?redirect=${encodeURIComponent(req.originalUrl)}`);
+  }
+  if (user.role !== 'admin') {
+    return res.redirect(302, '/');
+  }
+  return next();
+});
+
 // ---------- Admin HTML Page Protection ----------
 // CRITICAL: This middleware MUST come before express.static()
 // Protects all admin HTML pages from unauthorized access at the server level

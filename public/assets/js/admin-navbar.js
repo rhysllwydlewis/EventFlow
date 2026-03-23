@@ -111,6 +111,13 @@
       desc: 'Payment records & billing',
     },
     {
+      href: '/admin-partners',
+      icon: '🤝',
+      label: 'Partners',
+      group: 'operations',
+      desc: 'Partner portal & affiliate credits',
+    },
+    {
       href: '/admin-audit',
       icon: '📋',
       label: 'Audit',

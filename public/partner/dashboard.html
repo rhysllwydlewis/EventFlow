@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="theme-color" content="#0B8073" />
+    <!-- NOINDEX: partner dashboard is hidden from search engines -->
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Partner Dashboard — EventFlow</title>
+    <link rel="stylesheet" href="/assets/css/styles.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/components.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/animations.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/liquid-glass.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/navbar.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/partner.css?v=18.3.0" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  </head>
+  <body class="partner-page">
+
+    <!-- Background -->
+    <div class="partner-bg" aria-hidden="true">
+      <div class="partner-bg-blob partner-bg-blob--1"></div>
+      <div class="partner-bg-blob partner-bg-blob--2"></div>
+      <div class="partner-bg-blob partner-bg-blob--3"></div>
+    </div>
+
+    <!-- Minimal header bar -->
+    <header style="position:relative;z-index:10;padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.06);">
+      <a href="/partner" style="display:flex;align-items:center;gap:0.6rem;text-decoration:none;">
+        <div class="partner-brand-logo-mark" style="width:34px;height:34px;font-size:0.9rem;" aria-hidden="true">EF</div>
+        <span style="color:#fff;font-weight:700;font-size:0.95rem;letter-spacing:-0.01em;">
+          EventFlow <span style="color:rgba(16,185,129,0.8);font-weight:500;">Partners</span>
+        </span>
+      </a>
+      <div style="display:flex;align-items:center;gap:1rem;">
+        <span id="partner-user-name" style="color:rgba(255,255,255,0.55);font-size:0.85rem;"></span>
+        <button
+          id="partner-logout-btn"
+          type="button"
+          style="padding:0.45rem 0.9rem;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:rgba(255,255,255,0.65);font-size:0.82rem;cursor:pointer;"
+          aria-label="Log out"
+        >Log out</button>
+      </div>
+    </header>
+
+    <main class="partner-main partner-dashboard" id="main-content">
+
+      <!-- Page heading -->
+      <div class="partner-dashboard-header">
+        <h1 class="partner-greeting">Welcome, <span id="partner-name-heading">Partner</span></h1>
+        <p class="partner-sub-heading" id="partner-status-line">Loading your dashboard…</p>
+      </div>
+
+      <!-- Stats row -->
+      <div class="partner-stats-grid" aria-label="Your credit summary">
+        <div class="partner-stat-card partner-stat-card--highlight" role="group" aria-labelledby="stat-balance-label">
+          <div class="partner-stat-label" id="stat-balance-label">Credits Available</div>
+          <div class="partner-stat-value" id="stat-balance">—</div>
+          <div class="partner-stat-sub">= <span id="stat-balance-gbp">£—</span></div>
+        </div>
+        <div class="partner-stat-card" role="group" aria-labelledby="stat-earned-label">
+          <div class="partner-stat-label" id="stat-earned-label">Total Earned</div>
+          <div class="partner-stat-value" id="stat-earned">—</div>
+          <div class="partner-stat-sub">all time</div>
+        </div>
+        <div class="partner-stat-card" role="group" aria-labelledby="stat-pkg-label">
+          <div class="partner-stat-label" id="stat-pkg-label">Package Bonuses</div>
+          <div class="partner-stat-value" id="stat-pkg-bonus">—</div>
+          <div class="partner-stat-sub">+10 each</div>
+        </div>
+        <div class="partner-stat-card" role="group" aria-labelledby="stat-sub-label">
+          <div class="partner-stat-label" id="stat-sub-label">Subscription Bonuses</div>
+          <div class="partner-stat-value" id="stat-sub-bonus">—</div>
+          <div class="partner-stat-sub">+100 each</div>
+        </div>
+        <div class="partner-stat-card" role="group" aria-labelledby="stat-refs-label">
+          <div class="partner-stat-label" id="stat-refs-label">Referred Suppliers</div>
+          <div class="partner-stat-value" id="stat-referrals">—</div>
+          <div class="partner-stat-sub">via your link</div>
+        </div>
+      </div>
+
+      <!-- Referral link section -->
+      <section class="partner-section" aria-labelledby="ref-link-heading">
+        <div class="partner-section-header">
+          <div>
+            <h2 class="partner-section-title" id="ref-link-heading">Your Referral Link</h2>
+            <p class="partner-section-subtitle">Share this link with wedding suppliers to start earning</p>
+          </div>
+          <span id="partner-ref-code-badge" class="p-badge p-badge--success" style="font-family:monospace;font-size:0.8rem;"></span>
+        </div>
+        <div class="partner-ref-link-box" role="group" aria-label="Referral link">
+          <span class="partner-ref-link-text" id="partner-ref-link">Loading…</span>
+          <button
+            class="partner-copy-btn"
+            id="partner-copy-btn"
+            type="button"
+            aria-label="Copy referral link to clipboard"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            <span id="copy-btn-text">Copy link</span>
+          </button>
+        </div>
+        <div class="partner-value-key">
+          <span>📦 First package = <strong>+10 credits (£0.10)</strong></span>
+          <span>💳 First subscription = <strong>+100 credits (£1.00)</strong></span>
+          <span>⏱ 30-day attribution window</span>
+        </div>
+      </section>
+
+      <!-- Referred suppliers -->
+      <section class="partner-section" aria-labelledby="referrals-heading">
+        <div class="partner-section-header">
+          <div>
+            <h2 class="partner-section-title" id="referrals-heading">Referred Suppliers</h2>
+            <p class="partner-section-subtitle">Suppliers who signed up through your link</p>
+          </div>
+        </div>
+        <div id="referrals-container">
+          <div class="partner-empty">
+            <div class="partner-empty-icon" aria-hidden="true">🔗</div>
+            <p class="partner-empty-text">Loading referrals…</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Recent transactions -->
+      <section class="partner-section" aria-labelledby="txns-heading">
+        <div class="partner-section-header">
+          <div>
+            <h2 class="partner-section-title" id="txns-heading">Credit Activity</h2>
+            <p class="partner-section-subtitle">Recent credit transactions</p>
+          </div>
+        </div>
+        <div id="transactions-container">
+          <div class="partner-empty">
+            <div class="partner-empty-icon" aria-hidden="true">💸</div>
+            <p class="partner-empty-text">Loading activity…</p>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Toast -->
+    <div id="partner-toast" class="partner-toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+    <script src="/assets/js/utils/auth-state.js" defer></script>
+    <script src="/assets/js/pages/partner-dashboard-init.js?v=18.3.0" defer></script>
+  </body>
+</html>

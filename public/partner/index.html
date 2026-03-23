@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
+    <meta name="theme-color" content="#0B8073" />
+    <!-- NOINDEX: partner portal is hidden from search engines -->
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Partner Programme — EventFlow</title>
+    <link rel="stylesheet" href="/assets/css/styles.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/components.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/animations.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/liquid-glass.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/navbar.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/partner.css?v=18.3.0" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  </head>
+  <body class="partner-page">
+
+    <!-- Background decoration -->
+    <div class="partner-bg" aria-hidden="true">
+      <div class="partner-bg-blob partner-bg-blob--1"></div>
+      <div class="partner-bg-blob partner-bg-blob--2"></div>
+      <div class="partner-bg-blob partner-bg-blob--3"></div>
+    </div>
+
+    <main class="partner-main" id="main-content">
+      <section class="partner-hero" aria-label="Partner programme entry">
+        <div class="partner-hero-inner">
+
+          <!-- Brand / info panel -->
+          <div class="partner-brand-panel">
+            <div class="partner-brand-logo">
+              <div class="partner-brand-logo-mark" aria-hidden="true">EF</div>
+              <span class="partner-brand-wordmark">EventFlow</span>
+            </div>
+
+            <div class="partner-badge">
+              <div class="partner-badge-dot" aria-hidden="true"></div>
+              Partner Programme
+            </div>
+
+            <h1 class="partner-hero-heading">
+              Earn rewards for<br />
+              <span>growing EventFlow</span>
+            </h1>
+
+            <p class="partner-hero-desc">
+              Share your unique referral link with wedding suppliers and earn credits
+              every time they join and get started on EventFlow.
+            </p>
+
+            <div class="partner-reward-pills" role="list" aria-label="Reward structure">
+              <span class="partner-reward-pill" role="listitem">
+                📦 <strong>+10 credits</strong>&nbsp; first package created
+              </span>
+              <span class="partner-reward-pill" role="listitem">
+                💳 <strong>+100 credits</strong>&nbsp; first subscription
+              </span>
+              <span class="partner-reward-pill" role="listitem">
+                ⏱ 30-day attribution window
+              </span>
+              <span class="partner-reward-pill" role="listitem">
+                🔗 One unique link per account
+              </span>
+            </div>
+
+            <p class="partner-value-key" style="font-size:0.82rem;color:rgba(255,255,255,0.45);">
+              1 credit = £0.01 &nbsp;·&nbsp; 100 credits = £1
+            </p>
+          </div>
+
+          <!-- Auth panel -->
+          <div class="partner-auth-panel" role="region" aria-label="Sign in or create account">
+            <div class="partner-tabs" role="tablist" aria-label="Authentication options">
+              <button
+                class="partner-tab active"
+                id="tab-signin"
+                role="tab"
+                type="button"
+                aria-selected="true"
+                aria-controls="panel-signin"
+              >Log in</button>
+              <button
+                class="partner-tab"
+                id="tab-signup"
+                role="tab"
+                type="button"
+                aria-selected="false"
+                aria-controls="panel-signup"
+              >Join as partner</button>
+            </div>
+
+            <!-- Sign in panel -->
+            <div id="panel-signin" class="partner-tab-panel active" role="tabpanel" aria-labelledby="tab-signin">
+              <form id="partner-login-form" novalidate autocomplete="on">
+                <div class="partner-field">
+                  <label for="login-email">Email address</label>
+                  <input
+                    id="login-email"
+                    name="email"
+                    type="email"
+                    class="partner-input"
+                    autocomplete="email"
+                    required
+                    placeholder="you@example.com"
+                  />
+                </div>
+                <div class="partner-field">
+                  <label for="login-password">Password</label>
+                  <input
+                    id="login-password"
+                    name="password"
+                    type="password"
+                    class="partner-input"
+                    autocomplete="current-password"
+                    required
+                    placeholder="Your password"
+                  />
+                </div>
+                <div id="login-status" class="partner-status" role="alert" aria-live="polite"></div>
+                <button type="submit" class="partner-submit-btn" id="login-btn">
+                  <span class="btn-text">Log in to dashboard</span>
+                </button>
+                <p style="text-align:center;margin-top:0.85rem;font-size:0.8rem;color:rgba(255,255,255,0.4);">
+                  <a href="/forgot-password" style="color:rgba(16,185,129,0.8);text-decoration:none;">Forgot password?</a>
+                </p>
+              </form>
+            </div>
+
+            <!-- Sign up panel -->
+            <div id="panel-signup" class="partner-tab-panel" role="tabpanel" aria-labelledby="tab-signup" hidden>
+              <form id="partner-signup-form" novalidate autocomplete="on">
+                <div class="partner-field-row">
+                  <div class="partner-field">
+                    <label for="reg-firstname">First name</label>
+                    <input id="reg-firstname" name="firstName" type="text" class="partner-input" autocomplete="given-name" required placeholder="Jane" />
+                  </div>
+                  <div class="partner-field">
+                    <label for="reg-lastname">Last name</label>
+                    <input id="reg-lastname" name="lastName" type="text" class="partner-input" autocomplete="family-name" required placeholder="Smith" />
+                  </div>
+                </div>
+                <div class="partner-field">
+                  <label for="reg-email">Email address</label>
+                  <input id="reg-email" name="email" type="email" class="partner-input" autocomplete="email" required placeholder="you@example.com" />
+                </div>
+                <div class="partner-field">
+                  <label for="reg-password">Password</label>
+                  <input id="reg-password" name="password" type="password" class="partner-input" autocomplete="new-password" required placeholder="Min 8 characters" />
+                </div>
+                <div class="partner-field">
+                  <label for="reg-location">Your location</label>
+                  <input id="reg-location" name="location" type="text" class="partner-input" autocomplete="address-level2" required placeholder="e.g. London" />
+                </div>
+                <div class="partner-field">
+                  <label for="reg-company">
+                    Company / channel name
+                    <span style="color:rgba(255,255,255,0.35);font-weight:400;">(optional)</span>
+                  </label>
+                  <input id="reg-company" name="company" type="text" class="partner-input" placeholder="e.g. Wedding Vibes Group" />
+                </div>
+                <div id="signup-status" class="partner-status" role="alert" aria-live="polite"></div>
+                <button type="submit" class="partner-submit-btn" id="signup-btn">
+                  <span class="btn-text">Create partner account</span>
+                </button>
+                <p style="text-align:center;margin-top:0.85rem;font-size:0.75rem;color:rgba(255,255,255,0.35);line-height:1.5;">
+                  By joining you agree to our
+                  <a href="/terms" style="color:rgba(16,185,129,0.7);text-decoration:none;">Terms</a>
+                  and
+                  <a href="/privacy" style="color:rgba(16,185,129,0.7);text-decoration:none;">Privacy Policy</a>.
+                </p>
+              </form>
+            </div>
+          </div>
+
+        </div>
+      </section>
+    </main>
+
+    <!-- Toast notification -->
+    <div id="partner-toast" class="partner-toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+    <script src="/assets/js/utils/auth-state.js" defer></script>
+    <script src="/assets/js/pages/partner-init.js?v=18.3.0" defer></script>
+  </body>
+</html>
