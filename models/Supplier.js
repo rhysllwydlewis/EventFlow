@@ -28,15 +28,28 @@ const VALID_CATEGORIES = [
   'Photography',
   'Videography',
   'Entertainment',
+  'Music/DJ',
   'Florist',
   'Decor',
   'Transport',
   'Cake',
   'Stationery',
   'Hair & Makeup',
+  'Beauty',
+  'Bridalwear',
+  'Jewellery',
+  'Celebrant',
   'Planning',
+  'Event Planner',
+  'Wedding Fayre',
   'Other',
 ];
+
+/**
+ * Supplier categories that grant public calendar publishing rights.
+ * Suppliers in these categories can create, edit, and delete public calendar events.
+ */
+const CALENDAR_PUBLISHER_TYPES = ['Event Planner', 'Wedding Fayre'];
 
 /**
  * Valid supplier status values
@@ -129,6 +142,11 @@ const VALIDATION_RULES = {
  * @property {string|null} trialEndsAt - ISO timestamp when trial ends
  * @property {string|null} stripeCustomerId - Stripe customer ID for billing
  *
+ * Public Calendar Publishing
+ * @property {boolean} [canPublishPublicCalendar] - Admin override for public calendar publishing rights.
+ *   When undefined, publishing rights are derived from category membership in CALENDAR_PUBLISHER_TYPES.
+ *   Set to true to grant rights regardless of category; set to false to revoke rights.
+ *
  * Timestamps
  * @property {string} createdAt - ISO timestamp of record creation
  * @property {string} updatedAt - ISO timestamp of last update
@@ -138,4 +156,5 @@ module.exports = {
   VALID_CATEGORIES,
   VALID_STATUSES,
   VALIDATION_RULES,
+  CALENDAR_PUBLISHER_TYPES,
 };

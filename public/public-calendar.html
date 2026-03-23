@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="UTF-8">
+  <meta name="ef-page" content="public-calendar">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes">
+  <meta name="theme-color" content="#0B8073">
+
+  <title>Public Events Calendar | EventFlow</title>
+  <meta name="description" content="Browse upcoming events, fairs, and open days from event planners and Wedding Fayre suppliers. Save events to your personal dashboard.">
+  <link rel="canonical" href="https://event-flow.co.uk/public-calendar">
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Public Events Calendar | EventFlow">
+  <meta property="og:description" content="Browse upcoming events, fairs, and open days from event planners and Wedding Fayre suppliers.">
+  <meta property="og:url" content="https://event-flow.co.uk/public-calendar">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="EventFlow">
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="/assets/css/tokens.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/components.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/animations.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/navbar.css?v=18.3.0" />
+  <link rel="stylesheet" href="/assets/css/liquid-glass.css?v=18.3.0" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/site.webmanifest" />
+
+  <style>
+    /* ── Public Calendar page styles ── */
+    .pc-hero {
+      background: linear-gradient(135deg, #0b8073 0%, #16a085 100%);
+      color: #fff;
+      padding: 3rem 1.5rem 2rem;
+      text-align: center;
+    }
+    .pc-hero h1 { margin: 0 0 0.5rem; font-size: clamp(1.6rem, 4vw, 2.4rem); }
+    .pc-hero p  { margin: 0; opacity: 0.9; font-size: 1.05rem; }
+
+    .pc-filters {
+      background: var(--color-surface, #fff);
+      border-bottom: 1px solid #e5e7eb;
+      padding: 1rem 1.5rem;
+    }
+    .pc-filters-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      align-items: flex-end;
+    }
+    .pc-filter-group { display: flex; flex-direction: column; gap: 0.25rem; min-width: 160px; }
+    .pc-filter-group label { font-size: 0.8rem; font-weight: 600; color: #374151; }
+    .pc-filter-control {
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      background: #fff;
+    }
+    .pc-filter-btn {
+      padding: 0.5rem 1.25rem;
+      background: #0b8073;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 600;
+      align-self: flex-end;
+    }
+    .pc-filter-btn:hover { background: #097060; }
+
+    .pc-main {
+      max-width: 1100px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+    }
+
+    .pc-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+    .pc-toolbar-count { color: #6b7280; font-size: 0.9rem; }
+    #pc-add-btn {
+      display: none;
+      padding: 0.55rem 1.25rem;
+      background: #0b8073;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 600;
+      gap: 0.4rem;
+    }
+    #pc-add-btn:hover { background: #097060; }
+
+    .pc-events-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .pc-event-card {
+      background: var(--color-surface, #fff);
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+      transition: box-shadow 0.2s;
+    }
+    .pc-event-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.09); }
+
+    .pc-event-date {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #0b8073;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .pc-event-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #111827;
+      margin: 0;
+    }
+    .pc-event-location { font-size: 0.85rem; color: #6b7280; display: flex; align-items: center; gap: 0.3rem; }
+    .pc-event-desc { font-size: 0.875rem; color: #374151; line-height: 1.5; }
+    .pc-event-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: auto; padding-top: 0.5rem; }
+
+    .pc-btn-save {
+      padding: 0.4rem 0.9rem;
+      background: #f3f4f6;
+      color: #374151;
+      border: 1px solid #d1d5db;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .pc-btn-save:hover { background: #e5e7eb; }
+    .pc-btn-save.saved { background: #d1fae5; color: #065f46; border-color: #6ee7b7; }
+
+    .pc-btn-edit, .pc-btn-delete {
+      padding: 0.4rem 0.9rem;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+    .pc-btn-edit   { background: #eff6ff; color: #1d4ed8; }
+    .pc-btn-delete { background: #fef2f2; color: #b91c1c; }
+    .pc-btn-edit:hover   { background: #dbeafe; }
+    .pc-btn-delete:hover { background: #fee2e2; }
+
+    .pc-empty {
+      text-align: center;
+      padding: 4rem 1rem;
+      color: #6b7280;
+    }
+    .pc-empty-icon { font-size: 3rem; margin-bottom: 0.75rem; }
+    .pc-empty-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.5rem; }
+
+    /* Modal */
+    .pc-modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+    }
+    .pc-modal-overlay.open { display: flex; }
+    .pc-modal {
+      background: #fff;
+      border-radius: 12px;
+      padding: 2rem;
+      width: min(540px, 95vw);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .pc-modal h2 { margin: 0 0 1.25rem; font-size: 1.25rem; }
+    .pc-modal-form { display: flex; flex-direction: column; gap: 0.875rem; }
+    .pc-modal-form label { font-size: 0.85rem; font-weight: 600; color: #374151; }
+    .pc-modal-form input,
+    .pc-modal-form textarea,
+    .pc-modal-form select {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #d1d5db;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      box-sizing: border-box;
+    }
+    .pc-modal-form textarea { resize: vertical; min-height: 90px; }
+    .pc-modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem; }
+    .pc-modal-cancel { padding: 0.5rem 1rem; background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-size: 0.875rem; }
+    .pc-modal-submit { padding: 0.5rem 1.25rem; background: #0b8073; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 0.875rem; font-weight: 600; }
+    .pc-modal-submit:hover { background: #097060; }
+
+    .pc-notice {
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      font-size: 0.875rem;
+      margin-bottom: 1rem;
+      display: none;
+    }
+    .pc-notice.error { background: #fef2f2; color: #b91c1c; border: 1px solid #fca5a5; }
+    .pc-notice.success { background: #f0fdf4; color: #166534; border: 1px solid #86efac; }
+  </style>
+</head>
+<body>
+
+<!-- TOP NAVBAR -->
+<header class="ef-header" role="banner">
+  <div class="ef-container">
+    <div class="ef-header-content">
+      <a href="/" class="ef-brand" aria-label="EventFlow - Return to homepage">
+        <div class="ef-logo" aria-hidden="true"><div class="ef-logo-inner"></div></div>
+        <span class="ef-brand-text">EventFlow</span>
+      </a>
+      <nav class="ef-nav-desktop" aria-label="Main navigation">
+        <a href="/start" class="ef-nav-link">Plan</a>
+        <a href="/suppliers" class="ef-nav-link">Suppliers</a>
+        <a href="/marketplace" class="ef-nav-link">Marketplace</a>
+        <a href="/public-calendar" class="ef-nav-link ef-nav-link--active">Events</a>
+        <a href="/guides" class="ef-nav-link">Guides</a>
+        <a href="/pricing" class="ef-nav-link">Pricing</a>
+      </nav>
+      <div class="ef-header-actions">
+        <a href="/auth" id="ef-auth-link" class="ef-btn ef-btn-primary" style="display:none;">Sign in</a>
+        <div id="ef-user-menu" style="display:none;"></div>
+      </div>
+      <button class="ef-mobile-menu-btn" aria-label="Open menu" aria-expanded="false" aria-controls="ef-mobile-nav">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="pc-hero" role="banner">
+  <div>
+    <h1>📅 Public Events Calendar</h1>
+    <p>Upcoming events, open days, and Wedding Fayres from our verified suppliers</p>
+  </div>
+</section>
+
+<!-- FILTERS -->
+<section class="pc-filters" aria-label="Filter events">
+  <div class="pc-filters-inner">
+    <div class="pc-filter-group">
+      <label for="pc-filter-location">Location</label>
+      <input id="pc-filter-location" class="pc-filter-control" type="text" placeholder="City or region" maxlength="100" aria-label="Filter by location">
+    </div>
+    <div class="pc-filter-group">
+      <label for="pc-filter-from">From date</label>
+      <input id="pc-filter-from" class="pc-filter-control" type="date" aria-label="From date">
+    </div>
+    <div class="pc-filter-group">
+      <label for="pc-filter-to">To date</label>
+      <input id="pc-filter-to" class="pc-filter-control" type="date" aria-label="To date">
+    </div>
+    <button class="pc-filter-btn" id="pc-apply-filters" type="button">Search</button>
+    <button class="pc-filter-btn" id="pc-clear-filters" type="button" style="background:#6b7280;">Clear</button>
+  </div>
+</section>
+
+<!-- MAIN CONTENT -->
+<main class="pc-main" id="main-content">
+  <div class="pc-toolbar">
+    <span class="pc-toolbar-count" id="pc-count" aria-live="polite"></span>
+    <button id="pc-add-btn" type="button" aria-label="Add a new event to the public calendar">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      Add event
+    </button>
+  </div>
+
+  <div id="pc-notice" class="pc-notice" role="alert" aria-live="polite"></div>
+
+  <div id="pc-events-grid" class="pc-events-grid" aria-live="polite" aria-label="Events list">
+    <p style="color:#6b7280;">Loading events…</p>
+  </div>
+</main>
+
+<!-- ADD / EDIT MODAL -->
+<div class="pc-modal-overlay" id="pc-modal" role="dialog" aria-modal="true" aria-labelledby="pc-modal-title">
+  <div class="pc-modal">
+    <h2 id="pc-modal-title">Add event</h2>
+    <form id="pc-event-form" class="pc-modal-form" novalidate>
+      <input type="hidden" id="pc-event-id">
+      <div>
+        <label for="pc-field-title">Title <span aria-hidden="true" style="color:#ef4444;">*</span></label>
+        <input id="pc-field-title" name="title" type="text" maxlength="200" required placeholder="Event name">
+      </div>
+      <div>
+        <label for="pc-field-startDate">Start date &amp; time <span aria-hidden="true" style="color:#ef4444;">*</span></label>
+        <input id="pc-field-startDate" name="startDate" type="datetime-local" required>
+      </div>
+      <div>
+        <label for="pc-field-endDate">End date &amp; time</label>
+        <input id="pc-field-endDate" name="endDate" type="datetime-local">
+      </div>
+      <div>
+        <label for="pc-field-location">Location</label>
+        <input id="pc-field-location" name="location" type="text" maxlength="300" placeholder="Venue name or city">
+      </div>
+      <div>
+        <label for="pc-field-description">Description</label>
+        <textarea id="pc-field-description" name="description" maxlength="2000" placeholder="Tell people about your event…"></textarea>
+      </div>
+      <div>
+        <label for="pc-field-url">Website / Booking URL</label>
+        <input id="pc-field-url" name="url" type="url" maxlength="500" placeholder="https://…">
+      </div>
+      <div class="pc-modal-actions">
+        <button type="button" class="pc-modal-cancel" id="pc-modal-close">Cancel</button>
+        <button type="submit" class="pc-modal-submit" id="pc-modal-submit">Save event</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Scripts -->
+<script src="/assets/js/utils/api.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  let currentUser = null;
+  let publisherSupplierIds = null; // cached: set of supplierId values owned by current user
+  let allEvents = [];
+  let savedEventIds = new Set();
+
+  // ── Auth ──────────────────────────────────────────────────────────────────
+
+  async function loadUser() {
+    try {
+      const res = await fetch('/api/v1/auth/me', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        currentUser = data.user || null;
+      }
+    } catch (_) { /* unauthenticated */ }
+  }
+
+  // ── Saved events ──────────────────────────────────────────────────────────
+
+  async function loadSavedEventIds() {
+    if (!currentUser || currentUser.role !== 'customer') return;
+    try {
+      const res = await fetch('/api/public-calendar/saved', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        savedEventIds = new Set((data.events || []).map(e => e.id));
+      }
+    } catch (_) { /* ignore */ }
+  }
+
+  // ── Publisher check ───────────────────────────────────────────────────────
+  // The server enforces this; we only use it to show/hide UI controls.
+
+  async function loadPublisherInfo() {
+    if (!currentUser || currentUser.role !== 'supplier') return;
+    try {
+      const res = await fetch('/api/me/suppliers', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        const suppliers = data.suppliers || data.items || [];
+        // Keep a set of supplierId values that have publisher rights
+        // We derive from category client-side for UI only; server enforces the real check.
+        const publisherTypes = ['Event Planner', 'Wedding Fayre'];
+        publisherSupplierIds = new Set(
+          suppliers
+            .filter(s => s.approved && (publisherTypes.includes(s.category) || s.canPublishPublicCalendar === true))
+            .map(s => s.id)
+        );
+      }
+    } catch (_) { /* ignore */ }
+  }
+
+  function isPublisher() {
+    return publisherSupplierIds && publisherSupplierIds.size > 0;
+  }
+
+  // ── Events ────────────────────────────────────────────────────────────────
+
+  function buildQueryString() {
+    const params = new URLSearchParams();
+    const loc = document.getElementById('pc-filter-location').value.trim();
+    const from = document.getElementById('pc-filter-from').value;
+    const to = document.getElementById('pc-filter-to').value;
+    if (loc) params.set('location', loc);
+    if (from) params.set('from', from);
+    if (to) params.set('to', to);
+    return params.toString();
+  }
+
+  async function loadEvents() {
+    const grid = document.getElementById('pc-events-grid');
+    grid.innerHTML = '<p style="color:#6b7280;">Loading events…</p>';
+    try {
+      const qs = buildQueryString();
+      const res = await fetch(`/api/public-calendar${qs ? '?' + qs : ''}`, { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to load');
+      const data = await res.json();
+      allEvents = data.events || [];
+      renderEvents();
+    } catch (err) {
+      grid.innerHTML = '<p style="color:#b91c1c;">Unable to load events. Please try again.</p>';
+    }
+  }
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  function formatDate(iso) {
+    if (!iso) return '';
+    try {
+      return new Intl.DateTimeFormat('en-GB', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso));
+    } catch (_) { return iso; }
+  }
+
+  function renderEvents() {
+    const grid = document.getElementById('pc-events-grid');
+    const count = document.getElementById('pc-count');
+
+    count.textContent = allEvents.length === 1 ? '1 event' : `${allEvents.length} events`;
+
+    if (allEvents.length === 0) {
+      grid.innerHTML = `
+        <div class="pc-empty" role="status">
+          <div class="pc-empty-icon">📭</div>
+          <div class="pc-empty-title">No events found</div>
+          <p>Try adjusting your filters, or check back soon for new events.</p>
+        </div>`;
+      return;
+    }
+
+    grid.innerHTML = allEvents.map(event => {
+      const canEdit = isPublisher() && publisherSupplierIds.has(event.supplierId);
+      const isSaved = savedEventIds.has(event.id);
+      const showSave = currentUser && currentUser.role === 'customer';
+
+      return `
+        <article class="pc-event-card" data-event-id="${escapeHtml(event.id)}">
+          <div class="pc-event-date">${escapeHtml(formatDate(event.startDate))}</div>
+          <h2 class="pc-event-title">${escapeHtml(event.title)}</h2>
+          ${event.location ? `<div class="pc-event-location"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>${escapeHtml(event.location)}</div>` : ''}
+          ${event.description ? `<p class="pc-event-desc">${escapeHtml(event.description)}</p>` : ''}
+          ${event.url ? `<a href="${escapeHtml(event.url)}" target="_blank" rel="noopener noreferrer" style="font-size:0.8rem;color:#0b8073;">More info ↗</a>` : ''}
+          <div class="pc-event-actions">
+            ${showSave ? `<button class="pc-btn-save ${isSaved ? 'saved' : ''}" data-action="save" data-event-id="${escapeHtml(event.id)}" aria-label="${isSaved ? 'Remove from my calendar' : 'Save to my calendar'}">${isSaved ? '✓ Saved' : '+ Save to calendar'}</button>` : ''}
+            ${canEdit ? `<button class="pc-btn-edit" data-action="edit" data-event-id="${escapeHtml(event.id)}" aria-label="Edit event">Edit</button>` : ''}
+            ${canEdit ? `<button class="pc-btn-delete" data-action="delete" data-event-id="${escapeHtml(event.id)}" aria-label="Delete event">Delete</button>` : ''}
+          </div>
+        </article>`;
+    }).join('');
+  }
+
+  // ── CSRF ──────────────────────────────────────────────────────────────────
+
+  function getCsrfToken() {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    if (meta) return meta.getAttribute('content');
+    const match = document.cookie.match(/(?:^|;)\s*_csrf=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : '';
+  }
+
+  // ── Save / unsave ─────────────────────────────────────────────────────────
+
+  async function toggleSave(eventId, btn) {
+    const isSaved = savedEventIds.has(eventId);
+    btn.disabled = true;
+    try {
+      const method = isSaved ? 'DELETE' : 'POST';
+      const res = await fetch(`/api/public-calendar/${eventId}/save`, {
+        method,
+        credentials: 'include',
+        headers: { 'X-CSRF-Token': getCsrfToken() },
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        showNotice('error', data.error || 'Failed to update saved events');
+        return;
+      }
+      if (isSaved) {
+        savedEventIds.delete(eventId);
+        btn.textContent = '+ Save to calendar';
+        btn.classList.remove('saved');
+        btn.setAttribute('aria-label', 'Save to my calendar');
+      } else {
+        savedEventIds.add(eventId);
+        btn.textContent = '✓ Saved';
+        btn.classList.add('saved');
+        btn.setAttribute('aria-label', 'Remove from my calendar');
+      }
+    } catch (_) {
+      showNotice('error', 'Failed to update saved events');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // ── Notices ───────────────────────────────────────────────────────────────
+
+  function showNotice(type, msg) {
+    const el = document.getElementById('pc-notice');
+    el.className = `pc-notice ${type}`;
+    el.textContent = msg;
+    el.style.display = 'block';
+    setTimeout(() => { el.style.display = 'none'; }, 5000);
+  }
+
+  // ── Modal ─────────────────────────────────────────────────────────────────
+
+  let editingEventId = null;
+
+  function openModal(event) {
+    editingEventId = event ? event.id : null;
+    document.getElementById('pc-modal-title').textContent = event ? 'Edit event' : 'Add event';
+    document.getElementById('pc-modal-submit').textContent = event ? 'Save changes' : 'Save event';
+    document.getElementById('pc-event-id').value = event ? event.id : '';
+    document.getElementById('pc-field-title').value = event ? event.title : '';
+    document.getElementById('pc-field-startDate').value = event ? (event.startDate || '').replace('Z','').slice(0,16) : '';
+    document.getElementById('pc-field-endDate').value = event ? (event.endDate || '').replace('Z','').slice(0,16) : '';
+    document.getElementById('pc-field-location').value = event ? (event.location || '') : '';
+    document.getElementById('pc-field-description').value = event ? (event.description || '') : '';
+    document.getElementById('pc-field-url').value = event ? (event.url || '') : '';
+    document.getElementById('pc-modal').classList.add('open');
+    document.getElementById('pc-field-title').focus();
+  }
+
+  function closeModal() {
+    document.getElementById('pc-modal').classList.remove('open');
+    document.getElementById('pc-event-form').reset();
+    editingEventId = null;
+  }
+
+  async function submitEventForm(e) {
+    e.preventDefault();
+    const title = document.getElementById('pc-field-title').value.trim();
+    const startDate = document.getElementById('pc-field-startDate').value;
+    if (!title) { showNotice('error', 'Title is required'); return; }
+    if (!startDate) { showNotice('error', 'Start date is required'); return; }
+
+    const body = {
+      title,
+      startDate,
+      endDate: document.getElementById('pc-field-endDate').value || '',
+      location: document.getElementById('pc-field-location').value.trim(),
+      description: document.getElementById('pc-field-description').value.trim(),
+      url: document.getElementById('pc-field-url').value.trim(),
+    };
+
+    const submitBtn = document.getElementById('pc-modal-submit');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Saving…';
+
+    try {
+      const isEdit = !!editingEventId;
+      const url = isEdit ? `/api/public-calendar/${editingEventId}` : '/api/public-calendar';
+      const res = await fetch(url, {
+        method: isEdit ? 'PUT' : 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': getCsrfToken(),
+        },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        showNotice('error', data.error || 'Failed to save event');
+        return;
+      }
+      closeModal();
+      await loadEvents();
+      showNotice('success', isEdit ? 'Event updated.' : 'Event added to the public calendar.');
+    } catch (_) {
+      showNotice('error', 'Failed to save event');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = editingEventId ? 'Save changes' : 'Save event';
+    }
+  }
+
+  async function deleteEvent(eventId) {
+    if (!confirm('Delete this event from the public calendar?')) return;
+    try {
+      const res = await fetch(`/api/public-calendar/${eventId}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'X-CSRF-Token': getCsrfToken() },
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        showNotice('error', data.error || 'Failed to delete event');
+        return;
+      }
+      await loadEvents();
+      showNotice('success', 'Event deleted.');
+    } catch (_) {
+      showNotice('error', 'Failed to delete event');
+    }
+  }
+
+  // ── Event delegation ──────────────────────────────────────────────────────
+
+  document.getElementById('pc-events-grid').addEventListener('click', async function (e) {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const action = btn.dataset.action;
+    const eventId = btn.dataset.eventId;
+    const event = allEvents.find(ev => ev.id === eventId);
+
+    if (action === 'save' && event) {
+      await toggleSave(eventId, btn);
+    } else if (action === 'edit' && event) {
+      openModal(event);
+    } else if (action === 'delete') {
+      await deleteEvent(eventId);
+    }
+  });
+
+  document.getElementById('pc-add-btn').addEventListener('click', () => openModal(null));
+  document.getElementById('pc-modal-close').addEventListener('click', closeModal);
+  document.getElementById('pc-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('pc-modal')) closeModal();
+  });
+  document.getElementById('pc-event-form').addEventListener('submit', submitEventForm);
+
+  document.getElementById('pc-apply-filters').addEventListener('click', loadEvents);
+  document.getElementById('pc-clear-filters').addEventListener('click', () => {
+    document.getElementById('pc-filter-location').value = '';
+    document.getElementById('pc-filter-from').value = '';
+    document.getElementById('pc-filter-to').value = '';
+    loadEvents();
+  });
+
+  // ── Initialise ────────────────────────────────────────────────────────────
+
+  async function init() {
+    await loadUser();
+    await Promise.all([loadSavedEventIds(), loadPublisherInfo()]);
+
+    // Show "Add event" button for publishers only
+    if (isPublisher()) {
+      document.getElementById('pc-add-btn').style.display = 'flex';
+    }
+
+    // Update auth nav link
+    const authLink = document.getElementById('ef-auth-link');
+    if (authLink) {
+      authLink.style.display = currentUser ? 'none' : '';
+    }
+
+    await loadEvents();
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
