@@ -26,6 +26,357 @@
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
+    <style>
+      /* ── Public Calendar Page Styles ─────────────────────────────────── */
+
+      /* Hero */
+      .pc-hero {
+        background: linear-gradient(135deg, #0b8073 0%, #0d9488 60%, #14b8a6 100%);
+        color: #fff;
+        padding: 4rem 0 3rem;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+      .pc-hero::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        pointer-events: none;
+      }
+      .pc-hero__inner {
+        position: relative;
+        max-width: 700px;
+        margin: 0 auto;
+        padding: 0 1.5rem;
+      }
+      .pc-hero__eyebrow {
+        display: inline-block;
+        background: rgba(255,255,255,0.15);
+        border: 1px solid rgba(255,255,255,0.25);
+        border-radius: 999px;
+        padding: 0.25rem 1rem;
+        font-size: 0.82rem;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        margin-bottom: 1rem;
+      }
+      .pc-hero h1 {
+        font-size: clamp(1.75rem, 4vw, 2.5rem);
+        font-weight: 800;
+        margin: 0 0 0.75rem;
+        line-height: 1.2;
+      }
+      .pc-hero p {
+        font-size: 1.05rem;
+        opacity: 0.9;
+        margin: 0 0 1.5rem;
+      }
+      .pc-hero__actions {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      .pc-hero__cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        background: #fff;
+        color: #0b8073;
+        font-weight: 700;
+        padding: 0.65rem 1.5rem;
+        border-radius: 999px;
+        text-decoration: none;
+        font-size: 0.95rem;
+        border: none;
+        cursor: pointer;
+        transition: transform 120ms, box-shadow 120ms;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      }
+      .pc-hero__cta:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.2); }
+      .pc-hero__cta--outline {
+        background: transparent;
+        color: #fff;
+        border: 2px solid rgba(255,255,255,0.6);
+      }
+      .pc-hero__cta--outline:hover { background: rgba(255,255,255,0.12); }
+
+      /* Filters */
+      .pc-filters {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 1rem;
+        padding: 1.25rem 1.5rem;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        margin: -1.75rem auto 2rem;
+        position: relative;
+        z-index: 10;
+        max-width: 900px;
+      }
+      .pc-filters__grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 0.75rem;
+        align-items: end;
+      }
+      .pc-filters__field label {
+        display: block;
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 0.35rem;
+      }
+      .pc-filters__field input,
+      .pc-filters__field select {
+        width: 100%;
+        padding: 0.55rem 0.75rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        font-size: 0.9rem;
+        background: #fff;
+        color: #111827;
+        transition: border-color 150ms;
+      }
+      .pc-filters__field input:focus,
+      .pc-filters__field select:focus {
+        outline: none;
+        border-color: #0b8073;
+        box-shadow: 0 0 0 3px rgba(11,128,115,0.12);
+      }
+      .pc-filters__actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: end;
+      }
+      .pc-btn { display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 600; border-radius: 0.5rem; padding: 0.55rem 1.1rem; font-size: 0.9rem; cursor: pointer; border: 1px solid transparent; transition: all 140ms; text-decoration: none; }
+      .pc-btn-primary { background: #0b8073; color: #fff; }
+      .pc-btn-primary:hover { background: #0a6b61; }
+      .pc-btn-ghost { background: transparent; color: #6b7280; border-color: #d1d5db; }
+      .pc-btn-ghost:hover { background: #f9fafb; color: #374151; }
+      .pc-btn-outline-green { background: transparent; color: #0b8073; border-color: #0b8073; }
+      .pc-btn-outline-green:hover { background: #f0fdf9; }
+      .pc-btn-sm { padding: 0.3rem 0.75rem; font-size: 0.82rem; }
+      .pc-btn-danger { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
+      .pc-btn-danger:hover { background: #fecaca; }
+      .pc-btn-save { background: #ecfdf5; color: #059669; border-color: #a7f3d0; }
+      .pc-btn-save:hover { background: #d1fae5; }
+      .pc-btn-saved { background: #6d28d9; color: #fff; border-color: #6d28d9; }
+      .pc-btn-saved:hover { background: #5b21b6; }
+
+      /* Events grid */
+      .pc-events-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.25rem;
+      }
+      .pc-event-card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 1rem;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        transition: transform 160ms, box-shadow 160ms;
+        display: flex;
+        flex-direction: column;
+      }
+      .pc-event-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+      .pc-event-card__img {
+        width: 100%;
+        height: 160px;
+        object-fit: cover;
+      }
+      .pc-event-card__img-placeholder {
+        width: 100%;
+        height: 160px;
+        background: linear-gradient(135deg, #f0fdf9 0%, #ccfbf1 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 3rem;
+      }
+      .pc-event-card__body {
+        padding: 1.1rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+      .pc-event-card__category {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        background: #f0fdf9;
+        color: #0b8073;
+        border: 1px solid #ccfbf1;
+        border-radius: 999px;
+        padding: 0.2rem 0.6rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        width: fit-content;
+      }
+      .pc-event-card__title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #111827;
+        margin: 0;
+        line-height: 1.35;
+      }
+      .pc-event-card__meta {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        font-size: 0.82rem;
+        color: #6b7280;
+      }
+      .pc-event-card__meta-row {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+      }
+      .pc-event-card__description {
+        font-size: 0.87rem;
+        color: #4b5563;
+        line-height: 1.5;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+      .pc-event-card__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        margin-top: auto;
+        padding-top: 0.75rem;
+        border-top: 1px solid #f3f4f6;
+      }
+
+      /* Empty state */
+      .pc-empty {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #6b7280;
+        grid-column: 1 / -1;
+      }
+      .pc-empty__icon { font-size: 3rem; margin-bottom: 1rem; display: block; }
+      .pc-empty__title { font-size: 1.2rem; font-weight: 700; color: #374151; margin-bottom: 0.5rem; }
+      .pc-empty__text { font-size: 0.9rem; }
+
+      /* Add event button (publisher) */
+      .pc-publisher-banner {
+        background: linear-gradient(135deg, #ecfdf5, #d1fae5);
+        border: 1px solid #a7f3d0;
+        border-radius: 0.75rem;
+        padding: 1rem 1.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+      }
+      .pc-publisher-banner__text { font-size: 0.9rem; color: #065f46; font-weight: 500; }
+
+      /* Results bar */
+      .pc-results-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+        font-size: 0.88rem;
+        color: #6b7280;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+      .pc-results-count strong { color: #111827; }
+
+      /* Pagination */
+      .pc-pagination {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: center;
+        margin-top: 2rem;
+        flex-wrap: wrap;
+      }
+
+      /* Modal */
+      .pc-modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.55);
+        z-index: 9000;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+      }
+      .pc-modal-overlay.is-open { display: flex; }
+      .pc-modal {
+        background: #fff;
+        border-radius: 1.25rem;
+        padding: 2rem;
+        width: 100%;
+        max-width: 560px;
+        max-height: 90vh;
+        overflow-y: auto;
+        position: relative;
+        box-shadow: 0 24px 64px rgba(0,0,0,0.2);
+      }
+      .pc-modal__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1.5rem;
+      }
+      .pc-modal__title { font-size: 1.25rem; font-weight: 700; margin: 0; }
+      .pc-modal__close {
+        background: #f3f4f6;
+        border: none;
+        border-radius: 0.5rem;
+        width: 2rem;
+        height: 2rem;
+        font-size: 1.1rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #6b7280;
+      }
+      .pc-modal__close:hover { background: #e5e7eb; color: #111827; }
+      .pc-form__group { margin-bottom: 1rem; }
+      .pc-form__label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.35rem; color: #374151; }
+      .pc-form__label-req { color: #dc2626; }
+      .pc-form__control {
+        width: 100%;
+        padding: 0.6rem 0.85rem;
+        border: 1px solid #d1d5db;
+        border-radius: 0.5rem;
+        font-size: 0.9rem;
+        background: #fff;
+        transition: border-color 150ms;
+      }
+      .pc-form__control:focus { outline: none; border-color: #0b8073; box-shadow: 0 0 0 3px rgba(11,128,115,0.12); }
+      textarea.pc-form__control { resize: vertical; min-height: 80px; }
+      .pc-form__error { color: #dc2626; font-size: 0.85rem; padding: 0.6rem 0.8rem; background: #fee2e2; border-radius: 0.5rem; margin-bottom: 1rem; display: none; }
+      .pc-form__footer { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1.25rem; }
+
+      /* Loading skeleton */
+      .pc-skeleton-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.25rem; }
+      .pc-skeleton-card { background: #f3f4f6; border-radius: 1rem; height: 300px; animation: pcSkeletonPulse 1.4s ease-in-out infinite; }
+      @keyframes pcSkeletonPulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+      @media (max-width: 600px) {
+        .pc-hero { padding: 3rem 0 2rem; }
+        .pc-filters { margin: -1rem auto 1.5rem; border-radius: 0.75rem; }
+        .pc-filters__grid { grid-template-columns: 1fr 1fr; }
+        .pc-events-grid { grid-template-columns: 1fr; }
+      }
+    </style>
   </head>
   <body>
     <!-- TOP NAVBAR -->
@@ -76,98 +427,180 @@
       </div>
     </header>
 
-    <main class="section" id="main-content">
-      <div class="container">
+    <!-- Hero -->
+    <section class="pc-hero" aria-label="Public Events Calendar hero">
+      <div class="pc-hero__inner">
+        <span class="pc-hero__eyebrow">📅 Events Calendar</span>
+        <h1>Upcoming Wedding &amp; Event Shows</h1>
+        <p>Discover local wedding fayres, planning showcases and supplier events near you.</p>
+        <div class="pc-hero__actions">
+          <a href="/suppliers" class="pc-hero__cta pc-hero__cta--outline">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            Browse Suppliers
+          </a>
+        </div>
+      </div>
+    </section>
 
-        <!-- Page heading + publisher actions -->
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
-          <div>
-            <h1 style="margin:0 0 0.25rem;">Public Events Calendar</h1>
-            <p style="margin:0;color:var(--color-text-muted,#6b7280);">Wedding fayres, planning events &amp; supplier showcases.</p>
+    <main id="main-content">
+      <div class="container" style="padding-top: 0;">
+
+        <!-- Filters card (overlaps hero) -->
+        <div class="pc-filters" role="search" aria-label="Filter events">
+          <div class="pc-filters__grid">
+            <div class="pc-filters__field">
+              <label for="pc-filter-category">Category</label>
+              <select id="pc-filter-category">
+                <option value="">All categories</option>
+                <option>Venues</option>
+                <option>Catering</option>
+                <option>Photography</option>
+                <option>Videography</option>
+                <option>Entertainment</option>
+                <option>Music/DJ</option>
+                <option>Florist</option>
+                <option>Decor</option>
+                <option>Transport</option>
+                <option>Cake</option>
+                <option>Stationery</option>
+                <option>Hair &amp; Makeup</option>
+                <option>Beauty</option>
+                <option>Bridalwear</option>
+                <option>Jewellery</option>
+                <option>Celebrant</option>
+                <option>Event Planner</option>
+                <option>Wedding Fayre</option>
+                <option>Planning</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="pc-filters__field">
+              <label for="pc-filter-location">Location</label>
+              <input id="pc-filter-location" type="text" placeholder="City or region" />
+            </div>
+            <div class="pc-filters__field">
+              <label for="pc-filter-from">From date</label>
+              <input id="pc-filter-from" type="date" />
+            </div>
+            <div class="pc-filters__field">
+              <label for="pc-filter-to">To date</label>
+              <input id="pc-filter-to" type="date" />
+            </div>
+            <div class="pc-filters__actions">
+              <button id="pc-filter-btn" class="pc-btn pc-btn-primary" type="button">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                Search
+              </button>
+              <button id="pc-filter-clear-btn" class="pc-btn pc-btn-ghost" type="button">Clear</button>
+            </div>
           </div>
-          <!-- Only shown for publisher suppliers -->
-          <button id="pc-add-event-btn" class="btn btn-primary" style="display:none;">+ Add Event</button>
         </div>
 
-        <!-- Filters bar -->
-        <div style="background:var(--color-surface,#fff);border:1px solid var(--color-border,#e5e7eb);border-radius:0.75rem;padding:1rem;margin-bottom:1.5rem;">
-          <div style="display:flex;flex-wrap:wrap;gap:0.75rem;align-items:flex-end;">
-            <div style="flex:1;min-width:160px;">
-              <label for="pc-filter-category" style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.25rem;">Category</label>
-              <input id="pc-filter-category" type="text" class="form-control" placeholder="e.g. Wedding Fayre" style="width:100%;" />
-            </div>
-            <div style="flex:1;min-width:160px;">
-              <label for="pc-filter-location" style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.25rem;">Location</label>
-              <input id="pc-filter-location" type="text" class="form-control" placeholder="City or region" style="width:100%;" />
-            </div>
-            <div style="flex:1;min-width:140px;">
-              <label for="pc-filter-from" style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.25rem;">From date</label>
-              <input id="pc-filter-from" type="date" class="form-control" style="width:100%;" />
-            </div>
-            <div style="flex:1;min-width:140px;">
-              <label for="pc-filter-to" style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.25rem;">To date</label>
-              <input id="pc-filter-to" type="date" class="form-control" style="width:100%;" />
-            </div>
-            <div>
-              <button id="pc-filter-btn" class="btn btn-secondary">Search</button>
-              <button id="pc-filter-clear-btn" class="btn btn-ghost" style="margin-left:0.25rem;">Clear</button>
-            </div>
-          </div>
+        <!-- Publisher banner (shown only to authorized publishers) -->
+        <div id="pc-publisher-banner" class="pc-publisher-banner" style="display:none;" role="status">
+          <span class="pc-publisher-banner__text">
+            <strong>✓ Publisher access</strong> — You can add events to the public calendar.
+          </span>
+          <button id="pc-add-event-btn" class="pc-btn pc-btn-primary" type="button">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Event
+          </button>
+        </div>
+
+        <!-- Results bar -->
+        <div class="pc-results-bar" aria-live="polite">
+          <span id="pc-results-count" class="pc-results-count"></span>
         </div>
 
         <!-- Event list -->
         <div id="pc-events-list" aria-live="polite">
-          <p id="pc-loading" style="color:var(--color-text-muted,#6b7280);">Loading events…</p>
+          <!-- Loading skeletons -->
+          <div class="pc-skeleton-grid" id="pc-loading-skeleton">
+            <div class="pc-skeleton-card"></div>
+            <div class="pc-skeleton-card"></div>
+            <div class="pc-skeleton-card"></div>
+          </div>
         </div>
 
         <!-- Pagination -->
-        <div id="pc-pagination" style="display:flex;gap:0.5rem;margin-top:1.5rem;justify-content:center;"></div>
+        <div id="pc-pagination" class="pc-pagination" aria-label="Events pagination"></div>
 
       </div>
     </main>
 
     <!-- Add / Edit Event Modal -->
-    <div id="pc-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9000;align-items:center;justify-content:center;">
-      <div style="background:#fff;border-radius:0.75rem;padding:2rem;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;position:relative;">
-        <h2 id="pc-modal-title" style="margin:0 0 1.25rem;">Add Event</h2>
+    <div id="pc-modal-overlay" class="pc-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="pc-modal-title">
+      <div class="pc-modal">
+        <div class="pc-modal__header">
+          <h2 class="pc-modal__title" id="pc-modal-title">Add Event</h2>
+          <button class="pc-modal__close" id="pc-modal-close-btn" aria-label="Close modal" type="button">×</button>
+        </div>
         <form id="pc-event-form" novalidate>
           <input type="hidden" id="pc-form-id" />
-          <div style="margin-bottom:1rem;">
-            <label for="pc-form-title" style="font-weight:600;display:block;margin-bottom:0.25rem;">Title *</label>
-            <input id="pc-form-title" type="text" class="form-control" required maxlength="200" style="width:100%;" />
+          <div class="pc-form__group">
+            <label class="pc-form__label" for="pc-form-title">Title <span class="pc-form__label-req">*</span></label>
+            <input id="pc-form-title" type="text" class="pc-form__control" required maxlength="200" placeholder="Event name" />
           </div>
-          <div style="margin-bottom:1rem;">
-            <label for="pc-form-start" style="font-weight:600;display:block;margin-bottom:0.25rem;">Start date *</label>
-            <input id="pc-form-start" type="datetime-local" class="form-control" required style="width:100%;" />
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+            <div class="pc-form__group">
+              <label class="pc-form__label" for="pc-form-start">Start date <span class="pc-form__label-req">*</span></label>
+              <input id="pc-form-start" type="datetime-local" class="pc-form__control" required />
+            </div>
+            <div class="pc-form__group">
+              <label class="pc-form__label" for="pc-form-end">End date</label>
+              <input id="pc-form-end" type="datetime-local" class="pc-form__control" />
+            </div>
           </div>
-          <div style="margin-bottom:1rem;">
-            <label for="pc-form-end" style="font-weight:600;display:block;margin-bottom:0.25rem;">End date</label>
-            <input id="pc-form-end" type="datetime-local" class="form-control" style="width:100%;" />
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+            <div class="pc-form__group">
+              <label class="pc-form__label" for="pc-form-location">Location</label>
+              <input id="pc-form-location" type="text" class="pc-form__control" maxlength="200" placeholder="City or venue" />
+            </div>
+            <div class="pc-form__group">
+              <label class="pc-form__label" for="pc-form-category">Category</label>
+              <select id="pc-form-category" class="pc-form__control">
+                <option value="">Choose…</option>
+                <option>Venues</option>
+                <option>Catering</option>
+                <option>Photography</option>
+                <option>Videography</option>
+                <option>Entertainment</option>
+                <option>Music/DJ</option>
+                <option>Florist</option>
+                <option>Decor</option>
+                <option>Transport</option>
+                <option>Cake</option>
+                <option>Stationery</option>
+                <option>Hair &amp; Makeup</option>
+                <option>Beauty</option>
+                <option>Bridalwear</option>
+                <option>Jewellery</option>
+                <option>Celebrant</option>
+                <option>Event Planner</option>
+                <option>Wedding Fayre</option>
+                <option>Planning</option>
+                <option>Other</option>
+              </select>
+            </div>
           </div>
-          <div style="margin-bottom:1rem;">
-            <label for="pc-form-location" style="font-weight:600;display:block;margin-bottom:0.25rem;">Location</label>
-            <input id="pc-form-location" type="text" class="form-control" maxlength="200" style="width:100%;" />
+          <div class="pc-form__group">
+            <label class="pc-form__label" for="pc-form-description">Description</label>
+            <textarea id="pc-form-description" class="pc-form__control" rows="3" maxlength="5000" placeholder="Tell attendees what to expect…"></textarea>
           </div>
-          <div style="margin-bottom:1rem;">
-            <label for="pc-form-category" style="font-weight:600;display:block;margin-bottom:0.25rem;">Category</label>
-            <input id="pc-form-category" type="text" class="form-control" maxlength="100" placeholder="e.g. Wedding Fayre" style="width:100%;" />
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+            <div class="pc-form__group">
+              <label class="pc-form__label" for="pc-form-image">Image URL</label>
+              <input id="pc-form-image" type="url" class="pc-form__control" maxlength="500" placeholder="https://…" />
+            </div>
+            <div class="pc-form__group">
+              <label class="pc-form__label" for="pc-form-external">External link</label>
+              <input id="pc-form-external" type="url" class="pc-form__control" maxlength="500" placeholder="https://…" />
+            </div>
           </div>
-          <div style="margin-bottom:1rem;">
-            <label for="pc-form-description" style="font-weight:600;display:block;margin-bottom:0.25rem;">Description</label>
-            <textarea id="pc-form-description" class="form-control" rows="4" maxlength="5000" style="width:100%;resize:vertical;"></textarea>
-          </div>
-          <div style="margin-bottom:1rem;">
-            <label for="pc-form-image" style="font-weight:600;display:block;margin-bottom:0.25rem;">Image URL</label>
-            <input id="pc-form-image" type="url" class="form-control" maxlength="500" style="width:100%;" />
-          </div>
-          <div style="margin-bottom:1.5rem;">
-            <label for="pc-form-external" style="font-weight:600;display:block;margin-bottom:0.25rem;">External link</label>
-            <input id="pc-form-external" type="url" class="form-control" maxlength="500" style="width:100%;" />
-          </div>
-          <div id="pc-form-error" style="color:#dc2626;margin-bottom:1rem;display:none;"></div>
-          <div style="display:flex;gap:0.5rem;justify-content:flex-end;">
-            <button type="button" id="pc-modal-cancel" class="btn btn-secondary">Cancel</button>
-            <button type="submit" id="pc-modal-submit" class="btn btn-primary">Save</button>
+          <div id="pc-form-error" class="pc-form__error" role="alert"></div>
+          <div class="pc-form__footer">
+            <button type="button" id="pc-modal-cancel" class="pc-btn pc-btn-ghost">Cancel</button>
+            <button type="submit" id="pc-modal-submit" class="pc-btn pc-btn-primary">Publish Event</button>
           </div>
         </form>
       </div>
@@ -179,7 +612,7 @@
         <div class="version">Version: <span id="ef-version-label">loading…</span></div>
         <div class="small">
           <a href="/guides">Guides</a> · <a href="/marketplace">Marketplace</a> ·
-          <a href="/public-calendar">Events Calendar</a> ·
+          <a href="/public-calendar">Events Calendar</a> · <a href="/suppliers">Suppliers</a> ·
           <a href="/legal">Legal Hub</a> ·
           <button type="button" data-cookie-prefs>Cookie preferences</button>
         </div>

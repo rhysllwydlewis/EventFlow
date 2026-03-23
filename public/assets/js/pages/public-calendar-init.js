@@ -85,11 +85,11 @@
         await loadSupplierDoc();
       }
 
-      // Show/hide publisher controls
+      // Show publisher banner
       if (isAdmin || isPublisher) {
-        const btn = document.getElementById('pc-add-event-btn');
-        if (btn) {
-          btn.style.display = '';
+        const banner = document.getElementById('pc-publisher-banner');
+        if (banner) {
+          banner.style.display = '';
         }
       }
     } catch (_) {
@@ -129,18 +129,40 @@
 
   // ── Render events ─────────────────────────────────────────────────────────
   function renderEvents(events) {
+    // Hide loading skeleton
+    const skeleton = document.getElementById('pc-loading-skeleton');
+    if (skeleton) {
+      skeleton.style.display = 'none';
+    }
+
     const list = document.getElementById('pc-events-list');
     if (!list) {
       return;
     }
 
+    const countEl = document.getElementById('pc-results-count');
+    if (countEl) {
+      countEl.innerHTML =
+        totalEvents > 0
+          ? `<strong>${totalEvents}</strong> event${totalEvents !== 1 ? 's' : ''} found`
+          : '';
+    }
+
     if (!events.length) {
-      list.innerHTML =
-        '<p style="color:var(--color-text-muted,#6b7280);">No events found matching your filters.</p>';
+      list.innerHTML = `
+        <div class="pc-events-grid" style="display:block;">
+          <div class="pc-empty">
+            <span class="pc-empty__icon">📅</span>
+            <p class="pc-empty__title">No events found</p>
+            <p class="pc-empty__text">Try adjusting your filters, or check back soon for upcoming events.</p>
+            ${isAdmin || isPublisher ? `<button class="pc-btn pc-btn-primary" id="pc-empty-add-btn" style="margin-top:1rem;" type="button">+ Add the first event</button>` : ''}
+          </div>
+        </div>`;
+      document.getElementById('pc-empty-add-btn')?.addEventListener('click', openAddModal);
       return;
     }
 
-    list.innerHTML = events.map(ev => renderEventCard(ev)).join('');
+    list.innerHTML = `<div class="pc-events-grid">${events.map(ev => renderEventCard(ev)).join('')}</div>`;
 
     // Wire up action buttons
     list.querySelectorAll('[data-action="save"]').forEach(btn => {
@@ -164,40 +186,82 @@
 
     const saveBtn = isLoggedIn
       ? ev.savedByMe
-        ? `<button class="btn btn-small btn-secondary" data-action="unsave" data-id="${esc(ev.id)}" title="Remove from my calendar">✓ Saved</button>`
-        : `<button class="btn btn-small btn-primary" data-action="save" data-id="${esc(ev.id)}">+ Save to my calendar</button>`
+        ? `<button class="pc-btn pc-btn-sm pc-btn-saved" data-action="unsave" data-id="${esc(ev.id)}" title="Remove from my calendar">✓ Saved</button>`
+        : `<button class="pc-btn pc-btn-sm pc-btn-save" data-action="save" data-id="${esc(ev.id)}">+ Save to calendar</button>`
       : '';
 
     const editBtns = canEdit
-      ? `<button class="btn btn-small btn-ghost" data-action="edit" data-id="${esc(ev.id)}" style="margin-left:0.25rem;">Edit</button>
-         <button class="btn btn-small btn-danger" data-action="delete" data-id="${esc(ev.id)}" data-title="${esc(ev.title)}" style="margin-left:0.25rem;">Delete</button>`
+      ? `<button class="pc-btn pc-btn-sm pc-btn-outline-green" data-action="edit" data-id="${esc(ev.id)}">Edit</button>
+         <button class="pc-btn pc-btn-sm pc-btn-danger" data-action="delete" data-id="${esc(ev.id)}" data-title="${esc(ev.title)}">Delete</button>`
       : '';
 
-    const img = ev.imageUrl
-      ? `<img src="${esc(ev.imageUrl)}" alt="" style="width:100%;height:160px;object-fit:cover;border-radius:0.5rem 0.5rem 0 0;" loading="lazy" />`
-      : '';
+    const imgSection = ev.imageUrl
+      ? `<img class="pc-event-card__img" src="${esc(ev.imageUrl)}" alt="" loading="lazy" />`
+      : `<div class="pc-event-card__img-placeholder">${getCategoryEmoji(ev.category)}</div>`;
 
     const externalLink = ev.externalUrl
-      ? `<a href="${esc(ev.externalUrl)}" target="_blank" rel="noopener noreferrer" class="btn btn-small btn-ghost" style="margin-left:0.25rem;">More info ↗</a>`
+      ? `<a href="${esc(ev.externalUrl)}" target="_blank" rel="noopener noreferrer" class="pc-btn pc-btn-sm pc-btn-ghost">More info ↗</a>`
       : '';
 
+    const categoryBadge = ev.category
+      ? `<span class="pc-event-card__category">${esc(ev.category)}</span>`
+      : '';
+
+    const dateStr = formatDate(ev.startDate);
+    const endDateStr = ev.endDate ? ` – ${formatDate(ev.endDate)}` : '';
+
     return `
-      <div class="card" style="margin-bottom:1rem;overflow:hidden;">
-        ${img}
-        <div style="padding:1rem;">
-          <h3 style="margin:0 0 0.25rem;font-size:1.1rem;">${esc(ev.title)}</h3>
-          <p style="margin:0 0 0.5rem;font-size:0.85rem;color:var(--color-text-muted,#6b7280);">
-            📅 ${esc(formatDate(ev.startDate))}
-            ${ev.endDate ? ` – ${esc(formatDate(ev.endDate))}` : ''}
-            ${ev.location ? ` &nbsp;📍 ${esc(ev.location)}` : ''}
-            ${ev.category ? ` &nbsp;🏷 ${esc(ev.category)}` : ''}
-          </p>
-          ${ev.description ? `<p style="margin:0 0 0.75rem;font-size:0.9rem;">${esc(ev.description).replace(/\n/g, '<br>')}</p>` : ''}
-          <div style="display:flex;flex-wrap:wrap;gap:0.25rem;align-items:center;">
+      <article class="pc-event-card">
+        ${imgSection}
+        <div class="pc-event-card__body">
+          ${categoryBadge}
+          <h3 class="pc-event-card__title">${esc(ev.title)}</h3>
+          <div class="pc-event-card__meta">
+            <span class="pc-event-card__meta-row">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              ${esc(dateStr)}${esc(endDateStr)}
+            </span>
+            ${
+              ev.location
+                ? `<span class="pc-event-card__meta-row">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              ${esc(ev.location)}
+            </span>`
+                : ''
+            }
+          </div>
+          ${ev.description ? `<p class="pc-event-card__description">${esc(ev.description)}</p>` : ''}
+          <div class="pc-event-card__actions">
             ${saveBtn}${externalLink}${editBtns}
           </div>
         </div>
-      </div>`;
+      </article>`;
+  }
+
+  function getCategoryEmoji(category) {
+    const map = {
+      Venues: '🏛️',
+      Catering: '🍽️',
+      Photography: '📸',
+      Videography: '🎥',
+      Entertainment: '🎭',
+      'Music/DJ': '🎵',
+      Florist: '🌸',
+      Decor: '✨',
+      Transport: '🚗',
+      Cake: '🎂',
+      Stationery: '📝',
+      'Hair & Makeup': '💄',
+      Beauty: '💅',
+      Bridalwear: '👗',
+      Jewellery: '💍',
+      Celebrant: '🎓',
+      'Event Planner': '📋',
+      'Wedding Fayre': '💒',
+      Planning: '🗓️',
+      Other: '⭐',
+    };
+    return map[category] || '📅';
   }
 
   function renderPagination() {
@@ -216,11 +280,11 @@
 
     let html = '';
     if (currentPage > 0) {
-      html += `<button class="btn btn-small btn-secondary" id="pc-prev-btn">← Previous</button>`;
+      html += `<button class="pc-btn pc-btn-ghost" id="pc-prev-btn">← Previous</button>`;
     }
-    html += `<span style="align-self:center;font-size:0.9rem;">Page ${currentPage + 1} of ${pages}</span>`;
+    html += `<span style="align-self:center;font-size:0.9rem;color:#6b7280;">Page ${currentPage + 1} of ${pages}</span>`;
     if (currentPage < pages - 1) {
-      html += `<button class="btn btn-small btn-secondary" id="pc-next-btn">Next →</button>`;
+      html += `<button class="pc-btn pc-btn-ghost" id="pc-next-btn">Next →</button>`;
     }
     container.innerHTML = html;
 
@@ -242,9 +306,14 @@
 
   // ── Load events ───────────────────────────────────────────────────────────
   async function loadEvents() {
+    // Show loading skeleton
+    const skeleton = document.getElementById('pc-loading-skeleton');
+    if (skeleton) {
+      skeleton.style.display = '';
+    }
     const list = document.getElementById('pc-events-list');
     if (list) {
-      list.innerHTML = '<p style="color:var(--color-text-muted,#6b7280);">Loading events…</p>';
+      list.innerHTML = '';
     }
 
     try {
@@ -262,8 +331,12 @@
       renderEvents(data.events || []);
       renderPagination();
     } catch (err) {
+      if (skeleton) {
+        skeleton.style.display = 'none';
+      }
       if (list) {
-        list.innerHTML = '<p style="color:#dc2626;">Failed to load events. Please try again.</p>';
+        list.innerHTML =
+          '<p style="color:#dc2626;padding:2rem;text-align:center;">Failed to load events. Please try again.</p>';
       }
     }
   }
@@ -280,7 +353,7 @@
         method: 'POST',
         body: '{}',
       });
-      btn.outerHTML = `<button class="btn btn-small btn-secondary" data-action="unsave" data-id="${esc(eventId)}" title="Remove from my calendar">✓ Saved</button>`;
+      btn.outerHTML = `<button class="pc-btn pc-btn-sm pc-btn-saved" data-action="unsave" data-id="${esc(eventId)}" title="Remove from my calendar">✓ Saved</button>`;
       rewireButtons();
     } catch (e) {
       btn.disabled = false;
@@ -295,7 +368,7 @@
         method: 'DELETE',
         body: '{}',
       });
-      btn.outerHTML = `<button class="btn btn-small btn-primary" data-action="save" data-id="${esc(eventId)}">+ Save to my calendar</button>`;
+      btn.outerHTML = `<button class="pc-btn pc-btn-sm pc-btn-save" data-action="save" data-id="${esc(eventId)}">+ Save to calendar</button>`;
       rewireButtons();
     } catch (e) {
       btn.disabled = false;
@@ -490,7 +563,8 @@
     }
 
     // Modal cancel / overlay click
-    document.getElementById('pc-modal-cancel').addEventListener('click', closeModal);
+    document.getElementById('pc-modal-cancel')?.addEventListener('click', closeModal);
+    document.getElementById('pc-modal-close-btn')?.addEventListener('click', closeModal);
     document.getElementById('pc-modal-overlay').addEventListener('click', e => {
       if (e.target === document.getElementById('pc-modal-overlay')) {
         closeModal();
