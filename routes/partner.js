@@ -131,6 +131,7 @@ router.get('/me', authRequired, roleRequired('partner'), async (req, res) => {
     }
 
     const balance = await partnerService.getBalance(partner.id);
+    const pending = await partnerService.getPendingPoints(partner.id);
     const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
     const refLink = `${baseUrl}/auth?ref=${partner.refCode}&role=supplier`;
 
@@ -142,7 +143,12 @@ router.get('/me', authRequired, roleRequired('partner'), async (req, res) => {
         status: partner.status,
         createdAt: partner.createdAt,
       },
-      credits: balance,
+      credits: {
+        ...balance,
+        pendingPoints: pending.totalPending,
+        pendingPackage: pending.pendingPackage,
+        pendingSubscription: pending.pendingSubscription,
+      },
     });
   } catch (err) {
     logger.error('Error fetching partner me:', err);
@@ -170,13 +176,18 @@ router.get('/referrals', authRequired, roleRequired('partner'), async (req, res)
 
     const referrals = await partnerService.listReferralsByPartnerId(partner.id);
 
-    // Enrich with basic user info (name masked for privacy)
+    // Enrich with basic user info (name masked for privacy — first + last letter only)
     const users = await dbUnified.read('users');
     const enriched = referrals.map(r => {
       const u = users.find(x => x.id === r.supplierUserId);
       return {
         id: r.id,
-        supplierName: u ? `${(u.firstName || u.name || 'Supplier').charAt(0)}*** (${u.company || u.email?.split('@')[1] || 'supplier'})` : 'Unknown',
+        // maskReferralName applies first+last-letter masking; see partnerService for full logic
+        supplierName: partnerService.maskReferralName(
+          u ? u.name || `${u.firstName || ''} ${u.lastName || ''}`.trim() : null,
+          u ? u.company : null,
+          u ? u.email : null
+        ),
         signedUpAt: r.supplierCreatedAt,
         attributionExpiresAt: r.attributionExpiresAt,
         packageQualified: r.packageQualified,
@@ -216,6 +227,162 @@ router.get('/transactions', authRequired, roleRequired('partner'), async (req, r
     res.json({ items: balance.transactions });
   } catch (err) {
     logger.error('Error fetching partner transactions:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ─── Code Management ──────────────────────────────────────────────────────────
+
+/**
+ * POST /api/partner/regenerate-code
+ * Generate a new referral code; the old code is archived and remains functional.
+ */
+router.post('/regenerate-code', authRequired, roleRequired('partner'), csrfProtection, async (req, res) => {
+  try {
+    const partner = await partnerService.getPartnerByUserId(req.user.id);
+    if (!partner) {
+      return res.status(404).json({ error: 'Partner account not found' });
+    }
+    if (partner.status === 'disabled') {
+      return res.status(403).json({
+        error: 'Your partner account has been disabled. Please contact support.',
+        disabled: true,
+      });
+    }
+
+    const { oldCode, newCode } = await partnerService.regenerateCode(partner.id);
+    const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+    const newRefLink = `${baseUrl}/auth?ref=${newCode}&role=supplier`;
+
+    res.json({ ok: true, oldCode, newCode, refLink: newRefLink });
+  } catch (err) {
+    logger.error('Error regenerating partner code:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * GET /api/partner/code-history
+ * Retrieve the archived referral codes for the current partner.
+ */
+router.get('/code-history', authRequired, roleRequired('partner'), async (req, res) => {
+  try {
+    const partner = await partnerService.getPartnerByUserId(req.user.id);
+    if (!partner) {
+      return res.status(404).json({ error: 'Partner account not found' });
+    }
+    if (partner.status === 'disabled') {
+      return res.status(403).json({
+        error: 'Your partner account has been disabled. Please contact support.',
+        disabled: true,
+      });
+    }
+
+    const history = await partnerService.getCodeHistory(partner.id);
+    res.json({ items: history });
+  } catch (err) {
+    logger.error('Error fetching partner code history:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ─── Payout Request ───────────────────────────────────────────────────────────
+
+const GIFT_CARD_TYPES = ['Amazon', 'John Lewis', 'ASOS', 'Marks & Spencer', 'Other'];
+
+/**
+ * POST /api/partner/payout-request
+ * Create a support ticket requesting a gift-card payout.
+ *
+ * Body:
+ *   { points: number, giftCardType?: string, message?: string }
+ */
+router.post('/payout-request', authRequired, roleRequired('partner'), csrfProtection, async (req, res) => {
+  try {
+    const partner = await partnerService.getPartnerByUserId(req.user.id);
+    if (!partner) {
+      return res.status(404).json({ error: 'Partner account not found' });
+    }
+    if (partner.status === 'disabled') {
+      return res.status(403).json({
+        error: 'Your partner account has been disabled. Please contact support.',
+        disabled: true,
+      });
+    }
+
+    const { points, giftCardType, message } = req.body || {};
+
+    const parsedPoints = parseInt(points, 10);
+    if (!Number.isFinite(parsedPoints) || parsedPoints <= 0) {
+      return res.status(400).json({ error: 'points must be a positive integer' });
+    }
+
+    const balance = await partnerService.getBalance(partner.id);
+    if (parsedPoints > balance.balance) {
+      return res.status(400).json({
+        error: `Insufficient points. You have ${balance.balance} available.`,
+      });
+    }
+
+    const sanitizedGiftCardType =
+      giftCardType && GIFT_CARD_TYPES.includes(String(giftCardType).trim())
+        ? String(giftCardType).trim()
+        : 'Not specified';
+
+    const sanitizedMessage = message
+      ? String(message).trim().slice(0, 1000)
+      : '';
+
+    const now = new Date().toISOString();
+    const valueGbp = `£${(parsedPoints / 100).toFixed(2)}`;
+    const subject = `Partner payout request — ${parsedPoints} credits (${valueGbp}) [${partner.id}]`;
+
+    const ticketMessage =
+      `Partner payout request\n\n` +
+      `Partner ID: ${partner.id}\n` +
+      `Partner Code: ${partner.refCode}\n` +
+      `Points requested: ${parsedPoints} (${valueGbp})\n` +
+      `Current balance: ${balance.balance} credits\n` +
+      `Preferred gift card: ${sanitizedGiftCardType}\n` +
+      (sanitizedMessage ? `\nPartner message:\n${sanitizedMessage}` : '');
+
+    const newTicket = {
+      id: uid('tkt'),
+      senderId: req.user.id,
+      senderType: 'partner',
+      senderName: req.user.name || req.user.firstName || 'Partner',
+      senderEmail: req.user.email,
+      subject,
+      message: ticketMessage,
+      status: 'open',
+      priority: 'normal',
+      accountTier: 'partner',
+      prioritySource: 'partner_payout',
+      assignedTo: null,
+      lastReplyAt: now,
+      lastReplyBy: 'partner',
+      responses: [],
+      // Payout-specific metadata
+      partnerId: partner.id,
+      partnerRefCode: partner.refCode,
+      payoutPoints: parsedPoints,
+      payoutValueGbp: valueGbp,
+      payoutGiftCardType: sanitizedGiftCardType,
+      category: 'partner_payout',
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    await dbUnified.insertOne('tickets', newTicket);
+    logger.info(`Partner payout request ticket created: ${newTicket.id} for partner ${partner.id}`);
+
+    res.status(201).json({
+      ok: true,
+      ticketId: newTicket.id,
+      message: 'Your payout request has been submitted. Our team will be in touch.',
+    });
+  } catch (err) {
+    logger.error('Error creating partner payout request:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

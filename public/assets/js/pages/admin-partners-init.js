@@ -553,6 +553,16 @@
       refreshBtn.addEventListener('click', loadPartners);
     }
 
+    // Payout requests filter and refresh
+    const payoutStatusFilter = document.getElementById('payoutStatusFilter');
+    if (payoutStatusFilter) {
+      payoutStatusFilter.addEventListener('change', loadPayoutRequests);
+    }
+    const refreshPayoutsBtn = document.getElementById('refreshPayoutsBtn');
+    if (refreshPayoutsBtn) {
+      refreshPayoutsBtn.addEventListener('click', loadPayoutRequests);
+    }
+
     // Detail panel close
     const closeBtn = document.getElementById('close-detail-btn');
     if (closeBtn) {
@@ -589,11 +599,129 @@
     });
   }
 
+  // ── Payout requests ───────────────────────────────────────────────────────────
+
+  async function loadPayoutRequests() {
+    const container = document.getElementById('payout-requests-container');
+    const statusFilter = document.getElementById('payoutStatusFilter');
+    const status = statusFilter ? statusFilter.value : '';
+
+    if (container) {
+      container.innerHTML = '<div style="text-align:center;padding:2rem;color:rgba(255,255,255,0.3);">Loading payout requests…</div>';
+    }
+
+    try {
+      const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+      const data = await AdminShared.api(`/api/admin/partners/payout-requests${qs}`);
+      const items = data.items || [];
+
+      if (!container) {
+        return;
+      }
+
+      if (items.length === 0) {
+        container.innerHTML = `
+          <div style="text-align:center;padding:2.5rem;color:rgba(255,255,255,0.3);">
+            <div style="font-size:2rem;margin-bottom:0.75rem;">🎁</div>
+            <div>No payout requests${status ? ' with this status' : ''} yet.</div>
+          </div>`;
+        return;
+      }
+
+      const statusOptions = ['open', 'in_progress', 'resolved', 'closed'];
+      const statusLabels = {
+        open: '<span class="p-badge p-badge--pending">Open</span>',
+        in_progress: '<span class="p-badge p-badge--success">In Progress</span>',
+        resolved: '<span class="p-badge p-badge--inactive">Resolved</span>',
+        closed: '<span class="p-badge p-badge--inactive">Closed</span>',
+      };
+
+      const rows = items.map(r => {
+        const userName = r.partnerUser ? esc(r.partnerUser.name || r.partnerUser.email || 'Unknown') : 'Unknown';
+        const userEmail = r.partnerUser ? esc(r.partnerUser.email || '') : '';
+        const statusBadge = statusLabels[r.status] || `<span class="p-badge p-badge--inactive">${esc(r.status)}</span>`;
+        const statusSelectOptions = statusOptions
+          .map(s => `<option value="${s}"${s === r.status ? ' selected' : ''}>${s.replace('_', ' ')}</option>`)
+          .join('');
+
+        return `<tr>
+          <td>
+            <div style="font-weight:600;color:#fff;">${userName}</div>
+            <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);">${userEmail}</div>
+            <div style="font-size:0.73rem;color:rgba(255,255,255,0.3);margin-top:0.1rem;">${esc(r.partnerId || '')}</div>
+          </td>
+          <td>
+            <div style="font-weight:700;color:#6ee7b7;font-size:1.05rem;">${esc(r.payoutValueGbp || '—')}</div>
+            <div style="font-size:0.78rem;color:rgba(255,255,255,0.45);">${esc(String(r.payoutPoints || 0))} points</div>
+          </td>
+          <td style="font-size:0.82rem;">${esc(r.payoutGiftCardType || 'Not specified')}</td>
+          <td style="font-size:0.78rem;color:rgba(255,255,255,0.45);">${fmtDate(r.createdAt)}</td>
+          <td>${statusBadge}</td>
+          <td>
+            <select
+              class="payout-status-select"
+              data-ticket-id="${esc(r.id)}"
+              style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:7px;color:#fff;padding:0.3rem 0.55rem;font-size:0.78rem;cursor:pointer;"
+              aria-label="Update payout request status"
+            >${statusSelectOptions}</select>
+          </td>
+        </tr>`;
+      });
+
+      container.innerHTML = `
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;" aria-label="Payout requests">
+            <thead>
+              <tr>
+                <th style="text-align:left;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;color:rgba(255,255,255,0.4);border-bottom:1px solid rgba(255,255,255,0.08);padding:0.5rem 0.75rem;">Partner</th>
+                <th style="text-align:left;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;color:rgba(255,255,255,0.4);border-bottom:1px solid rgba(255,255,255,0.08);padding:0.5rem 0.75rem;">Amount</th>
+                <th style="text-align:left;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;color:rgba(255,255,255,0.4);border-bottom:1px solid rgba(255,255,255,0.08);padding:0.5rem 0.75rem;">Gift Card</th>
+                <th style="text-align:left;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;color:rgba(255,255,255,0.4);border-bottom:1px solid rgba(255,255,255,0.08);padding:0.5rem 0.75rem;">Submitted</th>
+                <th style="text-align:left;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;color:rgba(255,255,255,0.4);border-bottom:1px solid rgba(255,255,255,0.08);padding:0.5rem 0.75rem;">Status</th>
+                <th style="text-align:left;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;color:rgba(255,255,255,0.4);border-bottom:1px solid rgba(255,255,255,0.08);padding:0.5rem 0.75rem;">Update Status</th>
+              </tr>
+            </thead>
+            <tbody>${rows.join('')}</tbody>
+          </table>
+        </div>`;
+
+      // Attach status-change listeners
+      container.querySelectorAll('.payout-status-select').forEach(sel => {
+        sel.addEventListener('change', async () => {
+          const ticketId = sel.getAttribute('data-ticket-id');
+          const newStatus = sel.value;
+          try {
+            const csrfToken = await getCsrf();
+            await AdminShared.api(
+              `/api/admin/partners/payout-requests/${encodeURIComponent(ticketId)}/status`,
+              {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+                body: JSON.stringify({ status: newStatus }),
+              }
+            );
+            showToast(`Payout request status updated to "${newStatus.replace('_', ' ')}"`, 'success');
+            loadPayoutRequests();
+          } catch (err) {
+            AdminShared.debugError('Failed to update payout status', err);
+            showToast('Failed to update status', 'error');
+          }
+        });
+      });
+    } catch (err) {
+      AdminShared.debugError('Failed to load payout requests', err);
+      if (container) {
+        container.innerHTML = '<div style="text-align:center;padding:2rem;color:#fca5a5;">Error loading payout requests.</div>';
+      }
+    }
+  }
+
   // ── Init ──────────────────────────────────────────────────────────────────────
 
   function init() {
     setupEventListeners();
     loadPartners();
+    loadPayoutRequests();
   }
 
   if (document.readyState === 'loading') {

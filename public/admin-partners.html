@@ -405,6 +405,36 @@
     </div>
   </div>
 
+  <!-- ── Payout Requests section ────────────────────────────────────────────── -->
+  <div id="ap-payout-section" style="margin-top:1.5rem;">
+    <div class="ap-section" style="margin-top:0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:0.75rem;">
+        <div>
+          <div class="ap-section-title" style="margin:0 0 0.2rem;">Gift Card Payout Requests</div>
+          <p style="font-size:0.8rem;color:rgba(255,255,255,0.45);margin:0;">
+            Partner payout requests submitted via the partner dashboard
+          </p>
+        </div>
+        <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+          <select id="payoutStatusFilter" aria-label="Filter payout requests by status"
+            style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:9px;color:#fff;padding:0.4rem 0.7rem;font-size:0.8rem;">
+            <option value="">All statuses</option>
+            <option value="open">Open</option>
+            <option value="in_progress">In Progress</option>
+            <option value="resolved">Resolved</option>
+            <option value="closed">Closed</option>
+          </select>
+          <button id="refreshPayoutsBtn" class="btn-icon" title="Refresh payout requests" aria-label="Refresh payout requests" style="width:32px;height:32px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          </button>
+        </div>
+      </div>
+      <div id="payout-requests-container">
+        <div style="text-align:center;padding:2rem;color:rgba(255,255,255,0.3);">Loading payout requests…</div>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Empty state (shown by JS when 0 partners) ──────────────────────── -->
   <div id="ap-empty-state" hidden>
 

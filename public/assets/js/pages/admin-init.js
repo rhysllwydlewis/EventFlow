@@ -325,6 +325,24 @@
       featuredPackagesEl.textContent = counts.featuredPackages || 0;
     }
 
+    // Partners management card — load asynchronously (best-effort)
+    (async () => {
+      try {
+        const partnerData = await AdminShared.api('/api/admin/partners');
+        const partners = partnerData.items || [];
+        const totalPartnersEl = document.getElementById('totalPartnersCountCard');
+        if (totalPartnersEl) totalPartnersEl.textContent = partners.length;
+        const activePartnersEl = document.getElementById('activePartnersCount');
+        if (activePartnersEl) activePartnersEl.textContent = partners.filter(p => p.status === 'active').length;
+
+        const payoutData = await AdminShared.api('/api/admin/partners/payout-requests?status=open');
+        const openPayoutsEl = document.getElementById('openPayoutRequestsCount');
+        if (openPayoutsEl) openPayoutsEl.textContent = (payoutData.items || []).length;
+      } catch (_) {
+        // Non-blocking — card shows — if API fails stats stay at —
+      }
+    })();
+
     // Revenue: no revenue endpoint yet — show N/A
     const totalRevenueEl = document.getElementById('totalRevenueCount');
     if (totalRevenueEl) {

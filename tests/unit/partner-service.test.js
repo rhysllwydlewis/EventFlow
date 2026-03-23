@@ -12,6 +12,7 @@ const mockStore = {
   partners: [],
   partner_referrals: [],
   partner_credit_transactions: [],
+  partner_code_history: [],
 };
 
 jest.mock('../../db-unified', () => ({
@@ -55,6 +56,7 @@ function resetStore() {
   mockStore.partners = [];
   mockStore.partner_referrals = [];
   mockStore.partner_credit_transactions = [];
+  mockStore.partner_code_history = [];
 }
 
 // ── Import service AFTER mocks are set up ─────────────────────────────────────
@@ -559,6 +561,224 @@ describe('PartnerService', () => {
       const txnEnabled = await partnerService.awardPackageBonus('usr_supplier_d');
       expect(txnEnabled).not.toBeNull();
       expect(txnEnabled.amount).toBe(10);
+    });
+  });
+
+  // ── maskReferralName ─────────────────────────────────────────────────────────
+
+  describe('maskReferralName()', () => {
+    it('masks a full name to first and last character with asterisks', () => {
+      expect(partnerService.maskReferralName('Jane Smith')).toBe('J*****h');
+    });
+
+    it('handles a single-word name', () => {
+      expect(partnerService.maskReferralName('Alice')).toBe('A***e');
+    });
+
+    it('handles a two-character name', () => {
+      expect(partnerService.maskReferralName('Jo')).toBe('J***o');
+    });
+
+    it('handles a single-character name', () => {
+      expect(partnerService.maskReferralName('A')).toBe('A***');
+    });
+
+    it('falls back to company initial when name is empty', () => {
+      expect(partnerService.maskReferralName('', 'WeddingCo', null)).toBe('W***');
+    });
+
+    it('falls back to email initial when name and company are empty', () => {
+      expect(partnerService.maskReferralName('', '', 'test@example.com')).toBe('t***@example.com');
+    });
+
+    it('returns generic fallback when nothing is available', () => {
+      expect(partnerService.maskReferralName(null, null, null)).toBe('S***r');
+    });
+
+    it('ensures no full PII is exposed in any case', () => {
+      const result = partnerService.maskReferralName('Jane Smith', 'ACME Corp', 'jane@acme.com');
+      expect(result).not.toContain('Jane');
+      expect(result).not.toContain('Smith');
+      expect(result.length).toBeLessThan('Jane Smith'.length);
+    });
+  });
+
+  // ── regenerateCode ────────────────────────────────────────────────────────────
+
+  describe('regenerateCode()', () => {
+    beforeEach(() => {
+      mockStore.partners.push({
+        id: 'prt_regen',
+        userId: 'usr_regen',
+        refCode: 'p_OLDCODE',
+        status: 'active',
+        createdAt: new Date().toISOString(),
+      });
+    });
+
+    it('generates a new code and archives the old one', async () => {
+      const { oldCode, newCode } = await partnerService.regenerateCode('prt_regen');
+
+      expect(oldCode).toBe('p_OLDCODE');
+      expect(newCode).not.toBe('p_OLDCODE');
+      expect(newCode).toMatch(/^p_/);
+    });
+
+    it('saves the old code to partner_code_history', async () => {
+      await partnerService.regenerateCode('prt_regen');
+
+      const history = mockStore.partner_code_history || [];
+      expect(history.length).toBeGreaterThanOrEqual(1);
+      expect(history[0].refCode).toBe('p_OLDCODE');
+      expect(history[0].partnerId).toBe('prt_regen');
+    });
+
+    it('updates the partner record with the new code', async () => {
+      const { newCode } = await partnerService.regenerateCode('prt_regen');
+
+      const partner = mockStore.partners.find(p => p.id === 'prt_regen');
+      expect(partner.refCode).toBe(newCode);
+    });
+
+    it('old code resolves to same partner via getPartnerByAnyRefCode', async () => {
+      const { oldCode } = await partnerService.regenerateCode('prt_regen');
+
+      const found = await partnerService.getPartnerByAnyRefCode(oldCode);
+      expect(found).not.toBeNull();
+      expect(found.id).toBe('prt_regen');
+    });
+
+    it('new code also resolves via getPartnerByAnyRefCode', async () => {
+      const { newCode } = await partnerService.regenerateCode('prt_regen');
+
+      const found = await partnerService.getPartnerByAnyRefCode(newCode);
+      expect(found).not.toBeNull();
+      expect(found.id).toBe('prt_regen');
+    });
+
+    it('getCodeHistory returns archived codes', async () => {
+      await partnerService.regenerateCode('prt_regen');
+      const history = await partnerService.getCodeHistory('prt_regen');
+
+      expect(history.length).toBe(1);
+      expect(history[0].refCode).toBe('p_OLDCODE');
+    });
+
+    it('accumulates history across multiple regenerations', async () => {
+      await partnerService.regenerateCode('prt_regen');
+      await partnerService.regenerateCode('prt_regen');
+
+      const history = await partnerService.getCodeHistory('prt_regen');
+      expect(history.length).toBe(2);
+    });
+
+    it('throws when partner does not exist', async () => {
+      await expect(partnerService.regenerateCode('prt_nonexistent')).rejects.toThrow(
+        'Partner not found'
+      );
+    });
+  });
+
+  // ── getPendingPoints ──────────────────────────────────────────────────────────
+
+  describe('getPendingPoints()', () => {
+    beforeEach(() => {
+      mockStore.partners.push({
+        id: 'prt_pending',
+        userId: 'usr_pending',
+        refCode: 'p_PEND',
+        status: 'active',
+        createdAt: new Date().toISOString(),
+      });
+    });
+
+    it('returns zero when there are no referrals', async () => {
+      const result = await partnerService.getPendingPoints('prt_pending');
+
+      expect(result.totalPending).toBe(0);
+      expect(result.pendingPackage).toBe(0);
+      expect(result.pendingSubscription).toBe(0);
+    });
+
+    it('calculates pending package and subscription bonuses', async () => {
+      // Active referral, nothing qualified
+      mockStore.partner_referrals.push({
+        id: 'ref_p1',
+        partnerId: 'prt_pending',
+        supplierUserId: 'usr_s1',
+        supplierCreatedAt: new Date().toISOString(), // just now — within window
+        packageQualified: false,
+        subscriptionQualified: false,
+      });
+
+      const result = await partnerService.getPendingPoints('prt_pending');
+      // Pending = +10 (package) + +100 (subscription)
+      expect(result.pendingPackage).toBe(10);
+      expect(result.pendingSubscription).toBe(100);
+      expect(result.totalPending).toBe(110);
+    });
+
+    it('excludes already-qualified bonuses from pending', async () => {
+      mockStore.partner_referrals.push({
+        id: 'ref_p2',
+        partnerId: 'prt_pending',
+        supplierUserId: 'usr_s2',
+        supplierCreatedAt: new Date().toISOString(),
+        packageQualified: true,  // already earned
+        subscriptionQualified: false,
+      });
+
+      const result = await partnerService.getPendingPoints('prt_pending');
+      expect(result.pendingPackage).toBe(0);
+      expect(result.pendingSubscription).toBe(100);
+      expect(result.totalPending).toBe(100);
+    });
+
+    it('ignores referrals outside the attribution window', async () => {
+      const oldDate = new Date(Date.now() - 40 * 24 * 60 * 60 * 1000).toISOString(); // 40 days ago
+      mockStore.partner_referrals.push({
+        id: 'ref_p3',
+        partnerId: 'prt_pending',
+        supplierUserId: 'usr_s3',
+        supplierCreatedAt: oldDate,
+        packageQualified: false,
+        subscriptionQualified: false,
+      });
+
+      const result = await partnerService.getPendingPoints('prt_pending');
+      expect(result.totalPending).toBe(0);
+    });
+  });
+
+  // ── getBalance pending points integration ─────────────────────────────────────
+
+  describe('getBalance() available vs pending points', () => {
+    it('getBalance returns earned balance (available) as separate figure from pending', async () => {
+      // Set up a partner with one confirmed award and one pending referral
+      mockStore.partners.push({
+        id: 'prt_bp',
+        userId: 'usr_bp',
+        refCode: 'p_BP',
+        status: 'active',
+        createdAt: new Date().toISOString(),
+      });
+      // Confirmed transaction
+      mockStore.partner_credit_transactions.push({
+        id: 'ptx_bp1',
+        partnerId: 'prt_bp',
+        type: 'PACKAGE_BONUS',
+        amount: 10,
+        supplierUserId: 'usr_bs1',
+        createdAt: new Date().toISOString(),
+      });
+
+      const balance = await partnerService.getBalance('prt_bp');
+      // Available balance = 10 (confirmed)
+      expect(balance.balance).toBe(10);
+
+      // Pending is separate — accessed via getPendingPoints
+      const pending = await partnerService.getPendingPoints('prt_bp');
+      expect(pending.totalPending).toBe(0); // no active referrals added
     });
   });
 });

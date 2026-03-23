@@ -58,9 +58,14 @@
       <!-- Stats row -->
       <div class="partner-stats-grid" aria-label="Your credit summary">
         <div class="partner-stat-card partner-stat-card--highlight" role="group" aria-labelledby="stat-balance-label">
-          <div class="partner-stat-label" id="stat-balance-label">Credits Available</div>
+          <div class="partner-stat-label" id="stat-balance-label">Available Points</div>
           <div class="partner-stat-value" id="stat-balance">—</div>
           <div class="partner-stat-sub">= <span id="stat-balance-gbp">£—</span></div>
+        </div>
+        <div class="partner-stat-card partner-stat-card--pending" role="group" aria-labelledby="stat-pending-label">
+          <div class="partner-stat-label" id="stat-pending-label">Pending Points</div>
+          <div class="partner-stat-value" id="stat-pending">—</div>
+          <div class="partner-stat-sub">within active windows</div>
         </div>
         <div class="partner-stat-card" role="group" aria-labelledby="stat-earned-label">
           <div class="partner-stat-label" id="stat-earned-label">Total Earned</div>
@@ -106,9 +111,44 @@
           </button>
         </div>
         <div class="partner-value-key">
-          <span>📦 First package = <strong>+10 credits (£0.10)</strong></span>
-          <span>💳 First subscription = <strong>+100 credits (£1.00)</strong></span>
+          <span>📦 First package = <strong>+10 points (£0.10)</strong></span>
+          <span>💳 First subscription = <strong>+100 points (£1.00)</strong></span>
           <span>⏱ 30-day attribution window</span>
+        </div>
+      </section>
+
+      <!-- Partner code management -->
+      <section class="partner-section" aria-labelledby="code-mgmt-heading">
+        <div class="partner-section-header">
+          <div>
+            <h2 class="partner-section-title" id="code-mgmt-heading">Partner Code Management</h2>
+            <p class="partner-section-subtitle">Your current code and full history of regenerated codes</p>
+          </div>
+        </div>
+
+        <!-- Current code display -->
+        <div class="partner-code-display" role="group" aria-label="Current partner code">
+          <div class="partner-code-current">
+            <span class="partner-code-label">Current code</span>
+            <code class="partner-code-value" id="partner-code-display">—</code>
+          </div>
+          <button
+            id="partner-regen-btn"
+            type="button"
+            class="partner-regen-btn"
+            aria-label="Regenerate partner code"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            Regenerate code
+          </button>
+        </div>
+        <p class="partner-code-note">
+          ℹ️ Regenerating creates a new code. Your old code(s) remain valid and will continue working for existing links.
+        </p>
+
+        <!-- Code history table -->
+        <div id="code-history-container" style="margin-top:1rem;">
+          <p class="partner-empty-text" style="color:rgba(255,255,255,0.35);font-size:0.82rem;">No previous codes — your current code has never been regenerated.</p>
         </div>
       </section>
 
@@ -117,7 +157,7 @@
         <div class="partner-section-header">
           <div>
             <h2 class="partner-section-title" id="referrals-heading">Referred Suppliers</h2>
-            <p class="partner-section-subtitle">Suppliers who signed up through your link</p>
+            <p class="partner-section-subtitle">Suppliers who signed up through your link (names privacy-masked)</p>
           </div>
         </div>
         <div id="referrals-container">
@@ -128,12 +168,36 @@
         </div>
       </section>
 
+      <!-- Payout request -->
+      <section class="partner-section" aria-labelledby="payout-heading">
+        <div class="partner-section-header">
+          <div>
+            <h2 class="partner-section-title" id="payout-heading">Request Payout</h2>
+            <p class="partner-section-subtitle">Redeem your available points as a gift card via a support ticket</p>
+          </div>
+        </div>
+        <div class="partner-payout-info">
+          <p style="font-size:0.88rem;color:rgba(255,255,255,0.65);line-height:1.6;margin:0 0 1rem;">
+            When you request a payout, a support ticket is raised and our team will contact you to arrange your gift card. Minimum redemption is 100 points (£1.00).
+          </p>
+          <button
+            id="partner-payout-btn"
+            type="button"
+            class="partner-submit-btn"
+            style="max-width:280px;"
+            aria-haspopup="dialog"
+          >
+            🎁 Request payout (gift card)
+          </button>
+        </div>
+      </section>
+
       <!-- Recent transactions -->
       <section class="partner-section" aria-labelledby="txns-heading">
         <div class="partner-section-header">
           <div>
             <h2 class="partner-section-title" id="txns-heading">Credit Activity</h2>
-            <p class="partner-section-subtitle">Recent credit transactions</p>
+            <p class="partner-section-subtitle">Recent point transactions</p>
           </div>
         </div>
         <div id="transactions-container">
@@ -148,6 +212,57 @@
 
     <!-- Toast -->
     <div id="partner-toast" class="partner-toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- Payout request modal -->
+    <div id="payout-modal-overlay" class="partner-modal-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="payout-modal-title">
+      <div class="partner-modal">
+        <h3 class="partner-modal-title" id="payout-modal-title">🎁 Request Gift Card Payout</h3>
+        <p class="partner-modal-sub" id="payout-modal-balance"></p>
+        <form id="payout-request-form" novalidate>
+          <div class="partner-modal-field">
+            <label for="payout-points">Points to redeem <span style="color:#ef4444">*</span></label>
+            <input
+              id="payout-points"
+              name="points"
+              type="number"
+              min="100"
+              class="partner-modal-input"
+              placeholder="Minimum 100 points"
+              required
+            />
+            <small style="color:rgba(255,255,255,0.4);font-size:0.75rem;margin-top:0.25rem;display:block;">
+              100 points = £1.00 &nbsp;·&nbsp; Minimum 100 points
+            </small>
+          </div>
+          <div class="partner-modal-field">
+            <label for="payout-gift-type">Preferred gift card type</label>
+            <select id="payout-gift-type" name="giftCardType" class="partner-modal-input" style="appearance:auto;">
+              <option value="">Not specified</option>
+              <option value="Amazon">Amazon</option>
+              <option value="John Lewis">John Lewis</option>
+              <option value="ASOS">ASOS</option>
+              <option value="Marks &amp; Spencer">Marks &amp; Spencer</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+          <div class="partner-modal-field">
+            <label for="payout-message">Additional message <span style="color:rgba(255,255,255,0.35)">(optional)</span></label>
+            <textarea
+              id="payout-message"
+              name="message"
+              class="partner-modal-textarea"
+              placeholder="Any additional details for our team…"
+              maxlength="1000"
+            ></textarea>
+          </div>
+          <div id="payout-modal-status" class="partner-status" role="alert" aria-live="polite"></div>
+          <div class="partner-modal-actions">
+            <button type="button" class="partner-modal-btn partner-modal-btn--cancel" id="payout-modal-cancel">Cancel</button>
+            <button type="submit" class="partner-modal-btn partner-modal-btn--submit" id="payout-modal-submit">Submit request</button>
+          </div>
+        </form>
+      </div>
+    </div>
 
     <script src="/assets/js/utils/auth-state.js" defer></script>
     <script src="/assets/js/pages/partner-dashboard-init.js?v=18.3.0" defer></script>

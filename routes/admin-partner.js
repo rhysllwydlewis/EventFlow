@@ -196,4 +196,88 @@ router.post('/:id/credits', csrfProtection, async (req, res) => {
   }
 });
 
+// ─── Payout Requests ──────────────────────────────────────────────────────────
+
+/**
+ * GET /api/admin/partners/payout-requests
+ * List all partner payout request tickets, newest first.
+ * Optionally filter by status query param.
+ */
+router.get('/payout-requests', async (req, res) => {
+  try {
+    const { status } = req.query;
+    const allTickets = await dbUnified.read('tickets');
+    let payoutTickets = allTickets.filter(t => t.category === 'partner_payout');
+
+    if (status) {
+      payoutTickets = payoutTickets.filter(t => t.status === status);
+    }
+
+    // Enrich with partner user info
+    const users = await dbUnified.read('users');
+    const enriched = payoutTickets.map(t => {
+      const user = users.find(u => u.id === t.senderId);
+      return {
+        id: t.id,
+        partnerId: t.partnerId,
+        partnerRefCode: t.partnerRefCode,
+        payoutPoints: t.payoutPoints,
+        payoutValueGbp: t.payoutValueGbp,
+        payoutGiftCardType: t.payoutGiftCardType,
+        status: t.status,
+        subject: t.subject,
+        message: t.message,
+        createdAt: t.createdAt,
+        updatedAt: t.updatedAt,
+        partnerUser: user
+          ? { name: user.name, email: user.email, company: user.company }
+          : null,
+      };
+    });
+
+    enriched.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    res.json({ items: enriched, total: enriched.length });
+  } catch (err) {
+    logger.error('Error listing payout requests:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * PATCH /api/admin/partners/payout-requests/:ticketId/status
+ * Update the status of a payout request ticket (open/in_progress/resolved/closed).
+ */
+router.patch('/payout-requests/:ticketId/status', csrfProtection, async (req, res) => {
+  try {
+    const { status } = req.body || {};
+    const ALLOWED = ['open', 'in_progress', 'resolved', 'closed'];
+    if (!ALLOWED.includes(status)) {
+      return res.status(400).json({ error: `status must be one of: ${ALLOWED.join(', ')}` });
+    }
+
+    const allTickets = await dbUnified.read('tickets');
+    const ticket = allTickets.find(
+      t => t.id === req.params.ticketId && t.category === 'partner_payout'
+    );
+    if (!ticket) {
+      return res.status(404).json({ error: 'Payout request ticket not found' });
+    }
+
+    await dbUnified.updateOne(
+      'tickets',
+      { id: req.params.ticketId },
+      { $set: { status, updatedAt: new Date().toISOString() } }
+    );
+
+    logger.info(
+      `Admin ${req.user.id} updated payout ticket ${req.params.ticketId} status to ${status}`
+    );
+    res.json({ ok: true, status });
+  } catch (err) {
+    logger.error('Error updating payout ticket status:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 module.exports = router;

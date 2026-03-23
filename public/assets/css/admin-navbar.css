@@ -845,7 +845,7 @@ body.admin {
 }
 
 .admin-qnav-content::-webkit-scrollbar {
-  width: 4px;
+  width: 8px;
 }
 
 .admin-qnav-content::-webkit-scrollbar-track {

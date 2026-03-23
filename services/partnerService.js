@@ -27,6 +27,49 @@ const CREDIT_TYPES = {
   REDEEM: 'REDEEM',
 };
 
+/**
+ * Privacy-mask a person's display name so that only the first and last
+ * character of the name string are shown, with asterisks in between.
+ *
+ * Masking strategy:
+ *   - Full name present (e.g. "Jane Smith") → "J*******h"  (first char + asterisks + last char)
+ *   - Single-character or two-character name → first char + "***"
+ *   - No name, but company is provided    → first char of company + "***"
+ *   - No name or company, email present   → first char of local-part + "***@" + email domain
+ *   - Nothing available                   → "S***r" (generic fallback)
+ *
+ * The goal is to confirm that a real person signed up without revealing PII.
+ *
+ * @param {string|null} name    - Full name (may be null/undefined)
+ * @param {string|null} company - Company name (fallback)
+ * @param {string|null} email   - Email address (last-resort fallback)
+ * @returns {string} Masked display string
+ */
+function maskReferralName(name, company, email) {
+  const str = (name || '').trim();
+  if (str.length >= 2) {
+    const first = str.charAt(0);
+    const last = str.charAt(str.length - 1);
+    // Always show at least 3 asterisks so short names are not fully revealed
+    const middle = '*'.repeat(Math.max(3, Math.min(str.length - 2, 5)));
+    return `${first}${middle}${last}`;
+  }
+  if (str.length === 1) {
+    return `${str}***`;
+  }
+  // Fallback to company initial
+  const co = (company || '').trim();
+  if (co.length >= 1) {
+    return `${co.charAt(0)}***`;
+  }
+  // Fallback to email (show local-part initial + domain)
+  if (email && email.includes('@')) {
+    const [local, domain] = email.split('@');
+    return `${(local || 'u').charAt(0)}***@${domain}`;
+  }
+  return 'S***r';
+}
+
 // ─── Helper ───────────────────────────────────────────────────────────────────
 
 /** Generate a unique, short referral code like p_A1B2C3D4 */
@@ -126,6 +169,127 @@ async function setPartnerStatus(partnerId, status) {
     { id: partnerId },
     { $set: { status, updatedAt: new Date().toISOString() } }
   );
+}
+
+/**
+ * Regenerate a partner's referral code.
+ *
+ * The old code is saved to `partner_code_history` so it remains valid for
+ * lookups (callers should check history when a primary refCode lookup fails).
+ * The new code is written to the `partners` record.
+ *
+ * @param {string} partnerId
+ * @returns {{ partner: Object, oldCode: string, newCode: string }}
+ */
+async function regenerateCode(partnerId) {
+  const partner = await getPartnerById(partnerId);
+  if (!partner) {
+    throw new Error('Partner not found');
+  }
+
+  // Generate a new unique code
+  let newCode;
+  for (let i = 0; i < 5; i++) {
+    newCode = generateRefCode();
+    const collision = await dbUnified.findOne('partners', { refCode: newCode });
+    if (!collision) {
+      break;
+    }
+    newCode = null;
+  }
+  if (!newCode) {
+    throw new Error('Could not generate unique ref code');
+  }
+
+  const oldCode = partner.refCode;
+
+  // Archive the old code so it remains resolvable
+  const historyEntry = {
+    id: uid('pch'),
+    partnerId,
+    refCode: oldCode,
+    replacedByCode: newCode,
+    createdAt: partner.createdAt || new Date().toISOString(),
+    archivedAt: new Date().toISOString(),
+  };
+  await dbUnified.insertOne('partner_code_history', historyEntry);
+
+  // Update the live partner record
+  await dbUnified.updateOne(
+    'partners',
+    { id: partnerId },
+    { $set: { refCode: newCode, updatedAt: new Date().toISOString() } }
+  );
+
+  logger.info(`Partner ${partnerId} code regenerated: ${oldCode} → ${newCode}`);
+  return { oldCode, newCode };
+}
+
+/**
+ * Retrieve the code history for a partner (oldest first).
+ *
+ * @param {string} partnerId
+ * @returns {Array<{ id, partnerId, refCode, replacedByCode, createdAt, archivedAt }>}
+ */
+async function getCodeHistory(partnerId) {
+  const all = await dbUnified.read('partner_code_history');
+  return all
+    .filter(h => h.partnerId === partnerId)
+    .sort((a, b) => new Date(a.archivedAt) - new Date(b.archivedAt));
+}
+
+/**
+ * Look up a partner by any ref code — active or historical.
+ * Used by the registration flow so old codes still resolve correctly.
+ *
+ * @param {string} refCode
+ * @returns {Object|null} The partner record, or null if not found
+ */
+async function getPartnerByAnyRefCode(refCode) {
+  // Check current code first
+  const current = await getPartnerByRefCode(refCode);
+  if (current) {
+    return current;
+  }
+  // Fall back to code history
+  const historyEntry = await dbUnified.findOne('partner_code_history', { refCode });
+  if (!historyEntry) {
+    return null;
+  }
+  return getPartnerById(historyEntry.partnerId);
+}
+
+/**
+ * Calculate potential (pending) points for a partner.
+ *
+ * Pending points are credits that could still be earned from active referrals
+ * within their 30-day attribution window that have not yet qualified.
+ *
+ * @param {string} partnerId
+ * @returns {{ pendingPackage: number, pendingSubscription: number, totalPending: number }}
+ */
+async function getPendingPoints(partnerId) {
+  const referrals = await listReferralsByPartnerId(partnerId);
+  let pendingPackage = 0;
+  let pendingSubscription = 0;
+
+  for (const r of referrals) {
+    if (!isWithinAttributionWindow(r.supplierCreatedAt)) {
+      continue;
+    }
+    if (!r.packageQualified) {
+      pendingPackage += PACKAGE_BONUS;
+    }
+    if (!r.subscriptionQualified) {
+      pendingSubscription += SUBSCRIPTION_BONUS;
+    }
+  }
+
+  return {
+    pendingPackage,
+    pendingSubscription,
+    totalPending: pendingPackage + pendingSubscription,
+  };
 }
 
 // ─── Referral Tracking ────────────────────────────────────────────────────────
@@ -352,13 +516,18 @@ module.exports = {
   ATTRIBUTION_DAYS,
   generateRefCode,
   isWithinAttributionWindow,
+  maskReferralName,
   // Partner CRUD
   createPartner,
   getPartnerByUserId,
   getPartnerByRefCode,
+  getPartnerByAnyRefCode,
   getPartnerById,
   listPartners,
   setPartnerStatus,
+  // Code management
+  regenerateCode,
+  getCodeHistory,
   // Referral tracking
   recordReferral,
   getReferralBySupplierUserId,
@@ -368,4 +537,5 @@ module.exports = {
   awardSubscriptionBonus,
   applyAdminAdjustment,
   getBalance,
+  getPendingPoints,
 };
