@@ -75,6 +75,7 @@ Getting "502 Bad Gateway" or "connection refused" errors? This usually means Mon
 - ✅ **Admin Moderation** - Photo and review approval queues
 - ✅ **MongoDB Integration** - Schema validation, indexes, connection pooling
 - ✅ **API Documentation** - Interactive Swagger UI at `/api-docs`
+- ✅ **Public Events Calendar** - Shared calendar at `/public-calendar` where Event Planner and Wedding Fayre suppliers can publish events; customers can save events to their personal dashboard
 
 ### Planning Wizard
 
@@ -773,6 +774,8 @@ EventFlow includes two WebSocket servers for real-time features. Only ONE can ru
 - `notes` - Customer planning notes
 - `events` - Event records
 - `searchHistory` - User search history
+- `publicCalendarEvents` - Events published to the shared public calendar by Event Planner / Wedding Fayre suppliers
+- `publicCalendarSaves` - Records of customers saving public calendar events to their personal dashboard
 
 All collections have:
 
