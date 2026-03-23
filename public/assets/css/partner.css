@@ -9,7 +9,8 @@
   min-height: 100vh;
   background: linear-gradient(135deg, #0f1923 0%, #0b2a25 35%, #0b3d35 65%, #0b4a3c 100%);
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .partner-page::before {
@@ -1003,4 +1004,95 @@
   .partner-detail-panel {
     max-width: 100%;
   }
+}
+
+/* ─── Pending points stat card ───────────────────────────────────────────── */
+
+.partner-stat-card--pending {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(251, 191, 36, 0.1) 100%);
+  border-color: rgba(251, 191, 36, 0.28);
+}
+
+.partner-stat-card--pending .partner-stat-value {
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── Code management ────────────────────────────────────────────────────── */
+
+.partner-code-display {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 12px;
+  padding: 0.85rem 1.1rem;
+  margin-bottom: 0.65rem;
+}
+
+.partner-code-current {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex: 1;
+}
+
+.partner-code-label {
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.partner-code-value {
+  font-family: monospace;
+  font-size: 1rem;
+  color: #a5b4fc;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.partner-regen-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.95rem;
+  background: rgba(139, 92, 246, 0.15);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 9px;
+  color: #a5b4fc;
+  font-size: 0.83rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+  white-space: nowrap;
+}
+
+.partner-regen-btn:hover {
+  background: rgba(139, 92, 246, 0.25);
+  border-color: rgba(139, 92, 246, 0.5);
+}
+
+.partner-regen-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.partner-code-note {
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.38);
+  margin: 0 0 0.5rem;
+  line-height: 1.5;
+}
+
+/* ─── Payout section ─────────────────────────────────────────────────────── */
+
+.partner-payout-info {
+  padding: 0.25rem 0;
 }

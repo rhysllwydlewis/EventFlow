@@ -155,6 +155,19 @@ async function createIndexes() {
     const systemChecksCollection = mongodb.collection('system_checks');
     await systemChecksCollection.createIndex({ startedAt: -1 });
     await systemChecksCollection.createIndex({ status: 1 });
+    // Partner programme collections
+    const partnersCollection = mongodb.collection('partners');
+    await partnersCollection.createIndex({ userId: 1 }, { unique: true });
+    await partnersCollection.createIndex({ refCode: 1 }, { unique: true });
+    await partnersCollection.createIndex({ status: 1 });
+    const partnerReferralsCollection = mongodb.collection('partner_referrals');
+    await partnerReferralsCollection.createIndex({ partnerId: 1 });
+    await partnerReferralsCollection.createIndex({ supplierUserId: 1 }, { unique: true });
+    const partnerCreditTxnsCollection = mongodb.collection('partner_credit_transactions');
+    await partnerCreditTxnsCollection.createIndex({ partnerId: 1, createdAt: -1 });
+    const partnerCodeHistoryCollection = mongodb.collection('partner_code_history');
+    await partnerCodeHistoryCollection.createIndex({ partnerId: 1 });
+    await partnerCodeHistoryCollection.createIndex({ refCode: 1 });
     logger.info('✅ Database indexes created successfully');
   } catch (error) {
     logger.info('ℹ️  Database indexes:', error.message);
