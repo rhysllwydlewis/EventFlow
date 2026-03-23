@@ -39,30 +39,60 @@
 <main id="main-content" class="section">
   <div class="container">
     <h1>Photo Library</h1>
-    <p class="small">Photos uploaded by suppliers — all photos are auto-approved on upload</p>
+    <p class="small">Manage supplier photos — toggle auto-approve to control moderation behaviour.</p>
 
-    <div class="card card-mt" style="background: linear-gradient(135deg, #f0fdf9, #e6f7f5); border: 1px solid #a7f3e4;">
-      <p style="margin: 0; color: #0d9488; font-size: 0.9rem;">
-        ✅ <strong>Auto-approval enabled</strong> — photos uploaded by suppliers are immediately visible. No manual approval needed.
-      </p>
-    </div>
-    
+    <!-- Auto-approve toggle card -->
     <div class="card card-mt">
-      <div class="form-row" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
-        <div>
-          <label>Search supplier</label>
-          <input id="searchSupplier" placeholder="Search by supplier name...">
+      <div class="ap-toggle-row">
+        <div class="ap-toggle-label">
+          <label for="autoApproveToggle"><strong>Auto-approve uploads</strong></label>
+          <span id="autoApproveDesc">When ON, supplier photos are immediately visible in the library. When OFF, each photo must be manually approved.</span>
         </div>
-        <div style="position: relative;">
-          <label>Filter by supplier</label>
-          <input id="supplierNameFilter" placeholder="Type supplier name..." autocomplete="off">
-          <div id="supplierDropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #ddd; border-radius: 4px; max-height: 200px; overflow-y: auto; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-top: 4px;"></div>
+        <div class="ap-toggle-control">
+          <span class="ap-toggle-state ap-toggle-state--on" id="toggleStateLabel" aria-live="polite">ON</span>
+          <label class="toggle-switch" for="autoApproveToggle" aria-label="Toggle auto-approve uploads">
+            <input type="checkbox" id="autoApproveToggle" checked aria-describedby="autoApproveDesc">
+            <span class="toggle-slider" role="presentation"></span>
+          </label>
         </div>
       </div>
     </div>
-    
-    <div id="photoQueue" class="photo-queue">
-      <div class="card"><p>Loading photos...</p></div>
+
+    <!-- Status banner (updated dynamically) -->
+    <div id="statusBanner" class="card card-mt" role="status" aria-live="polite">
+      <div class="ap-status-banner ap-status-banner--on">
+        <span class="ap-status-banner__icon" aria-hidden="true">✅</span>
+        <p class="ap-status-banner__text"><strong>Auto-approval enabled</strong> — photos uploaded by suppliers are immediately visible. No manual approval needed.</p>
+      </div>
+    </div>
+
+    <!-- Filters card -->
+    <div class="card card-mt">
+      <div class="form-row">
+        <div>
+          <label for="searchSupplier">Search by supplier name</label>
+          <input id="searchSupplier" placeholder="Search by supplier name..." aria-label="Search suppliers">
+        </div>
+        <div class="ap-filter-supplier">
+          <label for="supplierNameFilter">Filter by supplier</label>
+          <input id="supplierNameFilter" placeholder="Type supplier name…" autocomplete="off" aria-label="Filter by supplier name" aria-expanded="false" aria-haspopup="listbox" role="combobox">
+          <ul id="supplierDropdown" role="listbox" aria-label="Matching suppliers" hidden></ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Batch action bar (shown when queue mode and items selected) -->
+    <div id="batchActionsBar" class="ap-batch-bar" role="region" aria-label="Batch actions">
+      <span class="ap-batch-bar__count" id="batchCount">0 selected</span>
+      <div class="ap-batch-bar__buttons">
+        <button id="batchApproveBtn" class="btn btn-sm btn-success" type="button">Approve selected</button>
+        <button id="batchRejectBtn" class="btn btn-sm btn-danger" type="button">Reject selected</button>
+      </div>
+    </div>
+
+    <!-- Photo grid -->
+    <div id="photoQueue" class="photo-queue" aria-live="polite" aria-label="Photos">
+      <div class="card"><p>Loading photos…</p></div>
     </div>
   </div>
 </main>

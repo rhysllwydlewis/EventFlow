@@ -1555,13 +1555,23 @@ router.get('/users/search', authRequired, roleRequired('admin'), async (req, res
 /**
  * GET /api/admin/photos/pending
  * Returns pending photos for admin moderation, enriched with supplier information.
- * Reads from the 'photos' collection (legacy explicit photo records with status field).
+ * Reads from the 'photos' collection (explicit photo records with status field).
+ * When photoAutoApprove is ON, returns an empty list (no moderation needed).
  */
 router.get('/photos/pending', authRequired, roleRequired('admin'), async (req, res) => {
   try {
+    const settings = (await dbUnified.read('settings')) || {};
+    if ((settings.features || {}).photoAutoApprove !== false) {
+      return res.json({
+        success: true,
+        count: 0,
+        photos: [],
+        autoApprove: true,
+        message: 'Auto-approve is enabled — photos are approved on upload.',
+      });
+    }
     const photos = await dbUnified.read('photos');
     const suppliers = await dbUnified.read('suppliers');
-
     const pendingPhotos = photos
       .filter(p => p.status === 'pending')
       .map(p => {
@@ -1571,8 +1581,12 @@ router.get('/photos/pending', authRequired, roleRequired('admin'), async (req, r
           supplierName: supplier ? supplier.name : 'Unknown',
         };
       });
-
-    res.json({ success: true, count: pendingPhotos.length, photos: pendingPhotos });
+    res.json({
+      success: true,
+      count: pendingPhotos.length,
+      photos: pendingPhotos,
+      autoApprove: false,
+    });
   } catch (error) {
     logger.error('Error fetching pending photos:', error);
     res.status(500).json({
@@ -2695,6 +2709,7 @@ router.get('/settings/features', authRequired, roleRequired('admin'), async (req
       supportTickets: features.supportTickets !== false,
       pexelsCollage: features.pexelsCollage === true,
       requirePackageApproval: features.requirePackageApproval === true,
+      photoAutoApprove: features.photoAutoApprove !== false,
       updatedAt: features.updatedAt,
       updatedBy: features.updatedBy,
     };
@@ -2730,6 +2745,7 @@ router.put(
         supportTickets,
         pexelsCollage,
         requirePackageApproval,
+        photoAutoApprove,
       } = req.body;
 
       logger.info(`[${requestId}] Request body validated, reading current settings...`);
@@ -2758,6 +2774,7 @@ router.put(
         'supportTickets',
         'pexelsCollage',
         'requirePackageApproval',
+        'photoAutoApprove',
       ];
 
       for (const flag of featureFlags) {
@@ -2779,6 +2796,7 @@ router.put(
         supportTickets: supportTickets !== false,
         pexelsCollage: pexelsCollage === true,
         requirePackageApproval: requirePackageApproval === true,
+        photoAutoApprove: photoAutoApprove !== false,
         updatedAt: new Date().toISOString(),
         updatedBy: req.user.email,
       };

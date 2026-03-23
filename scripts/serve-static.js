@@ -509,6 +509,39 @@ app.get('/api/v1/public/stats', (req, res) => {
   });
 });
 
+// Stubs for admin debug / system-checks page (admin-debug.js)
+app.get('/api/admin/system-checks', (req, res) => {
+  res.json({ runs: [], count: 0 });
+});
+
+app.get('/api/admin/system-checks/catalog', (req, res) => {
+  // Return a minimal representative catalog for static-mode E2E tests
+  res.json({
+    catalog: [
+      {
+        name: 'health-api',
+        type: 'api',
+        path: '/api/health',
+        group: 'infrastructure',
+        description: 'Health check endpoint',
+      },
+      { name: 'homepage', type: 'page', path: '/', group: 'public', description: 'Homepage' },
+      {
+        name: 'auth-page',
+        type: 'page',
+        path: '/auth',
+        group: 'public',
+        description: 'Login / register',
+      },
+    ],
+    count: 3,
+  });
+});
+
+app.post('/api/admin/system-checks/run', (req, res) => {
+  res.status(409).json({ error: 'Not available in static mode' });
+});
+
 // Canonical URL redirects (matching server.js behavior)
 // These redirects are needed because express.static serves files directly without redirection
 app.get('/index.html', (req, res) => {

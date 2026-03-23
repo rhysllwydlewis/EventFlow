@@ -28,6 +28,7 @@ describe('Feature Flag Middleware', () => {
         photoUploads: true,
         supportTickets: true,
         pexelsCollage: false,
+        photoAutoApprove: true,
       });
     });
 

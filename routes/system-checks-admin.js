@@ -3,6 +3,7 @@
  * Exposes the system-check results to authenticated admin users.
  *
  * GET  /api/admin/system-checks          - latest runs (up to ?limit=30)
+ * GET  /api/admin/system-checks/catalog  - full check catalog (no run)
  * POST /api/admin/system-checks/run      - trigger an immediate run
  */
 
@@ -12,7 +13,7 @@ const express = require('express');
 const { authRequired, roleRequired } = require('../middleware/auth');
 const { csrfProtection } = require('../middleware/csrf');
 const { apiLimiter, writeLimiter } = require('../middleware/rateLimits');
-const { runSystemChecks, getRecentRuns } = require('../services/systemCheckService');
+const { runSystemChecks, getRecentRuns, getCatalog } = require('../services/systemCheckService');
 const logger = require('../utils/logger');
 
 const router = express.Router();
@@ -35,6 +36,27 @@ router.get('/system-checks', apiLimiter, authRequired, roleRequired('admin'), as
     return res.status(500).json({ error: 'Failed to fetch system-check runs' });
   }
 });
+
+/**
+ * GET /api/admin/system-checks/catalog
+ * Returns the static catalog of all check descriptors (paths, groups, descriptions).
+ * Does NOT execute any checks.
+ */
+router.get(
+  '/system-checks/catalog',
+  apiLimiter,
+  authRequired,
+  roleRequired('admin'),
+  (req, res) => {
+    try {
+      const catalog = getCatalog();
+      return res.json({ catalog, count: catalog.length });
+    } catch (err) {
+      logger.error('GET /api/admin/system-checks/catalog error:', err.message);
+      return res.status(500).json({ error: 'Failed to fetch check catalog' });
+    }
+  }
+);
 
 /**
  * POST /api/admin/system-checks/run

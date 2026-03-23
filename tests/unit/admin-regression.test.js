@@ -165,7 +165,7 @@ describe('Admin Regression — Route Error Resilience', () => {
 
   it('GET /photos/pending has try/catch error handler', () => {
     const idx = adminContent.indexOf("router.get('/photos/pending'");
-    const section = adminContent.substring(idx, idx + 800);
+    const section = adminContent.substring(idx, idx + 1100);
     expect(section).toContain('try {');
     expect(section).toContain('catch');
     expect(section).toContain('status(500)');

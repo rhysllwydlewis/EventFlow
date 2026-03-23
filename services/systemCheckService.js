@@ -42,28 +42,370 @@ function resolveBaseUrl() {
 }
 
 /**
- * Build the list of checks to run.
- * Each check descriptor:
- *   { name, type, target }   — target is a path, resolved against baseUrl
- * @param {string} baseUrl
- * @returns {Array<{name:string, type:string, target:string}>}
+ * Return the static catalog of all check descriptors.
+ * Each descriptor has:
+ *   { name, type, path, group, description, expectedStatuses? }
+ *
+ * `expectedStatuses` is an optional array of HTTP status codes that are
+ * considered "healthy" for this check. When omitted, the default logic
+ * (status >= 200 && status < 400) is used. Use for auth-required endpoints
+ * where 401 is the expected healthy response.
+ *
+ * @returns {Array<{name:string, type:string, path:string, group:string, description:string, expectedStatuses?:number[]}>}
  */
-function buildChecks(baseUrl) {
+function getCatalog() {
   return [
-    { name: 'health-api', type: 'api', target: `${baseUrl}/api/health` },
-    { name: 'ready-api', type: 'api', target: `${baseUrl}/api/ready` },
-    { name: 'homepage', type: 'page', target: `${baseUrl}/` },
-    { name: 'auth-page', type: 'page', target: `${baseUrl}/auth` },
+    // ── Infrastructure ────────────────────────────────────────────────────
+    {
+      name: 'health-api',
+      type: 'api',
+      path: '/api/health',
+      group: 'infrastructure',
+      description: 'Health check endpoint',
+    },
+    {
+      name: 'ready-api',
+      type: 'api',
+      path: '/api/ready',
+      group: 'infrastructure',
+      description: 'Readiness probe',
+    },
+    {
+      name: 'config-api',
+      type: 'api',
+      path: '/api/config',
+      group: 'infrastructure',
+      description: 'Client config (env flags)',
+    },
+
+    // ── Public Pages ──────────────────────────────────────────────────────
+    { name: 'homepage', type: 'page', path: '/', group: 'public', description: 'Homepage' },
+    {
+      name: 'auth-page',
+      type: 'page',
+      path: '/auth',
+      group: 'public',
+      description: 'Login / register',
+    },
+    {
+      name: 'suppliers-page',
+      type: 'page',
+      path: '/suppliers',
+      group: 'public',
+      description: 'Supplier search',
+    },
+    {
+      name: 'pricing-page',
+      type: 'page',
+      path: '/pricing',
+      group: 'public',
+      description: 'Pricing plans',
+    },
+    { name: 'faq-page', type: 'page', path: '/faq', group: 'public', description: 'FAQ' },
+    {
+      name: 'for-suppliers-page',
+      type: 'page',
+      path: '/for-suppliers',
+      group: 'public',
+      description: 'For suppliers landing',
+    },
+    {
+      name: 'contact-page',
+      type: 'page',
+      path: '/contact',
+      group: 'public',
+      description: 'Contact page',
+    },
+    {
+      name: 'guides-page',
+      type: 'page',
+      path: '/guides',
+      group: 'public',
+      description: 'Planning guides',
+    },
+    {
+      name: 'legal-page',
+      type: 'page',
+      path: '/legal',
+      group: 'public',
+      description: 'Legal hub',
+    },
+    {
+      name: 'terms-page',
+      type: 'page',
+      path: '/terms',
+      group: 'public',
+      description: 'Terms of service',
+    },
+    {
+      name: 'privacy-page',
+      type: 'page',
+      path: '/privacy',
+      group: 'public',
+      description: 'Privacy policy',
+    },
+    {
+      name: 'credits-page',
+      type: 'page',
+      path: '/credits',
+      group: 'public',
+      description: 'Credits',
+    },
+    {
+      name: 'start-page',
+      type: 'page',
+      path: '/start',
+      group: 'public',
+      description: 'Start planning',
+    },
+    {
+      name: 'marketplace-page',
+      type: 'page',
+      path: '/marketplace',
+      group: 'public',
+      description: 'Marketplace listings',
+    },
+
+    // ── Protected Pages (auth redirect = healthy) ─────────────────────────
+    {
+      name: 'dashboard-page',
+      type: 'page',
+      path: '/dashboard',
+      group: 'protected',
+      description: 'Customer dashboard',
+      expectedStatuses: [200, 301, 302],
+    },
+    {
+      name: 'settings-page',
+      type: 'page',
+      path: '/settings',
+      group: 'protected',
+      description: 'Account settings',
+      expectedStatuses: [200, 301, 302],
+    },
+    {
+      name: 'plan-page',
+      type: 'page',
+      path: '/plan',
+      group: 'protected',
+      description: 'Event plan',
+      expectedStatuses: [200, 301, 302],
+    },
+    {
+      name: 'messages-page',
+      type: 'page',
+      path: '/messages',
+      group: 'protected',
+      description: 'Messages',
+      expectedStatuses: [200, 301, 302],
+    },
+    {
+      name: 'notifications-page',
+      type: 'page',
+      path: '/notifications',
+      group: 'protected',
+      description: 'Notifications',
+      expectedStatuses: [200, 301, 302],
+    },
+    {
+      name: 'budget-page',
+      type: 'page',
+      path: '/budget',
+      group: 'protected',
+      description: 'Budget tracker',
+      expectedStatuses: [200, 301, 302],
+    },
+    {
+      name: 'guests-page',
+      type: 'page',
+      path: '/guests',
+      group: 'protected',
+      description: 'Guest list',
+      expectedStatuses: [200, 301, 302],
+    },
+
+    // ── Admin Pages (admin auth redirect = healthy) ───────────────────────
+    {
+      name: 'admin-page',
+      type: 'page',
+      path: '/admin',
+      group: 'admin',
+      description: 'Admin dashboard',
+      expectedStatuses: [200, 301, 302],
+    },
+    {
+      name: 'admin-users-page',
+      type: 'page',
+      path: '/admin-users',
+      group: 'admin',
+      description: 'User management',
+      expectedStatuses: [200, 301, 302],
+    },
+    {
+      name: 'admin-suppliers-page',
+      type: 'page',
+      path: '/admin-suppliers',
+      group: 'admin',
+      description: 'Supplier management',
+      expectedStatuses: [200, 301, 302],
+    },
+    {
+      name: 'admin-photos-page',
+      type: 'page',
+      path: '/admin-photos',
+      group: 'admin',
+      description: 'Photo library',
+      expectedStatuses: [200, 301, 302],
+    },
+    {
+      name: 'admin-packages-page',
+      type: 'page',
+      path: '/admin-packages',
+      group: 'admin',
+      description: 'Package management',
+      expectedStatuses: [200, 301, 302],
+    },
+    {
+      name: 'admin-settings-page',
+      type: 'page',
+      path: '/admin-settings',
+      group: 'admin',
+      description: 'System settings',
+      expectedStatuses: [200, 301, 302],
+    },
+    {
+      name: 'admin-tickets-page',
+      type: 'page',
+      path: '/admin-tickets',
+      group: 'admin',
+      description: 'Support tickets',
+      expectedStatuses: [200, 301, 302],
+    },
+    {
+      name: 'admin-reports-page',
+      type: 'page',
+      path: '/admin-reports',
+      group: 'admin',
+      description: 'Content reports',
+      expectedStatuses: [200, 301, 302],
+    },
+    {
+      name: 'admin-audit-page',
+      type: 'page',
+      path: '/admin-audit',
+      group: 'admin',
+      description: 'Audit log',
+      expectedStatuses: [200, 301, 302],
+    },
+    {
+      name: 'admin-marketplace-page',
+      type: 'page',
+      path: '/admin-marketplace',
+      group: 'admin',
+      description: 'Marketplace admin',
+      expectedStatuses: [200, 301, 302],
+    },
+    {
+      name: 'admin-payments-page',
+      type: 'page',
+      path: '/admin-payments',
+      group: 'admin',
+      description: 'Payments admin',
+      expectedStatuses: [200, 301, 302],
+    },
+    {
+      name: 'admin-debug-page',
+      type: 'page',
+      path: '/admin-debug',
+      group: 'admin',
+      description: 'Debug panel',
+      expectedStatuses: [200, 301, 302],
+    },
+
+    // ── Public API Endpoints ──────────────────────────────────────────────
+    {
+      name: 'search-suppliers-api',
+      type: 'api',
+      path: '/api/search/suppliers',
+      group: 'api-public',
+      description: 'Supplier search',
+    },
+    {
+      name: 'search-categories-api',
+      type: 'api',
+      path: '/api/search/categories',
+      group: 'api-public',
+      description: 'Search categories',
+    },
+    {
+      name: 'suppliers-api',
+      type: 'api',
+      path: '/api/suppliers',
+      group: 'api-public',
+      description: 'Suppliers listing',
+    },
+    {
+      name: 'packages-featured-api',
+      type: 'api',
+      path: '/api/packages/featured',
+      group: 'api-public',
+      description: 'Featured packages',
+    },
+    {
+      name: 'homepage-settings-api',
+      type: 'api',
+      path: '/api/public/homepage-settings',
+      group: 'api-public',
+      description: 'Homepage settings',
+    },
+
+    // ── Auth-Required API Endpoints (401 = healthy / server is responding) ─
+    {
+      name: 'auth-me-api',
+      type: 'api',
+      path: '/api/auth/me',
+      group: 'api-auth',
+      description: 'Auth status check',
+      expectedStatuses: [200, 401],
+    },
+    {
+      name: 'shortlist-api',
+      type: 'api',
+      path: '/api/shortlist',
+      group: 'api-auth',
+      description: 'Shortlist (auth gate)',
+      expectedStatuses: [200, 401],
+    },
+    {
+      name: 'badge-counts-api',
+      type: 'api',
+      path: '/api/admin/badge-counts',
+      group: 'api-auth',
+      description: 'Admin badge counts',
+      expectedStatuses: [200, 401, 403],
+    },
   ];
 }
 
 /**
+ * Build the list of checks to run, resolving targets against baseUrl.
+ * @param {string} baseUrl
+ * @returns {Array<{name,type,path,group,description,target,expectedStatuses?}>}
+ */
+function buildChecks(baseUrl) {
+  return getCatalog().map(item => ({
+    ...item,
+    target: `${baseUrl}${item.path}`,
+  }));
+}
+
+/**
  * Execute a single HTTP check with a timeout.
- * @param {{ name:string, type:string, target:string }} check
+ * @param {{ name:string, type:string, target:string, expectedStatuses?:number[] }} check
  * @returns {Promise<{name,type,target,ok,statusCode,durationMs,error,details}>}
  */
 async function runCheck(check) {
-  const { name, type, target } = check;
+  const { name, type, target, expectedStatuses } = check;
   const startMs = Date.now();
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), CHECK_TIMEOUT_MS);
@@ -79,7 +421,12 @@ async function runCheck(check) {
     clearTimeout(timer);
     const durationMs = Date.now() - startMs;
     const statusCode = res.status;
-    const ok = statusCode >= 200 && statusCode < 400;
+
+    // Determine ok: use expectedStatuses if provided, otherwise >= 200 && < 400
+    const ok =
+      Array.isArray(expectedStatuses) && expectedStatuses.length > 0
+        ? expectedStatuses.includes(statusCode)
+        : statusCode >= 200 && statusCode < 400;
 
     // For API checks, attempt to parse JSON for extra details
     const details = {};
@@ -240,6 +587,7 @@ module.exports = {
   runSystemChecks,
   scheduleChecks,
   getRecentRuns,
+  getCatalog,
   resolveBaseUrl,
   buildChecks,
   runCheck,

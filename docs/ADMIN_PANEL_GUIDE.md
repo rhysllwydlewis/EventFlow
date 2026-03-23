@@ -13,7 +13,7 @@ The admin panel consists of 13 main pages:
 1. **Dashboard** (`/admin.html`) - Main overview with statistics and quick actions
 2. **User Management** (`/admin-users.html`) - Manage all user accounts
 3. **Package Management** (`/admin-packages.html`) - Oversee event packages
-4. **Photo Moderation** (`/admin-photos.html`) - Approve/reject supplier photos
+4. **Photo Library / Moderation** (`/admin-photos.html`) - Manage supplier photos with auto-approve toggle
 5. **Support Tickets** (`/admin-tickets.html`) - Handle customer support requests
 6. **Content Reports** (`/admin-reports.html`) - Review user-submitted reports
 7. **Audit Log** (`/admin-audit.html`) - View system activity logs
@@ -122,13 +122,46 @@ GET    /api/admin/suppliers/pending-verification # Get suppliers awaiting verifi
 POST   /api/admin/suppliers/smart-tags     # AI-powered supplier tagging
 ```
 
-### Photo Moderation
+### Photo Library & Moderation
+
+The `/admin-photos` page supports two modes controlled by the **Auto-approve toggle**:
+
+#### Auto-approve ON (default)
+
+- Supplier photo uploads are immediately added to the library — no manual review.
+- The page shows a **Photo Library** view with all supplier gallery photos.
+- No approve/reject buttons are shown.
+- The status banner reads: _"Auto-approval enabled"_.
+
+#### Auto-approve OFF
+
+- New supplier photo uploads are held in a **moderation queue** (`status: pending`).
+- The page shows a **Moderation Queue** view with per-photo Approve/Reject buttons.
+- A **batch action bar** appears when photos are selected, allowing bulk approve/reject.
+- The status banner reads: _"Manual moderation active"_.
+
+#### Toggling auto-approve
+
+The toggle in the admin-photos UI sends a `PUT /api/admin/settings/features` request with
+`{ photoAutoApprove: true/false }`. The change takes effect immediately — the page reloads
+the correct view without requiring a page refresh.
 
 ```
-GET    /api/admin/photos/pending           # List pending photos
-POST   /api/admin/photos/:id/approve       # Approve photo
-POST   /api/admin/photos/:id/reject        # Reject photo
+GET    /api/admin/photos/library            # All approved gallery photos (library view)
+GET    /api/admin/photos/pending            # Pending photos (queue view); empty when auto-approve ON
+POST   /api/admin/photos/:id/approve        # Approve a pending photo
+POST   /api/admin/photos/:id/reject         # Reject a pending photo
+GET    /api/admin/settings/features         # Includes photoAutoApprove flag
+PUT    /api/admin/settings/features         # Update photoAutoApprove (and other flags)
 ```
+
+**Feature flag:** `photoAutoApprove` (boolean, default `true`). Stored in the `settings`
+collection under `settings.features.photoAutoApprove`.
+
+**Upload behaviour:** When `photoAutoApprove` is `false`, supplier photo uploads via
+`POST /api/photos/upload?type=supplier` store the photo as a `pending` record in the
+`photos` collection rather than adding it directly to the supplier's `photosGallery`.
+On approval the record is moved to `photosGallery`. Package photos are not affected.
 
 ### Reports Management
 
@@ -262,7 +295,7 @@ Available audit actions:
 Badge counts are automatically updated every 60 seconds:
 
 - **Users**: New users in last 7 days
-- **Photos**: Pending photo approvals
+- **Photos**: Pending photo approvals (only non-zero when auto-approve is OFF)
 - **Tickets**: Open support tickets
 
 ## Common Patterns

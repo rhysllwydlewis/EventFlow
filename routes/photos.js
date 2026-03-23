@@ -6,8 +6,10 @@
 'use strict';
 
 const express = require('express');
+const crypto = require('crypto');
 const { uploadLimiter, apiLimiter } = require('../middleware/rateLimits');
 const { PLACEHOLDER_PACKAGE_IMAGE } = require('../utils/constants');
+const { getFeatureFlags } = require('../middleware/features');
 const suppliersRouter = require('./suppliers');
 const router = express.Router();
 
@@ -477,23 +479,48 @@ router.post(
           return res.status(403).json({ error: 'Not authorized' });
         }
 
-        // Add to gallery
-        if (!supplier.photosGallery) {
-          supplier.photosGallery = [];
+        // Check photo auto-approve feature flag
+        const flags = await getFeatureFlags();
+        if (flags.photoAutoApprove !== false) {
+          // Auto-approve ON: add directly to gallery
+          if (!supplier.photosGallery) {
+            supplier.photosGallery = [];
+          }
+          supplier.photosGallery.push(photoRecord);
+
+          await dbUnified.updateOne(
+            'suppliers',
+            { id: supplier.id },
+            { $set: { photosGallery: supplier.photosGallery } }
+          );
+
+          return res.json({
+            success: true,
+            photo: photoRecord,
+            message: 'Photo uploaded successfully.',
+          });
+        } else {
+          // Auto-approve OFF: store as pending for moderation
+          const pendingRecord = {
+            ...photoRecord,
+            id: `photo_${Date.now()}_${crypto.randomBytes(8).toString('hex')}`,
+            status: 'pending',
+            approved: false,
+            supplierId: supplier.id,
+            supplierName: supplier.name,
+          };
+
+          const existingPhotos = (await dbUnified.read('photos')) || [];
+          existingPhotos.push(pendingRecord);
+          await dbUnified.write('photos', existingPhotos);
+
+          return res.json({
+            success: true,
+            photo: pendingRecord,
+            pending: true,
+            message: 'Photo uploaded and is awaiting moderation approval.',
+          });
         }
-        supplier.photosGallery.push(photoRecord);
-
-        await dbUnified.updateOne(
-          'suppliers',
-          { id: supplier.id },
-          { $set: { photosGallery: supplier.photosGallery } }
-        );
-
-        return res.json({
-          success: true,
-          photo: photoRecord,
-          message: 'Photo uploaded successfully.',
-        });
       } else if (type === 'package') {
         const packages = await dbUnified.read('packages');
         const pkg = packages.find(p => p.id === id);
@@ -805,16 +832,44 @@ router.post(
           return res.status(403).json({ error: 'Not authorized' });
         }
 
-        if (!supplier.photosGallery) {
-          supplier.photosGallery = [];
-        }
-        supplier.photosGallery.push(...uploadedPhotos);
+        // Check photo auto-approve feature flag
+        const flags = await getFeatureFlags();
+        if (flags.photoAutoApprove !== false) {
+          // Auto-approve ON: add directly to gallery
+          if (!supplier.photosGallery) {
+            supplier.photosGallery = [];
+          }
+          supplier.photosGallery.push(...uploadedPhotos);
 
-        await dbUnified.updateOne(
-          'suppliers',
-          { id: supplier.id },
-          { $set: { photosGallery: supplier.photosGallery } }
-        );
+          await dbUnified.updateOne(
+            'suppliers',
+            { id: supplier.id },
+            { $set: { photosGallery: supplier.photosGallery } }
+          );
+        } else {
+          // Auto-approve OFF: store all as pending records
+          const pendingRecords = uploadedPhotos.map(p => ({
+            ...p,
+            id: `photo_${Date.now()}_${crypto.randomBytes(8).toString('hex')}`,
+            status: 'pending',
+            approved: false,
+            supplierId: supplier.id,
+            supplierName: supplier.name,
+          }));
+
+          const existingPhotos = (await dbUnified.read('photos')) || [];
+          existingPhotos.push(...pendingRecords);
+          await dbUnified.write('photos', existingPhotos);
+
+          return res.json({
+            success: true,
+            uploaded: pendingRecords.length,
+            photos: pendingRecords,
+            pending: true,
+            errors: errors,
+            message: `${pendingRecords.length} photo(s) uploaded and awaiting moderation approval.`,
+          });
+        }
       } else if (type === 'package') {
         const packages = await dbUnified.read('packages');
         const pkg = packages.find(p => p.id === normalizedId);
@@ -1223,6 +1278,50 @@ router.get(
     });
 
     res.json({ photos: enrichedPhotos });
+  }
+);
+
+/**
+ * GET /api/admin/photos/library
+ * Get all approved photos from supplier galleries (for library view when auto-approve is ON).
+ */
+router.get(
+  '/admin/photos/library',
+  apiLimiter,
+  applyAuthRequired,
+  applyRoleRequired('admin'),
+  async (req, res) => {
+    try {
+      const suppliers = await dbUnified.read('suppliers');
+      const photos = [];
+
+      for (const supplier of suppliers) {
+        if (!supplier.photosGallery || supplier.photosGallery.length === 0) {
+          continue;
+        }
+        for (const p of supplier.photosGallery) {
+          photos.push({
+            ...p,
+            id:
+              p.id ||
+              `${supplier.id}_${Buffer.from(p.url || '')
+                .toString('base64')
+                .slice(0, 16)}`,
+            supplierId: supplier.id,
+            supplierName: supplier.name || 'Unknown',
+            uploadedAt: p.uploadedAt || null,
+          });
+        }
+      }
+
+      res.json({ success: true, count: photos.length, photos });
+    } catch (error) {
+      logger.error('Error fetching photo library:', error);
+      res.status(500).json({
+        error: 'Failed to fetch photo library',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
+    }
   }
 );
 

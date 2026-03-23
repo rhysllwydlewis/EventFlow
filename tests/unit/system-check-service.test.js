@@ -20,6 +20,7 @@ const schedule = require('node-schedule');
 const dbUnified = require('../../db-unified');
 const {
   resolveBaseUrl,
+  getCatalog,
   buildChecks,
   runCheck,
   runSystemChecks,
@@ -74,6 +75,75 @@ describe('resolveBaseUrl', () => {
   });
 });
 
+// ── getCatalog ────────────────────────────────────────────────────────────────
+
+describe('getCatalog', () => {
+  it('returns an array of catalog descriptors', () => {
+    const catalog = getCatalog();
+    expect(Array.isArray(catalog)).toBe(true);
+    expect(catalog.length).toBeGreaterThan(10);
+  });
+
+  it('each descriptor has name, type, path, group, description', () => {
+    getCatalog().forEach(item => {
+      expect(typeof item.name).toBe('string');
+      expect(typeof item.type).toBe('string');
+      expect(typeof item.path).toBe('string');
+      expect(item.path).toMatch(/^\//);
+      expect(typeof item.group).toBe('string');
+      expect(typeof item.description).toBe('string');
+    });
+  });
+
+  it('includes infrastructure checks', () => {
+    const catalog = getCatalog();
+    expect(catalog.some(c => c.name === 'health-api')).toBe(true);
+    expect(catalog.some(c => c.name === 'ready-api')).toBe(true);
+  });
+
+  it('includes public page checks', () => {
+    const catalog = getCatalog();
+    expect(catalog.some(c => c.name === 'homepage')).toBe(true);
+    expect(catalog.some(c => c.name === 'auth-page')).toBe(true);
+    expect(catalog.some(c => c.name === 'suppliers-page')).toBe(true);
+    expect(catalog.some(c => c.name === 'pricing-page')).toBe(true);
+  });
+
+  it('includes protected page checks with expectedStatuses containing 302', () => {
+    const catalog = getCatalog();
+    const dashboardCheck = catalog.find(c => c.name === 'dashboard-page');
+    expect(dashboardCheck).toBeDefined();
+    expect(Array.isArray(dashboardCheck.expectedStatuses)).toBe(true);
+    expect(dashboardCheck.expectedStatuses).toContain(302);
+  });
+
+  it('includes admin page checks with expectedStatuses containing 302', () => {
+    const catalog = getCatalog();
+    const adminCheck = catalog.find(c => c.name === 'admin-page');
+    expect(adminCheck).toBeDefined();
+    expect(adminCheck.expectedStatuses).toContain(302);
+  });
+
+  it('includes public API checks', () => {
+    const catalog = getCatalog();
+    expect(catalog.some(c => c.name === 'search-suppliers-api')).toBe(true);
+  });
+
+  it('includes auth-required API checks with expectedStatuses containing 401', () => {
+    const catalog = getCatalog();
+    const authMe = catalog.find(c => c.name === 'auth-me-api');
+    expect(authMe).toBeDefined();
+    expect(authMe.expectedStatuses).toContain(401);
+  });
+
+  it('has no duplicate names', () => {
+    const catalog = getCatalog();
+    const names = catalog.map(c => c.name);
+    const unique = new Set(names);
+    expect(unique.size).toBe(names.length);
+  });
+});
+
 // ── buildChecks ───────────────────────────────────────────────────────────────
 
 describe('buildChecks', () => {
@@ -83,7 +153,7 @@ describe('buildChecks', () => {
     expect(checks.length).toBeGreaterThanOrEqual(4);
   });
 
-  it('each check has name, type, and target', () => {
+  it('each check has name, type, path, target, group, description', () => {
     const checks = buildChecks('http://localhost:3000');
     checks.forEach(c => {
       expect(typeof c.name).toBe('string');
@@ -91,6 +161,13 @@ describe('buildChecks', () => {
       expect(typeof c.target).toBe('string');
       expect(c.target).toMatch(/^http/);
     });
+  });
+
+  it('builds targets by prepending baseUrl to path', () => {
+    const checks = buildChecks('https://example.com');
+    const health = checks.find(c => c.name === 'health-api');
+    expect(health).toBeDefined();
+    expect(health.target).toBe('https://example.com/api/health');
   });
 
   it('includes the /api/health check', () => {
@@ -101,6 +178,11 @@ describe('buildChecks', () => {
   it('includes the homepage check', () => {
     const checks = buildChecks('http://localhost:3000');
     expect(checks.some(c => c.name === 'homepage')).toBe(true);
+  });
+
+  it('covers more than 20 checks (comprehensive coverage)', () => {
+    const checks = buildChecks('http://localhost:3000');
+    expect(checks.length).toBeGreaterThan(20);
   });
 });
 
@@ -147,6 +229,48 @@ describe('runCheck', () => {
     });
 
     expect(result.ok).toBe(true);
+  });
+
+  it('uses expectedStatuses when provided — 401 is ok for auth endpoints', async () => {
+    global.fetch = mockFetch(401);
+
+    const result = await runCheck({
+      name: 'auth-me-api',
+      type: 'api',
+      target: 'http://localhost:3000/api/auth/me',
+      expectedStatuses: [200, 401],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.statusCode).toBe(401);
+  });
+
+  it('uses expectedStatuses — 302 is ok for protected pages', async () => {
+    global.fetch = mockFetch(302);
+
+    const result = await runCheck({
+      name: 'dashboard-page',
+      type: 'page',
+      target: 'http://localhost:3000/dashboard',
+      expectedStatuses: [200, 301, 302],
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.statusCode).toBe(302);
+  });
+
+  it('uses expectedStatuses — 500 is still a failure even with expectedStatuses set', async () => {
+    global.fetch = mockFetch(500);
+
+    const result = await runCheck({
+      name: 'auth-me-api',
+      type: 'api',
+      target: 'http://localhost:3000/api/auth/me',
+      expectedStatuses: [200, 401],
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.statusCode).toBe(500);
   });
 
   it('handles network error gracefully', async () => {
@@ -239,6 +363,14 @@ describe('runSystemChecks', () => {
     const run = await runSystemChecks();
 
     expect(run.status).toBe('fail');
+  });
+
+  it('run document contains more checks than the original 4', async () => {
+    global.fetch = mockFetch(200);
+
+    const run = await runSystemChecks();
+
+    expect(run.checks.length).toBeGreaterThan(4);
   });
 
   it('persists the run to MongoDB via dbUnified.insertOne', async () => {

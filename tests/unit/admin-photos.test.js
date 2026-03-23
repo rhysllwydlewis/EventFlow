@@ -133,8 +133,8 @@ describe('Admin Photos — Page JS (admin-photos-init.js)', () => {
   });
 
   it('batch reject uses /reject endpoint for each photo (not /approve)', () => {
-    // batchReject must call /reject, not /approve with {approved:false}
-    const batchRejectStart = photosInitContent.indexOf('batchReject.addEventListener');
+    // batchRejectBtn must call /reject, not /approve with {approved:false}
+    const batchRejectStart = photosInitContent.indexOf('batchRejectBtn.addEventListener');
     expect(batchRejectStart).toBeGreaterThan(-1);
     const batchBody = photosInitContent.substring(batchRejectStart, batchRejectStart + 600);
     expect(batchBody).toContain('/reject');

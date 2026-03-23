@@ -273,7 +273,7 @@ describe('Photo Upload — Frontend JS (admin-photos-init.js)', () => {
   });
 
   it('batch reject calls /reject endpoint for each photo', () => {
-    const batchStart = src.indexOf('batchReject.addEventListener');
+    const batchStart = src.indexOf('batchRejectBtn.addEventListener');
     expect(batchStart).toBeGreaterThan(-1);
     const batchBody = src.substring(batchStart, batchStart + 500);
     expect(batchBody).toContain('/reject');

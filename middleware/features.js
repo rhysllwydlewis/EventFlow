@@ -24,6 +24,7 @@ async function getFeatureFlags() {
       photoUploads: features.photoUploads !== false,
       supportTickets: features.supportTickets !== false,
       pexelsCollage: features.pexelsCollage === true,
+      photoAutoApprove: features.photoAutoApprove !== false,
     };
   } catch (error) {
     logger.error('Error reading feature flags:', error);
@@ -35,6 +36,7 @@ async function getFeatureFlags() {
       photoUploads: true,
       supportTickets: true,
       pexelsCollage: false,
+      photoAutoApprove: true,
     };
   }
 }
