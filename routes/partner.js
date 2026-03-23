@@ -41,7 +41,9 @@ router.post('/register', authLimiter, csrfProtection, async (req, res) => {
     return res.status(400).json({ error: 'Valid email address is required' });
   }
   if (!password || !passwordOk(password)) {
-    return res.status(400).json({ error: 'Password must be at least 8 characters and include letters and numbers' });
+    return res
+      .status(400)
+      .json({ error: 'Password must be at least 8 characters and include letters and numbers' });
   }
   if (!location) {
     return res.status(400).json({ error: 'Location is required' });
@@ -237,29 +239,35 @@ router.get('/transactions', authRequired, roleRequired('partner'), async (req, r
  * POST /api/partner/regenerate-code
  * Generate a new referral code; the old code is archived and remains functional.
  */
-router.post('/regenerate-code', authRequired, roleRequired('partner'), csrfProtection, async (req, res) => {
-  try {
-    const partner = await partnerService.getPartnerByUserId(req.user.id);
-    if (!partner) {
-      return res.status(404).json({ error: 'Partner account not found' });
-    }
-    if (partner.status === 'disabled') {
-      return res.status(403).json({
-        error: 'Your partner account has been disabled. Please contact support.',
-        disabled: true,
-      });
-    }
+router.post(
+  '/regenerate-code',
+  authRequired,
+  roleRequired('partner'),
+  csrfProtection,
+  async (req, res) => {
+    try {
+      const partner = await partnerService.getPartnerByUserId(req.user.id);
+      if (!partner) {
+        return res.status(404).json({ error: 'Partner account not found' });
+      }
+      if (partner.status === 'disabled') {
+        return res.status(403).json({
+          error: 'Your partner account has been disabled. Please contact support.',
+          disabled: true,
+        });
+      }
 
-    const { oldCode, newCode } = await partnerService.regenerateCode(partner.id);
-    const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
-    const newRefLink = `${baseUrl}/auth?ref=${newCode}&role=supplier`;
+      const { oldCode, newCode } = await partnerService.regenerateCode(partner.id);
+      const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+      const newRefLink = `${baseUrl}/auth?ref=${newCode}&role=supplier`;
 
-    res.json({ ok: true, oldCode, newCode, refLink: newRefLink });
-  } catch (err) {
-    logger.error('Error regenerating partner code:', err);
-    res.status(500).json({ error: 'Internal server error' });
+      res.json({ ok: true, oldCode, newCode, refLink: newRefLink });
+    } catch (err) {
+      logger.error('Error regenerating partner code:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   }
-});
+);
 
 /**
  * GET /api/partner/code-history
@@ -297,94 +305,112 @@ const GIFT_CARD_TYPES = ['Amazon', 'John Lewis', 'ASOS', 'Marks & Spencer', 'Oth
  * Body:
  *   { points: number, giftCardType?: string, message?: string }
  */
-router.post('/payout-request', authRequired, roleRequired('partner'), csrfProtection, async (req, res) => {
-  try {
-    const partner = await partnerService.getPartnerByUserId(req.user.id);
-    if (!partner) {
-      return res.status(404).json({ error: 'Partner account not found' });
-    }
-    if (partner.status === 'disabled') {
-      return res.status(403).json({
-        error: 'Your partner account has been disabled. Please contact support.',
-        disabled: true,
+router.post(
+  '/payout-request',
+  authRequired,
+  roleRequired('partner'),
+  csrfProtection,
+  async (req, res) => {
+    try {
+      const partner = await partnerService.getPartnerByUserId(req.user.id);
+      if (!partner) {
+        return res.status(404).json({ error: 'Partner account not found' });
+      }
+      if (partner.status === 'disabled') {
+        return res.status(403).json({
+          error: 'Your partner account has been disabled. Please contact support.',
+          disabled: true,
+        });
+      }
+
+      const { points, giftCardType, message } = req.body || {};
+
+      const parsedPoints = parseInt(points, 10);
+      if (!Number.isFinite(parsedPoints) || parsedPoints <= 0) {
+        return res.status(400).json({ error: 'points must be a positive integer' });
+      }
+
+      const balance = await partnerService.getBalance(partner.id);
+      if (parsedPoints > balance.balance) {
+        return res.status(400).json({
+          error: `Insufficient points. You have ${balance.balance} available.`,
+        });
+      }
+
+      const rawGiftCardType = giftCardType ? String(giftCardType).trim() : '';
+
+      if (rawGiftCardType && !GIFT_CARD_TYPES.includes(rawGiftCardType)) {
+        return res.status(400).json({
+          error: `giftCardType must be one of: ${GIFT_CARD_TYPES.join(', ')}`,
+        });
+      }
+
+      const sanitizedGiftCardType = rawGiftCardType || 'Not specified';
+
+      if (sanitizedGiftCardType === 'Other' && !message) {
+        return res.status(400).json({
+          error: 'A message is required when gift card type is "Other"',
+        });
+      }
+
+      const sanitizedMessage = message ? String(message).trim().slice(0, 1000) : '';
+
+      const now = new Date().toISOString();
+      const valueGbp = `£${(parsedPoints / 100).toFixed(2)}`;
+      const subject = `Partner payout request — ${parsedPoints} credits (${valueGbp}) [${partner.id}]`;
+
+      const ticketMessage =
+        `Partner payout request\n\n` +
+        `Partner ID: ${partner.id}\n` +
+        `Partner Code: ${partner.refCode}\n` +
+        `Points requested: ${parsedPoints} (${valueGbp})\n` +
+        `Current balance: ${balance.balance} credits\n` +
+        `Preferred gift card: ${sanitizedGiftCardType}\n${
+          sanitizedMessage ? `\nPartner message:\n${sanitizedMessage}` : ''
+        }`;
+
+      const newTicket = {
+        id: uid('tkt'),
+        senderId: req.user.id,
+        senderType: 'partner',
+        senderName: req.user.name || req.user.firstName || 'Partner',
+        senderEmail: req.user.email,
+        subject,
+        message: ticketMessage,
+        status: 'open',
+        priority: 'normal',
+        accountTier: 'partner',
+        prioritySource: 'partner_payout',
+        assignedTo: null,
+        lastReplyAt: now,
+        lastReplyBy: 'partner',
+        responses: [],
+        // Payout-specific metadata
+        partnerId: partner.id,
+        partnerRefCode: partner.refCode,
+        payoutPoints: parsedPoints,
+        payoutValueGbp: valueGbp,
+        payoutGiftCardType: sanitizedGiftCardType,
+        category: 'partner_payout',
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      await dbUnified.insertOne('tickets', newTicket);
+      logger.info(
+        `Partner payout request ticket created: ${newTicket.id} for partner ${partner.id}`
+      );
+
+      res.status(201).json({
+        ok: true,
+        ticketId: newTicket.id,
+        message: 'Your payout request has been submitted. Our team will be in touch.',
       });
+    } catch (err) {
+      logger.error('Error creating partner payout request:', err);
+      res.status(500).json({ error: 'Internal server error' });
     }
-
-    const { points, giftCardType, message } = req.body || {};
-
-    const parsedPoints = parseInt(points, 10);
-    if (!Number.isFinite(parsedPoints) || parsedPoints <= 0) {
-      return res.status(400).json({ error: 'points must be a positive integer' });
-    }
-
-    const balance = await partnerService.getBalance(partner.id);
-    if (parsedPoints > balance.balance) {
-      return res.status(400).json({
-        error: `Insufficient points. You have ${balance.balance} available.`,
-      });
-    }
-
-    const sanitizedGiftCardType =
-      giftCardType && GIFT_CARD_TYPES.includes(String(giftCardType).trim())
-        ? String(giftCardType).trim()
-        : 'Not specified';
-
-    const sanitizedMessage = message
-      ? String(message).trim().slice(0, 1000)
-      : '';
-
-    const now = new Date().toISOString();
-    const valueGbp = `£${(parsedPoints / 100).toFixed(2)}`;
-    const subject = `Partner payout request — ${parsedPoints} credits (${valueGbp}) [${partner.id}]`;
-
-    const ticketMessage =
-      `Partner payout request\n\n` +
-      `Partner ID: ${partner.id}\n` +
-      `Partner Code: ${partner.refCode}\n` +
-      `Points requested: ${parsedPoints} (${valueGbp})\n` +
-      `Current balance: ${balance.balance} credits\n` +
-      `Preferred gift card: ${sanitizedGiftCardType}\n` +
-      (sanitizedMessage ? `\nPartner message:\n${sanitizedMessage}` : '');
-
-    const newTicket = {
-      id: uid('tkt'),
-      senderId: req.user.id,
-      senderType: 'partner',
-      senderName: req.user.name || req.user.firstName || 'Partner',
-      senderEmail: req.user.email,
-      subject,
-      message: ticketMessage,
-      status: 'open',
-      priority: 'normal',
-      accountTier: 'partner',
-      prioritySource: 'partner_payout',
-      assignedTo: null,
-      lastReplyAt: now,
-      lastReplyBy: 'partner',
-      responses: [],
-      // Payout-specific metadata
-      partnerId: partner.id,
-      partnerRefCode: partner.refCode,
-      payoutPoints: parsedPoints,
-      payoutValueGbp: valueGbp,
-      payoutGiftCardType: sanitizedGiftCardType,
-      category: 'partner_payout',
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    await dbUnified.insertOne('tickets', newTicket);
-    logger.info(`Partner payout request ticket created: ${newTicket.id} for partner ${partner.id}`);
-
-    res.status(201).json({
-      ok: true,
-      ticketId: newTicket.id,
-      message: 'Your payout request has been submitted. Our team will be in touch.',
-    });
-  } catch (err) {
-    logger.error('Error creating partner payout request:', err);
-    res.status(500).json({ error: 'Internal server error' });
   }
-});
+);
 
 module.exports = router;

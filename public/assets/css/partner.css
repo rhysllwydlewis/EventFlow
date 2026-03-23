@@ -420,7 +420,7 @@
 /* stats grid */
 .partner-stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(6, 1fr);
   gap: 1rem;
   margin-bottom: 1.75rem;
 }
@@ -979,6 +979,12 @@
 }
 
 /* ─── Responsive ────────────────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .partner-stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
 
 @media (max-width: 640px) {
   .partner-auth-panel {
