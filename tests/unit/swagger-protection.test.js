@@ -71,6 +71,11 @@ describe('API docs endpoint protection', () => {
       expect(res.status).toBe(404);
     });
 
+    it('returns 404 for GET /openapi', async () => {
+      const res = await request(app).get('/openapi');
+      expect(res.status).toBe(404);
+    });
+
     it('404 response body has expected shape', async () => {
       const res = await request(app).get('/api-docs');
       expect(res.body).toMatchObject({ error: 'Not found', status: 404 });

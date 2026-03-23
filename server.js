@@ -77,7 +77,7 @@ const { featureRequired } = require('./middleware/features');
 const { apiCacheControlMiddleware, staticCachingMiddleware } = require('./middleware/cache');
 const { noindexMiddleware } = require('./middleware/seo');
 const { adminPageProtectionMiddleware } = require('./middleware/adminPages');
-const { apiLimiter } = require('./middleware/rateLimits');
+const { apiLimiter, apiDocsLimiter } = require('./middleware/rateLimits');
 
 // Utility modules
 const helpers = require('./utils/helpers');
@@ -946,7 +946,6 @@ mountRoutes(app, {
 // API Documentation (Swagger UI)
 // Only served when explicitly enabled via env flag or in non-production environments.
 // Set ENABLE_API_DOCS=true to expose docs in production (combine with auth/IP allowlist).
-const { apiDocsLimiter } = require('./middleware/rateLimits');
 
 // Rate-limit and log all bot-probe paths regardless of environment
 app.use(['/api-docs', '/swagger', '/swagger.json', '/openapi', '/openapi.json'], apiDocsLimiter);
