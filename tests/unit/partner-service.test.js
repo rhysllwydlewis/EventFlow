@@ -478,4 +478,59 @@ describe('PartnerService', () => {
       expect(updated.status).toBe('disabled');
     });
   });
+
+  // ── Disabled partner enforcement ─────────────────────────────────────────────
+
+  describe('Disabled partner: no new awards', () => {
+    async function setupDisabledPartnerWithReferral() {
+      const partner = {
+        id: 'prt_disabled',
+        userId: 'usr_partner_d',
+        refCode: 'p_DISABLED',
+        status: 'disabled',
+        createdAt: new Date().toISOString(),
+      };
+      mockStore.partners.push(partner);
+      mockStore.partner_referrals.push({
+        id: 'ref_disabled',
+        partnerId: 'prt_disabled',
+        supplierUserId: 'usr_supplier_d',
+        supplierCreatedAt: new Date().toISOString(),
+        attributionExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        packageQualified: false,
+        subscriptionQualified: false,
+      });
+      return { partner };
+    }
+
+    it('does not award package bonus for disabled partner', async () => {
+      await setupDisabledPartnerWithReferral();
+      const txn = await partnerService.awardPackageBonus('usr_supplier_d');
+      expect(txn).toBeNull();
+      expect(mockStore.partner_credit_transactions).toHaveLength(0);
+    });
+
+    it('does not award subscription bonus for disabled partner', async () => {
+      await setupDisabledPartnerWithReferral();
+      const txn = await partnerService.awardSubscriptionBonus('usr_supplier_d');
+      expect(txn).toBeNull();
+      expect(mockStore.partner_credit_transactions).toHaveLength(0);
+    });
+
+    it('re-enables awards when partner is re-activated', async () => {
+      await setupDisabledPartnerWithReferral();
+
+      // First attempt while disabled
+      const txnDisabled = await partnerService.awardPackageBonus('usr_supplier_d');
+      expect(txnDisabled).toBeNull();
+
+      // Re-enable partner
+      await partnerService.setPartnerStatus('prt_disabled', 'active');
+
+      // Now award should succeed
+      const txnEnabled = await partnerService.awardPackageBonus('usr_supplier_d');
+      expect(txnEnabled).not.toBeNull();
+      expect(txnEnabled.amount).toBe(10);
+    });
+  });
 });

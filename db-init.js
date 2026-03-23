@@ -53,6 +53,37 @@ const ADDITIONAL_COLLECTIONS = [
       { keys: { createdAt: -1 }, options: {} },
     ],
   },
+  // ── Partner / Affiliate collections ──────────────────────────────────────────
+  {
+    name: 'partners',
+    indexes: [
+      { keys: { id: 1 }, options: { unique: true } },
+      { keys: { userId: 1 }, options: { unique: true } },
+      { keys: { refCode: 1 }, options: { unique: true } },
+      { keys: { status: 1 }, options: {} },
+      { keys: { createdAt: -1 }, options: {} },
+    ],
+  },
+  {
+    name: 'partner_referrals',
+    indexes: [
+      { keys: { id: 1 }, options: { unique: true } },
+      { keys: { supplierUserId: 1 }, options: { unique: true } },
+      { keys: { partnerId: 1 }, options: {} },
+      { keys: { attributionExpiresAt: 1 }, options: {} },
+      { keys: { createdAt: -1 }, options: {} },
+    ],
+  },
+  {
+    name: 'partner_credit_transactions',
+    indexes: [
+      { keys: { id: 1 }, options: { unique: true } },
+      { keys: { partnerId: 1 }, options: {} },
+      { keys: { supplierUserId: 1, type: 1, partnerId: 1 }, options: {} },
+      { keys: { type: 1 }, options: {} },
+      { keys: { createdAt: -1 }, options: {} },
+    ],
+  },
 ];
 
 /**

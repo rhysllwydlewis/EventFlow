@@ -193,9 +193,15 @@ async function handleInvoicePaymentSucceeded(invoice) {
   }
 
   // Award partner subscription bonus for first successful payment (non-blocking)
+  // Skip trial activations and £0/free invoices — only award on real paid invoices
   try {
-    const partnerService = require('../services/partnerService');
-    await partnerService.awardSubscriptionBonus(subscription.userId);
+    const amountPaid = typeof invoice.amount_paid === 'number' ? invoice.amount_paid : invoice.total;
+    if (amountPaid > 0) {
+      const partnerService = require('../services/partnerService');
+      await partnerService.awardSubscriptionBonus(subscription.userId);
+    } else {
+      logger.info(`Partner subscription bonus skipped: zero-amount invoice ${invoice.id}`);
+    }
   } catch (_pe) {
     logger.warn('Partner subscription bonus award failed (non-blocking):', _pe.message);
   }

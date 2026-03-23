@@ -104,3 +104,89 @@ describe('Stripe Webhook Handler — resolvePlanTier', () => {
     expect(resolvePlanTier('PRO+')).toBe('pro_plus');
   });
 });
+
+// ── handleInvoicePaymentSucceeded — partner bonus gating ──────────────────────
+// These tests use module-level mocks to verify the trial/£0 invoice guard added
+// to webhooks/stripeWebhookHandler.js.  The partnerService is required inline
+// inside handleInvoicePaymentSucceeded(), so we mock it at module level.
+
+jest.mock('../../services/partnerService', () => ({
+  awardSubscriptionBonus: jest.fn().mockResolvedValue({ id: 'ptx_1', amount: 100 }),
+}));
+
+jest.mock('../../services/subscriptionService', () => ({
+  getSubscriptionByStripeId: jest.fn().mockResolvedValue({
+    id: 'sub_int_001',
+    userId: 'usr_supplier_001',
+    status: 'active',
+  }),
+  updateSubscription: jest.fn().mockResolvedValue({}),
+  addBillingRecord: jest.fn().mockResolvedValue({}),
+  updateBillingDates: jest.fn().mockResolvedValue({}),
+}));
+
+jest.mock('../../db-unified', () => ({
+  read: jest.fn().mockResolvedValue([]),
+  insertOne: jest.fn().mockResolvedValue({}),
+  updateOne: jest.fn().mockResolvedValue({}),
+}));
+
+jest.mock('../../utils/postmark', () => ({ sendMail: jest.fn().mockResolvedValue({}) }));
+
+describe('Stripe Webhook Handler — partner bonus gating on invoice.payment_succeeded', () => {
+  // Import after mocks are registered
+  // eslint-disable-next-line global-require
+  const { handleInvoicePaymentSucceeded } = require('../../webhooks/stripeWebhookHandler');
+  // eslint-disable-next-line global-require
+  const partnerServiceMock = require('../../services/partnerService');
+  // eslint-disable-next-line global-require
+  const subscriptionServiceMock = require('../../services/subscriptionService');
+
+  const makeInvoice = (overrides = {}) => ({
+    id: 'in_test001',
+    subscription: 'sub_test001',
+    total: 2000,
+    amount_paid: 2000,
+    currency: 'gbp',
+    status: 'paid',
+    lines: { data: [] },
+    ...overrides,
+  });
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    // Reset to default resolved value after clearAllMocks
+    subscriptionServiceMock.getSubscriptionByStripeId.mockResolvedValue({
+      id: 'sub_int_001',
+      userId: 'usr_supplier_001',
+      status: 'active',
+    });
+    subscriptionServiceMock.updateSubscription.mockResolvedValue({});
+    subscriptionServiceMock.addBillingRecord.mockResolvedValue({});
+    subscriptionServiceMock.updateBillingDates.mockResolvedValue({});
+    partnerServiceMock.awardSubscriptionBonus.mockResolvedValue({ id: 'ptx_1', amount: 100 });
+  });
+
+  it('awards subscription bonus for a paid invoice (amount_paid > 0)', async () => {
+    await handleInvoicePaymentSucceeded(makeInvoice({ amount_paid: 2000, total: 2000 }));
+    expect(partnerServiceMock.awardSubscriptionBonus).toHaveBeenCalledWith('usr_supplier_001');
+  });
+
+  it('does NOT award subscription bonus for a zero-amount invoice (trial activation)', async () => {
+    await handleInvoicePaymentSucceeded(makeInvoice({ amount_paid: 0, total: 0 }));
+    expect(partnerServiceMock.awardSubscriptionBonus).not.toHaveBeenCalled();
+  });
+
+  it('does NOT award subscription bonus when amount_paid is absent but total is 0', async () => {
+    const invoice = makeInvoice({ total: 0 });
+    delete invoice.amount_paid;
+    await handleInvoicePaymentSucceeded(invoice);
+    expect(partnerServiceMock.awardSubscriptionBonus).not.toHaveBeenCalled();
+  });
+
+  it('skips bonus award gracefully when subscription is not found', async () => {
+    subscriptionServiceMock.getSubscriptionByStripeId.mockResolvedValue(null);
+    await handleInvoicePaymentSucceeded(makeInvoice());
+    expect(partnerServiceMock.awardSubscriptionBonus).not.toHaveBeenCalled();
+  });
+});

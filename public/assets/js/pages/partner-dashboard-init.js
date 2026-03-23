@@ -130,6 +130,12 @@
   async function loadPartnerData() {
     const res = await fetch('/api/v1/partner/me', { credentials: 'include' });
     if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      if (res.status === 403 && body.disabled) {
+        const err = new Error(body.error || 'Your partner account has been disabled.');
+        err.disabled = true;
+        throw err;
+      }
       throw new Error('Failed to load partner data');
     }
     return res.json();
@@ -384,6 +390,28 @@
     } catch (err) {
       console.error('Dashboard load error:', err);
       const statusLine = document.getElementById('partner-status-line');
+      if (err.disabled) {
+        // Account disabled — show prominent message
+        if (statusLine) {
+          statusLine.textContent = err.message;
+          statusLine.style.color = '#fca5a5';
+        }
+        if (nameHeading) {
+          nameHeading.textContent = 'Account Disabled';
+        }
+        const containers = ['referrals-container', 'transactions-container'];
+        containers.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) {
+            el.innerHTML = `
+              <div class="partner-empty">
+                <div class="partner-empty-icon" aria-hidden="true">🚫</div>
+                <p class="partner-empty-text">Your partner account has been disabled. Please contact support to resolve this.</p>
+              </div>`;
+          }
+        });
+        return;
+      }
       if (statusLine) {
         statusLine.textContent = 'Error loading dashboard data. Please refresh.';
         statusLine.style.color = '#fca5a5';
