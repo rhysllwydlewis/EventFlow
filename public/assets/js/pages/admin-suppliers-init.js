@@ -57,16 +57,6 @@
     }
   }
 
-  const verificationToggleEl = document.getElementById('autoApproveVerificationToggle');
-  if (verificationToggleEl) {
-    verificationToggleEl.addEventListener('change', async () => {
-      const newValue = verificationToggleEl.checked;
-      verificationToggleEl.disabled = true;
-      await saveAutoApproveVerificationFlag(newValue);
-      verificationToggleEl.disabled = false;
-    });
-  }
-
   // Load suppliers data
   async function loadSuppliers() {
     try {
@@ -275,6 +265,17 @@
     document
       .getElementById('importDemoSuppliersBtn')
       ?.addEventListener('click', importDemoSuppliers);
+
+    // Auto-approve supplier verification toggle
+    const verificationToggleEl = document.getElementById('autoApproveVerificationToggle');
+    if (verificationToggleEl) {
+      verificationToggleEl.addEventListener('change', async () => {
+        const newValue = verificationToggleEl.checked;
+        verificationToggleEl.disabled = true;
+        await saveAutoApproveVerificationFlag(newValue);
+        verificationToggleEl.disabled = false;
+      });
+    }
   }
 
   // Handle filters

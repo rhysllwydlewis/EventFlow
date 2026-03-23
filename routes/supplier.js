@@ -709,6 +709,8 @@ router.post(
       // Check if admin has enabled auto-approve for supplier verification
       const settings = (await dbUnified.read('settings')) || {};
       if ((settings.features || {}).autoApproveSupplierVerification === true) {
+        // Use 'admin' actor: the state machine enforces permission levels, not attribution.
+        // The verifiedBy field below records 'system' to show this was automated.
         const approveCheck = canTransition(
           VERIFICATION_STATES.PENDING_REVIEW,
           VERIFICATION_STATES.APPROVED,

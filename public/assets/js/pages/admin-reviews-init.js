@@ -274,7 +274,6 @@
   }
 
   async function promptRejectReview(reviewId) {
-    let reason = '';
     if (AdminShared.showConfirmModal) {
       const result = await AdminShared.showConfirmModal({
         title: 'Reject Review',
@@ -284,7 +283,7 @@
     } else {
       if (!window.confirm('Reject this review?')) return;
     }
-    await rejectReview(reviewId, reason);
+    await rejectReview(reviewId, '');
   }
 
   // ── Batch actions ─────────────────────────────────────────────────────────
