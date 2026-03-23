@@ -179,8 +179,8 @@ router.get('/events', apiLimiter, userExtractionMiddleware, async (req, res) => 
 
     // Filters
     if (req.query.category) {
-      const cat = String(req.query.category).trim().toLowerCase();
-      events = events.filter(e => e.category && e.category.toLowerCase() === cat);
+      const cat = String(req.query.category).trim();
+      events = events.filter(e => e.category === cat);
     }
     if (req.query.location) {
       const loc = String(req.query.location).trim().toLowerCase();
