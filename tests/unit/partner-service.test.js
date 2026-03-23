@@ -17,22 +17,20 @@ const mockStore = {
 jest.mock('../../db-unified', () => ({
   read: jest.fn(collection => Promise.resolve([...(mockStore[collection] || [])])),
   insertOne: jest.fn((collection, doc) => {
-    if (!mockStore[collection]) mockStore[collection] = [];
+    if (!mockStore[collection]) {
+      mockStore[collection] = [];
+    }
     mockStore[collection].push(doc);
     return Promise.resolve(doc);
   }),
   findOne: jest.fn((collection, query) => {
     const items = mockStore[collection] || [];
-    const result = items.find(item =>
-      Object.entries(query).every(([k, v]) => item[k] === v)
-    );
+    const result = items.find(item => Object.entries(query).every(([k, v]) => item[k] === v));
     return Promise.resolve(result || null);
   }),
   updateOne: jest.fn((collection, query, update) => {
     const items = mockStore[collection] || [];
-    const idx = items.findIndex(item =>
-      Object.entries(query).every(([k, v]) => item[k] === v)
-    );
+    const idx = items.findIndex(item => Object.entries(query).every(([k, v]) => item[k] === v));
     if (idx !== -1 && update.$set) {
       Object.assign(items[idx], update.$set);
     }
@@ -77,22 +75,20 @@ describe('PartnerService', () => {
       Promise.resolve([...(mockStore[collection] || [])])
     );
     dbUnified.insertOne.mockImplementation((collection, doc) => {
-      if (!mockStore[collection]) mockStore[collection] = [];
+      if (!mockStore[collection]) {
+        mockStore[collection] = [];
+      }
       mockStore[collection].push(doc);
       return Promise.resolve(doc);
     });
     dbUnified.findOne.mockImplementation((collection, query) => {
       const items = mockStore[collection] || [];
-      const result = items.find(item =>
-        Object.entries(query).every(([k, v]) => item[k] === v)
-      );
+      const result = items.find(item => Object.entries(query).every(([k, v]) => item[k] === v));
       return Promise.resolve(result || null);
     });
     dbUnified.updateOne.mockImplementation((collection, query, update) => {
       const items = mockStore[collection] || [];
-      const idx = items.findIndex(item =>
-        Object.entries(query).every(([k, v]) => item[k] === v)
-      );
+      const idx = items.findIndex(item => Object.entries(query).every(([k, v]) => item[k] === v));
       if (idx !== -1 && update.$set) {
         Object.assign(items[idx], update.$set);
       }
@@ -293,7 +289,9 @@ describe('PartnerService', () => {
       await setupActivePartnerWithReferral();
       await partnerService.awardPackageBonus('usr_supplier_001');
 
-      const referral = mockStore.partner_referrals.find(r => r.supplierUserId === 'usr_supplier_001');
+      const referral = mockStore.partner_referrals.find(
+        r => r.supplierUserId === 'usr_supplier_001'
+      );
       expect(referral.packageQualified).toBe(true);
     });
   });
@@ -367,7 +365,9 @@ describe('PartnerService', () => {
       await setupForSubscriptionBonus();
       await partnerService.awardSubscriptionBonus('usr_supplier_001');
 
-      const referral = mockStore.partner_referrals.find(r => r.supplierUserId === 'usr_supplier_001');
+      const referral = mockStore.partner_referrals.find(
+        r => r.supplierUserId === 'usr_supplier_001'
+      );
       expect(referral.subscriptionQualified).toBe(true);
     });
   });
@@ -419,10 +419,38 @@ describe('PartnerService', () => {
 
     it('correctly sums credits from multiple transactions', async () => {
       mockStore.partner_credit_transactions.push(
-        { id: 'ptx1', partnerId: 'prt_001', type: 'PACKAGE_BONUS', amount: 10, supplierUserId: 'usr_001', createdAt: new Date().toISOString() },
-        { id: 'ptx2', partnerId: 'prt_001', type: 'SUBSCRIPTION_BONUS', amount: 100, supplierUserId: 'usr_001', createdAt: new Date().toISOString() },
-        { id: 'ptx3', partnerId: 'prt_001', type: 'PACKAGE_BONUS', amount: 10, supplierUserId: 'usr_002', createdAt: new Date().toISOString() },
-        { id: 'ptx4', partnerId: 'prt_001', type: 'ADJUSTMENT', amount: -5, supplierUserId: null, createdAt: new Date().toISOString() }
+        {
+          id: 'ptx1',
+          partnerId: 'prt_001',
+          type: 'PACKAGE_BONUS',
+          amount: 10,
+          supplierUserId: 'usr_001',
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: 'ptx2',
+          partnerId: 'prt_001',
+          type: 'SUBSCRIPTION_BONUS',
+          amount: 100,
+          supplierUserId: 'usr_001',
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: 'ptx3',
+          partnerId: 'prt_001',
+          type: 'PACKAGE_BONUS',
+          amount: 10,
+          supplierUserId: 'usr_002',
+          createdAt: new Date().toISOString(),
+        },
+        {
+          id: 'ptx4',
+          partnerId: 'prt_001',
+          type: 'ADJUSTMENT',
+          amount: -5,
+          supplierUserId: null,
+          createdAt: new Date().toISOString(),
+        }
       );
 
       const balance = await partnerService.getBalance('prt_001');

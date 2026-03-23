@@ -110,6 +110,15 @@ describe('Stripe Webhook Handler — resolvePlanTier', () => {
 // to webhooks/stripeWebhookHandler.js.  The partnerService is required inline
 // inside handleInvoicePaymentSucceeded(), so we mock it at module level.
 
+// winston is not installed in the test runner; mock logger so the webhook
+// handler module loads successfully.
+jest.mock('../../utils/logger', () => ({
+  info: jest.fn(),
+  warn: jest.fn(),
+  error: jest.fn(),
+  debug: jest.fn(),
+}));
+
 jest.mock('../../services/partnerService', () => ({
   awardSubscriptionBonus: jest.fn().mockResolvedValue({ id: 'ptx_1', amount: 100 }),
 }));
