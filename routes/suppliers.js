@@ -7,6 +7,7 @@
 
 const express = require('express');
 const router = express.Router();
+const { apiLimiter } = require('../middleware/rateLimits');
 
 // Dependencies injected by server.js
 let dbUnified;
@@ -529,7 +530,7 @@ router.get('/packages/search', async (req, res) => {
  * packages linked to their plans.
  * Body: { ids: string[] }  — up to 50 IDs, duplicates are ignored.
  */
-router.post('/packages/bulk', async (req, res) => {
+router.post('/packages/bulk', apiLimiter, applyAuthRequired, async (req, res) => {
   try {
     const { ids } = req.body || {};
 
@@ -539,9 +540,7 @@ router.post('/packages/bulk', async (req, res) => {
 
     const MAX_BULK_IDS = 50;
     if (ids.length > MAX_BULK_IDS) {
-      return res
-        .status(400)
-        .json({ error: `Bulk fetch limit is ${MAX_BULK_IDS} IDs per request` });
+      return res.status(400).json({ error: `Bulk fetch limit is ${MAX_BULK_IDS} IDs per request` });
     }
 
     // Validate each ID is a non-empty string and deduplicate

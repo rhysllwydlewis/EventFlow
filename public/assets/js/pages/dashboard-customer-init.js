@@ -530,6 +530,43 @@ function setupEventHandlers(latestPlans) {
   } catch (err) {
     console.error('Error loading saved budget:', err);
   }
+
+  // Retry: if localStorage has a budget that didn't make it to the server (e.g. a
+  // previous PATCH failed), silently attempt to sync it now.  This fulfils the
+  // "will be retried on next visit" message shown when the initial save fails.
+  if (!budgetFromPlan && latestPlans && latestPlans.length > 0) {
+    let lsBudgetForRetry = null;
+    try {
+      lsBudgetForRetry = localStorage.getItem('eventflow_custom_budget');
+    } catch (_) {
+      /* ignore */
+    }
+    const pendingBudget = lsBudgetForRetry ? parseFloat(lsBudgetForRetry) : NaN;
+    if (!isNaN(pendingBudget) && pendingBudget > 0) {
+      const primaryPlan = latestPlans[0];
+      // Fire-and-forget: don't block page load; failures are non-fatal
+      (async () => {
+        try {
+          const retryResp = await fetch(`/api/me/plans/${encodeURIComponent(primaryPlan.id)}`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-Token': getCsrfToken(),
+            },
+            credentials: 'include',
+            body: JSON.stringify({ budget: pendingBudget }),
+          });
+          if (retryResp.ok) {
+            dbg('✅ Budget synced to server on page load (retry after previous failed sync)');
+          } else {
+            console.warn('Budget server retry on load failed with status:', retryResp.status);
+          }
+        } catch (err) {
+          console.warn('Budget server retry on load failed:', err);
+        }
+      })();
+    }
+  }
 }
 
 /**
