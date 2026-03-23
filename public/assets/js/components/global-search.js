@@ -14,7 +14,7 @@ class GlobalSearch {
         'Catering',
         'Photography',
         'Entertainment',
-        'Florists',
+        'Florist',
       ],
       onSearch: options.onSearch || null,
       onSelect: options.onSelect || null,

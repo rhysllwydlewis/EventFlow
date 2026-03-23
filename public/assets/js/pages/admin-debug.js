@@ -44,7 +44,9 @@
 
   /* ── Formatting helpers ─────────────────────────────────────────────────── */
   function fmtDate(dateStr) {
-    if (!dateStr) return '—';
+    if (!dateStr) {
+      return '—';
+    }
     try {
       return new Date(dateStr).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' });
     } catch {
@@ -53,12 +55,16 @@
   }
 
   function fmtDuration(ms) {
-    if (ms === null || ms === undefined) return '—';
+    if (ms === null || ms === undefined) {
+      return '—';
+    }
     return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(1)}s`;
   }
 
   function escHtml(str) {
-    if (str === null || str === undefined) return '';
+    if (str === null || str === undefined) {
+      return '';
+    }
     return String(str)
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
@@ -77,14 +83,21 @@
       document.querySelectorAll('.sc-tab-panel').forEach(p => p.classList.remove('active'));
       btn.setAttribute('aria-selected', 'true');
       const panel = document.getElementById(targetId);
-      if (panel) panel.classList.add('active');
+      if (panel) {
+        panel.classList.add('active');
+      }
     });
   });
 
   /* ── Stats bar ──────────────────────────────────────────────────────────── */
   function renderStats(run, total) {
-    if (!statsBar) return;
-    if (!run) { statsBar.innerHTML = ''; return; }
+    if (!statsBar) {
+      return;
+    }
+    if (!run) {
+      statsBar.innerHTML = '';
+      return;
+    }
     const checks = Array.isArray(run.checks) ? run.checks : [];
     const passed = checks.filter(c => c.ok).length;
     const failed = checks.filter(c => !c.ok).length;
@@ -104,21 +117,31 @@
         <span class="sc-stat-value">${escHtml(String(failed))}</span>
         <span class="sc-stat-label">Failing</span>
       </div>
-      ${warned > 0 ? `
+      ${
+        warned > 0
+          ? `
       <div class="sc-stat sc-stat--warn">
         <span class="sc-stat-value">${escHtml(String(warned))}</span>
         <span class="sc-stat-label">Warnings</span>
-      </div>` : ''}
-      ${untested > 0 ? `
+      </div>`
+          : ''
+      }
+      ${
+        untested > 0
+          ? `
       <div class="sc-stat sc-stat--skip">
         <span class="sc-stat-value">${escHtml(String(untested))}</span>
         <span class="sc-stat-label">Untested</span>
-      </div>` : ''}`;
+      </div>`
+          : ''
+      }`;
   }
 
   /* ── Summary card ───────────────────────────────────────────────────────── */
   function renderSummary(run) {
-    if (!summaryEl) return;
+    if (!summaryEl) {
+      return;
+    }
     if (!run) {
       summaryEl.innerHTML = `
         <div class="sc-summary-card">
@@ -160,7 +183,9 @@
 
   /* ── Check detail list (overview tab) ──────────────────────────────────── */
   function renderChecks(run) {
-    if (!checksListEl) return;
+    if (!checksListEl) {
+      return;
+    }
     if (!run || !Array.isArray(run.checks) || run.checks.length === 0) {
       checksListEl.innerHTML = `
         <div class="sc-empty">
@@ -172,7 +197,8 @@
 
     checksListEl.innerHTML = run.checks
       .map(c => {
-        const codeStr = c.statusCode !== null && c.statusCode !== undefined ? String(c.statusCode) : '—';
+        const codeStr =
+          c.statusCode !== null && c.statusCode !== undefined ? String(c.statusCode) : '—';
         let resultHtml;
         if (c.error) {
           resultHtml = `<span class="sc-check-err">${escHtml(c.error)}</span>`;
@@ -181,9 +207,10 @@
         } else {
           resultHtml = `<span class="sc-check-ok">OK</span>`;
         }
-        const redirectHtml = c.redirected && c.redirectUrl
-          ? `<span class="sc-check-redirect" title="Redirected to: ${escHtml(c.redirectUrl)}">↪ redirect</span>`
-          : '';
+        const redirectHtml =
+          c.redirected && c.redirectUrl
+            ? `<span class="sc-check-redirect" title="Redirected to: ${escHtml(c.redirectUrl)}">↪ redirect</span>`
+            : '';
         return `
         <div class="sc-check-row${c.warning && c.ok ? ' sc-check-row--warn' : ''}">
           <span class="sc-check-status" aria-label="${c.ok ? 'Pass' : 'Fail'}">${c.ok ? (c.warning ? '⚠️' : '✅') : '❌'}</span>
@@ -209,18 +236,26 @@
   };
 
   function renderCoverage() {
-    if (!coverageEl) return;
+    if (!coverageEl) {
+      return;
+    }
 
     // Build result map from latest run
     const resultMap = {};
     if (_latestRun && Array.isArray(_latestRun.checks)) {
-      _latestRun.checks.forEach(c => { resultMap[c.name] = c; });
+      _latestRun.checks.forEach(c => {
+        resultMap[c.name] = c;
+      });
     }
 
     // Apply filter
     const filtered = _catalog.filter(item => {
-      if (_activeFilter === 'page') return item.type === 'page';
-      if (_activeFilter === 'api') return item.type === 'api';
+      if (_activeFilter === 'page') {
+        return item.type === 'page';
+      }
+      if (_activeFilter === 'api') {
+        return item.type === 'api';
+      }
       if (_activeFilter === 'fail') {
         const r = resultMap[item.name];
         return r && !r.ok;
@@ -229,7 +264,9 @@
         const r = resultMap[item.name];
         return r && r.ok && r.warning;
       }
-      if (_activeFilter === 'untested') return !resultMap[item.name];
+      if (_activeFilter === 'untested') {
+        return !resultMap[item.name];
+      }
       return true;
     });
 
@@ -245,12 +282,17 @@
     // Group by group
     const groups = {};
     filtered.forEach(item => {
-      if (!groups[item.group]) groups[item.group] = [];
+      if (!groups[item.group]) {
+        groups[item.group] = [];
+      }
       groups[item.group].push(item);
     });
 
     const ORDER = ['infrastructure', 'public', 'protected', 'admin', 'api-public', 'api-auth'];
-    const orderIndex = grp => { const i = ORDER.indexOf(grp); return i === -1 ? 99 : i; };
+    const orderIndex = grp => {
+      const i = ORDER.indexOf(grp);
+      return i === -1 ? 99 : i;
+    };
     const sortedGroups = Object.keys(groups).sort((a, b) => orderIndex(a) - orderIndex(b));
 
     let html = '';
@@ -269,11 +311,13 @@
           resultHtml = `<span class="sc-check-err">${escHtml(r.error || String(r.statusCode || 'Error'))}</span>`;
         } else if (r.warning) {
           statusIcon = '⚠️';
-          const codeStr = r.statusCode !== null && r.statusCode !== undefined ? String(r.statusCode) : '—';
+          const codeStr =
+            r.statusCode !== null && r.statusCode !== undefined ? String(r.statusCode) : '—';
           resultHtml = `<span class="sc-check-warn" title="${escHtml(r.warning)}">${escHtml(codeStr)} · ${fmtDuration(r.durationMs)} · WARN</span>`;
         } else {
           statusIcon = '✅';
-          const codeStr = r.statusCode !== null && r.statusCode !== undefined ? String(r.statusCode) : '—';
+          const codeStr =
+            r.statusCode !== null && r.statusCode !== undefined ? String(r.statusCode) : '—';
           resultHtml = `<span class="sc-check-ok">${escHtml(codeStr)} · ${fmtDuration(r.durationMs)}</span>`;
         }
         html += `
@@ -300,7 +344,9 @@
   document.querySelectorAll('.sc-filter-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       _activeFilter = btn.dataset.filter || 'all';
-      document.querySelectorAll('.sc-filter-btn').forEach(b => b.setAttribute('aria-pressed', 'false'));
+      document
+        .querySelectorAll('.sc-filter-btn')
+        .forEach(b => b.setAttribute('aria-pressed', 'false'));
       btn.setAttribute('aria-pressed', 'true');
       renderCoverage();
     });
@@ -308,7 +354,9 @@
 
   /* ── History table ──────────────────────────────────────────────────────── */
   function renderHistory(runs) {
-    if (!historyBody) return;
+    if (!historyBody) {
+      return;
+    }
     if (!runs || runs.length === 0) {
       historyBody.innerHTML = `
         <tr><td colspan="7" class="sc-empty">
@@ -332,8 +380,13 @@
         const detailRows = checks
           .map(c => {
             const icon = c.ok ? (c.warning ? '⚠️' : '✅') : '❌';
-            const code = c.statusCode !== null && c.statusCode !== undefined ? String(c.statusCode) : '—';
-            const note = c.warning ? `<span class="sc-check-warn" title="${escHtml(c.warning)}">WARN</span>` : (c.error ? escHtml(c.error) : 'OK');
+            const code =
+              c.statusCode !== null && c.statusCode !== undefined ? String(c.statusCode) : '—';
+            const note = c.warning
+              ? `<span class="sc-check-warn" title="${escHtml(c.warning)}">WARN</span>`
+              : c.error
+                ? escHtml(c.error)
+                : 'OK';
             return `<tr>
           <td>${icon} ${escHtml(c.name)}</td>
           <td>${escHtml(c.type)}</td>
@@ -375,16 +428,25 @@
 
   /* ── Copy/Download JSON ─────────────────────────────────────────────────── */
   function setupCopyBtn() {
-    if (!copyBtn) return;
+    if (!copyBtn) {
+      return;
+    }
     copyBtn.addEventListener('click', () => {
-      if (!_latestRun) return;
+      if (!_latestRun) {
+        return;
+      }
       const json = JSON.stringify(_latestRun, null, 2);
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(json).then(() => {
-          const orig = copyBtn.textContent;
-          copyBtn.textContent = 'Copied!';
-          setTimeout(() => { copyBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy JSON`; }, 2000);
-        }).catch(() => downloadJson(json));
+        navigator.clipboard
+          .writeText(json)
+          .then(() => {
+            const orig = copyBtn.textContent;
+            copyBtn.textContent = 'Copied!';
+            setTimeout(() => {
+              copyBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy JSON`;
+            }, 2000);
+          })
+          .catch(() => downloadJson(json));
       } else {
         downloadJson(json);
       }
@@ -405,16 +467,23 @@
 
   /* ── Re-run failed checks button ────────────────────────────────────────── */
   function setupRerunFailedBtn() {
-    if (!rerunFailedBtn) return;
+    if (!rerunFailedBtn) {
+      return;
+    }
     rerunFailedBtn.addEventListener('click', async () => {
-      if (!_latestRun) return;
+      if (!_latestRun) {
+        return;
+      }
       const failed = (Array.isArray(_latestRun.checks) ? _latestRun.checks : []).filter(c => !c.ok);
       if (failed.length === 0) {
-        alert('No failed checks in the latest run.');
+        setRunStatus('✓ No failed checks in the latest run.', false);
         return;
       }
       const names = failed.map(c => c.name).join(', ');
-      if (!confirm(`Re-run all checks now? (The run will include all checks — failed: ${names})\n\nNote: selective re-run is not yet supported; this triggers a full run.`)) {
+      const confirmed = await AdminShared.confirm(
+        `Re-run all checks now?\n\nFailed checks: ${names}\n\nNote: selective re-run is not yet supported; this triggers a full run.`
+      );
+      if (!confirmed) {
         return;
       }
       await triggerRun();
@@ -441,9 +510,12 @@
       renderHistory(runs);
 
       // Show/hide extra action buttons
-      if (copyBtn) copyBtn.style.display = _latestRun ? '' : 'none';
+      if (copyBtn) {
+        copyBtn.style.display = _latestRun ? '' : 'none';
+      }
       if (rerunFailedBtn) {
-        const hasFailed = _latestRun && Array.isArray(_latestRun.checks) && _latestRun.checks.some(c => !c.ok);
+        const hasFailed =
+          _latestRun && Array.isArray(_latestRun.checks) && _latestRun.checks.some(c => !c.ok);
         rerunFailedBtn.style.display = hasFailed ? '' : 'none';
       }
     } catch (err) {
@@ -458,22 +530,34 @@
             </div>
           </div>`;
       }
-      if (checksListEl) checksListEl.innerHTML = `<div class="sc-empty"><p>Could not load check data</p></div>`;
-      if (historyBody) historyBody.innerHTML = `<tr><td colspan="7" class="sc-empty"><p>Could not load history</p></td></tr>`;
-      if (coverageEl) coverageEl.innerHTML = `<div class="sc-empty"><p>Could not load catalog</p></div>`;
+      if (checksListEl) {
+        checksListEl.innerHTML = `<div class="sc-empty"><p>Could not load check data</p></div>`;
+      }
+      if (historyBody) {
+        historyBody.innerHTML = `<tr><td colspan="7" class="sc-empty"><p>Could not load history</p></td></tr>`;
+      }
+      if (coverageEl) {
+        coverageEl.innerHTML = `<div class="sc-empty"><p>Could not load catalog</p></div>`;
+      }
     }
   }
 
   function setRunStatus(msg, isError) {
-    if (!runStatus) return;
+    if (!runStatus) {
+      return;
+    }
     runStatus.textContent = msg;
     runStatus.style.color = isError ? 'var(--color-danger, #dc2626)' : '';
   }
 
   async function triggerRun(options = {}) {
-    if (!runBtn) return;
+    if (!runBtn) {
+      return;
+    }
     runBtn.disabled = true;
-    if (rerunFailedBtn) rerunFailedBtn.disabled = true;
+    if (rerunFailedBtn) {
+      rerunFailedBtn.disabled = true;
+    }
     setRunStatus('Running checks…', false);
 
     try {
@@ -485,7 +569,10 @@
       }
 
       if (result && result.status === 403) {
-        setRunStatus('🔒 CSRF token missing or invalid. Please refresh the page and try again.', true);
+        setRunStatus(
+          '🔒 CSRF token missing or invalid. Please refresh the page and try again.',
+          true
+        );
         return;
       }
 
@@ -497,13 +584,18 @@
       if (status === 409) {
         setRunStatus('⏳ A run is already in progress — please wait and refresh.', true);
       } else if (status === 403) {
-        setRunStatus('🔒 CSRF token missing or invalid. Please refresh the page and try again.', true);
+        setRunStatus(
+          '🔒 CSRF token missing or invalid. Please refresh the page and try again.',
+          true
+        );
       } else {
         setRunStatus(`❌ Error: ${err.message || 'Run failed. Check server logs.'}`, true);
       }
     } finally {
       runBtn.disabled = false;
-      if (rerunFailedBtn) rerunFailedBtn.disabled = false;
+      if (rerunFailedBtn) {
+        rerunFailedBtn.disabled = false;
+      }
     }
   }
 
@@ -512,7 +604,9 @@
   async function initAcctTools() {
     const statusEl = document.getElementById('sc-acct-status');
     const bodyEl = document.getElementById('sc-acct-body');
-    if (!statusEl) return;
+    if (!statusEl) {
+      return;
+    }
 
     statusEl.innerHTML = '<p style="opacity:.6;">Checking debug route status…</p>';
 
@@ -545,7 +639,9 @@
   }
 
   function showResult(el, data, isError) {
-    if (!el) return;
+    if (!el) {
+      return;
+    }
     if (isError) {
       el.innerHTML = `<div class="sc-acct-result--error" role="alert">❌ ${escHtml(typeof data === 'string' ? data : JSON.stringify(data))}</div>`;
     } else {
@@ -570,10 +666,14 @@
       lookupForm.addEventListener('submit', async e => {
         e.preventDefault();
         const email = lookupForm.querySelector('[name="email"]').value.trim();
-        if (!email) return;
+        if (!email) {
+          return;
+        }
         lookupResult.textContent = 'Looking up…';
         try {
-          const data = await AdminShared.api(`${DEBUG_BASE_URL}/user?email=${encodeURIComponent(email)}`);
+          const data = await AdminShared.api(
+            `${DEBUG_BASE_URL}/user?email=${encodeURIComponent(email)}`
+          );
           showResult(lookupResult, data, false);
         } catch (err) {
           showResult(lookupResult, err.message || 'Lookup failed', true);
@@ -588,8 +688,15 @@
       verifyForm.addEventListener('submit', async e => {
         e.preventDefault();
         const email = verifyForm.querySelector('[name="email"]').value.trim();
-        if (!email) return;
-        if (!confirm(`Force-verify the email address for "${email}"?\n\nThis will mark the account as verified and clear any verification token. This action is audit-logged.`)) return;
+        if (!email) {
+          return;
+        }
+        const confirmed = await AdminShared.confirm(
+          `Force-verify the email address for "${email}"?\n\nThis will mark the account as verified and clear any verification token. This action is audit-logged.`
+        );
+        if (!confirmed) {
+          return;
+        }
         verifyResult.textContent = 'Verifying…';
         try {
           const data = await acctPost('/verify-user', { email });
@@ -608,12 +715,19 @@
         e.preventDefault();
         const email = fixpwForm.querySelector('[name="email"]').value.trim();
         const newPassword = fixpwForm.querySelector('[name="newPassword"]').value;
-        if (!email || !newPassword) return;
+        if (!email || !newPassword) {
+          return;
+        }
         if (newPassword.length < 8) {
           showResult(fixpwResult, 'Password must be at least 8 characters.', true);
           return;
         }
-        if (!confirm(`Set a new password for "${email}"?\n\nThis is an emergency operation and is audit-logged. The user will need to use this new password to log in.`)) return;
+        const confirmed = await AdminShared.confirm(
+          `Set a new password for "${email}"?\n\nThis is an emergency operation and is audit-logged. The user will need to use this new password to log in.`
+        );
+        if (!confirmed) {
+          return;
+        }
         fixpwResult.textContent = 'Updating password…';
         try {
           // Send email and password; never log password client-side
@@ -635,7 +749,9 @@
       emailForm.addEventListener('submit', async e => {
         e.preventDefault();
         const email = emailForm.querySelector('[name="email"]').value.trim();
-        if (!email) return;
+        if (!email) {
+          return;
+        }
         emailResult.textContent = 'Sending test email…';
         try {
           const data = await acctPost('/test-email', { email });
@@ -654,7 +770,9 @@
         e.preventDefault();
         const email = loginForm.querySelector('[name="email"]').value.trim();
         const password = loginForm.querySelector('[name="password"]').value;
-        if (!email || !password) return;
+        if (!email || !password) {
+          return;
+        }
         loginResult.textContent = 'Testing login…';
         try {
           const data = await acctPost('/login-test', { email, password });
@@ -676,9 +794,16 @@
     const auditResult = document.getElementById('sc-audit-result');
     if (auditBtn) {
       auditBtn.addEventListener('click', async () => {
-        if (!confirm('Run a full user audit? This will scan all user records for issues and is audit-logged.')) return;
+        const confirmed = await AdminShared.confirm(
+          'Run a full user audit? This will scan all user records for issues and is audit-logged.'
+        );
+        if (!confirmed) {
+          return;
+        }
         auditBtn.disabled = true;
-        if (auditResult) auditResult.textContent = 'Running audit…';
+        if (auditResult) {
+          auditResult.textContent = 'Running audit…';
+        }
         try {
           const data = await acctPost('/audit-users', {});
           showResult(auditResult, data, false);
@@ -692,7 +817,9 @@
   }
 
   /* ── Bootstrap ──────────────────────────────────────────────────────────── */
-  if (runBtn) runBtn.addEventListener('click', () => triggerRun());
+  if (runBtn) {
+    runBtn.addEventListener('click', () => triggerRun());
+  }
 
   setupCopyBtn();
   setupRerunFailedBtn();
@@ -701,10 +828,14 @@
   if (historyBody) {
     historyBody.addEventListener('click', e => {
       const btn = e.target.closest('.sc-expand-btn');
-      if (!btn) return;
+      if (!btn) {
+        return;
+      }
       const targetId = btn.getAttribute('data-target');
       const row = targetId ? document.getElementById(targetId) : null;
-      if (!row) return;
+      if (!row) {
+        return;
+      }
       const isOpen = row.classList.toggle('hidden') === false;
       btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
       btn.textContent = isOpen ? '▲ Hide' : '▼ Details';

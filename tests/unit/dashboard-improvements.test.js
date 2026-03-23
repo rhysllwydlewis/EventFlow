@@ -24,10 +24,7 @@ const dashboardRoutesSrc = fs.readFileSync(
   path.join(__dirname, '../../routes/dashboard.js'),
   'utf8'
 );
-const suppliersSrc = fs.readFileSync(
-  path.join(__dirname, '../../routes/suppliers.js'),
-  'utf8'
-);
+const suppliersSrc = fs.readFileSync(path.join(__dirname, '../../routes/suppliers.js'), 'utf8');
 const customerInitSrc = fs.readFileSync(
   path.join(__dirname, '../../public/assets/js/pages/dashboard-customer-init.js'),
   'utf8'
@@ -51,7 +48,9 @@ const dashboardCustomerHtml = fs.readFileSync(
 describe('routes/dashboard.js — /dashboard route protection', () => {
   it('GET /dashboard uses authRequired middleware', () => {
     // The route should now include authRequired in the middleware chain
-    expect(dashboardRoutesSrc).toMatch(/router\.get\(['"]\/dashboard['"],\s*apiLimiter,\s*authRequired/);
+    expect(dashboardRoutesSrc).toMatch(
+      /router\.get\(['"]\/dashboard['"],\s*apiLimiter,\s*authRequired/
+    );
   });
 
   it('GET /dashboard performs server-side role redirect for customer', () => {
@@ -82,13 +81,24 @@ describe('routes/dashboard.js — /dashboard route protection', () => {
 describe('routes/suppliers.js — POST /api/packages/bulk', () => {
   // Extract the bulk route block for targeted assertions
   const bulkStart = suppliersSrc.indexOf("router.post('/packages/bulk'");
-  const bulkEnd = suppliersSrc.indexOf("\nrouter.", bulkStart + 10);
-  const bulkBlock = bulkStart !== -1
-    ? suppliersSrc.substring(bulkStart, bulkEnd === -1 ? suppliersSrc.length : bulkEnd)
-    : '';
+  const bulkEnd = suppliersSrc.indexOf('\nrouter.', bulkStart + 10);
+  const bulkBlock =
+    bulkStart !== -1
+      ? suppliersSrc.substring(bulkStart, bulkEnd === -1 ? suppliersSrc.length : bulkEnd)
+      : '';
 
   it('bulk route is defined', () => {
     expect(bulkStart).not.toBe(-1);
+  });
+
+  it('bulk route requires authentication (applyAuthRequired middleware)', () => {
+    // The JSDoc comment says "Requires authentication so that only logged-in customers
+    // can resolve packages linked to their plans" — the implementation must match.
+    const routeDeclaration = suppliersSrc.substring(
+      bulkStart,
+      suppliersSrc.indexOf('async (req, res)', bulkStart)
+    );
+    expect(routeDeclaration).toMatch(/applyAuthRequired|authRequired/);
   });
 
   it('bulk route validates that ids is an array', () => {
@@ -113,7 +123,7 @@ describe('routes/suppliers.js — POST /api/packages/bulk', () => {
   });
 
   it('bulk route returns a 400 for empty ids array', () => {
-    expect(bulkBlock).toContain("status(400)");
+    expect(bulkBlock).toContain('status(400)');
   });
 });
 
@@ -144,7 +154,10 @@ describe('dashboard-customer-init.js — getCsrfToken reliability', () => {
   it('initDashboard calls ensureCsrfToken early', () => {
     const initStart = customerInitSrc.indexOf('async function initDashboard()');
     const initEnd = customerInitSrc.indexOf('\nasync function ', initStart + 1);
-    const initBody = customerInitSrc.substring(initStart, initEnd === -1 ? initStart + 1000 : initEnd);
+    const initBody = customerInitSrc.substring(
+      initStart,
+      initEnd === -1 ? initStart + 1000 : initEnd
+    );
     expect(initBody).toContain('await ensureCsrfToken()');
   });
 });
@@ -162,7 +175,7 @@ describe('dashboard-customer-init.js — budget PATCH response handling', () => 
   });
 
   it('shows a user-visible warning when server sync fails', () => {
-    expect(customerInitSrc).toContain("saved locally");
+    expect(customerInitSrc).toContain('saved locally');
   });
 
   it('does not show success state when server sync failed', () => {
@@ -170,7 +183,7 @@ describe('dashboard-customer-init.js — budget PATCH response handling', () => 
     expect(customerInitSrc).toContain('serverSyncFailed');
     // Success message only appears in the else branch
     const warnIdx = customerInitSrc.indexOf('serverSyncFailed = true');
-    const successIdx = customerInitSrc.indexOf("Budget set to");
+    const successIdx = customerInitSrc.indexOf('Budget set to');
     expect(successIdx).toBeGreaterThan(warnIdx);
   });
 });
