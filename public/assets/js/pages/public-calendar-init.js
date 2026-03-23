@@ -175,7 +175,7 @@
       btn.addEventListener('click', () => openEditModal(btn.dataset.id));
     });
     list.querySelectorAll('[data-action="delete"]').forEach(btn => {
-      btn.addEventListener('click', () => handleDelete(btn.dataset.id, btn.dataset.title));
+      btn.addEventListener('click', () => handleDelete(btn.dataset.id, btn.dataset.title, btn));
     });
   }
 
@@ -390,17 +390,42 @@
   }
 
   // ── Delete ────────────────────────────────────────────────────────────────
-  async function handleDelete(eventId, title) {
-    if (!confirm(`Delete event "${title}"? This cannot be undone.`)) {
+  async function handleDelete(eventId, title, delBtn) {
+    // Inline two-step confirmation — avoids native confirm() dialog for consistent UX
+    const actionsEl = delBtn ? delBtn.closest('.pc-event-card__actions') : null;
+    if (!actionsEl) {
       return;
     }
-    try {
-      await apiFetch(`/api/v1/public-calendar/events/${eventId}`, { method: 'DELETE', body: '{}' });
-      showToast('Event deleted', 'success');
-      loadEvents();
-    } catch (e) {
-      showToast(e.data?.message || 'Failed to delete event', 'error');
-    }
+
+    const originalHTML = actionsEl.innerHTML;
+    actionsEl.innerHTML = `
+      <span style="font-size:0.82rem;color:#374151;align-self:center;white-space:nowrap;">Delete this event?</span>
+      <button class="pc-btn pc-btn-sm pc-btn-danger" id="_pc-del-confirm">Confirm</button>
+      <button class="pc-btn pc-btn-sm pc-btn-ghost" id="_pc-del-cancel">Cancel</button>
+    `;
+
+    document.getElementById('_pc-del-cancel').onclick = () => {
+      actionsEl.innerHTML = originalHTML;
+      rewireButtons();
+    };
+
+    document.getElementById('_pc-del-confirm').onclick = async () => {
+      actionsEl.querySelectorAll('button').forEach(b => {
+        b.disabled = true;
+      });
+      try {
+        await apiFetch(`/api/v1/public-calendar/events/${eventId}`, {
+          method: 'DELETE',
+          body: '{}',
+        });
+        showToast('Event deleted', 'success');
+        loadEvents();
+      } catch (e) {
+        actionsEl.innerHTML = originalHTML;
+        rewireButtons();
+        showToast(e.data?.message || 'Failed to delete event', 'error');
+      }
+    };
   }
 
   // ── Modal ─────────────────────────────────────────────────────────────────

@@ -8,6 +8,9 @@
  *  4. VALID_CATEGORIES is the single source of truth (services + routes import from model)
  *  5. Admin debug status route is always mounted (PR #759)
  *  6. Supplier category dropdowns in HTML match VALID_CATEGORIES
+ *  7. Public calendar page category options match VALID_CATEGORIES (PR #761)
+ *  8. No native confirm() in public-facing pages (quality / accessibility)
+ *  9. Client-side publisher category list matches server-side PUBLISHER_CATEGORIES
  */
 
 'use strict';
@@ -41,8 +44,16 @@ const adminSuppliersHtml = fs.readFileSync(
   path.join(__dirname, '../../public/admin-suppliers.html'),
   'utf8'
 );
+const publicCalendarHtml = fs.readFileSync(
+  path.join(__dirname, '../../public/public-calendar.html'),
+  'utf8'
+);
+const publicCalendarInitSrc = fs.readFileSync(
+  path.join(__dirname, '../../public/assets/js/pages/public-calendar-init.js'),
+  'utf8'
+);
 
-const { VALID_CATEGORIES } = require('../../models/Supplier');
+const { VALID_CATEGORIES, PUBLISHER_CATEGORIES } = require('../../models/Supplier');
 
 // ---------------------------------------------------------------------------
 // 1. POST /api/packages/bulk — must require authentication
@@ -233,6 +244,74 @@ describe('admin-suppliers.html category filter', () => {
         adminSuppliersHtml.includes(`<option>${cat}</option>`) ||
         adminSuppliersHtml.includes(`<option>${escaped}</option>`);
       expect(present).toBe(true);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 7. public-calendar.html — filter + modal category selects match VALID_CATEGORIES
+// ---------------------------------------------------------------------------
+describe('public-calendar.html filter category select', () => {
+  it('contains all VALID_CATEGORIES as <option> elements', () => {
+    for (const cat of VALID_CATEGORIES) {
+      const escaped = cat.replace(/&/g, '&amp;');
+      const present =
+        publicCalendarHtml.includes(`<option>${cat}</option>`) ||
+        publicCalendarHtml.includes(`<option>${escaped}</option>`);
+      expect(present).toBe(true);
+    }
+  });
+});
+
+describe('public-calendar.html form modal category select', () => {
+  it('contains all VALID_CATEGORIES as <option> elements in the event form', () => {
+    // The modal form (#pc-form-category) must also reflect all categories.
+    // Extract the form block to assert on it independently.
+    const formStart = publicCalendarHtml.indexOf('id="pc-event-form"');
+    const formEnd = publicCalendarHtml.indexOf('</form>', formStart);
+    const formBlock =
+      formStart !== -1 ? publicCalendarHtml.substring(formStart, formEnd) : publicCalendarHtml;
+
+    for (const cat of VALID_CATEGORIES) {
+      const escaped = cat.replace(/&/g, '&amp;');
+      const present =
+        formBlock.includes(`<option>${cat}</option>`) ||
+        formBlock.includes(`<option>${escaped}</option>`);
+      expect(present).toBe(true);
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 8. public-calendar-init.js — no native confirm() calls
+// ---------------------------------------------------------------------------
+describe('public-calendar-init.js — no native dialog calls', () => {
+  it('does not use window.confirm() (delete should use inline confirmation)', () => {
+    // Native confirm() is blocked by some browsers, not accessible, and visually
+    // inconsistent. The delete flow should use inline button state instead.
+    const lines = publicCalendarInitSrc.split('\n');
+    const violations = lines
+      .map((line, i) => ({ line, i }))
+      .filter(({ line }) => {
+        const trimmed = line.trimStart();
+        if (trimmed.startsWith('//') || trimmed.startsWith('*')) {
+          return false;
+        }
+        return /\bconfirm\s*\(/.test(line);
+      });
+    expect(violations).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 9. Client-side publisherCategories matches server-side PUBLISHER_CATEGORIES
+// ---------------------------------------------------------------------------
+describe('public-calendar-init.js — publisher categories match server model', () => {
+  it('hardcoded publisherCategories array contains all server PUBLISHER_CATEGORIES values', () => {
+    // The client side has a local copy of publisher categories to decide whether to show
+    // the publisher banner. This must stay in sync with PUBLISHER_CATEGORIES in models/Supplier.js.
+    for (const cat of PUBLISHER_CATEGORIES) {
+      expect(publicCalendarInitSrc).toContain(`'${cat}'`);
     }
   });
 });
