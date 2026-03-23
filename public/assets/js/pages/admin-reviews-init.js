@@ -274,15 +274,11 @@
   }
 
   async function promptRejectReview(reviewId) {
-    if (AdminShared.showConfirmModal) {
-      const result = await AdminShared.showConfirmModal({
-        title: 'Reject Review',
-        message: 'Are you sure you want to reject this review?',
-      });
-      if (!result || !result.confirmed) return;
-    } else {
-      if (!window.confirm('Reject this review?')) return;
-    }
+    const result = await AdminShared.showConfirmModal({
+      title: 'Reject Review',
+      message: 'Are you sure you want to reject this review?',
+    });
+    if (!result || !result.confirmed) return;
     await rejectReview(reviewId, '');
   }
 
@@ -303,7 +299,11 @@
     batchRejectBtn.addEventListener('click', async () => {
       const ids = Array.from(selectedIds);
       if (ids.length === 0) return;
-      if (!window.confirm(`Reject ${ids.length} selected review(s)?`)) return;
+      const result = await AdminShared.showConfirmModal({
+        title: 'Bulk Reject Reviews',
+        message: `Reject ${ids.length} selected review(s)?`,
+      });
+      if (!result || !result.confirmed) return;
       batchRejectBtn.disabled = true;
       for (const id of ids) {
         await rejectReview(id, '');
