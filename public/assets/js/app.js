@@ -5327,6 +5327,13 @@ document.addEventListener('DOMContentLoaded', () => {
             socials,
           };
 
+          // Capture partner referral code from URL (?ref=p_XXXXXXXX) and include in payload
+          // so the server can attribute this supplier signup to the referring partner.
+          const refParam = new URLSearchParams(window.location.search).get('ref');
+          if (refParam) {
+            payload.ref = refParam;
+          }
+
           // Include ALTCHA payload if the widget is present in the form
           const altchaWidget = document.getElementById('reg-altcha-widget');
           if (altchaWidget) {

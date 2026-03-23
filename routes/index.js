@@ -77,6 +77,16 @@ function mountRoutes(app, deps) {
   app.use('/api/v1/public-calendar', publicCalendarRoutes);
   app.use('/api/public-calendar', publicCalendarRoutes); // Backward compatibility
 
+  // Partner portal API routes (public partner signup + authenticated dashboard)
+  const partnerRoutes = require('./partner');
+  app.use('/api/v1/partner', partnerRoutes);
+  app.use('/api/partner', partnerRoutes); // Backward compatibility
+
+  // Admin partner moderation routes
+  const adminPartnerRoutes = require('./admin-partner');
+  app.use('/api/v1/admin/partners', adminPartnerRoutes);
+  app.use('/api/admin/partners', adminPartnerRoutes); // Backward compatibility
+
   // Public routes (no auth required) - mount early to avoid auth middleware
   app.use('/api/v1/public', publicRoutes);
   app.use('/api/public', publicRoutes); // Backward compatibility

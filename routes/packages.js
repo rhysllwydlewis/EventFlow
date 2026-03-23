@@ -296,6 +296,22 @@ router.post(
     }
     await dbUnified.insertOne('packages', pkg);
     suppliersRouter.invalidatePackageCaches();
+
+    // Award partner package bonus if this is the supplier's first package
+    // (non-blocking — must not affect the primary create flow)
+    try {
+      const partnerService = require('../services/partnerService');
+      const existingAfterInsert = (await dbUnified.read('packages')).filter(
+        p => p.supplierId === supplierId
+      );
+      if (existingAfterInsert.length === 1) {
+        // This was the first package for this supplier
+        await partnerService.awardPackageBonus(req.user.id);
+      }
+    } catch (_pe) {
+      logger.warn('Partner package bonus award failed (non-blocking):', _pe.message);
+    }
+
     res.json({ ok: true, package: pkg });
   }
 );
