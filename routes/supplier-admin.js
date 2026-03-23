@@ -942,10 +942,10 @@ router.post(
  */
 router.put(
   '/suppliers/:id/calendar-override',
+  writeLimiter,
   applyAuthRequired,
   applyRoleRequired('admin'),
   applyCsrfProtection,
-  writeLimiter,
   async (req, res) => {
     try {
       const all = await dbUnified.read('suppliers');

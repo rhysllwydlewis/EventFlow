@@ -117,6 +117,7 @@ function validateEventBody(body) {
   }
 
   // startDate (required, must be valid ISO date)
+  let validatedStartDate = null;
   if (!body.startDate) {
     errors.push('startDate is required');
   } else {
@@ -124,6 +125,7 @@ function validateEventBody(body) {
     if (isNaN(d.getTime())) {
       errors.push('startDate must be a valid ISO date');
     } else {
+      validatedStartDate = d;
       data.startDate = d.toISOString();
     }
   }
@@ -135,7 +137,7 @@ function validateEventBody(body) {
       errors.push('endDate must be a valid ISO date');
     } else {
       // endDate must be >= startDate
-      if (data.startDate && d < new Date(data.startDate)) {
+      if (validatedStartDate && d < validatedStartDate) {
         errors.push('endDate must be on or after startDate');
       } else {
         data.endDate = d.toISOString();

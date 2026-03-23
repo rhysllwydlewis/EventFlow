@@ -253,12 +253,9 @@
         offset: currentOffset,
         ...currentFilters,
       });
-      // Remove empty filter values
-      [...params.entries()].forEach(([k, v]) => {
-        if (!v) {
-          params.delete(k);
-        }
-      });
+      // Remove empty filter values (collect keys first, then delete)
+      const keysToDelete = [...params.entries()].filter(([, v]) => !v).map(([k]) => k);
+      keysToDelete.forEach(k => params.delete(k));
 
       const data = await apiFetch(`/api/v1/public-calendar/events?${params}`);
       totalEvents = data.total || 0;
