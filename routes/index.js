@@ -114,14 +114,24 @@ function mountRoutes(app, deps) {
   const isProduction = process.env.NODE_ENV === 'production';
   const debugRoutesEnabled = process.env.ENABLE_ADMIN_DEBUG_ROUTES === 'true';
 
+  // Status endpoint is ALWAYS mounted so the UI can query whether tools are enabled.
+  const adminDebugStatusRoutes = require('./admin-debug-status');
+  app.use('/api/v1/admin/debug', adminDebugStatusRoutes);
+  app.use('/api/admin/debug', adminDebugStatusRoutes); // Backward compatibility
+
   if (!isProduction && debugRoutesEnabled) {
     const adminDebugRoutes = require('./admin-debug');
     app.use('/api/v1/admin/debug', adminDebugRoutes);
     app.use('/api/admin/debug', adminDebugRoutes); // Backward compatibility
+    adminDebugStatusRoutes.setDebugRoutesStatus(true, '');
     logger.info(
       '[admin-debug] Debug routes ENABLED (non-production + ENABLE_ADMIN_DEBUG_ROUTES=true)'
     );
   } else {
+    const disabledReason = isProduction
+      ? 'production environment'
+      : 'ENABLE_ADMIN_DEBUG_ROUTES not set to true';
+    adminDebugStatusRoutes.setDebugRoutesStatus(false, disabledReason);
     logger.info(
       `[admin-debug] Debug routes DISABLED and NOT mounted${
         isProduction ? ' (production environment)' : ' (ENABLE_ADMIN_DEBUG_ROUTES not set to true)'

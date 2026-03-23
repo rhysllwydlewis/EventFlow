@@ -77,6 +77,14 @@ function getCatalog() {
       group: 'infrastructure',
       description: 'Client config (env flags)',
     },
+    {
+      name: 'admin-health-api',
+      type: 'api',
+      path: '/api/admin/health',
+      group: 'infrastructure',
+      description: 'Admin health probe (auth required — 401 = auth layer healthy)',
+      expectedStatuses: [200, 401],
+    },
 
     // ── Public Pages ──────────────────────────────────────────────────────
     { name: 'homepage', type: 'page', path: '/', group: 'public', description: 'Homepage' },
@@ -224,7 +232,13 @@ function getCatalog() {
       expectedStatuses: [200, 301, 302],
     },
 
-    // ── Admin Pages (admin auth redirect = healthy) ───────────────────────
+    // ── Admin Pages ───────────────────────────────────────────────────────
+    // These checks run unauthenticated. A 302 redirect to /auth means the
+    // auth guard is working (server is healthy), but it is NOT a confirmation
+    // that the admin page renders correctly. Use admin-health-api for a more
+    // authoritative admin health signal.
+    // redirectAuthExpected: true causes the check runner to flag 3xx redirects
+    // to /auth as WARN (rather than full PASS) in the results.
     {
       name: 'admin-page',
       type: 'page',
@@ -232,6 +246,7 @@ function getCatalog() {
       group: 'admin',
       description: 'Admin dashboard',
       expectedStatuses: [200, 301, 302],
+      redirectAuthExpected: true,
     },
     {
       name: 'admin-users-page',
@@ -240,6 +255,7 @@ function getCatalog() {
       group: 'admin',
       description: 'User management',
       expectedStatuses: [200, 301, 302],
+      redirectAuthExpected: true,
     },
     {
       name: 'admin-suppliers-page',
@@ -248,6 +264,7 @@ function getCatalog() {
       group: 'admin',
       description: 'Supplier management',
       expectedStatuses: [200, 301, 302],
+      redirectAuthExpected: true,
     },
     {
       name: 'admin-photos-page',
@@ -256,6 +273,7 @@ function getCatalog() {
       group: 'admin',
       description: 'Photo library',
       expectedStatuses: [200, 301, 302],
+      redirectAuthExpected: true,
     },
     {
       name: 'admin-packages-page',
@@ -264,6 +282,7 @@ function getCatalog() {
       group: 'admin',
       description: 'Package management',
       expectedStatuses: [200, 301, 302],
+      redirectAuthExpected: true,
     },
     {
       name: 'admin-settings-page',
@@ -272,6 +291,7 @@ function getCatalog() {
       group: 'admin',
       description: 'System settings',
       expectedStatuses: [200, 301, 302],
+      redirectAuthExpected: true,
     },
     {
       name: 'admin-tickets-page',
@@ -280,6 +300,7 @@ function getCatalog() {
       group: 'admin',
       description: 'Support tickets',
       expectedStatuses: [200, 301, 302],
+      redirectAuthExpected: true,
     },
     {
       name: 'admin-reports-page',
@@ -288,6 +309,7 @@ function getCatalog() {
       group: 'admin',
       description: 'Content reports',
       expectedStatuses: [200, 301, 302],
+      redirectAuthExpected: true,
     },
     {
       name: 'admin-audit-page',
@@ -296,6 +318,7 @@ function getCatalog() {
       group: 'admin',
       description: 'Audit log',
       expectedStatuses: [200, 301, 302],
+      redirectAuthExpected: true,
     },
     {
       name: 'admin-marketplace-page',
@@ -304,6 +327,7 @@ function getCatalog() {
       group: 'admin',
       description: 'Marketplace admin',
       expectedStatuses: [200, 301, 302],
+      redirectAuthExpected: true,
     },
     {
       name: 'admin-payments-page',
@@ -312,6 +336,7 @@ function getCatalog() {
       group: 'admin',
       description: 'Payments admin',
       expectedStatuses: [200, 301, 302],
+      redirectAuthExpected: true,
     },
     {
       name: 'admin-debug-page',
@@ -320,6 +345,7 @@ function getCatalog() {
       group: 'admin',
       description: 'Debug panel',
       expectedStatuses: [200, 301, 302],
+      redirectAuthExpected: true,
     },
 
     // ── Public API Endpoints ──────────────────────────────────────────────
@@ -401,11 +427,11 @@ function buildChecks(baseUrl) {
 
 /**
  * Execute a single HTTP check with a timeout.
- * @param {{ name:string, type:string, target:string, expectedStatuses?:number[] }} check
- * @returns {Promise<{name,type,target,ok,statusCode,durationMs,error,details}>}
+ * @param {{ name:string, type:string, target:string, expectedStatuses?:number[], redirectAuthExpected?:boolean }} check
+ * @returns {Promise<{name,type,target,ok,statusCode,durationMs,error,details,redirected,redirectUrl,warning}>}
  */
 async function runCheck(check) {
-  const { name, type, target, expectedStatuses } = check;
+  const { name, type, target, expectedStatuses, redirectAuthExpected } = check;
   const startMs = Date.now();
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), CHECK_TIMEOUT_MS);
@@ -428,6 +454,25 @@ async function runCheck(check) {
         ? expectedStatuses.includes(statusCode)
         : statusCode >= 200 && statusCode < 400;
 
+    // Detect auth redirects: when redirect:'follow', if we ended up at /auth the
+    // page was auth-gated. Capture this for transparency without marking as fail.
+    const wasRedirected = res.redirected === true;
+    const finalUrl = wasRedirected ? (res.url || null) : null;
+    const redirectedToAuth =
+      wasRedirected &&
+      finalUrl !== null &&
+      (finalUrl.includes('/auth') || finalUrl.includes('/login'));
+
+    // Build a human-readable warning for admin page checks that redirected to auth.
+    // These checks still pass (redirect to /auth means routing is working), but we
+    // note they are not a definitive confirmation that the page renders for admins.
+    let warning = null;
+    if (redirectAuthExpected && redirectedToAuth) {
+      warning = 'Auth redirect (unauthenticated — use admin-health-api for confirmed admin health)';
+    } else if (wasRedirected && redirectedToAuth && !redirectAuthExpected) {
+      warning = `Unexpected auth redirect to: ${String(finalUrl).slice(0, 128)}`;
+    }
+
     // For API checks, attempt to parse JSON for extra details
     const details = {};
     if (type === 'api' && ok) {
@@ -444,7 +489,19 @@ async function runCheck(check) {
       }
     }
 
-    return { name, type, target, ok, statusCode, durationMs, error: null, details };
+    return {
+      name,
+      type,
+      target,
+      ok,
+      statusCode,
+      durationMs,
+      error: null,
+      details,
+      redirected: wasRedirected,
+      redirectUrl: finalUrl,
+      warning,
+    };
   } catch (err) {
     clearTimeout(timer);
     const durationMs = Date.now() - startMs;
@@ -464,6 +521,9 @@ async function runCheck(check) {
       durationMs,
       error: errorMsg,
       details: {},
+      redirected: false,
+      redirectUrl: null,
+      warning: null,
     };
   }
 }
@@ -471,9 +531,11 @@ async function runCheck(check) {
 /**
  * Run all system checks, persist the result, and return the run document.
  * This method is safe to call directly for "Run now" functionality.
- * @returns {Promise<Object>} The persisted run document.
+ * @param {object} [options={}]
+ * @param {object} [options.triggeredBy] - { id, email, role } of the admin who triggered the run
+ * @returns {Promise<Object|null>} The persisted run document, or null if already running.
  */
-async function runSystemChecks() {
+async function runSystemChecks({ triggeredBy } = {}) {
   if (_running) {
     logger.warn('[SystemCheck] A run is already in progress — skipping overlapping run');
     return null;
@@ -514,6 +576,7 @@ async function runSystemChecks() {
     environment,
     baseUrl,
     checks,
+    ...(triggeredBy ? { triggeredBy } : {}),
   };
 
   // Persist to MongoDB (non-fatal: log warning and continue if unavailable)
