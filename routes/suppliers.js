@@ -7,6 +7,7 @@
 
 const express = require('express');
 const router = express.Router();
+const { apiLimiter } = require('../middleware/rateLimits');
 
 // Dependencies injected by server.js
 let dbUnified;
@@ -529,7 +530,7 @@ router.get('/packages/search', async (req, res) => {
  * packages linked to their plans.
  * Body: { ids: string[] }  — up to 50 IDs, duplicates are ignored.
  */
-router.post('/packages/bulk', applyAuthRequired, async (req, res) => {
+router.post('/packages/bulk', apiLimiter, applyAuthRequired, async (req, res) => {
   try {
     const { ids } = req.body || {};
 

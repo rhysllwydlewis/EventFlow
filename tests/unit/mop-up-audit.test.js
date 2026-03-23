@@ -48,11 +48,6 @@ const { VALID_CATEGORIES } = require('../../models/Supplier');
 // 1. POST /api/packages/bulk — must require authentication
 // ---------------------------------------------------------------------------
 describe('routes/suppliers.js — POST /api/packages/bulk auth enforcement', () => {
-  // Extract the bulk route declaration line
-  const bulkRouteMatch = suppliersSrc.match(
-    /router\.post\(['"]\/packages\/bulk['"],\s*([^,]+(?:,\s*[^,]+)*?),\s*async/
-  );
-
   it('bulk route is defined', () => {
     expect(suppliersSrc).toContain("router.post('/packages/bulk'");
   });
