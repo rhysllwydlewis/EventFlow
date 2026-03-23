@@ -3324,3 +3324,127 @@ tbody tr.selected td {
 .sc-stat--fail .sc-stat-value  { color: #dc2626; }
 .sc-stat--total .sc-stat-value { color: #374151; }
 .sc-stat--skip .sc-stat-value  { color: #d97706; }
+
+/* ── Admin Debug: warning stat ──────────────────────────────────── */
+.sc-stat--warn .sc-stat-value { color: #d97706; }
+
+/* Check row warn state */
+.sc-check-row--warn { background: #fffbeb; }
+
+.sc-check-warn {
+  color: #92400e;
+  font-weight: 500;
+}
+
+.sc-check-redirect {
+  font-size: 0.75rem;
+  color: #6b7280;
+  opacity: 0.8;
+}
+
+/* Summary triggeredBy line */
+.sc-summary-triggered {
+  font-size: 0.8rem;
+  color: var(--color-text-muted, #6b7280);
+  margin-top: 0.25rem;
+}
+
+/* ── Account Tools tab ──────────────────────────────────────────── */
+.sc-warning-banner {
+  background: #fef9c3;
+  border: 1px solid #fbbf24;
+  border-radius: 8px;
+  padding: 0.875rem 1rem;
+  color: #78350f;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.sc-info-banner {
+  border-radius: 8px;
+  padding: 0.875rem 1rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.sc-info-banner--ok {
+  background: #dcfce7;
+  border: 1px solid #86efac;
+  color: #14532d;
+}
+
+.sc-info-banner--disabled {
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  color: #374151;
+}
+
+.sc-info-banner--error {
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+}
+
+.sc-acct-section {
+  border-top: 1px solid var(--color-border, #e5e7eb);
+  padding-top: 1rem;
+}
+
+.sc-acct-form {
+  max-width: 540px;
+}
+
+.sc-acct-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+  color: var(--color-text-secondary, #374151);
+}
+
+.sc-acct-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.sc-acct-input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-border, #d1d5db);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  background: var(--color-surface, #fff);
+  color: var(--color-text, #111827);
+  min-width: 0;
+}
+
+.sc-acct-input:focus {
+  outline: 2px solid var(--color-primary, #0b8073);
+  outline-offset: 1px;
+  border-color: var(--color-primary, #0b8073);
+}
+
+.sc-acct-result {
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.sc-acct-result--error {
+  color: #b91c1c;
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+}
+
+.sc-acct-json {
+  background: var(--color-surface-alt, #f9fafb);
+  border: 1px solid var(--color-border, #e5e7eb);
+  border-radius: 6px;
+  padding: 0.75rem;
+  font-size: 0.8rem;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

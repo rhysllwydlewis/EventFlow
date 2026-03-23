@@ -44,7 +44,15 @@
         <p class="dashboard-subtitle">Comprehensive site health monitor — all pages and APIs in one view.</p>
       </div>
       <div class="header-actions">
-        <span id="sc-run-status" aria-live="polite"></span>
+        <span id="sc-run-status" aria-live="polite" aria-atomic="true"></span>
+        <button id="sc-copy-btn" class="btn btn-secondary btn-sm" type="button" aria-label="Copy latest run as JSON" style="display:none;" title="Copy latest run as JSON">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          Copy JSON
+        </button>
+        <button id="sc-rerun-failed-btn" class="btn btn-secondary btn-sm" type="button" aria-label="Re-run failed checks only" style="display:none;" title="Re-run failed checks only">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 .49-3.5"></path></svg>
+          Re-run Failed
+        </button>
         <button id="sc-run-btn" class="sc-run-btn" type="button" aria-label="Run all system checks now">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
           Run Now
@@ -57,9 +65,10 @@
 
     <!-- Tab Navigation -->
     <nav class="sc-tabs" role="tablist" aria-label="Debug sections">
-      <button class="sc-tab-btn" role="tab" aria-selected="true"  aria-controls="tab-overview" id="tab-btn-overview" type="button">Overview</button>
-      <button class="sc-tab-btn" role="tab" aria-selected="false" aria-controls="tab-coverage" id="tab-btn-coverage" type="button">Coverage</button>
-      <button class="sc-tab-btn" role="tab" aria-selected="false" aria-controls="tab-history"  id="tab-btn-history"  type="button">History</button>
+      <button class="sc-tab-btn" role="tab" aria-selected="true"  aria-controls="tab-overview"  id="tab-btn-overview"  type="button">Overview</button>
+      <button class="sc-tab-btn" role="tab" aria-selected="false" aria-controls="tab-coverage"  id="tab-btn-coverage"  type="button">Coverage</button>
+      <button class="sc-tab-btn" role="tab" aria-selected="false" aria-controls="tab-history"   id="tab-btn-history"   type="button">History</button>
+      <button class="sc-tab-btn" role="tab" aria-selected="false" aria-controls="tab-acct-tools" id="tab-btn-acct-tools" type="button">Account Tools</button>
     </nav>
 
     <!-- ── Tab: Overview ──────────────────────────────────────────── -->
@@ -109,6 +118,7 @@
         <button class="sc-filter-btn" type="button" data-filter="page"          aria-pressed="false">Pages</button>
         <button class="sc-filter-btn" type="button" data-filter="api"           aria-pressed="false">APIs</button>
         <button class="sc-filter-btn" type="button" data-filter="fail"          aria-pressed="false">Failures only</button>
+        <button class="sc-filter-btn" type="button" data-filter="warn"          aria-pressed="false">Warnings</button>
         <button class="sc-filter-btn" type="button" data-filter="untested"      aria-pressed="false">Untested</button>
       </div>
 
@@ -132,19 +142,114 @@
               <th scope="col">Duration</th>
               <th scope="col">Environment</th>
               <th scope="col">Passed / Total</th>
+              <th scope="col">Triggered By</th>
               <th scope="col"></th>
             </tr>
           </thead>
           <tbody id="sc-history-body">
-            <tr><td colspan="6" class="sc-empty"><div class="sc-empty-icon" aria-hidden="true">⏳</div><p>Loading history…</p></td></tr>
+            <tr><td colspan="7" class="sc-empty"><div class="sc-empty-icon" aria-hidden="true">⏳</div><p>Loading history…</p></td></tr>
           </tbody>
         </table>
       </div>
     </div><!-- /#tab-history -->
 
+    <!-- ── Tab: Account Tools ────────────────────────────────────────── -->
+    <div id="tab-acct-tools" class="sc-tab-panel" role="tabpanel" aria-labelledby="tab-btn-acct-tools" style="margin-bottom:3rem;">
+
+      <!-- Status banner (filled by JS on load) -->
+      <div id="sc-acct-status" aria-live="polite" aria-atomic="true" style="margin-bottom:1.5rem;"></div>
+
+      <!-- Tools section — shown only when debug routes are enabled -->
+      <div id="sc-acct-body" hidden>
+
+        <div class="sc-warning-banner" role="alert">
+          ⚠️ <strong>Emergency tools only.</strong> These actions directly modify user records and cannot be undone automatically. All actions are audit-logged.
+        </div>
+
+        <!-- Lookup User -->
+        <section class="sc-acct-section" aria-labelledby="sc-acct-lookup-heading">
+          <h2 id="sc-acct-lookup-heading" class="section-heading" style="margin-top:1.5rem;">🔍 Lookup User</h2>
+          <form id="sc-form-lookup" class="sc-acct-form" novalidate>
+            <label for="sc-lookup-email" class="sc-acct-label">Email address</label>
+            <div class="sc-acct-row">
+              <input id="sc-lookup-email" name="email" type="email" class="sc-acct-input" placeholder="user@example.com" required autocomplete="off">
+              <button type="submit" class="btn btn-primary btn-sm">Look up</button>
+            </div>
+          </form>
+          <div id="sc-lookup-result" aria-live="polite" class="sc-acct-result"></div>
+        </section>
+
+        <!-- Verify User -->
+        <section class="sc-acct-section" aria-labelledby="sc-acct-verify-heading">
+          <h2 id="sc-acct-verify-heading" class="section-heading" style="margin-top:1.5rem;">✅ Verify User Email</h2>
+          <form id="sc-form-verify" class="sc-acct-form" novalidate>
+            <label for="sc-verify-email" class="sc-acct-label">Email address to force-verify</label>
+            <div class="sc-acct-row">
+              <input id="sc-verify-email" name="email" type="email" class="sc-acct-input" placeholder="user@example.com" required autocomplete="off">
+              <button type="submit" class="btn btn-warning btn-sm">Verify user</button>
+            </div>
+          </form>
+          <div id="sc-verify-result" aria-live="polite" class="sc-acct-result"></div>
+        </section>
+
+        <!-- Fix Password -->
+        <section class="sc-acct-section" aria-labelledby="sc-acct-fixpw-heading">
+          <h2 id="sc-acct-fixpw-heading" class="section-heading" style="margin-top:1.5rem;">🔑 Fix Password</h2>
+          <form id="sc-form-fixpw" class="sc-acct-form" novalidate>
+            <label for="sc-fixpw-email" class="sc-acct-label">Email address</label>
+            <input id="sc-fixpw-email" name="email" type="email" class="sc-acct-input" placeholder="user@example.com" required autocomplete="off" style="margin-bottom:.5rem;">
+            <label for="sc-fixpw-password" class="sc-acct-label">New password (min 8 chars)</label>
+            <div class="sc-acct-row">
+              <input id="sc-fixpw-password" name="newPassword" type="password" class="sc-acct-input" placeholder="New password" minlength="8" required autocomplete="new-password">
+              <button type="submit" class="btn btn-danger btn-sm">Set password</button>
+            </div>
+          </form>
+          <div id="sc-fixpw-result" aria-live="polite" class="sc-acct-result"></div>
+        </section>
+
+        <!-- Test Email -->
+        <section class="sc-acct-section" aria-labelledby="sc-acct-email-heading">
+          <h2 id="sc-acct-email-heading" class="section-heading" style="margin-top:1.5rem;">📧 Test Email</h2>
+          <form id="sc-form-email" class="sc-acct-form" novalidate>
+            <label for="sc-email-to" class="sc-acct-label">Send a test verification email to</label>
+            <div class="sc-acct-row">
+              <input id="sc-email-to" name="email" type="email" class="sc-acct-input" placeholder="user@example.com" required autocomplete="off">
+              <button type="submit" class="btn btn-secondary btn-sm">Send test</button>
+            </div>
+          </form>
+          <div id="sc-email-result" aria-live="polite" class="sc-acct-result"></div>
+        </section>
+
+        <!-- Login Test -->
+        <section class="sc-acct-section" aria-labelledby="sc-acct-login-heading">
+          <h2 id="sc-acct-login-heading" class="section-heading" style="margin-top:1.5rem;">🧪 Login Test (Diagnostics Only)</h2>
+          <p class="small" style="color:var(--color-text-muted,#6b7280);margin-bottom:.75rem;">Tests credentials without actually logging in. Returns diagnostics.</p>
+          <form id="sc-form-login" class="sc-acct-form" novalidate>
+            <label for="sc-login-email" class="sc-acct-label">Email address</label>
+            <input id="sc-login-email" name="email" type="email" class="sc-acct-input" placeholder="user@example.com" required autocomplete="off" style="margin-bottom:.5rem;">
+            <label for="sc-login-password" class="sc-acct-label">Password to test</label>
+            <div class="sc-acct-row">
+              <input id="sc-login-password" name="password" type="password" class="sc-acct-input" placeholder="Password" required autocomplete="current-password">
+              <button type="submit" class="btn btn-secondary btn-sm">Test login</button>
+            </div>
+          </form>
+          <div id="sc-login-result" aria-live="polite" class="sc-acct-result"></div>
+        </section>
+
+        <!-- Audit Users -->
+        <section class="sc-acct-section" aria-labelledby="sc-acct-audit-heading">
+          <h2 id="sc-acct-audit-heading" class="section-heading" style="margin-top:1.5rem;">📋 Audit All Users</h2>
+          <p class="small" style="color:var(--color-text-muted,#6b7280);margin-bottom:.75rem;">Scans all user records for issues (no password hash, invalid hash, unverified). This action is audit-logged.</p>
+          <button id="sc-audit-users-btn" type="button" class="btn btn-secondary btn-sm">Run User Audit</button>
+          <div id="sc-audit-result" aria-live="polite" class="sc-acct-result"></div>
+        </section>
+
+      </div><!-- /#sc-acct-body -->
+    </div><!-- /#tab-acct-tools -->
+
   </div><!-- /.container -->
 </main>
 
-<script src="/assets/js/pages/admin-debug.js?v=18.3.0" defer></script>
+<script src="/assets/js/pages/admin-debug.js?v=18.4.0" defer></script>
 </body>
 </html>
