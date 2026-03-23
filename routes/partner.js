@@ -41,7 +41,9 @@ router.post('/register', authLimiter, csrfProtection, async (req, res) => {
     return res.status(400).json({ error: 'Valid email address is required' });
   }
   if (!password || !passwordOk(password)) {
-    return res.status(400).json({ error: 'Password must be at least 8 characters and include letters and numbers' });
+    return res
+      .status(400)
+      .json({ error: 'Password must be at least 8 characters and include letters and numbers' });
   }
   if (!location) {
     return res.status(400).json({ error: 'Location is required' });
@@ -237,29 +239,35 @@ router.get('/transactions', authRequired, roleRequired('partner'), async (req, r
  * POST /api/partner/regenerate-code
  * Generate a new referral code; the old code is archived and remains functional.
  */
-router.post('/regenerate-code', authRequired, roleRequired('partner'), csrfProtection, async (req, res) => {
-  try {
-    const partner = await partnerService.getPartnerByUserId(req.user.id);
-    if (!partner) {
-      return res.status(404).json({ error: 'Partner account not found' });
-    }
-    if (partner.status === 'disabled') {
-      return res.status(403).json({
-        error: 'Your partner account has been disabled. Please contact support.',
-        disabled: true,
-      });
-    }
+router.post(
+  '/regenerate-code',
+  authRequired,
+  roleRequired('partner'),
+  csrfProtection,
+  async (req, res) => {
+    try {
+      const partner = await partnerService.getPartnerByUserId(req.user.id);
+      if (!partner) {
+        return res.status(404).json({ error: 'Partner account not found' });
+      }
+      if (partner.status === 'disabled') {
+        return res.status(403).json({
+          error: 'Your partner account has been disabled. Please contact support.',
+          disabled: true,
+        });
+      }
 
-    const { oldCode, newCode } = await partnerService.regenerateCode(partner.id);
-    const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
-    const newRefLink = `${baseUrl}/auth?ref=${newCode}&role=supplier`;
+      const { oldCode, newCode } = await partnerService.regenerateCode(partner.id);
+      const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+      const newRefLink = `${baseUrl}/auth?ref=${newCode}&role=supplier`;
 
-    res.json({ ok: true, oldCode, newCode, refLink: newRefLink });
-  } catch (err) {
-    logger.error('Error regenerating partner code:', err);
-    res.status(500).json({ error: 'Internal server error' });
+      res.json({ ok: true, oldCode, newCode, refLink: newRefLink });
+    } catch (err) {
+      logger.error('Error regenerating partner code:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
   }
-});
+);
 
 /**
  * GET /api/partner/code-history
@@ -286,105 +294,99 @@ router.get('/code-history', authRequired, roleRequired('partner'), async (req, r
   }
 });
 
-// ─── Payout Request ───────────────────────────────────────────────────────────
-
-const GIFT_CARD_TYPES = ['Amazon', 'John Lewis', 'ASOS', 'Marks & Spencer', 'Other'];
+// ─── Payout Request (Coming Soon) ────────────────────────────────────────────
 
 /**
  * POST /api/partner/payout-request
- * Create a support ticket requesting a gift-card payout.
  *
- * Body:
- *   { points: number, giftCardType?: string, message?: string }
+ * Gift-card cashout via this endpoint is temporarily unavailable while we
+ * integrate with the Tremendous API for instant payouts. Partners should use
+ * the partner dashboard which will surface the new flow once live.
  */
-router.post('/payout-request', authRequired, roleRequired('partner'), csrfProtection, async (req, res) => {
-  try {
-    const partner = await partnerService.getPartnerByUserId(req.user.id);
-    if (!partner) {
-      return res.status(404).json({ error: 'Partner account not found' });
-    }
-    if (partner.status === 'disabled') {
-      return res.status(403).json({
-        error: 'Your partner account has been disabled. Please contact support.',
-        disabled: true,
-      });
-    }
-
-    const { points, giftCardType, message } = req.body || {};
-
-    const parsedPoints = parseInt(points, 10);
-    if (!Number.isFinite(parsedPoints) || parsedPoints <= 0) {
-      return res.status(400).json({ error: 'points must be a positive integer' });
-    }
-
-    const balance = await partnerService.getBalance(partner.id);
-    if (parsedPoints > balance.balance) {
-      return res.status(400).json({
-        error: `Insufficient points. You have ${balance.balance} available.`,
-      });
-    }
-
-    const sanitizedGiftCardType =
-      giftCardType && GIFT_CARD_TYPES.includes(String(giftCardType).trim())
-        ? String(giftCardType).trim()
-        : 'Not specified';
-
-    const sanitizedMessage = message
-      ? String(message).trim().slice(0, 1000)
-      : '';
-
-    const now = new Date().toISOString();
-    const valueGbp = `£${(parsedPoints / 100).toFixed(2)}`;
-    const subject = `Partner payout request — ${parsedPoints} credits (${valueGbp}) [${partner.id}]`;
-
-    const ticketMessage =
-      `Partner payout request\n\n` +
-      `Partner ID: ${partner.id}\n` +
-      `Partner Code: ${partner.refCode}\n` +
-      `Points requested: ${parsedPoints} (${valueGbp})\n` +
-      `Current balance: ${balance.balance} credits\n` +
-      `Preferred gift card: ${sanitizedGiftCardType}\n` +
-      (sanitizedMessage ? `\nPartner message:\n${sanitizedMessage}` : '');
-
-    const newTicket = {
-      id: uid('tkt'),
-      senderId: req.user.id,
-      senderType: 'partner',
-      senderName: req.user.name || req.user.firstName || 'Partner',
-      senderEmail: req.user.email,
-      subject,
-      message: ticketMessage,
-      status: 'open',
-      priority: 'normal',
-      accountTier: 'partner',
-      prioritySource: 'partner_payout',
-      assignedTo: null,
-      lastReplyAt: now,
-      lastReplyBy: 'partner',
-      responses: [],
-      // Payout-specific metadata
-      partnerId: partner.id,
-      partnerRefCode: partner.refCode,
-      payoutPoints: parsedPoints,
-      payoutValueGbp: valueGbp,
-      payoutGiftCardType: sanitizedGiftCardType,
-      category: 'partner_payout',
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    await dbUnified.insertOne('tickets', newTicket);
-    logger.info(`Partner payout request ticket created: ${newTicket.id} for partner ${partner.id}`);
-
-    res.status(201).json({
-      ok: true,
-      ticketId: newTicket.id,
-      message: 'Your payout request has been submitted. Our team will be in touch.',
-    });
-  } catch (err) {
-    logger.error('Error creating partner payout request:', err);
-    res.status(500).json({ error: 'Internal server error' });
-  }
+router.post('/payout-request', authRequired, roleRequired('partner'), csrfProtection, (req, res) => {
+  res.status(503).json({
+    error:
+      'Gift card cashout is coming soon. We are integrating with Tremendous for instant payouts. ' +
+      'Your points are safe and will be redeemable once the feature launches.',
+    comingSoon: true,
+  });
 });
+
+// ─── General Partner Support Ticket ──────────────────────────────────────────
+
+/**
+ * POST /api/partner/support-ticket
+ * Raise a general-purpose support ticket from the partner dashboard.
+ *
+ * Body: { subject: string, message: string }
+ */
+router.post(
+  '/support-ticket',
+  authRequired,
+  roleRequired('partner'),
+  csrfProtection,
+  async (req, res) => {
+    try {
+      const partner = await partnerService.getPartnerByUserId(req.user.id);
+      if (!partner) {
+        return res.status(404).json({ error: 'Partner account not found' });
+      }
+      if (partner.status === 'disabled') {
+        return res.status(403).json({
+          error: 'Your partner account has been disabled. Please contact support.',
+          disabled: true,
+        });
+      }
+
+      const { subject, message } = req.body || {};
+
+      const sanitizedSubject = subject ? String(subject).trim().slice(0, 150) : '';
+      if (!sanitizedSubject) {
+        return res.status(400).json({ error: 'Subject is required' });
+      }
+
+      const sanitizedMessage = message ? String(message).trim().slice(0, 2000) : '';
+      if (!sanitizedMessage) {
+        return res.status(400).json({ error: 'Message is required' });
+      }
+
+      const now = new Date().toISOString();
+
+      const newTicket = {
+        id: uid('tkt'),
+        senderId: req.user.id,
+        senderType: 'partner',
+        senderName: req.user.name || req.user.firstName || 'Partner',
+        senderEmail: req.user.email,
+        subject: sanitizedSubject,
+        message: sanitizedMessage,
+        status: 'open',
+        priority: 'normal',
+        accountTier: 'partner',
+        category: 'partner_support',
+        partnerId: partner.id,
+        partnerRefCode: partner.refCode,
+        assignedTo: null,
+        lastReplyAt: now,
+        lastReplyBy: 'partner',
+        responses: [],
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      await dbUnified.insertOne('tickets', newTicket);
+      logger.info(`Partner support ticket created: ${newTicket.id} for partner ${partner.id}`);
+
+      res.status(201).json({
+        ok: true,
+        ticketId: newTicket.id,
+        message: 'Your support ticket has been submitted. Our team will be in touch.',
+      });
+    } catch (err) {
+      logger.error('Error creating partner support ticket:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+);
 
 module.exports = router;
