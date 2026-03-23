@@ -24,6 +24,259 @@
   <script src="/assets/js/admin-shared.js?v=18.3.0"></script>
   <script src="/assets/js/components.js?v=18.3.0" defer></script>
   <script src="/assets/js/admin-navbar.js?v=18.3.0" defer></script>
+
+  <style>
+    /* ── Partner page local overrides ───────────────────────────────────────── */
+
+    /* Stat cards: use glass tint on dark admin bg */
+    .ap-stat-card {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      transition: background 0.2s, border-color 0.2s, transform 0.2s;
+    }
+    .ap-stat-card:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.18);
+      transform: translateY(-2px);
+    }
+    .ap-stat-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .ap-stat-icon--teal  { background: linear-gradient(135deg,#0B8073,#13B6A2); }
+    .ap-stat-icon--green { background: linear-gradient(135deg,#10b981,#059669); }
+    .ap-stat-icon--amber { background: linear-gradient(135deg,#f59e0b,#d97706); }
+    .ap-stat-icon--violet{ background: linear-gradient(135deg,#8b5cf6,#6d28d9); }
+    .ap-stat-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.5);
+      margin-bottom: 0.2rem;
+    }
+    .ap-stat-value {
+      font-size: 1.9rem;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1;
+    }
+
+    /* Programme info card */
+    .ap-info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+    .ap-info-tile {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 12px;
+      padding: 1rem 1.2rem;
+    }
+    .ap-info-tile-icon {
+      font-size: 1.6rem;
+      margin-bottom: 0.5rem;
+    }
+    .ap-info-tile-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 0.25rem;
+    }
+    .ap-info-tile-body {
+      font-size: 0.8rem;
+      color: rgba(255,255,255,0.5);
+      line-height: 1.5;
+    }
+
+    /* Credit rates mini-table */
+    .ap-rates-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+    .ap-rates-table th {
+      text-align: left;
+      color: rgba(255,255,255,0.45);
+      font-weight: 600;
+      padding: 0.35rem 0.5rem;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .ap-rates-table td {
+      padding: 0.45rem 0.5rem;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.75);
+      vertical-align: middle;
+    }
+    .ap-rates-table td:first-child { white-space: nowrap; }
+    .ap-credit-pill {
+      display: inline-block;
+      background: rgba(110,231,183,0.15);
+      border: 1px solid rgba(110,231,183,0.3);
+      color: #6ee7b7;
+      border-radius: 20px;
+      padding: 0.15rem 0.65rem;
+      font-weight: 700;
+      font-size: 0.78rem;
+    }
+
+    /* Empty state hero */
+    .ap-empty-hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 3rem 2rem;
+    }
+    .ap-empty-glyph {
+      width: 88px;
+      height: 88px;
+      border-radius: 24px;
+      background: linear-gradient(135deg,rgba(11,128,115,0.25),rgba(19,182,162,0.12));
+      border: 1px solid rgba(11,128,115,0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.6rem;
+      margin-bottom: 1.5rem;
+    }
+    .ap-empty-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 0.5rem;
+    }
+    .ap-empty-sub {
+      font-size: 0.9rem;
+      color: rgba(255,255,255,0.5);
+      max-width: 480px;
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+    }
+    .ap-empty-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: rgba(11,128,115,0.18);
+      border: 1px solid rgba(11,128,115,0.4);
+      color: #13B6A2;
+      border-radius: 10px;
+      padding: 0.55rem 1.2rem;
+      font-size: 0.88rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .ap-empty-link:hover {
+      background: rgba(11,128,115,0.28);
+      border-color: rgba(11,128,115,0.6);
+    }
+
+    /* Filter bar */
+    .ap-filter-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .ap-filter-row input,
+    .ap-filter-row select {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px;
+      color: #fff;
+      padding: 0.55rem 0.85rem;
+      font-size: 0.875rem;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .ap-filter-row input { flex: 1; min-width: 200px; }
+    .ap-filter-row input::placeholder { color: rgba(255,255,255,0.35); }
+    .ap-filter-row input:focus,
+    .ap-filter-row select:focus {
+      border-color: rgba(19,182,162,0.5);
+      background: rgba(255,255,255,0.09);
+    }
+    .ap-filter-row select option { background: #1a1f2e; color: #fff; }
+
+    /* Partner table improvements */
+    #partners-table thead th {
+      font-size: 0.72rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.4);
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      padding: 0.6rem 0.75rem;
+    }
+    #partners-table tbody td {
+      padding: 0.85rem 0.75rem;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      vertical-align: middle;
+    }
+    #partners-table tbody tr:last-child td { border-bottom: none; }
+    #partners-table tbody tr:hover td { background: rgba(255,255,255,0.03); }
+
+    /* How-it-works steps */
+    .ap-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .ap-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.85rem;
+    }
+    .ap-step-num {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: rgba(11,128,115,0.25);
+      border: 1px solid rgba(11,128,115,0.45);
+      color: #13B6A2;
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+    .ap-step-text {
+      font-size: 0.82rem;
+      color: rgba(255,255,255,0.6);
+      line-height: 1.5;
+    }
+    .ap-step-text strong { color: rgba(255,255,255,0.88); }
+
+    /* Section wrapper */
+    .ap-section {
+      background: rgba(255,255,255,0.035);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 1.5rem;
+      margin: 0 1.5rem 1.5rem;
+    }
+    .ap-section-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: rgba(255,255,255,0.45);
+      margin: 0 0 1rem;
+    }
+  </style>
 </head>
 <body class="has-admin-navbar admin">
 <a href="#main-content" class="skip-to-content">Skip to main content</a>
@@ -32,93 +285,293 @@
 
 <main id="main-content" class="admin-main-content">
 
+  <!-- ── Header ─────────────────────────────────────────────────────────────── -->
   <div class="dashboard-header">
     <div class="header-content">
       <div>
-        <h1 class="dashboard-title">Partner Moderation</h1>
-        <p class="dashboard-subtitle">Manage partner accounts, referrals, and credit adjustments</p>
+        <h1 class="dashboard-title">Partner Programme</h1>
+        <p class="dashboard-subtitle">Manage affiliate partners, referrals, and credit balances</p>
       </div>
       <div class="header-actions">
-        <div id="partner-summary" class="status-badge" aria-live="polite">Loading…</div>
+        <span id="partner-summary" class="status-badge" aria-live="polite">Loading…</span>
         <button id="refreshBtn" class="btn-icon" title="Refresh" aria-label="Refresh partners">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M23 4v6h-6"></path>
-            <path d="M1 20v-6h6"></path>
-            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            <path d="M23 4v6h-6"/>
+            <path d="M1 20v-6h6"/>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
           </svg>
         </button>
       </div>
     </div>
   </div>
 
-  <!-- Stats strip -->
-  <div class="stats-grid" id="partner-stats-strip">
-    <div class="stat-card">
-      <div class="stat-content">
-        <div class="stat-label">Total Partners</div>
-        <div class="stat-value" id="count-total">—</div>
+  <!-- ── Stat strip ──────────────────────────────────────────────────────────── -->
+  <div class="stats-grid" style="padding:0 1.5rem;margin-bottom:1.5rem;">
+
+    <div class="ap-stat-card">
+      <div class="ap-stat-icon ap-stat-icon--teal">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+      </div>
+      <div>
+        <div class="ap-stat-label">Total Partners</div>
+        <div class="ap-stat-value" id="count-total">—</div>
       </div>
     </div>
-    <div class="stat-card">
-      <div class="stat-content">
-        <div class="stat-label">Active Partners</div>
-        <div class="stat-value" id="count-active">—</div>
+
+    <div class="ap-stat-card">
+      <div class="ap-stat-icon ap-stat-icon--green">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+          <polyline points="9 11 12 14 22 4"/>
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+        </svg>
+      </div>
+      <div>
+        <div class="ap-stat-label">Active</div>
+        <div class="ap-stat-value" id="count-active">—</div>
       </div>
     </div>
-    <div class="stat-card">
-      <div class="stat-content">
-        <div class="stat-label">Total Referrals</div>
-        <div class="stat-value" id="count-referrals">—</div>
+
+    <div class="ap-stat-card">
+      <div class="ap-stat-icon ap-stat-icon--amber">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+          <path d="M17 2H7a5 5 0 0 0-5 5v10a5 5 0 0 0 5 5h10a5 5 0 0 0 5-5V7a5 5 0 0 0-5-5z"/>
+          <path d="M12 8v4l3 3"/>
+        </svg>
+      </div>
+      <div>
+        <div class="ap-stat-label">Total Referrals</div>
+        <div class="ap-stat-value" id="count-referrals">—</div>
       </div>
     </div>
-    <div class="stat-card">
-      <div class="stat-content">
-        <div class="stat-label">Credits Issued</div>
-        <div class="stat-value" id="count-credits">—</div>
+
+    <div class="ap-stat-card">
+      <div class="ap-stat-icon ap-stat-icon--violet">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 6v6l4 2"/>
+        </svg>
       </div>
+      <div>
+        <div class="ap-stat-label">Credits Issued</div>
+        <div class="ap-stat-value" id="count-credits">—</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Partner table (hidden when empty via JS) ─────────────────────────── -->
+  <div id="partners-table-section">
+
+    <!-- Filter bar -->
+    <div style="padding:0 1.5rem;margin-bottom:1rem;">
+      <div class="ap-filter-row">
+        <input
+          id="partnerSearch"
+          type="search"
+          placeholder="🔍  Search name, email or ref code…"
+          aria-label="Search partners"
+        />
+        <select id="statusFilter" aria-label="Filter by status">
+          <option value="">All statuses</option>
+          <option value="active">Active</option>
+          <option value="disabled">Disabled</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div style="overflow-x:auto;padding:0 1.5rem 0.5rem;">
+      <table id="partners-table" aria-label="Partner accounts" style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr>
+            <th style="text-align:left;">Partner</th>
+            <th style="text-align:left;">Ref Code</th>
+            <th style="text-align:left;">Joined</th>
+            <th style="text-align:center;">Referrals</th>
+            <th style="text-align:center;">Earned</th>
+            <th style="text-align:center;">Balance</th>
+            <th style="text-align:left;">Status</th>
+            <th style="text-align:left;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="partners-tbody">
+          <tr><td colspan="8" style="text-align:center;padding:2.5rem;color:rgba(255,255,255,0.3);">Loading partners…</td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 
-  <!-- Filter bar -->
-  <div class="ap-filter-bar" style="padding:0 1.5rem;margin-bottom:1rem;">
-    <input
-      id="partnerSearch"
-      type="search"
-      class="ap-search-input"
-      placeholder="Search name, email, ref code…"
-      aria-label="Search partners"
-    />
-    <select id="statusFilter" class="ap-filter-select" aria-label="Filter by status">
-      <option value="">All statuses</option>
-      <option value="active">Active</option>
-      <option value="disabled">Disabled</option>
-    </select>
-  </div>
+  <!-- ── Empty state (shown by JS when 0 partners) ──────────────────────── -->
+  <div id="ap-empty-state" hidden>
 
-  <!-- Partners table -->
-  <div style="overflow-x:auto;padding:0 1.5rem 2rem;">
-    <table class="table" id="partners-table" aria-label="Partner accounts">
-      <thead>
-        <tr>
-          <th>Partner</th>
-          <th>Ref Code</th>
-          <th>Joined</th>
-          <th>Referrals</th>
-          <th>Credits Earned</th>
-          <th>Balance</th>
-          <th>Status</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody id="partners-tbody">
-        <tr><td colspan="8" style="text-align:center;padding:2rem;color:#888;">Loading…</td></tr>
-      </tbody>
-    </table>
+    <!-- Hero call-to-action -->
+    <div class="ap-section" style="margin-top:0;">
+      <div class="ap-empty-hero">
+        <div class="ap-empty-glyph">🤝</div>
+        <div class="ap-empty-title">No partners yet — be the first to invite one</div>
+        <div class="ap-empty-sub">
+          The EventFlow Partner Programme is live and ready. Share the hidden sign-up link with trusted affiliates, influencers, and community promoters. Once they join, you'll manage everything from this page.
+        </div>
+        <a href="/partner" target="_blank" rel="noopener" class="ap-empty-link">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          Open Partner Sign-up Page
+        </a>
+      </div>
+    </div>
+
+    <!-- Two-column info cards -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;padding:0 1.5rem 1.5rem;">
+
+      <!-- How it works -->
+      <div class="ap-section" style="margin:0;">
+        <div class="ap-section-title">How It Works</div>
+        <div class="ap-steps">
+          <div class="ap-step">
+            <div class="ap-step-num">1</div>
+            <div class="ap-step-text">A partner signs up at <strong>/partner</strong> (hidden, noindex — share directly).</div>
+          </div>
+          <div class="ap-step">
+            <div class="ap-step-num">2</div>
+            <div class="ap-step-text">They receive a <strong>unique referral link</strong> like <code style="color:#a5b4fc;font-size:0.78rem;">/auth?ref=p_XXXX&amp;role=supplier</code> to share with wedding suppliers.</div>
+          </div>
+          <div class="ap-step">
+            <div class="ap-step-num">3</div>
+            <div class="ap-step-text">When a referred supplier <strong>creates their first package</strong> (within 30 days), the partner earns <strong style="color:#6ee7b7;">+10 credits</strong>.</div>
+          </div>
+          <div class="ap-step">
+            <div class="ap-step-num">4</div>
+            <div class="ap-step-text">When a referred supplier makes their <strong>first successful subscription payment</strong> (within 30 days, non-trial), the partner earns <strong style="color:#6ee7b7;">+100 credits</strong>.</div>
+          </div>
+          <div class="ap-step">
+            <div class="ap-step-num">5</div>
+            <div class="ap-step-text">Use this page to <strong>view stats, adjust credits,</strong> and <strong>enable or disable</strong> any partner account.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Credit rates + programme details -->
+      <div class="ap-section" style="margin:0;">
+        <div class="ap-section-title">Credit Rates</div>
+        <table class="ap-rates-table" style="margin-bottom:1.25rem;">
+          <thead>
+            <tr><th>Trigger event</th><th>Award</th><th>Limit</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>First package created by referred supplier</td>
+              <td><span class="ap-credit-pill">+10 cr</span></td>
+              <td style="color:rgba(255,255,255,0.4);font-size:0.78rem;">Once per supplier</td>
+            </tr>
+            <tr>
+              <td>First paid subscription (non-trial)</td>
+              <td><span class="ap-credit-pill">+100 cr</span></td>
+              <td style="color:rgba(255,255,255,0.4);font-size:0.78rem;">Once per supplier</td>
+            </tr>
+            <tr>
+              <td>Max per referred supplier</td>
+              <td><span class="ap-credit-pill">+110 cr</span></td>
+              <td style="color:rgba(255,255,255,0.4);font-size:0.78rem;">Both bonuses stack</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="ap-section-title" style="margin-bottom:0.75rem;">Attribution Window</div>
+        <p style="font-size:0.82rem;color:rgba(255,255,255,0.55);line-height:1.6;margin:0 0 1rem;">
+          Credits are only awarded if the supplier's first package or first payment happens <strong style="color:rgba(255,255,255,0.8);">within 30 days</strong> of the supplier signing up via the referral link.
+        </p>
+
+        <div class="ap-section-title" style="margin-bottom:0.75rem;">Credit Value</div>
+        <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+          <div class="ap-info-tile" style="flex:1;min-width:80px;">
+            <div class="ap-info-tile-title" style="color:#6ee7b7;">10 cr</div>
+            <div class="ap-info-tile-body">= £0.10</div>
+          </div>
+          <div class="ap-info-tile" style="flex:1;min-width:80px;">
+            <div class="ap-info-tile-title" style="color:#6ee7b7;">100 cr</div>
+            <div class="ap-info-tile-body">= £1.00</div>
+          </div>
+          <div class="ap-info-tile" style="flex:1;min-width:80px;">
+            <div class="ap-info-tile-title" style="color:#6ee7b7;">110 cr</div>
+            <div class="ap-info-tile-body">= £1.10 max</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Programme features tiles -->
+    <div class="ap-section">
+      <div class="ap-section-title">Programme Features</div>
+      <div class="ap-info-grid">
+        <div class="ap-info-tile">
+          <div class="ap-info-tile-icon">🔒</div>
+          <div class="ap-info-tile-title">Hidden portal</div>
+          <div class="ap-info-tile-body">Partner pages are noindex/nofollow and not linked from public navigation.</div>
+        </div>
+        <div class="ap-info-tile">
+          <div class="ap-info-tile-icon">🔄</div>
+          <div class="ap-info-tile-title">Idempotent awards</div>
+          <div class="ap-info-tile-body">Each bonus is awarded at most once per supplier — no double-payments on retries.</div>
+        </div>
+        <div class="ap-info-tile">
+          <div class="ap-info-tile-icon">🛡️</div>
+          <div class="ap-info-tile-title">Trial exclusion</div>
+          <div class="ap-info-tile-body">£0 / trial Stripe invoices never trigger the subscription bonus.</div>
+        </div>
+        <div class="ap-info-tile">
+          <div class="ap-info-tile-icon">📋</div>
+          <div class="ap-info-tile-title">Full ledger</div>
+          <div class="ap-info-tile-body">Every credit transaction is stored in <code style="font-size:0.75rem;color:#a5b4fc;">partner_credit_transactions</code> with an audit trail.</div>
+        </div>
+        <div class="ap-info-tile">
+          <div class="ap-info-tile-icon">⚡</div>
+          <div class="ap-info-tile-title">Manual adjustments</div>
+          <div class="ap-info-tile-body">Add or deduct credits any time with a required audit note stored against the transaction.</div>
+        </div>
+        <div class="ap-info-tile">
+          <div class="ap-info-tile-icon">🚫</div>
+          <div class="ap-info-tile-title">Instant disable</div>
+          <div class="ap-info-tile-body">Disabling a partner blocks all API access and stops new credit awards immediately.</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /#ap-empty-state -->
+
+  <!-- ── Programme info card (always visible when partners exist) ───────── -->
+  <div id="ap-programme-info" hidden>
+    <div class="ap-section">
+      <div class="ap-section-title">Programme Quick Reference</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem;">
+        <div>
+          <div style="font-size:0.8rem;color:rgba(255,255,255,0.45);margin-bottom:0.4rem;">Credit Awards</div>
+          <div style="font-size:0.82rem;color:rgba(255,255,255,0.7);line-height:1.7;">
+            📦 First package → <span style="color:#6ee7b7;font-weight:700;">+10 cr</span><br>
+            💳 First paid subscription → <span style="color:#6ee7b7;font-weight:700;">+100 cr</span><br>
+            <span style="color:rgba(255,255,255,0.4);font-size:0.78rem;">Both within 30-day attribution window · once per supplier</span>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:0.8rem;color:rgba(255,255,255,0.45);margin-bottom:0.4rem;">Partner Sign-up URL</div>
+          <a href="/partner" target="_blank" rel="noopener" style="color:#a5b4fc;font-size:0.82rem;text-decoration:none;word-break:break-all;" id="ap-partner-signup-url">/partner</a>
+          <div style="font-size:0.78rem;color:rgba(255,255,255,0.35);margin-top:0.25rem;">Hidden · noindex · not in public nav</div>
+        </div>
+        <div>
+          <div style="font-size:0.8rem;color:rgba(255,255,255,0.45);margin-bottom:0.4rem;">Referral Link Format</div>
+          <code style="font-size:0.78rem;color:#a5b4fc;word-break:break-all;">/auth?ref=p_XXXXXXXX&amp;role=supplier</code>
+          <div style="font-size:0.78rem;color:rgba(255,255,255,0.35);margin-top:0.25rem;">Each partner has a unique ref code</div>
+        </div>
+      </div>
+    </div>
   </div>
 
 </main>
 
-<!-- Detail side panel -->
+<!-- ── Detail side panel ─────────────────────────────────────────────────── -->
 <aside
   id="partner-detail-panel"
   class="partner-detail-panel"
@@ -145,7 +598,7 @@
   </div>
 </aside>
 
-<!-- Credit adjustment modal -->
+<!-- ── Credit adjustment modal ──────────────────────────────────────────── -->
 <div id="credit-modal-overlay" class="partner-modal-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="credit-modal-title">
   <div class="partner-modal">
     <h3 class="partner-modal-title" id="credit-modal-title">Adjust Credits</h3>
@@ -188,3 +641,4 @@
 <script src="/assets/js/pages/admin-partners-init.js?v=18.3.0" defer></script>
 </body>
 </html>
+
