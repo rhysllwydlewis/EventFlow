@@ -74,6 +74,7 @@
       <nav class="ef-nav-desktop" aria-label="Main navigation">
         <a href="/start" class="ef-nav-link">Plan</a>
         <a href="/suppliers" class="ef-nav-link">Suppliers</a>
+        <a href="/public-calendar" class="ef-nav-link">Events</a>
         <a href="/marketplace" class="ef-nav-link">Marketplace</a>
         <a href="/guides" class="ef-nav-link">Guides</a>
         <a href="/pricing" class="ef-nav-link">Pricing</a>
@@ -128,6 +129,7 @@
     <nav class="ef-mobile-nav" aria-label="Primary navigation">
       <a href="/start" class="ef-mobile-link">Plan an Event</a>
       <a href="/suppliers" class="ef-mobile-link">Browse Suppliers</a>
+      <a href="/public-calendar" class="ef-mobile-link">Events Calendar</a>
       <a href="/marketplace" class="ef-mobile-link">Marketplace</a>
       <a href="/guides" class="ef-mobile-link">Guides</a>
       <a href="/pricing" class="ef-mobile-link">Pricing</a>
@@ -212,12 +214,24 @@
             <option value="">All categories</option>
             <option>Venues</option>
             <option>Catering</option>
-            <option>Entertainment</option>
             <option>Photography</option>
-            <option>Decor &amp; styling</option>
-            <option>Planning &amp; coordination</option>
+            <option>Videography</option>
+            <option>Entertainment</option>
+            <option>Music/DJ</option>
+            <option>Florist</option>
+            <option>Decor</option>
             <option>Transport</option>
-            <option>Extras &amp; add-ons</option>
+            <option>Cake</option>
+            <option>Stationery</option>
+            <option>Hair &amp; Makeup</option>
+            <option>Beauty</option>
+            <option>Bridalwear</option>
+            <option>Jewellery</option>
+            <option>Celebrant</option>
+            <option>Event Planner</option>
+            <option>Wedding Fayre</option>
+            <option>Planning</option>
+            <option>Other</option>
           </select>
         </div>
 
@@ -317,17 +331,25 @@
             <svg class="sp-shortcut-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
             Transport
           </button>
-          <button type="button" class="sp-shortcut-btn" data-quick-category="Decor &amp; styling" aria-pressed="false">
+          <button type="button" class="sp-shortcut-btn" data-quick-category="Florist" aria-pressed="false">
+            <svg class="sp-shortcut-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Florist
+          </button>
+          <button type="button" class="sp-shortcut-btn" data-quick-category="Decor" aria-pressed="false">
             <svg class="sp-shortcut-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
             Decor
           </button>
-          <button type="button" class="sp-shortcut-btn" data-quick-category="Planning &amp; coordination" aria-pressed="false">
-            <svg class="sp-shortcut-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/></svg>
-            Planning
+          <button type="button" class="sp-shortcut-btn" data-quick-category="Hair &amp; Makeup" aria-pressed="false">
+            <svg class="sp-shortcut-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            Hair &amp; Makeup
           </button>
-          <button type="button" class="sp-shortcut-btn" data-quick-category="Extras &amp; add-ons" aria-pressed="false">
-            <svg class="sp-shortcut-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
-            Extras
+          <button type="button" class="sp-shortcut-btn" data-quick-category="Event Planner" aria-pressed="false">
+            <svg class="sp-shortcut-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="12" y2="16"/></svg>
+            Event Planner
+          </button>
+          <button type="button" class="sp-shortcut-btn" data-quick-category="Celebrant" aria-pressed="false">
+            <svg class="sp-shortcut-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+            Celebrant
           </button>
         </div>
         <button type="button" id="clear-filters-btn-top" class="sp-clear-btn" aria-label="Clear all active filters">

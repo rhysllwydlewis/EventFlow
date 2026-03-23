@@ -31,7 +31,9 @@
   function updateVerificationToggleUI(isOn) {
     const toggleEl = document.getElementById('autoApproveVerificationToggle');
     const labelEl = document.getElementById('verificationToggleStateLabel');
-    if (toggleEl) toggleEl.checked = isOn;
+    if (toggleEl) {
+      toggleEl.checked = isOn;
+    }
     if (labelEl) {
       labelEl.textContent = isOn ? 'ON' : 'OFF';
       labelEl.className = `ap-toggle-state ${isOn ? 'ap-toggle-state--on' : 'ap-toggle-state--off'}`;
@@ -243,6 +245,7 @@
 
     // Filters
     document.getElementById('approvalFilter')?.addEventListener('change', handleFilters);
+    document.getElementById('categoryFilter')?.addEventListener('change', handleFilters);
     document.getElementById('subscriptionFilter')?.addEventListener('change', handleFilters);
     document.getElementById('verificationFilter')?.addEventListener('change', handleFilters);
     document.getElementById('clearFiltersBtn')?.addEventListener('click', clearFilters);
@@ -282,6 +285,7 @@
   function handleFilters() {
     const search = document.getElementById('searchInput')?.value.toLowerCase() || '';
     const approval = document.getElementById('approvalFilter')?.value || 'all';
+    const category = document.getElementById('categoryFilter')?.value || 'all';
     const subscription = document.getElementById('subscriptionFilter')?.value || 'all';
     const verification = document.getElementById('verificationFilter')?.value || 'all';
 
@@ -299,6 +303,8 @@
         (approval === 'rejected' &&
           (supplier.rejected || supplier.verificationStatus === 'rejected'));
 
+      const matchesCategory = category === 'all' || supplier.category === category;
+
       const supplierTier = getEffectiveSubscriptionTier(supplier);
       const matchesSubscription =
         subscription === 'all' ||
@@ -308,7 +314,13 @@
       const supplierVerification = getEffectiveVerificationStatus(supplier);
       const matchesVerification = verification === 'all' || supplierVerification === verification;
 
-      return matchesSearch && matchesApproval && matchesSubscription && matchesVerification;
+      return (
+        matchesSearch &&
+        matchesApproval &&
+        matchesCategory &&
+        matchesSubscription &&
+        matchesVerification
+      );
     });
 
     currentPage = 1;
@@ -319,6 +331,7 @@
   function clearFilters() {
     document.getElementById('searchInput').value = '';
     document.getElementById('approvalFilter').value = 'all';
+    document.getElementById('categoryFilter').value = 'all';
     document.getElementById('subscriptionFilter').value = 'all';
     document.getElementById('verificationFilter').value = 'all';
     handleFilters();

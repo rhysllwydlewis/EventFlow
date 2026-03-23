@@ -645,6 +645,7 @@ const canonicalPages = [
   'notifications',
   'guests',
   'messages',
+  'public-calendar',
 ];
 
 canonicalPages.forEach(page => {

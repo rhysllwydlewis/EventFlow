@@ -128,6 +128,15 @@ const REGISTRY = [
 
   // ── Moderation ────────────────────────────────────────────────────────────
   {
+    route: '/admin-reviews',
+    htmlFile: 'admin-reviews',
+    label: 'Reviews',
+    icon: '⭐',
+    category: 'moderation',
+    inNav: true,
+    desc: 'Review approvals & moderation',
+  },
+  {
     route: '/admin-tickets',
     htmlFile: 'admin-tickets',
     label: 'Tickets',

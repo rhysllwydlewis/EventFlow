@@ -10,23 +10,13 @@ const logger = require('../utils/logger');
 const { paginationHelper } = require('../utils/database');
 
 /**
- * Valid supplier categories matching the dashboard HTML select options
+ * Valid supplier categories matching the dashboard HTML select options.
+ * Single source of truth is models/Supplier.js — kept in sync here.
+ *
+ * Publisher types (Event Planner / Wedding Fayre) grant public-calendar write
+ * access by default (subject to publicCalendarPublisherOverride).
  */
-const VALID_CATEGORIES = [
-  'Venues',
-  'Catering',
-  'Photography',
-  'Videography',
-  'Entertainment',
-  'Florist',
-  'Decor',
-  'Transport',
-  'Cake',
-  'Stationery',
-  'Hair & Makeup',
-  'Planning',
-  'Other',
-];
+const { VALID_CATEGORIES, PUBLISHER_CATEGORIES } = require('../models/Supplier');
 
 /**
  * Generate SEO-friendly slug from text
