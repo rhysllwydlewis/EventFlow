@@ -2710,6 +2710,8 @@ router.get('/settings/features', authRequired, roleRequired('admin'), async (req
       pexelsCollage: features.pexelsCollage === true,
       requirePackageApproval: features.requirePackageApproval === true,
       photoAutoApprove: features.photoAutoApprove !== false,
+      autoApproveReviews: features.autoApproveReviews !== false,
+      autoApproveSupplierVerification: features.autoApproveSupplierVerification === true,
       updatedAt: features.updatedAt,
       updatedBy: features.updatedBy,
     };
@@ -2746,6 +2748,8 @@ router.put(
         pexelsCollage,
         requirePackageApproval,
         photoAutoApprove,
+        autoApproveReviews,
+        autoApproveSupplierVerification,
       } = req.body;
 
       logger.info(`[${requestId}] Request body validated, reading current settings...`);
@@ -2775,6 +2779,8 @@ router.put(
         'pexelsCollage',
         'requirePackageApproval',
         'photoAutoApprove',
+        'autoApproveReviews',
+        'autoApproveSupplierVerification',
       ];
 
       for (const flag of featureFlags) {
@@ -2797,6 +2803,8 @@ router.put(
         pexelsCollage: pexelsCollage === true,
         requirePackageApproval: requirePackageApproval === true,
         photoAutoApprove: photoAutoApprove !== false,
+        autoApproveReviews: autoApproveReviews !== false,
+        autoApproveSupplierVerification: autoApproveSupplierVerification === true,
         updatedAt: new Date().toISOString(),
         updatedBy: req.user.email,
       };

@@ -706,6 +706,41 @@ router.post(
 
       await dbUnified.updateOne('suppliers', { id: supplier.id }, { $set: updates });
 
+      // Check if admin has enabled auto-approve for supplier verification
+      const settings = (await dbUnified.read('settings')) || {};
+      if ((settings.features || {}).autoApproveSupplierVerification === true) {
+        // Use 'admin' actor: the state machine enforces permission levels, not attribution.
+        // The verifiedBy field below records 'system' to show this was automated.
+        const approveCheck = canTransition(
+          VERIFICATION_STATES.PENDING_REVIEW,
+          VERIFICATION_STATES.APPROVED,
+          'admin'
+        );
+        if (approveCheck.allowed) {
+          const approvedAt = new Date().toISOString();
+          await dbUnified.updateOne(
+            'suppliers',
+            { id: supplier.id },
+            {
+              $set: {
+                verificationStatus: VERIFICATION_STATES.APPROVED,
+                verified: true,
+                approved: true,
+                verifiedAt: approvedAt,
+                verifiedBy: 'system',
+                updatedAt: approvedAt,
+              },
+            }
+          );
+          return res.json({
+            message: 'Verification submitted and automatically approved.',
+            verificationStatus: VERIFICATION_STATES.APPROVED,
+            submittedAt: now,
+            autoApproved: true,
+          });
+        }
+      }
+
       res.json({
         message: 'Verification submitted successfully. An admin will review your profile shortly.',
         verificationStatus: VERIFICATION_STATES.PENDING_REVIEW,

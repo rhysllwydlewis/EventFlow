@@ -1524,24 +1524,9 @@
 
       // Moderation queue buttons
       setupNavButton('reviewPhotosBtn', '/admin-photos');
+      setupNavButton('reviewReviewsBtn', '/admin-reviews');
       setupNavButton('reviewReportsBtn', '/admin-reports');
       setupNavButton('verifySuppliersBtn', '/admin-suppliers');
-
-      const reviewReviewsBtn = document.getElementById('reviewReviewsBtn');
-      if (reviewReviewsBtn) {
-        reviewReviewsBtn.addEventListener('click', () => {
-          reviewPendingReviews();
-        });
-        reviewReviewsBtn.addEventListener('keydown', e => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            reviewPendingReviews();
-          }
-        });
-        if (!reviewReviewsBtn.hasAttribute('tabindex')) {
-          reviewReviewsBtn.setAttribute('tabindex', '0');
-        }
-      }
 
       const logoutBtn = document.getElementById('adminLogoutBtn');
       if (logoutBtn) {

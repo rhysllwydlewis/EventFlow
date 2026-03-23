@@ -87,6 +87,17 @@ The owner account (`admin@event-flow.co.uk`) has special protections:
 
 ### 2. Supplier Management
 
+**Access:** Navigate to `/admin-suppliers`.
+
+#### Auto-approve Supplier Verification Toggle
+
+At the top of the Supplier Management page there is an **Auto-approve supplier verification** toggle:
+
+| Setting | Effect |
+|---------|--------|
+| OFF (default) | Suppliers who submit for verification enter the pending verification queue. Admins must manually approve, reject, or request changes. |
+| ON | When a supplier submits their profile for verification it is automatically approved and they become a verified supplier immediately. Audit trail records the system attribution. |
+
 #### Viewing Suppliers
 
 - All suppliers displayed with:
@@ -161,14 +172,22 @@ Photos are now **auto-approved on upload** — the manual approval workflow has 
 
 ### 5. Review Moderation
 
-**Access:** Click "Review Reviews" from admin dashboard
+**Access:** Click "Review Reviews" from admin dashboard, or navigate directly to `/admin-reviews`.
 
 **Features:**
 
-- View all pending reviews
-- See rating and comment
-- Approve or reject reviews
-- Modal interface for review moderation
+- **Auto-approve toggle** — When ON (default), reviews with a verified booking, no spam detected, and neutral/positive sentiment are published automatically. When OFF, all new reviews are held in the queue below for manual moderation.
+- View all pending and flagged reviews with rating, title, and content
+- Approve or reject individual reviews
+- Batch approve/reject multiple reviews at once
+- Rejection reason recorded for audit trail
+
+**Auto-approve behaviour:**
+
+| Setting | Effect |
+|---------|--------|
+| ON (default) | Qualifying reviews (verified booking + no spam + sentiment ≥ -0.3) are approved immediately by the system. Only borderline/flagged reviews enter the queue. |
+| OFF | Every new review is held in the pending queue regardless of quality signals. Admins must manually approve or reject each one. |
 
 ### 6. Reports Queue
 

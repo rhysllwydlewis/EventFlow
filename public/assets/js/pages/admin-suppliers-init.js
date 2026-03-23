@@ -8,9 +8,53 @@
 
   // Initialize page
   async function init() {
+    await loadAutoApproveVerificationFlag();
     await loadSuppliers();
     setupEventListeners();
     renderTable();
+  }
+
+  // ── Auto-approve supplier verification toggle ─────────────────────────────
+  let autoApproveVerification = false; // default off (safer)
+
+  async function loadAutoApproveVerificationFlag() {
+    try {
+      const data = await AdminShared.api('/api/admin/settings/features');
+      autoApproveVerification = data.autoApproveSupplierVerification === true;
+    } catch (err) {
+      console.error('Failed to load feature flags:', err);
+      autoApproveVerification = false;
+    }
+    updateVerificationToggleUI(autoApproveVerification);
+  }
+
+  function updateVerificationToggleUI(isOn) {
+    const toggleEl = document.getElementById('autoApproveVerificationToggle');
+    const labelEl = document.getElementById('verificationToggleStateLabel');
+    if (toggleEl) toggleEl.checked = isOn;
+    if (labelEl) {
+      labelEl.textContent = isOn ? 'ON' : 'OFF';
+      labelEl.className = `ap-toggle-state ${isOn ? 'ap-toggle-state--on' : 'ap-toggle-state--off'}`;
+    }
+  }
+
+  async function saveAutoApproveVerificationFlag(newValue) {
+    try {
+      await AdminShared.adminFetch('/api/admin/settings/features', {
+        method: 'PUT',
+        body: { autoApproveSupplierVerification: newValue },
+      });
+      autoApproveVerification = newValue;
+      updateVerificationToggleUI(autoApproveVerification);
+      showToast(
+        `Supplier verification auto-approve ${newValue ? 'enabled' : 'disabled'}`,
+        'success'
+      );
+    } catch (err) {
+      console.error('Failed to save feature flag:', err);
+      showToast('Failed to update auto-approve setting', 'error');
+      updateVerificationToggleUI(autoApproveVerification);
+    }
   }
 
   // Load suppliers data
@@ -221,6 +265,17 @@
     document
       .getElementById('importDemoSuppliersBtn')
       ?.addEventListener('click', importDemoSuppliers);
+
+    // Auto-approve supplier verification toggle
+    const verificationToggleEl = document.getElementById('autoApproveVerificationToggle');
+    if (verificationToggleEl) {
+      verificationToggleEl.addEventListener('change', async () => {
+        const newValue = verificationToggleEl.checked;
+        verificationToggleEl.disabled = true;
+        await saveAutoApproveVerificationFlag(newValue);
+        verificationToggleEl.disabled = false;
+      });
+    }
   }
 
   // Handle filters
