@@ -5,6 +5,9 @@
 
 const isDevelopment =
   window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+const FOCUSABLE_SELECTORS =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 /**
  * Get the currently authenticated user
  * @returns {Promise<Object|null>} User object or null if not authenticated
@@ -91,7 +94,7 @@ export function createModalCloseHandler(
 }
 
 /**
- * Set up standard modal close handlers (button, overlay, escape key)
+ * Set up standard modal close handlers (button, overlay, escape key) and focus trap.
  * @param {HTMLElement} modal - The modal element
  * @param {Function} closeModal - The close function to call
  * @param {Array} cleanupCallbacks - Array to register cleanup functions
@@ -121,8 +124,35 @@ export function setupModalCloseHandlers(modal, closeModal, cleanupCallbacks = []
   };
   document.addEventListener('keydown', handleEscapeKey);
 
-  // Register cleanup for escape key listener
+  // Focus trap: keep keyboard navigation inside the modal while it is open
+  const focusTrapHandler = e => {
+    if (e.key !== 'Tab') {
+      return;
+    }
+    const focusable = Array.from(modal.querySelectorAll(FOCUSABLE_SELECTORS));
+    if (focusable.length === 0) {
+      e.preventDefault();
+      return;
+    }
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey) {
+      if (document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      }
+    } else {
+      if (document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  };
+  modal.addEventListener('keydown', focusTrapHandler);
+
+  // Register cleanup for both document-level listener and focus trap
   cleanupCallbacks.push(() => {
     document.removeEventListener('keydown', handleEscapeKey);
+    modal.removeEventListener('keydown', focusTrapHandler);
   });
 }

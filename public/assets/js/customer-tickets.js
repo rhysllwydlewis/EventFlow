@@ -94,12 +94,16 @@ function renderTickets(tickets) {
 
 // Create ticket modal
 function showCreateTicketModal() {
+  const titleId = 'ticket-create-modal-title';
   const modal = document.createElement('div');
   modal.className = 'modal-overlay active';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+  modal.setAttribute('aria-labelledby', titleId);
   modal.innerHTML = `
     <div class="modal ticket-create-modal">
       <div class="modal-header">
-        <h3>Create Support Ticket</h3>
+        <h3 id="${titleId}">Create Support Ticket</h3>
         <button class="modal-close" type="button" aria-label="Close">&times;</button>
       </div>
       <div class="modal-body">
@@ -195,12 +199,16 @@ function showCreateTicketModal() {
 
 // View ticket modal
 function viewTicket(ticketId) {
+  const titleId = 'ticket-view-modal-title';
   const modal = document.createElement('div');
   modal.className = 'modal-overlay active';
+  modal.setAttribute('role', 'dialog');
+  modal.setAttribute('aria-modal', 'true');
+  modal.setAttribute('aria-labelledby', titleId);
   modal.innerHTML = `
     <div class="modal ticket-view-modal">
       <div class="modal-header">
-        <h3>Support Ticket</h3>
+        <h3 id="${titleId}">Support Ticket</h3>
         <button class="modal-close" type="button" aria-label="Close">&times;</button>
       </div>
       <div class="modal-body">

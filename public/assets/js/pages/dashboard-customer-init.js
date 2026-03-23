@@ -1,5 +1,12 @@
 window.__EF_PAGE__ = 'dash_customer';
 
+/** Debug logging — only emits when window.__EF_DEBUG__ is truthy. */
+function dbg(...args) {
+  if (window.__EF_DEBUG__) {
+    console.log('[EF]', ...args); // eslint-disable-line no-console
+  }
+}
+
 // Load customer plans
 async function loadCustomerPlans(preloadedPlans) {
   const container = document.getElementById('customer-plans-list');
@@ -98,6 +105,9 @@ async function checkAuth() {
 
 // Setup navigation with auth check and consolidated initialization
 async function initDashboard() {
+  // Ensure a CSRF token is available before any state-changing requests
+  await ensureCsrfToken();
+
   const user = await checkAuth();
 
   if (!user) {
@@ -175,7 +185,7 @@ async function initDashboard() {
   // Setup event handlers
   setupEventHandlers(sharedPlans);
 
-  console.log('✅ Dashboard initialized successfully');
+  dbg('✅ Dashboard initialized successfully');
 }
 
 /**
@@ -242,15 +252,18 @@ function populateHeroStats(plans) {
     }
   }
 
-  // Unread messages — start at 0; update live when UnreadBadgeManager fires
+  // Unread messages — start at 0; update live when UnreadBadgeManager fires.
+  // Guard against adding multiple listeners if populateHeroStats is ever called again.
   const heroMessages = document.getElementById('hero-stat-messages');
   if (heroMessages) {
     heroMessages.textContent = '0';
-    // Listen for real-time unread count updates from UnreadBadgeManager
-    window.addEventListener('unreadCountUpdated', e => {
-      const count = typeof e.detail?.count === 'number' ? e.detail.count : 0;
-      heroMessages.textContent = count > 0 ? count : '0';
-    });
+    if (!window.__heroUnreadListenerAdded) {
+      window.__heroUnreadListenerAdded = true;
+      window.addEventListener('unreadCountUpdated', e => {
+        const count = typeof e.detail?.count === 'number' ? e.detail.count : 0;
+        heroMessages.textContent = count > 0 ? count : '0';
+      });
+    }
   }
 }
 
@@ -324,7 +337,7 @@ function initCalendar() {
           initialView: 'dayGridMonth',
           height: 500,
         });
-        console.log('✅ Calendar initialized');
+        dbg('✅ Calendar initialized');
       } catch (err) {
         console.error('Calendar init failed:', err);
         if (calendarEl) {
@@ -346,34 +359,33 @@ function setupEventHandlers(latestPlans) {
   document.getElementById('openPlanBtn')?.addEventListener('click', async e => {
     e.preventDefault();
 
-    // Get saved suppliers — prefer server-side plans, fall back to localStorage
-    let saved = [];
+    // Collect ONLY supplier IDs (not package IDs) for the /suppliers?filter=saved redirect.
+    // plan.suppliers holds supplier IDs; localStorage eventflow_saved_suppliers also holds
+    // supplier IDs. plan.packages holds package IDs and must NOT be mixed in here.
+    const savedSupplierIdSet = new Set();
     try {
       if (latestPlans && latestPlans.length > 0) {
-        // Collect supplier IDs referenced in plans
         latestPlans.forEach(plan => {
-          if (Array.isArray(plan.packages)) {
-            saved = saved.concat(plan.packages);
-          }
           if (Array.isArray(plan.suppliers)) {
-            saved = saved.concat(plan.suppliers);
+            plan.suppliers.forEach(id => savedSupplierIdSet.add(id));
           }
         });
       }
     } catch (err) {
-      console.error('Error reading suppliers from plans:', err);
+      console.error('Error reading supplier IDs from plans:', err);
     }
 
-    // Fallback: localStorage
-    if (saved.length === 0) {
+    // Fallback: localStorage saved suppliers
+    if (savedSupplierIdSet.size === 0) {
       try {
-        saved = JSON.parse(localStorage.getItem('eventflow_saved_suppliers') || '[]');
+        const lsSaved = JSON.parse(localStorage.getItem('eventflow_saved_suppliers') || '[]');
+        lsSaved.forEach(id => savedSupplierIdSet.add(id));
       } catch (err) {
         console.error('Error reading saved suppliers from localStorage:', err);
       }
     }
 
-    if (saved.length === 0) {
+    if (savedSupplierIdSet.size === 0) {
       // Show styled notification instead of alert
       const notification = document.createElement('div');
       notification.style.cssText =
@@ -430,11 +442,13 @@ function setupEventHandlers(latestPlans) {
       return;
     }
 
-    // Also persist to server on the user's first/primary plan
+    // Also persist to server on the user's first/primary plan.
+    // Always check response.ok — a CSRF/auth failure must not be silently swallowed.
+    let serverSyncFailed = false;
     if (latestPlans && latestPlans.length > 0) {
       const primaryPlan = latestPlans[0];
       try {
-        await fetch(`/api/me/plans/${encodeURIComponent(primaryPlan.id)}`, {
+        const patchResp = await fetch(`/api/me/plans/${encodeURIComponent(primaryPlan.id)}`, {
           method: 'PATCH',
           headers: {
             'Content-Type': 'application/json',
@@ -443,19 +457,33 @@ function setupEventHandlers(latestPlans) {
           credentials: 'include',
           body: JSON.stringify({ budget }),
         });
+        if (!patchResp.ok) {
+          console.warn('Budget PATCH failed with status:', patchResp.status);
+          serverSyncFailed = true;
+        }
       } catch (err) {
         console.warn('Failed to persist budget to server (will use localStorage):', err);
+        serverSyncFailed = true;
       }
     }
 
-    // Show success message
+    // Show result — distinguish between full success and local-only save
     budgetStatus.style.display = 'block';
-    budgetStatus.style.background = '#F0FDF4';
-    const budgetP = document.createElement('p');
-    budgetP.className = 'small';
-    budgetP.style.cssText = 'margin:0;color:#059669;';
-    budgetP.textContent = `✅ Budget set to £${budget.toLocaleString()}`;
-    budgetStatus.replaceChildren(budgetP);
+    if (serverSyncFailed) {
+      budgetStatus.style.background = '#FFFBEB';
+      const budgetP = document.createElement('p');
+      budgetP.className = 'small';
+      budgetP.style.cssText = 'margin:0;color:#92400E;';
+      budgetP.textContent = `⚠️ Budget saved locally (£${budget.toLocaleString()}) but couldn't sync to server. It will be retried on next visit.`;
+      budgetStatus.replaceChildren(budgetP);
+    } else {
+      budgetStatus.style.background = '#F0FDF4';
+      const budgetP = document.createElement('p');
+      budgetP.className = 'small';
+      budgetP.style.cssText = 'margin:0;color:#059669;';
+      budgetP.textContent = `✅ Budget set to £${budget.toLocaleString()}`;
+      budgetStatus.replaceChildren(budgetP);
+    }
 
     // Reload widgets with new budget - with error handling
     try {
@@ -466,7 +494,7 @@ function setupEventHandlers(latestPlans) {
       // Widgets will reload on next page visit
     }
 
-    // Hide success message after 3 seconds
+    // Hide status message after 3 seconds
     setTimeout(() => {
       budgetStatus.style.display = 'none';
     }, 3000);
@@ -531,7 +559,7 @@ async function claimGuestPlanIfExists() {
     if (response.ok) {
       // Successfully claimed
       localStorage.removeItem('eventflow_guest_plan_token');
-      console.log('Guest plan claimed successfully');
+      dbg('Guest plan claimed successfully');
     } else {
       const error = await response.json();
       console.warn('Failed to claim guest plan:', error.error);
@@ -545,15 +573,19 @@ async function claimGuestPlanIfExists() {
 }
 
 /**
- * Get CSRF token from meta tag or cookie
+ * Get CSRF token — checks cached global, then meta tag, then cookie.
+ * Call ensureCsrfToken() at init time to populate window.__CSRF_TOKEN__.
  */
 function getCsrfToken() {
+  if (window.__CSRF_TOKEN__) {
+    return window.__CSRF_TOKEN__;
+  }
   const meta = document.querySelector('meta[name="csrf-token"]');
-  if (meta) {
+  if (meta && meta.getAttribute('content')) {
     return meta.getAttribute('content');
   }
-  // Try cookie
-  const match = document.cookie.match(/(?:^|;\s*)csrfToken=([^;]+)/);
+  // Try cookies (both canonical and legacy names)
+  const match = document.cookie.match(/(?:^|;\s*)(?:csrf|csrfToken)=([^;]+)/);
   if (match) {
     try {
       return decodeURIComponent(match[1]);
@@ -562,6 +594,34 @@ function getCsrfToken() {
     }
   }
   return '';
+}
+
+/**
+ * Fetch and cache a CSRF token from the server.
+ * Also updates the meta tag and window.__CSRF_TOKEN__ for other callers.
+ */
+async function ensureCsrfToken() {
+  if (window.__CSRF_TOKEN__) {
+    return window.__CSRF_TOKEN__;
+  }
+  try {
+    const resp = await fetch('/api/csrf-token', { credentials: 'include' });
+    if (resp.ok) {
+      const data = await resp.json();
+      const token = data.csrfToken || data.token || '';
+      if (token) {
+        window.__CSRF_TOKEN__ = token;
+        const meta = document.querySelector('meta[name="csrf-token"]');
+        if (meta) {
+          meta.setAttribute('content', token);
+        }
+      }
+      return token;
+    }
+  } catch (_) {
+    /* network error — fall back to cookie/meta if available */
+  }
+  return getCsrfToken();
 }
 
 // Single initialization call - use readyState check for reliability

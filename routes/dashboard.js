@@ -15,10 +15,28 @@ const router = express.Router();
 
 /**
  * GET /dashboard
- * Role-based dashboard redirect page
+ * Role-based dashboard redirect page — requires authentication.
+ * Performs a server-side redirect to the role-specific dashboard so
+ * unauthenticated users cannot access any dashboard content.
  */
-router.get('/dashboard', apiLimiter, (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'public', 'dashboard.html'));
+router.get('/dashboard', apiLimiter, authRequired, (req, res) => {
+  try {
+    const role = req.user?.role;
+    if (role === 'customer') {
+      return res.redirect('/dashboard/customer');
+    }
+    if (role === 'supplier') {
+      return res.redirect('/dashboard/supplier');
+    }
+    if (role === 'admin') {
+      return res.redirect('/admin');
+    }
+    // Authenticated but unknown role — fall back to the generic redirect page
+    res.sendFile(path.join(__dirname, '..', 'public', 'dashboard.html'));
+  } catch (error) {
+    logger.error('Error serving dashboard redirect:', error);
+    return res.status(500).send('Internal server error');
+  }
 });
 
 /**
