@@ -21,6 +21,10 @@
 
 /**
  * Valid supplier category values (must match the HTML <select> options in dashboard-supplier.html)
+ *
+ * Publisher types: suppliers whose category is in PUBLISHER_CATEGORIES can
+ * create/update/delete public calendar events (unless overridden by
+ * publicCalendarPublisherOverride).
  */
 const VALID_CATEGORIES = [
   'Venues',
@@ -28,15 +32,29 @@ const VALID_CATEGORIES = [
   'Photography',
   'Videography',
   'Entertainment',
+  'Music/DJ',
   'Florist',
   'Decor',
   'Transport',
   'Cake',
   'Stationery',
   'Hair & Makeup',
+  'Beauty',
+  'Bridalwear',
+  'Jewellery',
+  'Celebrant',
+  'Event Planner',
+  'Wedding Fayre',
   'Planning',
   'Other',
 ];
+
+/**
+ * Supplier categories that grant public-calendar publishing rights by default.
+ * A supplier whose category is in this list can create/update/delete public
+ * calendar events (subject to publicCalendarPublisherOverride).
+ */
+const PUBLISHER_CATEGORIES = ['Event Planner', 'Wedding Fayre'];
 
 /**
  * Valid supplier status values
@@ -129,6 +147,12 @@ const VALIDATION_RULES = {
  * @property {string|null} trialEndsAt - ISO timestamp when trial ends
  * @property {string|null} stripeCustomerId - Stripe customer ID for billing
  *
+ * Public Calendar Publishing
+ * @property {boolean|null} publicCalendarPublisherOverride - Admin override for publish rights:
+ *   true  → can publish regardless of category
+ *   false → cannot publish regardless of category
+ *   null  → derive from category (Event Planner / Wedding Fayre → publisher)
+ *
  * Timestamps
  * @property {string} createdAt - ISO timestamp of record creation
  * @property {string} updatedAt - ISO timestamp of last update
@@ -136,6 +160,7 @@ const VALIDATION_RULES = {
 
 module.exports = {
   VALID_CATEGORIES,
+  PUBLISHER_CATEGORIES,
   VALID_STATUSES,
   VALIDATION_RULES,
 };

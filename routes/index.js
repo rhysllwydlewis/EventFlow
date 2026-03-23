@@ -55,6 +55,7 @@ const twoFactorRoutes = require('./twoFactor');
 const phoneVerificationRoutes = require('./phoneVerification');
 const emailVerificationRoutes = require('./emailVerification');
 const catalogRoutes = require('./catalog');
+const publicCalendarRoutes = require('./public-calendar');
 
 /**
  * Mount all route modules
@@ -71,6 +72,10 @@ function mountRoutes(app, deps) {
 
   // JadeAssist catalog API (read-only, API-key protected when CATALOG_API_KEY is set)
   app.use('/api/catalog', catalogRoutes);
+
+  // Public calendar API (read for all, write for publisher suppliers / admins)
+  app.use('/api/v1/public-calendar', publicCalendarRoutes);
+  app.use('/api/public-calendar', publicCalendarRoutes); // Backward compatibility
 
   // Public routes (no auth required) - mount early to avoid auth middleware
   app.use('/api/v1/public', publicRoutes);

@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en-GB">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes" />
+    <meta name="theme-color" content="#0B8073" />
+    <script src="/assets/js/config/canonical-base.js"></script>
+    <title>Public Events Calendar | EventFlow</title>
+    <meta
+      name="description"
+      content="Browse upcoming wedding fayres, planning events and supplier showcases near you on the EventFlow public calendar."
+    />
+    <link rel="canonical" href="https://event-flow.co.uk/public-calendar" />
+    <link rel="preload" href="/assets/css/tokens.css?v=18.3.0" as="style" />
+    <link rel="preload" href="/assets/css/styles.css?v=18.3.0" as="style" />
+    <link rel="stylesheet" href="/assets/css/tokens.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/styles.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/components.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/animations.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/navbar.css?v=18.3.0" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+  </head>
+  <body>
+    <!-- TOP NAVBAR -->
+    <header class="ef-header" role="banner">
+      <div class="ef-container">
+        <div class="ef-header-content">
+          <a href="/" class="ef-brand" aria-label="EventFlow - Return to homepage">
+            <div class="ef-logo" aria-hidden="true"><div class="ef-logo-inner"></div></div>
+            <span class="ef-brand-text">EventFlow</span>
+          </a>
+          <nav class="ef-nav-desktop" aria-label="Main navigation">
+            <a href="/start" class="ef-nav-link">Plan</a>
+            <a href="/suppliers" class="ef-nav-link">Suppliers</a>
+            <a href="/public-calendar" class="ef-nav-link ef-nav-link--active">Events</a>
+            <a href="/marketplace" class="ef-nav-link">Marketplace</a>
+            <a href="/guides" class="ef-nav-link">Guides</a>
+          </nav>
+          <div class="ef-header-actions">
+            <button id="ef-notification-btn" class="ef-icon-btn" type="button" aria-label="View notifications" style="display:none;">
+              <svg class="ef-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              </svg>
+              <span id="ef-notification-badge" class="ef-badge" style="display:none;">0</span>
+            </button>
+            <a href="/auth" id="ef-auth-link" class="ef-btn ef-btn-primary">Log in</a>
+            <a href="#" id="ef-dashboard-link" class="ef-nav-link" style="display:none;">Dashboard</a>
+            <button id="ef-mobile-toggle" class="ef-mobile-toggle" type="button" aria-label="Toggle menu" aria-expanded="false" aria-controls="ef-mobile-menu">
+              <span class="ef-toggle-line"></span>
+              <span class="ef-toggle-line"></span>
+              <span class="ef-toggle-line"></span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div id="ef-mobile-menu" class="ef-mobile-menu" role="dialog" aria-modal="true" aria-label="Mobile navigation">
+        <nav class="ef-mobile-nav" aria-label="Primary navigation">
+          <a href="/start" class="ef-mobile-link">Plan an Event</a>
+          <a href="/suppliers" class="ef-mobile-link">Browse Suppliers</a>
+          <a href="/public-calendar" class="ef-mobile-link">Events Calendar</a>
+          <a href="/marketplace" class="ef-mobile-link">Marketplace</a>
+          <a href="/guides" class="ef-mobile-link">Guides</a>
+          <div class="ef-mobile-divider"></div>
+          <a href="/auth" id="ef-mobile-auth" class="ef-mobile-link ef-mobile-primary">Log in</a>
+          <a href="#" id="ef-mobile-dashboard" class="ef-mobile-link" style="display:none;">Dashboard</a>
+          <a href="#" id="ef-mobile-logout" class="ef-mobile-link" style="display:none;">Log out</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="section" id="main-content">
+      <div class="container">
+
+        <!-- Page heading + publisher actions -->
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;margin-bottom:1.5rem;">
+          <div>
+            <h1 style="margin:0 0 0.25rem;">Public Events Calendar</h1>
+            <p style="margin:0;color:var(--color-text-muted,#6b7280);">Wedding fayres, planning events &amp; supplier showcases.</p>
+          </div>
+          <!-- Only shown for publisher suppliers -->
+          <button id="pc-add-event-btn" class="btn btn-primary" style="display:none;">+ Add Event</button>
+        </div>
+
+        <!-- Filters bar -->
+        <div style="background:var(--color-surface,#fff);border:1px solid var(--color-border,#e5e7eb);border-radius:0.75rem;padding:1rem;margin-bottom:1.5rem;">
+          <div style="display:flex;flex-wrap:wrap;gap:0.75rem;align-items:flex-end;">
+            <div style="flex:1;min-width:160px;">
+              <label for="pc-filter-category" style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.25rem;">Category</label>
+              <input id="pc-filter-category" type="text" class="form-control" placeholder="e.g. Wedding Fayre" style="width:100%;" />
+            </div>
+            <div style="flex:1;min-width:160px;">
+              <label for="pc-filter-location" style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.25rem;">Location</label>
+              <input id="pc-filter-location" type="text" class="form-control" placeholder="City or region" style="width:100%;" />
+            </div>
+            <div style="flex:1;min-width:140px;">
+              <label for="pc-filter-from" style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.25rem;">From date</label>
+              <input id="pc-filter-from" type="date" class="form-control" style="width:100%;" />
+            </div>
+            <div style="flex:1;min-width:140px;">
+              <label for="pc-filter-to" style="display:block;font-size:0.85rem;font-weight:600;margin-bottom:0.25rem;">To date</label>
+              <input id="pc-filter-to" type="date" class="form-control" style="width:100%;" />
+            </div>
+            <div>
+              <button id="pc-filter-btn" class="btn btn-secondary">Search</button>
+              <button id="pc-filter-clear-btn" class="btn btn-ghost" style="margin-left:0.25rem;">Clear</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Event list -->
+        <div id="pc-events-list" aria-live="polite">
+          <p id="pc-loading" style="color:var(--color-text-muted,#6b7280);">Loading events…</p>
+        </div>
+
+        <!-- Pagination -->
+        <div id="pc-pagination" style="display:flex;gap:0.5rem;margin-top:1.5rem;justify-content:center;"></div>
+
+      </div>
+    </main>
+
+    <!-- Add / Edit Event Modal -->
+    <div id="pc-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9000;align-items:center;justify-content:center;">
+      <div style="background:#fff;border-radius:0.75rem;padding:2rem;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;position:relative;">
+        <h2 id="pc-modal-title" style="margin:0 0 1.25rem;">Add Event</h2>
+        <form id="pc-event-form" novalidate>
+          <input type="hidden" id="pc-form-id" />
+          <div style="margin-bottom:1rem;">
+            <label for="pc-form-title" style="font-weight:600;display:block;margin-bottom:0.25rem;">Title *</label>
+            <input id="pc-form-title" type="text" class="form-control" required maxlength="200" style="width:100%;" />
+          </div>
+          <div style="margin-bottom:1rem;">
+            <label for="pc-form-start" style="font-weight:600;display:block;margin-bottom:0.25rem;">Start date *</label>
+            <input id="pc-form-start" type="datetime-local" class="form-control" required style="width:100%;" />
+          </div>
+          <div style="margin-bottom:1rem;">
+            <label for="pc-form-end" style="font-weight:600;display:block;margin-bottom:0.25rem;">End date</label>
+            <input id="pc-form-end" type="datetime-local" class="form-control" style="width:100%;" />
+          </div>
+          <div style="margin-bottom:1rem;">
+            <label for="pc-form-location" style="font-weight:600;display:block;margin-bottom:0.25rem;">Location</label>
+            <input id="pc-form-location" type="text" class="form-control" maxlength="200" style="width:100%;" />
+          </div>
+          <div style="margin-bottom:1rem;">
+            <label for="pc-form-category" style="font-weight:600;display:block;margin-bottom:0.25rem;">Category</label>
+            <input id="pc-form-category" type="text" class="form-control" maxlength="100" placeholder="e.g. Wedding Fayre" style="width:100%;" />
+          </div>
+          <div style="margin-bottom:1rem;">
+            <label for="pc-form-description" style="font-weight:600;display:block;margin-bottom:0.25rem;">Description</label>
+            <textarea id="pc-form-description" class="form-control" rows="4" maxlength="5000" style="width:100%;resize:vertical;"></textarea>
+          </div>
+          <div style="margin-bottom:1rem;">
+            <label for="pc-form-image" style="font-weight:600;display:block;margin-bottom:0.25rem;">Image URL</label>
+            <input id="pc-form-image" type="url" class="form-control" maxlength="500" style="width:100%;" />
+          </div>
+          <div style="margin-bottom:1.5rem;">
+            <label for="pc-form-external" style="font-weight:600;display:block;margin-bottom:0.25rem;">External link</label>
+            <input id="pc-form-external" type="url" class="form-control" maxlength="500" style="width:100%;" />
+          </div>
+          <div id="pc-form-error" style="color:#dc2626;margin-bottom:1rem;display:none;"></div>
+          <div style="display:flex;gap:0.5rem;justify-content:flex-end;">
+            <button type="button" id="pc-modal-cancel" class="btn btn-secondary">Cancel</button>
+            <button type="submit" id="pc-modal-submit" class="btn btn-primary">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <footer class="footer" role="contentinfo">
+      <div class="container ef-footer-content">
+        <div><strong>EventFlow</strong><br /><span class="small">Event planning made simple.</span></div>
+        <div class="version">Version: <span id="ef-version-label">loading…</span></div>
+        <div class="small">
+          <a href="/guides">Guides</a> · <a href="/marketplace">Marketplace</a> ·
+          <a href="/public-calendar">Events Calendar</a> ·
+          <a href="/legal">Legal Hub</a> ·
+          <button type="button" data-cookie-prefs>Cookie preferences</button>
+        </div>
+      </div>
+    </footer>
+
+    <script src="/assets/js/navbar.js" defer></script>
+    <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
+    <script src="/assets/js/pages/public-calendar-init.js" defer></script>
+  </body>
+</html>

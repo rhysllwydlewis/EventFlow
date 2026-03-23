@@ -465,6 +465,7 @@ const canonicalPages = [
   'data-rights',
   'reset-password',
   'dashboard',
+  'public-calendar',
 ];
 
 canonicalPages.forEach(page => {

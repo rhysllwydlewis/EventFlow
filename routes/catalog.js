@@ -64,22 +64,8 @@ const SUPPLIER_PUBLIC_FIELDS = [
   'viewCount',
 ];
 
-/** Valid category values — kept in sync with models/Supplier.js. */
-const VALID_CATEGORIES = [
-  'Venues',
-  'Catering',
-  'Photography',
-  'Videography',
-  'Entertainment',
-  'Florist',
-  'Decor',
-  'Transport',
-  'Cake',
-  'Stationery',
-  'Hair & Makeup',
-  'Planning',
-  'Other',
-];
+/** Valid category values — imported from models/Supplier.js (single source of truth). */
+const { VALID_CATEGORIES } = require('../models/Supplier');
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;

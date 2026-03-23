@@ -931,5 +931,63 @@ router.post(
   }
 );
 
+/**
+ * PUT /api/admin/suppliers/:id/calendar-override
+ * Set or clear the public-calendar publisher override for a supplier.
+ *
+ * Body: { override: true | false | null }
+ *   true  → supplier can publish regardless of category
+ *   false → supplier cannot publish regardless of category
+ *   null  → derive from category (default behaviour)
+ */
+router.put(
+  '/suppliers/:id/calendar-override',
+  applyAuthRequired,
+  applyRoleRequired('admin'),
+  applyCsrfProtection,
+  writeLimiter,
+  async (req, res) => {
+    try {
+      const all = await dbUnified.read('suppliers');
+      const s = all.find(sup => sup.id === req.params.id);
+      if (!s) {
+        return res.status(404).json({ error: 'Supplier not found' });
+      }
+
+      const { override } = req.body;
+      if (override !== true && override !== false && override !== null) {
+        return res.status(400).json({
+          error: 'override must be true, false, or null',
+        });
+      }
+
+      const now = new Date().toISOString();
+      await dbUnified.updateOne(
+        'suppliers',
+        { id: req.params.id },
+        { $set: { publicCalendarPublisherOverride: override, updatedAt: now } }
+      );
+
+      auditLog({
+        adminId: req.user.id,
+        adminEmail: req.user.email,
+        action: 'SUPPLIER_CALENDAR_OVERRIDE_UPDATED',
+        targetType: 'supplier',
+        targetId: s.id,
+        details: { name: s.name, override },
+      });
+
+      res.json({
+        ok: true,
+        supplierId: s.id,
+        publicCalendarPublisherOverride: override,
+      });
+    } catch (error) {
+      logger.error('Error updating calendar override:', error);
+      res.status(500).json({ error: 'Failed to update calendar override' });
+    }
+  }
+);
+
 module.exports = router;
 module.exports.initializeDependencies = initializeDependencies;

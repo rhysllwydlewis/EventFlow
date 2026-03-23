@@ -58,6 +58,31 @@
       return;
     }
 
+    // Also load saved public calendar events and add them with a distinct colour
+    try {
+      const pubRes = await fetch('/api/v1/public-calendar/events/saved', {
+        credentials: 'include',
+      });
+      if (pubRes.ok) {
+        const pubData = await pubRes.json();
+        const pubEvents = (pubData.events || []).map(ev => ({
+          id: `pce_${ev.id}`,
+          title: ev.title || 'Public Event',
+          start: ev.startDate,
+          end: ev.endDate || undefined,
+          description: ev.description || '',
+          location: ev.location || '',
+          url: `/public-calendar`,
+          backgroundColor: '#7c3aed',
+          borderColor: '#6d28d9',
+          extendedProps: { publicEvent: true },
+        }));
+        events = events.concat(pubEvents);
+      }
+    } catch (_) {
+      // Silently ignore — public calendar saves are optional
+    }
+
     // Initialize FullCalendar
     const calendar = new FullCalendar.Calendar(container, {
       initialView: options.initialView || 'dayGridMonth',

@@ -47,6 +47,8 @@ const files = {
   popularSearches: path.join(DATA_DIR, 'popularSearches.json'),
   ab_views: path.join(DATA_DIR, 'ab_views.json'),
   ab_conversions: path.join(DATA_DIR, 'ab_conversions.json'),
+  public_calendar_events: path.join(DATA_DIR, 'public_calendar_events.json'),
+  public_calendar_saves: path.join(DATA_DIR, 'public_calendar_saves.json'),
 };
 
 function ensure() {

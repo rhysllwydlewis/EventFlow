@@ -255,6 +255,64 @@
       </div>
     `;
     document.getElementById('proPlanInfo').innerHTML = proPlanHtml;
+
+    // ── Public Calendar Override ───────────────────────────────────────────
+    const override = supplierData.publicCalendarPublisherOverride;
+    // Derive whether the supplier can publish by default (from category)
+    const publisherCategories = ['Event Planner', 'Wedding Fayre'];
+    const defaultPublisher = publisherCategories.includes(supplierData.category || '');
+    const effectivePublisher =
+      override === true ? true : override === false ? false : defaultPublisher;
+
+    const overrideLabel =
+      override === true
+        ? '<span style="color:#16a34a">✔ Forced ON (admin override)</span>'
+        : override === false
+          ? '<span style="color:#dc2626">✘ Forced OFF (admin override)</span>'
+          : '<span style="color:#6b7280">Auto (from category)</span>';
+
+    const calendarHtml = `
+      <p><strong>Supplier category:</strong> ${AdminShared.escapeHtml(supplierData.category || 'Unknown')}</p>
+      <p><strong>Default publishing right:</strong> ${defaultPublisher ? '<span style="color:#16a34a">Yes</span>' : '<span style="color:#6b7280">No</span>'}</p>
+      <p><strong>Override:</strong> ${overrideLabel}</p>
+      <p><strong>Effective permission:</strong> ${effectivePublisher ? '<span style="color:#16a34a;font-weight:600">Can publish</span>' : '<span style="color:#dc2626;font-weight:600">Read-only</span>'}</p>
+      <div style="margin-top:1rem;border-top:1px solid #e5e7eb;padding-top:1rem;">
+        <h4 style="margin-bottom:0.75rem;font-size:0.9rem;font-weight:600;">Set Override</h4>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+          <button class="btn btn-success btn-small" id="calOverrideTrue">Force ON</button>
+          <button class="btn btn-danger btn-small" id="calOverrideFalse">Force OFF</button>
+          <button class="btn btn-secondary btn-small" id="calOverrideNull">Clear (auto)</button>
+        </div>
+      </div>
+    `;
+    document.getElementById('calendarOverrideInfo').innerHTML = calendarHtml;
+
+    // Wire up override buttons
+    async function setCalendarOverride(value) {
+      try {
+        await AdminShared.adminFetch(`/api/admin/suppliers/${supplierId}/calendar-override`, {
+          method: 'PUT',
+          body: JSON.stringify({ override: value }),
+        });
+        AdminShared.showToast(
+          value === null ? 'Calendar override cleared' : `Calendar override set to ${value}`,
+          'success'
+        );
+        await loadSupplier();
+      } catch (e) {
+        AdminShared.showToast('Failed to update calendar override', 'error');
+      }
+    }
+
+    document
+      .getElementById('calOverrideTrue')
+      .addEventListener('click', () => setCalendarOverride(true));
+    document
+      .getElementById('calOverrideFalse')
+      .addEventListener('click', () => setCalendarOverride(false));
+    document
+      .getElementById('calOverrideNull')
+      .addEventListener('click', () => setCalendarOverride(null));
   }
 
   async function loadPackages() {
@@ -533,7 +591,9 @@
       // Auto-focus the select
       setTimeout(() => {
         const sel = dialog.querySelector('#edit-field-select');
-        if (sel) sel.focus();
+        if (sel) {
+          sel.focus();
+        }
       }, 50);
 
       dialog.querySelector('#edit-field-confirm').addEventListener('click', () => {

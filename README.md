@@ -129,10 +129,72 @@ Getting "502 Bad Gateway" or "connection refused" errors? This usually means Mon
 - **Photo Moderation** - Batch approve/reject photo uploads
 - **Review Moderation** - Approve/reject customer reviews
 - **Smart Tagging** - Automatically generate relevant tags for suppliers based on descriptions
+- **Public Calendar Override** - Force-grant or force-deny calendar publishing rights per supplier (see below)
 - **Comprehensive Audit Log** - Track all admin actions with timestamps
 - **Data Export** - CSV and JSON exports for users, marketing lists, full database
 - **Analytics Dashboard** - User signups, activity metrics, platform statistics
 - **GDPR Compliance** - User data management and privacy controls
+
+### Supplier Types
+
+Suppliers are classified into the following categories (available in signup and profile forms):
+
+| Category          | Publisher? |
+| ----------------- | ---------- |
+| Venues            | No         |
+| Catering          | No         |
+| Photography       | No         |
+| Videography       | No         |
+| Entertainment     | No         |
+| Music/DJ          | No         |
+| Florist           | No         |
+| Decor             | No         |
+| Transport         | No         |
+| Cake              | No         |
+| Stationery        | No         |
+| Hair & Makeup     | No         |
+| Beauty            | No         |
+| Bridalwear        | No         |
+| Jewellery         | No         |
+| Celebrant         | No         |
+| **Event Planner** | **Yes**    |
+| **Wedding Fayre** | **Yes**    |
+| Planning          | No         |
+| Other             | No         |
+
+"Publisher" suppliers can create, edit and delete events on the shared Public Calendar (see below).
+
+### Public Calendar & Publishing Permissions
+
+EventFlow includes a shared public calendar at `/public-calendar` where wedding fayres, planning events and supplier showcases can be listed.
+
+#### Who can publish?
+
+- **Event Planner** and **Wedding Fayre** suppliers can create/update/delete public calendar events by default.
+- All other suppliers and customers are **read-only**.
+- Permissions are **enforced at the API layer** — the frontend cannot bypass them.
+
+#### Ownership rule
+
+A publisher supplier can only edit or delete their **own** events.  
+Admins can manage any event.
+
+#### Admin override (tri-state)
+
+Each supplier has a `publicCalendarPublisherOverride` field settable from the Admin → Supplier Detail page:
+
+| Value            | Effect                                         |
+| ---------------- | ---------------------------------------------- |
+| `true`           | Supplier can publish regardless of category    |
+| `false`          | Supplier cannot publish regardless of category |
+| `null` (default) | Derive from category (see table above)         |
+
+#### Customer "Save to my calendar"
+
+Logged-in customers (and other users) can click **"+ Save to my calendar"** on any public event.  
+Saved events appear on the **customer dashboard calendar** (purple colour).  
+Saving the same event twice is idempotent — no duplicate is created.  
+Users can also remove a saved event via the "✓ Saved" toggle button.
 
 ### Admin Authentication
 
