@@ -5,6 +5,41 @@
 (function () {
   'use strict';
 
+  // ── CSRF token — fetched once on page load, reused for all submissions ────────
+  // Pre-fetching on page load ensures the csrf cookie is set in the browser before
+  // any form POST is attempted, preventing "CSRF token missing" errors.
+
+  let _csrfToken = '';
+
+  async function prefetchCsrfToken() {
+    try {
+      const res = await fetch('/api/v1/csrf-token', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        _csrfToken = data.csrfToken || data.token || '';
+      }
+    } catch (_) {
+      // Non-fatal — forms will attempt a fresh fetch if token is empty
+    }
+  }
+
+  async function getCsrfToken() {
+    if (_csrfToken) {
+      return _csrfToken;
+    }
+    // Fallback: fetch now (e.g. if page-load pre-fetch failed)
+    try {
+      const res = await fetch('/api/v1/csrf-token', { credentials: 'include' });
+      if (res.ok) {
+        const data = await res.json();
+        _csrfToken = data.csrfToken || data.token || '';
+      }
+    } catch (_) {
+      // ignore
+    }
+    return _csrfToken;
+  }
+
   // ── Helpers ──────────────────────────────────────────────────────────────────
 
   function showStatus(el, msg, type) {
@@ -16,13 +51,6 @@
     el.textContent = '';
     el.style.display = '';
     el.className = 'partner-status';
-  }
-
-  function getCsrfToken() {
-    return fetch('/api/v1/csrf-token', { credentials: 'include' })
-      .then(r => (r.ok ? r.json() : { csrfToken: '' }))
-      .then(d => d.csrfToken || '')
-      .catch(() => '');
   }
 
   function setButtonLoading(btn, loading) {
@@ -256,6 +284,8 @@
   // ── Init ──────────────────────────────────────────────────────────────────────
 
   function init() {
+    // Pre-fetch CSRF token immediately so cookie is set before any form submit
+    prefetchCsrfToken();
     checkAlreadyLoggedIn();
     initTabs();
     initLoginForm();

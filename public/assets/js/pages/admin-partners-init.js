@@ -54,7 +54,7 @@
       summary.textContent = 'Loading…';
     }
     if (tbody) {
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2rem;color:#888;">Loading partners…</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:rgba(255,255,255,0.3);">Loading partners…</td></tr>`;
     }
 
     try {
@@ -62,8 +62,12 @@
       allPartners = data.items || [];
       updateStats();
       renderTable();
+      toggleEmptyState();
       if (summary) {
-        summary.textContent = `${allPartners.length} partners`;
+        summary.textContent =
+          allPartners.length === 0
+            ? 'No partners yet'
+            : `${allPartners.length} partner${allPartners.length === 1 ? '' : 's'}`;
       }
     } catch (err) {
       AdminShared.debugError('Failed to load partners', err);
@@ -71,7 +75,38 @@
         summary.textContent = 'Error loading';
       }
       if (tbody) {
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2rem;color:#ef4444;">Error loading partners. <button onclick="loadPartners()" style="color:#60a5fa;background:none;border:none;cursor:pointer;">Retry</button></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:#fca5a5;">
+          Error loading partners.
+          <button onclick="loadPartners()" style="margin-left:0.5rem;color:#60a5fa;background:none;border:none;cursor:pointer;text-decoration:underline;">Retry</button>
+        </td></tr>`;
+      }
+    }
+  }
+
+  /** Show empty-state hero or table depending on whether partners exist */
+  function toggleEmptyState() {
+    const tableSection = document.getElementById('partners-table-section');
+    const emptyState = document.getElementById('ap-empty-state');
+    const progInfo = document.getElementById('ap-programme-info');
+    const hasPartners = allPartners.length > 0;
+
+    if (tableSection) {
+      tableSection.hidden = !hasPartners;
+    }
+    if (emptyState) {
+      emptyState.hidden = hasPartners;
+    }
+    if (progInfo) {
+      progInfo.hidden = !hasPartners;
+    }
+
+    // Show the partner sign-up URL in the info card
+    if (progInfo && hasPartners) {
+      const urlEl = document.getElementById('ap-partner-signup-url');
+      if (urlEl) {
+        const base = window.location.origin;
+        urlEl.textContent = `${base}/partner`;
+        urlEl.href = '/partner';
       }
     }
   }
@@ -120,7 +155,28 @@
     }
 
     if (list.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2rem;color:#888;">No partners found.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:rgba(255,255,255,0.35);">
+        No partners match your filters.
+        <button type="button" id="ap-clear-filters-btn"
+          style="margin-left:0.5rem;color:#60a5fa;background:none;border:none;cursor:pointer;text-decoration:underline;font-size:inherit;">
+          Clear filters
+        </button>
+      </td></tr>`;
+      // Wire clear-filters button after inserting HTML
+      const clearBtn = document.getElementById('ap-clear-filters-btn');
+      if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+          const s = document.getElementById('partnerSearch');
+          const f = document.getElementById('statusFilter');
+          if (s) {
+            s.value = '';
+          }
+          if (f) {
+            f.value = '';
+          }
+          renderTable();
+        });
+      }
       return;
     }
 

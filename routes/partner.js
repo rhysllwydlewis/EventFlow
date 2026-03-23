@@ -123,6 +123,13 @@ router.get('/me', authRequired, roleRequired('partner'), async (req, res) => {
       return res.status(404).json({ error: 'Partner account not found' });
     }
 
+    if (partner.status === 'disabled') {
+      return res.status(403).json({
+        error: 'Your partner account has been disabled. Please contact support.',
+        disabled: true,
+      });
+    }
+
     const balance = await partnerService.getBalance(partner.id);
     const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
     const refLink = `${baseUrl}/auth?ref=${partner.refCode}&role=supplier`;
@@ -152,6 +159,13 @@ router.get('/referrals', authRequired, roleRequired('partner'), async (req, res)
     const partner = await partnerService.getPartnerByUserId(req.user.id);
     if (!partner) {
       return res.status(404).json({ error: 'Partner account not found' });
+    }
+
+    if (partner.status === 'disabled') {
+      return res.status(403).json({
+        error: 'Your partner account has been disabled. Please contact support.',
+        disabled: true,
+      });
     }
 
     const referrals = await partnerService.listReferralsByPartnerId(partner.id);
@@ -189,6 +203,13 @@ router.get('/transactions', authRequired, roleRequired('partner'), async (req, r
     const partner = await partnerService.getPartnerByUserId(req.user.id);
     if (!partner) {
       return res.status(404).json({ error: 'Partner account not found' });
+    }
+
+    if (partner.status === 'disabled') {
+      return res.status(403).json({
+        error: 'Your partner account has been disabled. Please contact support.',
+        disabled: true,
+      });
     }
 
     const balance = await partnerService.getBalance(partner.id);
