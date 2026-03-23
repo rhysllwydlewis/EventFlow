@@ -168,26 +168,52 @@
         </div>
       </section>
 
-      <!-- Payout request -->
-      <section class="partner-section" aria-labelledby="payout-heading">
+      <!-- Cashout — Coming Soon -->
+      <section class="partner-section" aria-labelledby="cashout-heading">
         <div class="partner-section-header">
           <div>
-            <h2 class="partner-section-title" id="payout-heading">Request Payout</h2>
-            <p class="partner-section-subtitle">Redeem your available points as a gift card via a support ticket</p>
+            <h2 class="partner-section-title" id="cashout-heading">Gift Card Cashout</h2>
+            <p class="partner-section-subtitle">Redeem your points for gift cards — coming soon</p>
+          </div>
+        </div>
+        <div class="partner-payout-info" style="display:flex;align-items:flex-start;gap:1.25rem;flex-wrap:wrap;">
+          <div style="flex:1;min-width:220px;">
+            <div style="display:inline-flex;align-items:center;gap:0.5rem;background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.3);border-radius:8px;padding:0.35rem 0.85rem;margin-bottom:0.9rem;">
+              <span style="font-size:0.8rem;font-weight:700;color:#fbbf24;letter-spacing:0.05em;">COMING SOON</span>
+            </div>
+            <p style="font-size:0.88rem;color:rgba(255,255,255,0.65);line-height:1.7;margin:0;">
+              We're building an instant gift card cashout feature powered by
+              <a href="https://www.tremendous.com" target="_blank" rel="noopener noreferrer"
+                 style="color:#13B6A2;text-decoration:none;font-weight:600;">Tremendous</a>.
+              Once live, you'll be able to redeem your points for gift cards from a wide range of brands directly from this dashboard — no waiting, no manual process.
+            </p>
+            <p style="font-size:0.82rem;color:rgba(255,255,255,0.4);margin:0.75rem 0 0;line-height:1.5;">
+              Your points are accumulating now and will be ready to redeem as soon as we launch.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Contact Support -->
+      <section class="partner-section" aria-labelledby="support-heading">
+        <div class="partner-section-header">
+          <div>
+            <h2 class="partner-section-title" id="support-heading">Contact Support</h2>
+            <p class="partner-section-subtitle">Raise a support ticket for any questions or issues</p>
           </div>
         </div>
         <div class="partner-payout-info">
           <p style="font-size:0.88rem;color:rgba(255,255,255,0.65);line-height:1.6;margin:0 0 1rem;">
-            When you request a payout, a support ticket is raised and our team will contact you to arrange your gift card. Minimum redemption is 100 points (£1.00).
+            Need help with your account, referrals, or anything else? Send our team a message and we'll get back to you.
           </p>
           <button
-            id="partner-payout-btn"
+            id="partner-support-btn"
             type="button"
             class="partner-submit-btn"
-            style="max-width:280px;"
+            style="max-width:260px;"
             aria-haspopup="dialog"
           >
-            🎁 Request payout (gift card)
+            ✉️ Raise a support ticket
           </button>
         </div>
       </section>
@@ -213,52 +239,39 @@
     <!-- Toast -->
     <div id="partner-toast" class="partner-toast" role="status" aria-live="polite" aria-atomic="true"></div>
 
-    <!-- Payout request modal -->
-    <div id="payout-modal-overlay" class="partner-modal-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="payout-modal-title">
+    <!-- Support ticket modal -->
+    <div id="support-modal-overlay" class="partner-modal-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="support-modal-title">
       <div class="partner-modal">
-        <h3 class="partner-modal-title" id="payout-modal-title">🎁 Request Gift Card Payout</h3>
-        <p class="partner-modal-sub" id="payout-modal-balance"></p>
-        <form id="payout-request-form" novalidate>
+        <h3 class="partner-modal-title" id="support-modal-title">✉️ Raise a Support Ticket</h3>
+        <p class="partner-modal-sub">Our team will respond as soon as possible.</p>
+        <form id="support-ticket-form" novalidate>
           <div class="partner-modal-field">
-            <label for="payout-points">Points to redeem <span style="color:#ef4444">*</span></label>
+            <label for="support-subject">Subject <span style="color:#ef4444">*</span></label>
             <input
-              id="payout-points"
-              name="points"
-              type="number"
-              min="100"
+              id="support-subject"
+              name="subject"
+              type="text"
               class="partner-modal-input"
-              placeholder="Minimum 100 points"
+              placeholder="Brief description of your query"
+              maxlength="150"
               required
             />
-            <small style="color:rgba(255,255,255,0.4);font-size:0.75rem;margin-top:0.25rem;display:block;">
-              100 points = £1.00 &nbsp;·&nbsp; Minimum 100 points
-            </small>
           </div>
           <div class="partner-modal-field">
-            <label for="payout-gift-type">Preferred gift card type</label>
-            <select id="payout-gift-type" name="giftCardType" class="partner-modal-input" style="appearance:auto;">
-              <option value="">Not specified</option>
-              <option value="Amazon">Amazon</option>
-              <option value="John Lewis">John Lewis</option>
-              <option value="ASOS">ASOS</option>
-              <option value="Marks &amp; Spencer">Marks &amp; Spencer</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-          <div class="partner-modal-field">
-            <label for="payout-message">Additional message <span style="color:rgba(255,255,255,0.35)">(optional)</span></label>
+            <label for="support-message">Message <span style="color:#ef4444">*</span></label>
             <textarea
-              id="payout-message"
+              id="support-message"
               name="message"
               class="partner-modal-textarea"
-              placeholder="Any additional details for our team…"
-              maxlength="1000"
+              placeholder="Describe your question or issue in detail…"
+              maxlength="2000"
+              required
             ></textarea>
           </div>
-          <div id="payout-modal-status" class="partner-status" role="alert" aria-live="polite"></div>
+          <div id="support-modal-status" class="partner-status" role="alert" aria-live="polite"></div>
           <div class="partner-modal-actions">
-            <button type="button" class="partner-modal-btn partner-modal-btn--cancel" id="payout-modal-cancel">Cancel</button>
-            <button type="submit" class="partner-modal-btn partner-modal-btn--submit" id="payout-modal-submit">Submit request</button>
+            <button type="button" class="partner-modal-btn partner-modal-btn--cancel" id="support-modal-cancel">Cancel</button>
+            <button type="submit" class="partner-modal-btn partner-modal-btn--submit" id="support-modal-submit">Send ticket</button>
           </div>
         </form>
       </div>

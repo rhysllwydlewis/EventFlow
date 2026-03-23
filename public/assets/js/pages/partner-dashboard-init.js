@@ -423,26 +423,21 @@
     });
   }
 
-  // ── Payout request modal ──────────────────────────────────────────────────────
+  // ── Support ticket modal ──────────────────────────────────────────────────────
 
-  function initPayoutModal(credits) {
-    const overlay = document.getElementById('payout-modal-overlay');
-    const openBtn = document.getElementById('partner-payout-btn');
-    const cancelBtn = document.getElementById('payout-modal-cancel');
-    const form = document.getElementById('payout-request-form');
-    const balanceEl = document.getElementById('payout-modal-balance');
-    const statusEl = document.getElementById('payout-modal-status');
-    const submitBtn = document.getElementById('payout-modal-submit');
+  function initSupportTicketModal() {
+    const overlay = document.getElementById('support-modal-overlay');
+    const openBtn = document.getElementById('partner-support-btn');
+    const cancelBtn = document.getElementById('support-modal-cancel');
+    const form = document.getElementById('support-ticket-form');
+    const statusEl = document.getElementById('support-modal-status');
+    const submitBtn = document.getElementById('support-modal-submit');
 
     if (!overlay || !openBtn) {
       return;
     }
 
     function openModal() {
-      if (balanceEl) {
-        const bal = (credits && credits.balance) || 0;
-        balanceEl.textContent = `You have ${bal.toLocaleString()} available points (${toPounds(bal)})`;
-      }
       if (statusEl) {
         statusEl.textContent = '';
         statusEl.className = 'partner-status';
@@ -478,23 +473,22 @@
           statusEl.textContent = '';
         }
 
-        const pointsInput = document.getElementById('payout-points');
-        const giftTypeInput = document.getElementById('payout-gift-type');
-        const messageInput = document.getElementById('payout-message');
+        const subjectInput = document.getElementById('support-subject');
+        const messageInput = document.getElementById('support-message');
 
-        const points = parseInt((pointsInput && pointsInput.value) || '0', 10);
-        if (!Number.isFinite(points) || points < 100) {
+        const subject = subjectInput ? subjectInput.value.trim() : '';
+        const message = messageInput ? messageInput.value.trim() : '';
+
+        if (!subject) {
           if (statusEl) {
-            statusEl.textContent = 'Please enter at least 100 points.';
+            statusEl.textContent = 'Please enter a subject.';
             statusEl.className = 'partner-status partner-status--error';
           }
           return;
         }
-
-        const bal = (credits && credits.balance) || 0;
-        if (points > bal) {
+        if (!message) {
           if (statusEl) {
-            statusEl.textContent = `You only have ${bal} available points.`;
+            statusEl.textContent = 'Please enter a message.';
             statusEl.className = 'partner-status partner-status--error';
           }
           return;
@@ -502,42 +496,38 @@
 
         if (submitBtn) {
           submitBtn.disabled = true;
-          submitBtn.textContent = 'Submitting…';
+          submitBtn.textContent = 'Sending…';
         }
 
         try {
           const csrfToken = await getCsrfToken();
-          const res = await fetch('/api/v1/partner/payout-request', {
+          const res = await fetch('/api/v1/partner/support-ticket', {
             method: 'POST',
             credentials: 'include',
             headers: {
               'Content-Type': 'application/json',
               'X-CSRF-Token': csrfToken,
             },
-            body: JSON.stringify({
-              points,
-              giftCardType: giftTypeInput ? giftTypeInput.value : '',
-              message: messageInput ? messageInput.value : '',
-            }),
+            body: JSON.stringify({ subject, message }),
           });
 
           const body = await res.json().catch(() => ({}));
 
           if (!res.ok) {
-            throw new Error(body.error || 'Failed to submit payout request');
+            throw new Error(body.error || 'Failed to submit ticket');
           }
 
           closeModal();
-          showToast('Payout request submitted! Our team will be in touch.', 'success');
+          showToast('Support ticket submitted! Our team will be in touch.', 'success');
         } catch (err) {
           if (statusEl) {
-            statusEl.textContent = err.message || 'Failed to submit request.';
+            statusEl.textContent = err.message || 'Failed to submit ticket.';
             statusEl.className = 'partner-status partner-status--error';
           }
         } finally {
           if (submitBtn) {
             submitBtn.disabled = false;
-            submitBtn.textContent = 'Submit request';
+            submitBtn.textContent = 'Send ticket';
           }
         }
       });
@@ -638,8 +628,8 @@
         }
       });
 
-      // Payout request
-      initPayoutModal(credits);
+      // Support ticket modal
+      initSupportTicketModal();
 
       // Referrals & transactions
       renderReferrals(referrals);

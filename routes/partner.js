@@ -294,19 +294,34 @@ router.get('/code-history', authRequired, roleRequired('partner'), async (req, r
   }
 });
 
-// ─── Payout Request ───────────────────────────────────────────────────────────
-
-const GIFT_CARD_TYPES = ['Amazon', 'John Lewis', 'ASOS', 'Marks & Spencer', 'Other'];
+// ─── Payout Request (Coming Soon) ────────────────────────────────────────────
 
 /**
  * POST /api/partner/payout-request
- * Create a support ticket requesting a gift-card payout.
  *
- * Body:
- *   { points: number, giftCardType?: string, message?: string }
+ * Gift-card cashout via this endpoint is temporarily unavailable while we
+ * integrate with the Tremendous API for instant payouts. Partners should use
+ * the partner dashboard which will surface the new flow once live.
+ */
+router.post('/payout-request', authRequired, roleRequired('partner'), csrfProtection, (req, res) => {
+  res.status(503).json({
+    error:
+      'Gift card cashout is coming soon. We are integrating with Tremendous for instant payouts. ' +
+      'Your points are safe and will be redeemable once the feature launches.',
+    comingSoon: true,
+  });
+});
+
+// ─── General Partner Support Ticket ──────────────────────────────────────────
+
+/**
+ * POST /api/partner/support-ticket
+ * Raise a general-purpose support ticket from the partner dashboard.
+ *
+ * Body: { subject: string, message: string }
  */
 router.post(
-  '/payout-request',
+  '/support-ticket',
   authRequired,
   roleRequired('partner'),
   csrfProtection,
@@ -323,51 +338,19 @@ router.post(
         });
       }
 
-      const { points, giftCardType, message } = req.body || {};
+      const { subject, message } = req.body || {};
 
-      const parsedPoints = parseInt(points, 10);
-      if (!Number.isFinite(parsedPoints) || parsedPoints <= 0) {
-        return res.status(400).json({ error: 'points must be a positive integer' });
+      const sanitizedSubject = subject ? String(subject).trim().slice(0, 150) : '';
+      if (!sanitizedSubject) {
+        return res.status(400).json({ error: 'Subject is required' });
       }
 
-      const balance = await partnerService.getBalance(partner.id);
-      if (parsedPoints > balance.balance) {
-        return res.status(400).json({
-          error: `Insufficient points. You have ${balance.balance} available.`,
-        });
+      const sanitizedMessage = message ? String(message).trim().slice(0, 2000) : '';
+      if (!sanitizedMessage) {
+        return res.status(400).json({ error: 'Message is required' });
       }
-
-      const rawGiftCardType = giftCardType ? String(giftCardType).trim() : '';
-
-      if (rawGiftCardType && !GIFT_CARD_TYPES.includes(rawGiftCardType)) {
-        return res.status(400).json({
-          error: `giftCardType must be one of: ${GIFT_CARD_TYPES.join(', ')}`,
-        });
-      }
-
-      const sanitizedGiftCardType = rawGiftCardType || 'Not specified';
-
-      if (sanitizedGiftCardType === 'Other' && !message) {
-        return res.status(400).json({
-          error: 'A message is required when gift card type is "Other"',
-        });
-      }
-
-      const sanitizedMessage = message ? String(message).trim().slice(0, 1000) : '';
 
       const now = new Date().toISOString();
-      const valueGbp = `£${(parsedPoints / 100).toFixed(2)}`;
-      const subject = `Partner payout request — ${parsedPoints} credits (${valueGbp}) [${partner.id}]`;
-
-      const ticketMessage =
-        `Partner payout request\n\n` +
-        `Partner ID: ${partner.id}\n` +
-        `Partner Code: ${partner.refCode}\n` +
-        `Points requested: ${parsedPoints} (${valueGbp})\n` +
-        `Current balance: ${balance.balance} credits\n` +
-        `Preferred gift card: ${sanitizedGiftCardType}\n${
-          sanitizedMessage ? `\nPartner message:\n${sanitizedMessage}` : ''
-        }`;
 
       const newTicket = {
         id: uid('tkt'),
@@ -375,39 +358,32 @@ router.post(
         senderType: 'partner',
         senderName: req.user.name || req.user.firstName || 'Partner',
         senderEmail: req.user.email,
-        subject,
-        message: ticketMessage,
+        subject: sanitizedSubject,
+        message: sanitizedMessage,
         status: 'open',
         priority: 'normal',
         accountTier: 'partner',
-        prioritySource: 'partner_payout',
+        category: 'partner_support',
+        partnerId: partner.id,
+        partnerRefCode: partner.refCode,
         assignedTo: null,
         lastReplyAt: now,
         lastReplyBy: 'partner',
         responses: [],
-        // Payout-specific metadata
-        partnerId: partner.id,
-        partnerRefCode: partner.refCode,
-        payoutPoints: parsedPoints,
-        payoutValueGbp: valueGbp,
-        payoutGiftCardType: sanitizedGiftCardType,
-        category: 'partner_payout',
         createdAt: now,
         updatedAt: now,
       };
 
       await dbUnified.insertOne('tickets', newTicket);
-      logger.info(
-        `Partner payout request ticket created: ${newTicket.id} for partner ${partner.id}`
-      );
+      logger.info(`Partner support ticket created: ${newTicket.id} for partner ${partner.id}`);
 
       res.status(201).json({
         ok: true,
         ticketId: newTicket.id,
-        message: 'Your payout request has been submitted. Our team will be in touch.',
+        message: 'Your support ticket has been submitted. Our team will be in touch.',
       });
     } catch (err) {
-      logger.error('Error creating partner payout request:', err);
+      logger.error('Error creating partner support ticket:', err);
       res.status(500).json({ error: 'Internal server error' });
     }
   }

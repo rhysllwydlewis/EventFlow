@@ -1,15 +1,15 @@
 /**
- * Unit tests for partner payout request endpoint validation.
+ * Unit tests for partner payout and support-ticket endpoints.
  *
- * Tests:
- *   - points must be a positive integer
- *   - points must not exceed available balance
- *   - giftCardType must be in allowed list (or absent)
- *   - giftCardType "Other" requires a message
- *   - disabled partners are rejected with 403
- *   - unauthenticated requests are rejected (401 from auth middleware)
- *   - non-partner role requests are rejected (403 from role middleware)
- *   - valid requests succeed
+ * Payout request (`POST /api/partner/payout-request`):
+ *   - Returns 503 "coming soon" for all authenticated partner requests
+ *   - Still rejects unauthenticated (401) and non-partner role (403)
+ *
+ * Support ticket (`POST /api/partner/support-ticket`):
+ *   - Returns 401 for unauthenticated, 403 for non-partner role
+ *   - Returns 403 for disabled partner accounts
+ *   - Returns 400 when subject or message is missing
+ *   - Returns 201 for valid tickets
  */
 
 'use strict';
@@ -68,18 +68,15 @@ jest.mock('../../middleware/auth', () => {
   return { JWT_SECRET, authRequired, roleRequired, setAuthCookie: jest.fn() };
 });
 
-// bcrypt / jwt used by register/login routes — stub them out
 jest.mock('bcryptjs', () => ({
   hash: jest.fn().mockResolvedValue('hashed'),
   compare: jest.fn().mockResolvedValue(true),
 }));
 jest.mock('jsonwebtoken', () => ({
   sign: jest.fn().mockReturnValue('token'),
-  verify: jest
-    .fn()
-    .mockImplementation((token, secret, cb) =>
-      cb(null, { id: 'usr_partner_001', role: 'partner' })
-    ),
+  verify: jest.fn().mockImplementation((token, secret, cb) =>
+    cb(null, { id: 'usr_partner_001', role: 'partner' })
+  ),
 }));
 jest.mock('validator', () => ({
   isEmail: jest.fn().mockReturnValue(true),
@@ -93,7 +90,6 @@ jest.mock('../../middleware/validation', () => ({
   passwordOk: jest.fn().mockReturnValue(true),
 }));
 
-// partnerService mock — controls balance and partner record
 jest.mock('../../services/partnerService', () => ({
   getPartnerByUserId: jest.fn(),
   getBalance: jest.fn(),
@@ -144,19 +140,16 @@ const DISABLED_PARTNER = {
   status: 'disabled',
 };
 
-// ─── Tests ────────────────────────────────────────────────────────────────────
+// ─── Payout request — coming soon ────────────────────────────────────────────
 
-describe('POST /api/partner/payout-request — validation', () => {
+describe('POST /api/partner/payout-request — coming soon', () => {
   let app;
 
   beforeEach(() => {
     app = buildApp();
     jest.clearAllMocks();
     partnerService.getPartnerByUserId.mockResolvedValue(ACTIVE_PARTNER);
-    partnerService.getBalance.mockResolvedValue({ balance: 500, totalEarned: 500 });
   });
-
-  // ── Auth checks ─────────────────────────────────────────────────────────────
 
   it('returns 401 when user is not authenticated', async () => {
     const res = await request(app)
@@ -167,7 +160,7 @@ describe('POST /api/partner/payout-request — validation', () => {
     expect(res.status).toBe(401);
   });
 
-  it('returns 403 when user is authenticated but not a partner', async () => {
+  it('returns 403 when user is not a partner role', async () => {
     const res = await request(app)
       .post('/api/partner/payout-request')
       .set('x-test-role', 'customer')
@@ -176,144 +169,107 @@ describe('POST /api/partner/payout-request — validation', () => {
     expect(res.status).toBe(403);
   });
 
-  it('returns 403 when user is authenticated as admin (not partner role)', async () => {
+  it('returns 503 with comingSoon flag for authenticated partners', async () => {
+    const res = await request(app).post('/api/partner/payout-request').send({ points: 100 });
+
+    expect(res.status).toBe(503);
+    expect(res.body.comingSoon).toBe(true);
+    expect(res.body.error).toMatch(/coming soon/i);
+  });
+});
+
+// ─── Support ticket ───────────────────────────────────────────────────────────
+
+describe('POST /api/partner/support-ticket — validation', () => {
+  let app;
+
+  beforeEach(() => {
+    app = buildApp();
+    jest.clearAllMocks();
+    partnerService.getPartnerByUserId.mockResolvedValue(ACTIVE_PARTNER);
+  });
+
+  it('returns 401 when user is not authenticated', async () => {
     const res = await request(app)
-      .post('/api/partner/payout-request')
-      .set('x-test-role', 'admin')
-      .send({ points: 100 });
+      .post('/api/partner/support-ticket')
+      .set('x-test-role', 'none')
+      .send({ subject: 'Test', message: 'Hello' });
+
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 403 when user is not a partner', async () => {
+    const res = await request(app)
+      .post('/api/partner/support-ticket')
+      .set('x-test-role', 'customer')
+      .send({ subject: 'Test', message: 'Hello' });
 
     expect(res.status).toBe(403);
   });
 
-  // ── Disabled partner ─────────────────────────────────────────────────────────
-
   it('returns 403 when partner account is disabled', async () => {
     partnerService.getPartnerByUserId.mockResolvedValue(DISABLED_PARTNER);
 
-    const res = await request(app).post('/api/partner/payout-request').send({ points: 100 });
+    const res = await request(app)
+      .post('/api/partner/support-ticket')
+      .send({ subject: 'Test', message: 'Hello' });
 
     expect(res.status).toBe(403);
     expect(res.body).toMatchObject({ disabled: true });
   });
 
-  // ── Points validation ─────────────────────────────────────────────────────────
-
-  it('returns 400 when points is missing', async () => {
+  it('returns 400 when subject is missing', async () => {
     const res = await request(app)
-      .post('/api/partner/payout-request')
-      .send({ giftCardType: 'Amazon' });
+      .post('/api/partner/support-ticket')
+      .send({ message: 'Hello team' });
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/points must be a positive integer/i);
+    expect(res.body.error).toMatch(/subject is required/i);
   });
 
-  it('returns 400 when points is zero', async () => {
-    const res = await request(app).post('/api/partner/payout-request').send({ points: 0 });
-
-    expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/points must be a positive integer/i);
-  });
-
-  it('returns 400 when points is negative', async () => {
-    const res = await request(app).post('/api/partner/payout-request').send({ points: -50 });
-
-    expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/points must be a positive integer/i);
-  });
-
-  it('returns 400 when points is a non-numeric string', async () => {
-    const res = await request(app).post('/api/partner/payout-request').send({ points: 'abc' });
-
-    expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/points must be a positive integer/i);
-  });
-
-  it('returns 400 when points exceeds available balance', async () => {
-    partnerService.getBalance.mockResolvedValue({ balance: 200, totalEarned: 500 });
-
-    const res = await request(app).post('/api/partner/payout-request').send({ points: 300 });
-
-    expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/insufficient points/i);
-  });
-
-  // ── giftCardType validation ───────────────────────────────────────────────────
-
-  it('returns 400 when giftCardType is not in the allowed list', async () => {
+  it('returns 400 when subject is empty string', async () => {
     const res = await request(app)
-      .post('/api/partner/payout-request')
-      .send({ points: 100, giftCardType: 'InvalidCard' });
+      .post('/api/partner/support-ticket')
+      .send({ subject: '   ', message: 'Hello team' });
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/giftCardType must be one of/i);
+    expect(res.body.error).toMatch(/subject is required/i);
   });
 
-  it('returns 400 when giftCardType is "Other" but message is missing', async () => {
+  it('returns 400 when message is missing', async () => {
     const res = await request(app)
-      .post('/api/partner/payout-request')
-      .send({ points: 100, giftCardType: 'Other' });
+      .post('/api/partner/support-ticket')
+      .send({ subject: 'Test subject' });
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/message is required when gift card type is "Other"/i);
+    expect(res.body.error).toMatch(/message is required/i);
   });
 
-  it('returns 400 when giftCardType is "Other" but message is empty string', async () => {
+  it('returns 400 when message is empty string', async () => {
     const res = await request(app)
-      .post('/api/partner/payout-request')
-      .send({ points: 100, giftCardType: 'Other', message: '' });
+      .post('/api/partner/support-ticket')
+      .send({ subject: 'Test subject', message: '   ' });
 
     expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/message is required when gift card type is "Other"/i);
+    expect(res.body.error).toMatch(/message is required/i);
   });
 
-  // ── Valid requests ────────────────────────────────────────────────────────────
-
-  it('returns 201 for a valid payout request without gift card type', async () => {
-    const res = await request(app).post('/api/partner/payout-request').send({ points: 100 });
+  it('returns 201 for a valid support ticket', async () => {
+    const res = await request(app)
+      .post('/api/partner/support-ticket')
+      .send({ subject: 'Question about referrals', message: 'When do I get my bonus?' });
 
     expect(res.status).toBe(201);
     expect(res.body.ok).toBe(true);
     expect(res.body.ticketId).toBeTruthy();
   });
 
-  it('returns 201 for a valid payout with an allowed gift card type', async () => {
+  it('truncates subject to 150 chars and message to 2000 chars', async () => {
     const res = await request(app)
-      .post('/api/partner/payout-request')
-      .send({ points: 100, giftCardType: 'Amazon' });
+      .post('/api/partner/support-ticket')
+      .send({ subject: 'A'.repeat(200), message: 'B'.repeat(3000) });
 
     expect(res.status).toBe(201);
     expect(res.body.ok).toBe(true);
-  });
-
-  it('returns 201 for "Other" gift card type when message is provided', async () => {
-    const res = await request(app)
-      .post('/api/partner/payout-request')
-      .send({ points: 100, giftCardType: 'Other', message: 'Please send a Starbucks card' });
-
-    expect(res.status).toBe(201);
-    expect(res.body.ok).toBe(true);
-  });
-
-  it('accepts points equal to the full available balance', async () => {
-    partnerService.getBalance.mockResolvedValue({ balance: 100, totalEarned: 100 });
-
-    const res = await request(app).post('/api/partner/payout-request').send({ points: 100 });
-
-    expect(res.status).toBe(201);
-    expect(res.body.ok).toBe(true);
-  });
-
-  it('accepts all valid gift card types', async () => {
-    const VALID_TYPES = ['Amazon', 'John Lewis', 'ASOS', 'Marks & Spencer', 'Other'];
-
-    for (const type of VALID_TYPES) {
-      const body = { points: 100, giftCardType: type };
-      if (type === 'Other') {
-        body.message = 'Some message';
-      }
-      partnerService.getBalance.mockResolvedValue({ balance: 500, totalEarned: 500 });
-      const res = await request(app).post('/api/partner/payout-request').send(body);
-      expect(res.status).toBe(201);
-    }
   });
 });

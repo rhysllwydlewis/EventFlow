@@ -57,27 +57,31 @@ It lives at `/partner` — this URL is **not indexed** (`noindex, nofollow`) and
 
 ### Partner (requires `partner` role)
 
-| Method | Path                              | Description                                         |
-| ------ | --------------------------------- | --------------------------------------------------- |
-| `POST` | `/api/v1/partner/register`        | Create a new partner account                        |
-| `GET`  | `/api/v1/partner/me`              | Get current partner profile, ref code, balance      |
-| `GET`  | `/api/v1/partner/referrals`       | List referred suppliers with statuses               |
-| `GET`  | `/api/v1/partner/transactions`    | List credit transaction history                     |
-| `POST` | `/api/v1/partner/regenerate-code` | Generate a new referral code (old code stays valid) |
-| `GET`  | `/api/v1/partner/code-history`    | List previously used referral codes                 |
-| `POST` | `/api/v1/partner/payout-request`  | Submit a gift-card payout request                   |
+| Method | Path                              | Description                                                    |
+| ------ | --------------------------------- | -------------------------------------------------------------- |
+| `POST` | `/api/v1/partner/register`        | Create a new partner account                                   |
+| `GET`  | `/api/v1/partner/me`              | Get current partner profile, ref code, balance                 |
+| `GET`  | `/api/v1/partner/referrals`       | List referred suppliers with statuses                          |
+| `GET`  | `/api/v1/partner/transactions`    | List credit transaction history                                |
+| `POST` | `/api/v1/partner/regenerate-code` | Generate a new referral code (old code stays valid)            |
+| `GET`  | `/api/v1/partner/code-history`    | List previously used referral codes                            |
+| `POST` | `/api/v1/partner/support-ticket`  | Raise a general support ticket from the partner dashboard      |
+| `POST` | `/api/v1/partner/payout-request`  | **Coming soon** — returns 503 while Tremendous integration is built |
 
 > **Note:** All partner API endpoints return `403 { error: "...", disabled: true }` if the partner's account status is `disabled`. The dashboard will show a clear "account disabled" message in this case.
 
-#### Payout request validation rules (`POST /api/v1/partner/payout-request`)
+#### Support ticket fields (`POST /api/v1/partner/support-ticket`)
 
-| Field          | Type    | Rules                                                                                              |
-| -------------- | ------- | -------------------------------------------------------------------------------------------------- |
-| `points`       | integer | **Required.** Must be a positive integer. Must not exceed the partner's current available balance. |
-| `giftCardType` | string  | Optional. If provided, must be one of: `Amazon`, `John Lewis`, `ASOS`, `Marks & Spencer`, `Other`. |
-| `message`      | string  | **Required when `giftCardType` is `Other`.** Up to 1000 characters. Optional otherwise.            |
+| Field     | Type   | Rules                                          |
+| --------- | ------ | ---------------------------------------------- |
+| `subject` | string | **Required.** Max 150 characters.             |
+| `message` | string | **Required.** Max 2000 characters.            |
 
 Validation errors return HTTP `400` with a JSON body `{ "error": "..." }` describing the problem.
+
+#### Gift card cashout — Coming Soon
+
+Cash-out via `/payout-request` is currently disabled (returns `503 { comingSoon: true }`). We are integrating with [Tremendous](https://developers.tremendous.com) to provide instant, automated gift card payouts. Partners' accumulated points are preserved and will be redeemable once the integration launches.
 
 ### Admin (requires `admin` role)
 
@@ -209,9 +213,9 @@ Partner moderation is available in **two places**:
 1. **Main admin navigation** — the "Partners" entry (🤝) in the admin navbar links directly to `/admin-partners` from every admin page.
 2. **Standalone page** — navigate directly to `/admin-partners`.
 
-### Gift card payout requests
+### Gift card payout requests (admin)
 
-From `/admin-partners`, click the "Gift Card Payout Requests" tab to see all pending payout requests. Use the status filter to narrow by `open`, `in_progress`, `resolved`, or `closed`. Click "Mark resolved" or use the status dropdown to update a ticket's status (`PATCH /api/v1/admin/partners/payout-requests/:ticketId/status`). Both the listing and status-update endpoints require admin auth and CSRF protection.
+The admin payout requests tab (`GET /api/v1/admin/partners/payout-requests`) and status update endpoint (`PATCH /api/v1/admin/partners/payout-requests/:ticketId/status`) remain available for any legacy tickets already in the system. New payout requests via `/payout-request` now return 503 until the Tremendous integration is complete.
 
 ### Enable / Disable a partner
 
