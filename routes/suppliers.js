@@ -523,6 +523,49 @@ router.get('/packages/search', async (req, res) => {
 });
 
 /**
+ * POST /api/packages/bulk
+ * Fetch multiple approved packages by ID in a single request.
+ * Requires authentication so that only logged-in customers can resolve
+ * packages linked to their plans.
+ * Body: { ids: string[] }  — up to 50 IDs, duplicates are ignored.
+ */
+router.post('/packages/bulk', async (req, res) => {
+  try {
+    const { ids } = req.body || {};
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: 'ids must be a non-empty array' });
+    }
+
+    const MAX_BULK_IDS = 50;
+    if (ids.length > MAX_BULK_IDS) {
+      return res
+        .status(400)
+        .json({ error: `Bulk fetch limit is ${MAX_BULK_IDS} IDs per request` });
+    }
+
+    // Validate each ID is a non-empty string and deduplicate
+    const uniqueIds = [
+      ...new Set(
+        ids.filter(id => typeof id === 'string' && id.trim().length > 0).map(id => id.trim())
+      ),
+    ];
+
+    if (uniqueIds.length === 0) {
+      return res.status(400).json({ error: 'ids must contain at least one valid string ID' });
+    }
+
+    const allPackages = await dbUnified.read('packages');
+    const matched = allPackages.filter(p => p.approved && uniqueIds.includes(p.id));
+
+    res.json({ packages: matched });
+  } catch (error) {
+    logger.error('Error fetching bulk packages:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
  * GET /api/packages/:slug
  * Get package details by slug
  */

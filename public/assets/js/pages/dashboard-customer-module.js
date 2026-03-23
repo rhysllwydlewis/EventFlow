@@ -132,25 +132,28 @@ async function calculateRealBudget(plans) {
   // Fetch package details from API if we have package IDs
   if (packageIds.length > 0) {
     try {
-      // Fetch packages in batches to avoid overwhelming the API
-      const packagePromises = packageIds.map(async pkgId => {
-        try {
-          const response = await fetch(`/api/packages/${encodeURIComponent(pkgId)}`, {
+      // Deduplicate IDs before fetching to avoid redundant work
+      const uniquePackageIds = [...new Set(packageIds.filter(id => typeof id === 'string' && id.trim()))];
+
+      // Use bulk endpoint to fetch all packages in a single request (avoids N+1 problem)
+      const MAX_BULK = 50;
+      const packageChunks = [];
+      for (let i = 0; i < uniquePackageIds.length; i += MAX_BULK) {
+        packageChunks.push(uniquePackageIds.slice(i, i + MAX_BULK));
+      }
+
+      const bulkResults = await Promise.all(
+        packageChunks.map(chunk =>
+          fetch('/api/packages/bulk', {
+            method: 'POST',
             credentials: 'include',
-            headers: { Accept: 'application/json' },
-          });
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify({ ids: chunk }),
+          }).then(r => (r.ok ? r.json() : Promise.resolve({ packages: [] })))
+        )
+      );
 
-          if (response.ok) {
-            const data = await response.json();
-            return data.package || data;
-          }
-        } catch (err) {
-          console.warn(`Failed to fetch package ${pkgId}:`, err);
-        }
-        return null;
-      });
-
-      const packages = (await Promise.all(packagePromises)).filter(p => p !== null);
+      const packages = bulkResults.flatMap(result => result.packages || []);
 
       // Calculate spent from packages
       packages.forEach(pkg => {

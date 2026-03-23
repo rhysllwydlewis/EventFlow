@@ -16,7 +16,11 @@ if (!window.dashboardLogs) {
 export function logMessageState(state, data) {
   const timestamp = new Date().toISOString();
   const logEntry = { timestamp, state, data };
-  console.log(`[${timestamp}] [Dashboard Messaging] ${state}:`, data);
+
+  // Only emit to console when debug mode is active
+  if (window.__EF_DEBUG__) {
+    console.log(`[${timestamp}] [Dashboard Messaging] ${state}:`, data); // eslint-disable-line no-console
+  }
 
   // Store in window.dashboardLogs for debugging (keep last 100 entries)
   window.dashboardLogs.push(logEntry);
