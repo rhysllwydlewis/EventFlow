@@ -17,13 +17,21 @@
   }
 
   function fmtDate(iso) {
-    if (!iso) return '—';
-    return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    if (!iso) {
+      return '—';
+    }
+    return new Date(iso).toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
   }
 
   function showToast(msg, type = 'success') {
     const t = document.getElementById('partner-toast');
-    if (!t) return;
+    if (!t) {
+      return;
+    }
     t.textContent = msg;
     t.className = `partner-toast partner-toast--${type} show`;
     setTimeout(() => t.classList.remove('show'), 3200);
@@ -42,7 +50,9 @@
     const tbody = document.getElementById('partners-tbody');
     const summary = document.getElementById('partner-summary');
 
-    if (summary) summary.textContent = 'Loading…';
+    if (summary) {
+      summary.textContent = 'Loading…';
+    }
     if (tbody) {
       tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2rem;color:#888;">Loading partners…</td></tr>`;
     }
@@ -52,10 +62,14 @@
       allPartners = data.items || [];
       updateStats();
       renderTable();
-      if (summary) summary.textContent = `${allPartners.length} partners`;
+      if (summary) {
+        summary.textContent = `${allPartners.length} partners`;
+      }
     } catch (err) {
       AdminShared.debugError('Failed to load partners', err);
-      if (summary) summary.textContent = 'Error loading';
+      if (summary) {
+        summary.textContent = 'Error loading';
+      }
       if (tbody) {
         tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2rem;color:#ef4444;">Error loading partners. <button onclick="loadPartners()" style="color:#60a5fa;background:none;border:none;cursor:pointer;">Retry</button></td></tr>`;
       }
@@ -68,26 +82,37 @@
     const totalCredits = allPartners.reduce((s, p) => s + (p.credits?.balance || 0), 0);
 
     const el = id => document.getElementById(id);
-    if (el('count-total')) el('count-total').textContent = allPartners.length;
-    if (el('count-active')) el('count-active').textContent = totalActive;
-    if (el('count-referrals')) el('count-referrals').textContent = totalReferrals;
-    if (el('count-credits')) el('count-credits').textContent = totalCredits.toLocaleString();
+    if (el('count-total')) {
+      el('count-total').textContent = allPartners.length;
+    }
+    if (el('count-active')) {
+      el('count-active').textContent = totalActive;
+    }
+    if (el('count-referrals')) {
+      el('count-referrals').textContent = totalReferrals;
+    }
+    if (el('count-credits')) {
+      el('count-credits').textContent = totalCredits.toLocaleString();
+    }
   }
 
   function renderTable() {
     const tbody = document.getElementById('partners-tbody');
-    if (!tbody) return;
+    if (!tbody) {
+      return;
+    }
 
     const search = (document.getElementById('partnerSearch')?.value || '').toLowerCase();
     const statusFilter = document.getElementById('statusFilter')?.value || '';
 
     let list = allPartners;
     if (search) {
-      list = list.filter(p =>
-        (p.refCode || '').toLowerCase().includes(search) ||
-        (p.user?.name || '').toLowerCase().includes(search) ||
-        (p.user?.email || '').toLowerCase().includes(search) ||
-        (p.user?.company || '').toLowerCase().includes(search)
+      list = list.filter(
+        p =>
+          (p.refCode || '').toLowerCase().includes(search) ||
+          (p.user?.name || '').toLowerCase().includes(search) ||
+          (p.user?.email || '').toLowerCase().includes(search) ||
+          (p.user?.company || '').toLowerCase().includes(search)
       );
     }
     if (statusFilter) {
@@ -99,9 +124,10 @@
       return;
     }
 
-    tbody.innerHTML = list.map(p => {
-      const credits = p.credits || {};
-      return `<tr>
+    tbody.innerHTML = list
+      .map(p => {
+        const credits = p.credits || {};
+        return `<tr>
         <td>
           <strong style="color:#fff">${esc(p.user?.name || '—')}</strong>
           <br/><small style="color:#888">${esc(p.user?.email || '')}</small>
@@ -116,14 +142,17 @@
         <td>
           <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
             <button class="ap-action-btn ap-action-btn--view" data-action="view" data-id="${esc(p.id)}" aria-label="View ${esc(p.user?.name || 'partner')}">View</button>
-            ${p.status === 'active'
-              ? `<button class="ap-action-btn ap-action-btn--disable" data-action="disable" data-id="${esc(p.id)}" aria-label="Disable ${esc(p.user?.name || 'partner')}">Disable</button>`
-              : `<button class="ap-action-btn ap-action-btn--enable" data-action="enable" data-id="${esc(p.id)}" aria-label="Enable ${esc(p.user?.name || 'partner')}">Enable</button>`}
+            ${
+              p.status === 'active'
+                ? `<button class="ap-action-btn ap-action-btn--disable" data-action="disable" data-id="${esc(p.id)}" aria-label="Disable ${esc(p.user?.name || 'partner')}">Disable</button>`
+                : `<button class="ap-action-btn ap-action-btn--enable" data-action="enable" data-id="${esc(p.id)}" aria-label="Enable ${esc(p.user?.name || 'partner')}">Enable</button>`
+            }
             <button class="ap-action-btn ap-action-btn--credit" data-action="credit" data-id="${esc(p.id)}" aria-label="Adjust credits for ${esc(p.user?.name || 'partner')}">Credits</button>
           </div>
         </td>
       </tr>`;
-    }).join('');
+      })
+      .join('');
   }
 
   // ── Detail panel ──────────────────────────────────────────────────────────────
@@ -131,7 +160,9 @@
   async function openDetailPanel(partnerId) {
     const panel = document.getElementById('partner-detail-panel');
     const body = document.getElementById('detail-body-content');
-    if (!panel || !body) return;
+    if (!panel || !body) {
+      return;
+    }
 
     currentDetailId = partnerId;
     panel.removeAttribute('hidden');
@@ -145,37 +176,47 @@
       const data = await AdminShared.api(`/api/admin/partners/${encodeURIComponent(partnerId)}`);
       const { partner, credits, referrals } = data;
 
-      if (nameEl) nameEl.textContent = partner.user?.name || 'Partner';
-      if (emailEl) emailEl.textContent = partner.user?.email || '';
+      if (nameEl) {
+        nameEl.textContent = partner.user?.name || 'Partner';
+      }
+      if (emailEl) {
+        emailEl.textContent = partner.user?.email || '';
+      }
 
-      const txnRows = (credits.transactions || []).slice(0, 20).map(t => {
-        const typeLabels = {
-          PACKAGE_BONUS: '📦 Package Bonus',
-          SUBSCRIPTION_BONUS: '💳 Subscription Bonus',
-          ADJUSTMENT: '⚙️ Adjustment',
-          REDEEM: '🎁 Redemption',
-        };
-        const lbl = typeLabels[t.type] || t.type;
-        const amtColor = t.amount >= 0 ? '#6ee7b7' : '#fca5a5';
-        const amtStr = t.amount >= 0 ? `+${t.amount}` : `${t.amount}`;
-        return `<tr>
+      const txnRows = (credits.transactions || [])
+        .slice(0, 20)
+        .map(t => {
+          const typeLabels = {
+            PACKAGE_BONUS: '📦 Package Bonus',
+            SUBSCRIPTION_BONUS: '💳 Subscription Bonus',
+            ADJUSTMENT: '⚙️ Adjustment',
+            REDEEM: '🎁 Redemption',
+          };
+          const lbl = typeLabels[t.type] || t.type;
+          const amtColor = t.amount >= 0 ? '#6ee7b7' : '#fca5a5';
+          const amtStr = t.amount >= 0 ? `+${t.amount}` : `${t.amount}`;
+          return `<tr>
           <td style="color:rgba(255,255,255,0.65);font-size:0.8rem;">${esc(lbl)}</td>
           <td style="color:${amtColor};font-weight:700;font-size:0.85rem;">${amtStr}</td>
           <td style="color:rgba(255,255,255,0.4);font-size:0.75rem;">${fmtDate(t.createdAt)}</td>
           <td style="color:rgba(255,255,255,0.35);font-size:0.73rem;">${esc(t.notes || '')}</td>
         </tr>`;
-      }).join('');
+        })
+        .join('');
 
-      const refRows = (referrals || []).slice(0, 20).map(r => {
-        const pkg = r.packageQualified ? '✓' : '—';
-        const sub = r.subscriptionQualified ? '✓' : '—';
-        return `<tr>
+      const refRows = (referrals || [])
+        .slice(0, 20)
+        .map(r => {
+          const pkg = r.packageQualified ? '✓' : '—';
+          const sub = r.subscriptionQualified ? '✓' : '—';
+          return `<tr>
           <td style="color:rgba(255,255,255,0.65);font-size:0.8rem;">${esc(r.supplierName || '—')}</td>
           <td style="color:rgba(255,255,255,0.4);font-size:0.75rem;">${fmtDate(r.supplierCreatedAt)}</td>
           <td style="text-align:center;color:${r.packageQualified ? '#6ee7b7' : 'rgba(255,255,255,0.3)'}">${pkg}</td>
           <td style="text-align:center;color:${r.subscriptionQualified ? '#6ee7b7' : 'rgba(255,255,255,0.3)'}">${sub}</td>
         </tr>`;
-      }).join('');
+        })
+        .join('');
 
       body.innerHTML = `
         <!-- Summary -->
@@ -207,7 +248,9 @@
             </div>
           </div>
 
-          ${txnRows ? `
+          ${
+            txnRows
+              ? `
           <div style="overflow-x:auto">
             <table style="width:100%;border-collapse:collapse;font-size:0.8rem;">
               <thead>
@@ -220,13 +263,17 @@
               </thead>
               <tbody>${txnRows}</tbody>
             </table>
-          </div>` : '<p style="color:rgba(255,255,255,0.35);font-size:0.8rem;padding:0.5rem 0">No transactions yet.</p>'}
+          </div>`
+              : '<p style="color:rgba(255,255,255,0.35);font-size:0.8rem;padding:0.5rem 0">No transactions yet.</p>'
+          }
         </div>
 
         <!-- Referrals -->
         <div class="partner-detail-section">
           <div class="partner-detail-section-title">Referrals (${(referrals || []).length})</div>
-          ${refRows ? `
+          ${
+            refRows
+              ? `
           <div style="overflow-x:auto">
             <table style="width:100%;border-collapse:collapse;font-size:0.8rem;">
               <thead>
@@ -239,7 +286,9 @@
               </thead>
               <tbody>${refRows}</tbody>
             </table>
-          </div>` : '<p style="color:rgba(255,255,255,0.35);font-size:0.8rem;padding:0.5rem 0">No referrals yet.</p>'}
+          </div>`
+              : '<p style="color:rgba(255,255,255,0.35);font-size:0.8rem;padding:0.5rem 0">No referrals yet.</p>'
+          }
         </div>`;
     } catch (err) {
       body.innerHTML = `<p style="color:#fca5a5;font-size:0.85rem">Failed to load partner details. Please try again.</p>`;
@@ -270,7 +319,10 @@
         const d = await res.json();
         throw new Error(d.error || 'Failed');
       }
-      showToast(`Partner ${newStatus === 'active' ? 'enabled' : 'disabled'} successfully`, 'success');
+      showToast(
+        `Partner ${newStatus === 'active' ? 'enabled' : 'disabled'} successfully`,
+        'success'
+      );
       await loadPartners();
     } catch (err) {
       showToast(err.message || 'Action failed', 'error');
@@ -295,14 +347,23 @@
         : `Partner ID: ${partnerId}`;
     }
 
-    if (form) form.reset();
-    if (statusEl) { statusEl.textContent = ''; statusEl.style.display = 'none'; }
-    if (overlay) overlay.style.display = 'flex';
+    if (form) {
+      form.reset();
+    }
+    if (statusEl) {
+      statusEl.textContent = '';
+      statusEl.style.display = 'none';
+    }
+    if (overlay) {
+      overlay.style.display = 'flex';
+    }
   }
 
   function closeCreditModal() {
     const overlay = document.getElementById('credit-modal-overlay');
-    if (overlay) overlay.style.display = 'none';
+    if (overlay) {
+      overlay.style.display = 'none';
+    }
     creditTargetId = null;
   }
 
@@ -316,11 +377,17 @@
     const notes = form.querySelector('#credit-notes').value.trim();
 
     if (!Number.isFinite(amount) || amount === 0) {
-      if (statusEl) { statusEl.textContent = 'Amount must be a non-zero integer.'; statusEl.className = 'partner-status error'; }
+      if (statusEl) {
+        statusEl.textContent = 'Amount must be a non-zero integer.';
+        statusEl.className = 'partner-status error';
+      }
       return;
     }
     if (!notes || notes.length < 3) {
-      if (statusEl) { statusEl.textContent = 'An audit note is required.'; statusEl.className = 'partner-status error'; }
+      if (statusEl) {
+        statusEl.textContent = 'An audit note is required.';
+        statusEl.className = 'partner-status error';
+      }
       return;
     }
 
@@ -329,14 +396,19 @@
 
     try {
       const csrfToken = await getCsrf();
-      const res = await fetch(`/api/v1/admin/partners/${encodeURIComponent(creditTargetId)}/credits`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
-        body: JSON.stringify({ amount, notes }),
-      });
+      const res = await fetch(
+        `/api/v1/admin/partners/${encodeURIComponent(creditTargetId)}/credits`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+          body: JSON.stringify({ amount, notes }),
+        }
+      );
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed');
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed');
+      }
 
       showToast(`Credit adjustment (${amount > 0 ? '+' : ''}${amount}) applied`, 'success');
       closeCreditModal();
@@ -345,7 +417,10 @@
         openDetailPanel(currentDetailId);
       }
     } catch (err) {
-      if (statusEl) { statusEl.textContent = err.message || 'Failed to apply adjustment.'; statusEl.className = 'partner-status error'; }
+      if (statusEl) {
+        statusEl.textContent = err.message || 'Failed to apply adjustment.';
+        statusEl.className = 'partner-status error';
+      }
     } finally {
       submitBtn.disabled = false;
       submitBtn.textContent = 'Apply Adjustment';
@@ -356,7 +431,7 @@
 
   async function getCsrf() {
     try {
-      const r = await fetch('/api/v1/csrf', { credentials: 'include' });
+      const r = await fetch('/api/v1/csrf-token', { credentials: 'include' });
       const d = await r.json();
       return d.csrfToken || '';
     } catch (_) {
@@ -372,15 +447,29 @@
     if (tbody) {
       tbody.addEventListener('click', async e => {
         const btn = e.target.closest('[data-action]');
-        if (!btn) return;
+        if (!btn) {
+          return;
+        }
         const action = btn.dataset.action;
         const id = btn.dataset.id;
-        if (!id) return;
+        if (!id) {
+          return;
+        }
 
         if (action === 'view') {
           openDetailPanel(id);
         } else if (action === 'disable') {
-          if (confirm('Disable this partner? They will no longer earn credits.')) {
+          const confirmed =
+            window.AdminShared && window.AdminShared.showConfirmModal
+              ? await window.AdminShared.showConfirmModal({
+                  title: 'Disable partner?',
+                  message:
+                    'This partner will no longer earn credits. You can re-enable them at any time.',
+                  confirmText: 'Disable',
+                  cancelText: 'Cancel',
+                })
+              : false; // AdminShared always present on admin pages; default false (safe) if unavailable
+          if (confirmed) {
             await togglePartnerStatus(id, 'disabled');
           }
         } else if (action === 'enable') {
@@ -393,31 +482,45 @@
 
     // Filters
     const searchInput = document.getElementById('partnerSearch');
-    if (searchInput) searchInput.addEventListener('input', renderTable);
+    if (searchInput) {
+      searchInput.addEventListener('input', renderTable);
+    }
 
     const statusFilter = document.getElementById('statusFilter');
-    if (statusFilter) statusFilter.addEventListener('change', renderTable);
+    if (statusFilter) {
+      statusFilter.addEventListener('change', renderTable);
+    }
 
     // Refresh button
     const refreshBtn = document.getElementById('refreshBtn');
-    if (refreshBtn) refreshBtn.addEventListener('click', loadPartners);
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', loadPartners);
+    }
 
     // Detail panel close
     const closeBtn = document.getElementById('close-detail-btn');
-    if (closeBtn) closeBtn.addEventListener('click', closeDetailPanel);
+    if (closeBtn) {
+      closeBtn.addEventListener('click', closeDetailPanel);
+    }
 
     // Credit modal
     const cancelBtn = document.getElementById('credit-modal-cancel');
-    if (cancelBtn) cancelBtn.addEventListener('click', closeCreditModal);
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', closeCreditModal);
+    }
 
     const creditForm = document.getElementById('credit-adjust-form');
-    if (creditForm) creditForm.addEventListener('submit', submitCreditAdjustment);
+    if (creditForm) {
+      creditForm.addEventListener('submit', submitCreditAdjustment);
+    }
 
     // Close modal on overlay click
     const overlay = document.getElementById('credit-modal-overlay');
     if (overlay) {
       overlay.addEventListener('click', e => {
-        if (e.target === overlay) closeCreditModal();
+        if (e.target === overlay) {
+          closeCreditModal();
+        }
       });
     }
 

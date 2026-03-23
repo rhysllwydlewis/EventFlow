@@ -242,6 +242,15 @@ const REGISTRY = [
     inNav: true,
     desc: 'System diagnostics & checks',
   },
+  {
+    route: '/admin-partners',
+    htmlFile: 'admin-partners',
+    label: 'Partners',
+    icon: '🤝',
+    category: 'moderation',
+    inNav: true,
+    desc: 'Partner accounts, referrals & credit adjustments',
+  },
 
   // ── Compatibility stubs (legacy aliases — no nav link, server-side redirect) ──
   {
