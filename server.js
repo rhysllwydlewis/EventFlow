@@ -77,7 +77,7 @@ const { featureRequired } = require('./middleware/features');
 const { apiCacheControlMiddleware, staticCachingMiddleware } = require('./middleware/cache');
 const { noindexMiddleware } = require('./middleware/seo');
 const { adminPageProtectionMiddleware } = require('./middleware/adminPages');
-const { apiLimiter } = require('./middleware/rateLimits');
+const { apiLimiter, apiDocsLimiter } = require('./middleware/rateLimits');
 
 // Utility modules
 const helpers = require('./utils/helpers');
@@ -944,14 +944,40 @@ mountRoutes(app, {
 
 // ---------- API Documentation & 404 Handler ----------
 // API Documentation (Swagger UI)
-app.use(
-  '/api-docs',
-  swaggerUi.serve,
-  swaggerUi.setup(swaggerSpec, {
-    customCss: '.swagger-ui .topbar { display: none }',
-    customSiteTitle: 'EventFlow API Documentation',
-  })
-);
+// Only served when explicitly enabled via env flag or in non-production environments.
+// Set ENABLE_API_DOCS=true to expose docs in production (combine with auth/IP allowlist).
+
+// Rate-limit and log all bot-probe paths regardless of environment
+app.use(['/api-docs', '/swagger', '/swagger.json', '/openapi', '/openapi.json'], apiDocsLimiter);
+
+const apiDocsEnabled = process.env.ENABLE_API_DOCS === 'true' || !isProduction;
+
+if (apiDocsEnabled) {
+  app.use(
+    '/api-docs',
+    swaggerUi.serve,
+    swaggerUi.setup(swaggerSpec, {
+      customCss: '.swagger-ui .topbar { display: none }',
+      customSiteTitle: 'EventFlow API Documentation',
+      swaggerOptions: {
+        // Disable "Try it out" in production even when docs are explicitly enabled
+        supportedSubmitMethods: isProduction ? [] : ['get', 'post', 'put', 'patch', 'delete'],
+      },
+    })
+  );
+} else {
+  // In production (docs disabled): return 404 and log the probe attempt
+  app.use(['/api-docs', '/swagger', '/swagger.json', '/openapi', '/openapi.json'], (req, res) => {
+    logger.warn('Swagger/OpenAPI probe path accessed in production (docs disabled)', {
+      method: req.method,
+      path: req.path,
+      ip: req.ip,
+      userAgent: req.headers['user-agent'] || '',
+      referer: req.headers['referer'] || '',
+    });
+    return res.status(404).json({ error: 'Not found', status: 404 });
+  });
+}
 
 // Sentry error handler (must be before other error handlers)
 app.use(sentry.getErrorHandler());

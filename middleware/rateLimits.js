@@ -114,6 +114,19 @@ const resendEmailLimiter = rateLimit({
   },
 });
 
+/**
+ * Rate limiter for API documentation and bot-probe paths
+ * Applies to /api-docs*, /swagger*, /openapi* to throttle automated scanners
+ * 20 requests per 15 minutes per IP
+ */
+const apiDocsLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // 20 requests per window
+  message: 'Too many requests to this endpoint, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
 module.exports = {
   authLimiter,
   aiLimiter,
@@ -123,4 +136,5 @@ module.exports = {
   apiLimiter,
   writeLimiter,
   resendEmailLimiter,
+  apiDocsLimiter,
 };
