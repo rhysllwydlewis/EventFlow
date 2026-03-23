@@ -19,7 +19,7 @@ const router = express.Router();
  * Performs a server-side redirect to the role-specific dashboard so
  * unauthenticated users cannot access any dashboard content.
  */
-router.get('/dashboard', apiLimiter, authRequired, async (req, res) => {
+router.get('/dashboard', apiLimiter, authRequired, (req, res) => {
   try {
     const role = req.user?.role;
     if (role === 'customer') {

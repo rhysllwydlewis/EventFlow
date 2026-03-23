@@ -5,6 +5,9 @@
 
 const isDevelopment =
   window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+
+const FOCUSABLE_SELECTORS =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 /**
  * Get the currently authenticated user
  * @returns {Promise<Object|null>} User object or null if not authenticated
@@ -126,9 +129,7 @@ export function setupModalCloseHandlers(modal, closeModal, cleanupCallbacks = []
     if (e.key !== 'Tab') {
       return;
     }
-    const focusableSelectors =
-      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
-    const focusable = Array.from(modal.querySelectorAll(focusableSelectors));
+    const focusable = Array.from(modal.querySelectorAll(FOCUSABLE_SELECTORS));
     if (focusable.length === 0) {
       e.preventDefault();
       return;
