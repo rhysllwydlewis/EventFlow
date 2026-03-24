@@ -322,16 +322,6 @@ router.post(
         logger.warn('Verification email delivery failed', { error: emailErr.message });
       });
 
-      // Award partner profile-approved bonus if supplier was referred (non-blocking)
-      try {
-        const partnerService = require('../services/partnerService');
-        partnerService.awardProfileApprovedBonus(s.ownerUserId).catch(bonusErr => {
-          logger.warn('Partner profile-approved bonus failed (non-blocking):', bonusErr.message);
-        });
-      } catch (_bonusErr) {
-        // Non-blocking
-      }
-
       // Bust catalog cache so JadeAssist sees the updated approval state immediately
       catalogCache
         .invalidate()

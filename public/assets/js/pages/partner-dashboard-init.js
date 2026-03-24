@@ -175,10 +175,12 @@
       potentialEl.textContent = fmtCredits(potential);
     }
     document.getElementById('stat-earned').textContent = fmtCredits(credits.totalEarned);
-    document.getElementById('stat-pkg-bonus').textContent = fmtCredits(credits.packageBonusTotal);
-    document.getElementById('stat-sub-bonus').textContent = fmtCredits(
-      credits.subscriptionBonusTotal
-    );
+    const bonusesEl = document.getElementById('stat-bonuses');
+    if (bonusesEl) {
+      bonusesEl.textContent = fmtCredits(
+        (credits.packageBonusTotal || 0) + (credits.subscriptionBonusTotal || 0)
+      );
+    }
     document.getElementById('stat-referrals').textContent = fmtCredits(referralCount);
   }
 
@@ -758,11 +760,13 @@
 
   async function loadTremendousProducts() {
     const res = await fetch('/api/v1/partner/tremendous/products', { credentials: 'include' });
+    const body = await res.json().catch(() => ({}));
     if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      throw new Error(body.error || 'Failed to load gift card products');
+      const err = new Error(body.error || 'Failed to load gift card products');
+      err.isServiceUnavailable = res.status === 503 || body.notConfigured === true;
+      throw err;
     }
-    return res.json();
+    return body;
   }
 
   function initCashoutSection(credits) {
@@ -793,7 +797,8 @@
             'Contact support to enable this feature.';
         } else {
           errorMsg.textContent =
-            msg || 'Unable to load gift card products. Please try again later.';
+            (typeof msg === 'string' && msg) ||
+            'Unable to load gift card products. Please try again later.';
         }
       }
       showLoading(false);
@@ -806,9 +811,12 @@
       }
       select.innerHTML = '<option value="">Select a brand…</option>';
       products.forEach(p => {
+        if (!p) {
+          return;
+        }
         const opt = document.createElement('option');
-        opt.value = p.id;
-        opt.textContent = p.name || p.id;
+        opt.value = p.id || '';
+        opt.textContent = p.name || p.id || '';
         select.appendChild(opt);
       });
     }
@@ -832,7 +840,7 @@
     loadTremendousProducts()
       .then(data => {
         showLoading(false);
-        const products = data.products || [];
+        const products = (data && data.products) || [];
         if (!products.length) {
           showError('No gift card products are currently available. Please try again later.');
           return;
@@ -841,11 +849,13 @@
         formWrap.style.display = 'block';
       })
       .catch(err => {
+        const msg = (err && typeof err.message === 'string' && err.message) || '';
         const isConfig =
-          err.message &&
-          (err.message.toLowerCase().includes('not configured') ||
-            err.message.toLowerCase().includes('api key'));
-        showError(err.message, isConfig);
+          err.isServiceUnavailable ||
+          (msg &&
+            (msg.toLowerCase().includes('not configured') ||
+              msg.toLowerCase().includes('api key')));
+        showError(msg, isConfig);
       });
 
     const form = document.getElementById('cashout-form');
