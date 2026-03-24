@@ -189,7 +189,10 @@
         <div id="cashout-error" style="display:none;" aria-live="polite">
           <div class="cashout-not-configured">
             <span class="cashout-not-configured-icon" aria-hidden="true">⚙️</span>
-            <p style="margin:0;" id="cashout-error-msg">Unable to load gift card products. Please try again later or contact support.</p>
+            <div style="flex:1;min-width:0;">
+              <p style="margin:0;" id="cashout-error-msg">Unable to load gift card products. Please try again later or contact support.</p>
+              <button type="button" id="cashout-retry-btn" class="cashout-retry-btn" style="display:none;" aria-label="Retry loading gift card products">↻ Try again</button>
+            </div>
           </div>
         </div>
 

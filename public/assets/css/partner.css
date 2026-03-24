@@ -1294,10 +1294,37 @@ select.partner-modal-input option {
   line-height: 1.6;
 }
 
+/* Generic (transient) error variant — red/orange instead of amber */
+.cashout-not-configured--generic {
+  background: rgba(239, 68, 68, 0.07);
+  border-color: rgba(239, 68, 68, 0.22);
+}
+
 .cashout-not-configured-icon {
   font-size: 1.1rem;
   flex-shrink: 0;
   margin-top: 0.1rem;
+}
+
+/* Retry button — shown only for transient (non-config) errors */
+.cashout-retry-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.55rem;
+  padding: 0.3rem 0.75rem;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.cashout-retry-btn:hover {
+  background: rgba(255, 255, 255, 0.13);
+  border-color: rgba(255, 255, 255, 0.22);
 }
 
 /* ── Gift Card History ──────────────────────────────────────────────────────── */
