@@ -71,20 +71,26 @@ Credits convert to GBP at a rate configured by the `POINTS_PER_GBP` environment 
 
 ### Partner (requires `partner` role)
 
-| Method | Path                                           | Description                                               |
-| ------ | ---------------------------------------------- | --------------------------------------------------------- |
-| `POST` | `/api/v1/partner/register`                     | Create a new partner account                              |
-| `GET`  | `/api/v1/partner/me`                           | Get current partner profile, ref code, balance            |
-| `GET`  | `/api/v1/partner/referrals`                    | List referred suppliers with statuses                     |
-| `GET`  | `/api/v1/partner/transactions`                 | List credit transaction history                           |
-| `POST` | `/api/v1/partner/regenerate-code`              | Generate a new referral code (old code stays valid)       |
-| `GET`  | `/api/v1/partner/code-history`                 | List previously used referral codes                       |
-| `POST` | `/api/v1/partner/support-ticket`               | Raise a general support ticket from the partner dashboard |
-| `GET`  | `/api/v1/partner/support-tickets`              | List all support tickets raised by the current partner    |
-| `GET`  | `/api/v1/partner/tremendous/products`          | List available gift card products (partner-only)          |
-| `POST` | `/api/v1/partner/tremendous/orders`            | Create a gift card order/reward (partner-only)            |
-| `GET`  | `/api/v1/partner/tremendous/orders/:id`        | Fetch order / reward status (partner-only)                |
-| `POST` | `/api/v1/partner/tremendous/orders/:id/resend` | Resend a gift card email (partner-only)                   |
+| Method | Path                                                   | Description                                               |
+| ------ | ------------------------------------------------------ | --------------------------------------------------------- |
+| `POST` | `/api/v1/partner/register`                             | Create a new partner account                              |
+| `GET`  | `/api/v1/partner/me`                                   | Get current partner profile, ref code, balance            |
+| `GET`  | `/api/v1/partner/referrals`                            | List referred suppliers with statuses                     |
+| `GET`  | `/api/v1/partner/transactions`                         | List credit transaction history                           |
+| `POST` | `/api/v1/partner/regenerate-code`                      | Generate a new referral code (old code stays valid)       |
+| `GET`  | `/api/v1/partner/code-history`                         | List previously used referral codes                       |
+| `POST` | `/api/v1/partner/support-ticket`                       | Raise a general support ticket from the partner dashboard |
+| `GET`  | `/api/v1/partner/support-tickets`                      | List all support tickets raised by the current partner    |
+| `GET`  | `/api/v1/partner/tremendous/products`                  | List available gift card products (partner-only)          |
+| `POST` | `/api/v1/partner/tremendous/orders`                    | Create a gift card order/reward (partner-only)            |
+| `GET`  | `/api/v1/partner/tremendous/orders`                    | List current partner's past cashout orders (from DB)      |
+| `GET`  | `/api/v1/partner/tremendous/orders/:id`                | Fetch Tremendous order / reward status (partner-only)     |
+| `POST` | `/api/v1/partner/tremendous/orders/:id/resend`         | Resend gift card email for first reward in an order       |
+| `GET`  | `/api/v1/partner/tremendous/rewards/:id`               | Get a single Tremendous reward by reward ID               |
+| `POST` | `/api/v1/partner/tremendous/rewards/:id/resend`        | Resend a reward email by reward ID directly               |
+| `POST` | `/api/v1/partner/tremendous/rewards/:id/cancel`        | Cancel a reward (must not have been redeemed)             |
+| `POST` | `/api/v1/partner/tremendous/rewards/:id/generate-link` | Generate a new redemption URL for a reward (LINK method)  |
+| `GET`  | `/api/v1/partner/tremendous/funding-sources`           | List available Tremendous funding sources                 |
 
 > **Note:** All partner API endpoints return `403 { error: "...", disabled: true }` if the partner's account status is `disabled`. The dashboard will show a clear "account disabled" message in this case.
 

@@ -167,6 +167,7 @@ const MOCK_ORDER = {
 
 const partnerService = require('../../services/partnerService');
 const { getTremendousService } = require('../../services/tremendousService');
+const dbUnified = require('../../db-unified');
 const partnerRouter = require('../../routes/partner');
 
 function buildApp() {
@@ -507,6 +508,352 @@ describe('POST /api/partner/tremendous/orders/:id/resend', () => {
   it('maps Tremendous client errors to 502', async () => {
     mockTremendous.resendReward.mockRejectedValue(new Error('Resend failed'));
     const res = await request(app).post('/api/partner/tremendous/orders/ord_abc123/resend');
+    expect(res.status).toBe(502);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/partner/tremendous/orders  (list cashout orders from DB)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('GET /api/partner/tremendous/orders', () => {
+  let app;
+
+  const CASHOUT_RECORDS = [
+    {
+      id: 'pco_001',
+      partnerId: 'prt_001',
+      partnerUserId: 'usr_partner_001',
+      tremendousOrderId: 'ord_001',
+      tremendousRewardId: 'rwd_001',
+      valueGbp: 10,
+      pointsDebited: 1000,
+      recipientName: 'Jane',
+      recipientEmail: 'jane@example.com',
+      productId: 'prod_amazon',
+      status: 'created',
+      createdAt: '2026-03-01T10:00:00Z',
+    },
+  ];
+
+  beforeEach(() => {
+    app = buildApp();
+    jest.clearAllMocks();
+    partnerService.getPartnerByUserId.mockResolvedValue(ACTIVE_PARTNER);
+    dbUnified.read.mockImplementation(col => {
+      if (col === 'partner_cashout_orders') {
+        return Promise.resolve(CASHOUT_RECORDS);
+      }
+      return Promise.resolve([]);
+    });
+  });
+
+  it('returns 401 when unauthenticated', async () => {
+    const res = await request(app).get('/api/partner/tremendous/orders').set('x-test-role', 'none');
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 403 for non-partner role', async () => {
+    const res = await request(app)
+      .get('/api/partner/tremendous/orders')
+      .set('x-test-role', 'supplier');
+    expect(res.status).toBe(403);
+  });
+
+  it('returns 200 with partner cashout orders', async () => {
+    const res = await request(app).get('/api/partner/tremendous/orders');
+    expect(res.status).toBe(200);
+    expect(res.body.items).toHaveLength(1);
+    expect(res.body.items[0].id).toBe('pco_001');
+  });
+
+  it('returns empty list when no orders exist', async () => {
+    dbUnified.read.mockResolvedValue([]);
+    const res = await request(app).get('/api/partner/tremendous/orders');
+    expect(res.status).toBe(200);
+    expect(res.body.items).toHaveLength(0);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/partner/tremendous/rewards/:id
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('GET /api/partner/tremendous/rewards/:id', () => {
+  let app;
+  let mockTremendous;
+  const MOCK_REWARD = { id: 'rwd_abc', status: 'DELIVERED', delivery_status: 'DELIVERED' };
+
+  beforeEach(() => {
+    app = buildApp();
+    jest.clearAllMocks();
+    partnerService.getPartnerByUserId.mockResolvedValue(ACTIVE_PARTNER);
+    mockTremendous = {
+      listProducts: jest.fn(),
+      createOrder: jest.fn(),
+      getOrder: jest.fn(),
+      resendReward: jest.fn(),
+      getReward: jest.fn().mockResolvedValue(MOCK_REWARD),
+      cancelReward: jest.fn(),
+      generateRewardLink: jest.fn(),
+      listFundingSources: jest.fn(),
+      listOrders: jest.fn(),
+      listRewards: jest.fn(),
+    };
+    getTremendousService.mockReturnValue(mockTremendous);
+  });
+
+  it('returns 401 when unauthenticated', async () => {
+    const res = await request(app)
+      .get('/api/partner/tremendous/rewards/rwd_abc')
+      .set('x-test-role', 'none');
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 403 for non-partner roles', async () => {
+    const res = await request(app)
+      .get('/api/partner/tremendous/rewards/rwd_abc')
+      .set('x-test-role', 'admin');
+    expect(res.status).toBe(403);
+  });
+
+  it('returns 200 with reward for partner', async () => {
+    const res = await request(app).get('/api/partner/tremendous/rewards/rwd_abc');
+    expect(res.status).toBe(200);
+    expect(res.body.reward).toEqual(MOCK_REWARD);
+  });
+
+  it('returns 404 when reward not found', async () => {
+    const err = new Error('Reward not found');
+    err.statusCode = 404;
+    mockTremendous.getReward.mockRejectedValue(err);
+    const res = await request(app).get('/api/partner/tremendous/rewards/rwd_missing');
+    expect(res.status).toBe(404);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/partner/tremendous/rewards/:id/resend
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('POST /api/partner/tremendous/rewards/:id/resend', () => {
+  let app;
+  let mockTremendous;
+
+  beforeEach(() => {
+    app = buildApp();
+    jest.clearAllMocks();
+    partnerService.getPartnerByUserId.mockResolvedValue(ACTIVE_PARTNER);
+    mockTremendous = {
+      listProducts: jest.fn(),
+      createOrder: jest.fn(),
+      getOrder: jest.fn(),
+      resendReward: jest.fn().mockResolvedValue({}),
+      getReward: jest.fn(),
+      cancelReward: jest.fn(),
+      generateRewardLink: jest.fn(),
+      listFundingSources: jest.fn(),
+      listOrders: jest.fn(),
+      listRewards: jest.fn(),
+    };
+    getTremendousService.mockReturnValue(mockTremendous);
+  });
+
+  it('returns 401 when unauthenticated', async () => {
+    const res = await request(app)
+      .post('/api/partner/tremendous/rewards/rwd_abc/resend')
+      .set('x-test-role', 'none');
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 403 for non-partner roles', async () => {
+    const res = await request(app)
+      .post('/api/partner/tremendous/rewards/rwd_abc/resend')
+      .set('x-test-role', 'admin');
+    expect(res.status).toBe(403);
+  });
+
+  it('returns 200 on success for partner', async () => {
+    const res = await request(app).post('/api/partner/tremendous/rewards/rwd_abc/resend');
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+    expect(mockTremendous.resendReward).toHaveBeenCalledWith('rwd_abc');
+  });
+
+  it('maps errors to 502', async () => {
+    mockTremendous.resendReward.mockRejectedValue(new Error('Resend failed'));
+    const res = await request(app).post('/api/partner/tremendous/rewards/rwd_abc/resend');
+    expect(res.status).toBe(502);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/partner/tremendous/rewards/:id/cancel
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('POST /api/partner/tremendous/rewards/:id/cancel', () => {
+  let app;
+  let mockTremendous;
+
+  beforeEach(() => {
+    app = buildApp();
+    jest.clearAllMocks();
+    partnerService.getPartnerByUserId.mockResolvedValue(ACTIVE_PARTNER);
+    mockTremendous = {
+      listProducts: jest.fn(),
+      createOrder: jest.fn(),
+      getOrder: jest.fn(),
+      resendReward: jest.fn(),
+      getReward: jest.fn(),
+      cancelReward: jest.fn().mockResolvedValue({ id: 'rwd_abc', status: 'CANCELLED' }),
+      generateRewardLink: jest.fn(),
+      listFundingSources: jest.fn(),
+      listOrders: jest.fn(),
+      listRewards: jest.fn(),
+    };
+    getTremendousService.mockReturnValue(mockTremendous);
+    dbUnified.read.mockResolvedValue([]);
+  });
+
+  it('returns 401 when unauthenticated', async () => {
+    const res = await request(app)
+      .post('/api/partner/tremendous/rewards/rwd_abc/cancel')
+      .set('x-test-role', 'none');
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 403 for non-partner roles', async () => {
+    const res = await request(app)
+      .post('/api/partner/tremendous/rewards/rwd_abc/cancel')
+      .set('x-test-role', 'admin');
+    expect(res.status).toBe(403);
+  });
+
+  it('returns 200 with cancelled reward', async () => {
+    const res = await request(app).post('/api/partner/tremendous/rewards/rwd_abc/cancel');
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+    expect(mockTremendous.cancelReward).toHaveBeenCalledWith('rwd_abc');
+  });
+
+  it('returns 404 when reward not found', async () => {
+    const err = new Error('Reward not found');
+    err.statusCode = 404;
+    mockTremendous.cancelReward.mockRejectedValue(err);
+    const res = await request(app).post('/api/partner/tremendous/rewards/rwd_missing/cancel');
+    expect(res.status).toBe(404);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/partner/tremendous/rewards/:id/generate-link
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('POST /api/partner/tremendous/rewards/:id/generate-link', () => {
+  let app;
+  let mockTremendous;
+
+  beforeEach(() => {
+    app = buildApp();
+    jest.clearAllMocks();
+    partnerService.getPartnerByUserId.mockResolvedValue(ACTIVE_PARTNER);
+    mockTremendous = {
+      listProducts: jest.fn(),
+      createOrder: jest.fn(),
+      getOrder: jest.fn(),
+      resendReward: jest.fn(),
+      getReward: jest.fn(),
+      cancelReward: jest.fn(),
+      generateRewardLink: jest
+        .fn()
+        .mockResolvedValue({ link: 'https://example.com/claim/abc', reward: { id: 'rwd_abc' } }),
+      listFundingSources: jest.fn(),
+      listOrders: jest.fn(),
+      listRewards: jest.fn(),
+    };
+    getTremendousService.mockReturnValue(mockTremendous);
+  });
+
+  it('returns 401 when unauthenticated', async () => {
+    const res = await request(app)
+      .post('/api/partner/tremendous/rewards/rwd_abc/generate-link')
+      .set('x-test-role', 'none');
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 403 for non-partner roles', async () => {
+    const res = await request(app)
+      .post('/api/partner/tremendous/rewards/rwd_abc/generate-link')
+      .set('x-test-role', 'supplier');
+    expect(res.status).toBe(403);
+  });
+
+  it('returns 200 with link for partner', async () => {
+    const res = await request(app).post('/api/partner/tremendous/rewards/rwd_abc/generate-link');
+    expect(res.status).toBe(200);
+    expect(res.body.ok).toBe(true);
+    expect(res.body.link).toBe('https://example.com/claim/abc');
+  });
+
+  it('maps errors to 502', async () => {
+    mockTremendous.generateRewardLink.mockRejectedValue(new Error('Not supported'));
+    const res = await request(app).post('/api/partner/tremendous/rewards/rwd_abc/generate-link');
+    expect(res.status).toBe(502);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/partner/tremendous/funding-sources
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('GET /api/partner/tremendous/funding-sources', () => {
+  let app;
+  let mockTremendous;
+
+  const MOCK_FUNDING = [{ id: 'fs_001', type: 'BALANCE', label: 'Main Balance', amount: 500 }];
+
+  beforeEach(() => {
+    app = buildApp();
+    jest.clearAllMocks();
+    partnerService.getPartnerByUserId.mockResolvedValue(ACTIVE_PARTNER);
+    mockTremendous = {
+      listProducts: jest.fn(),
+      createOrder: jest.fn(),
+      getOrder: jest.fn(),
+      resendReward: jest.fn(),
+      getReward: jest.fn(),
+      cancelReward: jest.fn(),
+      generateRewardLink: jest.fn(),
+      listFundingSources: jest.fn().mockResolvedValue(MOCK_FUNDING),
+      listOrders: jest.fn(),
+      listRewards: jest.fn(),
+    };
+    getTremendousService.mockReturnValue(mockTremendous);
+  });
+
+  it('returns 401 when unauthenticated', async () => {
+    const res = await request(app)
+      .get('/api/partner/tremendous/funding-sources')
+      .set('x-test-role', 'none');
+    expect(res.status).toBe(401);
+  });
+
+  it('returns 403 for non-partner roles', async () => {
+    const res = await request(app)
+      .get('/api/partner/tremendous/funding-sources')
+      .set('x-test-role', 'admin');
+    expect(res.status).toBe(403);
+  });
+
+  it('returns 200 with funding sources for partner', async () => {
+    const res = await request(app).get('/api/partner/tremendous/funding-sources');
+    expect(res.status).toBe(200);
+    expect(res.body.funding_sources).toEqual(MOCK_FUNDING);
+  });
+
+  it('maps Tremendous errors to 502', async () => {
+    mockTremendous.listFundingSources.mockRejectedValue(new Error('API error'));
+    const res = await request(app).get('/api/partner/tremendous/funding-sources');
     expect(res.status).toBe(502);
   });
 });

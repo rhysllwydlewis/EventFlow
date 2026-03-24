@@ -617,6 +617,143 @@
       .replace(/'/g, '&#39;');
   }
 
+  // ── Gift Card History ─────────────────────────────────────────────────────────
+
+  function getCashoutStatusBadge(status) {
+    const map = {
+      created: { label: 'Sent', color: '#6ee7b7', bg: 'rgba(16,185,129,0.15)' },
+      cancelled: { label: 'Cancelled', color: '#fca5a5', bg: 'rgba(239,68,68,0.12)' },
+      failed: { label: 'Failed', color: '#fca5a5', bg: 'rgba(239,68,68,0.12)' },
+    };
+    const s = map[status] || {
+      label: status || 'Unknown',
+      color: 'rgba(255,255,255,0.4)',
+      bg: 'rgba(255,255,255,0.06)',
+    };
+    return `<span style="display:inline-block;padding:0.18rem 0.55rem;border-radius:100px;font-size:0.72rem;font-weight:600;color:${s.color};background:${s.bg};">${escHtml(s.label)}</span>`;
+  }
+
+  async function loadCashoutHistory() {
+    const container = document.getElementById('cashout-history-container');
+    if (!container) {
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/v1/partner/tremendous/orders', { credentials: 'include' });
+      if (!res.ok) {
+        throw new Error('Failed to load order history');
+      }
+      const { items } = await res.json();
+
+      if (!items || items.length === 0) {
+        container.innerHTML = `
+          <div class="partner-empty">
+            <div class="partner-empty-icon" aria-hidden="true">🎁</div>
+            <p class="partner-empty-text">No gift card orders yet — send your first one above!</p>
+          </div>`;
+        return;
+      }
+
+      const rows = items
+        .map(o => {
+          const rewardId = o.tremendousRewardId || '';
+          const orderId = o.tremendousOrderId || '';
+          return `
+          <div class="cashout-history-row" data-order-id="${escHtml(o.id)}">
+            <div class="cashout-history-info">
+              <div class="cashout-history-recipient">${escHtml(o.recipientName)} &lt;${escHtml(o.recipientEmail)}&gt;</div>
+              <div class="cashout-history-meta">
+                £${(o.valueGbp || 0).toFixed(2)} · ${escHtml(o.productId || 'Gift card')} · ${fmtDate(o.createdAt)}
+                ${orderId ? `<span class="cashout-history-ref">Ref: ${escHtml(orderId.slice(0, 16))}…</span>` : ''}
+              </div>
+            </div>
+            <div class="cashout-history-actions">
+              ${getCashoutStatusBadge(o.status)}
+              ${rewardId && o.status !== 'cancelled' ? `<button type="button" class="cashout-history-btn cashout-history-btn--resend" data-reward-id="${escHtml(rewardId)}" title="Resend gift card email">📧 Resend</button>` : ''}
+              ${rewardId && o.status !== 'cancelled' ? `<button type="button" class="cashout-history-btn cashout-history-btn--cancel" data-reward-id="${escHtml(rewardId)}" data-row-id="${escHtml(o.id)}" title="Cancel this reward">✕ Cancel</button>` : ''}
+            </div>
+          </div>`;
+        })
+        .join('');
+
+      container.innerHTML = `<div class="cashout-history-list">${rows}</div>`;
+
+      // Attach resend handlers
+      container.querySelectorAll('.cashout-history-btn--resend').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const rid = btn.dataset.rewardId;
+          btn.disabled = true;
+          btn.textContent = '…';
+          try {
+            const csrfToken = await getCsrfToken();
+            const r = await fetch(
+              `/api/v1/partner/tremendous/rewards/${encodeURIComponent(rid)}/resend`,
+              {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'X-CSRF-Token': csrfToken },
+              }
+            );
+            const b = await r.json().catch(() => ({}));
+            if (!r.ok) {
+              throw new Error(b.error || 'Failed to resend');
+            }
+            showToast('Gift card email resent!', 'success');
+          } catch (err) {
+            showToast(err.message || 'Failed to resend', 'error');
+          } finally {
+            btn.disabled = false;
+            btn.textContent = '📧 Resend';
+          }
+        });
+      });
+
+      // Attach cancel handlers
+      container.querySelectorAll('.cashout-history-btn--cancel').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const rid = btn.dataset.rewardId;
+          if (
+            !confirm(
+              'Cancel this gift card? This cannot be undone if the reward has not been redeemed.'
+            )
+          ) {
+            return;
+          }
+          btn.disabled = true;
+          btn.textContent = '…';
+          try {
+            const csrfToken = await getCsrfToken();
+            const r = await fetch(
+              `/api/v1/partner/tremendous/rewards/${encodeURIComponent(rid)}/cancel`,
+              {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'X-CSRF-Token': csrfToken },
+              }
+            );
+            const b = await r.json().catch(() => ({}));
+            if (!r.ok) {
+              throw new Error(b.error || 'Failed to cancel');
+            }
+            showToast('Gift card cancelled.', 'success');
+            loadCashoutHistory(); // Refresh
+          } catch (err) {
+            showToast(err.message || 'Failed to cancel', 'error');
+            btn.disabled = false;
+            btn.textContent = '✕ Cancel';
+          }
+        });
+      });
+    } catch (err) {
+      container.innerHTML = `
+        <div class="partner-empty">
+          <div class="partner-empty-icon" aria-hidden="true">⚠️</div>
+          <p class="partner-empty-text">Failed to load order history. Please refresh.</p>
+        </div>`;
+    }
+  }
+
   // ── Gift Card Cashout (Tremendous) ───────────────────────────────────────────
 
   async function loadTremendousProducts() {
@@ -716,9 +853,11 @@
     const submitBtn = document.getElementById('cashout-submit-btn');
     const confirmMsgEl = document.getElementById('cashout-confirmation-msg');
     const viewOrderBtn = document.getElementById('cashout-view-order-btn');
+    const resendBtn = document.getElementById('cashout-resend-btn');
     const newBtn = document.getElementById('cashout-new-btn');
 
     let lastOrderId = null;
+    let lastRewardId = null;
 
     if (newBtn) {
       newBtn.addEventListener('click', () => {
@@ -734,6 +873,7 @@
           statusEl.className = 'partner-status';
         }
         lastOrderId = null;
+        lastRewardId = null;
       });
     }
 
@@ -762,12 +902,54 @@
             ? rewards[0].delivery_status || rewards[0].status || 'pending'
             : 'pending';
           const statusLabel = deliveryStatus.toLowerCase().replace(/_/g, ' ');
-          showToast(`Order ${order.id} — delivery: ${statusLabel}`, 'success');
+          const isDelivered =
+            deliveryStatus.toLowerCase().includes('delivered') ||
+            deliveryStatus.toLowerCase().includes('sent');
+          showToast(
+            `Order ${order.id} — delivery: ${statusLabel}`,
+            isDelivered ? 'success' : 'info'
+          );
+          // Show resend button if we have a reward ID and delivery isn't confirmed
+          if (resendBtn && lastRewardId && !isDelivered) {
+            resendBtn.style.display = 'inline-flex';
+          }
         } catch (err) {
           showToast(err.message || 'Failed to fetch order status', 'error');
         } finally {
           viewOrderBtn.disabled = false;
           viewOrderBtn.textContent = '📋 View status';
+        }
+      });
+    }
+
+    if (resendBtn) {
+      resendBtn.addEventListener('click', async () => {
+        if (!lastRewardId) {
+          return;
+        }
+        resendBtn.disabled = true;
+        resendBtn.textContent = 'Resending…';
+        try {
+          const csrfToken = await getCsrfToken();
+          const res = await fetch(
+            `/api/v1/partner/tremendous/rewards/${encodeURIComponent(lastRewardId)}/resend`,
+            {
+              method: 'POST',
+              credentials: 'include',
+              headers: { 'X-CSRF-Token': csrfToken },
+            }
+          );
+          const body = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            throw new Error(body.error || 'Failed to resend gift card');
+          }
+          showToast('Gift card email resent successfully!', 'success');
+          resendBtn.style.display = 'none';
+        } catch (err) {
+          showToast(err.message || 'Failed to resend gift card', 'error');
+        } finally {
+          resendBtn.disabled = false;
+          resendBtn.textContent = '📧 Resend email';
         }
       });
     }
@@ -854,12 +1036,18 @@
 
         const order = body.order || {};
         lastOrderId = order.id || null;
+        // Capture reward ID for resend/cancel
+        lastRewardId =
+          (order.rewards && order.rewards[0] && order.rewards[0].id) || body.cashoutId || null;
 
         const productName = document.querySelector('#cashout-product option:checked')
           ? document.querySelector('#cashout-product option:checked').textContent
           : 'Gift card';
 
         formWrap.style.display = 'none';
+        if (resendBtn) {
+          resendBtn.style.display = 'none'; // Hide until status check shows needed
+        }
         if (confirmationEl) {
           confirmationEl.style.display = 'block';
         }
@@ -869,6 +1057,8 @@
           const orderRef = order.id ? esc(String(order.id)) : '(pending)';
           confirmMsgEl.innerHTML = `<strong>${safeProduct}</strong> for <strong>${safeEmail}</strong> — Order ref: <code style="font-family:monospace;font-size:0.8em;">${orderRef}</code><br>The recipient will receive a delivery email shortly.`;
         }
+        // Refresh history list
+        loadCashoutHistory();
       } catch (err) {
         if (statusEl) {
           statusEl.textContent = err.message || 'Failed to send gift card.';
@@ -985,6 +1175,9 @@
 
       // Gift card cashout section (Tremendous)
       initCashoutSection(credits);
+
+      // Gift card order history
+      loadCashoutHistory();
 
       // Referrals & transactions
       renderReferrals(referrals);

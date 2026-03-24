@@ -30,7 +30,9 @@ const CREDIT_MATURITY_DAYS = 30;
  * Points-to-GBP conversion: how many points equal £1.
  * Configurable via POINTS_PER_GBP env var (default: 100 points = £1).
  */
-const POINTS_PER_GBP = parseInt(process.env.POINTS_PER_GBP, 10) || 100;
+const _rawPointsPerGbp = parseInt(process.env.POINTS_PER_GBP, 10);
+const POINTS_PER_GBP =
+  Number.isInteger(_rawPointsPerGbp) && _rawPointsPerGbp > 0 ? _rawPointsPerGbp : 100;
 
 const CREDIT_TYPES = {
   PACKAGE_BONUS: 'PACKAGE_BONUS',

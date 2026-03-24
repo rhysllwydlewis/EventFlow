@@ -307,6 +307,202 @@ class TremendousService {
 
     return {};
   }
+
+  /**
+   * List all orders (paginated).
+   *
+   * @param {object} [opts]
+   * @param {number} [opts.offset] - Pagination offset
+   * @param {number} [opts.limit]  - Number of results (max 100)
+   * @returns {Promise<{orders: Array, total_count: number}>}
+   */
+  async listOrders({ offset, limit } = {}) {
+    this._requireApiKey();
+
+    const params = new URLSearchParams();
+    if (offset !== null && offset !== undefined) {
+      params.set('offset', String(offset));
+    }
+    if (limit !== null && limit !== undefined) {
+      params.set('limit', String(limit));
+    }
+    const qs = params.toString();
+
+    const { status, data } = await makeRequest({
+      method: 'GET',
+      path: `/orders${qs ? `?${qs}` : ''}`,
+      apiKey: this.apiKey,
+      hostname: this.hostname,
+    });
+
+    if (status !== 200) {
+      throw mapApiError(status, data);
+    }
+
+    return {
+      orders: (data && data.orders) || [],
+      total_count: (data && data.total_count) || 0,
+    };
+  }
+
+  /**
+   * List all rewards (paginated).
+   *
+   * @param {object} [opts]
+   * @param {number} [opts.offset] - Pagination offset
+   * @returns {Promise<{rewards: Array}>}
+   */
+  async listRewards({ offset } = {}) {
+    this._requireApiKey();
+
+    const params = new URLSearchParams();
+    if (offset !== null && offset !== undefined) {
+      params.set('offset', String(offset));
+    }
+    const qs = params.toString();
+
+    const { status, data } = await makeRequest({
+      method: 'GET',
+      path: `/rewards${qs ? `?${qs}` : ''}`,
+      apiKey: this.apiKey,
+      hostname: this.hostname,
+    });
+
+    if (status !== 200) {
+      throw mapApiError(status, data);
+    }
+
+    return {
+      rewards: (data && data.rewards) || [],
+    };
+  }
+
+  /**
+   * Retrieve a single reward by its ID.
+   *
+   * @param {string} rewardId - Tremendous reward ID
+   * @returns {Promise<object>} Reward object
+   */
+  async getReward(rewardId) {
+    this._requireApiKey();
+
+    if (!rewardId) {
+      throw new Error('rewardId is required');
+    }
+
+    const { status, data } = await makeRequest({
+      method: 'GET',
+      path: `/rewards/${encodeURIComponent(rewardId)}`,
+      apiKey: this.apiKey,
+      hostname: this.hostname,
+    });
+
+    if (status === 404) {
+      const err = new Error('Reward not found');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    if (status !== 200) {
+      throw mapApiError(status, data);
+    }
+
+    return (data && data.reward) || data;
+  }
+
+  /**
+   * Cancel a reward that has not yet been redeemed.
+   *
+   * @param {string} rewardId - Tremendous reward ID
+   * @returns {Promise<object>} Cancelled reward object
+   */
+  async cancelReward(rewardId) {
+    this._requireApiKey();
+
+    if (!rewardId) {
+      throw new Error('rewardId is required');
+    }
+
+    const { status, data } = await makeRequest({
+      method: 'POST',
+      path: `/rewards/${encodeURIComponent(rewardId)}/cancel`,
+      apiKey: this.apiKey,
+      hostname: this.hostname,
+    });
+
+    if (status === 404) {
+      const err = new Error('Reward not found');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    if (status !== 200 && status !== 204) {
+      throw mapApiError(status, data);
+    }
+
+    return (data && data.reward) || {};
+  }
+
+  /**
+   * Generate a redemption link for a reward (delivery method must be LINK).
+   *
+   * @param {string} rewardId - Tremendous reward ID
+   * @returns {Promise<{link: string, reward: object}>}
+   */
+  async generateRewardLink(rewardId) {
+    this._requireApiKey();
+
+    if (!rewardId) {
+      throw new Error('rewardId is required');
+    }
+
+    const { status, data } = await makeRequest({
+      method: 'POST',
+      path: `/rewards/${encodeURIComponent(rewardId)}/generate_link`,
+      apiKey: this.apiKey,
+      hostname: this.hostname,
+    });
+
+    if (status === 404) {
+      const err = new Error('Reward not found');
+      err.statusCode = 404;
+      throw err;
+    }
+
+    if (status !== 200 && status !== 201) {
+      throw mapApiError(status, data);
+    }
+
+    return {
+      link:
+        (data && data.link) ||
+        (data && data.reward && data.reward.delivery && data.reward.delivery.link) ||
+        null,
+      reward: (data && data.reward) || data,
+    };
+  }
+
+  /**
+   * List available funding sources for the account.
+   *
+   * @returns {Promise<Array>} Array of funding source objects
+   */
+  async listFundingSources() {
+    this._requireApiKey();
+
+    const { status, data } = await makeRequest({
+      method: 'GET',
+      path: '/funding_sources',
+      apiKey: this.apiKey,
+      hostname: this.hostname,
+    });
+
+    if (status !== 200) {
+      throw mapApiError(status, data);
+    }
+
+    return (data && data.funding_sources) || [];
+  }
 }
 
 // ─── Singleton ────────────────────────────────────────────────────────────────

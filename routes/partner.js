@@ -372,6 +372,8 @@ router.post(
       // ── Balance enforcement ──────────────────────────────────────────────────
       const { POINTS_PER_GBP } = partnerService;
       const requestedGbp = Number(value);
+      // Math.ceil ensures any fractional GBP value is always fully covered by points.
+      // e.g. £10.50 @ 100 pts/£ = 1050 pts (exact); £10.01 = 1001 pts (rounds up to nearest point).
       const requiredPoints = Math.ceil(requestedGbp * POINTS_PER_GBP);
 
       const balance = await partnerService.getBalance(partner.id);
@@ -528,6 +530,190 @@ router.post(
       logger.error('Tremendous resendReward error:', err);
       res.status(err.statusCode || 502).json({
         error: err.message || 'Failed to resend gift card',
+      });
+    }
+  }
+);
+
+/**
+ * GET /api/partner/tremendous/orders
+ * List the current partner's cashout orders (from internal DB, newest first).
+ * Optionally returns Tremendous order status if query param `?status=1` is set.
+ * Requires: role === 'partner'
+ */
+router.get('/tremendous/orders', authRequired, roleRequired('partner'), async (req, res) => {
+  try {
+    const partner = await partnerService.getPartnerByUserId(req.user.id);
+    if (!partner) {
+      return res.status(404).json({ error: 'Partner account not found' });
+    }
+    if (partner.status === 'disabled') {
+      return res.status(403).json({
+        error: 'Your partner account has been disabled. Please contact support.',
+        disabled: true,
+      });
+    }
+
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+    const all = (await dbUnified.read('partner_cashout_orders')) || [];
+    const mine = all
+      .filter(o => o.partnerId === partner.id)
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, limit);
+
+    res.json({ items: mine, total: mine.length });
+  } catch (err) {
+    logger.error('Error listing partner cashout orders:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ─── Reward-level endpoints ────────────────────────────────────────────────────
+
+/**
+ * GET /api/partner/tremendous/rewards/:id
+ * Get the details of a single Tremendous reward by reward ID.
+ * Requires: role === 'partner'
+ */
+router.get('/tremendous/rewards/:id', authRequired, roleRequired('partner'), async (req, res) => {
+  const rewardId = req.params.id;
+  if (!rewardId) {
+    return res.status(400).json({ error: 'Reward ID is required' });
+  }
+  try {
+    const tremendous = getTremendousService();
+    const reward = await tremendous.getReward(rewardId);
+    res.json({ reward });
+  } catch (err) {
+    logger.error('Tremendous getReward error:', err);
+    res.status(err.statusCode || 502).json({
+      error: err.message || 'Failed to fetch reward',
+    });
+  }
+});
+
+/**
+ * POST /api/partner/tremendous/rewards/:id/resend
+ * Resend a reward email by reward ID directly.
+ * Requires: role === 'partner'
+ */
+router.post(
+  '/tremendous/rewards/:id/resend',
+  authRequired,
+  roleRequired('partner'),
+  csrfProtection,
+  async (req, res) => {
+    const rewardId = req.params.id;
+    if (!rewardId) {
+      return res.status(400).json({ error: 'Reward ID is required' });
+    }
+    try {
+      const tremendous = getTremendousService();
+      await tremendous.resendReward(rewardId);
+      res.json({ ok: true, message: 'Gift card resent successfully' });
+    } catch (err) {
+      logger.error('Tremendous resendReward (by rewardId) error:', err);
+      res.status(err.statusCode || 502).json({
+        error: err.message || 'Failed to resend gift card',
+      });
+    }
+  }
+);
+
+/**
+ * POST /api/partner/tremendous/rewards/:id/cancel
+ * Cancel a reward that has not yet been redeemed.
+ * Requires: role === 'partner'
+ */
+router.post(
+  '/tremendous/rewards/:id/cancel',
+  authRequired,
+  roleRequired('partner'),
+  csrfProtection,
+  async (req, res) => {
+    const rewardId = req.params.id;
+    if (!rewardId) {
+      return res.status(400).json({ error: 'Reward ID is required' });
+    }
+    try {
+      const tremendous = getTremendousService();
+      const reward = await tremendous.cancelReward(rewardId);
+
+      // Update cashout order record status if we have one linked to this reward
+      try {
+        const allOrders = (await dbUnified.read('partner_cashout_orders')) || [];
+        const linked = allOrders.find(o => o.tremendousRewardId === rewardId);
+        if (linked) {
+          await dbUnified.updateOne(
+            'partner_cashout_orders',
+            { id: linked.id },
+            { $set: { status: 'cancelled', updatedAt: new Date().toISOString() } }
+          );
+        }
+      } catch (_dbErr) {
+        logger.warn(
+          'Failed to update cashout order status after cancel (non-blocking):',
+          _dbErr.message
+        );
+      }
+
+      logger.info(`Reward ${rewardId} cancelled by partner ${req.user.id}`);
+      res.json({ ok: true, reward });
+    } catch (err) {
+      logger.error('Tremendous cancelReward error:', err);
+      res.status(err.statusCode || 502).json({
+        error: err.message || 'Failed to cancel reward',
+      });
+    }
+  }
+);
+
+/**
+ * POST /api/partner/tremendous/rewards/:id/generate-link
+ * Generate a new redemption URL for a reward (delivery method must be LINK).
+ * Requires: role === 'partner'
+ */
+router.post(
+  '/tremendous/rewards/:id/generate-link',
+  authRequired,
+  roleRequired('partner'),
+  csrfProtection,
+  async (req, res) => {
+    const rewardId = req.params.id;
+    if (!rewardId) {
+      return res.status(400).json({ error: 'Reward ID is required' });
+    }
+    try {
+      const tremendous = getTremendousService();
+      const result = await tremendous.generateRewardLink(rewardId);
+      res.json({ ok: true, link: result.link, reward: result.reward });
+    } catch (err) {
+      logger.error('Tremendous generateRewardLink error:', err);
+      res.status(err.statusCode || 502).json({
+        error: err.message || 'Failed to generate reward link',
+      });
+    }
+  }
+);
+
+/**
+ * GET /api/partner/tremendous/funding-sources
+ * List available Tremendous funding sources.
+ * Requires: role === 'partner'
+ */
+router.get(
+  '/tremendous/funding-sources',
+  authRequired,
+  roleRequired('partner'),
+  async (req, res) => {
+    try {
+      const tremendous = getTremendousService();
+      const fundingSources = await tremendous.listFundingSources();
+      res.json({ funding_sources: fundingSources });
+    } catch (err) {
+      logger.error('Tremendous listFundingSources error:', err);
+      res.status(err.statusCode || 502).json({
+        error: err.message || 'Failed to fetch funding sources',
       });
     }
   }

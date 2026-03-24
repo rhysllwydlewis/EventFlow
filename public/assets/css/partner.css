@@ -1298,3 +1298,106 @@ select.partner-modal-input option {
   flex-shrink: 0;
   margin-top: 0.1rem;
 }
+
+/* ── Gift Card History ──────────────────────────────────────────────────────── */
+
+.cashout-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.cashout-history-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  flex-wrap: wrap;
+}
+
+.cashout-history-row:last-child {
+  border-bottom: none;
+}
+
+.cashout-history-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cashout-history-recipient {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 0.15rem;
+}
+
+.cashout-history-meta {
+  font-size: 0.76rem;
+  color: rgba(255, 255, 255, 0.38);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.cashout-history-ref {
+  font-family: monospace;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.28);
+}
+
+.cashout-history-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.cashout-history-btn {
+  padding: 0.3rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+
+.cashout-history-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.cashout-history-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.cashout-history-btn--resend {
+  border-color: rgba(16, 185, 129, 0.25);
+  color: rgba(110, 231, 183, 0.8);
+}
+
+.cashout-history-btn--resend:hover:not(:disabled) {
+  background: rgba(16, 185, 129, 0.12);
+  color: #6ee7b7;
+}
+
+.cashout-history-btn--cancel {
+  border-color: rgba(239, 68, 68, 0.2);
+  color: rgba(252, 165, 165, 0.7);
+}
+
+.cashout-history-btn--cancel:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.1);
+  color: #fca5a5;
+}
