@@ -15,6 +15,28 @@
 describe('verifyAltcha (server.js)', () => {
   const originalEnv = process.env;
 
+  // Mirror the verifyAltcha logic from server.js.
+  // Tests the same logic without booting the full server (no DB connection needed).
+  // If server.js's verifyAltcha changes, update this mirror accordingly.
+  const { verifySolution } = require('altcha-lib');
+  async function verifyAltcha(payload) {
+    if (!payload) {
+      return { success: false, error: 'No ALTCHA payload provided' };
+    }
+    if (!process.env.ALTCHA_HMAC_KEY) {
+      if (process.env.NODE_ENV === 'production') {
+        return { success: false, error: 'CAPTCHA verification not configured' };
+      }
+      return { success: true, warning: 'Captcha verification disabled in development' };
+    }
+    try {
+      const ok = await verifySolution(payload, process.env.ALTCHA_HMAC_KEY);
+      return ok ? { success: true } : { success: false, error: 'ALTCHA verification failed' };
+    } catch {
+      return { success: false, error: 'Captcha verification error' };
+    }
+  }
+
   beforeEach(() => {
     jest.resetModules();
     process.env = { ...originalEnv };
@@ -25,53 +47,12 @@ describe('verifyAltcha (server.js)', () => {
   });
 
   it('returns success:false when payload is missing', async () => {
-    // Load the verifyAltcha function by requiring server.js helpers indirectly.
-    // We test the logic directly to keep the test fast (no full server boot).
-    const { verifySolution } = require('altcha-lib');
-    // verifyAltcha internals: if (!payload) → { success: false, error: 'No ALTCHA payload provided' }
-    async function verifyAltcha(payload) {
-      if (!payload) {
-        return { success: false, error: 'No ALTCHA payload provided' };
-      }
-      if (!process.env.ALTCHA_HMAC_KEY) {
-        if (process.env.NODE_ENV === 'production') {
-          return { success: false, error: 'CAPTCHA verification not configured' };
-        }
-        return { success: true, warning: 'Captcha verification disabled in development' };
-      }
-      try {
-        const ok = await verifySolution(payload, process.env.ALTCHA_HMAC_KEY);
-        return ok ? { success: true } : { success: false, error: 'ALTCHA verification failed' };
-      } catch {
-        return { success: false, error: 'Captcha verification error' };
-      }
-    }
-
     const result = await verifyAltcha(null);
     expect(result.success).toBe(false);
     expect(result.error).toBe('No ALTCHA payload provided');
   });
 
   it('returns success:false when payload is empty string', async () => {
-    const { verifySolution } = require('altcha-lib');
-    async function verifyAltcha(payload) {
-      if (!payload) {
-        return { success: false, error: 'No ALTCHA payload provided' };
-      }
-      if (!process.env.ALTCHA_HMAC_KEY) {
-        if (process.env.NODE_ENV === 'production') {
-          return { success: false, error: 'CAPTCHA verification not configured' };
-        }
-        return { success: true, warning: 'Captcha verification disabled in development' };
-      }
-      try {
-        const ok = await verifySolution(payload, process.env.ALTCHA_HMAC_KEY);
-        return ok ? { success: true } : { success: false, error: 'ALTCHA verification failed' };
-      } catch {
-        return { success: false, error: 'Captcha verification error' };
-      }
-    }
-
     const result = await verifyAltcha('');
     expect(result.success).toBe(false);
     expect(result.error).toBe('No ALTCHA payload provided');
@@ -80,26 +61,6 @@ describe('verifyAltcha (server.js)', () => {
   it('skips verification in development when ALTCHA_HMAC_KEY is missing', async () => {
     delete process.env.ALTCHA_HMAC_KEY;
     process.env.NODE_ENV = 'development';
-
-    const { verifySolution } = require('altcha-lib');
-    async function verifyAltcha(payload) {
-      if (!payload) {
-        return { success: false, error: 'No ALTCHA payload provided' };
-      }
-      if (!process.env.ALTCHA_HMAC_KEY) {
-        if (process.env.NODE_ENV === 'production') {
-          return { success: false, error: 'CAPTCHA verification not configured' };
-        }
-        return { success: true, warning: 'Captcha verification disabled in development' };
-      }
-      try {
-        const ok = await verifySolution(payload, process.env.ALTCHA_HMAC_KEY);
-        return ok ? { success: true } : { success: false, error: 'ALTCHA verification failed' };
-      } catch {
-        return { success: false, error: 'Captcha verification error' };
-      }
-    }
-
     const result = await verifyAltcha('any-payload');
     expect(result.success).toBe(true);
     expect(result.warning).toContain('disabled');
@@ -108,26 +69,6 @@ describe('verifyAltcha (server.js)', () => {
   it('returns success:false in production when ALTCHA_HMAC_KEY is missing', async () => {
     delete process.env.ALTCHA_HMAC_KEY;
     process.env.NODE_ENV = 'production';
-
-    const { verifySolution } = require('altcha-lib');
-    async function verifyAltcha(payload) {
-      if (!payload) {
-        return { success: false, error: 'No ALTCHA payload provided' };
-      }
-      if (!process.env.ALTCHA_HMAC_KEY) {
-        if (process.env.NODE_ENV === 'production') {
-          return { success: false, error: 'CAPTCHA verification not configured' };
-        }
-        return { success: true, warning: 'Captcha verification disabled in development' };
-      }
-      try {
-        const ok = await verifySolution(payload, process.env.ALTCHA_HMAC_KEY);
-        return ok ? { success: true } : { success: false, error: 'ALTCHA verification failed' };
-      } catch {
-        return { success: false, error: 'Captcha verification error' };
-      }
-    }
-
     const result = await verifyAltcha('any-payload');
     expect(result.success).toBe(false);
     expect(result.error).toContain('not configured');
