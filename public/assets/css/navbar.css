@@ -46,10 +46,10 @@
   --ef-text-reappear-duration: 0.8s;
   --ef-text-reappear-delay: 2.3s;
   --ef-brand-text-max-width: 150px;
-  --ef-logo-gradient-a: #3b82f6;
-  --ef-logo-gradient-b: #14b8a6;
-  --ef-logo-gradient-c: #86efac;
-  --ef-logo-glow: rgba(20, 184, 166, 0.28);
+  --ef-logo-gradient-a: #0b8073;
+  --ef-logo-gradient-b: #10b981;
+  --ef-logo-gradient-c: #34d399;
+  --ef-logo-glow: rgba(11, 128, 115, 0.35);
   --ef-logo-ring: rgba(255, 255, 255, 0.42);
 }
 

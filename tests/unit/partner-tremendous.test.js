@@ -98,7 +98,20 @@ jest.mock('../../middleware/validation', () => ({
 
 jest.mock('../../services/partnerService', () => ({
   getPartnerByUserId: jest.fn(),
-  getBalance: jest.fn(),
+  getBalance: jest.fn().mockResolvedValue({
+    balance: 10000,
+    availableBalance: 10000,
+    maturingBalance: 0,
+    totalEarned: 10000,
+    packageBonusTotal: 0,
+    subscriptionBonusTotal: 10000,
+    adjustmentTotal: 0,
+    redeemed: 0,
+    transactions: [],
+  }),
+  debitPoints: jest.fn().mockResolvedValue({ id: 'ptx_debit_001' }),
+  reverseDebit: jest.fn().mockResolvedValue({ id: 'ptx_reversal_001' }),
+  POINTS_PER_GBP: 100,
   listReferralsByPartnerId: jest.fn().mockResolvedValue([]),
   maskReferralName: jest.fn(name => (name ? `${name[0]}***` : 'S***r')),
   getCodeHistory: jest.fn().mockResolvedValue([]),
@@ -249,6 +262,19 @@ describe('POST /api/partner/tremendous/orders', () => {
     app = buildApp();
     jest.clearAllMocks();
     partnerService.getPartnerByUserId.mockResolvedValue(ACTIVE_PARTNER);
+    partnerService.getBalance.mockResolvedValue({
+      balance: 10000,
+      availableBalance: 10000,
+      maturingBalance: 0,
+      totalEarned: 10000,
+      packageBonusTotal: 0,
+      subscriptionBonusTotal: 10000,
+      adjustmentTotal: 0,
+      redeemed: 0,
+      transactions: [],
+    });
+    partnerService.debitPoints.mockResolvedValue({ id: 'ptx_debit_001' });
+    partnerService.reverseDebit.mockResolvedValue({ id: 'ptx_reversal_001' });
 
     mockTremendous = {
       listProducts: jest.fn(),

@@ -27,12 +27,26 @@ It lives at `/partner` — this URL is **not indexed** (`noindex, nofollow`) and
 
 ### Credits are earned
 
+- **+5 credits** when the referred supplier **signs up** via the partner's referral link (immediate on registration)
 - **+10 credits** when the referred supplier creates their **first-ever package** (within 30 days of their signup)
+- **+15 credits** when the referred supplier receives their **first customer review**
+- **+20 credits** when the referred supplier's **profile is approved** by an EventFlow admin
 - **+100 credits** when the referred supplier makes their **first successful Stripe subscription payment** (within 30 days of their signup, **not** trial activations or £0 invoices)
-- Both bonuses **can stack** for the same supplier (max +110 credits per supplier)
-- Each bonus is awarded **only once** per supplier (idempotent)
+- All bonuses are awarded **only once** per supplier (idempotent)
 
-### Credit value
+### Available vs maturing credits
+
+Once earned, credits go through a **30-day maturation period** before they become available for cashout:
+
+| Credit state  | Description                                                                             |
+| ------------- | --------------------------------------------------------------------------------------- |
+| **Maturing**  | Recently earned — not yet available for cashout (< 30 days old)                         |
+| **Available** | Mature credits (≥ 30 days old) — can be used for gift card cashout                      |
+| **Potential** | Credits that _could_ be earned from active referrals in their 30-day attribution window |
+
+### Credit value and conversion
+
+Credits convert to GBP at a rate configured by the `POINTS_PER_GBP` environment variable (default: 100 points = £1):
 
 | Credits | GBP value |
 | ------- | --------- |
@@ -66,6 +80,7 @@ It lives at `/partner` — this URL is **not indexed** (`noindex, nofollow`) and
 | `POST` | `/api/v1/partner/regenerate-code`              | Generate a new referral code (old code stays valid)       |
 | `GET`  | `/api/v1/partner/code-history`                 | List previously used referral codes                       |
 | `POST` | `/api/v1/partner/support-ticket`               | Raise a general support ticket from the partner dashboard |
+| `GET`  | `/api/v1/partner/support-tickets`              | List all support tickets raised by the current partner    |
 | `GET`  | `/api/v1/partner/tremendous/products`          | List available gift card products (partner-only)          |
 | `POST` | `/api/v1/partner/tremendous/orders`            | Create a gift card order/reward (partner-only)            |
 | `GET`  | `/api/v1/partner/tremendous/orders/:id`        | Fetch order / reward status (partner-only)                |
@@ -95,12 +110,21 @@ Partners can send gift cards directly from the partner dashboard using the [Trem
 **Access control:** All `/tremendous/*` endpoints require `authRequired + roleRequired('partner')`.
 Non-partner roles (supplier, customer, admin) receive `403 Forbidden`.
 
+**Financial safety:**
+
+- The server enforces that the partner has **sufficient available points** before creating an order.
+- Points are debited atomically before calling Tremendous; if the API call fails the debit is automatically reversed.
+- Every order is persisted to `partner_cashout_orders` for audit and support.
+- An audit email copy is sent to `TREMENDOUS_AUDIT_EMAIL` (if configured) on every successful order.
+
 **Configuration:**
 
-| Env var              | Required | Description                                |
-| -------------------- | -------- | ------------------------------------------ |
-| `TREMENDOUS_API_KEY` | Yes      | Bearer token from the Tremendous dashboard |
-| `TREMENDOUS_ENV`     | No       | `sandbox` (default) or `production`        |
+| Env var                  | Required | Description                                          |
+| ------------------------ | -------- | ---------------------------------------------------- |
+| `TREMENDOUS_API_KEY`     | Yes      | Bearer token from the Tremendous dashboard           |
+| `TREMENDOUS_ENV`         | No       | `sandbox` (default) or `production`                  |
+| `TREMENDOUS_AUDIT_EMAIL` | No       | Email address to receive audit copies of every order |
+| `POINTS_PER_GBP`         | No       | Conversion rate: points per £1 (default: `100`)      |
 
 - Sandbox: `https://testflight.tremendous.com/api/v2`
 - Production: `https://www.tremendous.com/api/v2`
@@ -109,14 +133,15 @@ Non-partner roles (supplier, customer, admin) receive `403 Forbidden`.
 
 ### Admin (requires `admin` role)
 
-| Method  | Path                                                      | Description                         |
-| ------- | --------------------------------------------------------- | ----------------------------------- |
-| `GET`   | `/api/v1/admin/partners`                                  | List all partners (search & filter) |
-| `GET`   | `/api/v1/admin/partners/:id`                              | Get full detail for a partner       |
-| `PATCH` | `/api/v1/admin/partners/:id/status`                       | Enable or disable a partner         |
-| `POST`  | `/api/v1/admin/partners/:id/credits`                      | Apply manual credit adjustment      |
-| `GET`   | `/api/v1/admin/partners/payout-requests`                  | List all payout request tickets     |
-| `PATCH` | `/api/v1/admin/partners/payout-requests/:ticketId/status` | Update payout ticket status         |
+| Method  | Path                                                      | Description                                               |
+| ------- | --------------------------------------------------------- | --------------------------------------------------------- |
+| `GET`   | `/api/v1/admin/partners`                                  | List all partners (search & filter)                       |
+| `GET`   | `/api/v1/admin/partners/:id`                              | Get full detail for a partner                             |
+| `PATCH` | `/api/v1/admin/partners/:id/status`                       | Enable or disable a partner                               |
+| `POST`  | `/api/v1/admin/partners/:id/credits`                      | Apply manual credit adjustment                            |
+| `GET`   | `/api/v1/admin/partners/payout-requests`                  | List all payout request tickets                           |
+| `PATCH` | `/api/v1/admin/partners/payout-requests/:ticketId/status` | Update payout ticket status                               |
+| `GET`   | `/api/v1/admin/partners/cashout-orders`                   | List Tremendous cashout orders (query: partnerId, status) |
 
 ---
 
@@ -148,16 +173,40 @@ Three collections are used (in `store.js` and MongoDB):
 
 ### `partner_credit_transactions`
 
-| Field            | Type           | Description                                                      |
-| ---------------- | -------------- | ---------------------------------------------------------------- |
-| `id`             | string         | Unique ID (`ptx_...`)                                            |
-| `partnerId`      | string         | Links to `partners`                                              |
-| `supplierUserId` | string \| null | Supplier who triggered the credit (null for adjustments)         |
-| `type`           | string         | `PACKAGE_BONUS`, `SUBSCRIPTION_BONUS`, `ADJUSTMENT`, or `REDEEM` |
-| `amount`         | number         | Credit amount (positive = earn, negative = deduct/redeem)        |
-| `notes`          | string         | Human-readable note                                              |
-| `adminUserId`    | string \| null | Set for admin adjustments                                        |
-| `createdAt`      | ISO string     | Transaction timestamp                                            |
+| Field            | Type           | Description                                                                                                                               |
+| ---------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`             | string         | Unique ID (`ptx_...`)                                                                                                                     |
+| `partnerId`      | string         | Links to `partners`                                                                                                                       |
+| `supplierUserId` | string \| null | Supplier who triggered the credit (null for adjustments/debits)                                                                           |
+| `type`           | string         | `PACKAGE_BONUS`, `SUBSCRIPTION_BONUS`, `REFERRAL_SIGNUP_BONUS`, `FIRST_REVIEW_BONUS`, `PROFILE_APPROVED_BONUS`, `ADJUSTMENT`, or `REDEEM` |
+| `amount`         | number         | Credit amount (positive = earn, negative = deduct/redeem)                                                                                 |
+| `notes`          | string         | Human-readable note                                                                                                                       |
+| `adminUserId`    | string \| null | Set for admin adjustments                                                                                                                 |
+| `externalRef`    | string \| null | Reference to cashout order (set on REDEEM transactions)                                                                                   |
+| `createdAt`      | ISO string     | Transaction timestamp                                                                                                                     |
+
+> **Maturity rule:** Credits with `type !== REDEEM` and `type !== ADJUSTMENT` are only included in `availableBalance` once they are ≥ 30 days old (`CREDIT_MATURITY_DAYS`). Younger credits appear in `maturingBalance`.
+
+### `partner_cashout_orders`
+
+| Field                | Type           | Description                                                   |
+| -------------------- | -------------- | ------------------------------------------------------------- |
+| `id`                 | string         | Unique ID (`pco_...`)                                         |
+| `partnerId`          | string         | Links to `partners`                                           |
+| `partnerUserId`      | string         | User ID of the partner who initiated the cashout              |
+| `externalRef`        | string         | Idempotency key used as Tremendous `custom_identifier`        |
+| `debitTxnId`         | string         | ID of the REDEEM transaction in `partner_credit_transactions` |
+| `pointsDebited`      | number         | Number of points debited                                      |
+| `valueGbp`           | number         | GBP value of the gift card                                    |
+| `currency`           | string         | ISO 4217 currency code                                        |
+| `productId`          | string         | Tremendous product ID                                         |
+| `recipientName`      | string         | Gift card recipient name                                      |
+| `recipientEmail`     | string         | Gift card recipient email                                     |
+| `tremendousOrderId`  | string \| null | Tremendous order ID (after successful creation)               |
+| `tremendousRewardId` | string \| null | Tremendous reward ID (first reward in the order)              |
+| `tremendousStatus`   | string \| null | Order status from Tremendous at creation time                 |
+| `status`             | string         | `created`, `failed`                                           |
+| `createdAt`          | ISO string     | Record creation timestamp                                     |
 
 ### Database Indexes / Uniqueness
 
@@ -202,6 +251,18 @@ When an admin sets a partner's status to `disabled`:
 - Free plan activations
 - Any Stripe invoice with `amount_paid === 0`
 
+### Referral sign-up hook
+
+`routes/auth.js` — after `partnerService.recordReferral()` succeeds, calls `partnerService.awardReferralSignupBonus(supplierUserId)` (non-blocking).
+
+### First review hook
+
+`routes/reviews.js` — after a customer review is created (`POST /api/suppliers/:supplierId/reviews`), calls `partnerService.awardFirstReviewBonus(supplier.ownerUserId)` (non-blocking).
+
+### Profile approval hook
+
+`routes/supplier-admin.js` — after an admin approves a supplier profile (`POST /api/admin/suppliers/:id/approve`), calls `partnerService.awardProfileApprovedBonus(supplier.ownerUserId)` (non-blocking).
+
 ### Referral capture on registration
 
 `routes/auth.js` — the `POST /register` handler accepts an optional `ref` field in the request body. When a supplier registers with a valid `ref` code belonging to an active partner, `partnerService.recordReferral()` is called.
@@ -220,11 +281,15 @@ The `ref-capture.js` utility (or inline auth form logic) should read the `ref` q
 
 ## Environment Variables
 
-No new environment variables are required. The partner portal uses:
-
-- `BASE_URL` — used to generate full referral link URLs (e.g. `https://yourdomain.com`)
-- `JWT_SECRET` — existing JWT secret for authentication
-- `MONGODB_URI` — existing MongoDB connection (or falls back to local file storage)
+| Variable                 | Required      | Description                                                                |
+| ------------------------ | ------------- | -------------------------------------------------------------------------- |
+| `BASE_URL`               | No            | Full URL used to generate referral links (e.g. `https://event-flow.co.uk`) |
+| `JWT_SECRET`             | Yes           | JWT signing secret (shared with rest of app)                               |
+| `MONGODB_URI`            | Yes (prod)    | MongoDB connection string                                                  |
+| `TREMENDOUS_API_KEY`     | Yes (cashout) | Tremendous API bearer token                                                |
+| `TREMENDOUS_ENV`         | No            | `sandbox` (default) or `production`                                        |
+| `TREMENDOUS_AUDIT_EMAIL` | No            | Email to receive audit copies of every gift card order                     |
+| `POINTS_PER_GBP`         | No            | Conversion rate: points per £1 (default: `100`)                            |
 
 ---
 
@@ -278,6 +343,15 @@ Click "View" to open a side panel showing:
 ```bash
 # Run partner service unit tests
 npx jest tests/unit/partner-service.test.js --verbose
+
+# Run partner points enhancements tests (new bonus types, available/maturing balance)
+npx jest tests/unit/partner-points-enhancements.test.js --verbose
+
+# Run new partner endpoints tests (support tickets, cashout balance enforcement)
+npx jest tests/unit/partner-new-endpoints.test.js --verbose
+
+# Run Tremendous gift card endpoint tests
+npx jest tests/unit/partner-tremendous.test.js --verbose
 
 # Run partner payout validation unit tests
 npx jest tests/unit/partner-payout-validation.test.js --verbose

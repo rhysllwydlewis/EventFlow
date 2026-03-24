@@ -163,9 +163,17 @@
     if (!credits || typeof credits !== 'object') {
       return;
     }
-    document.getElementById('stat-balance').textContent = fmtCredits(credits.balance);
-    document.getElementById('stat-balance-gbp').textContent = toPounds(credits.balance);
-    document.getElementById('stat-pending').textContent = fmtCredits(credits.pendingPoints || 0);
+    const available =
+      credits.availableBalance !== undefined ? credits.availableBalance : credits.balance;
+    const maturing = credits.maturingBalance || 0;
+    const potential = credits.pendingPoints || 0;
+    document.getElementById('stat-balance').textContent = fmtCredits(available);
+    document.getElementById('stat-balance-gbp').textContent = toPounds(available);
+    document.getElementById('stat-pending').textContent = fmtCredits(maturing);
+    const potentialEl = document.getElementById('stat-potential');
+    if (potentialEl) {
+      potentialEl.textContent = fmtCredits(potential);
+    }
     document.getElementById('stat-earned').textContent = fmtCredits(credits.totalEarned);
     document.getElementById('stat-pkg-bonus').textContent = fmtCredits(credits.packageBonusTotal);
     document.getElementById('stat-sub-bonus').textContent = fmtCredits(
@@ -521,6 +529,8 @@
 
           closeModal();
           showToast('Support ticket submitted! Our team will be in touch.', 'success');
+          // Refresh ticket list
+          loadAndRenderTickets();
         } catch (err) {
           if (statusEl) {
             statusEl.textContent = err.message || 'Failed to submit ticket.';
@@ -534,6 +544,77 @@
         }
       });
     }
+  }
+
+  // ── Partner Support Tickets ───────────────────────────────────────────────────
+
+  function getTicketStatusBadge(status) {
+    const map = {
+      open: { label: 'Open', color: '#6ee7b7', bg: 'rgba(16,185,129,0.15)' },
+      in_progress: { label: 'In Progress', color: '#fbbf24', bg: 'rgba(251,191,36,0.15)' },
+      resolved: { label: 'Resolved', color: 'rgba(255,255,255,0.4)', bg: 'rgba(255,255,255,0.06)' },
+      closed: { label: 'Closed', color: 'rgba(255,255,255,0.3)', bg: 'rgba(255,255,255,0.04)' },
+    };
+    const s = map[status] || {
+      label: status || 'Unknown',
+      color: 'rgba(255,255,255,0.4)',
+      bg: 'rgba(255,255,255,0.06)',
+    };
+    return `<span style="display:inline-block;padding:0.2rem 0.6rem;border-radius:100px;font-size:0.75rem;font-weight:600;color:${s.color};background:${s.bg};">${s.label}</span>`;
+  }
+
+  async function loadAndRenderTickets() {
+    const container = document.getElementById('partner-tickets-container');
+    if (!container) {
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/v1/partner/support-tickets', { credentials: 'include' });
+      if (!res.ok) {
+        throw new Error('Failed to load tickets');
+      }
+      const { items } = await res.json();
+
+      if (!items || items.length === 0) {
+        container.innerHTML = `
+          <div class="partner-empty">
+            <div class="partner-empty-icon" aria-hidden="true">🎫</div>
+            <p class="partner-empty-text">No support tickets yet. Use the button above to raise one.</p>
+          </div>`;
+        return;
+      }
+
+      const rows = items
+        .map(
+          t => `
+        <div style="padding:0.85rem 0;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:0.9rem;font-weight:600;color:#fff;margin-bottom:0.2rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(t.subject)}</div>
+            <div style="font-size:0.78rem;color:rgba(255,255,255,0.38);">Opened ${fmtDate(t.createdAt)}${t.responseCount ? ` · ${t.responseCount} response${t.responseCount !== 1 ? 's' : ''}` : ''}</div>
+          </div>
+          <div style="flex-shrink:0;">${getTicketStatusBadge(t.status)}</div>
+        </div>`
+        )
+        .join('');
+
+      container.innerHTML = `<div style="padding:0 0.25rem;">${rows}</div>`;
+    } catch (err) {
+      container.innerHTML = `
+        <div class="partner-empty">
+          <div class="partner-empty-icon" aria-hidden="true">⚠️</div>
+          <p class="partner-empty-text">Failed to load tickets. Please refresh.</p>
+        </div>`;
+    }
+  }
+
+  function escHtml(str) {
+    return String(str || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   // ── Gift Card Cashout (Tremendous) ───────────────────────────────────────────
@@ -595,11 +676,12 @@
       });
     }
 
-    // Show balance hint (pts + £ value)
+    // Show balance hint (pts + £ value) — uses available balance for cashout
     const balancePtsEl = document.getElementById('cashout-balance-pts');
     const balanceGbpEl = document.getElementById('cashout-balance-gbp');
     if (credits) {
-      const bal = credits.balance || 0;
+      const bal =
+        credits.availableBalance !== undefined ? credits.availableBalance : credits.balance || 0;
       if (balancePtsEl) {
         balancePtsEl.textContent = bal.toLocaleString();
       }
@@ -897,6 +979,9 @@
 
       // Support ticket modal
       initSupportTicketModal();
+
+      // Load and render partner's own tickets
+      loadAndRenderTickets();
 
       // Gift card cashout section (Tremendous)
       initCashoutSection(credits);

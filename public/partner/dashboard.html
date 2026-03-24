@@ -60,12 +60,17 @@
         <div class="partner-stat-card partner-stat-card--highlight" role="group" aria-labelledby="stat-balance-label">
           <div class="partner-stat-label" id="stat-balance-label">Available Points</div>
           <div class="partner-stat-value" id="stat-balance">—</div>
-          <div class="partner-stat-sub">= <span id="stat-balance-gbp">£—</span></div>
+          <div class="partner-stat-sub">= <span id="stat-balance-gbp">£—</span> (for cashout)</div>
         </div>
         <div class="partner-stat-card partner-stat-card--pending" role="group" aria-labelledby="stat-pending-label">
-          <div class="partner-stat-label" id="stat-pending-label">Pending Points</div>
+          <div class="partner-stat-label" id="stat-pending-label">Maturing Points</div>
           <div class="partner-stat-value" id="stat-pending">—</div>
-          <div class="partner-stat-sub">within active windows</div>
+          <div class="partner-stat-sub">unlocks after 30 days</div>
+        </div>
+        <div class="partner-stat-card partner-stat-card--pending" role="group" aria-labelledby="stat-potential-label">
+          <div class="partner-stat-label" id="stat-potential-label">Potential Points</div>
+          <div class="partner-stat-value" id="stat-potential">—</div>
+          <div class="partner-stat-sub">from active referrals</div>
         </div>
         <div class="partner-stat-card" role="group" aria-labelledby="stat-earned-label">
           <div class="partner-stat-label" id="stat-earned-label">Total Earned</div>
@@ -350,6 +355,22 @@
           >
             ✉️ Raise a support ticket
           </button>
+        </div>
+      </section>
+
+      <!-- My Support Tickets -->
+      <section class="partner-section" aria-labelledby="tickets-heading">
+        <div class="partner-section-header">
+          <div>
+            <h2 class="partner-section-title" id="tickets-heading">🎫 My Support Tickets</h2>
+            <p class="partner-section-subtitle">Track your open and resolved support requests</p>
+          </div>
+        </div>
+        <div id="partner-tickets-container">
+          <div class="partner-empty">
+            <div class="partner-empty-icon" aria-hidden="true">🎫</div>
+            <p class="partner-empty-text">Loading tickets…</p>
+          </div>
         </div>
       </section>
 

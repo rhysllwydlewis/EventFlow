@@ -311,6 +311,7 @@ router.get('/tremendous/products', authRequired, roleRequired('partner'), async 
     logger.error('Tremendous listProducts error:', err);
     res.status(err.statusCode || 502).json({
       error: err.message || 'Failed to fetch gift card products',
+      notConfigured: err.statusCode === 503,
     });
   }
 });
@@ -321,12 +322,19 @@ router.get('/tremendous/products', authRequired, roleRequired('partner'), async 
  * Requires: role === 'partner'
  *
  * Body:
- *   productId    {string}  — Tremendous product ID
- *   value        {number}  — Reward denomination (e.g. 5)
- *   currency     {string}  — ISO 4217 code (default: 'GBP')
+ *   productId      {string}  — Tremendous product ID
+ *   value          {number}  — Reward denomination in GBP (e.g. 5.00)
+ *   currency       {string}  — ISO 4217 code (default: 'GBP')
  *   recipientName  {string}
  *   recipientEmail {string}
- *   message      {string}  — Optional message to recipient
+ *   message        {string}  — Optional message to recipient
+ *
+ * Financial safety:
+ *   - Converts value to required points using POINTS_PER_GBP conversion rate
+ *   - Checks partner has sufficient available (mature) points
+ *   - Pre-debits points before calling Tremendous; reverses on failure
+ *   - Persists order to partner_cashout_orders for audit
+ *   - Sends audit copy to TREMENDOUS_AUDIT_EMAIL if configured
  */
 router.post(
   '/tremendous/orders',
@@ -361,21 +369,102 @@ router.post(
         });
       }
 
-      const tremendous = getTremendousService();
-      const order = await tremendous.createOrder({
-        productId: String(productId).trim(),
-        value: Number(value),
-        currency: currency ? String(currency).trim().toUpperCase().slice(0, 3) : 'GBP',
-        recipient: {
-          name: String(recipientName).trim().slice(0, 100),
-          email: String(recipientEmail).trim().slice(0, 200),
-        },
-        externalId: `partner:${partner.id}:${uid('ord')}`,
-        ...(message ? { message: String(message).trim().slice(0, 500) } : {}),
+      // ── Balance enforcement ──────────────────────────────────────────────────
+      const { POINTS_PER_GBP } = partnerService;
+      const requestedGbp = Number(value);
+      const requiredPoints = Math.ceil(requestedGbp * POINTS_PER_GBP);
+
+      const balance = await partnerService.getBalance(partner.id);
+      if (balance.availableBalance < requiredPoints) {
+        return res.status(400).json({
+          error: `Insufficient available points. You need ${requiredPoints} points (£${requestedGbp.toFixed(2)}) but only have ${balance.availableBalance} available.`,
+          requiredPoints,
+          availablePoints: balance.availableBalance,
+        });
+      }
+
+      // ── Pre-debit points (idempotency) ───────────────────────────────────────
+      const externalRef = `partner:${partner.id}:${uid('ord')}`;
+      const debitTxn = await partnerService.debitPoints({
+        partnerId: partner.id,
+        amount: requiredPoints,
+        notes: `Gift card cashout: £${requestedGbp.toFixed(2)} to ${String(recipientEmail).trim()}`,
+        externalRef,
       });
 
-      logger.info(`Tremendous order created by partner ${partner.id}: ${order.id || '(no id)'}`);
-      res.status(201).json({ ok: true, order });
+      // ── Call Tremendous ──────────────────────────────────────────────────────
+      let order;
+      try {
+        const tremendous = getTremendousService();
+        order = await tremendous.createOrder({
+          productId: String(productId).trim(),
+          value: requestedGbp,
+          currency: currency ? String(currency).trim().toUpperCase().slice(0, 3) : 'GBP',
+          recipient: {
+            name: String(recipientName).trim().slice(0, 100),
+            email: String(recipientEmail).trim().slice(0, 200),
+          },
+          externalId: externalRef,
+          ...(message ? { message: String(message).trim().slice(0, 500) } : {}),
+        });
+      } catch (tremendousErr) {
+        // Reverse the debit so partner doesn't lose points on API failure
+        await partnerService.reverseDebit(debitTxn.id, partner.id);
+        throw tremendousErr;
+      }
+
+      // ── Persist order record for audit ───────────────────────────────────────
+      const cashoutRecord = {
+        id: uid('pco'),
+        partnerId: partner.id,
+        partnerUserId: req.user.id,
+        externalRef,
+        debitTxnId: debitTxn.id,
+        pointsDebited: requiredPoints,
+        valueGbp: requestedGbp,
+        currency: currency ? String(currency).trim().toUpperCase().slice(0, 3) : 'GBP',
+        productId: String(productId).trim(),
+        recipientName: String(recipientName).trim().slice(0, 100),
+        recipientEmail: String(recipientEmail).trim().slice(0, 200),
+        tremendousOrderId: order.id || null,
+        tremendousRewardId: (order.rewards && order.rewards[0] && order.rewards[0].id) || null,
+        tremendousStatus: order.status || null,
+        status: 'created',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      await dbUnified.insertOne('partner_cashout_orders', cashoutRecord);
+      logger.info(
+        `Tremendous order created by partner ${partner.id}: ${order.id || '(no id)'} (ref: ${externalRef})`
+      );
+
+      // ── Audit email copy ─────────────────────────────────────────────────────
+      const auditEmail = process.env.TREMENDOUS_AUDIT_EMAIL;
+      if (auditEmail) {
+        postmark
+          .sendMail({
+            to: auditEmail,
+            subject: `[EventFlow Audit] Gift card sent – Partner ${partner.id}`,
+            text: [
+              `Partner: ${partner.id} (${req.user.email})`,
+              `Order ID: ${order.id || '(no id)'}`,
+              `Reward ID: ${cashoutRecord.tremendousRewardId || 'n/a'}`,
+              `External Ref: ${externalRef}`,
+              `Amount: £${requestedGbp.toFixed(2)} (${requiredPoints} pts debited)`,
+              `Recipient: ${cashoutRecord.recipientName} <${cashoutRecord.recipientEmail}>`,
+              `Product: ${cashoutRecord.productId}`,
+              `Created At: ${cashoutRecord.createdAt}`,
+            ].join('\n'),
+            from: postmark.FROM_DEFAULT || 'hello@eventflow.app',
+            tags: ['partner-cashout-audit'],
+            messageStream: 'outbound',
+          })
+          .catch(emailErr => {
+            logger.warn('Cashout audit email failed (non-blocking):', emailErr.message);
+          });
+      }
+
+      res.status(201).json({ ok: true, order, cashoutId: cashoutRecord.id });
     } catch (err) {
       logger.error('Tremendous createOrder error:', err);
       res.status(err.statusCode || 502).json({
@@ -520,5 +609,49 @@ router.post(
     }
   }
 );
+
+// ─── Partner Support Tickets List ─────────────────────────────────────────────
+
+/**
+ * GET /api/partner/support-tickets
+ * List all support tickets raised by the current partner.
+ * Returns tickets sorted newest first.
+ */
+router.get('/support-tickets', authRequired, roleRequired('partner'), async (req, res) => {
+  try {
+    const partner = await partnerService.getPartnerByUserId(req.user.id);
+    if (!partner) {
+      return res.status(404).json({ error: 'Partner account not found' });
+    }
+    if (partner.status === 'disabled') {
+      return res.status(403).json({
+        error: 'Your partner account has been disabled. Please contact support.',
+        disabled: true,
+      });
+    }
+
+    const allTickets = (await dbUnified.read('tickets')) || [];
+    const partnerTickets = allTickets
+      .filter(t => t.senderId === req.user.id && t.senderType === 'partner')
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .map(t => ({
+        id: t.id,
+        subject: t.subject,
+        status: t.status,
+        priority: t.priority,
+        category: t.category,
+        createdAt: t.createdAt,
+        updatedAt: t.updatedAt,
+        lastReplyAt: t.lastReplyAt,
+        lastReplyBy: t.lastReplyBy,
+        responseCount: Array.isArray(t.responses) ? t.responses.length : 0,
+      }));
+
+    res.json({ items: partnerTickets, total: partnerTickets.length });
+  } catch (err) {
+    logger.error('Error fetching partner support tickets:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 module.exports = router;
