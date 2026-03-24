@@ -776,6 +776,10 @@
     const errorMsg = document.getElementById('cashout-error-msg');
     const formWrap = document.getElementById('cashout-form-wrap');
     const confirmationEl = document.getElementById('cashout-confirmation');
+    const errorIconEl = document.querySelector('#cashout-error .cashout-not-configured-icon');
+    const errorBannerEl = document.querySelector('#cashout-error .cashout-not-configured');
+    const errorRetryBtn = document.getElementById('cashout-retry-btn');
+    const productSelect = document.getElementById('cashout-product');
 
     if (!formWrap) {
       return;
@@ -791,6 +795,13 @@
       if (errorEl) {
         errorEl.style.display = 'block';
       }
+      // Update icon and banner colour based on error type
+      if (errorIconEl) {
+        errorIconEl.textContent = isConfig ? '⚙️' : '⚠️';
+      }
+      if (errorBannerEl) {
+        errorBannerEl.classList.toggle('cashout-not-configured--generic', !isConfig);
+      }
       if (errorMsg) {
         if (isConfig) {
           errorMsg.textContent =
@@ -801,26 +812,25 @@
             msg || 'Unable to load gift card products. Please try again later.';
         }
       }
-      if (isConfig) {
-        const select = document.getElementById('cashout-product');
-        if (select) {
-          select.disabled = true;
-        }
+      if (errorRetryBtn) {
+        errorRetryBtn.style.display = isConfig ? 'none' : 'inline-flex';
+      }
+      if (isConfig && productSelect) {
+        productSelect.disabled = true;
       }
       showLoading(false);
     }
 
     function populateProducts(products) {
-      const select = document.getElementById('cashout-product');
-      if (!select) {
+      if (!productSelect) {
         return;
       }
-      select.innerHTML = '<option value="">Select a brand…</option>';
+      productSelect.innerHTML = '<option value="">Select a brand…</option>';
       products.filter(Boolean).forEach(p => {
         const opt = document.createElement('option');
         opt.value = p.id || '';
         opt.textContent = p.name || p.id || '';
-        select.appendChild(opt);
+        productSelect.appendChild(opt);
       });
     }
 
@@ -838,30 +848,41 @@
       }
     }
 
-    showLoading(true);
+    function runProductLoad() {
+      if (errorEl) {
+        errorEl.style.display = 'none';
+      }
+      showLoading(true);
+      loadTremendousProducts()
+        .then(data => {
+          showLoading(false);
+          const products = (data && data.products) || [];
+          if (!products.length) {
+            showError('No gift card products are currently available. Please try again later.');
+            return;
+          }
+          populateProducts(products);
+          formWrap.style.display = 'block';
+        })
+        .catch(err => {
+          const isConfig = err.isServiceUnavailable === true;
+          if (window.__EF_DEBUG__) {
+            // eslint-disable-next-line no-console
+            console.debug(
+              '[partner-dashboard] Gift card products:',
+              isConfig ? 'service not configured' : err
+            );
+          }
+          showError(err.message || '', isConfig);
+        });
+    }
 
-    loadTremendousProducts()
-      .then(data => {
-        showLoading(false);
-        const products = (data && data.products) || [];
-        if (!products.length) {
-          showError('No gift card products are currently available. Please try again later.');
-          return;
-        }
-        populateProducts(products);
-        formWrap.style.display = 'block';
-      })
-      .catch(err => {
-        const isConfig = err.isServiceUnavailable === true;
-        if (window.__EF_DEBUG__) {
-          // eslint-disable-next-line no-console
-          console.debug(
-            '[partner-dashboard] Gift card products:',
-            isConfig ? 'service not configured' : err
-          );
-        }
-        showError(err.message || '', isConfig);
-      });
+    runProductLoad();
+
+    // Retry button — wired up for transient (non-config) errors
+    if (errorRetryBtn) {
+      errorRetryBtn.addEventListener('click', runProductLoad);
+    }
 
     const form = document.getElementById('cashout-form');
     const statusEl = document.getElementById('cashout-status');

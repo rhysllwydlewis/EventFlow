@@ -913,7 +913,7 @@ describe('partner-dashboard-init.js — initCashoutSection catch block', () => {
     'utf8'
   );
 
-  // Extract just the catch block inside initCashoutSection
+  // Extract the catch block inside runProductLoad (after the loadTremendousProducts() call)
   const catchBlock = src
     .split('loadTremendousProducts()')[2]
     .split('.catch(err => {')[1]
@@ -942,7 +942,7 @@ describe('partner-dashboard-init.js — initCashoutSection catch block', () => {
   });
 });
 
-describe('partner-dashboard-init.js — showError disables cashout-product select when notConfigured', () => {
+describe('partner-dashboard-init.js — showError visuals and disabled state', () => {
   const fs = require('fs');
   const path = require('path');
   const src = fs.readFileSync(
@@ -956,12 +956,54 @@ describe('partner-dashboard-init.js — showError disables cashout-product selec
     .split(/^\s{4}function /m)[0];
 
   it('disables cashout-product select element when isConfig is true', () => {
-    expect(showErrorBody).toContain('cashout-product');
-    expect(showErrorBody).toContain('select.disabled = true');
+    // Uses init-time productSelect reference (not a DOM query inside showError)
+    expect(showErrorBody).toContain('productSelect.disabled = true');
   });
 
   it('only disables select when isConfig is truthy', () => {
     // The disable block must be inside an `if (isConfig)` guard
-    expect(showErrorBody).toContain('if (isConfig)');
+    expect(showErrorBody).toContain('if (isConfig');
+  });
+
+  it('updates icon element to ⚙️ for config errors and ⚠️ for generic', () => {
+    // Uses init-time errorIconEl reference
+    expect(showErrorBody).toContain('errorIconEl');
+    expect(showErrorBody).toContain("'⚙️'");
+    expect(showErrorBody).toContain("'⚠️'");
+  });
+
+  it('toggles cashout-not-configured--generic modifier class for generic errors', () => {
+    expect(showErrorBody).toContain('cashout-not-configured--generic');
+    expect(showErrorBody).toContain('classList.toggle');
+  });
+
+  it('shows or hides retry button based on isConfig', () => {
+    // Uses init-time errorRetryBtn reference
+    expect(showErrorBody).toContain('errorRetryBtn');
+    expect(showErrorBody).toContain("isConfig ? 'none' : 'inline-flex'");
+  });
+});
+
+describe('partner-dashboard-init.js — runProductLoad retry wiring', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const src = fs.readFileSync(
+    path.join(process.cwd(), 'public/assets/js/pages/partner-dashboard-init.js'),
+    'utf8'
+  );
+
+  it('defines runProductLoad as a named function (not inline)', () => {
+    expect(src).toContain('function runProductLoad()');
+  });
+
+  it('calls runProductLoad() for the initial load', () => {
+    // runProductLoad() call appears after the function definition
+    const afterDef = src.split('function runProductLoad()')[1];
+    expect(afterDef).toContain('runProductLoad()');
+  });
+
+  it('wires retry button click to runProductLoad', () => {
+    expect(src).toContain('cashout-retry-btn');
+    expect(src).toContain("errorRetryBtn.addEventListener('click', runProductLoad)");
   });
 });
