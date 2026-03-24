@@ -576,7 +576,7 @@ async function handleSubscriptionDeleted(stripeSubscription) {
       status: 'active',
       stripeSubscriptionId: null,
       cancelAtPeriodEnd: false,
-      currentPeriodEnd: null, // no Stripe period — access continues until re-subscription
+      currentPeriodEnd: null, // no Stripe billing period — lower-tier access continues indefinitely until user re-subscribes or is manually adjusted
       canceledAt: null,
     });
 
