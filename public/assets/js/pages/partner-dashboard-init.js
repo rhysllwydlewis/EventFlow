@@ -849,7 +849,7 @@
         formWrap.style.display = 'block';
       })
       .catch(err => {
-        const msg = (err && typeof err.message === 'string' && err.message) || '';
+        const msg = (err && typeof err.message === 'string') ? err.message : '';
         const isConfig =
           err.isServiceUnavailable ||
           (msg &&
