@@ -3148,9 +3148,9 @@ async function initDashSupplier() {
               : '';
           const pauseBtn = `<button type="button" class="card-action-btn ${paused ? 'unpause-btn' : 'pause-btn'}" data-action="${paused ? 'unpause-package' : 'pause-package'}" data-package-id="${packageId}">${paused ? 'Unpause' : 'Pause'}</button>`;
 
-          return `<div class="card package-card" data-package-id="${packageId}">
+          return `<div class="card package-card${paused ? ' package-card--paused' : ''}" data-package-id="${packageId}">
       <img src="${image}" alt="${title} image" onerror="this.src='/assets/images/package-placeholder.svg'; this.onerror=null;">
-      <div>
+      <div class="package-card-content">
         <h3>${title}</h3>
         <div class="small"><span class="badge">${priceDisplay}</span> ${featured ? '<span class="badge">Featured</span>' : ''} ${approvalBadge} ${pausedBadge}</div>
         <p class="small">${description}</p>
@@ -3913,6 +3913,22 @@ async function togglePackagePause(packageId, pause) {
 
     // Refresh packages list to reflect the updated state
     await loadPackages();
+
+    // Keep the Active Packages stat card in sync without a full page reload
+    try {
+      const pkgsResp = await fetch('/api/v1/me/packages', { credentials: 'include' });
+      if (pkgsResp.ok) {
+        const pkgsData = await pkgsResp.json();
+        const activeCount = (pkgsData?.items ?? []).filter(p => !p.paused).length;
+        const statEl = document.getElementById('quick-stat-packages');
+        if (statEl) {
+          statEl.setAttribute('data-target', String(activeCount));
+          statEl.textContent = String(activeCount);
+        }
+      }
+    } catch (_e) {
+      // Best effort — stat update failure should not block UX
+    }
   } catch (e) {
     console.error(`Error ${action}ing package:`, e);
     alert(`Failed to ${action} package. Please try again.`);
