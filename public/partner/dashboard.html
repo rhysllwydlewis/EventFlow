@@ -168,28 +168,149 @@
         </div>
       </section>
 
-      <!-- Cashout — Coming Soon -->
-      <section class="partner-section" aria-labelledby="cashout-heading">
+      <!-- Gift Card Cashout — Tremendous -->
+      <section class="partner-section" aria-labelledby="cashout-heading" id="cashout-section">
         <div class="partner-section-header">
           <div>
-            <h2 class="partner-section-title" id="cashout-heading">Gift Card Cashout</h2>
-            <p class="partner-section-subtitle">Redeem your points for gift cards — coming soon</p>
+            <h2 class="partner-section-title" id="cashout-heading">🎁 Gift Card Cashout</h2>
+            <p class="partner-section-subtitle">Redeem your points for gift cards via Tremendous</p>
           </div>
         </div>
-        <div class="partner-payout-info" style="display:flex;align-items:flex-start;gap:1.25rem;flex-wrap:wrap;">
-          <div style="flex:1;min-width:220px;">
-            <div style="display:inline-flex;align-items:center;gap:0.5rem;background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.3);border-radius:8px;padding:0.35rem 0.85rem;margin-bottom:0.9rem;">
-              <span style="font-size:0.8rem;font-weight:700;color:#fbbf24;letter-spacing:0.05em;">COMING SOON</span>
+
+        <!-- Loading state -->
+        <div id="cashout-loading" class="partner-empty" style="display:none;">
+          <p class="partner-empty-text">Loading gift card catalogue…</p>
+        </div>
+
+        <!-- Error state -->
+        <div id="cashout-error" style="display:none;padding:1rem;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:10px;">
+          <p style="color:#fca5a5;margin:0;font-size:0.88rem;" id="cashout-error-msg">Unable to load gift card products.</p>
+        </div>
+
+        <!-- Gift card form -->
+        <div id="cashout-form-wrap" style="display:none;">
+          <form id="cashout-form" novalidate>
+            <div style="display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-bottom:1.25rem;">
+
+              <!-- Product selection -->
+              <div class="partner-modal-field" style="margin:0;">
+                <label for="cashout-product" style="display:block;margin-bottom:0.4rem;font-size:0.82rem;color:rgba(255,255,255,0.6);">
+                  Gift Card Brand <span style="color:#ef4444">*</span>
+                </label>
+                <select
+                  id="cashout-product"
+                  name="productId"
+                  class="partner-modal-input"
+                  required
+                  style="width:100%;"
+                >
+                  <option value="">Select a brand…</option>
+                </select>
+              </div>
+
+              <!-- Amount -->
+              <div class="partner-modal-field" style="margin:0;">
+                <label for="cashout-amount" style="display:block;margin-bottom:0.4rem;font-size:0.82rem;color:rgba(255,255,255,0.6);">
+                  Amount (£) <span style="color:#ef4444">*</span>
+                </label>
+                <input
+                  id="cashout-amount"
+                  name="value"
+                  type="number"
+                  min="1"
+                  step="0.01"
+                  class="partner-modal-input"
+                  placeholder="e.g. 10"
+                  required
+                  style="width:100%;"
+                />
+                <p style="margin:0.35rem 0 0;font-size:0.75rem;color:rgba(255,255,255,0.35);">
+                  Points balance: <span id="cashout-balance-hint">—</span> pts
+                </p>
+              </div>
+
+              <!-- Recipient name -->
+              <div class="partner-modal-field" style="margin:0;">
+                <label for="cashout-recipient-name" style="display:block;margin-bottom:0.4rem;font-size:0.82rem;color:rgba(255,255,255,0.6);">
+                  Recipient Name <span style="color:#ef4444">*</span>
+                </label>
+                <input
+                  id="cashout-recipient-name"
+                  name="recipientName"
+                  type="text"
+                  class="partner-modal-input"
+                  placeholder="Full name"
+                  maxlength="100"
+                  required
+                  style="width:100%;"
+                />
+              </div>
+
+              <!-- Recipient email -->
+              <div class="partner-modal-field" style="margin:0;">
+                <label for="cashout-recipient-email" style="display:block;margin-bottom:0.4rem;font-size:0.82rem;color:rgba(255,255,255,0.6);">
+                  Recipient Email <span style="color:#ef4444">*</span>
+                </label>
+                <input
+                  id="cashout-recipient-email"
+                  name="recipientEmail"
+                  type="email"
+                  class="partner-modal-input"
+                  placeholder="recipient@example.com"
+                  maxlength="200"
+                  required
+                  style="width:100%;"
+                />
+              </div>
+
+              <!-- Optional message -->
+              <div class="partner-modal-field" style="margin:0;grid-column:1/-1;">
+                <label for="cashout-message" style="display:block;margin-bottom:0.4rem;font-size:0.82rem;color:rgba(255,255,255,0.6);">
+                  Message (optional)
+                </label>
+                <input
+                  id="cashout-message"
+                  name="message"
+                  type="text"
+                  class="partner-modal-input"
+                  placeholder="A short note for the recipient"
+                  maxlength="500"
+                  style="width:100%;"
+                />
+              </div>
             </div>
-            <p style="font-size:0.88rem;color:rgba(255,255,255,0.65);line-height:1.7;margin:0;">
-              We're building an instant gift card cashout feature powered by
-              <a href="https://www.tremendous.com" target="_blank" rel="noopener noreferrer"
-                 style="color:#13B6A2;text-decoration:none;font-weight:600;">Tremendous</a>.
-              Once live, you'll be able to redeem your points for gift cards from a wide range of brands directly from this dashboard — no waiting, no manual process.
-            </p>
-            <p style="font-size:0.82rem;color:rgba(255,255,255,0.4);margin:0.75rem 0 0;line-height:1.5;">
-              Your points are accumulating now and will be ready to redeem as soon as we launch.
-            </p>
+
+            <!-- Form status -->
+            <div id="cashout-status" class="partner-status" role="alert" aria-live="polite" style="margin-bottom:0.75rem;"></div>
+
+            <button
+              type="submit"
+              id="cashout-submit-btn"
+              class="partner-submit-btn"
+              style="max-width:220px;"
+            >
+              🎁 Send Gift Card
+            </button>
+          </form>
+        </div>
+
+        <!-- Order confirmation -->
+        <div id="cashout-confirmation" style="display:none;padding:1.25rem;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25);border-radius:10px;">
+          <p style="color:#6ee7b7;font-weight:600;margin:0 0 0.5rem;">✓ Gift card sent successfully!</p>
+          <p style="font-size:0.85rem;color:rgba(255,255,255,0.55);margin:0 0 0.75rem;" id="cashout-confirmation-msg"></p>
+          <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+            <button
+              type="button"
+              id="cashout-view-order-btn"
+              class="partner-submit-btn"
+              style="max-width:180px;padding:0.5rem 1rem;font-size:0.82rem;background:rgba(255,255,255,0.08);"
+            >View Order</button>
+            <button
+              type="button"
+              id="cashout-new-btn"
+              class="partner-submit-btn"
+              style="max-width:180px;padding:0.5rem 1rem;font-size:0.82rem;"
+            >Send Another</button>
           </div>
         </div>
       </section>

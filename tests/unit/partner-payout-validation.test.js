@@ -74,9 +74,11 @@ jest.mock('bcryptjs', () => ({
 }));
 jest.mock('jsonwebtoken', () => ({
   sign: jest.fn().mockReturnValue('token'),
-  verify: jest.fn().mockImplementation((token, secret, cb) =>
-    cb(null, { id: 'usr_partner_001', role: 'partner' })
-  ),
+  verify: jest
+    .fn()
+    .mockImplementation((token, secret, cb) =>
+      cb(null, { id: 'usr_partner_001', role: 'partner' })
+    ),
 }));
 jest.mock('validator', () => ({
   isEmail: jest.fn().mockReturnValue(true),
@@ -140,43 +142,20 @@ const DISABLED_PARTNER = {
   status: 'disabled',
 };
 
-// ─── Payout request — coming soon ────────────────────────────────────────────
+jest.mock('../../services/tremendousService', () => ({
+  getTremendousService: jest.fn(() => ({
+    listProducts: jest.fn().mockResolvedValue([]),
+    createOrder: jest.fn().mockResolvedValue({ id: 'ord_001' }),
+    getOrder: jest.fn().mockResolvedValue({ id: 'ord_001', status: 'EXECUTED', rewards: [] }),
+    resendReward: jest.fn().mockResolvedValue({}),
+  })),
+}));
 
-describe('POST /api/partner/payout-request — coming soon', () => {
-  let app;
+// ─── Payout request — Tremendous integration (replaces coming-soon stub) ─────
 
-  beforeEach(() => {
-    app = buildApp();
-    jest.clearAllMocks();
-    partnerService.getPartnerByUserId.mockResolvedValue(ACTIVE_PARTNER);
-  });
-
-  it('returns 401 when user is not authenticated', async () => {
-    const res = await request(app)
-      .post('/api/partner/payout-request')
-      .set('x-test-role', 'none')
-      .send({ points: 100 });
-
-    expect(res.status).toBe(401);
-  });
-
-  it('returns 403 when user is not a partner role', async () => {
-    const res = await request(app)
-      .post('/api/partner/payout-request')
-      .set('x-test-role', 'customer')
-      .send({ points: 100 });
-
-    expect(res.status).toBe(403);
-  });
-
-  it('returns 503 with comingSoon flag for authenticated partners', async () => {
-    const res = await request(app).post('/api/partner/payout-request').send({ points: 100 });
-
-    expect(res.status).toBe(503);
-    expect(res.body.comingSoon).toBe(true);
-    expect(res.body.error).toMatch(/coming soon/i);
-  });
-});
+// NOTE: The old POST /api/partner/payout-request (503 coming-soon stub) has been
+// replaced by the real Tremendous gift card integration. See
+// tests/unit/partner-tremendous.test.js for the comprehensive Tremendous endpoint tests.
 
 // ─── Support ticket ───────────────────────────────────────────────────────────
 

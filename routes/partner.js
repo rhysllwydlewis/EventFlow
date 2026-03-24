@@ -21,6 +21,7 @@ const { authLimiter } = require('../middleware/rateLimits');
 const { passwordOk } = require('../middleware/validation');
 const partnerService = require('../services/partnerService');
 const postmark = require('../utils/postmark');
+const { getTremendousService } = require('../services/tremendousService');
 
 const router = express.Router();
 
@@ -294,23 +295,154 @@ router.get('/code-history', authRequired, roleRequired('partner'), async (req, r
   }
 });
 
-// ─── Payout Request (Coming Soon) ────────────────────────────────────────────
+// ─── Tremendous Gift Card Routes (partner-only) ───────────────────────────────
 
 /**
- * POST /api/partner/payout-request
- *
- * Gift-card cashout via this endpoint is temporarily unavailable while we
- * integrate with the Tremendous API for instant payouts. Partners should use
- * the partner dashboard which will surface the new flow once live.
+ * GET /api/partner/tremendous/products
+ * List available gift card products from Tremendous.
+ * Requires: role === 'partner'
  */
-router.post('/payout-request', authRequired, roleRequired('partner'), csrfProtection, (req, res) => {
-  res.status(503).json({
-    error:
-      'Gift card cashout is coming soon. We are integrating with Tremendous for instant payouts. ' +
-      'Your points are safe and will be redeemable once the feature launches.',
-    comingSoon: true,
-  });
+router.get('/tremendous/products', authRequired, roleRequired('partner'), async (req, res) => {
+  try {
+    const tremendous = getTremendousService();
+    const products = await tremendous.listProducts({ giftCardsOnly: true });
+    res.json({ products });
+  } catch (err) {
+    logger.error('Tremendous listProducts error:', err);
+    res.status(err.statusCode || 502).json({
+      error: err.message || 'Failed to fetch gift card products',
+    });
+  }
 });
+
+/**
+ * POST /api/partner/tremendous/orders
+ * Create a gift card order/reward for a recipient.
+ * Requires: role === 'partner'
+ *
+ * Body:
+ *   productId    {string}  — Tremendous product ID
+ *   value        {number}  — Reward denomination (e.g. 5)
+ *   currency     {string}  — ISO 4217 code (default: 'GBP')
+ *   recipientName  {string}
+ *   recipientEmail {string}
+ *   message      {string}  — Optional message to recipient
+ */
+router.post(
+  '/tremendous/orders',
+  authRequired,
+  roleRequired('partner'),
+  csrfProtection,
+  async (req, res) => {
+    const { productId, value, currency, recipientName, recipientEmail, message } = req.body || {};
+
+    if (!productId || typeof productId !== 'string') {
+      return res.status(400).json({ error: 'productId is required' });
+    }
+    if (!value || typeof value !== 'number' || value <= 0) {
+      return res.status(400).json({ error: 'value must be a positive number' });
+    }
+    if (!recipientName || typeof recipientName !== 'string' || !recipientName.trim()) {
+      return res.status(400).json({ error: 'recipientName is required' });
+    }
+    if (!recipientEmail || typeof recipientEmail !== 'string' || !recipientEmail.includes('@')) {
+      return res.status(400).json({ error: 'recipientEmail must be a valid email address' });
+    }
+
+    try {
+      const partner = await partnerService.getPartnerByUserId(req.user.id);
+      if (!partner) {
+        return res.status(404).json({ error: 'Partner account not found' });
+      }
+      if (partner.status === 'disabled') {
+        return res.status(403).json({
+          error: 'Your partner account has been disabled. Please contact support.',
+          disabled: true,
+        });
+      }
+
+      const tremendous = getTremendousService();
+      const order = await tremendous.createOrder({
+        productId: String(productId).trim(),
+        value: Number(value),
+        currency: currency ? String(currency).trim().toUpperCase().slice(0, 3) : 'GBP',
+        recipient: {
+          name: String(recipientName).trim().slice(0, 100),
+          email: String(recipientEmail).trim().slice(0, 200),
+        },
+        externalId: `partner:${partner.id}:${uid('ord')}`,
+        ...(message ? { message: String(message).trim().slice(0, 500) } : {}),
+      });
+
+      logger.info(`Tremendous order created by partner ${partner.id}: ${order.id || '(no id)'}`);
+      res.status(201).json({ ok: true, order });
+    } catch (err) {
+      logger.error('Tremendous createOrder error:', err);
+      res.status(err.statusCode || 502).json({
+        error: err.message || 'Failed to create gift card order',
+      });
+    }
+  }
+);
+
+/**
+ * GET /api/partner/tremendous/orders/:id
+ * Fetch the status of a Tremendous order.
+ * Requires: role === 'partner'
+ */
+router.get('/tremendous/orders/:id', authRequired, roleRequired('partner'), async (req, res) => {
+  const orderId = req.params.id;
+  if (!orderId) {
+    return res.status(400).json({ error: 'Order ID is required' });
+  }
+  try {
+    const tremendous = getTremendousService();
+    const order = await tremendous.getOrder(orderId);
+    res.json({ order });
+  } catch (err) {
+    logger.error('Tremendous getOrder error:', err);
+    res.status(err.statusCode || 502).json({
+      error: err.message || 'Failed to fetch order',
+    });
+  }
+});
+
+/**
+ * POST /api/partner/tremendous/orders/:id/resend
+ * Resend the gift card email for the first reward of an order.
+ * Requires: role === 'partner'
+ */
+router.post(
+  '/tremendous/orders/:id/resend',
+  authRequired,
+  roleRequired('partner'),
+  csrfProtection,
+  async (req, res) => {
+    const orderId = req.params.id;
+    if (!orderId) {
+      return res.status(400).json({ error: 'Order ID is required' });
+    }
+    try {
+      // Fetch the order to retrieve the reward ID
+      const tremendous = getTremendousService();
+      const order = await tremendous.getOrder(orderId);
+
+      const rewards = order.rewards || [];
+      if (!rewards.length) {
+        return res.status(404).json({ error: 'No rewards found for this order' });
+      }
+
+      const rewardId = rewards[0].id;
+      await tremendous.resendReward(rewardId);
+      res.json({ ok: true, message: 'Gift card resent successfully' });
+    } catch (err) {
+      logger.error('Tremendous resendReward error:', err);
+      res.status(err.statusCode || 502).json({
+        error: err.message || 'Failed to resend gift card',
+      });
+    }
+  }
+);
 
 // ─── General Partner Support Ticket ──────────────────────────────────────────
 
