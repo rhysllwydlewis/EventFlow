@@ -213,16 +213,27 @@
 
   // ── Detail panel ──────────────────────────────────────────────────────────────
 
+  // Track whether the current panel load was successful (used to prevent false re-opens)
+  let detailPanelLoaded = false;
+
   async function openDetailPanel(partnerId) {
+    if (!partnerId || partnerId === 'null' || partnerId === 'undefined') {
+      return;
+    }
     const panel = document.getElementById('partner-detail-panel');
     const body = document.getElementById('detail-body-content');
+    const scrim = document.getElementById('detail-panel-scrim');
     if (!panel || !body) {
       return;
     }
 
     currentDetailId = partnerId;
+    detailPanelLoaded = false;
     panel.removeAttribute('hidden');
     panel.classList.add('open');
+    if (scrim) {
+      scrim.classList.add('show');
+    }
     body.innerHTML = '<p style="color:#6b7280;padding:1rem 0;">Loading…</p>';
 
     const nameEl = document.getElementById('detail-partner-name');
@@ -239,22 +250,28 @@
         emailEl.textContent = partner.user?.email || '';
       }
 
+      const typeLabels = {
+        PACKAGE_BONUS: '📦 Package Bonus',
+        SUBSCRIPTION_BONUS: '💳 Subscription Bonus',
+        REFERRAL_SIGNUP_BONUS: '👤 Referral Signup',
+        FIRST_REVIEW_BONUS: '⭐ First Review',
+        PROFILE_APPROVED_BONUS: '✅ Profile Approved',
+        ADJUSTMENT: '⚙️ Adjustment',
+        REDEEM: '🎁 Redemption',
+        CASHOUT_HOLD: '🔒 Cashout Hold',
+        CASHOUT_RELEASE: '🔓 Hold Released',
+      };
+
       const txnRows = (credits.transactions || [])
         .slice(0, 20)
         .map(t => {
-          const typeLabels = {
-            PACKAGE_BONUS: '📦 Package Bonus',
-            SUBSCRIPTION_BONUS: '💳 Subscription Bonus',
-            ADJUSTMENT: '⚙️ Adjustment',
-            REDEEM: '🎁 Redemption',
-          };
           const lbl = typeLabels[t.type] || t.type;
-          const amtColor = t.amount >= 0 ? '#34d399' : '#fca5a5';
+          const amtColor = t.amount >= 0 ? '#059669' : '#dc2626';
           const amtStr = t.amount >= 0 ? `+${t.amount}` : `${t.amount}`;
           return `<tr>
-          <td style="color:#e5e7eb;font-size:0.8rem;">${esc(lbl)}</td>
+          <td style="color:#374151;font-size:0.8rem;">${esc(lbl)}</td>
           <td style="color:${amtColor};font-weight:700;font-size:0.85rem;">${amtStr}</td>
-          <td style="color:#9ca3af;font-size:0.75rem;">${fmtDate(t.createdAt)}</td>
+          <td style="color:#6b7280;font-size:0.75rem;">${fmtDate(t.createdAt)}</td>
           <td style="color:#9ca3af;font-size:0.73rem;">${esc(t.notes || '')}</td>
         </tr>`;
         })
@@ -266,23 +283,26 @@
           const pkg = r.packageQualified ? '✓' : '—';
           const sub = r.subscriptionQualified ? '✓' : '—';
           return `<tr>
-          <td style="color:#e5e7eb;font-size:0.8rem;">${esc(r.supplierName || '—')}</td>
-          <td style="color:#9ca3af;font-size:0.75rem;">${fmtDate(r.supplierCreatedAt)}</td>
-          <td style="text-align:center;color:${r.packageQualified ? '#34d399' : '#6b7280'}">${pkg}</td>
-          <td style="text-align:center;color:${r.subscriptionQualified ? '#34d399' : '#6b7280'}">${sub}</td>
+          <td style="color:#374151;font-size:0.8rem;">${esc(r.supplierName || '—')}</td>
+          <td style="color:#6b7280;font-size:0.75rem;">${fmtDate(r.supplierCreatedAt)}</td>
+          <td style="text-align:center;color:${r.packageQualified ? '#059669' : '#9ca3af'}">${pkg}</td>
+          <td style="text-align:center;color:${r.subscriptionQualified ? '#059669' : '#9ca3af'}">${sub}</td>
         </tr>`;
         })
         .join('');
 
       body.innerHTML = `
-        <!-- Summary -->
+        <!-- Account Info -->
         <div class="partner-detail-section">
           <div class="partner-detail-section-title">Account Info</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;font-size:0.83rem;">
-            <div style="color:#9ca3af">Ref Code</div><div style="color:#818cf8;font-family:monospace;">${esc(partner.refCode)}</div>
-            <div style="color:#9ca3af">Status</div><div>${statusBadge(partner.status)}</div>
-            <div style="color:#9ca3af">Joined</div><div style="color:#e5e7eb">${fmtDate(partner.createdAt)}</div>
-            <div style="color:#9ca3af">Company</div><div style="color:#e5e7eb">${esc(partner.user?.company || '—')}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem 1rem;font-size:0.83rem;">
+            <div style="color:#6b7280">Ref Code</div><div style="color:#6366f1;font-family:monospace;font-weight:600;">${esc(partner.refCode)}</div>
+            <div style="color:#6b7280">Status</div><div>${statusBadge(partner.status)}</div>
+            <div style="color:#6b7280">Joined</div><div style="color:#111827">${fmtDate(partner.createdAt)}</div>
+            <div style="color:#6b7280">Company</div><div style="color:#111827">${esc(partner.user?.company || '—')}</div>
+          </div>
+          <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+            <button class="ap-action-btn ap-action-btn--credit" onclick="(function(){document.getElementById('partner-detail-panel').classList.remove('open');setTimeout(()=>document.getElementById('partner-detail-panel').setAttribute('hidden',''),320);})();openCreditModalFromPanel('${esc(partnerId)}')" style="font-size:0.78rem;">Adjust Credits</button>
           </div>
         </div>
 
@@ -290,17 +310,17 @@
         <div class="partner-detail-section">
           <div class="partner-detail-section-title">Credits</div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.6rem;margin-bottom:1rem;">
-            <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:0.75rem;text-align:center;">
-              <div style="font-size:1.25rem;font-weight:700;color:#34d399">${(credits.balance || 0).toLocaleString()}</div>
-              <div style="font-size:0.7rem;color:#9ca3af;margin-top:0.2rem">Balance</div>
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:0.75rem;text-align:center;">
+              <div style="font-size:1.25rem;font-weight:700;color:#059669">${(credits.balance || 0).toLocaleString()}</div>
+              <div style="font-size:0.7rem;color:#6b7280;margin-top:0.2rem">Balance</div>
             </div>
-            <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:0.75rem;text-align:center;">
-              <div style="font-size:1.25rem;font-weight:700;color:#fbbf24">${(credits.packageBonusTotal || 0).toLocaleString()}</div>
-              <div style="font-size:0.7rem;color:#9ca3af;margin-top:0.2rem">Pkg Bonuses</div>
+            <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:0.75rem;text-align:center;">
+              <div style="font-size:1.25rem;font-weight:700;color:#d97706">${(credits.packageBonusTotal || 0).toLocaleString()}</div>
+              <div style="font-size:0.7rem;color:#6b7280;margin-top:0.2rem">Pkg Bonuses</div>
             </div>
-            <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:0.75rem;text-align:center;">
-              <div style="font-size:1.25rem;font-weight:700;color:#818cf8">${(credits.subscriptionBonusTotal || 0).toLocaleString()}</div>
-              <div style="font-size:0.7rem;color:#9ca3af;margin-top:0.2rem">Sub Bonuses</div>
+            <div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:10px;padding:0.75rem;text-align:center;">
+              <div style="font-size:1.25rem;font-weight:700;color:#7c3aed">${(credits.subscriptionBonusTotal || 0).toLocaleString()}</div>
+              <div style="font-size:0.7rem;color:#6b7280;margin-top:0.2rem">Sub Bonuses</div>
             </div>
           </div>
 
@@ -311,10 +331,10 @@
             <table style="width:100%;border-collapse:collapse;font-size:0.8rem;">
               <thead>
                 <tr>
-                  <th style="text-align:left;padding:0.4rem;color:#9ca3af;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.1)">Type</th>
-                  <th style="text-align:left;padding:0.4rem;color:#9ca3af;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.1)">Amount</th>
-                  <th style="text-align:left;padding:0.4rem;color:#9ca3af;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.1)">Date</th>
-                  <th style="text-align:left;padding:0.4rem;color:#9ca3af;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.1)">Notes</th>
+                  <th style="text-align:left;padding:0.4rem;color:#6b7280;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid #e5e7eb">Type</th>
+                  <th style="text-align:left;padding:0.4rem;color:#6b7280;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid #e5e7eb">Amount</th>
+                  <th style="text-align:left;padding:0.4rem;color:#6b7280;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid #e5e7eb">Date</th>
+                  <th style="text-align:left;padding:0.4rem;color:#6b7280;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid #e5e7eb">Notes</th>
                 </tr>
               </thead>
               <tbody>${txnRows}</tbody>
@@ -334,10 +354,10 @@
             <table style="width:100%;border-collapse:collapse;font-size:0.8rem;">
               <thead>
                 <tr>
-                  <th style="text-align:left;padding:0.4rem;color:#9ca3af;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.1)">Supplier</th>
-                  <th style="text-align:left;padding:0.4rem;color:#9ca3af;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.1)">Signed Up</th>
-                  <th style="text-align:center;padding:0.4rem;color:#9ca3af;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.1)">Pkg</th>
-                  <th style="text-align:center;padding:0.4rem;color:#9ca3af;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.1)">Sub</th>
+                  <th style="text-align:left;padding:0.4rem;color:#6b7280;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid #e5e7eb">Supplier</th>
+                  <th style="text-align:left;padding:0.4rem;color:#6b7280;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid #e5e7eb">Signed Up</th>
+                  <th style="text-align:center;padding:0.4rem;color:#6b7280;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid #e5e7eb">Pkg</th>
+                  <th style="text-align:center;padding:0.4rem;color:#6b7280;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid #e5e7eb">Sub</th>
                 </tr>
               </thead>
               <tbody>${refRows}</tbody>
@@ -346,18 +366,41 @@
               : '<p style="color:#9ca3af;font-size:0.8rem;padding:0.5rem 0">No referrals yet.</p>'
           }
         </div>`;
+      detailPanelLoaded = true;
     } catch (err) {
-      body.innerHTML = `<p style="color:#fca5a5;font-size:0.85rem">Failed to load partner details. Please try again.</p>`;
+      body.innerHTML = `
+        <div style="text-align:center;padding:2rem 1rem;">
+          <div style="font-size:2rem;margin-bottom:0.75rem;">⚠️</div>
+          <p style="color:#dc2626;font-size:0.875rem;margin:0 0 1rem;">Failed to load partner details.</p>
+          <button
+            onclick="openDetailPanel('${esc(partnerId)}')"
+            style="background:#f3f4f6;border:1px solid #d1d5db;border-radius:8px;padding:0.4rem 1rem;font-size:0.82rem;cursor:pointer;color:#374151;">
+            Try again
+          </button>
+        </div>`;
     }
   }
 
+  // Opens the credit modal from within the detail panel (closes panel first)
+  function openCreditModalFromPanel(partnerId) {
+    openCreditModal(partnerId);
+  }
+  // Expose globally so inline onclick in detail panel HTML works
+  window.openCreditModalFromPanel = openCreditModalFromPanel;
+  window.openDetailPanel = openDetailPanel;
+
   function closeDetailPanel() {
     const panel = document.getElementById('partner-detail-panel');
+    const scrim = document.getElementById('detail-panel-scrim');
     if (panel) {
       panel.classList.remove('open');
       setTimeout(() => panel.setAttribute('hidden', ''), 320);
     }
+    if (scrim) {
+      scrim.classList.remove('show');
+    }
     currentDetailId = null;
+    detailPanelLoaded = false;
   }
 
   // ── Status toggle ─────────────────────────────────────────────────────────────
@@ -471,7 +514,8 @@
       showToast(`Credit adjustment (${amount > 0 ? '+' : ''}${amount}) applied`, 'success');
       closeCreditModal();
       await loadPartners();
-      if (currentDetailId === creditTargetId) {
+      // Only reopen the detail panel if it was previously loaded successfully for this partner
+      if (detailPanelLoaded && currentDetailId === creditTargetId) {
         openDetailPanel(currentDetailId);
       }
     } catch (err) {
@@ -555,6 +599,16 @@
       refreshBtn.addEventListener('click', loadPartners);
     }
 
+    // Cashout (withdrawal) requests filter and refresh
+    const cashoutStatusFilter = document.getElementById('cashoutStatusFilter');
+    if (cashoutStatusFilter) {
+      cashoutStatusFilter.addEventListener('change', loadCashoutRequests);
+    }
+    const refreshCashoutsBtn = document.getElementById('refreshCashoutsBtn');
+    if (refreshCashoutsBtn) {
+      refreshCashoutsBtn.addEventListener('click', loadCashoutRequests);
+    }
+
     // Payout requests filter and refresh
     const payoutStatusFilter = document.getElementById('payoutStatusFilter');
     if (payoutStatusFilter) {
@@ -569,6 +623,12 @@
     const closeBtn = document.getElementById('close-detail-btn');
     if (closeBtn) {
       closeBtn.addEventListener('click', closeDetailPanel);
+    }
+
+    // Detail panel scrim click
+    const scrim = document.getElementById('detail-panel-scrim');
+    if (scrim) {
+      scrim.addEventListener('click', closeDetailPanel);
     }
 
     // Credit modal
@@ -730,11 +790,142 @@
     }
   }
 
+  // ── Cashout (withdrawal) requests ────────────────────────────────────────────
+
+  async function loadCashoutRequests() {
+    const container = document.getElementById('cashout-requests-container');
+    const statusFilter = document.getElementById('cashoutStatusFilter');
+    const status = statusFilter ? statusFilter.value : '';
+
+    if (container) {
+      container.innerHTML =
+        '<div style="text-align:center;padding:2rem;color:#9ca3af;">Loading withdrawal requests…</div>';
+    }
+
+    try {
+      const qs = status ? `?status=${encodeURIComponent(status)}` : '';
+      const data = await AdminShared.api(`/api/admin/cashout-requests${qs}`);
+      const items = data.items || [];
+
+      if (!container) {
+        return;
+      }
+
+      if (items.length === 0) {
+        container.innerHTML = `
+          <div style="text-align:center;padding:2.5rem;color:#9ca3af;">
+            <div style="font-size:2rem;margin-bottom:0.75rem;">💸</div>
+            <div>No withdrawal requests${status ? ' with this status' : ''} yet.</div>
+          </div>`;
+        return;
+      }
+
+      const statusBadgeMap = {
+        submitted: '<span class="p-badge" style="background:#fef3c7;color:#d97706;border:1px solid #fde68a;">Submitted</span>',
+        approved:  '<span class="p-badge" style="background:#d1fae5;color:#065f46;border:1px solid #6ee7b7;">Approved</span>',
+        processing:'<span class="p-badge" style="background:#dbeafe;color:#1e40af;border:1px solid #bfdbfe;">Processing</span>',
+        delivered: '<span class="p-badge" style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;">Delivered</span>',
+        rejected:  '<span class="p-badge" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;">Rejected</span>',
+      };
+
+      const TRANSITIONS = {
+        submitted: ['approved', 'rejected'],
+        approved:  ['processing', 'rejected'],
+        processing:['delivered', 'rejected'],
+        rejected:  [],
+        delivered: [],
+      };
+
+      const methodLabel = m => ({ amazon_voucher: 'Amazon Voucher', prepaid_debit_card: 'Prepaid Card' })[m] || m || '—';
+
+      const rows = items.map(r => {
+        const userName = r.partnerUser
+          ? esc(r.partnerUser.name || r.partnerUser.email || 'Unknown')
+          : 'Unknown';
+        const userEmail = r.partnerUser ? esc(r.partnerUser.email || '') : '';
+        const badge = statusBadgeMap[r.status] || `<span class="p-badge">${esc(r.status)}</span>`;
+        const allowedNext = TRANSITIONS[r.status] || [];
+        const selectOptions = allowedNext.length
+          ? `<select class="cashout-status-select" data-req-id="${esc(r.id)}"
+               style="background:#fff;border:1px solid #d1d5db;border-radius:7px;color:#374151;padding:0.3rem 0.55rem;font-size:0.78rem;cursor:pointer;"
+               aria-label="Update cashout status">
+               <option value="">Change status…</option>
+               ${allowedNext.map(s => `<option value="${s}">${s.charAt(0).toUpperCase() + s.slice(1)}</option>`).join('')}
+             </select>`
+          : `<span style="font-size:0.75rem;color:#9ca3af;">—</span>`;
+
+        return `<tr>
+          <td>
+            <div style="font-weight:600;color:#111827;">${userName}</div>
+            <div style="font-size:0.75rem;color:#9ca3af;">${userEmail}</div>
+            ${r.partnerRefCode ? `<code style="font-size:0.72rem;color:#6366f1;">${esc(r.partnerRefCode)}</code>` : ''}
+          </td>
+          <td>
+            <div style="font-weight:700;color:#059669;font-size:1.05rem;">£${esc(String(r.denominationGbp || '—'))}</div>
+            <div style="font-size:0.78rem;color:#6b7280;">${esc(String(r.pointsHeld || 0))} pts held</div>
+          </td>
+          <td style="font-size:0.82rem;">${esc(methodLabel(r.method))}</td>
+          <td style="font-size:0.78rem;color:#6b7280;">${fmtDate(r.createdAt)}</td>
+          <td>${badge}</td>
+          <td>${selectOptions}</td>
+          <td style="font-size:0.78rem;color:#6b7280;max-width:160px;word-break:break-word;">${esc(r.partnerMessage || '')}</td>
+        </tr>`;
+      });
+
+      container.innerHTML = `
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;" aria-label="Withdrawal requests">
+            <thead>
+              <tr>
+                <th style="text-align:left;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;color:#9ca3af;border-bottom:1px solid #e5e7eb;padding:0.5rem 0.75rem;">Partner</th>
+                <th style="text-align:left;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;color:#9ca3af;border-bottom:1px solid #e5e7eb;padding:0.5rem 0.75rem;">Amount</th>
+                <th style="text-align:left;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;color:#9ca3af;border-bottom:1px solid #e5e7eb;padding:0.5rem 0.75rem;">Method</th>
+                <th style="text-align:left;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;color:#9ca3af;border-bottom:1px solid #e5e7eb;padding:0.5rem 0.75rem;">Submitted</th>
+                <th style="text-align:left;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;color:#9ca3af;border-bottom:1px solid #e5e7eb;padding:0.5rem 0.75rem;">Status</th>
+                <th style="text-align:left;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;color:#9ca3af;border-bottom:1px solid #e5e7eb;padding:0.5rem 0.75rem;">Action</th>
+                <th style="text-align:left;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;color:#9ca3af;border-bottom:1px solid #e5e7eb;padding:0.5rem 0.75rem;">Message</th>
+              </tr>
+            </thead>
+            <tbody>${rows.join('')}</tbody>
+          </table>
+        </div>`;
+
+      // Attach status-change listeners
+      container.querySelectorAll('.cashout-status-select').forEach(sel => {
+        sel.addEventListener('change', async () => {
+          const reqId = sel.getAttribute('data-req-id');
+          const newStatus = sel.value;
+          if (!newStatus) return;
+          try {
+            const csrfToken = await getCsrf();
+            await AdminShared.api(
+              `/api/admin/cashout-requests/${encodeURIComponent(reqId)}`,
+              'PATCH',
+              { status: newStatus }
+            );
+            showToast(`Withdrawal request updated to "${newStatus}"`, 'success');
+            loadCashoutRequests();
+          } catch (err) {
+            AdminShared.debugError('Failed to update cashout status', err);
+            showToast(err.message || 'Failed to update status', 'error');
+          }
+        });
+      });
+    } catch (err) {
+      AdminShared.debugError('Failed to load cashout requests', err);
+      if (container) {
+        container.innerHTML =
+          '<div style="text-align:center;padding:2rem;color:#fca5a5;">Error loading withdrawal requests.</div>';
+      }
+    }
+  }
+
   // ── Init ──────────────────────────────────────────────────────────────────────
 
   function init() {
     setupEventListeners();
     loadPartners();
+    loadCashoutRequests();
     loadPayoutRequests();
   }
 

@@ -408,12 +408,63 @@
     </div>
   </div>
 
+  <!-- ── Withdrawal (Cashout) Requests section ─────────────────────────────── -->
+  <div id="ap-cashout-section" style="margin-top:1.5rem;">
+    <div class="ap-section" style="margin-top:0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:0.75rem;">
+        <div>
+          <div class="ap-section-title" style="margin:0 0 0.2rem;">Withdrawal Requests</div>
+          <p style="font-size:0.8rem;color:#6b7280;margin:0;">
+            Partner cashout requests — approve, process, and mark as delivered. Minimum withdrawal: <strong>£15</strong>.
+          </p>
+        </div>
+        <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+          <select id="cashoutStatusFilter" aria-label="Filter withdrawal requests by status"
+            style="background:#fff;border:1px solid #d1d5db;border-radius:9px;color:#374151;padding:0.4rem 0.7rem;font-size:0.8rem;">
+            <option value="">All statuses</option>
+            <option value="submitted">Submitted</option>
+            <option value="approved">Approved</option>
+            <option value="processing">Processing</option>
+            <option value="delivered">Delivered</option>
+            <option value="rejected">Rejected</option>
+          </select>
+          <button id="refreshCashoutsBtn" class="btn-icon" title="Refresh withdrawal requests" aria-label="Refresh withdrawal requests" style="width:32px;height:32px;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          </button>
+        </div>
+      </div>
+      <div id="cashout-requests-container">
+        <div style="text-align:center;padding:2rem;color:#9ca3af;">Loading withdrawal requests…</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Monthly Draw — Coming Soon ────────────────────────────────────────── -->
+  <div id="ap-monthly-draw-section" style="margin-top:1.5rem;">
+    <div class="ap-section" style="margin-top:0;background:linear-gradient(135deg,#f0fdf4,#ecfdf5);border:1.5px dashed #6ee7b7;">
+      <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
+        <div style="font-size:2.5rem;line-height:1;">🎟️</div>
+        <div style="flex:1;min-width:220px;">
+          <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.3rem;">
+            <div class="ap-section-title" style="margin:0;color:#065f46;">Monthly Draw</div>
+            <span style="background:#059669;color:#fff;font-size:0.68rem;font-weight:700;padding:0.15rem 0.55rem;border-radius:20px;letter-spacing:0.05em;">COMING SOON</span>
+          </div>
+          <p style="font-size:0.83rem;color:#065f46;margin:0;line-height:1.5;">
+            Each month a prize draw will be made from all active partner credits.
+            <strong>1 credit = 1 ticket</strong> — the more credits a partner earns, the higher their
+            chances. Winners will be notified by email.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ── Payout Requests section ────────────────────────────────────────────── -->
   <div id="ap-payout-section" style="margin-top:1.5rem;">
     <div class="ap-section" style="margin-top:0;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;flex-wrap:wrap;gap:0.75rem;">
         <div>
-          <div class="ap-section-title" style="margin:0 0 0.2rem;">Gift Card Payout Requests</div>
+          <div class="ap-section-title" style="margin:0 0 0.2rem;">Gift Card Payout Requests (Legacy)</div>
           <p style="font-size:0.8rem;color:#6b7280;margin:0;">
             Partner payout requests submitted via the partner dashboard
           </p>
@@ -605,6 +656,8 @@
 </main>
 
 <!-- ── Detail side panel ─────────────────────────────────────────────────── -->
+<!-- Scrim overlay (closes panel on click; visible on mobile) -->
+<div id="detail-panel-scrim" class="partner-detail-scrim" aria-hidden="true"></div>
 <aside
   id="partner-detail-panel"
   class="partner-detail-panel"
@@ -614,17 +667,16 @@
 >
   <div class="partner-detail-header">
     <div>
-      <h2 class="partner-section-title" id="detail-partner-name">Partner Details</h2>
-      <p class="partner-section-subtitle" id="detail-partner-email"></p>
+      <h2 class="partner-section-title" style="color:#111827;margin:0 0 0.1rem;" id="detail-partner-name">Partner Details</h2>
+      <p style="font-size:0.8rem;color:#6b7280;margin:0;" id="detail-partner-email"></p>
     </div>
     <button
       class="partner-detail-close"
       id="close-detail-btn"
       type="button"
       aria-label="Close detail panel"
-    >
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-    </button>
+      title="Close"
+    >✕</button>
   </div>
   <div class="partner-detail-body">
     <div id="detail-body-content">Loading…</div>

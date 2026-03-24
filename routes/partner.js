@@ -843,7 +843,7 @@ router.get('/support-tickets', authRequired, roleRequired('partner'), async (req
 // ─── Partner Cashout Requests ─────────────────────────────────────────────────
 
 /**
- * Allowed cashout denominations (GBP integers, £5 increments, minimum £50).
+ * Allowed cashout denominations (GBP integers, £5 increments, minimum £15).
  * Configurable via CASHOUT_DENOMINATIONS env var (comma-separated integers).
  */
 const rawDenoms = process.env.CASHOUT_DENOMINATIONS;
@@ -855,9 +855,9 @@ const CASHOUT_DENOMINATIONS = (() => {
       .filter(n => Number.isInteger(n) && n > 0);
     if (parsed.length > 0) return parsed;
   }
-  // Default: £50 – £500 in £5 increments
+  // Default: £15 – £500 in £5 increments
   const defaults = [];
-  for (let v = 50; v <= 500; v += 5) defaults.push(v);
+  for (let v = 15; v <= 500; v += 5) defaults.push(v);
   return defaults;
 })();
 
