@@ -123,24 +123,54 @@ export function getAltchaPayload(widgetOrForm) {
     return null;
   }
 
+  // If a form (or container) was passed, look for a nested altcha-widget first
+  const widget =
+    el.tagName && el.tagName.toLowerCase() === 'altcha-widget'
+      ? el
+      : (el.querySelector ? el.querySelector('altcha-widget') : null) || el;
+
   // 1. Try shadow DOM — the hidden input lives inside the widget's shadow root
-  if (el.shadowRoot) {
-    const shadowInput = el.shadowRoot.querySelector('input[name="altcha"]');
-    if (shadowInput && shadowInput.value) return shadowInput.value;
+  try {
+    if (widget.shadowRoot) {
+      const shadowInput = widget.shadowRoot.querySelector('input[name="altcha"]');
+      if (shadowInput && shadowInput.value) {
+        return shadowInput.value;
+      }
+    }
+  } catch (_) {
+    // Shadow DOM not accessible in this environment
   }
 
   // 2. Try light DOM (in case the widget injects the input into light DOM)
-  const input = el.querySelector ? el.querySelector('input[name="altcha"]') : null;
-  if (input && input.value) return input.value;
+  if (widget.querySelector) {
+    const input = widget.querySelector('input[name="altcha"]');
+    if (input && input.value) {
+      return input.value;
+    }
+  }
 
-  // 3. Try form-level search
-  if (el.tagName === 'FORM' || el.elements) {
-    const formInput = el.querySelector('input[name="altcha"]');
-    if (formInput && formInput.value) return formInput.value;
+  // 3. Try form-level search (walk all altcha-widget elements inside a form)
+  if (el.querySelectorAll) {
+    const widgets = el.querySelectorAll('altcha-widget');
+    for (const w of widgets) {
+      try {
+        if (w.shadowRoot) {
+          const shadowInput = w.shadowRoot.querySelector('input[name="altcha"]');
+          if (shadowInput && shadowInput.value) {
+            return shadowInput.value;
+          }
+        }
+      } catch (_) {
+        // Ignore
+      }
+      if (w.value) {
+        return w.value;
+      }
+    }
   }
 
   // 4. Try the value property on the widget (ALTCHA v2 exposes this directly)
-  return el.value || null;
+  return widget.value || null;
 }
 
 /**
