@@ -22,15 +22,29 @@ Rate limiters are configured in `middleware/rateLimits.js` with the following co
 
 #### Authentication Endpoints
 
+- **Limiter**: `strictAuthLimiter`
+- **Window**: 15 minutes
+- **Max Requests**: 5
+- **Applied To**: `POST /login`, `POST /login-2fa`
+- **Purpose**: Tight brute-force and credential-stuffing protection on credential-submission endpoints
+
+- **Limiter**: `passwordResetLimiter`
+- **Window**: 15 minutes
+- **Max Requests**: 5
+- **Applied To**: `POST /forgot`, `POST /reset-password`, `POST /validate-reset-token`
+- **Purpose**: Prevents reset-link spam and email-enumeration attacks
+
 - **Limiter**: `authLimiter`
 - **Window**: 15 minutes
 - **Max Requests**: 10
-- **Applied To**: Login, registration, password reset endpoints
-- **Purpose**: Prevents brute force attacks and credential stuffing
+- **Applied To**: Registration and other general auth endpoints
+- **Purpose**: Prevents registration spam while keeping the experience smooth for legitimate users
 
 ```javascript
 // Example usage
-router.post('/login', authLimiter, async (req, res) => { ... });
+router.post('/login', strictAuthLimiter, async (req, res) => { ... });
+router.post('/forgot', passwordResetLimiter, async (req, res) => { ... });
+router.post('/register', authLimiter, async (req, res) => { ... });
 ```
 
 #### AI/OpenAI Endpoints

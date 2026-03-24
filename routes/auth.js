@@ -21,7 +21,12 @@ const {
   getUserFromCookie,
 } = require('../middleware/auth');
 const { passwordOk } = require('../middleware/validation');
-const { authLimiter, resendEmailLimiter } = require('../middleware/rateLimits');
+const {
+  authLimiter,
+  resendEmailLimiter,
+  strictAuthLimiter,
+  passwordResetLimiter,
+} = require('../middleware/rateLimits');
 const { csrfProtection } = require('../middleware/csrf');
 const { featureRequired, getFeatureFlags } = require('../middleware/features');
 const postmark = require('../utils/postmark');
@@ -464,7 +469,7 @@ router.post(
  *       429:
  *         description: Rate limit exceeded
  */
-router.post('/login', authLimiter, async (req, res) => {
+router.post('/login', strictAuthLimiter, async (req, res) => {
   const { email, password, remember } = req.body || {};
 
   // Prevent caching of login responses
@@ -554,7 +559,7 @@ router.post('/login', authLimiter, async (req, res) => {
  * POST /api/auth/login-2fa
  * Complete login with 2FA token
  */
-router.post('/login-2fa', authLimiter, async (req, res) => {
+router.post('/login-2fa', strictAuthLimiter, async (req, res) => {
   const { tempToken, token: tfaToken, backupCode, remember } = req.body || {};
 
   logger.info('[LOGIN-2FA] 2FA verification attempt');
@@ -656,7 +661,7 @@ router.post('/login-2fa', authLimiter, async (req, res) => {
  * Request password reset token
  * Enhanced with logging for debugging
  */
-router.post('/forgot', authLimiter, async (req, res) => {
+router.post('/forgot', passwordResetLimiter, async (req, res) => {
   const { email } = req.body || {};
 
   logger.info('[PASSWORD RESET] Request received');
@@ -1035,7 +1040,7 @@ router.post('/verify-email', authLimiter, validateToken({ required: true }), asy
  * Check whether a password-reset token is still valid without consuming it.
  * Used by reset-password.html to give early feedback before the user fills in the form.
  */
-router.post('/validate-reset-token', authLimiter, async (req, res) => {
+router.post('/validate-reset-token', passwordResetLimiter, async (req, res) => {
   const { token } = req.body || {};
 
   if (!token) {
@@ -1080,7 +1085,7 @@ router.post('/validate-reset-token', authLimiter, async (req, res) => {
  * Verify reset token and update password
  * Enhanced with logging for debugging
  */
-router.post('/reset-password', authLimiter, async (req, res) => {
+router.post('/reset-password', passwordResetLimiter, async (req, res) => {
   const { token, password } = req.body || {};
 
   logger.debug('[PASSWORD RESET VERIFY] Request received', { hasToken: !!token });
@@ -1202,15 +1207,12 @@ router.post('/logout', authLimiter, csrfProtection, (_req, res) => {
 
 /**
  * GET /api/auth/logout
- * Log out current user and redirect to home page
+ * Removed: use POST /api/auth/logout with CSRF token instead.
+ * Returns 405 Method Not Allowed to inform any clients still using the old route.
  */
-router.get('/logout', authLimiter, (_req, res) => {
-  // Set cache control headers to prevent caching of logout response
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-  res.setHeader('Pragma', 'no-cache');
-
-  clearAuthCookie(res);
-  res.redirect('/');
+router.get('/logout', (_req, res) => {
+  res.setHeader('Allow', 'POST');
+  res.status(405).json({ error: 'Method Not Allowed. Use POST /api/auth/logout.' });
 });
 
 /**

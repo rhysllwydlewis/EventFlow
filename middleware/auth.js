@@ -45,6 +45,7 @@ function setAuthCookie(res, token, options = {}) {
     // 'strict' can prevent cookies from being sent during same-site navigation in some browsers
     sameSite: 'lax',
     secure: isProd,
+    path: '/',
   };
 
   // If remember is true, set maxAge for 7 days; otherwise, no maxAge (session-only)
@@ -75,12 +76,10 @@ function clearAuthCookie(res) {
   // Also clear without path option for legacy compatibility
   res.clearCookie('token');
 
-  // In production, also try clearing with domain variants to handle www/apex domain cases
-  if (isProd) {
-    // Try clearing with explicit domain for production domains
-    // This handles cases where cookie may have been set with domain=.event-flow.co.uk
-    // SECURITY: Use environment variable to avoid hardcoding production domain
-    const productionDomain = process.env.COOKIE_DOMAIN || '.event-flow.co.uk';
+  // In production, also try clearing with explicit COOKIE_DOMAIN variants when configured.
+  // Only do this when COOKIE_DOMAIN is explicitly set — no hardcoded fallback domain.
+  if (isProd && process.env.COOKIE_DOMAIN) {
+    const productionDomain = process.env.COOKIE_DOMAIN;
     const domains = [productionDomain];
 
     // Also try without leading dot if provided with dot

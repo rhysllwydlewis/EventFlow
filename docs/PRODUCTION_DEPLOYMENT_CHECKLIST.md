@@ -10,7 +10,7 @@ This checklist ensures EventFlow is ready for production deployment with all nec
   - [ ] `NODE_ENV=production`
   - [ ] `JWT_SECRET` (minimum 32 characters, cryptographically secure)
   - [ ] `MONGODB_URI` (production database connection string)
-  - [ ] `BASE_URL` (production domain)
+  - [ ] `BASE_URL` (production domain, e.g. `https://event-flow.co.uk`)
   - [ ] `REDIS_URL` (for WebSocket clustering, if applicable)
   - [ ] `POSTMARK_API_KEY` (for email delivery)
   - [ ] `POSTMARK_FROM` (verified sender email)
@@ -19,6 +19,8 @@ This checklist ensures EventFlow is ready for production deployment with all nec
   - [ ] `STRIPE_WEBHOOK_SECRET` (for webhook verification)
   - [ ] `CLOUDINARY_URL` (for image hosting)
   - [ ] `SENTRY_DSN` (for error tracking)
+  - [ ] `COOKIE_DOMAIN` (optional — set to `.yourdomain.com` only if cookies must be shared across subdomains; leave unset for host-only cookies)
+  - [ ] `ALLOW_DEGRADED_STARTUP` **must NOT be set** in production (the server will refuse to start if it is)
 
 - [ ] **Port Configuration**
   - [ ] Application port set (default: 3000)
