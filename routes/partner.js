@@ -846,10 +846,10 @@ router.get('/support-tickets', authRequired, roleRequired('partner'), async (req
  * Allowed cashout denominations (GBP integers, £5 increments, minimum £50).
  * Configurable via CASHOUT_DENOMINATIONS env var (comma-separated integers).
  */
-const _rawDenoms = process.env.CASHOUT_DENOMINATIONS;
+const rawDenoms = process.env.CASHOUT_DENOMINATIONS;
 const CASHOUT_DENOMINATIONS = (() => {
-  if (_rawDenoms) {
-    const parsed = _rawDenoms
+  if (rawDenoms) {
+    const parsed = rawDenoms
       .split(',')
       .map(s => parseInt(s.trim(), 10))
       .filter(n => Number.isInteger(n) && n > 0);

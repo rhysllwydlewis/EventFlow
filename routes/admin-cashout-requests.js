@@ -194,7 +194,12 @@ router.patch('/:id', csrfProtection, async (req, res) => {
           }
         }
       } else if (status === 'delivered') {
-        // Finalise hold as a permanent REDEEM transaction
+        // Finalise the cashout: release the hold first, then insert a permanent REDEEM.
+        // Net effect on available balance: hold release (+N) then redeem (-N) = 0 net change
+        // from the held state, which is correct — points were already "reserved".
+        if (request.holdTxnId) {
+          await partnerService.releaseCashoutHold(request.holdTxnId, request.partnerId);
+        }
         const finalRedeem = {
           id: uid('ptx'),
           partnerId: request.partnerId,
@@ -206,11 +211,6 @@ router.patch('/:id', csrfProtection, async (req, res) => {
           createdAt: now,
         };
         await dbUnified.insertOne('partner_credit_transactions', finalRedeem);
-
-        // Also release the original hold so it is not double-counted
-        if (request.holdTxnId) {
-          await partnerService.releaseCashoutHold(request.holdTxnId, request.partnerId);
-        }
 
         updates.finalRedeemTxnId = finalRedeem.id;
         logger.info(

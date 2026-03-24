@@ -402,7 +402,7 @@ describe('POST /api/partner/cashout-requests — balance enforcement', () => {
     expect(res.body.ok).toBe(true);
   });
 
-  it('includes 3–5 working days message in response', async () => {
+  it('includes 3-5 working days message in response', async () => {
     mockPartnerService.getBalance.mockResolvedValue(VALID_BALANCE);
     const res = await request(app)
       .post('/api/partner/cashout-requests')
