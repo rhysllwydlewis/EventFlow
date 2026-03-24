@@ -60,12 +60,17 @@
         <div class="partner-stat-card partner-stat-card--highlight" role="group" aria-labelledby="stat-balance-label">
           <div class="partner-stat-label" id="stat-balance-label">Available Points</div>
           <div class="partner-stat-value" id="stat-balance">—</div>
-          <div class="partner-stat-sub">= <span id="stat-balance-gbp">£—</span></div>
+          <div class="partner-stat-sub">= <span id="stat-balance-gbp">£—</span> (for cashout)</div>
         </div>
         <div class="partner-stat-card partner-stat-card--pending" role="group" aria-labelledby="stat-pending-label">
-          <div class="partner-stat-label" id="stat-pending-label">Pending Points</div>
+          <div class="partner-stat-label" id="stat-pending-label">Maturing Points</div>
           <div class="partner-stat-value" id="stat-pending">—</div>
-          <div class="partner-stat-sub">within active windows</div>
+          <div class="partner-stat-sub">unlocks after 30 days</div>
+        </div>
+        <div class="partner-stat-card partner-stat-card--pending" role="group" aria-labelledby="stat-potential-label">
+          <div class="partner-stat-label" id="stat-potential-label">Potential Points</div>
+          <div class="partner-stat-value" id="stat-potential">—</div>
+          <div class="partner-stat-sub">from active referrals</div>
         </div>
         <div class="partner-stat-card" role="group" aria-labelledby="stat-earned-label">
           <div class="partner-stat-label" id="stat-earned-label">Total Earned</div>
@@ -111,9 +116,12 @@
           </button>
         </div>
         <div class="partner-value-key">
-          <span>📦 First package = <strong>+10 points (£0.10)</strong></span>
-          <span>💳 First subscription = <strong>+100 points (£1.00)</strong></span>
-          <span>⏱ 30-day attribution window</span>
+          <span>🔗 Signup = <strong>+5</strong></span>
+          <span>📦 Package = <strong>+10</strong></span>
+          <span>⭐ Review = <strong>+15</strong></span>
+          <span>✅ Approved = <strong>+20</strong></span>
+          <span>💳 Subscription = <strong>+100</strong></span>
+          <span style="color:rgba(255,255,255,0.35);">· Available after 30 days</span>
         </div>
       </section>
 
@@ -321,10 +329,29 @@
               <button type="button" id="cashout-view-order-btn" class="cashout-action-btn">
                 📋 View status
               </button>
+              <button type="button" id="cashout-resend-btn" class="cashout-action-btn" style="display:none;">
+                📧 Resend email
+              </button>
               <button type="button" id="cashout-new-btn" class="cashout-action-btn cashout-action-btn--primary">
                 🎁 Send another
               </button>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Gift Card History -->
+      <section class="partner-section" aria-labelledby="cashout-history-heading">
+        <div class="partner-section-header">
+          <div>
+            <h2 class="partner-section-title" id="cashout-history-heading">📜 Gift Card History</h2>
+            <p class="partner-section-subtitle">Your past cashout orders</p>
+          </div>
+        </div>
+        <div id="cashout-history-container">
+          <div class="partner-empty">
+            <div class="partner-empty-icon" aria-hidden="true">🎁</div>
+            <p class="partner-empty-text">Loading order history…</p>
           </div>
         </div>
       </section>
@@ -350,6 +377,22 @@
           >
             ✉️ Raise a support ticket
           </button>
+        </div>
+      </section>
+
+      <!-- My Support Tickets -->
+      <section class="partner-section" aria-labelledby="tickets-heading">
+        <div class="partner-section-header">
+          <div>
+            <h2 class="partner-section-title" id="tickets-heading">🎫 My Support Tickets</h2>
+            <p class="partner-section-subtitle">Track your open and resolved support requests</p>
+          </div>
+        </div>
+        <div id="partner-tickets-container">
+          <div class="partner-empty">
+            <div class="partner-empty-icon" aria-hidden="true">🎫</div>
+            <p class="partner-empty-text">Loading tickets…</p>
+          </div>
         </div>
       </section>
 

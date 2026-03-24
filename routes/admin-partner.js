@@ -278,4 +278,45 @@ router.post('/:id/credits', csrfProtection, async (req, res) => {
   }
 });
 
+// ─── Cashout Orders (Tremendous) ─────────────────────────────────────────────
+
+/**
+ * GET /api/admin/partners/cashout-orders
+ * List Tremendous cashout orders (all partners), sorted newest first.
+ * Query params: partnerId (filter), status (filter), limit (default 100)
+ */
+router.get('/cashout-orders', async (req, res) => {
+  try {
+    const { partnerId, status, limit } = req.query;
+    const maxLimit = Math.min(parseInt(limit, 10) || 100, 500);
+
+    let orders = (await dbUnified.read('partner_cashout_orders')) || [];
+
+    if (partnerId) {
+      orders = orders.filter(o => o.partnerId === partnerId);
+    }
+    if (status) {
+      orders = orders.filter(o => o.status === status);
+    }
+
+    orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    orders = orders.slice(0, maxLimit);
+
+    // Enrich with partner user info
+    const users = await dbUnified.read('users');
+    const enriched = orders.map(o => {
+      const user = users.find(u => u.id === o.partnerUserId);
+      return {
+        ...o,
+        partnerUser: user ? { name: user.name, email: user.email } : null,
+      };
+    });
+
+    res.json({ items: enriched, total: enriched.length });
+  } catch (err) {
+    logger.error('Error listing cashout orders:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 module.exports = router;

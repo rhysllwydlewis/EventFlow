@@ -362,6 +362,10 @@ router.post(
             supplierUserId: user.id,
             supplierCreatedAt: user.createdAt,
           });
+          // Award sign-up bonus to the partner (non-blocking)
+          partnerService.awardReferralSignupBonus(user.id).catch(bonusErr => {
+            logger.warn('Partner referral signup bonus failed (non-blocking):', bonusErr.message);
+          });
         }
       } catch (_refErr) {
         logger.warn('Partner referral recording failed (non-blocking):', _refErr.message);

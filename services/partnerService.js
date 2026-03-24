@@ -19,10 +19,27 @@ const logger = require('../utils/logger');
 const ATTRIBUTION_DAYS = 30;
 const PACKAGE_BONUS = 10;
 const SUBSCRIPTION_BONUS = 100;
+const REFERRAL_SIGNUP_BONUS = 5;
+const FIRST_REVIEW_BONUS = 15;
+const PROFILE_APPROVED_BONUS = 20;
+
+/** Number of days a credit transaction must age before it is "available" for cashout */
+const CREDIT_MATURITY_DAYS = 30;
+
+/**
+ * Points-to-GBP conversion: how many points equal £1.
+ * Configurable via POINTS_PER_GBP env var (default: 100 points = £1).
+ */
+const _rawPointsPerGbp = parseInt(process.env.POINTS_PER_GBP, 10);
+const POINTS_PER_GBP =
+  Number.isInteger(_rawPointsPerGbp) && _rawPointsPerGbp > 0 ? _rawPointsPerGbp : 100;
 
 const CREDIT_TYPES = {
   PACKAGE_BONUS: 'PACKAGE_BONUS',
   SUBSCRIPTION_BONUS: 'SUBSCRIPTION_BONUS',
+  REFERRAL_SIGNUP_BONUS: 'REFERRAL_SIGNUP_BONUS',
+  FIRST_REVIEW_BONUS: 'FIRST_REVIEW_BONUS',
+  PROFILE_APPROVED_BONUS: 'PROFILE_APPROVED_BONUS',
   ADJUSTMENT: 'ADJUSTMENT',
   REDEEM: 'REDEEM',
 };
@@ -155,8 +172,7 @@ async function listPartners({ search, status } = {}) {
     const s = search.toLowerCase();
     // We'll need to join with user data at call site; here just return all
     list = list.filter(
-      p =>
-        (p.refCode || '').toLowerCase().includes(s) || (p.id || '').toLowerCase().includes(s)
+      p => (p.refCode || '').toLowerCase().includes(s) || (p.id || '').toLowerCase().includes(s)
     );
   }
   return list;
@@ -349,7 +365,9 @@ async function _awardCredit({ partnerId, supplierUserId, type, amount, notes }) 
     t => t.supplierUserId === supplierUserId && t.type === type && t.partnerId === partnerId
   );
   if (duplicate) {
-    logger.info(`Credit already awarded: partner=${partnerId} supplier=${supplierUserId} type=${type}`);
+    logger.info(
+      `Credit already awarded: partner=${partnerId} supplier=${supplierUserId} type=${type}`
+    );
     return null;
   }
 
@@ -364,7 +382,9 @@ async function _awardCredit({ partnerId, supplierUserId, type, amount, notes }) 
   };
 
   await dbUnified.insertOne('partner_credit_transactions', txn);
-  logger.info(`Credit awarded: +${amount} (${type}) to partner ${partnerId} for supplier ${supplierUserId}`);
+  logger.info(
+    `Credit awarded: +${amount} (${type}) to partner ${partnerId} for supplier ${supplierUserId}`
+  );
   return txn;
 }
 
@@ -468,18 +488,182 @@ async function applyAdminAdjustment({ partnerId, amount, notes, adminUserId }) {
     createdAt: new Date().toISOString(),
   };
   await dbUnified.insertOne('partner_credit_transactions', txn);
-  logger.info(`Admin credit adjustment: ${amount > 0 ? '+' : ''}${amount} to partner ${partnerId} by admin ${adminUserId}`);
+  logger.info(
+    `Admin credit adjustment: ${amount > 0 ? '+' : ''}${amount} to partner ${partnerId} by admin ${adminUserId}`
+  );
+  return txn;
+}
+
+// ─── Additional Credit Mechanisms ─────────────────────────────────────────────
+
+/**
+ * Award +5 credits when a referred supplier signs up via the partner's referral link.
+ * Triggered from the auth registration flow once recordReferral() has succeeded.
+ *
+ * @param {string} supplierUserId  – The user ID of the newly registered supplier
+ * @returns {Object|null}  The credit transaction, or null if not applicable / already awarded
+ */
+async function awardReferralSignupBonus(supplierUserId) {
+  const referral = await getReferralBySupplierUserId(supplierUserId);
+  if (!referral) {
+    return null;
+  }
+
+  const partner = await getPartnerById(referral.partnerId);
+  if (!partner || partner.status !== 'active') {
+    return null;
+  }
+
+  const txn = await _awardCredit({
+    partnerId: referral.partnerId,
+    supplierUserId,
+    type: CREDIT_TYPES.REFERRAL_SIGNUP_BONUS,
+    amount: REFERRAL_SIGNUP_BONUS,
+    notes: 'Referred supplier signed up',
+  });
+
   return txn;
 }
 
 /**
+ * Award +15 credits when a referred supplier receives their first customer review.
+ * Triggered from the review creation route after review is successfully submitted.
+ *
+ * @param {string} supplierUserId  – The user ID of the supplier who received the review
+ * @returns {Object|null}  The credit transaction, or null if not applicable / already awarded
+ */
+async function awardFirstReviewBonus(supplierUserId) {
+  const referral = await getReferralBySupplierUserId(supplierUserId);
+  if (!referral) {
+    return null;
+  }
+
+  const partner = await getPartnerById(referral.partnerId);
+  if (!partner || partner.status !== 'active') {
+    return null;
+  }
+
+  const txn = await _awardCredit({
+    partnerId: referral.partnerId,
+    supplierUserId,
+    type: CREDIT_TYPES.FIRST_REVIEW_BONUS,
+    amount: FIRST_REVIEW_BONUS,
+    notes: 'First customer review received by referred supplier',
+  });
+
+  return txn;
+}
+
+/**
+ * Award +20 credits when a referred supplier's profile is approved by admin.
+ * Triggered from the supplier admin approve route.
+ *
+ * @param {string} supplierUserId  – The user ID of the supplier whose profile was approved
+ * @returns {Object|null}  The credit transaction, or null if not applicable / already awarded
+ */
+async function awardProfileApprovedBonus(supplierUserId) {
+  const referral = await getReferralBySupplierUserId(supplierUserId);
+  if (!referral) {
+    return null;
+  }
+
+  const partner = await getPartnerById(referral.partnerId);
+  if (!partner || partner.status !== 'active') {
+    return null;
+  }
+
+  const txn = await _awardCredit({
+    partnerId: referral.partnerId,
+    supplierUserId,
+    type: CREDIT_TYPES.PROFILE_APPROVED_BONUS,
+    amount: PROFILE_APPROVED_BONUS,
+    notes: 'Referred supplier profile approved by admin',
+  });
+
+  return txn;
+}
+
+/**
+ * Debit points from a partner's balance as part of a cashout.
+ * This is called immediately before the Tremendous order is created.
+ *
+ * @param {object} opts
+ * @param {string} opts.partnerId     - Partner ID
+ * @param {number} opts.amount        - Points to debit (positive number, will be stored as negative)
+ * @param {string} opts.notes         - Description
+ * @param {string} [opts.externalRef] - Reference to the cashout order (for audit)
+ * @returns {Object}  The debit transaction
+ */
+async function debitPoints({ partnerId, amount, notes, externalRef }) {
+  const txn = {
+    id: uid('ptx'),
+    partnerId,
+    supplierUserId: null,
+    type: CREDIT_TYPES.REDEEM,
+    amount: -Math.abs(amount),
+    notes: notes || '',
+    externalRef: externalRef || null,
+    createdAt: new Date().toISOString(),
+  };
+  await dbUnified.insertOne('partner_credit_transactions', txn);
+  logger.info(
+    `Points debit: -${Math.abs(amount)} from partner ${partnerId} (ref: ${externalRef || 'n/a'})`
+  );
+  return txn;
+}
+
+/**
+ * Reverse a debit transaction (e.g. if the Tremendous order fails).
+ *
+ * @param {string} debitTxnId  - ID of the REDEEM transaction to reverse
+ * @param {string} partnerId   - Partner ID (for logging)
+ * @returns {Object|null}  Reversal transaction, or null if debit not found
+ */
+async function reverseDebit(debitTxnId, partnerId) {
+  const txns = await dbUnified.read('partner_credit_transactions');
+  const debit = txns.find(t => t.id === debitTxnId && t.partnerId === partnerId);
+  if (!debit) {
+    logger.warn(`reverseDebit: transaction ${debitTxnId} not found for partner ${partnerId}`);
+    return null;
+  }
+  const reversalAmount = Math.abs(debit.amount);
+  const reversal = {
+    id: uid('ptx'),
+    partnerId,
+    supplierUserId: null,
+    type: CREDIT_TYPES.ADJUSTMENT,
+    amount: reversalAmount,
+    notes: `Reversal of failed cashout debit (ref: ${debit.externalRef || debitTxnId})`,
+    externalRef: debitTxnId,
+    createdAt: new Date().toISOString(),
+  };
+  await dbUnified.insertOne('partner_credit_transactions', reversal);
+  logger.info(
+    `Debit reversed: +${reversalAmount} to partner ${partnerId} (debitTxnId: ${debitTxnId})`
+  );
+  return reversal;
+}
+
+/**
  * Compute the current credit balance for a partner.
+ *
+ * Returns:
+ *   balance          – total net balance (earned - redeemed)
+ *   availableBalance – points that are ≥ CREDIT_MATURITY_DAYS old and available for cashout
+ *   maturingBalance  – points earned within the last CREDIT_MATURITY_DAYS days (not yet cashable)
+ *   totalEarned      – lifetime positive credits
+ *   packageBonusTotal / subscriptionBonusTotal / adjustmentTotal / redeemed – breakdowns
+ *   transactions     – full transaction list, newest first
  */
 async function getBalance(partnerId) {
   const txns = await dbUnified.read('partner_credit_transactions');
   const partnerTxns = txns.filter(t => t.partnerId === partnerId);
 
+  const maturityCutoff = Date.now() - CREDIT_MATURITY_DAYS * 24 * 60 * 60 * 1000;
+
   let total = 0;
+  let availableEarned = 0;
+  let maturingEarned = 0;
   let packageBonusTotal = 0;
   let subscriptionBonusTotal = 0;
   let adjustmentTotal = 0;
@@ -487,6 +671,10 @@ async function getBalance(partnerId) {
 
   for (const t of partnerTxns) {
     total += t.amount;
+    const isAdjustmentPositive = t.type === CREDIT_TYPES.ADJUSTMENT && t.amount > 0;
+    const earnedAt = new Date(t.createdAt).getTime();
+    const isMature = earnedAt <= maturityCutoff;
+
     if (t.type === CREDIT_TYPES.PACKAGE_BONUS) {
       packageBonusTotal += t.amount;
     } else if (t.type === CREDIT_TYPES.SUBSCRIPTION_BONUS) {
@@ -496,11 +684,29 @@ async function getBalance(partnerId) {
     } else if (t.type === CREDIT_TYPES.REDEEM) {
       redeemed += Math.abs(t.amount);
     }
+
+    if (t.amount > 0 && t.type !== CREDIT_TYPES.ADJUSTMENT) {
+      if (isMature) {
+        availableEarned += t.amount;
+      } else {
+        maturingEarned += t.amount;
+      }
+    } else if (isAdjustmentPositive) {
+      // Admin positive adjustments are available immediately
+      availableEarned += t.amount;
+    }
   }
+
+  // Available balance = mature earned credits minus redemptions (floor at 0)
+  const availableBalance = Math.max(0, availableEarned - redeemed);
+  const maturingBalance = maturingEarned;
 
   return {
     balance: total,
-    totalEarned: packageBonusTotal + subscriptionBonusTotal + (adjustmentTotal > 0 ? adjustmentTotal : 0),
+    availableBalance,
+    maturingBalance,
+    totalEarned:
+      packageBonusTotal + subscriptionBonusTotal + (adjustmentTotal > 0 ? adjustmentTotal : 0),
     packageBonusTotal,
     subscriptionBonusTotal,
     adjustmentTotal,
@@ -513,7 +719,12 @@ module.exports = {
   CREDIT_TYPES,
   PACKAGE_BONUS,
   SUBSCRIPTION_BONUS,
+  REFERRAL_SIGNUP_BONUS,
+  FIRST_REVIEW_BONUS,
+  PROFILE_APPROVED_BONUS,
   ATTRIBUTION_DAYS,
+  CREDIT_MATURITY_DAYS,
+  POINTS_PER_GBP,
   generateRefCode,
   isWithinAttributionWindow,
   maskReferralName,
@@ -535,7 +746,12 @@ module.exports = {
   // Credits
   awardPackageBonus,
   awardSubscriptionBonus,
+  awardReferralSignupBonus,
+  awardFirstReviewBonus,
+  awardProfileApprovedBonus,
   applyAdminAdjustment,
+  debitPoints,
+  reverseDebit,
   getBalance,
   getPendingPoints,
 };
