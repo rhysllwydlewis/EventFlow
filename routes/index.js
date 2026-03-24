@@ -87,6 +87,11 @@ function mountRoutes(app, deps) {
   app.use('/api/v1/admin/partners', adminPartnerRoutes);
   app.use('/api/admin/partners', adminPartnerRoutes); // Backward compatibility
 
+  // Admin cashout request routes
+  const adminCashoutRequestsRoutes = require('./admin-cashout-requests');
+  app.use('/api/v1/admin/cashout-requests', adminCashoutRequestsRoutes);
+  app.use('/api/admin/cashout-requests', adminCashoutRequestsRoutes); // Backward compatibility
+
   // Public routes (no auth required) - mount early to avoid auth middleware
   app.use('/api/v1/public', publicRoutes);
   app.use('/api/public', publicRoutes); // Backward compatibility

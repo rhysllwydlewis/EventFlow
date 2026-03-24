@@ -840,4 +840,218 @@ router.get('/support-tickets', authRequired, roleRequired('partner'), async (req
   }
 });
 
+// ─── Partner Cashout Requests ─────────────────────────────────────────────────
+
+/**
+ * Allowed cashout denominations (GBP integers, £5 increments, minimum £50).
+ * Configurable via CASHOUT_DENOMINATIONS env var (comma-separated integers).
+ */
+const _rawDenoms = process.env.CASHOUT_DENOMINATIONS;
+const CASHOUT_DENOMINATIONS = (() => {
+  if (_rawDenoms) {
+    const parsed = _rawDenoms
+      .split(',')
+      .map(s => parseInt(s.trim(), 10))
+      .filter(n => Number.isInteger(n) && n > 0);
+    if (parsed.length > 0) return parsed;
+  }
+  // Default: £50 – £500 in £5 increments
+  const defaults = [];
+  for (let v = 50; v <= 500; v += 5) defaults.push(v);
+  return defaults;
+})();
+
+const CASHOUT_METHODS = ['amazon_voucher', 'prepaid_debit_card'];
+
+/**
+ * POST /api/partner/cashout-requests
+ * Submit a cashout request.
+ *
+ * Body: { method: 'amazon_voucher'|'prepaid_debit_card', denominationGbp: number, partnerMessage?: string }
+ *
+ * - Validates method and denomination.
+ * - Enforces availableBalance >= required points.
+ * - Creates a CASHOUT_HOLD ledger transaction (deducts points immediately).
+ * - Persists request to partner_cashout_requests collection.
+ */
+router.post(
+  '/cashout-requests',
+  authRequired,
+  roleRequired('partner'),
+  csrfProtection,
+  async (req, res) => {
+    try {
+      const partner = await partnerService.getPartnerByUserId(req.user.id);
+      if (!partner) {
+        return res.status(404).json({ error: 'Partner account not found' });
+      }
+      if (partner.status === 'disabled') {
+        return res.status(403).json({
+          error: 'Your partner account has been disabled. Please contact support.',
+          disabled: true,
+        });
+      }
+
+      const { method, denominationGbp, partnerMessage } = req.body || {};
+
+      // Validate method
+      if (!method || !CASHOUT_METHODS.includes(method)) {
+        return res.status(400).json({
+          error: `method must be one of: ${CASHOUT_METHODS.join(', ')}`,
+        });
+      }
+
+      // Validate denomination
+      const denomInt = parseInt(denominationGbp, 10);
+      if (!Number.isInteger(denomInt) || denomInt <= 0) {
+        return res.status(400).json({ error: 'denominationGbp must be a positive integer' });
+      }
+      if (!CASHOUT_DENOMINATIONS.includes(denomInt)) {
+        return res.status(400).json({
+          error: `denominationGbp must be one of the allowed denominations: ${CASHOUT_DENOMINATIONS.join(', ')}`,
+        });
+      }
+
+      // Compute required points
+      const requiredPoints = denomInt * partnerService.POINTS_PER_GBP;
+
+      // Check availableBalance
+      const balance = await partnerService.getBalance(partner.id);
+      if (balance.availableBalance < requiredPoints) {
+        return res.status(400).json({
+          error: `Insufficient available balance. You need ${requiredPoints} points (£${denomInt}) but only have ${balance.availableBalance} available points.`,
+          requiredPoints,
+          availablePoints: balance.availableBalance,
+        });
+      }
+
+      const now = new Date().toISOString();
+      const cashoutId = uid('pcr');
+
+      // Create hold transaction first (idempotency guard)
+      const holdTxn = await partnerService.createCashoutHold({
+        partnerId: partner.id,
+        amount: requiredPoints,
+        cashoutId,
+      });
+
+      // Persist cashout request record
+      const cashoutRequest = {
+        id: cashoutId,
+        partnerId: partner.id,
+        partnerUserId: req.user.id,
+        method,
+        denominationGbp: denomInt,
+        pointsHeld: requiredPoints,
+        pointsPerGbpSnapshot: partnerService.POINTS_PER_GBP,
+        status: 'submitted',
+        partnerMessage: partnerMessage ? String(partnerMessage).trim().slice(0, 1000) : null,
+        adminResponseMessage: null,
+        adminInternalNotes: null,
+        adminUserIdApproved: null,
+        approvedAt: null,
+        rejectedAt: null,
+        processingAt: null,
+        deliveredAt: null,
+        deliveryDetails: null,
+        holdTxnId: holdTxn.id,
+        finalRedeemTxnId: null,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      await dbUnified.insertOne('partner_cashout_requests', cashoutRequest);
+      logger.info(
+        `Cashout request created: ${cashoutId} by partner ${partner.id} — £${denomInt} via ${method}`
+      );
+
+      res.status(201).json({
+        ok: true,
+        cashoutRequestId: cashoutRequest.id,
+        request: cashoutRequest,
+        message: `Your cashout request for £${denomInt} has been submitted. Requests are typically processed within 3–5 working days.`,
+      });
+    } catch (err) {
+      logger.error('Error creating cashout request:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+);
+
+/**
+ * GET /api/partner/cashout-requests
+ * List the current partner's own cashout requests, newest first.
+ */
+router.get('/cashout-requests', authRequired, roleRequired('partner'), async (req, res) => {
+  try {
+    const partner = await partnerService.getPartnerByUserId(req.user.id);
+    if (!partner) {
+      return res.status(404).json({ error: 'Partner account not found' });
+    }
+    if (partner.status === 'disabled') {
+      return res.status(403).json({
+        error: 'Your partner account has been disabled. Please contact support.',
+        disabled: true,
+      });
+    }
+
+    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
+    const all = (await dbUnified.read('partner_cashout_requests')) || [];
+    const mine = all
+      .filter(r => r.partnerId === partner.id)
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+      .slice(0, limit)
+      .map(r => ({
+        id: r.id,
+        method: r.method,
+        denominationGbp: r.denominationGbp,
+        pointsHeld: r.pointsHeld,
+        status: r.status,
+        partnerMessage: r.partnerMessage,
+        adminResponseMessage: r.adminResponseMessage,
+        createdAt: r.createdAt,
+        updatedAt: r.updatedAt,
+        approvedAt: r.approvedAt,
+        rejectedAt: r.rejectedAt,
+        processingAt: r.processingAt,
+        deliveredAt: r.deliveredAt,
+      }));
+
+    res.json({ items: mine, total: mine.length });
+  } catch (err) {
+    logger.error('Error listing cashout requests:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+/**
+ * GET /api/partner/cashout-requests/:id
+ * Get details of a single cashout request (must belong to the current partner).
+ */
+router.get('/cashout-requests/:id', authRequired, roleRequired('partner'), async (req, res) => {
+  try {
+    const partner = await partnerService.getPartnerByUserId(req.user.id);
+    if (!partner) {
+      return res.status(404).json({ error: 'Partner account not found' });
+    }
+    if (partner.status === 'disabled') {
+      return res.status(403).json({
+        error: 'Your partner account has been disabled. Please contact support.',
+        disabled: true,
+      });
+    }
+
+    const all = (await dbUnified.read('partner_cashout_requests')) || [];
+    const request = all.find(r => r.id === req.params.id && r.partnerId === partner.id);
+    if (!request) {
+      return res.status(404).json({ error: 'Cashout request not found' });
+    }
+
+    res.json({ request });
+  } catch (err) {
+    logger.error('Error fetching cashout request:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 module.exports = router;

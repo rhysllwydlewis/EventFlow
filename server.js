@@ -674,6 +674,19 @@ app.get('/admin-partners', apiLimiter, (req, res, next) => {
   return next();
 });
 
+// ---------- Admin Cashout Requests Page Protection ----------
+// /admin-cashout-requests requires admin role
+app.get('/admin-cashout-requests', apiLimiter, (req, res, next) => {
+  const user = getUserFromCookie(req);
+  if (!user) {
+    return res.redirect(302, `/auth?redirect=${encodeURIComponent(req.originalUrl)}`);
+  }
+  if (user.role !== 'admin') {
+    return res.redirect(302, '/');
+  }
+  return next();
+});
+
 // ---------- Admin HTML Page Protection ----------
 // CRITICAL: This middleware MUST come before express.static()
 // Protects all admin HTML pages from unauthorized access at the server level

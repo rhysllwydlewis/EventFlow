@@ -42,6 +42,10 @@ const CREDIT_TYPES = {
   PROFILE_APPROVED_BONUS: 'PROFILE_APPROVED_BONUS',
   ADJUSTMENT: 'ADJUSTMENT',
   REDEEM: 'REDEEM',
+  /** Reserved points for a pending cashout request (negative amount, reduces availableBalance) */
+  CASHOUT_HOLD: 'CASHOUT_HOLD',
+  /** Restores points held by CASHOUT_HOLD when a request is rejected or cancelled */
+  CASHOUT_RELEASE: 'CASHOUT_RELEASE',
 };
 
 /**
@@ -628,6 +632,69 @@ async function reverseDebit(debitTxnId, partnerId) {
 }
 
 /**
+ * Create a CASHOUT_HOLD transaction to reserve points for a pending cashout request.
+ * This immediately reduces availableBalance so the partner cannot double-spend.
+ *
+ * @param {object} opts
+ * @param {string} opts.partnerId     - Partner ID
+ * @param {number} opts.amount        - Points to hold (positive number, stored as negative)
+ * @param {string} opts.cashoutId     - ID of the cashout request record (for audit)
+ * @returns {Object}  The hold transaction
+ */
+async function createCashoutHold({ partnerId, amount, cashoutId }) {
+  const txn = {
+    id: uid('ptx'),
+    partnerId,
+    supplierUserId: null,
+    type: CREDIT_TYPES.CASHOUT_HOLD,
+    amount: -Math.abs(amount),
+    notes: `Cashout hold for request ${cashoutId}`,
+    externalRef: cashoutId,
+    createdAt: new Date().toISOString(),
+  };
+  await dbUnified.insertOne('partner_credit_transactions', txn);
+  logger.info(
+    `Cashout hold: -${Math.abs(amount)} from partner ${partnerId} (cashoutId: ${cashoutId})`
+  );
+  return txn;
+}
+
+/**
+ * Release a CASHOUT_HOLD when a cashout request is rejected or cancelled.
+ * Inserts a CASHOUT_RELEASE transaction to restore the held points.
+ *
+ * @param {string} holdTxnId  - ID of the CASHOUT_HOLD transaction to release
+ * @param {string} partnerId  - Partner ID (for logging)
+ * @returns {Object|null}  Release transaction, or null if hold not found
+ */
+async function releaseCashoutHold(holdTxnId, partnerId) {
+  const txns = await dbUnified.read('partner_credit_transactions');
+  const hold = txns.find(t => t.id === holdTxnId && t.partnerId === partnerId);
+  if (!hold) {
+    logger.warn(
+      `releaseCashoutHold: transaction ${holdTxnId} not found for partner ${partnerId}`
+    );
+    return null;
+  }
+  const releaseAmount = Math.abs(hold.amount);
+  const release = {
+    id: uid('ptx'),
+    partnerId,
+    supplierUserId: null,
+    type: CREDIT_TYPES.CASHOUT_RELEASE,
+    amount: releaseAmount,
+    notes: `Release of cashout hold (ref: ${hold.externalRef || holdTxnId})`,
+    externalRef: holdTxnId,
+    createdAt: new Date().toISOString(),
+  };
+  await dbUnified.insertOne('partner_credit_transactions', release);
+  logger.info(
+    `Cashout hold released: +${releaseAmount} to partner ${partnerId} (holdTxnId: ${holdTxnId})`
+  );
+  return release;
+}
+
+/**
  * Compute the current credit balance for a partner.
  *
  * Returns:
@@ -666,6 +733,12 @@ async function getBalance(partnerId) {
       adjustmentTotal += t.amount;
     } else if (t.type === CREDIT_TYPES.REDEEM) {
       redeemed += Math.abs(t.amount);
+    } else if (t.type === CREDIT_TYPES.CASHOUT_HOLD) {
+      // Treat holds the same as redemptions for available-balance purposes
+      redeemed += Math.abs(t.amount);
+    } else if (t.type === CREDIT_TYPES.CASHOUT_RELEASE) {
+      // A release restores held points — subtract from the redeemed tally
+      redeemed -= Math.abs(t.amount);
     }
 
     if (t.amount > 0 && t.type !== CREDIT_TYPES.ADJUSTMENT) {
@@ -735,6 +808,8 @@ module.exports = {
   applyAdminAdjustment,
   debitPoints,
   reverseDebit,
+  createCashoutHold,
+  releaseCashoutHold,
   getBalance,
   getPendingPoints,
 };

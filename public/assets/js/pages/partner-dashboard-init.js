@@ -619,15 +619,19 @@
       .replace(/'/g, '&#39;');
   }
 
-  // ── Gift Card History ─────────────────────────────────────────────────────────
+
+  // ── Cashout Requests ──────────────────────────────────────────────────────────
+
+  const CASHOUT_STATUS_MAP = {
+    submitted: { label: 'Submitted', color: '#93c5fd', bg: 'rgba(59,130,246,0.15)' },
+    approved:  { label: 'Approved',  color: '#6ee7b7', bg: 'rgba(16,185,129,0.15)' },
+    processing:{ label: 'Processing',color: '#fcd34d', bg: 'rgba(245,158,11,0.15)' },
+    delivered: { label: 'Delivered', color: '#86efac', bg: 'rgba(34,197,94,0.18)'  },
+    rejected:  { label: 'Rejected',  color: '#fca5a5', bg: 'rgba(239,68,68,0.12)' },
+  };
 
   function getCashoutStatusBadge(status) {
-    const map = {
-      created: { label: 'Sent', color: '#6ee7b7', bg: 'rgba(16,185,129,0.15)' },
-      cancelled: { label: 'Cancelled', color: '#fca5a5', bg: 'rgba(239,68,68,0.12)' },
-      failed: { label: 'Failed', color: '#fca5a5', bg: 'rgba(239,68,68,0.12)' },
-    };
-    const s = map[status] || {
+    const s = CASHOUT_STATUS_MAP[status] || {
       label: status || 'Unknown',
       color: 'rgba(255,255,255,0.4)',
       bg: 'rgba(255,255,255,0.06)',
@@ -637,474 +641,171 @@
 
   async function loadCashoutHistory() {
     const container = document.getElementById('cashout-history-container');
-    if (!container) {
-      return;
-    }
+    if (!container) return;
 
     try {
-      const res = await fetch('/api/v1/partner/tremendous/orders', { credentials: 'include' });
-      if (!res.ok) {
-        throw new Error('Failed to load order history');
-      }
+      const res = await fetch('/api/v1/partner/cashout-requests', { credentials: 'include' });
+      if (!res.ok) throw new Error('Failed to load cashout history');
       const { items } = await res.json();
 
       if (!items || items.length === 0) {
         container.innerHTML = `
           <div class="partner-empty">
-            <div class="partner-empty-icon" aria-hidden="true">🎁</div>
-            <p class="partner-empty-text">No gift card orders yet — send your first one above!</p>
+            <div class="partner-empty-icon" aria-hidden="true">💸</div>
+            <p class="partner-empty-text">No cashout requests yet — submit your first one above!</p>
           </div>`;
         return;
       }
 
-      const rows = items
-        .map(o => {
-          const rewardId = o.tremendousRewardId || '';
-          const orderId = o.tremendousOrderId || '';
-          return `
-          <div class="cashout-history-row" data-order-id="${escHtml(o.id)}">
+      const rows = items.map(r => {
+        const methodLabel = r.method === 'amazon_voucher' ? 'Amazon Voucher'
+          : r.method === 'prepaid_debit_card' ? 'Pre-Paid Debit Card'
+          : escHtml(r.method || '');
+        const deliveryNote = r.status === 'submitted' || r.status === 'approved' || r.status === 'processing'
+          ? '<span style="font-size:0.75rem;opacity:0.6;"> · Est. 3–5 working days</span>'
+          : '';
+        const adminMsg = r.adminResponseMessage
+          ? `<div class="cashout-history-admin-msg">💬 ${escHtml(r.adminResponseMessage)}</div>`
+          : '';
+        return `
+          <div class="cashout-history-row">
             <div class="cashout-history-info">
-              <div class="cashout-history-recipient">${escHtml(o.recipientName)} &lt;${escHtml(o.recipientEmail)}&gt;</div>
+              <div class="cashout-history-recipient"><strong>£${escHtml(String(r.denominationGbp))}</strong> — ${escHtml(methodLabel)}</div>
               <div class="cashout-history-meta">
-                £${(o.valueGbp || 0).toFixed(2)} · ${escHtml(o.productId || 'Gift card')} · ${fmtDate(o.createdAt)}
-                ${orderId ? `<span class="cashout-history-ref">Ref: ${escHtml(orderId.slice(0, 16))}…</span>` : ''}
+                ${fmtDate(r.createdAt)}${deliveryNote}
+                ${r.deliveredAt ? ` · Delivered ${fmtDate(r.deliveredAt)}` : ''}
               </div>
+              ${adminMsg}
             </div>
             <div class="cashout-history-actions">
-              ${getCashoutStatusBadge(o.status)}
-              ${rewardId && o.status !== 'cancelled' ? `<button type="button" class="cashout-history-btn cashout-history-btn--resend" data-reward-id="${escHtml(rewardId)}" title="Resend gift card email">📧 Resend</button>` : ''}
-              ${rewardId && o.status !== 'cancelled' ? `<button type="button" class="cashout-history-btn cashout-history-btn--cancel" data-reward-id="${escHtml(rewardId)}" data-row-id="${escHtml(o.id)}" title="Cancel this reward">✕ Cancel</button>` : ''}
+              ${getCashoutStatusBadge(r.status)}
             </div>
           </div>`;
-        })
-        .join('');
+      }).join('');
 
       container.innerHTML = `<div class="cashout-history-list">${rows}</div>`;
-
-      // Attach resend handlers
-      container.querySelectorAll('.cashout-history-btn--resend').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          const rid = btn.dataset.rewardId;
-          btn.disabled = true;
-          btn.textContent = '…';
-          try {
-            const csrfToken = await getCsrfToken();
-            const r = await fetch(
-              `/api/v1/partner/tremendous/rewards/${encodeURIComponent(rid)}/resend`,
-              {
-                method: 'POST',
-                credentials: 'include',
-                headers: { 'X-CSRF-Token': csrfToken },
-              }
-            );
-            const b = await r.json().catch(() => ({}));
-            if (!r.ok) {
-              throw new Error(b.error || 'Failed to resend');
-            }
-            showToast('Gift card email resent!', 'success');
-          } catch (err) {
-            showToast(err.message || 'Failed to resend', 'error');
-          } finally {
-            btn.disabled = false;
-            btn.textContent = '📧 Resend';
-          }
-        });
-      });
-
-      // Attach cancel handlers
-      container.querySelectorAll('.cashout-history-btn--cancel').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          const rid = btn.dataset.rewardId;
-          if (
-            !confirm(
-              'Cancel this gift card? This cannot be undone if the reward has not been redeemed.'
-            )
-          ) {
-            return;
-          }
-          btn.disabled = true;
-          btn.textContent = '…';
-          try {
-            const csrfToken = await getCsrfToken();
-            const r = await fetch(
-              `/api/v1/partner/tremendous/rewards/${encodeURIComponent(rid)}/cancel`,
-              {
-                method: 'POST',
-                credentials: 'include',
-                headers: { 'X-CSRF-Token': csrfToken },
-              }
-            );
-            const b = await r.json().catch(() => ({}));
-            if (!r.ok) {
-              throw new Error(b.error || 'Failed to cancel');
-            }
-            showToast('Gift card cancelled.', 'success');
-            loadCashoutHistory(); // Refresh
-          } catch (err) {
-            showToast(err.message || 'Failed to cancel', 'error');
-            btn.disabled = false;
-            btn.textContent = '✕ Cancel';
-          }
-        });
-      });
     } catch (err) {
       container.innerHTML = `
         <div class="partner-empty">
           <div class="partner-empty-icon" aria-hidden="true">⚠️</div>
-          <p class="partner-empty-text">Failed to load order history. Please refresh.</p>
+          <p class="partner-empty-text">Failed to load cashout history. Please refresh.</p>
         </div>`;
     }
   }
 
-  // ── Gift Card Cashout (Tremendous) ───────────────────────────────────────────
-
-  async function loadTremendousProducts() {
-    const res = await fetch('/api/v1/partner/tremendous/products', { credentials: 'include' });
-    const body = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      const err = new Error(body.error || 'Failed to load gift card products');
-      err.notConfigured = body.notConfigured === true;
-      err.isServiceUnavailable = res.status === 503 || err.notConfigured;
-      throw err;
-    }
-    return body;
-  }
-
   function initCashoutSection(credits) {
-    const loadingEl = document.getElementById('cashout-loading');
-    const errorEl = document.getElementById('cashout-error');
-    const errorMsg = document.getElementById('cashout-error-msg');
+    const insufficientEl = document.getElementById('cashout-insufficient');
     const formWrap = document.getElementById('cashout-form-wrap');
     const confirmationEl = document.getElementById('cashout-confirmation');
-    const errorIconEl = document.querySelector('#cashout-error .cashout-not-configured-icon');
-    const errorBannerEl = document.querySelector('#cashout-error .cashout-not-configured');
-    const errorRetryBtn = document.getElementById('cashout-retry-btn');
-    const productSelect = document.getElementById('cashout-product');
 
-    if (!formWrap) {
-      return;
-    }
+    if (!formWrap) return;
 
-    function showLoading(show) {
-      if (loadingEl) {
-        loadingEl.style.display = show ? 'flex' : 'none';
-      }
-    }
+    const POINTS_PER_GBP = 100; // matches server default; denominations are in £5 increments, min £50
+    const MIN_DENOM = 50;
+    const STEP = 5;
 
-    function showError(msg, isConfig) {
-      if (errorEl) {
-        errorEl.style.display = 'block';
-      }
-      // Update icon and banner colour based on error type
-      if (errorIconEl) {
-        errorIconEl.textContent = isConfig ? '⚙️' : '⚠️';
-      }
-      if (errorBannerEl) {
-        errorBannerEl.classList.toggle('cashout-not-configured--generic', !isConfig);
-      }
-      if (errorMsg) {
-        if (isConfig) {
-          errorMsg.textContent =
-            'Gift card cashout is not yet configured for this environment. ' +
-            'Contact support to enable this feature.';
-        } else {
-          errorMsg.textContent =
-            msg || 'Unable to load gift card products. Please try again later.';
-        }
-      }
-      if (errorRetryBtn) {
-        errorRetryBtn.style.display = isConfig ? 'none' : 'inline-flex';
-      }
-      if (isConfig && productSelect) {
-        productSelect.disabled = true;
-      }
-      showLoading(false);
-    }
+    const availBal = credits ? (credits.availableBalance !== undefined ? credits.availableBalance : (credits.balance || 0)) : 0;
+    const availGbp = Math.floor(availBal / POINTS_PER_GBP);
+    const maxDenom = Math.floor(availGbp / STEP) * STEP;
 
-    function populateProducts(products) {
-      if (!productSelect) {
-        return;
-      }
-      productSelect.innerHTML = '<option value="">Select a brand…</option>';
-      products.filter(Boolean).forEach(p => {
-        const opt = document.createElement('option');
-        opt.value = p.id || '';
-        opt.textContent = p.name || p.id || '';
-        productSelect.appendChild(opt);
-      });
-    }
-
-    // Show balance hint (pts + £ value) — uses available balance for cashout
+    // Update balance hint
     const balancePtsEl = document.getElementById('cashout-balance-pts');
     const balanceGbpEl = document.getElementById('cashout-balance-gbp');
-    if (credits) {
-      const bal =
-        credits.availableBalance !== undefined ? credits.availableBalance : credits.balance || 0;
-      if (balancePtsEl) {
-        balancePtsEl.textContent = bal.toLocaleString();
+    if (balancePtsEl) balancePtsEl.textContent = availBal.toLocaleString();
+    if (balanceGbpEl) balanceGbpEl.textContent = toPounds(availBal);
+
+    // Insufficient balance?
+    if (availGbp < MIN_DENOM) {
+      if (insufficientEl) {
+        insufficientEl.style.display = 'flex';
+        const msgEl = document.getElementById('cashout-avail-gbp-msg');
+        if (msgEl) msgEl.textContent = toPounds(availBal);
       }
-      if (balanceGbpEl) {
-        balanceGbpEl.textContent = toPounds(bal);
+      return; // Don't show the form
+    }
+
+    // Populate denomination dropdown
+    const denomSelect = document.getElementById('cashout-denomination');
+    if (denomSelect) {
+      denomSelect.innerHTML = '<option value="">Select an amount…</option>';
+      for (let d = MIN_DENOM; d <= maxDenom; d += STEP) {
+        const opt = document.createElement('option');
+        opt.value = d;
+        opt.textContent = `£${d}`;
+        denomSelect.appendChild(opt);
       }
     }
 
-    function runProductLoad() {
-      if (errorEl) {
-        errorEl.style.display = 'none';
-      }
-      showLoading(true);
-      loadTremendousProducts()
-        .then(data => {
-          showLoading(false);
-          const products = (data && data.products) || [];
-          if (!products.length) {
-            showError('No gift card products are currently available. Please try again later.');
-            return;
-          }
-          populateProducts(products);
-          formWrap.style.display = 'block';
-        })
-        .catch(err => {
-          const isConfig = err.isServiceUnavailable === true;
-          if (window.__EF_DEBUG__) {
-            // eslint-disable-next-line no-console
-            console.debug(
-              '[partner-dashboard] Gift card products:',
-              isConfig ? 'service not configured' : err
-            );
-          }
-          showError(err.message || '', isConfig);
-        });
-    }
-
-    runProductLoad();
-
-    // Retry button — wired up for transient (non-config) errors
-    if (errorRetryBtn) {
-      errorRetryBtn.addEventListener('click', runProductLoad);
-    }
+    formWrap.style.display = 'block';
 
     const form = document.getElementById('cashout-form');
     const statusEl = document.getElementById('cashout-status');
     const submitBtn = document.getElementById('cashout-submit-btn');
     const confirmMsgEl = document.getElementById('cashout-confirmation-msg');
-    const viewOrderBtn = document.getElementById('cashout-view-order-btn');
-    const resendBtn = document.getElementById('cashout-resend-btn');
     const newBtn = document.getElementById('cashout-new-btn');
-
-    let lastOrderId = null;
-    let lastRewardId = null;
 
     if (newBtn) {
       newBtn.addEventListener('click', () => {
-        if (confirmationEl) {
-          confirmationEl.style.display = 'none';
-        }
+        if (confirmationEl) confirmationEl.style.display = 'none';
         formWrap.style.display = 'block';
-        if (form) {
-          form.reset();
+        if (form) form.reset();
+        if (denomSelect) {
+          denomSelect.innerHTML = '<option value="">Select an amount…</option>';
+          for (let d = MIN_DENOM; d <= maxDenom; d += STEP) {
+            const opt = document.createElement('option');
+            opt.value = d;
+            opt.textContent = `£${d}`;
+            denomSelect.appendChild(opt);
+          }
         }
-        if (statusEl) {
-          statusEl.textContent = '';
-          statusEl.className = 'partner-status';
-        }
-        lastOrderId = null;
-        lastRewardId = null;
+        if (statusEl) { statusEl.textContent = ''; statusEl.className = 'partner-status'; }
       });
     }
 
-    if (viewOrderBtn) {
-      viewOrderBtn.addEventListener('click', async () => {
-        if (!lastOrderId) {
-          return;
-        }
-        viewOrderBtn.disabled = true;
-        viewOrderBtn.textContent = 'Loading…';
-        try {
-          const res = await fetch(
-            `/api/v1/partner/tremendous/orders/${encodeURIComponent(lastOrderId)}`,
-            {
-              credentials: 'include',
-            }
-          );
-          const body = await res.json().catch(() => ({}));
-          if (!res.ok) {
-            showToast(body.error || 'Failed to fetch order status', 'error');
-            return;
-          }
-          const order = body.order || {};
-          const rewards = order.rewards || [];
-          const deliveryStatus = rewards[0]
-            ? rewards[0].delivery_status || rewards[0].status || 'pending'
-            : 'pending';
-          const statusLabel = deliveryStatus.toLowerCase().replace(/_/g, ' ');
-          const isDelivered =
-            deliveryStatus.toLowerCase().includes('delivered') ||
-            deliveryStatus.toLowerCase().includes('sent');
-          showToast(
-            `Order ${order.id} — delivery: ${statusLabel}`,
-            isDelivered ? 'success' : 'info'
-          );
-          // Show resend button if we have a reward ID and delivery isn't confirmed
-          if (resendBtn && lastRewardId && !isDelivered) {
-            resendBtn.style.display = 'inline-flex';
-          }
-        } catch (err) {
-          showToast(err.message || 'Failed to fetch order status', 'error');
-        } finally {
-          viewOrderBtn.disabled = false;
-          viewOrderBtn.textContent = '📋 View status';
-        }
-      });
-    }
-
-    if (resendBtn) {
-      resendBtn.addEventListener('click', async () => {
-        if (!lastRewardId) {
-          return;
-        }
-        resendBtn.disabled = true;
-        resendBtn.textContent = 'Resending…';
-        try {
-          const csrfToken = await getCsrfToken();
-          const res = await fetch(
-            `/api/v1/partner/tremendous/rewards/${encodeURIComponent(lastRewardId)}/resend`,
-            {
-              method: 'POST',
-              credentials: 'include',
-              headers: { 'X-CSRF-Token': csrfToken },
-            }
-          );
-          const body = await res.json().catch(() => ({}));
-          if (!res.ok) {
-            throw new Error(body.error || 'Failed to resend gift card');
-          }
-          showToast('Gift card email resent successfully!', 'success');
-          resendBtn.style.display = 'none';
-        } catch (err) {
-          showToast(err.message || 'Failed to resend gift card', 'error');
-        } finally {
-          resendBtn.disabled = false;
-          resendBtn.textContent = '📧 Resend email';
-        }
-      });
-    }
-
-    if (!form) {
-      return;
-    }
+    if (!form) return;
 
     form.addEventListener('submit', async e => {
       e.preventDefault();
-      if (statusEl) {
-        statusEl.textContent = '';
-        statusEl.className = 'partner-status';
+      if (statusEl) { statusEl.textContent = ''; statusEl.className = 'partner-status'; }
+
+      const method = ((form.elements['method'] || {}).value || '').trim();
+      const denominationGbp = parseInt(((form.elements['denominationGbp'] || {}).value || ''), 10);
+      const partnerMessage = ((form.elements['partnerMessage'] || {}).value || '').trim();
+
+      if (!method) {
+        if (statusEl) { statusEl.textContent = 'Please select a payout method.'; statusEl.className = 'partner-status partner-status--error'; }
+        return;
       }
-
-      const productId = (form.elements['productId'] || {}).value || '';
-      const rawValue = (form.elements['value'] || {}).value || '';
-      const recipientName = ((form.elements['recipientName'] || {}).value || '').trim();
-      const recipientEmail = ((form.elements['recipientEmail'] || {}).value || '').trim();
-      const message = ((form.elements['message'] || {}).value || '').trim();
-
-      if (!productId) {
-        if (statusEl) {
-          statusEl.textContent = 'Please select a gift card brand.';
-          statusEl.className = 'partner-status partner-status--error';
-        }
+      if (!denominationGbp || isNaN(denominationGbp)) {
+        if (statusEl) { statusEl.textContent = 'Please select an amount.'; statusEl.className = 'partner-status partner-status--error'; }
         return;
       }
 
-      const value = parseFloat(rawValue);
-      if (!rawValue || isNaN(value) || value <= 0) {
-        if (statusEl) {
-          statusEl.textContent = 'Please enter a valid amount greater than 0.';
-          statusEl.className = 'partner-status partner-status--error';
-        }
-        return;
-      }
-
-      if (!recipientName) {
-        if (statusEl) {
-          statusEl.textContent = "Please enter the recipient's name.";
-          statusEl.className = 'partner-status partner-status--error';
-        }
-        return;
-      }
-
-      if (!recipientEmail || !recipientEmail.includes('@')) {
-        if (statusEl) {
-          statusEl.textContent = 'Please enter a valid recipient email address.';
-          statusEl.className = 'partner-status partner-status--error';
-        }
-        return;
-      }
-
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Sending…';
-      }
+      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Submitting…'; }
 
       try {
         const csrfToken = await getCsrfToken();
-        const res = await fetch('/api/v1/partner/tremendous/orders', {
+        const res = await fetch('/api/v1/partner/cashout-requests', {
           method: 'POST',
           credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-Token': csrfToken,
-          },
-          body: JSON.stringify({
-            productId,
-            value,
-            currency: 'GBP',
-            recipientName,
-            recipientEmail,
-            message: message || undefined,
-          }),
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+          body: JSON.stringify({ method, denominationGbp, partnerMessage: partnerMessage || undefined }),
         });
 
         const body = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(body.error || 'Failed to submit cashout request');
 
-        if (!res.ok) {
-          throw new Error(body.error || 'Failed to send gift card');
-        }
-
-        const order = body.order || {};
-        lastOrderId = order.id || null;
-        // Capture reward ID for resend/cancel
-        lastRewardId =
-          (order.rewards && order.rewards[0] && order.rewards[0].id) || body.cashoutId || null;
-
-        const productName = document.querySelector('#cashout-product option:checked')
-          ? document.querySelector('#cashout-product option:checked').textContent
-          : 'Gift card';
-
+        const methodLabel = method === 'amazon_voucher' ? 'Amazon Voucher' : 'Pre-Paid Debit Card';
         formWrap.style.display = 'none';
-        if (resendBtn) {
-          resendBtn.style.display = 'none'; // Hide until status check shows needed
-        }
-        if (confirmationEl) {
-          confirmationEl.style.display = 'block';
-        }
+        if (confirmationEl) confirmationEl.style.display = 'block';
         if (confirmMsgEl) {
-          const safeEmail = esc(recipientEmail);
-          const safeProduct = esc(productName);
-          const orderRef = order.id ? esc(String(order.id)) : '(pending)';
-          confirmMsgEl.innerHTML = `<strong>${safeProduct}</strong> for <strong>${safeEmail}</strong> — Order ref: <code style="font-family:monospace;font-size:0.8em;">${orderRef}</code><br>The recipient will receive a delivery email shortly.`;
+          confirmMsgEl.innerHTML = `Request for <strong>£${escHtml(String(denominationGbp))}</strong> via <strong>${escHtml(methodLabel)}</strong> submitted. Ref: <code style="font-family:monospace;font-size:0.8em;">${escHtml(body.cashoutRequestId || '')}</code><br>Typically processed within <strong>3–5 working days</strong>.`;
         }
-        // Refresh history list
         loadCashoutHistory();
       } catch (err) {
-        if (statusEl) {
-          statusEl.textContent = err.message || 'Failed to send gift card.';
-          statusEl.className = 'partner-status partner-status--error';
-        }
+        if (statusEl) { statusEl.textContent = err.message || 'Failed to submit request.'; statusEl.className = 'partner-status partner-status--error'; }
       } finally {
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.textContent = '🎁 Send Gift Card';
-        }
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '💸 Submit Cashout Request'; }
       }
     });
   }
@@ -1209,10 +910,10 @@
       // Load and render partner's own tickets
       loadAndRenderTickets();
 
-      // Gift card cashout section (Tremendous)
+      // Cashout request section
       initCashoutSection(credits);
 
-      // Gift card order history
+      // Cashout request history
       loadCashoutHistory();
 
       // Referrals & transactions
