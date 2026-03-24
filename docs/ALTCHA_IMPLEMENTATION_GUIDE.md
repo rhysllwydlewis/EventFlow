@@ -115,6 +115,7 @@ The actual ALTCHA web component is now self-hosted at `/assets/js/vendor/altcha-
 To update the widget bundle after an `altcha` npm package upgrade:
 
 ```bash
+# Note: altcha v2 ships dist/altcha.js (not altcha.min.js); no minified variant in the package.
 cp node_modules/altcha/dist/altcha.js public/assets/js/vendor/altcha-widget.js
 ```
 
