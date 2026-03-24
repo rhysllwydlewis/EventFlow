@@ -265,6 +265,46 @@
     #acr-toast.show { display: block; }
     #acr-toast.toast--error { background: #dc2626; }
     #acr-toast.toast--success { background: #059669; }
+
+    /* Stats bar */
+    .acr-stats-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .acr-stat-card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 1rem 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .acr-stat-icon {
+      font-size: 1.5rem;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .acr-stat-value {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #111827;
+      line-height: 1.1;
+    }
+    .acr-stat-label {
+      font-size: 0.75rem;
+      color: #6b7280;
+      font-weight: 500;
+      margin-top: 0.1rem;
+    }
+    .acr-stat-card--submitted  { border-left: 4px solid #3b82f6; }
+    .acr-stat-card--approved   { border-left: 4px solid #10b981; }
+    .acr-stat-card--processing { border-left: 4px solid #f59e0b; }
+    .acr-stat-card--delivered  { border-left: 4px solid #22c55e; }
+    .acr-stat-card--rejected   { border-left: 4px solid #ef4444; }
   </style>
 </head>
 <body class="admin-body" data-require-role="admin">
@@ -286,6 +326,45 @@
         <span id="acr-count-badge" style="font-size:0.85rem;color:#6b7280;"></span>
       </div>
     </header>
+
+    <!-- Stats Bar -->
+    <div class="acr-stats-bar" id="acr-stats-bar">
+      <div class="acr-stat-card acr-stat-card--submitted">
+        <span class="acr-stat-icon">📥</span>
+        <div>
+          <div class="acr-stat-value" id="acr-stat-submitted">—</div>
+          <div class="acr-stat-label">Submitted</div>
+        </div>
+      </div>
+      <div class="acr-stat-card acr-stat-card--approved">
+        <span class="acr-stat-icon">✅</span>
+        <div>
+          <div class="acr-stat-value" id="acr-stat-approved">—</div>
+          <div class="acr-stat-label">Approved</div>
+        </div>
+      </div>
+      <div class="acr-stat-card acr-stat-card--processing">
+        <span class="acr-stat-icon">⚙️</span>
+        <div>
+          <div class="acr-stat-value" id="acr-stat-processing">—</div>
+          <div class="acr-stat-label">Processing</div>
+        </div>
+      </div>
+      <div class="acr-stat-card acr-stat-card--delivered">
+        <span class="acr-stat-icon">🎁</span>
+        <div>
+          <div class="acr-stat-value" id="acr-stat-delivered">—</div>
+          <div class="acr-stat-label">Delivered</div>
+        </div>
+      </div>
+      <div class="acr-stat-card acr-stat-card--rejected">
+        <span class="acr-stat-icon">❌</span>
+        <div>
+          <div class="acr-stat-value" id="acr-stat-rejected">—</div>
+          <div class="acr-stat-label">Rejected</div>
+        </div>
+      </div>
+    </div>
 
     <!-- Filters -->
     <div class="acr-filters">
@@ -443,6 +522,15 @@
         const countBadge = document.getElementById('acr-count-badge');
         if (countBadge) countBadge.textContent = `${(items || []).length} request${(items || []).length === 1 ? '' : 's'}`;
 
+        // Update stats bar (always counts across all statuses even when filtered)
+        if (!statusFilter) {
+          const counts = { submitted: 0, approved: 0, processing: 0, delivered: 0, rejected: 0 };
+          (items || []).forEach(r => { if (counts[r.status] !== undefined) counts[r.status]++; });
+          ['submitted','approved','processing','delivered','rejected'].forEach(s => {
+            const el = document.getElementById(`acr-stat-${s}`);
+            if (el) el.textContent = counts[s];
+          });
+        }
         if (!items || items.length === 0) {
           if (tbody) tbody.innerHTML = `<tr><td colspan="7"><div class="acr-empty"><div class="acr-empty-icon">📭</div><p class="acr-empty-text">No cashout requests found.</p></div></td></tr>`;
           return;
