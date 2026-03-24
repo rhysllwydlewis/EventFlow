@@ -880,10 +880,9 @@
   width: 100%;
   max-width: 520px;
   height: 100vh;
-  background: rgba(10, 22, 28, 0.97);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border-left: 1px solid rgba(255,255,255,0.1);
+  background: #ffffff;
+  border-left: 1px solid #e5e7eb;
+  box-shadow: -4px 0 24px rgba(0,0,0,0.08);
   z-index: 900;
   transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
@@ -893,41 +892,46 @@
 
 .partner-detail-panel.open {
   right: 0;
-  box-shadow: -8px 0 40px rgba(0,0,0,0.4);
+  box-shadow: -8px 0 40px rgba(0,0,0,0.14);
 }
 
 .partner-detail-header {
-  padding: 1.5rem 1.5rem 1rem;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding: 1.25rem 1.5rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
   display: flex;
   align-items: flex-start;
   gap: 1rem;
+  background: #f9fafb;
 }
 
 .partner-detail-close {
   margin-left: auto;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.1);
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
   border-radius: 8px;
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255,255,255,0.55);
+  color: #374151;
   cursor: pointer;
   transition: all 0.18s;
   flex-shrink: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .partner-detail-close:hover {
-  background: rgba(255,255,255,0.12);
-  color: #fff;
+  background: #e5e7eb;
+  color: #111827;
 }
 
 .partner-detail-body {
   padding: 1.5rem;
   flex: 1;
+  background: #ffffff;
 }
 
 .partner-detail-section {
@@ -935,12 +939,26 @@
 }
 
 .partner-detail-section-title {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  color: rgba(255,255,255,0.4);
+  color: #6b7280;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   margin-bottom: 0.75rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+/* detail panel overlay scrim (for mobile) */
+.partner-detail-scrim {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 899;
+}
+.partner-detail-scrim.show {
+  display: block;
 }
 
 /* toast notification */

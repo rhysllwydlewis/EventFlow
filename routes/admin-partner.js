@@ -10,6 +10,7 @@
 const express = require('express');
 const logger = require('../utils/logger');
 const dbUnified = require('../db-unified');
+const { uid } = require('../store');
 const { authRequired, roleRequired } = require('../middleware/auth');
 const { csrfProtection } = require('../middleware/csrf');
 const partnerService = require('../services/partnerService');
@@ -33,6 +34,13 @@ router.get('/', async (req, res) => {
 
     const enriched = await Promise.all(
       partners.map(async p => {
+        // Repair missing id: generate one and persist it so action buttons work
+        if (!p.id) {
+          const newId = uid('prt');
+          await dbUnified.updateOne('partners', { refCode: p.refCode }, { $set: { id: newId, updatedAt: new Date().toISOString() } });
+          p = { ...p, id: newId };
+          logger.info(`Repaired missing partner id → ${newId} (refCode=${p.refCode})`);
+        }
         const user = users.find(u => u.id === p.userId);
         const balance = await partnerService.getBalance(p.id);
         const referrals = await partnerService.listReferralsByPartnerId(p.id);

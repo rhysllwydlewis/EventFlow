@@ -174,8 +174,25 @@ router.post(
 router.get('/me', authRequired, async (req, res) => {
   try {
     const subscription = await subscriptionService.getSubscriptionByUserId(req.user.id);
+
+    // Determine the displayed plan: if a downgrade is pending the current plan still
+    // grants higher-tier access until the period ends; after that the pendingPlan applies.
     const plan = subscription ? subscription.plan : 'free';
-    res.json({ success: true, subscription, plan });
+
+    // Compute activeUntil — when the current entitlements expire.
+    // For a cancellation at period end this is currentPeriodEnd.
+    // For an immediate cancellation or no subscription it is null.
+    const activeUntil = subscription?.currentPeriodEnd || null;
+
+    res.json({
+      success: true,
+      subscription,
+      plan,
+      pendingPlan: subscription?.pendingPlan || null,
+      activeUntil,
+      cancelAtPeriodEnd: subscription?.cancelAtPeriodEnd ?? false,
+      status: subscription?.status || 'free',
+    });
   } catch (error) {
     logger.error('Error fetching current user subscription:', error);
     res.status(500).json({ error: 'Failed to fetch subscription', message: error.message });

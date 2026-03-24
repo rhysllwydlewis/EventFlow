@@ -406,6 +406,9 @@ async function checkFeatureAccess(userId, feature) {
     if ((status === 'active' || status === 'trialing') && periodValid) {
       return hasFeature(plan, feature);
     }
+    // Subscription record exists but is expired / past_due / canceled:
+    // return free immediately — do not fall through to a potentially stale user fallback.
+    return hasFeature('free', feature);
   }
 
   // Fallback: check subscriptionTier on user record (set by Stripe webhook)

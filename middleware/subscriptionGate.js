@@ -13,7 +13,10 @@ const { TIER_LEVELS } = require('../models/Subscription');
 /**
  * Resolve the effective tier for a user, considering:
  * 1. Active subscriptions table record (period not expired, not past_due/canceled without renewal)
+ *    — if a record exists but is expired/past_due/canceled, returns 'free' without checking the
+ *      user fallback (prevents stale subscriptionTier from granting access after expiry).
  * 2. User record subscriptionTier field (set by Stripe webhook on purchase)
+ *    — only consulted when NO subscription record exists at all.
  * 3. Default: 'free'
  */
 async function resolveEffectiveTier(userId) {
@@ -27,7 +30,9 @@ async function resolveEffectiveTier(userId) {
     if ((status === 'active' || status === 'trialing') && periodStillValid) {
       return { tier: plan, subscription };
     }
-    // past_due or canceled with expired period → fall through to user field
+    // Subscription record exists but is expired / past_due / canceled:
+    // return free immediately — do not fall through to a potentially stale user fallback.
+    return { tier: 'free', subscription: null };
   }
 
   // Fallback: user record subscriptionTier set directly by Stripe webhook
