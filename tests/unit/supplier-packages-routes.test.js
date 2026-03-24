@@ -252,6 +252,11 @@ describe('Supplier Packages — Pause/Unpause Routes', () => {
     expect(block).toContain('applyCsrfProtection');
   });
 
+  it('PUT /me/packages/:id/unpause has rate limiting', () => {
+    const block = extractRouteBlock('put', '/me/packages/:id/unpause');
+    expect(block).toContain('applyWriteLimiter');
+  });
+
   it('PUT /me/packages/:id/unpause enforces ownership via resolveOwnedPackage', () => {
     const block = extractRouteBlock('put', '/me/packages/:id/unpause');
     expect(block).toContain('resolveOwnedPackage');
