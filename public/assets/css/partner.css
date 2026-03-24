@@ -1429,3 +1429,10 @@ select.partner-modal-input option {
   background: rgba(239, 68, 68, 0.1);
   color: #fca5a5;
 }
+
+.cashout-history-admin-msg {
+  margin-top: 0.35rem;
+  font-size: 0.78rem;
+  color: rgba(110, 231, 183, 0.75);
+  font-style: italic;
+}
