@@ -556,31 +556,14 @@ async function awardFirstReviewBonus(supplierUserId) {
 
 /**
  * Award +20 credits when a referred supplier's profile is approved by admin.
- * Triggered from the supplier admin approve route.
+ * NOTE: This bonus has been removed — profiles are auto-approved and awarding
+ * points for approval is no longer appropriate. Function always returns null.
  *
- * @param {string} supplierUserId  – The user ID of the supplier whose profile was approved
- * @returns {Object|null}  The credit transaction, or null if not applicable / already awarded
+ * @param {string} _supplierUserId  – unused
+ * @returns {null}
  */
-async function awardProfileApprovedBonus(supplierUserId) {
-  const referral = await getReferralBySupplierUserId(supplierUserId);
-  if (!referral) {
-    return null;
-  }
-
-  const partner = await getPartnerById(referral.partnerId);
-  if (!partner || partner.status !== 'active') {
-    return null;
-  }
-
-  const txn = await _awardCredit({
-    partnerId: referral.partnerId,
-    supplierUserId,
-    type: CREDIT_TYPES.PROFILE_APPROVED_BONUS,
-    amount: PROFILE_APPROVED_BONUS,
-    notes: 'Referred supplier profile approved by admin',
-  });
-
-  return txn;
+async function awardProfileApprovedBonus(_supplierUserId) {
+  return null;
 }
 
 /**

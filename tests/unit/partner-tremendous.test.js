@@ -245,6 +245,16 @@ describe('GET /api/partner/tremendous/products', () => {
     const res = await request(app).get('/api/partner/tremendous/products');
     expect(res.status).toBe(503);
   });
+
+  it('returns notConfigured:true when statusCode is 503', async () => {
+    const err = new Error('Gift card service is not configured. Please contact support.');
+    err.statusCode = 503;
+    mockTremendous.listProducts.mockRejectedValue(err);
+    const res = await request(app).get('/api/partner/tremendous/products');
+    expect(res.status).toBe(503);
+    expect(res.body.notConfigured).toBe(true);
+    expect(res.body.error).toMatch(/not configured/i);
+  });
 });
 
 describe('POST /api/partner/tremendous/orders', () => {

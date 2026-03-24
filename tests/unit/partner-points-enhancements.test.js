@@ -192,30 +192,15 @@ describe('PartnerService — points enhancements', () => {
   // ── awardProfileApprovedBonus ──────────────────────────────────────────────
 
   describe('awardProfileApprovedBonus()', () => {
-    beforeEach(seedPartnerAndReferral);
-
-    it('awards +20 credits when referred supplier profile is approved', async () => {
+    // Profile-approved bonus has been removed: profiles are auto-approved and
+    // awarding points for this action is no longer appropriate.
+    it('always returns null (bonus removed)', async () => {
       const txn = await partnerService.awardProfileApprovedBonus(SUPPLIER_USER_ID);
-      expect(txn).not.toBeNull();
-      expect(txn.amount).toBe(partnerService.PROFILE_APPROVED_BONUS);
-      expect(txn.type).toBe('PROFILE_APPROVED_BONUS');
-      expect(txn.partnerId).toBe(ACTIVE_PARTNER.id);
+      expect(txn).toBeNull();
     });
 
-    it('is idempotent — does not award twice', async () => {
-      await partnerService.awardProfileApprovedBonus(SUPPLIER_USER_ID);
-      const second = await partnerService.awardProfileApprovedBonus(SUPPLIER_USER_ID);
-      expect(second).toBeNull();
-    });
-
-    it('returns null when supplier is not a referral', async () => {
+    it('returns null for any supplier user ID', async () => {
       const result = await partnerService.awardProfileApprovedBonus('usr_not_referred');
-      expect(result).toBeNull();
-    });
-
-    it('returns null when partner is disabled', async () => {
-      mockStore.partners[0].status = 'disabled';
-      const result = await partnerService.awardProfileApprovedBonus(SUPPLIER_USER_ID);
       expect(result).toBeNull();
     });
   });
