@@ -177,3 +177,100 @@ describe('Supplier Packages — Router mounting (routes/index.js)', () => {
     expect(indexContent).toContain("app.use('/api', packagesRoutes)");
   });
 });
+
+describe('Supplier Packages — Pause/Unpause Routes', () => {
+  function extractRouteBlock(method, path) {
+    const marker = `router.${method}(\n  '${path}'`;
+    const start = routesContent.indexOf(marker);
+    if (start === -1) {
+      return null;
+    }
+    const afterStart = routesContent.indexOf('\nrouter.', start + marker.length);
+    const end = afterStart === -1 ? routesContent.length : afterStart;
+    return routesContent.substring(start, end);
+  }
+
+  it('PUT /me/packages/:id/pause route exists', () => {
+    expect(routesContent).toContain("router.put(\n  '/me/packages/:id/pause'");
+  });
+
+  it('PUT /me/packages/:id/unpause route exists', () => {
+    expect(routesContent).toContain("router.put(\n  '/me/packages/:id/unpause'");
+  });
+
+  it('PUT /me/packages/:id/pause requires applyAuthRequired', () => {
+    const block = extractRouteBlock('put', '/me/packages/:id/pause');
+    expect(block).not.toBeNull();
+    expect(block).toContain('applyAuthRequired');
+  });
+
+  it("PUT /me/packages/:id/pause requires applyRoleRequired('supplier')", () => {
+    const block = extractRouteBlock('put', '/me/packages/:id/pause');
+    expect(block).toContain("applyRoleRequired('supplier')");
+  });
+
+  it('PUT /me/packages/:id/pause has CSRF protection', () => {
+    const block = extractRouteBlock('put', '/me/packages/:id/pause');
+    expect(block).toContain('applyCsrfProtection');
+  });
+
+  it('PUT /me/packages/:id/pause has rate limiting', () => {
+    const block = extractRouteBlock('put', '/me/packages/:id/pause');
+    expect(block).toContain('applyWriteLimiter');
+  });
+
+  it('PUT /me/packages/:id/pause enforces ownership via resolveOwnedPackage', () => {
+    const block = extractRouteBlock('put', '/me/packages/:id/pause');
+    expect(block).toContain('resolveOwnedPackage');
+  });
+
+  it('PUT /me/packages/:id/pause sets paused to true via dbUnified.updateOne', () => {
+    const block = extractRouteBlock('put', '/me/packages/:id/pause');
+    expect(block).toContain('paused: true');
+    expect(block).toContain("dbUnified.updateOne('packages'");
+  });
+
+  it('PUT /me/packages/:id/pause returns { ok: true, package }', () => {
+    const block = extractRouteBlock('put', '/me/packages/:id/pause');
+    expect(block).toContain('ok: true');
+    expect(block).toContain('package:');
+  });
+
+  it('PUT /me/packages/:id/unpause requires applyAuthRequired', () => {
+    const block = extractRouteBlock('put', '/me/packages/:id/unpause');
+    expect(block).not.toBeNull();
+    expect(block).toContain('applyAuthRequired');
+  });
+
+  it("PUT /me/packages/:id/unpause requires applyRoleRequired('supplier')", () => {
+    const block = extractRouteBlock('put', '/me/packages/:id/unpause');
+    expect(block).toContain("applyRoleRequired('supplier')");
+  });
+
+  it('PUT /me/packages/:id/unpause has CSRF protection', () => {
+    const block = extractRouteBlock('put', '/me/packages/:id/unpause');
+    expect(block).toContain('applyCsrfProtection');
+  });
+
+  it('PUT /me/packages/:id/unpause has rate limiting', () => {
+    const block = extractRouteBlock('put', '/me/packages/:id/unpause');
+    expect(block).toContain('applyWriteLimiter');
+  });
+
+  it('PUT /me/packages/:id/unpause enforces ownership via resolveOwnedPackage', () => {
+    const block = extractRouteBlock('put', '/me/packages/:id/unpause');
+    expect(block).toContain('resolveOwnedPackage');
+  });
+
+  it('PUT /me/packages/:id/unpause sets paused to false via dbUnified.updateOne', () => {
+    const block = extractRouteBlock('put', '/me/packages/:id/unpause');
+    expect(block).toContain('paused: false');
+    expect(block).toContain("dbUnified.updateOne('packages'");
+  });
+
+  it('PUT /me/packages/:id/unpause returns { ok: true, package }', () => {
+    const block = extractRouteBlock('put', '/me/packages/:id/unpause');
+    expect(block).toContain('ok: true');
+    expect(block).toContain('package:');
+  });
+});

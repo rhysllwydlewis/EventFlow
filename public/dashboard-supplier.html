@@ -362,23 +362,24 @@
 
                 <div
                   class="dashboard-stat-card dashboard-stat-card--secondary"
-                  data-test="stat-counter-profiles"
+                  data-test="stat-counter-packages"
                 >
                   <div class="dashboard-stat-card__icon">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                      <circle cx="12" cy="7" r="4" />
+                      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                      <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                      <line x1="12" y1="22.08" x2="12" y2="12" />
                     </svg>
                   </div>
                   <div class="dashboard-stat-card__content">
                     <div
                       class="dashboard-stat-card__value stat-number"
-                      id="quick-stat-profiles"
+                      id="quick-stat-packages"
                       data-target="0"
                     >
                       0
                     </div>
-                    <div class="dashboard-stat-card__label">Active Profiles</div>
+                    <div class="dashboard-stat-card__label">Active Packages</div>
                   </div>
                   <div class="dashboard-stat-card__badge">Live</div>
                 </div>
@@ -555,7 +556,7 @@
             <h4 class="sd-empty-state__title">Payments launching soon</h4>
             <p class="sd-empty-state__desc">Accept booking deposits, track revenue, and manage invoices — all from your EventFlow dashboard.</p>
             <div class="sd-empty-state__actions">
-              <a href="/supplier/packages" class="sd-empty-state__cta">Set up packages</a>
+              <a href="#packages-section" id="earnings-create-pkg-cta" class="sd-empty-state__cta">Create a package</a>
               <a href="/guides" class="sd-empty-state__cta sd-empty-state__cta--secondary">Learn more</a>
             </div>
           </div>
@@ -830,6 +831,7 @@
         </div>
 
         <div
+          id="packages-section"
           class="card sd-card supplier-dashboard-card"
           role="region"
           aria-labelledby="packages-heading"

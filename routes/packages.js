@@ -497,6 +497,62 @@ router.delete(
 );
 
 /**
+ * PUT /api/me/packages/:id/pause
+ * Pause a package belonging to the authenticated supplier
+ */
+router.put(
+  '/me/packages/:id/pause',
+  applyWriteLimiter,
+  applyAuthRequired,
+  applyRoleRequired('supplier'),
+  applyCsrfProtection,
+  async (req, res) => {
+    try {
+      const result = await resolveOwnedPackage(req.params.id, req, res);
+      if (!result) {
+        return;
+      }
+      const { pkg } = result;
+      const updatedAt = Date.now();
+      await dbUnified.updateOne('packages', { id: pkg.id }, { $set: { paused: true, updatedAt } });
+      suppliersRouter.invalidatePackageCaches();
+      res.json({ ok: true, package: { ...pkg, paused: true, updatedAt } });
+    } catch (error) {
+      logger.error('Error pausing supplier package:', error);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+);
+
+/**
+ * PUT /api/me/packages/:id/unpause
+ * Unpause a package belonging to the authenticated supplier
+ */
+router.put(
+  '/me/packages/:id/unpause',
+  applyWriteLimiter,
+  applyAuthRequired,
+  applyRoleRequired('supplier'),
+  applyCsrfProtection,
+  async (req, res) => {
+    try {
+      const result = await resolveOwnedPackage(req.params.id, req, res);
+      if (!result) {
+        return;
+      }
+      const { pkg } = result;
+      const updatedAt = Date.now();
+      await dbUnified.updateOne('packages', { id: pkg.id }, { $set: { paused: false, updatedAt } });
+      suppliersRouter.invalidatePackageCaches();
+      res.json({ ok: true, package: { ...pkg, paused: false, updatedAt } });
+    } catch (error) {
+      logger.error('Error unpausing supplier package:', error);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+);
+
+/**
  * POST /api/me/packages/:id/photos
  * Upload package photo (base64)
  */

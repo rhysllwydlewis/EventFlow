@@ -3133,25 +3133,31 @@ async function initDashSupplier() {
           const description = String(p.description || '');
           const featured = !!p.featured;
           const approved = !!p.approved;
+          const paused = !!p.paused;
           const slug = String(p.slug || '').replace(/"/g, '&quot;');
 
           const approvalBadge = approved
             ? ''
             : '<span class="badge badge-pending" title="This package is awaiting admin approval before it appears publicly">Awaiting review</span>';
+          const pausedBadge = paused
+            ? '<span class="badge badge-paused" title="This package is paused and not visible publicly">Paused</span>'
+            : '';
           const viewBtn =
-            approved && slug
+            approved && slug && !paused
               ? `<a href="/package?slug=${slug}" target="_blank" class="card-action-btn view-btn">View</a>`
               : '';
+          const pauseBtn = `<button type="button" class="card-action-btn ${paused ? 'unpause-btn' : 'pause-btn'}" data-action="${paused ? 'unpause-package' : 'pause-package'}" data-package-id="${packageId}">${paused ? 'Unpause' : 'Pause'}</button>`;
 
-          return `<div class="card package-card" data-package-id="${packageId}">
+          return `<div class="card package-card${paused ? ' package-card--paused' : ''}" data-package-id="${packageId}">
       <img src="${image}" alt="${title} image" onerror="this.src='/assets/images/package-placeholder.svg'; this.onerror=null;">
-      <div>
+      <div class="package-card-content">
         <h3>${title}</h3>
-        <div class="small"><span class="badge">${priceDisplay}</span> ${featured ? '<span class="badge">Featured</span>' : ''} ${approvalBadge}</div>
+        <div class="small"><span class="badge">${priceDisplay}</span> ${featured ? '<span class="badge">Featured</span>' : ''} ${approvalBadge} ${pausedBadge}</div>
         <p class="small">${description}</p>
         <div class="card-actions">
           <button type="button" class="card-action-btn edit-btn" data-action="edit-package" data-package-id="${packageId}">Edit</button>
           ${viewBtn}
+          ${pauseBtn}
           <button type="button" class="card-action-btn delete-btn" data-action="delete-package" data-package-id="${packageId}">Delete</button>
         </div>
       </div>
@@ -3208,6 +3214,22 @@ async function initDashSupplier() {
       const packageId = target.getAttribute('data-package-id');
       if (packageId) {
         deletePackage(packageId);
+      }
+    }
+
+    // Handle package pause buttons
+    if (target.matches('[data-action="pause-package"]')) {
+      const packageId = target.getAttribute('data-package-id');
+      if (packageId) {
+        togglePackagePause(packageId, true);
+      }
+    }
+
+    // Handle package unpause buttons
+    if (target.matches('[data-action="unpause-package"]')) {
+      const packageId = target.getAttribute('data-package-id');
+      if (packageId) {
+        togglePackagePause(packageId, false);
       }
     }
 
@@ -3867,6 +3889,49 @@ async function deletePackage(packageId) {
   } catch (e) {
     console.error('Error deleting package:', e);
     alert('Failed to delete package. Please try again.');
+  }
+}
+
+async function togglePackagePause(packageId, pause) {
+  const action = pause ? 'pause' : 'unpause';
+  try {
+    const csrfToken = window.__CSRF_TOKEN__ || '';
+    const response = await fetch(`/api/v1/me/packages/${encodeURIComponent(packageId)}/${action}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken,
+      },
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      alert(`Failed to ${action} package: ${errorData.error || 'Unknown error'}`);
+      return;
+    }
+
+    // Refresh packages list to reflect the updated state
+    await loadPackages();
+
+    // Keep the Active Packages stat card in sync without a full page reload
+    try {
+      const pkgsResp = await fetch('/api/v1/me/packages', { credentials: 'include' });
+      if (pkgsResp.ok) {
+        const pkgsData = await pkgsResp.json();
+        const activeCount = (pkgsData?.items ?? []).filter(p => !p.paused).length;
+        const statEl = document.getElementById('quick-stat-packages');
+        if (statEl) {
+          statEl.setAttribute('data-target', String(activeCount));
+          statEl.textContent = String(activeCount);
+        }
+      }
+    } catch (_e) {
+      // Best effort — stat update failure should not block UX
+    }
+  } catch (e) {
+    console.error(`Error ${action}ing package:`, e);
+    alert(`Failed to ${action} package. Please try again.`);
   }
 }
 
