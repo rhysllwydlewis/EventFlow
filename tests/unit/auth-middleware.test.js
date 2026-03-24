@@ -105,6 +105,23 @@ describe('Auth Middleware', () => {
 
       process.env.NODE_ENV = originalEnv;
     });
+
+    it('should always set path "/" on the auth cookie', () => {
+      const res = {
+        cookie: jest.fn(),
+      };
+      const token = 'test-token';
+
+      setAuthCookie(res, token, { remember: false });
+
+      expect(res.cookie).toHaveBeenCalledWith(
+        'token',
+        token,
+        expect.objectContaining({
+          path: '/',
+        })
+      );
+    });
   });
 
   describe('clearAuthCookie', () => {
@@ -142,9 +159,11 @@ describe('Auth Middleware', () => {
       expect(res.clearCookie).toHaveBeenCalledWith('token');
     });
 
-    it('should clear cookie with domain variants in production', () => {
+    it('should clear cookie with domain variants in production when COOKIE_DOMAIN is set', () => {
       const originalEnv = process.env.NODE_ENV;
+      const originalCookieDomain = process.env.COOKIE_DOMAIN;
       process.env.NODE_ENV = 'production';
+      process.env.COOKIE_DOMAIN = '.example.com';
 
       const res = {
         clearCookie: jest.fn(),
@@ -163,6 +182,37 @@ describe('Auth Middleware', () => {
       expect(domainCalls.length).toBeGreaterThan(0);
 
       process.env.NODE_ENV = originalEnv;
+      if (originalCookieDomain === undefined) {
+        delete process.env.COOKIE_DOMAIN;
+      } else {
+        process.env.COOKIE_DOMAIN = originalCookieDomain;
+      }
+    });
+
+    it('should NOT clear with domain variants in production when COOKIE_DOMAIN is not set', () => {
+      const originalEnv = process.env.NODE_ENV;
+      const originalCookieDomain = process.env.COOKIE_DOMAIN;
+      process.env.NODE_ENV = 'production';
+      delete process.env.COOKIE_DOMAIN;
+
+      const res = {
+        clearCookie: jest.fn(),
+      };
+
+      clearAuthCookie(res);
+
+      // Should only clear twice (with and without options) — no domain-specific clearing
+      expect(res.clearCookie.mock.calls.length).toBe(2);
+
+      const domainCalls = res.clearCookie.mock.calls.filter(
+        call => call[1] && call[1].domain !== undefined
+      );
+      expect(domainCalls.length).toBe(0);
+
+      process.env.NODE_ENV = originalEnv;
+      if (originalCookieDomain !== undefined) {
+        process.env.COOKIE_DOMAIN = originalCookieDomain;
+      }
     });
 
     it('should not use domain variants in development', () => {

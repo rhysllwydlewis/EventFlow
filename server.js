@@ -1238,17 +1238,26 @@ async function startServer() {
 
     const missingCriticalConfig = getMissingCriticalProductionConfig(baseUrl);
     const allowDegradedStartup = process.env.ALLOW_DEGRADED_STARTUP === 'true';
+
+    // In production, ALLOW_DEGRADED_STARTUP must never be set — it bypasses critical safety checks.
+    if (isProduction && allowDegradedStartup) {
+      logger.error('');
+      logger.error('❌ ALLOW_DEGRADED_STARTUP=true is not permitted in production.');
+      logger.error('   Remove this environment variable before deploying.');
+      process.exit(1);
+    }
+
     if (missingCriticalConfig.length > 0) {
       logger.error('');
       logger.error('❌ CRITICAL PRODUCTION CONFIGURATION MISSING');
       logger.error(`   Missing/invalid: ${missingCriticalConfig.join(', ')}`);
-      logger.error(
-        '   Set required values or use ALLOW_DEGRADED_STARTUP=true to bypass temporarily.'
-      );
+      logger.error('   Set the required environment variables and restart.');
       if (!allowDegradedStartup) {
         process.exit(1);
       }
-      logger.warn('   ALLOW_DEGRADED_STARTUP enabled; continuing with degraded startup.');
+      logger.warn(
+        '   ALLOW_DEGRADED_STARTUP enabled; continuing with degraded startup (dev/test only).'
+      );
     }
 
     // 2. Pre-flight database validation (before initialization)

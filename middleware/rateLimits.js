@@ -22,6 +22,30 @@ const authLimiter = rateLimit({
 });
 
 /**
+ * Stricter rate limit for sensitive login endpoints (login, 2FA)
+ * 5 requests per 15 minutes to limit brute-force on credentials
+ */
+const strictAuthLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 requests per window
+  message: 'Too many login attempts, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/**
+ * Rate limit for password-reset flows (forgot, reset-password, validate-reset-token)
+ * 5 requests per 15 minutes to prevent reset-link spam and enumeration attempts
+ */
+const passwordResetLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 requests per window
+  message: 'Too many password reset requests, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/**
  * Rate limit for AI/OpenAI endpoints (expensive operations)
  * Prevents excessive usage of costly AI services
  * 50 requests per hour
@@ -129,6 +153,8 @@ const apiDocsLimiter = rateLimit({
 
 module.exports = {
   authLimiter,
+  strictAuthLimiter,
+  passwordResetLimiter,
   aiLimiter,
   uploadLimiter,
   searchLimiter,
