@@ -87,7 +87,9 @@ function configureHelmet(isProduction = false) {
           "'self'",
           'https:',
           'wss:',
-          'ws:',
+          // Allow plaintext WebSocket only in development (hot-reload, local tools).
+          // In production all WebSocket traffic must use TLS (wss:).
+          ...(isProduction ? [] : ['ws:']),
           'https://googletagmanager.com',
           'https://*.googletagmanager.com',
           'https://*.google-analytics.com',

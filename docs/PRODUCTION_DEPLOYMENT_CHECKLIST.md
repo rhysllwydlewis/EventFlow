@@ -2,6 +2,53 @@
 
 This checklist ensures EventFlow is ready for production deployment with all necessary configurations, security measures, and monitoring in place.
 
+## 🔒 Go-Live Security Audit — March 2026
+
+The following audit was completed against the live codebase before publicising. All **critical** and **high** items are ✅ resolved.
+
+### Audit Findings & Resolutions
+
+| # | Finding | Severity | Status |
+|---|---------|----------|--------|
+| 1 | `ALLOW_DEGRADED_STARTUP=true` allowed bypassing all startup checks in production | 🔴 Critical | ✅ Fixed — server now exits with error if this is set in production |
+| 2 | `clearAuthCookie()` had hardcoded `.event-flow.co.uk` domain fallback (could prevent logout clearing cookies) | 🟡 High | ✅ Fixed — no fallback domain; only clears with explicit `COOKIE_DOMAIN` env var |
+| 3 | `setAuthCookie()` did not set `path: '/'` (mismatch with `clearCookie`) | 🟡 High | ✅ Fixed — both set and clear use `path: '/'` |
+| 4 | Login/2FA used `authLimiter` (100/15min) instead of `strictAuthLimiter` | 🟡 High | ✅ Fixed — login & 2FA now use `strictAuthLimiter` (5/15min) |
+| 5 | Forgot/reset-password used `authLimiter` instead of `passwordResetLimiter` | 🟡 High | ✅ Fixed — reset flows now use `passwordResetLimiter` (5/15min) |
+| 6 | `GET /api/auth/logout` logged users out without CSRF (logout CSRF) | 🟡 High | ✅ Fixed — GET logout returns 405; logout is POST-only with CSRF |
+| 7 | CSP `connectSrc` included `ws:` (plaintext WebSocket) in production | 🟠 Medium | ✅ Fixed — `ws:` excluded in production; only `wss:` allowed |
+| 8 | `middleware/rateLimit.js.backup` committed to git (leaked old, looser config) | 🟠 Medium | ✅ Fixed — removed from git, added to `.gitignore` |
+| 9 | No automated go-live audit script in CI | 🟠 Medium | ✅ Fixed — `scripts/go-live-audit.mjs` added; CI job added |
+
+### Items Verified as Correct (no changes needed)
+
+- ✅ JWT_SECRET enforcement: rejects missing/short/placeholder values at startup
+- ✅ Cookies: `httpOnly`, `sameSite: lax`, `secure` (production only), `path: /`
+- ✅ CORS: production origin allowlist from `BASE_URL`; rejects unlisted origins with 403
+- ✅ Helmet CSP: `defaultSrc: self`, `frameAncestors: none`, HSTS in production
+- ✅ Permissions-Policy header: restricts geolocation, camera, microphone
+- ✅ Stripe webhook signature: `stripe.webhooks.constructEvent` with raw body
+- ✅ File uploads: `uploadLimiter`, magic byte validation, Sharp processing, metadata stripping
+- ✅ Contact form rate limited; newsletter has its own 5/hour limiter
+- ✅ CSRF enforced on all state-changing routes (profile, logout, billing, email resend)
+- ✅ Admin/partner/supplier routes all require `authRequired` + role checks
+- ✅ MongoDB injection: mongo-sanitize applied globally
+
+### Running the Automated Audit
+
+```bash
+# Against a local server instance
+npm run audit:golive
+
+# Against the live site
+npm run audit:golive:live
+
+# Just check security headers (lighter, no server spin-up)
+npm run test:headers
+```
+
+---
+
 ## Pre-Deployment Checklist
 
 ### Environment Configuration
