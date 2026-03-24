@@ -195,7 +195,8 @@ async function handleInvoicePaymentSucceeded(invoice) {
   // Award partner subscription bonus for first successful payment (non-blocking)
   // Skip trial activations and £0/free invoices — only award on real paid invoices
   try {
-    const amountPaid = typeof invoice.amount_paid === 'number' ? invoice.amount_paid : invoice.total;
+    const amountPaid =
+      typeof invoice.amount_paid === 'number' ? invoice.amount_paid : invoice.total;
     if (amountPaid > 0) {
       const partnerService = require('../services/partnerService');
       await partnerService.awardSubscriptionBonus(subscription.userId);
@@ -562,55 +563,99 @@ async function handleSubscriptionDeleted(stripeSubscription) {
     return;
   }
 
-  // Cancel subscription and downgrade to free
-  await subscriptionService.updateSubscription(subscription.id, {
-    status: 'canceled',
-    plan: 'free',
-    canceledAt: new Date().toISOString(),
-  });
+  const hasPendingDowngrade = Boolean(subscription.pendingPlan);
+  const planAfterDeletion = hasPendingDowngrade ? subscription.pendingPlan : 'free';
 
-  // Also clear proExpiresAt on the user record so the gate sees them as free immediately
-  const users = await dbUnified.read('users');
-  const user = users.find(u => u.id === subscription.userId);
-  if (user) {
+  if (hasPendingDowngrade) {
+    // Scheduled downgrade: the Stripe subscription is deleted at period end, but the user
+    // should receive lower-tier (not free) entitlements going forward.
+    // Apply the pending plan and keep the subscription active with no Stripe backing.
+    await subscriptionService.updateSubscription(subscription.id, {
+      plan: planAfterDeletion,
+      pendingPlan: null,
+      status: 'active',
+      stripeSubscriptionId: null,
+      cancelAtPeriodEnd: false,
+      currentPeriodEnd: null, // no Stripe period — access continues until re-subscription
+      canceledAt: null,
+    });
+
+    // Sync user record to the new lower tier
     await dbUnified.updateOne(
       'users',
       { id: subscription.userId },
       {
-        $set: { proExpiresAt: null, updatedAt: new Date().toISOString() },
+        $set: {
+          subscriptionTier: planAfterDeletion,
+          isPro: planAfterDeletion !== 'free',
+          proExpiresAt: null,
+          updatedAt: new Date().toISOString(),
+        },
       }
     );
 
-    // Send subscription cancelled email
-    try {
-      const endDate = subscription.currentPeriodEnd
-        ? new Date(subscription.currentPeriodEnd).toLocaleDateString('en-GB', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-          })
-        : new Date().toLocaleDateString('en-GB', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-          });
+    logger.info(
+      `Applied pending downgrade for subscription ${subscription.id}: ` +
+        `${subscription.plan} → ${planAfterDeletion} (Stripe subscription deleted)`
+    );
+  } else {
+    // True cancellation: remove all paid entitlements
+    await subscriptionService.updateSubscription(subscription.id, {
+      status: 'canceled',
+      plan: 'free',
+      canceledAt: new Date().toISOString(),
+    });
 
-      await postmark.sendMail({
-        to: user.email,
-        subject: `Your EventFlow ${formatPlanName(subscription.plan)} subscription has been cancelled`,
-        template: 'subscription-cancelled',
-        templateData: {
-          name: user.name || 'there',
-          planName: formatPlanName(subscription.plan),
-          endDate,
+    // Also clear proExpiresAt on the user record so the gate sees them as free immediately
+    await dbUnified.updateOne(
+      'users',
+      { id: subscription.userId },
+      {
+        $set: {
+          subscriptionTier: 'free',
+          isPro: false,
+          proExpiresAt: null,
+          updatedAt: new Date().toISOString(),
         },
-        from: postmark.FROM_BILLING,
-        tags: ['subscription-cancelled', 'transactional'],
-        messageStream: 'outbound',
-      });
-      logger.info(`Subscription cancelled email sent to ${user.email}`);
-    } catch (emailErr) {
-      logger.error('Failed to send subscription cancelled email:', emailErr.message);
+      }
+    );
+  }
+
+  const users = await dbUnified.read('users');
+  const user = users.find(u => u.id === subscription.userId);
+  if (user) {
+    // Send subscription cancelled email only for true cancellations (not downgrades)
+    if (!hasPendingDowngrade) {
+      try {
+        const endDate = subscription.currentPeriodEnd
+          ? new Date(subscription.currentPeriodEnd).toLocaleDateString('en-GB', {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+            })
+          : new Date().toLocaleDateString('en-GB', {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+            });
+
+        await postmark.sendMail({
+          to: user.email,
+          subject: `Your EventFlow ${formatPlanName(subscription.plan)} subscription has been cancelled`,
+          template: 'subscription-cancelled',
+          templateData: {
+            name: user.name || 'there',
+            planName: formatPlanName(subscription.plan),
+            endDate,
+          },
+          from: postmark.FROM_BILLING,
+          tags: ['subscription-cancelled', 'transactional'],
+          messageStream: 'outbound',
+        });
+        logger.info(`Subscription cancelled email sent to ${user.email}`);
+      } catch (emailErr) {
+        logger.error('Failed to send subscription cancelled email:', emailErr.message);
+      }
     }
   }
 }
@@ -746,10 +791,41 @@ async function handleChargeRefunded(charge) {
 }
 
 /**
+ * Check and record event idempotency.
+ * Returns true if the event was already processed (caller should skip it).
+ * Uses the `webhook_events` collection as a lightweight dedupe store.
+ *
+ * @param {string} eventId - Stripe event ID (e.g. "evt_1abc...")
+ * @returns {Promise<boolean>} true → already processed, false → new event
+ */
+async function isEventAlreadyProcessed(eventId) {
+  if (!eventId) {
+    return false; // No ID (e.g. test payload) — allow through
+  }
+
+  const existing = await dbUnified.read('webhook_events');
+  if (existing.some(e => e.eventId === eventId)) {
+    return true;
+  }
+
+  await dbUnified.insertOne('webhook_events', {
+    eventId,
+    processedAt: new Date().toISOString(),
+  });
+  return false;
+}
+
+/**
  * Process Stripe webhook event
  * @param {Object} event - Stripe event object
  */
 async function processWebhookEvent(event) {
+  // Idempotency: skip events we have already processed (Stripe retries safely)
+  if (await isEventAlreadyProcessed(event.id)) {
+    logger.info(`Skipping already-processed webhook event: ${event.id}`);
+    return;
+  }
+
   try {
     switch (event.type) {
       // Invoice events
@@ -802,6 +878,7 @@ async function processWebhookEvent(event) {
 
 module.exports = {
   processWebhookEvent,
+  isEventAlreadyProcessed,
   formatPlanName,
   resolvePlanTier,
   handleInvoiceCreated,
