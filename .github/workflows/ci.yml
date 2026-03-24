@@ -221,3 +221,37 @@ jobs:
         env:
           NODE_ENV: test
           JWT_SECRET: test-secret-key-for-ci-testing-only-min-32-chars
+
+  go-live-audit:
+    name: Go-Live Audit (security headers + health endpoints)
+    runs-on: ubuntu-latest
+    needs: [lint, smoke]
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Restore node_modules cache
+        id: restore-cache
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: node-modules-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Install dependencies (cache miss fallback)
+        if: steps.restore-cache.outputs.cache-hit != 'true'
+        run: npm ci
+
+      - name: Run go-live audit (local server)
+        run: node scripts/go-live-audit.mjs
+        env:
+          NODE_ENV: development
+          JWT_SECRET: ci-golive-audit-test-secret-padding-abcdefghijklm
+          BASE_URL: http://localhost:3600
+          AUDIT_PORT: '3600'

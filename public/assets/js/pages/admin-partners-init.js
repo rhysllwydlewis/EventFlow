@@ -185,7 +185,7 @@
         const credits = p.credits || {};
         return `<tr>
         <td>
-          <strong style="color:#fff">${esc(p.user?.name || '—')}</strong>
+          <strong style="color:#111827">${esc(p.user?.name || '—')}</strong>
           <br/><small style="color:#888">${esc(p.user?.email || '')}</small>
           ${p.user?.company ? `<br/><small style="color:#059669">${esc(p.user.company)}</small>` : ''}
         </td>
@@ -249,10 +249,10 @@
             REDEEM: '🎁 Redemption',
           };
           const lbl = typeLabels[t.type] || t.type;
-          const amtColor = t.amount >= 0 ? '#059669' : '#fca5a5';
+          const amtColor = t.amount >= 0 ? '#34d399' : '#fca5a5';
           const amtStr = t.amount >= 0 ? `+${t.amount}` : `${t.amount}`;
           return `<tr>
-          <td style="color:#374151;font-size:0.8rem;">${esc(lbl)}</td>
+          <td style="color:#e5e7eb;font-size:0.8rem;">${esc(lbl)}</td>
           <td style="color:${amtColor};font-weight:700;font-size:0.85rem;">${amtStr}</td>
           <td style="color:#9ca3af;font-size:0.75rem;">${fmtDate(t.createdAt)}</td>
           <td style="color:#9ca3af;font-size:0.73rem;">${esc(t.notes || '')}</td>
@@ -266,10 +266,10 @@
           const pkg = r.packageQualified ? '✓' : '—';
           const sub = r.subscriptionQualified ? '✓' : '—';
           return `<tr>
-          <td style="color:#374151;font-size:0.8rem;">${esc(r.supplierName || '—')}</td>
+          <td style="color:#e5e7eb;font-size:0.8rem;">${esc(r.supplierName || '—')}</td>
           <td style="color:#9ca3af;font-size:0.75rem;">${fmtDate(r.supplierCreatedAt)}</td>
-          <td style="text-align:center;color:${r.packageQualified ? '#059669' : '#d1d5db'}">${pkg}</td>
-          <td style="text-align:center;color:${r.subscriptionQualified ? '#059669' : '#d1d5db'}">${sub}</td>
+          <td style="text-align:center;color:${r.packageQualified ? '#34d399' : '#6b7280'}">${pkg}</td>
+          <td style="text-align:center;color:${r.subscriptionQualified ? '#34d399' : '#6b7280'}">${sub}</td>
         </tr>`;
         })
         .join('');
@@ -279,10 +279,10 @@
         <div class="partner-detail-section">
           <div class="partner-detail-section-title">Account Info</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;font-size:0.83rem;">
-            <div style="color:#9ca3af">Ref Code</div><div style="color:#6366f1;font-family:monospace;">${esc(partner.refCode)}</div>
+            <div style="color:#9ca3af">Ref Code</div><div style="color:#818cf8;font-family:monospace;">${esc(partner.refCode)}</div>
             <div style="color:#9ca3af">Status</div><div>${statusBadge(partner.status)}</div>
-            <div style="color:#9ca3af">Joined</div><div style="color:#374151">${fmtDate(partner.createdAt)}</div>
-            <div style="color:#9ca3af">Company</div><div style="color:#374151">${esc(partner.user?.company || '—')}</div>
+            <div style="color:#9ca3af">Joined</div><div style="color:#e5e7eb">${fmtDate(partner.createdAt)}</div>
+            <div style="color:#9ca3af">Company</div><div style="color:#e5e7eb">${esc(partner.user?.company || '—')}</div>
           </div>
         </div>
 
@@ -290,16 +290,16 @@
         <div class="partner-detail-section">
           <div class="partner-detail-section-title">Credits</div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.6rem;margin-bottom:1rem;">
-            <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:0.75rem;text-align:center;">
-              <div style="font-size:1.25rem;font-weight:700;color:#059669">${(credits.balance || 0).toLocaleString()}</div>
+            <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:0.75rem;text-align:center;">
+              <div style="font-size:1.25rem;font-weight:700;color:#34d399">${(credits.balance || 0).toLocaleString()}</div>
               <div style="font-size:0.7rem;color:#9ca3af;margin-top:0.2rem">Balance</div>
             </div>
-            <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:0.75rem;text-align:center;">
-              <div style="font-size:1.25rem;font-weight:700;color:#d97706">${(credits.packageBonusTotal || 0).toLocaleString()}</div>
+            <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:0.75rem;text-align:center;">
+              <div style="font-size:1.25rem;font-weight:700;color:#fbbf24">${(credits.packageBonusTotal || 0).toLocaleString()}</div>
               <div style="font-size:0.7rem;color:#9ca3af;margin-top:0.2rem">Pkg Bonuses</div>
             </div>
-            <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:0.75rem;text-align:center;">
-              <div style="font-size:1.25rem;font-weight:700;color:#6366f1">${(credits.subscriptionBonusTotal || 0).toLocaleString()}</div>
+            <div style="background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:0.75rem;text-align:center;">
+              <div style="font-size:1.25rem;font-weight:700;color:#818cf8">${(credits.subscriptionBonusTotal || 0).toLocaleString()}</div>
               <div style="font-size:0.7rem;color:#9ca3af;margin-top:0.2rem">Sub Bonuses</div>
             </div>
           </div>
@@ -311,10 +311,10 @@
             <table style="width:100%;border-collapse:collapse;font-size:0.8rem;">
               <thead>
                 <tr>
-                  <th style="text-align:left;padding:0.4rem;color:#9ca3af;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid #e5e7eb">Type</th>
-                  <th style="text-align:left;padding:0.4rem;color:#9ca3af;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid #e5e7eb">Amount</th>
-                  <th style="text-align:left;padding:0.4rem;color:#9ca3af;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid #e5e7eb">Date</th>
-                  <th style="text-align:left;padding:0.4rem;color:#9ca3af;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid #e5e7eb">Notes</th>
+                  <th style="text-align:left;padding:0.4rem;color:#9ca3af;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.1)">Type</th>
+                  <th style="text-align:left;padding:0.4rem;color:#9ca3af;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.1)">Amount</th>
+                  <th style="text-align:left;padding:0.4rem;color:#9ca3af;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.1)">Date</th>
+                  <th style="text-align:left;padding:0.4rem;color:#9ca3af;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.1)">Notes</th>
                 </tr>
               </thead>
               <tbody>${txnRows}</tbody>
@@ -334,10 +334,10 @@
             <table style="width:100%;border-collapse:collapse;font-size:0.8rem;">
               <thead>
                 <tr>
-                  <th style="text-align:left;padding:0.4rem;color:#9ca3af;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid #e5e7eb">Supplier</th>
-                  <th style="text-align:left;padding:0.4rem;color:#9ca3af;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid #e5e7eb">Signed Up</th>
-                  <th style="text-align:center;padding:0.4rem;color:#9ca3af;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid #e5e7eb">Pkg</th>
-                  <th style="text-align:center;padding:0.4rem;color:#9ca3af;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid #e5e7eb">Sub</th>
+                  <th style="text-align:left;padding:0.4rem;color:#9ca3af;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.1)">Supplier</th>
+                  <th style="text-align:left;padding:0.4rem;color:#9ca3af;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.1)">Signed Up</th>
+                  <th style="text-align:center;padding:0.4rem;color:#9ca3af;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.1)">Pkg</th>
+                  <th style="text-align:center;padding:0.4rem;color:#9ca3af;font-size:0.7rem;text-transform:uppercase;border-bottom:1px solid rgba(255,255,255,0.1)">Sub</th>
                 </tr>
               </thead>
               <tbody>${refRows}</tbody>
@@ -408,7 +408,9 @@
     }
     if (statusEl) {
       statusEl.textContent = '';
-      statusEl.style.display = 'none';
+      // Reset to base class only; CSS (.partner-status) already hides it via display:none.
+      // Do NOT set statusEl.style.display — inline styles override the .error display:block rule.
+      statusEl.className = 'partner-status';
     }
     if (overlay) {
       overlay.style.display = 'flex';
