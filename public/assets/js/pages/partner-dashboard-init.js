@@ -348,11 +348,13 @@
     }
 
     // Show archived codes in a table (oldest first)
-    const rows = historyItems.map(h => `<tr>
+    const rows = historyItems.map(
+      h => `<tr>
       <td><code style="font-family:monospace;color:#a5b4fc;">${esc(h.refCode)}</code></td>
       <td style="color:rgba(255,255,255,0.5);">${fmtDate(h.archivedAt)}</td>
       <td><span class="p-badge p-badge--inactive" style="font-size:0.72rem;">Archived (still valid)</span></td>
-    </tr>`);
+    </tr>`
+    );
 
     container.innerHTML = `
       <div class="partner-table-wrap">
@@ -534,6 +536,271 @@
     }
   }
 
+  // ── Gift Card Cashout (Tremendous) ───────────────────────────────────────────
+
+  async function loadTremendousProducts() {
+    const res = await fetch('/api/v1/partner/tremendous/products', { credentials: 'include' });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || 'Failed to load gift card products');
+    }
+    return res.json();
+  }
+
+  function initCashoutSection(credits) {
+    const loadingEl = document.getElementById('cashout-loading');
+    const errorEl = document.getElementById('cashout-error');
+    const errorMsg = document.getElementById('cashout-error-msg');
+    const formWrap = document.getElementById('cashout-form-wrap');
+    const confirmationEl = document.getElementById('cashout-confirmation');
+
+    if (!formWrap) {
+      return;
+    }
+
+    function showLoading(show) {
+      if (loadingEl) {
+        loadingEl.style.display = show ? 'flex' : 'none';
+      }
+    }
+
+    function showError(msg, isConfig) {
+      if (errorEl) {
+        errorEl.style.display = 'block';
+      }
+      if (errorMsg) {
+        if (isConfig) {
+          errorMsg.textContent =
+            'Gift card cashout is not yet configured for this environment. ' +
+            'Contact support to enable this feature.';
+        } else {
+          errorMsg.textContent =
+            msg || 'Unable to load gift card products. Please try again later.';
+        }
+      }
+      showLoading(false);
+    }
+
+    function populateProducts(products) {
+      const select = document.getElementById('cashout-product');
+      if (!select) {
+        return;
+      }
+      select.innerHTML = '<option value="">Select a brand…</option>';
+      products.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.name || p.id;
+        select.appendChild(opt);
+      });
+    }
+
+    // Show balance hint (pts + £ value)
+    const balancePtsEl = document.getElementById('cashout-balance-pts');
+    const balanceGbpEl = document.getElementById('cashout-balance-gbp');
+    if (credits) {
+      const bal = credits.balance || 0;
+      if (balancePtsEl) {
+        balancePtsEl.textContent = bal.toLocaleString();
+      }
+      if (balanceGbpEl) {
+        balanceGbpEl.textContent = toPounds(bal);
+      }
+    }
+
+    showLoading(true);
+
+    loadTremendousProducts()
+      .then(data => {
+        showLoading(false);
+        const products = data.products || [];
+        if (!products.length) {
+          showError('No gift card products are currently available. Please try again later.');
+          return;
+        }
+        populateProducts(products);
+        formWrap.style.display = 'block';
+      })
+      .catch(err => {
+        const isConfig =
+          err.message &&
+          (err.message.toLowerCase().includes('not configured') ||
+            err.message.toLowerCase().includes('api key'));
+        showError(err.message, isConfig);
+      });
+
+    const form = document.getElementById('cashout-form');
+    const statusEl = document.getElementById('cashout-status');
+    const submitBtn = document.getElementById('cashout-submit-btn');
+    const confirmMsgEl = document.getElementById('cashout-confirmation-msg');
+    const viewOrderBtn = document.getElementById('cashout-view-order-btn');
+    const newBtn = document.getElementById('cashout-new-btn');
+
+    let lastOrderId = null;
+
+    if (newBtn) {
+      newBtn.addEventListener('click', () => {
+        if (confirmationEl) {
+          confirmationEl.style.display = 'none';
+        }
+        formWrap.style.display = 'block';
+        if (form) {
+          form.reset();
+        }
+        if (statusEl) {
+          statusEl.textContent = '';
+          statusEl.className = 'partner-status';
+        }
+        lastOrderId = null;
+      });
+    }
+
+    if (viewOrderBtn) {
+      viewOrderBtn.addEventListener('click', async () => {
+        if (!lastOrderId) {
+          return;
+        }
+        viewOrderBtn.disabled = true;
+        viewOrderBtn.textContent = 'Loading…';
+        try {
+          const res = await fetch(
+            `/api/v1/partner/tremendous/orders/${encodeURIComponent(lastOrderId)}`,
+            {
+              credentials: 'include',
+            }
+          );
+          const body = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            showToast(body.error || 'Failed to fetch order status', 'error');
+            return;
+          }
+          const order = body.order || {};
+          const rewards = order.rewards || [];
+          const deliveryStatus = rewards[0]
+            ? rewards[0].delivery_status || rewards[0].status || 'pending'
+            : 'pending';
+          const statusLabel = deliveryStatus.toLowerCase().replace(/_/g, ' ');
+          showToast(`Order ${order.id} — delivery: ${statusLabel}`, 'success');
+        } catch (err) {
+          showToast(err.message || 'Failed to fetch order status', 'error');
+        } finally {
+          viewOrderBtn.disabled = false;
+          viewOrderBtn.textContent = '📋 View status';
+        }
+      });
+    }
+
+    if (!form) {
+      return;
+    }
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      if (statusEl) {
+        statusEl.textContent = '';
+        statusEl.className = 'partner-status';
+      }
+
+      const productId = (form.elements['productId'] || {}).value || '';
+      const rawValue = (form.elements['value'] || {}).value || '';
+      const recipientName = ((form.elements['recipientName'] || {}).value || '').trim();
+      const recipientEmail = ((form.elements['recipientEmail'] || {}).value || '').trim();
+      const message = ((form.elements['message'] || {}).value || '').trim();
+
+      if (!productId) {
+        if (statusEl) {
+          statusEl.textContent = 'Please select a gift card brand.';
+          statusEl.className = 'partner-status partner-status--error';
+        }
+        return;
+      }
+
+      const value = parseFloat(rawValue);
+      if (!rawValue || isNaN(value) || value <= 0) {
+        if (statusEl) {
+          statusEl.textContent = 'Please enter a valid amount greater than 0.';
+          statusEl.className = 'partner-status partner-status--error';
+        }
+        return;
+      }
+
+      if (!recipientName) {
+        if (statusEl) {
+          statusEl.textContent = "Please enter the recipient's name.";
+          statusEl.className = 'partner-status partner-status--error';
+        }
+        return;
+      }
+
+      if (!recipientEmail || !recipientEmail.includes('@')) {
+        if (statusEl) {
+          statusEl.textContent = 'Please enter a valid recipient email address.';
+          statusEl.className = 'partner-status partner-status--error';
+        }
+        return;
+      }
+
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Sending…';
+      }
+
+      try {
+        const csrfToken = await getCsrfToken();
+        const res = await fetch('/api/v1/partner/tremendous/orders', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken,
+          },
+          body: JSON.stringify({
+            productId,
+            value,
+            currency: 'GBP',
+            recipientName,
+            recipientEmail,
+            message: message || undefined,
+          }),
+        });
+
+        const body = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          throw new Error(body.error || 'Failed to send gift card');
+        }
+
+        const order = body.order || {};
+        lastOrderId = order.id || null;
+
+        const productName = document.querySelector('#cashout-product option:checked')
+          ? document.querySelector('#cashout-product option:checked').textContent
+          : 'Gift card';
+
+        formWrap.style.display = 'none';
+        if (confirmationEl) {
+          confirmationEl.style.display = 'block';
+        }
+        if (confirmMsgEl) {
+          const safeEmail = esc(recipientEmail);
+          const safeProduct = esc(productName);
+          const orderRef = order.id ? esc(String(order.id)) : '(pending)';
+          confirmMsgEl.innerHTML = `<strong>${safeProduct}</strong> for <strong>${safeEmail}</strong> — Order ref: <code style="font-family:monospace;font-size:0.8em;">${orderRef}</code><br>The recipient will receive a delivery email shortly.`;
+        }
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = err.message || 'Failed to send gift card.';
+          statusEl.className = 'partner-status partner-status--error';
+        }
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = '🎁 Send Gift Card';
+        }
+      }
+    });
+  }
+
   // ── Main ──────────────────────────────────────────────────────────────────────
 
   async function init() {
@@ -631,6 +898,9 @@
       // Support ticket modal
       initSupportTicketModal();
 
+      // Gift card cashout section (Tremendous)
+      initCashoutSection(credits);
+
       // Referrals & transactions
       renderReferrals(referrals);
       renderTransactions(transactions);
@@ -646,7 +916,11 @@
         if (nameHeading) {
           nameHeading.textContent = 'Account Disabled';
         }
-        const containers = ['referrals-container', 'transactions-container', 'code-history-container'];
+        const containers = [
+          'referrals-container',
+          'transactions-container',
+          'code-history-container',
+        ];
         containers.forEach(id => {
           const el = document.getElementById(id);
           if (el) {

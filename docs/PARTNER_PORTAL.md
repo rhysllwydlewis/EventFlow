@@ -57,31 +57,55 @@ It lives at `/partner` — this URL is **not indexed** (`noindex, nofollow`) and
 
 ### Partner (requires `partner` role)
 
-| Method | Path                              | Description                                                    |
-| ------ | --------------------------------- | -------------------------------------------------------------- |
-| `POST` | `/api/v1/partner/register`        | Create a new partner account                                   |
-| `GET`  | `/api/v1/partner/me`              | Get current partner profile, ref code, balance                 |
-| `GET`  | `/api/v1/partner/referrals`       | List referred suppliers with statuses                          |
-| `GET`  | `/api/v1/partner/transactions`    | List credit transaction history                                |
-| `POST` | `/api/v1/partner/regenerate-code` | Generate a new referral code (old code stays valid)            |
-| `GET`  | `/api/v1/partner/code-history`    | List previously used referral codes                            |
-| `POST` | `/api/v1/partner/support-ticket`  | Raise a general support ticket from the partner dashboard      |
-| `POST` | `/api/v1/partner/payout-request`  | **Coming soon** — returns 503 while Tremendous integration is built |
+| Method | Path                                           | Description                                               |
+| ------ | ---------------------------------------------- | --------------------------------------------------------- |
+| `POST` | `/api/v1/partner/register`                     | Create a new partner account                              |
+| `GET`  | `/api/v1/partner/me`                           | Get current partner profile, ref code, balance            |
+| `GET`  | `/api/v1/partner/referrals`                    | List referred suppliers with statuses                     |
+| `GET`  | `/api/v1/partner/transactions`                 | List credit transaction history                           |
+| `POST` | `/api/v1/partner/regenerate-code`              | Generate a new referral code (old code stays valid)       |
+| `GET`  | `/api/v1/partner/code-history`                 | List previously used referral codes                       |
+| `POST` | `/api/v1/partner/support-ticket`               | Raise a general support ticket from the partner dashboard |
+| `GET`  | `/api/v1/partner/tremendous/products`          | List available gift card products (partner-only)          |
+| `POST` | `/api/v1/partner/tremendous/orders`            | Create a gift card order/reward (partner-only)            |
+| `GET`  | `/api/v1/partner/tremendous/orders/:id`        | Fetch order / reward status (partner-only)                |
+| `POST` | `/api/v1/partner/tremendous/orders/:id/resend` | Resend a gift card email (partner-only)                   |
 
 > **Note:** All partner API endpoints return `403 { error: "...", disabled: true }` if the partner's account status is `disabled`. The dashboard will show a clear "account disabled" message in this case.
 
 #### Support ticket fields (`POST /api/v1/partner/support-ticket`)
 
-| Field     | Type   | Rules                                          |
-| --------- | ------ | ---------------------------------------------- |
-| `subject` | string | **Required.** Max 150 characters.             |
-| `message` | string | **Required.** Max 2000 characters.            |
+| Field     | Type   | Rules                              |
+| --------- | ------ | ---------------------------------- |
+| `subject` | string | **Required.** Max 150 characters.  |
+| `message` | string | **Required.** Max 2000 characters. |
 
 Validation errors return HTTP `400` with a JSON body `{ "error": "..." }` describing the problem.
 
-#### Gift card cashout — Coming Soon
+#### Gift card cashout — Tremendous integration
 
-Cash-out via `/payout-request` is currently disabled (returns `503 { comingSoon: true }`). We are integrating with [Tremendous](https://developers.tremendous.com) to provide instant, automated gift card payouts. Partners' accumulated points are preserved and will be redeemable once the integration launches.
+Partners can send gift cards directly from the partner dashboard using the [Tremendous API](https://developers.tremendous.com/docs/introduction). The flow is:
+
+1. Partner selects a gift card brand from the catalogue (`GET /tremendous/products`).
+2. Partner enters the amount, recipient name, and recipient email.
+3. Dashboard submits `POST /tremendous/orders`; Tremendous delivers the gift card by email.
+4. Partner can check delivery status via `GET /tremendous/orders/:id`.
+5. If needed, partner can resend via `POST /tremendous/orders/:id/resend`.
+
+**Access control:** All `/tremendous/*` endpoints require `authRequired + roleRequired('partner')`.
+Non-partner roles (supplier, customer, admin) receive `403 Forbidden`.
+
+**Configuration:**
+
+| Env var              | Required | Description                                |
+| -------------------- | -------- | ------------------------------------------ |
+| `TREMENDOUS_API_KEY` | Yes      | Bearer token from the Tremendous dashboard |
+| `TREMENDOUS_ENV`     | No       | `sandbox` (default) or `production`        |
+
+- Sandbox: `https://testflight.tremendous.com/api/v2`
+- Production: `https://www.tremendous.com/api/v2`
+
+**Sandbox testing:** Use `TREMENDOUS_ENV=sandbox` and a sandbox API key from [testflight.tremendous.com](https://testflight.tremendous.com).
 
 ### Admin (requires `admin` role)
 
@@ -245,6 +269,7 @@ Click "View" to open a side panel showing:
 - All admin partner API routes require `authRequired + roleRequired('admin')` middleware.
 - Server-side HTML guards in `server.js` prevent unauthenticated access to `/partner/dashboard` and `/admin-partners` before `express.static()` serves the files.
 - Disabled partner accounts are blocked at the API layer — the middleware check runs before any data is returned.
+- **Tremendous gift card endpoints** (`/api/v1/partner/tremendous/*`) are protected by `authRequired + roleRequired('partner')` server-side. Supplier, customer, and admin accounts all receive `403 Forbidden`. UI gating is a secondary measure only.
 
 ---
 
