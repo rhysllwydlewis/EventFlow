@@ -173,66 +173,73 @@
         <div class="partner-section-header">
           <div>
             <h2 class="partner-section-title" id="cashout-heading">🎁 Gift Card Cashout</h2>
-            <p class="partner-section-subtitle">Redeem your points for gift cards via Tremendous</p>
+            <p class="partner-section-subtitle">Send gift cards instantly via Tremendous — powered by your points balance</p>
           </div>
         </div>
 
         <!-- Loading state -->
-        <div id="cashout-loading" class="partner-empty" style="display:none;">
+        <div id="cashout-loading" class="partner-empty" aria-live="polite" style="display:none;">
+          <div class="partner-empty-icon" aria-hidden="true">⏳</div>
           <p class="partner-empty-text">Loading gift card catalogue…</p>
         </div>
 
-        <!-- Error state -->
-        <div id="cashout-error" style="display:none;padding:1rem;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:10px;">
-          <p style="color:#fca5a5;margin:0;font-size:0.88rem;" id="cashout-error-msg">Unable to load gift card products.</p>
+        <!-- Not configured / error state -->
+        <div id="cashout-error" style="display:none;" aria-live="polite">
+          <div class="cashout-not-configured">
+            <span class="cashout-not-configured-icon" aria-hidden="true">⚙️</span>
+            <p style="margin:0;" id="cashout-error-msg">Unable to load gift card products. Please try again later or contact support.</p>
+          </div>
         </div>
 
         <!-- Gift card form -->
         <div id="cashout-form-wrap" style="display:none;">
-          <form id="cashout-form" novalidate>
-            <div style="display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-bottom:1.25rem;">
+          <form id="cashout-form" novalidate autocomplete="off">
+            <div class="cashout-form-grid">
 
               <!-- Product selection -->
-              <div class="partner-modal-field" style="margin:0;">
-                <label for="cashout-product" style="display:block;margin-bottom:0.4rem;font-size:0.82rem;color:rgba(255,255,255,0.6);">
-                  Gift Card Brand <span style="color:#ef4444">*</span>
+              <div class="partner-modal-field">
+                <label for="cashout-product">
+                  Gift Card Brand <span style="color:#ef4444" aria-hidden="true">*</span>
                 </label>
                 <select
                   id="cashout-product"
                   name="productId"
                   class="partner-modal-input"
                   required
-                  style="width:100%;"
+                  aria-required="true"
                 >
                   <option value="">Select a brand…</option>
                 </select>
               </div>
 
               <!-- Amount -->
-              <div class="partner-modal-field" style="margin:0;">
-                <label for="cashout-amount" style="display:block;margin-bottom:0.4rem;font-size:0.82rem;color:rgba(255,255,255,0.6);">
-                  Amount (£) <span style="color:#ef4444">*</span>
+              <div class="partner-modal-field">
+                <label for="cashout-amount">
+                  Amount (£) <span style="color:#ef4444" aria-hidden="true">*</span>
                 </label>
                 <input
                   id="cashout-amount"
                   name="value"
                   type="number"
                   min="1"
-                  step="0.01"
+                  max="500"
+                  step="1"
                   class="partner-modal-input"
                   placeholder="e.g. 10"
                   required
-                  style="width:100%;"
+                  aria-required="true"
+                  aria-describedby="cashout-balance-hint"
                 />
-                <p style="margin:0.35rem 0 0;font-size:0.75rem;color:rgba(255,255,255,0.35);">
-                  Points balance: <span id="cashout-balance-hint">—</span> pts
+                <p class="cashout-balance-hint-row" id="cashout-balance-hint">
+                  Available: <span id="cashout-balance-pts">—</span> pts
+                  (<span id="cashout-balance-gbp">£—</span>)
                 </p>
               </div>
 
               <!-- Recipient name -->
-              <div class="partner-modal-field" style="margin:0;">
-                <label for="cashout-recipient-name" style="display:block;margin-bottom:0.4rem;font-size:0.82rem;color:rgba(255,255,255,0.6);">
-                  Recipient Name <span style="color:#ef4444">*</span>
+              <div class="partner-modal-field">
+                <label for="cashout-recipient-name">
+                  Recipient Name <span style="color:#ef4444" aria-hidden="true">*</span>
                 </label>
                 <input
                   id="cashout-recipient-name"
@@ -242,14 +249,15 @@
                   placeholder="Full name"
                   maxlength="100"
                   required
-                  style="width:100%;"
+                  aria-required="true"
+                  autocomplete="off"
                 />
               </div>
 
               <!-- Recipient email -->
-              <div class="partner-modal-field" style="margin:0;">
-                <label for="cashout-recipient-email" style="display:block;margin-bottom:0.4rem;font-size:0.82rem;color:rgba(255,255,255,0.6);">
-                  Recipient Email <span style="color:#ef4444">*</span>
+              <div class="partner-modal-field">
+                <label for="cashout-recipient-email">
+                  Recipient Email <span style="color:#ef4444" aria-hidden="true">*</span>
                 </label>
                 <input
                   id="cashout-recipient-email"
@@ -259,58 +267,64 @@
                   placeholder="recipient@example.com"
                   maxlength="200"
                   required
-                  style="width:100%;"
+                  aria-required="true"
+                  autocomplete="off"
                 />
               </div>
 
-              <!-- Optional message -->
-              <div class="partner-modal-field" style="margin:0;grid-column:1/-1;">
-                <label for="cashout-message" style="display:block;margin-bottom:0.4rem;font-size:0.82rem;color:rgba(255,255,255,0.6);">
-                  Message (optional)
+              <!-- Optional message (full-width) -->
+              <div class="partner-modal-field" style="grid-column:1/-1;">
+                <label for="cashout-message">
+                  Personal Message <span style="color:rgba(255,255,255,0.35);font-weight:400;">(optional)</span>
                 </label>
-                <input
+                <textarea
                   id="cashout-message"
                   name="message"
-                  type="text"
-                  class="partner-modal-input"
-                  placeholder="A short note for the recipient"
+                  class="cashout-message-textarea"
+                  placeholder="Add a short personal note for the recipient…"
                   maxlength="500"
-                  style="width:100%;"
-                />
+                  rows="3"
+                ></textarea>
               </div>
             </div>
 
-            <!-- Form status -->
-            <div id="cashout-status" class="partner-status" role="alert" aria-live="polite" style="margin-bottom:0.75rem;"></div>
-
-            <button
-              type="submit"
-              id="cashout-submit-btn"
-              class="partner-submit-btn"
-              style="max-width:220px;"
-            >
-              🎁 Send Gift Card
-            </button>
+            <!-- Status + submit row -->
+            <div class="cashout-submit-row">
+              <button
+                type="submit"
+                id="cashout-submit-btn"
+                class="partner-submit-btn"
+                style="width:auto;max-width:220px;margin:0;"
+              >
+                🎁 Send Gift Card
+              </button>
+              <div id="cashout-status" class="partner-status" role="alert" aria-live="polite"></div>
+            </div>
           </form>
+
+          <p class="cashout-powered-by">
+            Powered by
+            <a href="https://www.tremendous.com" target="_blank" rel="noopener noreferrer">Tremendous</a>
+            &mdash; gift cards delivered by email
+          </p>
         </div>
 
         <!-- Order confirmation -->
-        <div id="cashout-confirmation" style="display:none;padding:1.25rem;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25);border-radius:10px;">
-          <p style="color:#6ee7b7;font-weight:600;margin:0 0 0.5rem;">✓ Gift card sent successfully!</p>
-          <p style="font-size:0.85rem;color:rgba(255,255,255,0.55);margin:0 0 0.75rem;" id="cashout-confirmation-msg"></p>
-          <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
-            <button
-              type="button"
-              id="cashout-view-order-btn"
-              class="partner-submit-btn"
-              style="max-width:180px;padding:0.5rem 1rem;font-size:0.82rem;background:rgba(255,255,255,0.08);"
-            >View Order</button>
-            <button
-              type="button"
-              id="cashout-new-btn"
-              class="partner-submit-btn"
-              style="max-width:180px;padding:0.5rem 1rem;font-size:0.82rem;"
-            >Send Another</button>
+        <div id="cashout-confirmation" style="display:none;" aria-live="polite">
+          <div class="cashout-confirmation-panel">
+            <p class="cashout-confirmation-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+              Gift card sent!
+            </p>
+            <p class="cashout-confirmation-meta" id="cashout-confirmation-msg"></p>
+            <div class="cashout-confirmation-actions">
+              <button type="button" id="cashout-view-order-btn" class="cashout-action-btn">
+                📋 View status
+              </button>
+              <button type="button" id="cashout-new-btn" class="cashout-action-btn cashout-action-btn--primary">
+                🎁 Send another
+              </button>
+            </div>
           </div>
         </div>
       </section>

@@ -564,12 +564,19 @@
       }
     }
 
-    function showError(msg) {
+    function showError(msg, isConfig) {
       if (errorEl) {
         errorEl.style.display = 'block';
       }
       if (errorMsg) {
-        errorMsg.textContent = msg || 'Unable to load gift card products.';
+        if (isConfig) {
+          errorMsg.textContent =
+            'Gift card cashout is not yet configured for this environment. ' +
+            'Contact support to enable this feature.';
+        } else {
+          errorMsg.textContent =
+            msg || 'Unable to load gift card products. Please try again later.';
+        }
       }
       showLoading(false);
     }
@@ -588,10 +595,17 @@
       });
     }
 
-    // Show balance hint
-    const balanceHint = document.getElementById('cashout-balance-hint');
-    if (balanceHint && credits) {
-      balanceHint.textContent = (credits.balance || 0).toLocaleString();
+    // Show balance hint (pts + £ value)
+    const balancePtsEl = document.getElementById('cashout-balance-pts');
+    const balanceGbpEl = document.getElementById('cashout-balance-gbp');
+    if (credits) {
+      const bal = credits.balance || 0;
+      if (balancePtsEl) {
+        balancePtsEl.textContent = bal.toLocaleString();
+      }
+      if (balanceGbpEl) {
+        balanceGbpEl.textContent = toPounds(bal);
+      }
     }
 
     showLoading(true);
@@ -608,7 +622,11 @@
         formWrap.style.display = 'block';
       })
       .catch(err => {
-        showError(err.message || 'Failed to load gift card products.');
+        const isConfig =
+          err.message &&
+          (err.message.toLowerCase().includes('not configured') ||
+            err.message.toLowerCase().includes('api key'));
+        showError(err.message, isConfig);
       });
 
     const form = document.getElementById('cashout-form');
@@ -657,20 +675,17 @@
             return;
           }
           const order = body.order || {};
-          const status = order.status || 'unknown';
           const rewards = order.rewards || [];
-          const rewardStatus = rewards[0]
-            ? rewards[0].delivery_status || rewards[0].status || ''
-            : '';
-          showToast(
-            `Order ${order.id}: ${status}${rewardStatus ? ` — delivery: ${rewardStatus}` : ''}`,
-            'success'
-          );
+          const deliveryStatus = rewards[0]
+            ? rewards[0].delivery_status || rewards[0].status || 'pending'
+            : 'pending';
+          const statusLabel = deliveryStatus.toLowerCase().replace(/_/g, ' ');
+          showToast(`Order ${order.id} — delivery: ${statusLabel}`, 'success');
         } catch (err) {
           showToast(err.message || 'Failed to fetch order status', 'error');
         } finally {
           viewOrderBtn.disabled = false;
-          viewOrderBtn.textContent = 'View Order';
+          viewOrderBtn.textContent = '📋 View status';
         }
       });
     }
@@ -758,12 +773,19 @@
         const order = body.order || {};
         lastOrderId = order.id || null;
 
+        const productName = document.querySelector('#cashout-product option:checked')
+          ? document.querySelector('#cashout-product option:checked').textContent
+          : 'Gift card';
+
         formWrap.style.display = 'none';
         if (confirmationEl) {
           confirmationEl.style.display = 'block';
         }
         if (confirmMsgEl) {
-          confirmMsgEl.textContent = `Order ${order.id || '(pending)'} — gift card sent to ${esc(recipientEmail)}.`;
+          const safeEmail = esc(recipientEmail);
+          const safeProduct = esc(productName);
+          const orderRef = order.id ? esc(String(order.id)) : '(pending)';
+          confirmMsgEl.innerHTML = `<strong>${safeProduct}</strong> for <strong>${safeEmail}</strong> — Order ref: <code style="font-family:monospace;font-size:0.8em;">${orderRef}</code><br>The recipient will receive a delivery email shortly.`;
         }
       } catch (err) {
         if (statusEl) {

@@ -369,14 +369,16 @@
   display: none;
 }
 
-.partner-status.error {
+.partner-status.error,
+.partner-status--error {
   display: block;
   background: rgba(239, 68, 68, 0.15);
   border: 1px solid rgba(239, 68, 68, 0.25);
   color: #fca5a5;
 }
 
-.partner-status.success {
+.partner-status.success,
+.partner-status--success {
   display: block;
   background: rgba(16, 185, 129, 0.15);
   border: 1px solid rgba(16, 185, 129, 0.25);
@@ -1101,4 +1103,198 @@
 
 .partner-payout-info {
   padding: 0.25rem 0;
+}
+
+/* ─── Gift Card Cashout (Tremendous) ─────────────────────────────────────── */
+
+/* Inline form that lives in the dashboard section (not a modal) */
+.cashout-form-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  margin-bottom: 1.25rem;
+}
+
+.cashout-form-grid .partner-modal-field {
+  margin: 0;
+}
+
+.cashout-form-grid .partner-modal-field label {
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: 500;
+}
+
+/* Style the select to match text inputs */
+.partner-modal-input[type='number'],
+select.partner-modal-input {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='rgba(255,255,255,0.4)' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.85rem center;
+  padding-right: 2.2rem;
+  cursor: pointer;
+}
+
+select.partner-modal-input option {
+  background: #1a2332;
+  color: #fff;
+}
+
+/* Amount hint row */
+.cashout-balance-hint-row {
+  margin: 0.35rem 0 0;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.35);
+}
+
+/* Message textarea in dashboard (non-modal) */
+.cashout-message-textarea {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 9px;
+  color: #fff;
+  font-size: 0.88rem;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.18s;
+  resize: vertical;
+  min-height: 72px;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.cashout-message-textarea:focus {
+  border-color: rgba(16, 185, 129, 0.5);
+}
+
+.cashout-message-textarea::placeholder {
+  color: rgba(255, 255, 255, 0.28);
+}
+
+/* Submit row */
+.cashout-submit-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1.25rem;
+}
+
+#cashout-status {
+  margin: 0;
+  flex: 1;
+  min-width: 180px;
+  text-align: left;
+}
+
+/* Confirmation panel */
+.cashout-confirmation-panel {
+  padding: 1.25rem;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 12px;
+}
+
+.cashout-confirmation-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #6ee7b7;
+  margin: 0 0 0.4rem;
+}
+
+.cashout-confirmation-meta {
+  font-size: 0.83rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0 0 1rem;
+  line-height: 1.5;
+}
+
+.cashout-confirmation-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.cashout-action-btn {
+  padding: 0.5rem 1.1rem;
+  border-radius: 9px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  cursor: pointer;
+  transition: all 0.18s;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.cashout-action-btn:hover {
+  background: rgba(255, 255, 255, 0.13);
+  border-color: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+
+.cashout-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cashout-action-btn--primary {
+  background: linear-gradient(135deg, #0b8073, #10b981);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 3px 10px rgba(11, 128, 115, 0.3);
+}
+
+.cashout-action-btn--primary:hover {
+  box-shadow: 0 5px 16px rgba(11, 128, 115, 0.45);
+  transform: translateY(-1px);
+}
+
+/* Tremendous badge/attribution strip */
+.cashout-powered-by {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.28);
+  margin-top: 0.9rem;
+  letter-spacing: 0.02em;
+}
+
+.cashout-powered-by a {
+  color: rgba(255, 255, 255, 0.45);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.15s;
+}
+
+.cashout-powered-by a:hover {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* Not-configured notice */
+.cashout-not-configured {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 1rem 1.1rem;
+  background: rgba(251, 191, 36, 0.07);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  border-radius: 10px;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.55);
+  line-height: 1.6;
+}
+
+.cashout-not-configured-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  margin-top: 0.1rem;
 }
