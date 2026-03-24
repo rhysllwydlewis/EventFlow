@@ -5695,6 +5695,43 @@ body:not(.supplier-dashboard-page) .section > .container {
   box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
 }
 
+/* Paused badge in supplier package cards */
+.badge-paused {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  color: #fff;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(107, 114, 128, 0.3);
+}
+
+/* Pause button in supplier package cards */
+.card-action-btn.pause-btn {
+  background: rgba(107, 114, 128, 0.1);
+  border-color: rgba(107, 114, 128, 0.3);
+  color: #374151;
+}
+
+.card-action-btn.pause-btn:hover {
+  background: rgba(107, 114, 128, 0.2);
+  border-color: rgba(107, 114, 128, 0.5);
+  transform: translateY(-1px);
+}
+
+/* Unpause button in supplier package cards */
+.card-action-btn.unpause-btn {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #059669;
+}
+
+.card-action-btn.unpause-btn:hover {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.5);
+  transform: translateY(-1px);
+}
+
 /* View button in supplier package cards */
 .card-action-btn.view-btn {
   display: inline-block;

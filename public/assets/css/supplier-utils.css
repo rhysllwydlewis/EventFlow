@@ -339,8 +339,8 @@
 }
 
 .ef-badge-warning {
-  background: var(--ef-gradient-warning);
-  color: white;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.9) 0%, rgba(217, 119, 6, 0.95) 100%);
+  color: #fff;
   box-shadow: var(--ef-shadow-warning);
 }
 

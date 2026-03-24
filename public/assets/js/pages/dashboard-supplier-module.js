@@ -151,13 +151,22 @@ async function initSupplierDashboardWidgets() {
       quickStatEnquiries.textContent = String(totalEnquiries);
     }
 
-    // Update profile count stat card
-    const quickStatProfiles = document.getElementById('quick-stat-profiles');
-    if (quickStatProfiles) {
-      const profileCount =
-        summaryData?.profile?.profileCount ?? (summaryData?.profile?.topProfileName ? 1 : 0);
-      quickStatProfiles.setAttribute('data-target', String(profileCount));
-      quickStatProfiles.textContent = String(profileCount);
+    // Update active packages stat card — fetch from /api/me/packages and count non-paused packages
+    const quickStatPackages = document.getElementById('quick-stat-packages');
+    if (quickStatPackages) {
+      try {
+        const pkgsResp = await fetch('/api/me/packages', { credentials: 'include' });
+        if (pkgsResp.ok) {
+          const pkgsData = await pkgsResp.json();
+          const allPackages = pkgsData?.items ?? [];
+          // Active = not paused
+          const activeCount = allPackages.filter(p => !p.paused).length;
+          quickStatPackages.setAttribute('data-target', String(activeCount));
+          quickStatPackages.textContent = String(activeCount);
+        }
+      } catch (_err) {
+        // Leave at 0 on failure — do not crash the dashboard
+      }
     }
 
     // Update rating stat card from review summary
@@ -349,15 +358,8 @@ async function initSupplierDashboardWidgets() {
           }
         }
 
-        // Update profile count stat card from live data if not already set by summary
-        if (!summaryData) {
-          const quickStatProfilesFallback = document.getElementById('quick-stat-profiles');
-          if (quickStatProfilesFallback) {
-            const count = suppliers.length;
-            quickStatProfilesFallback.setAttribute('data-target', String(count));
-            quickStatProfilesFallback.textContent = String(count);
-          }
-        }
+        // The active-packages stat card is always populated via /api/me/packages
+        // regardless of whether summaryData is available — no fallback update needed here.
 
         // Update welcome heading with business name from live profile if not set by summary
         if (!summaryData?.profile?.topProfileName && suppliers[0]?.name) {
@@ -784,3 +786,26 @@ async function displayLeadQualityBreakdown() {
 displayLeadQualityBreakdown();
 
 displaySubscriptionStatus();
+
+// Earnings Overview CTA: scroll to packages section and open the form if collapsed
+document.addEventListener('DOMContentLoaded', () => {
+  const earningsCta = document.getElementById('earnings-create-pkg-cta');
+  if (earningsCta) {
+    earningsCta.addEventListener('click', e => {
+      e.preventDefault();
+      const packagesSection = document.getElementById('packages-section');
+      if (packagesSection) {
+        packagesSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      // Open the package creation form if it is collapsed
+      const toggleBtn = document.getElementById('toggle-package-form');
+      const formSection = document.getElementById('package-form-section');
+      if (toggleBtn && formSection) {
+        const isExpanded = toggleBtn.getAttribute('aria-expanded') === 'true';
+        if (!isExpanded) {
+          toggleBtn.click();
+        }
+      }
+    });
+  }
+});
