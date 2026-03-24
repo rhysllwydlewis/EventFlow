@@ -797,8 +797,7 @@
             'Contact support to enable this feature.';
         } else {
           errorMsg.textContent =
-            (typeof msg === 'string' && msg) ||
-            'Unable to load gift card products. Please try again later.';
+            msg || 'Unable to load gift card products. Please try again later.';
         }
       }
       showLoading(false);
@@ -810,10 +809,7 @@
         return;
       }
       select.innerHTML = '<option value="">Select a brand…</option>';
-      products.forEach(p => {
-        if (!p) {
-          return;
-        }
+      products.filter(Boolean).forEach(p => {
         const opt = document.createElement('option');
         opt.value = p.id || '';
         opt.textContent = p.name || p.id || '';
@@ -849,7 +845,7 @@
         formWrap.style.display = 'block';
       })
       .catch(err => {
-        const msg = (err && typeof err.message === 'string') ? err.message : '';
+        const msg = err.message || '';
         const isConfig =
           err.isServiceUnavailable ||
           (msg &&
