@@ -12,6 +12,10 @@
  *   - 403 when authenticated as supplier, customer, or admin
  *   - 200/201 when authenticated as partner (happy path)
  *   - Tremendous client error mapping (502 on upstream failure)
+ *
+ * Also covers frontend JS logic in partner-dashboard-init.js:
+ *   - loadTremendousProducts error classification (notConfigured, isServiceUnavailable)
+ *   - initCashoutSection catch block: no text parsing, no crash on missing message
  */
 
 'use strict';
@@ -865,5 +869,99 @@ describe('GET /api/partner/tremendous/funding-sources', () => {
     mockTremendous.listFundingSources.mockRejectedValue(new Error('API error'));
     const res = await request(app).get('/api/partner/tremendous/funding-sources');
     expect(res.status).toBe(502);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Frontend JS: partner-dashboard-init.js — loadTremendousProducts & initCashoutSection
+// Uses file-content inspection (no DOM/browser required).
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('partner-dashboard-init.js — loadTremendousProducts error classification', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const src = fs.readFileSync(
+    path.join(process.cwd(), 'public/assets/js/pages/partner-dashboard-init.js'),
+    'utf8'
+  );
+
+  // Extract just the loadTremendousProducts function body for targeted assertions
+  const fnBody = src
+    .split('async function loadTremendousProducts()')[1]
+    .split(/^\s{2}async function |\n {2}function /m)[0];
+
+  it('sets err.notConfigured from response body notConfigured field', () => {
+    expect(fnBody).toContain('err.notConfigured = body.notConfigured === true');
+  });
+
+  it('sets err.isServiceUnavailable using err.notConfigured (not just status code)', () => {
+    expect(fnBody).toContain('err.isServiceUnavailable = res.status === 503 || err.notConfigured');
+  });
+
+  it('does not rely on body.notConfigured directly in isServiceUnavailable (uses err.notConfigured)', () => {
+    // The isServiceUnavailable assignment must reference err.notConfigured, not body.notConfigured
+    expect(fnBody).toContain('err.isServiceUnavailable = res.status === 503 || err.notConfigured');
+    // body.notConfigured is legitimately used to set err.notConfigured — that is fine
+  });
+});
+
+describe('partner-dashboard-init.js — initCashoutSection catch block', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const src = fs.readFileSync(
+    path.join(process.cwd(), 'public/assets/js/pages/partner-dashboard-init.js'),
+    'utf8'
+  );
+
+  // Extract just the catch block inside initCashoutSection
+  const catchBlock = src
+    .split('loadTremendousProducts()')[2]
+    .split('.catch(err => {')[1]
+    .split('});')[0];
+
+  it('determines isConfig solely from err.isServiceUnavailable === true', () => {
+    expect(catchBlock).toContain('err.isServiceUnavailable === true');
+  });
+
+  it('does not parse error message text to infer notConfigured state', () => {
+    // Must not call .toLowerCase() or .includes() on the error message
+    expect(catchBlock).not.toContain('.toLowerCase()');
+    expect(catchBlock).not.toContain('.includes(');
+    // Must not use text-matching patterns like 'api key'
+    expect(catchBlock).not.toMatch(/api key/i);
+  });
+
+  it('uses err.message with a fallback so undefined message does not throw', () => {
+    // Must use `err.message || ''` or `err.message || ""` to guard against undefined
+    expect(catchBlock).toMatch(/err\.message\s*\|\|\s*(?:''|"")/);
+  });
+
+  it('gates console output behind window.__EF_DEBUG__', () => {
+    expect(catchBlock).toContain('window.__EF_DEBUG__');
+    expect(catchBlock).toContain('console.debug');
+  });
+});
+
+describe('partner-dashboard-init.js — showError disables cashout-product select when notConfigured', () => {
+  const fs = require('fs');
+  const path = require('path');
+  const src = fs.readFileSync(
+    path.join(process.cwd(), 'public/assets/js/pages/partner-dashboard-init.js'),
+    'utf8'
+  );
+
+  // Extract the showError function body
+  const showErrorBody = src
+    .split('function showError(msg, isConfig)')[1]
+    .split(/^\s{4}function /m)[0];
+
+  it('disables cashout-product select element when isConfig is true', () => {
+    expect(showErrorBody).toContain('cashout-product');
+    expect(showErrorBody).toContain('select.disabled = true');
+  });
+
+  it('only disables select when isConfig is truthy', () => {
+    // The disable block must be inside an `if (isConfig)` guard
+    expect(showErrorBody).toContain('if (isConfig)');
   });
 });

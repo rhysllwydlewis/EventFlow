@@ -763,7 +763,8 @@
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
       const err = new Error(body.error || 'Failed to load gift card products');
-      err.isServiceUnavailable = res.status === 503 || body.notConfigured === true;
+      err.notConfigured = body.notConfigured === true;
+      err.isServiceUnavailable = res.status === 503 || err.notConfigured;
       throw err;
     }
     return body;
@@ -798,6 +799,12 @@
         } else {
           errorMsg.textContent =
             msg || 'Unable to load gift card products. Please try again later.';
+        }
+      }
+      if (isConfig) {
+        const select = document.getElementById('cashout-product');
+        if (select) {
+          select.disabled = true;
         }
       }
       showLoading(false);
@@ -845,13 +852,15 @@
         formWrap.style.display = 'block';
       })
       .catch(err => {
-        const msg = err.message || '';
-        const isConfig =
-          err.isServiceUnavailable ||
-          (msg &&
-            (msg.toLowerCase().includes('not configured') ||
-              msg.toLowerCase().includes('api key')));
-        showError(msg, isConfig);
+        const isConfig = err.isServiceUnavailable === true;
+        if (window.__EF_DEBUG__) {
+          // eslint-disable-next-line no-console
+          console.debug(
+            '[partner-dashboard] Gift card products:',
+            isConfig ? 'service not configured' : err
+          );
+        }
+        showError(err.message || '', isConfig);
       });
 
     const form = document.getElementById('cashout-form');
