@@ -251,6 +251,15 @@ const REGISTRY = [
     inNav: true,
     desc: 'Partner accounts, referrals & credit adjustments',
   },
+  {
+    route: '/admin-cashout-requests',
+    htmlFile: 'admin-cashout-requests',
+    label: 'Cashout Requests',
+    icon: '💸',
+    category: 'moderation',
+    inNav: true,
+    desc: 'Partner cashout requests — approve, process and deliver',
+  },
 
   // ── Compatibility stubs (legacy aliases — no nav link, server-side redirect) ──
   {

@@ -41,7 +41,7 @@ Once earned, credits go through a **30-day maturation period** before they becom
 | Credit state  | Description                                                                             |
 | ------------- | --------------------------------------------------------------------------------------- |
 | **Maturing**  | Recently earned — not yet available for cashout (< 30 days old)                         |
-| **Available** | Mature credits (≥ 30 days old) — can be used for gift card cashout                      |
+| **Available** | Mature credits (≥ 30 days old) — can be used for cashout requests                       |
 | **Potential** | Credits that _could_ be earned from active referrals in their 30-day attribution window |
 
 ### Credit value and conversion
@@ -58,12 +58,13 @@ Credits convert to GBP at a rate configured by the `POINTS_PER_GBP` environment 
 
 ## Pages
 
-| URL                                | Who can access    | Description                                                   |
-| ---------------------------------- | ----------------- | ------------------------------------------------------------- |
-| `/partner`                         | Public (hidden)   | Entry — login or sign up as partner                           |
-| `/partner/dashboard`               | Partners & admins | Dashboard with ref link, stats, referrals                     |
-| `/admin-partners`                  | Admins only       | Standalone partner moderation dashboard                       |
-| `/admin` (Partners section in nav) | Admins only       | Partner moderation also accessible from the main admin navbar |
+| URL                                | Who can access    | Description                                                        |
+| ---------------------------------- | ----------------- | ------------------------------------------------------------------ |
+| `/partner`                         | Public (hidden)   | Entry — login or sign up as partner                                |
+| `/partner/dashboard`               | Partners & admins | Dashboard with ref link, stats, referrals, and cashout requests    |
+| `/admin-partners`                  | Admins only       | Standalone partner moderation dashboard                            |
+| `/admin-cashout-requests`          | Admins only       | Partner cashout requests back-office (approve/reject/deliver)      |
+| `/admin` (Partners section in nav) | Admins only       | Partner moderation also accessible from the main admin navbar      |
 
 ---
 
@@ -71,26 +72,19 @@ Credits convert to GBP at a rate configured by the `POINTS_PER_GBP` environment 
 
 ### Partner (requires `partner` role)
 
-| Method | Path                                                   | Description                                               |
-| ------ | ------------------------------------------------------ | --------------------------------------------------------- |
-| `POST` | `/api/v1/partner/register`                             | Create a new partner account                              |
-| `GET`  | `/api/v1/partner/me`                                   | Get current partner profile, ref code, balance            |
-| `GET`  | `/api/v1/partner/referrals`                            | List referred suppliers with statuses                     |
-| `GET`  | `/api/v1/partner/transactions`                         | List credit transaction history                           |
-| `POST` | `/api/v1/partner/regenerate-code`                      | Generate a new referral code (old code stays valid)       |
-| `GET`  | `/api/v1/partner/code-history`                         | List previously used referral codes                       |
-| `POST` | `/api/v1/partner/support-ticket`                       | Raise a general support ticket from the partner dashboard |
-| `GET`  | `/api/v1/partner/support-tickets`                      | List all support tickets raised by the current partner    |
-| `GET`  | `/api/v1/partner/tremendous/products`                  | List available gift card products (partner-only)          |
-| `POST` | `/api/v1/partner/tremendous/orders`                    | Create a gift card order/reward (partner-only)            |
-| `GET`  | `/api/v1/partner/tremendous/orders`                    | List current partner's past cashout orders (from DB)      |
-| `GET`  | `/api/v1/partner/tremendous/orders/:id`                | Fetch Tremendous order / reward status (partner-only)     |
-| `POST` | `/api/v1/partner/tremendous/orders/:id/resend`         | Resend gift card email for first reward in an order       |
-| `GET`  | `/api/v1/partner/tremendous/rewards/:id`               | Get a single Tremendous reward by reward ID               |
-| `POST` | `/api/v1/partner/tremendous/rewards/:id/resend`        | Resend a reward email by reward ID directly               |
-| `POST` | `/api/v1/partner/tremendous/rewards/:id/cancel`        | Cancel a reward (must not have been redeemed)             |
-| `POST` | `/api/v1/partner/tremendous/rewards/:id/generate-link` | Generate a new redemption URL for a reward (LINK method)  |
-| `GET`  | `/api/v1/partner/tremendous/funding-sources`           | List available Tremendous funding sources                 |
+| Method | Path                                       | Description                                               |
+| ------ | ------------------------------------------ | --------------------------------------------------------- |
+| `POST` | `/api/v1/partner/register`                 | Create a new partner account                              |
+| `GET`  | `/api/v1/partner/me`                       | Get current partner profile, ref code, balance            |
+| `GET`  | `/api/v1/partner/referrals`                | List referred suppliers with statuses                     |
+| `GET`  | `/api/v1/partner/transactions`             | List credit transaction history                           |
+| `POST` | `/api/v1/partner/regenerate-code`          | Generate a new referral code (old code stays valid)       |
+| `GET`  | `/api/v1/partner/code-history`             | List previously used referral codes                       |
+| `POST` | `/api/v1/partner/support-ticket`           | Raise a general support ticket from the partner dashboard |
+| `GET`  | `/api/v1/partner/support-tickets`          | List all support tickets raised by the current partner    |
+| `POST` | `/api/v1/partner/cashout-requests`         | Submit a new cashout request (Amazon Voucher or Pre-Paid Debit Card) |
+| `GET`  | `/api/v1/partner/cashout-requests`         | List the current partner's own cashout requests           |
+| `GET`  | `/api/v1/partner/cashout-requests/:id`     | Get details of a single cashout request                   |
 
 > **Note:** All partner API endpoints return `403 { error: "...", disabled: true }` if the partner's account status is `disabled`. The dashboard will show a clear "account disabled" message in this case.
 
@@ -103,51 +97,61 @@ Credits convert to GBP at a rate configured by the `POINTS_PER_GBP` environment 
 
 Validation errors return HTTP `400` with a JSON body `{ "error": "..." }` describing the problem.
 
-#### Gift card cashout — Tremendous integration
+#### Cashout request flow
 
-Partners can send gift cards directly from the partner dashboard using the [Tremendous API](https://developers.tremendous.com/docs/introduction). The flow is:
+Partners can submit cashout requests directly from the partner dashboard. The flow is:
 
-1. Partner selects a gift card brand from the catalogue (`GET /tremendous/products`).
-2. Partner enters the amount, recipient name, and recipient email.
-3. Dashboard submits `POST /tremendous/orders`; Tremendous delivers the gift card by email.
-4. Partner can check delivery status via `GET /tremendous/orders/:id`.
-5. If needed, partner can resend via `POST /tremendous/orders/:id/resend`.
+1. Partner checks their **available balance** (mature credits ≥ 30 days old).
+2. Partner selects a **payout method**: Amazon Voucher or Pre-Paid Debit Card.
+3. Partner selects a **denomination** in £5 increments (minimum £50, maximum equal to available GBP balance).
+4. Dashboard submits `POST /cashout-requests`; the server validates the request and immediately creates a `CASHOUT_HOLD` ledger transaction to reserve the points.
+5. Request is placed in `submitted` status and appears in the admin cashout requests queue at `/admin-cashout-requests`.
+6. Partner sees a history list with status updates and any admin response messages.
 
-**Access control:** All `/tremendous/*` endpoints require `authRequired + roleRequired('partner')`.
-Non-partner roles (supplier, customer, admin) receive `403 Forbidden`.
+**Typical processing time:** 3–5 working days.
+
+**Denomination rules:**
+- Minimum: £50
+- Increments: £5 (£50, £55, £60, …)
+- Maximum: floor(availableGbp / 5) × 5
+- Configurable via `CASHOUT_DENOMINATIONS` env var (comma-separated integers)
 
 **Financial safety:**
 
-- The server enforces that the partner has **sufficient available points** before creating an order.
-- Points are debited atomically before calling Tremendous; if the API call fails the debit is automatically reversed.
-- Every order is persisted to `partner_cashout_orders` for audit and support.
-- An audit email copy is sent to `TREMENDOUS_AUDIT_EMAIL` (if configured) on every successful order.
-
-**Configuration:**
-
-| Env var                  | Required | Description                                          |
-| ------------------------ | -------- | ---------------------------------------------------- |
-| `TREMENDOUS_API_KEY`     | Yes      | Bearer token from the Tremendous dashboard           |
-| `TREMENDOUS_ENV`         | No       | `sandbox` (default) or `production`                  |
-| `TREMENDOUS_AUDIT_EMAIL` | No       | Email address to receive audit copies of every order |
-| `POINTS_PER_GBP`         | No       | Conversion rate: points per £1 (default: `100`)      |
-
-- Sandbox: `https://testflight.tremendous.com/api/v2`
-- Production: `https://www.tremendous.com/api/v2`
-
-**Sandbox testing:** Use `TREMENDOUS_ENV=sandbox` and a sandbox API key from [testflight.tremendous.com](https://testflight.tremendous.com).
+- The server enforces that the partner has **sufficient available points** (not maturing) before creating a request.
+- Points are held atomically via a `CASHOUT_HOLD` ledger transaction on submission — prevents double-spend.
+- On **rejection**, a `CASHOUT_RELEASE` transaction restores the held points.
+- On **delivery**, the hold is released and a final `REDEEM` transaction records the permanent deduction.
 
 ### Admin (requires `admin` role)
 
-| Method  | Path                                                      | Description                                               |
-| ------- | --------------------------------------------------------- | --------------------------------------------------------- |
-| `GET`   | `/api/v1/admin/partners`                                  | List all partners (search & filter)                       |
-| `GET`   | `/api/v1/admin/partners/:id`                              | Get full detail for a partner                             |
-| `PATCH` | `/api/v1/admin/partners/:id/status`                       | Enable or disable a partner                               |
-| `POST`  | `/api/v1/admin/partners/:id/credits`                      | Apply manual credit adjustment                            |
-| `GET`   | `/api/v1/admin/partners/payout-requests`                  | List all payout request tickets                           |
-| `PATCH` | `/api/v1/admin/partners/payout-requests/:ticketId/status` | Update payout ticket status                               |
-| `GET`   | `/api/v1/admin/partners/cashout-orders`                   | List Tremendous cashout orders (query: partnerId, status) |
+| Method  | Path                                                      | Description                                                                  |
+| ------- | --------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `GET`   | `/api/v1/admin/partners`                                  | List all partners (search & filter)                                          |
+| `GET`   | `/api/v1/admin/partners/:id`                              | Get full detail for a partner                                                |
+| `PATCH` | `/api/v1/admin/partners/:id/status`                       | Enable or disable a partner                                                  |
+| `POST`  | `/api/v1/admin/partners/:id/credits`                      | Apply manual credit adjustment                                               |
+| `GET`   | `/api/v1/admin/partners/payout-requests`                  | List all payout request tickets (legacy ticket-based flow)                   |
+| `PATCH` | `/api/v1/admin/partners/payout-requests/:ticketId/status` | Update payout ticket status (legacy)                                         |
+| `GET`   | `/api/v1/admin/cashout-requests`                          | List all partner cashout requests (filter: status, partnerId)                |
+| `GET`   | `/api/v1/admin/cashout-requests/:id`                      | Get full detail of a cashout request (with ledger transactions)              |
+| `PATCH` | `/api/v1/admin/cashout-requests/:id`                      | Update status/notes (approve → processing → delivered / reject) + CSRF      |
+
+#### Cashout request status workflow
+
+```
+submitted → approved → processing → delivered
+                   ↘                ↗
+                    rejected (releases held points)
+```
+
+| Status       | Transitions to          | Side effect                                                             |
+| ------------ | ----------------------- | ----------------------------------------------------------------------- |
+| `submitted`  | `approved`, `rejected`  | —                                                                       |
+| `approved`   | `processing`, `rejected`| —                                                                       |
+| `processing` | `delivered`, `rejected` | —                                                                       |
+| `delivered`  | (terminal)              | CASHOUT_HOLD released + final REDEEM transaction created                |
+| `rejected`   | (terminal)              | CASHOUT_HOLD released via CASHOUT_RELEASE — points restored to partner  |
 
 ---
 
@@ -184,16 +188,48 @@ Three collections are used (in `store.js` and MongoDB):
 | `id`             | string         | Unique ID (`ptx_...`)                                                                                                                     |
 | `partnerId`      | string         | Links to `partners`                                                                                                                       |
 | `supplierUserId` | string \| null | Supplier who triggered the credit (null for adjustments/debits)                                                                           |
-| `type`           | string         | `PACKAGE_BONUS`, `SUBSCRIPTION_BONUS`, `REFERRAL_SIGNUP_BONUS`, `FIRST_REVIEW_BONUS`, `PROFILE_APPROVED_BONUS`, `ADJUSTMENT`, or `REDEEM` |
-| `amount`         | number         | Credit amount (positive = earn, negative = deduct/redeem)                                                                                 |
-| `notes`          | string         | Human-readable note                                                                                                                       |
-| `adminUserId`    | string \| null | Set for admin adjustments                                                                                                                 |
-| `externalRef`    | string \| null | Reference to cashout order (set on REDEEM transactions)                                                                                   |
-| `createdAt`      | ISO string     | Transaction timestamp                                                                                                                     |
+| `type`           | string         | `PACKAGE_BONUS`, `SUBSCRIPTION_BONUS`, `REFERRAL_SIGNUP_BONUS`, `FIRST_REVIEW_BONUS`, `PROFILE_APPROVED_BONUS`, `ADJUSTMENT`, `REDEEM`, `CASHOUT_HOLD`, or `CASHOUT_RELEASE` |
+| `amount`         | number         | Credit amount (positive = earn, negative = deduct/hold)                                                                                                                      |
+| `notes`          | string         | Human-readable note                                                                                                                                                          |
+| `adminUserId`    | string \| null | Set for admin adjustments                                                                                                                                                    |
+| `externalRef`    | string \| null | Reference to cashout request ID (set on CASHOUT_HOLD/CASHOUT_RELEASE/REDEEM)                                                                                                 |
+| `createdAt`      | ISO string     | Transaction timestamp                                                                                                                                                        |
 
-> **Maturity rule:** Credits with `type !== REDEEM` and `type !== ADJUSTMENT` are only included in `availableBalance` once they are ≥ 30 days old (`CREDIT_MATURITY_DAYS`). Younger credits appear in `maturingBalance`.
+> **Maturity rule:** Credits with `type !== REDEEM` and `type !== ADJUSTMENT` and `type !== CASHOUT_HOLD` and `type !== CASHOUT_RELEASE` are only included in `availableBalance` once they are ≥ 30 days old (`CREDIT_MATURITY_DAYS`). Younger credits appear in `maturingBalance`.
+>
+> **Hold rule:** `CASHOUT_HOLD` transactions count against `availableBalance` (treated like REDEEM for balance calculation). `CASHOUT_RELEASE` transactions restore the held amount (subtracted from the redeemed tally).
 
-### `partner_cashout_orders`
+### `partner_cashout_requests`
+
+New in the cashout request system. Each record represents a manual cashout request from a partner.
+
+| Field                   | Type           | Description                                                              |
+| ----------------------- | -------------- | ------------------------------------------------------------------------ |
+| `id`                    | string         | Unique ID (`pcr_...`)                                                    |
+| `partnerId`             | string         | Links to `partners`                                                      |
+| `partnerUserId`         | string         | User ID of the partner                                                   |
+| `method`                | string         | `amazon_voucher` or `prepaid_debit_card`                                 |
+| `denominationGbp`       | number         | GBP amount (integer, £5 increments, min £50)                             |
+| `pointsHeld`            | number         | Points reserved via CASHOUT_HOLD                                         |
+| `pointsPerGbpSnapshot`  | number         | POINTS_PER_GBP rate at time of request (for audit)                       |
+| `status`                | string         | `submitted`, `approved`, `rejected`, `processing`, or `delivered`        |
+| `partnerMessage`        | string \| null | Optional notes from the partner                                          |
+| `adminResponseMessage`  | string \| null | Admin response visible to the partner                                    |
+| `adminInternalNotes`    | string \| null | Admin internal notes (not shown to partner)                              |
+| `adminUserIdApproved`   | string \| null | Admin user ID who last actioned the request                              |
+| `holdTxnId`             | string         | ID of the CASHOUT_HOLD transaction in `partner_credit_transactions`      |
+| `finalRedeemTxnId`      | string \| null | ID of the final REDEEM transaction (set on delivery)                     |
+| `deliveryDetails`       | object \| null | Delivery metadata (voucher code / card reference, etc.)                  |
+| `approvedAt`            | ISO string \| null | Timestamp when approved                                               |
+| `rejectedAt`            | ISO string \| null | Timestamp when rejected                                               |
+| `processingAt`          | ISO string \| null | Timestamp when moved to processing                                    |
+| `deliveredAt`           | ISO string \| null | Timestamp when delivered                                              |
+| `createdAt`             | ISO string     | Request creation timestamp                                               |
+| `updatedAt`             | ISO string     | Last update timestamp                                                    |
+
+### `partner_cashout_orders` (legacy — Tremendous integration)
+
+Retained for historical records from the Tremendous gift card integration (parked). New cashout requests use `partner_cashout_requests` instead.
 
 | Field                | Type           | Description                                                   |
 | -------------------- | -------------- | ------------------------------------------------------------- |
@@ -204,13 +240,8 @@ Three collections are used (in `store.js` and MongoDB):
 | `debitTxnId`         | string         | ID of the REDEEM transaction in `partner_credit_transactions` |
 | `pointsDebited`      | number         | Number of points debited                                      |
 | `valueGbp`           | number         | GBP value of the gift card                                    |
-| `currency`           | string         | ISO 4217 currency code                                        |
-| `productId`          | string         | Tremendous product ID                                         |
-| `recipientName`      | string         | Gift card recipient name                                      |
-| `recipientEmail`     | string         | Gift card recipient email                                     |
 | `tremendousOrderId`  | string \| null | Tremendous order ID (after successful creation)               |
 | `tremendousRewardId` | string \| null | Tremendous reward ID (first reward in the order)              |
-| `tremendousStatus`   | string \| null | Order status from Tremendous at creation time                 |
 | `status`             | string         | `created`, `failed`                                           |
 | `createdAt`          | ISO string     | Record creation timestamp                                     |
 

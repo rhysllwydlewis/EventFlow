@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Partner Cashout Requests — EventFlow Admin</title>
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="stylesheet" href="/assets/css/tokens.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-tokens.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/components.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/animations.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-enhanced.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-cards.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/liquid-glass.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.3.0">
+  <link rel="icon" href="/favicon.svg">
+  <script src="/assets/js/dashboard-guard.js?v=17.0.2"></script>
+  <script src="/assets/js/admin-shared.js?v=18.3.0"></script>
+  <script src="/assets/js/components.js?v=18.3.0" defer></script>
+  <script src="/assets/js/admin-navbar.js?v=18.3.0" defer></script>
+
+  <style>
+    /* ── Admin Cashout Requests page ─────────────────────────────────────── */
+
+    .acr-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .acr-title {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #111827;
+      margin: 0;
+    }
+    .acr-subtitle {
+      font-size: 0.9rem;
+      color: #6b7280;
+      margin: 0.25rem 0 0;
+    }
+
+    /* Filter bar */
+    .acr-filters {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.25rem;
+    }
+    .acr-filters select,
+    .acr-filters input {
+      padding: 0.45rem 0.75rem;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      color: #374151;
+      background: #fff;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .acr-filters select:focus,
+    .acr-filters input:focus { border-color: #0B8073; }
+    .acr-filter-btn {
+      padding: 0.45rem 1rem;
+      background: #0B8073;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .acr-filter-btn:hover { background: #0a6b63; }
+
+    /* Table */
+    .acr-table-wrap {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+    .acr-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    .acr-table th {
+      background: #f9fafb;
+      padding: 0.75rem 1rem;
+      text-align: left;
+      font-weight: 600;
+      color: #374151;
+      border-bottom: 1px solid #e5e7eb;
+      white-space: nowrap;
+    }
+    .acr-table td {
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid #f3f4f6;
+      vertical-align: top;
+      color: #374151;
+    }
+    .acr-table tr:last-child td { border-bottom: none; }
+    .acr-table tr:hover td { background: #f9fafb; }
+
+    /* Status badges */
+    .acr-badge {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 100px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
+    .acr-badge--submitted  { background: rgba(59,130,246,0.12);  color: #2563eb; }
+    .acr-badge--approved   { background: rgba(16,185,129,0.12);  color: #059669; }
+    .acr-badge--processing { background: rgba(245,158,11,0.12);  color: #d97706; }
+    .acr-badge--delivered  { background: rgba(34,197,94,0.12);   color: #16a34a; }
+    .acr-badge--rejected   { background: rgba(239,68,68,0.10);   color: #dc2626; }
+
+    /* Action button */
+    .acr-action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.35rem 0.75rem;
+      background: #f3f4f6;
+      border: 1px solid #e5e7eb;
+      border-radius: 7px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #374151;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .acr-action-btn:hover { background: #e5e7eb; border-color: #d1d5db; }
+    .acr-action-btn--primary { background: #0B8073; color: #fff; border-color: #0B8073; }
+    .acr-action-btn--primary:hover { background: #0a6b63; }
+    .acr-action-btn--danger { background: rgba(239,68,68,0.08); color: #dc2626; border-color: rgba(239,68,68,0.2); }
+    .acr-action-btn--danger:hover { background: rgba(239,68,68,0.15); }
+    .acr-action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Empty / loading states */
+    .acr-empty {
+      padding: 3rem 1rem;
+      text-align: center;
+      color: #6b7280;
+    }
+    .acr-empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+    .acr-empty-text { font-size: 0.95rem; }
+
+    /* Detail modal / panel */
+    .acr-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .acr-modal {
+      background: #fff;
+      border-radius: 20px;
+      max-width: 600px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+      padding: 2rem;
+    }
+    .acr-modal-close {
+      float: right;
+      background: none;
+      border: none;
+      font-size: 1.4rem;
+      cursor: pointer;
+      color: #6b7280;
+      line-height: 1;
+      padding: 0 0.25rem;
+    }
+    .acr-modal-close:hover { color: #111827; }
+    .acr-modal-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: #111827;
+      margin: 0 0 1.5rem;
+    }
+    .acr-modal-field { margin-bottom: 1rem; }
+    .acr-modal-label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.3rem;
+    }
+    .acr-modal-value {
+      font-size: 0.925rem;
+      color: #111827;
+    }
+    .acr-modal-textarea {
+      width: 100%;
+      padding: 0.6rem 0.75rem;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      color: #374151;
+      resize: vertical;
+      min-height: 80px;
+      outline: none;
+      box-sizing: border-box;
+    }
+    .acr-modal-textarea:focus { border-color: #0B8073; }
+    .acr-modal-select {
+      width: 100%;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      color: #374151;
+      background: #fff;
+      outline: none;
+    }
+    .acr-modal-select:focus { border-color: #0B8073; }
+    .acr-modal-actions {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-top: 1.5rem;
+    }
+    .acr-modal-status { margin-top: 0.75rem; font-size: 0.875rem; }
+    .acr-modal-status--error { color: #dc2626; }
+    .acr-modal-status--success { color: #059669; }
+
+    /* Toast */
+    #acr-toast {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #111827;
+      color: #fff;
+      padding: 0.75rem 1.5rem;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+      z-index: 2000;
+      display: none;
+      max-width: 480px;
+      text-align: center;
+    }
+    #acr-toast.show { display: block; }
+    #acr-toast.toast--error { background: #dc2626; }
+    #acr-toast.toast--success { background: #059669; }
+
+    /* Stats bar */
+    .acr-stats-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .acr-stat-card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 1rem 1.25rem;
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+    .acr-stat-icon {
+      font-size: 1.5rem;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .acr-stat-value {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #111827;
+      line-height: 1.1;
+    }
+    .acr-stat-label {
+      font-size: 0.75rem;
+      color: #6b7280;
+      font-weight: 500;
+      margin-top: 0.1rem;
+    }
+    .acr-stat-card--submitted  { border-left: 4px solid #3b82f6; }
+    .acr-stat-card--approved   { border-left: 4px solid #10b981; }
+    .acr-stat-card--processing { border-left: 4px solid #f59e0b; }
+    .acr-stat-card--delivered  { border-left: 4px solid #22c55e; }
+    .acr-stat-card--rejected   { border-left: 4px solid #ef4444; }
+  </style>
+</head>
+<body class="admin-body" data-require-role="admin">
+
+  <!-- Admin Navigation -->
+  <div id="admin-navbar-placeholder"></div>
+
+  <!-- Toast -->
+  <div id="acr-toast" role="alert" aria-live="assertive"></div>
+
+  <main class="admin-main" style="max-width:1280px;margin:0 auto;padding:2rem 1.5rem;">
+
+    <header class="acr-header">
+      <div>
+        <h1 class="acr-title">💸 Partner Cashout Requests</h1>
+        <p class="acr-subtitle">Review, approve, process and deliver partner cashout requests</p>
+      </div>
+      <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;">
+        <span id="acr-count-badge" style="font-size:0.85rem;color:#6b7280;"></span>
+      </div>
+    </header>
+
+    <!-- Stats Bar -->
+    <div class="acr-stats-bar" id="acr-stats-bar">
+      <div class="acr-stat-card acr-stat-card--submitted">
+        <span class="acr-stat-icon">📥</span>
+        <div>
+          <div class="acr-stat-value" id="acr-stat-submitted">—</div>
+          <div class="acr-stat-label">Submitted</div>
+        </div>
+      </div>
+      <div class="acr-stat-card acr-stat-card--approved">
+        <span class="acr-stat-icon">✅</span>
+        <div>
+          <div class="acr-stat-value" id="acr-stat-approved">—</div>
+          <div class="acr-stat-label">Approved</div>
+        </div>
+      </div>
+      <div class="acr-stat-card acr-stat-card--processing">
+        <span class="acr-stat-icon">⚙️</span>
+        <div>
+          <div class="acr-stat-value" id="acr-stat-processing">—</div>
+          <div class="acr-stat-label">Processing</div>
+        </div>
+      </div>
+      <div class="acr-stat-card acr-stat-card--delivered">
+        <span class="acr-stat-icon">🎁</span>
+        <div>
+          <div class="acr-stat-value" id="acr-stat-delivered">—</div>
+          <div class="acr-stat-label">Delivered</div>
+        </div>
+      </div>
+      <div class="acr-stat-card acr-stat-card--rejected">
+        <span class="acr-stat-icon">❌</span>
+        <div>
+          <div class="acr-stat-value" id="acr-stat-rejected">—</div>
+          <div class="acr-stat-label">Rejected</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="acr-filters">
+      <select id="acr-filter-status" aria-label="Filter by status">
+        <option value="">All statuses</option>
+        <option value="submitted">Submitted</option>
+        <option value="approved">Approved</option>
+        <option value="processing">Processing</option>
+        <option value="delivered">Delivered</option>
+        <option value="rejected">Rejected</option>
+      </select>
+      <button type="button" class="acr-filter-btn" id="acr-refresh-btn">🔄 Refresh</button>
+    </div>
+
+    <!-- Table -->
+    <div class="acr-table-wrap">
+      <table class="acr-table" id="acr-table">
+        <thead>
+          <tr>
+            <th>Partner</th>
+            <th>Method</th>
+            <th>Amount</th>
+            <th>Points Held</th>
+            <th>Status</th>
+            <th>Submitted</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="acr-tbody">
+          <tr>
+            <td colspan="7">
+              <div class="acr-empty">
+                <div class="acr-empty-icon">⏳</div>
+                <p class="acr-empty-text">Loading…</p>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </main>
+
+  <!-- Detail / Action Modal -->
+  <div id="acr-modal-overlay" class="acr-modal-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="acr-modal-title">
+    <div class="acr-modal">
+      <button type="button" class="acr-modal-close" id="acr-modal-close" aria-label="Close">✕</button>
+      <h2 class="acr-modal-title" id="acr-modal-title">Cashout Request</h2>
+
+      <div id="acr-modal-content">
+        <!-- Populated by JS -->
+      </div>
+
+      <div class="acr-modal-field">
+        <label class="acr-modal-label" for="acr-modal-status-select">Update Status</label>
+        <select id="acr-modal-status-select" class="acr-modal-select">
+          <option value="">— no change —</option>
+          <option value="approved">Approve</option>
+          <option value="rejected">Reject</option>
+          <option value="processing">Mark as Processing</option>
+          <option value="delivered">Mark as Delivered</option>
+        </select>
+      </div>
+
+      <div class="acr-modal-field">
+        <label class="acr-modal-label" for="acr-modal-response-msg">Response message (visible to partner)</label>
+        <textarea id="acr-modal-response-msg" class="acr-modal-textarea" placeholder="Optional message for the partner…" maxlength="2000"></textarea>
+      </div>
+
+      <div class="acr-modal-field">
+        <label class="acr-modal-label" for="acr-modal-internal-notes">Internal notes (admin only)</label>
+        <textarea id="acr-modal-internal-notes" class="acr-modal-textarea" placeholder="Internal notes…" maxlength="2000"></textarea>
+      </div>
+
+      <div class="acr-modal-field" id="acr-delivery-details-wrap" style="display:none;">
+        <label class="acr-modal-label" for="acr-modal-delivery-ref">Delivery reference / code</label>
+        <input type="text" id="acr-modal-delivery-ref" class="acr-modal-textarea" style="resize:none;min-height:unset;height:auto;" placeholder="e.g. voucher code, card reference…" maxlength="500">
+      </div>
+
+      <div class="acr-modal-actions">
+        <button type="button" class="acr-action-btn acr-action-btn--primary" id="acr-modal-save-btn">💾 Save changes</button>
+        <button type="button" class="acr-action-btn" id="acr-modal-cancel-btn">Cancel</button>
+      </div>
+      <div id="acr-modal-status-msg" class="acr-modal-status"></div>
+    </div>
+  </div>
+
+  <script>
+  (function () {
+    'use strict';
+
+    function esc(str) {
+      return String(str || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function fmtDate(iso) {
+      if (!iso) return '—';
+      const d = new Date(iso);
+      return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) +
+        ' ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function showToast(msg, type) {
+      const el = document.getElementById('acr-toast');
+      if (!el) return;
+      el.textContent = msg;
+      el.className = 'show' + (type === 'error' ? ' toast--error' : type === 'success' ? ' toast--success' : '');
+      clearTimeout(el._timer);
+      el._timer = setTimeout(() => { el.className = ''; }, 4000);
+    }
+
+    async function getCsrfToken() {
+      const r = await fetch('/api/v1/auth/csrf-token', { credentials: 'include' });
+      const b = await r.json().catch(() => ({}));
+      return b.csrfToken || b.token || '';
+    }
+
+    function statusBadge(status) {
+      const labels = { submitted: 'Submitted', approved: 'Approved', processing: 'Processing', delivered: 'Delivered', rejected: 'Rejected' };
+      const cls = 'acr-badge acr-badge--' + (status || 'submitted');
+      return `<span class="${esc(cls)}">${esc(labels[status] || status || 'Unknown')}</span>`;
+    }
+
+    function methodLabel(method) {
+      if (method === 'amazon_voucher') return 'Amazon Voucher';
+      if (method === 'prepaid_debit_card') return 'Pre-Paid Debit Card';
+      return method || '—';
+    }
+
+    let _currentRequest = null;
+
+    // ── Load & render list ───────────────────────────────────────────────────
+
+    async function loadRequests() {
+      const tbody = document.getElementById('acr-tbody');
+      const statusFilter = (document.getElementById('acr-filter-status') || {}).value || '';
+
+      if (tbody) {
+        tbody.innerHTML = `<tr><td colspan="7"><div class="acr-empty"><div class="acr-empty-icon">⏳</div><p class="acr-empty-text">Loading…</p></div></td></tr>`;
+      }
+
+      try {
+        const params = new URLSearchParams({ limit: '200' });
+        if (statusFilter) params.append('status', statusFilter);
+
+        const res = await fetch(`/api/v1/admin/cashout-requests?${params}`, { credentials: 'include' });
+        if (!res.ok) throw new Error('Failed to load cashout requests');
+        const { items } = await res.json();
+
+        const countBadge = document.getElementById('acr-count-badge');
+        if (countBadge) countBadge.textContent = `${(items || []).length} request${(items || []).length === 1 ? '' : 's'}`;
+
+        // Update stats bar (always counts across all statuses even when filtered)
+        if (!statusFilter) {
+          const counts = { submitted: 0, approved: 0, processing: 0, delivered: 0, rejected: 0 };
+          (items || []).forEach(r => { if (counts[r.status] !== undefined) counts[r.status]++; });
+          ['submitted','approved','processing','delivered','rejected'].forEach(s => {
+            const el = document.getElementById(`acr-stat-${s}`);
+            if (el) el.textContent = counts[s];
+          });
+        }
+        if (!items || items.length === 0) {
+          if (tbody) tbody.innerHTML = `<tr><td colspan="7"><div class="acr-empty"><div class="acr-empty-icon">📭</div><p class="acr-empty-text">No cashout requests found.</p></div></td></tr>`;
+          return;
+        }
+
+        const rows = items.map(r => {
+          const partner = r.partnerUser || {};
+          const partnerName = esc(partner.name || partner.email || r.partnerId || '—');
+          const partnerEmail = esc(partner.email || '');
+          return `<tr data-id="${esc(r.id)}">
+            <td>
+              <div style="font-weight:600;">${partnerName}</div>
+              ${partnerEmail ? `<div style="font-size:0.8rem;color:#6b7280;">${partnerEmail}</div>` : ''}
+              ${r.partnerRefCode ? `<div style="font-size:0.75rem;color:#9ca3af;font-family:monospace;">${esc(r.partnerRefCode)}</div>` : ''}
+            </td>
+            <td>${esc(methodLabel(r.method))}</td>
+            <td style="font-weight:700;">£${esc(String(r.denominationGbp || '?'))}</td>
+            <td style="font-size:0.85rem;color:#6b7280;">${esc(String(r.pointsHeld || '?'))} pts</td>
+            <td>${statusBadge(r.status)}</td>
+            <td style="font-size:0.82rem;white-space:nowrap;">${esc(fmtDate(r.createdAt))}</td>
+            <td>
+              <button type="button" class="acr-action-btn acr-open-btn" data-id="${esc(r.id)}" aria-label="View request ${esc(r.id)}">
+                ✏️ Manage
+              </button>
+            </td>
+          </tr>`;
+        }).join('');
+
+        if (tbody) tbody.innerHTML = rows;
+
+        // Attach open handlers
+        document.querySelectorAll('.acr-open-btn').forEach(btn => {
+          btn.addEventListener('click', () => openModal(btn.dataset.id, items));
+        });
+      } catch (err) {
+        if (tbody) tbody.innerHTML = `<tr><td colspan="7"><div class="acr-empty"><div class="acr-empty-icon">⚠️</div><p class="acr-empty-text">${esc(err.message || 'Error loading data')}</p></div></td></tr>`;
+        showToast(err.message || 'Failed to load cashout requests', 'error');
+      }
+    }
+
+    // ── Modal ────────────────────────────────────────────────────────────────
+
+    function openModal(id, items) {
+      const r = items.find(x => x.id === id);
+      if (!r) return;
+      _currentRequest = r;
+
+      const overlay = document.getElementById('acr-modal-overlay');
+      const content = document.getElementById('acr-modal-content');
+      const statusSelect = document.getElementById('acr-modal-status-select');
+      const responseMsg = document.getElementById('acr-modal-response-msg');
+      const internalNotes = document.getElementById('acr-modal-internal-notes');
+      const deliveryWrap = document.getElementById('acr-delivery-details-wrap');
+      const deliveryRef = document.getElementById('acr-modal-delivery-ref');
+      const statusMsg = document.getElementById('acr-modal-status-msg');
+
+      // Populate detail fields
+      const partner = r.partnerUser || {};
+      content.innerHTML = `
+        <div class="acr-modal-field">
+          <span class="acr-modal-label">Request ID</span>
+          <span class="acr-modal-value" style="font-family:monospace;font-size:0.85rem;">${esc(r.id)}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+          <div class="acr-modal-field">
+            <span class="acr-modal-label">Partner</span>
+            <span class="acr-modal-value">${esc(partner.name || r.partnerId || '—')}</span>
+            ${partner.email ? `<div style="font-size:0.82rem;color:#6b7280;">${esc(partner.email)}</div>` : ''}
+          </div>
+          <div class="acr-modal-field">
+            <span class="acr-modal-label">Method</span>
+            <span class="acr-modal-value">${esc(methodLabel(r.method))}</span>
+          </div>
+          <div class="acr-modal-field">
+            <span class="acr-modal-label">Amount</span>
+            <span class="acr-modal-value" style="font-size:1.3rem;font-weight:700;">£${esc(String(r.denominationGbp || '?'))}</span>
+          </div>
+          <div class="acr-modal-field">
+            <span class="acr-modal-label">Points held</span>
+            <span class="acr-modal-value">${esc(String(r.pointsHeld || '?'))} pts</span>
+          </div>
+          <div class="acr-modal-field">
+            <span class="acr-modal-label">Status</span>
+            <span class="acr-modal-value">${statusBadge(r.status)}</span>
+          </div>
+          <div class="acr-modal-field">
+            <span class="acr-modal-label">Submitted</span>
+            <span class="acr-modal-value" style="font-size:0.85rem;">${esc(fmtDate(r.createdAt))}</span>
+          </div>
+          ${r.approvedAt ? `<div class="acr-modal-field"><span class="acr-modal-label">Approved</span><span class="acr-modal-value" style="font-size:0.85rem;">${esc(fmtDate(r.approvedAt))}</span></div>` : ''}
+          ${r.rejectedAt ? `<div class="acr-modal-field"><span class="acr-modal-label">Rejected</span><span class="acr-modal-value" style="font-size:0.85rem;color:#dc2626;">${esc(fmtDate(r.rejectedAt))}</span></div>` : ''}
+          ${r.processingAt ? `<div class="acr-modal-field"><span class="acr-modal-label">Processing since</span><span class="acr-modal-value" style="font-size:0.85rem;">${esc(fmtDate(r.processingAt))}</span></div>` : ''}
+          ${r.deliveredAt ? `<div class="acr-modal-field"><span class="acr-modal-label">Delivered</span><span class="acr-modal-value" style="font-size:0.85rem;color:#059669;">${esc(fmtDate(r.deliveredAt))}</span></div>` : ''}
+        </div>
+        ${r.partnerMessage ? `<div class="acr-modal-field"><span class="acr-modal-label">Partner message</span><div class="acr-modal-value" style="background:#f9fafb;padding:0.6rem;border-radius:8px;font-style:italic;">${esc(r.partnerMessage)}</div></div>` : ''}
+        ${r.adminResponseMessage ? `<div class="acr-modal-field"><span class="acr-modal-label">Current response message</span><div class="acr-modal-value" style="background:#f0fdf4;padding:0.6rem;border-radius:8px;">${esc(r.adminResponseMessage)}</div></div>` : ''}
+        ${r.adminInternalNotes ? `<div class="acr-modal-field"><span class="acr-modal-label">Current internal notes</span><div class="acr-modal-value" style="background:#fefce8;padding:0.6rem;border-radius:8px;">${esc(r.adminInternalNotes)}</div></div>` : ''}
+        ${r.deliveryDetails ? `<div class="acr-modal-field"><span class="acr-modal-label">Delivery details</span><div class="acr-modal-value" style="background:#f0fdf4;padding:0.6rem;border-radius:8px;font-family:monospace;font-size:0.85rem;">${esc(typeof r.deliveryDetails === 'object' ? JSON.stringify(r.deliveryDetails) : String(r.deliveryDetails))}</div></div>` : ''}
+      `;
+
+      // Pre-populate fields
+      if (responseMsg) responseMsg.value = r.adminResponseMessage || '';
+      if (internalNotes) internalNotes.value = r.adminInternalNotes || '';
+      if (statusSelect) statusSelect.value = '';
+      if (statusMsg) { statusMsg.textContent = ''; statusMsg.className = 'acr-modal-status'; }
+
+      // Show delivery details field only when delivered is chosen
+      function toggleDelivery() {
+        if (deliveryWrap) deliveryWrap.style.display = (statusSelect && statusSelect.value === 'delivered') ? 'block' : 'none';
+      }
+      if (statusSelect) { statusSelect.removeEventListener('change', toggleDelivery); statusSelect.addEventListener('change', toggleDelivery); }
+
+      // Filter status options based on current state
+      if (statusSelect) {
+        const allowed = { submitted: ['approved','rejected'], approved: ['processing','rejected'], processing: ['delivered','rejected'], rejected: [], delivered: [] };
+        const opts = allowed[r.status] || [];
+        Array.from(statusSelect.options).forEach(opt => {
+          if (opt.value === '') return;
+          opt.disabled = !opts.includes(opt.value);
+        });
+      }
+
+      overlay.style.display = 'flex';
+      overlay.focus && overlay.focus();
+    }
+
+    function closeModal() {
+      const overlay = document.getElementById('acr-modal-overlay');
+      if (overlay) overlay.style.display = 'none';
+      _currentRequest = null;
+    }
+
+    // ── Save ─────────────────────────────────────────────────────────────────
+
+    async function saveChanges() {
+      if (!_currentRequest) return;
+
+      const statusSelect = document.getElementById('acr-modal-status-select');
+      const responseMsg = document.getElementById('acr-modal-response-msg');
+      const internalNotes = document.getElementById('acr-modal-internal-notes');
+      const deliveryRef = document.getElementById('acr-modal-delivery-ref');
+      const statusMsg = document.getElementById('acr-modal-status-msg');
+      const saveBtn = document.getElementById('acr-modal-save-btn');
+
+      const newStatus = (statusSelect && statusSelect.value) || undefined;
+      const adminResponseMessage = (responseMsg && responseMsg.value.trim()) || undefined;
+      const adminInternalNotes = (internalNotes && internalNotes.value.trim()) || undefined;
+      const deliveryRefVal = (deliveryRef && deliveryRef.value.trim()) || undefined;
+
+      if (!newStatus && !adminResponseMessage && !adminInternalNotes) {
+        if (statusMsg) { statusMsg.textContent = 'No changes to save.'; statusMsg.className = 'acr-modal-status'; }
+        return;
+      }
+
+      if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving…'; }
+      if (statusMsg) { statusMsg.textContent = ''; statusMsg.className = 'acr-modal-status'; }
+
+      try {
+        const csrfToken = await getCsrfToken();
+        const body = {};
+        if (newStatus) body.status = newStatus;
+        if (adminResponseMessage !== undefined) body.adminResponseMessage = adminResponseMessage;
+        if (adminInternalNotes !== undefined) body.adminInternalNotes = adminInternalNotes;
+        if (newStatus === 'delivered' && deliveryRefVal) {
+          body.deliveryDetails = { reference: deliveryRefVal };
+        }
+
+        const res = await fetch(`/api/v1/admin/cashout-requests/${encodeURIComponent(_currentRequest.id)}`, {
+          method: 'PATCH',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'Failed to update request');
+
+        if (statusMsg) { statusMsg.textContent = 'Saved successfully.'; statusMsg.className = 'acr-modal-status acr-modal-status--success'; }
+        showToast('Cashout request updated.', 'success');
+
+        // Refresh list
+        setTimeout(() => {
+          closeModal();
+          loadRequests();
+        }, 800);
+      } catch (err) {
+        if (statusMsg) { statusMsg.textContent = err.message || 'Failed to save.'; statusMsg.className = 'acr-modal-status acr-modal-status--error'; }
+        showToast(err.message || 'Failed to save', 'error');
+      } finally {
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = '💾 Save changes'; }
+      }
+    }
+
+    // ── Wire up ──────────────────────────────────────────────────────────────
+
+    function init() {
+      loadRequests();
+
+      const refreshBtn = document.getElementById('acr-refresh-btn');
+      if (refreshBtn) refreshBtn.addEventListener('click', loadRequests);
+
+      const filterStatus = document.getElementById('acr-filter-status');
+      if (filterStatus) filterStatus.addEventListener('change', loadRequests);
+
+      const modalClose = document.getElementById('acr-modal-close');
+      if (modalClose) modalClose.addEventListener('click', closeModal);
+
+      const modalCancel = document.getElementById('acr-modal-cancel-btn');
+      if (modalCancel) modalCancel.addEventListener('click', closeModal);
+
+      const overlay = document.getElementById('acr-modal-overlay');
+      if (overlay) {
+        overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+      }
+
+      const saveBtn = document.getElementById('acr-modal-save-btn');
+      if (saveBtn) saveBtn.addEventListener('click', saveChanges);
+
+      document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') closeModal();
+      });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  })();
+  </script>
+  <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
+</body>
+</html>

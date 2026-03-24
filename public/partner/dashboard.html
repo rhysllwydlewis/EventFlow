@@ -170,124 +170,82 @@
         </div>
       </section>
 
-      <!-- Gift Card Cashout — Tremendous -->
+      <!-- Cashout Request -->
       <section class="partner-section" aria-labelledby="cashout-heading" id="cashout-section">
         <div class="partner-section-header">
           <div>
-            <h2 class="partner-section-title" id="cashout-heading">🎁 Gift Card Cashout</h2>
-            <p class="partner-section-subtitle">Send gift cards instantly via Tremendous — powered by your points balance</p>
+            <h2 class="partner-section-title" id="cashout-heading">💸 Request a Cashout</h2>
+            <p class="partner-section-subtitle">Convert your available credits into an Amazon Voucher or Pre-Paid Debit Card — processed within 3–5 working days</p>
           </div>
         </div>
 
-        <!-- Loading state -->
-        <div id="cashout-loading" class="partner-empty" aria-live="polite" style="display:none;">
-          <div class="partner-empty-icon" aria-hidden="true">⏳</div>
-          <p class="partner-empty-text">Loading gift card catalogue…</p>
-        </div>
-
-        <!-- Not configured / error state -->
-        <div id="cashout-error" style="display:none;" aria-live="polite">
-          <div class="cashout-not-configured">
-            <span class="cashout-not-configured-icon" aria-hidden="true">⚙️</span>
-            <div style="flex:1;min-width:0;">
-              <p style="margin:0;" id="cashout-error-msg">Unable to load gift card products. Please try again later or contact support.</p>
-              <button type="button" id="cashout-retry-btn" class="cashout-retry-btn" style="display:none;" aria-label="Retry loading gift card products">↻ Try again</button>
-            </div>
+        <!-- Insufficient balance notice -->
+        <div id="cashout-insufficient" class="cashout-not-configured" style="display:none;" aria-live="polite">
+          <span class="cashout-not-configured-icon" aria-hidden="true">💰</span>
+          <div style="flex:1;min-width:0;">
+            <p style="margin:0;font-weight:600;">Cashout not yet available</p>
+            <p style="margin:0.25rem 0 0;font-size:0.85rem;opacity:0.8;">
+              You need at least <strong>£50 in available credits</strong> to request a cashout.
+              Your current available balance is <span id="cashout-avail-gbp-msg">£—</span>.
+            </p>
           </div>
         </div>
 
-        <!-- Gift card form -->
+        <!-- Cashout form -->
         <div id="cashout-form-wrap" style="display:none;">
           <form id="cashout-form" novalidate autocomplete="off">
             <div class="cashout-form-grid">
 
-              <!-- Product selection -->
+              <!-- Payout method -->
               <div class="partner-modal-field">
-                <label for="cashout-product">
-                  Gift Card Brand <span style="color:#ef4444" aria-hidden="true">*</span>
+                <label for="cashout-method">
+                  Payout Method <span style="color:#ef4444" aria-hidden="true">*</span>
                 </label>
                 <select
-                  id="cashout-product"
-                  name="productId"
+                  id="cashout-method"
+                  name="method"
                   class="partner-modal-input"
                   required
                   aria-required="true"
                 >
-                  <option value="">Select a brand…</option>
+                  <option value="">Select a method…</option>
+                  <option value="amazon_voucher">Amazon Voucher</option>
+                  <option value="prepaid_debit_card">Pre-Paid Debit Card</option>
                 </select>
               </div>
 
-              <!-- Amount -->
+              <!-- Denomination -->
               <div class="partner-modal-field">
-                <label for="cashout-amount">
+                <label for="cashout-denomination">
                   Amount (£) <span style="color:#ef4444" aria-hidden="true">*</span>
                 </label>
-                <input
-                  id="cashout-amount"
-                  name="value"
-                  type="number"
-                  min="1"
-                  max="500"
-                  step="1"
+                <select
+                  id="cashout-denomination"
+                  name="denominationGbp"
                   class="partner-modal-input"
-                  placeholder="e.g. 10"
                   required
                   aria-required="true"
                   aria-describedby="cashout-balance-hint"
-                />
+                >
+                  <option value="">Select an amount…</option>
+                </select>
                 <p class="cashout-balance-hint-row" id="cashout-balance-hint">
                   Available: <span id="cashout-balance-pts">—</span> pts
                   (<span id="cashout-balance-gbp">£—</span>)
                 </p>
               </div>
 
-              <!-- Recipient name -->
-              <div class="partner-modal-field">
-                <label for="cashout-recipient-name">
-                  Recipient Name <span style="color:#ef4444" aria-hidden="true">*</span>
-                </label>
-                <input
-                  id="cashout-recipient-name"
-                  name="recipientName"
-                  type="text"
-                  class="partner-modal-input"
-                  placeholder="Full name"
-                  maxlength="100"
-                  required
-                  aria-required="true"
-                  autocomplete="off"
-                />
-              </div>
-
-              <!-- Recipient email -->
-              <div class="partner-modal-field">
-                <label for="cashout-recipient-email">
-                  Recipient Email <span style="color:#ef4444" aria-hidden="true">*</span>
-                </label>
-                <input
-                  id="cashout-recipient-email"
-                  name="recipientEmail"
-                  type="email"
-                  class="partner-modal-input"
-                  placeholder="recipient@example.com"
-                  maxlength="200"
-                  required
-                  aria-required="true"
-                  autocomplete="off"
-                />
-              </div>
-
-              <!-- Optional message (full-width) -->
+              <!-- Optional notes -->
               <div class="partner-modal-field" style="grid-column:1/-1;">
-                <label for="cashout-message">
-                  Personal Message <span style="color:rgba(255,255,255,0.35);font-weight:400;">(optional)</span>
+                <label for="cashout-notes">
+                  Notes <span style="color:rgba(255,255,255,0.35);font-weight:400;">(optional)</span>
                 </label>
                 <textarea
-                  id="cashout-message"
-                  name="message"
+                  id="cashout-notes"
+                  name="partnerMessage"
                   class="cashout-message-textarea"
-                  placeholder="Add a short personal note for the recipient…"
-                  maxlength="500"
+                  placeholder="Any additional information for the team…"
+                  maxlength="1000"
                   rows="3"
                 ></textarea>
               </div>
@@ -299,56 +257,48 @@
                 type="submit"
                 id="cashout-submit-btn"
                 class="partner-submit-btn"
-                style="width:auto;max-width:220px;margin:0;"
+                style="width:auto;max-width:260px;margin:0;"
               >
-                🎁 Send Gift Card
+                💸 Submit Cashout Request
               </button>
               <div id="cashout-status" class="partner-status" role="alert" aria-live="polite"></div>
             </div>
           </form>
 
           <p class="cashout-powered-by">
-            Powered by
-            <a href="https://www.tremendous.com" target="_blank" rel="noopener noreferrer">Tremendous</a>
-            &mdash; gift cards delivered by email
+            Requests are processed manually and typically delivered within <strong>3–5 working days</strong>.
           </p>
         </div>
 
-        <!-- Order confirmation -->
+        <!-- Request confirmation -->
         <div id="cashout-confirmation" style="display:none;" aria-live="polite">
           <div class="cashout-confirmation-panel">
             <p class="cashout-confirmation-title">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-              Gift card sent!
+              Request submitted!
             </p>
             <p class="cashout-confirmation-meta" id="cashout-confirmation-msg"></p>
             <div class="cashout-confirmation-actions">
-              <button type="button" id="cashout-view-order-btn" class="cashout-action-btn">
-                📋 View status
-              </button>
-              <button type="button" id="cashout-resend-btn" class="cashout-action-btn" style="display:none;">
-                📧 Resend email
-              </button>
               <button type="button" id="cashout-new-btn" class="cashout-action-btn cashout-action-btn--primary">
-                🎁 Send another
+                💸 Submit another
               </button>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- Gift Card History -->
+      <!-- Cashout Request History -->
       <section class="partner-section" aria-labelledby="cashout-history-heading">
         <div class="partner-section-header">
           <div>
-            <h2 class="partner-section-title" id="cashout-history-heading">📜 Gift Card History</h2>
-            <p class="partner-section-subtitle">Your past cashout orders</p>
+            <h2 class="partner-section-title" id="cashout-history-heading">📜 Cashout History</h2>
+            <p class="partner-section-subtitle">Your past and pending cashout requests</p>
           </div>
         </div>
         <div id="cashout-history-container">
           <div class="partner-empty">
-            <div class="partner-empty-icon" aria-hidden="true">🎁</div>
-            <p class="partner-empty-text">Loading order history…</p>
+            <div class="partner-empty-icon" aria-hidden="true">💸</div>
+            <p class="partner-empty-text">Loading cashout history…</p>
           </div>
         </div>
       </section>
@@ -453,6 +403,7 @@
     </div>
 
     <script src="/assets/js/utils/auth-state.js" defer></script>
+    <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
     <script src="/assets/js/pages/partner-dashboard-init.js?v=18.3.0" defer></script>
   </body>
 </html>

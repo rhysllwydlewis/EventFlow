@@ -125,4 +125,20 @@ router.get('/admin-debug', apiLimiter, authRequired, async (req, res) => {
   }
 });
 
+/**
+ * GET /admin-cashout-requests
+ * Serve admin cashout requests page
+ */
+router.get('/admin-cashout-requests', apiLimiter, authRequired, async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.redirect('/auth');
+    }
+    res.sendFile(path.join(__dirname, '..', 'public', 'admin-cashout-requests.html'));
+  } catch (error) {
+    logger.error('Error serving admin cashout requests page:', error);
+    return res.status(500).send('Internal server error');
+  }
+});
+
 module.exports = router;
