@@ -10,6 +10,41 @@ ALTCHA is a privacy-focused, self-hosted CAPTCHA alternative that uses a proof-o
 4. The client submits the solution payload with the form
 5. The server verifies the solution locally (no external API call)
 
+## Root Cause of "No ALTCHA payload provided" Error (Fixed)
+
+The HTTP 400 `{ "error": "No ALTCHA payload provided" }` error on registration was caused by two issues:
+
+### Issue 1 – CDN dependency (primary cause)
+
+The vendor shim (`altcha.min.js`) loaded the ALTCHA web component exclusively from CDN
+(`cdn.jsdelivr.net`, `unpkg.com`). When an adblocker or privacy extension blocked the CDN
+request, the widget never loaded and the 15-second timeout fallback fired.
+
+The fallback message previously read **"Verification unavailable. You can still create an account."**
+This was misleading: the backend always requires ALTCHA in production, so the form would always
+return 400 regardless.
+
+**Fix:** The `altcha` npm package (v2) is now installed as a `devDependency`. The widget
+bundle is self-hosted at `/assets/js/vendor/altcha-widget.js`. The loader shim now tries the
+self-hosted bundle first, then falls back to CDN sources.
+
+### Issue 2 – No frontend submission guard
+
+The `app.js` registration handler would submit the form even when `captchaToken` was null,
+resulting in a guaranteed 400 from the backend.
+
+**Fix:** The handler now validates the ALTCHA payload before calling `fetch`. If no payload is
+found, it shows a clear message and returns without submitting.
+
+### Issue 3 – Stale payload on cached page loads
+
+When the page was loaded from cache, `altcha.min.js` might already have registered the custom
+element before `auth-altcha-init.js` ran. In that case, the widget could auto-solve before the
+`statechange` listener was attached, leaving `window.__altchaRegPayload` unset.
+
+**Fix:** `auth-altcha-init.js` now reads the widget's current payload immediately after binding
+the `statechange` listener (via Shadow DOM or `.value`), capturing any already-solved state.
+
 ## Backend Setup (✅ Complete)
 
 ### 1. Environment Variable
@@ -71,35 +106,82 @@ router.get('/altcha/challenge', async (req, res) => {
 
 ## Frontend Implementation (✅ Complete)
 
+### Self-hosted Widget Bundle
+
+The actual ALTCHA web component is now self-hosted at `/assets/js/vendor/altcha-widget.js`
+(copied from `node_modules/altcha/dist/altcha.js`). The loader shim at
+`/assets/js/vendor/altcha.min.js` tries this path first before falling back to CDN.
+
+To update the widget bundle after an `altcha` npm package upgrade:
+
+```bash
+cp node_modules/altcha/dist/altcha.js public/assets/js/vendor/altcha-widget.js
+```
+
 ### Auth Registration Form (`public/auth.html`)
 
 ```html
-<!-- Load ALTCHA web component (self-hosted to avoid browser tracking prevention) -->
+<!-- Load ALTCHA web component (self-hosted, CDN fallback) -->
 <script src="/assets/js/vendor/altcha.min.js" defer></script>
 
 <!-- Widget in the form -->
 <altcha-widget challengeurl="/api/v1/altcha/challenge" id="reg-altcha-widget"></altcha-widget>
 ```
 
-The ALTCHA payload is captured via the widget's `statechange` event and stored in `window.__altchaRegPayload`. The hidden input rendered by the widget lives inside its **Shadow DOM** and is not reachable via a normal `querySelector`, so the event-driven approach is required:
+The ALTCHA payload is captured via the widget's `statechange` event and stored in
+`window.__altchaRegPayload`. The `auth-altcha-init.js` also reads the widget's current state
+immediately after binding (in case the widget solved before the listener was attached):
 
 ```javascript
-// In auth.html's IIFE — bind once (and again when widget is dynamically recreated)
+// In auth-altcha-init.js — bind event and capture any already-solved state
 function bindAltchaEvents(widget) {
   if (!widget) return;
-  widget.addEventListener('statechange', function (e) {
+  widget.addEventListener('statechange', e => {
     if (e.detail && e.detail.state === 'verified') {
-      window.__altchaRegPayload = e.detail.payload;
+      window.__altchaRegPayload = e.detail.payload || readWidgetPayload(widget);
     } else {
       window.__altchaRegPayload = null;
     }
   });
+  // Capture if already verified (cached page load)
+  const existingPayload = readWidgetPayload(widget);
+  if (existingPayload) {
+    window.__altchaRegPayload = existingPayload;
+  }
 }
+```
 
-// In app.js — registration form submit handler
+### Registration Submit Guard (`app.js`)
+
+The registration handler blocks submission when no ALTCHA payload is available:
+
+```javascript
 const altchaWidget = document.getElementById('reg-altcha-widget');
 if (altchaWidget) {
-  payload.captchaToken = window.__altchaRegPayload || altchaWidget.value || null;
+  // Priority: statechange-captured → Shadow DOM → .value
+  let captchaToken = window.__altchaRegPayload || null;
+  if (!captchaToken) {
+    try {
+      if (altchaWidget.shadowRoot) {
+        const shadowInput = altchaWidget.shadowRoot.querySelector('input[name="altcha"]');
+        if (shadowInput && shadowInput.value) captchaToken = shadowInput.value;
+      }
+    } catch (_) {}
+    if (!captchaToken) captchaToken = altchaWidget.value || null;
+  }
+  if (!captchaToken) {
+    // Block submission with a clear message
+    regStatus.textContent =
+      'Please complete the verification challenge before creating your account.';
+    regBtn.disabled = false;
+    return;
+  }
+  payload.captchaToken = captchaToken;
+} else if (window.__altchaUnavailable) {
+  // Widget failed to load entirely
+  regStatus.textContent = 'Verification is unavailable. Please refresh the page and try again.';
+  regBtn.disabled = false;
+  return;
 }
 ```
 
@@ -126,11 +208,11 @@ var captchaToken = captchaPayload || (altchaWidget && altchaWidget.value) || nul
 ```
 
 > **Why not `querySelector('input[name="altcha"]')`?**  
-> The hidden `<input name="altcha">` is rendered inside the `<altcha-widget>` **Shadow DOM**. Standard `querySelector` cannot cross the Shadow DOM boundary and always returns `null`. The `statechange` event approach is the correct, spec-compliant way to read the payload.
+> The hidden `<input name="altcha">` is rendered inside the `<altcha-widget>` **Shadow DOM**. Standard `querySelector` cannot cross the Shadow DOM boundary and always returns `null`. The `statechange` event approach is the correct, spec-compliant way to read the payload. As a secondary fallback, `shadowRoot.querySelector('input[name="altcha"]')` is used.
 
 ### Utility Module (`public/assets/js/utils/altcha.js`)
 
-A reusable ALTCHA utility module is available for other forms. `getAltchaPayload()` tries Shadow DOM → light DOM → form-level → `.value` in order:
+A reusable ALTCHA utility module is available for other forms. `getAltchaPayload()` tries Shadow DOM → light DOM → widget descendants → `.value` in order:
 
 ```javascript
 import { addAltchaToForm, getAltchaPayload } from '/assets/js/utils/altcha.js';
@@ -144,24 +226,27 @@ const captchaToken = getPayload();
 
 ## Routes Updated (✅ Complete)
 
-| Route | Change |
-|-------|--------|
-| `POST /api/v1/contact` | Calls `verifyAltcha(captchaToken)` |
-| `POST /api/v1/auth/register` | Calls `verifyAltcha(captchaToken)` |
-| `POST /api/v1/verify-captcha` | Calls `verifyAltcha(token)` |
-| `GET /api/v1/altcha/challenge` | **New** — generates challenge |
-| `GET /api/v1/config` | Returns `altchaChallengeUrl` |
+| Route                          | Change                             |
+| ------------------------------ | ---------------------------------- |
+| `POST /api/v1/contact`         | Calls `verifyAltcha(captchaToken)` |
+| `POST /api/v1/auth/register`   | Calls `verifyAltcha(captchaToken)` |
+| `POST /api/v1/verify-captcha`  | Calls `verifyAltcha(token)`        |
+| `GET /api/v1/altcha/challenge` | **New** — generates challenge      |
+| `GET /api/v1/config`           | Returns `altchaChallengeUrl`       |
 
 ## Security / CSP (✅ Complete)
 
-The ALTCHA widget is now self-hosted at `/assets/js/vendor/altcha.min.js`, served from the same origin. This avoids browser Tracking Prevention features (Edge, Brave, Firefox, Safari) blocking `cdn.jsdelivr.net` from accessing storage, which previously prevented the `<altcha-widget>` web component from initialising.
+The ALTCHA widget is now self-hosted at `/assets/js/vendor/altcha-widget.js`, served from the
+same origin. This avoids browser Tracking Prevention features (Edge, Brave, Firefox, Safari)
+and adblocker interference from blocking CDN resources.
 
-`cdn.jsdelivr.net` is still in the CSP `scriptSrc`, `scriptSrcElem`, and `connectSrc` directives for any remaining CDN usage, but no additional CSP changes are needed for ALTCHA itself.
+`cdn.jsdelivr.net` is still in the CSP `scriptSrc`, `scriptSrcElem`, and `connectSrc`
+directives for CDN fallback, but the self-hosted bundle will be used in normal operation.
 
 ## NPM Dependencies
 
 - `altcha-lib` — Server-side challenge creation and verification (no external API calls)
-- ALTCHA frontend widget is self-hosted at `/assets/js/vendor/altcha.min.js` (sourced from the `altcha` npm package)
+- `altcha` (devDependency) — Frontend widget source; bundle copied to `public/assets/js/vendor/altcha-widget.js`
 
 ## Lead Scoring
 

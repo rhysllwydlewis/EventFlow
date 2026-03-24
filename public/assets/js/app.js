@@ -5399,12 +5399,52 @@ document.addEventListener('DOMContentLoaded', () => {
             payload.ref = refParam;
           }
 
-          // Include ALTCHA payload if the widget is present in the form
+          // Include ALTCHA payload if the widget is present in the form.
+          // Priority order: statechange-captured global → Shadow DOM hidden input → .value property.
           const altchaWidget = document.getElementById('reg-altcha-widget');
           if (altchaWidget) {
-            // Use the payload captured via the statechange event (window.__altchaRegPayload),
-            // falling back to the .value property exposed by ALTCHA v2.
-            payload.captchaToken = window.__altchaRegPayload || altchaWidget.value || null;
+            let captchaToken = window.__altchaRegPayload || null;
+            if (!captchaToken) {
+              try {
+                if (altchaWidget.shadowRoot) {
+                  const shadowInput = altchaWidget.shadowRoot.querySelector('input[name="altcha"]');
+                  if (shadowInput && shadowInput.value) {
+                    captchaToken = shadowInput.value;
+                  }
+                }
+              } catch (_) {
+                // Shadow DOM not accessible in this environment
+              }
+              if (!captchaToken) {
+                captchaToken = altchaWidget.value || null;
+              }
+            }
+
+            if (!captchaToken) {
+              // Widget is present but not yet verified — block submission with a clear message.
+              if (regStatus) {
+                regStatus.textContent =
+                  'Please complete the verification challenge before creating your account.';
+              }
+              if (regBtn) {
+                regBtn.disabled = false;
+                regBtn.textContent = 'Create account';
+              }
+              return;
+            }
+
+            payload.captchaToken = captchaToken;
+          } else if (window.__altchaUnavailable) {
+            // Widget failed to load entirely — inform the user to refresh
+            if (regStatus) {
+              regStatus.textContent =
+                'Verification is unavailable. Please refresh the page and try again.';
+            }
+            if (regBtn) {
+              regBtn.disabled = false;
+              regBtn.textContent = 'Create account';
+            }
+            return;
           }
 
           const r = await fetch('/api/v1/auth/register', {

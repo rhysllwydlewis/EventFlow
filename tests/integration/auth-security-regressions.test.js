@@ -59,7 +59,8 @@ describe('auth.html – security regressions', () => {
     });
 
     it('contains a timeout fallback for when the widget fails to load', () => {
-      expect(content).toContain('Verification unavailable');
+      // Message was updated to block submission instead of misleadingly allowing it
+      expect(content).toContain('Verification failed to load');
     });
   });
 
