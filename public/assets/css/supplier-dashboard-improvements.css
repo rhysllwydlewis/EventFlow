@@ -825,6 +825,8 @@ body.supplier-dashboard-page .supplier-cta-section {
   top: var(--ef-header-height, 64px);
   z-index: 12;
   margin: 0;
+  width: 100%;
+  overflow: hidden;
   backdrop-filter: blur(10px) saturate(160%);
   -webkit-backdrop-filter: blur(10px) saturate(160%);
   background: rgba(255, 255, 255, 0.92);
@@ -854,6 +856,9 @@ body.supplier-dashboard-page .supplier-cta-section {
   overscroll-behavior-x: contain; /* prevent scroll chaining / loops */
   scrollbar-width: none;
   contain: layout paint;
+  width: 100%;
+  box-sizing: border-box;
+  max-width: 100%;
 }
 
 .mobile-nav-pills::-webkit-scrollbar {
