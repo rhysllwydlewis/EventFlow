@@ -46,6 +46,8 @@
   const TEASER_AUTO_DISMISS_MS = 10000; // Auto-dismiss teaser after 10 s of inactivity
   const TEASER_STORAGE_KEY = 'jadeassist-teaser-dismissed';
   const TEASER_EXPIRY_DAYS = 1; // Teaser dismissal persists for 1 day
+  const DISMISS_STORAGE_KEY = 'jadeassist_dismissed_at'; // Key for widget close dismissal
+  const DISMISS_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours in ms
   const MOBILE_BREAKPOINT = 768; // px — matches CSS media query breakpoint
 
   // Positioning constants passed directly to widget config API
@@ -724,6 +726,9 @@
         console.log('[JadeAssist] Widget initialized successfully ✅');
       }
 
+      // Inject a × dismiss button on the launcher so users can close the widget for 24 h
+      injectDismissButton(debug);
+
       // Ensure chat is closed on page load (defensive guard against auto-open)
       setTimeout(() => {
         if (window.JadeWidget && typeof window.JadeWidget.close === 'function') {
@@ -767,6 +772,100 @@
   }
 
   /**
+   * Injects a small × dismiss button on the top-left of the JadeAssist launcher.
+   * Clicking it hides the widget for 24 hours (stored in localStorage).
+   */
+  function injectDismissButton(debug) {
+    // Try a few candidate selectors that the widget library might use
+    const LAUNCHER_SELECTORS = [
+      '#jade-widget-launcher',
+      '.jade-widget-launcher',
+      '#jade-launcher',
+      '.jade-launcher',
+    ];
+
+    let launcher = null;
+    for (const sel of LAUNCHER_SELECTORS) {
+      launcher = document.querySelector(sel);
+      if (launcher) break;
+    }
+
+    // Fall back: look for the widget root container
+    if (!launcher) {
+      const root = document.querySelector('#jade-widget-root, .jade-widget-root, #jade-widget-container');
+      if (root) {
+        // Use the first child as the launcher-like element
+        launcher = root;
+      }
+    }
+
+    if (!launcher) {
+      if (debug) {
+        console.warn('[JadeAssist] Could not find launcher element for dismiss button');
+      }
+      return;
+    }
+
+    // Ensure the launcher has position:relative so the button positions correctly
+    const launcherStyle = window.getComputedStyle(launcher);
+    if (launcherStyle.position === 'static') {
+      launcher.style.position = 'relative';
+    }
+
+    const btn = document.createElement('button');
+    btn.setAttribute('aria-label', 'Close JadeAssist chat widget');
+    btn.textContent = '×';
+    btn.style.cssText = [
+      'position: absolute',
+      'top: -4px',
+      'left: -4px',
+      'width: 20px',
+      'height: 20px',
+      'border-radius: 50%',
+      'background: #1f2937',
+      'color: #fff',
+      'border: none',
+      'cursor: pointer',
+      'font-size: 14px',
+      'line-height: 1',
+      'display: flex',
+      'align-items: center',
+      'justify-content: center',
+      'z-index: ' + (Z_INDEX.WIDGET + 1),
+      'box-shadow: 0 1px 4px rgba(0,0,0,0.35)',
+      'padding: 0',
+    ].join(';');
+
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      // Record dismissal time
+      try {
+        localStorage.setItem(DISMISS_STORAGE_KEY, String(Date.now()));
+      } catch (_) {
+        // ignore storage errors
+      }
+      // Hide the entire widget
+      const widgetRoot = document.querySelector(
+        '#jade-widget-root, .jade-widget-root, #jade-widget-container, #jade-widget-launcher'
+      );
+      if (widgetRoot) {
+        widgetRoot.style.display = 'none';
+      }
+      // Also hide launcher itself if it differs from root
+      launcher.style.display = 'none';
+      // Hide the teaser bubble if visible
+      if (teaserElement) {
+        teaserElement.style.display = 'none';
+      }
+      if (debug) {
+        console.log('[JadeAssist] Widget dismissed for 24 h');
+      }
+    });
+
+    launcher.appendChild(btn);
+  }
+
+  /**
    * Polls for window.JadeWidget with exponential back-off (capped at RETRY_INTERVAL).
    */
   function waitForWidget() {
@@ -791,6 +890,27 @@
 
   /** Delays first init attempt to avoid competing with critical page resources. */
   function startInitialization() {
+    // Skip if the user dismissed the widget within the last 24 hours
+    try {
+      const dismissedAt = localStorage.getItem(DISMISS_STORAGE_KEY);
+      if (dismissedAt && Date.now() - Number(dismissedAt) < DISMISS_DURATION_MS) {
+        if (shouldEnableDebug()) {
+          console.log('[JadeAssist] Skipping init — widget dismissed within last 24 h');
+        }
+        return;
+      }
+    } catch (_) {
+      // ignore storage errors
+    }
+
+    // Don't show until the user has given cookie consent
+    if (window.CookieConsent && !window.CookieConsent.hasConsent()) {
+      window.addEventListener('cookieConsentChanged', function onConsent() {
+        startInitialization();
+      }, { once: true });
+      return;
+    }
+
     setTimeout(waitForWidget, INIT_DELAY);
   }
 

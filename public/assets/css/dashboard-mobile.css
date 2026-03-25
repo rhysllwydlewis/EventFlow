@@ -148,12 +148,12 @@
   .dashboard-hero__actions {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: var(--mob-gap-md);
+    gap: 6px;
   }
 
   /* Chip base: compact, icon above label, NO text wrapping */
   .dashboard-action-chip {
-    padding: 8px 8px 7px;
+    padding: 6px 6px 5px;
     font-size: 0.75rem;
     font-weight: var(--mob-btn-fw);
     line-height: 1.25;
@@ -167,7 +167,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     /* Give every chip the same height */
-    min-height: 58px;
+    min-height: 48px;
   }
 
   /* Icon size */
