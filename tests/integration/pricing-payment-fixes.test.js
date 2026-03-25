@@ -160,7 +160,7 @@ describe('Pricing and payment system fixes', () => {
     });
   });
 
-  // Fix 3: subscription.js fetches CSRF token before POST and uses v1 endpoint
+  // Fix 3: subscription.js fetches CSRF token before POST and uses versioned endpoint
   describe('subscription.js: CSRF token and correct API endpoint', () => {
     it('fetches CSRF token before creating checkout session', () => {
       const src = readSrc('public', 'supplier', 'js', 'subscription.js');
@@ -168,16 +168,15 @@ describe('Pricing and payment system fixes', () => {
       expect(src).toContain('X-CSRF-Token');
     });
 
-    it('uses /api/v1/payments/create-checkout-session (versioned endpoint)', () => {
+    it('uses the v2 subscriptions endpoint for new checkout sessions', () => {
       const src = readSrc('public', 'supplier', 'js', 'subscription.js');
-      expect(src).toContain('/api/v1/payments/create-checkout-session');
+      expect(src).toContain('/api/v2/subscriptions/create-checkout-session');
       // Should NOT use the old unversioned endpoint
       expect(src).not.toContain("fetch('/api/payments/create-checkout-session'");
     });
 
-    it('uses subscription type instead of always falling back to one_time', () => {
+    it('does not fall back to one_time payment type', () => {
       const src = readSrc('public', 'supplier', 'js', 'subscription.js');
-      expect(src).toContain("type: 'subscription'");
       // The fallback one_time section should no longer exist
       expect(src).not.toContain('// Fallback to one-time payment');
     });

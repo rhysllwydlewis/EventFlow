@@ -140,6 +140,11 @@ async function initSubscriptionPage() {
 
 /**
  * Poll /api/v1/auth/me until subscriptionTier changes from the old value (or max attempts).
+ * Used after a Stripe checkout redirect to sync the plan without requiring a manual refresh.
+ * @param {string} previousTier - The tier before checkout (e.g. 'free')
+ * @param {number} [maxAttempts=8] - Maximum polling attempts
+ * @param {number} [delayMs=1500] - Milliseconds between each poll
+ * @returns {Promise<string>} The new tier, or `previousTier` if it never changed
  */
 async function pollForTierUpdate(previousTier, maxAttempts = 8, delayMs = 1500) {
   for (let i = 0; i < maxAttempts; i++) {
@@ -230,6 +235,7 @@ function renderSubscriptionPlans() {
     return;
   }
 
+  const DATE_FORMAT_OPTIONS = { day: 'numeric', month: 'long', year: 'numeric' };
   const currentTier = currentUser?.subscriptionTier || 'free';
   const currentHierarchyIndex = PLAN_HIERARCHY.indexOf(currentTier);
 
@@ -248,11 +254,11 @@ function renderSubscriptionPlans() {
         if (currentSubscription && plan.tier !== 'free') {
           const cancelNotice =
             currentSubscription.cancelAtPeriodEnd && currentSubscription.currentPeriodEnd
-              ? `<p class="card-cancellation-notice">⚠️ Cancels on ${new Date(currentSubscription.currentPeriodEnd).toLocaleDateString('en-GB')}</p>`
+              ? `<p class="card-cancellation-notice">⚠️ Cancels on ${new Date(currentSubscription.currentPeriodEnd).toLocaleDateString('en-GB', DATE_FORMAT_OPTIONS)}</p>`
               : '';
           const renewalNotice =
             !currentSubscription.cancelAtPeriodEnd && currentSubscription.currentPeriodEnd
-              ? `<p class="card-renewal-notice">Renews ${new Date(currentSubscription.currentPeriodEnd).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>`
+              ? `<p class="card-renewal-notice">Renews ${new Date(currentSubscription.currentPeriodEnd).toLocaleDateString('en-GB', DATE_FORMAT_OPTIONS)}</p>`
               : '';
           manageHtml = `
             <button class="btn-manage" onclick="openBillingPortal(event)">Manage Subscription</button>
