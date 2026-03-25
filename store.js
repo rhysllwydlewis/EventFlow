@@ -49,6 +49,7 @@ const files = {
   ab_conversions: path.join(DATA_DIR, 'ab_conversions.json'),
   public_calendar_events: path.join(DATA_DIR, 'public_calendar_events.json'),
   public_calendar_saves: path.join(DATA_DIR, 'public_calendar_saves.json'),
+  customer_calendar_entries: path.join(DATA_DIR, 'customer_calendar_entries.json'),
   partners: path.join(DATA_DIR, 'partners.json'),
   partner_referrals: path.join(DATA_DIR, 'partner_referrals.json'),
   partner_credit_transactions: path.join(DATA_DIR, 'partner_credit_transactions.json'),

@@ -144,6 +144,16 @@
 
 <!-- Welcome Section -->
 <div id="welcome-section" class="customer-welcome-card card">
+  <button
+    id="welcome-dismiss-btn"
+    type="button"
+    class="customer-welcome-dismiss"
+    aria-label="Dismiss welcome message"
+  >
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </svg>
+  </button>
   <h2 id="welcome-heading" class="customer-welcome-heading">Welcome to EventFlow!</h2>
   <p class="small customer-welcome-intro">Plan your perfect event with our curated suppliers.</p>
   <div id="what-you-can-do" class="customer-welcome-actions">
@@ -206,6 +216,24 @@
 <div class="card customer-calendar-card">
   <div class="customer-calendar-header">
     <h3 class="customer-card-title">📅 Events Calendar</h3>
+    <button
+      type="button"
+      id="cal-add-entry-btn"
+      class="cta secondary customer-calendar-add-btn"
+      aria-label="Add calendar entry"
+    >
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true" style="flex-shrink:0;">
+        <path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+      Add Entry
+    </button>
+  </div>
+  <div id="cal-legend" class="customer-calendar-legend" aria-label="Calendar colour legend">
+    <span class="cal-legend-item"><span class="cal-legend-dot" style="background:#0b8073;"></span>Event plan</span>
+    <span class="cal-legend-item"><span class="cal-legend-dot" style="background:#6366f1;"></span>Meeting</span>
+    <span class="cal-legend-item"><span class="cal-legend-dot" style="background:#f59e0b;"></span>Appointment</span>
+    <span class="cal-legend-item"><span class="cal-legend-dot" style="background:#0b8073;"></span>Event</span>
+    <span class="cal-legend-item"><span class="cal-legend-dot" style="background:#7c3aed;"></span>Public</span>
   </div>
   <div id="events-calendar" class="customer-calendar-viewport"></div>
 </div>

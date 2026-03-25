@@ -146,6 +146,33 @@ async function initDashboard() {
     }
   }
 
+  // Welcome card dismiss logic (persisted in localStorage)
+  const WELCOME_DISMISS_KEY = 'ef_welcome_dismissed';
+  const welcomeSection = document.getElementById('welcome-section');
+  if (welcomeSection) {
+    let dismissed = false;
+    try {
+      dismissed = localStorage.getItem(WELCOME_DISMISS_KEY) === '1';
+    } catch (_) {
+      /* ignore storage errors */
+    }
+    if (dismissed) {
+      welcomeSection.style.display = 'none';
+    } else {
+      const dismissBtn = document.getElementById('welcome-dismiss-btn');
+      if (dismissBtn) {
+        dismissBtn.addEventListener('click', () => {
+          welcomeSection.style.display = 'none';
+          try {
+            localStorage.setItem(WELCOME_DISMISS_KEY, '1');
+          } catch (_) {
+            /* ignore storage errors */
+          }
+        });
+      }
+    }
+  }
+
   // Check for guest plan token and claim it
   await claimGuestPlanIfExists();
 
