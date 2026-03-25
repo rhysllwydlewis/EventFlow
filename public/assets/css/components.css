@@ -3872,6 +3872,22 @@ body > .ef-loading-overlay {
   outline-offset: 2px;
 }
 
+/* Re-apply mobile overrides after the base rule above so the cascade is correct */
+@media (max-width: 767px) {
+  .cookie-consent-manage {
+    font-size: 0.65rem;
+    padding: 0.45rem 0.25rem;
+    min-width: 0;
+  }
+}
+
+@media (max-width: 360px) {
+  .cookie-consent-manage {
+    font-size: 0.6rem;
+    padding: 0.4rem 0.2rem;
+  }
+}
+
 /* Overlay */
 .cookie-prefs-overlay {
   position: fixed;
