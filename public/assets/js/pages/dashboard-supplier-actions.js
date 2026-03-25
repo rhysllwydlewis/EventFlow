@@ -47,6 +47,22 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  const btnGetHelp = document.querySelector('[data-action="get-help"]');
+  if (btnGetHelp) {
+    btnGetHelp.addEventListener('click', () => {
+      const ticketsSection = document.getElementById('tickets-sup');
+      if (ticketsSection) {
+        ticketsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      // Activate the Tickets pill in the mobile nav if visible
+      const ticketsPill = document.querySelector('.mobile-nav-pill[data-section="tickets-sup"]');
+      if (ticketsPill) {
+        document.querySelectorAll('.mobile-nav-pill').forEach(p => p.classList.remove('active'));
+        ticketsPill.classList.add('active');
+      }
+    });
+  }
+
   // Copy review link button
   const copyReviewLinkBtn = document.getElementById('copyReviewLinkBtn');
   if (copyReviewLinkBtn) {

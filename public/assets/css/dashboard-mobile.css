@@ -72,22 +72,40 @@
 
   .dashboard-hero__content {
     padding: var(--mob-card-pad);
-    gap: var(--mob-gap-lg);
+    gap: var(--mob-gap-md);
+  }
+
+  .dashboard-hero__greeting-wrapper {
+    gap: var(--mob-gap-xs);
+  }
+
+  .dashboard-hero__greeting {
+    font-size: 11px;
+  }
+
+  .dashboard-hero__title {
+    font-size: 20px;
+    gap: 2px;
+  }
+
+  .dashboard-hero__subtitle {
+    font-size: 0.8125rem;
+    max-width: 100%;
   }
 }
 
 @media (max-width: 430px) {
   .dashboard-hero__content {
     padding: var(--mob-card-pad-sm);
-    gap: var(--mob-gap-md);
+    gap: var(--mob-gap-sm);
   }
 
   .dashboard-hero__title {
-    font-size: 22px;
+    font-size: 18px;
   }
 
   .dashboard-hero__subtitle {
-    font-size: 0.875rem;
+    font-size: 0.75rem;
   }
 }
 
@@ -539,6 +557,23 @@
   body.supplier-dashboard-page #main-content.section,
   body.customer-dashboard-page #main-content.section {
     padding-bottom: max(20px, env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* ============================================================
+   P) MOBILE-ONLY LAYOUT FIXES
+   ============================================================ */
+@media (max-width: 768px) {
+  /* Remove top padding on main content so sticky mobile nav pills sit
+     flush below the header with no grey gap. */
+  body.supplier-dashboard-page #main-content.section {
+    padding-top: 0;
+  }
+
+  /* Hide breadcrumb on mobile — users scroll vertically and don't
+     need wayfinding crumbs that always show the same path. */
+  .dashboard-breadcrumb {
+    display: none;
   }
 }
 
