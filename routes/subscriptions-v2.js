@@ -100,12 +100,12 @@ router.post(
       // 'pro' and 'pro_monthly' are intentional aliases for the same monthly Professional plan.
       // 'pro_plus' and 'pro_plus_monthly' are intentional aliases for the same monthly Pro Plus plan.
       const PLAN_PRICE_MAP = {
-        pro: process.env.STRIPE_PRO_PRICE_ID || '', // monthly Professional (alias)
-        pro_monthly: process.env.STRIPE_PRO_PRICE_ID || '', // monthly Professional
-        pro_plus: process.env.STRIPE_PRO_PLUS_PRICE_ID || '',
-        pro_plus_monthly: process.env.STRIPE_PRO_PLUS_PRICE_ID || '',
-        pro_yearly: process.env.STRIPE_PRO_YEARLY_PRICE_ID || '',
-        pro_plus_yearly: process.env.STRIPE_PRO_PLUS_YEARLY_PRICE_ID || '',
+        pro: process.env.STRIPE_PRO_PRICE_ID || null, // monthly Professional (alias)
+        pro_monthly: process.env.STRIPE_PRO_PRICE_ID || null, // monthly Professional
+        pro_plus: process.env.STRIPE_PRO_PLUS_PRICE_ID || null,
+        pro_plus_monthly: process.env.STRIPE_PRO_PLUS_PRICE_ID || null,
+        pro_yearly: process.env.STRIPE_PRO_YEARLY_PRICE_ID || null,
+        pro_plus_yearly: process.env.STRIPE_PRO_PLUS_YEARLY_PRICE_ID || null,
         // starter/free — no Stripe payment needed
         starter: null,
         free: null,
@@ -117,30 +117,67 @@ router.post(
 
       const priceId = PLAN_PRICE_MAP[planId];
 
-      // Free/starter plan — nothing to charge
+      // Null priceId: either a free plan (no charge) or a paid plan with an
+      // unconfigured Stripe price ID in the environment.
       if (!priceId) {
-        const dest = returnUrl || `${process.env.BASE_URL || ''}/dashboard/supplier`;
-        return res.json({ success: true, url: dest });
+        if (planId === 'starter' || planId === 'free') {
+          const dest = `${process.env.BASE_URL || ''}/dashboard/supplier`;
+          return res.json({ success: true, url: dest });
+        }
+        return res.status(503).json({
+          error: 'Payment processing is not currently available. Please contact support.',
+        });
       }
 
       // Get or create Stripe customer
       const customer = await paymentService.getOrCreateStripeCustomer(req.user);
 
+      // Ensure a payment record exists that maps userId → stripeCustomerId so
+      // the webhook handler (handleSubscriptionCreated) can look up the user when
+      // the customer.subscription.created event fires.
+      const existingPayments = await dbUnified.read('payments');
+      const hasCustomerRecord = existingPayments.some(
+        p => p.userId === req.user.id && p.stripeCustomerId === customer.id
+      );
+      if (!hasCustomerRecord) {
+        const { uid } = require('../store');
+        await dbUnified.insertOne('payments', {
+          id: uid('pay'),
+          userId: req.user.id,
+          stripeCustomerId: customer.id,
+          stripePaymentId: null,
+          amount: 0,
+          currency: 'gbp',
+          status: 'pending',
+          type: 'subscription',
+          metadata: { planId },
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+      }
+
       const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
-      const successUrl =
-        returnUrl ||
-        `${baseUrl}/dashboard/supplier?billing=success&session_id={CHECKOUT_SESSION_ID}`;
+      const successUrl = `${baseUrl}/dashboard/supplier?billing=success&session_id={CHECKOUT_SESSION_ID}`;
       const cancelUrl = `${baseUrl}/pricing?checkout=cancelled`;
 
       const session = await stripe.checkout.sessions.create({
         customer: customer.id,
+        client_reference_id: req.user.id,
         mode: 'subscription',
         line_items: [{ price: priceId, quantity: 1 }],
         success_url: successUrl,
         cancel_url: cancelUrl,
+        // Session-level metadata (for checkout.session.completed)
         metadata: {
           userId: req.user.id,
           planId,
+        },
+        // Subscription-level metadata (for customer.subscription.created/updated)
+        subscription_data: {
+          metadata: {
+            userId: req.user.id,
+            planId,
+          },
         },
       });
 

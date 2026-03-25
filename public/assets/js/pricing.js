@@ -258,8 +258,70 @@
     });
   }
 
+  /**
+   * Show a dismissible toast banner at the bottom-right of the screen.
+   * Uses event delegation on document for the dismiss button — no inline handlers.
+   * @param {string} message - Text content (HTML-escaped before insertion)
+   * @param {'amber'|'green'|'red'} variant - Colour variant key
+   */
+  function showBanner(message, variant) {
+    // Safe colour map — never interpolate untrusted values into style strings
+    const COLORS = { amber: '#f59e0b', green: '#10b981', red: '#ef4444' };
+    const bg = COLORS[variant] || COLORS.amber;
+
+    // Remove any existing pricing banner
+    const existing = document.getElementById('pricing-status-banner');
+    if (existing) {
+      existing.remove();
+    }
+
+    const banner = document.createElement('div');
+    banner.id = 'pricing-status-banner';
+    banner.setAttribute('role', 'status');
+    banner.style.cssText =
+      `position:fixed;bottom:1.25rem;right:1.25rem;background:${bg};color:#fff;` +
+      `padding:0.875rem 1.25rem;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.18);` +
+      `z-index:10000;font-size:.9375rem;font-weight:500;max-width:360px;line-height:1.5;` +
+      `display:flex;align-items:flex-start;gap:0.625rem;`;
+    banner.innerHTML =
+      `<span style="flex:1;">${message}</span>` +
+      `<button data-dismiss-pricing-banner aria-label="Dismiss" ` +
+      `style="background:none;border:none;color:#fff;cursor:pointer;font-size:1.25rem;` +
+      `line-height:1;padding:0;margin-left:0.25rem;flex-shrink:0;">&#x00D7;</button>`;
+
+    document.body.appendChild(banner);
+
+    const dismiss = () => {
+      if (banner.parentNode) {
+        banner.remove();
+      }
+    };
+    setTimeout(dismiss, 8000);
+
+    // Dismiss on button click — delegated so no inline handler needed
+    banner.querySelector('[data-dismiss-pricing-banner]').addEventListener('click', dismiss);
+  }
+
+  /**
+   * Handle URL query params set by Stripe checkout redirects.
+   * - checkout=cancelled → user cancelled before paying
+   * (billing=success is handled by app.js on the supplier dashboard)
+   */
+  function handleCheckoutRedirectParams() {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('checkout') === 'cancelled') {
+      // Clean URL without a reload
+      const clean = new URL(window.location.href);
+      clean.searchParams.delete('checkout');
+      window.history.replaceState({}, '', clean.toString());
+
+      showBanner("ℹ️ No charge was made. You can subscribe whenever you're ready.", 'amber');
+    }
+  }
+
   // Initialize
   function init() {
+    handleCheckoutRedirectParams();
     checkAuthAndUpdateButtons();
   }
 

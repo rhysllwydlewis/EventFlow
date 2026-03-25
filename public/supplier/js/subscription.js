@@ -17,12 +17,12 @@ const PLANS = {
     id: 'pro_monthly',
     name: 'Professional',
     tier: 'pro',
-    price: 39.0,
+    price: 19.0,
     billingCycle: 'monthly',
     trialDays: 14,
-    introductoryPrice: 39.0,
-    regularPrice: 59.0,
-    introductoryMonths: 3,
+    earlyAccess: true,
+    normallyPrice: 69.0,
+    earlyAccessEndDate: '31 December 2026',
     features: [
       'Pro supplier badge on profile',
       'Priority listing in search results',
@@ -350,11 +350,23 @@ function renderSubscriptionPlans() {
           <span class="period">/month</span>
         </div>
         ${
+          plan.earlyAccess
+            ? `
+          <div class="early-access-label">Early Access Offer</div>
+        `
+            : ''
+        }
+        ${
           plan.introductoryPrice && plan.regularPrice && plan.introductoryMonths
             ? `
           <div class="price-note">First ${plan.introductoryMonths} months, then £${plan.regularPrice}/month</div>
         `
-            : ''
+            : plan.earlyAccess
+              ? `
+          <div class="price-note">Early access pricing while EventFlow is in development.</div>
+          <div class="price-note" style="text-decoration:line-through;">Normally £${plan.normallyPrice}/month</div>
+        `
+              : ''
         }
         <div class="trial-badge">
           ${plan.trialDays}-day free trial

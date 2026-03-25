@@ -862,6 +862,19 @@
   box-shadow: 0 4px 12px rgba(11, 128, 115, 0.35);
 }
 
+.early-access-label {
+  display: inline-block;
+  background: #0B8073;
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 0.75rem;
+}
+
 /* Subscription Status Card — Liquid Glass */
 .subscription-status-card {
   background: rgba(255, 255, 255, 0.88);

@@ -37,93 +37,114 @@
   
   <style>
     .pricing-hero {
-      background: linear-gradient(135deg, #0B8073 0%, #0a6d61 100%);
+      background: linear-gradient(135deg, #0B8073 0%, #086659 100%);
       color: white;
-      padding: 4rem 0 3rem;
+      padding: 5rem 0 4rem;
       text-align: center;
     }
     
     .pricing-hero h1 {
-      font-size: 2.5rem;
+      font-size: 2.75rem;
       margin-bottom: 1rem;
-      font-weight: 700;
+      font-weight: 800;
+      letter-spacing: -0.5px;
     }
     
     .pricing-hero .subtitle {
       font-size: 1.25rem;
-      opacity: 0.95;
+      opacity: 0.92;
       max-width: 600px;
-      margin: 0 auto;
+      margin: 0 auto 1.5rem;
+      line-height: 1.6;
+    }
+
+    .pricing-hero-badges {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-top: 0.5rem;
+    }
+
+    .pricing-hero-badge {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: white;
+      padding: 0.375rem 0.875rem;
+      border-radius: 20px;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      backdrop-filter: blur(4px);
     }
     
     .pricing-container {
       max-width: 1200px;
       margin: 0 auto;
-      padding: 3rem 1rem;
+      padding: 3.5rem 1.5rem;
     }
     
     .pricing-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 2rem;
-      margin: 2rem 0;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+      margin: 2.5rem 0;
+      align-items: start;
     }
     
     .pricing-card {
       background: white;
-      border-radius: 12px;
+      border-radius: 16px;
       border: 2px solid #e5e7eb;
       padding: 2rem;
       position: relative;
-      transition: transform 0.2s, box-shadow 0.2s;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     
     .pricing-card:hover {
       transform: translateY(-4px);
-      box-shadow: 0 12px 24px rgba(0,0,0,0.1);
+      box-shadow: 0 16px 32px rgba(0,0,0,0.08);
     }
     
     .pricing-card.featured {
       border-color: #0B8073;
-      box-shadow: 0 8px 16px rgba(11, 128, 115, 0.15);
+      box-shadow: 0 8px 32px rgba(11, 128, 115, 0.18);
+      margin-top: -0.75rem;
+      padding-top: 2.5rem;
+    }
+
+    .pricing-card.featured:hover {
+      box-shadow: 0 20px 48px rgba(11, 128, 115, 0.22);
     }
     
     .pricing-card.featured::before {
       content: "MOST POPULAR";
       position: absolute;
-      top: -12px;
+      top: -13px;
       left: 50%;
       transform: translateX(-50%);
-      background: #0B8073;
+      background: linear-gradient(135deg, #0B8073, #0a6d61);
       color: white;
-      padding: 0.25rem 1rem;
+      padding: 0.25rem 1.25rem;
       border-radius: 20px;
-      font-size: 0.75rem;
+      font-size: 0.6875rem;
       font-weight: 700;
-      letter-spacing: 0.5px;
-    }
-    
-    .pricing-tier {
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: #6b7280;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      margin-bottom: 0.5rem;
+      letter-spacing: 1px;
+      white-space: nowrap;
     }
     
     .pricing-name {
-      font-size: 1.75rem;
+      font-size: 1.625rem;
       font-weight: 700;
       color: #111827;
       margin-bottom: 1rem;
     }
     
     .pricing-price {
-      font-size: 2.5rem;
+      font-size: 2.75rem;
       font-weight: 800;
       color: #0B8073;
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.25rem;
+      line-height: 1;
     }
     
     .pricing-price span {
@@ -132,17 +153,69 @@
       color: #6b7280;
     }
     
-    .pricing-trial {
-      background: #fef3c7;
-      color: #92400e;
-      padding: 0.5rem 1rem;
-      border-radius: 6px;
-      font-size: 0.875rem;
-      font-weight: 600;
-      margin: 1rem 0;
-      text-align: center;
+    .pricing-early-access-label {
+      display: inline-block;
+      background: linear-gradient(135deg, #0B8073, #0a6d61);
+      color: white;
+      padding: 0.25rem 0.875rem;
+      border-radius: 20px;
+      font-size: 0.6875rem;
+      font-weight: 700;
+      letter-spacing: 0.75px;
+      text-transform: uppercase;
+      margin-bottom: 0.875rem;
     }
-    
+
+    .pricing-early-access-desc {
+      color: #374151;
+      font-size: 0.875rem;
+      margin: 0.375rem 0 0.25rem;
+      line-height: 1.5;
+    }
+
+    .pricing-normally {
+      color: #9ca3af;
+      font-size: 0.9375rem;
+      font-weight: 500;
+      margin: 0 0 0.75rem;
+      text-decoration: line-through;
+    }
+
+    .pricing-offer-terms {
+      font-size: 0.8125rem;
+      color: #6b7280;
+      margin: 0.875rem 0 0;
+      line-height: 1.6;
+      padding-top: 0.875rem;
+      border-top: 1px solid #f3f4f6;
+    }
+
+    .pricing-smallprint {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.375rem;
+      font-size: 0.75rem;
+      color: #9ca3af;
+      margin-top: 0.625rem;
+      line-height: 1.5;
+    }
+
+    .pricing-info-icon {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1rem;
+      height: 1rem;
+      border-radius: 50%;
+      border: 1px solid #d1d5db;
+      font-size: 0.625rem;
+      font-style: normal;
+      cursor: default;
+      margin-top: 0.125rem;
+      color: #6b7280;
+    }
+
     .pricing-description {
       color: #6b7280;
       font-size: 0.875rem;
@@ -153,16 +226,17 @@
     .pricing-features {
       list-style: none;
       padding: 0;
-      margin: 1.5rem 0;
+      margin: 1.25rem 0;
     }
     
     .pricing-features li {
-      padding: 0.75rem 0;
+      padding: 0.625rem 0;
       border-bottom: 1px solid #f3f4f6;
       display: flex;
       align-items: flex-start;
       font-size: 0.9375rem;
       color: #374151;
+      gap: 0.625rem;
     }
     
     .pricing-features li:last-child {
@@ -173,29 +247,36 @@
       content: "✓";
       color: #0B8073;
       font-weight: 700;
-      margin-right: 0.75rem;
-      font-size: 1.125rem;
+      font-size: 1rem;
+      flex-shrink: 0;
+      margin-top: 0.0625rem;
     }
     
     .pricing-cta {
       display: block;
       width: 100%;
-      padding: 0.875rem 1.5rem;
+      padding: 0.9375rem 1.5rem;
       background: #0B8073;
       color: white;
       border: none;
-      border-radius: 8px;
+      border-radius: 10px;
       font-size: 1rem;
       font-weight: 600;
       cursor: pointer;
-      transition: background 0.2s;
+      transition: background 0.2s, transform 0.15s;
       text-align: center;
       text-decoration: none;
       margin-top: 1.5rem;
+      letter-spacing: 0.1px;
     }
     
     .pricing-cta:hover {
       background: #0a6d61;
+      transform: translateY(-1px);
+    }
+
+    .pricing-cta:active {
+      transform: translateY(0);
     }
     
     .pricing-cta.secondary {
@@ -205,7 +286,8 @@
     }
     
     .pricing-cta.secondary:hover {
-      background: #f0fdf4;
+      background: #f0fdf9;
+      border-color: #0a6d61;
     }
     
     .trust-footer {
@@ -510,15 +592,28 @@
       padding: 0.75rem 1rem;
     }
     
+    @media (max-width: 900px) {
+      .pricing-grid {
+        grid-template-columns: 1fr;
+        max-width: 480px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .pricing-card.featured {
+        margin-top: 0.75rem;
+      }
+    }
+
     @media (max-width: 768px) {
+      .pricing-hero {
+        padding: 3.5rem 1rem 3rem;
+      }
       .pricing-hero h1 {
         font-size: 2rem;
       }
-      
-      .pricing-grid {
-        grid-template-columns: 1fr;
+      .pricing-container {
+        padding: 2rem 1rem;
       }
-      
       .trust-footer ul {
         grid-template-columns: 1fr;
       }
@@ -712,6 +807,11 @@
     <div class="container">
       <h1>Simple, transparent pricing for every supplier</h1>
       <p class="subtitle">No hidden fees. No commission on bookings. Cancel anytime.</p>
+      <div class="pricing-hero-badges">
+        <span class="pricing-hero-badge">✓ No setup fees</span>
+        <span class="pricing-hero-badge">✓ Cancel anytime</span>
+        <span class="pricing-hero-badge">✓ Secure payments via Stripe</span>
+      </div>
     </div>
   </section>
 
@@ -722,7 +822,6 @@
       
       <!-- FREE TIER -->
       <div class="pricing-card">
-        <div class="pricing-tier">Free</div>
         <h2 class="pricing-name">Starter</h2>
         <div class="pricing-price">£0 <span>/month</span></div>
         <p class="pricing-description">Perfect for getting started on EventFlow</p>
@@ -740,10 +839,11 @@
 
       <!-- PRO TIER -->
       <div class="pricing-card featured">
-        <div class="pricing-tier">Pro</div>
+        <div class="pricing-early-access-label">Early Access Offer</div>
         <h2 class="pricing-name">Professional</h2>
-        <div class="pricing-price">£39 <span>/month</span></div>
-        <div class="pricing-trial">First 3 months, then £69/month</div>
+        <div class="pricing-price">£19 <span>/month</span></div>
+        <p class="pricing-early-access-desc">Early access pricing while EventFlow is in development.</p>
+        <p class="pricing-normally">Normally £69 / month</p>
         <p class="pricing-description">For serious suppliers who want to grow their business</p>
         
         <ul class="pricing-features">
@@ -757,12 +857,16 @@
           <li>Priority support</li>
         </ul>
         
-        <a href="/checkout?plan=pro" class="pricing-cta">Start Pro Trial</a>
+        <a href="/checkout?plan=pro" class="pricing-cta">Get Started — £19/month</a>
+        <p class="pricing-offer-terms">Offer ends 31 December 2026. After this date, standard pricing applies. Cancel anytime.</p>
+        <p class="pricing-smallprint">
+          <span class="pricing-info-icon" title="Early Access pricing is available for subscriptions started before 31 December 2026. Standard pricing will apply from 1 January 2027.">i</span>
+          <small>Early Access pricing is available for subscriptions started before 31 December 2026. Standard pricing will apply from 1 January 2027.</small>
+        </p>
       </div>
 
       <!-- PROFESSIONAL PLUS TIER -->
       <div class="pricing-card">
-        <div class="pricing-tier">Pro Plus</div>
         <h2 class="pricing-name">Professional Plus</h2>
         <div class="pricing-price">£159 <span>/month</span></div>
         <p class="pricing-description">Maximum visibility and premium features</p>
@@ -1141,8 +1245,8 @@
     </div>
     
     <div class="faq-item">
-      <h3 class="faq-question">What's included in the Pro trial?</h3>
-      <p class="faq-answer">The Pro trial gives you full access to all Pro features for 3 months at £39/month. After 3 months, it automatically continues at £69/month unless you cancel or downgrade. No long-term commitment required.</p>
+      <h3 class="faq-question">What is the Early Access price for Pro?</h3>
+      <p class="faq-answer">During our Early Access period, the Professional plan is available at £19/month (normally £69/month). This price applies to subscriptions started before 31 December 2026. Standard pricing of £69/month will apply from 1 January 2027. Cancel anytime — no long-term commitment required.</p>
     </div>
     
     <div class="faq-item">
@@ -1248,7 +1352,6 @@
   </footer>
 
 <script src="/assets/js/app.js" defer></script>
-
 
 <script src="/assets/js/billing-toggle.js" defer></script>
 <script src="/assets/js/keyboard-shortcuts.js" defer></script>
