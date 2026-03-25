@@ -279,7 +279,9 @@ router.post(
           },
         ];
 
-        // Apply introductory coupon if enabled
+        // Apply introductory coupon if enabled.
+        // Note: Stripe does not allow allow_promotion_codes and discounts together,
+        // so promo code entry is only enabled when no discount is pre-applied.
         if (useIntroPricing) {
           sessionConfig.discounts = [
             {
@@ -290,6 +292,9 @@ router.post(
           logger.info(
             `Applied intro coupon: ${STRIPE_PRO_INTRO_COUPON_ID} to price: ${effectivePriceId}`
           );
+        } else {
+          // Allow customers to enter promotion codes at checkout
+          sessionConfig.allow_promotion_codes = true;
         }
 
         if (planName) {

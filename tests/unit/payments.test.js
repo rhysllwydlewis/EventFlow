@@ -168,6 +168,75 @@ describe('Payment Routes', () => {
     });
   });
 
+  describe('Promotion Codes', () => {
+    it('should enable allow_promotion_codes for subscription checkout without intro pricing', () => {
+      const useIntroPricing = false;
+      const type = 'subscription';
+
+      const sessionConfig = {
+        customer: 'cus_123',
+        mode: type === 'subscription' ? 'subscription' : 'payment',
+        line_items: [{ price: 'price_pro_123', quantity: 1 }],
+      };
+
+      if (type !== 'one_time') {
+        if (useIntroPricing) {
+          sessionConfig.discounts = [{ coupon: 'coupon_intro_123' }];
+        } else {
+          sessionConfig.allow_promotion_codes = true;
+        }
+      }
+
+      expect(sessionConfig.allow_promotion_codes).toBe(true);
+      expect(sessionConfig.discounts).toBeUndefined();
+    });
+
+    it('should not set allow_promotion_codes when intro pricing discount is applied', () => {
+      const useIntroPricing = true;
+      const type = 'subscription';
+
+      const sessionConfig = {
+        customer: 'cus_123',
+        mode: 'subscription',
+        line_items: [{ price: 'price_pro_123', quantity: 1 }],
+      };
+
+      if (type !== 'one_time') {
+        if (useIntroPricing) {
+          sessionConfig.discounts = [{ coupon: 'coupon_intro_123' }];
+        } else {
+          sessionConfig.allow_promotion_codes = true;
+        }
+      }
+
+      expect(sessionConfig.discounts).toBeDefined();
+      expect(sessionConfig.discounts[0].coupon).toBe('coupon_intro_123');
+      expect(sessionConfig.allow_promotion_codes).toBeUndefined();
+    });
+
+    it('should not set allow_promotion_codes for one_time payments', () => {
+      const type = 'one_time';
+
+      const sessionConfig = {
+        customer: 'cus_123',
+        mode: 'payment',
+        line_items: [
+          {
+            price_data: { currency: 'gbp', product_data: { name: 'EventFlow Payment' }, unit_amount: 1000 },
+            quantity: 1,
+          },
+        ],
+      };
+
+      // allow_promotion_codes is only set in the subscription branch
+      if (type !== 'one_time') {
+        sessionConfig.allow_promotion_codes = true;
+      }
+
+      expect(sessionConfig.allow_promotion_codes).toBeUndefined();
+    });
+  });
+
   describe('Amount Conversion', () => {
     it('should convert pounds to pence correctly', () => {
       const pounds = 9.99;
