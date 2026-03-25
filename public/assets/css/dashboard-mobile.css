@@ -1,0 +1,558 @@
+/**
+ * EventFlow Dashboard Mobile — Unified Mobile Polish
+ * Covers: Supplier + Customer dashboards
+ * Version: 1.0.0
+ *
+ * Loaded LAST in both dashboards so these rules win over earlier definitions.
+ * All rules are scoped to ≤ 768 px (general mobile) or ≤ 430 px (small phone).
+ */
+
+/* ============================================================
+   A) MOBILE DESIGN TOKENS
+   ============================================================ */
+:root {
+  /* Spacing */
+  --mob-gap-xs: 4px;
+  --mob-gap-sm: 6px;
+  --mob-gap-md: 10px;
+  --mob-gap-lg: 14px;
+  --mob-section-gap: 12px;
+
+  /* Card / container padding */
+  --mob-card-pad: 14px;
+  --mob-card-pad-sm: 12px;
+
+  /* Button heights */
+  --mob-btn-h-sm: 32px;
+  --mob-btn-h-md: 36px;
+
+  /* Button font */
+  --mob-btn-fs: 0.8rem;
+  --mob-btn-fw: 600;
+  --mob-btn-px: 10px;
+
+  /* Shared radius */
+  --mob-radius-sm: 8px;
+  --mob-radius-md: 10px;
+  --mob-radius-lg: 14px;
+}
+
+/* ============================================================
+   B) HEADER — more compact on mobile
+   ============================================================ */
+@media (max-width: 768px) {
+  /* Reduce top-bar height */
+  .ef-header .ef-container {
+    padding-top: 6px;
+    padding-bottom: 6px;
+  }
+
+  /* Smaller icon buttons */
+  .ef-icon-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* Compact primary header button */
+  .ef-btn.ef-btn-primary {
+    padding: 6px 14px;
+    font-size: 0.8125rem;
+    min-height: 34px;
+  }
+}
+
+/* ============================================================
+   C) DASHBOARD HERO — reduce padding / margins on phones
+   ============================================================ */
+@media (max-width: 768px) {
+  .dashboard-hero {
+    margin-bottom: var(--mob-section-gap);
+    border-radius: var(--mob-radius-lg);
+  }
+
+  .dashboard-hero__content {
+    padding: var(--mob-card-pad);
+    gap: var(--mob-gap-lg);
+  }
+}
+
+@media (max-width: 430px) {
+  .dashboard-hero__content {
+    padding: var(--mob-card-pad-sm);
+    gap: var(--mob-gap-md);
+  }
+
+  .dashboard-hero__title {
+    font-size: 22px;
+  }
+
+  .dashboard-hero__subtitle {
+    font-size: 0.875rem;
+  }
+}
+
+/* ============================================================
+   D) STATS CARDS — 2-column grid on mobile (not 1-column)
+   ============================================================ */
+@media (max-width: 768px) {
+  /* Override the 1-col grid from dashboard-hero.css */
+  .dashboard-hero__stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--mob-gap-md);
+  }
+
+  .dashboard-stat-card {
+    padding: var(--mob-card-pad-sm);
+    border-radius: var(--mob-radius-sm);
+    gap: var(--mob-gap-sm);
+  }
+
+  .dashboard-stat-card__icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+  }
+
+  .dashboard-stat-card__icon svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .dashboard-stat-card__value {
+    font-size: 22px;
+  }
+
+  .dashboard-stat-card__label {
+    font-size: 11px;
+  }
+}
+
+/* ============================================================
+   E) QUICK ACTION CHIPS — prevent wrapping, keep 1-line labels
+   ============================================================ */
+@media (max-width: 768px) {
+  /* 2-column grid, equal-width chips */
+  .dashboard-hero__actions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--mob-gap-md);
+  }
+
+  /* Chip base: compact, icon above label, NO text wrapping */
+  .dashboard-action-chip {
+    padding: 8px 8px 7px;
+    font-size: 0.75rem;
+    font-weight: var(--mob-btn-fw);
+    line-height: 1.25;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    text-align: center;
+    border-radius: var(--mob-radius-sm);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /* Give every chip the same height */
+    min-height: 58px;
+  }
+
+  /* Icon size */
+  .dashboard-action-chip svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+
+  /* "View Earnings" and "View Stats" are long — ensure the span
+     (which is the text node) never wraps by keeping it on 1 line */
+  .dashboard-action-chip > span {
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  /* Pro tip banner — full-width below the 2-col grid */
+  .dashboard-hero__tip {
+    grid-column: 1 / -1;
+    padding: 10px 14px;
+    font-size: 0.8125rem;
+    border-radius: var(--mob-radius-sm);
+  }
+
+  .dashboard-hero__tip svg {
+    width: 16px;
+    height: 16px;
+  }
+}
+
+/* ============================================================
+   F) PACKAGE CARD — 4-button action cluster
+   ============================================================ */
+
+/* Fix: ensure the action row uses a 2×2 grid at ALL mobile widths,
+   not just ≤480 px (the previous cutoff). */
+@media (max-width: 768px) {
+  .card-actions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--mob-gap-sm);
+    margin-top: var(--mob-gap-md);
+    padding-top: var(--mob-gap-md);
+  }
+
+  /* Uniform button sizing */
+  .card-action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: var(--mob-btn-h-md);
+    padding: 0 var(--mob-btn-px);
+    font-size: var(--mob-btn-fs);
+    font-weight: var(--mob-btn-fw);
+    border-radius: var(--mob-radius-sm);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+    min-width: 0;
+    /* Remove flex: 1 so grid controls the width */
+    flex: unset;
+  }
+
+  /* View button is an <a> — make it behave like the others */
+  a.card-action-btn,
+  .card-action-btn.view-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Span all columns only when there are ≤ 2 buttons
+     (grid handles the rest automatically) */
+  .card-action-btn:only-child {
+    grid-column: span 2;
+  }
+
+  /* When view-btn is absent, 3 buttons: Edit | Pause / Delete (full width) */
+  .card-actions > .card-action-btn:last-child:nth-child(3) {
+    grid-column: span 2;
+  }
+}
+
+/* Extra-tight on very small phones */
+@media (max-width: 390px) {
+  .card-action-btn {
+    height: var(--mob-btn-h-sm);
+    font-size: 0.775rem;
+    padding: 0 8px;
+  }
+
+  .card-actions {
+    gap: var(--mob-gap-xs);
+  }
+}
+
+/* ============================================================
+   G) PACKAGE CARD — reduce internal spacing
+   ============================================================ */
+@media (max-width: 768px) {
+  .package-card {
+    border-radius: var(--mob-radius-md);
+  }
+
+  .package-card-content,
+  .package-card .card-body {
+    padding: var(--mob-card-pad);
+  }
+
+  .package-card-title,
+  .package-card h3,
+  .package-card h4 {
+    font-size: 0.9375rem;
+    margin-bottom: 4px;
+  }
+
+  .package-card-description,
+  .package-card p {
+    font-size: 0.8125rem;
+    margin-bottom: 6px;
+  }
+}
+
+/* ============================================================
+   H) SUPPLIER WELCOME CARD — reduce padding on mobile
+   ============================================================ */
+@media (max-width: 768px) {
+  .supplier-welcome-card {
+    padding: var(--mob-card-pad) !important;
+    margin-bottom: var(--mob-section-gap) !important;
+    border-radius: var(--mob-radius-lg) !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .supplier-welcome-card {
+    padding: var(--mob-card-pad-sm) !important;
+  }
+}
+
+/* ============================================================
+   I) SUPPLIER QUICK ACTIONS SECTION — tighter spacing
+   ============================================================ */
+@media (max-width: 768px) {
+  .supplier-quick-actions {
+    padding: var(--mob-card-pad) !important;
+    margin-bottom: var(--mob-section-gap) !important;
+    border-radius: var(--mob-radius-lg) !important;
+  }
+
+  .supplier-section-title {
+    font-size: 1rem !important;
+    margin-bottom: var(--mob-gap-md) !important;
+  }
+
+  /* Secondary action buttons grid — always 2 col on mobile */
+  .supplier-actions-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: var(--mob-gap-md) !important;
+  }
+
+  .supplier-action-btn {
+    padding: 10px var(--mob-card-pad-sm) !important;
+    font-size: 0.8125rem !important;
+    min-height: 0 !important;
+    height: auto !important;
+  }
+
+  .supplier-action-btn .action-icon {
+    font-size: 1.25rem !important;
+    margin-bottom: 3px !important;
+  }
+
+  .supplier-action-btn .action-text {
+    font-size: 0.75rem !important;
+  }
+}
+
+/* ============================================================
+   J) GENERAL CARDS — reduce padding / section gaps
+   ============================================================ */
+@media (max-width: 768px) {
+  /* sd-card (main dashboard section cards) */
+  .sd-card {
+    padding: var(--mob-card-pad) !important;
+    margin-bottom: var(--mob-section-gap) !important;
+    border-radius: var(--mob-radius-lg) !important;
+  }
+
+  .sd-card-header {
+    margin-bottom: var(--mob-gap-md) !important;
+    padding-bottom: var(--mob-gap-md) !important;
+  }
+
+  .sd-card-header__heading {
+    font-size: 1rem !important;
+  }
+
+  /* Sections with section class */
+  section.sd-section,
+  .sd-section {
+    margin-bottom: var(--mob-section-gap) !important;
+  }
+
+  /* Statistics section */
+  #supplier-stats-grid {
+    margin-bottom: var(--mob-section-gap) !important;
+  }
+
+  /* Standard .card in dashboard context */
+  .section .card,
+  .container .card {
+    margin-bottom: var(--mob-section-gap);
+  }
+
+  /* Reduce gap in .cards grid */
+  .cards {
+    gap: var(--mob-section-gap) !important;
+  }
+}
+
+/* ============================================================
+   K) STATS WIDGET CARDS (rendered by dashboard-widgets.js / count-up-animation.js)
+   Real classes: .dashboard-grid and .stat-widget.card with inline styles
+   Must use !important to beat the inline style="..." attributes
+   ============================================================ */
+@media (max-width: 768px) {
+  /* Override inline grid: make 2-col on mobile instead of auto-fit minmax(200px) */
+  .dashboard-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: var(--mob-gap-md) !important;
+    margin-bottom: var(--mob-section-gap) !important;
+  }
+
+  /* Compact the individual stat cards — beat the inline style="padding:1.5rem" */
+  .stat-widget.card {
+    padding: var(--mob-card-pad-sm) !important;
+    border-radius: var(--mob-radius-md) !important;
+  }
+
+  /* Tighten inner flex row */
+  .stat-widget .icon-with-gradient {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    font-size: 1rem !important;
+    border-radius: 8px !important;
+  }
+
+  /* Stat number and label */
+  .stat-number {
+    font-size: 1.25rem !important;
+    line-height: 1.1 !important;
+  }
+
+  .stat-label {
+    font-size: 0.7rem !important;
+    line-height: 1.3 !important;
+  }
+}
+
+/* ============================================================
+   L) CUSTOMER DASHBOARD — hero + cards + quick actions
+   ============================================================ */
+@media (max-width: 768px) {
+  /* Customer hero */
+  .customer-hero {
+    padding: var(--mob-card-pad) !important;
+    margin-bottom: var(--mob-section-gap) !important;
+    border-radius: var(--mob-radius-lg) !important;
+  }
+
+  .customer-hero__content {
+    gap: var(--mob-gap-md) !important;
+  }
+
+  .customer-hero__greeting {
+    font-size: 1.25rem !important;
+  }
+
+  .customer-hero__subtitle {
+    font-size: 0.875rem !important;
+  }
+
+  /* Stats row: 2×2 on mobile */
+  .customer-hero__stats {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: var(--mob-gap-sm) !important;
+  }
+
+  .customer-hero__stat {
+    padding: var(--mob-gap-md) var(--mob-card-pad-sm) !important;
+  }
+
+  .customer-hero__stat-value {
+    font-size: 1.25rem !important;
+  }
+
+  .customer-hero__stat-label {
+    font-size: 0.7rem !important;
+  }
+
+  /* Customer welcome card */
+  .customer-welcome-card {
+    padding: var(--mob-card-pad) !important;
+    margin-bottom: var(--mob-section-gap) !important;
+  }
+
+  .customer-welcome-heading,
+  .customer-welcome-card h2 {
+    font-size: 1.25rem !important;
+  }
+
+  /* Quick actions: stack vertically, but don't force full width */
+  .customer-quick-actions {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: var(--mob-gap-md) !important;
+  }
+
+  /* Customer .cta buttons in card context — contained width */
+  .customer-card-action,
+  .customer-card-action--full {
+    width: 100% !important;
+    min-height: var(--mob-btn-h-md) !important;
+    padding: 8px 14px !important;
+    font-size: 0.875rem !important;
+  }
+
+  /* Customer stat widget cards */
+  #customer-stats-grid {
+    margin-bottom: var(--mob-section-gap) !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .customer-hero {
+    padding: var(--mob-card-pad-sm) !important;
+  }
+}
+
+/* ============================================================
+   M) CUSTOMER BUDGET CARD — compact
+   ============================================================ */
+@media (max-width: 768px) {
+  .customer-budget-card {
+    padding: var(--mob-card-pad) !important;
+    margin-bottom: var(--mob-section-gap) !important;
+  }
+
+  .customer-card-title {
+    font-size: 1rem !important;
+    margin-bottom: 4px !important;
+  }
+
+  .customer-card-subtitle {
+    font-size: 0.8125rem !important;
+    margin-bottom: var(--mob-gap-md) !important;
+  }
+
+  /* Budget form */
+  .customer-budget-form {
+    gap: var(--mob-gap-md) !important;
+  }
+
+  .customer-budget-form__submit {
+    min-height: var(--mob-btn-h-md) !important;
+    padding: 8px 14px !important;
+    font-size: 0.875rem !important;
+  }
+}
+
+/* ============================================================
+   N) SAFE-AREA BOTTOM PADDING — only inset, no oversized override
+   ============================================================ */
+@media (max-width: 768px) {
+  /* Ensure at least the device safe-area-inset-bottom is respected */
+  body.supplier-dashboard-page #main-content.section,
+  body.customer-dashboard-page #main-content.section {
+    padding-bottom: max(20px, env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* ============================================================
+   O) PREVENT HORIZONTAL OVERFLOW
+   ============================================================ */
+@media (max-width: 768px) {
+  .dashboard-hero,
+  .customer-hero,
+  .supplier-quick-actions,
+  .package-card,
+  .sd-card,
+  .customer-welcome-card {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+}

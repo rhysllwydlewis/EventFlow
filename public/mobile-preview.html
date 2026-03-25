@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mobile Dashboard Preview</title>
+<link rel="stylesheet" href="/assets/css/styles.css">
+<link rel="stylesheet" href="/assets/css/components.css">
+<link rel="stylesheet" href="/assets/css/supplier-dashboard-improvements.css">
+<link rel="stylesheet" href="/assets/css/dashboard-hero.css">
+<link rel="stylesheet" href="/assets/css/dashboard-mobile.css">
+<style>
+body { margin: 0; background: linear-gradient(135deg, #e0f7f4 0%, #f1f5f9 100%); min-height: 100vh; }
+.preview-section { padding: 16px; }
+.preview-label { font-family: monospace; font-size: 11px; color: #9ca3af; text-transform: uppercase; margin: 12px 0 6px; letter-spacing: 0.05em; }
+</style>
+</head>
+<body>
+
+<div class="preview-section">
+
+<!-- === HERO SECTION === -->
+<div class="preview-label">Dashboard Hero</div>
+<section class="dashboard-hero">
+  <div class="dashboard-hero__bg">
+    <div class="dashboard-hero__gradient"></div>
+    <div class="dashboard-hero__blob dashboard-hero__blob--1"></div>
+    <div class="dashboard-hero__blob dashboard-hero__blob--2"></div>
+    <div class="dashboard-hero__grid"></div>
+  </div>
+  <div class="dashboard-hero__content">
+    <div class="dashboard-hero__header">
+      <div class="dashboard-hero__greeting-wrapper">
+        <span class="dashboard-hero__greeting">Good morning</span>
+        <h1 class="dashboard-hero__title">
+          <span class="dashboard-hero__title-main">Welcome back,</span>
+          <span class="dashboard-hero__title-highlight">Jane Smith</span>
+        </h1>
+        <p class="dashboard-hero__subtitle">Here's what's happening with your business today.</p>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="dashboard-hero__stats">
+      <div class="dashboard-stat-card dashboard-stat-card--primary">
+        <div class="dashboard-stat-card__icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </div>
+        <div class="dashboard-stat-card__content">
+          <div class="dashboard-stat-card__value">128</div>
+          <div class="dashboard-stat-card__label">Profile Views</div>
+        </div>
+      </div>
+      <div class="dashboard-stat-card dashboard-stat-card--secondary">
+        <div class="dashboard-stat-card__icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <div class="dashboard-stat-card__content">
+          <div class="dashboard-stat-card__value">12</div>
+          <div class="dashboard-stat-card__label">Enquiries</div>
+        </div>
+      </div>
+      <div class="dashboard-stat-card dashboard-stat-card--accent">
+        <div class="dashboard-stat-card__icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div class="dashboard-stat-card__content">
+          <div class="dashboard-stat-card__value">94%</div>
+          <div class="dashboard-stat-card__label">Response Rate</div>
+        </div>
+      </div>
+      <div class="dashboard-stat-card">
+        <div class="dashboard-stat-card__icon" style="background:linear-gradient(135deg,#8b5cf6,#a78bfa)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div class="dashboard-stat-card__content">
+          <div class="dashboard-stat-card__value">2h</div>
+          <div class="dashboard-stat-card__label">Avg Response</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="dashboard-hero__actions">
+      <button class="dashboard-action-chip dashboard-action-chip--primary" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        <span>Edit Profile</span>
+      </button>
+      <button class="dashboard-action-chip" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
+        <span>New Package</span>
+      </button>
+      <button class="dashboard-action-chip" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        <span>Messages</span>
+      </button>
+      <button class="dashboard-action-chip" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <span>View Earnings</span>
+      </button>
+      <button class="dashboard-action-chip" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        <span>View Stats</span>
+      </button>
+      <a class="dashboard-action-chip" href="#">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span>Get Help</span>
+      </a>
+      <div class="dashboard-hero__tip">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+        <span>Tip: Fast responses lead to more bookings</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- === STATS WIDGETS (from dashboard-widgets.js) === -->
+<div class="preview-label">Stats Grid Widgets</div>
+<div id="supplier-stats-grid">
+  <div class="dashboard-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:1.5rem;">
+    <div class="stat-widget card" style="padding:1.5rem;">
+      <div style="display:flex;align-items:center;gap:1rem;">
+        <div class="icon-with-gradient" style="background:linear-gradient(135deg,#3B82F6,#60A5FA);">👁</div>
+        <div style="flex:1;"><div class="stat-number">128</div><div class="stat-label">Profile Views (7d)</div></div>
+      </div>
+    </div>
+    <div class="stat-widget card" style="padding:1.5rem;">
+      <div style="display:flex;align-items:center;gap:1rem;">
+        <div class="icon-with-gradient" style="background:linear-gradient(135deg,#10B981,#34D399);">💬</div>
+        <div style="flex:1;"><div class="stat-number">12</div><div class="stat-label">Total Enquiries</div></div>
+      </div>
+    </div>
+    <div class="stat-widget card" style="padding:1.5rem;">
+      <div style="display:flex;align-items:center;gap:1rem;">
+        <div class="icon-with-gradient" style="background:linear-gradient(135deg,#F59E0B,#FBBF24);">📈</div>
+        <div style="flex:1;"><div class="stat-number">94%</div><div class="stat-label">Response Rate</div></div>
+      </div>
+    </div>
+    <div class="stat-widget card" style="padding:1.5rem;">
+      <div style="display:flex;align-items:center;gap:1rem;">
+        <div class="icon-with-gradient" style="background:linear-gradient(135deg,#8B5CF6,#A78BFA);">⏱</div>
+        <div style="flex:1;"><div class="stat-number">2h</div><div class="stat-label">Avg Response Time</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- === PACKAGE CARD === -->
+<div class="preview-label">Package Card — 4 action buttons</div>
+<div class="card package-card" style="max-width:340px;">
+  <img src="https://via.placeholder.com/340x160/e0f2fe/0ea5e9?text=Package+Image" alt="Package" style="width:100%;height:160px;object-fit:cover;border-radius:10px 10px 0 0;">
+  <div class="package-card-content card-body" style="">
+    <h3 class="package-card-title">Wedding Photography Package</h3>
+    <div class="small"><span class="badge">£1,200</span></div>
+    <p class="package-card-description small">Full day coverage, 2 photographers, edited gallery.</p>
+    <div class="card-actions">
+      <button type="button" class="card-action-btn edit-btn">Edit</button>
+      <a href="#" class="card-action-btn view-btn">View</a>
+      <button type="button" class="card-action-btn pause-btn">Pause</button>
+      <button type="button" class="card-action-btn delete-btn">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- === PACKAGE CARD (3 buttons, no view) === -->
+<div class="preview-label">Package Card — 3 buttons (paused)</div>
+<div class="card package-card package-card--paused" style="max-width:340px;">
+  <div class="package-card-content card-body">
+    <h3 class="package-card-title">Budget Package</h3>
+    <div class="small"><span class="badge">£499</span> <span class="badge badge-paused">Paused</span></div>
+    <div class="card-actions">
+      <button type="button" class="card-action-btn edit-btn">Edit</button>
+      <button type="button" class="card-action-btn unpause-btn">Unpause</button>
+      <button type="button" class="card-action-btn delete-btn">Delete</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- .preview-section -->
+</body>
+</html>
