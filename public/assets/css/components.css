@@ -1637,29 +1637,28 @@
   .cookie-consent-btn {
     min-width: 0;
     flex: 1;
-    padding: 0.5rem 0.4rem;
-    font-size: 0.65rem;
+    padding: 0.4rem 0.3rem;
+    font-size: 0.7rem;
     font-weight: 600;
     text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    overflow-wrap: break-word;
     line-height: 1.2;
   }
 
   .cookie-consent-manage {
     flex: 1.4;
-    font-size: 0.6rem;
+    font-size: 0.65rem;
   }
 }
 
 @media (max-width: 360px) {
   .cookie-consent-btn {
-    font-size: 0.55rem;
-    padding: 0.4rem 0.2rem;
+    font-size: 0.6rem;
+    padding: 0.35rem 0.2rem;
   }
   .cookie-consent-manage {
-    font-size: 0.5rem;
+    font-size: 0.6rem;
   }
 }
 
