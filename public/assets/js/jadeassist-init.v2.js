@@ -389,19 +389,19 @@
           line-height: 1.35;
         }
 
-        /* Close button: 16px visible size (just bigger than the 10px ×),
+        /* Close button: 14px visible size (just bigger than the 8px ×),
            with a 44px invisible touch target via ::before for accessibility. */
         .jade-teaser-close {
-          width: 16px;
-          height: 16px;
-          min-width: 16px;
-          max-width: 16px;
-          font-size: 10px;
+          width: 14px;
+          height: 14px;
+          min-width: 14px;
+          max-width: 14px;
+          font-size: 8px;
           padding: 0;
           border-radius: 50%;
           align-self: flex-start;
           margin-top: 2px;
-          margin-left: -2px;
+          margin-left: 2px;
           margin-right: -2px;
           color: rgba(138, 153, 171, 0.75);
           position: relative;
