@@ -209,11 +209,27 @@ verification), but Stripe only uses `POST`.
 Forward webhooks to your local server using the Stripe CLI:
 
 ```bash
+# Install Stripe CLI
+brew install stripe/stripe-cli/stripe
+
+# Login
+stripe login
+
+# Forward webhooks to local server
 stripe listen --forward-to localhost:3000/api/v2/webhooks/stripe
 ```
 
 Set `STRIPE_WEBHOOK_SECRET` in your environment to the `whsec_...` value shown
 by `stripe listen` (or the secret from your Stripe dashboard destination).
+
+To fire test events manually:
+
+```bash
+stripe trigger customer.subscription.created
+stripe trigger customer.subscription.trial_will_end
+stripe trigger invoice.payment_failed
+stripe trigger invoice.payment_succeeded
+```
 
 ## Promotion Codes / Coupons
 
@@ -234,8 +250,6 @@ To create a testable promotion code:
 1. Stripe Dashboard → **Product catalogue → Coupons** → Create coupon.
 2. On the coupon page, create a **Promotion code** (e.g. `FREE100TEST`).
 3. Go through checkout on your site — the **"Add promotion code"** link will appear.
-
-
 
 ### Manual Testing Checklist
 
