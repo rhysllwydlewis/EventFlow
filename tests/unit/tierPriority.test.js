@@ -45,13 +45,13 @@ describe('tierDisplayLabel', () => {
     expect(tierDisplayLabel('pro')).toBe('Pro');
   });
 
-  it('returns "Free" for free', () => {
-    expect(tierDisplayLabel('free')).toBe('Free');
+  it('returns "Starter" for free', () => {
+    expect(tierDisplayLabel('free')).toBe('Starter');
   });
 
-  it('defaults to "Free" for unknown tiers', () => {
-    expect(tierDisplayLabel('enterprise')).toBe('Free');
-    expect(tierDisplayLabel(undefined)).toBe('Free');
+  it('defaults to "Starter" for unknown tiers', () => {
+    expect(tierDisplayLabel('enterprise')).toBe('Starter');
+    expect(tierDisplayLabel(undefined)).toBe('Starter');
   });
 });
 

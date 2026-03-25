@@ -47,9 +47,9 @@ function tierDisplayLabel(tier) {
     case 'pro':
       return 'Pro';
     case 'free':
-      return 'Free';
+      return 'Starter';
     default:
-      return 'Free';
+      return 'Starter';
   }
 }
 
@@ -77,19 +77,29 @@ function resolveSupplierTierFromRecord(supplier) {
     const status = sub.status;
     if (status === 'active' || status === 'trial' || status === 'trialing') {
       const tier = sub.tier;
-      if (tier === 'pro_plus') return 'pro_plus';
-      if (tier === 'pro') return 'pro';
+      if (tier === 'pro_plus') {
+        return 'pro_plus';
+      }
+      if (tier === 'pro') {
+        return 'pro';
+      }
     }
     // expired / cancelled → fall through
   }
 
   // Denormalised subscriptionTier field
   const direct = supplier.subscriptionTier;
-  if (direct === 'pro_plus') return 'pro_plus';
-  if (direct === 'pro') return 'pro';
+  if (direct === 'pro_plus') {
+    return 'pro_plus';
+  }
+  if (direct === 'pro') {
+    return 'pro';
+  }
 
   // Legacy isPro boolean
-  if (supplier.isPro === true) return 'pro';
+  if (supplier.isPro === true) {
+    return 'pro';
+  }
 
   return 'free';
 }
