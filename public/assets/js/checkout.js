@@ -245,7 +245,7 @@
                 ? `
               <p style="font-size: 0.8125rem; color: #6b7280; margin-top: 0.75rem; line-height: 1.5;">Offer ends ${escapeHtml(plan.earlyAccessEndDate)}. After this date, standard pricing applies. Cancel anytime.</p>
               <p style="display:flex; align-items:flex-start; gap:0.375rem; font-size:0.75rem; color:#9ca3af; margin-top:0.75rem; line-height:1.5;">
-                <span style="flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; width:1rem; height:1rem; border-radius:50%; border:1px solid #9ca3af; font-size:0.6875rem; cursor:default; margin-top:0.0625rem;" title="Early Access pricing is available for subscriptions started before 31 December 2026. Standard pricing will apply from 1 January 2027." aria-label="Early Access pricing is available for subscriptions started before 31 December 2026. Standard pricing will apply from 1 January 2027.">i</span>
+                <span style="flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; width:1rem; height:1rem; border-radius:50%; border:1px solid #9ca3af; font-size:0.6875rem; cursor:default; margin-top:0.0625rem;" title="Early Access pricing is available for subscriptions started before 31 December 2026. Standard pricing will apply from 1 January 2027.">i</span>
                 <small>Early Access pricing is available for subscriptions started before 31 December 2026. Standard pricing will apply from 1 January 2027.</small>
               </p>
             `

@@ -791,6 +791,120 @@ async function handleChargeRefunded(charge) {
 }
 
 /**
+ * Handle checkout.session.completed event.
+ *
+ * This is the primary event that provisions a subscription after the user
+ * completes Stripe Checkout. It is the most reliable hook for granting access
+ * because it fires after payment is confirmed and always carries our metadata.
+ *
+ * Flow:
+ *   1. Read userId + planId from session.metadata (set when we created the session).
+ *   2. Ensure a payments record exists that maps userId → stripeCustomerId so that
+ *      the customer.subscription.created handler also works if it fires before this.
+ *   3. Create (or skip if duplicate) the subscription record and set the user tier.
+ *
+ * @param {Object} session - Stripe Checkout Session object
+ */
+async function handleCheckoutSessionCompleted(session) {
+  logger.info('Processing checkout.session.completed:', session.id);
+
+  const userId = session.metadata?.userId || session.client_reference_id;
+  const planId = session.metadata?.planId;
+
+  if (!userId) {
+    logger.error(
+      'checkout.session.completed: no userId in session metadata or client_reference_id'
+    );
+    return;
+  }
+
+  const plan = planId ? resolvePlanTier(planId) : 'pro';
+  const stripeSubscriptionId = session.subscription;
+  const stripeCustomerId = session.customer;
+
+  // 1. Ensure payment record exists (maps userId → stripeCustomerId for other handlers)
+  if (stripeCustomerId) {
+    const existing = await dbUnified.read('payments');
+    const hasRecord = existing.some(
+      p => p.userId === userId && p.stripeCustomerId === stripeCustomerId
+    );
+    if (!hasRecord) {
+      await dbUnified.insertOne('payments', {
+        id: uid('pay'),
+        userId,
+        stripeCustomerId,
+        stripePaymentId: session.payment_intent || session.id,
+        amount: 0,
+        currency: session.currency || 'gbp',
+        status: 'succeeded',
+        type: 'subscription',
+        metadata: { sessionId: session.id, planId: planId || plan },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+    } else {
+      // Update existing pending record to succeeded
+      const rec = existing.find(
+        p => p.userId === userId && p.stripeCustomerId === stripeCustomerId
+      );
+      if (rec && rec.status === 'pending') {
+        await dbUnified.updateOne(
+          'payments',
+          { id: rec.id },
+          {
+            $set: {
+              status: 'succeeded',
+              stripePaymentId: session.payment_intent || session.id,
+              updatedAt: new Date().toISOString(),
+            },
+          }
+        );
+      }
+    }
+  }
+
+  // 2. Create subscription record if not already present
+  if (stripeSubscriptionId) {
+    const existing = await subscriptionService.getSubscriptionByStripeId(stripeSubscriptionId);
+    if (!existing) {
+      await subscriptionService.createSubscription({
+        userId,
+        plan,
+        stripeSubscriptionId,
+        stripeCustomerId: stripeCustomerId || null,
+        trialEnd: session.subscription_trial_end
+          ? new Date(session.subscription_trial_end * 1000)
+          : null,
+      });
+      logger.info(
+        `checkout.session.completed: subscription created for user ${userId}, plan=${plan}`
+      );
+    } else {
+      logger.info(
+        `checkout.session.completed: subscription ${stripeSubscriptionId} already exists — skipping`
+      );
+    }
+  } else {
+    // No Stripe subscription ID yet (unusual but guard gracefully)
+    // Directly update the user tier so they get access immediately
+    await dbUnified.updateOne(
+      'users',
+      { id: userId },
+      {
+        $set: {
+          subscriptionTier: plan,
+          isPro: plan !== 'free',
+          updatedAt: new Date().toISOString(),
+        },
+      }
+    );
+    logger.warn(
+      `checkout.session.completed: no subscription ID in session ${session.id} — updated user tier directly`
+    );
+  }
+}
+
+/**
  * Check and record event idempotency.
  * Returns true if the event was already processed (caller should skip it).
  * Uses the `webhook_events` collection as a lightweight dedupe store.
@@ -828,6 +942,11 @@ async function processWebhookEvent(event) {
 
   try {
     switch (event.type) {
+      // Checkout events — primary subscription provisioning path
+      case 'checkout.session.completed':
+        await handleCheckoutSessionCompleted(event.data.object);
+        break;
+
       // Invoice events
       case 'invoice.created':
         await handleInvoiceCreated(event.data.object);
@@ -881,6 +1000,7 @@ module.exports = {
   isEventAlreadyProcessed,
   formatPlanName,
   resolvePlanTier,
+  handleCheckoutSessionCompleted,
   handleInvoiceCreated,
   handleInvoicePaymentSucceeded,
   handleInvoicePaymentFailed,

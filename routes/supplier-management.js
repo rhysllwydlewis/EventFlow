@@ -413,7 +413,11 @@ router.post(
 
     // Optionally also mirror this onto the user record if present
     try {
-      await dbUnified.updateOne('users', { id: req.user.id }, { $set: { isPro: true } });
+      await dbUnified.updateOne(
+        'users',
+        { id: req.user.id },
+        { $set: { isPro: true, subscriptionTier: 'pro' } }
+      );
     } catch (_e) {
       // ignore if users store is not present
     }

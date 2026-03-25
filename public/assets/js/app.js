@@ -2605,6 +2605,7 @@ async function initDashSupplier() {
   await ensureCsrfToken();
 
   // If returning from Stripe checkout with billing=success, mark this supplier account as Pro
+  // and show a welcome toast to confirm the subscription is active.
   try {
     const params = new URLSearchParams(location.search);
     if (params.get('billing') === 'success') {
@@ -2615,6 +2616,18 @@ async function initDashSupplier() {
       }).catch(() => {
         /* Ignore errors */
       });
+      // Show success toast — webhook provisioning may take a few seconds
+      setTimeout(() => {
+        showToast(
+          '🎉 Welcome to EventFlow Professional! Your subscription is now active.',
+          'success'
+        );
+        // Remove the billing=success query param from the URL without a reload
+        const cleanUrl = new URL(window.location.href);
+        cleanUrl.searchParams.delete('billing');
+        cleanUrl.searchParams.delete('session_id');
+        window.history.replaceState({}, '', cleanUrl.toString());
+      }, 800);
     }
   } catch (_e) {
     /* Ignore conversation fetch errors */
