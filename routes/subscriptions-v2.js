@@ -100,12 +100,12 @@ router.post(
       // 'pro' and 'pro_monthly' are intentional aliases for the same monthly Professional plan.
       // 'pro_plus' and 'pro_plus_monthly' are intentional aliases for the same monthly Pro Plus plan.
       const PLAN_PRICE_MAP = {
-        pro: process.env.STRIPE_PRO_PRICE_ID || '', // monthly Professional (alias)
-        pro_monthly: process.env.STRIPE_PRO_PRICE_ID || '', // monthly Professional
-        pro_plus: process.env.STRIPE_PRO_PLUS_PRICE_ID || '',
-        pro_plus_monthly: process.env.STRIPE_PRO_PLUS_PRICE_ID || '',
-        pro_yearly: process.env.STRIPE_PRO_YEARLY_PRICE_ID || '',
-        pro_plus_yearly: process.env.STRIPE_PRO_PLUS_YEARLY_PRICE_ID || '',
+        pro: process.env.STRIPE_PRO_PRICE_ID || null, // monthly Professional (alias)
+        pro_monthly: process.env.STRIPE_PRO_PRICE_ID || null, // monthly Professional
+        pro_plus: process.env.STRIPE_PRO_PLUS_PRICE_ID || null,
+        pro_plus_monthly: process.env.STRIPE_PRO_PLUS_PRICE_ID || null,
+        pro_yearly: process.env.STRIPE_PRO_YEARLY_PRICE_ID || null,
+        pro_plus_yearly: process.env.STRIPE_PRO_PLUS_YEARLY_PRICE_ID || null,
         // starter/free — no Stripe payment needed
         starter: null,
         free: null,
@@ -117,10 +117,17 @@ router.post(
 
       const priceId = PLAN_PRICE_MAP[planId];
 
-      // Free/starter plan — nothing to charge
-      if (!priceId) {
+      // Free/starter plan — nothing to charge; redirect to dashboard
+      if (planId === 'starter' || planId === 'free') {
         const dest = returnUrl || `${process.env.BASE_URL || ''}/dashboard/supplier`;
         return res.json({ success: true, url: dest });
+      }
+
+      // Paid plan requires a configured Stripe price ID
+      if (!priceId) {
+        return res.status(503).json({
+          error: 'Payment processing is not currently available. Please contact support.',
+        });
       }
 
       // Get or create Stripe customer
