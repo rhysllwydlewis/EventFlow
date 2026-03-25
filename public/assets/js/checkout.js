@@ -32,12 +32,12 @@
     },
     pro: {
       name: 'Professional',
-      price: 39.0,
-      priceDisplay: '£39',
+      price: 19.0,
+      priceDisplay: '£19',
       interval: 'month',
-      introductoryPrice: 39.0,
-      regularPrice: 69.0,
-      introductoryMonths: 3,
+      earlyAccess: true,
+      normallyPrice: 69.0,
+      earlyAccessEndDate: '31 December 2026',
       features: [
         'Everything in Free',
         'Unlimited photos',
@@ -205,7 +205,12 @@
             ([key, plan]) => `
           <div class="pricing-card ${plan.featured ? 'featured' : ''}">
             ${
-              plan.featured
+              plan.earlyAccess
+                ? '<div style="display:inline-block; background: #0B8073; color: white; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 0.75rem;">Early Access Offer</div>'
+                : ''
+            }
+            ${
+              plan.featured && !plan.earlyAccess
                 ? '<div style="background: rgba(255,255,255,0.2); padding: 0.5rem; border-radius: 4px; margin-bottom: 1rem; font-weight: bold;">MOST POPULAR</div>'
                 : ''
             }
@@ -220,11 +225,10 @@
               <small>/${escapeHtml(plan.interval)}</small>
             </div>
             ${
-              plan.introductoryPrice && plan.regularPrice && plan.introductoryMonths
+              plan.earlyAccess
                 ? `
-              <div style="font-size: 0.875rem; color: #666; margin: 0.5rem 0;">
-                First ${plan.introductoryMonths} months, then £${plan.regularPrice}/${plan.interval}
-              </div>
+              <div style="font-size: 0.875rem; color: #374151; margin: 0.25rem 0 0.5rem;">Early access pricing while EventFlow is in development.</div>
+              <div style="font-size: 0.9375rem; font-weight: 600; color: #6b7280; text-decoration: line-through; margin-bottom: 0.5rem;">Normally £${escapeHtml(String(plan.normallyPrice))} / month</div>
             `
                 : ''
             }
@@ -236,6 +240,17 @@
               data-plan="${escapeHtml(key)}">
               ${plan.isFree ? 'Get Started Free' : `Choose ${escapeHtml(plan.name)}`}
             </button>
+            ${
+              plan.earlyAccess
+                ? `
+              <p style="font-size: 0.8125rem; color: #6b7280; margin-top: 0.75rem; line-height: 1.5;">Offer ends ${escapeHtml(plan.earlyAccessEndDate)}. After this date, standard pricing applies. Cancel anytime.</p>
+              <p style="display:flex; align-items:flex-start; gap:0.375rem; font-size:0.75rem; color:#9ca3af; margin-top:0.75rem; line-height:1.5;">
+                <span style="flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; width:1rem; height:1rem; border-radius:50%; border:1px solid #9ca3af; font-size:0.6875rem; cursor:default; margin-top:0.0625rem;" title="Early Access pricing is available for subscriptions started before 31 December 2026. Standard pricing will apply from 1 January 2027." aria-label="Early Access pricing is available for subscriptions started before 31 December 2026. Standard pricing will apply from 1 January 2027.">i</span>
+                <small>Early Access pricing is available for subscriptions started before 31 December 2026. Standard pricing will apply from 1 January 2027.</small>
+              </p>
+            `
+                : ''
+            }
           </div>
         `
           )

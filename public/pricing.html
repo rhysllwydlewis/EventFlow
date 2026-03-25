@@ -132,17 +132,65 @@
       color: #6b7280;
     }
     
-    .pricing-trial {
-      background: #fef3c7;
-      color: #92400e;
-      padding: 0.5rem 1rem;
-      border-radius: 6px;
-      font-size: 0.875rem;
-      font-weight: 600;
-      margin: 1rem 0;
-      text-align: center;
+    .pricing-early-access-label {
+      display: inline-block;
+      background: #0B8073;
+      color: white;
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
     }
-    
+
+    .pricing-early-access-desc {
+      color: #374151;
+      font-size: 0.875rem;
+      margin: 0.25rem 0 0.5rem;
+    }
+
+    .pricing-normally {
+      color: #6b7280;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      margin: 0 0 0.5rem;
+      text-decoration: line-through;
+    }
+
+    .pricing-offer-terms {
+      font-size: 0.8125rem;
+      color: #6b7280;
+      margin: 0.75rem 0 0;
+      line-height: 1.5;
+    }
+
+    .pricing-smallprint {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.375rem;
+      font-size: 0.75rem;
+      color: #9ca3af;
+      margin-top: 0.75rem;
+      line-height: 1.5;
+    }
+
+    .pricing-info-icon {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1rem;
+      height: 1rem;
+      border-radius: 50%;
+      border: 1px solid #9ca3af;
+      font-size: 0.6875rem;
+      font-style: normal;
+      cursor: default;
+      margin-top: 0.0625rem;
+    }
+
     .pricing-description {
       color: #6b7280;
       font-size: 0.875rem;
@@ -740,10 +788,12 @@
 
       <!-- PRO TIER -->
       <div class="pricing-card featured">
+        <div class="pricing-early-access-label">Early Access Offer</div>
         <div class="pricing-tier">Pro</div>
         <h2 class="pricing-name">Professional</h2>
-        <div class="pricing-price">£39 <span>/month</span></div>
-        <div class="pricing-trial">First 3 months, then £69/month</div>
+        <div class="pricing-price">£19 <span>/month</span></div>
+        <p class="pricing-early-access-desc">Early access pricing while EventFlow is in development.</p>
+        <p class="pricing-normally">Normally £69 / month</p>
         <p class="pricing-description">For serious suppliers who want to grow their business</p>
         
         <ul class="pricing-features">
@@ -758,6 +808,11 @@
         </ul>
         
         <a href="/checkout?plan=pro" class="pricing-cta">Start Pro Trial</a>
+        <p class="pricing-offer-terms">Offer ends 31 December 2026. After this date, standard pricing applies. Cancel anytime.</p>
+        <p class="pricing-smallprint">
+          <span class="pricing-info-icon" title="Early Access pricing is available for subscriptions started before 31 December 2026. Standard pricing will apply from 1 January 2027." aria-label="Early Access pricing is available for subscriptions started before 31 December 2026. Standard pricing will apply from 1 January 2027.">i</span>
+          <small>Early Access pricing is available for subscriptions started before 31 December 2026. Standard pricing will apply from 1 January 2027.</small>
+        </p>
       </div>
 
       <!-- PROFESSIONAL PLUS TIER -->
@@ -1141,8 +1196,8 @@
     </div>
     
     <div class="faq-item">
-      <h3 class="faq-question">What's included in the Pro trial?</h3>
-      <p class="faq-answer">The Pro trial gives you full access to all Pro features for 3 months at £39/month. After 3 months, it automatically continues at £69/month unless you cancel or downgrade. No long-term commitment required.</p>
+      <h3 class="faq-question">What is the Early Access price for Pro?</h3>
+      <p class="faq-answer">During our Early Access period, the Professional plan is available at £19/month (normally £69/month). This price applies to subscriptions started before 31 December 2026. Standard pricing of £69/month will apply from 1 January 2027. Cancel anytime — no long-term commitment required.</p>
     </div>
     
     <div class="faq-item">
