@@ -174,7 +174,7 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
       supplier.bannerUrl ||
       supplier.coverImage ||
       supplier.logo ||
-      'https://event-flow.co.uk/assets/images/eventflow-og-image.png?v=2';
+      'https://event-flow.co.uk/assets/images/eventflow-og-image.png?v=3';
     const url = `https://event-flow.co.uk/supplier?id=${supplier.id}`;
 
     document.title = title;
