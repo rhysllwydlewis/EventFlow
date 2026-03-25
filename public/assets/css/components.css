@@ -1628,14 +1628,10 @@
     font-size: 0.85rem;
   }
 
-  .cookie-consent-btn {
-    font-size: 0.875rem;
-    padding: 0.625rem 1.25rem;
-  }
-
   /* Force buttons into a single row on mobile */
   .cookie-consent-actions {
     flex-wrap: nowrap;
+    gap: 0.5rem;
   }
 
   .cookie-consent-btn {
@@ -1643,7 +1639,9 @@
     flex: 1;
     padding: 0.6rem 0.5rem;
     font-size: 0.8rem;
+    font-weight: 600;
     text-align: center;
+    white-space: normal;
   }
 
   .cookie-consent-manage {
