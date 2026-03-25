@@ -851,6 +851,7 @@
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 1.25rem;
   margin-bottom: 1.5rem;
+  padding-top: 1rem; /* room for absolute-positioned top badges */
 }
 
 .pricing-card {
@@ -891,6 +892,73 @@
 .pricing-card.current {
   border-color: rgba(11, 128, 115, 0.5);
   border-width: 2px;
+}
+
+/* ── Pricing-card internal element styles ─────────────────────────────────── */
+
+/* Plan name heading */
+.pricing-card h3 {
+  font-size: 1.375rem;
+  font-weight: 700;
+  color: var(--color-text, #111827);
+  margin: 0.5rem 0 0.75rem;
+  text-align: center;
+}
+
+/* Price display row */
+.pricing-card .price {
+  text-align: center;
+  font-size: 2.25rem;
+  font-weight: 800;
+  color: var(--color-text, #111827);
+  line-height: 1.15;
+  margin-bottom: 0.5rem;
+}
+
+.pricing-card .price .period {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--color-text-light, #6b7280);
+}
+
+/* Strikethrough original price note */
+.pricing-card .price-note {
+  text-align: center;
+  font-size: 0.875rem;
+  color: #9ca3af;
+  margin: 0 0 0.5rem;
+}
+
+/* Feature list */
+.pricing-card .features {
+  list-style: none;
+  padding: 0;
+  margin: 0.75rem 0 1.25rem;
+  flex: 1;
+}
+
+.pricing-card .features li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  display: flex;
+  align-items: flex-start;
+  color: #374151;
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+
+.pricing-card .features li:last-child {
+  border-bottom: none;
+}
+
+.pricing-card .features li::before {
+  content: '✓';
+  color: #0b8073;
+  font-weight: 700;
+  margin-right: 0.625rem;
+  font-size: 1rem;
+  flex-shrink: 0;
+  line-height: 1.45;
 }
 
 /* Current Plan Badge (top of card) */

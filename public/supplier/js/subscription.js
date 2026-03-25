@@ -320,8 +320,7 @@ function renderSubscriptionPlans() {
 
       return `
         <div class="pricing-card ${isFeatured ? 'featured' : ''} ${isCurrentPlan ? 'current' : ''}">
-          ${isFeatured ? '<div class="popular-badge">PREMIUM</div>' : ''}
-          ${isCurrentPlan ? '<div class="current-plan-badge">Current Plan</div>' : ''}
+          ${isCurrentPlan ? '<div class="current-plan-badge">Current Plan</div>' : isFeatured ? '<div class="popular-badge">PREMIUM</div>' : ''}
           <h3>${plan.name}</h3>
           <div class="price">
             ${plan.price === 0 ? '<span class="price-free">Free</span>' : `£${plan.price.toFixed(2)}<span class="period">/month</span>`}
@@ -330,7 +329,7 @@ function renderSubscriptionPlans() {
             plan.earlyAccess
               ? `
             <div class="early-access-label">Early Access Pricing</div>
-            <div class="price-note" style="text-decoration:line-through;">Normally £${plan.normallyPrice}/month</div>
+            <div class="price-note price-note--strikethrough">Normally £${plan.normallyPrice}/month</div>
           `
               : ''
           }
