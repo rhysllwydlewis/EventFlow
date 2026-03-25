@@ -31,7 +31,7 @@ class SEOHelper {
       keywords: 'event planning, wedding planning, suppliers, venues, catering',
       author: 'EventFlow',
       type: 'website',
-      image: '/assets/images/eventflow-og-image.png?v=3',
+      image: '/assets/images/eventflow-og-image.png?v=2',
       twitterCard: 'summary_large_image',
     };
   }
