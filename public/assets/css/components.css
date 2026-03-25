@@ -1637,16 +1637,29 @@
   .cookie-consent-btn {
     min-width: 0;
     flex: 1;
-    padding: 0.6rem 0.5rem;
-    font-size: 0.8rem;
+    padding: 0.45rem 0.25rem;
+    font-size: 0.7rem;
     font-weight: 600;
     text-align: center;
-    white-space: normal;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.2;
   }
 
   .cookie-consent-manage {
-    flex: 1;
-    font-size: 0.75rem;
+    flex: 1.2;
+    font-size: 0.65rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .cookie-consent-btn {
+    font-size: 0.65rem;
+    padding: 0.4rem 0.2rem;
+  }
+  .cookie-consent-manage {
+    font-size: 0.6rem;
   }
 }
 
