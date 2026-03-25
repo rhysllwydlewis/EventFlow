@@ -553,21 +553,66 @@ async function displaySubscriptionStatus() {
     let activeSubscription = null;
     if (paymentsResponse.ok) {
       const data = await paymentsResponse.json();
-      activeSubscription = (data.payments || []).find(
-        p =>
-          p.type === 'subscription' &&
-          p.status === 'succeeded' &&
-          p.subscriptionDetails &&
-          !p.subscriptionDetails.cancelAtPeriodEnd
+      // Include subscriptions that are cancelling at period end — they are still active
+      const subscriptions = (data.payments || []).filter(
+        p => p.type === 'subscription' && p.status === 'succeeded' && p.subscriptionDetails
       );
+      // Prefer non-cancelling subscription; fall back to cancelling one
+      activeSubscription =
+        subscriptions.find(p => !p.subscriptionDetails.cancelAtPeriodEnd) ||
+        subscriptions[0] ||
+        null;
     }
 
     if (currentTier !== 'free') {
       const planLabel = TIER_LABELS[currentTier] || currentTier;
-      let billingHtml = '';
-      if (activeSubscription?.subscriptionDetails?.currentPeriodEnd) {
-        const endDate = new Date(activeSubscription.subscriptionDetails.currentPeriodEnd);
-        billingHtml = `<p class="sd-subscription-active__billing">Renews ${endDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>`;
+      const details = activeSubscription?.subscriptionDetails || {};
+      const cancelAtPeriodEnd = !!details.cancelAtPeriodEnd;
+      const dateFormat = { day: 'numeric', month: 'long', year: 'numeric' };
+
+      // Start date
+      const startRaw = details.currentPeriodStart || activeSubscription?.createdAt || null;
+      const startHtml = startRaw
+        ? `<div class="sd-subscription-active__detail-row">
+            <span class="sd-subscription-active__detail-label">Started</span>
+            <span class="sd-subscription-active__detail-value">${new Date(startRaw).toLocaleDateString('en-GB', dateFormat)}</span>
+           </div>`
+        : '';
+
+      // Period end / next billing date
+      const endRaw = details.currentPeriodEnd || null;
+      const endHtml = endRaw
+        ? `<div class="sd-subscription-active__detail-row">
+            <span class="sd-subscription-active__detail-label">Current period ends</span>
+            <span class="sd-subscription-active__detail-value">${new Date(endRaw).toLocaleDateString('en-GB', dateFormat)}</span>
+           </div>`
+        : '';
+
+      // Next payment amount
+      const amount = activeSubscription?.amount;
+      const currency = activeSubscription?.currency || 'gbp';
+      const amountHtml =
+        amount && !cancelAtPeriodEnd
+          ? `<div class="sd-subscription-active__detail-row">
+              <span class="sd-subscription-active__detail-label">Next payment</span>
+              <span class="sd-subscription-active__detail-value">${new Intl.NumberFormat('en-GB', { style: 'currency', currency: currency.toUpperCase() }).format(amount / 100)}</span>
+             </div>`
+          : '';
+
+      const detailsHtml =
+        startHtml || endHtml || amountHtml
+          ? `<div class="sd-subscription-active__details">${startHtml}${endHtml}${amountHtml}</div>`
+          : '';
+
+      // Auto-renew / cancellation notice
+      let renewalNotice = '';
+      if (endRaw) {
+        const endDate = new Date(endRaw).toLocaleDateString('en-GB', dateFormat);
+        if (cancelAtPeriodEnd) {
+          renewalNotice = `<p class="sd-subscription-active__renewal-notice sd-subscription-active__renewal-notice--cancel">⚠ Cancels on ${endDate}</p>`;
+        } else {
+          renewalNotice = `<p class="sd-subscription-active__renewal-notice sd-subscription-active__renewal-notice--auto">↻ Auto-renews on ${endDate}</p>`;
+        }
       }
 
       container.innerHTML = `
@@ -576,7 +621,8 @@ async function displaySubscriptionStatus() {
             <span class="sd-subscription-active__badge sd-subscription-active__badge--${currentTier}">${planLabel}</span>
             <span class="sd-subscription-active__status">Active</span>
           </div>
-          ${billingHtml}
+          ${detailsHtml}
+          ${renewalNotice}
           <a href="/supplier/subscription" class="sd-subscription-manage-btn">Manage subscription →</a>
         </div>
       `;

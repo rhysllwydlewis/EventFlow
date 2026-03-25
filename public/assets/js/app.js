@@ -2717,7 +2717,15 @@ async function initDashSupplier() {
       cachedSuppliers = items; // Cache for use within initDashSupplier scope
       window._efCachedSuppliers = items; // Expose globally for editProfile()
       // If this user has at least one Pro supplier, treat them as Pro.
-      currentIsPro = items.some(s => !!s.isPro);
+      // Check subscriptionTier (new field) first, then subscription.tier, then legacy isPro boolean.
+      currentIsPro = items.some(
+        s =>
+          !!s.isPro ||
+          s.subscriptionTier === 'pro' ||
+          s.subscriptionTier === 'pro_plus' ||
+          s.subscription?.tier === 'pro' ||
+          s.subscription?.tier === 'pro_plus'
+      );
 
       if (proRibbon) {
         if (currentIsPro) {
@@ -3167,7 +3175,7 @@ async function initDashSupplier() {
             approved && slug && !paused
               ? `<a href="/package?slug=${slug}" target="_blank" class="card-action-btn view-btn">View</a>`
               : '';
-          const pauseBtn = `<button type="button" class="card-action-btn ${paused ? 'unpause-btn' : 'pause-btn'}" data-action="${paused ? 'unpause-package' : 'pause-package'}" data-package-id="${packageId}">${paused ? 'Unpause' : 'Pause'}</button>`;
+          const pauseBtn = `<button type="button" class="card-action-btn ${paused ? 'unpause-btn' : 'pause-btn'}" data-action="${paused ? 'unpause-package' : 'pause-package'}" data-package-id="${packageId}" title="${paused ? 'Unpause' : 'Pause'}">${paused ? '▶' : '⏸'}</button>`;
 
           return `<div class="card package-card${paused ? ' package-card--paused' : ''}" data-package-id="${packageId}">
       <img src="${image}" alt="${title} image" onerror="this.src='/assets/images/package-placeholder.svg'; this.onerror=null;">
