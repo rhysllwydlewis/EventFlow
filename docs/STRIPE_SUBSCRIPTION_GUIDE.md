@@ -184,9 +184,29 @@ const FEATURE_TIERS = {
 - **3D Secure**: 4000 0025 0000 3155
 - **Insufficient Funds**: 4000 0000 0000 9995
 
-### Webhook Testing
+## Webhook Configuration
 
-Listen to Stripe webhooks locally:
+### Canonical endpoint
+
+Configure your Stripe webhook destination to:
+
+```
+POST https://event-flow.co.uk/api/v2/webhooks/stripe
+```
+
+A compatibility alias is also supported at:
+
+```
+POST https://event-flow.co.uk/api/v2/subscriptions/webhooks/stripe
+```
+
+Both paths invoke the same handler — no redirects are required.  
+A `GET` request to either path returns a JSON info message (useful for browser
+verification), but Stripe only uses `POST`.
+
+### Local development
+
+Forward webhooks to your local server using the Stripe CLI:
 
 ```bash
 # Install Stripe CLI
@@ -197,13 +217,39 @@ stripe login
 
 # Forward webhooks to local server
 stripe listen --forward-to localhost:3000/api/v2/webhooks/stripe
+```
 
-# Test specific events
+Set `STRIPE_WEBHOOK_SECRET` in your environment to the `whsec_...` value shown
+by `stripe listen` (or the secret from your Stripe dashboard destination).
+
+To fire test events manually:
+
+```bash
 stripe trigger customer.subscription.created
 stripe trigger customer.subscription.trial_will_end
 stripe trigger invoice.payment_failed
 stripe trigger invoice.payment_succeeded
 ```
+
+## Promotion Codes / Coupons
+
+Stripe Checkout shows an **"Add promotion code"** link when the session is
+created with `allow_promotion_codes: true`.
+
+EventFlow enables this automatically for all subscription checkout sessions
+**unless** introductory pricing is active (`STRIPE_PRO_INTRO_COUPON_ID` is
+set), because Stripe does not allow both a pre-applied discount and an
+open-entry promotion code on the same session.
+
+| Scenario | Coupon box shown? |
+|---|---|
+| Standard subscription checkout | ✅ Yes (`allow_promotion_codes: true`) |
+| Intro pricing coupon applied (`STRIPE_PRO_INTRO_COUPON_ID`) | ❌ No (discount pre-applied; Stripe restriction) |
+
+To create a testable promotion code:
+1. Stripe Dashboard → **Product catalogue → Coupons** → Create coupon.
+2. On the coupon page, create a **Promotion code** (e.g. `FREE100TEST`).
+3. Go through checkout on your site — the **"Add promotion code"** link will appear.
 
 ### Manual Testing Checklist
 

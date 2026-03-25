@@ -165,6 +165,8 @@ router.post(
         client_reference_id: req.user.id,
         mode: 'subscription',
         line_items: [{ price: priceId, quantity: 1 }],
+        // Allow customers to enter promotion codes at checkout
+        allow_promotion_codes: true,
         success_url: successUrl,
         cancel_url: cancelUrl,
         // Session-level metadata (for checkout.session.completed)
@@ -996,14 +998,11 @@ router.get('/admin/revenue', authRequired, roleRequired('admin'), async (req, re
 });
 
 /**
- * @swagger
- * /api/v2/webhooks/stripe:
- *   post:
- *     summary: Stripe webhook endpoint
- *     tags: [Webhooks]
- *     description: Handles Stripe webhook events
+ * Shared Stripe webhook handler.
+ * Verifies the Stripe signature (when STRIPE_WEBHOOK_SECRET is set) and
+ * dispatches the event to processWebhookEvent.
  */
-router.post('/webhooks/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
+async function stripeWebhookHandler(req, res) {
   const sig = req.headers['stripe-signature'];
 
   let event;
@@ -1035,6 +1034,50 @@ router.post('/webhooks/stripe', express.raw({ type: 'application/json' }), async
       message: error.message,
     });
   }
+}
+
+const rawBodyParser = express.raw({ type: 'application/json' });
+
+const webhookInfoResponse = {
+  message: 'Stripe webhook endpoint. Send POST requests from Stripe only.',
+  canonical: 'POST /api/v2/webhooks/stripe',
+  compat: 'POST /api/v2/subscriptions/webhooks/stripe',
+};
+
+/**
+ * @swagger
+ * /api/v2/webhooks/stripe:
+ *   post:
+ *     summary: Stripe webhook endpoint (canonical)
+ *     tags: [Webhooks]
+ *     description: Handles Stripe webhook events. Canonical path.
+ *   get:
+ *     summary: Webhook endpoint info
+ *     tags: [Webhooks]
+ *     description: Returns info about the webhook endpoint (not for Stripe use).
+ */
+router.get('/webhooks/stripe', (req, res) => {
+  res.status(200).json(webhookInfoResponse);
 });
+router.post('/webhooks/stripe', rawBodyParser, stripeWebhookHandler);
+
+/**
+ * Compatibility alias: POST /api/v2/subscriptions/webhooks/stripe
+ * Stripe can be configured to send to either path.
+ *
+ * @swagger
+ * /api/v2/subscriptions/webhooks/stripe:
+ *   post:
+ *     summary: Stripe webhook endpoint (compat alias)
+ *     tags: [Webhooks]
+ *     description: Compatibility alias for the canonical /api/v2/webhooks/stripe endpoint.
+ *   get:
+ *     summary: Webhook endpoint info (compat alias)
+ *     tags: [Webhooks]
+ */
+router.get('/subscriptions/webhooks/stripe', (req, res) => {
+  res.status(200).json(webhookInfoResponse);
+});
+router.post('/subscriptions/webhooks/stripe', rawBodyParser, stripeWebhookHandler);
 
 module.exports = router;
