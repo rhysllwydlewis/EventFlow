@@ -388,20 +388,29 @@
           line-height: 1.35;
         }
 
-        /* Close button: visually tiny ✕ (10 px icon) inside a 28 px touch target.
-           28 px = 44px × 0.7 — 30% below the WCAG minimum touch target.
-           The transparent background makes it look like a bare small icon while
-           still giving a comfortable tap zone on mobile. */
+        /* Close button: 16px visible size (just bigger than the 10px ×),
+           with a 44px invisible touch target via ::before for accessibility. */
         .jade-teaser-close {
-          width: 28px;
-          height: 28px;
-          min-width: 28px;
+          width: 16px;
+          height: 16px;
+          min-width: 16px;
           font-size: 10px;
           padding: 0;
           border-radius: 50%;
-          align-self: center;
-          margin-top: 0;
+          align-self: flex-start;
+          margin-top: 2px;
           color: rgba(138, 153, 171, 0.75);
+          position: relative;
+        }
+
+        .jade-teaser-close::before {
+          content: '';
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 44px;
+          height: 44px;
         }
 
         .jade-teaser-close:hover,

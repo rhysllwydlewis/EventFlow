@@ -1632,6 +1632,24 @@
     font-size: 0.875rem;
     padding: 0.625rem 1.25rem;
   }
+
+  /* Force buttons into a single row on mobile */
+  .cookie-consent-actions {
+    flex-wrap: nowrap;
+  }
+
+  .cookie-consent-btn {
+    min-width: 0;
+    flex: 1;
+    padding: 0.6rem 0.5rem;
+    font-size: 0.8rem;
+    text-align: center;
+  }
+
+  .cookie-consent-manage {
+    flex: 1;
+    font-size: 0.75rem;
+  }
 }
 
 /* Accessibility - Reduced motion */
