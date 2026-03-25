@@ -118,6 +118,39 @@
   padding: var(--ef-space-6);
   margin-bottom: var(--ef-space-5);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  position: relative;
+}
+
+/* Dismiss (close) button for the welcome card */
+.customer-welcome-dismiss {
+  position: absolute;
+  top: var(--ef-space-4);
+  right: var(--ef-space-4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--ef-radius-sm);
+  color: var(--ef-text-muted);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.customer-welcome-dismiss:hover,
+.customer-welcome-dismiss:focus-visible {
+  background: var(--ef-bg-subtle);
+  border-color: var(--ef-border);
+  color: var(--ef-text);
+  outline: none;
+}
+
+.customer-welcome-dismiss:focus-visible {
+  outline: 2px solid var(--ef-primary);
+  outline-offset: 2px;
 }
 
 .customer-welcome-heading {
@@ -868,4 +901,252 @@ body.customer-dashboard-page .ef-bottom-nav.logged-in .ef-bottom-link {
 body.customer-dashboard-page .ef-bottom-nav.logged-in #ef-bottom-menu {
   min-width: 44px;
   padding: 6px 4px;
+}
+
+/* ===========================================
+   23. CALENDAR DAY-CELL ADD BUTTON
+   =========================================== */
+/* "+" button that appears in each day cell to open the entry creation modal */
+.cal-day-add-btn {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  display: none; /* shown on hover via parent rule */
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  background: var(--ef-primary);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 2;
+}
+
+.fc-daygrid-day:hover .cal-day-add-btn,
+.fc-daygrid-day:focus-within .cal-day-add-btn {
+  display: flex;
+  opacity: 0.85;
+}
+
+.cal-day-add-btn:hover,
+.cal-day-add-btn:focus-visible {
+  opacity: 1;
+  transform: scale(1.12);
+  outline: none;
+}
+
+.cal-day-add-btn:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+/* Keep the frame relatively positioned so the button can anchor to it */
+.fc-daygrid-day-frame {
+  position: relative;
+}
+
+/* ===========================================
+   24. CALENDAR ENTRY MODAL
+   =========================================== */
+.cal-entry-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: 10000;
+  align-items: center;
+  justify-content: center;
+  padding: var(--ef-space-4);
+}
+
+.cal-entry-modal {
+  background: #fff;
+  border-radius: var(--ef-radius-lg);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: calModalIn 0.18s ease;
+}
+
+@keyframes calModalIn {
+  from { opacity: 0; transform: translateY(-12px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+.cal-entry-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--ef-space-5) var(--ef-space-5) var(--ef-space-4);
+  border-bottom: 1px solid var(--ef-border);
+}
+
+.cal-entry-modal__title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--ef-text);
+}
+
+.cal-entry-modal__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--ef-radius-sm);
+  color: var(--ef-text-muted);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.cal-entry-modal__close:hover,
+.cal-entry-modal__close:focus-visible {
+  background: var(--ef-bg-subtle);
+  color: var(--ef-text);
+  border-color: var(--ef-border);
+  outline: none;
+}
+
+.cal-entry-modal__close:focus-visible {
+  outline: 2px solid var(--ef-primary);
+  outline-offset: 2px;
+}
+
+.cal-entry-modal__form {
+  padding: var(--ef-space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ef-space-4);
+}
+
+.cal-entry-modal__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ef-space-1);
+}
+
+.cal-entry-modal__label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #344054;
+}
+
+.cal-entry-modal__optional {
+  font-weight: 400;
+  color: var(--ef-text-muted);
+  font-size: 0.8rem;
+}
+
+.cal-entry-modal__input,
+.cal-entry-modal__textarea {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid #d0d5dd;
+  border-radius: var(--ef-radius-sm);
+  font-size: 0.9375rem;
+  color: var(--ef-text);
+  background: #fff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+}
+
+.cal-entry-modal__input:focus,
+.cal-entry-modal__textarea:focus {
+  border-color: var(--ef-primary);
+  box-shadow: 0 0 0 3px rgba(11, 128, 115, 0.15);
+  outline: none;
+}
+
+.cal-entry-modal__textarea {
+  resize: vertical;
+  min-height: 72px;
+}
+
+.cal-entry-modal__error {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-radius: var(--ef-radius-sm);
+  padding: 0.625rem 0.875rem;
+  color: #dc2626;
+  font-size: 0.875rem;
+}
+
+.cal-entry-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--ef-space-3);
+  padding-top: var(--ef-space-2);
+  border-top: 1px solid var(--ef-border);
+}
+
+.cal-entry-modal__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ef-space-2);
+  padding: 0.5rem 1.25rem;
+  border-radius: var(--ef-radius-sm);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.cal-entry-modal__btn--cancel {
+  background: #fff;
+  color: var(--ef-text-muted);
+  border-color: var(--ef-border);
+}
+
+.cal-entry-modal__btn--cancel:hover,
+.cal-entry-modal__btn--cancel:focus-visible {
+  background: var(--ef-bg-subtle);
+  color: var(--ef-text);
+  outline: none;
+}
+
+.cal-entry-modal__btn--save {
+  background: var(--ef-primary);
+  color: #fff;
+  border-color: var(--ef-primary);
+}
+
+.cal-entry-modal__btn--save:hover,
+.cal-entry-modal__btn--save:focus-visible {
+  background: var(--ef-primary-dark);
+  border-color: var(--ef-primary-dark);
+  outline: none;
+}
+
+.cal-entry-modal__btn--save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cal-entry-modal__btn:focus-visible {
+  outline: 2px solid var(--ef-primary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 480px) {
+  .cal-entry-modal__actions {
+    flex-direction: column-reverse;
+  }
+  .cal-entry-modal__btn {
+    width: 100%;
+    justify-content: center;
+  }
 }

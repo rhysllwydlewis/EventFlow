@@ -1,10 +1,261 @@
 /**
  * Calendar View for Events
- * Integrates FullCalendar to display user events
+ * Integrates FullCalendar to display user events, saved public events,
+ * and personal calendar entries (meetings / events / appointments).
+ *
+ * Clicking an empty day cell opens the "Add Entry" modal so customers
+ * can quickly record a meeting, event, or appointment on that date.
  */
 
 (function () {
   'use strict';
+
+  // ── Modal ─────────────────────────────────────────────────────────────────
+
+  /**
+   * Lazily create (and cache) the entry-creation modal in the document.
+   * @returns {HTMLElement} The modal overlay element.
+   */
+  function ensureModal() {
+    const MODAL_ID = 'cal-entry-modal';
+    let existing = document.getElementById(MODAL_ID);
+    if (existing) {
+      return existing;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.id = MODAL_ID;
+    overlay.className = 'cal-entry-modal-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-labelledby', 'cal-entry-modal-title');
+
+    overlay.innerHTML = `
+      <div class="cal-entry-modal" role="document">
+        <div class="cal-entry-modal__header">
+          <h2 class="cal-entry-modal__title" id="cal-entry-modal-title">Add Calendar Entry</h2>
+          <button type="button" class="cal-entry-modal__close" aria-label="Close dialog">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <path d="M4 4l12 12M16 4L4 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+        <form class="cal-entry-modal__form" id="cal-entry-form" novalidate>
+          <div class="cal-entry-modal__field">
+            <label for="cal-entry-date" class="cal-entry-modal__label">Date <span aria-hidden="true">*</span></label>
+            <input type="date" id="cal-entry-date" name="date" class="cal-entry-modal__input" required aria-required="true">
+          </div>
+          <div class="cal-entry-modal__field">
+            <label for="cal-entry-type" class="cal-entry-modal__label">Type <span aria-hidden="true">*</span></label>
+            <select id="cal-entry-type" name="type" class="cal-entry-modal__input" required aria-required="true">
+              <option value="">— Select type —</option>
+              <option value="meeting">Meeting</option>
+              <option value="event">Event</option>
+              <option value="appointment">Appointment</option>
+            </select>
+          </div>
+          <div class="cal-entry-modal__field">
+            <label for="cal-entry-title" class="cal-entry-modal__label">Title <span aria-hidden="true">*</span></label>
+            <input type="text" id="cal-entry-title" name="title" class="cal-entry-modal__input" maxlength="100" required aria-required="true" placeholder="e.g. Venue walkthrough">
+          </div>
+          <div class="cal-entry-modal__field">
+            <label for="cal-entry-time" class="cal-entry-modal__label">Time <span class="cal-entry-modal__optional">(optional)</span></label>
+            <input type="time" id="cal-entry-time" name="time" class="cal-entry-modal__input">
+          </div>
+          <div class="cal-entry-modal__field">
+            <label for="cal-entry-description" class="cal-entry-modal__label">Notes <span class="cal-entry-modal__optional">(optional)</span></label>
+            <textarea id="cal-entry-description" name="description" class="cal-entry-modal__textarea" maxlength="500" rows="3" placeholder="Any additional notes…"></textarea>
+          </div>
+          <div id="cal-entry-error" class="cal-entry-modal__error" role="alert" aria-live="polite" style="display:none;"></div>
+          <div class="cal-entry-modal__actions">
+            <button type="button" class="cal-entry-modal__btn cal-entry-modal__btn--cancel">Cancel</button>
+            <button type="submit" class="cal-entry-modal__btn cal-entry-modal__btn--save" id="cal-entry-save-btn">
+              <span class="cal-entry-save-label">Add Entry</span>
+              <span class="cal-entry-save-spinner" style="display:none;" aria-hidden="true">⏳</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    // Close on overlay backdrop click
+    overlay.addEventListener('click', e => {
+      if (e.target === overlay) {
+        closeModal(overlay);
+      }
+    });
+
+    // Close on Escape key
+    overlay.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        closeModal(overlay);
+      }
+    });
+
+    overlay.querySelector('.cal-entry-modal__close').addEventListener('click', () => {
+      closeModal(overlay);
+    });
+    overlay.querySelector('.cal-entry-modal__btn--cancel').addEventListener('click', () => {
+      closeModal(overlay);
+    });
+
+    return overlay;
+  }
+
+  function openModal(overlay, dateStr, calendarInstance) {
+    const dateInput = overlay.querySelector('#cal-entry-date');
+    const titleInput = overlay.querySelector('#cal-entry-title');
+    const typeSelect = overlay.querySelector('#cal-entry-type');
+    const timeInput = overlay.querySelector('#cal-entry-time');
+    const descInput = overlay.querySelector('#cal-entry-description');
+    const errorEl = overlay.querySelector('#cal-entry-error');
+    const form = overlay.querySelector('#cal-entry-form');
+
+    // Reset form
+    form.reset();
+    if (dateStr) {
+      dateInput.value = dateStr;
+    }
+    if (errorEl) {
+      errorEl.style.display = 'none';
+      errorEl.textContent = '';
+    }
+
+    overlay.style.display = 'flex';
+    overlay.removeAttribute('hidden');
+
+    // Wire submit once per open (use AbortController to avoid stacking listeners)
+    const ac = new AbortController();
+
+    form.addEventListener(
+      'submit',
+      async e => {
+        e.preventDefault();
+        ac.abort(); // Remove this listener immediately
+
+        const title = titleInput.value.trim();
+        const type = typeSelect.value;
+        const date = dateInput.value;
+        const time = timeInput.value || null;
+        const description = descInput ? descInput.value.trim() : '';
+
+        // Client-side validation
+        if (!title) {
+          showModalError(errorEl, 'Please enter a title.');
+          titleInput.focus();
+          return;
+        }
+        if (!type) {
+          showModalError(errorEl, 'Please select an entry type.');
+          typeSelect.focus();
+          return;
+        }
+        if (!date) {
+          showModalError(errorEl, 'Please select a date.');
+          dateInput.focus();
+          return;
+        }
+
+        const saveBtn = overlay.querySelector('#cal-entry-save-btn');
+        const saveLabel = saveBtn.querySelector('.cal-entry-save-label');
+        const saveSpinner = saveBtn.querySelector('.cal-entry-save-spinner');
+        saveBtn.disabled = true;
+        if (saveLabel) saveLabel.textContent = 'Saving…';
+        if (saveSpinner) saveSpinner.style.display = '';
+        if (errorEl) {
+          errorEl.style.display = 'none';
+          errorEl.textContent = '';
+        }
+
+        try {
+          const csrfToken = getCsrfTokenFromPage();
+          const resp = await fetch('/api/me/calendar-entries', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-Token': csrfToken,
+            },
+            body: JSON.stringify({ title, type, date, time, description }),
+          });
+
+          const data = await resp.json();
+
+          if (!resp.ok) {
+            throw new Error(data.error || 'Failed to save entry');
+          }
+
+          // Immediately add the new event to the calendar without a full reload
+          if (calendarInstance && data.entry) {
+            const entry = data.entry;
+            const start = entry.time ? `${entry.date}T${entry.time}` : entry.date;
+            calendarInstance.addEvent({
+              id: entry.id,
+              title: entry.title,
+              start,
+              allDay: !entry.time,
+              backgroundColor: getEntryColor(entry.type),
+              borderColor: getEntryColor(entry.type),
+              extendedProps: {
+                entryType: entry.type,
+                description: entry.description,
+                personalEntry: true,
+              },
+            });
+          }
+
+          closeModal(overlay);
+        } catch (err) {
+          showModalError(errorEl, err.message || 'Could not save the entry. Please try again.');
+        } finally {
+          saveBtn.disabled = false;
+          if (saveLabel) saveLabel.textContent = 'Add Entry';
+          if (saveSpinner) saveSpinner.style.display = 'none';
+        }
+      },
+      { signal: ac.signal }
+    );
+
+    // Focus the title field for keyboard accessibility
+    setTimeout(() => titleInput.focus(), 60);
+  }
+
+  function closeModal(overlay) {
+    overlay.style.display = 'none';
+    overlay.setAttribute('hidden', '');
+  }
+
+  function showModalError(errorEl, message) {
+    if (!errorEl) {
+      return;
+    }
+    errorEl.textContent = message;
+    errorEl.style.display = 'block';
+  }
+
+  /** Read CSRF token from the page (meta tag → global → cookie). */
+  function getCsrfTokenFromPage() {
+    if (window.__CSRF_TOKEN__) {
+      return window.__CSRF_TOKEN__;
+    }
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    if (meta && meta.getAttribute('content')) {
+      return meta.getAttribute('content');
+    }
+    const match = document.cookie.match(/(?:^|;\s*)(?:csrf|csrfToken)=([^;]+)/);
+    if (match) {
+      try {
+        return decodeURIComponent(match[1]);
+      } catch (_) {
+        return match[1];
+      }
+    }
+    return '';
+  }
+
+  // ── Calendar initialisation ───────────────────────────────────────────────
 
   /**
    * Initialize calendar view
@@ -25,7 +276,7 @@
       return;
     }
 
-    // Fetch events from API
+    // Fetch plan events from API
     let events = [];
     try {
       const response = await fetch('/api/v1/me/plans', {
@@ -47,6 +298,10 @@
         url: `/plan?id=${plan.id}`,
         backgroundColor: getEventColor(plan.eventType || plan.type),
         borderColor: getEventColor(plan.eventType || plan.type),
+        extendedProps: {
+          description: plan.description || '',
+          location: plan.location || '',
+        },
       }));
     } catch (error) {
       console.error('Error fetching events:', error);
@@ -58,7 +313,7 @@
       return;
     }
 
-    // Also load saved public calendar events and add them with a distinct colour
+    // Load saved public calendar events (distinct purple colour)
     try {
       const pubRes = await fetch('/api/v1/public-calendar/events/saved', {
         credentials: 'include',
@@ -75,13 +330,46 @@
           url: `/public-calendar`,
           backgroundColor: '#7c3aed',
           borderColor: '#6d28d9',
-          extendedProps: { publicEvent: true },
+          extendedProps: {
+            description: ev.description || '',
+            location: ev.location || '',
+            publicEvent: true,
+          },
         }));
         events = events.concat(pubEvents);
       }
     } catch (_) {
       // Silently ignore — public calendar saves are optional
     }
+
+    // Load personal calendar entries (meetings / events / appointments)
+    try {
+      const entryRes = await fetch('/api/me/calendar-entries', {
+        credentials: 'include',
+      });
+      if (entryRes.ok) {
+        const entryData = await entryRes.json();
+        const entryEvents = (entryData.entries || []).map(entry => ({
+          id: entry.id,
+          title: entry.title,
+          start: entry.time ? `${entry.date}T${entry.time}` : entry.date,
+          allDay: !entry.time,
+          backgroundColor: getEntryColor(entry.type),
+          borderColor: getEntryColor(entry.type),
+          extendedProps: {
+            entryType: entry.type,
+            description: entry.description,
+            personalEntry: true,
+          },
+        }));
+        events = events.concat(entryEvents);
+      }
+    } catch (_) {
+      // Non-fatal — personal entries may not be available yet
+    }
+
+    // Pre-create the modal so it's ready immediately on first click
+    const modal = ensureModal();
 
     // Initialize FullCalendar
     const calendar = new FullCalendar.Calendar(container, {
@@ -92,6 +380,11 @@
         right: 'dayGridMonth,timeGridWeek,listWeek',
       },
       events: events,
+      selectable: true,
+      // Open the "Add Entry" modal when the user clicks a day cell
+      dateClick: function (info) {
+        openModal(modal, info.dateStr, calendar);
+      },
       eventClick: function (info) {
         info.jsEvent.preventDefault();
         if (info.event.url) {
@@ -99,31 +392,34 @@
         }
       },
       eventDidMount: function (info) {
-        // Add tooltip with event details
-        if (info.event.extendedProps.description || info.event.extendedProps.location) {
+        // Tooltip with event details on hover
+        const desc = info.event.extendedProps.description;
+        const loc = info.event.extendedProps.location;
+        const entryType = info.event.extendedProps.entryType;
+        if (desc || loc || entryType) {
           const tooltip = document.createElement('div');
           tooltip.className = 'calendar-tooltip';
-          tooltip.style.display = 'none';
-          tooltip.style.position = 'absolute';
-          tooltip.style.background = 'white';
-          tooltip.style.border = '1px solid #e5e7eb';
-          tooltip.style.borderRadius = '6px';
-          tooltip.style.padding = '8px 12px';
-          tooltip.style.boxShadow = '0 4px 6px rgba(0,0,0,0.1)';
-          tooltip.style.zIndex = '1000';
-          tooltip.style.maxWidth = '250px';
+          tooltip.style.cssText =
+            'display:none;position:fixed;background:#fff;border:1px solid #e5e7eb;' +
+            'border-radius:8px;padding:8px 12px;box-shadow:0 4px 12px rgba(0,0,0,.12);' +
+            'z-index:9999;max-width:260px;font-size:0.85rem;pointer-events:none;';
+
+          const typeLabel = entryType
+            ? `<span style="display:inline-block;margin-bottom:4px;padding:1px 7px;background:${getEntryColor(entryType)}20;color:${getEntryColor(entryType)};border-radius:4px;font-size:0.75rem;font-weight:600;text-transform:capitalize;">${escapeHtml(entryType)}</span><br>`
+            : '';
           tooltip.innerHTML = `
+            ${typeLabel}
             <strong>${escapeHtml(info.event.title)}</strong>
-            ${info.event.extendedProps.location ? `<br><small>📍 ${escapeHtml(info.event.extendedProps.location)}</small>` : ''}
-            ${info.event.extendedProps.description ? `<br><small>${escapeHtml(info.event.extendedProps.description.substring(0, 100))}${info.event.extendedProps.description.length > 100 ? '...' : ''}</small>` : ''}
+            ${loc ? `<br><small>📍 ${escapeHtml(loc)}</small>` : ''}
+            ${desc ? `<br><small style="color:#6b7280;">${escapeHtml(String(desc).substring(0, 120))}${String(desc).length > 120 ? '…' : ''}</small>` : ''}
           `;
 
           info.el.addEventListener('mouseenter', () => {
             document.body.appendChild(tooltip);
             const rect = info.el.getBoundingClientRect();
             tooltip.style.display = 'block';
-            tooltip.style.left = `${rect.left}px`;
-            tooltip.style.top = `${rect.bottom + 5}px`;
+            tooltip.style.left = `${Math.min(rect.left, window.innerWidth - 280)}px`;
+            tooltip.style.top = `${rect.bottom + 6}px`;
           });
 
           info.el.addEventListener('mouseleave', () => {
@@ -133,8 +429,24 @@
           });
         }
       },
+      // Show a "+" hint on day cells to prompt entry creation
+      dayCellDidMount: function (info) {
+        const addBtn = document.createElement('button');
+        addBtn.type = 'button';
+        addBtn.className = 'cal-day-add-btn';
+        addBtn.setAttribute('aria-label', `Add entry for ${info.dateStr}`);
+        addBtn.innerHTML =
+          '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M6 1v10M1 6h10" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+        addBtn.addEventListener('click', e => {
+          e.stopPropagation();
+          openModal(modal, info.dateStr, calendar);
+        });
+        const frame = info.el.querySelector('.fc-daygrid-day-frame');
+        if (frame) {
+          frame.appendChild(addBtn);
+        }
+      },
       height: options.height || 'auto',
-      ...options,
     });
 
     calendar.render();
@@ -143,10 +455,10 @@
     container._calendarInstance = calendar;
   }
 
+  // ── Colour helpers ────────────────────────────────────────────────────────
+
   /**
-   * Get color for event type
-   * @param {string} type - Event type
-   * @returns {string} Color code
+   * Get color for plan/event type (for plan events loaded from API).
    */
   function getEventColor(type) {
     const colors = {
@@ -162,9 +474,19 @@
   }
 
   /**
-   * Escape HTML
-   * @param {string} text - Text to escape
-   * @returns {string} Escaped text
+   * Get color for personal calendar entry type.
+   */
+  function getEntryColor(type) {
+    const colors = {
+      meeting: '#6366f1',
+      appointment: '#f59e0b',
+      event: '#0b8073',
+    };
+    return colors[type] || '#0b8073';
+  }
+
+  /**
+   * Escape HTML to avoid XSS in tooltip content.
    */
   function escapeHtml(text) {
     const div = document.createElement('div');

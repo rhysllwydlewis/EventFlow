@@ -56,6 +56,7 @@ const phoneVerificationRoutes = require('./phoneVerification');
 const emailVerificationRoutes = require('./emailVerification');
 const catalogRoutes = require('./catalog');
 const publicCalendarRoutes = require('./public-calendar');
+const customerCalendarRoutes = require('./customer-calendar');
 
 /**
  * Mount all route modules
@@ -247,6 +248,10 @@ function mountRoutes(app, deps) {
   // Plans routes (user wedding/event plans)
   app.use('/api/v1/me/plans', plansRoutes);
   app.use('/api/me/plans', plansRoutes); // Backward compatibility
+
+  // Customer calendar entries (personal meetings/events/appointments)
+  app.use('/api/v1/me/calendar-entries', customerCalendarRoutes);
+  app.use('/api/me/calendar-entries', customerCalendarRoutes); // Backward compatibility
 
   // Guests routes (guest list management for plans)
   app.use('/api/v1/me/plans', guestsRoutes);
