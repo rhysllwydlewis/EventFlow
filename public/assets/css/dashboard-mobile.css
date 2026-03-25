@@ -41,11 +41,6 @@
    B) HEADER — more compact on mobile
    ============================================================ */
 @media (max-width: 768px) {
-  /* Reduce top-bar height */
-  .ef-header .ef-container {
-    padding-top: 6px;
-    padding-bottom: 6px;
-  }
 
   /* Smaller icon buttons */
   .ef-icon-btn {
