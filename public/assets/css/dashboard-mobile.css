@@ -570,6 +570,14 @@
     padding-top: 0;
   }
 
+  /* Eliminate any gap between the fixed top navbar and the quick action
+     pill bar. The body gets padding-top equal to the header height so the
+     first visible element (dashboard-mobile-nav) appears flush below the
+     navbar. Remove any residual margin that would create a visible gap. */
+  .dashboard-mobile-nav {
+    margin-top: 0;
+  }
+
   /* Hide breadcrumb on mobile — users scroll vertically and don't
      need wayfinding crumbs that always show the same path. */
   .dashboard-breadcrumb {

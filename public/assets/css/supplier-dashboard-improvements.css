@@ -824,6 +824,7 @@ body.supplier-dashboard-page .supplier-cta-section {
   position: sticky;
   top: var(--ef-header-height, 64px);
   z-index: 12;
+  margin: 0;
   backdrop-filter: blur(10px) saturate(160%);
   -webkit-backdrop-filter: blur(10px) saturate(160%);
   background: rgba(255, 255, 255, 0.92);
