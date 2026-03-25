@@ -2909,6 +2909,15 @@ async function initDashSupplier() {
         if (sectionHeading) {
           sectionHeading.textContent = 'Edit Profile';
         }
+        // Update the quick-action chip label to "Edit Profile" since only one profile is allowed
+        const createProfileChip = document.querySelector('[data-action="create-profile"]');
+        if (createProfileChip) {
+          const chipSpan = createProfileChip.querySelector('span');
+          if (chipSpan) {
+            chipSpan.textContent = 'Edit Profile';
+          }
+          createProfileChip.setAttribute('data-action', 'edit-profile-chip');
+        }
       }
     } catch (err) {
       console.error('Error loading suppliers:', err);
@@ -3172,6 +3181,10 @@ async function initDashSupplier() {
       }
     }
   }
+  // Expose loadPackages globally so togglePackagePause() (defined outside this
+  // closure) can refresh the package list after a pause/unpause operation.
+  window._efLoadPackages = loadPackages;
+
   await loadSuppliers();
   await loadPackages();
 
@@ -3906,13 +3919,27 @@ async function togglePackagePause(packageId, pause) {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      alert(`Failed to ${action} package: ${errorData.error || 'Unknown error'}`);
+      const errorData = await response.json().catch(() => ({}));
+      const msg = `Failed to ${action} package: ${errorData.error || 'Unknown error'}`;
+      if (typeof Toast !== 'undefined') {
+        Toast.error(msg);
+      } else {
+        alert(msg);
+      }
       return;
     }
 
-    // Refresh packages list to reflect the updated state
-    await loadPackages();
+    // Refresh packages list to reflect the updated state.
+    // _efLoadPackages is the closure-scoped loadPackages() exposed by initDashSupplier().
+    if (typeof window._efLoadPackages === 'function') {
+      await window._efLoadPackages();
+    }
+
+    // Show a success notification
+    const successMsg = pause ? 'Package paused successfully.' : 'Package unpaused successfully.';
+    if (typeof Toast !== 'undefined') {
+      Toast.success(successMsg);
+    }
 
     // Keep the Active Packages stat card in sync without a full page reload
     try {
@@ -3931,7 +3958,12 @@ async function togglePackagePause(packageId, pause) {
     }
   } catch (e) {
     console.error(`Error ${action}ing package:`, e);
-    alert(`Failed to ${action} package. Please try again.`);
+    const errMsg = `Failed to ${action} package. Please try again.`;
+    if (typeof Toast !== 'undefined') {
+      Toast.error(errMsg);
+    } else {
+      alert(errMsg);
+    }
   }
 }
 

@@ -6483,3 +6483,43 @@ body:not(.supplier-dashboard-page) .section > .container {
 .sd-empty-state--compact {
   padding: 1.25rem 1rem 0.5rem;
 }
+
+/* ============================================
+   MOBILE OPTIMIZATION — Package card action buttons
+   Tighter layout for narrow viewports so button
+   text never wraps awkwardly (e.g. "Vie w").
+   ============================================ */
+@media (max-width: 480px) {
+  /* Make the actions row wrap gracefully in two equal columns */
+  .card-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  /* Slightly smaller text & padding to keep each button on one line */
+  .card-action-btn {
+    padding: 6px 8px;
+    font-size: 0.8rem;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Allow the View button (an <a>) to span the full width when it is
+     the only item in its implicit grid row (e.g. 3-button rows) */
+  .card-action-btn:only-child,
+  .card-actions > :last-child:nth-child(odd) {
+    grid-column: span 2;
+  }
+}
+
+@media (min-width: 481px) and (max-width: 768px) {
+  /* On mid-size mobiles keep a single flex row but shrink padding */
+  .card-action-btn {
+    padding: 7px 10px;
+    font-size: 0.825rem;
+    white-space: nowrap;
+  }
+}

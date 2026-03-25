@@ -1,11 +1,30 @@
 document.addEventListener('DOMContentLoaded', () => {
+  function scrollToProfileForm() {
+    const supName = document.getElementById('sup-name');
+    if (supName) {
+      supName.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      supName.focus();
+    }
+    // Expand the profile form section if it isn't already open
+    const profileFormSection = document.getElementById('profile-form-section');
+    if (profileFormSection && !profileFormSection.classList.contains('expanded')) {
+      const toggleBtn = document.getElementById('toggle-profile-form');
+      if (toggleBtn) {
+        toggleBtn.click();
+      }
+    }
+  }
+
   const btn = document.querySelector('[data-action="create-profile"]');
   if (btn) {
-    btn.addEventListener('click', () => {
-      document.getElementById('sup-name').focus();
-      document.getElementById('sup-name').scrollIntoView({ behavior: 'smooth', block: 'center' });
-    });
+    btn.addEventListener('click', scrollToProfileForm);
   }
+  // Also handle the chip after it has been relabelled to "Edit Profile" by loadSuppliers()
+  document.addEventListener('click', e => {
+    if (e.target.closest('[data-action="edit-profile-chip"]')) {
+      scrollToProfileForm();
+    }
+  });
   const btnPkg = document.querySelector('[data-action="new-package"]');
   if (btnPkg) {
     btnPkg.addEventListener('click', () => {
