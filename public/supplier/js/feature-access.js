@@ -161,7 +161,7 @@ export function getTierDisplayName(tier = null) {
     case 'pro_plus':
       return 'Pro+';
     default:
-      return 'Free';
+      return 'Starter';
   }
 }
 

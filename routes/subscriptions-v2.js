@@ -369,12 +369,29 @@ router.post(
   async (req, res) => {
     try {
       const { id } = req.params;
-      const { newPlan, newPriceId } = req.body;
+      const { newPlan } = req.body;
+      let { newPriceId } = req.body;
 
-      if (!newPlan || !newPriceId) {
+      if (!newPlan) {
         return res.status(400).json({
-          error: 'Missing required fields',
-          message: 'newPlan and newPriceId are required',
+          error: 'Missing required field',
+          message: 'newPlan is required',
+        });
+      }
+
+      // Resolve price ID server-side from env vars if not supplied by the client
+      if (!newPriceId) {
+        const SERVER_PLAN_PRICE_MAP = {
+          pro: process.env.STRIPE_PRO_PRICE_ID || null,
+          pro_plus: process.env.STRIPE_PRO_PLUS_PRICE_ID || null,
+        };
+        newPriceId = SERVER_PLAN_PRICE_MAP[newPlan] || null;
+      }
+
+      if (!newPriceId) {
+        return res.status(400).json({
+          error: 'Cannot resolve price for plan',
+          message: `No Stripe price ID configured for plan: ${newPlan}`,
         });
       }
 

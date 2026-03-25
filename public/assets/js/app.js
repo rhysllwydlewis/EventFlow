@@ -2728,7 +2728,7 @@ async function initDashSupplier() {
         } else {
           proRibbon.style.display = 'block';
           proRibbon.innerHTML =
-            '<strong>You’re on the free plan.</strong> Upgrade to EventFlow Pro to boost your visibility, unlock more packages and get priority support.';
+            '<strong>You’re on the Starter plan.</strong> Upgrade to EventFlow Pro to boost your visibility, unlock more packages and get priority support.';
         }
       }
 
@@ -3114,8 +3114,8 @@ async function initDashSupplier() {
             : 'As a Pro supplier you can create unlimited packages.';
         } else {
           note.textContent = count
-            ? `You have ${count} of ${freeLimit} packages on the free plan. Upgrade to Pro to unlock more.`
-            : `On the free plan you can create up to ${freeLimit} packages.`;
+            ? `You have ${count} of ${freeLimit} packages on the Starter plan. Upgrade to Pro to unlock more.`
+            : `On the Starter plan you can create up to ${freeLimit} packages.`;
         }
       }
 
@@ -3678,7 +3678,7 @@ async function initDashSupplier() {
 
 /** Message shown in #pkg-status when the free-tier package limit is reached. */
 const PKG_LIMIT_MESSAGE =
-  'You have reached the package limit on the free plan. Upgrade to Pro to add more.';
+  'You have reached the package limit on the Starter plan. Upgrade to Pro to add more.';
 
 /**
  * Enable or disable all inputs / the submit button in #package-form and update

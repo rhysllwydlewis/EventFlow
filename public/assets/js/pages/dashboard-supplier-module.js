@@ -543,9 +543,9 @@ async function displaySubscriptionStatus() {
     const currentTier = user?.subscriptionTier || 'free';
 
     const TIER_LABELS = {
-      pro: 'Professional',
-      pro_plus: 'Professional Plus',
-      free: 'Starter (Free)',
+      pro: 'Pro',
+      pro_plus: 'Pro Plus',
+      free: 'Starter',
     };
 
     // Also load payment record for billing details
