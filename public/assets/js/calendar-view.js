@@ -113,6 +113,13 @@
     const errorEl = overlay.querySelector('#cal-entry-error');
     const form = overlay.querySelector('#cal-entry-form');
 
+    // Abort any submit listener from a previous open (prevents stacking)
+    if (overlay._submitAC) {
+      overlay._submitAC.abort();
+    }
+    const ac = new AbortController();
+    overlay._submitAC = ac;
+
     // Reset form
     form.reset();
     if (dateStr) {
@@ -126,14 +133,16 @@
     overlay.style.display = 'flex';
     overlay.removeAttribute('hidden');
 
-    // Wire submit once per open (use AbortController to avoid stacking listeners)
-    const ac = new AbortController();
+    let submitting = false;
 
+    // Wire submit — auto-removed when ac is aborted (on close or next open).
+    // Uses a submitting guard instead of aborting on validation failures so the
+    // user can fix errors and resubmit without reopening the modal.
     form.addEventListener(
       'submit',
       async e => {
         e.preventDefault();
-        ac.abort(); // Remove this listener immediately
+        if (submitting) return;
 
         const title = titleInput.value.trim();
         const type = typeSelect.value;
@@ -158,6 +167,7 @@
           return;
         }
 
+        submitting = true;
         const saveBtn = overlay.querySelector('#cal-entry-save-btn');
         const saveLabel = saveBtn.querySelector('.cal-entry-save-label');
         const saveSpinner = saveBtn.querySelector('.cal-entry-save-spinner');
@@ -210,6 +220,7 @@
         } catch (err) {
           showModalError(errorEl, err.message || 'Could not save the entry. Please try again.');
         } finally {
+          submitting = false;
           saveBtn.disabled = false;
           if (saveLabel) saveLabel.textContent = 'Add Entry';
           if (saveSpinner) saveSpinner.style.display = 'none';
@@ -223,6 +234,11 @@
   }
 
   function closeModal(overlay) {
+    // Clean up any pending submit listener
+    if (overlay._submitAC) {
+      overlay._submitAC.abort();
+      overlay._submitAC = null;
+    }
     overlay.style.display = 'none';
     overlay.setAttribute('hidden', '');
   }
