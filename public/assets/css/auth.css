@@ -606,7 +606,9 @@ h1.auth-heading {
 
 /* Intent notice — contextual redirect message */
 .auth-status--intent {
+  position: relative;
   margin-bottom: 1rem;
+  padding-right: 2.5rem; /* room for the dismiss button */
 }
 
 .auth-status--intent .auth-intent-title {
@@ -620,6 +622,35 @@ h1.auth-heading {
   margin: 0;
   font-size: 0.875rem;
   line-height: 1.5;
+}
+
+/* Dismiss (×) button inside the intent notice */
+.auth-intent-dismiss {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  font-size: 1.125rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.65;
+  color: inherit;
+  transition: opacity 0.15s ease;
+}
+
+.auth-intent-dismiss:hover,
+.auth-intent-dismiss:focus-visible {
+  opacity: 1;
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
 }
 
 .auth-status-inline {
