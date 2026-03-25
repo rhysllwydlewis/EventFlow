@@ -570,6 +570,24 @@
     padding-top: 0;
   }
 
+  /* Eliminate any gap between the fixed top navbar and the quick action
+     pill bar. The body gets padding-top equal to the header height so the
+     first visible element (dashboard-mobile-nav) appears flush below the
+     navbar. Remove any residual margin that would create a visible gap. */
+  .dashboard-mobile-nav {
+    margin-top: 0;
+  }
+
+  /* Neutralise the global body { padding: 10px } rule (from styles.css
+     @media max-width:600px) for the supplier dashboard. That rule was
+     designed for simple pages; on the dashboard the nav bar needs to run
+     edge-to-edge. Inner content uses .container for its own horizontal
+     padding, so removing the body side-padding here causes no harm. */
+  body.supplier-dashboard-page {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
   /* Hide breadcrumb on mobile — users scroll vertically and don't
      need wayfinding crumbs that always show the same path. */
   .dashboard-breadcrumb {
