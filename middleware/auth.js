@@ -138,6 +138,7 @@ function wantsHtml(req) {
   if (req.xhr) {
     return false;
   }
+  // req.get may be absent in unit-test mocks; guard defensively
   const fetchMode = req.get ? req.get('sec-fetch-mode') : null;
   if (fetchMode) {
     return fetchMode === 'navigate';
