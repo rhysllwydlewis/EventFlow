@@ -46,7 +46,7 @@ router.get('/dashboard', apiLimiter, authRequired, (req, res) => {
 router.get('/dashboard/customer', apiLimiter, authRequired, async (req, res) => {
   try {
     if (req.user.role !== 'customer') {
-      return res.redirect('/auth');
+      return res.redirect('/auth?reason=forbidden&required=customer');
     }
     res.sendFile(path.join(__dirname, '..', 'public', 'dashboard-customer.html'));
   } catch (error) {
@@ -63,7 +63,7 @@ router.get('/dashboard/customer', apiLimiter, authRequired, async (req, res) => 
 router.get('/dashboard/customer/plans/:id', apiLimiter, authRequired, async (req, res) => {
   try {
     if (req.user.role !== 'customer') {
-      return res.redirect('/auth');
+      return res.redirect('/auth?reason=forbidden&required=customer');
     }
     // Validate the plan ID format (prefix_alphanumeric as produced by uid()).
     // An invalid format cannot belong to a real plan — redirect to the dashboard.
@@ -84,7 +84,7 @@ router.get('/dashboard/customer/plans/:id', apiLimiter, authRequired, async (req
 router.get('/dashboard/supplier', apiLimiter, authRequired, async (req, res) => {
   try {
     if (req.user.role !== 'supplier') {
-      return res.redirect('/auth');
+      return res.redirect('/auth?reason=forbidden&required=supplier');
     }
     res.sendFile(path.join(__dirname, '..', 'public', 'dashboard-supplier.html'));
   } catch (error) {
@@ -100,7 +100,7 @@ router.get('/dashboard/supplier', apiLimiter, authRequired, async (req, res) => 
 router.get('/admin', apiLimiter, authRequired, async (req, res) => {
   try {
     if (req.user.role !== 'admin') {
-      return res.redirect('/auth');
+      return res.redirect('/auth?reason=forbidden&required=admin');
     }
     res.sendFile(path.join(__dirname, '..', 'public', 'admin.html'));
   } catch (error) {
@@ -116,7 +116,7 @@ router.get('/admin', apiLimiter, authRequired, async (req, res) => {
 router.get('/admin-debug', apiLimiter, authRequired, async (req, res) => {
   try {
     if (req.user.role !== 'admin') {
-      return res.redirect('/auth');
+      return res.redirect('/auth?reason=forbidden&required=admin');
     }
     res.sendFile(path.join(__dirname, '..', 'public', 'admin-debug.html'));
   } catch (error) {
@@ -132,7 +132,7 @@ router.get('/admin-debug', apiLimiter, authRequired, async (req, res) => {
 router.get('/admin-cashout-requests', apiLimiter, authRequired, async (req, res) => {
   try {
     if (req.user.role !== 'admin') {
-      return res.redirect('/auth');
+      return res.redirect('/auth?reason=forbidden&required=admin');
     }
     res.sendFile(path.join(__dirname, '..', 'public', 'admin-cashout-requests.html'));
   } catch (error) {

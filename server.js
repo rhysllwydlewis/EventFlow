@@ -666,10 +666,13 @@ app.use('/partner/dashboard', apiLimiter, (req, res, next) => {
 app.get('/admin-partners', apiLimiter, (req, res, next) => {
   const user = getUserFromCookie(req);
   if (!user) {
-    return res.redirect(302, `/auth?redirect=${encodeURIComponent(req.originalUrl)}`);
+    return res.redirect(
+      302,
+      `/auth?reason=unauthenticated&next=${encodeURIComponent(req.originalUrl)}`
+    );
   }
   if (user.role !== 'admin') {
-    return res.redirect(302, '/');
+    return res.redirect(302, '/auth?reason=forbidden&required=admin');
   }
   return next();
 });
@@ -679,10 +682,13 @@ app.get('/admin-partners', apiLimiter, (req, res, next) => {
 app.get('/admin-cashout-requests', apiLimiter, (req, res, next) => {
   const user = getUserFromCookie(req);
   if (!user) {
-    return res.redirect(302, `/auth?redirect=${encodeURIComponent(req.originalUrl)}`);
+    return res.redirect(
+      302,
+      `/auth?reason=unauthenticated&next=${encodeURIComponent(req.originalUrl)}`
+    );
   }
   if (user.role !== 'admin') {
-    return res.redirect(302, '/');
+    return res.redirect(302, '/auth?reason=forbidden&required=admin');
   }
   return next();
 });

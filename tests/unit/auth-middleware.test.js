@@ -321,10 +321,12 @@ describe('Auth Middleware', () => {
         path: '/test',
         method: 'GET',
         ip: '127.0.0.1',
+        originalUrl: '/test',
       };
       const res = {
         status: jest.fn().mockReturnThis(),
         json: jest.fn(),
+        redirect: jest.fn(),
       };
       const next = jest.fn();
 
@@ -338,6 +340,40 @@ describe('Auth Middleware', () => {
       expect(next).not.toHaveBeenCalled();
     });
 
+    it('should redirect browser navigation to /auth?reason=unauthenticated when no token', () => {
+      const req = {
+        cookies: {},
+        path: '/dashboard/supplier',
+        originalUrl: '/dashboard/supplier',
+        method: 'GET',
+        ip: '127.0.0.1',
+        xhr: false,
+        get: jest.fn(header => {
+          if (header === 'sec-fetch-mode') {
+            return 'navigate';
+          }
+          if (header === 'user-agent') {
+            return 'Mozilla/5.0';
+          }
+          return null;
+        }),
+      };
+      const res = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn(),
+        redirect: jest.fn(),
+      };
+      const next = jest.fn();
+
+      authRequired(req, res, next);
+
+      expect(res.redirect).toHaveBeenCalledWith(
+        `/auth?reason=unauthenticated&next=${encodeURIComponent('/dashboard/supplier')}`
+      );
+      expect(res.status).not.toHaveBeenCalled();
+      expect(next).not.toHaveBeenCalled();
+    });
+
     it('should return 401 for invalid token', () => {
       const req = {
         cookies: { token: 'invalid.token' },
@@ -345,10 +381,12 @@ describe('Auth Middleware', () => {
         path: '/test',
         method: 'GET',
         ip: '127.0.0.1',
+        originalUrl: '/test',
       };
       const res = {
         status: jest.fn().mockReturnThis(),
         json: jest.fn(),
+        redirect: jest.fn(),
       };
       const next = jest.fn();
 
@@ -391,6 +429,7 @@ describe('Auth Middleware', () => {
       const res = {
         status: jest.fn().mockReturnThis(),
         json: jest.fn(),
+        redirect: jest.fn(),
       };
       const next = jest.fn();
 
@@ -404,6 +443,35 @@ describe('Auth Middleware', () => {
       expect(next).not.toHaveBeenCalled();
     });
 
+    it('should redirect browser navigation to /auth?reason=forbidden when wrong role', () => {
+      const middleware = roleRequired('supplier');
+
+      const req = {
+        user: { id: '123', role: 'customer' },
+        path: '/dashboard/supplier',
+        originalUrl: '/dashboard/supplier',
+        xhr: false,
+        get: jest.fn(header => {
+          if (header === 'sec-fetch-mode') {
+            return 'navigate';
+          }
+          return null;
+        }),
+      };
+      const res = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn(),
+        redirect: jest.fn(),
+      };
+      const next = jest.fn();
+
+      middleware(req, res, next);
+
+      expect(res.redirect).toHaveBeenCalledWith('/auth?reason=forbidden&required=supplier');
+      expect(res.status).not.toHaveBeenCalled();
+      expect(next).not.toHaveBeenCalled();
+    });
+
     it('should return 401 if no user present', () => {
       const middleware = roleRequired('admin');
 
@@ -411,6 +479,7 @@ describe('Auth Middleware', () => {
       const res = {
         status: jest.fn().mockReturnThis(),
         json: jest.fn(),
+        redirect: jest.fn(),
       };
       const next = jest.fn();
 

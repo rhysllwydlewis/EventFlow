@@ -117,6 +117,37 @@ function getUserFromCookie(req) {
 }
 
 /**
+ * Determine whether the requester expects an HTML response (browser navigation)
+ * rather than JSON.  Used to decide between a redirect and a JSON error response
+ * for protected routes.
+ *
+ * Priority order:
+ *  1. Paths under /api/ always want JSON.
+ *  2. X-Requested-With: XMLHttpRequest (jQuery / Axios default) → JSON.
+ *  3. Sec-Fetch-Mode: navigate → top-level browser navigation → HTML.
+ *     Any other Sec-Fetch-Mode value (cors, no-cors, same-origin, etc.) → JSON.
+ *  4. Accept header contains text/html → assume browser navigation → HTML.
+ *
+ * @param {Object} req - Express request object
+ * @returns {boolean} true if the client likely wants an HTML page
+ */
+function wantsHtml(req) {
+  if ((req.path || '').startsWith('/api/')) {
+    return false;
+  }
+  if (req.xhr) {
+    return false;
+  }
+  // req.get may be absent in unit-test mocks; guard defensively
+  const fetchMode = req.get ? req.get('sec-fetch-mode') : null;
+  if (fetchMode) {
+    return fetchMode === 'navigate';
+  }
+  const accept = (req.get ? req.get('accept') : null) || '';
+  return accept.includes('text/html');
+}
+
+/**
  * Middleware to require authentication
  * Verifies JWT token and attaches user to request
  * @param {Object} req - Express request object
@@ -132,6 +163,11 @@ async function authRequired(req, res, next) {
       ip: req.ip,
       userAgent: req.get('user-agent'),
     });
+
+    if (wantsHtml(req)) {
+      const next_ = encodeURIComponent(req.originalUrl);
+      return res.redirect(`/auth?reason=unauthenticated&next=${next_}`);
+    }
 
     return res.status(401).json({
       error: 'Unauthenticated',
@@ -149,6 +185,10 @@ async function authRequired(req, res, next) {
     const dbUser = await dbUnified.findOne('users', { id: u.id });
 
     if (!dbUser) {
+      if (wantsHtml(req)) {
+        const next_ = encodeURIComponent(req.originalUrl);
+        return res.redirect(`/auth?reason=unauthenticated&next=${next_}`);
+      }
       return res.status(401).json({
         error: 'Unauthenticated',
         message: 'User account not found. Please log in again.',
@@ -186,6 +226,10 @@ async function authRequired(req, res, next) {
 function roleRequired(role) {
   return (req, res, next) => {
     if (!req.user) {
+      if (wantsHtml(req)) {
+        const next_ = encodeURIComponent(req.originalUrl);
+        return res.redirect(`/auth?reason=unauthenticated&next=${next_}`);
+      }
       return res.status(401).json({
         error: 'Unauthenticated',
         message: 'Please log in to access this resource.',
@@ -195,6 +239,10 @@ function roleRequired(role) {
     // Handle array of roles
     if (Array.isArray(role)) {
       if (!role.includes(req.user.role)) {
+        if (wantsHtml(req)) {
+          const required = encodeURIComponent(role.join(','));
+          return res.redirect(`/auth?reason=forbidden&required=${required}`);
+        }
         return res.status(403).json({
           error: 'Forbidden',
           message: `This action requires one of the following roles: ${role.join(', ')}. Your current role is ${req.user.role}.`,
@@ -203,6 +251,9 @@ function roleRequired(role) {
     } else {
       // Handle single role (backward compatible)
       if (req.user.role !== role) {
+        if (wantsHtml(req)) {
+          return res.redirect(`/auth?reason=forbidden&required=${encodeURIComponent(role)}`);
+        }
         return res.status(403).json({
           error: 'Forbidden',
           message: `This action requires ${role} role. Your current role is ${req.user.role}.`,
