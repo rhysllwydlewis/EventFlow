@@ -10,7 +10,7 @@
 :root {
   --dashboard-hero-height: auto;
   --dashboard-hero-padding: clamp(24px, 4vw, 36px);
-  --dashboard-hero-gap: clamp(16px, 3vw, 28px);
+  --dashboard-hero-gap: clamp(12px, 2vw, 20px);
   
   /* Colors */
   --dashboard-primary: #10b981;
@@ -342,9 +342,10 @@
 .dashboard-hero__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--ef-space-3, 12px);
+  gap: var(--ef-space-2, 8px);
   align-items: center;
   justify-content: center;
+  margin-top: 0;
 }
 
 .dashboard-action-chip {
@@ -528,7 +529,7 @@
   .dashboard-hero__actions {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
+    gap: 6px;
   }
   
   .dashboard-action-chip {
@@ -537,8 +538,7 @@
     flex-direction: column;
     text-align: center;
     min-width: 0;
-    white-space: normal;
-    word-break: break-word;
+    overflow: hidden;
   }
   
   .dashboard-action-chip svg {

@@ -1558,14 +1558,14 @@
 }
 
 .cookie-consent-btn {
-  padding: 0.75rem 1.5rem;
+  padding: 0.6rem 1rem;
   border-radius: 8px;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease-out;
   border: 2px solid transparent;
-  min-width: 120px;
+  min-width: 90px;
   white-space: nowrap;
 }
 
@@ -1637,8 +1637,8 @@
   .cookie-consent-btn {
     min-width: 0;
     flex: 1;
-    padding: 0.4rem 0.15rem;
-    font-size: 0.55rem;
+    padding: 0.5rem 0.4rem;
+    font-size: 0.65rem;
     font-weight: 600;
     text-align: center;
     white-space: nowrap;
@@ -1648,18 +1648,18 @@
   }
 
   .cookie-consent-manage {
-    flex: 1.2;
-    font-size: 0.5rem;
+    flex: 1.4;
+    font-size: 0.6rem;
   }
 }
 
 @media (max-width: 360px) {
   .cookie-consent-btn {
-    font-size: 0.5rem;
-    padding: 0.35rem 0.1rem;
+    font-size: 0.55rem;
+    padding: 0.4rem 0.2rem;
   }
   .cookie-consent-manage {
-    font-size: 0.45rem;
+    font-size: 0.5rem;
   }
 }
 
@@ -3875,16 +3875,16 @@ body > .ef-loading-overlay {
 /* Re-apply mobile overrides after the base rule above so the cascade is correct */
 @media (max-width: 767px) {
   .cookie-consent-manage {
-    font-size: 0.5rem;
-    padding: 0.4rem 0.15rem;
+    font-size: 0.6rem;
+    padding: 0.5rem 0.4rem;
     min-width: 0;
   }
 }
 
 @media (max-width: 360px) {
   .cookie-consent-manage {
-    font-size: 0.45rem;
-    padding: 0.35rem 0.1rem;
+    font-size: 0.5rem;
+    padding: 0.4rem 0.2rem;
   }
 }
 

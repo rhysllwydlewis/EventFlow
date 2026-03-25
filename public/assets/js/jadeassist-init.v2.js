@@ -46,6 +46,8 @@
   const TEASER_AUTO_DISMISS_MS = 10000; // Auto-dismiss teaser after 10 s of inactivity
   const TEASER_STORAGE_KEY = 'jadeassist-teaser-dismissed';
   const TEASER_EXPIRY_DAYS = 1; // Teaser dismissal persists for 1 day
+  const DISMISS_STORAGE_KEY = 'jadeassist_dismissed_at'; // Key for widget close dismissal
+  const DISMISS_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours in ms
   const MOBILE_BREAKPOINT = 768; // px — matches CSS media query breakpoint
 
   // Positioning constants passed directly to widget config API
@@ -724,6 +726,9 @@
         console.log('[JadeAssist] Widget initialized successfully ✅');
       }
 
+      // Inject a × dismiss button on the launcher so users can close the widget for 24 h
+      injectDismissButton(debug);
+
       // Ensure chat is closed on page load (defensive guard against auto-open)
       setTimeout(() => {
         if (window.JadeWidget && typeof window.JadeWidget.close === 'function') {
@@ -767,6 +772,144 @@
   }
 
   /**
+   * Injects a small × dismiss button on the top-left of the JadeAssist launcher.
+   * Clicking it hides the widget for 24 hours (stored in localStorage).
+   *
+   * The widget renders its DOM asynchronously after JadeWidget.init() returns, so
+   * this function waits for the launcher element to appear in the DOM using a
+   * MutationObserver before inserting the button (with a 5 s timeout fallback).
+   */
+  function injectDismissButton(debug) {
+    // Ordered by likelihood — .jade-widget-root is the confirmed root element class
+    const LAUNCHER_SELECTORS = [
+      '.jade-widget-root',
+      '#jade-widget-root',
+      '#jade-widget-launcher',
+      '.jade-widget-launcher',
+      '#jade-launcher',
+      '.jade-launcher',
+      '#jade-widget-container',
+    ];
+
+    function findLauncher() {
+      for (const sel of LAUNCHER_SELECTORS) {
+        const el = document.querySelector(sel);
+        if (el) return el;
+      }
+      return null;
+    }
+
+    function insertButton(launcher) {
+      // Guard against double-insertion
+      if (launcher.querySelector('[data-jade-dismiss]')) return;
+
+      // Ensure the launcher has position:relative so the button positions correctly
+      if (window.getComputedStyle(launcher).position === 'static') {
+        launcher.style.position = 'relative';
+      }
+
+      const btn = document.createElement('button');
+      btn.setAttribute('aria-label', 'Close JadeAssist chat widget');
+      btn.setAttribute('type', 'button');
+      btn.setAttribute('data-jade-dismiss', '1');
+      btn.textContent = '×';
+      btn.style.cssText = [
+        'position:absolute',
+        'top:-5px',
+        'left:-5px',
+        'width:20px',
+        'height:20px',
+        'border-radius:50%',
+        'background:#1f2937',
+        'color:#fff',
+        'border:none',
+        'cursor:pointer',
+        'font-size:15px',
+        'line-height:20px',
+        'text-align:center',
+        'display:block',
+        'z-index:' + (Z_INDEX.WIDGET + 1),
+        'box-shadow:0 1px 5px rgba(0,0,0,0.4)',
+        'padding:0',
+        'transition:background 0.15s ease',
+      ].join(';');
+
+      btn.addEventListener('mouseenter', function () {
+        btn.style.background = '#374151';
+      });
+      btn.addEventListener('mouseleave', function () {
+        btn.style.background = '#1f2937';
+      });
+
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        e.preventDefault();
+
+        // Record dismissal timestamp
+        try {
+          localStorage.setItem(DISMISS_STORAGE_KEY, String(Date.now()));
+        } catch (_) {
+          // ignore storage errors
+        }
+
+        // Close the chat panel cleanly via the API first (triggers close animation)
+        if (window.JadeWidget && typeof window.JadeWidget.close === 'function') {
+          try { window.JadeWidget.close(); } catch (_) { /* ignore */ }
+        }
+
+        // Hide the entire widget root and the launcher element
+        const root = findLauncher();
+        if (root) root.style.display = 'none';
+
+        // Hide the teaser bubble if it is still visible
+        if (teaserElement) {
+          teaserElement.style.display = 'none';
+        }
+
+        if (debug) {
+          console.log('[JadeAssist] Widget dismissed for 24 h');
+        }
+      });
+
+      launcher.appendChild(btn);
+
+      if (debug) {
+        console.log('[JadeAssist] Dismiss button injected on', launcher.id || launcher.className);
+      }
+    }
+
+    // Try immediately — widget may already be in the DOM
+    const existing = findLauncher();
+    if (existing) {
+      insertButton(existing);
+      return;
+    }
+
+    // Widget DOM renders asynchronously: watch for it with a MutationObserver
+    let timeoutId;
+    const observer = new MutationObserver(function (mutations, obs) {
+      const launcher = findLauncher();
+      if (launcher) {
+        obs.disconnect();
+        clearTimeout(timeoutId);
+        insertButton(launcher);
+      }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    // Safety fallback — stop watching after 5 s whether or not we found the element
+    timeoutId = setTimeout(function () {
+      observer.disconnect();
+      const launcher = findLauncher();
+      if (launcher) {
+        insertButton(launcher);
+      } else if (debug) {
+        console.warn('[JadeAssist] Dismiss button: launcher element not found after 5 s');
+      }
+    }, 5000);
+  }
+
+  /**
    * Polls for window.JadeWidget with exponential back-off (capped at RETRY_INTERVAL).
    */
   function waitForWidget() {
@@ -791,6 +934,27 @@
 
   /** Delays first init attempt to avoid competing with critical page resources. */
   function startInitialization() {
+    // Skip if the user dismissed the widget within the last 24 hours
+    try {
+      const dismissedAt = localStorage.getItem(DISMISS_STORAGE_KEY);
+      if (dismissedAt && Date.now() - Number(dismissedAt) < DISMISS_DURATION_MS) {
+        if (shouldEnableDebug()) {
+          console.log('[JadeAssist] Skipping init — widget dismissed within last 24 h');
+        }
+        return;
+      }
+    } catch (_) {
+      // ignore storage errors
+    }
+
+    // Don't show until the user has given cookie consent
+    if (window.CookieConsent && !window.CookieConsent.hasConsent()) {
+      window.addEventListener('cookieConsentChanged', function onConsent() {
+        startInitialization();
+      }, { once: true });
+      return;
+    }
+
     setTimeout(waitForWidget, INIT_DELAY);
   }
 
