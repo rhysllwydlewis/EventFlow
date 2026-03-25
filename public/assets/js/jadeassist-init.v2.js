@@ -374,6 +374,7 @@
         .jade-teaser-content {
           padding: 8px; /* 12px × 0.7 */
           gap: 6px;     /* 9px × 0.7 */
+          align-items: flex-start;
         }
 
         .jade-teaser-avatar,
@@ -394,13 +395,22 @@
           width: 16px;
           height: 16px;
           min-width: 16px;
+          max-width: 16px;
           font-size: 10px;
           padding: 0;
           border-radius: 50%;
           align-self: flex-start;
           margin-top: 2px;
+          margin-left: -2px;
+          margin-right: -2px;
           color: rgba(138, 153, 171, 0.75);
           position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-sizing: border-box;
+          flex-shrink: 0;
+          flex-grow: 0;
         }
 
         .jade-teaser-close::before {
@@ -411,6 +421,7 @@
           transform: translate(-50%, -50%);
           width: 44px;
           height: 44px;
+          z-index: 1;
         }
 
         .jade-teaser-close:hover,
