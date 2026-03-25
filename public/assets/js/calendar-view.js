@@ -421,7 +421,7 @@
             'z-index:9999;max-width:260px;font-size:0.85rem;pointer-events:none;';
 
           const typeLabel = entryType
-            ? `<span style="display:inline-block;margin-bottom:4px;padding:1px 7px;background:${getEntryColor(entryType)}20;color:${getEntryColor(entryType)};border-radius:4px;font-size:0.75rem;font-weight:600;text-transform:capitalize;">${escapeHtml(entryType)}</span><br>`
+            ? `<span class="cal-entry-badge cal-entry-badge--${escapeHtml(entryType)}">${escapeHtml(entryType)}</span><br>`
             : '';
           tooltip.innerHTML = `
             ${typeLabel}

@@ -1150,3 +1150,31 @@ body.customer-dashboard-page .ef-bottom-nav.logged-in #ef-bottom-menu {
     justify-content: center;
   }
 }
+
+/* ===========================================
+   25. CALENDAR ENTRY TYPE BADGES (tooltip)
+   =========================================== */
+.cal-entry-badge {
+  display: inline-block;
+  margin-bottom: 4px;
+  padding: 1px 7px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.cal-entry-badge--meeting {
+  background: rgba(99, 102, 241, 0.12);
+  color: #6366f1;
+}
+
+.cal-entry-badge--appointment {
+  background: rgba(245, 158, 11, 0.12);
+  color: #f59e0b;
+}
+
+.cal-entry-badge--event {
+  background: rgba(11, 128, 115, 0.12);
+  color: #0b8073;
+}

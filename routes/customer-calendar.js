@@ -94,7 +94,11 @@ router.post('/', authRequired, csrfProtection, writeLimiter, async (req, res) =>
       type,
       date,
       time:
-        time && typeof time === 'string' && /^\d{2}:\d{2}$/.test(time.trim()) ? time.trim() : null,
+        time &&
+        typeof time === 'string' &&
+        /^([01]\d|2[0-3]):([0-5]\d)$/.test(time.trim())
+          ? time.trim()
+          : null,
       description: cleanDesc.substring(0, MAX_DESCRIPTION_LENGTH),
       createdAt: new Date().toISOString(),
     };
