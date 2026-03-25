@@ -774,95 +774,139 @@
   /**
    * Injects a small × dismiss button on the top-left of the JadeAssist launcher.
    * Clicking it hides the widget for 24 hours (stored in localStorage).
+   *
+   * The widget renders its DOM asynchronously after JadeWidget.init() returns, so
+   * this function waits for the launcher element to appear in the DOM using a
+   * MutationObserver before inserting the button (with a 5 s timeout fallback).
    */
   function injectDismissButton(debug) {
-    // Try a few candidate selectors that the widget library might use
+    // Ordered by likelihood — .jade-widget-root is the confirmed root element class
     const LAUNCHER_SELECTORS = [
+      '.jade-widget-root',
+      '#jade-widget-root',
       '#jade-widget-launcher',
       '.jade-widget-launcher',
       '#jade-launcher',
       '.jade-launcher',
+      '#jade-widget-container',
     ];
 
-    let launcher = null;
-    for (const sel of LAUNCHER_SELECTORS) {
-      launcher = document.querySelector(sel);
-      if (launcher) break;
-    }
-
-    // Fall back: look for the widget root container
-    if (!launcher) {
-      const root = document.querySelector('#jade-widget-root, .jade-widget-root, #jade-widget-container');
-      if (root) {
-        // Use the first child as the launcher-like element
-        launcher = root;
+    function findLauncher() {
+      for (const sel of LAUNCHER_SELECTORS) {
+        const el = document.querySelector(sel);
+        if (el) return el;
       }
+      return null;
     }
 
-    if (!launcher) {
+    function insertButton(launcher) {
+      // Guard against double-insertion
+      if (launcher.querySelector('[data-jade-dismiss]')) return;
+
+      // Ensure the launcher has position:relative so the button positions correctly
+      if (window.getComputedStyle(launcher).position === 'static') {
+        launcher.style.position = 'relative';
+      }
+
+      const btn = document.createElement('button');
+      btn.setAttribute('aria-label', 'Close JadeAssist chat widget');
+      btn.setAttribute('type', 'button');
+      btn.setAttribute('data-jade-dismiss', '1');
+      btn.textContent = '×';
+      btn.style.cssText = [
+        'position:absolute',
+        'top:-5px',
+        'left:-5px',
+        'width:20px',
+        'height:20px',
+        'border-radius:50%',
+        'background:#1f2937',
+        'color:#fff',
+        'border:none',
+        'cursor:pointer',
+        'font-size:15px',
+        'line-height:20px',
+        'text-align:center',
+        'display:block',
+        'z-index:' + (Z_INDEX.WIDGET + 1),
+        'box-shadow:0 1px 5px rgba(0,0,0,0.4)',
+        'padding:0',
+        'transition:background 0.15s ease',
+      ].join(';');
+
+      btn.addEventListener('mouseenter', function () {
+        btn.style.background = '#374151';
+      });
+      btn.addEventListener('mouseleave', function () {
+        btn.style.background = '#1f2937';
+      });
+
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        e.preventDefault();
+
+        // Record dismissal timestamp
+        try {
+          localStorage.setItem(DISMISS_STORAGE_KEY, String(Date.now()));
+        } catch (_) {
+          // ignore storage errors
+        }
+
+        // Close the chat panel cleanly via the API first (triggers close animation)
+        if (window.JadeWidget && typeof window.JadeWidget.close === 'function') {
+          try { window.JadeWidget.close(); } catch (_) { /* ignore */ }
+        }
+
+        // Hide the entire widget root and the launcher element
+        const root = findLauncher();
+        if (root) root.style.display = 'none';
+
+        // Hide the teaser bubble if it is still visible
+        if (teaserElement) {
+          teaserElement.style.display = 'none';
+        }
+
+        if (debug) {
+          console.log('[JadeAssist] Widget dismissed for 24 h');
+        }
+      });
+
+      launcher.appendChild(btn);
+
       if (debug) {
-        console.warn('[JadeAssist] Could not find launcher element for dismiss button');
+        console.log('[JadeAssist] Dismiss button injected on', launcher.id || launcher.className);
       }
+    }
+
+    // Try immediately — widget may already be in the DOM
+    const existing = findLauncher();
+    if (existing) {
+      insertButton(existing);
       return;
     }
 
-    // Ensure the launcher has position:relative so the button positions correctly
-    const launcherStyle = window.getComputedStyle(launcher);
-    if (launcherStyle.position === 'static') {
-      launcher.style.position = 'relative';
-    }
-
-    const btn = document.createElement('button');
-    btn.setAttribute('aria-label', 'Close JadeAssist chat widget');
-    btn.textContent = '×';
-    btn.style.cssText = [
-      'position: absolute',
-      'top: -4px',
-      'left: -4px',
-      'width: 20px',
-      'height: 20px',
-      'border-radius: 50%',
-      'background: #1f2937',
-      'color: #fff',
-      'border: none',
-      'cursor: pointer',
-      'font-size: 14px',
-      'line-height: 1',
-      'display: flex',
-      'align-items: center',
-      'justify-content: center',
-      'z-index: ' + (Z_INDEX.WIDGET + 1),
-      'box-shadow: 0 1px 4px rgba(0,0,0,0.35)',
-      'padding: 0',
-    ].join(';');
-
-    btn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      // Record dismissal time
-      try {
-        localStorage.setItem(DISMISS_STORAGE_KEY, String(Date.now()));
-      } catch (_) {
-        // ignore storage errors
-      }
-      // Hide the entire widget
-      const widgetRoot = document.querySelector(
-        '#jade-widget-root, .jade-widget-root, #jade-widget-container, #jade-widget-launcher'
-      );
-      if (widgetRoot) {
-        widgetRoot.style.display = 'none';
-      }
-      // Also hide launcher itself if it differs from root
-      launcher.style.display = 'none';
-      // Hide the teaser bubble if visible
-      if (teaserElement) {
-        teaserElement.style.display = 'none';
-      }
-      if (debug) {
-        console.log('[JadeAssist] Widget dismissed for 24 h');
+    // Widget DOM renders asynchronously: watch for it with a MutationObserver
+    let timeoutId;
+    const observer = new MutationObserver(function (mutations, obs) {
+      const launcher = findLauncher();
+      if (launcher) {
+        obs.disconnect();
+        clearTimeout(timeoutId);
+        insertButton(launcher);
       }
     });
+    observer.observe(document.body, { childList: true, subtree: true });
 
-    launcher.appendChild(btn);
+    // Safety fallback — stop watching after 5 s whether or not we found the element
+    timeoutId = setTimeout(function () {
+      observer.disconnect();
+      const launcher = findLauncher();
+      if (launcher) {
+        insertButton(launcher);
+      } else if (debug) {
+        console.warn('[JadeAssist] Dismiss button: launcher element not found after 5 s');
+      }
+    }, 5000);
   }
 
   /**
