@@ -576,9 +576,11 @@
     display: none;
   }
 
-  /* Reduce dashboard-hero min-height on mobile for compact display */
+  /* Reduce dashboard-hero min-height on mobile for compact display.
+     120px is the safe floor — hero content (heading + subtitle + stats) always
+     exceeds this, but it prevents any theoretical collapse during paint. */
   .dashboard-hero {
-    min-height: 0;
+    min-height: 120px;
   }
 
   /* Reduce hero content padding on small screens */

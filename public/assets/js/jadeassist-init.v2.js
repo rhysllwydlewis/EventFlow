@@ -47,7 +47,7 @@
   const TEASER_STORAGE_KEY = 'jadeassist-teaser-dismissed';
   const TEASER_EXPIRY_DAYS = 1; // Teaser dismissal persists for 1 day
   const DISMISS_STORAGE_KEY = 'jadeassist_dismissed_at'; // Key for widget close dismissal
-  const DISMISS_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours in ms
+  const DISMISS_DURATION_MS = 30 * 24 * 60 * 60 * 1000; // 30 days in ms
   const MOBILE_BREAKPOINT = 768; // px — matches CSS media query breakpoint
 
   // Positioning constants passed directly to widget config API
@@ -936,12 +936,12 @@
 
   /** Delays first init attempt to avoid competing with critical page resources. */
   function startInitialization() {
-    // Skip if the user dismissed the widget within the last 24 hours
+    // Skip if the user dismissed the widget within the last 30 days
     try {
       const dismissedAt = localStorage.getItem(DISMISS_STORAGE_KEY);
       if (dismissedAt && Date.now() - Number(dismissedAt) < DISMISS_DURATION_MS) {
         if (shouldEnableDebug()) {
-          console.log('[JadeAssist] Skipping init — widget dismissed within last 24 h');
+          console.log('[JadeAssist] Skipping init — widget dismissed within last 30 days');
         }
         return;
       }
