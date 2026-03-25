@@ -795,6 +795,8 @@ Where are you thinking of going?`,quickReplies:["Maldives / Bali / Thailand","It
       right: 8px;
       width: 20px;
       height: 20px;
+      min-width: 20px;
+      min-height: 20px;
       border: none;
       background: transparent;
       color: #9ca3af;
@@ -1634,7 +1636,7 @@ Where are you thinking of going?`,quickReplies:["Maldives / Bali / Thailand","It
       </button>
     `}renderGreeting(){return this.config.greetingTooltipText?`
       <div class="jade-greeting-tooltip" data-action="open-chat" role="tooltip" aria-live="polite">
-        <button class="jade-greeting-close" aria-label="Dismiss greeting" data-action="close-greeting">×</button>
+        <button type="button" class="jade-greeting-close" aria-label="Dismiss greeting" data-action="close-greeting">×</button>
         <div class="jade-greeting-text">${this.escapeHtml(this.config.greetingTooltipText)}</div>
       </div>
     `:""}renderChatPopup(){return`
