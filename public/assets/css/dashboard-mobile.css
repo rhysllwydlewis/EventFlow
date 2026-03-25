@@ -381,26 +381,42 @@
 }
 
 /* ============================================================
-   K) SUPPLIER STATS WIDGET CARDS — compact on mobile
+   K) STATS WIDGET CARDS (rendered by dashboard-widgets.js / count-up-animation.js)
+   Real classes: .dashboard-grid and .stat-widget.card with inline styles
+   Must use !important to beat the inline style="..." attributes
    ============================================================ */
 @media (max-width: 768px) {
-  /* The dynamically rendered stat widget cards */
-  .supplier-stat-widget {
+  /* Override inline grid: make 2-col on mobile instead of auto-fit minmax(200px) */
+  .dashboard-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: var(--mob-gap-md) !important;
+    margin-bottom: var(--mob-section-gap) !important;
+  }
+
+  /* Compact the individual stat cards — beat the inline style="padding:1.5rem" */
+  .stat-widget.card {
     padding: var(--mob-card-pad-sm) !important;
     border-radius: var(--mob-radius-md) !important;
   }
 
-  .supplier-stat-widget__icon {
-    width: 32px !important;
-    height: 32px !important;
+  /* Tighten inner flex row */
+  .stat-widget .icon-with-gradient {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    font-size: 1rem !important;
+    border-radius: 8px !important;
   }
 
-  .supplier-stat-widget__value {
-    font-size: 1.4rem !important;
+  /* Stat number and label */
+  .stat-number {
+    font-size: 1.25rem !important;
+    line-height: 1.1 !important;
   }
 
-  .supplier-stat-widget__label {
-    font-size: 0.75rem !important;
+  .stat-label {
+    font-size: 0.7rem !important;
+    line-height: 1.3 !important;
   }
 }
 
