@@ -27,24 +27,24 @@ function adminPageProtectionMiddleware() {
     if (ADMIN_PAGES.includes(req.path)) {
       const user = getUserFromCookie(req);
 
-      // Not authenticated - redirect to login with sanitized return path
+      // Not authenticated - redirect to auth with reason notice
       if (!user) {
         logger.info(`Admin page access denied (not authenticated): ${req.path}`, {
           ip: req.ip,
           userAgent: req.get('user-agent'),
         });
-        // Redirect path is already validated by allowlist check above
-        return res.redirect(`/auth?redirect=${encodeURIComponent(req.path)}`);
+        // req.path is already validated by allowlist check above
+        return res.redirect(`/auth?reason=unauthenticated&next=${encodeURIComponent(req.path)}`);
       }
 
-      // Authenticated but not admin - redirect to dashboard with message
+      // Authenticated but not admin - redirect to auth with forbidden notice
       if (user.role !== 'admin') {
         logger.warn(`Admin page access denied (insufficient role): ${req.path}`, {
           userId: user.id,
           userRole: user.role,
           ip: req.ip,
         });
-        return res.redirect('/dashboard?msg=admin_required');
+        return res.redirect('/auth?reason=forbidden&required=admin');
       }
 
       // Admin user - allow access
