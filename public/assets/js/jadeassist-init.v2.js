@@ -772,7 +772,7 @@
   }
 
   /**
-   * Injects a small × dismiss button on the top-left of the JadeAssist launcher.
+   * Injects a small × dismiss button on the top-right of the JadeAssist launcher.
    * Clicking it hides the widget for 24 hours (stored in localStorage).
    *
    * The widget renders its DOM asynchronously after JadeWidget.init() returns, so
@@ -807,6 +807,8 @@
       if (window.getComputedStyle(launcher).position === 'static') {
         launcher.style.position = 'relative';
       }
+      // Ensure the button is not clipped by any overflow:hidden on the launcher
+      launcher.style.overflow = 'visible';
 
       const btn = document.createElement('button');
       btn.setAttribute('aria-label', 'Close JadeAssist chat widget');
@@ -815,17 +817,17 @@
       btn.textContent = '×';
       btn.style.cssText = [
         'position:absolute',
-        'top:-5px',
-        'left:-5px',
-        'width:20px',
-        'height:20px',
+        'top:-6px',
+        'right:-6px',
+        'width:22px',
+        'height:22px',
         'border-radius:50%',
         'background:#1f2937',
         'color:#fff',
         'border:none',
         'cursor:pointer',
         'font-size:15px',
-        'line-height:20px',
+        'line-height:22px',
         'text-align:center',
         'display:block',
         'z-index:' + (Z_INDEX.WIDGET + 1),

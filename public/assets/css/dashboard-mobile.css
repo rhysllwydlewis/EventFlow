@@ -565,10 +565,26 @@
     padding-top: 0;
   }
 
+  /* Ensure the container inside main-content has no extra top spacing */
+  body.supplier-dashboard-page #main-content > .container {
+    padding-top: 0;
+  }
+
   /* Hide breadcrumb on mobile — users scroll vertically and don't
      need wayfinding crumbs that always show the same path. */
   .dashboard-breadcrumb {
     display: none;
+  }
+
+  /* Reduce dashboard-hero min-height on mobile for compact display */
+  .dashboard-hero {
+    min-height: 0;
+  }
+
+  /* Reduce hero content padding on small screens */
+  .dashboard-hero__content {
+    padding: 14px 16px;
+    gap: 12px;
   }
 }
 

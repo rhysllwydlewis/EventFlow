@@ -2477,7 +2477,6 @@ function efMaybeShowOnboarding(page) {
     box.style.border = '1px solid rgba(11, 128, 115, 0.15)';
 
     box.innerHTML = `
-      <div style="font-size: 3rem; margin-bottom: 1rem;" role="img" aria-label="celebration">🎉</div>
       <h2 style="color: #1f2937; font-size: 1.75rem; font-weight: 700; margin-bottom: 0.75rem;">Welcome to Your Supplier Dashboard!</h2>
       <p style="color: #4b5563; font-size: 1.1rem; line-height: 1.6; margin-bottom: 1.5rem; max-width: 600px; margin-left: auto; margin-right: auto;">
         You're all set to showcase your services and connect with event planners. Let's help you get started on your journey!
