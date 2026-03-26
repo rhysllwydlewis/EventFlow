@@ -102,7 +102,7 @@
       html += '<tr>';
       html += `<td><img src="${escapeHtml(
         pkg.image || PLACEHOLDER_IMAGE
-      )}" class="package-image" alt="Package image" onerror="this.src='${PLACEHOLDER_IMAGE}'"></td>`;
+      )}" class="package-image" alt="Package image" data-fallback-src="${PLACEHOLDER_IMAGE}"></td>`;
       html += `<td><strong>${escapeHtml(
         pkg.title || ''
       )}</strong><br><span class="small">${escapeHtml((pkg.description || '').substring(0, 100))}${

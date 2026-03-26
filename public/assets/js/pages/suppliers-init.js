@@ -66,7 +66,7 @@ function createSupplierCard(supplier, position) {
 
   // Build avatar HTML
   const avatarHtml = supplier.logo
-    ? `<img src="${escapeHtml(supplier.logo)}" alt="${escapeHtml(supplier.name)} logo" class="sp-card-avatar" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+    ? `<img src="${escapeHtml(supplier.logo)}" alt="${escapeHtml(supplier.name)} logo" class="sp-card-avatar" data-fallback-hide data-fallback-show-next>
        <div class="sp-card-avatar-fallback" style="display:none; background:${generateSupplierGradient(supplier.name)};">${supplierInitial}</div>`
     : `<div class="sp-card-avatar-fallback" style="background:${generateSupplierGradient(supplier.name)};">${supplierInitial}</div>`;
 
@@ -190,7 +190,7 @@ function createSupplierCard(supplier, position) {
               })();
         const imgHtml =
           resolvedImg && resolvedImg !== PKG_PLACEHOLDER
-            ? `<img src="${escapeHtml(resolvedImg)}" alt="${escapeHtml(pkg.title)}" class="sp-pkg-mini-img" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            ? `<img src="${escapeHtml(resolvedImg)}" alt="${escapeHtml(pkg.title)}" class="sp-pkg-mini-img" loading="lazy" data-fallback-hide data-fallback-show-next>
                <div class="sp-pkg-mini-img-fallback" style="display:none;" aria-hidden="true">📦</div>`
             : `<div class="sp-pkg-mini-img-fallback" aria-hidden="true">📦</div>`;
         const pkgHref = pkg.slug

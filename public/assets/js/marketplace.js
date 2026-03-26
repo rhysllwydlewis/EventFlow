@@ -365,7 +365,7 @@
     return `
       <div class="marketplace-item-card" data-listing-id="${listing.id}">
         <div class="marketplace-item-image">
-          <img src="${image}" alt="${escapeHtml(title)}" loading="lazy" onerror="this.src='${defaultImage}'">
+          <img src="${image}" alt="${escapeHtml(title)}" loading="lazy" data-fallback-src="${defaultImage}">
           <button class="marketplace-save-btn ${isSaved ? 'saved' : ''}" aria-label="${isSaved ? 'Unsave item' : 'Save item'}" aria-pressed="${isSaved}" title="${isSaved ? 'Unsave' : 'Save'} item">${isSaved ? '♥' : '♡'}</button>
         </div>
         <div class="marketplace-item-details">

@@ -5,6 +5,48 @@
  * and WebSocket event routing.
  */
 
+// Global CSP-safe image error handler for messenger pages (capture phase).
+// Mirrors the handler embedded in app.js to cover pages that load only messenger scripts.
+(function () {
+  'use strict';
+  function _handleImgError(e) {
+    var img = e.target;
+    if (!img || img.tagName !== 'IMG') return;
+    if (img.dataset.fallbackApplied) return;
+    img.dataset.fallbackApplied = 'true';
+    if (img.dataset.fallbackAction === 'attachment-error') {
+      img.style.display = 'none';
+      img.classList.add('messenger-v4__attachment-error');
+      if (img.parentNode) {
+        var w = document.createElement('span');
+        w.className = 'messenger-v4__attachment-error-label';
+        w.title = 'Image unavailable';
+        var l = document.createElement('span');
+        l.textContent = 'Image unavailable';
+        var h = document.createElement('span');
+        h.className = 'messenger-v4__attachment-error-hint';
+        h.textContent = 'The file may have been removed';
+        w.appendChild(l);
+        w.appendChild(h);
+        img.parentNode.appendChild(w);
+      }
+      return;
+    }
+    if (img.dataset.fallbackSrc) { img.src = img.dataset.fallbackSrc; return; }
+    if ('fallbackHide' in img.dataset) {
+      img.style.display = 'none';
+      if ('fallbackShowNext' in img.dataset && img.nextElementSibling) {
+        img.nextElementSibling.style.display = 'flex';
+      }
+    }
+  }
+  // Guard against double-registration in case app.js is also loaded on this page.
+  if (!window.__imgFallbackRegistered) {
+    window.__imgFallbackRegistered = true;
+    document.addEventListener('error', _handleImgError, true);
+  }
+})();
+
 'use strict';
 
 class MessengerAppV4 {

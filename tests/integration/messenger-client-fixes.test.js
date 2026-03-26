@@ -315,27 +315,31 @@ describe('Messenger client-side fixes', () => {
     expect(cssSrc).toContain('.messenger-v4__attachment-error-hint');
   });
 
-  it('MessageBubbleV4 onerror handler adds title attribute for accessibility', () => {
+  it('MessageBubbleV4 attachment image uses CSP-safe data-fallback-action instead of inline onerror', () => {
     const bubbleSrc = fs.readFileSync(path.join(MESSENGER_DIR, 'js', 'MessageBubbleV4.js'), 'utf8');
-    expect(bubbleSrc).toContain("w.title='Image unavailable'");
+    // Must use data attribute, not blocked inline event handler
+    expect(bubbleSrc).toContain('data-fallback-action="attachment-error"');
+    expect(bubbleSrc).not.toContain('onerror=');
   });
 
-  it('MessageBubbleV4 onerror handler appends a secondary hint about file removal', () => {
-    const bubbleSrc = fs.readFileSync(path.join(MESSENGER_DIR, 'js', 'MessageBubbleV4.js'), 'utf8');
-    expect(bubbleSrc).toContain('messenger-v4__attachment-error-hint');
-    expect(bubbleSrc).toContain('The file may have been removed');
+  it('MessageBubbleV4 attachment error UI (title + hint) is handled by the global image-fallback handler', () => {
+    const appSrc = fs.readFileSync(
+      path.join(__dirname, '..', '..', 'public', 'assets', 'js', 'app.js'),
+      'utf8'
+    );
+    // The global handler (embedded in app.js) must create the accessible error label
+    expect(appSrc).toContain("w.title = 'Image unavailable'");
+    expect(appSrc).toContain('messenger-v4__attachment-error-hint');
+    expect(appSrc).toContain('The file may have been removed');
   });
 
   // ── B2) ConversationView image onerror & XSS hardening ─────────────────────
 
-  it('ConversationView.renderAttachments has an onerror handler matching MessageBubbleV4 pattern', () => {
+  it('ConversationView.renderAttachments uses CSP-safe data-fallback-action instead of inline onerror', () => {
     const cvSrc = fs.readFileSync(path.join(MESSENGER_DIR, 'js', 'ConversationView.js'), 'utf8');
-    // Must have onerror on the img tag
-    expect(cvSrc).toContain('onerror=');
-    // onerror must show the "Image unavailable" label
-    expect(cvSrc).toContain('Image unavailable');
-    // onerror must include the hint about file removal
-    expect(cvSrc).toContain('The file may have been removed');
+    // Must use data attribute (CSP-safe), not a blocked inline event handler
+    expect(cvSrc).toContain('data-fallback-action="attachment-error"');
+    expect(cvSrc).not.toContain('onerror=');
   });
 
   it('ConversationView.renderAttachments escapes att.url and att.name to prevent XSS', () => {

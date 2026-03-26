@@ -7,8 +7,9 @@ describe('Shortlist drawer image fallback', () => {
     'utf8'
   );
 
-  it('has onerror handler for broken images', () => {
-    expect(shortlistDrawerJs).toContain('onerror=');
+  it('uses CSP-safe data-fallback-src for broken images instead of inline onerror', () => {
+    expect(shortlistDrawerJs).toContain('data-fallback-src="/assets/images/marketplace-placeholder.svg"');
+    expect(shortlistDrawerJs).not.toContain('onerror=');
     expect(shortlistDrawerJs).toContain('/assets/images/marketplace-placeholder.svg');
   });
 
