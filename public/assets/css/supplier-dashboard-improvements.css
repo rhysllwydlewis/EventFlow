@@ -1267,8 +1267,8 @@ body.supplier-dashboard-page .supplier-cta-section {
 .form-label {
   display: block;
   margin-bottom: var(--ef-space-2, 8px);
-  font-weight: var(--ef-font-semibold, 600);
-  color: var(--ef-text, #0b1220);
+  font-weight: var(--ef-font-medium, 500);
+  color: #374151;
 }
 
 .form-group {
@@ -2583,7 +2583,13 @@ textarea:focus {
 
 .ef-toast__close {
   flex-shrink: 0;
-  padding: var(--ef-space-1, 4px);
+  width: 24px;
+  height: 24px;
+  max-width: 24px;
+  min-width: 24px;
+  padding: 2px;
+  font-size: 16px;
+  box-sizing: border-box;
   background: transparent;
   border: none;
   cursor: pointer;
@@ -3698,6 +3704,7 @@ textarea:focus-visible {
   justify-content: center;
   line-height: 1;
   text-decoration: none;
+  box-sizing: border-box;
 }
 
 .card-action-btn.edit-btn {
@@ -3774,9 +3781,9 @@ textarea:focus-visible {
 /* Enhanced section titles with modern styling */
 .supplier-section-title {
   font-size: var(--ef-text-xl, 22px);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: #0f172a;
+  font-weight: var(--ef-font-semibold, 600);
+  letter-spacing: -0.015em;
+  color: var(--ef-text, #0b1220);
   margin: 0 0 var(--ef-space-4, 20px) 0;
   position: relative;
   padding-bottom: 12px;
@@ -3975,16 +3982,16 @@ h2,
 h3,
 h4 {
   letter-spacing: -0.02em;
-  font-weight: 700;
+  font-weight: var(--ef-font-semibold, 600);
 }
 
 h2 {
-  color: #0f172a;
+  color: var(--ef-text, #0b1220);
   font-size: clamp(20px, 3vw, 28px);
 }
 
 h3 {
-  color: #1e293b;
+  color: var(--ef-text, #0b1220);
   font-size: clamp(18px, 2.5vw, 22px);
 }
 
@@ -4064,7 +4071,7 @@ html {
 .supplier-card-header__content h3 {
   margin: 0 0 var(--ef-space-2, 8px) 0;
   font-size: var(--ef-text-lg, 18px);
-  font-weight: 700;
+  font-weight: var(--ef-font-semibold, 600);
   color: var(--ef-text, #0b1220);
 }
 
@@ -4550,7 +4557,7 @@ html {
 .sd-roi-heading {
   margin: 0;
   font-size: 1.0625rem;
-  font-weight: 700;
+  font-weight: var(--ef-font-semibold, 600);
   color: var(--ef-text, #0b1220);
 }
 
@@ -5324,7 +5331,7 @@ body.supplier-dashboard-page .sd-two-col > .card {
 
 .pc-section-heading {
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: var(--ef-font-semibold, 600);
   color: #0b8073;
   margin: 0 0 1rem;
   padding-bottom: 0.5rem;
@@ -5443,7 +5450,7 @@ body.supplier-dashboard-page .sd-two-col > .card {
 /* ── Section divider inside form ── */
 .pc-section-heading {
   font-size: 0.95rem;
-  font-weight: 700;
+  font-weight: var(--ef-font-semibold, 600);
   color: #0b8073;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -5781,7 +5788,6 @@ body:not(.supplier-dashboard-page) .section > .container {
   background: rgba(59, 130, 246, 0.2);
   border-color: rgba(59, 130, 246, 0.5);
   transform: translateY(-1px);
-  text-decoration: none;
 }
 
 /* Gallery photo item with delete control */
@@ -6147,7 +6153,7 @@ body:not(.supplier-dashboard-page) .section > .container {
 }
 .sd-empty-state__title {
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: var(--ef-font-semibold, 600);
   color: var(--ef-text, #0b1220);
   margin: 0;
 }
@@ -6542,35 +6548,21 @@ body:not(.supplier-dashboard-page) .section > .container {
   padding: 1.25rem 1rem 0.5rem;
 }
 
-/* ============================================
-   MOBILE OPTIMIZATION — Package card action buttons
-   Tighter layout for narrow viewports so button
-   text never wraps awkwardly (e.g. "Vie w").
-   ============================================ */
-@media (max-width: 480px) {
-  /* Keep all buttons on a single flex row with smaller sizing */
-  .card-actions {
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 4px;
-  }
-
-  /* Slightly smaller text & padding to keep each button on one line */
-  .card-action-btn {
-    padding: 5px 6px;
-    font-size: 0.75rem;
-    min-width: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+/* ============================================================
+   TYPOGRAPHY REFINEMENT — Homepage design language parity
+   Form labels: 600/#0b1220 → 500/#374151 for lighter, more
+   elegant feel matching the homepage's visual hierarchy.
+   supplier-dashboard-improvements.css loads after styles.css
+   on all supplier pages so these rules win cleanly.
+   ============================================================ */
+label {
+  font-weight: var(--ef-font-medium, 500);
+  color: #374151;
 }
 
-@media (min-width: 481px) and (max-width: 768px) {
-  /* On mid-size mobiles keep a single flex row but shrink padding */
-  .card-action-btn {
-    padding: 7px 10px;
-    font-size: 0.825rem;
-    white-space: nowrap;
-  }
+/* Required markers retain red accent */
+label .form-required,
+label .required {
+  color: var(--ef-error, #ef4444);
+  font-weight: var(--ef-font-medium, 500);
 }
