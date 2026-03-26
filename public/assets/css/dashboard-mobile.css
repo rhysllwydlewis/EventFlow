@@ -585,11 +585,18 @@
     padding-right: 0;
   }
 
-  /* Eliminate any gap between the fixed top navbar and the quick action
-     pill bar. Remove any residual margin/padding that would create a
-     visible gap. Uses !important to beat the non-specific rules in
-     supplier-dashboard-improvements.css. */
+  /* Eliminate the gap between the fixed top navbar and the quick-action
+     pill bar.
+     Root cause: body is the scroll container; sticky top:X is measured
+     from the body's content-area start, NOT from the viewport.  Since
+     body.paddingTop = var(--ef-header-height) the nav's natural flow
+     position already sits at exactly --ef-header-height from the
+     viewport, so setting top:0 makes it stick there instead of adding a
+     second --ef-header-height on top.  Without this override the nav
+     sits at paddingTop + stickyTop = 64 + 64 = 128 px, leaving a 63 px
+     grey gap below the header. */
   body.supplier-dashboard-page .dashboard-mobile-nav {
+    top: 0 !important;
     margin-top: 0 !important;
     padding-top: 0 !important;
   }
