@@ -15,6 +15,7 @@ const { authRequired } = require('../middleware/auth');
 const { csrfProtection } = require('../middleware/csrf');
 const { writeLimiter, uploadLimiter, apiLimiter } = require('../middleware/rateLimits');
 const photoUpload = require('../photo-upload');
+const partnerService = require('../services/partnerService');
 
 const router = express.Router();
 
@@ -408,6 +409,13 @@ router.delete('/', writeLimiter, authRequired, csrfProtection, async (req, res) 
 
     // Delete the user record
     await dbUnified.deleteOne('users', userId);
+
+    // Soft-delete any associated partner record to preserve audit trail
+    try {
+      await partnerService.softDeletePartnerByUserId(userId);
+    } catch (partnerErr) {
+      logger.warn('Could not soft-delete partner record during account deletion:', partnerErr);
+    }
 
     logger.info(`Account permanently deleted: ${userId}`);
 

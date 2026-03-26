@@ -66,6 +66,8 @@ router.get('/', async (req, res) => {
 
     // Apply name/email search after enrichment (requires user data)
     let list = enriched;
+    // Exclude soft-deleted partners and any residual orphans (user deleted without soft-delete cascade)
+    list = list.filter(p => p.status !== 'deleted' && p.user !== null);
     if (search) {
       const s = search.toLowerCase();
       list = list.filter(
@@ -120,6 +122,7 @@ router.get('/payout-requests', async (req, res) => {
         createdAt: t.createdAt,
         updatedAt: t.updatedAt,
         partnerUser: user ? { name: user.name, email: user.email, company: user.company } : null,
+        deletedUser: !user,
       };
     });
 
@@ -317,6 +320,7 @@ router.get('/cashout-orders', async (req, res) => {
       return {
         ...o,
         partnerUser: user ? { name: user.name, email: user.email } : null,
+        deletedUser: !user,
       };
     });
 

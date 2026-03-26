@@ -192,6 +192,28 @@ async function setPartnerStatus(partnerId, status) {
 }
 
 /**
+ * Soft-delete the partner record associated with a given userId.
+ * Sets status to 'deleted' and records a deletedAt timestamp so that
+ * the financial audit trail (credits, referrals) is preserved.
+ *
+ * @param {string} userId - The user ID whose partner record should be soft-deleted.
+ * @returns {Promise<boolean>} - true if a partner record was found and updated, false otherwise.
+ */
+async function softDeletePartnerByUserId(userId) {
+  const partner = await dbUnified.findOne('partners', { userId });
+  if (!partner) {
+    return false;
+  }
+  await dbUnified.updateOne(
+    'partners',
+    { id: partner.id },
+    { $set: { status: 'deleted', deletedAt: new Date().toISOString(), updatedAt: new Date().toISOString() } }
+  );
+  logger.info(`Partner ${partner.id} marked as deleted (user ${userId} was deleted)`);
+  return true;
+}
+
+/**
  * Regenerate a partner's referral code.
  *
  * The old code is saved to `partner_code_history` so it remains valid for
@@ -792,6 +814,7 @@ module.exports = {
   getPartnerById,
   listPartners,
   setPartnerStatus,
+  softDeletePartnerByUserId,
   // Code management
   regenerateCode,
   getCodeHistory,

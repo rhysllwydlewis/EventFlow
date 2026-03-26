@@ -75,6 +75,7 @@ router.get('/', async (req, res) => {
         ...r,
         partnerRefCode: partner ? partner.refCode : null,
         partnerUser: user ? { name: user.name, email: user.email, company: user.company } : null,
+        deletedUser: !user,
       };
     });
 

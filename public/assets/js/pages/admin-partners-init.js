@@ -38,6 +38,9 @@
   }
 
   function statusBadge(status) {
+    if (status === 'deleted') {
+      return `<span class="p-badge p-badge--deleted">Deleted User</span>`;
+    }
     if (status === 'active') {
       return `<span class="p-badge p-badge--success">Active</span>`;
     }
@@ -183,7 +186,8 @@
     tbody.innerHTML = list
       .map(p => {
         const credits = p.credits || {};
-        return `<tr>
+        const isDeleted = p.status === 'deleted';
+        return `<tr${isDeleted ? ' style="opacity:0.6;"' : ''}>
         <td>
           <strong style="color:#111827">${esc(p.user?.name || '—')}</strong>
           <br/><small style="color:#888">${esc(p.user?.email || '')}</small>
@@ -196,7 +200,9 @@
         <td style="text-align:center;color:#059669;font-weight:700;">${(credits.balance || 0).toLocaleString()}</td>
         <td>${statusBadge(p.status)}</td>
         <td>
-          <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
+          ${isDeleted
+            ? `<span style="color:#9ca3af;font-size:0.8rem;font-style:italic;">Account deleted</span>`
+            : `<div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
             <button class="ap-action-btn ap-action-btn--view" data-action="view" data-id="${esc(p.id)}" aria-label="View ${esc(p.user?.name || 'partner')}">View</button>
             ${
               p.status === 'active'
@@ -204,7 +210,7 @@
                 : `<button class="ap-action-btn ap-action-btn--enable" data-action="enable" data-id="${esc(p.id)}" aria-label="Enable ${esc(p.user?.name || 'partner')}">Enable</button>`
             }
             <button class="ap-action-btn ap-action-btn--credit" data-action="credit" data-id="${esc(p.id)}" aria-label="Adjust credits for ${esc(p.user?.name || 'partner')}">Credits</button>
-          </div>
+          </div>`}
         </td>
       </tr>`;
       })

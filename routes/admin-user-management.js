@@ -17,6 +17,7 @@ const validator = require('validator');
 const bcrypt = require('bcryptjs');
 const { passwordOk } = require('../utils/validators');
 const domainAdmin = require('../middleware/domain-admin');
+const partnerService = require('../services/partnerService');
 
 const router = express.Router();
 
@@ -939,6 +940,15 @@ router.post(
 
       await Promise.all(deletePromises);
 
+      // Soft-delete partner records for all deleted users to preserve audit trail
+      for (const deletedUser of deletedUsers) {
+        try {
+          await partnerService.softDeletePartnerByUserId(deletedUser.id);
+        } catch (partnerErr) {
+          logger.warn(`Could not soft-delete partner record for user ${deletedUser.id}:`, partnerErr);
+        }
+      }
+
       // Create audit log
       await auditLog({
         adminId: req.user.id,
@@ -1780,6 +1790,13 @@ router.delete(
 
     // Remove the user
     await dbUnified.deleteOne('users', id);
+
+    // Soft-delete any associated partner record to preserve audit trail
+    try {
+      await partnerService.softDeletePartnerByUserId(id);
+    } catch (partnerErr) {
+      logger.warn(`Could not soft-delete partner record for user ${id}:`, partnerErr);
+    }
 
     // Create audit log
     auditLog({
