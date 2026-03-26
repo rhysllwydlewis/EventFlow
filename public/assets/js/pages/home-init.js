@@ -586,7 +586,7 @@ function renderPackageFallback(container, items) {
         <div class="card featured-fallback-card">
           <a href="/package?slug=${slug}" class="featured-fallback-link">
             <img src="${imgSrc}" alt="${title}" class="featured-fallback-img"
-                 onerror="this.onerror=null;this.src='/assets/images/placeholders/package-event.svg';">
+                 data-fallback-src="/assets/images/placeholders/package-event.svg">
             <div class="featured-fallback-content">
               <h3 class="featured-fallback-title">${title}</h3>
               ${supplierName ? `<p class="featured-fallback-supplier">${supplierName}</p>` : ''}

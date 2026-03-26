@@ -163,7 +163,7 @@ class ShortlistDrawer {
           src="${imageUrl}" 
           alt="${item.name}" 
           class="shortlist-item-image" 
-          onerror="this.onerror=null; this.src='/assets/images/marketplace-placeholder.svg';"
+          data-fallback-src="/assets/images/marketplace-placeholder.svg"
         />
         <div class="shortlist-item-info">
           <h3 class="shortlist-item-name">${item.name}</h3>

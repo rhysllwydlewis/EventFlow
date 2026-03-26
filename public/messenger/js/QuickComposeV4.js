@@ -324,7 +324,7 @@
         ? `<div class="qcv4-context-card" aria-label="Context: ${escapeHtml(contextTitle)}">
            ${
              contextImage
-               ? `<img src="${escapeHtml(contextImage)}" alt="" class="qcv4-context-img" loading="lazy" onerror="this.style.display='none'">`
+               ? `<img src="${escapeHtml(contextImage)}" alt="" class="qcv4-context-img" loading="lazy" data-fallback-hide>`
                : `<div class="qcv4-context-placeholder">${contextEmoji}</div>`
            }
            <div class="qcv4-context-info">

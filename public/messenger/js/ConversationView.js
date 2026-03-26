@@ -431,7 +431,7 @@ class ConversationView {
       if (participant) {
         // Return avatar URL if available
         if (participant.avatar) {
-          return `<img src="${this.escapeHtml(participant.avatar)}" alt="Avatar" class="messenger-message__avatar-img" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" />
+          return `<img src="${this.escapeHtml(participant.avatar)}" alt="Avatar" class="messenger-message__avatar-img" data-fallback-hide data-fallback-show-next />
                   <div class="messenger-message__avatar-fallback" style="display:none;">${this.getInitials(participant)}</div>`;
         }
         // Return initials fallback
@@ -479,7 +479,7 @@ class ConversationView {
             if (att.type?.startsWith('image/')) {
               const safeUrl = this.escapeHtml(att.url || '');
               const safeAlt = this.escapeHtml(att.name || 'Image attachment');
-              return `<img src="${safeUrl}" alt="${safeAlt}" class="messenger-v4__message-image" loading="lazy" onerror="this.onerror=null;this.style.display='none';this.classList.add('messenger-v4__attachment-error');if(this.parentNode){var w=document.createElement('span');w.className='messenger-v4__attachment-error-label';w.title='Image unavailable';var l=document.createElement('span');l.textContent='Image unavailable';var h=document.createElement('span');h.className='messenger-v4__attachment-error-hint';h.textContent='The file may have been removed';w.appendChild(l);w.appendChild(h);this.parentNode.appendChild(w);}" />`;
+              return `<img src="${safeUrl}" alt="${safeAlt}" class="messenger-v4__message-image" loading="lazy" data-fallback-action="attachment-error" />`;
             } else {
               return `
               <a href="${this.escapeHtml(att.url || '')}" target="_blank" rel="noopener noreferrer" class="messenger-v4__message-file">

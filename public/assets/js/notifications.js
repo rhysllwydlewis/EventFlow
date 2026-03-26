@@ -903,6 +903,9 @@
       if (isOpening) {
         positionDropdown(dropdown);
         fetchNotifications();
+        // Request desktop notification permission lazily on first user-gesture open
+        // (setTimeout is not a valid user gesture on mobile, so we do it here instead)
+        requestDesktopPermission();
       }
     };
 
@@ -1069,11 +1072,6 @@
           // Still remove loading state even on error
           setBellLoadingState(false);
         });
-
-      // Request desktop notification permission after a delay
-      setTimeout(() => {
-        requestDesktopPermission();
-      }, 5000);
 
       // Expose methods for external use
       window.__notificationSystem = {

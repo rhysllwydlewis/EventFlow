@@ -587,7 +587,7 @@
       // Only allow same-origin avatar URLs (relative paths starting with /) to prevent tracking pixels
       const safeAvatarUrl = other.avatar && /^\//.test(other.avatar) ? other.avatar : null;
       const avatarImg = safeAvatarUrl
-        ? `<img src="${escapeHtml(safeAvatarUrl)}" alt="${name}" class="mwv4__avatar-img" loading="lazy" onerror="this.style.display='none'">`
+        ? `<img src="${escapeHtml(safeAvatarUrl)}" alt="${name}" class="mwv4__avatar-img" loading="lazy" data-fallback-hide>`
         : `<span class="mwv4__avatar-initial">${escapeHtml(initial)}</span>`;
 
       const lastMsg = conv.lastMessage || {};

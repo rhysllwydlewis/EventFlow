@@ -400,7 +400,7 @@ class Carousel {
       <div class="carousel-item">
         <a href="/package?slug=${encodeURIComponent(slug)}" class="featured-package-card">
           <img src="${image}" alt="${title}" loading="lazy"
-               onerror="this.onerror=null;this.src='/assets/images/placeholders/package-event.svg';">
+               data-fallback-src="/assets/images/placeholders/package-event.svg">
           <div class="package-info">
             <h3>${title}</h3>
             ${supplierName ? `<p class="package-supplier">${supplierName}</p>` : ''}

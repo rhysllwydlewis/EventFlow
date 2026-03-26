@@ -535,7 +535,7 @@ class PackageList {
         supplierHtml = `
           <div class="package-card-supplier">
             <a href="/supplier?id=${supplierId}" class="package-card-supplier-link" data-supplier-link>
-              <img src="${supplierAvatar}" alt="${supplierName}" class="package-card-supplier-avatar" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+              <img src="${supplierAvatar}" alt="${supplierName}" class="package-card-supplier-avatar" loading="lazy" data-fallback-hide data-fallback-show-next>
               <div style="display: none; width: clamp(32px, 8vw, 40px); height: clamp(32px, 8vw, 40px); border-radius: 50%; background: ${PackageList.generateGradient(pkg.supplier.name || supplierName)}; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 1rem;">${supplierName.charAt(0).toUpperCase()}</div>
               <div style="flex: 1;">
                 <span class="package-card-supplier-name">${supplierName}</span>${tierIcon}
@@ -548,7 +548,7 @@ class PackageList {
         supplierHtml = `
           <div class="package-card-supplier">
             <div class="package-card-supplier-link">
-              <img src="${supplierAvatar}" alt="${supplierName}" class="package-card-supplier-avatar" loading="lazy" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+              <img src="${supplierAvatar}" alt="${supplierName}" class="package-card-supplier-avatar" loading="lazy" data-fallback-hide data-fallback-show-next>
               <div style="display: none; width: clamp(32px, 8vw, 40px); height: clamp(32px, 8vw, 40px); border-radius: 50%; background: ${PackageList.generateGradient(pkg.supplier.name || supplierName)}; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 1rem;">${supplierName.charAt(0).toUpperCase()}</div>
               <div style="flex: 1;">
                 <span class="package-card-supplier-name">${supplierName}</span>${tierIcon}
@@ -563,7 +563,7 @@ class PackageList {
     card.innerHTML = `
       ${badgesHtml}
       <img class="package-card-image" src="${imageUrl}" alt="${title}" loading="lazy"
-           onerror="this.onerror=null;this.src='/assets/images/placeholders/package-event.svg';">
+           data-fallback-src="/assets/images/placeholders/package-event.svg">
       <div class="package-card-content">
         <h3 class="package-card-title">${title}</h3>
         <p class="package-card-description">${description}</p>

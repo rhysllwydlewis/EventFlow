@@ -1,3 +1,45 @@
+// Global CSP-safe image error handler (capture phase, registered once per page load).
+// Handles data-fallback-src, data-fallback-hide, data-fallback-show-next, and
+// data-fallback-action="attachment-error" attributes set on <img> elements.
+// This replaces inline onerror="..." attributes blocked by script-src-attr 'none'.
+(function () {
+  'use strict';
+  if (window.__imgFallbackRegistered) return;
+  window.__imgFallbackRegistered = true;
+  function _handleImgError(e) {
+    var img = e.target;
+    if (!img || img.tagName !== 'IMG') return;
+    if (img.dataset.fallbackApplied) return;
+    img.dataset.fallbackApplied = 'true';
+    if (img.dataset.fallbackAction === 'attachment-error') {
+      img.style.display = 'none';
+      img.classList.add('messenger-v4__attachment-error');
+      if (img.parentNode) {
+        var w = document.createElement('span');
+        w.className = 'messenger-v4__attachment-error-label';
+        w.title = 'Image unavailable';
+        var l = document.createElement('span');
+        l.textContent = 'Image unavailable';
+        var h = document.createElement('span');
+        h.className = 'messenger-v4__attachment-error-hint';
+        h.textContent = 'The file may have been removed';
+        w.appendChild(l);
+        w.appendChild(h);
+        img.parentNode.appendChild(w);
+      }
+      return;
+    }
+    if (img.dataset.fallbackSrc) { img.src = img.dataset.fallbackSrc; return; }
+    if ('fallbackHide' in img.dataset) {
+      img.style.display = 'none';
+      if ('fallbackShowNext' in img.dataset && img.nextElementSibling) {
+        img.nextElementSibling.style.display = 'flex';
+      }
+    }
+  }
+  document.addEventListener('error', _handleImgError, true);
+})();
+
 /**
  * Set up a photo drag-and-drop zone with validation, preview, and removal support.
  *
@@ -523,7 +565,7 @@ function supplierCard(s, user) {
   // Supplier avatar with fallback
   const supplierInitial = s.name ? s.name.charAt(0).toUpperCase() : 'S';
   const avatarHtml = s.logo
-    ? `<img src="${escapeHtml(s.logo)}" alt="${escapeHtml(s.name)} logo" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; margin-right: 16px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+    ? `<img src="${escapeHtml(s.logo)}" alt="${escapeHtml(s.name)} logo" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; margin-right: 16px;" data-fallback-hide data-fallback-show-next>
        <div style="display: none; width: 60px; height: 60px; border-radius: 50%; background: ${generateSupplierGradient(s.name)}; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 1.5rem; margin-right: 16px; flex-shrink: 0;">${supplierInitial}</div>`
     : `<div style="width: 60px; height: 60px; border-radius: 50%; background: ${generateSupplierGradient(s.name)}; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 1.5rem; margin-right: 16px; flex-shrink: 0;">${supplierInitial}</div>`;
 
@@ -2829,7 +2871,7 @@ async function initDashSupplier() {
           const approved = !!s.approved;
 
           return `<div class="supplier-card card" style="margin-bottom:10px" data-supplier-id="${supplierId}">
-      <img src="${photoUrl}" alt="${name} profile photo" onerror="console.warn('Failed to load supplier image:', this.src); this.src='/assets/images/collage-venue.svg'; this.onerror=null;">
+      <img src="${photoUrl}" alt="${name} profile photo" data-fallback-src="/assets/images/collage-venue.svg">
       <div>
         <h3>${name} ${proBadge} ${approved ? '<span class="badge">Approved</span>' : '<span class="badge" style="background:#FFF5E6;color:#8A5A00">Awaiting review</span>'}</h3>
         <div class="small">${location} · <span class="badge">${category}</span>${priceDisplay}</div>
@@ -3178,7 +3220,7 @@ async function initDashSupplier() {
           const pauseBtn = `<button type="button" class="card-action-btn ${paused ? 'unpause-btn' : 'pause-btn'}" data-action="${paused ? 'unpause-package' : 'pause-package'}" data-package-id="${packageId}" title="${paused ? 'Unpause' : 'Pause'}" aria-label="${paused ? 'Unpause package' : 'Pause package'}">${paused ? '<svg width="10" height="11" viewBox="0 0 10 11" fill="currentColor" aria-hidden="true"><polygon points="0,0 10,5.5 0,11"/></svg>' : '<svg width="10" height="11" viewBox="0 0 10 11" fill="currentColor" aria-hidden="true"><rect x="0" y="0" width="3.5" height="11" rx="0.75"/><rect x="6.5" y="0" width="3.5" height="11" rx="0.75"/></svg>'}</button>`;
 
           return `<div class="card package-card${paused ? ' package-card--paused' : ''}" data-package-id="${packageId}">
-      <img src="${image}" alt="${title} image" onerror="this.src='/assets/images/package-placeholder.svg'; this.onerror=null;">
+      <img src="${image}" alt="${title} image" data-fallback-src="/assets/images/package-placeholder.svg">
       <div class="package-card-content">
         <h3>${title}</h3>
         <div class="small"><span class="badge">${priceDisplay}</span> ${featured ? '<span class="badge">Featured</span>' : ''} ${approvalBadge} ${pausedBadge}</div>
