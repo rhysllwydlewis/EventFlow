@@ -241,6 +241,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    box-sizing: border-box;
+    height: var(--mob-btn-h-md);
+    font-family: inherit;
+    line-height: 1;
   }
 
   /* Span all columns only when there are ≤ 2 buttons

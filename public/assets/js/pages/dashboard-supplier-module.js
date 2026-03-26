@@ -548,30 +548,47 @@ async function displaySubscriptionStatus() {
       free: 'Starter',
     };
 
-    // Also load payment record for billing details
-    const paymentsResponse = await fetch('/api/payments', { credentials: 'include' });
-    let activeSubscription = null;
-    if (paymentsResponse.ok) {
-      const data = await paymentsResponse.json();
-      // Include subscriptions that are cancelling at period end — they are still active
-      const subscriptions = (data.payments || []).filter(
-        p => p.type === 'subscription' && p.status === 'succeeded' && p.subscriptionDetails
-      );
-      // Prefer non-cancelling subscription; fall back to cancelling one
-      activeSubscription =
-        subscriptions.find(p => !p.subscriptionDetails.cancelAtPeriodEnd) ||
-        subscriptions[0] ||
-        null;
+    // Fetch subscription details from the dedicated subscription endpoint.
+    // This endpoint reads from the subscriptions collection and includes
+    // currentPeriodStart, currentPeriodEnd, cancelAtPeriodEnd, createdAt.
+    let subscriptionRecord = null;
+    try {
+      const subResponse = await fetch('/api/v2/subscriptions/me', { credentials: 'include' });
+      if (subResponse.ok) {
+        const subJson = await subResponse.json();
+        subscriptionRecord = subJson.subscription || null;
+      }
+    } catch (_err) {
+      // best-effort — fall through to payment-based fallback
+    }
+
+    // Also load payment records for amount/currency info (best-effort)
+    let paymentAmount = null;
+    let paymentCurrency = 'gbp';
+    try {
+      const paymentsResponse = await fetch('/api/payments', { credentials: 'include' });
+      if (paymentsResponse.ok) {
+        const data = await paymentsResponse.json();
+        const successfulPayments = (data.payments || []).filter(
+          p => p.status === 'succeeded' && p.amount
+        );
+        successfulPayments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        if (successfulPayments.length > 0) {
+          paymentAmount = successfulPayments[0].amount;
+          paymentCurrency = successfulPayments[0].currency || 'gbp';
+        }
+      }
+    } catch (_err) {
+      // best-effort
     }
 
     if (currentTier !== 'free') {
       const planLabel = TIER_LABELS[currentTier] || currentTier;
-      const details = activeSubscription?.subscriptionDetails || {};
-      const cancelAtPeriodEnd = !!details.cancelAtPeriodEnd;
+      const cancelAtPeriodEnd = !!(subscriptionRecord?.cancelAtPeriodEnd);
       const dateFormat = { day: 'numeric', month: 'long', year: 'numeric' };
 
-      // Start date — prefer createdAt (original subscription date) over currentPeriodStart
-      const startRaw = activeSubscription?.createdAt || details.currentPeriodStart || null;
+      // Start date — use subscription createdAt (original sign-up date)
+      const startRaw = subscriptionRecord?.createdAt || null;
       const startHtml = startRaw
         ? `<div class="sd-subscription-active__detail-row">
             <span class="sd-subscription-active__detail-label">Started</span>
@@ -580,7 +597,7 @@ async function displaySubscriptionStatus() {
         : '';
 
       // Period end / next billing date
-      const endRaw = details.currentPeriodEnd || null;
+      const endRaw = subscriptionRecord?.currentPeriodEnd || null;
       const endHtml = endRaw
         ? `<div class="sd-subscription-active__detail-row">
             <span class="sd-subscription-active__detail-label">Current period ends</span>
@@ -588,14 +605,12 @@ async function displaySubscriptionStatus() {
            </div>`
         : '';
 
-      // Next payment amount
-      const amount = activeSubscription?.amount;
-      const currency = activeSubscription?.currency || 'gbp';
+      // Next payment amount (from most recent payment record)
       const amountHtml =
-        amount && !cancelAtPeriodEnd
+        paymentAmount && !cancelAtPeriodEnd
           ? `<div class="sd-subscription-active__detail-row">
               <span class="sd-subscription-active__detail-label">Next payment</span>
-              <span class="sd-subscription-active__detail-value">${new Intl.NumberFormat('en-GB', { style: 'currency', currency: currency.toUpperCase() }).format(amount / 100)}</span>
+              <span class="sd-subscription-active__detail-value">${new Intl.NumberFormat('en-GB', { style: 'currency', currency: paymentCurrency.toUpperCase() }).format(paymentAmount / 100)}</span>
              </div>`
           : '';
 
