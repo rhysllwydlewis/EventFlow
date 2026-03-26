@@ -3704,6 +3704,7 @@ textarea:focus-visible {
   justify-content: center;
   line-height: 1;
   text-decoration: none;
+  box-sizing: border-box;
 }
 
 .card-action-btn.edit-btn {
@@ -5787,7 +5788,6 @@ body:not(.supplier-dashboard-page) .section > .container {
   background: rgba(59, 130, 246, 0.2);
   border-color: rgba(59, 130, 246, 0.5);
   transform: translateY(-1px);
-  text-decoration: none;
 }
 
 /* Gallery photo item with delete control */
@@ -6546,37 +6546,4 @@ body:not(.supplier-dashboard-page) .section > .container {
 /* ── Compact empty state padding modifier ── */
 .sd-empty-state--compact {
   padding: 1.25rem 1rem 0.5rem;
-}
-
-/* ============================================
-   MOBILE OPTIMIZATION — Package card action buttons
-   Tighter layout for narrow viewports so button
-   text never wraps awkwardly (e.g. "Vie w").
-   ============================================ */
-@media (max-width: 480px) {
-  /* Keep all buttons on a single flex row with smaller sizing */
-  .card-actions {
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 4px;
-  }
-
-  /* Slightly smaller text & padding to keep each button on one line */
-  .card-action-btn {
-    padding: 5px 6px;
-    font-size: 0.75rem;
-    min-width: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-}
-
-@media (min-width: 481px) and (max-width: 768px) {
-  /* On mid-size mobiles keep a single flex row but shrink padding */
-  .card-action-btn {
-    padding: 7px 10px;
-    font-size: 0.825rem;
-    white-space: nowrap;
-  }
 }
