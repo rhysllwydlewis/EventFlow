@@ -623,6 +623,12 @@
   color: rgba(255,255,255,0.4);
 }
 
+.p-badge--deleted {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+}
+
 /* value key */
 .partner-value-key {
   display: flex;

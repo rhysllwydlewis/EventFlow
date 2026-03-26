@@ -182,6 +182,7 @@ function getCatalog() {
       group: 'protected',
       description: 'Customer dashboard',
       expectedStatuses: [200, 301, 302],
+      redirectAuthExpected: true,
     },
     {
       name: 'settings-page',
@@ -190,6 +191,7 @@ function getCatalog() {
       group: 'protected',
       description: 'Account settings',
       expectedStatuses: [200, 301, 302],
+      redirectAuthExpected: true,
     },
     {
       name: 'plan-page',
@@ -198,6 +200,7 @@ function getCatalog() {
       group: 'protected',
       description: 'Event plan',
       expectedStatuses: [200, 301, 302],
+      redirectAuthExpected: true,
     },
     {
       name: 'messages-page',
@@ -206,6 +209,7 @@ function getCatalog() {
       group: 'protected',
       description: 'Messages',
       expectedStatuses: [200, 301, 302],
+      redirectAuthExpected: true,
     },
     {
       name: 'notifications-page',
@@ -214,6 +218,7 @@ function getCatalog() {
       group: 'protected',
       description: 'Notifications',
       expectedStatuses: [200, 301, 302],
+      redirectAuthExpected: true,
     },
     {
       name: 'budget-page',
@@ -222,6 +227,7 @@ function getCatalog() {
       group: 'protected',
       description: 'Budget tracker',
       expectedStatuses: [200, 301, 302],
+      redirectAuthExpected: true,
     },
     {
       name: 'guests-page',
@@ -230,6 +236,7 @@ function getCatalog() {
       group: 'protected',
       description: 'Guest list',
       expectedStatuses: [200, 301, 302],
+      redirectAuthExpected: true,
     },
 
     // ── Admin Pages ───────────────────────────────────────────────────────

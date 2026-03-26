@@ -38,6 +38,7 @@ const {
   normaliseState,
   canTransition,
 } = require('../utils/supplierVerificationStateMachine');
+const partnerService = require('../services/partnerService');
 
 /**
  * Sanitise free-text input: trim, strip HTML tags, and enforce max length.
@@ -519,6 +520,13 @@ router.delete(
       }
 
       await dbUnified.deleteOne('users', id);
+
+      // Soft-delete any associated partner record to preserve audit trail
+      try {
+        await partnerService.softDeletePartnerByUserId(id);
+      } catch (partnerErr) {
+        logger.warn(`Could not soft-delete partner record for user ${id}:`, partnerErr);
+      }
 
       // Create audit log
       await createAuditLog({

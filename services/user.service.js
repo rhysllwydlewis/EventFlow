@@ -10,6 +10,7 @@ const { NotFoundError, ValidationError, AuthorizationError } = require('../error
 const { passwordOk } = require('../middleware/validation');
 const logger = require('../utils/logger');
 const { paginationHelper } = require('../utils/database');
+const partnerService = require('./partnerService');
 
 class UserService {
   constructor(dbUnified, uid) {
@@ -172,6 +173,13 @@ class UserService {
 
     // Remove user
     await this.db.deleteOne('users', id);
+
+    // Soft-delete any associated partner record to preserve audit trail
+    try {
+      await partnerService.softDeletePartnerByUserId(id);
+    } catch (partnerErr) {
+      logger.warn(`Could not soft-delete partner record for user ${id}:`, partnerErr);
+    }
 
     logger.info(`User deleted: ${id} by ${requestUserId}`);
   }
