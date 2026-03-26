@@ -3673,22 +3673,31 @@ textarea:focus-visible {
 /* Package and Profile Card Action Buttons */
 .card-actions {
   display: flex;
-  gap: var(--ef-space-2, 8px);
+  flex-wrap: nowrap;
+  gap: 6px;
   margin-top: var(--ef-space-3, 12px);
   padding-top: var(--ef-space-3, 12px);
   border-top: 1px solid rgba(0, 0, 0, 0.08);
 }
 
 .card-action-btn {
-  flex: 1;
-  padding: var(--ef-btn-padding-y-sm, 8px) var(--ef-btn-padding-x-sm, 14px);
-  font-size: var(--ef-text-sm, 14px);
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 6px 8px;
+  font-family: inherit;
+  font-size: 0.8rem;
   font-weight: var(--ef-font-medium, 500);
   border-radius: var(--ef-radius-md, 8px);
   border: 1px solid;
   cursor: pointer;
   transition: all 0.2s ease;
   text-align: center;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  text-decoration: none;
 }
 
 .card-action-btn.edit-btn {
@@ -5763,17 +5772,16 @@ body:not(.supplier-dashboard-page) .section > .container {
 
 /* View button in supplier package cards */
 .card-action-btn.view-btn {
-  display: inline-block;
   background: rgba(59, 130, 246, 0.1);
   border-color: rgba(59, 130, 246, 0.3);
   color: #2563eb;
-  text-decoration: none;
 }
 
 .card-action-btn.view-btn:hover {
   background: rgba(59, 130, 246, 0.2);
   border-color: rgba(59, 130, 246, 0.5);
   transform: translateY(-1px);
+  text-decoration: none;
 }
 
 /* Gallery photo item with delete control */
@@ -6319,6 +6327,50 @@ body:not(.supplier-dashboard-page) .section > .container {
   background: rgba(124, 58, 237, 0.14);
 }
 
+/* Subscription detail rows */
+.sd-subscription-active__details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: 0.625rem 0.75rem;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+.sd-subscription-active__detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+.sd-subscription-active__detail-label {
+  font-size: 0.775rem;
+  color: var(--ef-text-muted, #6b7280);
+}
+.sd-subscription-active__detail-value {
+  font-size: 0.775rem;
+  color: var(--ef-text, #0b1220);
+  font-weight: 600;
+  text-align: right;
+}
+.sd-subscription-active__renewal-notice {
+  font-size: 0.775rem;
+  font-weight: 600;
+  margin: 0;
+  padding: 0.35rem 0.625rem;
+  border-radius: 6px;
+}
+.sd-subscription-active__renewal-notice--auto {
+  color: #059669;
+  background: rgba(5, 150, 105, 0.08);
+  border: 1px solid rgba(5, 150, 105, 0.2);
+}
+.sd-subscription-active__renewal-notice--cancel {
+  color: #d97706;
+  background: rgba(217, 119, 6, 0.08);
+  border: 1px solid rgba(217, 119, 6, 0.2);
+}
+
 /* ── Improved card glass surfaces ── */
 .sd-card {
   border-radius: 16px;
@@ -6496,28 +6548,21 @@ body:not(.supplier-dashboard-page) .section > .container {
    text never wraps awkwardly (e.g. "Vie w").
    ============================================ */
 @media (max-width: 480px) {
-  /* Make the actions row wrap gracefully in two equal columns */
+  /* Keep all buttons on a single flex row with smaller sizing */
   .card-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 6px;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 4px;
   }
 
   /* Slightly smaller text & padding to keep each button on one line */
   .card-action-btn {
-    padding: 6px 8px;
-    font-size: 0.8rem;
+    padding: 5px 6px;
+    font-size: 0.75rem;
     min-width: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-  }
-
-  /* Allow the View button (an <a>) to span the full width when it is
-     the only item in its implicit grid row (e.g. 3-button rows) */
-  .card-action-btn:only-child,
-  .card-actions > :last-child:nth-child(odd) {
-    grid-column: span 2;
   }
 }
 

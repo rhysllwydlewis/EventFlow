@@ -2717,7 +2717,15 @@ async function initDashSupplier() {
       cachedSuppliers = items; // Cache for use within initDashSupplier scope
       window._efCachedSuppliers = items; // Expose globally for editProfile()
       // If this user has at least one Pro supplier, treat them as Pro.
-      currentIsPro = items.some(s => !!s.isPro);
+      // Check subscriptionTier (new field) first, then subscription.tier, then legacy isPro boolean.
+      currentIsPro = items.some(
+        s =>
+          !!s.isPro ||
+          s.subscriptionTier === 'pro' ||
+          s.subscriptionTier === 'pro_plus' ||
+          s.subscription?.tier === 'pro' ||
+          s.subscription?.tier === 'pro_plus'
+      );
 
       if (proRibbon) {
         if (currentIsPro) {
@@ -3164,10 +3172,10 @@ async function initDashSupplier() {
             ? '<span class="badge badge-paused" title="This package is paused and not visible publicly">Paused</span>'
             : '';
           const viewBtn =
-            approved && slug && !paused
+            approved && slug
               ? `<a href="/package?slug=${slug}" target="_blank" class="card-action-btn view-btn">View</a>`
               : '';
-          const pauseBtn = `<button type="button" class="card-action-btn ${paused ? 'unpause-btn' : 'pause-btn'}" data-action="${paused ? 'unpause-package' : 'pause-package'}" data-package-id="${packageId}">${paused ? 'Unpause' : 'Pause'}</button>`;
+          const pauseBtn = `<button type="button" class="card-action-btn ${paused ? 'unpause-btn' : 'pause-btn'}" data-action="${paused ? 'unpause-package' : 'pause-package'}" data-package-id="${packageId}" title="${paused ? 'Unpause' : 'Pause'}" aria-label="${paused ? 'Unpause package' : 'Pause package'}">${paused ? '<svg width="10" height="11" viewBox="0 0 10 11" fill="currentColor" aria-hidden="true"><polygon points="0,0 10,5.5 0,11"/></svg>' : '<svg width="10" height="11" viewBox="0 0 10 11" fill="currentColor" aria-hidden="true"><rect x="0" y="0" width="3.5" height="11" rx="0.75"/><rect x="6.5" y="0" width="3.5" height="11" rx="0.75"/></svg>'}</button>`;
 
           return `<div class="card package-card${paused ? ' package-card--paused' : ''}" data-package-id="${packageId}">
       <img src="${image}" alt="${title} image" onerror="this.src='/assets/images/package-placeholder.svg'; this.onerror=null;">
