@@ -3781,9 +3781,9 @@ textarea:focus-visible {
 /* Enhanced section titles with modern styling */
 .supplier-section-title {
   font-size: var(--ef-text-xl, 22px);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: #0f172a;
+  font-weight: var(--ef-font-semibold, 600);
+  letter-spacing: -0.015em;
+  color: var(--ef-text, #0b1220);
   margin: 0 0 var(--ef-space-4, 20px) 0;
   position: relative;
   padding-bottom: 12px;
@@ -3982,16 +3982,16 @@ h2,
 h3,
 h4 {
   letter-spacing: -0.02em;
-  font-weight: 700;
+  font-weight: var(--ef-font-semibold, 600);
 }
 
 h2 {
-  color: #0f172a;
+  color: var(--ef-text, #0b1220);
   font-size: clamp(20px, 3vw, 28px);
 }
 
 h3 {
-  color: #1e293b;
+  color: var(--ef-text, #0b1220);
   font-size: clamp(18px, 2.5vw, 22px);
 }
 
@@ -4071,7 +4071,7 @@ html {
 .supplier-card-header__content h3 {
   margin: 0 0 var(--ef-space-2, 8px) 0;
   font-size: var(--ef-text-lg, 18px);
-  font-weight: 700;
+  font-weight: var(--ef-font-semibold, 600);
   color: var(--ef-text, #0b1220);
 }
 
@@ -4557,7 +4557,7 @@ html {
 .sd-roi-heading {
   margin: 0;
   font-size: 1.0625rem;
-  font-weight: 700;
+  font-weight: var(--ef-font-semibold, 600);
   color: var(--ef-text, #0b1220);
 }
 
@@ -5331,7 +5331,7 @@ body.supplier-dashboard-page .sd-two-col > .card {
 
 .pc-section-heading {
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: var(--ef-font-semibold, 600);
   color: #0b8073;
   margin: 0 0 1rem;
   padding-bottom: 0.5rem;
@@ -5450,7 +5450,7 @@ body.supplier-dashboard-page .sd-two-col > .card {
 /* ── Section divider inside form ── */
 .pc-section-heading {
   font-size: 0.95rem;
-  font-weight: 700;
+  font-weight: var(--ef-font-semibold, 600);
   color: #0b8073;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -6153,7 +6153,7 @@ body:not(.supplier-dashboard-page) .section > .container {
 }
 .sd-empty-state__title {
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: var(--ef-font-semibold, 600);
   color: var(--ef-text, #0b1220);
   margin: 0;
 }
@@ -6546,4 +6546,23 @@ body:not(.supplier-dashboard-page) .section > .container {
 /* ── Compact empty state padding modifier ── */
 .sd-empty-state--compact {
   padding: 1.25rem 1rem 0.5rem;
+}
+
+/* ============================================================
+   TYPOGRAPHY REFINEMENT — Homepage design language parity
+   Form labels: 600/near-black → 500/#374151 for lighter, more
+   elegant feel matching the homepage's visual hierarchy.
+   supplier-dashboard-improvements.css loads after styles.css
+   on all supplier pages so these rules win cleanly.
+   ============================================================ */
+label {
+  font-weight: var(--ef-font-medium, 500);
+  color: #374151;
+}
+
+/* Required markers retain red accent */
+label .form-required,
+label .required {
+  color: var(--ef-error, #ef4444);
+  font-weight: var(--ef-font-medium, 500);
 }

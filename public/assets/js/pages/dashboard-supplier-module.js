@@ -559,7 +559,7 @@ async function displaySubscriptionStatus() {
         subscriptionRecord = subJson.subscription || null;
       }
     } catch (_err) {
-      // best-effort — fall through to payment-based fallback
+      // best-effort — subscriptionRecord stays null; billing details won't display
     }
 
     // Also load payment records for amount/currency info (best-effort)
