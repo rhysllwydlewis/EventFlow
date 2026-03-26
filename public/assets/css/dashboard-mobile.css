@@ -229,6 +229,24 @@
 }
 
 @media (max-width: 430px) {
+  /* Icon-only pills at standard mobile (≤430px) —
+     let supplier-dashboard-improvements.css .pill-text { display:none } stand.
+     Ensure pills are square 44px touch targets with larger emoji. */
+  .mobile-nav-pill {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px 12px;
+    font-size: 18px;
+  }
+
+  .mobile-nav-pills {
+    padding: 7px 10px;
+    gap: 6px;
+  }
+}
+
+/* 431–768px: show emoji + text label (large mobile / small tablet) */
+@media (min-width: 431px) and (max-width: 768px) {
   .mobile-nav-pill {
     font-size: 12.5px;
     padding: 6px 12px;
@@ -239,9 +257,6 @@
     padding: 7px 10px;
   }
 
-  /* Keep text labels visible on standard mobile — use higher specificity
-     to override the icon-only rule from supplier-dashboard-improvements.css
-     without needing !important */
   .mobile-nav-pills .mobile-nav-pill .pill-text {
     display: inline;
   }
@@ -443,12 +458,12 @@
     align-items: center;
     justify-content: center;
     gap: 5px;
-    padding: 10px 4px 9px;
-    min-height: 56px;
+    padding: 10px 6px 9px;
+    min-height: 60px;
     border-radius: var(--mob-radius-md);
     font-size: 0.6875rem;
     font-weight: 600;
-    line-height: 1.2;
+    line-height: 1.25;
     text-align: center;
     white-space: normal;
     overflow: hidden;
@@ -478,8 +493,10 @@
   .dashboard-action-chip > span {
     display: block;
     max-width: 100%;
-    word-break: break-word;
-    hyphens: auto;
+    /* Allow wrapping only at word boundaries — never mid-word */
+    overflow-wrap: break-word;
+    word-break: normal;
+    hyphens: none;
   }
 
   /* Pro tip: hidden on mobile to keep hero compact */
@@ -693,19 +710,24 @@
 }
 
 /* ============================================================
-   I) MESSAGES TOOLBAR — stacked, full-width search
+   I) MESSAGES TOOLBAR — search full-width row 1, selects+export row 2
    ============================================================ */
 @media (max-width: 768px) {
+  /* Override the desktop overflow:clip so wrapped row is visible */
   .sd-messages-toolbar {
     display: flex !important;
-    flex-direction: column !important;
+    flex-wrap: wrap !important;
+    flex-direction: row !important;
     gap: var(--mob-gap-sm) !important;
     width: 100% !important;
     margin-top: var(--mob-gap-sm) !important;
+    overflow: visible !important;
   }
 
+  /* Row 1: search bar spans full width */
   .sd-messages-toolbar__search {
-    width: 100% !important;
+    flex: 1 1 100% !important;
+    max-width: none !important;
     min-height: var(--mob-btn-h-sm) !important;
     padding: 0 14px !important;
     border-radius: var(--mob-radius-md) !important;
@@ -723,8 +745,11 @@
     background: #fff !important;
   }
 
+  /* Row 2: two selects share available space, export button fixed-width */
   .sd-messages-toolbar__select {
-    flex: 1 !important;
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    max-width: none !important;
     min-height: var(--mob-btn-h-sm) !important;
     padding: 0 10px !important;
     border-radius: var(--mob-radius-sm) !important;
@@ -735,12 +760,13 @@
     box-sizing: border-box !important;
   }
 
+  /* Export: show icon only on mobile — label hidden by existing .sd-export-label rule */
   .sd-messages-toolbar__export {
+    flex: 0 0 auto !important;
     min-height: var(--mob-btn-h-sm) !important;
     padding: 0 12px !important;
     font-size: 0.8125rem !important;
     border-radius: var(--mob-radius-sm) !important;
-    flex-shrink: 0 !important;
   }
 }
 
@@ -1196,6 +1222,321 @@
 }
 
 /* ============================================================
+   S) ROI SECTION — single-column on mobile
+   ============================================================ */
+@media (max-width: 768px) {
+  .sd-roi-section {
+    margin-top: var(--mob-gap-md);
+  }
+
+  /* Stack header: heading left, period select below */
+  .sd-roi-header {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: var(--mob-gap-sm) !important;
+    margin-bottom: var(--mob-gap-sm) !important;
+  }
+
+  .sd-roi-heading {
+    font-size: 0.9375rem !important;
+    font-family: var(--mob-font) !important;
+  }
+
+  .sd-roi-period {
+    gap: var(--mob-gap-sm) !important;
+  }
+
+  .sd-roi-period select {
+    min-height: 36px !important;
+    padding: 0 10px !important;
+    border-radius: var(--mob-radius-sm) !important;
+    font-size: 0.875rem !important;
+    font-family: var(--mob-font) !important;
+    border: 1.5px solid rgba(0, 0, 0, 0.1) !important;
+    background: #f7f8fa !important;
+  }
+
+  /* Force single-column stack — auto-fit minmax(260px) overflows on 390px */
+  .sd-roi-grid {
+    grid-template-columns: 1fr !important;
+    gap: var(--mob-gap-sm) !important;
+  }
+}
+
+/* ============================================================
+   T) EARNINGS CARD — ef-card, ef-icon-box, ef-stat-card polish
+   ============================================================ */
+@media (max-width: 768px) {
+  /* Earnings outer card: tighter padding, preserve glass */
+  #earnings-overview.ef-card,
+  .ef-card {
+    padding: var(--mob-card-pad) !important;
+    border-radius: var(--mob-radius-lg) !important;
+  }
+
+  /* Card header: wrap on narrow screens */
+  .ef-card-header {
+    flex-wrap: wrap !important;
+    gap: var(--mob-gap-md) !important;
+    margin-bottom: var(--mob-gap-md) !important;
+  }
+
+  .ef-card-title-wrapper {
+    gap: var(--mob-gap-sm) !important;
+  }
+
+  /* Shrink the icon box from 48px to 36px */
+  .ef-icon-box-lg {
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 1.125rem !important;
+    border-radius: var(--mob-radius-sm) !important;
+  }
+
+  .ef-icon-box {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 0.875rem !important;
+  }
+
+  .ef-card-title {
+    font-size: 1rem !important;
+    font-family: var(--mob-font) !important;
+    letter-spacing: -0.01em !important;
+  }
+
+  .ef-card-subtitle {
+    font-size: 0.8125rem !important;
+    font-family: var(--mob-font) !important;
+  }
+
+  /* Stat grid: 3-column auto becomes 3-equal-columns on small screens */
+  .ef-grid-auto {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: var(--mob-gap-sm) !important;
+  }
+
+  /* Individual stat cards */
+  .ef-stat-card {
+    padding: var(--mob-gap-md) var(--mob-gap-sm) !important;
+    border-radius: var(--mob-radius-md) !important;
+  }
+
+  .ef-stat-label {
+    font-size: 0.625rem !important;
+    font-family: var(--mob-font) !important;
+    letter-spacing: 0.04em !important;
+    margin-bottom: 2px !important;
+  }
+
+  .ef-stat-value {
+    font-size: 1.25rem !important;
+    font-weight: 700 !important;
+    font-family: var(--mob-font) !important;
+    letter-spacing: -0.02em !important;
+    line-height: 1.1 !important;
+  }
+
+  .ef-stat-change {
+    font-size: 0.6875rem !important;
+    margin-top: 2px !important;
+  }
+
+  /* Badge: keep compact */
+  .ef-badge {
+    font-size: 0.625rem !important;
+    padding: 0.25rem 0.625rem !important;
+  }
+}
+
+@media (max-width: 430px) {
+  /* On very small screens, stack stat grid to 1 column */
+  .ef-grid-auto {
+    grid-template-columns: 1fr !important;
+  }
+
+  .ef-stat-card {
+    display: flex !important;
+    align-items: center !important;
+    gap: var(--mob-gap-md) !important;
+    padding: var(--mob-gap-sm) var(--mob-gap-md) !important;
+  }
+
+  .ef-stat-label {
+    font-size: 0.6875rem !important;
+    letter-spacing: 0.02em !important;
+    margin-bottom: 0 !important;
+    white-space: nowrap !important;
+  }
+
+  .ef-stat-value {
+    font-size: 1.125rem !important;
+  }
+}
+
+/* ============================================================
+   U) AVAILABILITY, REVIEWS, EMPTY STATE — mobile polish
+   ============================================================ */
+@media (max-width: 768px) {
+  /* Availability section */
+  .sd-availability-section {
+    padding: 0 !important;
+  }
+
+  .sd-availability-header {
+    padding: var(--mob-card-pad) var(--mob-card-pad) var(--mob-gap-md) !important;
+    flex-wrap: wrap !important;
+    gap: var(--mob-gap-sm) !important;
+  }
+
+  .sd-availability-icon {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 1rem !important;
+    border-radius: var(--mob-radius-sm) !important;
+  }
+
+  .sd-availability-heading {
+    font-size: 0.9375rem !important;
+    font-family: var(--mob-font) !important;
+    letter-spacing: -0.01em !important;
+  }
+
+  .sd-availability-subtitle {
+    font-size: 0.8125rem !important;
+    font-family: var(--mob-font) !important;
+  }
+
+  /* Calendar placeholder: compact */
+  .sd-calendar-placeholder {
+    padding: var(--mob-card-pad) !important;
+    border-radius: var(--mob-radius-md) !important;
+    margin: 0 var(--mob-card-pad) var(--mob-card-pad) !important;
+  }
+
+  .sd-calendar-placeholder__inner {
+    padding: var(--mob-gap-md) !important;
+    gap: var(--mob-gap-sm) !important;
+  }
+
+  .sd-calendar-placeholder__icon {
+    font-size: 1.75rem !important;
+    margin-bottom: var(--mob-gap-xs) !important;
+  }
+
+  .sd-calendar-placeholder__title {
+    font-size: 0.9375rem !important;
+    font-family: var(--mob-font) !important;
+  }
+
+  .sd-calendar-placeholder__desc {
+    font-size: 0.8125rem !important;
+    font-family: var(--mob-font) !important;
+  }
+
+  /* Calendar chips: horizontal scroll row */
+  .sd-calendar-placeholder__chips {
+    justify-content: flex-start !important;
+    gap: var(--mob-gap-xs) !important;
+    overflow-x: auto !important;
+    scroll-snap-type: x mandatory !important;
+    scrollbar-width: none !important;
+    padding-bottom: 2px !important;
+  }
+
+  .sd-calendar-placeholder__chips::-webkit-scrollbar {
+    display: none;
+  }
+
+  .sd-calendar-chip {
+    flex-shrink: 0 !important;
+    scroll-snap-align: start !important;
+    font-size: 0.75rem !important;
+    padding: 4px 10px !important;
+    border-radius: 999px !important;
+  }
+
+  /* Reviews placeholder: tighter */
+  .sd-reviews-placeholder {
+    padding: var(--mob-card-pad-sm) !important;
+    border-radius: var(--mob-radius-md) !important;
+  }
+
+  .sd-reviews-placeholder__stars {
+    font-size: 1.5rem !important;
+    gap: 2px !important;
+    margin-bottom: var(--mob-gap-xs) !important;
+  }
+
+  .sd-reviews-placeholder__title {
+    font-size: 1rem !important;
+    font-family: var(--mob-font) !important;
+  }
+
+  .sd-reviews-placeholder__desc {
+    font-size: 0.8125rem !important;
+  }
+
+  /* Reviews stats grid: 2-equal-column on mobile */
+  .sd-reviews-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: var(--mob-gap-sm) !important;
+  }
+
+  .sd-reviews-stat-card {
+    padding: var(--mob-gap-md) var(--mob-gap-sm) !important;
+    border-radius: var(--mob-radius-md) !important;
+  }
+
+  .sd-reviews-stat-card__value {
+    font-size: 1.375rem !important;
+    font-family: var(--mob-font) !important;
+    letter-spacing: -0.02em !important;
+  }
+
+  /* Empty states: tighter padding, full-width CTAs */
+  .sd-empty-state {
+    padding: var(--mob-gap-md) var(--mob-gap-sm) !important;
+    gap: var(--mob-gap-xs) !important;
+  }
+
+  .sd-empty-state--compact {
+    padding: var(--mob-gap-md) var(--mob-gap-sm) var(--mob-gap-xs) !important;
+  }
+
+  .sd-empty-state__icon {
+    font-size: 1.625rem !important;
+  }
+
+  .sd-empty-state__title {
+    font-size: 0.875rem !important;
+    font-family: var(--mob-font) !important;
+  }
+
+  .sd-empty-state__desc {
+    font-size: 0.8125rem !important;
+    font-family: var(--mob-font) !important;
+  }
+
+  /* CTA buttons: full-width, 44px touch target */
+  .sd-empty-state__actions {
+    flex-direction: column !important;
+    gap: var(--mob-gap-xs) !important;
+    width: 100% !important;
+    margin-top: var(--mob-gap-sm) !important;
+  }
+
+  .sd-empty-state__cta {
+    width: 100% !important;
+    justify-content: center !important;
+    min-height: 44px !important;
+    border-radius: var(--mob-radius-md) !important;
+    font-size: 0.875rem !important;
+    font-family: var(--mob-font) !important;
+  }
+}
+
+/* ============================================================
    Q) VISUAL POLISH — transitions, pressed states, overflow
    ============================================================ */
 @media (max-width: 768px) {
@@ -1222,7 +1563,11 @@
   .sd-card,
   .customer-welcome-card,
   .dashboard-grid,
-  .stat-widget {
+  .stat-widget,
+  .ef-card,
+  .sd-roi-section,
+  .sd-reviews-placeholder,
+  .sd-calendar-placeholder {
     max-width: 100%;
     box-sizing: border-box;
   }
@@ -1236,14 +1581,17 @@
   .dashboard-action-chip,
   .stat-widget.card,
   .card-action-btn,
-  .supplier-action-btn {
+  .supplier-action-btn,
+  .sd-empty-state__cta,
+  .sd-calendar-chip {
     transition: none !important;
   }
 
   .mobile-nav-pill:active,
   .dashboard-action-chip:active,
   .stat-widget.card:active,
-  .card-action-btn:active {
+  .card-action-btn:active,
+  .sd-empty-state__cta:active {
     transform: none !important;
   }
 }
