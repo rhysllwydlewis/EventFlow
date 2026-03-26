@@ -1267,8 +1267,8 @@ body.supplier-dashboard-page .supplier-cta-section {
 .form-label {
   display: block;
   margin-bottom: var(--ef-space-2, 8px);
-  font-weight: var(--ef-font-semibold, 600);
-  color: var(--ef-text, #0b1220);
+  font-weight: var(--ef-font-medium, 500);
+  color: #374151;
 }
 
 .form-group {
