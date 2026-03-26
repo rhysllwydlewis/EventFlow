@@ -18,7 +18,19 @@
    */
   function setText(id, value) {
     const el = document.getElementById(id);
-    if (el) el.textContent = value;
+    if (el) {
+      el.textContent = value;
+    }
+  }
+
+  /**
+   * Capitalise the first letter of a string
+   */
+  function capitalise(str) {
+    if (!str) {
+      return str;
+    }
+    return str.charAt(0).toUpperCase() + str.slice(1);
   }
 
   /**
@@ -38,7 +50,9 @@
     const badgeEl = document.getElementById('stripeStatusBadge');
     const msgEl = document.getElementById('stripeStatusMsg');
 
-    if (noticeEl) noticeEl.style.display = '';
+    if (noticeEl) {
+      noticeEl.style.display = '';
+    }
 
     if (stripeData && stripeData.available === true) {
       if (badgeEl) {
@@ -46,7 +60,9 @@
         badgeEl.style.background = '#dcfce7';
         badgeEl.style.color = '#16a34a';
       }
-      if (msgEl) msgEl.textContent = 'Live Stripe data is being displayed below.';
+      if (msgEl) {
+        msgEl.textContent = 'Live Stripe data is being displayed below.';
+      }
 
       setText('an-totalRevenue', formatGBP(stripeData.totalRevenue));
       setText('an-monthRevenue', formatGBP(stripeData.monthRevenue));
@@ -59,7 +75,9 @@
         badgeEl.style.background = '#fef9c3';
         badgeEl.style.color = '#92400e';
       }
-      if (msgEl) msgEl.textContent = 'Stripe is not configured. Showing subscription MRR data only.';
+      if (msgEl) {
+        msgEl.textContent = 'Stripe is not configured. Showing subscription MRR data only.';
+      }
 
       setText('an-totalRevenue', 'N/A');
       setText('an-monthRevenue', 'N/A');
@@ -76,7 +94,7 @@
         }
       }
       if (v2Data && v2Data.churn) {
-        const churnPct = Number(v2Data.churn.rate || 0).toFixed(1);
+        const churnPct = Number(v2Data.churn.churnRate || 0).toFixed(1);
         setText('an-churnRate', `${churnPct}%`);
       }
     } catch (_) {
@@ -106,22 +124,18 @@
 
       const suppPendingEl = document.getElementById('an-suppliersPending');
       if (suppPendingEl) {
-        suppPendingEl.textContent = pendingSuppliers > 0
-          ? `${pendingSuppliers} pending approval`
-          : 'All approved';
-        suppPendingEl.style.color = pendingSuppliers > 0
-          ? 'var(--color-warning, #d97706)'
-          : 'var(--color-success, #16a34a)';
+        suppPendingEl.textContent =
+          pendingSuppliers > 0 ? `${pendingSuppliers} pending approval` : 'All approved';
+        suppPendingEl.style.color =
+          pendingSuppliers > 0 ? 'var(--color-warning, #d97706)' : 'var(--color-success, #16a34a)';
       }
 
       const pkgPendingEl = document.getElementById('an-packagesPending');
       if (pkgPendingEl) {
-        pkgPendingEl.textContent = pendingPackages > 0
-          ? `${pendingPackages} pending approval`
-          : 'All approved';
-        pkgPendingEl.style.color = pendingPackages > 0
-          ? 'var(--color-warning, #d97706)'
-          : 'var(--color-success, #16a34a)';
+        pkgPendingEl.textContent =
+          pendingPackages > 0 ? `${pendingPackages} pending approval` : 'All approved';
+        pkgPendingEl.style.color =
+          pendingPackages > 0 ? 'var(--color-warning, #d97706)' : 'var(--color-success, #16a34a)';
       }
 
       // Roles breakdown
@@ -130,18 +144,18 @@
         const byRole = counts.usersByRole || {};
         const roleKeys = Object.keys(byRole);
         if (roleKeys.length === 0) {
-          roleEl.innerHTML = '<span style="opacity:0.6">No data</span>';
+          roleEl.innerHTML = '<span style="color:#9ca3af;font-size:0.875rem;">No data</span>';
         } else {
-          roleEl.innerHTML = roleKeys.map(r =>
-            `<span style="background:var(--color-surface-2,#f3f4f6);padding:4px 12px;border-radius:999px;font-size:0.875rem;">
-              <strong>${r}</strong>: ${byRole[r]}
+          roleEl.innerHTML = roleKeys
+            .map(
+              r =>
+                `<span style="background:var(--color-surface-2,#f3f4f6);padding:5px 14px;border-radius:999px;font-size:0.875rem;border:1px solid #e5e7eb;">
+              <strong>${capitalise(r)}</strong>: ${byRole[r]}
             </span>`
-          ).join('');
+            )
+            .join('');
         }
       }
-
-      // Signups in last 7 / 30 days from timeseries data
-      loadUserGrowth();
     } catch (_) {
       AdminShared.showToast('Failed to load platform metrics', 'error');
     }
@@ -183,21 +197,26 @@
       const tbody = document.getElementById('an-timeseriesBody');
       if (tbody) {
         if (series.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="3" style="padding:1rem;text-align:center;opacity:0.6">No data</td></tr>';
+          tbody.innerHTML =
+            '<tr><td colspan="3" style="padding:1.5rem;text-align:center;color:#9ca3af;">No data available</td></tr>';
         } else {
-          tbody.innerHTML = series.map(row =>
-            `<tr>
-              <td style="padding:0.4rem 0.75rem">${row.date}</td>
-              <td style="padding:0.4rem 0.75rem;text-align:center">${row.signups || 0}</td>
-              <td style="padding:0.4rem 0.75rem;text-align:center">${row.plans || 0}</td>
+          tbody.innerHTML = series
+            .map(
+              (row, i) =>
+                `<tr style="${i % 2 === 0 ? '' : 'background:#f9fafb;'}">
+              <td style="padding:0.5rem 1rem;font-size:0.875rem;color:#374151;">${row.date}</td>
+              <td style="padding:0.5rem 1rem;text-align:center;font-size:0.875rem;font-weight:${row.signups > 0 ? '600' : '400'};color:${row.signups > 0 ? '#0B8073' : '#9ca3af'};">${row.signups || 0}</td>
+              <td style="padding:0.5rem 1rem;text-align:center;font-size:0.875rem;font-weight:${row.plans > 0 ? '600' : '400'};color:${row.plans > 0 ? '#7c3aed' : '#9ca3af'};">${row.plans || 0}</td>
             </tr>`
-          ).join('');
+            )
+            .join('');
         }
       }
     } catch (_) {
       const tbody = document.getElementById('an-timeseriesBody');
       if (tbody) {
-        tbody.innerHTML = '<tr><td colspan="3" style="padding:1rem;text-align:center;opacity:0.6">Failed to load timeseries</td></tr>';
+        tbody.innerHTML =
+          '<tr><td colspan="3" style="padding:1.5rem;text-align:center;color:#9ca3af;">Failed to load timeseries data</td></tr>';
       }
     }
   }
@@ -206,10 +225,28 @@
    * Main initialisation — runs after DOM ready.
    */
   function init() {
+    // Wire up refresh button
+    const refreshBtn = document.getElementById('analyticsRefreshBtn');
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', () => {
+        refreshBtn.disabled = true;
+        refreshBtn.style.opacity = '0.6';
+        loadAll().finally(() => {
+          refreshBtn.disabled = false;
+          refreshBtn.style.opacity = '';
+        });
+      });
+    }
+
+    loadAll();
+  }
+
+  function loadAll() {
     // Run all fetches in parallel (best-effort, independent)
-    Promise.all([
+    return Promise.all([
       loadRevenue().catch(err => console.error('[Analytics] Revenue load failed:', err)),
       loadMetrics().catch(err => console.error('[Analytics] Metrics load failed:', err)),
+      loadUserGrowth().catch(err => console.error('[Analytics] User growth load failed:', err)),
     ]);
   }
 
