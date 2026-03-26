@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <script src="/assets/js/dashboard-guard.js?v=17.0.2"></script>
+
+  <!-- Error boundary -->
+  <script src="/assets/js/utils/global-error-handler.js" defer></script>
+  <script src="/assets/js/utils/sentry-browser-init.js" defer></script>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Analytics — Admin Panel — EventFlow</title>
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="stylesheet" href="/assets/css/tokens.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/components.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/animations.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-enhanced.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-cards.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.3.0">
+  <link rel="icon" href="/favicon.svg">
+  <script src="/assets/js/admin-shared.js?v=18.3.0"></script>
+  <script src="/assets/js/components.js?v=18.3.0" defer></script>
+  <script src="/assets/js/admin-navbar.js?v=18.3.0" defer></script>
+</head>
+<body class="has-admin-navbar admin">
+
+<div id="adminNavbarMount"></div>
+
+<main id="main-content" class="section admin-main-content">
+  <div class="container">
+
+    <div class="admin-page-header">
+      <h1>📈 Analytics</h1>
+      <p class="small">Revenue, user growth and platform performance at a glance.</p>
+    </div>
+
+    <!-- Stripe availability notice -->
+    <div id="stripeNotice" class="note-box" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <h4>💳 Stripe Analytics</h4>
+        <span id="stripeStatusBadge" style="padding:4px 12px;border-radius:999px;font-size:12px;font-weight:600;"></span>
+      </div>
+      <p id="stripeStatusMsg"></p>
+    </div>
+
+    <!-- ── Revenue Overview ───────────────────────────────────────────── -->
+    <div class="section-header section-spacer">
+      <h2 class="section-title">Revenue Overview</h2>
+      <p class="section-description">Live revenue data from Stripe and subscription records</p>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card stat-primary">
+        <div class="stat-content">
+          <div class="stat-label">Total Revenue (All Time)</div>
+          <div class="stat-value" id="an-totalRevenue">—</div>
+          <div class="stat-change" id="an-totalRevenueNote"></div>
+        </div>
+      </div>
+      <div class="stat-card stat-success">
+        <div class="stat-content">
+          <div class="stat-label">Monthly Revenue (30 days)</div>
+          <div class="stat-value" id="an-monthRevenue">—</div>
+        </div>
+      </div>
+      <div class="stat-card stat-info">
+        <div class="stat-content">
+          <div class="stat-label">MRR (Subscriptions)</div>
+          <div class="stat-value" id="an-mrr">—</div>
+        </div>
+      </div>
+      <div class="stat-card stat-warning">
+        <div class="stat-content">
+          <div class="stat-label">Active Subscriptions</div>
+          <div class="stat-value" id="an-activeSubs">—</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-content">
+          <div class="stat-label">Churn Rate (30 days)</div>
+          <div class="stat-value" id="an-churnRate">—</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-content">
+          <div class="stat-label">Available Balance</div>
+          <div class="stat-value" id="an-availableBalance">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── User Growth ────────────────────────────────────────────────── -->
+    <div class="section-header section-spacer">
+      <h2 class="section-title">User Growth</h2>
+      <p class="section-description">Signups and user distribution by role</p>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card stat-primary">
+        <div class="stat-content">
+          <div class="stat-label">Total Users</div>
+          <div class="stat-value" id="an-usersTotal">—</div>
+        </div>
+      </div>
+      <div class="stat-card stat-success">
+        <div class="stat-content">
+          <div class="stat-label">Signups — Last 7 Days</div>
+          <div class="stat-value" id="an-signups7d">—</div>
+        </div>
+      </div>
+      <div class="stat-card stat-info">
+        <div class="stat-content">
+          <div class="stat-label">Signups — Last 30 Days</div>
+          <div class="stat-value" id="an-signups30d">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Signups timeseries table -->
+    <div class="admin-card" style="margin-bottom:1.5rem;">
+      <div class="data-header">
+        <h3 class="subsection-title">Signups &amp; Plans — Last 14 Days</h3>
+      </div>
+      <div class="table-wrapper">
+        <table id="an-timeseriesTable" aria-label="Signups timeseries" style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr>
+              <th style="text-align:left;padding:0.5rem 0.75rem">Date</th>
+              <th style="text-align:center;padding:0.5rem 0.75rem">Signups</th>
+              <th style="text-align:center;padding:0.5rem 0.75rem">Plans Created</th>
+            </tr>
+          </thead>
+          <tbody id="an-timeseriesBody">
+            <tr><td colspan="3" style="padding:1rem;text-align:center;opacity:0.6">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Users by role -->
+    <div class="admin-card" style="margin-bottom:1.5rem;">
+      <div class="data-header">
+        <h3 class="subsection-title">Users by Role</h3>
+      </div>
+      <div id="an-roleBreakdown" style="padding:0.75rem 1rem;display:flex;flex-wrap:wrap;gap:1rem;">
+        <span style="opacity:0.6">Loading…</span>
+      </div>
+    </div>
+
+    <!-- ── Platform Stats ─────────────────────────────────────────────── -->
+    <div class="section-header section-spacer">
+      <h2 class="section-title">Platform Stats</h2>
+      <p class="section-description">Suppliers, packages, and content overview</p>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-content">
+          <div class="stat-label">Total Suppliers</div>
+          <div class="stat-value" id="an-suppliersTotal">—</div>
+          <div class="stat-change" id="an-suppliersPending"></div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-content">
+          <div class="stat-label">Pro Suppliers</div>
+          <div class="stat-value" id="an-suppliersProTotal">—</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-content">
+          <div class="stat-label">Total Packages</div>
+          <div class="stat-value" id="an-packagesTotal">—</div>
+          <div class="stat-change" id="an-packagesPending"></div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-content">
+          <div class="stat-label">Featured Packages</div>
+          <div class="stat-value" id="an-packagesFeatured">—</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-content">
+          <div class="stat-label">Total Plans</div>
+          <div class="stat-value" id="an-plansTotal">—</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-content">
+          <div class="stat-label">Messages</div>
+          <div class="stat-value" id="an-messagesTotal">—</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer class="footer" role="contentinfo">
+  <div class="container flex-between">
+    <div><strong>EventFlow</strong><br><span class="small">Event planning made simple.</span></div>
+    <div class="version">Version: <span id="ef-version-label">loading…</span></div>
+    <div class="small">
+      <a href="/guides">Guides</a> ·
+      <a href="/credits">Credits</a> ·
+      <a href="/contact">Contact</a> ·
+      <a href="/legal">Legal Hub</a> · <button type="button" data-cookie-prefs>Cookie preferences</button>
+    </div>
+  </div>
+  <div class="small" style="margin-top:8px;text-align:center;">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
+</footer>
+
+<script src="/assets/js/utils/global-error-handler.js?v=18.3.0" defer></script>
+<script src="/assets/js/pages/admin-analytics-init.js?v=18.3.0" defer></script>
+<script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
+</body>
+</html>

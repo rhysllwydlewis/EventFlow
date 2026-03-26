@@ -683,6 +683,7 @@ canonicalPages.forEach(page => {
 // can navigate via clean URLs (matching production redirects) or via .html paths.
 const adminPages = [
   'admin',
+  'admin-analytics',
   'admin-audit',
   'admin-content',
   'admin-content-dates',
