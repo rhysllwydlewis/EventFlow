@@ -2932,10 +2932,10 @@ async function initDashSupplier() {
         if (hiddenInput) {
           // Set initial value
           hiddenInput.value = select.value;
-          // Keep in sync when the user changes the dropdown (attach once via onchange)
-          select.onchange = () => {
+          // Keep in sync when the user changes the dropdown
+          select.addEventListener('change', () => {
             hiddenInput.value = select.value;
-          };
+          });
         }
       }
 
