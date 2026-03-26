@@ -29,6 +29,13 @@
       desc: 'Overview & platform metrics',
     },
     {
+      href: '/admin-analytics',
+      icon: '📈',
+      label: 'Analytics',
+      group: 'core',
+      desc: 'Revenue, growth & platform analytics',
+    },
+    {
       href: '/admin-settings',
       icon: '⚙️',
       label: 'Settings',

@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <script src="/assets/js/dashboard-guard.js?v=17.0.2"></script>
+
+  <!-- Error boundary -->
+  <script src="/assets/js/utils/global-error-handler.js" defer></script>
+  <script src="/assets/js/utils/sentry-browser-init.js" defer></script>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Analytics — Admin Panel — EventFlow</title>
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="stylesheet" href="/assets/css/tokens.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/components.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/animations.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-enhanced.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-cards.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.3.0">
+  <link rel="icon" href="/favicon.svg">
+  <script src="/assets/js/admin-shared.js?v=18.3.0"></script>
+  <script src="/assets/js/components.js?v=18.3.0" defer></script>
+  <script src="/assets/js/admin-navbar.js?v=18.3.0" defer></script>
+</head>
+<body class="has-admin-navbar admin">
+<a href="#main-content" class="skip-to-content">Skip to main content</a>
+
+<div id="adminNavbarMount"></div>
+
+<main id="main-content" class="admin-main-content">
+
+  <!-- Dashboard Header -->
+  <div class="dashboard-header">
+    <div class="header-content">
+      <div>
+        <h1 class="dashboard-title">📈 Analytics</h1>
+        <p class="dashboard-subtitle">Revenue, user growth and platform performance at a glance.</p>
+      </div>
+      <div class="header-actions">
+        <a href="/admin" class="btn-secondary" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;">← Dashboard</a>
+        <button id="analyticsRefreshBtn" class="btn-icon" title="Refresh data" aria-label="Refresh data">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 4v6h-6"></path>
+            <path d="M1 20v-6h6"></path>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stripe availability notice -->
+  <div class="container">
+    <div id="stripeNotice" class="note-box" style="display:none;margin-bottom:1.5rem;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <h4 style="margin:0;">💳 Stripe Analytics</h4>
+        <span id="stripeStatusBadge" style="padding:4px 12px;border-radius:999px;font-size:12px;font-weight:600;"></span>
+      </div>
+      <p id="stripeStatusMsg" style="margin:0;"></p>
+    </div>
+  </div>
+
+  <!-- ── Revenue Overview ─────────────────────────────────────────────────── -->
+  <div class="container">
+    <div class="section-header section-spacer">
+      <h2 class="section-title">Revenue Overview</h2>
+      <p class="section-description">Live revenue data from Stripe and subscription records · <a href="/admin-payments" style="color:var(--color-primary,#0B8073)">View payments →</a></p>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card stat-primary">
+        <div class="stat-icon stat-icon-purple">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+            <line x1="12" y1="1" x2="12" y2="23"></line>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <div class="stat-label">Total Revenue (All Time)</div>
+          <div class="stat-value" id="an-totalRevenue">—</div>
+          <div class="stat-change" id="an-totalRevenueNote"></div>
+        </div>
+      </div>
+
+      <div class="stat-card stat-success">
+        <div class="stat-icon stat-icon-pink">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <div class="stat-label">Monthly Revenue (30 days)</div>
+          <div class="stat-value" id="an-monthRevenue">—</div>
+        </div>
+      </div>
+
+      <div class="stat-card stat-info">
+        <div class="stat-icon stat-icon-blue">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <div class="stat-label">MRR (Subscriptions)</div>
+          <div class="stat-value" id="an-mrr">—</div>
+        </div>
+      </div>
+
+      <div class="stat-card stat-warning">
+        <div class="stat-icon stat-icon-orange">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <div class="stat-label">Active Subscriptions</div>
+          <div class="stat-value" id="an-activeSubs">—</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon" style="background:linear-gradient(135deg,#a8edea 0%,#fed6e3 100%);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <div class="stat-label">Churn Rate (30 days)</div>
+          <div class="stat-value" id="an-churnRate">—</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon" style="background:linear-gradient(135deg,#d4fc79 0%,#96e6a1 100%);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#374151" stroke-width="2">
+            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+            <line x1="1" y1="10" x2="23" y2="10"></line>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <div class="stat-label">Available Balance</div>
+          <div class="stat-value" id="an-availableBalance">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── User Growth ────────────────────────────────────────────────────────── -->
+  <div class="container">
+    <div class="section-header section-spacer">
+      <h2 class="section-title">User Growth</h2>
+      <p class="section-description">Signups and user distribution by role · <a href="/admin-users" style="color:var(--color-primary,#0B8073)">Manage users →</a></p>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card stat-primary">
+        <div class="stat-icon stat-icon-purple">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <div class="stat-label">Total Users</div>
+          <div class="stat-value" id="an-usersTotal">—</div>
+        </div>
+      </div>
+
+      <div class="stat-card stat-success">
+        <div class="stat-icon stat-icon-pink">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <line x1="19" y1="8" x2="19" y2="14"></line>
+            <line x1="22" y1="11" x2="16" y2="11"></line>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <div class="stat-label">Signups — Last 7 Days</div>
+          <div class="stat-value" id="an-signups7d">—</div>
+        </div>
+      </div>
+
+      <div class="stat-card stat-info">
+        <div class="stat-icon stat-icon-blue">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <div class="stat-label">Signups — Last 30 Days</div>
+          <div class="stat-value" id="an-signups30d">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Signups timeseries table -->
+    <div class="admin-card" style="margin-bottom:1.5rem;overflow:hidden;">
+      <div class="data-header" style="border-bottom:1px solid #f3f4f6;padding:1rem 1.25rem;">
+        <h3 class="subsection-title" style="margin:0;">Signups &amp; Plans — Last 14 Days</h3>
+      </div>
+      <div class="table-wrapper">
+        <table id="an-timeseriesTable" aria-label="Signups timeseries" style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr style="background:#f9fafb;">
+              <th style="text-align:left;padding:0.6rem 1rem;font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">Date</th>
+              <th style="text-align:center;padding:0.6rem 1rem;font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">Signups</th>
+              <th style="text-align:center;padding:0.6rem 1rem;font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">Plans Created</th>
+            </tr>
+          </thead>
+          <tbody id="an-timeseriesBody">
+            <tr><td colspan="3" style="padding:1.5rem;text-align:center;color:#9ca3af;">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Users by role -->
+    <div class="admin-card" style="margin-bottom:1.5rem;">
+      <div class="data-header" style="border-bottom:1px solid #f3f4f6;padding:1rem 1.25rem;">
+        <h3 class="subsection-title" style="margin:0;">Users by Role</h3>
+      </div>
+      <div id="an-roleBreakdown" style="padding:1rem 1.25rem;display:flex;flex-wrap:wrap;gap:0.75rem;">
+        <span style="color:#9ca3af;font-size:0.875rem;">Loading…</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Platform Stats ──────────────────────────────────────────────────────── -->
+  <div class="container">
+    <div class="section-header section-spacer">
+      <h2 class="section-title">Platform Stats</h2>
+      <p class="section-description">Suppliers, packages, and content overview</p>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card stat-primary">
+        <div class="stat-icon stat-icon-purple">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+            <polyline points="9 22 9 12 15 12 15 22"></polyline>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <div class="stat-label">Total Suppliers</div>
+          <div class="stat-value" id="an-suppliersTotal">—</div>
+          <div class="stat-change" id="an-suppliersPending"></div>
+        </div>
+      </div>
+
+      <div class="stat-card stat-success">
+        <div class="stat-icon stat-icon-pink">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <div class="stat-label">Pro Suppliers</div>
+          <div class="stat-value" id="an-suppliersProTotal">—</div>
+        </div>
+      </div>
+
+      <div class="stat-card stat-info">
+        <div class="stat-icon stat-icon-blue">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
+            <path d="M2 17l10 5 10-5M2 12l10 5 10-5"></path>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <div class="stat-label">Total Packages</div>
+          <div class="stat-value" id="an-packagesTotal">—</div>
+          <div class="stat-change" id="an-packagesPending"></div>
+        </div>
+      </div>
+
+      <div class="stat-card stat-warning">
+        <div class="stat-icon stat-icon-orange">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <div class="stat-label">Featured Packages</div>
+          <div class="stat-value" id="an-packagesFeatured">—</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon" style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+            <polyline points="10 9 9 9 8 9"></polyline>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <div class="stat-label">Total Plans</div>
+          <div class="stat-value" id="an-plansTotal">—</div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon" style="background:linear-gradient(135deg,#f093fb 0%,#f5576c 100%);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+        </div>
+        <div class="stat-content">
+          <div class="stat-label">Messages</div>
+          <div class="stat-value" id="an-messagesTotal">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="footer" role="contentinfo">
+  <div class="container flex-between">
+    <div><strong>EventFlow</strong><br><span class="small">Event planning made simple.</span></div>
+    <div class="version">Version: <span id="ef-version-label">loading…</span></div>
+    <div class="small">
+      <a href="/guides">Guides</a> ·
+      <a href="/credits">Credits</a> ·
+      <a href="/contact">Contact</a> ·
+      <a href="/legal">Legal Hub</a> · <button type="button" data-cookie-prefs>Cookie preferences</button>
+    </div>
+  </div>
+  <div class="small" style="margin-top:8px;text-align:center;">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
+</footer>
+
+<script src="/assets/js/pages/admin-analytics-init.js?v=18.3.0" defer></script>
+<script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
+</body>
+</html>

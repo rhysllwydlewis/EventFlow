@@ -40,6 +40,15 @@ const REGISTRY = [
     desc: 'Overview & platform metrics',
   },
   {
+    route: '/admin-analytics',
+    htmlFile: 'admin-analytics',
+    label: 'Analytics',
+    icon: '📈',
+    category: 'core',
+    inNav: true,
+    desc: 'Revenue, growth & platform analytics',
+  },
+  {
     route: '/admin-settings',
     htmlFile: 'admin-settings',
     label: 'Settings',

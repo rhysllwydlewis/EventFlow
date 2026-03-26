@@ -343,24 +343,118 @@
       }
     })();
 
-    // Revenue: no revenue endpoint yet — show N/A
-    const totalRevenueEl = document.getElementById('totalRevenueCount');
-    if (totalRevenueEl) {
-      totalRevenueEl.textContent = 'N/A';
-    }
-
-    // Change indicators — cleared until real trend data is available
-    [
-      'totalUsersChange',
-      'totalPackagesChange',
-      'totalSuppliersChange',
-      'totalRevenueChange',
-    ].forEach(id => {
-      const el2 = document.getElementById(id);
-      if (el2) {
-        el2.textContent = '—';
+    // Revenue: fetch from Stripe analytics, fall back to v2 revenue endpoint
+    (async () => {
+      const totalRevenueEl = document.getElementById('totalRevenueCount');
+      const totalRevenueChangeEl = document.getElementById('totalRevenueChange');
+      try {
+        const stripeData = await AdminShared.api('/api/admin/stripe-analytics');
+        if (stripeData && stripeData.available === true) {
+          if (totalRevenueEl) {
+            totalRevenueEl.textContent = `£${Number(stripeData.totalRevenue || 0).toFixed(2)}`;
+          }
+          if (totalRevenueChangeEl) {
+            const monthRev = Number(stripeData.monthRevenue || 0).toFixed(2);
+            totalRevenueChangeEl.textContent = `£${monthRev} this month`;
+          }
+          return;
+        }
+      } catch (_) {
+        // Stripe not available — try fallback
       }
-    });
+      try {
+        const v2Data = await AdminShared.api('/api/v2/admin/revenue');
+        if (v2Data && v2Data.revenue) {
+          const mrr = Number(v2Data.revenue.mrr || 0).toFixed(2);
+          if (totalRevenueEl) {
+            totalRevenueEl.textContent = `£${mrr} MRR`;
+          }
+          if (totalRevenueChangeEl) {
+            totalRevenueChangeEl.textContent = '—';
+          }
+          return;
+        }
+      } catch (_) {
+        // Both failed — show N/A
+      }
+      if (totalRevenueEl) {
+        totalRevenueEl.textContent = 'N/A';
+      }
+      if (totalRevenueChangeEl) {
+        totalRevenueChangeEl.textContent = '—';
+      }
+    })();
+
+    // Trend indicators — real period-over-period comparison
+    // Users: compare last 7 days vs previous 7 days using allUsers (already loaded)
+    (function () {
+      const now = Date.now();
+      const oneWeek = 7 * 24 * 60 * 60 * 1000;
+      const cutoffRecent = now - oneWeek;
+      const cutoffPrev = now - 2 * oneWeek;
+      const usersList = Array.isArray(allUsers) ? allUsers : [];
+      const recentUsers = usersList.filter(u => {
+        const t = u.createdAt ? Date.parse(u.createdAt) : NaN;
+        return !isNaN(t) && t >= cutoffRecent;
+      }).length;
+      const prevUsers = usersList.filter(u => {
+        const t = u.createdAt ? Date.parse(u.createdAt) : NaN;
+        return !isNaN(t) && t >= cutoffPrev && t < cutoffRecent;
+      }).length;
+
+      const usersChangeEl = document.getElementById('totalUsersChange');
+      if (usersChangeEl) {
+        if (prevUsers === 0 && recentUsers === 0) {
+          usersChangeEl.textContent = 'No change';
+          usersChangeEl.style.color = '';
+        } else if (prevUsers === 0) {
+          usersChangeEl.textContent = `+${recentUsers} this week`;
+          usersChangeEl.style.color = 'var(--color-success, #16a34a)';
+        } else {
+          const pct = Math.round(((recentUsers - prevUsers) / prevUsers) * 100);
+          if (pct > 0) {
+            usersChangeEl.textContent = `+${pct}% ↑`;
+            usersChangeEl.style.color = 'var(--color-success, #16a34a)';
+          } else if (pct < 0) {
+            usersChangeEl.textContent = `${pct}% ↓`;
+            usersChangeEl.style.color = 'var(--color-danger, #dc2626)';
+          } else {
+            usersChangeEl.textContent = 'No change';
+            usersChangeEl.style.color = '';
+          }
+        }
+      }
+    })();
+
+    // Suppliers trend: show pending approval count
+    (function () {
+      const suppliersChangeEl = document.getElementById('totalSuppliersChange');
+      if (suppliersChangeEl) {
+        const pending = counts.pendingSuppliers || 0;
+        if (pending > 0) {
+          suppliersChangeEl.textContent = `${pending} pending`;
+          suppliersChangeEl.style.color = 'var(--color-warning, #d97706)';
+        } else {
+          suppliersChangeEl.textContent = 'All approved';
+          suppliersChangeEl.style.color = 'var(--color-success, #16a34a)';
+        }
+      }
+    })();
+
+    // Packages trend: show pending approval count
+    (function () {
+      const packagesChangeEl = document.getElementById('totalPackagesChange');
+      if (packagesChangeEl) {
+        const pending = counts.pendingPackages || 0;
+        if (pending > 0) {
+          packagesChangeEl.textContent = `${pending} pending`;
+          packagesChangeEl.style.color = 'var(--color-warning, #d97706)';
+        } else {
+          packagesChangeEl.textContent = 'All approved';
+          packagesChangeEl.style.color = 'var(--color-success, #16a34a)';
+        }
+      }
+    })();
 
     el.innerHTML =
       `<div class="card">` +
@@ -1539,6 +1633,7 @@
       setupNavButton('adminSettingsBtn', '/admin-settings');
       setupNavButton('mediaCenterBtn', '/admin-media');
       setupNavButton('globalSearchBtn', '/admin-search');
+      setupNavButton('analyticsBtn', '/admin-analytics');
 
       // Moderation queue buttons
       setupNavButton('reviewPhotosBtn', '/admin-photos');

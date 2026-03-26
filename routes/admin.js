@@ -452,24 +452,57 @@ router.get('/export/all', authRequired, roleRequired('admin'), async (_req, res)
 
 /**
  * GET /api/admin/metrics/timeseries
- * Get synthetic timeseries data for admin charts
+ * Get real timeseries data for admin charts (last 14 days)
  */
-router.get('/metrics/timeseries', authRequired, roleRequired('admin'), (_req, res) => {
-  const today = new Date();
-  const days = 14;
-  const series = [];
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    const iso = d.toISOString().slice(0, 10);
-    series.push({
-      date: iso,
-      visitors: 20 + ((i * 7) % 15),
-      signups: 3 + (i % 4),
-      plans: 1 + (i % 3),
+router.get('/metrics/timeseries', authRequired, roleRequired('admin'), async (_req, res) => {
+  try {
+    const today = new Date();
+    const days = 14;
+
+    // Build date labels for the last 14 days
+    const dateLabels = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      dateLabels.push(d.toISOString().slice(0, 10));
+    }
+
+    // Load users and plans to count by createdAt date
+    const [users, plans] = await Promise.all([
+      dbUnified.read('users').then(d => d || []),
+      dbUnified.read('plans').then(d => d || []),
+    ]);
+
+    // Count signups per day
+    const signupsByDate = {};
+    users.forEach(u => {
+      if (u.createdAt) {
+        const day = new Date(u.createdAt).toISOString().slice(0, 10);
+        signupsByDate[day] = (signupsByDate[day] || 0) + 1;
+      }
     });
+
+    // Count plan creations per day
+    const plansByDate = {};
+    plans.forEach(p => {
+      if (p.createdAt) {
+        const day = new Date(p.createdAt).toISOString().slice(0, 10);
+        plansByDate[day] = (plansByDate[day] || 0) + 1;
+      }
+    });
+
+    const series = dateLabels.map(iso => ({
+      date: iso,
+      // visitors: no visitor tracking collection — omitted
+      signups: signupsByDate[iso] || 0,
+      plans: plansByDate[iso] || 0,
+    }));
+
+    res.json({ series });
+  } catch (error) {
+    logger.error('Error fetching timeseries metrics:', error);
+    res.status(500).json({ error: 'Failed to fetch timeseries metrics', series: [] });
   }
-  res.json({ series });
 });
 
 /**
@@ -494,7 +527,14 @@ router.get('/metrics', authRequired, roleRequired('admin'), async (_req, res) =>
           return a;
         }, {}),
         suppliersTotal: suppliers.length,
+        pendingSuppliers: suppliers.filter(s => s.approved !== true && s.verified !== true).length,
+        proSuppliers: suppliers.filter(s => {
+          if (s.subscription && s.subscription.status === 'active') return true;
+          return s.isPro === true;
+        }).length,
         packagesTotal: pkgs.length,
+        pendingPackages: pkgs.filter(p => p.approved !== true).length,
+        featuredPackages: pkgs.filter(p => p.featured === true).length,
         plansTotal: plans.length,
         messagesTotal: msgs.length,
         threadsTotal: threads.length,
@@ -508,7 +548,11 @@ router.get('/metrics', authRequired, roleRequired('admin'), async (_req, res) =>
         usersTotal: 0,
         usersByRole: {},
         suppliersTotal: 0,
+        pendingSuppliers: 0,
+        proSuppliers: 0,
         packagesTotal: 0,
+        pendingPackages: 0,
+        featuredPackages: 0,
         plansTotal: 0,
         messagesTotal: 0,
         threadsTotal: 0,
