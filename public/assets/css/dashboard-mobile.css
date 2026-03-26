@@ -493,8 +493,8 @@
   .dashboard-action-chip > span {
     display: block;
     max-width: 100%;
-    /* Allow wrapping only at word boundaries — never mid-word */
-    overflow-wrap: break-word;
+    /* Wrap only at word boundaries — never mid-character */
+    overflow-wrap: normal;
     word-break: normal;
     hyphens: none;
   }
