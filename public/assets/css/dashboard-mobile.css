@@ -67,17 +67,20 @@
 }
 
 /* ============================================================
-   C) APP-LIKE BOTTOM TAB BAR
+   C) APP-LIKE BOTTOM TAB BAR — liquid glass
    ============================================================ */
 @media (max-width: 768px) {
   .ef-bottom-nav {
     height: 64px;
     padding: 8px 4px max(12px, env(safe-area-inset-bottom, 12px));
     gap: 0;
-    background: rgba(255, 255, 255, 0.97);
-    backdrop-filter: blur(24px) saturate(180%);
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
-    box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.06), 0 -4px 20px rgba(0, 0, 0, 0.06);
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(40px) saturate(220%) brightness(1.02);
+    -webkit-backdrop-filter: blur(40px) saturate(220%) brightness(1.02);
+    box-shadow:
+      0 -1px 0 rgba(255, 255, 255, 0.6),
+      0 -4px 24px rgba(0, 0, 0, 0.07),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9);
     border-top: 1px solid rgba(0, 0, 0, 0.05);
   }
 
@@ -116,7 +119,7 @@
     height: 3px;
     top: 0;
     border-radius: 0 0 3px 3px;
-    background: var(--ef-primary, #0b8073);
+    background: linear-gradient(90deg, #0b8073, #0d9e8e);
     box-shadow: none;
   }
 
@@ -138,15 +141,18 @@
 }
 
 /* ============================================================
-   D) SECTION PILL NAV — sleek sliding tab bar
+   D) SECTION PILL NAV — liquid glass SVG tab bar
    ============================================================ */
 @media (max-width: 768px) {
   .dashboard-mobile-nav {
-    background: rgba(255, 255, 255, 0.96);
-    backdrop-filter: blur(16px) saturate(180%);
-    -webkit-backdrop-filter: blur(16px) saturate(180%);
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(40px) saturate(220%) brightness(1.02);
+    -webkit-backdrop-filter: blur(40px) saturate(220%) brightness(1.02);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow:
+      0 1px 0 rgba(0, 0, 0, 0.06),
+      0 4px 24px rgba(0, 0, 0, 0.07),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9);
   }
 
   .mobile-nav-pills {
@@ -160,69 +166,86 @@
   }
 
   .mobile-nav-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     font-family: var(--mob-font);
-    font-size: 13px;
+    font-size: 12.5px;
     font-weight: 500;
-    padding: 7px 14px;
+    padding: 7px 13px;
     min-height: 36px;
     border-radius: 999px;
-    border: 1.5px solid transparent;
-    background: rgba(0, 0, 0, 0.04);
-    color: #555e6e;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    box-shadow: none;
+    border: 1px solid rgba(0, 0, 0, 0.07);
+    background: rgba(255, 255, 255, 0.6);
+    color: #4a5568;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow:
+      0 1px 3px rgba(0, 0, 0, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 0.8);
     transition: all var(--mob-transition);
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
     letter-spacing: -0.01em;
     scroll-snap-align: start;
+    text-decoration: none;
   }
 
   .mobile-nav-pill:hover {
     background: rgba(11, 128, 115, 0.08);
     border-color: rgba(11, 128, 115, 0.2);
     color: var(--ef-primary, #0b8073);
-    transform: none;
-    box-shadow: none;
+    box-shadow: 0 1px 6px rgba(11, 128, 115, 0.12);
   }
 
   .mobile-nav-pill:active {
-    transform: scale(0.96);
+    transform: scale(0.95);
   }
 
   .mobile-nav-pill.active {
-    background: var(--ef-primary, #0b8073);
+    background: linear-gradient(135deg, #0b8073 0%, #0d9e8e 100%);
     color: #fff;
     border-color: transparent;
     font-weight: 600;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-    box-shadow: 0 2px 8px rgba(11, 128, 115, 0.35);
+    box-shadow:
+      0 2px 12px rgba(11, 128, 115, 0.45),
+      0 1px 3px rgba(11, 128, 115, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
   }
 
-  /* Remove complex gradient border on active pill */
+  /* Remove legacy gradient border */
   .mobile-nav-pill.active::before {
     display: none;
+  }
+
+  /* SVG pill icon */
+  .pill-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    stroke-width: 2;
   }
 
   .pill-badge {
     background: rgba(0, 0, 0, 0.12);
     color: inherit;
-    font-size: 11px;
+    font-size: 10px;
     padding: 1px 5px;
     border-radius: 999px;
-    margin-left: 3px;
+    margin-left: 2px;
     font-weight: 700;
+    line-height: 1.4;
   }
 
   .mobile-nav-pill.active .pill-badge {
-    background: rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.28);
     color: #fff;
   }
 
   .mobile-nav-pill:not(.active) .pill-badge {
-    background: var(--ef-primary, #0b8073);
+    background: linear-gradient(135deg, #0b8073, #0d9e8e);
     color: #fff;
     box-shadow: none;
   }
@@ -236,26 +259,38 @@
     display: none;
   }
 
-  /* Square 44px touch targets with larger emoji */
+  /* Square 44×44px touch targets — SVG centered */
   .mobile-nav-pill {
     min-width: 44px;
     min-height: 44px;
-    padding: 10px 12px;
-    font-size: 18px;
+    padding: 12px;
+    justify-content: center;
+    gap: 0;
+  }
+
+  .pill-icon {
+    width: 20px;
+    height: 20px;
   }
 
   .mobile-nav-pills {
-    padding: 7px 10px;
-    gap: 6px;
+    padding: 6px 10px;
+    gap: 5px;
   }
 }
 
-/* 431–768px: show emoji + text label (large mobile / small tablet) */
+/* 431–768px: SVG icon + text label */
 @media (min-width: 431px) and (max-width: 768px) {
   .mobile-nav-pill {
     font-size: 12.5px;
     padding: 6px 12px;
     min-height: 34px;
+    gap: 5px;
+  }
+
+  .pill-icon {
+    width: 15px;
+    height: 15px;
   }
 
   .mobile-nav-pills {
@@ -293,6 +328,14 @@
     padding-top: var(--ef-header-height, 64px) !important;
     padding-left: 0;
     padding-right: 0;
+    /* Liquid glass page background: subtle warm-cool gradient */
+    background: linear-gradient(
+      160deg,
+      #f0faf9 0%,
+      #f8f9ff 35%,
+      #f5f0ff 70%,
+      #edfaf8 100%
+    ) fixed !important;
   }
 
   /* Sticky nav sits at 0 from body content-area start (= header height
@@ -324,7 +367,10 @@
     border-radius: var(--mob-radius-lg);
     min-height: 0;
     overflow: hidden;
-    box-shadow: 0 2px 16px rgba(11, 128, 115, 0.15), 0 1px 4px rgba(0, 0, 0, 0.06);
+    box-shadow:
+      0 8px 32px rgba(11, 128, 115, 0.22),
+      0 2px 8px rgba(0, 0, 0, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
   }
 
   .dashboard-hero__content {
@@ -407,10 +453,13 @@
     padding: 10px 12px !important;
     border-radius: var(--mob-radius-md);
     gap: 4px;
-    background: rgba(255, 255, 255, 0.18);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.32);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow:
+      0 2px 12px rgba(0, 0, 0, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.75);
     transition: transform var(--mob-transition);
   }
 
@@ -422,7 +471,8 @@
     width: 28px;
     height: 28px;
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.35);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
   }
 
   .dashboard-stat-card__icon svg {
@@ -473,10 +523,13 @@
     text-align: center;
     white-space: normal;
     overflow: hidden;
-    background: rgba(255, 255, 255, 0.18);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.32);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow:
+      0 2px 8px rgba(0, 0, 0, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.75);
     color: inherit;
     transition: all var(--mob-transition);
     -webkit-tap-highlight-color: transparent;
@@ -485,9 +538,18 @@
     cursor: pointer;
   }
 
+  .dashboard-action-chip:hover {
+    background: rgba(255, 255, 255, 0.45);
+    box-shadow:
+      0 4px 16px rgba(0, 0, 0, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.85);
+    transform: translateY(-1px);
+  }
+
   .dashboard-action-chip:active {
     transform: scale(0.95);
     background: rgba(255, 255, 255, 0.28);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
   }
 
   .dashboard-action-chip svg {
@@ -547,16 +609,21 @@
 }
 
 /* ============================================================
-   G) GENERAL SD-CARDS — app-like with subtle shadow
+   G) GENERAL SD-CARDS — liquid glass app-like cards
    ============================================================ */
 @media (max-width: 768px) {
   .sd-card {
     padding: var(--mob-card-pad) !important;
     margin-bottom: var(--mob-section-gap) !important;
     border-radius: var(--mob-radius-lg) !important;
-    border: none !important;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04) !important;
-    background: #fff !important;
+    border: 1px solid rgba(255, 255, 255, 0.6) !important;
+    box-shadow:
+      0 4px 24px rgba(0, 0, 0, 0.07),
+      0 1px 4px rgba(0, 0, 0, 0.04),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+    background: rgba(255, 255, 255, 0.88) !important;
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
   }
 
   .sd-card-header {
@@ -668,8 +735,12 @@
   .stat-widget.card {
     padding: var(--mob-card-pad-sm) !important;
     border-radius: var(--mob-radius-md) !important;
-    border: none !important;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+    border: 1px solid rgba(255, 255, 255, 0.6) !important;
+    box-shadow:
+      0 2px 12px rgba(0, 0, 0, 0.07),
+      inset 0 1px 0 rgba(255, 255, 255, 0.85) !important;
+    backdrop-filter: blur(16px) saturate(160%);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
     transition: transform var(--mob-transition) !important;
   }
 
@@ -677,18 +748,18 @@
     transform: scale(0.97) !important;
   }
 
-  /* Gradient tints for visual hierarchy */
+  /* Gradient tints with glass overlay */
   .stat-widget.card:nth-child(1) {
-    background: linear-gradient(135deg, rgba(11, 128, 115, 0.06) 0%, rgba(255, 255, 255, 1) 60%) !important;
+    background: linear-gradient(135deg, rgba(11, 128, 115, 0.1) 0%, rgba(255, 255, 255, 0.9) 70%) !important;
   }
   .stat-widget.card:nth-child(2) {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.07) 0%, rgba(255, 255, 255, 1) 60%) !important;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(255, 255, 255, 0.9) 70%) !important;
   }
   .stat-widget.card:nth-child(3) {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.07) 0%, rgba(255, 255, 255, 1) 60%) !important;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(255, 255, 255, 0.9) 70%) !important;
   }
   .stat-widget.card:nth-child(4) {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.07) 0%, rgba(255, 255, 255, 1) 60%) !important;
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(255, 255, 255, 0.9) 70%) !important;
   }
 
   .stat-widget .icon-with-gradient {
@@ -788,8 +859,14 @@
 @media (max-width: 768px) {
   .package-card {
     border-radius: var(--mob-radius-lg);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-    border: none;
+    box-shadow:
+      0 4px 20px rgba(0, 0, 0, 0.07),
+      0 1px 4px rgba(0, 0, 0, 0.04),
+      inset 0 1px 0 rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(16px) saturate(160%);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
   }
 
   .package-card-content,
