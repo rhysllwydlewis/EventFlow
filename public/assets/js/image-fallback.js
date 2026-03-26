@@ -21,6 +21,10 @@
 (function () {
   'use strict';
 
+  // Guard: skip if app.js or MessengerAppV4.js already registered the handler.
+  if (window.__imgFallbackRegistered) return;
+  window.__imgFallbackRegistered = true;
+
   function handleImageError(e) {
     var img = e.target;
     if (!img || img.tagName !== 'IMG') return;
