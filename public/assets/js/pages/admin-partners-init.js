@@ -851,6 +851,7 @@
         const userEmail = r.partnerUser ? esc(r.partnerUser.email || '') : '';
         const badge = statusBadgeMap[r.status] || `<span class="p-badge">${esc(r.status)}</span>`;
         const allowedNext = TRANSITIONS[r.status] || [];
+        const isTerminal = TRANSITIONS[r.status] !== undefined && TRANSITIONS[r.status].length === 0;
         const selectOptions = allowedNext.length
           ? `<select class="cashout-status-select" data-req-id="${esc(r.id)}"
                style="background:#fff;border:1px solid #d1d5db;border-radius:7px;color:#374151;padding:0.3rem 0.55rem;font-size:0.78rem;cursor:pointer;"
@@ -858,7 +859,10 @@
                <option value="">Change status…</option>
                ${allowedNext.map(s => `<option value="${s}">${s.charAt(0).toUpperCase() + s.slice(1)}</option>`).join('')}
              </select>`
-          : `<span style="font-size:0.75rem;color:#9ca3af;">—</span>`;
+          : isTerminal
+            ? `<button class="cashout-delete-btn" data-req-id="${esc(r.id)}" title="Delete this request"
+                 style="background:transparent;border:1px solid #fca5a5;border-radius:7px;color:#ef4444;padding:0.3rem 0.6rem;font-size:0.78rem;cursor:pointer;">🗑️ Delete</button>`
+            : `<span style="font-size:0.75rem;color:#9ca3af;">—</span>`;
 
         return `<tr>
           <td>
@@ -903,7 +907,7 @@
           const newStatus = sel.value;
           if (!newStatus) return;
           try {
-            const csrfToken = await getCsrf();
+            window.__CSRF_TOKEN__ = await getCsrf();
             await AdminShared.api(
               `/api/admin/cashout-requests/${encodeURIComponent(reqId)}`,
               'PATCH',
@@ -914,6 +918,32 @@
           } catch (err) {
             AdminShared.debugError('Failed to update cashout status', err);
             showToast(err.message || 'Failed to update status', 'error');
+          }
+        });
+      });
+
+      // Attach delete listeners
+      container.querySelectorAll('.cashout-delete-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const reqId = btn.getAttribute('data-req-id');
+          const confirmed = await AdminShared.showConfirmModal({
+            title: 'Delete Withdrawal Request',
+            message: 'Are you sure you want to permanently delete this withdrawal request? This cannot be undone.',
+            confirmText: 'Delete',
+            cancelText: 'Cancel',
+          });
+          if (!confirmed) return;
+          try {
+            window.__CSRF_TOKEN__ = await getCsrf();
+            await AdminShared.api(
+              `/api/admin/cashout-requests/${encodeURIComponent(reqId)}`,
+              'DELETE'
+            );
+            showToast('Withdrawal request deleted', 'success');
+            loadCashoutRequests();
+          } catch (err) {
+            AdminShared.debugError('Failed to delete cashout request', err);
+            showToast(err.message || 'Failed to delete request', 'error');
           }
         });
       });

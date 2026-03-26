@@ -53,6 +53,10 @@ describe('Admin Cashout Requests — CSRF Protection', () => {
   it('PATCH /:id uses csrfProtection', () => {
     expect(routeContent).toContain("router.patch('/:id', csrfProtection,");
   });
+
+  it('DELETE /:id uses csrfProtection', () => {
+    expect(routeContent).toContain("router.delete('/:id', csrfProtection,");
+  });
 });
 
 // ─── Endpoint Existence ───────────────────────────────────────────────────────
@@ -68,6 +72,10 @@ describe('Admin Cashout Requests — Endpoint Existence', () => {
 
   it('PATCH /:id endpoint exists', () => {
     expect(routeContent).toContain("router.patch('/:id', csrfProtection,");
+  });
+
+  it('DELETE /:id endpoint exists', () => {
+    expect(routeContent).toContain("router.delete('/:id', csrfProtection,");
   });
 });
 
@@ -114,5 +122,25 @@ describe('Admin Cashout Requests — Data Model', () => {
 
   it('stores adminUserId on updates', () => {
     expect(routeContent).toContain('adminUserIdApproved');
+  });
+});
+
+// ─── Delete Endpoint ─────────────────────────────────────────────────────────
+
+describe('Admin Cashout Requests — Delete Endpoint', () => {
+  it('only allows deletion of terminal states', () => {
+    expect(routeContent).toContain("TERMINAL_STATES = ['rejected', 'delivered']");
+  });
+
+  it('rejects deletion of non-terminal requests with 409', () => {
+    expect(routeContent).toContain('Cannot delete a cashout request in');
+  });
+
+  it('calls deleteOne on partner_cashout_requests', () => {
+    expect(routeContent).toContain("deleteOne('partner_cashout_requests'");
+  });
+
+  it('logs the deletion action', () => {
+    expect(routeContent).toContain('deleted cashout request');
   });
 });
