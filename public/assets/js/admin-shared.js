@@ -188,7 +188,7 @@ const AdminShared = (function () {
     };
 
     // Add CSRF token for state-changing requests
-    if (['POST', 'PUT', 'DELETE'].includes(method.toUpperCase())) {
+    if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method.toUpperCase())) {
       if (window.__CSRF_TOKEN__) {
         opts.headers['X-CSRF-Token'] = window.__CSRF_TOKEN__;
       }

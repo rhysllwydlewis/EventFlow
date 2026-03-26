@@ -245,4 +245,42 @@ router.patch('/:id', csrfProtection, async (req, res) => {
   }
 });
 
+// ─── Delete Cashout Request ───────────────────────────────────────────────────
+
+/**
+ * DELETE /api/admin/cashout-requests/:id
+ * Permanently delete a cashout request record.
+ * Only allowed for requests in terminal states (rejected or delivered).
+ */
+router.delete('/:id', csrfProtection, async (req, res) => {
+  try {
+    const all = (await dbUnified.read('partner_cashout_requests')) || [];
+    const request = all.find(r => r.id === req.params.id);
+    if (!request) {
+      return res.status(404).json({ error: 'Cashout request not found' });
+    }
+
+    const TERMINAL_STATES = ['rejected', 'delivered'];
+    if (!TERMINAL_STATES.includes(request.status)) {
+      return res.status(409).json({
+        error: `Cannot delete a cashout request in "${request.status}" state. Only rejected or delivered requests can be deleted.`,
+      });
+    }
+
+    const deleted = await dbUnified.deleteOne('partner_cashout_requests', { id: req.params.id });
+    if (!deleted) {
+      return res.status(500).json({ error: 'Failed to delete cashout request' });
+    }
+
+    logger.info(
+      `Admin ${req.user.id} deleted cashout request ${req.params.id} (status: ${request.status})`
+    );
+
+    res.json({ ok: true });
+  } catch (err) {
+    logger.error('Error deleting cashout request:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 module.exports = router;

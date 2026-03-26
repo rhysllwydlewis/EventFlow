@@ -136,6 +136,7 @@ Partners can submit cashout requests directly from the partner dashboard. The fl
 | `GET`   | `/api/v1/admin/cashout-requests`                          | List all partner cashout requests (filter: status, partnerId)                |
 | `GET`   | `/api/v1/admin/cashout-requests/:id`                      | Get full detail of a cashout request (with ledger transactions)              |
 | `PATCH` | `/api/v1/admin/cashout-requests/:id`                      | Update status/notes (approve → processing → delivered / reject) + CSRF      |
+| `DELETE`| `/api/v1/admin/cashout-requests/:id`                      | Delete a cashout request (only allowed for terminal states: rejected/delivered) + CSRF |
 
 #### Cashout request status workflow
 

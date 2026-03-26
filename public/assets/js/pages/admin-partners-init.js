@@ -200,9 +200,10 @@
         <td style="text-align:center;color:#059669;font-weight:700;">${(credits.balance || 0).toLocaleString()}</td>
         <td>${statusBadge(p.status)}</td>
         <td>
-          ${isDeleted
-            ? `<span style="color:#9ca3af;font-size:0.8rem;font-style:italic;">Account deleted</span>`
-            : `<div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
+          ${
+            isDeleted
+              ? `<span style="color:#9ca3af;font-size:0.8rem;font-style:italic;">Account deleted</span>`
+              : `<div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
             <button class="ap-action-btn ap-action-btn--view" data-action="view" data-id="${esc(p.id)}" aria-label="View ${esc(p.user?.name || 'partner')}">View</button>
             ${
               p.status === 'active'
@@ -210,7 +211,8 @@
                 : `<button class="ap-action-btn ap-action-btn--enable" data-action="enable" data-id="${esc(p.id)}" aria-label="Enable ${esc(p.user?.name || 'partner')}">Enable</button>`
             }
             <button class="ap-action-btn ap-action-btn--credit" data-action="credit" data-id="${esc(p.id)}" aria-label="Adjust credits for ${esc(p.user?.name || 'partner')}">Credits</button>
-          </div>`}
+          </div>`
+          }
         </td>
       </tr>`;
       })
@@ -708,7 +710,9 @@
       const rows = items.map(r => {
         const userName = r.partnerUser
           ? esc(r.partnerUser.name || r.partnerUser.email || 'Unknown')
-          : (r.deletedUser ? '<span class="p-badge p-badge--deleted" style="font-size:0.72rem;">Deleted User</span>' : 'Unknown');
+          : r.deletedUser
+            ? '<span class="p-badge p-badge--deleted" style="font-size:0.72rem;">Deleted User</span>'
+            : 'Unknown';
         const userEmail = r.partnerUser ? esc(r.partnerUser.email || '') : '';
         const statusBadge =
           statusLabels[r.status] ||
@@ -735,9 +739,8 @@
           <td>${statusBadge}</td>
           <td>
             <select
-              class="payout-status-select"
+              class="payout-status-select ap-status-select"
               data-ticket-id="${esc(r.id)}"
-              style="background:#fff;border:1px solid #d1d5db;border-radius:7px;color:#374151;padding:0.3rem 0.55rem;font-size:0.78rem;cursor:pointer;"
               aria-label="Update payout request status"
             >${statusSelectOptions}</select>
           </td>
@@ -746,15 +749,15 @@
 
       container.innerHTML = `
         <div style="overflow-x:auto;">
-          <table style="width:100%;border-collapse:collapse;" aria-label="Payout requests">
+          <table class="ap-data-table" aria-label="Payout requests">
             <thead>
               <tr>
-                <th style="text-align:left;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;color:#9ca3af;border-bottom:1px solid #e5e7eb;padding:0.5rem 0.75rem;">Partner</th>
-                <th style="text-align:left;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;color:#9ca3af;border-bottom:1px solid #e5e7eb;padding:0.5rem 0.75rem;">Amount</th>
-                <th style="text-align:left;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;color:#9ca3af;border-bottom:1px solid #e5e7eb;padding:0.5rem 0.75rem;">Gift Card</th>
-                <th style="text-align:left;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;color:#9ca3af;border-bottom:1px solid #e5e7eb;padding:0.5rem 0.75rem;">Submitted</th>
-                <th style="text-align:left;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;color:#9ca3af;border-bottom:1px solid #e5e7eb;padding:0.5rem 0.75rem;">Status</th>
-                <th style="text-align:left;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;color:#9ca3af;border-bottom:1px solid #e5e7eb;padding:0.5rem 0.75rem;">Update Status</th>
+                <th>Partner</th>
+                <th>Amount</th>
+                <th>Gift Card</th>
+                <th>Submitted</th>
+                <th>Status</th>
+                <th>Update Status</th>
               </tr>
             </thead>
             <tbody>${rows.join('')}</tbody>
@@ -827,38 +830,49 @@
       }
 
       const statusBadgeMap = {
-        submitted: '<span class="p-badge" style="background:#fef3c7;color:#d97706;border:1px solid #fde68a;">Submitted</span>',
-        approved:  '<span class="p-badge" style="background:#d1fae5;color:#065f46;border:1px solid #6ee7b7;">Approved</span>',
-        processing:'<span class="p-badge" style="background:#dbeafe;color:#1e40af;border:1px solid #bfdbfe;">Processing</span>',
-        delivered: '<span class="p-badge" style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;">Delivered</span>',
-        rejected:  '<span class="p-badge" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;">Rejected</span>',
+        submitted:
+          '<span class="p-badge" style="background:#fef3c7;color:#d97706;border:1px solid #fde68a;">Submitted</span>',
+        approved:
+          '<span class="p-badge" style="background:#d1fae5;color:#065f46;border:1px solid #6ee7b7;">Approved</span>',
+        processing:
+          '<span class="p-badge" style="background:#dbeafe;color:#1e40af;border:1px solid #bfdbfe;">Processing</span>',
+        delivered:
+          '<span class="p-badge" style="background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;">Delivered</span>',
+        rejected:
+          '<span class="p-badge" style="background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;">Rejected</span>',
       };
 
       const TRANSITIONS = {
         submitted: ['approved', 'rejected'],
-        approved:  ['processing', 'rejected'],
-        processing:['delivered', 'rejected'],
-        rejected:  [],
+        approved: ['processing', 'rejected'],
+        processing: ['delivered', 'rejected'],
+        rejected: [],
         delivered: [],
       };
 
-      const methodLabel = m => ({ amazon_voucher: 'Amazon Voucher', prepaid_debit_card: 'Prepaid Card' })[m] || m || '—';
+      const methodLabel = m =>
+        ({ amazon_voucher: 'Amazon Voucher', prepaid_debit_card: 'Prepaid Card' })[m] || m || '—';
 
       const rows = items.map(r => {
         const userName = r.partnerUser
           ? esc(r.partnerUser.name || r.partnerUser.email || 'Unknown')
-          : (r.deletedUser ? '<span class="p-badge p-badge--deleted" style="font-size:0.72rem;">Deleted User</span>' : 'Unknown');
+          : r.deletedUser
+            ? '<span class="p-badge p-badge--deleted" style="font-size:0.72rem;">Deleted User</span>'
+            : 'Unknown';
         const userEmail = r.partnerUser ? esc(r.partnerUser.email || '') : '';
         const badge = statusBadgeMap[r.status] || `<span class="p-badge">${esc(r.status)}</span>`;
         const allowedNext = TRANSITIONS[r.status] || [];
+        const isTerminal =
+          TRANSITIONS[r.status] !== undefined && TRANSITIONS[r.status].length === 0;
         const selectOptions = allowedNext.length
-          ? `<select class="cashout-status-select" data-req-id="${esc(r.id)}"
-               style="background:#fff;border:1px solid #d1d5db;border-radius:7px;color:#374151;padding:0.3rem 0.55rem;font-size:0.78rem;cursor:pointer;"
+          ? `<select class="cashout-status-select ap-status-select" data-req-id="${esc(r.id)}"
                aria-label="Update cashout status">
                <option value="">Change status…</option>
                ${allowedNext.map(s => `<option value="${s}">${s.charAt(0).toUpperCase() + s.slice(1)}</option>`).join('')}
              </select>`
-          : `<span style="font-size:0.75rem;color:#9ca3af;">—</span>`;
+          : isTerminal
+            ? `<button class="cashout-delete-btn ap-delete-btn" data-req-id="${esc(r.id)}" aria-label="Delete this withdrawal request">🗑️ Delete</button>`
+            : `<span style="font-size:0.75rem;color:#9ca3af;">—</span>`;
 
         return `<tr>
           <td>
@@ -874,22 +888,23 @@
           <td style="font-size:0.78rem;color:#6b7280;">${fmtDate(r.createdAt)}</td>
           <td>${badge}</td>
           <td>${selectOptions}</td>
-          <td style="font-size:0.78rem;color:#6b7280;max-width:160px;word-break:break-word;">${esc(r.partnerMessage || '')}</td>
+          <td style="font-size:0.78rem;color:#6b7280;max-width:160px;word-break:break-word;"
+              title="${esc(r.partnerMessage || '')}">${esc(r.partnerMessage || '')}</td>
         </tr>`;
       });
 
       container.innerHTML = `
         <div style="overflow-x:auto;">
-          <table style="width:100%;border-collapse:collapse;" aria-label="Withdrawal requests">
+          <table class="ap-data-table" aria-label="Withdrawal requests">
             <thead>
               <tr>
-                <th style="text-align:left;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;color:#9ca3af;border-bottom:1px solid #e5e7eb;padding:0.5rem 0.75rem;">Partner</th>
-                <th style="text-align:left;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;color:#9ca3af;border-bottom:1px solid #e5e7eb;padding:0.5rem 0.75rem;">Amount</th>
-                <th style="text-align:left;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;color:#9ca3af;border-bottom:1px solid #e5e7eb;padding:0.5rem 0.75rem;">Method</th>
-                <th style="text-align:left;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;color:#9ca3af;border-bottom:1px solid #e5e7eb;padding:0.5rem 0.75rem;">Submitted</th>
-                <th style="text-align:left;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;color:#9ca3af;border-bottom:1px solid #e5e7eb;padding:0.5rem 0.75rem;">Status</th>
-                <th style="text-align:left;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;color:#9ca3af;border-bottom:1px solid #e5e7eb;padding:0.5rem 0.75rem;">Action</th>
-                <th style="text-align:left;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.05em;color:#9ca3af;border-bottom:1px solid #e5e7eb;padding:0.5rem 0.75rem;">Message</th>
+                <th>Partner</th>
+                <th>Amount</th>
+                <th>Method</th>
+                <th>Submitted</th>
+                <th>Status</th>
+                <th>Action</th>
+                <th>Message</th>
               </tr>
             </thead>
             <tbody>${rows.join('')}</tbody>
@@ -901,19 +916,57 @@
         sel.addEventListener('change', async () => {
           const reqId = sel.getAttribute('data-req-id');
           const newStatus = sel.value;
-          if (!newStatus) return;
+          if (!newStatus) {
+            return;
+          }
+          sel.disabled = true;
           try {
-            const csrfToken = await getCsrf();
+            window.__CSRF_TOKEN__ = await getCsrf();
             await AdminShared.api(
               `/api/admin/cashout-requests/${encodeURIComponent(reqId)}`,
               'PATCH',
               { status: newStatus }
             );
-            showToast(`Withdrawal request updated to "${newStatus}"`, 'success');
+            const label = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
+            showToast(`Withdrawal request updated to "${label}"`, 'success');
             loadCashoutRequests();
           } catch (err) {
             AdminShared.debugError('Failed to update cashout status', err);
             showToast(err.message || 'Failed to update status', 'error');
+            sel.disabled = false;
+          }
+        });
+      });
+
+      // Attach delete listeners
+      container.querySelectorAll('.cashout-delete-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const reqId = btn.getAttribute('data-req-id');
+          const confirmed = await AdminShared.showConfirmModal({
+            title: 'Delete Withdrawal Request',
+            message:
+              'Are you sure you want to permanently delete this withdrawal request? This cannot be undone.',
+            confirmText: 'Delete',
+            cancelText: 'Cancel',
+          });
+          if (!confirmed) {
+            return;
+          }
+          btn.disabled = true;
+          btn.textContent = 'Deleting…';
+          try {
+            window.__CSRF_TOKEN__ = await getCsrf();
+            await AdminShared.api(
+              `/api/admin/cashout-requests/${encodeURIComponent(reqId)}`,
+              'DELETE'
+            );
+            showToast('Withdrawal request deleted', 'success');
+            loadCashoutRequests();
+          } catch (err) {
+            AdminShared.debugError('Failed to delete cashout request', err);
+            showToast(err.message || 'Failed to delete request', 'error');
+            btn.disabled = false;
+            btn.textContent = '🗑️ Delete';
           }
         });
       });

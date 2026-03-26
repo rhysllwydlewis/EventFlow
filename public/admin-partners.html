@@ -279,6 +279,73 @@
       color: #6b7280;
       margin: 0 0 1rem;
     }
+
+    /* Cashout / Payout admin data tables */
+    .ap-data-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .ap-data-table th {
+      text-align: left;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #9ca3af;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 0.5rem 0.75rem;
+      white-space: nowrap;
+      font-weight: 600;
+    }
+    .ap-data-table td {
+      padding: 0.75rem;
+      border-bottom: 1px solid #f3f4f6;
+      vertical-align: middle;
+      color: #374151;
+    }
+    .ap-data-table tbody tr:last-child td { border-bottom: none; }
+    .ap-data-table tbody tr:hover td { background: #f9fafb; }
+
+    /* Delete button in data tables */
+    .ap-delete-btn {
+      background: transparent;
+      border: 1px solid #fca5a5;
+      border-radius: 7px;
+      color: #ef4444;
+      padding: 0.3rem 0.6rem;
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+    .ap-delete-btn:hover:not(:disabled) {
+      background: #fee2e2;
+      border-color: #ef4444;
+    }
+    .ap-delete-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Status select in data tables */
+    .ap-status-select {
+      background: #fff;
+      border: 1px solid #d1d5db;
+      border-radius: 7px;
+      color: #374151;
+      padding: 0.3rem 0.55rem;
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .ap-status-select:focus {
+      outline: none;
+      border-color: #0B8073;
+      box-shadow: 0 0 0 2px rgba(11,128,115,0.12);
+    }
+    .ap-status-select:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
   </style>
 </head>
 <body class="has-admin-navbar admin">
