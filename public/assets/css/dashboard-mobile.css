@@ -370,317 +370,466 @@
 }
 
 /* ════════════════════════════════════════════════════════════════
-   7. HERO SECTION — premium full-bleed glass card
+   7. HERO SECTION v5 — Apple/Samsung premium card
+   Inspired by: Apple Health, iOS 18 lock screen, Samsung One UI 6
    ════════════════════════════════════════════════════════════════ */
+
+/* ── Keyframes ── */
+@keyframes heroShimmer {
+  0%   { transform: translateX(-100%) skewX(-15deg); }
+  100% { transform: translateX(300%)  skewX(-15deg); }
+}
+@keyframes heroPulse {
+  0%,100% { opacity: 0.55; }
+  50%      { opacity: 0.85; }
+}
+
 @media (max-width: 768px) {
+  /* ── Card shell ── */
   .dashboard-hero {
+    position: relative !important;
     margin-bottom: var(--mob-section-gap) !important;
-    border-radius: var(--mob-r-xl) !important;
+    border-radius: 28px !important;
     overflow: hidden !important;
     min-height: 0 !important;
-    /* Deep brand glass */
-    background: linear-gradient(
-      148deg,
-      rgba(11, 128, 115, 0.95) 0%,
-      rgba(9, 104, 94, 0.98) 55%,
-      rgba(7,  86, 78, 1.00) 100%
-    ) !important;
+    isolation: isolate !important;
+
+    /* Multi-layer luxury gradient — deep teal to near-black */
+    background:
+      linear-gradient(
+        135deg,
+        #07302b 0%,
+        #0b4d44 30%,
+        #0d6358 58%,
+        #0e7065 78%,
+        #095c53 100%
+      ) !important;
+
+    /* Elevation: top specular + glow + depth shadow */
     box-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.22) inset,
-      0 0 0 0.5px rgba(0, 0, 0, 0.10),
-      0 8px 32px rgba(11, 128, 115, 0.28),
-      0 24px 64px rgba(0, 0, 0, 0.16) !important;
+      0 0.5px 0 rgba(255,255,255,0.20) inset,   /* top specular edge */
+      0 -0.5px 0 rgba(0,0,0,0.20) inset,         /* bottom inner shadow */
+      0 1px 0 rgba(255,255,255,0.07) inset,       /* body sheen */
+      0 8px 24px rgba(11, 128, 115, 0.32),        /* brand glow */
+      0 20px 60px rgba(0, 0, 0, 0.24),            /* depth shadow */
+      0 2px 4px rgba(0, 0, 0, 0.16) !important;   /* tight shadow */
   }
 
-  /* Suppress the blob / grid animations */
+  /* ── Background elements: remove blobs, add our own layers ── */
   .dashboard-hero__bg { display: none !important; }
 
-  /* Add a subtle specular mesh overlay */
+  /* Layer 1: diagonal light sweep across top-right (always visible) */
   .dashboard-hero::before {
     content: "" !important;
     position: absolute !important;
     inset: 0 !important;
     background:
-      radial-gradient(ellipse 70% 50% at 100% 0%,   rgba(255,255,255,0.10) 0%, transparent 55%),
-      radial-gradient(ellipse 40% 40% at 0%   100%,  rgba(255,255,255,0.06) 0%, transparent 50%) !important;
+      /* Top-right luminous highlight */
+      radial-gradient(ellipse 65% 45% at 88% 0%,
+        rgba(255,255,255,0.15) 0%,
+        rgba(255,255,255,0.04) 40%,
+        transparent 70%),
+      /* Bottom-left cool depth */
+      radial-gradient(ellipse 50% 50% at 5% 100%,
+        rgba(0, 220, 200, 0.08) 0%,
+        transparent 60%),
+      /* Diagonal center sheen */
+      linear-gradient(
+        125deg,
+        transparent 30%,
+        rgba(255,255,255,0.04) 48%,
+        rgba(255,255,255,0.07) 50%,
+        rgba(255,255,255,0.04) 52%,
+        transparent 70%
+      ) !important;
     pointer-events: none !important;
     z-index: 0 !important;
   }
 
-  .dashboard-hero__content {
-    position: relative !important;
+  /* Layer 2: one-time shimmer animation (runs once on load) */
+  .dashboard-hero::after {
+    content: "" !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: linear-gradient(
+      105deg,
+      transparent 0%,
+      rgba(255,255,255,0.00) 30%,
+      rgba(255,255,255,0.09) 45%,
+      rgba(255,255,255,0.12) 50%,
+      rgba(255,255,255,0.09) 55%,
+      rgba(255,255,255,0.00) 70%,
+      transparent 100%
+    ) !important;
+    animation: heroShimmer 2.4s ease-out 0.6s 1 forwards !important;
+    pointer-events: none !important;
     z-index: 1 !important;
-    padding: 20px var(--mob-card-pad) 18px !important;
-    gap: 16px !important;
-    display: flex !important;
-    flex-direction: column !important;
   }
 
-  /* — Greeting + title — */
+  /* ── Main content wrapper ── */
+  .dashboard-hero__content {
+    position: relative !important;
+    z-index: 2 !important;
+    padding: 22px 20px 20px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 18px !important;
+  }
+
+  /* ── Dismiss button ── */
+  .dashboard-hero__dismiss {
+    position: absolute !important;
+    top: 14px !important;
+    right: 14px !important;
+    z-index: 10 !important;
+    width: 30px !important;
+    height: 30px !important;
+    background: rgba(255,255,255,0.14) !important;
+    border: 0.5px solid rgba(255,255,255,0.22) !important;
+    border-radius: 9px !important;
+    color: rgba(255,255,255,0.75) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.12) inset !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+  }
+  .dashboard-hero__dismiss svg {
+    width: 15px !important;
+    height: 15px !important;
+  }
+  .dashboard-hero__dismiss:hover {
+    background: rgba(255,255,255,0.22) !important;
+    color: #fff !important;
+  }
+
+  /* ── Greeting header area ── */
   .dashboard-hero__header {
     display: flex !important;
     flex-direction: column !important;
-    gap: 12px !important;
+    gap: 14px !important;
   }
 
   .dashboard-hero__greeting-wrapper {
     display: flex !important;
     flex-direction: column !important;
-    gap: 2px !important;
+    gap: 4px !important;
+    padding-right: 36px !important; /* room for dismiss btn */
   }
 
+  /* Time greeting — tiny, muted, letter-spaced capsule label */
   .dashboard-hero__greeting {
-    font-size: 11px !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.10em !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.14em !important;
     text-transform: uppercase !important;
-    color: rgba(255, 255, 255, 0.65) !important;
+    color: rgba(255, 255, 255, 0.50) !important;
+    margin-bottom: 2px !important;
   }
 
+  /* "Your Dashboard" — suppress in favour of large name */
+  .dashboard-hero__title-main {
+    font-size: 12px !important;
+    font-weight: 400 !important;
+    color: rgba(255, 255, 255, 0.50) !important;
+    letter-spacing: -0.005em !important;
+    line-height: 1.3 !important;
+    margin: 0 !important;
+  }
+
+  /* Main headline — JS replaces this with the user's name */
   .dashboard-hero__title {
     margin: 0 !important;
     display: flex !important;
     flex-direction: column !important;
-    gap: 1px !important;
-  }
-
-  .dashboard-hero__title-main {
-    font-size: 13px !important;
-    font-weight: 400 !important;
-    color: rgba(255, 255, 255, 0.72) !important;
-    letter-spacing: -0.01em !important;
+    gap: 0 !important;
   }
 
   .dashboard-hero__title-highlight {
-    font-size: 26px !important;
-    font-weight: 700 !important;
-    letter-spacing: -0.035em !important;
-    line-height: 1.15 !important;
-    color: #fff !important;
+    font-size: 32px !important;
+    font-weight: 750 !important;
+    letter-spacing: -0.04em !important;
+    line-height: 1.05 !important;
+    color: #ffffff !important;
     background: none !important;
-    -webkit-text-fill-color: #fff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    /* Subtle text shadow for depth */
+    text-shadow: 0 1px 12px rgba(0,0,0,0.25) !important;
+    margin: 1px 0 0 !important;
   }
 
+  /* Business tagline */
   .dashboard-hero__subtitle {
     font-size: 13px !important;
-    font-weight: 400 !important;
-    color: rgba(255, 255, 255, 0.60) !important;
+    font-weight: 390 !important;
+    color: rgba(255, 255, 255, 0.52) !important;
     line-height: 1.45 !important;
-    margin: 2px 0 0 !important;
-    max-width: 100% !important;
+    margin: 6px 0 0 !important;
+    letter-spacing: -0.005em !important;
   }
 
-  /* — Stat cards: horizontal scroll row — */
+  /* ── STAT CARDS — 3-up horizontal scroll ── */
   .dashboard-hero__stats {
     display: flex !important;
     flex-direction: row !important;
+    gap: 9px !important;
+    overflow-x: auto !important;
+    scroll-snap-type: x mandatory !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    /* Bleed to card edges */
+    margin-left:  -20px !important;
+    margin-right: -20px !important;
+    padding-left:  20px !important;
+    padding-right: 20px !important;
+    padding-bottom: 2px !important;
+  }
+  .dashboard-hero__stats::-webkit-scrollbar { display: none !important; }
+
+  /* Each stat card */
+  .dashboard-stat-card {
+    flex: 0 0 auto !important;
+    min-width: 114px !important;
+    max-width: 130px !important;
+    scroll-snap-align: start !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    padding: 13px 14px !important;
+    border-radius: 18px !important;
+    position: relative !important;
+    overflow: hidden !important;
+    -webkit-tap-highlight-color: transparent !important;
+    cursor: default !important;
+
+    /* Frosted glass on teal */
+    background: rgba(255,255,255,0.10) !important;
+    border: 0.5px solid rgba(255,255,255,0.18) !important;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.16) inset,
+      0 -0.5px 0 rgba(0,0,0,0.12) inset,
+      0 4px 16px rgba(0,0,0,0.15) !important;
+    backdrop-filter: blur(12px) saturate(160%) !important;
+    -webkit-backdrop-filter: blur(12px) saturate(160%) !important;
+    transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1) !important;
+  }
+
+  .dashboard-stat-card:active {
+    transform: scale(0.94) !important;
+  }
+
+  /* Inner subtle glow overlay */
+  .dashboard-stat-card::before {
+    content: "" !important;
+    position: absolute !important;
+    inset: 0 !important;
+    border-radius: inherit !important;
+    background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(255,255,255,0.08) 0%, transparent 70%) !important;
+    pointer-events: none !important;
+  }
+
+  /* Icon container — coloured gradient per card variant */
+  .dashboard-stat-card__icon {
+    position: relative !important;
+    z-index: 1 !important;
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    border-radius: 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25), 0 1px 0 rgba(255,255,255,0.20) inset !important;
+  }
+
+  /* Enquiries card — teal icon */
+  .dashboard-stat-card--primary .dashboard-stat-card__icon {
+    background: linear-gradient(145deg, #00c9b1, #009e8e) !important;
+  }
+  /* Packages card — indigo icon */
+  .dashboard-stat-card--secondary .dashboard-stat-card__icon {
+    background: linear-gradient(145deg, #818cf8, #6366f1) !important;
+  }
+  /* Rating card — amber icon */
+  .dashboard-stat-card--accent .dashboard-stat-card__icon {
+    background: linear-gradient(145deg, #fbbf24, #f59e0b) !important;
+  }
+
+  .dashboard-stat-card__icon svg {
+    width: 16px !important;
+    height: 16px !important;
+    stroke: rgba(255,255,255,0.95) !important;
+    fill: none !important;
+  }
+
+  /* Value — large, bold, glowing */
+  .dashboard-stat-card__content {
+    position: relative !important;
+    z-index: 1 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 2px !important;
+  }
+
+  .dashboard-stat-card__value {
+    font-size: 28px !important;
+    font-weight: 750 !important;
+    line-height: 1 !important;
+    letter-spacing: -0.05em !important;
+    color: #ffffff !important;
+    text-shadow: 0 1px 8px rgba(0,0,0,0.18) !important;
+  }
+
+  .dashboard-stat-card__label {
+    font-size: 10.5px !important;
+    font-weight: 510 !important;
+    color: rgba(255,255,255,0.55) !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+    white-space: nowrap !important;
+    line-height: 1.25 !important;
+  }
+
+  /* "Live" badge */
+  .dashboard-stat-card__badge {
+    position: relative !important;
+    z-index: 1 !important;
+    align-self: flex-start !important;
+    padding: 2px 8px !important;
+    font-size: 9.5px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.04em !important;
+    text-transform: uppercase !important;
+    border-radius: 20px !important;
+    background: rgba(52, 211, 153, 0.25) !important;
+    color: rgba(52, 211, 153, 0.95) !important;
+    border: 0.5px solid rgba(52, 211, 153, 0.30) !important;
+  }
+
+  /* Trend badge */
+  .dashboard-stat-card__trend {
+    display: none !important;
+  }
+
+  /* Stars */
+  .dashboard-stat-card__stars {
+    font-size: 0 !important;
+    position: relative !important;
+    z-index: 1 !important;
+  }
+
+  /* ── ACTION CHIPS — frosted glass pills ── */
+  .dashboard-hero__actions {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
     gap: 8px !important;
     overflow-x: auto !important;
     scroll-snap-type: x mandatory !important;
     -webkit-overflow-scrolling: touch !important;
     scrollbar-width: none !important;
-    margin-left:  calc(-1 * var(--mob-card-pad)) !important;
-    margin-right: calc(-1 * var(--mob-card-pad)) !important;
-    padding-left:  var(--mob-card-pad) !important;
-    padding-right: var(--mob-card-pad) !important;
+    margin-left:  -20px !important;
+    margin-right: -20px !important;
+    padding-left:  20px !important;
+    padding-right: 20px !important;
     padding-bottom: 2px !important;
-  }
-  .dashboard-hero__stats::-webkit-scrollbar { display: none !important; }
-
-  .dashboard-stat-card {
-    flex: 0 0 auto !important;
-    min-width: 108px !important;
-    scroll-snap-align: start !important;
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 6px !important;
-    padding: 11px 13px !important;
-    border-radius: var(--mob-r-md) !important;
-    background: rgba(255, 255, 255, 0.13) !important;
-    border: 0.5px solid rgba(255, 255, 255, 0.22) !important;
-    box-shadow:
-      0 1px 0 rgba(255,255,255,0.18) inset,
-      0 2px 8px rgba(0,0,0,0.12) !important;
-    backdrop-filter: blur(8px) !important;
-    -webkit-backdrop-filter: blur(8px) !important;
-    transition: transform var(--mob-spring) !important;
-    -webkit-tap-highlight-color: transparent !important;
-  }
-
-  .dashboard-stat-card:active {
-    transform: scale(0.96) !important;
-  }
-
-  .dashboard-stat-card::before { display: none !important; }
-
-  .dashboard-stat-card__icon {
-    width: 30px !important;
-    height: 30px !important;
-    min-width: 30px !important;
-    border-radius: 9px !important;
-    background: rgba(255, 255, 255, 0.16) !important;
-    box-shadow: 0 1px 0 rgba(255,255,255,0.20) inset !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-  }
-
-  .dashboard-stat-card__icon svg {
-    width: 15px !important;
-    height: 15px !important;
-    stroke: rgba(255,255,255,0.90) !important;
-  }
-
-  .dashboard-stat-card__value {
-    font-size: 26px !important;
-    font-weight: 700 !important;
-    line-height: 1 !important;
-    letter-spacing: -0.04em !important;
-    color: #fff !important;
-  }
-
-  .dashboard-stat-card__label {
-    font-size: 10.5px !important;
-    font-weight: 500 !important;
-    color: rgba(255, 255, 255, 0.60) !important;
-    text-transform: none !important;
-    letter-spacing: 0 !important;
-    white-space: nowrap !important;
-    line-height: 1.2 !important;
-  }
-
-  .dashboard-stat-card__trend {
-    display: none !important;
-  }
-
-  .dashboard-stat-card__stars {
-    font-size: 0 !important; /* hide text, show only SVG */
-    color: rgba(255,255,255,0.75) !important;
-  }
-
-  .dashboard-stat-card__badge {
-    align-self: flex-start !important;
-    padding: 2px 7px !important;
-    font-size: 10px !important;
-    font-weight: 650 !important;
-    border-radius: var(--mob-r-pill) !important;
-    background: rgba(255,255,255,0.20) !important;
-    color: #fff !important;
-    box-shadow: none !important;
-    border: 0.5px solid rgba(255,255,255,0.25) !important;
-  }
-
-  /* — Action chips: horizontal scroll row — */
-  .dashboard-hero__actions {
-    display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
-    gap: 7px !important;
-    overflow-x: auto !important;
-    scroll-snap-type: x mandatory !important;
-    -webkit-overflow-scrolling: touch !important;
-    scrollbar-width: none !important;
-    margin-left:  calc(-1 * var(--mob-card-pad)) !important;
-    margin-right: calc(-1 * var(--mob-card-pad)) !important;
-    padding-left:  var(--mob-card-pad) !important;
-    padding-right: var(--mob-card-pad) !important;
   }
   .dashboard-hero__actions::-webkit-scrollbar { display: none !important; }
 
   .dashboard-action-chip {
     flex: 0 0 auto !important;
     display: inline-flex !important;
-    flex-direction: row !important;
     align-items: center !important;
     gap: 6px !important;
-    height: 36px !important;
-    padding: 0 14px !important;
-    border-radius: var(--mob-r-pill) !important;
-    background: rgba(255, 255, 255, 0.16) !important;
-    border: 0.5px solid rgba(255, 255, 255, 0.28) !important;
-    color: rgba(255, 255, 255, 0.92) !important;
-    font-size: 13px !important;
-    font-weight: 510 !important;
-    letter-spacing: -0.01em !important;
-    text-shadow: none !important;
-    white-space: nowrap !important;
-    cursor: pointer !important;
+    height: 38px !important;
+    padding: 0 15px !important;
+    border-radius: 100px !important;
     scroll-snap-align: start !important;
+    cursor: pointer !important;
+    white-space: nowrap !important;
+    text-decoration: none !important;
     -webkit-tap-highlight-color: transparent !important;
     touch-action: manipulation !important;
-    transition: all var(--mob-instant) !important;
-    box-shadow: 0 1px 0 rgba(255,255,255,0.18) inset !important;
-    text-decoration: none !important;
+    transition: all 0.14s cubic-bezier(0.34,1.56,0.64,1) !important;
+    outline: none !important;
+
+    /* Frosted glass pill */
+    background: rgba(255,255,255,0.14) !important;
+    border: 0.5px solid rgba(255,255,255,0.24) !important;
+    color: rgba(255,255,255,0.90) !important;
+    font-size: 13px !important;
+    font-weight: 560 !important;
+    letter-spacing: -0.015em !important;
+
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.16) inset,
+      0 2px 8px rgba(0,0,0,0.12) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
   }
 
   .dashboard-action-chip:active {
-    transform: scale(0.94) !important;
-    opacity: 0.80 !important;
+    transform: scale(0.92) !important;
+    opacity: 0.78 !important;
+  }
+
+  .dashboard-action-chip svg {
+    width: 14px !important;
+    height: 14px !important;
+    flex-shrink: 0 !important;
+    stroke: rgba(255,255,255,0.82) !important;
+    fill: none !important;
   }
 
   .dashboard-action-chip > span {
     display: inline !important;
-    overflow-wrap: normal !important;
-    word-break: normal !important;
-    hyphens: none !important;
   }
 
-  .dashboard-action-chip svg {
-    width: 15px !important;
-    height: 15px !important;
-    flex-shrink: 0 !important;
-    stroke: rgba(255,255,255,0.85) !important;
-    filter: none !important;
-  }
-
-  /* Pro tip — hide on mobile (wastes space) */
-  .dashboard-hero__tip { display: none !important; }
-
-  /* Dismiss button */
-  .dashboard-hero__dismiss {
-    top: 14px !important;
-    right: 14px !important;
-    width: 28px !important;
-    height: 28px !important;
-    background: rgba(255,255,255,0.18) !important;
-    border: 0.5px solid rgba(255,255,255,0.25) !important;
-    border-radius: 8px !important;
-    color: rgba(255,255,255,0.80) !important;
-    box-shadow: none !important;
-  }
-
-  .dashboard-hero__dismiss svg {
-    width: 16px !important;
-    height: 16px !important;
-  }
-
-  .dashboard-hero__dismiss:hover {
-    background: rgba(255,255,255,0.24) !important;
-    border-color: rgba(255,255,255,0.36) !important;
+  /* First chip — slightly more prominent (primary CTA) */
+  .dashboard-action-chip:first-child {
+    background: rgba(255,255,255,0.22) !important;
+    border-color: rgba(255,255,255,0.32) !important;
     color: #fff !important;
-    transform: none !important;
-    box-shadow: none !important;
+    font-weight: 620 !important;
   }
+
+  /* Pro tip — hide on mobile */
+  .dashboard-hero__tip { display: none !important; }
 }
 
-/* ≤430px refinements */
+/* ── ≤430px refinements ── */
 @media (max-width: 430px) {
   .dashboard-hero__content {
-    padding: 18px var(--mob-s3) 16px !important;
-    gap: 14px !important;
+    padding: 20px 16px 18px !important;
+    gap: 16px !important;
   }
 
   .dashboard-hero__title-highlight {
-    font-size: 23px !important;
+    font-size: 28px !important;
   }
 
   .dashboard-stat-card {
-    min-width: 100px !important;
-    padding: 10px 11px !important;
+    min-width: 106px !important;
+    padding: 12px 12px !important;
   }
 
   .dashboard-stat-card__value {
-    font-size: 23px !important;
+    font-size: 24px !important;
+  }
+
+  .dashboard-action-chip {
+    height: 36px !important;
+    padding: 0 13px !important;
+    font-size: 12.5px !important;
   }
 }
 
@@ -1603,20 +1752,126 @@
     letter-spacing: 0 !important;
   }
 
-  /* Pro ribbon */
+  /* ── PRO RIBBON — premium upgrade CTA card ── */
   .pro-ribbon {
-    border-radius: var(--mob-r-md) !important;
+    position: relative !important;
+    border-radius: 18px !important;
     margin-bottom: var(--mob-section-gap) !important;
     overflow: hidden !important;
+    padding: 14px 16px !important;
     font-size: 13px !important;
+    font-weight: 400 !important;
+    letter-spacing: -0.01em !important;
+    line-height: 1.45 !important;
+    /* Deep teal gradient with specular */
+    background:
+      linear-gradient(135deg, #0b4d44 0%, #0d6358 55%, #0e7568 100%) !important;
+    border: 0.5px solid rgba(255,255,255,0.14) !important;
+    box-shadow:
+      0 0.5px 0 rgba(255,255,255,0.18) inset,
+      0 6px 20px rgba(11,128,115,0.22),
+      0 2px 8px rgba(0,0,0,0.12) !important;
+    color: rgba(255,255,255,0.88) !important;
   }
 
-  /* Verification banner */
+  /* Specular overlay on ribbon */
+  .pro-ribbon::before {
+    content: "" !important;
+    position: absolute !important;
+    inset: 0 !important;
+    background: radial-gradient(ellipse 60% 40% at 90% 10%, rgba(255,255,255,0.12) 0%, transparent 60%) !important;
+    pointer-events: none !important;
+  }
+
+  .pro-ribbon strong {
+    display: block !important;
+    font-size: 14px !important;
+    font-weight: 680 !important;
+    color: #ffffff !important;
+    letter-spacing: -0.02em !important;
+    margin-bottom: 3px !important;
+  }
+
+  /* Style the "Upgrade" link that JS injects as a plain anchor */
+  .pro-ribbon a,
+  .pro-ribbon [href*="pricing"],
+  .pro-ribbon [href*="upgrade"] {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    margin-top: 10px !important;
+    padding: 0 14px !important;
+    height: 34px !important;
+    border-radius: 100px !important;
+    background: rgba(255,255,255,0.18) !important;
+    border: 0.5px solid rgba(255,255,255,0.28) !important;
+    color: #ffffff !important;
+    font-size: 12.5px !important;
+    font-weight: 620 !important;
+    letter-spacing: -0.01em !important;
+    text-decoration: none !important;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.14) inset !important;
+    cursor: pointer !important;
+    transition: all 0.14s ease !important;
+  }
+
+  /* ── VERIFICATION BANNER — glass card treatment ── */
   #verification-status-banner {
-    border-radius: var(--mob-r-md) !important;
+    /* Override JS inline styles with !important */
+    border-radius: 18px !important;
     margin-bottom: var(--mob-section-gap) !important;
     overflow: hidden !important;
     font-size: 13px !important;
+    font-weight: 400 !important;
+    letter-spacing: -0.01em !important;
+    line-height: 1.45 !important;
+    padding: 14px 16px !important;
+    /* Override JS background with glass */
+    background: rgba(255,255,255,0.82) !important;
+    backdrop-filter: blur(48px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(48px) saturate(180%) !important;
+    border: var(--mob-glass-border-sub) !important;
+    border-top: var(--mob-glass-border) !important;
+    box-shadow: var(--mob-glass-shadow) !important;
+    /* The JS sets border-left: 4px solid colour — this is fine, keeps state colour */
+  }
+
+  /* Override inline display:flex on inner div */
+  #verification-status-banner > div {
+    gap: 10px !important;
+    align-items: center !important;
+  }
+
+  /* Verification status icon — replace emoji with smaller, cleaner size */
+  #verification-status-banner span:first-child {
+    font-size: 22px !important;
+    line-height: 1 !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* Verification strong */
+  #verification-status-banner strong {
+    font-size: 13.5px !important;
+    font-weight: 680 !important;
+    color: rgba(0,0,0,0.88) !important;
+    letter-spacing: -0.02em !important;
+  }
+
+  /* Verification CTA button */
+  #verification-status-banner a {
+    display: inline-flex !important;
+    align-items: center !important;
+    height: 32px !important;
+    padding: 0 12px !important;
+    border-radius: 100px !important;
+    font-size: 12px !important;
+    font-weight: 620 !important;
+    text-decoration: none !important;
+    color: #ffffff !important;
+    border: none !important;
+    cursor: pointer !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.20) !important;
+    transition: all 0.14s ease !important;
   }
 
   /* Unread message badge in card header */
@@ -2196,5 +2451,261 @@
     font-size: 12px !important;
     padding: 4px 10px !important;
     border-radius: var(--mob-r-pill) !important;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   32. V5 FINAL POLISH — Hero typography, chart blank, stat cards
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── Force position:relative on hero so ::before/::after render ── */
+@media (max-width: 768px) {
+  .dashboard-hero { position: relative !important; }
+
+  /* Hide the broken "Failed to load real-time notifications" toast
+     that appears from WebSocket failure in static render (cosmetic only) */
+  .ws-error-toast,
+  #ws-error-banner,
+  [class*="notification-error"] {
+    display: none !important;
+  }
+
+  /* ── Stat widget cards: ensure glass is visible on the pearl bg ── */
+  .stat-widget,
+  .stat-widget.card {
+    background: rgba(255,255,255,0.82) !important;
+    backdrop-filter: blur(48px) saturate(180%) brightness(1.02) !important;
+    -webkit-backdrop-filter: blur(48px) saturate(180%) brightness(1.02) !important;
+    border: 0 !important;
+    border-top: 0.5px solid rgba(255,255,255,0.90) !important;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.80) inset,
+      0 4px 16px rgba(0,0,0,0.06),
+      0 1px 4px rgba(0,0,0,0.05) !important;
+    border-radius: 18px !important;
+  }
+
+  /* Stat values — bolder, tighter */
+  .stat-widget .stat-number,
+  .stat-widget [class*="stat-value"],
+  .stat-widget [class*="stat-number"] {
+    font-size: 30px !important;
+    font-weight: 750 !important;
+    letter-spacing: -0.05em !important;
+    color: rgba(0,0,0,0.90) !important;
+    line-height: 1 !important;
+  }
+
+  .stat-widget .stat-label,
+  .stat-widget [class*="stat-label"] {
+    font-size: 11px !important;
+    font-weight: 500 !important;
+    color: rgba(0,0,0,0.42) !important;
+    letter-spacing: -0.005em !important;
+    margin-top: 3px !important;
+  }
+
+  /* ── Icon badges in stat widgets ── */
+  .stat-widget .icon-with-gradient,
+  .stat-widget [class*="icon-badge"],
+  .stat-widget [class*="icon-gradient"] {
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    border-radius: 11px !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.18), 0 1px 0 rgba(255,255,255,0.20) inset !important;
+    margin-bottom: 10px !important;
+  }
+
+  /* ── Performance analytics section ── */
+  #supplier-performance-chart,
+  #enquiry-trend-chart {
+    background: rgba(255,255,255,0.82) !important;
+    backdrop-filter: blur(48px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(48px) saturate(180%) !important;
+    border-radius: 22px !important;
+    border: 0.5px solid rgba(255,255,255,0.78) !important;
+    border-top: 0.5px solid rgba(255,255,255,0.92) !important;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.80) inset,
+      0 6px 24px rgba(0,0,0,0.06),
+      0 2px 8px rgba(0,0,0,0.04) !important;
+    margin-bottom: var(--mob-section-gap) !important;
+    overflow: hidden !important;
+  }
+
+  /* ── Performance chart period buttons ── */
+  #supplier-performance-chart button,
+  #enquiry-trend-chart button,
+  .chart-period-btn {
+    height: 32px !important;
+    padding: 0 12px !important;
+    font-size: 12.5px !important;
+    font-weight: 550 !important;
+    border-radius: 100px !important;
+    border: 0.5px solid rgba(0,0,0,0.10) !important;
+    background: rgba(0,0,0,0.04) !important;
+    color: rgba(0,0,0,0.55) !important;
+    cursor: pointer !important;
+    letter-spacing: -0.01em !important;
+    transition: all 0.14s ease !important;
+  }
+
+  #supplier-performance-chart button.active,
+  #enquiry-trend-chart button.active,
+  .chart-period-btn.active,
+  .chart-period-btn[aria-selected="true"] {
+    background: var(--mob-brand) !important;
+    color: #fff !important;
+    border-color: transparent !important;
+    font-weight: 640 !important;
+    box-shadow: 0 2px 8px rgba(11,128,115,0.28) !important;
+  }
+
+  /* ── ROI / Conversion section ── */
+  .sd-roi-section {
+    background: rgba(255,255,255,0.82) !important;
+    backdrop-filter: blur(48px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(48px) saturate(180%) !important;
+    border-radius: 22px !important;
+    border-top: 0.5px solid rgba(255,255,255,0.92) !important;
+    border: 0.5px solid rgba(255,255,255,0.78) !important;
+    box-shadow: 0 1px 0 rgba(255,255,255,0.80) inset, 0 6px 24px rgba(0,0,0,0.06) !important;
+    padding: var(--mob-card-pad) !important;
+    margin-bottom: var(--mob-section-gap) !important;
+  }
+
+  .sd-roi-heading {
+    font-size: 13px !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.01em !important;
+    color: rgba(0,0,0,0.45) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.06em !important;
+  }
+
+  /* ── Section labels / dividers ── */
+  .sd-section-divider__label {
+    font-size: 10.5px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.10em !important;
+    text-transform: uppercase !important;
+    color: rgba(0,0,0,0.30) !important;
+    white-space: nowrap !important;
+  }
+
+  /* ── Ensure all .card elements get glass treatment ── */
+  .card:not(.dashboard-hero):not(.dashboard-stat-card) {
+    background: rgba(255,255,255,0.82) !important;
+    backdrop-filter: blur(48px) saturate(180%) brightness(1.02) !important;
+    -webkit-backdrop-filter: blur(48px) saturate(180%) brightness(1.02) !important;
+  }
+
+  /* ── sd-in-dev-badge ── */
+  .sd-in-dev-badge {
+    padding: 3px 10px !important;
+    border-radius: 100px !important;
+    font-size: 10.5px !important;
+    font-weight: 650 !important;
+    letter-spacing: 0.02em !important;
+    background: rgba(0,0,0,0.05) !important;
+    color: rgba(0,0,0,0.42) !important;
+    border: 0.5px solid rgba(0,0,0,0.08) !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+
+  /* ── Calendar chips ── */
+  .sd-calendar-chip {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+    padding: 5px 12px !important;
+    border-radius: 100px !important;
+    font-size: 12px !important;
+    font-weight: 540 !important;
+    background: rgba(11,128,115,0.07) !important;
+    color: rgba(11,128,115,0.90) !important;
+    border: 0.5px solid rgba(11,128,115,0.15) !important;
+  }
+
+  .sd-calendar-chip svg { stroke: currentColor !important; }
+
+  /* ── EF stat cards (Earnings section) ── */
+  .ef-stat-card {
+    padding: 12px !important;
+    border-radius: 14px !important;
+    background: rgba(0,0,0,0.03) !important;
+    border: 0.5px solid rgba(0,0,0,0.06) !important;
+  }
+
+  .ef-stat-label {
+    font-size: 11px !important;
+    font-weight: 560 !important;
+    color: rgba(0,0,0,0.42) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.06em !important;
+    margin-bottom: 4px !important;
+  }
+
+  .ef-stat-value {
+    font-size: 24px !important;
+    font-weight: 750 !important;
+    letter-spacing: -0.04em !important;
+    color: rgba(0,0,0,0.88) !important;
+  }
+
+  /* ── "ef-badge" — Coming Soon badge ── */
+  .ef-badge {
+    padding: 3px 10px !important;
+    border-radius: 100px !important;
+    font-size: 10.5px !important;
+    font-weight: 650 !important;
+  }
+
+  .ef-badge-warning {
+    background: rgba(245,158,11,0.12) !important;
+    color: rgba(180,120,0,0.90) !important;
+    border: 0.5px solid rgba(245,158,11,0.20) !important;
+  }
+
+  /* ── Hero "GOOD DAY" -> refined greeting ── */
+  .dashboard-hero__greeting {
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.14em !important;
+    text-transform: uppercase !important;
+    color: rgba(255,255,255,0.42) !important;
+  }
+
+  /* ── Hero title override — make name very prominent ── */
+  .dashboard-hero__title-main {
+    display: none !important;  /* "Your Dashboard" label — redundant */
+  }
+
+  .dashboard-hero__title-highlight {
+    font-size: 34px !important;
+    font-weight: 760 !important;
+    letter-spacing: -0.045em !important;
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
+    background: none !important;
+    margin: 3px 0 0 !important;
+    line-height: 1.0 !important;
+  }
+
+  /* ── Navigation "Log out" button — make it glass-style ── */
+  .dashboard-header .btn-outline-secondary,
+  [data-test="logout-btn"],
+  a[href="/logout"],
+  button.logout-btn {
+    border-radius: 100px !important;
+    font-size: 13px !important;
+    font-weight: 560 !important;
+    padding: 0 14px !important;
+    height: 34px !important;
+    border-color: rgba(0,0,0,0.14) !important;
+    background: rgba(255,255,255,0.82) !important;
+    color: rgba(0,0,0,0.72) !important;
   }
 }
