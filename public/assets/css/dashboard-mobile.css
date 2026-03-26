@@ -41,8 +41,8 @@
   --mob-radius-lg: 16px;
   --mob-radius-xl: 20px;
 
-  /* System font stack for native feel */
-  --mob-font: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  /* System font stack for native feel across iOS, Android, and desktop */
+  --mob-font: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, "Helvetica Neue", Arial, sans-serif;
 
   /* Transitions */
   --mob-transition: 0.2s ease;
@@ -239,10 +239,11 @@
     padding: 7px 10px;
   }
 
-  /* Keep text labels visible on standard mobile — override the
-     icon-only rule from supplier-dashboard-improvements.css */
-  .mobile-nav-pill .pill-text {
-    display: inline !important;
+  /* Keep text labels visible on standard mobile — use higher specificity
+     to override the icon-only rule from supplier-dashboard-improvements.css
+     without needing !important */
+  .mobile-nav-pills .mobile-nav-pill .pill-text {
+    display: inline;
   }
 }
 
@@ -354,11 +355,14 @@
     font-family: var(--mob-font);
   }
 
-  /* ---- Stats: horizontal scrollable row ---- */
-  .dashboard-hero__stats {
-    display: flex !important;
-    flex-direction: row !important;
-    gap: var(--mob-gap-sm) !important;
+  /* ---- Stats: horizontal scrollable row.
+     Higher-specificity selector avoids needing !important to beat
+     dashboard-hero.css grid rules. ---- */
+  body.supplier-dashboard-page .dashboard-hero__stats,
+  body.customer-dashboard-page .dashboard-hero__stats {
+    display: flex;
+    flex-direction: row;
+    gap: var(--mob-gap-sm);
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
@@ -370,7 +374,8 @@
     padding-right: var(--mob-card-pad);
   }
 
-  .dashboard-hero__stats::-webkit-scrollbar {
+  body.supplier-dashboard-page .dashboard-hero__stats::-webkit-scrollbar,
+  body.customer-dashboard-page .dashboard-hero__stats::-webkit-scrollbar {
     display: none;
   }
 
