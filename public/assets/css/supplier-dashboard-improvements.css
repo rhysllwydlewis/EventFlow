@@ -6550,7 +6550,7 @@ body:not(.supplier-dashboard-page) .section > .container {
 
 /* ============================================================
    TYPOGRAPHY REFINEMENT — Homepage design language parity
-   Form labels: 600/near-black → 500/#374151 for lighter, more
+   Form labels: 600/#0b1220 → 500/#374151 for lighter, more
    elegant feel matching the homepage's visual hierarchy.
    supplier-dashboard-improvements.css loads after styles.css
    on all supplier pages so these rules win cleanly.
