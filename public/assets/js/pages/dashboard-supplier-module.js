@@ -570,8 +570,8 @@ async function displaySubscriptionStatus() {
       const cancelAtPeriodEnd = !!details.cancelAtPeriodEnd;
       const dateFormat = { day: 'numeric', month: 'long', year: 'numeric' };
 
-      // Start date
-      const startRaw = details.currentPeriodStart || activeSubscription?.createdAt || null;
+      // Start date — prefer createdAt (original subscription date) over currentPeriodStart
+      const startRaw = activeSubscription?.createdAt || details.currentPeriodStart || null;
       const startHtml = startRaw
         ? `<div class="sd-subscription-active__detail-row">
             <span class="sd-subscription-active__detail-label">Started</span>

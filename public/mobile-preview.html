@@ -156,7 +156,9 @@ body { margin: 0; background: linear-gradient(135deg, #e0f7f4 0%, #f1f5f9 100%);
     <div class="card-actions">
       <button type="button" class="card-action-btn edit-btn">Edit</button>
       <a href="#" class="card-action-btn view-btn">View</a>
-      <button type="button" class="card-action-btn pause-btn" title="Pause">⏸</button>
+      <button type="button" class="card-action-btn pause-btn" title="Pause" aria-label="Pause package">
+        <svg width="10" height="11" viewBox="0 0 10 11" fill="currentColor" aria-hidden="true"><rect x="0" y="0" width="3.5" height="11" rx="0.75"/><rect x="6.5" y="0" width="3.5" height="11" rx="0.75"/></svg>
+      </button>
       <button type="button" class="card-action-btn delete-btn">Delete</button>
     </div>
   </div>
@@ -170,7 +172,9 @@ body { margin: 0; background: linear-gradient(135deg, #e0f7f4 0%, #f1f5f9 100%);
     <div class="small"><span class="badge">£499</span> <span class="badge badge-paused">Paused</span></div>
     <div class="card-actions">
       <button type="button" class="card-action-btn edit-btn">Edit</button>
-      <button type="button" class="card-action-btn unpause-btn" title="Unpause">▶</button>
+      <button type="button" class="card-action-btn unpause-btn" title="Unpause" aria-label="Unpause package">
+        <svg width="10" height="11" viewBox="0 0 10 11" fill="currentColor" aria-hidden="true"><polygon points="0,0 10,5.5 0,11"/></svg>
+      </button>
       <button type="button" class="card-action-btn delete-btn">Delete</button>
     </div>
   </div>

@@ -3692,6 +3692,10 @@ textarea:focus-visible {
   transition: all 0.2s ease;
   text-align: center;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .card-action-btn.edit-btn {
@@ -5766,7 +5770,7 @@ body:not(.supplier-dashboard-page) .section > .container {
 
 /* View button in supplier package cards */
 .card-action-btn.view-btn {
-  display: inline-block;
+  display: inline-flex;
   background: rgba(59, 130, 246, 0.1);
   border-color: rgba(59, 130, 246, 0.3);
   color: #2563eb;
