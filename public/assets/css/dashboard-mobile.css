@@ -1874,3 +1874,327 @@
     color: rgba(0,0,0,0.38) !important;
   }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   25. AVAILABILITY CALENDAR — custom header (no sd-card-header)
+   ════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* The calendar card itself already has .sd-card — give it a teal left border */
+  #availability-calendar.sd-card {
+    box-shadow: var(--mob-glass-shadow), inset 3px 0 0 var(--mob-accent-teal) !important;
+  }
+
+  .sd-availability-section {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: var(--mob-s3) !important;
+  }
+
+  .sd-availability-header {
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    padding-bottom: var(--mob-s3) !important;
+    border-bottom: 0.5px solid rgba(0, 0, 0, 0.07) !important;
+  }
+
+  .sd-availability-title-row {
+    display: flex !important;
+    align-items: center !important;
+    gap: 9px !important;
+  }
+
+  .sd-availability-icon {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    border-radius: 10px !important;
+    background: linear-gradient(140deg, #0b8073 0%, #0d9e8e 100%) !important;
+    box-shadow: 0 2px 8px rgba(11,128,115,0.38) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .sd-availability-icon svg {
+    width: 16px !important;
+    height: 16px !important;
+    stroke: #fff !important;
+  }
+
+  .sd-availability-heading {
+    font-size: 15px !important;
+    font-weight: 650 !important;
+    letter-spacing: -0.02em !important;
+    color: rgba(0, 0, 0, 0.88) !important;
+    margin: 0 !important;
+  }
+
+  .sd-availability-subtitle {
+    font-size: 12px !important;
+    color: rgba(0, 0, 0, 0.45) !important;
+    margin: 2px 0 0 !important;
+  }
+
+  /* Calendar placeholder */
+  .sd-calendar-placeholder {
+    text-align: center !important;
+    padding: var(--mob-s3) 0 var(--mob-s2) !important;
+  }
+
+  .sd-calendar-placeholder__inner {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: var(--mob-s2) !important;
+  }
+
+  .sd-calendar-placeholder__icon {
+    margin-bottom: var(--mob-s2) !important;
+  }
+
+  .sd-calendar-placeholder__icon svg {
+    stroke: rgba(11, 128, 115, 0.55) !important;
+    width: 36px !important;
+    height: 36px !important;
+  }
+
+  .sd-calendar-placeholder__title {
+    font-size: 15px !important;
+    font-weight: 650 !important;
+    letter-spacing: -0.02em !important;
+    color: rgba(0, 0, 0, 0.88) !important;
+    margin: 0 0 4px !important;
+  }
+
+  .sd-calendar-placeholder__desc {
+    font-size: 13px !important;
+    color: rgba(0, 0, 0, 0.50) !important;
+    line-height: 1.5 !important;
+    margin: 0 0 var(--mob-s3) !important;
+    max-width: 280px !important;
+  }
+
+  .sd-calendar-placeholder__chips {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    gap: 6px !important;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   26. MESSAGES TOOLBAR — grid layout (search full-width, row below)
+   ════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Override the column layout with a smarter grid */
+  .sd-messages-toolbar {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr auto !important;
+    gap: 7px !important;
+    margin-top: var(--mob-s3) !important;
+  }
+
+  .sd-messages-toolbar__search {
+    grid-column: 1 / -1 !important;    /* full width on first row */
+    height: 42px !important;
+    padding: 0 12px !important;
+    border-radius: var(--mob-r-sm) !important;
+    font-size: 14px !important;
+    border: 1px solid rgba(0, 0, 0, 0.12) !important;
+    background: rgba(0, 0, 0, 0.04) !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    -webkit-appearance: none !important;
+  }
+
+  .sd-messages-toolbar__search:focus {
+    border-color: var(--mob-brand) !important;
+    background: rgba(255, 255, 255, 0.90) !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(11, 128, 115, 0.12) !important;
+  }
+
+  /* Two selects */
+  .sd-messages-toolbar__select {
+    height: 36px !important;
+    padding: 0 8px !important;
+    border-radius: var(--mob-r-sm) !important;
+    font-size: 12.5px !important;
+    border: 0.5px solid rgba(0, 0, 0, 0.11) !important;
+    background: rgba(255, 255, 255, 0.82) !important;
+    color: rgba(0, 0, 0, 0.72) !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    -webkit-appearance: none !important;
+    appearance: none !important;
+  }
+
+  /* Export button */
+  .sd-messages-toolbar__export,
+  button.sd-messages-toolbar__export {
+    height: 36px !important;
+    padding: 0 11px !important;
+    border-radius: var(--mob-r-sm) !important;
+    font-size: 12.5px !important;
+    font-weight: 590 !important;
+    white-space: nowrap !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 5px !important;
+    background: rgba(255, 255, 255, 0.80) !important;
+    border: 0.5px solid rgba(0, 0, 0, 0.12) !important;
+    color: rgba(0, 0, 0, 0.65) !important;
+    cursor: pointer !important;
+    letter-spacing: -0.01em !important;
+  }
+
+  .sd-messages-toolbar__export svg {
+    width: 13px !important;
+    height: 13px !important;
+  }
+
+  /* Export label — keep it short on mobile */
+  .sd-export-label { display: none !important; }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   27. SD-CARD-BODY — inner content padding
+   ════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .sd-card-body {
+    padding: 0 !important;
+    margin-top: var(--mob-s3) !important;
+  }
+
+  /* Lead quality summary stats bar (inline styled) */
+  #lead-quality-summary-stats {
+    padding: 10px 12px !important;
+    margin-bottom: var(--mob-s2) !important;
+    background: rgba(0, 0, 0, 0.03) !important;
+    border-radius: var(--mob-r-sm) !important;
+    border: 0.5px solid rgba(0, 0, 0, 0.07) !important;
+  }
+
+  #lead-quality-summary-stats [style*="font-size:0.8125rem"] {
+    font-size: 12px !important;
+  }
+
+  /* Messenger widget */
+  #messenger-dashboard-widget-supplier {
+    margin-bottom: var(--mob-s3) !important;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   28. REVIEWS SECTION — matching star size + proper spacing
+   ════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .sd-reviews-placeholder {
+    text-align: center !important;
+    padding: var(--mob-s2) 0 !important;
+  }
+
+  .sd-reviews-placeholder__hero {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: var(--mob-s3) !important;
+  }
+
+  /* Overflow ellipsis for long text in review cards */
+  .review-card__author,
+  .review-card__text {
+    overflow-wrap: break-word !important;
+  }
+
+  /* Review text compact */
+  .review-card {
+    padding: var(--mob-s3) !important;
+    border-radius: var(--mob-r-sm) !important;
+    background: rgba(0, 0, 0, 0.025) !important;
+    border: 0.5px solid rgba(0, 0, 0, 0.07) !important;
+    margin-bottom: 8px !important;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   29. PROFILE COMPLETENESS WIDGET — compact glass card
+   ════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  #profile-completeness-widget .card {
+    border-radius: var(--mob-r-md) !important;
+    background: var(--mob-glass-bg) !important;
+    backdrop-filter: var(--mob-glass-blur) !important;
+    -webkit-backdrop-filter: var(--mob-glass-blur) !important;
+    border: var(--mob-glass-border-sub) !important;
+    border-top: var(--mob-glass-border) !important;
+    box-shadow: var(--mob-glass-shadow) !important;
+    padding: var(--mob-s3) var(--mob-card-pad) !important;
+  }
+
+  /* Progress bar */
+  .profile-completeness-bar,
+  [class*="completeness-bar"] {
+    border-radius: var(--mob-r-pill) !important;
+    overflow: hidden !important;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   30. TOAST / NOTIFICATION — shrink and pin better on mobile
+   ════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Error/info toasts at bottom of screen */
+  .ef-toast,
+  .notification-toast,
+  [class*="toast"] {
+    bottom: max(84px, calc(env(safe-area-inset-bottom, 84px) + 8px)) !important;
+    left: var(--mob-card-pad) !important;
+    right: var(--mob-card-pad) !important;
+    max-width: none !important;
+    width: auto !important;
+    font-size: 13px !important;
+    border-radius: var(--mob-r-md) !important;
+    padding: 12px 14px !important;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   31. PROFILE / PACKAGE ACCORDION ITEMS  
+   ════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  /* Supplier profile list items */
+  .supplier-profile-item,
+  .supplier-list-item {
+    border-radius: var(--mob-r-sm) !important;
+    background: rgba(0, 0, 0, 0.025) !important;
+    border: 0.5px solid rgba(0, 0, 0, 0.07) !important;
+    overflow: hidden !important;
+    margin-bottom: 8px !important;
+  }
+
+  .supplier-profile-item:last-child,
+  .supplier-list-item:last-child { margin-bottom: 0 !important; }
+
+  /* Expandable section toggle */
+  .accordion-toggle,
+  [class*="accordion-btn"],
+  [data-accordion] {
+    font-size: 14px !important;
+    font-weight: 590 !important;
+    padding: 12px var(--mob-card-pad) !important;
+  }
+
+  /* Package list within profiles */
+  .pkg-inline-list {
+    gap: 6px !important;
+  }
+
+  .pkg-inline-item {
+    font-size: 12px !important;
+    padding: 4px 10px !important;
+    border-radius: var(--mob-r-pill) !important;
+  }
+}
