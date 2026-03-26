@@ -708,7 +708,7 @@
       const rows = items.map(r => {
         const userName = r.partnerUser
           ? esc(r.partnerUser.name || r.partnerUser.email || 'Unknown')
-          : 'Unknown';
+          : (r.deletedUser ? '<span class="p-badge p-badge--deleted" style="font-size:0.72rem;">Deleted User</span>' : 'Unknown');
         const userEmail = r.partnerUser ? esc(r.partnerUser.email || '') : '';
         const statusBadge =
           statusLabels[r.status] ||
@@ -847,7 +847,7 @@
       const rows = items.map(r => {
         const userName = r.partnerUser
           ? esc(r.partnerUser.name || r.partnerUser.email || 'Unknown')
-          : 'Unknown';
+          : (r.deletedUser ? '<span class="p-badge p-badge--deleted" style="font-size:0.72rem;">Deleted User</span>' : 'Unknown');
         const userEmail = r.partnerUser ? esc(r.partnerUser.email || '') : '';
         const badge = statusBadgeMap[r.status] || `<span class="p-badge">${esc(r.status)}</span>`;
         const allowedNext = TRANSITIONS[r.status] || [];

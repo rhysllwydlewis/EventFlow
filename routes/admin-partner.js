@@ -238,6 +238,10 @@ router.patch('/:id/status', csrfProtection, async (req, res) => {
       return res.status(404).json({ error: 'Partner not found' });
     }
 
+    if (partner.status === 'deleted') {
+      return res.status(400).json({ error: 'Cannot change status of a deleted partner account' });
+    }
+
     await partnerService.setPartnerStatus(req.params.id, status);
     logger.info(`Admin ${req.user.id} set partner ${req.params.id} status to ${status}`);
 
