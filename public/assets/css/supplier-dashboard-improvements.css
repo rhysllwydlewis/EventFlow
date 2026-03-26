@@ -3684,6 +3684,7 @@ textarea:focus-visible {
   flex: 1 1 0;
   min-width: 0;
   padding: 6px 8px;
+  font-family: inherit;
   font-size: 0.8rem;
   font-weight: var(--ef-font-medium, 500);
   border-radius: var(--ef-radius-md, 8px);
@@ -3696,6 +3697,7 @@ textarea:focus-visible {
   align-items: center;
   justify-content: center;
   line-height: 1;
+  text-decoration: none;
 }
 
 .card-action-btn.edit-btn {
@@ -5770,17 +5772,16 @@ body:not(.supplier-dashboard-page) .section > .container {
 
 /* View button in supplier package cards */
 .card-action-btn.view-btn {
-  display: inline-flex;
   background: rgba(59, 130, 246, 0.1);
   border-color: rgba(59, 130, 246, 0.3);
   color: #2563eb;
-  text-decoration: none;
 }
 
 .card-action-btn.view-btn:hover {
   background: rgba(59, 130, 246, 0.2);
   border-color: rgba(59, 130, 246, 0.5);
   transform: translateY(-1px);
+  text-decoration: none;
 }
 
 /* Gallery photo item with delete control */
