@@ -902,10 +902,11 @@
 
       if (isOpening) {
         positionDropdown(dropdown);
-        fetchNotifications();
-        // Request desktop notification permission lazily on first user-gesture open
-        // (setTimeout is not a valid user gesture on mobile, so we do it here instead)
+        // Request desktop notification permission first to stay within the user-gesture
+        // window on mobile — async calls like fetchNotifications() can cause the window
+        // to expire before the permission prompt fires.
         requestDesktopPermission();
+        fetchNotifications();
       }
     };
 
