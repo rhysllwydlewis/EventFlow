@@ -58,7 +58,7 @@
           <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="BLUR"/>
           <feSpecularLighting in="BLUR" surfaceScale="4" specularConstant="1.2"
                               specularExponent="15" lighting-color="white" result="SPECULAR">
-            <fePointLight x="50%" y="-20" z="80"/>
+            <fePointLight x="300" y="-80" z="120"/>
           </feSpecularLighting>
           <feComposite in="SPECULAR" in2="SourceGraphic" operator="in" result="LIT"/>
           <feDisplacementMap in="LIT" in2="NOISE" scale="18"

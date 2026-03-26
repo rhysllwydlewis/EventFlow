@@ -16,10 +16,8 @@
      0. FEATURE GATES
      ========================================================= */
   const isMobile = () => window.matchMedia('(max-width: 768px)').matches;
-  const prefersReducedMotion = () =>
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const prefersHighContrast = () =>
-    window.matchMedia('(prefers-contrast: high)').matches;
+  const prefersReducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const prefersHighContrast = () => window.matchMedia('(prefers-contrast: high)').matches;
 
   /* =========================================================
      1. MATH UTILITIES
@@ -44,11 +42,7 @@
   function roundedRectSDF(x, y, width, height, radius) {
     const qx = Math.abs(x) - width + radius;
     const qy = Math.abs(y) - height + radius;
-    return (
-      Math.min(Math.max(qx, qy), 0) +
-      vecLength(Math.max(qx, 0), Math.max(qy, 0)) -
-      radius
-    );
+    return Math.min(Math.max(qx, qy), 0) + vecLength(Math.max(qx, 0), Math.max(qy, 0)) - radius;
   }
 
   /** UV coordinate wrapper — returns a {x, y} position object. */
@@ -114,9 +108,9 @@
           const r = sdx / maxScale + 0.5;
           const g = sdy / maxScale + 0.5;
           const pi = (y * w + x) * 4;
-          data[pi] = Math.max(0, Math.min(255, r * 255));       // R → X
-          data[pi + 1] = Math.max(0, Math.min(255, g * 255));   // G → Y
-          data[pi + 2] = Math.max(0, Math.min(255, g * 255));   // B = G (SVG compat)
+          data[pi] = Math.max(0, Math.min(255, r * 255)); // R → X
+          data[pi + 1] = Math.max(0, Math.min(255, g * 255)); // G → Y
+          data[pi + 2] = Math.max(0, Math.min(255, g * 255)); // B = G (SVG compat)
           data[pi + 3] = 255;
         }
       }
@@ -126,7 +120,9 @@
     }
 
     destroy() {
-      if (this.canvas.parentNode) this.canvas.parentNode.removeChild(this.canvas);
+      if (this.canvas.parentNode) {
+        this.canvas.parentNode.removeChild(this.canvas);
+      }
     }
   }
 
@@ -177,7 +173,9 @@
 
   function svgEl(tag, attrs) {
     const el = document.createElementNS(NS, tag);
-    for (const [k, v] of Object.entries(attrs || {})) el.setAttribute(k, v);
+    for (const [k, v] of Object.entries(attrs || {})) {
+      el.setAttribute(k, v);
+    }
     return el;
   }
 
@@ -228,7 +226,9 @@
       result: 'SPECULAR',
     });
     specLit.appendChild(
-      svgEl('fePointLight', { x: '50%', y: '-20', z: '80' })
+      /* x/y/z must be unitless numbers for fePointLight (not percentages).
+         300 ≈ half a typical 375px mobile viewport width. */
+      svgEl('fePointLight', { x: '300', y: '-80', z: '120' })
     );
     filter.appendChild(specLit);
 
@@ -434,9 +434,7 @@
       in: 'EDGE_MASK',
       result: 'INVERTED_MASK',
     });
-    invertedMaskEl.appendChild(
-      svgEl('feFuncA', { type: 'table', tableValues: '1 0' })
-    );
+    invertedMaskEl.appendChild(svgEl('feFuncA', { type: 'table', tableValues: '1 0' }));
     filter.appendChild(invertedMaskEl);
 
     /* ── Keep centre clean ── */
@@ -470,22 +468,31 @@
   let _generatedFilters = {};
 
   function ensureSVGContainer() {
-    if (_svg) return;
+    if (_svg) {
+      return;
+    }
     _svg = svgEl('svg', {
       xmlns: NS,
       width: '0',
       height: '0',
       'aria-hidden': 'true',
     });
-    _svg.style.cssText =
-      'position:absolute;width:0;height:0;overflow:hidden;pointer-events:none;';
+    _svg.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden;pointer-events:none;';
     _defs = svgEl('defs');
     _svg.appendChild(_defs);
     document.body.insertBefore(_svg, document.body.firstChild);
   }
 
   function getOrCreateFilter(filterId, builder) {
-    if (_generatedFilters[filterId]) return filterId;
+    if (_generatedFilters[filterId]) {
+      return filterId;
+    }
+    /* Also skip if a filter with this ID already exists in the DOM
+       (e.g. the static #lg-distortion injected in the HTML). */
+    if (document.getElementById(filterId)) {
+      _generatedFilters[filterId] = true; /* mark as known */
+      return filterId;
+    }
     ensureSVGContainer();
     const filter = builder();
     _defs.appendChild(filter);
@@ -522,12 +529,14 @@
     /* Move all existing children into a content div */
     const contentDiv = document.createElement('div');
     contentDiv.className = 'lg-content';
-    while (el.firstChild) contentDiv.appendChild(el.firstChild);
+    while (el.firstChild) {
+      contentDiv.appendChild(el.firstChild);
+    }
 
     /* Effect layer — backdrop-filter + SVG filter */
     const effectDiv = document.createElement('div');
     effectDiv.className = 'lg-effect';
-    const filterStr = o.filterIds.map((id) => `url(#${id})`).join(' ');
+    const filterStr = o.filterIds.map(id => `url(#${id})`).join(' ');
     effectDiv.style.cssText = `
       position:absolute;inset:0;z-index:0;overflow:hidden;isolation:isolate;
       backdrop-filter:${filterStr} blur(${o.blurAmount}px) saturate(${o.saturation}%);
@@ -563,7 +572,7 @@
 
     /* Wrapper — position:relative container */
     const wrapper = document.createElement('div');
-    wrapper.className = `lg-wrapper${o.className ? ' ' + o.className : ''}`;
+    wrapper.className = `lg-wrapper${o.className ? ` ${o.className}` : ''}`;
     wrapper.style.cssText = `
       position:relative;overflow:hidden;
       ${o.borderRadius ? `border-radius:${o.borderRadius};` : ''}
@@ -582,7 +591,7 @@
      7. PUBLIC API
      ========================================================= */
 
-  const _applied = new WeakMap();   /* element → { wrapper, generator } */
+  const _applied = new WeakMap(); /* element → { wrapper, generator } */
 
   /**
    * Apply liquid glass to a single element.
@@ -599,9 +608,15 @@
    * @param {boolean} [options.wrapLayers=true]  set false to only inject filter
    */
   function apply(element, options) {
-    if (!element) return;
-    if (!isMobile()) return;
-    if (prefersHighContrast()) return;
+    if (!element) {
+      return;
+    }
+    if (!isMobile()) {
+      return;
+    }
+    if (prefersHighContrast()) {
+      return;
+    }
 
     const o = Object.assign(
       {
@@ -641,6 +656,9 @@
         borderRadius: o.cornerRadius,
       });
       _applied.set(element, { wrapper, generator });
+    } else {
+      /* wrapLayers:false — no DOM wrapper, but still track for cleanup */
+      _applied.set(element, { wrapper: null, generator });
     }
   }
 
@@ -650,13 +668,17 @@
    * @param {HTMLElement} element
    */
   function remove(element) {
-    if (!element || !_applied.has(element)) return;
+    if (!element || !_applied.has(element)) {
+      return;
+    }
     const { wrapper, generator } = _applied.get(element);
     if (wrapper && wrapper.parentNode) {
       /* Move children back out */
       const content = wrapper.querySelector('.lg-content');
       if (content) {
-        while (content.firstChild) wrapper.parentNode.appendChild(content.firstChild);
+        while (content.firstChild) {
+          wrapper.parentNode.appendChild(content.firstChild);
+        }
       }
       wrapper.parentNode.removeChild(wrapper);
     }
@@ -669,7 +691,9 @@
    */
   function destroy() {
     _generatedFilters = {};
-    if (_svg && _svg.parentNode) _svg.parentNode.removeChild(_svg);
+    if (_svg && _svg.parentNode) {
+      _svg.parentNode.removeChild(_svg);
+    }
     _svg = null;
     _defs = null;
   }
@@ -684,9 +708,15 @@
    * Only activates on mobile (≤768px).
    */
   function init() {
-    if (!isMobile()) return;
-    if (prefersHighContrast()) return;
-    if (prefersReducedMotion()) return;
+    if (!isMobile()) {
+      return;
+    }
+    if (prefersHighContrast()) {
+      return;
+    }
+    if (prefersReducedMotion()) {
+      return;
+    }
 
     /* Ensure SVG filters exist (distortion filter used by CSS too) */
     ensureSVGContainer();
@@ -706,7 +736,7 @@
         aberrationIntensity: 3,
         cornerRadius: '20px',
         tintColor: 'rgba(11,128,115,0.08)',
-        wrapLayers: false,   /* hero already has its own layer structure */
+        wrapLayers: false /* hero already has its own layer structure */,
       });
     }
 

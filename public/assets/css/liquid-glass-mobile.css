@@ -1,5 +1,5 @@
 /**
- * EventFlow Liquid Glass — Mobile Enhancements v19.0.0
+ * EventFlow Liquid Glass — Mobile Enhancements v19.1.0
  *
  * Scoped exclusively to mobile (≤768px) — Supplier Dashboard only.
  * Implements the 4-layer glass architecture from:
@@ -53,10 +53,14 @@
     z-index: 0;
     overflow: hidden;
     isolation: isolate;
-    /* SVG distortion + chromatic aberration applied inline by JS engine */
-    backdrop-filter: url(#lg-distortion) blur(var(--lg-blur)) saturate(var(--lg-saturate)) brightness(1.02);
-    -webkit-backdrop-filter: url(#lg-distortion) blur(var(--lg-blur)) saturate(var(--lg-saturate)) brightness(1.02);
     will-change: transform;
+  }
+
+  @supports (backdrop-filter: blur(1px)) {
+    .lg-effect {
+      backdrop-filter: url(#lg-distortion) blur(var(--lg-blur)) saturate(var(--lg-saturate)) brightness(1.02);
+      -webkit-backdrop-filter: url(#lg-distortion) blur(var(--lg-blur)) saturate(var(--lg-saturate)) brightness(1.02);
+    }
   }
 
   /* Layer 1: semi-transparent tint overlay */
@@ -92,34 +96,35 @@
   .dashboard-hero {
     position: relative;
     overflow: hidden;
-    /* Outer float shadow */
     box-shadow: var(--lg-shadow-float);
     border-radius: 20px;
-    transition: all var(--lg-transition-smooth);
+    transition: box-shadow var(--lg-transition-smooth);
     will-change: transform;
   }
 
-  /* Apply glass distortion to the existing bg overlay */
-  .dashboard-hero__bg {
-    backdrop-filter:
-      url(#lg-distortion)
-      url(#lg-aberration-prominent)
-      blur(var(--lg-blur))
-      saturate(var(--lg-saturate))
-      brightness(1.04)
-      contrast(1.02);
-    -webkit-backdrop-filter:
-      url(#lg-distortion)
-      url(#lg-aberration-prominent)
-      blur(var(--lg-blur))
-      saturate(var(--lg-saturate))
-      brightness(1.04)
-      contrast(1.02);
-    isolation: isolate;
-    will-change: transform;
+  /* Apply glass distortion to the existing bg overlay — @supports guarded */
+  @supports (backdrop-filter: blur(1px)) {
+    .dashboard-hero__bg {
+      backdrop-filter:
+        url(#lg-distortion)
+        url(#lg-aberration-prominent)
+        blur(var(--lg-blur))
+        saturate(var(--lg-saturate))
+        brightness(1.04)
+        contrast(1.02);
+      -webkit-backdrop-filter:
+        url(#lg-distortion)
+        url(#lg-aberration-prominent)
+        blur(var(--lg-blur))
+        saturate(var(--lg-saturate))
+        brightness(1.04)
+        contrast(1.02);
+      isolation: isolate;
+      will-change: transform;
+    }
   }
 
-  /* Specular highlight stripe at the top of the hero */
+  /* Specular highlight stripe at the top of the hero — animated shimmer */
   .dashboard-hero::after {
     content: '';
     position: absolute;
@@ -130,79 +135,126 @@
     background: linear-gradient(
       90deg,
       transparent 0%,
-      rgba(255, 255, 255, 0.7) 30%,
-      rgba(255, 255, 255, 0.9) 50%,
-      rgba(255, 255, 255, 0.7) 70%,
+      rgba(255, 255, 255, 0.0) 10%,
+      rgba(255, 255, 255, 0.85) 40%,
+      rgba(255, 255, 255, 1.0) 50%,
+      rgba(255, 255, 255, 0.85) 60%,
+      rgba(255, 255, 255, 0.0) 90%,
       transparent 100%
     );
+    background-size: 200% 100%;
+    animation: lg-shimmer-stripe 4s ease-in-out infinite;
     z-index: 4;
     pointer-events: none;
     border-radius: 20px 20px 0 0;
   }
 
-  /* Inset shine on hero */
+  @keyframes lg-shimmer-stripe {
+    0%   { background-position: -100% 0; opacity: 0.7; }
+    50%  { background-position: 100% 0;  opacity: 1; }
+    100% { background-position: -100% 0; opacity: 0.7; }
+  }
+
+  /* Hero wrapper gets the specular inset shine — NOT the content div */
+  .dashboard-hero {
+    box-shadow:
+      var(--lg-shadow-float),
+      var(--lg-shadow-inset);
+  }
+
+  /* Keep hero content properly layered above bg effects */
   .dashboard-hero__content {
     position: relative;
     z-index: 3;
-    /* Outer shine from lucasromerodb */
-    box-shadow: var(--lg-shadow-inset);
-    border-radius: inherit;
   }
 
   /* -----------------------------------------------------------
-     MOBILE NAV PILLS  (.dashboard-mobile-nav / .mobile-nav-pills)
+     MOBILE NAV BAR  (.dashboard-mobile-nav)
+     Apply glass to the sticky bar wrapper, not the pill scroll row
      ----------------------------------------------------------- */
   .dashboard-mobile-nav {
-    position: relative;
-    overflow: visible;
-    /* Allow the glass pill container to show its shadow */
-  }
-
-  .mobile-nav-pills {
-    position: relative;
+    position: sticky;
     overflow: hidden;
-    border-radius: 999px;
-    /* Glass effect on the pill bar */
-    background: rgba(255, 255, 255, 0.15);
-    backdrop-filter:
-      url(#lg-distortion)
-      blur(calc(var(--lg-blur) * 0.8))
-      saturate(var(--lg-saturate))
-      brightness(1.05);
-    -webkit-backdrop-filter:
-      url(#lg-distortion)
-      blur(calc(var(--lg-blur) * 0.8))
-      saturate(var(--lg-saturate))
-      brightness(1.05);
-    /* Specular inset shine */
+    /* Glass applied to the wrapper bar itself */
+    background: rgba(255, 255, 255, 0.55);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.4);
     box-shadow:
-      var(--lg-shadow-inset),
-      0 4px 20px rgba(11, 128, 115, 0.15);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+      0 4px 20px rgba(11, 128, 115, 0.1),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.7);
     isolation: isolate;
-    transition: all var(--lg-transition-bounce);
-    will-change: transform;
+    transition: background var(--lg-transition-smooth);
   }
 
-  /* Active pill gets a stronger tint */
+  @supports (backdrop-filter: blur(1px)) {
+    .dashboard-mobile-nav {
+      background: rgba(255, 255, 255, 0.35);
+      backdrop-filter:
+        url(#lg-distortion)
+        blur(calc(var(--lg-blur) * 1.2))
+        saturate(var(--lg-saturate))
+        brightness(1.06);
+      -webkit-backdrop-filter:
+        url(#lg-distortion)
+        blur(calc(var(--lg-blur) * 1.2))
+        saturate(var(--lg-saturate))
+        brightness(1.06);
+    }
+  }
+
+  /* Specular top edge on the nav bar */
+  .dashboard-mobile-nav::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 10%;
+    right: 10%;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.9),
+      transparent
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Pill scroll area — keep scrolling intact; DO NOT set overflow:hidden */
+  .mobile-nav-pills {
+    /* Gradient fades updated to work with the translucent bar background */
+    background: transparent;
+  }
+
+  /* Fix the scroll fade pseudo-elements to use transparent so they
+     blend with the glass bar rather than fading to solid white */
+  .mobile-nav-pills::before {
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0));
+  }
+
+  .mobile-nav-pills::after {
+    background: linear-gradient(270deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0));
+  }
+
+  /* Active pill: enhanced glass with teal tint */
   .mobile-nav-pill.active {
-    background: rgba(11, 128, 115, 0.22);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    background: linear-gradient(135deg, rgba(11, 128, 115, 0.2) 0%, rgba(16, 185, 129, 0.15) 100%);
     box-shadow:
-      inset 1px 1px 2px rgba(255, 255, 255, 0.4),
-      0 2px 8px rgba(11, 128, 115, 0.25);
+      inset 1px 1px 2px rgba(255, 255, 255, 0.5),
+      inset 0 -1px 1px rgba(11, 128, 115, 0.15),
+      0 2px 10px rgba(11, 128, 115, 0.2);
+    border-color: rgba(11, 128, 115, 0.45);
     transition: all var(--lg-transition-bounce);
   }
 
-  /* Individual nav pills — subtle glass hover */
+  /* Individual nav pills — bounce on tap */
   .mobile-nav-pill {
     transition: all var(--lg-transition-bounce);
     will-change: transform;
   }
 
   .mobile-nav-pill:active {
-    transform: scale(0.95);
+    transform: scale(0.93);
   }
 
   /* -----------------------------------------------------------
@@ -213,28 +265,34 @@
     position: relative;
     overflow: hidden;
     border-radius: 16px;
-    /* Glass backdrop */
-    background: rgba(255, 255, 255, 0.18);
-    backdrop-filter:
-      url(#lg-distortion)
-      blur(calc(var(--lg-blur) * 0.7))
-      saturate(var(--lg-saturate))
-      brightness(1.03);
-    -webkit-backdrop-filter:
-      url(#lg-distortion)
-      blur(calc(var(--lg-blur) * 0.7))
-      saturate(var(--lg-saturate))
-      brightness(1.03);
-    /* Specular shine */
+    background: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.4);
     box-shadow:
       var(--lg-shadow-inset),
-      0 4px 16px rgba(11, 128, 115, 0.12);
-    border: 1px solid rgba(255, 255, 255, 0.25);
+      0 4px 16px rgba(11, 128, 115, 0.1);
     isolation: isolate;
-    transition: all var(--lg-transition-bounce);
+    transition: transform var(--lg-transition-bounce), box-shadow var(--lg-transition-smooth);
     will-change: transform;
   }
 
+  @supports (backdrop-filter: blur(1px)) {
+    .stat-widget.card,
+    .dashboard-stat-card {
+      background: rgba(255, 255, 255, 0.55);
+      backdrop-filter:
+        url(#lg-distortion)
+        blur(calc(var(--lg-blur) * 0.7))
+        saturate(var(--lg-saturate))
+        brightness(1.04);
+      -webkit-backdrop-filter:
+        url(#lg-distortion)
+        blur(calc(var(--lg-blur) * 0.7))
+        saturate(var(--lg-saturate))
+        brightness(1.04);
+    }
+  }
+
+  /* Top specular line on stat cards */
   .stat-widget.card::before,
   .dashboard-stat-card::before {
     content: '';
@@ -246,7 +304,7 @@
     background: linear-gradient(
       90deg,
       transparent,
-      rgba(255, 255, 255, 0.6),
+      rgba(255, 255, 255, 0.8),
       transparent
     );
     z-index: 1;
@@ -256,6 +314,9 @@
   .stat-widget.card:active,
   .dashboard-stat-card:active {
     transform: scale(0.97);
+    box-shadow:
+      var(--lg-shadow-inset),
+      0 2px 8px rgba(11, 128, 115, 0.08);
   }
 
   /* -----------------------------------------------------------
@@ -267,39 +328,46 @@
     position: relative;
     overflow: hidden;
     border-radius: 18px;
-    background: rgba(255, 255, 255, 0.72);
-    backdrop-filter:
-      url(#lg-distortion)
-      blur(calc(var(--lg-blur) * 0.6))
-      saturate(var(--lg-saturate));
-    -webkit-backdrop-filter:
-      url(#lg-distortion)
-      blur(calc(var(--lg-blur) * 0.6))
-      saturate(var(--lg-saturate));
-    /* Specular top edge highlight */
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.5);
     box-shadow:
       var(--lg-shadow-inset),
-      0 6px 24px rgba(11, 128, 115, 0.1),
-      0 1px 3px rgba(0, 0, 0, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.4);
+      0 6px 24px rgba(11, 128, 115, 0.08),
+      0 1px 3px rgba(0, 0, 0, 0.05);
     isolation: isolate;
-    transition: all var(--lg-transition-smooth);
+    transition: box-shadow var(--lg-transition-smooth);
     will-change: transform;
   }
 
-  /* Top specular stripe on cards */
+  @supports (backdrop-filter: blur(1px)) {
+    .sd-card,
+    .supplier-dashboard-card,
+    .card.sd-card {
+      background: rgba(255, 255, 255, 0.72);
+      backdrop-filter:
+        url(#lg-distortion)
+        blur(calc(var(--lg-blur) * 0.6))
+        saturate(var(--lg-saturate));
+      -webkit-backdrop-filter:
+        url(#lg-distortion)
+        blur(calc(var(--lg-blur) * 0.6))
+        saturate(var(--lg-saturate));
+    }
+  }
+
+  /* Top specular stripe on section cards */
   .sd-card::before,
   .supplier-dashboard-card::before {
     content: '';
     position: absolute;
     top: 0;
-    left: 10%;
-    right: 10%;
+    left: 8%;
+    right: 8%;
     height: 1px;
     background: linear-gradient(
       90deg,
       transparent,
-      rgba(255, 255, 255, 0.7),
+      rgba(255, 255, 255, 0.85),
       transparent
     );
     z-index: 1;
@@ -312,58 +380,69 @@
   .dashboard-action-chip {
     position: relative;
     overflow: hidden;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.2);
-    backdrop-filter:
-      url(#lg-distortion)
-      blur(8px)
-      saturate(160%)
-      brightness(1.04);
-    -webkit-backdrop-filter:
-      url(#lg-distortion)
-      blur(8px)
-      saturate(160%)
-      brightness(1.04);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1.5px solid rgba(255, 255, 255, 0.55);
     box-shadow:
-      inset 1.5px 1.5px 1px rgba(255, 255, 255, 0.55),
-      inset -1px -1px 1px rgba(255, 255, 255, 0.35),
-      0 3px 12px rgba(11, 128, 115, 0.14);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+      inset 0 1px 2px rgba(255, 255, 255, 0.9),
+      inset 0 -1px 1px rgba(0, 0, 0, 0.04),
+      0 3px 10px rgba(11, 128, 115, 0.1);
     isolation: isolate;
     /* Bounce transition from lucasromerodb */
     transition: all var(--lg-transition-bounce);
     will-change: transform;
   }
 
+  @supports (backdrop-filter: blur(1px)) {
+    .dashboard-action-chip {
+      background: rgba(255, 255, 255, 0.55);
+      backdrop-filter:
+        url(#lg-distortion)
+        blur(8px)
+        saturate(170%)
+        brightness(1.05);
+      -webkit-backdrop-filter:
+        url(#lg-distortion)
+        blur(8px)
+        saturate(170%)
+        brightness(1.05);
+    }
+  }
+
   .dashboard-action-chip:hover,
   .dashboard-action-chip:focus-visible {
     transform: scale(1.04);
-    background: rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.75);
+    border-color: rgba(16, 185, 129, 0.35);
     box-shadow:
-      inset 1.5px 1.5px 1px rgba(255, 255, 255, 0.65),
-      inset -1px -1px 1px rgba(255, 255, 255, 0.45),
-      0 6px 18px rgba(11, 128, 115, 0.22);
+      inset 0 1px 2px rgba(255, 255, 255, 1),
+      inset 0 -1px 1px rgba(0, 0, 0, 0.03),
+      0 6px 18px rgba(11, 128, 115, 0.18);
   }
 
   .dashboard-action-chip:active {
-    transform: scale(0.96);
+    transform: scale(0.94);
+    box-shadow:
+      inset 0 2px 4px rgba(0, 0, 0, 0.06),
+      0 1px 4px rgba(11, 128, 115, 0.08);
   }
 
-  /* Shine pseudo-element inside chips */
+  /* Top-half glass shine pseudo-element */
   .dashboard-action-chip::after {
     content: '';
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
-    height: 50%;
+    height: 45%;
     background: linear-gradient(
       180deg,
-      rgba(255, 255, 255, 0.25) 0%,
+      rgba(255, 255, 255, 0.35) 0%,
       transparent 100%
     );
-    border-radius: 999px 999px 0 0;
+    border-radius: 10px 10px 0 0;
     pointer-events: none;
+    z-index: 1;
   }
 
   /* -----------------------------------------------------------
@@ -373,22 +452,28 @@
     position: relative;
     overflow: hidden;
     border-radius: 14px;
-    background: rgba(255, 255, 255, 0.2);
-    backdrop-filter:
-      url(#lg-distortion)
-      blur(calc(var(--lg-blur) * 0.65))
-      saturate(var(--lg-saturate));
-    -webkit-backdrop-filter:
-      url(#lg-distortion)
-      blur(calc(var(--lg-blur) * 0.65))
-      saturate(var(--lg-saturate));
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.4);
     box-shadow:
       var(--lg-shadow-inset),
-      0 4px 14px rgba(11, 128, 115, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+      0 4px 14px rgba(11, 128, 115, 0.08);
     isolation: isolate;
-    transition: all var(--lg-transition-bounce);
+    transition: transform var(--lg-transition-bounce);
     will-change: transform;
+  }
+
+  @supports (backdrop-filter: blur(1px)) {
+    .package-card {
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter:
+        url(#lg-distortion)
+        blur(calc(var(--lg-blur) * 0.65))
+        saturate(var(--lg-saturate));
+      -webkit-backdrop-filter:
+        url(#lg-distortion)
+        blur(calc(var(--lg-blur) * 0.65))
+        saturate(var(--lg-saturate));
+    }
   }
 
   .package-card:active {
@@ -397,41 +482,45 @@
 
   /* -----------------------------------------------------------
      BOTTOM NAVIGATION  (.ef-bottom-nav)
+     Preserve original z-index (900); enhance the glass appearance
      ----------------------------------------------------------- */
   .ef-bottom-nav {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    z-index: 100;
-    overflow: hidden;
+    /* Keep z-index from navbar.css (900) — do not override */
     border-radius: 24px 24px 0 0;
-    /* Glass backdrop — primary showcase of the full liquid-glass stack */
-    background: rgba(255, 255, 255, 0.25);
-    backdrop-filter:
-      url(#lg-distortion)
-      url(#lg-aberration-standard)
-      blur(var(--lg-blur))
-      saturate(var(--lg-saturate))
-      brightness(1.04)
-      contrast(1.01);
-    -webkit-backdrop-filter:
-      url(#lg-distortion)
-      url(#lg-aberration-standard)
-      blur(var(--lg-blur))
-      saturate(var(--lg-saturate))
-      brightness(1.04)
-      contrast(1.01);
-    /* Layered shadow — float over page + specular top edge */
+    /* Solid fallback for non-supporting browsers */
+    background: rgba(255, 255, 255, 0.92);
+    border-top: 1px solid rgba(255, 255, 255, 0.5);
     box-shadow:
-      inset 2px 2px 1px 0 rgba(255, 255, 255, 0.55),
-      inset -1px -1px 1px rgba(255, 255, 255, 0.35),
-      0 -4px 32px rgba(0, 0, 0, 0.12),
-      0 -1px 0 rgba(255, 255, 255, 0.4);
-    border-top: 1px solid rgba(255, 255, 255, 0.35);
-    isolation: isolate;
-    transition: all var(--lg-transition-smooth);
-    will-change: transform;
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      0 -4px 24px rgba(0, 0, 0, 0.1);
+    transition: background var(--lg-transition-smooth);
+    overflow: hidden;
+  }
+
+  /* Liquid glass backdrop — @supports guarded */
+  @supports (backdrop-filter: blur(1px)) {
+    .ef-bottom-nav {
+      background: rgba(255, 255, 255, 0.4);
+      backdrop-filter:
+        url(#lg-distortion)
+        url(#lg-aberration-standard)
+        blur(var(--lg-blur))
+        saturate(var(--lg-saturate))
+        brightness(1.05)
+        contrast(1.01);
+      -webkit-backdrop-filter:
+        url(#lg-distortion)
+        url(#lg-aberration-standard)
+        blur(var(--lg-blur))
+        saturate(var(--lg-saturate))
+        brightness(1.05)
+        contrast(1.01);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.8),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.2),
+        0 -4px 32px rgba(0, 0, 0, 0.1),
+        0 -8px 24px rgba(11, 128, 115, 0.06);
+    }
   }
 
   /* Top edge specular line on bottom nav */
@@ -439,15 +528,15 @@
     content: '';
     position: absolute;
     top: 0;
-    left: 5%;
-    right: 5%;
+    left: 0;
+    right: 0;
     height: 1px;
     background: linear-gradient(
       90deg,
       transparent 0%,
-      rgba(255, 255, 255, 0.8) 40%,
+      rgba(255, 255, 255, 0.7) 20%,
       rgba(255, 255, 255, 0.95) 50%,
-      rgba(255, 255, 255, 0.8) 60%,
+      rgba(255, 255, 255, 0.7) 80%,
       transparent 100%
     );
     z-index: 1;
@@ -467,6 +556,10 @@
 
   .dashboard-hero {
     border-radius: 16px;
+  }
+
+  .dashboard-hero::after {
+    border-radius: 16px 16px 0 0;
   }
 
   .sd-card,
@@ -501,6 +594,12 @@
     animation: none;
   }
 
+  /* Remove shimmer animation on hero top stripe */
+  .dashboard-hero::after {
+    animation: none;
+    opacity: 0.85;
+  }
+
   /* Remove bounce scale on active states */
   .dashboard-action-chip:active,
   .stat-widget.card:active,
@@ -519,7 +618,7 @@
   .lg-effect,
   .lg-tint,
   .lg-shine,
-  .mobile-nav-pills,
+  .dashboard-mobile-nav,
   .dashboard-action-chip,
   .stat-widget.card,
   .dashboard-stat-card,
@@ -532,13 +631,14 @@
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
     filter: none;
-    background: transparent;
+    background: revert;
     box-shadow: none;
     border: 2px solid currentColor;
   }
 
   .dashboard-action-chip::after,
   .dashboard-hero::after,
+  .dashboard-mobile-nav::after,
   .sd-card::before,
   .supplier-dashboard-card::before,
   .stat-widget.card::before,
