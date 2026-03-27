@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  const CARD_SELECTORS = [
+  var CARD_SELECTORS = [
     '.card',
     '.ef-card',
     '.admin-card',
@@ -16,8 +16,8 @@
     '.package-card',
   ].join(', ');
 
-  const BREAKPOINT = 1024;
-  const STORAGE_KEY = 'ef-collapsed-cards';
+  var BREAKPOINT = 1024;
+  var STORAGE_KEY = 'ef-collapsed-cards';
 
   /* ─── sessionStorage helpers ─────────────────────────────────── */
   function loadState() {
@@ -40,106 +40,156 @@
   /* ─── DOM helpers ────────────────────────────────────────────── */
 
   /**
-   * Returns true if `el` is a heading-like element that should stay
-   * visible as the card "title" when collapsed.
-   */
-  function isTitleElement(el) {
-    if (!el || el.nodeType !== 1) return false;
-    const tag = el.tagName;
-    if (/^H[1-6]$/.test(tag)) return true;
-    const cls = el.className || '';
-    return (
-      cls.includes('card-title') ||
-      cls.includes('card-header') ||
-      cls.includes('ef-card-header') ||
-      cls.includes('admin-card-header') ||
-      cls.includes('sp-card-title') ||
-      cls.includes('stat-card-value') ||
-      cls.includes('stat-card-label') ||
-      cls.includes('package-card-title') ||
-      cls.includes('listing-card-title')
-    );
-  }
-
-  /**
-   * Wraps everything inside `card` that is NOT the first title element
-   * and NOT the collapse button itself in a `.card-body-collapsible` div.
+   * Wraps everything inside `card` AFTER the first element child in a
+   * `.card-body-collapsible` div. The first element child acts as the
+   * visible "header" when the card is collapsed.
    * Idempotent — skips if wrapper already exists.
    */
   function wrapCardBody(card) {
-    if (card.querySelector('.card-body-collapsible')) return;
+    if (card.querySelector(':scope > .card-body-collapsible')) return;
 
-    const children = Array.from(card.childNodes);
-    let titleFound = false;
-    const toWrap = [];
+    var children = Array.from(card.childNodes);
+    var headerFound = false;
+    var toWrap = [];
 
-    for (const node of children) {
+    for (var i = 0; i < children.length; i++) {
+      var node = children[i];
+
       /* Skip the injected button */
       if (node.classList && node.classList.contains('card-collapse-btn')) continue;
 
-      if (!titleFound && isTitleElement(node)) {
-        titleFound = true;
-        continue; /* keep title outside wrapper */
+      if (!headerFound) {
+        /* Skip leading whitespace/text nodes */
+        if (node.nodeType !== 1) continue;
+        /* First real element = header — keep it outside the wrapper */
+        headerFound = true;
+        continue;
       }
 
-      /* Wrap everything after the title (or everything if no title found) */
-      if (titleFound || !isTitleElement(node)) {
-        toWrap.push(node);
-      }
+      toWrap.push(node);
     }
 
     if (toWrap.length === 0) return;
 
-    const wrapper = document.createElement('div');
+    var wrapper = document.createElement('div');
     wrapper.className = 'card-body-collapsible';
-
-    /* Insert wrapper before the first node to wrap */
     card.insertBefore(wrapper, toWrap[0]);
-    toWrap.forEach((n) => wrapper.appendChild(n));
+    toWrap.forEach(function (n) { wrapper.appendChild(n); });
   }
 
-  /* ─── Initialisation ─────────────────────────────────────────── */
-  function initCard(card, index, state) {
-    if (card.querySelector('.card-collapse-btn')) return; /* already done */
+  /* ─── Height-driven animation helpers ────────────────────────── */
 
-    /* Provide a stable key */
+  /**
+   * Animate a wrapper to zero height and then set display:none so
+   * it is fully removed from grid/flex layout (no empty column artifact).
+   */
+  function collapseWrapper(wrapper) {
+    /* Capture actual rendered height as the start value */
+    wrapper.style.maxHeight = wrapper.scrollHeight + 'px';
+    wrapper.style.display = '';
+    /* Force reflow so the browser sees the start value */
+    void wrapper.offsetHeight;
+    /* Animate toward zero */
+    wrapper.style.maxHeight = '0';
+    wrapper.style.opacity = '0';
+
+    function onEnd(e) {
+      if (e.propertyName !== 'max-height') return;
+      wrapper.style.display = 'none';
+      wrapper.removeEventListener('transitionend', onEnd);
+    }
+    wrapper.addEventListener('transitionend', onEnd);
+  }
+
+  /**
+   * Remove display:none, measure content height, then animate in.
+   */
+  function expandWrapper(wrapper) {
+    /* Make the element participate in layout again */
+    wrapper.style.display = '';
+    /* Force layout so scrollHeight is accurate */
+    void wrapper.offsetHeight;
+
+    var targetH = wrapper.scrollHeight;
+
+    /* Start from invisible */
+    wrapper.style.maxHeight = '0';
+    wrapper.style.opacity = '0';
+    /* Another reflow to establish the start state for CSS transition */
+    void wrapper.offsetHeight;
+
+    /* Animate to full height */
+    wrapper.style.maxHeight = targetH + 'px';
+    wrapper.style.opacity = '1';
+
+    function onEnd(e) {
+      if (e.propertyName !== 'max-height') return;
+      /* Remove the inline max-height so the wrapper can grow naturally
+         if its content changes (images load, accordions open, etc.) */
+      wrapper.style.maxHeight = '';
+      wrapper.removeEventListener('transitionend', onEnd);
+    }
+    wrapper.addEventListener('transitionend', onEnd);
+  }
+
+  /* ─── Per-card initialisation ─────────────────────────────────── */
+  function initCard(card, index, state) {
+    /* Idempotent guard */
+    if (card.querySelector(':scope > .card-collapse-btn')) return;
+
+    /* Skip cards nested inside another already-collapsible card */
+    var ancestor = card.parentElement && card.parentElement.closest('.card-collapsible');
+    if (ancestor) return;
+
+    /* Assign a stable ID for state persistence */
     if (!card.id) {
       card.id = 'ef-card-' + index;
     }
-    const id = card.id;
+    var id = card.id;
 
-    /* Make card a positioning context */
+    /* Mark as collapsible + positioning context */
     card.classList.add('card-collapsible');
     card.style.position = 'relative';
 
-    /* Wrap body content */
+    /* Wrap body content (everything after first element) */
     wrapCardBody(card);
 
-    /* Create button */
-    const btn = document.createElement('button');
+    var wrapper = card.querySelector(':scope > .card-body-collapsible');
+    if (!wrapper) return; /* only one child — nothing to collapse */
+
+    /* Create toggle button */
+    var btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'card-collapse-btn';
     btn.setAttribute('aria-label', 'Toggle card');
     btn.setAttribute('aria-expanded', 'true');
     btn.innerHTML = '<span aria-hidden="true">▾</span>';
 
-    /* Prepend so it sits at the top of the card (absolute positioning
-       takes it visually to top-right regardless of DOM order) */
+    /* Prepend; absolute positioning places it at top-right visually */
     card.insertBefore(btn, card.firstChild);
 
-    /* Restore persisted state */
+    /* Restore persisted collapse state (no animation on page load) */
     if (state[id]) {
       card.classList.add('card--collapsed');
       btn.setAttribute('aria-expanded', 'false');
+      wrapper.style.maxHeight = '0';
+      wrapper.style.opacity = '0';
+      wrapper.style.display = 'none';
     }
 
     /* Click handler */
     btn.addEventListener('click', function (e) {
       e.stopPropagation();
-      const collapsed = card.classList.toggle('card--collapsed');
+      var collapsed = card.classList.toggle('card--collapsed');
       btn.setAttribute('aria-expanded', String(!collapsed));
 
-      const current = loadState();
+      if (collapsed) {
+        collapseWrapper(wrapper);
+      } else {
+        expandWrapper(wrapper);
+      }
+
+      var current = loadState();
       if (collapsed) {
         current[id] = true;
       } else {
@@ -149,36 +199,64 @@
     });
   }
 
+  /* ─── Bulk initialisation ─────────────────────────────────────── */
+  var _cardCounter = 0;
+
   function initAllCards() {
     if (window.innerWidth > BREAKPOINT) return;
-
-    const state = loadState();
-    const cards = document.querySelectorAll(CARD_SELECTORS);
-    cards.forEach(function (card, index) {
-      initCard(card, index, state);
+    var state = loadState();
+    document.querySelectorAll(CARD_SELECTORS).forEach(function (card) {
+      initCard(card, _cardCounter++, state);
     });
   }
 
-  /* ─── Teardown (when viewport grows above breakpoint) ────────── */
+  /* ─── Teardown when viewport grows above breakpoint ──────────── */
   function teardownAllCards() {
     document.querySelectorAll('.card-collapsible').forEach(function (card) {
-      /* Remove button */
-      const btn = card.querySelector('.card-collapse-btn');
+      var btn = card.querySelector(':scope > .card-collapse-btn');
       if (btn) btn.remove();
 
-      /* Unwrap body content */
-      const wrapper = card.querySelector('.card-body-collapsible');
+      var wrapper = card.querySelector(':scope > .card-body-collapsible');
       if (wrapper) {
+        /* Ensure wrapper is visible before unwrapping */
+        wrapper.style.maxHeight = '';
+        wrapper.style.opacity = '';
+        wrapper.style.display = '';
+        /* Move children back into card */
         while (wrapper.firstChild) {
           card.insertBefore(wrapper.firstChild, wrapper);
         }
         wrapper.remove();
       }
 
-      /* Clean up classes / inline style */
       card.classList.remove('card-collapsible', 'card--collapsed');
       card.style.position = '';
     });
+  }
+
+  /* ─── MutationObserver: catch dynamically added cards ─────────── */
+  function observeDynamicCards() {
+    if (typeof MutationObserver === 'undefined') return;
+
+    var mo = new MutationObserver(function (mutations) {
+      if (window.innerWidth > BREAKPOINT) return;
+      var state = loadState();
+      mutations.forEach(function (m) {
+        m.addedNodes.forEach(function (node) {
+          if (node.nodeType !== 1) return;
+          if (node.matches && node.matches(CARD_SELECTORS)) {
+            initCard(node, _cardCounter++, state);
+          }
+          if (node.querySelectorAll) {
+            node.querySelectorAll(CARD_SELECTORS).forEach(function (card) {
+              initCard(card, _cardCounter++, state);
+            });
+          }
+        });
+      });
+    });
+
+    mo.observe(document.body, { childList: true, subtree: true });
   }
 
   /* ─── Responsive re-check (debounced) ───────────────────────── */
@@ -188,7 +266,7 @@
   function onResize() {
     clearTimeout(_resizeTimer);
     _resizeTimer = setTimeout(function () {
-      const nowMobile = window.innerWidth <= BREAKPOINT;
+      var nowMobile = window.innerWidth <= BREAKPOINT;
       if (nowMobile && !_mobileActive) {
         _mobileActive = true;
         initAllCards();
@@ -199,9 +277,14 @@
     }, 150);
   }
 
+  /* ─── Public API ─────────────────────────────────────────────── */
+  window.cardCollapseInit = initAllCards;
+  window.cardCollapseTeardown = teardownAllCards;
+
   /* ─── Bootstrap ─────────────────────────────────────────────── */
   function bootstrap() {
     initAllCards();
+    observeDynamicCards();
     window.addEventListener('resize', onResize);
   }
 
