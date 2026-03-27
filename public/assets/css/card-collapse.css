@@ -1,0 +1,94 @@
+/**
+ * Card Collapse — Mobile collapsible card toggle
+ * Only active on viewports ≤ 1024px.
+ * Companion JS: /assets/js/card-collapse.js
+ */
+
+/* ─── Hidden on desktop (no layout impact) ──────────────────────── */
+.card-collapse-btn {
+  display: none;
+}
+
+/* ─── Mobile / tablet (≤ 1024px) ────────────────────────────────── */
+@media (max-width: 1024px) {
+
+  /* Positioning context for the absolute-positioned button */
+  .card-collapsible {
+    position: relative;
+  }
+
+  /* ── Toggle button ─────────────────────────────────────────────── */
+  .card-collapse-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;  /* prevent shrink in flex cards */
+    padding: 0;
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    cursor: pointer;
+    z-index: 10;
+    font-size: 16px;
+    line-height: 1;
+    color: #6b7280;
+    /* Rotate transition only — background handled separately */
+    transition: background 0.2s ease, transform 0.25s ease;
+    flex-shrink: 0;
+    /* Keep tappable on top of card content */
+    pointer-events: all;
+  }
+
+  .card-collapse-btn:hover {
+    background: rgba(0, 0, 0, 0.09);
+  }
+
+  .card-collapse-btn:focus-visible {
+    outline: 2px solid rgba(11, 128, 115, 0.5);
+    outline-offset: 2px;
+    background: rgba(0, 0, 0, 0.07);
+  }
+
+  .card-collapse-btn:active {
+    background: rgba(0, 0, 0, 0.13);
+  }
+
+  /* Chevron rotates ▾→▸ (−90°) when card is collapsed */
+  .card--collapsed .card-collapse-btn {
+    transform: rotate(-90deg);
+  }
+
+  /* ── Header area: ensure button doesn't overlap title text ─────── */
+  /* The first visible child acts as the card header.
+     Since the button is prepended (making it the CSS :first-child),
+     the actual header is the next sibling. */
+  .card-collapsible > .card-collapse-btn + * {
+    padding-right: 40px;
+  }
+
+  /* ── Collapsible body wrapper ──────────────────────────────────── */
+  /* max-height is set via JS for smooth height-based animation.
+     CSS only provides the transition timing + overflow clipping. */
+  .card-body-collapsible {
+    overflow: hidden;
+    opacity: 1;
+    transition:
+      max-height 0.3s ease,
+      opacity 0.25s ease;
+  }
+
+  /* Collapsed: hide bottom margin/padding so the card edge looks clean */
+  .card--collapsed {
+    padding-bottom: 0 !important;
+  }
+
+  /* When a card is collapsed, give it a slightly muted look to signal state */
+  .card--collapsed > .card-collapse-btn + * {
+    opacity: 0.75;
+  }
+}

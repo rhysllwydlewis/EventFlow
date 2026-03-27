@@ -278,6 +278,7 @@
 @media (max-width: 768px) {
   .package-card {
     border-radius: var(--mob-radius-md);
+    position: relative;
   }
 
   .package-card-content,
@@ -307,6 +308,7 @@
     padding: var(--mob-card-pad) !important;
     margin-bottom: var(--mob-section-gap) !important;
     border-radius: var(--mob-radius-lg) !important;
+    position: relative;
   }
 }
 
