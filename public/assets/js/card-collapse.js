@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var CARD_SELECTORS = [
+  const CARD_SELECTORS = [
     '.card',
     '.ef-card',
     '.admin-card',
@@ -16,15 +16,17 @@
     '.package-card',
   ].join(', ');
 
-  var BREAKPOINT = 1024;
-  var STORAGE_KEY = 'ef-collapsed-cards';
+  const BREAKPOINT = 1024;
+  const STORAGE_KEY = 'ef-collapsed-cards';
 
   /* ─── sessionStorage helpers ─────────────────────────────────── */
   function loadState() {
     try {
       return JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '{}');
     } catch (err) {
-      if (typeof console !== 'undefined') console.warn('[card-collapse] Failed to load state:', err);
+      if (typeof console !== 'undefined') {
+        console.warn('[card-collapse] Failed to load state:', err);
+      }
       return {};
     }
   }
@@ -33,7 +35,9 @@
     try {
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch (err) {
-      if (typeof console !== 'undefined') console.warn('[card-collapse] Failed to save state:', err);
+      if (typeof console !== 'undefined') {
+        console.warn('[card-collapse] Failed to save state:', err);
+      }
     }
   }
 
@@ -46,21 +50,19 @@
    * Idempotent — skips if wrapper already exists.
    */
   function wrapCardBody(card) {
-    if (card.querySelector(':scope > .card-body-collapsible')) return;
+    if (card.querySelector(':scope > .card-body-collapsible')) {return;}
 
-    var children = Array.from(card.childNodes);
-    var headerFound = false;
-    var toWrap = [];
+    const children = Array.from(card.childNodes);
+    let headerFound = false;
+    const toWrap = [];
 
-    for (var i = 0; i < children.length; i++) {
-      var node = children[i];
-
+    for (const node of children) {
       /* Skip the injected button */
-      if (node.classList && node.classList.contains('card-collapse-btn')) continue;
+      if (node.classList && node.classList.contains('card-collapse-btn')) {continue;}
 
       if (!headerFound) {
         /* Skip leading whitespace/text nodes */
-        if (node.nodeType !== 1) continue;
+        if (node.nodeType !== 1) {continue;}
         /* First real element = header — keep it outside the wrapper */
         headerFound = true;
         continue;
@@ -69,12 +71,12 @@
       toWrap.push(node);
     }
 
-    if (toWrap.length === 0) return;
+    if (toWrap.length === 0) {return;}
 
-    var wrapper = document.createElement('div');
+    const wrapper = document.createElement('div');
     wrapper.className = 'card-body-collapsible';
     card.insertBefore(wrapper, toWrap[0]);
-    toWrap.forEach(function (n) { wrapper.appendChild(n); });
+    toWrap.forEach((n) => wrapper.appendChild(n));
   }
 
   /* ─── Height-driven animation helpers ────────────────────────── */
@@ -85,7 +87,7 @@
    */
   function collapseWrapper(wrapper) {
     /* Capture actual rendered height as the start value */
-    wrapper.style.maxHeight = wrapper.scrollHeight + 'px';
+    wrapper.style.maxHeight = `${wrapper.scrollHeight}px`;
     wrapper.style.display = '';
     /* Force reflow so the browser sees the start value */
     void wrapper.offsetHeight;
@@ -93,11 +95,11 @@
     wrapper.style.maxHeight = '0';
     wrapper.style.opacity = '0';
 
-    function onEnd(e) {
-      if (e.propertyName !== 'max-height') return;
+    const onEnd = (e) => {
+      if (e.propertyName !== 'max-height') {return;}
       wrapper.style.display = 'none';
       wrapper.removeEventListener('transitionend', onEnd);
-    }
+    };
     wrapper.addEventListener('transitionend', onEnd);
   }
 
@@ -110,7 +112,7 @@
     /* Force layout so scrollHeight is accurate */
     void wrapper.offsetHeight;
 
-    var targetH = wrapper.scrollHeight;
+    const targetH = wrapper.scrollHeight;
 
     /* Start from invisible */
     wrapper.style.maxHeight = '0';
@@ -119,33 +121,33 @@
     void wrapper.offsetHeight;
 
     /* Animate to full height */
-    wrapper.style.maxHeight = targetH + 'px';
+    wrapper.style.maxHeight = `${targetH}px`;
     wrapper.style.opacity = '1';
 
-    function onEnd(e) {
-      if (e.propertyName !== 'max-height') return;
+    const onEnd = (e) => {
+      if (e.propertyName !== 'max-height') {return;}
       /* Remove the inline max-height so the wrapper can grow naturally
          if its content changes (images load, accordions open, etc.) */
       wrapper.style.maxHeight = '';
       wrapper.removeEventListener('transitionend', onEnd);
-    }
+    };
     wrapper.addEventListener('transitionend', onEnd);
   }
 
   /* ─── Per-card initialisation ─────────────────────────────────── */
   function initCard(card, index, state) {
     /* Idempotent guard */
-    if (card.querySelector(':scope > .card-collapse-btn')) return;
+    if (card.querySelector(':scope > .card-collapse-btn')) {return;}
 
     /* Skip cards nested inside another already-collapsible card */
-    var ancestor = card.parentElement && card.parentElement.closest('.card-collapsible');
-    if (ancestor) return;
+    const ancestor = card.parentElement && card.parentElement.closest('.card-collapsible');
+    if (ancestor) {return;}
 
     /* Assign a stable ID for state persistence */
     if (!card.id) {
-      card.id = 'ef-card-' + index;
+      card.id = `ef-card-${index}`;
     }
-    var id = card.id;
+    const id = card.id;
 
     /* Mark as collapsible + positioning context */
     card.classList.add('card-collapsible');
@@ -154,11 +156,11 @@
     /* Wrap body content (everything after first element) */
     wrapCardBody(card);
 
-    var wrapper = card.querySelector(':scope > .card-body-collapsible');
-    if (!wrapper) return; /* only one child — nothing to collapse */
+    const wrapper = card.querySelector(':scope > .card-body-collapsible');
+    if (!wrapper) {return;} /* only one child — nothing to collapse */
 
     /* Create toggle button */
-    var btn = document.createElement('button');
+    const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'card-collapse-btn';
     btn.setAttribute('aria-label', 'Toggle card');
@@ -178,9 +180,9 @@
     }
 
     /* Click handler */
-    btn.addEventListener('click', function (e) {
+    btn.addEventListener('click', (e) => {
       e.stopPropagation();
-      var collapsed = card.classList.toggle('card--collapsed');
+      const collapsed = card.classList.toggle('card--collapsed');
       btn.setAttribute('aria-expanded', String(!collapsed));
 
       if (collapsed) {
@@ -189,7 +191,7 @@
         expandWrapper(wrapper);
       }
 
-      var current = loadState();
+      const current = loadState();
       if (collapsed) {
         current[id] = true;
       } else {
@@ -200,23 +202,23 @@
   }
 
   /* ─── Bulk initialisation ─────────────────────────────────────── */
-  var _cardCounter = 0;
+  let _cardCounter = 0;
 
   function initAllCards() {
-    if (window.innerWidth > BREAKPOINT) return;
-    var state = loadState();
-    document.querySelectorAll(CARD_SELECTORS).forEach(function (card) {
+    if (window.innerWidth > BREAKPOINT) {return;}
+    const state = loadState();
+    document.querySelectorAll(CARD_SELECTORS).forEach((card) => {
       initCard(card, _cardCounter++, state);
     });
   }
 
   /* ─── Teardown when viewport grows above breakpoint ──────────── */
   function teardownAllCards() {
-    document.querySelectorAll('.card-collapsible').forEach(function (card) {
-      var btn = card.querySelector(':scope > .card-collapse-btn');
-      if (btn) btn.remove();
+    document.querySelectorAll('.card-collapsible').forEach((card) => {
+      const btn = card.querySelector(':scope > .card-collapse-btn');
+      if (btn) {btn.remove();}
 
-      var wrapper = card.querySelector(':scope > .card-body-collapsible');
+      const wrapper = card.querySelector(':scope > .card-body-collapsible');
       if (wrapper) {
         /* Ensure wrapper is visible before unwrapping */
         wrapper.style.maxHeight = '';
@@ -236,19 +238,19 @@
 
   /* ─── MutationObserver: catch dynamically added cards ─────────── */
   function observeDynamicCards() {
-    if (typeof MutationObserver === 'undefined') return;
+    if (typeof MutationObserver === 'undefined') {return;}
 
-    var mo = new MutationObserver(function (mutations) {
-      if (window.innerWidth > BREAKPOINT) return;
-      var state = loadState();
-      mutations.forEach(function (m) {
-        m.addedNodes.forEach(function (node) {
-          if (node.nodeType !== 1) return;
+    const mo = new MutationObserver((mutations) => {
+      if (window.innerWidth > BREAKPOINT) {return;}
+      const state = loadState();
+      mutations.forEach((m) => {
+        m.addedNodes.forEach((node) => {
+          if (node.nodeType !== 1) {return;}
           if (node.matches && node.matches(CARD_SELECTORS)) {
             initCard(node, _cardCounter++, state);
           }
           if (node.querySelectorAll) {
-            node.querySelectorAll(CARD_SELECTORS).forEach(function (card) {
+            node.querySelectorAll(CARD_SELECTORS).forEach((card) => {
               initCard(card, _cardCounter++, state);
             });
           }
@@ -260,13 +262,13 @@
   }
 
   /* ─── Responsive re-check (debounced) ───────────────────────── */
-  var _resizeTimer = null;
-  var _mobileActive = window.innerWidth <= BREAKPOINT;
+  let _resizeTimer = null;
+  let _mobileActive = window.innerWidth <= BREAKPOINT;
 
   function onResize() {
     clearTimeout(_resizeTimer);
-    _resizeTimer = setTimeout(function () {
-      var nowMobile = window.innerWidth <= BREAKPOINT;
+    _resizeTimer = setTimeout(() => {
+      const nowMobile = window.innerWidth <= BREAKPOINT;
       if (nowMobile && !_mobileActive) {
         _mobileActive = true;
         initAllCards();
