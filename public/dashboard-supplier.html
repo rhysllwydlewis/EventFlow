@@ -175,7 +175,7 @@
             id="ef-mobile-settings"
             class="ef-mobile-link"
             style="display: none"
-            >⚙️ Settings</a
+            >Settings</a
           >
           <a href="#" id="ef-mobile-logout" class="ef-mobile-link" style="display: none">Log out</a>
         </nav>
@@ -222,7 +222,14 @@
           data-test="nav-overview"
           title="Overview"
         >
-          🏠 <span class="pill-text">Overview</span>
+          <span class="pill-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9.5z" fill="currentColor" fill-opacity="0.12"/>
+              <path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9.5z"/>
+              <path d="M9 21V13h6v8"/>
+            </svg>
+          </span>
+          <span class="pill-text">Overview</span>
         </button>
         <button
           class="mobile-nav-pill"
@@ -230,7 +237,20 @@
           data-test="nav-stats"
           title="Stats"
         >
-          📊 <span class="pill-text">Stats</span>
+          <span class="pill-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="4" y1="20" x2="4" y2="4"/>
+              <line x1="4" y1="20" x2="22" y2="20"/>
+              <rect x="6" y="13" width="3.5" height="7" rx="1" fill="currentColor" fill-opacity="0.15"/>
+              <rect x="11" y="9" width="3.5" height="11" rx="1" fill="currentColor" fill-opacity="0.15"/>
+              <rect x="16" y="5" width="3.5" height="15" rx="1" fill="currentColor" fill-opacity="0.15"/>
+              <rect x="6" y="13" width="3.5" height="7" rx="1"/>
+              <rect x="11" y="9" width="3.5" height="11" rx="1"/>
+              <rect x="16" y="5" width="3.5" height="15" rx="1"/>
+              <polyline points="7.75 13 12.75 9 17.75 5" stroke-width="1.5"/>
+            </svg>
+          </span>
+          <span class="pill-text">Stats</span>
         </button>
         <button
           class="mobile-nav-pill"
@@ -238,7 +258,18 @@
           data-test="nav-profiles"
           title="Profiles"
         >
-          👤 <span class="pill-text">Profiles</span>
+          <span class="pill-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2.5 9.5L12 4l9.5 5.5"/>
+              <path d="M4 9.5h16v2.5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9.5z" fill="currentColor" fill-opacity="0.2"/>
+              <path d="M4 13v8h16v-8"/>
+              <path d="M10 21v-5a2 2 0 0 1 4 0v5"/>
+              <rect x="5.5" y="14" width="3" height="2.5" rx="0.5" fill="currentColor" fill-opacity="0.25"/>
+              <rect x="15.5" y="14" width="3" height="2.5" rx="0.5" fill="currentColor" fill-opacity="0.25"/>
+              <line x1="2" y1="21" x2="22" y2="21"/>
+            </svg>
+          </span>
+          <span class="pill-text">Profiles</span>
         </button>
         <button
           class="mobile-nav-pill"
@@ -246,7 +277,18 @@
           data-test="nav-packages"
           title="Packages"
         >
-          📦 <span class="pill-text">Packages</span>
+          <span class="pill-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="10" width="18" height="11" rx="1.5" fill="currentColor" fill-opacity="0.1"/>
+              <rect x="3" y="10" width="18" height="11" rx="1.5"/>
+              <rect x="2.5" y="7" width="19" height="3.5" rx="1"/>
+              <line x1="12" y1="7" x2="12" y2="21"/>
+              <line x1="2.5" y1="8.75" x2="21.5" y2="8.75"/>
+              <path d="M12 7c-1-2-4.5-2.5-4 0s3.5 2 4 0"/>
+              <path d="M12 7c1-2 4.5-2.5 4 0s-3.5 2-4 0"/>
+            </svg>
+          </span>
+          <span class="pill-text">Packages</span>
         </button>
         <button
           class="mobile-nav-pill"
@@ -254,7 +296,17 @@
           data-test="nav-messages"
           title="Messages"
         >
-          💬 <span class="pill-text">Messages</span>
+          <span class="pill-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 14a2 2 0 0 1-2 2H9l-3.5 3.5V16H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v7z" fill="currentColor" fill-opacity="0.1"/>
+              <path d="M21 14a2 2 0 0 1-2 2H9l-3.5 3.5V16H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v7z"/>
+              <path d="M3.5 9v6a2 2 0 0 0 1.5 1.9"/>
+              <circle cx="9.5" cy="10.5" r="0.9" fill="currentColor"/>
+              <circle cx="13" cy="10.5" r="0.9" fill="currentColor"/>
+              <circle cx="16.5" cy="10.5" r="0.9" fill="currentColor"/>
+            </svg>
+          </span>
+          <span class="pill-text">Messages</span>
           <span class="pill-badge" id="mobile-msg-badge" style="display: none">0</span>
         </button>
         <button
@@ -263,7 +315,18 @@
           data-test="nav-tickets"
           title="Tickets"
         >
-          🎫 <span class="pill-text">Tickets</span>
+          <span class="pill-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 14a8 8 0 1 1 16 0"/>
+              <rect x="3" y="13.5" width="3" height="5" rx="1.5" fill="currentColor" fill-opacity="0.2"/>
+              <path d="M3 14v4a1.5 1.5 0 0 0 3 0v-4"/>
+              <rect x="18" y="13.5" width="3" height="5" rx="1.5" fill="currentColor" fill-opacity="0.2"/>
+              <path d="M18 14v4a1.5 1.5 0 0 0 3 0v-4"/>
+              <path d="M20 18v0.5a3.5 3.5 0 0 1-3.5 3.5H15"/>
+              <circle cx="14" cy="22" r="1" fill="currentColor" fill-opacity="0.35"/>
+            </svg>
+          </span>
+          <span class="pill-text">Tickets</span>
         </button>
         <a
           href="/settings"
@@ -272,7 +335,14 @@
           title="Settings"
           style="text-decoration: none; color: inherit;"
         >
-          ⚙️ <span class="pill-text">Settings</span>
+          <span class="pill-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"/>
+              <path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke-width="2"/>
+              <circle cx="12" cy="12" r="3" fill="currentColor" fill-opacity="0.15"/>
+            </svg>
+          </span>
+          <span class="pill-text">Settings</span>
         </a>
       </div>
     </nav>
@@ -656,7 +726,17 @@
           </div>
 
           <div class="sd-empty-state sd-empty-state--compact">
-            <div class="sd-empty-state__icon">💳</div>
+            <div class="sd-empty-state__icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="40" height="40">
+                <rect x="2" y="6" width="20" height="13" rx="2" fill="currentColor" fill-opacity="0.08"/>
+                <rect x="2" y="6" width="20" height="13" rx="2"/>
+                <line x1="2" y1="10.5" x2="22" y2="10.5" stroke-width="3"/>
+                <rect x="4" y="12.5" width="4" height="3" rx="0.75" fill="currentColor" fill-opacity="0.3"/>
+                <path d="M17 10.5l3 1v3.5c0 1.5-3 3-3 3s-3-1.5-3-3V11.5l3-1z" fill="currentColor" fill-opacity="0.18"/>
+                <path d="M17 10.5l3 1v3.5c0 1.5-3 3-3 3s-3-1.5-3-3V11.5l3-1z"/>
+                <polyline points="15.3 13.5 16.6 15 18.8 12.5" stroke-width="1.5"/>
+              </svg>
+            </div>
             <h4 class="sd-empty-state__title">Payments launching soon</h4>
             <p class="sd-empty-state__desc">Accept booking deposits, track revenue, and manage invoices — all from your EventFlow dashboard.</p>
             <div class="sd-empty-state__actions">
@@ -706,7 +786,21 @@
 
             <div class="sd-calendar-placeholder">
               <div class="sd-calendar-placeholder__inner">
-                <div class="sd-calendar-placeholder__icon" aria-hidden="true">📆</div>
+                <div class="sd-calendar-placeholder__icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="48" height="48">
+                    <rect x="3" y="4" width="18" height="18" rx="2" fill="currentColor" fill-opacity="0.06"/>
+                    <rect x="3" y="4" width="18" height="5" rx="2" fill="currentColor" fill-opacity="0.15" stroke="none"/>
+                    <rect x="3" y="4" width="18" height="18" rx="2"/>
+                    <line x1="8" y1="2" x2="8" y2="6" stroke-width="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6" stroke-width="2"/>
+                    <line x1="3" y1="9" x2="21" y2="9"/>
+                    <rect x="7" y="12" width="3" height="3" rx="0.5" fill="currentColor" fill-opacity="0.2"/>
+                    <rect x="11" y="12" width="3" height="3" rx="0.5" fill="currentColor" fill-opacity="0.2"/>
+                    <rect x="15" y="12" width="3" height="3" rx="0.5" fill="currentColor" fill-opacity="0.2"/>
+                    <rect x="7" y="16" width="3" height="3" rx="0.5" fill="currentColor" fill-opacity="0.2"/>
+                    <rect x="11" y="16" width="3" height="3" rx="0.5" fill="currentColor" fill-opacity="0.2"/>
+                  </svg>
+                </div>
                 <div>
                   <h3 class="sd-calendar-placeholder__title">
                     Interactive Calendar Coming Soon
