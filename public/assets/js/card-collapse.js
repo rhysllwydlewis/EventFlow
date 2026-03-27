@@ -311,8 +311,9 @@
 
     /* Restore persisted expand state (no animation on page load).
      * Default behaviour: cards start COLLAPSED.
-     * state[id] === true means the user has explicitly expanded this card. */
-    if (state[id] === true) {
+     * state[id] === false means the user has explicitly expanded this card.
+     * Undefined (no entry) = collapsed (the default). */
+    if (state[id] === false) {
       /* User previously expanded this card — show it open */
       card.classList.remove('card--collapsed');
       btn.setAttribute('aria-expanded', 'true');
@@ -359,11 +360,11 @@
 
       const current = loadState();
       if (collapsed) {
-        /* User collapsed the card — remove the "expanded" marker */
+        /* User collapsed the card — remove the key (collapsed is the default) */
         delete current[id];
       } else {
-        /* User expanded the card — record so it reopens on next load */
-        current[id] = true;
+        /* User expanded the card — save false so it reopens on next load */
+        current[id] = false;
       }
       saveState(current);
     };
