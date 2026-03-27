@@ -42,6 +42,7 @@
       Adapted from:
         • lucasromerodb/liquid-glass-effect-macos (feTurbulence + feSpecularLighting)
         • rdev/liquid-glass-react (feDisplacementMap chromatic-aberration pipeline)
+        • archisvaze/liquid-glass (feColorMatrix saturate boost post-displacement)
       These are also regenerated/enhanced by liquid-glass-engine.js at runtime.
     -->
     <svg xmlns="http://www.w3.org/2000/svg"
@@ -50,20 +51,24 @@
          style="position:absolute;width:0;height:0;overflow:hidden;pointer-events:none;"
          id="lg-svg-filters">
       <defs>
-        <!-- Glass distortion filter (lucasromerodb-style turbulence + specular) -->
+        <!-- Glass distortion filter (lucasromerodb turbulence + archisvaze saturation boost) -->
         <filter id="lg-distortion"
                 x="-30%" y="-30%" width="160%" height="160%"
                 color-interpolation-filters="sRGB">
           <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" seed="2" result="NOISE"/>
-          <feGaussianBlur in="SourceGraphic" stdDeviation="3" result="BLUR"/>
-          <feSpecularLighting in="BLUR" surfaceScale="4" specularConstant="1.2"
-                              specularExponent="15" lighting-color="white" result="SPECULAR">
+          <!-- Slightly reduced blur preserves crispness while still softening specular -->
+          <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="BLUR"/>
+          <!-- Stronger specular exponent for tighter, more glass-like highlight -->
+          <feSpecularLighting in="BLUR" surfaceScale="5" specularConstant="1.4"
+                              specularExponent="20" lighting-color="white" result="SPECULAR">
             <fePointLight x="300" y="-80" z="120"/>
           </feSpecularLighting>
           <feComposite in="SPECULAR" in2="SourceGraphic" operator="in" result="LIT"/>
           <feDisplacementMap in="LIT" in2="NOISE" scale="18"
                              xChannelSelector="R" yChannelSelector="G" result="DISPLACED"/>
-          <feComposite in="DISPLACED" in2="SourceGraphic" operator="in"/>
+          <!-- archisvaze: saturation boost on refracted content (values ≈ specSat=1.4) -->
+          <feColorMatrix in="DISPLACED" type="saturate" values="1.4" result="DISPLACED_SAT"/>
+          <feComposite in="DISPLACED_SAT" in2="SourceGraphic" operator="in"/>
         </filter>
       </defs>
     </svg>

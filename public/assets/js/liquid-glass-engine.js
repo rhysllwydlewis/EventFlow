@@ -211,17 +211,17 @@
     filter.appendChild(
       svgEl('feGaussianBlur', {
         in: 'SourceGraphic',
-        stdDeviation: '3',
+        stdDeviation: '2.5',
         result: 'BLUR',
       })
     );
 
-    /* Specular lighting pass */
+    /* Specular lighting pass — stronger exponent for tighter glass-like highlight */
     const specLit = svgEl('feSpecularLighting', {
       in: 'BLUR',
-      surfaceScale: '4',
-      specularConstant: '1.2',
-      specularExponent: '15',
+      surfaceScale: '5',
+      specularConstant: '1.4',
+      specularExponent: '20',
       'lighting-color': 'white',
       result: 'SPECULAR',
     });
@@ -254,10 +254,20 @@
       })
     );
 
+    /* archisvaze: saturation boost on displaced content — vibrancy in refracted areas */
+    filter.appendChild(
+      svgEl('feColorMatrix', {
+        in: 'DISPLACED',
+        type: 'saturate',
+        values: '1.4',
+        result: 'DISPLACED_SAT',
+      })
+    );
+
     /* Final composite to clip to source shape */
     filter.appendChild(
       svgEl('feComposite', {
-        in: 'DISPLACED',
+        in: 'DISPLACED_SAT',
         in2: 'SourceGraphic',
         operator: 'in',
       })
