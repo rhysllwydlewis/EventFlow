@@ -170,8 +170,10 @@
      the actual header is the next sibling. */
   .card-collapsible > .card-collapse-btn + * {
     padding-right: 36px;
-    /* Smooth opacity when card collapses/expands */
-    transition: opacity 0.25s ease;
+    /* Smooth opacity and margin when card collapses/expands */
+    transition:
+      opacity 0.25s ease,
+      margin-bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   /* ── Collapsible body wrapper ──────────────────────────────────── */
@@ -191,9 +193,39 @@
     padding-bottom: 0 !important;
   }
 
-  /* When a card is collapsed, give it a slightly muted look to signal state */
+  /* When a card is collapsed, give it a slightly muted look to signal state.
+     Also zero out any margin-bottom on the header so cards with CSS/inline
+     margin-bottom on their header (e.g. .ef-card-header: 1.5rem, chart card
+     headers: 1rem inline, .sd-availability-header: 0.875rem) don't show an
+     empty gap between the title and the card's bottom edge. */
   .card--collapsed > .card-collapse-btn + * {
     opacity: 0.75;
+    margin-bottom: 0 !important;
+  }
+
+  /* ── Leaked controls: hide when card is collapsed ──────────────── */
+
+  /* Performance Analytics — period toggle buttons (7 Days / 30 Days / 90 Days)
+     These are inside the chart card header and are meaningless without the chart. */
+  .card--collapsed .chart-period-btn {
+    display: none !important;
+  }
+
+  /* Enquiry Trends — export chart button is useless without the chart visible */
+  .card--collapsed #export-chart-btn {
+    display: none !important;
+  }
+
+  /* Messages — search/filter/sort toolbar is irrelevant when message list is hidden */
+  .card--collapsed .sd-messages-toolbar {
+    display: none !important;
+  }
+
+  /* ROI Performance Overview — date range selector is pointless when charts are hidden.
+     This also hides the selector on mobile always, since the period controls are
+     outside the individual collapsible chart cards and default to collapsed. */
+  .sd-roi-period {
+    display: none !important;
   }
 
   /* ── Throb breadcrumb animation ────────────────────────────────── */
