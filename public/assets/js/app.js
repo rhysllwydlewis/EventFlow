@@ -569,7 +569,7 @@ function supplierCard(s, user) {
        <div style="display: none; width: 60px; height: 60px; border-radius: 50%; background: ${generateSupplierGradient(s.name)}; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 1.5rem; margin-right: 16px; flex-shrink: 0;">${supplierInitial}</div>`
     : `<div style="width: 60px; height: 60px; border-radius: 50%; background: ${generateSupplierGradient(s.name)}; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 1.5rem; margin-right: 16px; flex-shrink: 0;">${supplierInitial}</div>`;
 
-  return `<div class="card supplier-card" style="display: flex; gap: 16px; align-items: start;">
+  return `<div class="card supplier-card glass-card" style="display: flex; gap: 16px; align-items: start;">
     ${avatarHtml}
     <div style="flex: 1; min-width: 0;">
       <h3 style="margin: 0 0 8px 0;">
@@ -2870,7 +2870,7 @@ async function initDashSupplier() {
           const description = escapeHtml(String(s.description_short || ''));
           const approved = !!s.approved;
 
-          return `<div class="supplier-card card" style="margin-bottom:10px" data-supplier-id="${supplierId}">
+          return `<div class="supplier-card card glass-card" style="margin-bottom:10px" data-supplier-id="${supplierId}">
       <img src="${photoUrl}" alt="${name} profile photo" data-fallback-src="/assets/images/collage-venue.svg">
       <div>
         <h3>${name} ${proBadge} ${approved ? '<span class="badge">Approved</span>' : '<span class="badge" style="background:#FFF5E6;color:#8A5A00">Awaiting review</span>'}</h3>

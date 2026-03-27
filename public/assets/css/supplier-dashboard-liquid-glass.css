@@ -1,0 +1,718 @@
+/**
+ * EventFlow — Supplier Dashboard Liquid Glass v1.1.0
+ * Comprehensive glassmorphism treatment for the supplier dashboard.
+ *
+ * Techniques drawn from:
+ *   • archisvaze/liquid-glass  — SVG filter refraction, ::before/::after inner-glow patterns,
+ *                                CSS custom properties (--tint-color, --tint-opacity, etc.)
+ *   • Z1Code/glass-refraction  — specular highlights, chromatic dispersion utility classes
+ *
+ * Architecture:
+ *   • All rules scoped to body.supplier-dashboard-page for zero cross-page bleed.
+ *   • Uses body.supplier-dashboard-page (specificity 0,2,1) to match/beat existing
+ *     supplier-dashboard-improvements.css selectors (also body.supplier-dashboard-page).
+ *   • Graceful fallback via @supports for browsers without backdrop-filter.
+ *   • Accessibility: prefers-reduced-motion and prefers-contrast handled.
+ */
+
+/* ============================================================
+   0. CSS Custom Properties — scoped to dashboard page body
+   ============================================================ */
+body.supplier-dashboard-page {
+  /* Glass surfaces */
+  --sdlg-bg:              rgba(255, 255, 255, 0.58);
+  --sdlg-bg-hover:        rgba(255, 255, 255, 0.72);
+  --sdlg-border:          rgba(255, 255, 255, 0.32);
+  --sdlg-border-hover:    rgba(255, 255, 255, 0.52);
+  --sdlg-shadow:          0 8px 32px rgba(0, 0, 0, 0.09), 0 2px 8px rgba(0, 0, 0, 0.05);
+  --sdlg-shadow-hover:    0 16px 48px rgba(0, 0, 0, 0.13), 0 4px 12px rgba(0, 0, 0, 0.07);
+
+  /* Blur */
+  --sdlg-blur:            16px;
+  --sdlg-blur-light:       8px;
+  --sdlg-blur-heavy:      24px;
+
+  /* Radius */
+  --sdlg-radius:          20px;
+  --sdlg-radius-sm:       14px;
+  --sdlg-radius-xs:        8px;
+
+  /* Transition */
+  --sdlg-transition:      0.28s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Tinted header overlays — matches the sd-card-header colour palette */
+  --sdlg-teal:            rgba(11, 128, 115, 0.14);
+  --sdlg-teal-border:     rgba(11, 128, 115, 0.25);
+  --sdlg-indigo:          rgba(99, 102, 241, 0.14);
+  --sdlg-indigo-border:   rgba(99, 102, 241, 0.25);
+  --sdlg-blue:            rgba(59, 130, 246, 0.14);
+  --sdlg-blue-border:     rgba(59, 130, 246, 0.25);
+  --sdlg-red:             rgba(239, 68, 68, 0.14);
+  --sdlg-red-border:      rgba(239, 68, 68, 0.25);
+  --sdlg-amber:           rgba(245, 158, 11, 0.14);
+  --sdlg-amber-border:    rgba(245, 158, 11, 0.25);
+  --sdlg-emerald:         rgba(16, 185, 129, 0.14);
+  --sdlg-emerald-border:  rgba(16, 185, 129, 0.25);
+  --sdlg-rose:            rgba(244, 63, 94, 0.14);
+  --sdlg-rose-border:     rgba(244, 63, 94, 0.25);
+  --sdlg-sky:             rgba(14, 165, 233, 0.14);
+  --sdlg-sky-border:      rgba(14, 165, 233, 0.25);
+}
+
+/* ============================================================
+   1. PAGE BODY BACKGROUND GRADIENT
+      A very subtle gradient gives backdrop-filter blur something
+      to work with and adds depth to the overall page.
+   ============================================================ */
+body.supplier-dashboard-page {
+  background: linear-gradient(
+    145deg,
+    #f0fdf9 0%,
+    #f8f9ff 30%,
+    #fafaf9 60%,
+    #f5f3ff 85%,
+    #f0fdf9 100%
+  ) !important;
+  background-attachment: fixed !important;
+}
+
+/* ============================================================
+   2. GLASS CARD BASE
+      Targets all main card/panel surfaces in the dashboard.
+      Uses body. prefix so specificity matches
+      supplier-dashboard-improvements.css existing rules.
+   ============================================================ */
+body.supplier-dashboard-page .card.sd-card,
+body.supplier-dashboard-page .sd-card,
+body.supplier-dashboard-page .supplier-dashboard-card,
+body.supplier-dashboard-page .card.glass-card.ef-card {
+  background: var(--sdlg-bg);
+  backdrop-filter: blur(var(--sdlg-blur)) saturate(165%);
+  -webkit-backdrop-filter: blur(var(--sdlg-blur)) saturate(165%);
+  border: 1px solid var(--sdlg-border);
+  border-radius: var(--sdlg-radius);
+  box-shadow:
+    var(--sdlg-shadow),
+    inset 0 1px 1px rgba(255, 255, 255, 0.70);
+  transition:
+    box-shadow var(--sdlg-transition),
+    border-color var(--sdlg-transition),
+    background var(--sdlg-transition);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Specular highlight — diagonal light catch (archisvaze inner-glow pattern) */
+body.supplier-dashboard-page .card.sd-card::before,
+body.supplier-dashboard-page .sd-card::before,
+body.supplier-dashboard-page .supplier-dashboard-card::before,
+body.supplier-dashboard-page .card.glass-card.ef-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    155deg,
+    rgba(255, 255, 255, 0.40) 0%,
+    rgba(255, 255, 255, 0.10) 40%,
+    rgba(255, 255, 255, 0.00) 65%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Card children sit above the specular overlay */
+body.supplier-dashboard-page .card.sd-card > *,
+body.supplier-dashboard-page .sd-card > *,
+body.supplier-dashboard-page .supplier-dashboard-card > *,
+body.supplier-dashboard-page .card.glass-card.ef-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+body.supplier-dashboard-page .card.sd-card:hover,
+body.supplier-dashboard-page .sd-card:hover,
+body.supplier-dashboard-page .supplier-dashboard-card:hover {
+  background: var(--sdlg-bg-hover);
+  border-color: var(--sdlg-border-hover);
+  box-shadow:
+    var(--sdlg-shadow-hover),
+    inset 0 1px 1px rgba(255, 255, 255, 0.80);
+}
+
+/* ============================================================
+   3. GLASS CARD HEADERS
+      Translucent tinted glass for each colour variant.
+      Uses `::after` for the specular top-edge highlight line.
+   ============================================================ */
+body.supplier-dashboard-page .sd-card-header {
+  backdrop-filter: blur(var(--sdlg-blur-light)) saturate(145%);
+  -webkit-backdrop-filter: blur(var(--sdlg-blur-light)) saturate(145%);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Specular highlight line — top edge */
+body.supplier-dashboard-page .sd-card-header::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.80) 25%,
+    rgba(255, 255, 255, 0.80) 75%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+/* Teal */
+body.supplier-dashboard-page .sd-card-header--teal {
+  --sd-header-bg:     linear-gradient(135deg, var(--sdlg-teal) 0%, rgba(16, 185, 129, 0.07) 100%);
+  --sd-header-border: var(--sdlg-teal-border);
+}
+
+/* Indigo */
+body.supplier-dashboard-page .sd-card-header--indigo {
+  --sd-header-bg:     linear-gradient(135deg, var(--sdlg-indigo) 0%, rgba(139, 92, 246, 0.07) 100%);
+  --sd-header-border: var(--sdlg-indigo-border);
+}
+
+/* Blue */
+body.supplier-dashboard-page .sd-card-header--blue {
+  --sd-header-bg:     linear-gradient(135deg, var(--sdlg-blue) 0%, rgba(37, 99, 235, 0.07) 100%);
+  --sd-header-border: var(--sdlg-blue-border);
+}
+
+/* Red */
+body.supplier-dashboard-page .sd-card-header--red {
+  --sd-header-bg:     linear-gradient(135deg, var(--sdlg-red) 0%, rgba(220, 38, 38, 0.07) 100%);
+  --sd-header-border: var(--sdlg-red-border);
+}
+
+/* Amber */
+body.supplier-dashboard-page .sd-card-header--amber {
+  --sd-header-bg:     linear-gradient(135deg, var(--sdlg-amber) 0%, rgba(251, 191, 36, 0.07) 100%);
+  --sd-header-border: var(--sdlg-amber-border);
+}
+
+/* Emerald */
+body.supplier-dashboard-page .sd-card-header--emerald {
+  --sd-header-bg:     linear-gradient(135deg, var(--sdlg-emerald) 0%, rgba(5, 150, 105, 0.07) 100%);
+  --sd-header-border: var(--sdlg-emerald-border);
+}
+
+/* Rose */
+body.supplier-dashboard-page .sd-card-header--rose {
+  --sd-header-bg:     linear-gradient(135deg, var(--sdlg-rose) 0%, rgba(225, 29, 72, 0.07) 100%);
+  --sd-header-border: var(--sdlg-rose-border);
+}
+
+/* Sky */
+body.supplier-dashboard-page .sd-card-header--sky {
+  --sd-header-bg:     linear-gradient(135deg, var(--sdlg-sky) 0%, rgba(2, 132, 199, 0.07) 100%);
+  --sd-header-border: var(--sdlg-sky-border);
+}
+
+/* ============================================================
+   4. SHIMMER SWEEP ANIMATION (archisvaze light-catch technique)
+      Plays once on hover; respects prefers-reduced-motion.
+   ============================================================ */
+@keyframes sdlg-shimmer {
+  0%   { transform: translateX(-100%) skewX(-12deg); opacity: 0; }
+  20%  { opacity: 1; }
+  100% { transform: translateX(250%) skewX(-12deg); opacity: 0; }
+}
+
+body.supplier-dashboard-page .card.sd-card::after,
+body.supplier-dashboard-page .supplier-dashboard-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 35%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.22) 50%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 2;
+  transform: translateX(-100%) skewX(-12deg);
+  opacity: 0;
+}
+
+body.supplier-dashboard-page .card.sd-card:hover::after,
+body.supplier-dashboard-page .supplier-dashboard-card:hover::after {
+  animation: sdlg-shimmer 0.65s ease-out forwards;
+}
+
+/* ============================================================
+   5. HERO STAT CARDS (.dashboard-stat-card)
+      Enhances the cards rendered inside the dashboard hero.
+      dashboard-hero.css already provides good glass — we refine
+      the surface and keep the existing coloured top stripe.
+   ============================================================ */
+body.supplier-dashboard-page .dashboard-stat-card {
+  background: rgba(255, 255, 255, 0.62);
+  backdrop-filter: blur(18px) saturate(170%);
+  -webkit-backdrop-filter: blur(18px) saturate(170%);
+  border: 1px solid rgba(255, 255, 255, 0.48);
+  box-shadow:
+    0 6px 20px rgba(0, 0, 0, 0.08),
+    inset 0 1px 2px rgba(255, 255, 255, 0.90);
+}
+
+/* Preserve the 3-px coloured top stripe defined in dashboard-hero.css
+   (--stat-color-1 / --stat-color-2), just add a subtle arc so edges fade */
+body.supplier-dashboard-page .dashboard-stat-card::before {
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    rgba(var(--stat-color-1-raw, 16, 185, 129), 0)  0%,
+    var(--stat-color-1, #10b981)                    20%,
+    var(--stat-color-2, #059669)                    80%,
+    rgba(var(--stat-color-2-raw, 5, 150, 105), 0)  100%
+  );
+  opacity: 0.9;
+}
+
+body.supplier-dashboard-page .dashboard-stat-card:hover {
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow:
+    0 12px 36px rgba(0, 0, 0, 0.11),
+    inset 0 1px 2px rgba(255, 255, 255, 1);
+}
+
+/* ============================================================
+   6. EARNINGS / EF STAT CARDS (.ef-stat-card)
+   ============================================================ */
+body.supplier-dashboard-page .ef-stat-card {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(var(--sdlg-blur-light)) saturate(155%);
+  -webkit-backdrop-filter: blur(var(--sdlg-blur-light)) saturate(155%);
+  border: 1px solid var(--sdlg-border);
+  border-radius: var(--sdlg-radius-sm);
+  box-shadow:
+    0 4px 16px rgba(0, 0, 0, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.70);
+}
+
+/* ============================================================
+   7. JS-GENERATED SUPPLIER CARDS (.supplier-card.card)
+      Rendered by loadSuppliers() in app.js.
+   ============================================================ */
+body.supplier-dashboard-page .supplier-card.card {
+  background: rgba(255, 255, 255, 0.60);
+  backdrop-filter: blur(var(--sdlg-blur)) saturate(155%);
+  -webkit-backdrop-filter: blur(var(--sdlg-blur)) saturate(155%);
+  border: 1px solid var(--sdlg-border);
+  border-radius: var(--sdlg-radius-sm);
+  box-shadow:
+    var(--sdlg-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  transition:
+    box-shadow var(--sdlg-transition),
+    transform var(--sdlg-transition);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Top specular stripe */
+body.supplier-dashboard-page .supplier-card.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.80),
+    transparent
+  );
+  pointer-events: none;
+}
+
+body.supplier-dashboard-page .supplier-card.card:hover {
+  box-shadow:
+    var(--sdlg-shadow-hover),
+    inset 0 1px 0 rgba(255, 255, 255, 0.80);
+  transform: translateY(-2px);
+}
+
+/* ============================================================
+   8. GLASS INPUT FIELDS — inside sd-card form sections
+   ============================================================ */
+body.supplier-dashboard-page .sd-card input[type="text"],
+body.supplier-dashboard-page .sd-card input[type="email"],
+body.supplier-dashboard-page .sd-card input[type="url"],
+body.supplier-dashboard-page .sd-card input[type="number"],
+body.supplier-dashboard-page .sd-card input[type="tel"],
+body.supplier-dashboard-page .sd-card select,
+body.supplier-dashboard-page .sd-card textarea {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid rgba(203, 213, 225, 0.70);
+  border-radius: var(--sdlg-radius-xs);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition:
+    background var(--sdlg-transition),
+    border-color var(--sdlg-transition),
+    box-shadow var(--sdlg-transition);
+}
+
+body.supplier-dashboard-page .sd-card input[type="text"]:focus,
+body.supplier-dashboard-page .sd-card input[type="email"]:focus,
+body.supplier-dashboard-page .sd-card input[type="url"]:focus,
+body.supplier-dashboard-page .sd-card input[type="number"]:focus,
+body.supplier-dashboard-page .sd-card input[type="tel"]:focus,
+body.supplier-dashboard-page .sd-card select:focus,
+body.supplier-dashboard-page .sd-card textarea:focus {
+  background: rgba(255, 255, 255, 0.90);
+  border-color: rgba(11, 128, 115, 0.55);
+  box-shadow:
+    0 0 0 3px rgba(11, 128, 115, 0.12),
+    inset 0 1px 3px rgba(0, 0, 0, 0.03);
+  outline: none;
+}
+
+/* Form actions bar */
+body.supplier-dashboard-page .form-actions,
+body.supplier-dashboard-page .supplier-form-actions {
+  background: rgba(255, 255, 255, 0.35);
+  border-top: 1px solid rgba(255, 255, 255, 0.28);
+  padding: 0.875rem 1.25rem;
+}
+
+/* ============================================================
+   9. BREADCRUMB NAVIGATION — Light glass pill
+   ============================================================ */
+body.supplier-dashboard-page .dashboard-breadcrumb {
+  background: rgba(255, 255, 255, 0.60);
+  backdrop-filter: blur(var(--sdlg-blur-light)) saturate(145%);
+  -webkit-backdrop-filter: blur(var(--sdlg-blur-light)) saturate(145%);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: var(--sdlg-radius-sm);
+  padding: 0.5rem 1.125rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+/* ============================================================
+   10. BOTTOM NAVIGATION — Frosted glass
+   ============================================================ */
+body.supplier-dashboard-page .ef-bottom-nav {
+  background: rgba(255, 255, 255, 0.80) !important;
+  backdrop-filter: blur(var(--sdlg-blur)) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(var(--sdlg-blur)) saturate(180%) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.40) !important;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.07) !important;
+}
+
+/* ============================================================
+   11. SECTION DIVIDERS — Refraction line effect
+   ============================================================ */
+body.supplier-dashboard-page .sd-section-divider {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 2rem 0 1.5rem;
+}
+
+body.supplier-dashboard-page .sd-section-divider::before,
+body.supplier-dashboard-page .sd-section-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent    0%,
+    rgba(11, 128, 115, 0.18) 15%,
+    rgba(11, 128, 115, 0.35) 40%,
+    rgba(11, 128, 115, 0.35) 60%,
+    rgba(11, 128, 115, 0.18) 85%,
+    transparent   100%
+  );
+}
+
+body.supplier-dashboard-page .sd-section-divider__label {
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 9999px;
+  padding: 0.3rem 0.9rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #374151;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+/* ============================================================
+   12. MODALS & DROPDOWNS
+   ============================================================ */
+
+/* Notification dropdown */
+body.supplier-dashboard-page .notification-dropdown {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(var(--sdlg-blur)) saturate(165%);
+  -webkit-backdrop-filter: blur(var(--sdlg-blur)) saturate(165%);
+  border: 1px solid rgba(255, 255, 255, 0.38);
+  border-radius: var(--sdlg-radius-sm);
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.14),
+    0 6px 16px rgba(0, 0, 0, 0.07);
+}
+
+/* Modal backdrop */
+body.supplier-dashboard-page .modal-backdrop,
+body.supplier-dashboard-page .sd-modal-backdrop {
+  background: rgba(11, 18, 32, 0.32);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* Modal container */
+body.supplier-dashboard-page .modal-content,
+body.supplier-dashboard-page .sd-modal-content {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(var(--sdlg-blur-heavy)) saturate(185%);
+  -webkit-backdrop-filter: blur(var(--sdlg-blur-heavy)) saturate(185%);
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: var(--sdlg-radius);
+  box-shadow:
+    0 25px 60px rgba(0, 0, 0, 0.16),
+    0 8px 24px rgba(0, 0, 0, 0.09),
+    inset 0 1px 0 rgba(255, 255, 255, 0.60);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Teal specular stripe on modals */
+body.supplier-dashboard-page .modal-content::before,
+body.supplier-dashboard-page .sd-modal-content::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(11, 128, 115, 0.60),
+    rgba(19, 182, 162, 0.60),
+    transparent
+  );
+  border-radius: var(--sdlg-radius) var(--sdlg-radius) 0 0;
+  pointer-events: none;
+}
+
+/* ============================================================
+   13. PERFORMANCE / ROI SECTION
+   ============================================================ */
+body.supplier-dashboard-page .sd-roi-header {
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(var(--sdlg-blur-light));
+  -webkit-backdrop-filter: blur(var(--sdlg-blur-light));
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: var(--sdlg-radius-sm);
+  padding: 0.875rem 1.25rem;
+  margin-bottom: 1rem;
+}
+
+body.supplier-dashboard-page #supplier-conversion-funnel,
+body.supplier-dashboard-page #supplier-response-time {
+  background: rgba(255, 255, 255, 0.48);
+  backdrop-filter: blur(var(--sdlg-blur-light));
+  -webkit-backdrop-filter: blur(var(--sdlg-blur-light));
+  border: 1px solid rgba(255, 255, 255, 0.30);
+  border-radius: var(--sdlg-radius-sm);
+  padding: 1rem;
+  min-height: 160px;
+}
+
+/* ============================================================
+   14. REVIEWS STAT CARDS (.sd-reviews-stat-card)
+   ============================================================ */
+body.supplier-dashboard-page .sd-reviews-stat-card {
+  background: rgba(255, 255, 255, 0.58);
+  backdrop-filter: blur(var(--sdlg-blur-light)) saturate(155%);
+  -webkit-backdrop-filter: blur(var(--sdlg-blur-light)) saturate(155%);
+  border: 1px solid var(--sdlg-border);
+  border-radius: var(--sdlg-radius-sm);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.70);
+  transition: transform var(--sdlg-transition), box-shadow var(--sdlg-transition);
+}
+
+body.supplier-dashboard-page .sd-reviews-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.80);
+}
+
+/* ============================================================
+   15. PRO RIBBON / VERIFICATION BANNER
+   ============================================================ */
+body.supplier-dashboard-page .pro-ribbon,
+body.supplier-dashboard-page #verification-status-banner {
+  background: rgba(255, 255, 255, 0.58);
+  backdrop-filter: blur(var(--sdlg-blur-light)) saturate(145%);
+  -webkit-backdrop-filter: blur(var(--sdlg-blur-light)) saturate(145%);
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  border-radius: var(--sdlg-radius-sm);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+/* ============================================================
+   16. AVAILABILITY CALENDAR SECTION
+   ============================================================ */
+body.supplier-dashboard-page .sd-availability-section {
+  background: rgba(255, 255, 255, 0.38);
+  border-radius: var(--sdlg-radius-sm);
+}
+
+/* ============================================================
+   17. BROWSER FALLBACK — no backdrop-filter support
+   ============================================================ */
+@supports not (backdrop-filter: blur(1px)) {
+  body.supplier-dashboard-page .card.sd-card,
+  body.supplier-dashboard-page .sd-card,
+  body.supplier-dashboard-page .supplier-dashboard-card,
+  body.supplier-dashboard-page .supplier-card.card,
+  body.supplier-dashboard-page .dashboard-stat-card,
+  body.supplier-dashboard-page .ef-stat-card,
+  body.supplier-dashboard-page .sd-reviews-stat-card,
+  body.supplier-dashboard-page .notification-dropdown,
+  body.supplier-dashboard-page .modal-content,
+  body.supplier-dashboard-page .sd-modal-content {
+    background: rgba(255, 255, 255, 0.97);
+  }
+
+  /* Solid fallback tints for card headers */
+  body.supplier-dashboard-page .sd-card-header--teal {
+    --sd-header-bg:     linear-gradient(135deg, rgba(11, 128, 115, 0.08) 0%, rgba(16, 185, 129, 0.04) 100%);
+    --sd-header-border: rgba(11, 128, 115, 0.12);
+  }
+  body.supplier-dashboard-page .sd-card-header--indigo {
+    --sd-header-bg:     linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(139, 92, 246, 0.04) 100%);
+    --sd-header-border: rgba(99, 102, 241, 0.12);
+  }
+  body.supplier-dashboard-page .sd-card-header--blue {
+    --sd-header-bg:     linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(37, 99, 235, 0.04) 100%);
+    --sd-header-border: rgba(59, 130, 246, 0.12);
+  }
+  body.supplier-dashboard-page .sd-card-header--red {
+    --sd-header-bg:     linear-gradient(135deg, rgba(239, 68, 68, 0.08) 0%, rgba(220, 38, 38, 0.04) 100%);
+    --sd-header-border: rgba(239, 68, 68, 0.12);
+  }
+  body.supplier-dashboard-page .sd-card-header--amber {
+    --sd-header-bg:     linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(251, 191, 36, 0.04) 100%);
+    --sd-header-border: rgba(245, 158, 11, 0.12);
+  }
+  body.supplier-dashboard-page .sd-card-header--emerald {
+    --sd-header-bg:     linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(5, 150, 105, 0.04) 100%);
+    --sd-header-border: rgba(16, 185, 129, 0.12);
+  }
+  body.supplier-dashboard-page .sd-card-header--rose {
+    --sd-header-bg:     linear-gradient(135deg, rgba(244, 63, 94, 0.08) 0%, rgba(225, 29, 72, 0.04) 100%);
+    --sd-header-border: rgba(244, 63, 94, 0.12);
+  }
+  body.supplier-dashboard-page .sd-card-header--sky {
+    --sd-header-bg:     linear-gradient(135deg, rgba(14, 165, 233, 0.08) 0%, rgba(2, 132, 199, 0.04) 100%);
+    --sd-header-border: rgba(14, 165, 233, 0.12);
+  }
+
+  body.supplier-dashboard-page {
+    background: #f9fafb !important;
+  }
+
+  body.supplier-dashboard-page .dashboard-breadcrumb,
+  body.supplier-dashboard-page .sd-section-divider__label,
+  body.supplier-dashboard-page .pro-ribbon,
+  body.supplier-dashboard-page #verification-status-banner {
+    background: #ffffff;
+  }
+
+  body.supplier-dashboard-page .ef-bottom-nav {
+    background: rgba(255, 255, 255, 0.98) !important;
+  }
+}
+
+/* ============================================================
+   18. MOBILE RESPONSIVE — Reduced blur for GPU performance
+   ============================================================ */
+@media (max-width: 768px) {
+  body.supplier-dashboard-page {
+    --sdlg-blur:       10px;
+    --sdlg-blur-light:  5px;
+    --sdlg-blur-heavy: 14px;
+    --sdlg-radius:     16px;
+    --sdlg-radius-sm:  12px;
+  }
+
+  /* Disable shimmer on mobile (performance) */
+  body.supplier-dashboard-page .card.sd-card:hover::after,
+  body.supplier-dashboard-page .supplier-dashboard-card:hover::after {
+    animation: none;
+  }
+}
+
+/* ============================================================
+   19. REDUCED MOTION — Disable all transitions & animations
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  body.supplier-dashboard-page .card.sd-card,
+  body.supplier-dashboard-page .sd-card,
+  body.supplier-dashboard-page .supplier-dashboard-card,
+  body.supplier-dashboard-page .supplier-card.card,
+  body.supplier-dashboard-page .dashboard-stat-card,
+  body.supplier-dashboard-page .ef-stat-card,
+  body.supplier-dashboard-page .sd-reviews-stat-card {
+    transition: none;
+  }
+
+  body.supplier-dashboard-page .dashboard-stat-card:hover,
+  body.supplier-dashboard-page .supplier-card.card:hover,
+  body.supplier-dashboard-page .sd-reviews-stat-card:hover {
+    transform: none;
+  }
+
+  body.supplier-dashboard-page .card.sd-card:hover::after,
+  body.supplier-dashboard-page .supplier-dashboard-card:hover::after {
+    animation: none;
+  }
+}
+
+/* ============================================================
+   20. HIGH CONTRAST MODE FALLBACK
+   ============================================================ */
+@media (prefers-contrast: high) {
+  body.supplier-dashboard-page .card.sd-card,
+  body.supplier-dashboard-page .sd-card,
+  body.supplier-dashboard-page .supplier-dashboard-card,
+  body.supplier-dashboard-page .supplier-card.card,
+  body.supplier-dashboard-page .dashboard-stat-card,
+  body.supplier-dashboard-page .ef-stat-card {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: #ffffff;
+    border: 2px solid currentColor;
+  }
+}
