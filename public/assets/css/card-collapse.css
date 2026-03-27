@@ -196,6 +196,31 @@
     opacity: 0.75;
   }
 
+  /* ── Leaked controls: hide when card is collapsed ──────────────── */
+
+  /* Performance Analytics — period toggle buttons (7 Days / 30 Days / 90 Days)
+     These are inside the chart card header and are meaningless without the chart. */
+  .card--collapsed .chart-period-btn {
+    display: none !important;
+  }
+
+  /* Enquiry Trends — export chart button is useless without the chart visible */
+  .card--collapsed #export-chart-btn {
+    display: none !important;
+  }
+
+  /* Messages — search/filter/sort toolbar is irrelevant when message list is hidden */
+  .card--collapsed .sd-messages-toolbar {
+    display: none !important;
+  }
+
+  /* ROI Performance Overview — date range selector is pointless when charts are hidden.
+     This also hides the selector on mobile always, since the period controls are
+     outside the individual collapsible chart cards and default to collapsed. */
+  .sd-roi-period {
+    display: none !important;
+  }
+
   /* ── Throb breadcrumb animation ────────────────────────────────── */
   /* JS sets [data-throb] on the button when the card first loads in the
      collapsed state. The attribute is removed on first user interaction,
