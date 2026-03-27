@@ -816,7 +816,7 @@ body.ef-menu-open {
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid var(--ef-border);
-  padding: 10px 8px 12px;
+  padding: 10px 4px 12px;
   box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
   gap: 4px;
 }
@@ -838,7 +838,7 @@ body.ef-menu-open {
   min-width: 44px;
   -webkit-tap-highlight-color: transparent;
   flex: 1 1 auto;
-  max-width: 100px;
+  max-width: 80px;
 }
 
 .ef-bottom-link:hover,
@@ -882,12 +882,16 @@ body.ef-menu-open {
   font-weight: 500;
   text-align: center;
   line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
 }
 
 /* Menu button specific styles - compact but usable */
 #ef-bottom-menu {
-  min-width: 56px;
-  max-width: 64px;
+  min-width: 48px;
+  max-width: 56px;
   padding: 6px 8px;
   flex-shrink: 1;
 }
@@ -899,15 +903,15 @@ body.ef-menu-open {
 }
 
 .ef-bottom-nav.logged-in .ef-bottom-link {
-  min-width: 56px;
+  min-width: 48px;
   padding: 6px 8px;
   gap: 3px;
   transition: all 0.3s ease;
 }
 
 .ef-bottom-nav.logged-in #ef-bottom-menu {
-  min-width: 52px;
-  max-width: 60px;
+  min-width: 44px;
+  max-width: 52px;
   padding: 6px 6px;
 }
 
@@ -1064,7 +1068,7 @@ body {
   }
 
   .ef-bottom-link {
-    padding: 6px 4px;
+    padding: 6px 2px;
     min-width: 44px;
     gap: 3px;
   }
@@ -1080,8 +1084,8 @@ body {
 
   /* Adjust menu button for smaller screens */
   #ef-bottom-menu {
-    min-width: 52px;
-    max-width: 58px;
+    min-width: 44px;
+    max-width: 52px;
     padding: 6px 6px;
   }
 }
