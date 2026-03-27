@@ -1,0 +1,816 @@
+/**
+ * EventFlow Liquid Glass — Mobile Enhancements v19.2.0
+ *
+ * Scoped exclusively to mobile (≤768px) — Supplier Dashboard only.
+ * Implements the 4-layer glass architecture from:
+ *   lucasromerodb/liquid-glass-effect-macos (wrapper → effect → tint → shine → content)
+ * Combined with backdrop-filter chains from:
+ *   shuding/liquid-glass  (backdrop-filter: url(#filter) blur() contrast() brightness())
+ *   rdev/liquid-glass-react (saturation, overLight mode, specular highlights)
+ * Additional techniques from:
+ *   Z1Code/glass-refraction  (chromatic dispersion radial-gradients, shimmer sweep,
+ *                              specular-breathe, ring border, chromatic inset edges)
+ *   archisvaze/liquid-glass  (specular map canvas layer, SVG feBlend composite)
+ *
+ * DO NOT add desktop rules here — all rules must stay inside @media (max-width: 768px).
+ */
+
+/* =============================================================
+   MOBILE — ≤768px
+   ============================================================= */
+@media (max-width: 768px) {
+
+  /* -----------------------------------------------------------
+     CSS CUSTOM PROPERTIES — Mobile Glass Tokens
+     ----------------------------------------------------------- */
+  :root {
+    --lg-blur: 10px;
+    --lg-saturate: 160%;
+    --lg-tint-white: rgba(255, 255, 255, 0.22);
+    --lg-tint-teal: rgba(11, 128, 115, 0.08);
+    --lg-shine-top: rgba(255, 255, 255, 0.55);
+    --lg-shine-bottom: rgba(255, 255, 255, 0.3);
+    --lg-transition-bounce: 0.4s cubic-bezier(0.175, 0.885, 0.32, 2.2);
+    --lg-transition-smooth: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    --lg-shadow-float: 0 8px 32px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.1);
+    --lg-shadow-inset: inset 2px 2px 1px 0 rgba(255,255,255,0.5),
+                       inset -1px -1px 1px 1px rgba(255,255,255,0.35);
+    /* Chromatic dispersion — EventFlow brand palette (Z1Code/glass-refraction technique) */
+    --lg-chromatic-teal:   rgba(11, 128, 115, 0.05);
+    --lg-chromatic-indigo: rgba(99, 102, 241, 0.04);
+    --lg-chromatic-amber:  rgba(245, 158, 11, 0.03);
+    --lg-chromatic-white:  rgba(255, 255, 255, 0.04);
+    /* Thin ring border (archisvaze / Z1Code inset edge technique) */
+    --lg-ring: 0 0 0 0.5px rgba(255, 255, 255, 0.15);
+  }
+
+  /* -----------------------------------------------------------
+     4-LAYER BASE CLASSES
+     (injected by liquid-glass-engine.js; also usable in pure CSS)
+     ----------------------------------------------------------- */
+  .lg-wrapper {
+    position: relative;
+    overflow: hidden;
+    /* Bounce transition from lucasromerodb */
+    transition: all var(--lg-transition-bounce);
+    will-change: transform;
+  }
+
+  /* Layer 0: backdrop-filter + SVG glass filter (distortion only here;
+     chromatic aberration filters applied per-component below) */
+  .lg-effect {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    isolation: isolate;
+    will-change: transform;
+  }
+
+  @supports (backdrop-filter: blur(1px)) {
+    .lg-effect {
+      backdrop-filter: url(#lg-distortion) blur(var(--lg-blur)) saturate(var(--lg-saturate)) brightness(1.02);
+      -webkit-backdrop-filter: url(#lg-distortion) blur(var(--lg-blur)) saturate(var(--lg-saturate)) brightness(1.02);
+    }
+  }
+
+  /* Layer 1: semi-transparent tint overlay */
+  .lg-tint {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: var(--lg-tint-white);
+    pointer-events: none;
+  }
+
+  /* Layer 2: specular shine via inset box-shadow */
+  .lg-shine {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    overflow: hidden;
+    box-shadow: var(--lg-shadow-inset);
+    pointer-events: none;
+  }
+
+  /* Layer 3: actual content */
+  .lg-content {
+    position: relative;
+    z-index: 3;
+  }
+
+  /* -----------------------------------------------------------
+     DASHBOARD HERO  (.dashboard-hero)
+     Uses SVG filters via CSS backdrop-filter on the existing
+     .dashboard-hero__bg layer (no HTML change needed)
+     ----------------------------------------------------------- */
+  .dashboard-hero {
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--lg-shadow-float);
+    border-radius: 20px;
+    transition: box-shadow var(--lg-transition-smooth);
+    will-change: transform;
+  }
+
+  /* Apply glass distortion to the existing bg overlay — @supports guarded */
+  @supports (backdrop-filter: blur(1px)) {
+    .dashboard-hero__bg {
+      backdrop-filter:
+        url(#lg-distortion)
+        url(#lg-aberration-prominent)
+        blur(var(--lg-blur))
+        saturate(var(--lg-saturate))
+        brightness(1.04)
+        contrast(1.02);
+      -webkit-backdrop-filter:
+        url(#lg-distortion)
+        url(#lg-aberration-prominent)
+        blur(var(--lg-blur))
+        saturate(var(--lg-saturate))
+        brightness(1.04)
+        contrast(1.02);
+      isolation: isolate;
+      will-change: transform;
+    }
+  }
+
+  /* Specular highlight stripe at the top of the hero — animated shimmer + breathe */
+  .dashboard-hero::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      transparent 10%,
+      rgba(255, 255, 255, 0.85) 40%,
+      rgba(255, 255, 255, 1.0) 50%,
+      rgba(255, 255, 255, 0.85) 60%,
+      transparent 90%,
+      transparent 100%
+    );
+    background-size: 200% 100%;
+    animation:
+      lg-shimmer-stripe 4s ease-in-out infinite,
+      lg-specular-breathe 5s ease-in-out infinite;
+    z-index: 4;
+    pointer-events: none;
+    border-radius: 20px 20px 0 0;
+  }
+
+  @keyframes lg-shimmer-stripe {
+    0%   { background-position: -100% 0; opacity: 0.7; }
+    50%  { background-position: 100% 0;  opacity: 1; }
+    100% { background-position: -100% 0; opacity: 0.7; }
+  }
+
+  /* Z1Code glass-refraction: background-position shimmer sweep */
+  @keyframes lg-shimmer-sweep {
+    0%   { background-position: -200% 0, 0 0; }
+    100% { background-position:  200% 0, 0 0; }
+  }
+
+  /* Z1Code glass-refraction: top-edge specular line breathing */
+  @keyframes lg-specular-breathe {
+    0%, 100% { opacity: 0.55; }
+    50%       { opacity: 1; }
+  }
+
+  /* Hero wrapper gets the specular inset shine + ring border */
+  .dashboard-hero {
+    box-shadow:
+      var(--lg-ring),
+      var(--lg-shadow-float),
+      var(--lg-shadow-inset);
+  }
+
+  /* Chromatic dispersion + shimmer sweep overlay (Z1Code technique)
+     Uses ::before which is not otherwise occupied on .dashboard-hero */
+  .dashboard-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    /* Four-corner chromatic radial gradients — EventFlow brand colours */
+    background:
+      radial-gradient(ellipse 60% 50% at 5%  50%,  var(--lg-chromatic-teal)   0%, transparent 70%),
+      radial-gradient(ellipse 50% 60% at 50% 5%,   var(--lg-chromatic-indigo) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 50% at 95% 50%,  var(--lg-chromatic-amber)  0%, transparent 70%),
+      radial-gradient(ellipse 50% 60% at 50% 95%,  var(--lg-chromatic-white)  0%, transparent 70%),
+      /* Shimmer sweep gloss (Z1Code glass-shimmer) */
+      linear-gradient(105deg, transparent 38%, rgba(255,255,255,0.045) 50%, transparent 62%);
+    background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%, 200% 100%;
+    animation: lg-shimmer-sweep 9s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  /* Keep hero content properly layered above bg effects */
+  .dashboard-hero__content {
+    position: relative;
+    z-index: 3;
+  }
+
+  /* -----------------------------------------------------------
+     MOBILE NAV BAR  (.dashboard-mobile-nav)
+     Apply glass to the sticky bar wrapper, not the pill scroll row
+     ----------------------------------------------------------- */
+  .dashboard-mobile-nav {
+    position: sticky;
+    overflow: hidden;
+    /* Glass applied to the wrapper bar itself */
+    background: rgba(255, 255, 255, 0.55);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow:
+      0 4px 20px rgba(11, 128, 115, 0.1),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    isolation: isolate;
+    transition: background var(--lg-transition-smooth);
+  }
+
+  @supports (backdrop-filter: blur(1px)) {
+    .dashboard-mobile-nav {
+      background: rgba(255, 255, 255, 0.35);
+      backdrop-filter:
+        url(#lg-distortion)
+        blur(calc(var(--lg-blur) * 1.2))
+        saturate(var(--lg-saturate))
+        brightness(1.06);
+      -webkit-backdrop-filter:
+        url(#lg-distortion)
+        blur(calc(var(--lg-blur) * 1.2))
+        saturate(var(--lg-saturate))
+        brightness(1.06);
+    }
+  }
+
+  /* Specular top edge on the nav bar */
+  .dashboard-mobile-nav::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 10%;
+    right: 10%;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.9),
+      transparent
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Pill scroll area — keep scrolling intact; DO NOT set overflow:hidden */
+  .mobile-nav-pills {
+    /* Gradient fades updated to work with the translucent bar background */
+    background: transparent;
+  }
+
+  /* Fix the scroll fade pseudo-elements to use transparent so they
+     blend with the glass bar rather than fading to solid white */
+  .mobile-nav-pills::before {
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0));
+  }
+
+  .mobile-nav-pills::after {
+    background: linear-gradient(270deg, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0));
+  }
+
+  /* Active pill: enhanced glass with teal tint */
+  .mobile-nav-pill.active {
+    background: linear-gradient(135deg, rgba(11, 128, 115, 0.2) 0%, rgba(16, 185, 129, 0.15) 100%);
+    box-shadow:
+      inset 1px 1px 2px rgba(255, 255, 255, 0.5),
+      inset 0 -1px 1px rgba(11, 128, 115, 0.15),
+      0 2px 10px rgba(11, 128, 115, 0.2);
+    border-color: rgba(11, 128, 115, 0.45);
+    transition: all var(--lg-transition-bounce);
+  }
+
+  /* Individual nav pills — bounce on tap */
+  .mobile-nav-pill {
+    transition: all var(--lg-transition-bounce);
+    will-change: transform;
+  }
+
+  .mobile-nav-pill:active {
+    transform: scale(0.93);
+  }
+
+  /* -----------------------------------------------------------
+     STAT WIDGET CARDS  (.stat-widget.card / .dashboard-stat-card)
+     ----------------------------------------------------------- */
+  .stat-widget.card,
+  .dashboard-stat-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow:
+      var(--lg-ring),
+      var(--lg-shadow-inset),
+      /* Chromatic inset edges (Z1Code technique) */
+      inset  1px 0 0 0 rgba(11, 128, 115, 0.06),
+      inset -1px 0 0 0 rgba(99, 102, 241, 0.05),
+      inset 0  1px 0 0 rgba(255, 255, 255, 0.08),
+      inset 0 -1px 0 0 rgba(245, 158, 11, 0.04),
+      0 4px 16px rgba(11, 128, 115, 0.1);
+    isolation: isolate;
+    transition: transform var(--lg-transition-bounce), box-shadow var(--lg-transition-smooth);
+    will-change: transform;
+  }
+
+  @supports (backdrop-filter: blur(1px)) {
+    .stat-widget.card,
+    .dashboard-stat-card {
+      background: rgba(255, 255, 255, 0.55);
+      backdrop-filter:
+        url(#lg-distortion)
+        blur(calc(var(--lg-blur) * 0.7))
+        saturate(var(--lg-saturate))
+        brightness(1.04);
+      -webkit-backdrop-filter:
+        url(#lg-distortion)
+        blur(calc(var(--lg-blur) * 0.7))
+        saturate(var(--lg-saturate))
+        brightness(1.04);
+    }
+  }
+
+  /* Top specular line on stat cards */
+  .stat-widget.card::before,
+  .dashboard-stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.8),
+      transparent
+    );
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .stat-widget.card:active,
+  .dashboard-stat-card:active {
+    transform: scale(0.97);
+    box-shadow:
+      var(--lg-ring),
+      var(--lg-shadow-inset),
+      0 2px 8px rgba(11, 128, 115, 0.08);
+  }
+
+  /* Chromatic dispersion overlay on stat cards (Z1Code radial-gradient) */
+  .stat-widget.card::after,
+  .dashboard-stat-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background:
+      radial-gradient(ellipse 70% 55% at 5%  50%,  var(--lg-chromatic-teal)   0%, transparent 65%),
+      radial-gradient(ellipse 60% 70% at 50% 5%,   var(--lg-chromatic-indigo) 0%, transparent 65%),
+      radial-gradient(ellipse 70% 55% at 95% 50%,  var(--lg-chromatic-amber)  0%, transparent 65%),
+      radial-gradient(ellipse 60% 70% at 50% 95%,  var(--lg-chromatic-white)  0%, transparent 65%);
+    opacity: 0.7;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* -----------------------------------------------------------
+     SD CARDS / SUPPLIER DASHBOARD CARDS  (.sd-card, .supplier-dashboard-card)
+     ----------------------------------------------------------- */
+  .sd-card,
+  .supplier-dashboard-card,
+  .card.sd-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow:
+      var(--lg-ring),
+      var(--lg-shadow-inset),
+      /* Chromatic inset edges (Z1Code technique) */
+      inset  1px 0 0 0 rgba(11, 128, 115, 0.05),
+      inset -1px 0 0 0 rgba(99, 102, 241, 0.04),
+      inset 0  1px 0 0 rgba(255, 255, 255, 0.06),
+      inset 0 -1px 0 0 rgba(245, 158, 11, 0.03),
+      0 6px 24px rgba(11, 128, 115, 0.08),
+      0 1px 3px rgba(0, 0, 0, 0.05);
+    isolation: isolate;
+    transition: box-shadow var(--lg-transition-smooth), transform var(--lg-transition-bounce);
+    will-change: transform;
+  }
+
+  @supports (backdrop-filter: blur(1px)) {
+    .sd-card,
+    .supplier-dashboard-card,
+    .card.sd-card {
+      background: rgba(255, 255, 255, 0.72);
+      backdrop-filter:
+        url(#lg-distortion)
+        blur(calc(var(--lg-blur) * 0.6))
+        saturate(var(--lg-saturate));
+      -webkit-backdrop-filter:
+        url(#lg-distortion)
+        blur(calc(var(--lg-blur) * 0.6))
+        saturate(var(--lg-saturate));
+    }
+  }
+
+  /* Top specular stripe on section cards */
+  .sd-card::before,
+  .supplier-dashboard-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 8%;
+    right: 8%;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.85),
+      transparent
+    );
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  /* Chromatic dispersion — revealed on hover (Z1Code glass-card::after technique) */
+  .sd-card::after,
+  .supplier-dashboard-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background:
+      radial-gradient(ellipse 65% 55% at 5%  50%,  var(--lg-chromatic-teal)   0%, transparent 68%),
+      radial-gradient(ellipse 55% 65% at 50% 5%,   var(--lg-chromatic-indigo) 0%, transparent 68%),
+      radial-gradient(ellipse 65% 55% at 95% 50%,  var(--lg-chromatic-amber)  0%, transparent 68%),
+      radial-gradient(ellipse 55% 65% at 50% 95%,  var(--lg-chromatic-white)  0%, transparent 68%);
+    opacity: 0;
+    transition: opacity var(--lg-transition-smooth);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .sd-card:hover::after,
+  .supplier-dashboard-card:hover::after {
+    opacity: 0.85;
+  }
+
+  /* -----------------------------------------------------------
+     QUICK ACTION CHIPS  (.dashboard-action-chip)
+     ----------------------------------------------------------- */
+  .dashboard-action-chip {
+    position: relative;
+    overflow: hidden;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1.5px solid rgba(255, 255, 255, 0.55);
+    box-shadow:
+      var(--lg-ring),
+      inset 0 1px 2px rgba(255, 255, 255, 0.9),
+      inset 0 -1px 1px rgba(0, 0, 0, 0.04),
+      /* Chromatic inset edges */
+      inset  1px 0 0 0 rgba(11, 128, 115, 0.07),
+      inset -1px 0 0 0 rgba(99, 102, 241, 0.05),
+      inset 0 -1px 0 0 rgba(245, 158, 11, 0.04),
+      0 3px 10px rgba(11, 128, 115, 0.1);
+    isolation: isolate;
+    transition: all var(--lg-transition-bounce);
+    will-change: transform;
+  }
+
+  /* Shimmer sweep on the chip (Z1Code glass-shimmer, triggered on hover) */
+  .dashboard-action-chip::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background:
+      linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.12) 50%, transparent 65%);
+    background-size: 200% 100%;
+    background-position: -200% 0;
+    transition: background-position var(--lg-transition-smooth);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .dashboard-action-chip:hover::before,
+  .dashboard-action-chip:focus-visible::before {
+    background-position: 200% 0;
+  }
+
+  @supports (backdrop-filter: blur(1px)) {
+    .dashboard-action-chip {
+      background: rgba(255, 255, 255, 0.55);
+      backdrop-filter:
+        url(#lg-distortion)
+        blur(8px)
+        saturate(170%)
+        brightness(1.05);
+      -webkit-backdrop-filter:
+        url(#lg-distortion)
+        blur(8px)
+        saturate(170%)
+        brightness(1.05);
+    }
+  }
+
+  .dashboard-action-chip:hover,
+  .dashboard-action-chip:focus-visible {
+    transform: scale(1.04);
+    background: rgba(255, 255, 255, 0.75);
+    border-color: rgba(16, 185, 129, 0.35);
+    box-shadow:
+      inset 0 1px 2px rgba(255, 255, 255, 1),
+      inset 0 -1px 1px rgba(0, 0, 0, 0.03),
+      0 6px 18px rgba(11, 128, 115, 0.18);
+  }
+
+  .dashboard-action-chip:active {
+    transform: scale(0.94);
+    box-shadow:
+      inset 0 2px 4px rgba(0, 0, 0, 0.06),
+      0 1px 4px rgba(11, 128, 115, 0.08);
+  }
+
+  /* Top-half glass shine pseudo-element */
+  .dashboard-action-chip::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 45%;
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.35) 0%,
+      transparent 100%
+    );
+    border-radius: 10px 10px 0 0;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* -----------------------------------------------------------
+     PACKAGE CARDS  (.package-card)
+     ----------------------------------------------------------- */
+  .package-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow:
+      var(--lg-shadow-inset),
+      0 4px 14px rgba(11, 128, 115, 0.08);
+    isolation: isolate;
+    transition: transform var(--lg-transition-bounce);
+    will-change: transform;
+  }
+
+  @supports (backdrop-filter: blur(1px)) {
+    .package-card {
+      background: rgba(255, 255, 255, 0.6);
+      backdrop-filter:
+        url(#lg-distortion)
+        blur(calc(var(--lg-blur) * 0.65))
+        saturate(var(--lg-saturate));
+      -webkit-backdrop-filter:
+        url(#lg-distortion)
+        blur(calc(var(--lg-blur) * 0.65))
+        saturate(var(--lg-saturate));
+    }
+  }
+
+  .package-card:active {
+    transform: scale(0.97);
+  }
+
+  /* -----------------------------------------------------------
+     BOTTOM NAVIGATION  (.ef-bottom-nav)
+     Preserve original z-index (900); enhance the glass appearance
+     ----------------------------------------------------------- */
+  .ef-bottom-nav {
+    /* Keep z-index from navbar.css (900) — do not override */
+    border-radius: 24px 24px 0 0;
+    /* Solid fallback for non-supporting browsers */
+    background: rgba(255, 255, 255, 0.92);
+    border-top: 1px solid rgba(255, 255, 255, 0.5);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.9),
+      0 -4px 24px rgba(0, 0, 0, 0.1);
+    transition: background var(--lg-transition-smooth);
+    overflow: hidden;
+  }
+
+  /* Liquid glass backdrop — @supports guarded */
+  @supports (backdrop-filter: blur(1px)) {
+    .ef-bottom-nav {
+      background: rgba(255, 255, 255, 0.4);
+      backdrop-filter:
+        url(#lg-distortion)
+        url(#lg-aberration-standard)
+        blur(var(--lg-blur))
+        saturate(var(--lg-saturate))
+        brightness(1.05)
+        contrast(1.01);
+      -webkit-backdrop-filter:
+        url(#lg-distortion)
+        url(#lg-aberration-standard)
+        blur(var(--lg-blur))
+        saturate(var(--lg-saturate))
+        brightness(1.05)
+        contrast(1.01);
+      box-shadow:
+        var(--lg-ring),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8),
+        inset 0 -1px 0 rgba(255, 255, 255, 0.2),
+        /* Chromatic inset edges */
+        inset  1px 0 0 0 rgba(11, 128, 115, 0.06),
+        inset -1px 0 0 0 rgba(99, 102, 241, 0.05),
+        0 -4px 32px rgba(0, 0, 0, 0.1),
+        0 -8px 24px rgba(11, 128, 115, 0.06);
+    }
+  }
+
+  /* Top edge specular line on bottom nav — with breathing animation */
+  .ef-bottom-nav::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.7) 20%,
+      rgba(255, 255, 255, 0.95) 50%,
+      rgba(255, 255, 255, 0.7) 80%,
+      transparent 100%
+    );
+    animation: lg-specular-breathe 5s ease-in-out infinite;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  /* Shimmer sweep on bottom nav (Z1Code glass-shimmer technique) */
+  .ef-bottom-nav::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background:
+      linear-gradient(105deg, transparent 38%, rgba(255,255,255,0.04) 50%, transparent 62%);
+    background-size: 200% 100%;
+    animation: lg-shimmer-sweep 11s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* -----------------------------------------------------------
+     SMALL MOBILE (≤480px) — scale down blur slightly
+     ----------------------------------------------------------- */
+}
+
+@media (max-width: 480px) {
+  :root {
+    --lg-blur: 8px;
+    --lg-saturate: 150%;
+  }
+
+  .dashboard-hero {
+    border-radius: 16px;
+  }
+
+  .dashboard-hero::after {
+    border-radius: 16px 16px 0 0;
+  }
+
+  .sd-card,
+  .supplier-dashboard-card,
+  .card.sd-card {
+    border-radius: 14px;
+  }
+
+  .ef-bottom-nav {
+    border-radius: 18px 18px 0 0;
+  }
+}
+
+/* =============================================================
+   ACCESSIBILITY — prefers-reduced-motion
+   Remove animations & transitions; keep glass visual appearance
+   ============================================================= */
+@media (max-width: 768px) and (prefers-reduced-motion: reduce) {
+  .lg-wrapper,
+  .dashboard-action-chip,
+  .dashboard-action-chip::before,
+  .mobile-nav-pills,
+  .mobile-nav-pill,
+  .stat-widget.card,
+  .dashboard-stat-card,
+  .sd-card,
+  .supplier-dashboard-card,
+  .card.sd-card,
+  .package-card,
+  .ef-bottom-nav,
+  .ef-bottom-nav::after,
+  .dashboard-hero,
+  .dashboard-hero::before,
+  .dashboard-mobile-nav {
+    transition: none;
+    animation: none;
+  }
+
+  /* Remove shimmer animations on hero stripes */
+  .dashboard-hero::after {
+    animation: none;
+    opacity: 0.85;
+  }
+
+  /* Remove specular breathing on bottom nav */
+  .ef-bottom-nav::before {
+    animation: none;
+    opacity: 1;
+  }
+
+  /* SD card chromatic overlay — always show subtly, no hover transition */
+  .sd-card::after,
+  .supplier-dashboard-card::after {
+    transition: none;
+    opacity: 0.4;
+  }
+
+  /* Remove bounce scale on active states */
+  .dashboard-action-chip:active,
+  .stat-widget.card:active,
+  .dashboard-stat-card:active,
+  .package-card:active,
+  .mobile-nav-pill:active {
+    transform: none;
+  }
+}
+
+/* =============================================================
+   ACCESSIBILITY — prefers-contrast: high
+   Remove glass effects entirely in high-contrast mode
+   ============================================================= */
+@media (max-width: 768px) and (prefers-contrast: high) {
+  .lg-effect,
+  .lg-tint,
+  .lg-shine,
+  .dashboard-mobile-nav,
+  .dashboard-action-chip,
+  .stat-widget.card,
+  .dashboard-stat-card,
+  .sd-card,
+  .supplier-dashboard-card,
+  .card.sd-card,
+  .package-card,
+  .ef-bottom-nav,
+  .dashboard-hero__bg {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    filter: none;
+    background: revert;
+    box-shadow: none;
+    border: 2px solid currentColor;
+  }
+
+  .dashboard-action-chip::before,
+  .dashboard-action-chip::after,
+  .dashboard-hero::before,
+  .dashboard-hero::after,
+  .dashboard-mobile-nav::after,
+  .sd-card::before,
+  .sd-card::after,
+  .supplier-dashboard-card::before,
+  .supplier-dashboard-card::after,
+  .stat-widget.card::before,
+  .stat-widget.card::after,
+  .dashboard-stat-card::before,
+  .dashboard-stat-card::after,
+  .ef-bottom-nav::before,
+  .ef-bottom-nav::after {
+    display: none;
+  }
+}
