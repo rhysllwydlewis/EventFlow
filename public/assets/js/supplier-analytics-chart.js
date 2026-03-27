@@ -5,6 +5,74 @@
 
 import { initCountUp } from './count-up-animation.js';
 
+/* ── Reusable SVG icon header snippets for JS-injected chart cards ──────
+   Each helper returns an HTML string: the icon box + h3 title row.
+   Uses the same .sd-card-header / .sd-card-header__icon classes as the
+   static HTML cards so CSS sizing + currentColor rules apply uniformly. */
+
+function _enquiryTrendIconHeader() {
+  return `<div class="sd-card-header" style="margin-bottom:1rem;">
+    <div class="sd-card-header__title-row" style="display:flex;align-items:center;gap:0.75rem;">
+      <div class="sd-card-header__icon sd-card-header__icon--teal" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="3" width="20" height="15.5" rx="1.5" fill="currentColor" fill-opacity="0.06"/>
+          <line x1="4" y1="17" x2="22" y2="17"/>
+          <path d="M4 17 L7.5 14 L11.5 11 L16 7.5 L20 5.5 L22 5.5 L22 17 Z" fill="currentColor" fill-opacity="0.09" stroke="none"/>
+          <polyline points="4 17 7.5 14 11.5 11 16 7.5 20 5.5"/>
+          <polyline points="17 5.5 20.5 5 20 8.5"/>
+          <circle cx="7.5" cy="14" r="1.5" fill="currentColor"/>
+          <circle cx="11.5" cy="11" r="1.5" fill="currentColor"/>
+          <circle cx="16" cy="7.5" r="1.5" fill="currentColor"/>
+        </svg>
+      </div>
+      <h3 style="margin:0;font-size:1.25rem;color:#0B1220;font-weight:600;">Enquiry Trends</h3>
+    </div>
+  </div>`;
+}
+function _funnelIconHeader() {
+  return `<div class="sd-card-header" style="margin-bottom:1rem;">
+    <div class="sd-card-header__title-row" style="display:flex;align-items:center;gap:0.75rem;">
+      <div class="sd-card-header__icon sd-card-header__icon--indigo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M2 5h20"/>
+          <path d="M2 5L5 9.5L19 9.5L22 5z" fill="currentColor" fill-opacity="0.15" stroke="none"/>
+          <path d="M5 9.5L8.5 13h7L19 9.5z" fill="currentColor" fill-opacity="0.12" stroke="none"/>
+          <path d="M8.5 13L9.5 15.5h5L15.5 13z" fill="currentColor" fill-opacity="0.09" stroke="none"/>
+          <line x1="5" y1="9.5" x2="19" y2="9.5"/>
+          <line x1="8.5" y1="13" x2="15.5" y2="13"/>
+          <path d="M2 5L5 9.5L8.5 13L9.5 15.5"/>
+          <path d="M22 5L19 9.5L15.5 13L14.5 15.5"/>
+          <line x1="9.5" y1="15.5" x2="14.5" y2="15.5"/>
+          <line x1="12" y1="15.5" x2="12" y2="18" stroke-width="1.5"/>
+        </svg>
+      </div>
+      <h3 style="margin:0;font-size:1.25rem;color:#0B1220;font-weight:600;">Conversion Funnel</h3>
+    </div>
+  </div>`;
+}
+
+function _stopwatchIconHeader() {
+  return `<div class="sd-card-header" style="margin-bottom:1rem;">
+    <div class="sd-card-header__title-row" style="display:flex;align-items:center;gap:0.75rem;">
+      <div class="sd-card-header__icon sd-card-header__icon--blue" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="14" r="7.5" fill="currentColor" fill-opacity="0.09"/>
+          <circle cx="12" cy="14" r="7.5"/>
+          <line x1="12" y1="6.5" x2="12" y2="4"/>
+          <line x1="10" y1="4" x2="14" y2="4" stroke-width="2"/>
+          <line x1="15.5" y1="7" x2="17" y2="5.5" stroke-width="1.5"/>
+          <line x1="12" y1="14" x2="12" y2="9.5" stroke-width="2"/>
+          <line x1="12" y1="14" x2="15.5" y2="11.5" stroke-width="1.5"/>
+          <circle cx="12" cy="14" r="1" fill="currentColor"/>
+          <line x1="3.5" y1="12" x2="1.5" y2="11" stroke-width="1.25"/>
+          <line x1="4" y1="15" x2="2" y2="15.5" stroke-width="1.25"/>
+        </svg>
+      </div>
+      <h3 style="margin:0;font-size:1.25rem;color:#0B1220;font-weight:600;">Response Time</h3>
+    </div>
+  </div>`;
+}
+
 /**
  * Load Chart.js library if not already loaded
  * @returns {Promise<void>}
@@ -155,13 +223,28 @@ export async function createPerformanceChart(containerId, viewsData, enquiriesDa
 
   const html = `
     <div class="card" style="padding: 1.5rem;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; gap: 1rem; flex-wrap: wrap;">
-        <h3 style="margin: 0; font-size: 1.25rem; color: #0B1220;">Performance Analytics</h3>
-        <div style="display: flex; gap: 0.5rem;">
-          <button class="chart-period-btn active" data-period="7" style="padding: 0.5rem 1rem; border: 1px solid #E7EAF0; background: white; border-radius: 8px; cursor: pointer; font-size: 0.875rem; transition: all 0.2s;">7 Days</button>
-          <button class="chart-period-btn" data-period="30" style="padding: 0.5rem 1rem; border: 1px solid #E7EAF0; background: white; border-radius: 8px; cursor: pointer; font-size: 0.875rem; transition: all 0.2s;">30 Days</button>
-          <button class="chart-period-btn" data-period="90" style="padding: 0.5rem 1rem; border: 1px solid #E7EAF0; background: white; border-radius: 8px; cursor: pointer; font-size: 0.875rem; transition: all 0.2s;">90 Days</button>
+      <div class="sd-card-header" style="margin-bottom: 1rem;">
+        <div class="sd-card-header__title-row" style="display: flex; align-items: center; gap: 0.75rem;">
+          <div class="sd-card-header__icon sd-card-header__icon--teal" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="3" width="20" height="15" rx="1.5" fill="currentColor" fill-opacity="0.06"/>
+              <line x1="6" y1="4" x2="6" y2="17"/>
+              <line x1="6" y1="17" x2="21" y2="17"/>
+              <line x1="6" y1="11" x2="21" y2="11" stroke-width="0.75" stroke-dasharray="2 2"/>
+              <polyline points="7 15 10 11 14 13 18 7 21 9" stroke-width="2"/>
+              <circle cx="10" cy="11" r="1.75" fill="currentColor"/>
+              <circle cx="14" cy="13" r="1.75" fill="currentColor"/>
+              <circle cx="18" cy="7" r="1.75" fill="currentColor"/>
+              <path d="M7 15 L10 11 L14 13 L18 7 L21 9 L21 17 L7 17 Z" fill="currentColor" fill-opacity="0.07" stroke="none"/>
+            </svg>
+          </div>
+          <h3 style="margin: 0; font-size: 1.25rem; color: #0B1220; font-weight: 600;">Performance Analytics</h3>
         </div>
+      </div>
+      <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
+        <button class="chart-period-btn active" data-period="7" style="padding: 0.5rem 1rem; border: 1px solid #E7EAF0; background: white; border-radius: 8px; cursor: pointer; font-size: 0.875rem; transition: all 0.2s;">7 Days</button>
+        <button class="chart-period-btn" data-period="30" style="padding: 0.5rem 1rem; border: 1px solid #E7EAF0; background: white; border-radius: 8px; cursor: pointer; font-size: 0.875rem; transition: all 0.2s;">30 Days</button>
+        <button class="chart-period-btn" data-period="90" style="padding: 0.5rem 1rem; border: 1px solid #E7EAF0; background: white; border-radius: 8px; cursor: pointer; font-size: 0.875rem; transition: all 0.2s;">90 Days</button>
       </div>
       <div class="chart-container" style="position: relative; height: 300px;">
         <canvas id="${canvasId}"></canvas>
@@ -410,9 +493,25 @@ export async function createEnquiryTrendChart(containerId) {
 
   const html = `
     <div class="card" style="padding: 1.5rem;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; gap: 1rem; flex-wrap: wrap;">
-        <h3 style="margin: 0; font-size: 1.25rem; color: #0B1220;">Enquiry Trends</h3>
-        <button id="export-chart-btn" style="padding: 0.5rem 1rem; border: 1px solid #E7EAF0; background: white; border-radius: 8px; cursor: pointer; font-size: 0.875rem; transition: all 0.2s; display: flex; align-items: center; gap: 0.5rem;">
+      <div class="sd-card-header" style="margin-bottom: 1rem;">
+        <div class="sd-card-header__title-row" style="display: flex; align-items: center; gap: 0.75rem;">
+          <div class="sd-card-header__icon sd-card-header__icon--teal" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="3" width="20" height="15.5" rx="1.5" fill="currentColor" fill-opacity="0.06"/>
+              <line x1="4" y1="17" x2="22" y2="17"/>
+              <path d="M4 17 L7.5 14 L11.5 11 L16 7.5 L20 5.5 L22 5.5 L22 17 Z" fill="currentColor" fill-opacity="0.09" stroke="none"/>
+              <polyline points="4 17 7.5 14 11.5 11 16 7.5 20 5.5"/>
+              <polyline points="17 5.5 20.5 5 20 8.5"/>
+              <circle cx="7.5" cy="14" r="1.5" fill="currentColor"/>
+              <circle cx="11.5" cy="11" r="1.5" fill="currentColor"/>
+              <circle cx="16" cy="7.5" r="1.5" fill="currentColor"/>
+            </svg>
+          </div>
+          <h3 style="margin: 0; font-size: 1.25rem; color: #0B1220; font-weight: 600;">Enquiry Trends</h3>
+        </div>
+      </div>
+      <div style="margin-bottom: 1rem;">
+        <button id="export-chart-btn" style="padding: 0.5rem 1rem; border: 1px solid #E7EAF0; background: white; border-radius: 8px; cursor: pointer; font-size: 0.875rem; transition: all 0.2s; display: inline-flex; align-items: center; gap: 0.5rem;">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
             <polyline points="7 10 12 15 17 10"></polyline>
@@ -556,7 +655,7 @@ export async function createEnquiryTrendChart(containerId) {
     console.error('Error creating enquiry trend chart:', error);
     container.innerHTML = `
       <div class="card" style="padding: 1.5rem;">
-        <h3 style="margin: 0 0 0.5rem 0; font-size: 1.25rem; color: #0B1220;">Enquiry Trends</h3>
+        ${_enquiryTrendIconHeader()}
         <p style="color: #667085;">Unable to load enquiry trend data. Please try again later.</p>
       </div>
     `;
@@ -860,7 +959,7 @@ export async function createConversionFunnelWidget(containerId, days = 30) {
   // Loading skeleton
   container.innerHTML = `
     <div class="card" style="padding:1.5rem;">
-      <h3 style="margin:0 0 1rem 0;font-size:1.25rem;color:#0B1220;">Conversion Funnel</h3>
+      ${_funnelIconHeader()}
       <div class="skeleton skeleton-text skeleton-text-long" style="margin-bottom:0.5rem;"></div>
       <div class="skeleton skeleton-text skeleton-text-medium"></div>
     </div>`;
@@ -886,7 +985,7 @@ export async function createConversionFunnelWidget(containerId, days = 30) {
     if (!hasData) {
       container.innerHTML = `
         <div class="card" style="padding:1.5rem;">
-          <h3 style="margin:0 0 0.5rem 0;font-size:1.25rem;color:#0B1220;">Conversion Funnel</h3>
+          ${_funnelIconHeader()}
           <p style="color:#6B7280;font-size:0.875rem;margin:0 0 1rem 0;">Views → Enquiries → Replies (last ${days} days)</p>
           <div style="padding:1.5rem;text-align:center;background:#F9FAFB;border-radius:8px;">
             <div style="font-size:2rem;margin-bottom:0.5rem;">📊</div>
@@ -936,7 +1035,7 @@ export async function createConversionFunnelWidget(containerId, days = 30) {
 
     container.innerHTML = `
       <div class="card" style="padding:1.5rem;">
-        <h3 style="margin:0 0 0.25rem 0;font-size:1.25rem;color:#0B1220;">Conversion Funnel</h3>
+        ${_funnelIconHeader()}
         <p style="color:#6B7280;font-size:0.875rem;margin:0 0 1.25rem 0;">Last ${days} days</p>
         ${stepsHtml}
       </div>`;
@@ -944,7 +1043,7 @@ export async function createConversionFunnelWidget(containerId, days = 30) {
     console.error('Error creating conversion funnel widget:', error);
     container.innerHTML = `
       <div class="card" style="padding:1.5rem;">
-        <h3 style="margin:0 0 0.5rem 0;font-size:1.25rem;color:#0B1220;">Conversion Funnel</h3>
+        ${_funnelIconHeader()}
         <p style="color:#6B7280;">Unable to load funnel data. Please try again later.</p>
       </div>`;
   }
@@ -964,7 +1063,7 @@ export async function createResponseTimeWidget(containerId, days = 30) {
   // Loading skeleton
   container.innerHTML = `
     <div class="card" style="padding:1.5rem;">
-      <h3 style="margin:0 0 1rem 0;font-size:1.25rem;color:#0B1220;">Response Time</h3>
+      ${_stopwatchIconHeader()}
       <div class="skeleton skeleton-text skeleton-text-long" style="margin-bottom:0.5rem;"></div>
       <div class="skeleton skeleton-text skeleton-text-medium"></div>
     </div>`;
@@ -987,7 +1086,7 @@ export async function createResponseTimeWidget(containerId, days = 30) {
     if (!hasData) {
       container.innerHTML = `
         <div class="card" style="padding:1.5rem;">
-          <h3 style="margin:0 0 0.5rem 0;font-size:1.25rem;color:#0B1220;">Response Time</h3>
+          ${_stopwatchIconHeader()}
           <p style="color:#6B7280;font-size:0.875rem;margin:0 0 1rem 0;">Last ${days} days</p>
           <div style="padding:1.5rem;text-align:center;background:#F9FAFB;border-radius:8px;">
             <div style="font-size:2rem;margin-bottom:0.5rem;">⏱️</div>
@@ -1027,7 +1126,7 @@ export async function createResponseTimeWidget(containerId, days = 30) {
 
     container.innerHTML = `
       <div class="card" style="padding:1.5rem;">
-        <h3 style="margin:0 0 0.25rem 0;font-size:1.25rem;color:#0B1220;">Response Time</h3>
+        ${_stopwatchIconHeader()}
         <p style="color:#6B7280;font-size:0.875rem;margin:0 0 1.25rem 0;">Last ${days} days</p>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
           <div style="padding:1rem;background:#F9FAFB;border-radius:8px;text-align:center;">
@@ -1047,7 +1146,7 @@ export async function createResponseTimeWidget(containerId, days = 30) {
     console.error('Error creating response time widget:', error);
     container.innerHTML = `
       <div class="card" style="padding:1.5rem;">
-        <h3 style="margin:0 0 0.5rem 0;font-size:1.25rem;color:#0B1220;">Response Time</h3>
+        ${_stopwatchIconHeader()}
         <p style="color:#6B7280;">Unable to load response time data. Please try again later.</p>
       </div>`;
   }

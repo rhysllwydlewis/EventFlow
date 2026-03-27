@@ -6566,3 +6566,41 @@ label .required {
   color: var(--ef-error, #ef4444);
   font-weight: var(--ef-font-medium, 500);
 }
+
+/* ============================================================
+   SVG ICON SIZING — Premium SVG icons in card header icon boxes
+   Sizes SVGs correctly inside gradient icon boxes so they render
+   at the right dimensions and inherit white colour via currentColor.
+   ============================================================ */
+
+/* Card header icon boxes (36×36px gradient squares) — 20×20 SVG */
+.sd-card-header__icon svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+  color: white;
+}
+
+/* Availability calendar icon box (40×40px) — 20×20 SVG */
+.sd-availability-icon svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+  color: white;
+}
+
+/* Earnings overview large icon box (48×48px) — 24×24 SVG */
+.ef-icon-box-lg svg {
+  width: 24px;
+  height: 24px;
+  display: block;
+  color: white;
+}
+
+/* Quick Action chips (dashboard hero) — 18×18 SVG */
+.dashboard-action-chip svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  display: block;
+}

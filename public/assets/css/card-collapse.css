@@ -228,6 +228,33 @@
     display: none !important;
   }
 
+  /* Card header subtitles — hide when collapsed; subtitle is context for expanded content */
+  .card--collapsed .sd-card-header__subtitle {
+    display: none !important;
+  }
+
+  /* Card header action buttons (Create Profile, Create Package, Create Ticket) —
+     hide when collapsed; these buttons only make sense when the card is open */
+  .card--collapsed .sd-card-header__actions {
+    display: none !important;
+  }
+
+  /* Earnings Overview — ef-card-subtitle and "Coming Soon" badge in ef-card-header */
+  .card--collapsed .ef-card-header .ef-card-subtitle {
+    display: none !important;
+  }
+  .card--collapsed .ef-card-header .ef-badge {
+    display: none !important;
+  }
+
+  /* Availability Calendar — subtitle and "In Development" badge */
+  .card--collapsed .sd-availability-subtitle {
+    display: none !important;
+  }
+  .card--collapsed .sd-in-dev-badge {
+    display: none !important;
+  }
+
   /* ── Throb breadcrumb animation ────────────────────────────────── */
   /* JS sets [data-throb] on the button when the card first loads in the
      collapsed state. The attribute is removed on first user interaction,

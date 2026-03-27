@@ -449,10 +449,21 @@
                 class="dashboard-action-chip"
                 data-action="create-profile"
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="8" x2="12" y2="16" />
-                  <line x1="8" y1="12" x2="16" y2="12" />
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <!-- Roof -->
+                  <path d="M2.5 9.5L12 4l9.5 5.5"/>
+                  <!-- Awning band -->
+                  <path d="M4 9.5h16v2.5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9.5z" fill="currentColor" fill-opacity="0.2"/>
+                  <!-- Store walls -->
+                  <path d="M4 13v8h16v-8"/>
+                  <!-- Door -->
+                  <path d="M10 21v-5a2 2 0 0 1 4 0v5"/>
+                  <!-- Left window -->
+                  <rect x="5.5" y="14" width="3" height="2.5" rx="0.5" fill="currentColor" fill-opacity="0.25"/>
+                  <!-- Right window -->
+                  <rect x="15.5" y="14" width="3" height="2.5" rx="0.5" fill="currentColor" fill-opacity="0.25"/>
+                  <!-- Ground line -->
+                  <line x1="2" y1="21" x2="22" y2="21"/>
                 </svg>
                 <span>Create Profile</span>
               </button>
@@ -461,25 +472,52 @@
                 class="dashboard-action-chip"
                 data-action="new-package"
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="3" y="3" width="18" height="18" rx="2" />
-                  <path d="M3 9h18" />
-                  <path d="M9 21V9" />
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <!-- Box body -->
+                  <rect x="3" y="10" width="18" height="11" rx="1.5" fill="currentColor" fill-opacity="0.1"/>
+                  <rect x="3" y="10" width="18" height="11" rx="1.5"/>
+                  <!-- Lid -->
+                  <rect x="2.5" y="7" width="19" height="3.5" rx="1"/>
+                  <!-- Ribbon vertical -->
+                  <line x1="12" y1="7" x2="12" y2="21"/>
+                  <!-- Lid ribbon horizontal -->
+                  <line x1="2.5" y1="8.75" x2="21.5" y2="8.75"/>
+                  <!-- Bow left loop -->
+                  <path d="M12 7c-1-2-4.5-2.5-4 0s3.5 2 4 0"/>
+                  <!-- Bow right loop -->
+                  <path d="M12 7c1-2 4.5-2.5 4 0s-3.5 2-4 0"/>
                 </svg>
                 <span>New Package</span>
               </button>
 
               <button class="dashboard-action-chip" id="viewConversationsBtn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <!-- Primary bubble -->
+                  <path d="M21 14a2 2 0 0 1-2 2H9l-3.5 3.5V16H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v7z" fill="currentColor" fill-opacity="0.1"/>
+                  <path d="M21 14a2 2 0 0 1-2 2H9l-3.5 3.5V16H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v7z"/>
+                  <!-- Secondary bubble tail -->
+                  <path d="M3.5 9v6a2 2 0 0 0 1.5 1.9"/>
+                  <!-- Typing dots -->
+                  <circle cx="9.5" cy="10.5" r="0.9" fill="currentColor"/>
+                  <circle cx="13" cy="10.5" r="0.9" fill="currentColor"/>
+                  <circle cx="16.5" cy="10.5" r="0.9" fill="currentColor"/>
                 </svg>
                 <span>Messages</span>
               </button>
 
               <button class="dashboard-action-chip" data-action="view-earnings">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="12" y1="1" x2="12" y2="23" />
-                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <!-- Coin outer ring -->
+                  <circle cx="12" cy="12" r="9" fill="currentColor" fill-opacity="0.12"/>
+                  <!-- Coin inner ring -->
+                  <circle cx="12" cy="12" r="7"/>
+                  <!-- Pound sign: curved top -->
+                  <path d="M14.5 9.5a2.5 2.5 0 1 0-5 0"/>
+                  <!-- Pound sign: vertical stem -->
+                  <line x1="10" y1="9.5" x2="10" y2="14.5"/>
+                  <!-- Pound sign: crossbars -->
+                  <line x1="9" y1="12" x2="13.5" y2="12"/>
+                  <line x1="9" y1="14.5" x2="15" y2="14.5"/>
                 </svg>
                 <span>View Earnings</span>
               </button>
@@ -488,11 +526,19 @@
                 class="dashboard-action-chip"
                 data-action="view-stats"
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="3" y="3" width="7" height="7" />
-                  <rect x="14" y="3" width="7" height="7" />
-                  <rect x="14" y="14" width="7" height="7" />
-                  <rect x="3" y="14" width="7" height="7" />
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <!-- Y and X axes -->
+                  <line x1="4" y1="20" x2="4" y2="4"/>
+                  <line x1="4" y1="20" x2="22" y2="20"/>
+                  <!-- Bars (ascending) -->
+                  <rect x="6" y="13" width="3.5" height="7" rx="1" fill="currentColor" fill-opacity="0.15"/>
+                  <rect x="11" y="9" width="3.5" height="11" rx="1" fill="currentColor" fill-opacity="0.15"/>
+                  <rect x="16" y="5" width="3.5" height="15" rx="1" fill="currentColor" fill-opacity="0.15"/>
+                  <rect x="6" y="13" width="3.5" height="7" rx="1"/>
+                  <rect x="11" y="9" width="3.5" height="11" rx="1"/>
+                  <rect x="16" y="5" width="3.5" height="15" rx="1"/>
+                  <!-- Trend line overlay -->
+                  <polyline points="7.75 13 12.75 9 17.75 5" stroke-width="1.5"/>
                 </svg>
                 <span>View Stats</span>
               </button>
@@ -501,10 +547,14 @@
                 class="dashboard-action-chip"
                 data-action="get-help"
               >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-                  <line x1="12" y1="17" x2="12.01" y2="17" />
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <!-- Circle base -->
+                  <circle cx="12" cy="12" r="9.5" fill="currentColor" fill-opacity="0.07"/>
+                  <circle cx="12" cy="12" r="9.5"/>
+                  <!-- Question mark curve -->
+                  <path d="M9.5 9a2.5 2.5 0 0 1 5 0c0 1.5-1.25 2-2 2.5s-1 1-1 1.5"/>
+                  <!-- Question mark dot -->
+                  <circle cx="12" cy="16.5" r="0.9" fill="currentColor"/>
                 </svg>
                 <span>Get Help</span>
               </button>
@@ -564,7 +614,21 @@
         >
           <div class="ef-card-header">
             <div class="ef-card-title-wrapper">
-              <div class="ef-icon-box-lg ef-gradient-primary">💰</div>
+              <div class="ef-icon-box-lg ef-gradient-primary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <!-- Coin outer ring (ambient glow) -->
+                  <circle cx="12" cy="12" r="9" fill="currentColor" fill-opacity="0.12"/>
+                  <!-- Coin inner ring -->
+                  <circle cx="12" cy="12" r="7"/>
+                  <!-- Pound sign: curved top -->
+                  <path d="M14.5 9.5a2.5 2.5 0 1 0-5 0"/>
+                  <!-- Pound sign: vertical stem -->
+                  <line x1="10" y1="9.5" x2="10" y2="14.5"/>
+                  <!-- Pound sign: crossbars -->
+                  <line x1="9" y1="12" x2="13.5" y2="12"/>
+                  <line x1="9" y1="14.5" x2="15" y2="14.5"/>
+                </svg>
+              </div>
               <div>
                 <h2 id="earnings-heading" class="ef-card-title">Earnings Overview</h2>
                 <p class="ef-card-subtitle">Track your revenue and payments</p>
@@ -614,7 +678,22 @@
           <div class="sd-availability-section">
             <div class="sd-availability-header">
               <div class="sd-availability-title-row">
-                <div class="sd-availability-icon" aria-hidden="true">📅</div>
+                <div class="sd-availability-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <!-- Calendar body -->
+                    <rect x="3" y="4" width="18" height="18" rx="2" fill="currentColor" fill-opacity="0.06"/>
+                    <!-- Header band fill -->
+                    <path d="M3 9h18" stroke-width="0.5" fill="none"/>
+                    <rect x="3" y="4" width="18" height="5" rx="2" fill="currentColor" fill-opacity="0.15" stroke="none"/>
+                    <!-- Calendar border -->
+                    <rect x="3" y="4" width="18" height="18" rx="2"/>
+                    <!-- Calendar pins -->
+                    <line x1="8" y1="2" x2="8" y2="6" stroke-width="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6" stroke-width="2"/>
+                    <!-- Check mark on a date -->
+                    <polyline points="8.5 15.5 11 18 15.5 13"/>
+                  </svg>
+                </div>
                 <div>
                   <h2 id="calendar-heading" class="sd-availability-heading">
                     Availability Calendar
@@ -661,7 +740,24 @@
           <div class="supplier-card-header sd-card-header sd-card-header--teal">
             <div class="sd-card-header__left">
               <div class="sd-card-header__title-row">
-                <div class="sd-card-header__icon sd-card-header__icon--teal" aria-hidden="true">👤</div>
+                <div class="sd-card-header__icon sd-card-header__icon--teal" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <!-- Roof -->
+                    <path d="M2.5 9.5L12 4l9.5 5.5"/>
+                    <!-- Awning band -->
+                    <path d="M4 9.5h16v2.5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9.5z" fill="currentColor" fill-opacity="0.2"/>
+                    <!-- Store walls -->
+                    <path d="M4 13v8h16v-8"/>
+                    <!-- Door -->
+                    <path d="M10 21v-5a2 2 0 0 1 4 0v5"/>
+                    <!-- Left window -->
+                    <rect x="5.5" y="14" width="3" height="2.5" rx="0.5" fill="currentColor" fill-opacity="0.25"/>
+                    <!-- Right window -->
+                    <rect x="15.5" y="14" width="3" height="2.5" rx="0.5" fill="currentColor" fill-opacity="0.25"/>
+                    <!-- Ground line -->
+                    <line x1="2" y1="21" x2="22" y2="21"/>
+                  </svg>
+                </div>
                 <h2 id="profiles-heading" class="sd-card-header__heading">
                   Your Supplier Profiles
                 </h2>
@@ -879,7 +975,23 @@
           <div class="supplier-card-header sd-card-header sd-card-header--indigo">
             <div class="sd-card-header__left">
               <div class="sd-card-header__title-row">
-                <div class="sd-card-header__icon sd-card-header__icon--indigo" aria-hidden="true">📦</div>
+                <div class="sd-card-header__icon sd-card-header__icon--indigo" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <!-- Box body -->
+                    <rect x="3" y="10" width="18" height="11" rx="1.5" fill="currentColor" fill-opacity="0.1"/>
+                    <rect x="3" y="10" width="18" height="11" rx="1.5"/>
+                    <!-- Lid -->
+                    <rect x="2.5" y="7" width="19" height="3.5" rx="1"/>
+                    <!-- Ribbon vertical -->
+                    <line x1="12" y1="7" x2="12" y2="21"/>
+                    <!-- Lid ribbon horizontal -->
+                    <line x1="2.5" y1="8.75" x2="21.5" y2="8.75"/>
+                    <!-- Bow left loop -->
+                    <path d="M12 7c-1-2-4.5-2.5-4 0s3.5 2 4 0"/>
+                    <!-- Bow right loop -->
+                    <path d="M12 7c1-2 4.5-2.5 4 0s-3.5 2-4 0"/>
+                  </svg>
+                </div>
                 <h3 id="packages-heading" class="sd-card-header__heading">Your Packages</h3>
               </div>
               <p id="pkg-limit-note" class="sd-card-header__subtitle">
@@ -1053,7 +1165,22 @@
           <div class="supplier-card-header sd-card-header sd-card-header--indigo">
             <div class="sd-card-header__left">
               <div class="sd-card-header__title-row">
-                <div class="sd-card-header__icon sd-card-header__icon--indigo" aria-hidden="true">💳</div>
+                <div class="sd-card-header__icon sd-card-header__icon--indigo" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <!-- Card body -->
+                    <rect x="2" y="6" width="20" height="13" rx="2" fill="currentColor" fill-opacity="0.08"/>
+                    <rect x="2" y="6" width="20" height="13" rx="2"/>
+                    <!-- Magnetic stripe -->
+                    <line x1="2" y1="10.5" x2="22" y2="10.5" stroke-width="3"/>
+                    <!-- Chip -->
+                    <rect x="4" y="12.5" width="4" height="3" rx="0.75" fill="currentColor" fill-opacity="0.3"/>
+                    <!-- Shield (top-right) -->
+                    <path d="M17 10.5l3 1v3.5c0 1.5-3 3-3 3s-3-1.5-3-3V11.5l3-1z" fill="currentColor" fill-opacity="0.18"/>
+                    <path d="M17 10.5l3 1v3.5c0 1.5-3 3-3 3s-3-1.5-3-3V11.5l3-1z"/>
+                    <!-- Shield checkmark -->
+                    <polyline points="15.3 13.5 16.6 15 18.8 12.5" stroke-width="1.5"/>
+                  </svg>
+                </div>
                 <h3 class="sd-card-header__heading">Subscription</h3>
               </div>
               <p class="sd-card-header__subtitle">Manage your plan and billing</p>
@@ -1071,7 +1198,20 @@
           <div class="supplier-card-header sd-card-header sd-card-header--blue">
             <div class="sd-card-header__left">
               <div class="sd-card-header__title-row">
-                <div class="sd-card-header__icon sd-card-header__icon--blue" aria-hidden="true">📈</div>
+                <div class="sd-card-header__icon sd-card-header__icon--blue" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <!-- Outer ring -->
+                    <circle cx="11" cy="12.5" r="8.5"/>
+                    <!-- Middle ring -->
+                    <circle cx="11" cy="12.5" r="5"/>
+                    <!-- Centre bullseye -->
+                    <circle cx="11" cy="12.5" r="1.75" fill="currentColor" fill-opacity="0.3"/>
+                    <!-- Arrow shaft (top-right → centre) -->
+                    <line x1="17" y1="5" x2="13" y2="10.5"/>
+                    <!-- Arrow head -->
+                    <polyline points="13.5 4.5 17.5 4 17 8"/>
+                  </svg>
+                </div>
                 <h3 class="sd-card-header__heading">Lead Quality Overview</h3>
               </div>
               <p class="sd-card-header__subtitle">Track the quality of your enquiries</p>
@@ -1093,7 +1233,22 @@
           <div class="supplier-card-header sd-card-header sd-card-header--red">
             <div class="sd-card-header__left">
               <div class="sd-card-header__title-row">
-                <div class="sd-card-header__icon sd-card-header__icon--red" aria-hidden="true">🎫</div>
+                <div class="sd-card-header__icon sd-card-header__icon--red" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <!-- Headband arc -->
+                    <path d="M4 14a8 8 0 1 1 16 0"/>
+                    <!-- Left ear cup (filled) -->
+                    <rect x="3" y="13.5" width="3" height="5" rx="1.5" fill="currentColor" fill-opacity="0.2"/>
+                    <path d="M3 14v4a1.5 1.5 0 0 0 3 0v-4"/>
+                    <!-- Right ear cup (filled) -->
+                    <rect x="18" y="13.5" width="3" height="5" rx="1.5" fill="currentColor" fill-opacity="0.2"/>
+                    <path d="M18 14v4a1.5 1.5 0 0 0 3 0v-4"/>
+                    <!-- Microphone arm -->
+                    <path d="M20 18v0.5a3.5 3.5 0 0 1-3.5 3.5H15"/>
+                    <!-- Mic head -->
+                    <circle cx="14" cy="22" r="1" fill="currentColor" fill-opacity="0.35"/>
+                  </svg>
+                </div>
                 <div>
                   <h3 id="tickets-heading" class="sd-card-header__heading">Support Tickets</h3>
                   <p class="sd-card-header__subtitle sd-card-header__subtitle--no-indent">Get help when you need it</p>
@@ -1137,7 +1292,19 @@
           <div class="supplier-card-header sd-card-header sd-card-header--blue">
             <div class="sd-card-header__left">
               <div class="sd-card-header__title-row">
-                <div class="sd-card-header__icon sd-card-header__icon--blue" aria-hidden="true">💬</div>
+                <div class="sd-card-header__icon sd-card-header__icon--blue" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <!-- Primary bubble (top-right) -->
+                    <path d="M21 14a2 2 0 0 1-2 2H9l-3.5 3.5V16H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v7z" fill="currentColor" fill-opacity="0.1"/>
+                    <path d="M21 14a2 2 0 0 1-2 2H9l-3.5 3.5V16H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v7z"/>
+                    <!-- Secondary bubble tail hint -->
+                    <path d="M3.5 9v6a2 2 0 0 0 1.5 1.9"/>
+                    <!-- Typing dots -->
+                    <circle cx="9.5" cy="10.5" r="0.9" fill="currentColor"/>
+                    <circle cx="13" cy="10.5" r="0.9" fill="currentColor"/>
+                    <circle cx="16.5" cy="10.5" r="0.9" fill="currentColor"/>
+                  </svg>
+                </div>
                 <div style="display: flex; align-items: center; gap: 0.75rem">
                   <h3 id="messages-heading" class="sd-card-header__heading">Messages</h3>
                   <span
@@ -1216,7 +1383,18 @@
           <div class="supplier-card-header sd-card-header sd-card-header--amber">
             <div class="sd-card-header__left">
               <div class="sd-card-header__title-row">
-                <div class="sd-card-header__icon sd-card-header__icon--amber" aria-hidden="true">⭐</div>
+                <div class="sd-card-header__icon sd-card-header__icon--amber" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                    <!-- Star shape -->
+                    <polygon points="12,2.5 14.5,8.5 21,9.3 16.5,13.7 17.7,20.1 12,17 6.3,20.1 7.5,13.7 3,9.3 9.5,8.5" fill="currentColor" fill-opacity="0.18"/>
+                    <!-- Sparkle top-right cross -->
+                    <line x1="20.5" y1="2.5" x2="20.5" y2="5.5" stroke-width="1.5"/>
+                    <line x1="19" y1="4" x2="22" y2="4" stroke-width="1.5"/>
+                    <!-- Sparkle small dot bottom-right -->
+                    <line x1="21" y1="15.5" x2="21" y2="18" stroke-width="1.25"/>
+                    <line x1="19.75" y1="16.75" x2="22.25" y2="16.75" stroke-width="1.25"/>
+                  </svg>
+                </div>
                 <h3 id="reviews-heading" class="sd-card-header__heading">Reviews &amp; Ratings</h3>
               </div>
               <p class="sd-card-header__subtitle">Build trust with customer testimonials</p>
