@@ -123,7 +123,8 @@
     }
   }
 
-  /* Chevron flips 180° (pointing up) when card is collapsed */
+  /* SVG chevron defaults to ↓ (pointing down). Rotating 180° makes it ↑
+     (pointing up) when the card is collapsed — matches standard accordion UX. */
   .card--collapsed .card-collapse-btn {
     transform: rotate(180deg);
   }
