@@ -9,6 +9,28 @@
   display: none;
 }
 
+/* ─── Throb breadcrumb keyframe ──────────────────────────────────── */
+/* Runs 3 × 1.5 s ≈ 4.5 s on initial page-load to hint expandability.
+   Box-shadow only — no transform so it doesn't conflict with the
+   rotation transition on the button itself.                          */
+@keyframes card-collapse-throb {
+  0%, 100% {
+    box-shadow:
+      0 2px 8px rgba(0, 0, 0, 0.12),
+      0 1px 3px rgba(0, 0, 0, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.80),
+      0 0 0 0.5px rgba(11, 128, 115, 0.08);
+  }
+  45% {
+    box-shadow:
+      0 2px 10px rgba(0, 0, 0, 0.10),
+      0 1px 3px rgba(0, 0, 0, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 0.92),
+      0 0 0 3.5px rgba(11, 128, 115, 0.22),
+      0 0 16px rgba(11, 128, 115, 0.14);
+  }
+}
+
 /* ─── Mobile / tablet (≤ 1024px) ────────────────────────────────── */
 @media (max-width: 1024px) {
 
@@ -55,6 +77,8 @@
     flex-shrink: 0;
     /* Keep tappable on top of card content */
     pointer-events: all;
+    /* GPU layer for smooth rotation + throb */
+    will-change: transform;
   }
 
   /* Invisible pseudo-element enlarges the touch target to ≥ 44×44px */
@@ -139,5 +163,24 @@
   /* When a card is collapsed, give it a slightly muted look to signal state */
   .card--collapsed > .card-collapse-btn + * {
     opacity: 0.75;
+  }
+
+  /* ── Throb breadcrumb animation ────────────────────────────────── */
+  /* JS sets [data-throb] on the button when the card first loads in the
+     collapsed state. The attribute is removed on first user interaction,
+     so the hint plays only once per session per card.                */
+  .card-collapse-btn[data-throb] {
+    animation: card-collapse-throb 1.5s ease-in-out 0.4s 3 both;
+  }
+
+  /* Respect the user's motion preference */
+  @media (prefers-reduced-motion: reduce) {
+    .card-collapse-btn {
+      transition: background 0.1s ease, box-shadow 0.1s ease, opacity 0.1s ease;
+      animation: none !important;
+    }
+    .card-body-collapsible {
+      transition: none;
+    }
   }
 }

@@ -290,7 +290,6 @@
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'card-collapse-btn';
-    btn.setAttribute('aria-label', 'Toggle card');
     btn.setAttribute('aria-expanded', 'false');
     btn.innerHTML = CHEVRON_SVG;
 
@@ -304,6 +303,7 @@
       /* User previously expanded this card — show it open */
       card.classList.remove('card--collapsed');
       btn.setAttribute('aria-expanded', 'true');
+      btn.setAttribute('aria-label', 'Collapse card');
       wrapper.style.maxHeight = '';
       wrapper.style.opacity = '';
       wrapper.style.display = '';
@@ -311,9 +311,13 @@
       /* No persisted state (or state says collapsed) — start collapsed */
       card.classList.add('card--collapsed');
       btn.setAttribute('aria-expanded', 'false');
+      btn.setAttribute('aria-label', 'Expand card');
       wrapper.style.maxHeight = '0';
       wrapper.style.opacity = '0';
       wrapper.style.display = 'none';
+      /* Throb breadcrumb: animate button to hint the card is expandable.
+       * Only on the initial page-load collapse (no saved expanded state). */
+      btn.dataset.throb = '1';
     }
 
     /* Click handler — guarded against rapid clicks via _animating flag */
@@ -324,6 +328,13 @@
 
       const collapsed = card.classList.toggle('card--collapsed');
       btn.setAttribute('aria-expanded', String(!collapsed));
+      btn.setAttribute('aria-label', collapsed ? 'Expand card' : 'Collapse card');
+
+      /* Remove throb as soon as the user expands the card — they now
+       * know the card is interactive; no need to hint again. */
+      if (!collapsed) {
+        delete btn.dataset.throb;
+      }
 
       const onDone = () => { card._animating = false; };
 
