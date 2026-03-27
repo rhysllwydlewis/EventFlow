@@ -27,33 +27,53 @@ function generateUid() {
 async function supplierIsProActive(userIdOrSupplier) {
   try {
     // Handle both supplier object and direct user ID
-    const userId =
-      typeof userIdOrSupplier === 'string' ? userIdOrSupplier : userIdOrSupplier?.ownerUserId;
+    const isSupplierObj = userIdOrSupplier && typeof userIdOrSupplier === 'object';
+    const userId = isSupplierObj ? userIdOrSupplier?.ownerUserId : userIdOrSupplier;
 
     if (!userId) {
       return false;
     }
 
+    // 1. Check the subscriptions collection (Stripe-based subscriptions).
     const subscriptionService = require('../services/subscriptionService');
     const subscription = await subscriptionService.getSubscriptionByUserId(userId);
 
-    if (!subscription) {
-      return false;
+    if (subscription) {
+      // Check subscription is active and not expired
+      if (!['active', 'trialing'].includes(subscription.status)) {
+        return false;
+      }
+
+      // Verify current period hasn't ended
+      if (subscription.currentPeriodEnd && new Date(subscription.currentPeriodEnd) < new Date()) {
+        return false;
+      }
+
+      // Pro or higher tier
+      const validPlans = ['pro', 'pro_plus', 'enterprise'];
+      return validPlans.includes(subscription.plan);
     }
 
-    // Check subscription is active and not expired
-    if (!['active', 'trialing'].includes(subscription.status)) {
-      return false;
+    // 2. Fall back to admin-granted Pro flags on the supplier document itself.
+    //    Admin can grant Pro via two routes:
+    //    a) /pro endpoint: sets isPro + proExpiresAt directly on the supplier doc.
+    //    b) /subscription endpoint: sets isPro + subscription.tier + subscription.endDate.
+    if (isSupplierObj) {
+      const s = userIdOrSupplier;
+      if (s.isPro) {
+        // Check expiry from the /pro endpoint grant
+        if (s.proExpiresAt && new Date(s.proExpiresAt) < new Date()) {
+          return false;
+        }
+        // Check expiry from the /subscription endpoint grant
+        if (s.subscription?.endDate && new Date(s.subscription.endDate) < new Date()) {
+          return false;
+        }
+        return true;
+      }
     }
 
-    // Verify current period hasn't ended
-    if (subscription.currentPeriodEnd && new Date(subscription.currentPeriodEnd) < new Date()) {
-      return false;
-    }
-
-    // Pro or higher tier
-    const validPlans = ['pro', 'pro_plus', 'enterprise'];
-    return validPlans.includes(subscription.plan);
+    return false;
   } catch (error) {
     logger.error('Error checking Pro status:', error);
     return false;

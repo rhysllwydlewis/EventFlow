@@ -78,7 +78,10 @@
               </div>
             </div>`;
     } catch (_) {
-      /* ignore */
+      // Ensure the banner stays hidden if the API call fails.
+      if (banner) {
+        banner.style.display = 'none';
+      }
     }
   }
 

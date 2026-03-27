@@ -8,6 +8,7 @@
 const express = require('express');
 const router = express.Router();
 const { apiLimiter } = require('../middleware/rateLimits');
+const subscriptionService = require('../services/subscriptionService');
 
 // Dependencies injected by server.js
 let dbUnified;
@@ -288,10 +289,19 @@ router.get('/suppliers/:id/packages', async (req, res) => {
 router.get('/me/suppliers', applyAuthRequired, applyRoleRequired('supplier'), async (req, res) => {
   try {
     const listRaw = (await dbUnified.read('suppliers')).filter(s => s.ownerUserId === req.user.id);
+    // Fetch the user's subscription once and attach the plan name to every supplier object
+    // so the client-side tier checks (s.subscriptionTier === 'pro') work correctly.
+    const userSubscription = await subscriptionService.getSubscriptionByUserId(req.user.id);
+    const subscriptionTier =
+      userSubscription && ['active', 'trialing'].includes(userSubscription.status)
+        ? userSubscription.plan
+        : null;
     const list = await Promise.all(
       listRaw.map(async s => ({
         ...s,
         isPro: await supplierIsProActive(s),
+        // Fresh subscription tier takes precedence over any stale value stored on the supplier document.
+        subscriptionTier: subscriptionTier || s.subscriptionTier || null,
         proExpiresAt: s.proExpiresAt || null,
       }))
     );

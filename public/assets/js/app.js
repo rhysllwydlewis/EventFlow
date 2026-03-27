@@ -4,23 +4,29 @@
 // This replaces inline onerror="..." attributes blocked by script-src-attr 'none'.
 (function () {
   'use strict';
-  if (window.__imgFallbackRegistered) return;
+  if (window.__imgFallbackRegistered) {
+    return;
+  }
   window.__imgFallbackRegistered = true;
   function _handleImgError(e) {
-    var img = e.target;
-    if (!img || img.tagName !== 'IMG') return;
-    if (img.dataset.fallbackApplied) return;
+    const img = e.target;
+    if (!img || img.tagName !== 'IMG') {
+      return;
+    }
+    if (img.dataset.fallbackApplied) {
+      return;
+    }
     img.dataset.fallbackApplied = 'true';
     if (img.dataset.fallbackAction === 'attachment-error') {
       img.style.display = 'none';
       img.classList.add('messenger-v4__attachment-error');
       if (img.parentNode) {
-        var w = document.createElement('span');
+        const w = document.createElement('span');
         w.className = 'messenger-v4__attachment-error-label';
         w.title = 'Image unavailable';
-        var l = document.createElement('span');
+        const l = document.createElement('span');
         l.textContent = 'Image unavailable';
-        var h = document.createElement('span');
+        const h = document.createElement('span');
         h.className = 'messenger-v4__attachment-error-hint';
         h.textContent = 'The file may have been removed';
         w.appendChild(l);
@@ -29,7 +35,10 @@
       }
       return;
     }
-    if (img.dataset.fallbackSrc) { img.src = img.dataset.fallbackSrc; return; }
+    if (img.dataset.fallbackSrc) {
+      img.src = img.dataset.fallbackSrc;
+      return;
+    }
     if ('fallbackHide' in img.dataset) {
       img.style.display = 'none';
       if ('fallbackShowNext' in img.dataset && img.nextElementSibling) {
@@ -2769,15 +2778,29 @@ async function initDashSupplier() {
           s.subscription?.tier === 'pro_plus'
       );
 
+      // Fallback: if no supplier object indicates Pro, check the user's subscription directly.
+      if (!currentIsPro) {
+        try {
+          const subData = await api('/api/v2/subscriptions/me');
+          if (subData && (subData.plan === 'pro' || subData.plan === 'pro_plus')) {
+            currentIsPro = true;
+          }
+        } catch (_) {
+          // Ignore — subscription endpoint unavailable; fall through to Starter display.
+        }
+      }
+
       if (proRibbon) {
         if (currentIsPro) {
+          proRibbon.classList.remove('pro-ribbon--starter');
           proRibbon.style.display = 'block';
           proRibbon.innerHTML =
-            '<strong>You’re on EventFlow Pro.</strong> Your listing can appear higher in search and you have access to premium features as we roll them out.';
+            "⭐ <strong>You're on EventFlow Pro.</strong> Your listing appears higher in search and you have access to premium features.";
         } else {
+          proRibbon.classList.add('pro-ribbon--starter');
           proRibbon.style.display = 'block';
           proRibbon.innerHTML =
-            '<strong>You’re on the Starter plan.</strong> Upgrade to EventFlow Pro to boost your visibility, unlock more packages and get priority support.';
+            '🚀 <strong>You\'re on the Starter plan.</strong> Upgrade to unlock priority visibility, more packages and dedicated support. <a href="/pricing" class="pro-ribbon__cta">Upgrade to Pro →</a>';
         }
       }
 
