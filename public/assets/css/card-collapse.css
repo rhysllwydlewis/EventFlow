@@ -40,7 +40,11 @@
   }
 
   /* ── Toggle button — premium liquid glass ──────────────────────── */
-  .card-collapse-btn {
+  /* Use .card-collapsible > .card-collapse-btn for higher specificity
+     so these rules override any flex/grid layout from parent cards
+     without needing !important. */
+  .card-collapse-btn,
+  .card-collapsible > .card-collapse-btn {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -49,14 +53,27 @@
     right: 8px;
     width: 24px;
     height: 24px;
-    min-width: 24px;  /* prevent shrink in flex cards */
+    /* Clamp both axes so page-level `button { min-height/min-width: 44px }`
+       rules (e.g. from ui-ux-fixes.css / admin-enhanced.css) cannot inflate
+       the visual size. The ::before pseudo-element provides the 44×44 touch target. */
+    min-height: 24px;
+    max-height: 24px;
+    min-width: 24px;
+    max-width: 24px;
+    /* Prevent flex/grid parents from stretching the button */
+    align-self: flex-start;
+    justify-self: end;
+    flex-grow: 0;
+    flex-shrink: 0;
+    flex-basis: 24px;
     padding: 0;
+    overflow: hidden;
     /* Frosted glass base */
     background: rgba(255, 255, 255, 0.45);
     backdrop-filter: blur(12px) saturate(180%);
     -webkit-backdrop-filter: blur(12px) saturate(180%);
     border: 1px solid rgba(255, 255, 255, 0.6);
-    border-radius: 8px;
+    border-radius: 10px;
     cursor: pointer;
     z-index: 5;
     line-height: 1;
@@ -74,7 +91,6 @@
       box-shadow 0.2s ease,
       transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
       opacity 0.2s ease;
-    flex-shrink: 0;
     /* Keep tappable on top of card content */
     pointer-events: all;
     /* GPU layer for smooth rotation + throb */
@@ -123,15 +139,16 @@
     }
   }
 
-  /* SVG chevron defaults to ↓ (pointing down). Rotating 180° makes it ↑
-     (pointing up) when the card is collapsed — matches standard accordion UX. */
+  /* SVG chevron defaults to ↓ (pointing down). Rotating -90° makes it →
+     (pointing right) when the card is collapsed — a clean sideways arrow
+     indicating "tap to expand", matches standard accordion UX. */
   .card--collapsed .card-collapse-btn {
-    transform: rotate(180deg);
+    transform: rotate(-90deg);
   }
 
   /* Active + collapsed together — keep the press-down scale */
   .card--collapsed .card-collapse-btn:active {
-    transform: rotate(180deg) scale(0.94);
+    transform: rotate(-90deg) scale(0.94);
   }
 
   /* ── Header area: ensure button doesn't overlap title text ─────── */

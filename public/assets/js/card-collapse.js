@@ -29,8 +29,10 @@
   const BREAKPOINT = 1024;
   const STORAGE_KEY = 'ef-collapsed-cards';
 
-  /* Inline SVG chevron — scales cleanly at small sizes, crisp at 10×10 */
-  const CHEVRON_SVG = '<svg aria-hidden="true" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3.5l3 3 3-3"/></svg>';
+  /* Inline SVG chevron — rendered at 12×12px inside the 24px button.
+     The viewBox stays at "0 0 10 10" (the path coordinate space); setting
+     width/height larger scales it uniformly — same 1:1 aspect ratio, no distortion. */
+  const CHEVRON_SVG = '<svg aria-hidden="true" width="12" height="12" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3.5l3 3 3-3"/></svg>';
 
   /* ─── sessionStorage helpers ─────────────────────────────────── */
   function loadState() {
@@ -292,6 +294,17 @@
     btn.className = 'card-collapse-btn';
     btn.setAttribute('aria-expanded', 'false');
     btn.innerHTML = CHEVRON_SVG;
+    /* Inline style fallbacks — CSS can be overridden by page-level specificity,
+       but inline styles guarantee the button remains 24×24px and absolutely
+       positioned even in edge cases (e.g. a stylesheet with higher specificity
+       sets width/position on buttons inside a specific card type).
+       minHeight/maxHeight clamp overrides from `button { min-height: 44px }`
+       rules in ui-ux-fixes.css and admin-enhanced.css. */
+    btn.style.position = 'absolute';
+    btn.style.width = '24px';
+    btn.style.height = '24px';
+    btn.style.minHeight = '24px';
+    btn.style.maxHeight = '24px';
 
     /* Prepend; absolute positioning places it at top-right visually */
     card.insertBefore(btn, card.firstChild);
