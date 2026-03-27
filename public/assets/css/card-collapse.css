@@ -97,7 +97,10 @@
     will-change: transform;
   }
 
-  /* Invisible pseudo-element enlarges the touch target to ≥ 44×44px */
+  /* Invisible pseudo-element enlarges the touch target to ≥ 44×44px.
+     This ensures the button meets WCAG 2.5.8 target size guidelines
+     even though the visual button is only 24×24px. The pseudo-element
+     is centered on the button and extends invisibly in all directions. */
   .card-collapse-btn::before {
     content: '';
     position: absolute;
@@ -106,6 +109,11 @@
     transform: translate(-50%, -50%);
     width: 44px;
     height: 44px;
+    /* Transparent but still captures pointer/touch events */
+    background: transparent;
+    border-radius: 50%;
+    /* Debug: uncomment to visualize touch target */
+    /* background: rgba(255, 0, 0, 0.1); */
   }
 
   .card-collapse-btn:hover {
@@ -139,16 +147,18 @@
     }
   }
 
-  /* SVG chevron defaults to ↓ (pointing down). Rotating -90° makes it →
-     (pointing right) when the card is collapsed — a clean sideways arrow
-     indicating "tap to expand", matches standard accordion UX. */
+  /* ── Chevron rotation: 180° flip ─────────────────────────────────
+     The SVG chevron path draws a downward-pointing arrow (▼) at 0°.
+     • Expanded card  → arrow points DOWN  (0°)   = "tap to collapse"
+     • Collapsed card → arrow points UP    (180°)  = "tap to expand"
+     This is a clean 180° flip, NOT the previous -90° sideways arrow. */
   .card--collapsed .card-collapse-btn {
-    transform: rotate(-90deg);
+    transform: rotate(180deg);
   }
 
-  /* Active + collapsed together — keep the press-down scale */
+  /* Active + collapsed together — keep the press-down scale with 180° */
   .card--collapsed .card-collapse-btn:active {
-    transform: rotate(-90deg) scale(0.94);
+    transform: rotate(180deg) scale(0.94);
   }
 
   /* ── Header area: ensure button doesn't overlap title text ─────── */
