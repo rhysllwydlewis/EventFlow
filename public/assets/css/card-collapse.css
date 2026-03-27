@@ -1,0 +1,70 @@
+/**
+ * Card Collapse — Mobile collapsible card toggle
+ * Only active on viewports ≤ 1024px.
+ * Companion JS: /assets/js/card-collapse.js
+ */
+
+/* ─── Hidden on desktop ─────────────────────────────────────────── */
+.card-collapse-btn {
+  display: none;
+}
+
+/* ─── Mobile / tablet (≤ 1024px) ───────────────────────────────── */
+@media (max-width: 1024px) {
+
+  /* Positioning context for the absolute-positioned button */
+  .card-collapsible {
+    position: relative;
+  }
+
+  /* Toggle button */
+  .card-collapse-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    cursor: pointer;
+    z-index: 2;
+    font-size: 14px;
+    line-height: 1;
+    color: #6b7280;
+    transition: background 0.2s ease, transform 0.25s ease;
+    /* prevent card text or other elements from overlapping */
+    flex-shrink: 0;
+  }
+
+  .card-collapse-btn:hover,
+  .card-collapse-btn:focus-visible {
+    background: rgba(0, 0, 0, 0.08);
+    outline: 2px solid rgba(11, 128, 115, 0.4);
+    outline-offset: 2px;
+  }
+
+  /* Chevron rotates when card is collapsed */
+  .card--collapsed .card-collapse-btn {
+    transform: rotate(-90deg);
+  }
+
+  /* ─── Collapsible body wrapper ─────────────────────────────── */
+  .card-body-collapsible {
+    max-height: 9999px;
+    overflow: hidden;
+    opacity: 1;
+    transition:
+      max-height 0.35s ease,
+      opacity 0.25s ease;
+  }
+
+  .card--collapsed .card-body-collapsible {
+    max-height: 0;
+    opacity: 0;
+  }
+}
