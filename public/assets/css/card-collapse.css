@@ -23,39 +23,62 @@
     align-items: center;
     justify-content: center;
     position: absolute;
-    top: 10px;
-    right: 10px;
-    width: 32px;
-    height: 32px;
-    min-width: 32px;  /* prevent shrink in flex cards */
+    top: 6px;
+    right: 6px;
+    width: 20px;
+    height: 20px;
+    min-width: 20px;  /* prevent shrink in flex cards */
     padding: 0;
-    background: rgba(0, 0, 0, 0.05);
+    background: rgba(255, 255, 255, 0.7);
     border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 8px;
+    border-radius: 4px;
     cursor: pointer;
-    z-index: 10;
-    font-size: 16px;
+    z-index: 5;
+    font-size: 10px;
     line-height: 1;
     color: #6b7280;
-    /* Rotate transition only — background handled separately */
-    transition: background 0.2s ease, transform 0.25s ease;
+    opacity: 0.6;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    /* Rotate transition + opacity + background */
+    transition: background 0.2s ease, transform 0.25s ease, opacity 0.2s ease;
     flex-shrink: 0;
     /* Keep tappable on top of card content */
     pointer-events: all;
   }
 
+  /* Invisible pseudo-element enlarges the touch target to ≥ 44×44px */
+  .card-collapse-btn::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 44px;
+    height: 44px;
+  }
+
   .card-collapse-btn:hover {
-    background: rgba(0, 0, 0, 0.09);
+    background: rgba(255, 255, 255, 0.95);
+    opacity: 1;
   }
 
   .card-collapse-btn:focus-visible {
     outline: 2px solid rgba(11, 128, 115, 0.5);
     outline-offset: 2px;
-    background: rgba(0, 0, 0, 0.07);
+    background: rgba(255, 255, 255, 0.95);
+    opacity: 1;
   }
 
   .card-collapse-btn:active {
-    background: rgba(0, 0, 0, 0.13);
+    background: rgba(0, 0, 0, 0.06);
+    opacity: 1;
+  }
+
+  /* Touch devices: no hover state, so show button at a higher base opacity */
+  @media (hover: none) {
+    .card-collapse-btn {
+      opacity: 0.7;
+    }
   }
 
   /* Chevron rotates ▾→▸ (−90°) when card is collapsed */
@@ -68,7 +91,9 @@
      Since the button is prepended (making it the CSS :first-child),
      the actual header is the next sibling. */
   .card-collapsible > .card-collapse-btn + * {
-    padding-right: 40px;
+    padding-right: 28px;
+    /* Smooth opacity when card collapses/expands */
+    transition: opacity 0.25s ease;
   }
 
   /* ── Collapsible body wrapper ──────────────────────────────────── */
@@ -77,6 +102,7 @@
   .card-body-collapsible {
     overflow: hidden;
     opacity: 1;
+    will-change: max-height, opacity;
     transition:
       max-height 0.3s ease,
       opacity 0.25s ease;
