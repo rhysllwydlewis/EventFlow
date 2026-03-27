@@ -55,10 +55,13 @@
   }
 
   /* ─── Stable ID generation ───────────────────────────────────── */
+  /* Track IDs already assigned on this page to prevent hash collisions */
+  const _usedIds = new Set();
+
   /**
    * Generate a stable card ID from its text content + page pathname
    * rather than a fragile counter, so IDs survive page navigation
-   * and card reordering.
+   * and card reordering.  Appends a numeric suffix on collision.
    */
   function makeCardId(card, fallbackIndex) {
     if (card.id) {return card.id;}
@@ -72,7 +75,14 @@
         hash = ((hash << 5) + hash) ^ str.charCodeAt(i);
         hash = hash >>> 0; /* keep unsigned 32-bit */
       }
-      return 'ef-card-' + hash.toString(36);
+      let base = 'ef-card-' + hash.toString(36);
+      let candidate = base;
+      let suffix = 2;
+      while (_usedIds.has(candidate)) {
+        candidate = base + '-' + suffix++;
+      }
+      _usedIds.add(candidate);
+      return candidate;
     } catch (e) {
       return 'ef-card-' + fallbackIndex;
     }
@@ -142,11 +152,14 @@
    */
   function collapseWrapper(wrapper, onDone) {
     /* Cancel any pending fallback from a previous animation */
-    if (wrapper._collapseTimer) {
-      clearTimeout(wrapper._collapseTimer);
-      wrapper._collapseTimer = null;
+    if (wrapper._animationTimer) {
+      clearTimeout(wrapper._animationTimer);
+      wrapper._animationTimer = null;
     }
-    wrapper.removeEventListener('transitionend', wrapper._transitionHandler || function(){});
+    if (wrapper._animationHandler) {
+      wrapper.removeEventListener('transitionend', wrapper._animationHandler);
+      wrapper._animationHandler = null;
+    }
 
     /* Capture actual rendered height as the start value */
     wrapper.style.maxHeight = `${wrapper.scrollHeight}px`;
@@ -158,8 +171,8 @@
     wrapper.style.opacity = '0';
 
     const finish = () => {
-      clearTimeout(wrapper._collapseTimer);
-      wrapper._collapseTimer = null;
+      clearTimeout(wrapper._animationTimer);
+      wrapper._animationTimer = null;
       wrapper.removeEventListener('transitionend', handler);
       wrapper.style.display = 'none';
       if (onDone) {onDone();}
@@ -169,10 +182,10 @@
       if (e.propertyName !== 'max-height') {return;}
       finish();
     };
-    wrapper._transitionHandler = handler;
+    wrapper._animationHandler = handler;
     wrapper.addEventListener('transitionend', handler);
     /* Fallback: 350ms > 300ms CSS transition */
-    wrapper._collapseTimer = setTimeout(finish, 350);
+    wrapper._animationTimer = setTimeout(finish, 350);
   }
 
   /**
@@ -182,11 +195,14 @@
    */
   function expandWrapper(wrapper, onDone) {
     /* Cancel any pending fallback */
-    if (wrapper._collapseTimer) {
-      clearTimeout(wrapper._collapseTimer);
-      wrapper._collapseTimer = null;
+    if (wrapper._animationTimer) {
+      clearTimeout(wrapper._animationTimer);
+      wrapper._animationTimer = null;
     }
-    wrapper.removeEventListener('transitionend', wrapper._transitionHandler || function(){});
+    if (wrapper._animationHandler) {
+      wrapper.removeEventListener('transitionend', wrapper._animationHandler);
+      wrapper._animationHandler = null;
+    }
 
     /* Make the element participate in layout again */
     wrapper.style.display = '';
@@ -206,8 +222,8 @@
     wrapper.style.opacity = '1';
 
     const finish = () => {
-      clearTimeout(wrapper._collapseTimer);
-      wrapper._collapseTimer = null;
+      clearTimeout(wrapper._animationTimer);
+      wrapper._animationTimer = null;
       wrapper.removeEventListener('transitionend', handler);
       /* Remove the inline max-height so the wrapper can grow naturally
          if its content changes (images load, accordions open, etc.) */
@@ -219,10 +235,10 @@
       if (e.propertyName !== 'max-height') {return;}
       finish();
     };
-    wrapper._transitionHandler = handler;
+    wrapper._animationHandler = handler;
     wrapper.addEventListener('transitionend', handler);
     /* Fallback: 350ms > 300ms CSS transition */
-    wrapper._collapseTimer = setTimeout(finish, 350);
+    wrapper._animationTimer = setTimeout(finish, 350);
   }
 
   /* ─── Per-card initialisation ─────────────────────────────────── */
@@ -348,13 +364,13 @@
       const wrapper = card.querySelector(':scope > .card-body-collapsible');
       if (wrapper) {
         /* Cancel any pending animation timers */
-        if (wrapper._collapseTimer) {
-          clearTimeout(wrapper._collapseTimer);
-          wrapper._collapseTimer = null;
+        if (wrapper._animationTimer) {
+          clearTimeout(wrapper._animationTimer);
+          wrapper._animationTimer = null;
         }
-        if (wrapper._transitionHandler) {
-          wrapper.removeEventListener('transitionend', wrapper._transitionHandler);
-          wrapper._transitionHandler = null;
+        if (wrapper._animationHandler) {
+          wrapper.removeEventListener('transitionend', wrapper._animationHandler);
+          wrapper._animationHandler = null;
         }
         /* Ensure wrapper is visible before unwrapping */
         wrapper.style.maxHeight = '';
