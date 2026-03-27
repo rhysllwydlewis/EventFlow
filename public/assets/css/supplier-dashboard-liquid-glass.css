@@ -568,9 +568,8 @@ body.supplier-dashboard-page .sd-reviews-stat-card:hover {
 }
 
 /* ============================================================
-   15. PRO RIBBON / VERIFICATION BANNER
+   15. VERIFICATION BANNER
    ============================================================ */
-body.supplier-dashboard-page .pro-ribbon,
 body.supplier-dashboard-page #verification-status-banner {
   background: rgba(255, 255, 255, 0.58);
   backdrop-filter: blur(var(--sdlg-blur-light)) saturate(145%);
@@ -645,7 +644,6 @@ body.supplier-dashboard-page .sd-availability-section {
 
   body.supplier-dashboard-page .dashboard-breadcrumb,
   body.supplier-dashboard-page .sd-section-divider__label,
-  body.supplier-dashboard-page .pro-ribbon,
   body.supplier-dashboard-page #verification-status-banner {
     background: #ffffff;
   }
