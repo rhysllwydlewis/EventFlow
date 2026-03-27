@@ -56,9 +56,9 @@
                 x="-30%" y="-30%" width="160%" height="160%"
                 color-interpolation-filters="sRGB">
           <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" seed="2" result="NOISE"/>
-          <!-- Slightly reduced blur preserves crispness while still softening specular -->
+          <!-- Reduced from 3→2.5: slightly less blur preserves crispness while still softening specular -->
           <feGaussianBlur in="SourceGraphic" stdDeviation="2.5" result="BLUR"/>
-          <!-- Stronger specular exponent for tighter, more glass-like highlight -->
+          <!-- surfaceScale 4→5, specularConstant 1.2→1.4, specularExponent 15→20: tighter, more glass-like highlight -->
           <feSpecularLighting in="BLUR" surfaceScale="5" specularConstant="1.4"
                               specularExponent="20" lighting-color="white" result="SPECULAR">
             <fePointLight x="300" y="-80" z="120"/>

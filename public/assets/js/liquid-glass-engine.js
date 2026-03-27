@@ -227,7 +227,10 @@
     });
     specLit.appendChild(
       /* x/y/z must be unitless numbers for fePointLight (not percentages).
-         300 ≈ half a typical 375px mobile viewport width. */
+         x=300 ≈ centre of a 375–600px mobile viewport. A fixed value is
+         intentional: the filter is applied at the element level and the
+         light position need only be roughly centred rather than exact.
+         Updating it on every resize would cause expensive filter regens. */
       svgEl('fePointLight', { x: '300', y: '-80', z: '120' })
     );
     filter.appendChild(specLit);
