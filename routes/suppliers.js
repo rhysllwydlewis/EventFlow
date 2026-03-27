@@ -294,7 +294,7 @@ router.get('/me/suppliers', applyAuthRequired, applyRoleRequired('supplier'), as
     const userSubscription = await subscriptionService.getSubscriptionByUserId(req.user.id);
     const subscriptionTier =
       userSubscription && ['active', 'trialing'].includes(userSubscription.status)
-        ? userSubscription.plan || null
+        ? userSubscription.plan
         : null;
     const list = await Promise.all(
       listRaw.map(async s => ({

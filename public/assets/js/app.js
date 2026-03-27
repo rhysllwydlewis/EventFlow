@@ -2792,13 +2792,15 @@ async function initDashSupplier() {
 
       if (proRibbon) {
         if (currentIsPro) {
+          proRibbon.classList.remove('pro-ribbon--starter');
           proRibbon.style.display = 'block';
           proRibbon.innerHTML =
-            '<strong>You’re on EventFlow Pro.</strong> Your listing can appear higher in search and you have access to premium features as we roll them out.';
+            "⭐ <strong>You're on EventFlow Pro.</strong> Your listing appears higher in search and you have access to premium features.";
         } else {
+          proRibbon.classList.add('pro-ribbon--starter');
           proRibbon.style.display = 'block';
           proRibbon.innerHTML =
-            '<strong>You’re on the Starter plan.</strong> Upgrade to EventFlow Pro to boost your visibility, unlock more packages and get priority support.';
+            '🚀 <strong>You\'re on the Starter plan.</strong> Upgrade to unlock priority visibility, more packages and dedicated support. <a href="/pricing" class="pro-ribbon__cta">Upgrade to Pro →</a>';
         }
       }
 
