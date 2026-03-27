@@ -29,8 +29,8 @@
   const BREAKPOINT = 1024;
   const STORAGE_KEY = 'ef-collapsed-cards';
 
-  /* Inline SVG chevron — scales cleanly at small sizes */
-  const CHEVRON_SVG = '<svg aria-hidden="true" width="8" height="8" viewBox="0 0 8 8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 3l3 3 3-3"/></svg>';
+  /* Inline SVG chevron — scales cleanly at small sizes, crisp at 10×10 */
+  const CHEVRON_SVG = '<svg aria-hidden="true" width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3.5l3 3 3-3"/></svg>';
 
   /* ─── sessionStorage helpers ─────────────────────────────────── */
   function loadState() {
@@ -291,14 +291,24 @@
     btn.type = 'button';
     btn.className = 'card-collapse-btn';
     btn.setAttribute('aria-label', 'Toggle card');
-    btn.setAttribute('aria-expanded', 'true');
+    btn.setAttribute('aria-expanded', 'false');
     btn.innerHTML = CHEVRON_SVG;
 
     /* Prepend; absolute positioning places it at top-right visually */
     card.insertBefore(btn, card.firstChild);
 
-    /* Restore persisted collapse state (no animation on page load) */
-    if (state[id]) {
+    /* Restore persisted expand state (no animation on page load).
+     * Default behaviour: cards start COLLAPSED.
+     * state[id] === true means the user has explicitly expanded this card. */
+    if (state[id] === true) {
+      /* User previously expanded this card — show it open */
+      card.classList.remove('card--collapsed');
+      btn.setAttribute('aria-expanded', 'true');
+      wrapper.style.maxHeight = '';
+      wrapper.style.opacity = '';
+      wrapper.style.display = '';
+    } else {
+      /* No persisted state (or state says collapsed) — start collapsed */
       card.classList.add('card--collapsed');
       btn.setAttribute('aria-expanded', 'false');
       wrapper.style.maxHeight = '0';
@@ -325,9 +335,11 @@
 
       const current = loadState();
       if (collapsed) {
-        current[id] = true;
-      } else {
+        /* User collapsed the card — remove the "expanded" marker */
         delete current[id];
+      } else {
+        /* User expanded the card — record so it reopens on next load */
+        current[id] = true;
       }
       saveState(current);
     };
