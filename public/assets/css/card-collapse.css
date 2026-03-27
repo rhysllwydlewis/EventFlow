@@ -40,7 +40,11 @@
   }
 
   /* ── Toggle button — premium liquid glass ──────────────────────── */
-  .card-collapse-btn {
+  /* Use .card-collapsible > .card-collapse-btn for higher specificity
+     so these rules override any flex/grid layout from parent cards
+     without needing !important. */
+  .card-collapse-btn,
+  .card-collapsible > .card-collapse-btn {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -49,7 +53,14 @@
     right: 8px;
     width: 24px;
     height: 24px;
+    max-width: 24px;
     min-width: 24px;  /* prevent shrink in flex cards */
+    /* Prevent flex/grid parents from stretching the button */
+    align-self: flex-start;
+    justify-self: end;
+    flex-grow: 0;
+    flex-shrink: 0;
+    flex-basis: 24px;
     padding: 0;
     /* Frosted glass base */
     background: rgba(255, 255, 255, 0.45);
@@ -123,15 +134,16 @@
     }
   }
 
-  /* SVG chevron defaults to ↓ (pointing down). Rotating 180° makes it ↑
-     (pointing up) when the card is collapsed — matches standard accordion UX. */
+  /* SVG chevron defaults to ↓ (pointing down). Rotating -90° makes it →
+     (pointing right) when the card is collapsed — a clean sideways arrow
+     indicating "tap to expand", matches standard accordion UX. */
   .card--collapsed .card-collapse-btn {
-    transform: rotate(180deg);
+    transform: rotate(-90deg);
   }
 
   /* Active + collapsed together — keep the press-down scale */
   .card--collapsed .card-collapse-btn:active {
-    transform: rotate(180deg) scale(0.94);
+    transform: rotate(-90deg) scale(0.94);
   }
 
   /* ── Header area: ensure button doesn't overlap title text ─────── */

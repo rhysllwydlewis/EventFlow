@@ -292,6 +292,13 @@
     btn.className = 'card-collapse-btn';
     btn.setAttribute('aria-expanded', 'false');
     btn.innerHTML = CHEVRON_SVG;
+    /* Inline style fallbacks — CSS can be overridden by page-level specificity,
+       but inline styles guarantee the button remains 24×24px and absolutely
+       positioned even in edge cases (e.g. a stylesheet with higher specificity
+       sets width/position on buttons inside a specific card type). */
+    btn.style.position = 'absolute';
+    btn.style.width = '24px';
+    btn.style.height = '24px';
 
     /* Prepend; absolute positioning places it at top-right visually */
     card.insertBefore(btn, card.firstChild);
