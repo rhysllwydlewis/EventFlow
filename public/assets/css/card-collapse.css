@@ -77,7 +77,7 @@
     border: 1px solid rgba(255, 255, 255, 0.6);
     border-radius: 10px !important;
     cursor: pointer;
-    z-index: 5;
+    z-index: 10 !important;
     line-height: 1;
     font-size: 0 !important;
     /* EventFlow teal for the chevron icon */
@@ -88,16 +88,22 @@
       0 1px 3px rgba(0, 0, 0, 0.08),
       inset 0 1px 0 rgba(255, 255, 255, 0.8),
       0 0 0 0.5px rgba(11, 128, 115, 0.08);
-    /* Smooth transitions on all interactive states */
+    /* Smooth transitions on all interactive states.
+       `rotate` is the separate CSS property (independent of transform) used
+       for the chevron flip — this prevents interference with the :active
+       transform: scale(0.94) which would cause flicker when toggling quickly. */
     transition:
       background 0.2s ease,
       box-shadow 0.2s ease,
-      transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+      transform 0.2s ease,
+      rotate 0.3s cubic-bezier(0.4, 0, 0.2, 1),
       opacity 0.2s ease;
     /* Keep tappable on top of card content */
     pointer-events: all;
-    /* GPU layer for smooth rotation + throb */
-    will-change: transform;
+    /* GPU layer for smooth rotation + press-scale */
+    will-change: transform, rotate;
+    /* Explicit default so the transition has a defined start state */
+    rotate: 0deg;
   }
 
   /* Invisible pseudo-element enlarges the touch target to ≥ 44×44px.
@@ -154,14 +160,11 @@
      The SVG chevron path draws a downward-pointing arrow (▼) at 0°.
      • Expanded card  → arrow points DOWN  (0°)   = "tap to collapse"
      • Collapsed card → arrow points UP    (180°)  = "tap to expand"
-     This is a clean 180° flip, NOT the previous -90° sideways arrow. */
+     Using the standalone `rotate` CSS property keeps the chevron flip
+     completely independent of the `transform: scale()` used by :active.
+     There is no longer any combined collapsed+:active rule needed. */
   .card--collapsed .card-collapse-btn {
-    transform: rotate(180deg);
-  }
-
-  /* Active + collapsed together — keep the press-down scale with 180° */
-  .card--collapsed .card-collapse-btn:active {
-    transform: rotate(180deg) scale(0.94);
+    rotate: 180deg;
   }
 
   /* ── Header area: ensure button doesn't overlap title text ─────── */
