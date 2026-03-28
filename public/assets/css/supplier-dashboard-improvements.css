@@ -709,7 +709,7 @@ body.supplier-dashboard-page #main-content > .container {
 
 body.supplier-dashboard-page #main-content.section {
   padding-top: 20px;
-  padding-bottom: 26px;
+  padding-bottom: 20px;
 }
 
 body.supplier-dashboard-page .dashboard-breadcrumb {
@@ -750,7 +750,7 @@ body.supplier-dashboard-page .supplier-cta-section {
 @media (max-width: 1023px) {
   body.supplier-dashboard-page #main-content.section {
     padding-top: 16px;
-    padding-bottom: 20px;
+    padding-bottom: 16px;
   }
 
   body.supplier-dashboard-page .dashboard-breadcrumb {
@@ -785,7 +785,7 @@ body.supplier-dashboard-page .supplier-cta-section {
 @media (max-width: 640px) {
   body.supplier-dashboard-page #main-content.section {
     padding-top: 12px;
-    padding-bottom: 16px;
+    padding-bottom: 12px;
   }
 
   body.supplier-dashboard-page .dashboard-breadcrumb {
