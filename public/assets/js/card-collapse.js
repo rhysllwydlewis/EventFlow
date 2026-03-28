@@ -334,12 +334,18 @@
     btn.setAttribute('aria-expanded', 'false');
     btn.innerHTML = CHEVRON_SVG;
     /* Inline style fallbacks — CSS can be overridden by page-level specificity,
-       but inline styles guarantee the button remains 24×24px and absolutely
-       positioned even in edge cases (e.g. a stylesheet with higher specificity
-       sets width/position on buttons inside a specific card type).
+       but inline styles guarantee the button is correctly sized, positioned, and
+       stacked even in edge cases (e.g. a stylesheet with higher specificity sets
+       width/position/z-index on buttons inside a specific card type).
        minHeight/maxHeight clamp overrides from `button { min-height: 44px }`
-       rules in ui-ux-fixes.css and admin-enhanced.css. */
+       rules in ui-ux-fixes.css and admin-enhanced.css.
+       top/right/zIndex are repeated inline so the button stays in the correct
+       top-right position and on top even if card-collapse.css fails to load or
+       is overridden by a later-loaded stylesheet. */
     btn.style.position = 'absolute';
+    btn.style.top = '8px';
+    btn.style.right = '8px';
+    btn.style.zIndex = '10';
     btn.style.width = '24px';
     btn.style.height = '24px';
     btn.style.minHeight = '24px';
@@ -369,6 +375,7 @@
       card.classList.remove('card--collapsed');
       btn.setAttribute('aria-expanded', 'true');
       btn.setAttribute('aria-label', 'Collapse card');
+      btn.style.rotate = '0deg';
       wrapper.style.maxHeight = '';
       wrapper.style.opacity = '';
       wrapper.style.display = '';
@@ -377,6 +384,7 @@
       card.classList.add('card--collapsed');
       btn.setAttribute('aria-expanded', 'false');
       btn.setAttribute('aria-label', 'Expand card');
+      btn.style.rotate = '180deg';
       wrapper.style.maxHeight = '0';
       wrapper.style.opacity = '0';
       wrapper.style.display = 'none';
@@ -396,6 +404,10 @@
       const collapsed = card.classList.toggle('card--collapsed');
       btn.setAttribute('aria-expanded', String(!collapsed));
       btn.setAttribute('aria-label', collapsed ? 'Expand card' : 'Collapse card');
+      /* Drive chevron rotation directly via inline style — avoids GPU compositor
+       * desync that can occur when rotation is toggled via CSS class + will-change.
+       * The CSS transition: rotate 0.3s still fires on inline style changes. */
+      btn.style.rotate = collapsed ? '180deg' : '0deg';
 
       /* Remove throb as soon as the user expands the card — they now
        * know the card is interactive; no need to hint again. */
