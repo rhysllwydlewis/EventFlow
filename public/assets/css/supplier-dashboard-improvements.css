@@ -1596,7 +1596,9 @@ body.supplier-dashboard-page .supplier-cta-section {
     justify-content: center;
   }
 
-  .supplier-footer-content {
+  /* More specific than .footer .container in ui-ux-fixes.css (also 2-class),
+     and loaded later in the cascade, so this wins. */
+  .footer .supplier-footer-content {
     flex-direction: column;
     align-items: center;
     text-align: center;

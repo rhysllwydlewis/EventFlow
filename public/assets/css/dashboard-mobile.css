@@ -642,3 +642,15 @@
     box-sizing: border-box;
   }
 }
+
+/* ============================================================
+   P) FOOTER — centre-stack on all mobile sizes
+   Overrides .footer .container { align-items: flex-start } in ui-ux-fixes.css
+   ============================================================ */
+@media (max-width: 768px) {
+  .footer .supplier-footer-content {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+}
