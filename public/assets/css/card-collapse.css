@@ -232,9 +232,8 @@
   }
 
   /* ROI Performance Overview — date range selector is pointless when charts are hidden.
-     This also hides the selector on mobile always, since the period controls are
-     outside the individual collapsible chart cards and default to collapsed. */
-  .sd-roi-period {
+     Now inside .sd-card-header__actions which is already hidden when card--collapsed. */
+  .card--collapsed .sd-roi-period {
     display: none !important;
   }
 
@@ -249,7 +248,13 @@
     display: none !important;
   }
 
-  /* Earnings Overview — ef-card-subtitle and "Coming Soon" badge in ef-card-header */
+  /* Badges inside sd-card-header__actions are already hidden by the rule above.
+     This is a defensive safety net for any badge placed directly in sd-card-header. */
+  .card--collapsed .sd-card-header .ef-badge {
+    display: none !important;
+  }
+
+  /* Legacy ef-card-header rules (kept for any remaining ef-card patterns) */
   .card--collapsed .ef-card-header .ef-card-subtitle {
     display: none !important;
   }
@@ -257,10 +262,7 @@
     display: none !important;
   }
 
-  /* Availability Calendar — subtitle and "In Development" badge */
-  .card--collapsed .sd-availability-subtitle {
-    display: none !important;
-  }
+  /* sd-in-dev-badge — defensive rule; also covered by sd-card-header__actions hide above */
   .card--collapsed .sd-in-dev-badge {
     display: none !important;
   }

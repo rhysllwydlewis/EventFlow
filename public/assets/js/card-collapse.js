@@ -14,7 +14,6 @@
     '.listing-card',
     '.stat-card',
     '.package-card',
-    '.sd-availability-section',
   ].join(', ');
 
   /* Selectors that identify the "header" portion of a card */
@@ -32,7 +31,6 @@
     '.sp-card-header',
     '.supplier-card-header',
     '.sd-card-header',
-    '.sd-availability-header',
     '.dashboard-hero__header',
   ].join(', ');
 
