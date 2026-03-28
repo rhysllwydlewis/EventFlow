@@ -334,12 +334,18 @@
     btn.setAttribute('aria-expanded', 'false');
     btn.innerHTML = CHEVRON_SVG;
     /* Inline style fallbacks — CSS can be overridden by page-level specificity,
-       but inline styles guarantee the button remains 24×24px and absolutely
-       positioned even in edge cases (e.g. a stylesheet with higher specificity
-       sets width/position on buttons inside a specific card type).
+       but inline styles guarantee the button is correctly sized, positioned, and
+       stacked even in edge cases (e.g. a stylesheet with higher specificity sets
+       width/position/z-index on buttons inside a specific card type).
        minHeight/maxHeight clamp overrides from `button { min-height: 44px }`
-       rules in ui-ux-fixes.css and admin-enhanced.css. */
+       rules in ui-ux-fixes.css and admin-enhanced.css.
+       top/right/zIndex are repeated inline so the button stays in the correct
+       top-right position and on top even if card-collapse.css fails to load or
+       is overridden by a later-loaded stylesheet. */
     btn.style.position = 'absolute';
+    btn.style.top = '8px';
+    btn.style.right = '8px';
+    btn.style.zIndex = '10';
     btn.style.width = '24px';
     btn.style.height = '24px';
     btn.style.minHeight = '24px';
