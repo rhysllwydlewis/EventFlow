@@ -796,14 +796,14 @@ body.supplier-dashboard-page .supplier-cta-section {
   body.supplier-dashboard-page .supplier-section-card,
   body.supplier-dashboard-page .profile-checklist,
   body.supplier-dashboard-page .supplier-cta-card {
-    margin-top: 10px;
-    margin-bottom: 10px;
+    margin-top: 12px;
+    margin-bottom: 12px;
     padding: 14px;
   }
 
   body.supplier-dashboard-page #supplier-stats-grid {
     gap: 9px;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
   }
 
   body.supplier-dashboard-page .stat-widget {
@@ -889,6 +889,8 @@ body.supplier-dashboard-page .supplier-cta-section {
   scroll-snap-align: center;
   position: relative;
   z-index: 3;
+  display: inline-flex;
+  align-items: center;
   border-radius: 999px;
   padding: 10px 14px;
   border: 1px solid rgba(11, 128, 115, 0.2);
@@ -904,6 +906,9 @@ body.supplier-dashboard-page .supplier-cta-section {
   font-size: 14px;
   font-weight: 500;
   min-height: 42px;
+  text-decoration: none;
+  color: inherit;
+  box-sizing: border-box;
 }
 
 .mobile-nav-pill:hover {
@@ -1027,7 +1032,7 @@ body.supplier-dashboard-page .supplier-cta-section {
 /* Mobile-only icon navigation (hide text labels) */
 /* ── pill-icon: SVG icon wrapper inside nav pills ───────────────────── */
 .mobile-nav-pill {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 6px;
 }
@@ -1058,7 +1063,7 @@ body.supplier-dashboard-page .supplier-cta-section {
     min-width: 44px;
     min-height: 44px;
     padding: 10px 12px;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
   }
@@ -1591,8 +1596,11 @@ body.supplier-dashboard-page .supplier-cta-section {
     justify-content: center;
   }
 
-  .supplier-footer-content {
+  /* More specific than .footer .container in ui-ux-fixes.css (also 2-class),
+     and loaded later in the cascade, so this wins. */
+  .footer .supplier-footer-content {
     flex-direction: column;
+    align-items: center;
     text-align: center;
   }
 
@@ -1869,16 +1877,6 @@ details[open] .faq-question::after {
 /* ===========================================
    20. RESPONSIVE UPDATES
    =========================================== */
-@media (max-width: 640px) {
-  .supplier-footer-content {
-    flex-direction: column;
-    text-align: center;
-  }
-
-  .social-links-grid {
-    grid-template-columns: 1fr;
-  }
-}
 
 /* ===========================================
    21. PROFILE CUSTOMIZATION CTA BANNER

@@ -203,6 +203,26 @@
     padding-bottom: 0 !important;
   }
 
+  /* Faded left/right edges on the gradient header strip when card is collapsed.
+     The mask-image fades the gradient band to transparent on both sides,
+     blending it smoothly into the white card background. */
+  .card--collapsed .sd-card-header {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      black 6%,
+      black 94%,
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      black 6%,
+      black 94%,
+      transparent 100%
+    );
+  }
+
   /* When a card is collapsed, give it a slightly muted look to signal state.
      Also zero out any margin-bottom on the header so cards with CSS/inline
      margin-bottom on their header (e.g. .ef-card-header: 1.5rem, chart card
