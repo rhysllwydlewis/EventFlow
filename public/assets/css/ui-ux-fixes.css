@@ -597,10 +597,13 @@ code {
    ACCESSIBILITY FIXES
    ============================================ */
 
-/* Ensure touch targets meet WCAG 2.1 AA (44x44px minimum) */
+/* Ensure touch targets meet WCAG 2.1 AA (44x44px minimum).
+   .card-collapse-btn is excluded here because it already provides a
+   44×44px touch target via its ::before pseudo-element; including it
+   in this rule would inflate the 24×24px visual button. */
 @media (pointer: coarse) {
   a,
-  button,
+  button:not(.card-collapse-btn),
   input[type="submit"],
   input[type="button"],
   .clickable {
