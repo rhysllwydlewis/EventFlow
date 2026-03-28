@@ -16,7 +16,7 @@ const router = express.Router();
 
 // Initialize Stripe at module level to avoid creating a new instance per request
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-const stripe = stripeSecretKey ? require('stripe')(stripeSecretKey) : null;
+const stripe = stripeSecretKey ? require('stripe')(stripeSecretKey, { apiVersion: '2025-12-15' }) : null;
 
 // Constants
 const TRIAL_DURATION_DAYS = 14;
