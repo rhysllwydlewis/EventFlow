@@ -363,6 +363,7 @@
   /* sd-card (main dashboard section cards) */
   .sd-card {
     padding: var(--mob-card-pad) !important;
+    margin-top: var(--mob-section-gap) !important;
     margin-bottom: var(--mob-section-gap) !important;
     border-radius: var(--mob-radius-lg) !important;
   }

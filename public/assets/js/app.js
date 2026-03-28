@@ -6112,9 +6112,24 @@ function renderSupplierChecklist(wrapper, supplierCount, packageCount) {
     { name: 'Get approved by admin', done: false }, // can't know client-side; show informational
     { name: 'Add at least one package', done: packageCount > 0 },
   ];
-  wrapper.innerHTML = `<h3>Onboarding</h3>${steps
-    .map(s => `<div class="small">${s.done ? '✅' : '⬜️'} ${s.name}</div>`)
-    .join('')}`;
+  wrapper.innerHTML = `
+    <div class="supplier-card-header sd-card-header sd-card-header--teal">
+      <div class="sd-card-header__left">
+        <div class="sd-card-header__title-row">
+          <div class="sd-card-header__icon sd-card-header__icon--teal" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 11l3 3L22 4"/>
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+            </svg>
+          </div>
+          <h3 class="sd-card-header__heading">Onboarding</h3>
+        </div>
+        <p class="sd-card-header__subtitle">Complete these steps to get started</p>
+      </div>
+    </div>
+    <div class="sd-card-body">
+      ${steps.map(s => `<div class="small">${s.done ? '✅' : '⬜️'} ${s.name}</div>`).join('')}
+    </div>`;
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -6133,8 +6148,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         const mp = await pk.json();
         const box = document.createElement('div');
-        box.className = 'card';
-        box.style.marginTop = '16px';
+        box.className = 'card sd-card supplier-dashboard-card';
         document.querySelector('main .container').appendChild(box);
         renderSupplierChecklist(box, (ms.items || []).length, (mp.items || []).length);
       } catch (e) {
