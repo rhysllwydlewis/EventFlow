@@ -6653,3 +6653,55 @@ label .required {
   display: block;
   color: #6366f1;
 }
+
+/* ── SVG sizing for final emoji replacements ──────────────────────── */
+
+/* Calendar feature chips */
+.sd-chip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+}
+
+.sd-chip-icon svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
+/* Profile Customization banner — inline sparkle icon */
+.supplier-cta-banner-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.supplier-cta-banner-icon {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: var(--ef-primary, #0b8073);
+}
+
+/* Reviews tip title — inline bulb icon */
+.sd-reviews-tip__title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ── Inline button/label SVG icons ───────────────────────────────── */
+.btn-icon {
+  display: inline-block;
+  vertical-align: -3px;
+  margin-right: 5px;
+  flex-shrink: 0;
+}
+
+.btn-icon--sm {
+  margin-right: 4px;
+}
