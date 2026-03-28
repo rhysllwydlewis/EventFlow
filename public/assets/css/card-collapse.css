@@ -275,7 +275,7 @@
 
   /* ── Chevron SVG: explicit sizing to prevent clipping ─────────────
      font-size: 0 on the parent button suppresses any text but must not
-     affect SVG rendering.  These rules guarantee the inline chevron SVG
+     affect SVG rendering. These rules guarantee the inline chevron SVG
      is always sized and visible regardless of cascading reset rules. */
   .card-collapse-btn svg {
     display: block !important;
