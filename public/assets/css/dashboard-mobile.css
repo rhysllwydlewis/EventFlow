@@ -375,6 +375,18 @@
     border-radius: var(--mob-radius-lg) !important;
   }
 
+  /* Within .sd-two-col flex containers, let only the flex gap control spacing */
+  .sd-two-col > .sd-card {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+  }
+
+  /* Give the .sd-two-col container itself consistent section-level spacing */
+  .sd-two-col {
+    margin-top: var(--mob-section-gap) !important;
+    margin-bottom: var(--mob-section-gap) !important;
+  }
+
   .sd-card-header {
     margin-bottom: var(--mob-gap-md) !important;
     padding-bottom: var(--mob-gap-md) !important;
