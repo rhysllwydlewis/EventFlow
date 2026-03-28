@@ -375,6 +375,7 @@
       card.classList.remove('card--collapsed');
       btn.setAttribute('aria-expanded', 'true');
       btn.setAttribute('aria-label', 'Collapse card');
+      btn.style.rotate = '0deg';
       wrapper.style.maxHeight = '';
       wrapper.style.opacity = '';
       wrapper.style.display = '';
@@ -383,6 +384,7 @@
       card.classList.add('card--collapsed');
       btn.setAttribute('aria-expanded', 'false');
       btn.setAttribute('aria-label', 'Expand card');
+      btn.style.rotate = '180deg';
       wrapper.style.maxHeight = '0';
       wrapper.style.opacity = '0';
       wrapper.style.display = 'none';
@@ -402,6 +404,10 @@
       const collapsed = card.classList.toggle('card--collapsed');
       btn.setAttribute('aria-expanded', String(!collapsed));
       btn.setAttribute('aria-label', collapsed ? 'Expand card' : 'Collapse card');
+      /* Drive chevron rotation directly via inline style — avoids GPU compositor
+       * desync that can occur when rotation is toggled via CSS class + will-change.
+       * The CSS transition: rotate 0.3s still fires on inline style changes. */
+      btn.style.rotate = collapsed ? '180deg' : '0deg';
 
       /* Remove throb as soon as the user expands the card — they now
        * know the card is interactive; no need to hint again. */

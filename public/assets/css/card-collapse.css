@@ -100,9 +100,11 @@
       opacity 0.2s ease;
     /* Keep tappable on top of card content */
     pointer-events: all;
-    /* GPU layer for smooth rotation + press-scale */
-    will-change: transform, rotate;
-    /* Explicit default so the transition has a defined start state */
+    /* GPU layer for smooth press-scale animation */
+    will-change: transform;
+    /* Explicit default so the CSS transition has a defined start state.
+       The actual rotation value is driven by JS (btn.style.rotate) so it
+       is always in sync with the card state. */
     rotate: 0deg;
   }
 
@@ -160,9 +162,11 @@
      The SVG chevron path draws a downward-pointing arrow (▼) at 0°.
      • Expanded card  → arrow points DOWN  (0°)   = "tap to collapse"
      • Collapsed card → arrow points UP    (180°)  = "tap to expand"
-     Using the standalone `rotate` CSS property keeps the chevron flip
-     completely independent of the `transform: scale()` used by :active.
-     There is no longer any combined collapsed+:active rule needed. */
+     Rotation is driven directly by JS (btn.style.rotate) rather than
+     by this CSS class, to avoid GPU compositor layer desync after
+     repeated toggles (a known issue with will-change + class-toggled
+     individual transform properties).  This rule is kept as a CSS
+     fallback only (e.g. server-side rendering without JS). */
   .card--collapsed .card-collapse-btn {
     rotate: 180deg;
   }
