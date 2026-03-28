@@ -31,9 +31,14 @@
    * Utility: time-based theme class for welcome card
    */
   function applyTimeBasedGreeting() {
-    const card = document.querySelector('.supplier-welcome-card');
+    // Support both the legacy .supplier-welcome-card container and the newer
+    // #welcome-section (.dashboard-hero) element used in the redesigned hero.
+    const card =
+      document.querySelector('.supplier-welcome-card') ||
+      document.getElementById('welcome-section');
     const greetingEl = document.getElementById('welcome-greeting');
-    if (!card || !greetingEl) {
+    // The greeting text is the primary goal; proceed even if the card is absent.
+    if (!greetingEl) {
       return;
     }
 
@@ -60,8 +65,12 @@
       greeting = 'Good night,';
     }
 
-    THEME_CLASSES.forEach(cls => card.classList.remove(cls));
-    card.classList.add(`supplier-welcome-card--${variant}`);
+    // Apply the time-of-day theme class only when the legacy card element is
+    // present; the redesigned hero has its own visual treatment.
+    if (card && card.classList.contains('supplier-welcome-card')) {
+      THEME_CLASSES.forEach(cls => card.classList.remove(cls));
+      card.classList.add(`supplier-welcome-card--${variant}`);
+    }
     greetingEl.textContent = greeting;
   }
 

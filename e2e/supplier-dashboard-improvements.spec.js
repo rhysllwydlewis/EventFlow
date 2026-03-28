@@ -106,12 +106,15 @@ test.describe('Supplier Dashboard Improvements @backend', () => {
       });
       expect(welcomeDismissedFlag).toBe('1');
 
-      // Welcome section should also be hidden
-      const welcomeVisible = await page.evaluate(() => {
-        const el = document.getElementById('welcome-section');
-        return el ? el.style.display !== 'none' : false;
-      });
-      expect(welcomeVisible).toBe(false);
+      // Welcome section should also be hidden after the animation completes
+      // (real code defers display:none by ~350 ms via setTimeout)
+      await page.waitForFunction(
+        () => {
+          const el = document.getElementById('welcome-section');
+          return !el || el.style.display === 'none';
+        },
+        { timeout: 1000 }
+      );
     }
   });
 

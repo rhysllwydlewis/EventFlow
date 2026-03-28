@@ -2576,14 +2576,22 @@ function efMaybeShowOnboarding(page) {
         } catch (_) {
           /* Ignore localStorage errors */
         }
-        const welcomeSection = document.getElementById('welcome-section');
-        if (welcomeSection) {
-          welcomeSection.style.display = 'none';
-        }
         const easing = 'cubic-bezier(0.4, 0, 0.2, 1)';
+        // Animate the onboarding overlay card away
         box.style.transition = `opacity 0.3s ${easing}, transform 0.3s ${easing}`;
         box.style.opacity = '0';
         box.style.transform = 'scale(0.95)';
+        // Animate the static welcome hero away in sync, then fully hide it
+        const welcomeSection = document.getElementById('welcome-section');
+        if (welcomeSection) {
+          welcomeSection.style.transition = `opacity 0.35s ${easing}, transform 0.35s ${easing}, margin-bottom 0.35s ${easing}`;
+          welcomeSection.style.opacity = '0';
+          welcomeSection.style.transform = 'scale(0.98) translateY(-8px)';
+          welcomeSection.style.marginBottom = '0';
+          setTimeout(() => {
+            welcomeSection.style.display = 'none';
+          }, 350);
+        }
         setTimeout(() => box.remove(), 300);
       });
     }

@@ -21,7 +21,9 @@ describe('Supplier welcome banner dismiss persistence', () => {
     }
   }
 
-  // Mirrors the dismiss handler added to efMaybeShowOnboarding in app.js
+  // Mirrors the dismiss handler added to efMaybeShowOnboarding in app.js.
+  // In the real code a CSS transition runs first, then display:none is applied
+  // via setTimeout; here we apply the end-state directly for unit-test purposes.
   function applyOnboardingDismissHandler(storage, welcomeEl, dismissBtn) {
     const listeners = {};
     dismissBtn.addEventListener = (evt, fn) => {
@@ -35,6 +37,8 @@ describe('Supplier welcome banner dismiss persistence', () => {
       } catch (_) {
         /* ignore */
       }
+      // Real code starts a CSS animation then defers display:none via setTimeout.
+      // We apply the final hidden state synchronously to keep tests simple.
       welcomeEl.style.display = 'none';
     });
 
@@ -137,12 +141,108 @@ describe('Supplier welcome banner dismiss persistence', () => {
     const listeners = applyOnboardingDismissHandler(storage, welcomeEl, dismissBtn);
 
     expect(() => listeners.click()).not.toThrow();
-    // Welcome section is still hidden (DOM side-effect happens before storage write)
+    // Welcome section is hidden even when storage throws (animation end-state)
     expect(welcomeEl.style.display).toBe('none');
   });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+
+describe('applyTimeBasedGreeting — greeting text always updates', () => {
+  // Mirrors the fixed applyTimeBasedGreeting() from supplier-dashboard-enhancements.js
+  const THEME_CLASSES = [
+    'supplier-welcome-card--morning',
+    'supplier-welcome-card--afternoon',
+    'supplier-welcome-card--evening',
+    'supplier-welcome-card--night',
+  ];
+
+  function applyTimeBasedGreeting(hour, greetingEl, card) {
+    if (!greetingEl) {
+      return;
+    }
+    let variant = 'afternoon';
+    let greeting = 'Good day,';
+    if (hour >= 5 && hour < 12) {
+      variant = 'morning';
+      greeting = 'Good morning,';
+    } else if (hour >= 12 && hour < 17) {
+      variant = 'afternoon';
+      greeting = 'Good afternoon,';
+    } else if (hour >= 17 && hour < 21) {
+      variant = 'evening';
+      greeting = 'Good evening,';
+    } else {
+      variant = 'night';
+      greeting = 'Good night,';
+    }
+    if (card && card.classList.contains('supplier-welcome-card')) {
+      THEME_CLASSES.forEach(cls => card.classList.remove(cls));
+      card.classList.add(`supplier-welcome-card--${variant}`);
+    }
+    greetingEl.textContent = greeting;
+  }
+
+  it('updates greeting text even when no .supplier-welcome-card element exists', () => {
+    const greetingEl = { textContent: 'Good day' };
+    applyTimeBasedGreeting(9, greetingEl, null);
+    expect(greetingEl.textContent).toBe('Good morning,');
+  });
+
+  it('updates greeting for each time band', () => {
+    const cases = [
+      [3, 'Good night,'],
+      [5, 'Good morning,'],
+      [11, 'Good morning,'],
+      [12, 'Good afternoon,'],
+      [16, 'Good afternoon,'],
+      [17, 'Good evening,'],
+      [20, 'Good evening,'],
+      [21, 'Good night,'],
+    ];
+    for (const [hour, expected] of cases) {
+      const el = { textContent: '' };
+      applyTimeBasedGreeting(hour, el, null);
+      expect(el.textContent).toBe(expected);
+    }
+  });
+
+  it('does not throw when greetingEl is null', () => {
+    expect(() => applyTimeBasedGreeting(10, null, null)).not.toThrow();
+  });
+
+  it('applies theme class only when card has .supplier-welcome-card class', () => {
+    const greetingEl = { textContent: '' };
+    const classes = new Set(['supplier-welcome-card']);
+    const card = {
+      classList: {
+        contains: cls => classes.has(cls),
+        remove: cls => classes.delete(cls),
+        add: cls => classes.add(cls),
+      },
+    };
+    applyTimeBasedGreeting(9, greetingEl, card); // morning
+    expect(classes.has('supplier-welcome-card--morning')).toBe(true);
+    expect(greetingEl.textContent).toBe('Good morning,');
+  });
+
+  it('does not apply theme class when card lacks .supplier-welcome-card (dashboard-hero)', () => {
+    const greetingEl = { textContent: '' };
+    const classes = new Set(['dashboard-hero']); // redesigned hero — no legacy class
+    const card = {
+      classList: {
+        contains: cls => classes.has(cls),
+        remove: cls => classes.delete(cls),
+        add: cls => classes.add(cls),
+      },
+    };
+    applyTimeBasedGreeting(9, greetingEl, card);
+    // Greeting text should update
+    expect(greetingEl.textContent).toBe('Good morning,');
+    // No theme class should be added
+    expect(classes.has('supplier-welcome-card--morning')).toBe(false);
+  });
+});
 
 describe('Scroll-spy guard — first pill always active at scrollY=0', () => {
   // Mirrors the updateActiveByScroll logic from supplier-dashboard-enhancements.js
