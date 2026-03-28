@@ -105,13 +105,20 @@
 }
 
 /* ============================================================
-   D) STATS CARDS — 2-column grid on mobile (not 1-column)
+   D) STATS CARDS — grid layout on mobile
    ============================================================ */
 @media (max-width: 768px) {
-  /* Override the 1-col grid from dashboard-hero.css */
+  /* Override the 1-col grid from dashboard-hero.css.
+     Default: 2-column for 2-item grids.
+     Supplier dashboard has 3 stat cards — use 3-column so no card
+     is orphaned on its own row. */
   .dashboard-hero__stats {
     grid-template-columns: repeat(2, 1fr);
     gap: var(--mob-gap-md);
+  }
+
+  body.supplier-dashboard-page .dashboard-hero__stats {
+    grid-template-columns: repeat(3, 1fr);
   }
 
   .dashboard-stat-card {
