@@ -222,33 +222,13 @@ export async function createPerformanceChart(containerId, viewsData, enquiriesDa
   const canvasId = `${containerId}-canvas`;
 
   const html = `
-    <div class="card" style="padding: 1.5rem;">
-      <div class="sd-card-header" style="margin-bottom: 1rem;">
-        <div class="sd-card-header__title-row" style="display: flex; align-items: center; gap: 0.75rem;">
-          <div class="sd-card-header__icon sd-card-header__icon--teal" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="3" width="20" height="15" rx="1.5" fill="currentColor" fill-opacity="0.06"/>
-              <line x1="6" y1="4" x2="6" y2="17"/>
-              <line x1="6" y1="17" x2="21" y2="17"/>
-              <line x1="6" y1="11" x2="21" y2="11" stroke-width="0.75" stroke-dasharray="2 2"/>
-              <polyline points="7 15 10 11 14 13 18 7 21 9" stroke-width="2"/>
-              <circle cx="10" cy="11" r="1.75" fill="currentColor"/>
-              <circle cx="14" cy="13" r="1.75" fill="currentColor"/>
-              <circle cx="18" cy="7" r="1.75" fill="currentColor"/>
-              <path d="M7 15 L10 11 L14 13 L18 7 L21 9 L21 17 L7 17 Z" fill="currentColor" fill-opacity="0.07" stroke="none"/>
-            </svg>
-          </div>
-          <h3 style="margin: 0; font-size: 1.25rem; color: #0B1220; font-weight: 600;">Performance Analytics</h3>
-        </div>
-      </div>
-      <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
-        <button class="chart-period-btn active" data-period="7" style="padding: 0.5rem 1rem; border: 1px solid #E7EAF0; background: white; border-radius: 8px; cursor: pointer; font-size: 0.875rem; transition: all 0.2s;">7 Days</button>
-        <button class="chart-period-btn" data-period="30" style="padding: 0.5rem 1rem; border: 1px solid #E7EAF0; background: white; border-radius: 8px; cursor: pointer; font-size: 0.875rem; transition: all 0.2s;">30 Days</button>
-        <button class="chart-period-btn" data-period="90" style="padding: 0.5rem 1rem; border: 1px solid #E7EAF0; background: white; border-radius: 8px; cursor: pointer; font-size: 0.875rem; transition: all 0.2s;">90 Days</button>
-      </div>
-      <div class="chart-container" style="position: relative; height: 300px;">
-        <canvas id="${canvasId}"></canvas>
-      </div>
+    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
+      <button class="chart-period-btn active" data-period="7" style="padding: 0.5rem 1rem; border: 1px solid #E7EAF0; background: white; border-radius: 8px; cursor: pointer; font-size: 0.875rem; transition: all 0.2s;">7 Days</button>
+      <button class="chart-period-btn" data-period="30" style="padding: 0.5rem 1rem; border: 1px solid #E7EAF0; background: white; border-radius: 8px; cursor: pointer; font-size: 0.875rem; transition: all 0.2s;">30 Days</button>
+      <button class="chart-period-btn" data-period="90" style="padding: 0.5rem 1rem; border: 1px solid #E7EAF0; background: white; border-radius: 8px; cursor: pointer; font-size: 0.875rem; transition: all 0.2s;">90 Days</button>
+    </div>
+    <div class="chart-container" style="position: relative; height: 300px;">
+      <canvas id="${canvasId}"></canvas>
     </div>
   `;
 
@@ -492,54 +472,35 @@ export async function createEnquiryTrendChart(containerId) {
   const canvasId = `${containerId}-canvas`;
 
   const html = `
-    <div class="card" style="padding: 1.5rem;">
-      <div class="sd-card-header" style="margin-bottom: 1rem;">
-        <div class="sd-card-header__title-row" style="display: flex; align-items: center; gap: 0.75rem;">
-          <div class="sd-card-header__icon sd-card-header__icon--teal" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="3" width="20" height="15.5" rx="1.5" fill="currentColor" fill-opacity="0.06"/>
-              <line x1="4" y1="17" x2="22" y2="17"/>
-              <path d="M4 17 L7.5 14 L11.5 11 L16 7.5 L20 5.5 L22 5.5 L22 17 Z" fill="currentColor" fill-opacity="0.09" stroke="none"/>
-              <polyline points="4 17 7.5 14 11.5 11 16 7.5 20 5.5"/>
-              <polyline points="17 5.5 20.5 5 20 8.5"/>
-              <circle cx="7.5" cy="14" r="1.5" fill="currentColor"/>
-              <circle cx="11.5" cy="11" r="1.5" fill="currentColor"/>
-              <circle cx="16" cy="7.5" r="1.5" fill="currentColor"/>
-            </svg>
-          </div>
-          <h3 style="margin: 0; font-size: 1.25rem; color: #0B1220; font-weight: 600;">Enquiry Trends</h3>
+    <div style="margin-bottom: 1rem;">
+      <button id="export-chart-btn" style="padding: 0.5rem 1rem; border: 1px solid #E7EAF0; background: white; border-radius: 8px; cursor: pointer; font-size: 0.875rem; transition: all 0.2s; display: inline-flex; align-items: center; gap: 0.5rem;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        Export Chart
+      </button>
+    </div>
+    <div class="chart-container" style="position: relative; height: 350px;">
+      <canvas id="${canvasId}"></canvas>
+    </div>
+    <div id="trend-comparison" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #E7EAF0;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+        <div style="text-align: center; padding: 0.75rem;">
+          <div style="font-size: 0.875rem; color: #667085; margin-bottom: 0.25rem;">Last 30 Days</div>
+          <div id="current-period-total" style="font-size: 1.5rem; font-weight: 700; color: #0B8073;">-</div>
+          <div style="font-size: 0.75rem; color: #98A2B3;">Total Enquiries</div>
         </div>
-      </div>
-      <div style="margin-bottom: 1rem;">
-        <button id="export-chart-btn" style="padding: 0.5rem 1rem; border: 1px solid #E7EAF0; background: white; border-radius: 8px; cursor: pointer; font-size: 0.875rem; transition: all 0.2s; display: inline-flex; align-items: center; gap: 0.5rem;">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-            <polyline points="7 10 12 15 17 10"></polyline>
-            <line x1="12" y1="15" x2="12" y2="3"></line>
-          </svg>
-          Export Chart
-        </button>
-      </div>
-      <div class="chart-container" style="position: relative; height: 350px;">
-        <canvas id="${canvasId}"></canvas>
-      </div>
-      <div id="trend-comparison" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #E7EAF0;">
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-          <div style="text-align: center; padding: 0.75rem;">
-            <div style="font-size: 0.875rem; color: #667085; margin-bottom: 0.25rem;">Last 30 Days</div>
-            <div id="current-period-total" style="font-size: 1.5rem; font-weight: 700; color: #0B8073;">-</div>
-            <div style="font-size: 0.75rem; color: #98A2B3;">Total Enquiries</div>
-          </div>
-          <div style="text-align: center; padding: 0.75rem;">
-            <div style="font-size: 0.875rem; color: #667085; margin-bottom: 0.25rem;">Previous 30 Days</div>
-            <div id="previous-period-total" style="font-size: 1.5rem; font-weight: 700; color: #98A2B3;">-</div>
-            <div style="font-size: 0.75rem; color: #98A2B3;">Total Enquiries</div>
-          </div>
-          <div style="text-align: center; padding: 0.75rem;">
-            <div style="font-size: 0.875rem; color: #667085; margin-bottom: 0.25rem;">Change</div>
-            <div id="period-change" style="font-size: 1.5rem; font-weight: 700; color: #667085;">-</div>
-            <div style="font-size: 0.75rem; color: #98A2B3;">vs. Previous Period</div>
-          </div>
+        <div style="text-align: center; padding: 0.75rem;">
+          <div style="font-size: 0.875rem; color: #667085; margin-bottom: 0.25rem;">Previous 30 Days</div>
+          <div id="previous-period-total" style="font-size: 1.5rem; font-weight: 700; color: #98A2B3;">-</div>
+          <div style="font-size: 0.75rem; color: #98A2B3;">Total Enquiries</div>
+        </div>
+        <div style="text-align: center; padding: 0.75rem;">
+          <div style="font-size: 0.875rem; color: #667085; margin-bottom: 0.25rem;">Change</div>
+          <div id="period-change" style="font-size: 1.5rem; font-weight: 700; color: #667085;">-</div>
+          <div style="font-size: 0.75rem; color: #98A2B3;">vs. Previous Period</div>
         </div>
       </div>
     </div>
@@ -958,11 +919,9 @@ export async function createConversionFunnelWidget(containerId, days = 30) {
 
   // Loading skeleton
   container.innerHTML = `
-    <div class="card" style="padding:1.5rem;">
-      ${_funnelIconHeader()}
-      <div class="skeleton skeleton-text skeleton-text-long" style="margin-bottom:0.5rem;"></div>
-      <div class="skeleton skeleton-text skeleton-text-medium"></div>
-    </div>`;
+    <div class="skeleton skeleton-text skeleton-text-long" style="margin-bottom:0.5rem;"></div>
+    <div class="skeleton skeleton-text skeleton-text-medium"></div>
+  `;
 
   try {
     let views = 0;
@@ -984,15 +943,13 @@ export async function createConversionFunnelWidget(containerId, days = 30) {
 
     if (!hasData) {
       container.innerHTML = `
-        <div class="card" style="padding:1.5rem;">
-          ${_funnelIconHeader()}
-          <p style="color:#6B7280;font-size:0.875rem;margin:0 0 1rem 0;">Views → Enquiries → Replies (last ${days} days)</p>
-          <div style="padding:1.5rem;text-align:center;background:#F9FAFB;border-radius:8px;">
-            <div style="font-size:2rem;margin-bottom:0.5rem;">📊</div>
-            <p style="color:#6B7280;margin:0;">Not enough data yet.</p>
-            <p style="color:#9CA3AF;font-size:0.875rem;margin-top:0.25rem;">Data will appear once you start receiving profile views and enquiries.</p>
-          </div>
-        </div>`;
+        <p style="color:#6B7280;font-size:0.875rem;margin:0 0 1rem 0;">Views → Enquiries → Replies (last ${days} days)</p>
+        <div style="padding:1.5rem;text-align:center;background:#F9FAFB;border-radius:8px;">
+          <div style="font-size:2rem;margin-bottom:0.5rem;">📊</div>
+          <p style="color:#6B7280;margin:0;">Not enough data yet.</p>
+          <p style="color:#9CA3AF;font-size:0.875rem;margin-top:0.25rem;">Data will appear once you start receiving profile views and enquiries.</p>
+        </div>
+      `;
       return;
     }
 
@@ -1034,18 +991,14 @@ export async function createConversionFunnelWidget(containerId, days = 30) {
       .join('');
 
     container.innerHTML = `
-      <div class="card" style="padding:1.5rem;">
-        ${_funnelIconHeader()}
-        <p style="color:#6B7280;font-size:0.875rem;margin:0 0 1.25rem 0;">Last ${days} days</p>
-        ${stepsHtml}
-      </div>`;
+      <p style="color:#6B7280;font-size:0.875rem;margin:0 0 1.25rem 0;">Last ${days} days</p>
+      ${stepsHtml}
+    `;
   } catch (error) {
     console.error('Error creating conversion funnel widget:', error);
     container.innerHTML = `
-      <div class="card" style="padding:1.5rem;">
-        ${_funnelIconHeader()}
-        <p style="color:#6B7280;">Unable to load funnel data. Please try again later.</p>
-      </div>`;
+      <p style="color:#6B7280;">Unable to load funnel data. Please try again later.</p>
+    `;
   }
 }
 
@@ -1062,11 +1015,9 @@ export async function createResponseTimeWidget(containerId, days = 30) {
 
   // Loading skeleton
   container.innerHTML = `
-    <div class="card" style="padding:1.5rem;">
-      ${_stopwatchIconHeader()}
-      <div class="skeleton skeleton-text skeleton-text-long" style="margin-bottom:0.5rem;"></div>
-      <div class="skeleton skeleton-text skeleton-text-medium"></div>
-    </div>`;
+    <div class="skeleton skeleton-text skeleton-text-long" style="margin-bottom:0.5rem;"></div>
+    <div class="skeleton skeleton-text skeleton-text-medium"></div>
+  `;
 
   try {
     let avgResponseTime = 0;
@@ -1085,15 +1036,13 @@ export async function createResponseTimeWidget(containerId, days = 30) {
 
     if (!hasData) {
       container.innerHTML = `
-        <div class="card" style="padding:1.5rem;">
-          ${_stopwatchIconHeader()}
-          <p style="color:#6B7280;font-size:0.875rem;margin:0 0 1rem 0;">Last ${days} days</p>
-          <div style="padding:1.5rem;text-align:center;background:#F9FAFB;border-radius:8px;">
-            <div style="font-size:2rem;margin-bottom:0.5rem;">⏱️</div>
-            <p style="color:#6B7280;margin:0;">Not enough data yet.</p>
-            <p style="color:#9CA3AF;font-size:0.875rem;margin-top:0.25rem;">Respond to enquiries to see your response time stats.</p>
-          </div>
-        </div>`;
+        <p style="color:#6B7280;font-size:0.875rem;margin:0 0 1rem 0;">Last ${days} days</p>
+        <div style="padding:1.5rem;text-align:center;background:#F9FAFB;border-radius:8px;">
+          <div style="font-size:2rem;margin-bottom:0.5rem;">⏱️</div>
+          <p style="color:#6B7280;margin:0;">Not enough data yet.</p>
+          <p style="color:#9CA3AF;font-size:0.875rem;margin-top:0.25rem;">Respond to enquiries to see your response time stats.</p>
+        </div>
+      `;
       return;
     }
 
@@ -1125,30 +1074,26 @@ export async function createResponseTimeWidget(containerId, days = 30) {
     }
 
     container.innerHTML = `
-      <div class="card" style="padding:1.5rem;">
-        ${_stopwatchIconHeader()}
-        <p style="color:#6B7280;font-size:0.875rem;margin:0 0 1.25rem 0;">Last ${days} days</p>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
-          <div style="padding:1rem;background:#F9FAFB;border-radius:8px;text-align:center;">
-            <div style="font-size:2rem;font-weight:700;color:#0B1220;">${timeDisplay}</div>
-            <div style="font-size:0.875rem;color:#6B7280;margin-top:0.25rem;">Avg Response Time</div>
-            <span style="display:inline-block;margin-top:0.5rem;background:${perfColor};color:white;padding:0.15rem 0.5rem;border-radius:99px;font-size:0.75rem;font-weight:600;">${perfLabel}</span>
-          </div>
-          <div style="padding:1rem;background:#F9FAFB;border-radius:8px;text-align:center;">
-            <div style="font-size:2rem;font-weight:700;color:#0B1220;">${responseRate}%</div>
-            <div style="font-size:0.875rem;color:#6B7280;margin-top:0.25rem;">Response Rate</div>
-            <span style="display:inline-block;margin-top:0.5rem;background:${responseRate >= 80 ? '#10B981' : responseRate >= 50 ? '#F59E0B' : '#EF4444'};color:white;padding:0.15rem 0.5rem;border-radius:99px;font-size:0.75rem;font-weight:600;">${responseRate >= 80 ? 'Great' : responseRate >= 50 ? 'OK' : 'Low'}</span>
-          </div>
+      <p style="color:#6B7280;font-size:0.875rem;margin:0 0 1.25rem 0;">Last ${days} days</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div style="padding:1rem;background:#F9FAFB;border-radius:8px;text-align:center;">
+          <div style="font-size:2rem;font-weight:700;color:#0B1220;">${timeDisplay}</div>
+          <div style="font-size:0.875rem;color:#6B7280;margin-top:0.25rem;">Avg Response Time</div>
+          <span style="display:inline-block;margin-top:0.5rem;background:${perfColor};color:white;padding:0.15rem 0.5rem;border-radius:99px;font-size:0.75rem;font-weight:600;">${perfLabel}</span>
         </div>
-        <p style="font-size:0.75rem;color:#9CA3AF;margin-top:1rem;margin-bottom:0;">💡 Suppliers who respond within 1 hour receive 3× more bookings.</p>
-      </div>`;
+        <div style="padding:1rem;background:#F9FAFB;border-radius:8px;text-align:center;">
+          <div style="font-size:2rem;font-weight:700;color:#0B1220;">${responseRate}%</div>
+          <div style="font-size:0.875rem;color:#6B7280;margin-top:0.25rem;">Response Rate</div>
+          <span style="display:inline-block;margin-top:0.5rem;background:${responseRate >= 80 ? '#10B981' : responseRate >= 50 ? '#F59E0B' : '#EF4444'};color:white;padding:0.15rem 0.5rem;border-radius:99px;font-size:0.75rem;font-weight:600;">${responseRate >= 80 ? 'Great' : responseRate >= 50 ? 'OK' : 'Low'}</span>
+        </div>
+      </div>
+      <p style="font-size:0.75rem;color:#9CA3AF;margin-top:1rem;margin-bottom:0;">💡 Suppliers who respond within 1 hour receive 3× more bookings.</p>
+    `;
   } catch (error) {
     console.error('Error creating response time widget:', error);
     container.innerHTML = `
-      <div class="card" style="padding:1.5rem;">
-        ${_stopwatchIconHeader()}
-        <p style="color:#6B7280;">Unable to load response time data. Please try again later.</p>
-      </div>`;
+      <p style="color:#6B7280;">Unable to load response time data. Please try again later.</p>
+    `;
   }
 }
 
