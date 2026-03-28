@@ -34,9 +34,12 @@
 /* ─── Mobile / tablet (≤ 1024px) ────────────────────────────────── */
 @media (max-width: 1024px) {
 
-  /* Positioning context for the absolute-positioned button */
+  /* Positioning context for the absolute-positioned button.
+     overflow: visible ensures the card does not clip the absolutely-positioned
+     toggle button or its 44×44px ::before touch-target pseudo-element. */
   .card-collapsible {
     position: relative;
+    overflow: visible !important;
   }
 
   /* ── Toggle button — premium liquid glass ──────────────────────── */
@@ -268,6 +271,18 @@
      so the hint plays only once per session per card.                */
   .card-collapse-btn[data-throb] {
     animation: card-collapse-throb 1.5s ease-in-out 0.4s 3 both;
+  }
+
+  /* ── Chevron SVG: explicit sizing to prevent clipping ─────────────
+     font-size: 0 on the parent button suppresses any text but must not
+     affect SVG rendering. These rules guarantee the inline chevron SVG
+     is always sized and visible regardless of cascading reset rules. */
+  .card-collapse-btn svg {
+    display: block !important;
+    width: 12px !important;
+    height: 12px !important;
+    flex-shrink: 0;
+    pointer-events: none;
   }
 
   /* Respect the user's motion preference */
