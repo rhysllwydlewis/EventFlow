@@ -22,7 +22,9 @@ function initializeStripe() {
       // Lazy-load Stripe so the app still runs if the dependency is missing
       // eslint-disable-next-line global-require, node/no-missing-require
       const stripeLib = require('stripe');
-      stripeClient = stripeLib(secret);
+      stripeClient = stripeLib(secret, {
+        apiVersion: '2025-12-15',
+      });
       STRIPE_ENABLED = true;
 
       // Warn if test keys are used in production

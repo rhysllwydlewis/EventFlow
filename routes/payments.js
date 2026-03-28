@@ -24,7 +24,9 @@ try {
   if (stripeSecretKey) {
     // eslint-disable-next-line global-require
     const stripeLib = require('stripe');
-    stripe = stripeLib(stripeSecretKey);
+    stripe = stripeLib(stripeSecretKey, {
+      apiVersion: '2025-12-15',
+    });
     STRIPE_ENABLED = true;
     logger.info('✅ Stripe payment integration enabled');
   } else {
@@ -473,6 +475,8 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     }
   } catch (err) {
     logger.error('Webhook signature verification failed:', err.message);
+    logger.error('req.body type:', typeof req.body);
+    logger.error('req.body is Buffer:', Buffer.isBuffer(req.body));
     return res.status(400).json({ error: 'Invalid signature' });
   }
 

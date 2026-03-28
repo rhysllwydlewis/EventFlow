@@ -47,7 +47,9 @@ try {
     // Try to load Stripe module - it might not be installed
     try {
       const stripeLib = require('stripe');
-      stripe = stripeLib(stripeSecretKey);
+      stripe = stripeLib(stripeSecretKey, {
+        apiVersion: '2025-12-15',
+      });
       STRIPE_ENABLED = true;
       logger.info('Stripe initialized successfully for admin routes');
     } catch (requireErr) {

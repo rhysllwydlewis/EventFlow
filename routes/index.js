@@ -181,7 +181,7 @@ function mountRoutes(app, deps) {
         return res.status(503).json({ error: 'Stripe is not configured' });
       }
       const stripeLib = require('stripe');
-      const stripe = stripeLib(stripeKey);
+      const stripe = stripeLib(stripeKey, { apiVersion: '2025-12-15' });
       const priceId = process.env.STRIPE_PRO_PRICE_ID;
       if (!priceId) {
         return res.status(503).json({ error: 'Stripe price ID is not configured' });

@@ -29,7 +29,9 @@ try {
   if (stripeSecretKey) {
     // eslint-disable-next-line global-require
     const stripeLib = require('stripe');
-    stripe = stripeLib(stripeSecretKey);
+    stripe = stripeLib(stripeSecretKey, {
+      apiVersion: '2025-12-15',
+    });
     STRIPE_ENABLED = true;
   }
 } catch (err) {
@@ -1029,6 +1031,8 @@ async function stripeWebhookHandler(req, res) {
       event = stripe.webhooks.constructEvent(req.body, sig, STRIPE_WEBHOOK_SECRET);
     } catch (err) {
       logger.error('Webhook signature verification failed:', err.message);
+      logger.error('req.body type:', typeof req.body);
+      logger.error('req.body is Buffer:', Buffer.isBuffer(req.body));
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
   } else {

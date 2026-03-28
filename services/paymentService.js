@@ -18,7 +18,9 @@ try {
   if (stripeSecretKey) {
     // eslint-disable-next-line global-require
     const stripeLib = require('stripe');
-    stripe = stripeLib(stripeSecretKey);
+    stripe = stripeLib(stripeSecretKey, {
+      apiVersion: '2025-12-15',
+    });
     STRIPE_ENABLED = true;
   }
 } catch (err) {

@@ -365,7 +365,23 @@ app.use(inputValidationMiddleware);
 // The more-specific route parser must be registered BEFORE the global 2 MB parser;
 // body-parser skips re-parsing when req._body is already set.
 app.use(['/api/me/packages', '/api/v1/me/packages'], express.json({ limit: '10mb' }));
-app.use(express.json({ limit: '2mb' }));
+
+// Skip JSON parsing for Stripe webhook endpoints — they need the raw body
+// for signature verification (express.raw is applied at the route level).
+const WEBHOOK_PATHS = [
+  '/api/v2/webhooks/stripe',
+  '/api/v2/subscriptions/webhooks/stripe',
+  '/api/v1/payments/webhook',
+  '/api/payments/webhook',
+];
+
+const jsonParser = express.json({ limit: '2mb' });
+app.use((req, res, next) => {
+  if (WEBHOOK_PATHS.includes(req.path)) {
+    return next(); // Skip JSON parsing — route-level express.raw() will handle it
+  }
+  jsonParser(req, res, next);
+});
 app.use(cookieParser());
 
 // Create rate limiters
