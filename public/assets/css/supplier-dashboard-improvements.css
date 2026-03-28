@@ -1025,8 +1025,30 @@ body.supplier-dashboard-page .supplier-cta-section {
 }
 
 /* Mobile-only icon navigation (hide text labels) */
+/* ── pill-icon: SVG icon wrapper inside nav pills ───────────────────── */
+.mobile-nav-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pill-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+}
+
+.pill-icon svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
 @media (max-width: 430px) {
-  /* Hide text labels on mobile, show only emojis/icons */
+  /* Hide text labels on mobile, show only SVG icons */
   .mobile-nav-pill .pill-text {
     display: none;
   }
@@ -1036,10 +1058,19 @@ body.supplier-dashboard-page .supplier-cta-section {
     min-width: 44px;
     min-height: 44px;
     padding: 10px 12px;
-    font-size: 18px; /* Larger emoji size for better visibility */
     display: flex;
     align-items: center;
     justify-content: center;
+  }
+
+  .pill-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .pill-icon svg {
+    width: 20px;
+    height: 20px;
   }
 
   /* Keep badge visible on mobile */
@@ -6565,4 +6596,112 @@ label .form-required,
 label .required {
   color: var(--ef-error, #ef4444);
   font-weight: var(--ef-font-medium, 500);
+}
+
+/* ============================================================
+   SVG ICON SIZING — Premium SVG icons in card header icon boxes
+   Sizes SVGs correctly inside gradient icon boxes so they render
+   at the right dimensions and inherit white colour via currentColor.
+   ============================================================ */
+
+/* Card header icon boxes (36×36px gradient squares) — 20×20 SVG */
+.sd-card-header__icon svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+  color: white;
+}
+
+/* Availability calendar icon box (40×40px) — 20×20 SVG */
+.sd-availability-icon svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+  color: white;
+}
+
+/* Earnings overview large icon box (48×48px) — 24×24 SVG */
+.ef-icon-box-lg svg {
+  width: 24px;
+  height: 24px;
+  display: block;
+  color: white;
+}
+
+/* Quick Action chips (dashboard hero) — 18×18 SVG */
+.dashboard-action-chip svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  display: block;
+}
+
+/* ── SVG sizing for icon containers that previously held emoji ─────── */
+
+/* Empty state icon (earnings section) */
+.sd-empty-state__icon svg {
+  width: 40px;
+  height: 40px;
+  display: block;
+  color: #6b7280;
+}
+
+/* Calendar placeholder large icon */
+.sd-calendar-placeholder__icon svg {
+  width: 36px;
+  height: 36px;
+  display: block;
+  color: #6366f1;
+}
+
+/* ── SVG sizing for final emoji replacements ──────────────────────── */
+
+/* Calendar feature chips */
+.sd-chip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+}
+
+.sd-chip-icon svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
+/* Profile Customization banner — inline sparkle icon */
+.supplier-cta-banner-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.supplier-cta-banner-icon {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: var(--ef-primary, #0b8073);
+}
+
+/* Reviews tip title — inline bulb icon */
+.sd-reviews-tip__title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* ── Inline button/label SVG icons ───────────────────────────────── */
+.btn-icon {
+  display: inline-block;
+  vertical-align: -3px;
+  margin-right: 5px;
+  flex-shrink: 0;
+}
+
+.btn-icon--sm {
+  margin-right: 4px;
 }
