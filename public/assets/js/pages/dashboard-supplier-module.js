@@ -584,7 +584,7 @@ async function displaySubscriptionStatus() {
 
     if (currentTier !== 'free') {
       const planLabel = TIER_LABELS[currentTier] || currentTier;
-      const cancelAtPeriodEnd = !!(subscriptionRecord?.cancelAtPeriodEnd);
+      const cancelAtPeriodEnd = !!subscriptionRecord?.cancelAtPeriodEnd;
       const dateFormat = { day: 'numeric', month: 'long', year: 'numeric' };
 
       // Start date — use subscription createdAt (original sign-up date)
@@ -847,6 +847,25 @@ async function displayLeadQualityBreakdown() {
 displayLeadQualityBreakdown();
 
 displaySubscriptionStatus();
+
+// Welcome section dismiss logic (persisted in localStorage).
+// Follows the same pattern as the customer dashboard (dashboard-customer-init.js).
+const SUPPLIER_WELCOME_DISMISS_KEY = 'ef_supplier_welcome_dismissed';
+(function applySupplierWelcomeDismissal() {
+  const welcomeSection = document.getElementById('welcome-section');
+  if (!welcomeSection) {
+    return;
+  }
+  let dismissed = false;
+  try {
+    dismissed = localStorage.getItem(SUPPLIER_WELCOME_DISMISS_KEY) === '1';
+  } catch (_) {
+    /* ignore storage errors */
+  }
+  if (dismissed) {
+    welcomeSection.style.display = 'none';
+  }
+})();
 
 // Earnings Overview CTA: scroll to packages section and open the form if collapsed
 document.addEventListener('DOMContentLoaded', () => {

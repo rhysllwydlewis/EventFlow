@@ -213,6 +213,15 @@
         return;
       }
 
+      // If the user is at (or very near) the top of the page, always highlight
+      // the first pill (Overview). Without this guard the sticky-offset added to
+      // scrollY=0 can push currentY past several section tops and land on a later
+      // section such as "Tickets" before the layout has fully settled.
+      if (window.scrollY < 10) {
+        setActive(sections[0].pill);
+        return;
+      }
+
       const currentY = window.scrollY + getStickyOffset();
       let current = sections[0];
 

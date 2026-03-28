@@ -2568,12 +2568,17 @@ function efMaybeShowOnboarding(page) {
         btn.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
       });
 
-      // Save permanent dismissal and remove card
+      // Save permanent dismissal and remove card; also hide the static welcome hero
       btn.addEventListener('click', () => {
         try {
           localStorage.setItem('ef_onboarding_dismissed', '1');
+          localStorage.setItem('ef_supplier_welcome_dismissed', '1');
         } catch (_) {
           /* Ignore localStorage errors */
+        }
+        const welcomeSection = document.getElementById('welcome-section');
+        if (welcomeSection) {
+          welcomeSection.style.display = 'none';
         }
         const easing = 'cubic-bezier(0.4, 0, 0.2, 1)';
         box.style.transition = `opacity 0.3s ${easing}, transform 0.3s ${easing}`;

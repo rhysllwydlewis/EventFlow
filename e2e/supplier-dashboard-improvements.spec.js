@@ -78,6 +78,7 @@ test.describe('Supplier Dashboard Improvements @backend', () => {
     await context.addInitScript(() => {
       localStorage.setItem('eventflow_onboarding_new', '1');
       localStorage.removeItem('ef_onboarding_dismissed');
+      localStorage.removeItem('ef_supplier_welcome_dismissed');
     });
 
     await page.goto('/dashboard-supplier.html');
@@ -94,13 +95,44 @@ test.describe('Supplier Dashboard Improvements @backend', () => {
       const onboardingCard = page.locator('#ef-onboarding-dismiss').locator('..');
       await expect(onboardingCard).not.toBeVisible();
 
-      // Verify localStorage was set
+      // Verify both localStorage keys are set
       const dismissedFlag = await page.evaluate(() => {
         return localStorage.getItem('ef_onboarding_dismissed');
       });
-
       expect(dismissedFlag).toBe('1');
+
+      const welcomeDismissedFlag = await page.evaluate(() => {
+        return localStorage.getItem('ef_supplier_welcome_dismissed');
+      });
+      expect(welcomeDismissedFlag).toBe('1');
+
+      // Welcome section should also be hidden
+      const welcomeVisible = await page.evaluate(() => {
+        const el = document.getElementById('welcome-section');
+        return el ? el.style.display !== 'none' : false;
+      });
+      expect(welcomeVisible).toBe(false);
     }
+  });
+
+  test('welcome section is hidden on reload when ef_supplier_welcome_dismissed is set', async ({
+    page,
+    context,
+  }) => {
+    // Simulate a returning supplier who already dismissed the welcome banner
+    await context.addInitScript(() => {
+      localStorage.setItem('ef_supplier_welcome_dismissed', '1');
+    });
+
+    await page.goto('/dashboard-supplier.html');
+    await page.waitForLoadState('networkidle');
+
+    // The welcome section should be hidden
+    const welcomeVisible = await page.evaluate(() => {
+      const el = document.getElementById('welcome-section');
+      return el ? el.style.display !== 'none' : false;
+    });
+    expect(welcomeVisible).toBe(false);
   });
 
   test('onboarding card should not show when dismissed', async ({ page, context }) => {
