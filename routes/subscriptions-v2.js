@@ -92,7 +92,7 @@ router.post(
   ensureStripeEnabled,
   async (req, res) => {
     try {
-      const { planId, returnUrl } = req.body;
+      const { planId } = req.body;
 
       if (!planId) {
         return res.status(400).json({ error: 'planId is required' });
@@ -237,6 +237,50 @@ router.get('/me', authRequired, async (req, res) => {
   } catch (error) {
     logger.error('Error fetching current user subscription:', error);
     res.status(500).json({ error: 'Failed to fetch subscription', message: error.message });
+  }
+});
+
+/**
+ * @swagger
+ * /api/v2/subscriptions/upcoming-invoice:
+ *   get:
+ *     summary: Get upcoming invoice for the current user
+ *     tags: [Subscriptions]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Upcoming invoice details or null if not available
+ */
+router.get('/upcoming-invoice', authRequired, async (req, res) => {
+  try {
+    if (!STRIPE_ENABLED || !stripe) {
+      return res.json({ success: true, upcomingInvoice: null });
+    }
+
+    const subscription = await subscriptionService.getSubscriptionByUserId(req.user.id);
+    if (!subscription || !subscription.stripeCustomerId) {
+      return res.json({ success: true, upcomingInvoice: null });
+    }
+
+    try {
+      const invoice = await stripe.invoices.createPreview({
+        customer: subscription.stripeCustomerId,
+      });
+      return res.json({
+        success: true,
+        upcomingInvoice: {
+          amount: invoice.amount_due,
+          currency: invoice.currency,
+        },
+      });
+    } catch (_stripeErr) {
+      // No upcoming invoice or Stripe error — return null gracefully
+      return res.json({ success: true, upcomingInvoice: null });
+    }
+  } catch (error) {
+    logger.error('Error fetching upcoming invoice:', error);
+    res.status(500).json({ error: 'Failed to fetch upcoming invoice', message: error.message });
   }
 });
 

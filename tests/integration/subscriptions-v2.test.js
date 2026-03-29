@@ -451,4 +451,26 @@ describe('Subscription Service Integration Tests', () => {
       expect(plans[1].features.apiAccess).toBe(true);
     });
   });
+
+  describe('upcoming-invoice route dependencies', () => {
+    it('should return null for user with no subscription (getSubscriptionByUserId)', async () => {
+      // The /upcoming-invoice endpoint returns upcomingInvoice:null when
+      // getSubscriptionByUserId returns null — verify that code path here.
+      const sub = await subscriptionService.getSubscriptionByUserId('usr-no-sub');
+      expect(sub).toBeNull();
+    });
+
+    it('should return subscription with stripeCustomerId when present', async () => {
+      // The /upcoming-invoice endpoint uses stripeCustomerId to call Stripe.
+      await subscriptionService.createSubscription({
+        userId: 'usr-1',
+        plan: 'pro',
+        stripeSubscriptionId: 'sub_upcoming_test',
+        stripeCustomerId: 'cus_upcoming_test',
+      });
+      const sub = await subscriptionService.getSubscriptionByUserId('usr-1');
+      expect(sub).not.toBeNull();
+      expect(sub.stripeCustomerId).toBe('cus_upcoming_test');
+    });
+  });
 });

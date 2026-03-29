@@ -562,20 +562,16 @@ async function displaySubscriptionStatus() {
       // best-effort — subscriptionRecord stays null; billing details won't display
     }
 
-    // Also load payment records for amount/currency info (best-effort)
+    // Load upcoming invoice amount/currency info (best-effort)
     let paymentAmount = null;
     let paymentCurrency = 'gbp';
     try {
-      const paymentsResponse = await fetch('/api/payments', { credentials: 'include' });
-      if (paymentsResponse.ok) {
-        const data = await paymentsResponse.json();
-        const successfulPayments = (data.payments || []).filter(
-          p => p.status === 'succeeded' && p.amount
-        );
-        successfulPayments.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-        if (successfulPayments.length > 0) {
-          paymentAmount = successfulPayments[0].amount;
-          paymentCurrency = successfulPayments[0].currency || 'gbp';
+      const upcomingResponse = await fetch('/api/v2/subscriptions/upcoming-invoice', { credentials: 'include' });
+      if (upcomingResponse.ok) {
+        const data = await upcomingResponse.json();
+        if (data.upcomingInvoice) {
+          paymentAmount = data.upcomingInvoice.amount;
+          paymentCurrency = data.upcomingInvoice.currency || 'gbp';
         }
       }
     } catch (_err) {
