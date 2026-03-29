@@ -531,6 +531,33 @@
   #customer-stats-grid {
     margin-bottom: var(--mob-section-gap) !important;
   }
+
+  /* Reduce gap between cards in the .cards flex wrapper (Your Plans,
+     Saved Suppliers, Quick Actions, Support Tickets, Conversations) */
+  body.customer-dashboard-page .cards {
+    gap: var(--mob-section-gap) !important;
+  }
+
+  /* Let the flex gap alone control spacing — zero out individual margins
+     on .card children inside the .cards wrapper */
+  body.customer-dashboard-page .cards > .card {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+  }
+
+  /* Standalone cd-card elements (Budget Settings, Calendar) that live
+     outside the .cards wrapper get consistent compact spacing */
+  body.customer-dashboard-page .card.cd-card {
+    margin-top: var(--mob-section-gap) !important;
+    margin-bottom: var(--mob-section-gap) !important;
+  }
+
+  /* Override the larger margin-bottom set in customer-dashboard-improvements.css
+     for the specific standalone cards above the .cards wrapper */
+  body.customer-dashboard-page .card.customer-budget-card,
+  body.customer-dashboard-page .card.customer-calendar-card {
+    margin-bottom: var(--mob-section-gap) !important;
+  }
 }
 
 @media (max-width: 430px) {
