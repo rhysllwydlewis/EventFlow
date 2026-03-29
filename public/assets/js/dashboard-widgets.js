@@ -145,28 +145,43 @@ export function createBudgetTracker(budgetData, containerId) {
   }
 
   const html = `
-    <div class="card" style="padding: 1.5rem; background: linear-gradient(135deg, #F6FAF9 0%, #EBF5F4 100%);">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-        <h3 style="margin: 0; font-size: 1.25rem; color: #0B1220;">Budget Tracker</h3>
-        <span class="badge" style="background: ${badgeColor}; color: white; padding: 6px 12px; border-radius: 12px; font-size: 0.875rem;">${badgeText}</span>
-      </div>
-      
-      <div class="progress-bar-container" style="margin-bottom: 1rem;">
-        <div class="progress-bar-fill" id="${containerId}-progress" style="width: 0%;"></div>
-      </div>
-      
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-        <div style="padding: 1rem; background: white; border-radius: 12px; text-align: center;">
-          <div style="font-size: 0.875rem; color: #667085; margin-bottom: 0.5rem;">Spent</div>
-          <div class="stat-number" data-target="${spent}" data-format="currency" data-start="0" style="font-size: 1.5rem; color: #DC2626;">£0</div>
+    <div class="card cd-card">
+      <div class="sd-card-header sd-card-header--amber">
+        <div class="sd-card-header__left">
+          <div class="sd-card-header__title-row">
+            <div class="sd-card-header__icon sd-card-header__icon--amber" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/>
+                <path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/>
+                <path d="M18 12a2 2 0 0 0 0 4h4v-4z"/>
+              </svg>
+            </div>
+            <h3 class="sd-card-header__heading">Budget Tracker</h3>
+          </div>
+          <p class="sd-card-header__subtitle">Your event spending overview.</p>
         </div>
-        <div style="padding: 1rem; background: white; border-radius: 12px; text-align: center;">
-          <div style="font-size: 0.875rem; color: #667085; margin-bottom: 0.5rem;">Remaining</div>
-          <div class="stat-number" data-target="${actualRemaining}" data-format="currency" data-start="0" style="font-size: 1.5rem; color: #22C55E;">£0</div>
+        <div class="sd-card-header__actions">
+          <span style="background:${badgeColor};color:#fff;padding:3px 10px;border-radius:12px;font-size:0.8125rem;font-weight:500;white-space:nowrap;">${badgeText}</span>
         </div>
       </div>
-      
-      ${breakdownHtml}
+      <div class="cd-card-body">
+        <div class="progress-bar-container" style="margin-bottom: 1rem;">
+          <div class="progress-bar-fill" id="${containerId}-progress" style="width: 0%;"></div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.875rem;">
+          <div style="padding: 0.875rem 1rem; background: rgba(255,255,255,0.65); border-radius: 10px; text-align: center; border: 1px solid rgba(255,255,255,0.5);">
+            <div style="font-size: 0.8125rem; color: #667085; margin-bottom: 0.35rem;">Spent</div>
+            <div class="stat-number" data-target="${spent}" data-format="currency" data-start="0" style="font-size: 1.375rem; font-weight: 700; color: #DC2626;">£0</div>
+          </div>
+          <div style="padding: 0.875rem 1rem; background: rgba(255,255,255,0.65); border-radius: 10px; text-align: center; border: 1px solid rgba(255,255,255,0.5);">
+            <div style="font-size: 0.8125rem; color: #667085; margin-bottom: 0.35rem;">Remaining</div>
+            <div class="stat-number" data-target="${actualRemaining}" data-format="currency" data-start="0" style="font-size: 1.375rem; font-weight: 700; color: #059669;">£0</div>
+          </div>
+        </div>
+
+        ${breakdownHtml}
+      </div>
     </div>
   `;
 
@@ -196,52 +211,66 @@ export function createProgressRing(data, containerId) {
   const circumference = 2 * Math.PI * radius;
 
   const html = `
-    <div class="card" style="padding: 1.5rem; text-align: center;">
-      <h3 style="margin: 0 0 1.5rem 0; font-size: 1.25rem; color: #0B1220;">${label}</h3>
-      
-      <div style="position: relative; display: inline-block;">
-        <svg width="120" height="120" style="transform: rotate(-90deg);">
-          <circle
-            cx="60"
-            cy="60"
-            r="${radius}"
-            fill="none"
-            stroke="#E7EAF0"
-            stroke-width="8"
-          />
-          <circle
-            cx="60"
-            cy="60"
-            r="${radius}"
-            fill="none"
-            stroke="url(#gradient-${containerId})"
-            stroke-width="8"
-            stroke-linecap="round"
-            class="progress-ring-circle"
-            id="${containerId}-circle"
-            style="stroke-dasharray: ${circumference} ${circumference}; stroke-dashoffset: ${circumference};"
-          />
-          <defs>
-            <linearGradient id="gradient-${containerId}" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" style="stop-color:#0B8073;stop-opacity:1" />
-              <stop offset="100%" style="stop-color:#13B6A2;stop-opacity:1" />
-            </linearGradient>
-          </defs>
-        </svg>
-        <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
-          <div class="stat-number" data-target="${percentage}" data-format="percent" data-start="0" style="font-size: 1.75rem; font-weight: 700; color: #0B8073;">0%</div>
-          <div style="font-size: 0.75rem; color: #667085;">Complete</div>
+    <div class="card cd-card">
+      <div class="sd-card-header sd-card-header--emerald">
+        <div class="sd-card-header__left">
+          <div class="sd-card-header__title-row">
+            <div class="sd-card-header__icon sd-card-header__icon--emerald" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="m9 12 2 2 4-4"/>
+              </svg>
+            </div>
+            <h3 class="sd-card-header__heading">${escapeHtml(label)}</h3>
+          </div>
+          <p class="sd-card-header__subtitle">Track your event planning completion.</p>
         </div>
       </div>
-      
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.5rem;">
-        <div>
-          <div class="stat-number" data-target="${booked}" data-start="0" style="font-size: 1.25rem; color: #22C55E;">0</div>
-          <div style="font-size: 0.875rem; color: #667085;">Booked</div>
+      <div class="cd-card-body" style="text-align: center;">
+        <div style="position: relative; display: inline-block;">
+          <svg width="120" height="120" style="transform: rotate(-90deg);">
+            <circle
+              cx="60"
+              cy="60"
+              r="${radius}"
+              fill="none"
+              stroke="#E7EAF0"
+              stroke-width="8"
+            />
+            <circle
+              cx="60"
+              cy="60"
+              r="${radius}"
+              fill="none"
+              stroke="url(#gradient-${containerId})"
+              stroke-width="8"
+              stroke-linecap="round"
+              class="progress-ring-circle"
+              id="${containerId}-circle"
+              style="stroke-dasharray: ${circumference} ${circumference}; stroke-dashoffset: ${circumference};"
+            />
+            <defs>
+              <linearGradient id="gradient-${containerId}" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style="stop-color:#0B8073;stop-opacity:1" />
+                <stop offset="100%" style="stop-color:#13B6A2;stop-opacity:1" />
+              </linearGradient>
+            </defs>
+          </svg>
+          <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center;">
+            <div class="stat-number" data-target="${percentage}" data-format="percent" data-start="0" style="font-size: 1.75rem; font-weight: 700; color: #0B8073;">0%</div>
+            <div style="font-size: 0.75rem; color: #667085;">Complete</div>
+          </div>
         </div>
-        <div>
-          <div class="stat-number" data-target="${pending}" data-start="0" style="font-size: 1.25rem; color: #EAB308;">0</div>
-          <div style="font-size: 0.875rem; color: #667085;">Pending</div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1.25rem;">
+          <div style="padding: 0.75rem 1rem; background: rgba(255,255,255,0.65); border-radius: 10px; border: 1px solid rgba(255,255,255,0.5);">
+            <div class="stat-number" data-target="${booked}" data-start="0" style="font-size: 1.25rem; font-weight: 700; color: #059669;">0</div>
+            <div style="font-size: 0.8125rem; color: #667085; margin-top: 0.2rem;">Booked</div>
+          </div>
+          <div style="padding: 0.75rem 1rem; background: rgba(255,255,255,0.65); border-radius: 10px; border: 1px solid rgba(255,255,255,0.5);">
+            <div class="stat-number" data-target="${pending}" data-start="0" style="font-size: 1.25rem; font-weight: 700; color: #D97706;">0</div>
+            <div style="font-size: 0.8125rem; color: #667085; margin-top: 0.2rem;">Pending</div>
+          </div>
         </div>
       </div>
     </div>
@@ -271,9 +300,27 @@ export function createEventsTimeline(events, containerId, eventDate = null) {
 
   if (!events || events.length === 0) {
     container.innerHTML = `
-      <div class="card" style="padding: 1.5rem;">
-        <h3 style="margin: 0 0 1rem 0; font-size: 1.25rem; color: #0B1220;">Upcoming Tasks</h3>
-        <p class="small" style="color: #667085; text-align: center; padding: 2rem 0;">No upcoming tasks. You're all set!</p>
+      <div class="card cd-card">
+        <div class="sd-card-header sd-card-header--blue">
+          <div class="sd-card-header__left">
+            <div class="sd-card-header__title-row">
+              <div class="sd-card-header__icon sd-card-header__icon--blue" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                  <line x1="16" y1="2" x2="16" y2="6"/>
+                  <line x1="8" y1="2" x2="8" y2="6"/>
+                  <line x1="3" y1="10" x2="21" y2="10"/>
+                  <path d="M9 16l2 2 4-4"/>
+                </svg>
+              </div>
+              <h3 class="sd-card-header__heading">Upcoming Tasks</h3>
+            </div>
+            <p class="sd-card-header__subtitle">Reminders and countdown for your event.</p>
+          </div>
+        </div>
+        <div class="cd-card-body">
+          <p class="small" style="color: #667085; text-align: center; padding: 1.5rem 0; margin: 0;">No upcoming tasks. You're all set! 🎉</p>
+        </div>
       </div>
     `;
     return;
@@ -306,34 +353,52 @@ export function createEventsTimeline(events, containerId, eventDate = null) {
   }
 
   const html = `
-    <div class="card" style="padding: 1.5rem;">
-      <h3 style="margin: 0 0 1rem 0; font-size: 1.25rem; color: #0B1220;">Upcoming Tasks</h3>
-      ${countdownHtml}
-      <div class="timeline">
-        ${events
-          .map(
-            (event, index) => `
-          <div class="timeline-step" style="opacity: 0;">
-            <div style="display: flex; gap: 1rem; align-items: start;">
-              <div style="width: 8px; height: 8px; background: linear-gradient(135deg, #0B8073 0%, #13B6A2 100%); border-radius: 50%; margin-top: 6px;${index < events.length - 1 ? ' position: relative;' : ''}">
-                ${
-                  index < events.length - 1
-                    ? '<div style="position: absolute; top: 8px; left: 3px; width: 2px; height: 40px; background: #E7EAF0;"></div>'
-                    : ''
-                }
-              </div>
-              <div style="flex: 1; padding-bottom: 1.5rem;">
-                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem; gap: 0.5rem; flex-wrap: wrap;">
-                  <strong style="color: #0B1220;">${escapeHtml(event.name || 'Task')}</strong>
-                  <span class="badge" style="${getBadgeStyle(event.daysUntil)}">${getDueBadgeText(event.daysUntil)}</span>
+    <div class="card cd-card">
+      <div class="sd-card-header sd-card-header--blue">
+        <div class="sd-card-header__left">
+          <div class="sd-card-header__title-row">
+            <div class="sd-card-header__icon sd-card-header__icon--blue" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+                <path d="M9 16l2 2 4-4"/>
+              </svg>
+            </div>
+            <h3 class="sd-card-header__heading">Upcoming Tasks</h3>
+          </div>
+          <p class="sd-card-header__subtitle">Reminders and countdown for your event.</p>
+        </div>
+      </div>
+      <div class="cd-card-body">
+        ${countdownHtml}
+        <div class="timeline">
+          ${events
+            .map(
+              (event, index) => `
+            <div class="timeline-step" style="opacity: 0;">
+              <div style="display: flex; gap: 1rem; align-items: start;">
+                <div style="width: 8px; height: 8px; background: linear-gradient(135deg, #0B8073 0%, #13B6A2 100%); border-radius: 50%; margin-top: 6px; flex-shrink: 0;${index < events.length - 1 ? ' position: relative;' : ''}">
+                  ${
+                    index < events.length - 1
+                      ? '<div style="position: absolute; top: 8px; left: 3px; width: 2px; height: 40px; background: #E7EAF0;"></div>'
+                      : ''
+                  }
                 </div>
-                ${event.supplier ? `<p class="small" style="color: #667085; margin: 0.25rem 0;">📍 ${escapeHtml(event.supplier)}</p>` : ''}
+                <div style="flex: 1; padding-bottom: 1.5rem;">
+                  <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 0.5rem; gap: 0.5rem; flex-wrap: wrap;">
+                    <strong style="color: #0B1220;">${escapeHtml(event.name || 'Task')}</strong>
+                    <span class="badge" style="${getBadgeStyle(event.daysUntil)}">${getDueBadgeText(event.daysUntil)}</span>
+                  </div>
+                  ${event.supplier ? `<p class="small" style="color: #667085; margin: 0.25rem 0;">📍 ${escapeHtml(event.supplier)}</p>` : ''}
+                </div>
               </div>
             </div>
-          </div>
-        `
-          )
-          .join('')}
+          `
+            )
+            .join('')}
+        </div>
       </div>
     </div>
   `;
