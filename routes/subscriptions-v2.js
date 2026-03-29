@@ -264,7 +264,7 @@ router.get('/upcoming-invoice', authRequired, async (req, res) => {
     }
 
     try {
-      const invoice = await stripe.invoices.retrieveUpcoming({
+      const invoice = await stripe.invoices.createPreview({
         customer: subscription.stripeCustomerId,
       });
       return res.json({
