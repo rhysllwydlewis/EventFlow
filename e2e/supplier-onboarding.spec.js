@@ -15,7 +15,7 @@ test.describe('Supplier Onboarding Flow @backend', () => {
       await expect(supplierSignupLink.first()).toBeVisible();
     } else {
       // Check in navigation menu
-      const menuButton = page.locator('button:has-text("Menu"), .menu-toggle, .hamburger');
+      const menuButton = page.locator('#ef-bottom-menu, .menu-toggle, .hamburger');
       if ((await menuButton.count()) > 0) {
         await menuButton.first().click();
         await page.waitForTimeout(500);
