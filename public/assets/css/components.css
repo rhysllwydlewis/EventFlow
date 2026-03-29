@@ -1341,6 +1341,25 @@
     word-break: normal;
     white-space: nowrap;
   }
+
+  .notification-mark-all {
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding: 4px 10px;
+    font-size: 12px;
+    max-width: 50%;
+  }
+
+  .notification-item-mark-read,
+  .notification-item-dismiss {
+    width: 28px;
+    height: 28px;
+    max-width: 28px;
+    max-height: 28px;
+    min-width: 28px;
+    min-height: 28px;
+    box-sizing: border-box;
+  }
 }
 
 /* Dark mode support */
