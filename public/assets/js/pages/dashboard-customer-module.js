@@ -302,28 +302,28 @@ async function initCustomerDashboardWidgets(preloadedPlans) {
     createStatsGrid(
       [
         {
-          icon: '📋',
+          icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4M12 16h4M8 11h.01M8 16h.01"/></svg>',
           value: plans.length,
           label: 'Active Plans',
           format: 'number',
           color: 'linear-gradient(135deg, #0B8073 0%, #13B6A2 100%)',
         },
         {
-          icon: '⭐',
+          icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
           value: savedSuppliers.length,
           label: 'Saved Suppliers',
           format: 'number',
           color: 'linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%)',
         },
         {
-          icon: '📅',
+          icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
           value: upcomingTasks,
           label: 'Upcoming Tasks',
           format: 'number',
           color: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)',
         },
         {
-          icon: '💬',
+          icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
           value: 0,
           label: 'Messages',
           format: 'number',

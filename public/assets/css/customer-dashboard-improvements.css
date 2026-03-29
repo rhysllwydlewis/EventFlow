@@ -1436,3 +1436,341 @@ body.customer-dashboard-page .ef-bottom-nav.logged-in #ef-bottom-menu {
   background: rgba(11, 128, 115, 0.12);
   color: #0b8073;
 }
+
+/* ===========================================
+   26. CD-CARD FLUSH HEADER SYSTEM
+       Padding and layout for cards that use
+       the sd-card-header system.
+   =========================================== */
+
+/* Flush card: no padding so sd-card-header extends to edges */
+body.customer-dashboard-page .card.cd-card {
+  padding: 0;
+}
+
+/* Body area inside a cd-card: restore comfortable padding */
+body.customer-dashboard-page .card.cd-card > .cd-card-body {
+  padding: 1.25rem 1.5rem;
+}
+
+/* Section div directly inside cd-card (legacy compatibility) */
+body.customer-dashboard-page .card.cd-card > .section {
+  padding: 1.25rem 1.5rem;
+}
+
+/* Collapsed state: remove bottom padding so card shrinks to header height */
+body.customer-dashboard-page .card.cd-card.card--collapsed {
+  padding-bottom: 0;
+}
+
+/* ===========================================
+   27. SD-CARD-HEADER STRUCTURE
+       Layout system for tinted glass card headers
+       with icon boxes — mirrors the supplier
+       dashboard sd-card-header system, scoped
+       to the customer dashboard page.
+   =========================================== */
+
+body.customer-dashboard-page .sd-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 0;
+  border-radius: 0;
+  border-bottom: 1px solid var(--sd-header-border, rgba(11, 128, 115, 0.1));
+  background: var(--sd-header-bg, linear-gradient(135deg, rgba(11, 128, 115, 0.04) 0%, rgba(16, 185, 129, 0.03) 100%));
+}
+
+/* Colour variants */
+body.customer-dashboard-page .sd-card-header--teal {
+  --sd-header-bg: linear-gradient(135deg, rgba(11, 128, 115, 0.07) 0%, rgba(16, 185, 129, 0.04) 100%);
+  --sd-header-border: rgba(11, 128, 115, 0.12);
+}
+body.customer-dashboard-page .sd-card-header--blue {
+  --sd-header-bg: linear-gradient(135deg, rgba(59, 130, 246, 0.07) 0%, rgba(37, 99, 235, 0.04) 100%);
+  --sd-header-border: rgba(59, 130, 246, 0.12);
+}
+body.customer-dashboard-page .sd-card-header--amber {
+  --sd-header-bg: linear-gradient(135deg, rgba(245, 158, 11, 0.07) 0%, rgba(251, 191, 36, 0.04) 100%);
+  --sd-header-border: rgba(245, 158, 11, 0.12);
+}
+body.customer-dashboard-page .sd-card-header--emerald {
+  --sd-header-bg: linear-gradient(135deg, rgba(16, 185, 129, 0.07) 0%, rgba(5, 150, 105, 0.04) 100%);
+  --sd-header-border: rgba(16, 185, 129, 0.12);
+}
+body.customer-dashboard-page .sd-card-header--red {
+  --sd-header-bg: linear-gradient(135deg, rgba(239, 68, 68, 0.07) 0%, rgba(220, 38, 38, 0.04) 100%);
+  --sd-header-border: rgba(239, 68, 68, 0.12);
+}
+body.customer-dashboard-page .sd-card-header--indigo {
+  --sd-header-bg: linear-gradient(135deg, rgba(99, 102, 241, 0.07) 0%, rgba(139, 92, 246, 0.04) 100%);
+  --sd-header-border: rgba(99, 102, 241, 0.12);
+}
+
+/* Left column: icon + title + subtitle stack */
+body.customer-dashboard-page .sd-card-header__left {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+  min-width: 0;
+}
+
+body.customer-dashboard-page .sd-card-header__title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0; /* allow heading to shrink and wrap */
+}
+
+/* Icon box */
+body.customer-dashboard-page .sd-card-header__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 1;
+  color: #fff;
+}
+
+body.customer-dashboard-page .sd-card-header__icon svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* Icon colour variants */
+body.customer-dashboard-page .sd-card-header__icon--teal    { background: linear-gradient(135deg, #0b8073 0%, #10b981 100%); }
+body.customer-dashboard-page .sd-card-header__icon--blue    { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
+body.customer-dashboard-page .sd-card-header__icon--amber   { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
+body.customer-dashboard-page .sd-card-header__icon--emerald { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
+body.customer-dashboard-page .sd-card-header__icon--red     { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+body.customer-dashboard-page .sd-card-header__icon--indigo  { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); }
+
+/* Heading */
+body.customer-dashboard-page .sd-card-header__heading {
+  margin: 0;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--ef-text, #0b1220);
+  line-height: 1.3;
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* Subtitle — indented to align with heading (icon width + gap) */
+body.customer-dashboard-page .sd-card-header__subtitle {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #6b7280;
+  padding-left: calc(36px + 0.75rem);
+  line-height: 1.4;
+}
+
+/* Right column: action buttons / badges */
+body.customer-dashboard-page .sd-card-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  body.customer-dashboard-page .sd-card-header {
+    padding: 1rem 1.125rem;
+  }
+  body.customer-dashboard-page .sd-card-header__subtitle {
+    padding-left: 0;
+  }
+}
+
+/* On very narrow screens, compact the header action buttons */
+@media (max-width: 480px) {
+  body.customer-dashboard-page .sd-card-header__actions .cta,
+  body.customer-dashboard-page .sd-card-header__actions button,
+  body.customer-dashboard-page .sd-card-header__actions a,
+  body.customer-dashboard-page .sd-card-header__actions .customer-tickets-create-btn,
+  body.customer-dashboard-page .sd-card-header__actions .customer-calendar-add-btn,
+  body.customer-dashboard-page .sd-card-header__actions .customer-inbox-btn {
+    font-size: 0.8125rem !important;
+    padding: 0.375rem 0.75rem !important;
+  }
+  body.customer-dashboard-page .sd-card-header__heading {
+    font-size: 1rem;
+  }
+}
+
+/* ===========================================
+   28. BUTTON IMPROVEMENTS
+       Premium styling for action buttons
+       throughout the customer dashboard.
+   =========================================== */
+
+/* Create Ticket button — solid teal */
+body.customer-dashboard-page .customer-tickets-create-btn {
+  background: var(--ef-primary);
+  color: #fff;
+  border: 1px solid var(--ef-primary);
+  border-radius: var(--ef-radius-sm);
+  padding: 0.45rem 0.9rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+body.customer-dashboard-page .customer-tickets-create-btn:hover,
+body.customer-dashboard-page .customer-tickets-create-btn:focus-visible {
+  background: var(--ef-primary-dark);
+  border-color: var(--ef-primary-dark);
+  box-shadow: 0 2px 8px rgba(11, 128, 115, 0.35);
+  outline: none;
+}
+
+body.customer-dashboard-page .customer-tickets-create-btn:focus-visible {
+  outline: 2px solid var(--ef-primary);
+  outline-offset: 2px;
+}
+
+/* View Inbox button — outlined teal */
+body.customer-dashboard-page .customer-inbox-btn {
+  background: transparent;
+  color: var(--ef-primary);
+  border: 1px solid var(--ef-primary);
+  border-radius: var(--ef-radius-sm);
+  padding: 0.45rem 0.9rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+body.customer-dashboard-page .customer-inbox-btn:hover,
+body.customer-dashboard-page .customer-inbox-btn:focus-visible {
+  background: var(--ef-primary);
+  color: #fff;
+  outline: none;
+}
+
+/* View Saved Items / full-width action buttons */
+body.customer-dashboard-page .customer-card-action--full {
+  display: block;
+  width: 100%;
+  text-align: center;
+  background: var(--ef-primary);
+  color: #fff;
+  border: 1px solid var(--ef-primary);
+  border-radius: var(--ef-radius-sm);
+  padding: 0.65rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+body.customer-dashboard-page .customer-card-action--full:hover,
+body.customer-dashboard-page .customer-card-action--full:focus-visible {
+  background: var(--ef-primary-dark);
+  border-color: var(--ef-primary-dark);
+  outline: none;
+}
+
+/* ===========================================
+   29. CARD SPACING — consistent vertical rhythm
+   =========================================== */
+body.customer-dashboard-page .cards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ef-space-5);
+  margin-bottom: var(--ef-space-5);
+}
+
+body.customer-dashboard-page .card.customer-budget-card,
+body.customer-dashboard-page .card.customer-calendar-card {
+  margin-bottom: var(--ef-space-5);
+}
+
+/* ===========================================
+   30. CONVERSATIONS CARD BODY LAYOUT
+   =========================================== */
+body.customer-dashboard-page .customer-conversations-controls {
+  display: flex;
+  gap: var(--ef-space-2);
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: var(--ef-space-3);
+}
+
+/* ===========================================
+   31. CARD HEADER CORNER RADIUS FIX
+       When card-collapse.js adds overflow:visible
+       to .card-collapsible, the header's top
+       corners must have their own border-radius
+       to preserve rounded card appearance.
+   =========================================== */
+
+/* Explicit top radius so header clips correctly even when
+   parent card has overflow:visible (from card-collapse).
+   Use calc(var(--cdlg-radius) - 1px) so it matches the card's
+   --cdlg-radius (20px) minus the 1px border. */
+body.customer-dashboard-page .card.cd-card .sd-card-header:first-child {
+  border-radius: calc(var(--cdlg-radius, 20px) - 1px) calc(var(--cdlg-radius, 20px) - 1px) 0 0;
+}
+
+/* ===========================================
+   32. SCROLL MARGIN — anchor-link offset
+       Ensures #budget-settings-form anchor (used
+       in the welcome card) scrolls clear of the
+       sticky header.
+   =========================================== */
+body.customer-dashboard-page .card.customer-budget-card,
+body.customer-dashboard-page #budget-settings-form {
+  scroll-margin-top: 80px;
+}
+
+/* ===========================================
+   33. WELCOME CARD — glass tint
+       Apply a subtle blue-grey tint to the
+       welcome card so it has its own visual
+       identity within the glass design system.
+   =========================================== */
+body.customer-dashboard-page .customer-welcome-card.card {
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(11, 128, 115, 0.12);
+  border-radius: var(--ef-radius-lg, 14px);
+}
+
+/* ===========================================
+   34. UNREAD BADGE — compact pill style
+   =========================================== */
+body.customer-dashboard-page .customer-unread-badge {
+  display: inline-flex;
+  align-items: center;
+  background: #dbeafe;
+  color: #1e40af;
+  border-radius: 12px;
+  padding: 3px 10px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+/* Hide badge when count is 0 */
+body.customer-dashboard-page .customer-unread-badge[data-count="0"],
+body.customer-dashboard-page .customer-unread-badge:empty {
+  display: none;
+}
