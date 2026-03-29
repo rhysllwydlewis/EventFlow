@@ -121,7 +121,7 @@
                 <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
                 <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
               </svg>
-              <span id="ef-notification-badge" class="ef-badge" style="display: none">0</span>
+              <span id="ef-notification-badge" class="ef-badge" style="display: none"></span>
             </button>
 
             <!-- Auth Button (Desktop) -->
@@ -217,6 +217,7 @@
     >
       <div class="mobile-nav-pills" data-test="mobile-nav-pills">
         <button
+          type="button"
           class="mobile-nav-pill active"
           data-section="welcome-section"
           data-test="nav-overview"
@@ -231,6 +232,7 @@
           <span class="pill-text">Overview</span>
         </button>
         <button
+          type="button"
           class="mobile-nav-pill"
           data-section="supplier-stats-grid"
           data-test="nav-stats"
@@ -246,6 +248,7 @@
           <span class="pill-text">Stats</span>
         </button>
         <button
+          type="button"
           class="mobile-nav-pill"
           data-section="my-suppliers"
           data-test="nav-profiles"
@@ -263,6 +266,7 @@
           <span class="pill-text">Profiles</span>
         </button>
         <button
+          type="button"
           class="mobile-nav-pill"
           data-section="my-packages"
           data-test="nav-packages"
@@ -279,6 +283,7 @@
           <span class="pill-text">Packages</span>
         </button>
         <button
+          type="button"
           class="mobile-nav-pill"
           data-section="threads-sup"
           data-test="nav-messages"
@@ -290,9 +295,10 @@
             </svg>
           </span>
           <span class="pill-text">Messages</span>
-          <span class="pill-badge" id="mobile-msg-badge" style="display: none">0</span>
+          <span class="pill-badge" id="mobile-msg-badge" style="display: none"></span>
         </button>
         <button
+          type="button"
           class="mobile-nav-pill"
           data-section="tickets-sup"
           data-test="nav-tickets"
@@ -305,12 +311,12 @@
           </span>
           <span class="pill-text">Tickets</span>
         </button>
-        <a
-          href="/settings"
+        <button
+          type="button"
           class="mobile-nav-pill"
           data-test="nav-settings"
           title="Settings"
-          style="text-decoration: none; color: inherit;"
+          onclick="window.location.href='/settings'"
         >
           <span class="pill-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -319,7 +325,7 @@
             </svg>
           </span>
           <span class="pill-text">Settings</span>
-        </a>
+        </button>
       </div>
     </nav>
 
@@ -1617,7 +1623,7 @@
           <rect x="3" y="14" width="7" height="7" rx="1" />
         </svg>
         <span class="ef-bottom-label">Dashboard</span>
-        <span id="ef-bottom-dashboard-badge" class="ef-badge" style="display: none">0</span>
+        <span id="ef-bottom-dashboard-badge" class="ef-badge" style="display: none"></span>
       </a>
 
       <!-- Alerts button (shown when logged out) -->
