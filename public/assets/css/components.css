@@ -1320,6 +1320,27 @@
   .notification-item {
     padding: 16px;
   }
+
+  .notification-item-content {
+    min-width: 0;
+    width: 0; /* flex: 1 grows to fill; width: 0 prevents overflow pushing container wider */
+    flex: 1;
+    overflow: hidden;
+  }
+
+  .notification-item-title {
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  .notification-item-message {
+    word-break: break-word;
+  }
+
+  .notification-item-time {
+    word-break: normal;
+    white-space: nowrap;
+  }
 }
 
 /* Dark mode support */
