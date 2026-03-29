@@ -769,7 +769,7 @@
       dropdown.style.removeProperty('display');
       // If styles still resolve to hidden, force visible fallback.
       if (window.getComputedStyle(dropdown).display === 'none') {
-        dropdown.style.display = 'block';
+        dropdown.style.display = 'flex';
       }
     } else {
       dropdown.style.display = 'none';
