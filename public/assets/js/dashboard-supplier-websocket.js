@@ -151,11 +151,16 @@
       document.getElementById('ef-notification-badge');
 
     if (badge) {
-      badge.textContent = enquiryCount > 99 ? '99+' : enquiryCount.toString();
-      badge.style.display = 'inline-block';
+      if (enquiryCount > 0) {
+        badge.textContent = enquiryCount > 99 ? '99+' : enquiryCount.toString();
+        badge.style.display = 'inline-block';
 
-      badge.classList.add('badge-pulse');
-      setTimeout(() => badge.classList.remove('badge-pulse'), 300);
+        badge.classList.add('badge-pulse');
+        setTimeout(() => badge.classList.remove('badge-pulse'), 300);
+      } else {
+        badge.textContent = '';
+        badge.style.display = 'none';
+      }
     }
   }
 

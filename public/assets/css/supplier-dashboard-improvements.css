@@ -905,10 +905,13 @@ body.supplier-dashboard-page .supplier-cta-section {
   white-space: nowrap;
   font-size: 14px;
   font-weight: 500;
+  font-family: inherit;
   min-height: 42px;
   text-decoration: none;
   color: inherit;
   box-sizing: border-box;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 .mobile-nav-pill:hover {
