@@ -1,0 +1,310 @@
+/**
+ * EventFlow — Customer Dashboard Liquid Glass v1.0.0
+ * Glassmorphism design system for the customer dashboard.
+ *
+ * Architecture:
+ *   • All rules scoped to body.customer-dashboard-page to avoid cross-page bleed.
+ *   • Mirrors the supplier-dashboard-liquid-glass.css approach but adapted for
+ *     customer-specific card classes and IDs.
+ *   • Graceful fallback via @supports for browsers without backdrop-filter.
+ *   • Accessibility: prefers-reduced-motion and prefers-contrast handled.
+ */
+
+/* ============================================================
+   0. CSS CUSTOM PROPERTIES — scoped to customer dashboard
+   ============================================================ */
+body.customer-dashboard-page {
+  /* Glass surfaces */
+  --cdlg-bg:              rgba(255, 255, 255, 0.58);
+  --cdlg-bg-hover:        rgba(255, 255, 255, 0.72);
+  --cdlg-border:          rgba(255, 255, 255, 0.32);
+  --cdlg-border-hover:    rgba(255, 255, 255, 0.52);
+  --cdlg-shadow:          0 8px 32px rgba(0, 0, 0, 0.09), 0 2px 8px rgba(0, 0, 0, 0.05);
+  --cdlg-shadow-hover:    0 16px 48px rgba(0, 0, 0, 0.13), 0 4px 12px rgba(0, 0, 0, 0.07);
+
+  /* Blur */
+  --cdlg-blur:            16px;
+  --cdlg-blur-light:       8px;
+
+  /* Radius */
+  --cdlg-radius:          20px;
+  --cdlg-radius-sm:       14px;
+
+  /* Transition */
+  --cdlg-transition:      0.28s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Tinted header overlays */
+  --cdlg-teal:            rgba(11, 128, 115, 0.14);
+  --cdlg-teal-border:     rgba(11, 128, 115, 0.25);
+  --cdlg-indigo:          rgba(99, 102, 241, 0.14);
+  --cdlg-indigo-border:   rgba(99, 102, 241, 0.25);
+  --cdlg-blue:            rgba(59, 130, 246, 0.14);
+  --cdlg-blue-border:     rgba(59, 130, 246, 0.25);
+  --cdlg-red:             rgba(239, 68, 68, 0.14);
+  --cdlg-red-border:      rgba(239, 68, 68, 0.25);
+  --cdlg-amber:           rgba(245, 158, 11, 0.14);
+  --cdlg-amber-border:    rgba(245, 158, 11, 0.25);
+  --cdlg-emerald:         rgba(16, 185, 129, 0.14);
+  --cdlg-emerald-border:  rgba(16, 185, 129, 0.25);
+}
+
+/* ============================================================
+   1. PAGE BODY BACKGROUND GRADIENT
+   ============================================================ */
+body.customer-dashboard-page {
+  background: linear-gradient(
+    145deg,
+    #f0fdf9 0%,
+    #f8f9ff 30%,
+    #fafaf9 60%,
+    #f5f3ff 85%,
+    #f0fdf9 100%
+  ) !important;
+  background-attachment: fixed !important;
+}
+
+/* ============================================================
+   2. GLASS CARD BASE
+      Applies to all .card elements on the customer dashboard.
+   ============================================================ */
+body.customer-dashboard-page .card {
+  background: var(--cdlg-bg);
+  backdrop-filter: blur(var(--cdlg-blur)) saturate(165%);
+  -webkit-backdrop-filter: blur(var(--cdlg-blur)) saturate(165%);
+  border: 1px solid var(--cdlg-border);
+  border-radius: var(--cdlg-radius);
+  box-shadow:
+    var(--cdlg-shadow),
+    inset 0 1px 1px rgba(255, 255, 255, 0.70);
+  transition:
+    box-shadow var(--cdlg-transition),
+    border-color var(--cdlg-transition),
+    background var(--cdlg-transition);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Specular highlight — diagonal light catch */
+body.customer-dashboard-page .card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    155deg,
+    rgba(255, 255, 255, 0.40) 0%,
+    rgba(255, 255, 255, 0.10) 40%,
+    rgba(255, 255, 255, 0.00) 65%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Card children sit above the specular overlay */
+body.customer-dashboard-page .card > * {
+  position: relative;
+  z-index: 1;
+}
+
+body.customer-dashboard-page .card:hover {
+  background: var(--cdlg-bg-hover);
+  border-color: var(--cdlg-border-hover);
+  box-shadow:
+    var(--cdlg-shadow-hover),
+    inset 0 1px 1px rgba(255, 255, 255, 0.80);
+}
+
+/* Shimmer sweep on hover */
+@keyframes cdlg-shimmer {
+  0%   { transform: translateX(-100%) skewX(-12deg); opacity: 0; }
+  20%  { opacity: 1; }
+  100% { transform: translateX(250%) skewX(-12deg); opacity: 0; }
+}
+
+body.customer-dashboard-page .card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 35%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.22) 50%,
+    transparent 100%
+  );
+  pointer-events: none;
+  z-index: 2;
+  transform: translateX(-100%) skewX(-12deg);
+  opacity: 0;
+}
+
+body.customer-dashboard-page .card:hover::after {
+  animation: cdlg-shimmer 0.65s ease-out forwards;
+}
+
+/* ============================================================
+   3. SD-CARD GLASS HEADERS (customer scoping)
+      Tinted glass headers for each colour variant.
+   ============================================================ */
+body.customer-dashboard-page .sd-card-header {
+  backdrop-filter: blur(var(--cdlg-blur-light)) saturate(145%);
+  -webkit-backdrop-filter: blur(var(--cdlg-blur-light)) saturate(145%);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Specular highlight line — top edge */
+body.customer-dashboard-page .sd-card-header::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.80) 25%,
+    rgba(255, 255, 255, 0.80) 75%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+/* Teal */
+body.customer-dashboard-page .sd-card-header--teal {
+  --sd-header-bg:     linear-gradient(135deg, var(--cdlg-teal) 0%, rgba(16, 185, 129, 0.07) 100%);
+  --sd-header-border: var(--cdlg-teal-border);
+}
+
+/* Blue */
+body.customer-dashboard-page .sd-card-header--blue {
+  --sd-header-bg:     linear-gradient(135deg, var(--cdlg-blue) 0%, rgba(37, 99, 235, 0.07) 100%);
+  --sd-header-border: var(--cdlg-blue-border);
+}
+
+/* Amber */
+body.customer-dashboard-page .sd-card-header--amber {
+  --sd-header-bg:     linear-gradient(135deg, var(--cdlg-amber) 0%, rgba(251, 191, 36, 0.07) 100%);
+  --sd-header-border: var(--cdlg-amber-border);
+}
+
+/* Emerald */
+body.customer-dashboard-page .sd-card-header--emerald {
+  --sd-header-bg:     linear-gradient(135deg, var(--cdlg-emerald) 0%, rgba(5, 150, 105, 0.07) 100%);
+  --sd-header-border: var(--cdlg-emerald-border);
+}
+
+/* Red */
+body.customer-dashboard-page .sd-card-header--red {
+  --sd-header-bg:     linear-gradient(135deg, var(--cdlg-red) 0%, rgba(220, 38, 38, 0.07) 100%);
+  --sd-header-border: var(--cdlg-red-border);
+}
+
+/* Indigo */
+body.customer-dashboard-page .sd-card-header--indigo {
+  --sd-header-bg:     linear-gradient(135deg, var(--cdlg-indigo) 0%, rgba(139, 92, 246, 0.07) 100%);
+  --sd-header-border: var(--cdlg-indigo-border);
+}
+
+/* ============================================================
+   4. SD-CARD LAYOUT — flush headers
+      Override .card default padding so headers sit flush to edges.
+   ============================================================ */
+body.customer-dashboard-page .card.cd-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Body content padding inside cd-card */
+body.customer-dashboard-page .card.cd-card > .cd-card-body,
+body.customer-dashboard-page .card.cd-card > .section {
+  padding: 1.25rem 1.5rem;
+}
+
+/* ============================================================
+   5. ICON COLOURS — customer variants (mirrors supplier)
+   ============================================================ */
+body.customer-dashboard-page .sd-card-header__icon {
+  color: #fff;
+}
+
+body.customer-dashboard-page .sd-card-header__icon svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   6. COLLAPSED CARD STATE REFINEMENTS
+   ============================================================ */
+body.customer-dashboard-page .card.card--collapsed {
+  padding-bottom: 0;
+}
+
+/* Keep header visible and crisp when collapsed */
+body.customer-dashboard-page .card.card--collapsed .sd-card-header {
+  border-bottom: none;
+  border-radius: inherit;
+}
+
+/* ============================================================
+   7. BROWSER FALLBACK — no backdrop-filter support
+   ============================================================ */
+@supports not (backdrop-filter: blur(1px)) {
+  body.customer-dashboard-page .card {
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  body.customer-dashboard-page .sd-card-header {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+/* ============================================================
+   8. MOBILE — reduce blur for performance
+   ============================================================ */
+@media (max-width: 768px) {
+  body.customer-dashboard-page {
+    --cdlg-blur: 10px;
+  }
+
+  /* Disable shimmer on mobile (GPU performance) */
+  body.customer-dashboard-page .card:hover::after {
+    animation: none;
+  }
+}
+
+/* ============================================================
+   9. REDUCED MOTION
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  body.customer-dashboard-page .card,
+  body.customer-dashboard-page .card::before,
+  body.customer-dashboard-page .card::after,
+  body.customer-dashboard-page .sd-card-header {
+    transition: none;
+    animation: none;
+  }
+
+  body.customer-dashboard-page .card:hover::after {
+    animation: none;
+  }
+}
+
+/* ============================================================
+   10. HIGH CONTRAST MODE
+   ============================================================ */
+@media (prefers-contrast: more) {
+  body.customer-dashboard-page .card {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: #fff;
+    border: 2px solid currentColor;
+  }
+}
