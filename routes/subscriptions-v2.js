@@ -92,7 +92,7 @@ router.post(
   ensureStripeEnabled,
   async (req, res) => {
     try {
-      const { planId, returnUrl } = req.body;
+      const { planId } = req.body;
 
       if (!planId) {
         return res.status(400).json({ error: 'planId is required' });
