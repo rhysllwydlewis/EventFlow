@@ -153,7 +153,7 @@
     if (badge) {
       if (enquiryCount > 0) {
         badge.textContent = enquiryCount > 99 ? '99+' : enquiryCount.toString();
-        badge.style.display = 'inline-block';
+        badge.style.display = 'flex';
 
         badge.classList.add('badge-pulse');
         setTimeout(() => badge.classList.remove('badge-pulse'), 300);
