@@ -815,13 +815,23 @@ body.ef-menu-open {
   display: flex;
   align-items: center;
   justify-content: space-evenly;
-  background: rgba(255, 255, 255, 0.98);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid var(--ef-border);
+  background: rgba(255, 255, 255, 0.80);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border-top: 1px solid rgba(255, 255, 255, 0.40);
   padding: 10px 4px 12px;
-  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.07);
   gap: 4px;
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .ef-bottom-nav {
+    background: rgba(255, 255, 255, 0.98);
+  }
+}
+
+#ef-bottom-menu .ef-bottom-label {
+  display: none;
 }
 
 .ef-bottom-link {
