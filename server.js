@@ -659,7 +659,15 @@ protectedHtmlPages.forEach(page => {
 // MUST come before express.static().
 const protectedSpaPrefixes = ['/messenger', '/chat'];
 protectedSpaPrefixes.forEach(prefix => {
-  app.use(prefix, apiLimiter, unauthRedirect);
+  app.use(prefix, apiLimiter, (req, res, next) => {
+    // Static JS assets under /messenger/js/ are public client-side scripts that
+    // must load on any page regardless of auth state — they perform their own
+    // auth checks internally before taking any action.
+    if (/^\/messenger\/js\/[^/]+\.js(\?|$)/.test(req.originalUrl)) {
+      return next();
+    }
+    return unauthRedirect(req, res, next);
+  });
 });
 
 // ---------- Partner Portal HTML Protection ----------

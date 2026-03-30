@@ -58,6 +58,7 @@ function runPageGuard(isAuthed, originalUrl = '/budget') {
 /**
  * Simulate the SPA prefix middleware (app.use(prefix, ...)).
  * Express calls the middleware with req.originalUrl = full path.
+ * Mirrors the exemption for /messenger/js/*.js static assets.
  */
 function runSpaGuard(isAuthed, originalUrl = '/messenger/') {
   let redirected = false;
@@ -75,12 +76,16 @@ function runSpaGuard(isAuthed, originalUrl = '/messenger/') {
     nextCalled = true;
   };
 
-  // Inline the guard logic from server.js
-  const user = req.cookies && req.cookies.token ? { id: 'u1' } : null;
-  if (!user) {
-    res.redirect(302, `/auth?redirect=${encodeURIComponent(req.originalUrl)}`);
-  } else {
+  // Inline the guard logic from server.js (including JS asset exemption)
+  if (/^\/messenger\/js\/[^/]+\.js(\?|$)/.test(req.originalUrl)) {
     next();
+  } else {
+    const user = req.cookies && req.cookies.token ? { id: 'u1' } : null;
+    if (!user) {
+      res.redirect(302, `/auth?redirect=${encodeURIComponent(req.originalUrl)}`);
+    } else {
+      next();
+    }
   }
 
   return { redirected, location, nextCalled };
@@ -142,9 +147,10 @@ describe('server.js — protectedSpaPrefixes block', () => {
     // Verify the shared helper is defined and used by both guards
     expect(serverSrc).toContain('function unauthRedirect(req, res, next)');
     expect(serverSrc).toContain('getUserFromCookie(req)');
-    // Both loops delegate to unauthRedirect rather than inline callbacks
+    // Page guard delegates directly to unauthRedirect
     expect(serverSrc).toContain('app.get(`/${page}`, apiLimiter, unauthRedirect)');
-    expect(serverSrc).toContain('app.use(prefix, apiLimiter, unauthRedirect)');
+    // SPA guard uses an inline wrapper that delegates to unauthRedirect
+    expect(serverSrc).toContain('return unauthRedirect(req, res, next)');
   });
 });
 
@@ -234,6 +240,38 @@ describe('SPA guard — redirect URL encodes originalUrl correctly', () => {
     const originalUrl = '/messenger/?conversation=abc123&foo=bar';
     const { location } = runSpaGuard(false, originalUrl);
     expect(location).toBe(`/auth?redirect=${encodeURIComponent(originalUrl)}`);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 3b. SPA guard — /messenger/js/*.js exempt for unauthenticated users
+// ---------------------------------------------------------------------------
+
+describe('SPA guard — /messenger/js/*.js passes through unauthenticated', () => {
+  test.each([
+    '/messenger/js/QuickComposeV4.js',
+    '/messenger/js/MessengerTrigger.js',
+  ])('allows unauthenticated request for %s', originalUrl => {
+    const { redirected, nextCalled } = runSpaGuard(false, originalUrl);
+    expect(redirected).toBe(false);
+    expect(nextCalled).toBe(true);
+  });
+
+  it('still redirects unauthenticated requests to /messenger (SPA root)', () => {
+    const { redirected, nextCalled } = runSpaGuard(false, '/messenger');
+    expect(redirected).toBe(true);
+    expect(nextCalled).toBe(false);
+  });
+
+  it('still redirects unauthenticated requests to /messenger/index.html', () => {
+    const { redirected, nextCalled } = runSpaGuard(false, '/messenger/index.html');
+    expect(redirected).toBe(true);
+    expect(nextCalled).toBe(false);
+  });
+
+  it('server.js exempts /messenger/js/*.js via regex in the SPA guard', () => {
+    // Verify the exact regex pattern is present in the source
+    expect(serverSrc).toContain('/^\\/messenger\\/js\\/[^/]+\\.js(\\?|$)/');
   });
 });
 
