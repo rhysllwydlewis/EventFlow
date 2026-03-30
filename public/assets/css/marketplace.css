@@ -1089,6 +1089,26 @@
     max-height: none;
   }
 
+  .listing-detail-header {
+    position: relative;
+    padding: 16px;
+    padding-right: 44px; /* room for absolute-positioned close button */
+  }
+
+  .listing-detail-header-content {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .listing-detail-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 24px;
+    height: 24px;
+    font-size: 18px;
+  }
+
   .listing-detail-price {
     font-size: 24px;
   }

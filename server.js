@@ -493,16 +493,19 @@ canonicalPages.forEach(page => {
   // The canonical URL without .html is handled by template middleware + static files
 });
 
-// Dead-end singular routes — permanently redirect to the canonical listing page.
-// /supplier and /category are ambiguous dead-ends surfaced by crawler/bot traffic;
-// redirect them to /suppliers which is the useful public listing page.
-app.get('/supplier', (req, res) => {
-  const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
-  res.redirect(301, `/suppliers${qs}`);
+// /supplier?id=<id> serves the individual supplier profile page.
+// /supplier without an id is a dead-end; redirect crawlers to the listing page.
+app.get('/supplier', apiLimiter, (req, res) => {
+  if (req.query.id) {
+    return res.sendFile(path.join(__dirname, 'public', 'supplier.html'));
+  }
+  res.redirect(301, '/suppliers');
 });
 app.get('/supplier.html', (req, res) => {
-  const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
-  res.redirect(301, `/suppliers${qs}`);
+  if (req.query.id) {
+    return res.redirect(301, `/supplier?id=${encodeURIComponent(req.query.id)}`);
+  }
+  res.redirect(301, '/suppliers');
 });
 
 app.get('/category', (req, res) => {
