@@ -587,20 +587,30 @@ async function handleCheckoutCompleted(session) {
 
   logger.info(`Payment ${payment.id} marked as succeeded`);
 
-  // Send payment and booking notifications (fire-and-forget)
+  // Send payment (and, for one-time service bookings, booking) notifications — fire-and-forget.
+  // Use session.amount_total (pence → pounds) so subscriptions show the real charged amount
+  // instead of the 0 stored in the pending payment record before Stripe confirms the price.
   getNotificationService()
     .then(notifSvc => {
       if (!notifSvc) {
         return;
       }
+      const chargedAmount =
+        typeof session.amount_total === 'number' && session.amount_total > 0
+          ? session.amount_total / 100
+          : payment.amount;
       const description = payment.metadata?.planName || payment.type || 'service';
-      notifSvc.notifyPayment(userId, payment.amount, description).catch(err => {
+      notifSvc.notifyPayment(userId, chargedAmount, description).catch(err => {
         logger.error('Failed to send payment notification:', err);
       });
-      const supplierName = payment.metadata?.planName || 'EventFlow';
-      notifSvc.notifyBookingUpdate(userId, supplierName, 'confirmed').catch(err => {
-        logger.error('Failed to send booking notification:', err);
-      });
+      // Only send a booking-update notification for one-time payments (service bookings).
+      // Subscription purchases (EventFlow Pro) are not supplier bookings.
+      if (payment.type === 'one_time') {
+        const supplierName = payment.metadata?.planName || 'EventFlow';
+        notifSvc.notifyBookingUpdate(userId, supplierName, 'confirmed').catch(err => {
+          logger.error('Failed to send booking notification:', err);
+        });
+      }
     })
     .catch(err => {
       logger.warn('Could not send checkout notifications:', err.message);
