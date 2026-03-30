@@ -129,6 +129,12 @@ function applyProtectedPageGuard(path, isAuthenticated) {
     return { action: 'pass' }; // public page, no guard
   }
 
+  // Static JS assets under /messenger/js/ are exempt from the auth guard —
+  // mirrors the server.js SPA guard and scripts/serve-static.js exemption.
+  if (/^\/messenger\/js\/[^/]+\.js$/.test(path)) {
+    return { action: 'pass' };
+  }
+
   if (!isAuthenticated) {
     return { action: 'redirect', location: `/auth?redirect=${encodeURIComponent(path)}` };
   }
@@ -191,6 +197,23 @@ describe('Server-side protected page guard', () => {
 
     it('blocks /messenger/ for unauthenticated users', () => {
       const result = applyProtectedPageGuard('/messenger/', false);
+      expect(result.action).toBe('redirect');
+    });
+  });
+
+  describe('/messenger/js/*.js assets are exempt from the auth guard', () => {
+    it('allows unauthenticated request for /messenger/js/QuickComposeV4.js', () => {
+      const result = applyProtectedPageGuard('/messenger/js/QuickComposeV4.js', false);
+      expect(result.action).toBe('pass');
+    });
+
+    it('allows unauthenticated request for /messenger/js/MessengerTrigger.js', () => {
+      const result = applyProtectedPageGuard('/messenger/js/MessengerTrigger.js', false);
+      expect(result.action).toBe('pass');
+    });
+
+    it('still blocks /messenger/index.html for unauthenticated users', () => {
+      const result = applyProtectedPageGuard('/messenger/index.html', false);
       expect(result.action).toBe('redirect');
     });
   });

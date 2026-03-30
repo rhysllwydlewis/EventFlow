@@ -309,4 +309,9 @@ describe('serve-static.js — protectedStaticPaths mirrors production', () => {
     expect(serveStaticSrc).toContain('/auth?redirect=');
     expect(serveStaticSrc).toContain('encodeURIComponent(req.originalUrl)');
   });
+
+  it('exempts /messenger/js/*.js from the auth redirect', () => {
+    // Verify the same regex exemption is present in serve-static.js
+    expect(serveStaticSrc).toContain('/^\\/messenger\\/js\\/[^/]+\\.js$/');
+  });
 });
