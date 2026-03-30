@@ -7,6 +7,8 @@
 
 const express = require('express');
 const logger = require('../utils/logger');
+const mongoDb = require('../db');
+const NotificationService = require('../services/notification.service');
 const router = express.Router();
 
 // These will be injected by server.js during route mounting
@@ -87,6 +89,46 @@ function applyCsrfProtection(req, res, next) {
   return csrfProtection(req, res, next);
 }
 
+/**
+ * Get a NotificationService instance using the live DB and WebSocket server.
+ * @param {Object} req - Express request (used to resolve the WS server)
+ * @returns {Promise<NotificationService|null>}
+ */
+async function getNotificationService(req) {
+  try {
+    const db = await mongoDb.getDb();
+    const wsServer =
+      req && req.app ? req.app.get('wsServerV2') || req.app.get('wsServer') || null : null;
+    return new NotificationService(db, wsServer);
+  } catch (err) {
+    logger.warn('Could not create NotificationService for reviews route:', err.message);
+    return null;
+  }
+}
+
+/**
+ * Fire-and-forget helper: notify the supplier when a new review is submitted.
+ * Errors are logged but never propagate to the caller.
+ * @param {Object} req - Express request
+ * @param {string} supplierUserId - The supplier's user ID to notify
+ * @param {string} customerName - Display name of the reviewer
+ * @param {number} rating - Star rating (1–5)
+ */
+function sendReviewNotification(req, supplierUserId, customerName, rating) {
+  getNotificationService(req)
+    .then(notifSvc => {
+      if (!notifSvc) {
+        return;
+      }
+      notifSvc.notifyNewReview(supplierUserId, customerName, rating).catch(err => {
+        logger.error('Failed to send review notification:', err);
+      });
+    })
+    .catch(err => {
+      logger.warn('Failed to create NotificationService for review notification:', err.message);
+    });
+}
+
 // ---------- Review Submission Routes ----------
 
 /**
@@ -154,6 +196,12 @@ router.post(
         // Non-blocking
       }
 
+      // Notify the supplier about the new review (fire-and-forget)
+      if (supplier.ownerUserId) {
+        const customerName = user?.name || user?.firstName || 'A customer';
+        sendReviewNotification(req, supplier.ownerUserId, customerName, Number(rating));
+      }
+
       res.json({
         success: true,
         review,
@@ -212,6 +260,12 @@ router.post(
           userAgent: req.get('user-agent'),
         }
       );
+
+      // Notify the supplier about the new review (fire-and-forget)
+      if (supplier.ownerUserId) {
+        const customerName = user?.name || user?.firstName || 'A customer';
+        sendReviewNotification(req, supplier.ownerUserId, customerName, Number(rating));
+      }
 
       res.json({
         success: true,

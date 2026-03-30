@@ -222,7 +222,11 @@ describe('Payment Routes', () => {
         mode: 'payment',
         line_items: [
           {
-            price_data: { currency: 'gbp', product_data: { name: 'EventFlow Payment' }, unit_amount: 1000 },
+            price_data: {
+              currency: 'gbp',
+              product_data: { name: 'EventFlow Payment' },
+              unit_amount: 1000,
+            },
             quantity: 1,
           },
         ],
@@ -284,6 +288,99 @@ describe('Payment Routes', () => {
 
       expect(successUrl).toContain('session_id=');
       expect(successUrl).toContain('{CHECKOUT_SESSION_ID}');
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Source-level checks for notification wiring in routes/payments.js
+// ---------------------------------------------------------------------------
+
+const fs = require('fs');
+const path = require('path');
+const paymentsSource = fs.readFileSync(path.join(process.cwd(), 'routes/payments.js'), 'utf8');
+
+describe('Payment Routes — Notification wiring (source-level)', () => {
+  describe('handleCheckoutCompleted', () => {
+    // Isolate the function body to make assertions specific
+    const fnStart = paymentsSource.indexOf('async function handleCheckoutCompleted(');
+    const fnEnd = paymentsSource.indexOf('\nasync function handleSubscriptionCreated(');
+    const fnBody = paymentsSource.slice(fnStart, fnEnd);
+
+    it('uses session.amount_total for the charged amount, not payment.amount', () => {
+      expect(fnBody).toContain('session.amount_total');
+    });
+
+    it('does not fall through to payment.type for notification description', () => {
+      // The fallback chain should NOT include `payment.type` — that would show
+      // the raw string 'one_time' in user-facing notification messages.
+      const descriptionLine = fnBody
+        .split('\n')
+        .find(l => l.includes('const description') && l.includes('planName'));
+      expect(descriptionLine).toBeDefined();
+      expect(descriptionLine).not.toContain('payment.type');
+    });
+
+    it('only fires notifyBookingUpdate for one_time payments', () => {
+      // The booking-update notification must be guarded by a payment.type check
+      const bookingBlock = fnBody.slice(fnBody.indexOf('notifyBookingUpdate'));
+      // Walk backwards from notifyBookingUpdate to find the nearest if condition
+      const precedingCode = fnBody.slice(0, fnBody.indexOf('notifyBookingUpdate'));
+      expect(precedingCode).toContain("payment.type === 'one_time'");
+    });
+  });
+
+  describe('one_time checkout session creation', () => {
+    // Isolate the one_time line_items block
+    const oneTimeBlock = paymentsSource.slice(
+      paymentsSource.indexOf("if (type === 'one_time') {"),
+      paymentsSource.indexOf('} else {\n        // Subscription')
+    );
+
+    it('uses planName as the Stripe product name for one_time payments', () => {
+      expect(oneTimeBlock).toContain('planName || ');
+      expect(oneTimeBlock).toContain("'EventFlow Payment'");
+      // The product name line must reference planName
+      const productNameLine = oneTimeBlock
+        .split('\n')
+        .find(l => l.includes('name:') && l.includes('planName'));
+      expect(productNameLine).toBeDefined();
+    });
+
+    it('stores planName in session metadata for one_time payments', () => {
+      expect(oneTimeBlock).toContain('sessionConfig.metadata.planName');
+    });
+  });
+
+  describe('handleSubscriptionDeleted', () => {
+    const fnStart = paymentsSource.indexOf('async function handleSubscriptionDeleted(');
+    const fnEnd = paymentsSource.indexOf('\nasync function handlePaymentSucceeded(');
+    const fnBody = paymentsSource.slice(fnStart, fnEnd);
+
+    it('calls notifySystem after cancellation', () => {
+      expect(fnBody).toContain('notifySystem');
+    });
+
+    it('includes a link to /settings/billing', () => {
+      expect(fnBody).toContain('/settings/billing');
+    });
+  });
+
+  describe('handlePaymentFailed', () => {
+    const fnStart = paymentsSource.indexOf('async function handlePaymentFailed(');
+    const fnEnd = paymentsSource.indexOf('\n/**\n * @swagger\n * /api/payments/config:');
+    const fnBody = paymentsSource.slice(fnStart, fnEnd);
+
+    it('calls notifySystem after a failed payment', () => {
+      expect(fnBody).toContain('notifySystem');
+    });
+
+    it('includes the Stripe failure reason in the notification message', () => {
+      expect(fnBody).toContain('last_payment_error?.message');
+    });
+
+    it('notifies the payment owner (payment.userId)', () => {
+      expect(fnBody).toContain('payment.userId');
     });
   });
 });
