@@ -139,6 +139,16 @@
       #ef-pwa-install-banner .ef-pwa-dismiss-btn:hover {
         color: #fff;
       }
+      @media (max-width: 768px) {
+        #ef-pwa-install-banner {
+          display: none !important;
+        }
+      }
+      @media (min-width: 769px) {
+        body.ef-pwa-banner-visible {
+          padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+        }
+      }
     `;
     document.head.appendChild(style);
   }
