@@ -2551,7 +2551,7 @@ router.post(
       const announcement = {
         id: generateUniqueId('announcement'),
         message,
-        type: type || 'info',
+        type,
         active: true,
         createdAt: new Date().toISOString(),
         createdBy: req.user.email,

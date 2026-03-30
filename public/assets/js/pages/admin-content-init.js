@@ -1,4 +1,7 @@
 (function () {
+  // Track current FAQ count for default order assignment
+  let faqCount = 0;
+
   // Tab switching
   document.querySelectorAll('.tab-button').forEach(button => {
     button.addEventListener('click', () => {
@@ -300,7 +303,7 @@
 
   // Add FAQ
   document.getElementById('addFAQBtn').addEventListener('click', () => {
-    showFAQModal(null, loadFAQs._count || 0);
+    showFAQModal(null, faqCount);
   });
 
   function showFAQModal(faq = null, currentFaqCount = 0) {
@@ -355,12 +358,13 @@
     modal.querySelector('#faqForm').addEventListener('submit', async e => {
       e.preventDefault();
 
-      const orderVal = parseInt(document.getElementById('faqOrder').value, 10);
+      const orderRaw = parseInt(document.getElementById('faqOrder').value, 10);
+      const orderVal = (!isNaN(orderRaw) && orderRaw >= 0) ? orderRaw : 0;
       const data = {
         question: document.getElementById('faqQuestion').value,
         answer: document.getElementById('faqAnswer').value,
         category: document.getElementById('faqCategory').value || 'General',
-        order: isNaN(orderVal) ? 0 : orderVal,
+        order: orderVal,
       };
 
       try {
@@ -426,8 +430,8 @@
         });
       });
 
-      // Expose FAQ count for modal default order
-      loadFAQs._count = faqs.length;
+      // Update FAQ count for default order in new FAQs
+      faqCount = faqs.length;
     } catch (err) {
       document.getElementById('faqsList').innerHTML =
         '<p class="small" style="color:#ef4444;">Failed to load FAQs</p>';
@@ -510,7 +514,7 @@
   window.editFAQ = async id => {
     try {
       const faq = await AdminShared.api(`/api/admin/content/faqs/${id}`);
-      showFAQModal(faq, loadFAQs._count || 0);
+      showFAQModal(faq, faqCount);
     } catch (err) {
       AdminShared.showToast(`Failed to load FAQ: ${err.message}`, 'error');
     }
