@@ -312,10 +312,28 @@ async function handleInvoicePaymentFailed(invoice) {
 async function handleSubscriptionCreated(stripeSubscription) {
   logger.info('Processing customer.subscription.created:', stripeSubscription.id);
 
-  // Check if subscription already exists
+  // Check if subscription already exists (created by checkout.session.completed)
+  // If it does, enrich it with the billing details available from the Stripe event
   const existing = await subscriptionService.getSubscriptionByStripeId(stripeSubscription.id);
   if (existing) {
-    logger.info('Subscription already exists:', existing.id);
+    logger.info('Subscription already exists, enriching with Stripe billing data:', existing.id);
+    const enrichItem = stripeSubscription.items?.data?.[0];
+    const enrichInterval = enrichItem?.price?.recurring?.interval || null;
+    const enrichStart = stripeSubscription.current_period_start
+      ? new Date(stripeSubscription.current_period_start * 1000).toISOString()
+      : null;
+    const enrichEnd = stripeSubscription.current_period_end
+      ? new Date(stripeSubscription.current_period_end * 1000).toISOString()
+      : null;
+    const enrichCoupon = stripeSubscription.discount?.coupon || null;
+    const enrichUpdates = {
+      ...(enrichInterval && { billingInterval: enrichInterval }),
+      ...(enrichStart && { currentPeriodStart: enrichStart }),
+      ...(enrichEnd && { currentPeriodEnd: enrichEnd, nextBillingDate: enrichEnd }),
+      discountName: enrichCoupon?.name || enrichCoupon?.id || null,
+      discountPercent: enrichCoupon?.percent_off || null,
+    };
+    await subscriptionService.updateSubscription(existing.id, enrichUpdates);
     return;
   }
 

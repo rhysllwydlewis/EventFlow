@@ -370,14 +370,27 @@ router.post(
         trialPeriodDays: trialDays || null,
       });
 
-      // Create subscription record in database
+      // Create subscription record in database, including billing details from Stripe
       const trialEnd = trialDays ? new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000) : null;
+      const stripeItem = stripeSubscription.items?.data?.[0];
       const subscription = await subscriptionService.createSubscription({
         userId: req.user.id,
         plan,
         stripeSubscriptionId: stripeSubscription.id,
         stripeCustomerId: customer.id,
         trialEnd,
+        billingInterval: stripeItem?.price?.recurring?.interval || null,
+        currentPeriodStart: stripeSubscription.current_period_start
+          ? new Date(stripeSubscription.current_period_start * 1000).toISOString()
+          : null,
+        currentPeriodEnd: stripeSubscription.current_period_end
+          ? new Date(stripeSubscription.current_period_end * 1000).toISOString()
+          : null,
+        discountName:
+          stripeSubscription.discount?.coupon?.name ||
+          stripeSubscription.discount?.coupon?.id ||
+          null,
+        discountPercent: stripeSubscription.discount?.coupon?.percent_off || null,
       });
 
       // Log subscription creation to audit trail

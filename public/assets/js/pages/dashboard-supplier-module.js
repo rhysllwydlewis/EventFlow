@@ -653,9 +653,9 @@ async function displaySubscriptionStatus() {
       const CARD_BRAND_LABELS = {
         visa: 'Visa',
         mastercard: 'Mastercard',
-        amex: 'American Express',
+        amex: 'Amex',
         discover: 'Discover',
-        diners: 'Diners Club',
+        diners: 'Diners',
         jcb: 'JCB',
         unionpay: 'UnionPay',
       };
@@ -695,7 +695,7 @@ async function displaySubscriptionStatus() {
         <div class="sd-subscription-active">
           <div class="sd-subscription-active__plan-row">
             <span class="sd-subscription-active__badge sd-subscription-active__badge--${currentTier}">${planLabel}</span>
-            <span class="sd-subscription-active__status">${statusLabel}</span>
+            <span class="sd-subscription-active__status${isTrialing ? ' sd-subscription-active__status--trial' : ''}">${statusLabel}</span>
             ${intervalBadge}
           </div>
           ${detailsHtml}
