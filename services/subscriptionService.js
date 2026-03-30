@@ -64,7 +64,7 @@ async function createSubscription({
     trialEnd: trialEnd ? trialEnd.toISOString() : null,
     currentPeriodStart: currentPeriodStart || now,
     currentPeriodEnd: currentPeriodEnd || null,
-    nextBillingDate: trialEnd ? trialEnd.toISOString() : currentPeriodEnd || null,
+    nextBillingDate: currentPeriodEnd || (trialEnd ? trialEnd.toISOString() : null),
     cancelAtPeriodEnd: false,
     canceledAt: null,
     cancelReason: null,

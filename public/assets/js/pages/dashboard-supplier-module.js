@@ -608,12 +608,18 @@ async function displaySubscriptionStatus() {
         const trialEndDate = new Date(subscriptionRecord.trialEnd);
         const daysLeft = Math.ceil((trialEndDate - Date.now()) / (1000 * 60 * 60 * 24));
         const trialEndFormatted = trialEndDate.toLocaleDateString('en-GB', dateFormat);
+        let trialDaysNotice = '';
+        if (daysLeft > 0) {
+          trialDaysNotice = `<p class="sd-subscription-active__trial-notice">🎁 ${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining in trial</p>`;
+        } else if (daysLeft === 0) {
+          trialDaysNotice = `<p class="sd-subscription-active__trial-notice">🎁 Trial ends today</p>`;
+        }
         trialHtml = `
           <div class="sd-subscription-active__detail-row">
             <span class="sd-subscription-active__detail-label">Trial ends</span>
             <span class="sd-subscription-active__detail-value">${trialEndFormatted}</span>
           </div>
-          ${daysLeft > 0 ? `<p class="sd-subscription-active__trial-notice">🎁 ${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining in trial</p>` : ''}`;
+          ${trialDaysNotice}`;
       }
 
       // Start date — use subscription createdAt (original sign-up date)
@@ -643,12 +649,21 @@ async function displaySubscriptionStatus() {
              </div>`
           : '';
 
-      // Payment method
+      // Payment method — map brand codes to display names
+      const CARD_BRAND_LABELS = {
+        visa: 'Visa',
+        mastercard: 'Mastercard',
+        amex: 'American Express',
+        discover: 'Discover',
+        diners: 'Diners Club',
+        jcb: 'JCB',
+        unionpay: 'UnionPay',
+      };
       const paymentMethodHtml =
         paymentMethodBrand && paymentMethodLast4
           ? `<div class="sd-subscription-active__detail-row">
               <span class="sd-subscription-active__detail-label">Payment method</span>
-              <span class="sd-subscription-active__detail-value">💳 ${paymentMethodBrand.charAt(0).toUpperCase() + paymentMethodBrand.slice(1)} ····${paymentMethodLast4}</span>
+              <span class="sd-subscription-active__detail-value">💳 ${CARD_BRAND_LABELS[paymentMethodBrand.toLowerCase()] || paymentMethodBrand.charAt(0).toUpperCase() + paymentMethodBrand.slice(1)} ····${paymentMethodLast4}</span>
              </div>`
           : '';
 
