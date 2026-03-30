@@ -49,9 +49,16 @@
     }
   }
 
-  // If the custom element is already registered the initial widget is live
+  // If the custom element is already registered the initial widget is live.
+  // Prefer lookup by id; fall back to any altcha-widget inside the container in case
+  // the widget was re-rendered and lost its id attribute.
   if (altchaReady) {
-    bindAltchaEvents(document.getElementById('reg-altcha-widget'));
+    const existingWidget =
+      document.getElementById('reg-altcha-widget') || regContainer.querySelector('altcha-widget');
+    if (existingWidget && !existingWidget.id) {
+      existingWidget.id = 'reg-altcha-widget';
+    }
+    bindAltchaEvents(existingWidget);
     return;
   }
 
@@ -60,6 +67,16 @@
 
   function onAltchaLoaded() {
     altchaReady = true;
+    // If a widget already exists in the container (e.g. from the initial HTML or a prior
+    // recreation), bind to it instead of clearing and recreating to avoid losing verified state.
+    const existingWidget = regContainer.querySelector('altcha-widget');
+    if (existingWidget) {
+      if (!existingWidget.id) {
+        existingWidget.id = 'reg-altcha-widget';
+      }
+      bindAltchaEvents(existingWidget);
+      return;
+    }
     regContainer.innerHTML = '';
     const widget = document.createElement('altcha-widget');
     widget.setAttribute('challengeurl', '/api/v1/altcha/challenge');

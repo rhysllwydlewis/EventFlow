@@ -69,6 +69,45 @@ describe('auth.html – security regressions', () => {
       // before the custom element is defined or the altcha-loaded event is ready.
       expect(content).toContain('auth-altcha-init.js" defer');
     });
+
+    it('app.js uses a container-scoped querySelector fallback when getElementById("reg-altcha-widget") returns null', () => {
+      // app.js must not rely solely on getElementById('reg-altcha-widget') because the
+      // widget may be re-rendered and lose its id attribute.  The fallback prevents the
+      // "Please wait for the verification to load" false-positive.
+      const appContent = fs.readFileSync(
+        path.join(__dirname, '../../public/assets/js/app.js'),
+        'utf8'
+      );
+      expect(appContent).toContain("querySelector('altcha-widget')");
+      expect(appContent).toContain('reg-altcha-container');
+    });
+
+    it('auth-altcha-init.js uses container-scoped fallback when locating an existing widget', () => {
+      const initContent = fs.readFileSync(
+        path.join(__dirname, '../../public/assets/js/pages/auth-altcha-init.js'),
+        'utf8'
+      );
+      expect(initContent).toContain("querySelector('altcha-widget')");
+    });
+
+    it('auth-altcha-init.js does not unconditionally clear the container before recreating the widget', () => {
+      // onAltchaLoaded must check for an existing widget before calling innerHTML=''.
+      // If a widget already exists the code should bind to it, preserving verified state.
+      const initContent = fs.readFileSync(
+        path.join(__dirname, '../../public/assets/js/pages/auth-altcha-init.js'),
+        'utf8'
+      );
+      // Locate the onAltchaLoaded function body and verify the querySelector check
+      // appears before the innerHTML='' assignment within it.
+      const fnStart = initContent.indexOf('function onAltchaLoaded()');
+      expect(fnStart).toBeGreaterThan(-1);
+      const fnBody = initContent.slice(fnStart);
+      const queryPos = fnBody.indexOf("querySelector('altcha-widget')");
+      const innerHtmlPos = fnBody.indexOf("regContainer.innerHTML = ''");
+      expect(queryPos).toBeGreaterThan(-1);
+      expect(innerHtmlPos).toBeGreaterThan(-1);
+      expect(queryPos).toBeLessThan(innerHtmlPos);
+    });
   });
 
   describe('waitForApiClient retry loop is bounded', () => {

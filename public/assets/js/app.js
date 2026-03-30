@@ -5531,8 +5531,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
           // Include ALTCHA payload if the widget is present in the form.
           // Priority order: statechange-captured global → Shadow DOM hidden input → .value property.
-          const altchaWidget = document.getElementById('reg-altcha-widget');
+          // Prefer lookup by id; fall back to a container-scoped query in case the widget was
+          // replaced/re-rendered and lost its id attribute (e.g. after a DOM replacement).
           const altchaContainer = document.getElementById('reg-altcha-container');
+          const altchaWidget =
+            document.getElementById('reg-altcha-widget') ||
+            (altchaContainer ? altchaContainer.querySelector('altcha-widget') : null);
           if (altchaWidget) {
             let captchaToken = window.__altchaRegPayload || null;
             if (!captchaToken) {
