@@ -17,6 +17,8 @@ const { auditLog, AUDIT_ACTIONS } = require('../middleware/audit');
 const { csrfProtection } = require('../middleware/csrf');
 const { writeLimiter, apiLimiter } = require('../middleware/rateLimits');
 const dbUnified = require('../db-unified');
+const mongoDb = require('../db');
+const NotificationService = require('../services/notification.service');
 const { normalizeTicketRecord } = require('../utils/ticketNormalization');
 const { PRIORITY_RANK } = require('../utils/tierPriority');
 const { PLACEHOLDER_PACKAGE_IMAGE } = require('../utils/constants');
@@ -74,6 +76,23 @@ let seedFn = null;
 function setHelperFunctions(supplierIsProActive, seed) {
   supplierIsProActiveFn = supplierIsProActive;
   seedFn = seed;
+}
+
+/**
+ * Get a NotificationService instance using the live DB and WebSocket server.
+ * @param {Object} req - Express request (used to resolve the WS server)
+ * @returns {Promise<NotificationService|null>}
+ */
+async function getNotificationService(req) {
+  try {
+    const db = await mongoDb.getDb();
+    const wsServer =
+      req && req.app ? req.app.get('wsServerV2') || req.app.get('wsServer') || null : null;
+    return new NotificationService(db, wsServer);
+  } catch (err) {
+    logger.warn('Could not create NotificationService for admin routes:', err.message);
+    return null;
+  }
 }
 
 /**
@@ -2495,6 +2514,191 @@ router.delete(
     });
 
     res.json({ success: true, message: 'Announcement deleted' });
+  }
+);
+
+/**
+ * POST /api/admin/content/announcements/notify
+ * Quick Notify: create an announcement AND send it as in-app notifications in one step.
+ * Body: { message, type, target }
+ *   target: "all" | "customers" | "suppliers" | "admins" (default: "all")
+ */
+router.post(
+  '/content/announcements/notify',
+  authRequired,
+  roleRequired('admin'),
+  csrfProtection,
+  writeLimiter,
+  async (req, res) => {
+    const { message, type = 'info', target = 'all' } = req.body;
+
+    if (!message) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+
+    const VALID_TARGETS = ['all', 'customers', 'suppliers', 'admins'];
+    if (!VALID_TARGETS.includes(target)) {
+      return res.status(400).json({ error: 'Invalid target. Must be one of: all, customers, suppliers, admins' });
+    }
+
+    try {
+      // Create the announcement in the content store
+      const content = (await dbUnified.read('content')) || {};
+      if (!content.announcements) {
+        content.announcements = [];
+      }
+
+      const announcement = {
+        id: generateUniqueId('announcement'),
+        message,
+        type: type || 'info',
+        active: true,
+        createdAt: new Date().toISOString(),
+        createdBy: req.user.email,
+        notifiedCount: 0,
+        lastNotifiedAt: null,
+      };
+
+      content.announcements.push(announcement);
+      await dbUnified.write('content', content);
+
+      auditLog({
+        adminId: req.user.id,
+        adminEmail: req.user.email,
+        action: 'ANNOUNCEMENT_CREATED',
+        targetType: 'announcement',
+        targetId: announcement.id,
+        details: { message, type },
+      });
+
+      // Fetch users by target audience
+      const allUsers = (await dbUnified.read('users')) || [];
+      let targetedUsers;
+      if (target === 'all') {
+        targetedUsers = allUsers;
+      } else {
+        const roleMap = { customers: 'customer', suppliers: 'supplier', admins: 'admin' };
+        targetedUsers = allUsers.filter(u => u.role === roleMap[target]);
+      }
+
+      // Send notifications
+      const notificationService = await getNotificationService(req);
+      let notifiedCount = 0;
+      if (notificationService && targetedUsers.length > 0) {
+        const notifications = targetedUsers.map(u => ({
+          userId: u.id,
+          type: 'announcement',
+          title: 'Announcement',
+          message,
+          metadata: { announcementType: type },
+        }));
+        await notificationService.createBatch(notifications);
+        notifiedCount = notifications.length;
+      }
+
+      // Update announcement with notification stats
+      const updatedIndex = content.announcements.findIndex(a => a.id === announcement.id);
+      if (updatedIndex !== -1) {
+        content.announcements[updatedIndex].notifiedCount = notifiedCount;
+        content.announcements[updatedIndex].lastNotifiedAt = new Date().toISOString();
+        await dbUnified.write('content', content);
+      }
+
+      auditLog({
+        adminId: req.user.id,
+        adminEmail: req.user.email,
+        action: 'ANNOUNCEMENT_NOTIFIED',
+        targetType: 'announcement',
+        targetId: announcement.id,
+        details: { target, notifiedCount },
+      });
+
+      res.json({ success: true, announcement, notifiedCount });
+    } catch (error) {
+      logger.error('Error in quick notify announcement:', error);
+      res.status(500).json({ error: 'Failed to create and notify announcement' });
+    }
+  }
+);
+
+/**
+ * POST /api/admin/content/announcements/:id/notify
+ * Send an existing announcement as in-app notifications to targeted users.
+ * Body: { target } — "all" | "customers" | "suppliers" | "admins" (default: "all")
+ */
+router.post(
+  '/content/announcements/:id/notify',
+  authRequired,
+  roleRequired('admin'),
+  csrfProtection,
+  writeLimiter,
+  async (req, res) => {
+    const { target = 'all' } = req.body;
+
+    const VALID_TARGETS = ['all', 'customers', 'suppliers', 'admins'];
+    if (!VALID_TARGETS.includes(target)) {
+      return res.status(400).json({ error: 'Invalid target. Must be one of: all, customers, suppliers, admins' });
+    }
+
+    try {
+      const content = (await dbUnified.read('content')) || {};
+      const announcementIndex = (content.announcements || []).findIndex(
+        a => a.id === req.params.id
+      );
+
+      if (announcementIndex === -1) {
+        return res.status(404).json({ error: 'Announcement not found' });
+      }
+
+      const announcement = content.announcements[announcementIndex];
+
+      // Fetch users by target audience
+      const allUsers = (await dbUnified.read('users')) || [];
+      let targetedUsers;
+      if (target === 'all') {
+        targetedUsers = allUsers;
+      } else {
+        const roleMap = { customers: 'customer', suppliers: 'supplier', admins: 'admin' };
+        targetedUsers = allUsers.filter(u => u.role === roleMap[target]);
+      }
+
+      // Send notifications
+      const notificationService = await getNotificationService(req);
+      let notifiedCount = 0;
+      if (notificationService && targetedUsers.length > 0) {
+        const notifications = targetedUsers.map(u => ({
+          userId: u.id,
+          type: 'announcement',
+          title: 'Announcement',
+          message: announcement.message,
+          metadata: { announcementType: announcement.type },
+        }));
+        await notificationService.createBatch(notifications);
+        notifiedCount = notifications.length;
+      }
+
+      // Update announcement with notification stats
+      content.announcements[announcementIndex] = {
+        ...announcement,
+        notifiedCount: (announcement.notifiedCount || 0) + notifiedCount,
+        lastNotifiedAt: new Date().toISOString(),
+      };
+      await dbUnified.write('content', content);
+
+      auditLog({
+        adminId: req.user.id,
+        adminEmail: req.user.email,
+        action: 'ANNOUNCEMENT_NOTIFIED',
+        targetType: 'announcement',
+        targetId: req.params.id,
+        details: { target, notifiedCount },
+      });
+
+      res.json({ success: true, notifiedCount });
+    } catch (error) {
+      logger.error('Error notifying announcement:', error);
+      res.status(500).json({ error: 'Failed to send announcement notifications' });
+    }
   }
 );
 
