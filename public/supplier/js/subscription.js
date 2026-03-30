@@ -261,7 +261,7 @@ function renderSubscriptionPlans() {
               ? `<p class="card-renewal-notice">Renews ${new Date(currentSubscription.currentPeriodEnd).toLocaleDateString('en-GB', DATE_FORMAT_OPTIONS)}</p>`
               : '';
           manageHtml = `
-            <button class="btn-manage" onclick="openBillingPortal(event)">Manage Subscription</button>
+            <button class="btn-manage">Manage Subscription</button>
             ${cancelNotice}
             ${renewalNotice}
           `;
@@ -277,8 +277,7 @@ function renderSubscriptionPlans() {
         actionHtml = `
           <div class="plan-action">
             <button class="btn-downgrade"
-                    data-plan-id="${plan.id}"
-                    onclick="handleSubscribe('${plan.id}')">
+                    data-plan-id="${plan.id}">
               Downgrade to Starter
             </button>
           </div>
@@ -288,8 +287,7 @@ function renderSubscriptionPlans() {
         actionHtml = `
           <div class="plan-action">
             <button class="btn-select"
-                    data-plan-id="${plan.id}"
-                    onclick="handleSubscribe('${plan.id}')">
+                    data-plan-id="${plan.id}">
               ${label}
             </button>
             ${plan.trialDays && currentTier === 'free' ? `<p class="trial-note">${plan.trialDays}-day free trial</p>` : ''}
@@ -299,8 +297,7 @@ function renderSubscriptionPlans() {
         actionHtml = `
           <div class="plan-action">
             <button class="btn-downgrade"
-                    data-plan-id="${plan.id}"
-                    onclick="handleSubscribe('${plan.id}')">
+                    data-plan-id="${plan.id}">
               Downgrade to ${plan.name}
             </button>
           </div>
@@ -310,8 +307,7 @@ function renderSubscriptionPlans() {
         actionHtml = `
           <div class="plan-action">
             <button class="btn-select"
-                    data-plan-id="${plan.id}"
-                    onclick="handleSubscribe('${plan.id}')">
+                    data-plan-id="${plan.id}">
               Select Plan
             </button>
           </div>
@@ -347,6 +343,14 @@ function renderSubscriptionPlans() {
       ${plansHtml}
     </div>
   `;
+
+  // Attach click handlers (CSP-compliant, no inline onclick)
+  plansContainer.querySelectorAll('button[data-plan-id]').forEach(btn => {
+    btn.addEventListener('click', () => handleSubscribe(btn.dataset.planId));
+  });
+  plansContainer.querySelectorAll('.btn-manage').forEach(btn => {
+    btn.addEventListener('click', e => openBillingPortal(e));
+  });
 }
 
 /**
