@@ -5396,6 +5396,7 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         if (regStatus) {
           regStatus.textContent = '';
+          regStatus.style.cssText = '';
         }
 
         // Validate password requirements
@@ -5648,6 +5649,44 @@ document.addEventListener('DOMContentLoaded', () => {
             const redirect = urlParams.get('redirect');
             const plan = urlParams.get('plan');
 
+            // Helper: display the verification-pending success state and wire up resend
+            const showVerificationPending = emailAddr => {
+              if (!regStatus) {
+                return;
+              }
+              regStatus.style.cssText =
+                'display:flex;flex-direction:column;align-items:flex-start;gap:12px;';
+              regStatus.innerHTML =
+                '<span style="color:#0B8073;font-weight:500;">\u2713 Account created! Check your email to verify your account, then you can sign in.</span>' +
+                '<button type="button" id="resend-verify-btn" class="ef-btn ef-btn-primary">Resend email</button>';
+              const resendBtn = document.getElementById('resend-verify-btn');
+              if (resendBtn) {
+                resendBtn.addEventListener('click', async () => {
+                  resendBtn.disabled = true;
+                  resendBtn.textContent = 'Sending...';
+                  try {
+                    const resendResp = await fetch('/api/v1/auth/resend-verification', {
+                      method: 'POST',
+                      headers: getHeadersWithCsrf({ 'Content-Type': 'application/json' }),
+                      credentials: 'include',
+                      body: JSON.stringify({ email: emailAddr }),
+                    });
+                    const resendData = await resendResp.json();
+                    if (resendResp.ok) {
+                      showNetworkError(resendData.message || 'Verification email sent!', 'success');
+                    } else {
+                      showNetworkError(resendData.error || 'Failed to send email', 'error');
+                    }
+                  } catch (err) {
+                    showNetworkError('Network error - please try again', 'error');
+                  } finally {
+                    resendBtn.disabled = false;
+                    resendBtn.textContent = 'Resend email';
+                  }
+                });
+              }
+            };
+
             if (redirect) {
               // Validate redirect is safe: same-origin and allowlisted for user's role
               const user = data.user || {};
@@ -5670,80 +5709,10 @@ document.addEventListener('DOMContentLoaded', () => {
                   `Ignoring untrusted redirect param: ${redirect} for role: ${user.role}`
                 );
                 // Don't redirect - fall through to show verification message
-                if (regStatus) {
-                  regStatus.innerHTML =
-                    '<span>Account created! Check your email to verify your account, then you can sign in.</span>' +
-                    '<button type="button" id="resend-verify-btn" class="btn btn-primary btn-sm" style="margin-top:10px;">Resend email</button>';
-
-                  // Add resend handler
-                  const resendBtn = document.getElementById('resend-verify-btn');
-                  if (resendBtn) {
-                    resendBtn.addEventListener('click', async () => {
-                      resendBtn.disabled = true;
-                      resendBtn.textContent = 'Sending...';
-                      try {
-                        const resendResp = await fetch('/api/v1/auth/resend-verification', {
-                          method: 'POST',
-                          headers: getHeadersWithCsrf({ 'Content-Type': 'application/json' }),
-                          credentials: 'include',
-                          body: JSON.stringify({ email }),
-                        });
-                        const resendData = await resendResp.json();
-                        if (resendResp.ok) {
-                          showNetworkError(
-                            resendData.message || 'Verification email sent!',
-                            'success'
-                          );
-                        } else {
-                          showNetworkError(resendData.error || 'Failed to send email', 'error');
-                        }
-                      } catch (err) {
-                        showNetworkError('Network error - please try again', 'error');
-                      } finally {
-                        resendBtn.disabled = false;
-                        resendBtn.textContent = 'Resend email';
-                      }
-                    });
-                  }
-                }
+                showVerificationPending(email);
               }
             } else {
-              if (regStatus) {
-                regStatus.innerHTML =
-                  '<span>Account created! Check your email to verify your account, then you can sign in.</span>' +
-                  '<button type="button" id="resend-verify-btn" class="btn btn-primary btn-sm" style="margin-top:10px;">Resend email</button>';
-
-                // Add resend handler
-                const resendBtn = document.getElementById('resend-verify-btn');
-                if (resendBtn) {
-                  resendBtn.addEventListener('click', async () => {
-                    resendBtn.disabled = true;
-                    resendBtn.textContent = 'Sending...';
-                    try {
-                      const resendResp = await fetch('/api/v1/auth/resend-verification', {
-                        method: 'POST',
-                        headers: getHeadersWithCsrf({ 'Content-Type': 'application/json' }),
-                        credentials: 'include',
-                        body: JSON.stringify({ email }),
-                      });
-                      const resendData = await resendResp.json();
-                      if (resendResp.ok) {
-                        showNetworkError(
-                          resendData.message || 'Verification email sent!',
-                          'success'
-                        );
-                      } else {
-                        showNetworkError(resendData.error || 'Failed to send email', 'error');
-                      }
-                    } catch (err) {
-                      showNetworkError('Network error - please try again', 'error');
-                    } finally {
-                      resendBtn.disabled = false;
-                      resendBtn.textContent = 'Resend email';
-                    }
-                  });
-                }
-              }
+              showVerificationPending(email);
             }
           }
         } catch (err) {
