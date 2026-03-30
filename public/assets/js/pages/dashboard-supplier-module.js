@@ -684,8 +684,12 @@ async function displaySubscriptionStatus() {
       let renewalNotice = '';
       if (endRaw) {
         const endDate = new Date(endRaw).toLocaleDateString('en-GB', dateFormat);
-        if (cancelAtPeriodEnd) {
-          renewalNotice = `<p class="sd-subscription-active__renewal-notice sd-subscription-active__renewal-notice--cancel">⚠ Cancels on ${endDate}</p>`;
+        const pendingPlan = subscriptionRecord?.pendingPlan;
+        if (cancelAtPeriodEnd && pendingPlan) {
+          const pendingPlanLabel = TIER_LABELS[pendingPlan] || pendingPlan;
+          renewalNotice = `<p class="sd-subscription-active__renewal-notice sd-subscription-active__renewal-notice--cancel">📋 Downgrades to ${pendingPlanLabel} on ${endDate}</p>`;
+        } else if (cancelAtPeriodEnd) {
+          renewalNotice = `<p class="sd-subscription-active__renewal-notice sd-subscription-active__renewal-notice--cancel">⚠️ Cancels on ${endDate}</p>`;
         } else {
           renewalNotice = `<p class="sd-subscription-active__renewal-notice sd-subscription-active__renewal-notice--auto">↻ Auto-renews on ${endDate}</p>`;
         }

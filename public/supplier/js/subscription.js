@@ -60,6 +60,9 @@ const PLANS = {
 // Plan hierarchy for determining upgrade vs downgrade direction
 const PLAN_HIERARCHY = ['free', 'pro', 'pro_plus'];
 
+// Helper: look up a PLANS entry by tier code
+const planByTier = tier => Object.values(PLANS).find(p => p.tier === tier);
+
 let currentUser = null;
 let currentSubscription = null; // from /api/v2/subscriptions/me
 
@@ -120,6 +123,9 @@ async function initSubscriptionPage() {
 
     // Load current subscription record
     await loadSubscriptionStatus();
+
+    // Render pending downgrade banner (if applicable)
+    renderDowngradeBanner();
 
     // Render plans
     renderSubscriptionPlans();
@@ -227,6 +233,41 @@ async function loadSubscriptionStatus() {
 }
 
 /**
+ * Render a persistent banner when a downgrade is scheduled for the next billing period.
+ */
+function renderDowngradeBanner() {
+  const bannerContainer = document.getElementById('current-subscription-status');
+  if (!bannerContainer) {
+    return;
+  }
+
+  const pendingPlan = currentSubscription?.pendingPlan;
+  if (!pendingPlan) {
+    bannerContainer.innerHTML = '';
+    return;
+  }
+
+  const currentTier = currentUser?.subscriptionTier || 'free';
+  const currentPlanName = planByTier(currentTier)?.name || currentTier;
+  const pendingPlanName = planByTier(pendingPlan)?.name || pendingPlan;
+
+  const periodEnd = currentSubscription?.currentPeriodEnd;
+  const dateStr = periodEnd
+    ? new Date(periodEnd).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+    : 'the end of your billing period';
+
+  bannerContainer.innerHTML = `
+    <div class="downgrade-banner" role="status" aria-live="polite">
+      <span class="downgrade-banner__icon" aria-hidden="true">📋</span>
+      <div class="downgrade-banner__body">
+        <p class="downgrade-banner__title">Downgrade to ${pendingPlanName} scheduled</p>
+        <p class="downgrade-banner__message">Your ${currentPlanName} plan remains active until ${dateStr}. You can upgrade at any time.</p>
+      </div>
+    </div>
+  `;
+}
+
+/**
  * Render subscription plans
  */
 function renderSubscriptionPlans() {
@@ -252,13 +293,21 @@ function renderSubscriptionPlans() {
         // Current plan — show indicator + manage button if paid
         let manageHtml = '';
         if (currentSubscription && plan.tier !== 'free') {
+          const periodEnd = currentSubscription.currentPeriodEnd;
+          const periodEndStr = periodEnd
+            ? new Date(periodEnd).toLocaleDateString('en-GB', DATE_FORMAT_OPTIONS)
+            : null;
+          const pendingTier = currentSubscription.pendingPlan;
+          const pendingPlanName = pendingTier ? (planByTier(pendingTier)?.name || pendingTier) : null;
           const cancelNotice =
-            currentSubscription.cancelAtPeriodEnd && currentSubscription.currentPeriodEnd
-              ? `<p class="card-cancellation-notice">⚠️ Cancels on ${new Date(currentSubscription.currentPeriodEnd).toLocaleDateString('en-GB', DATE_FORMAT_OPTIONS)}</p>`
+            currentSubscription.cancelAtPeriodEnd && periodEndStr
+              ? pendingPlanName
+                ? `<p class="card-cancellation-notice">📋 Downgrades to ${pendingPlanName} on ${periodEndStr}</p>`
+                : `<p class="card-cancellation-notice">⚠️ Cancels on ${periodEndStr}</p>`
               : '';
           const renewalNotice =
-            !currentSubscription.cancelAtPeriodEnd && currentSubscription.currentPeriodEnd
-              ? `<p class="card-renewal-notice">Renews ${new Date(currentSubscription.currentPeriodEnd).toLocaleDateString('en-GB', DATE_FORMAT_OPTIONS)}</p>`
+            !currentSubscription.cancelAtPeriodEnd && periodEndStr
+              ? `<p class="card-renewal-notice">Renews ${periodEndStr}</p>`
               : '';
           manageHtml = `
             <button class="btn-manage">Manage Subscription</button>
@@ -425,6 +474,7 @@ async function handleSubscribe(planId) {
         'Downgrade to Starter scheduled. Your current plan remains active until the end of your billing period.'
       );
       await loadSubscriptionStatus();
+      renderDowngradeBanner();
       renderSubscriptionPlans();
       return;
     }
@@ -453,6 +503,7 @@ async function handleSubscribe(planId) {
           currentUser = refreshed;
         }
         await loadSubscriptionStatus();
+        renderDowngradeBanner();
         renderSubscriptionPlans();
         return;
       } else {
@@ -471,6 +522,7 @@ async function handleSubscribe(planId) {
           `Downgrade to ${plan.name} scheduled. Your current plan remains active until the end of your billing period.`
         );
         await loadSubscriptionStatus();
+        renderDowngradeBanner();
         renderSubscriptionPlans();
         return;
       }
