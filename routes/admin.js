@@ -48,7 +48,7 @@ try {
     try {
       const stripeLib = require('stripe');
       stripe = stripeLib(stripeSecretKey, {
-        apiVersion: '2025-03-31.basil',
+        apiVersion: '2025-12-15.clover',
       });
       STRIPE_ENABLED = true;
       logger.info('Stripe initialized successfully for admin routes');
