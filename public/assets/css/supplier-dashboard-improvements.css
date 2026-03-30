@@ -6753,3 +6753,465 @@ label .required {
 .btn-icon--sm {
   margin-right: 4px;
 }
+
+/* ===========================================
+   SUPPLIER EVENTS CALENDAR
+   =========================================== */
+
+.supplier-calendar-viewport {
+  /* height driven by FullCalendar JS once loaded */
+}
+
+.supplier-calendar-viewport.fc-loaded {
+  min-height: 400px;
+}
+
+.supplier-calendar-viewport.fc-fallback {
+  min-height: 0;
+}
+
+/* CTA link in calendar card header */
+.supplier-calendar-cta-link {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--ef-primary, #0b8073);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: opacity 0.15s ease;
+}
+
+.supplier-calendar-cta-link:hover,
+.supplier-calendar-cta-link:focus-visible {
+  opacity: 0.75;
+  text-decoration: underline;
+}
+
+/* Add Entry / Add Event buttons in calendar card header */
+.supplier-calendar-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: var(--ef-radius-sm, 6px);
+  border: 1px solid var(--ef-primary, #0b8073);
+  background: transparent;
+  color: var(--ef-primary, #0b8073);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  white-space: nowrap;
+}
+
+.supplier-calendar-add-btn:hover,
+.supplier-calendar-add-btn:focus-visible {
+  background: var(--ef-primary, #0b8073);
+  color: #fff;
+  outline: none;
+}
+
+/* Calendar colour legend */
+.supplier-calendar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--ef-text-muted, #667085);
+}
+
+/* sd-card-body spacing within the calendar card */
+#availability-calendar .sd-card-body {
+  padding: 1rem 1.25rem 1.25rem;
+}
+
+/* Mobile: stack header actions vertically on small screens */
+@media (max-width: 600px) {
+  #availability-calendar .sd-card-header__actions {
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .supplier-calendar-add-btn {
+    padding: 0.35rem 0.65rem;
+    font-size: 0.8rem;
+  }
+
+  .supplier-calendar-cta-link {
+    font-size: 0.75rem;
+  }
+
+  body.supplier-dashboard-page .card#availability-calendar {
+    margin-bottom: var(--mob-section-gap, 12px) !important;
+  }
+}
+
+/* ===========================================
+   SHARED CALENDAR UI (toast, modal, popover, legend)
+   Mirrors patterns from customer-dashboard-improvements.css
+   for use on pages that don't load that stylesheet.
+   =========================================== */
+
+/* Calendar colour legend dots (shared with customer dashboard) */
+.cal-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.cal-legend-dot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Success / error toast notification */
+.cal-toast {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--ef-radius-sm, 6px);
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  z-index: 11000;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  pointer-events: none;
+  max-width: 320px;
+}
+
+.cal-toast--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.cal-toast--success {
+  background: #059669;
+}
+
+.cal-toast--error {
+  background: #dc2626;
+}
+
+/* Fallback empty state */
+.cal-fallback-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.cal-fallback-empty__text {
+  color: var(--ef-text-muted, #667085);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* "No events" hint inside FullCalendar */
+.cal-no-events {
+  padding: 2rem;
+  text-align: center;
+  color: var(--ef-text-muted, #667085);
+  font-size: 0.875rem;
+}
+
+/* Delete / action confirmation popover */
+.cal-delete-popover {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: var(--ef-radius-sm, 6px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  padding: 0.875rem 1rem;
+  animation: calModalIn 0.15s ease;
+}
+
+.cal-delete-popover__btn {
+  padding: 0.375rem 0.875rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border-radius: var(--ef-radius-sm, 6px);
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.cal-delete-popover__btn--cancel {
+  background: var(--ef-bg-subtle, #f3f4f6);
+  color: var(--ef-text-muted, #667085);
+  border-color: var(--ef-border, #e5e7eb);
+}
+
+.cal-delete-popover__btn--cancel:hover {
+  background: var(--ef-border, #e5e7eb);
+  color: var(--ef-text, #0b1220);
+}
+
+.cal-delete-popover__btn--confirm {
+  background: #dc2626;
+  color: #fff;
+}
+
+.cal-delete-popover__btn--confirm:hover {
+  background: #b91c1c;
+}
+
+/* Day cell "+" hint button */
+.cal-day-add-btn {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  background: var(--ef-primary, #0b8073);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 2;
+}
+
+.fc-daygrid-day:hover .cal-day-add-btn,
+.fc-daygrid-day:focus-within .cal-day-add-btn {
+  display: flex;
+  opacity: 0.85;
+}
+
+.cal-day-add-btn:hover,
+.cal-day-add-btn:focus-visible {
+  opacity: 1;
+  transform: scale(1.12);
+  outline: none;
+}
+
+.cal-day-add-btn:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+/* Keep day-frame relatively positioned for the add button anchor */
+.fc-daygrid-day-frame {
+  position: relative;
+}
+
+/* Calendar entry / public event modal */
+@keyframes calModalIn {
+  from { opacity: 0; transform: translateY(-12px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+.cal-entry-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: 10000;
+  align-items: center;
+  justify-content: center;
+  padding: var(--ef-space-4, 16px);
+}
+
+.cal-entry-modal-overlay--visible {
+  display: flex !important;
+}
+
+.cal-entry-modal {
+  background: #fff;
+  border-radius: var(--ef-radius-lg, 16px);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  width: 100%;
+  max-width: 480px;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: calModalIn 0.18s ease;
+}
+
+.cal-entry-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem 1.5rem 1rem;
+  border-bottom: 1px solid var(--ef-border, #e5e7eb);
+}
+
+.cal-entry-modal__title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--ef-text, #0b1220);
+}
+
+.cal-entry-modal__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--ef-radius-sm, 6px);
+  color: var(--ef-text-muted, #667085);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.cal-entry-modal__close:hover,
+.cal-entry-modal__close:focus-visible {
+  background: var(--ef-bg-subtle, #f3f4f6);
+  color: var(--ef-text, #0b1220);
+  border-color: var(--ef-border, #e5e7eb);
+  outline: none;
+}
+
+.cal-entry-modal__form {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.cal-entry-modal__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cal-entry-modal__label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #344054;
+}
+
+.cal-entry-modal__optional {
+  font-weight: 400;
+  color: var(--ef-text-muted, #667085);
+  font-size: 0.8rem;
+}
+
+.cal-entry-modal__input,
+.cal-entry-modal__textarea {
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid #d0d5dd;
+  border-radius: var(--ef-radius-sm, 6px);
+  font-size: 0.9375rem;
+  color: var(--ef-text, #0b1220);
+  background: #fff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  box-sizing: border-box;
+}
+
+.cal-entry-modal__input:focus,
+.cal-entry-modal__textarea:focus {
+  border-color: var(--ef-primary, #0b8073);
+  box-shadow: 0 0 0 3px rgba(11, 128, 115, 0.15);
+  outline: none;
+}
+
+.cal-entry-modal__textarea {
+  resize: vertical;
+  min-height: 72px;
+}
+
+.cal-entry-modal__error {
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-radius: var(--ef-radius-sm, 6px);
+  padding: 0.625rem 0.875rem;
+  color: #dc2626;
+  font-size: 0.875rem;
+}
+
+.cal-entry-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--ef-border, #e5e7eb);
+}
+
+.cal-entry-modal__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1.25rem;
+  border-radius: var(--ef-radius-sm, 6px);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.cal-entry-modal__btn--cancel {
+  background: #fff;
+  color: var(--ef-text-muted, #667085);
+  border-color: var(--ef-border, #e5e7eb);
+}
+
+.cal-entry-modal__btn--cancel:hover,
+.cal-entry-modal__btn--cancel:focus-visible {
+  background: var(--ef-bg-subtle, #f3f4f6);
+  color: var(--ef-text, #0b1220);
+  outline: none;
+}
+
+.cal-entry-modal__btn--save {
+  background: var(--ef-primary, #0b8073);
+  color: #fff;
+  border-color: var(--ef-primary, #0b8073);
+}
+
+.cal-entry-modal__btn--save:hover,
+.cal-entry-modal__btn--save:focus-visible {
+  background: var(--ef-primary-dark, #096b60);
+  border-color: var(--ef-primary-dark, #096b60);
+  outline: none;
+}
+
+.cal-entry-modal__btn--save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cal-entry-modal__btn:focus-visible {
+  outline: 2px solid var(--ef-primary, #0b8073);
+  outline-offset: 2px;
+}
+
+@media (max-width: 480px) {
+  .cal-entry-modal__actions {
+    flex-direction: column-reverse;
+  }
+  .cal-entry-modal__btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cal-entry-modal,
+  .cal-delete-popover,
+  .cal-toast {
+    animation: none;
+    transition: none;
+  }
+}
