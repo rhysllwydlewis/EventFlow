@@ -6393,18 +6393,28 @@ body:not(.supplier-dashboard-page) .section > .container {
 .sd-subscription-active__detail-row {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.5rem;
+  padding-bottom: 0.3rem;
+}
+.sd-subscription-active__detail-row:not(:last-child) {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  padding-bottom: 0.375rem;
+  margin-bottom: 0.05rem;
 }
 .sd-subscription-active__detail-label {
   font-size: 0.775rem;
   color: var(--ef-text-muted, #6b7280);
+  flex-shrink: 0;
+  padding-top: 0.05rem;
 }
 .sd-subscription-active__detail-value {
   font-size: 0.775rem;
   color: var(--ef-text, #0b1220);
   font-weight: 600;
   text-align: right;
+  word-break: break-word;
+  min-width: 0;
 }
 .sd-subscription-active__renewal-notice {
   font-size: 0.775rem;
@@ -6422,6 +6432,28 @@ body:not(.supplier-dashboard-page) .section > .container {
   color: #d97706;
   background: rgba(217, 119, 6, 0.08);
   border: 1px solid rgba(217, 119, 6, 0.2);
+}
+.sd-subscription-active__interval {
+  margin-left: auto;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--ef-text-muted, #6b7280);
+  background: rgba(11, 128, 115, 0.07);
+  border: 1px solid rgba(11, 128, 115, 0.15);
+  border-radius: 999px;
+  padding: 0.15em 0.65em;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+.sd-subscription-active__trial-notice {
+  font-size: 0.775rem;
+  font-weight: 600;
+  margin: 0;
+  padding: 0.35rem 0.625rem;
+  border-radius: 6px;
+  color: #7c3aed;
+  background: rgba(124, 58, 237, 0.08);
+  border: 1px solid rgba(124, 58, 237, 0.2);
 }
 
 /* ── Improved card glass surfaces ── */

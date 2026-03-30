@@ -225,6 +225,24 @@ router.get('/me', authRequired, async (req, res) => {
     // For an immediate cancellation or no subscription it is null.
     const activeUntil = subscription?.currentPeriodEnd || null;
 
+    // Fetch payment method details from Stripe (best-effort)
+    let paymentMethodBrand = null;
+    let paymentMethodLast4 = null;
+    if (STRIPE_ENABLED && stripe && subscription?.stripeCustomerId) {
+      try {
+        const customer = await stripe.customers.retrieve(subscription.stripeCustomerId, {
+          expand: ['default_payment_method'],
+        });
+        const pm = customer?.default_payment_method;
+        if (pm && pm.card) {
+          paymentMethodBrand = pm.card.brand || null;
+          paymentMethodLast4 = pm.card.last4 || null;
+        }
+      } catch (_stripeErr) {
+        // best-effort — payment method info won't display if unavailable
+      }
+    }
+
     res.json({
       success: true,
       subscription,
@@ -233,6 +251,8 @@ router.get('/me', authRequired, async (req, res) => {
       activeUntil,
       cancelAtPeriodEnd: subscription?.cancelAtPeriodEnd ?? false,
       status: subscription?.status || 'free',
+      paymentMethodBrand,
+      paymentMethodLast4,
     });
   } catch (error) {
     logger.error('Error fetching current user subscription:', error);
@@ -350,14 +370,27 @@ router.post(
         trialPeriodDays: trialDays || null,
       });
 
-      // Create subscription record in database
+      // Create subscription record in database, including billing details from Stripe
       const trialEnd = trialDays ? new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000) : null;
+      const stripeItem = stripeSubscription.items?.data?.[0];
       const subscription = await subscriptionService.createSubscription({
         userId: req.user.id,
         plan,
         stripeSubscriptionId: stripeSubscription.id,
         stripeCustomerId: customer.id,
         trialEnd,
+        billingInterval: stripeItem?.price?.recurring?.interval || null,
+        currentPeriodStart: stripeSubscription.current_period_start
+          ? new Date(stripeSubscription.current_period_start * 1000).toISOString()
+          : null,
+        currentPeriodEnd: stripeSubscription.current_period_end
+          ? new Date(stripeSubscription.current_period_end * 1000).toISOString()
+          : null,
+        discountName:
+          stripeSubscription.discount?.coupon?.name ||
+          stripeSubscription.discount?.coupon?.id ||
+          null,
+        discountPercent: stripeSubscription.discount?.coupon?.percent_off || null,
       });
 
       // Log subscription creation to audit trail

@@ -550,13 +550,18 @@ async function displaySubscriptionStatus() {
 
     // Fetch subscription details from the dedicated subscription endpoint.
     // This endpoint reads from the subscriptions collection and includes
-    // currentPeriodStart, currentPeriodEnd, cancelAtPeriodEnd, createdAt.
+    // currentPeriodStart, currentPeriodEnd, cancelAtPeriodEnd, createdAt,
+    // billingInterval, discountName, discountPercent, and payment method info.
     let subscriptionRecord = null;
+    let paymentMethodBrand = null;
+    let paymentMethodLast4 = null;
     try {
       const subResponse = await fetch('/api/v2/subscriptions/me', { credentials: 'include' });
       if (subResponse.ok) {
         const subJson = await subResponse.json();
         subscriptionRecord = subJson.subscription || null;
+        paymentMethodBrand = subJson.paymentMethodBrand || null;
+        paymentMethodLast4 = subJson.paymentMethodLast4 || null;
       }
     } catch (_err) {
       // best-effort — subscriptionRecord stays null; billing details won't display
@@ -566,7 +571,9 @@ async function displaySubscriptionStatus() {
     let paymentAmount = null;
     let paymentCurrency = 'gbp';
     try {
-      const upcomingResponse = await fetch('/api/v2/subscriptions/upcoming-invoice', { credentials: 'include' });
+      const upcomingResponse = await fetch('/api/v2/subscriptions/upcoming-invoice', {
+        credentials: 'include',
+      });
       if (upcomingResponse.ok) {
         const data = await upcomingResponse.json();
         if (data.upcomingInvoice) {
@@ -582,6 +589,38 @@ async function displaySubscriptionStatus() {
       const planLabel = TIER_LABELS[currentTier] || currentTier;
       const cancelAtPeriodEnd = !!subscriptionRecord?.cancelAtPeriodEnd;
       const dateFormat = { day: 'numeric', month: 'long', year: 'numeric' };
+      const isTrialing = subscriptionRecord?.status === 'trialing';
+
+      // Status label
+      const statusLabel = isTrialing ? 'Trial' : 'Active';
+
+      // Billing interval badge (Monthly / Annual)
+      const interval = subscriptionRecord?.billingInterval || null;
+      const intervalLabel =
+        interval === 'year' ? 'Annual' : interval === 'month' ? 'Monthly' : null;
+      const intervalBadge = intervalLabel
+        ? `<span class="sd-subscription-active__interval">${intervalLabel}</span>`
+        : '';
+
+      // Trial info — show when trialing
+      let trialHtml = '';
+      if (isTrialing && subscriptionRecord?.trialEnd) {
+        const trialEndDate = new Date(subscriptionRecord.trialEnd);
+        const daysLeft = Math.ceil((trialEndDate - Date.now()) / (1000 * 60 * 60 * 24));
+        const trialEndFormatted = trialEndDate.toLocaleDateString('en-GB', dateFormat);
+        let trialDaysNotice = '';
+        if (daysLeft > 0) {
+          trialDaysNotice = `<p class="sd-subscription-active__trial-notice">🎁 ${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining in trial</p>`;
+        } else if (daysLeft === 0) {
+          trialDaysNotice = `<p class="sd-subscription-active__trial-notice">🎁 Trial ends today</p>`;
+        }
+        trialHtml = `
+          <div class="sd-subscription-active__detail-row">
+            <span class="sd-subscription-active__detail-label">Trial ends</span>
+            <span class="sd-subscription-active__detail-value">${trialEndFormatted}</span>
+          </div>
+          ${trialDaysNotice}`;
+      }
 
       // Start date — use subscription createdAt (original sign-up date)
       const startRaw = subscriptionRecord?.createdAt || null;
@@ -610,9 +649,35 @@ async function displaySubscriptionStatus() {
              </div>`
           : '';
 
+      // Payment method — map brand codes to display names
+      const CARD_BRAND_LABELS = {
+        visa: 'Visa',
+        mastercard: 'Mastercard',
+        amex: 'Amex',
+        discover: 'Discover',
+        diners: 'Diners',
+        jcb: 'JCB',
+        unionpay: 'UnionPay',
+      };
+      const paymentMethodHtml =
+        paymentMethodBrand && paymentMethodLast4
+          ? `<div class="sd-subscription-active__detail-row">
+              <span class="sd-subscription-active__detail-label">Payment method</span>
+              <span class="sd-subscription-active__detail-value">💳 ${CARD_BRAND_LABELS[paymentMethodBrand.toLowerCase()] || paymentMethodBrand.charAt(0).toUpperCase() + paymentMethodBrand.slice(1)} ····${paymentMethodLast4}</span>
+             </div>`
+          : '';
+
+      // Discount
+      const discountHtml = subscriptionRecord?.discountName
+        ? `<div class="sd-subscription-active__detail-row">
+              <span class="sd-subscription-active__detail-label">Discount</span>
+              <span class="sd-subscription-active__detail-value">${subscriptionRecord.discountPercent ? `${subscriptionRecord.discountPercent}% off` : 'Applied'} (${subscriptionRecord.discountName})</span>
+             </div>`
+        : '';
+
       const detailsHtml =
-        startHtml || endHtml || amountHtml
-          ? `<div class="sd-subscription-active__details">${startHtml}${endHtml}${amountHtml}</div>`
+        trialHtml || startHtml || endHtml || amountHtml || paymentMethodHtml || discountHtml
+          ? `<div class="sd-subscription-active__details">${trialHtml}${startHtml}${endHtml}${amountHtml}${paymentMethodHtml}${discountHtml}</div>`
           : '';
 
       // Auto-renew / cancellation notice
@@ -630,7 +695,8 @@ async function displaySubscriptionStatus() {
         <div class="sd-subscription-active">
           <div class="sd-subscription-active__plan-row">
             <span class="sd-subscription-active__badge sd-subscription-active__badge--${currentTier}">${planLabel}</span>
-            <span class="sd-subscription-active__status">Active</span>
+            <span class="sd-subscription-active__status${isTrialing ? ' sd-subscription-active__status--trial' : ''}">${statusLabel}</span>
+            ${intervalBadge}
           </div>
           ${detailsHtml}
           ${renewalNotice}
