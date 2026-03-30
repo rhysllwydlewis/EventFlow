@@ -60,6 +60,9 @@ const PLANS = {
 // Plan hierarchy for determining upgrade vs downgrade direction
 const PLAN_HIERARCHY = ['free', 'pro', 'pro_plus'];
 
+// Helper: look up a PLANS entry by tier code
+const planByTier = tier => Object.values(PLANS).find(p => p.tier === tier);
+
 let currentUser = null;
 let currentSubscription = null; // from /api/v2/subscriptions/me
 
@@ -244,9 +247,6 @@ function renderDowngradeBanner() {
     return;
   }
 
-  // Resolve display names from the PLANS constant (keyed by tier)
-  const planByTier = tier => Object.values(PLANS).find(p => p.tier === tier);
-
   const currentTier = currentUser?.subscriptionTier || 'free';
   const currentPlanName = planByTier(currentTier)?.name || currentTier;
   const pendingPlanName = planByTier(pendingPlan)?.name || pendingPlan;
@@ -293,13 +293,21 @@ function renderSubscriptionPlans() {
         // Current plan — show indicator + manage button if paid
         let manageHtml = '';
         if (currentSubscription && plan.tier !== 'free') {
+          const periodEnd = currentSubscription.currentPeriodEnd;
+          const periodEndStr = periodEnd
+            ? new Date(periodEnd).toLocaleDateString('en-GB', DATE_FORMAT_OPTIONS)
+            : null;
+          const pendingTier = currentSubscription.pendingPlan;
+          const pendingPlanName = pendingTier ? (planByTier(pendingTier)?.name || pendingTier) : null;
           const cancelNotice =
-            currentSubscription.cancelAtPeriodEnd && currentSubscription.currentPeriodEnd
-              ? `<p class="card-cancellation-notice">⚠️ Cancels on ${new Date(currentSubscription.currentPeriodEnd).toLocaleDateString('en-GB', DATE_FORMAT_OPTIONS)}</p>`
+            currentSubscription.cancelAtPeriodEnd && periodEndStr
+              ? pendingPlanName
+                ? `<p class="card-cancellation-notice">📋 Downgrades to ${pendingPlanName} on ${periodEndStr}</p>`
+                : `<p class="card-cancellation-notice">⚠️ Cancels on ${periodEndStr}</p>`
               : '';
           const renewalNotice =
-            !currentSubscription.cancelAtPeriodEnd && currentSubscription.currentPeriodEnd
-              ? `<p class="card-renewal-notice">Renews ${new Date(currentSubscription.currentPeriodEnd).toLocaleDateString('en-GB', DATE_FORMAT_OPTIONS)}</p>`
+            !currentSubscription.cancelAtPeriodEnd && periodEndStr
+              ? `<p class="card-renewal-notice">Renews ${periodEndStr}</p>`
               : '';
           manageHtml = `
             <button class="btn-manage">Manage Subscription</button>

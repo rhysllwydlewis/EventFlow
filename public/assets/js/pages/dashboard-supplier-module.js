@@ -689,7 +689,7 @@ async function displaySubscriptionStatus() {
           const pendingPlanLabel = TIER_LABELS[pendingPlan] || pendingPlan;
           renewalNotice = `<p class="sd-subscription-active__renewal-notice sd-subscription-active__renewal-notice--cancel">📋 Downgrades to ${pendingPlanLabel} on ${endDate}</p>`;
         } else if (cancelAtPeriodEnd) {
-          renewalNotice = `<p class="sd-subscription-active__renewal-notice sd-subscription-active__renewal-notice--cancel">⚠ Cancels on ${endDate}</p>`;
+          renewalNotice = `<p class="sd-subscription-active__renewal-notice sd-subscription-active__renewal-notice--cancel">⚠️ Cancels on ${endDate}</p>`;
         } else {
           renewalNotice = `<p class="sd-subscription-active__renewal-notice sd-subscription-active__renewal-notice--auto">↻ Auto-renews on ${endDate}</p>`;
         }
