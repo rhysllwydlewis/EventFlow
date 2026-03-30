@@ -509,26 +509,33 @@ router.post(
         const stripeSubscription = await stripe.subscriptions.retrieve(
           subscription.stripeSubscriptionId
         );
-        await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
-          items: [
-            {
-              id: stripeSubscription.items.data[0].id,
-              price: newPriceId,
+        const updatedStripeSubscription = await stripe.subscriptions.update(
+          subscription.stripeSubscriptionId,
+          {
+            items: [
+              {
+                id: stripeSubscription.items.data[0].id,
+                price: newPriceId,
+              },
+            ],
+            cancel_at_period_end: false,
+            proration_behavior: 'create_prorations',
+            metadata: {
+              planName: newPlan,
+              downgrade_to: '',
             },
-          ],
-          cancel_at_period_end: false,
-          proration_behavior: 'create_prorations',
-          metadata: {
-            planName: newPlan,
-            downgrade_to: '',
-          },
-        });
-        stripeUnitAmount = stripeSubscription.items?.data?.[0]?.price?.unit_amount ?? null;
-        stripeUpgradeBillingInterval = stripeSubscription.items?.data?.[0]?.price?.recurring?.interval ?? 'month';
+          }
+        );
+        // Read amount from the updated subscription so the email shows the new plan's price
+        stripeUnitAmount = updatedStripeSubscription.items?.data?.[0]?.price?.unit_amount ?? null;
+        stripeUpgradeBillingInterval =
+          updatedStripeSubscription.items?.data?.[0]?.price?.recurring?.interval ?? 'month';
       }
 
       // Upgrade in database — Stripe already updated above, skip the duplicate Stripe call
-      const updatedSubscription = await subscriptionService.upgradeSubscription(id, newPlan, { skipStripe: true });
+      const updatedSubscription = await subscriptionService.upgradeSubscription(id, newPlan, {
+        skipStripe: true,
+      });
 
       // Log upgrade to audit trail
       await createAuditLog({
@@ -566,7 +573,7 @@ router.post(
             month: 'long',
             year: 'numeric',
           });
-          const amount = stripeUnitAmount != null ? (stripeUnitAmount / 100).toFixed(2) : '0.00';
+          const amount = stripeUnitAmount !== null ? (stripeUnitAmount / 100).toFixed(2) : '0.00';
           const billingCycle = stripeUpgradeBillingInterval || 'month';
           const features = PLAN_EMAIL_FEATURES[newPlan] || PLAN_EMAIL_FEATURES.free;
           await postmark.sendMail({
@@ -654,17 +661,22 @@ router.post(
       let stripeCurrentUnitAmount = null;
       let stripeDowngradeBillingInterval = null;
       if (subscription.stripeSubscriptionId) {
-        const updatedStripeSubscription = await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
-          cancel_at_period_end: true,
-          metadata: {
-            downgrade_to: newPlan,
-          },
-        });
+        const updatedStripeSubscription = await stripe.subscriptions.update(
+          subscription.stripeSubscriptionId,
+          {
+            cancel_at_period_end: true,
+            metadata: {
+              downgrade_to: newPlan,
+            },
+          }
+        );
         stripeCurrentPeriodEnd = updatedStripeSubscription.current_period_end
           ? new Date(updatedStripeSubscription.current_period_end * 1000)
           : null;
-        stripeCurrentUnitAmount = updatedStripeSubscription.items?.data?.[0]?.price?.unit_amount ?? null;
-        stripeDowngradeBillingInterval = updatedStripeSubscription.items?.data?.[0]?.price?.recurring?.interval ?? 'month';
+        stripeCurrentUnitAmount =
+          updatedStripeSubscription.items?.data?.[0]?.price?.unit_amount ?? null;
+        stripeDowngradeBillingInterval =
+          updatedStripeSubscription.items?.data?.[0]?.price?.recurring?.interval ?? 'month';
       }
 
       // Downgrade in database (scheduled at period end)
@@ -713,7 +725,8 @@ router.post(
                 month: 'long',
                 year: 'numeric',
               });
-          const currentAmount = stripeCurrentUnitAmount != null ? (stripeCurrentUnitAmount / 100).toFixed(2) : '0.00';
+          const currentAmount =
+            stripeCurrentUnitAmount !== null ? (stripeCurrentUnitAmount / 100).toFixed(2) : '0.00';
           const billingCycle = stripeDowngradeBillingInterval || 'month';
           // Derive new plan price from local plan config (Stripe price not yet active)
           const newPlanFeatures = PLAN_FEATURES[newPlan];
