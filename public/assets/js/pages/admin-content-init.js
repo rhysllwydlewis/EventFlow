@@ -67,6 +67,80 @@
     showAnnouncementModal();
   });
 
+  // Quick Notify button
+  document.getElementById('quickNotifyBtn').addEventListener('click', () => {
+    showQuickNotifyModal();
+  });
+
+  function showQuickNotifyModal() {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.style.cssText =
+      'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;';
+
+    modal.innerHTML = `
+      <div class="modal modal-medium">
+        <h3>⚡ Quick Notify</h3>
+        <p class="small">Create an announcement and send it as an in-app notification in one step. The announcement will also appear as a site banner.</p>
+        <form id="quickNotifyForm" action="#">
+          <div class="form-row">
+            <label>Message</label>
+            <textarea id="qnMessage" rows="3" required placeholder="Enter your notification message..."></textarea>
+          </div>
+          <div class="form-row">
+            <label>Type</label>
+            <select id="qnType">
+              <option value="info">ℹ️ Info</option>
+              <option value="warning">⚠️ Warning</option>
+              <option value="success">✅ Success</option>
+              <option value="maintenance">🔧 Maintenance</option>
+              <option value="urgent">🚨 Urgent</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label>Target Audience</label>
+            <select id="qnTarget">
+              <option value="all">All Users</option>
+              <option value="customers">Customers Only</option>
+              <option value="suppliers">Suppliers Only</option>
+              <option value="admins">Admins Only</option>
+            </select>
+          </div>
+          <div class="action-buttons">
+            <button type="submit" class="btn btn-primary">Send Notification</button>
+            <button type="button" class="btn btn-secondary" id="closeQnModal">Cancel</button>
+          </div>
+        </form>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    modal.querySelector('#closeQnModal').addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+
+    modal.querySelector('#quickNotifyForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const submitBtn = modal.querySelector('button[type="submit"]');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Sending...';
+      try {
+        const result = await AdminShared.api('/api/admin/content/announcements/notify', 'POST', {
+          message: modal.querySelector('#qnMessage').value,
+          type: modal.querySelector('#qnType').value,
+          target: modal.querySelector('#qnTarget').value,
+        });
+        AdminShared.showToast(`✅ Notification sent to ${result.notifiedCount} users`, 'success');
+        modal.remove();
+        loadAnnouncements();
+      } catch (err) {
+        AdminShared.showToast(`Failed: ${err.message}`, 'error');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Send Notification';
+      }
+    });
+  }
+
   function showAnnouncementModal(announcement = null) {
     const modal = document.createElement('div');
     modal.className = 'modal-overlay';
@@ -85,11 +159,11 @@
           <div class="form-row">
             <label>Type</label>
             <select id="announcementType">
-              <option value="info" ${announcement && announcement.type === 'info' ? 'selected' : ''}>Info</option>
-              <option value="warning" ${announcement && announcement.type === 'warning' ? 'selected' : ''}>Warning</option>
-              <option value="success" ${announcement && announcement.type === 'success' ? 'selected' : ''}>Success</option>
-              <option value="maintenance" ${announcement && announcement.type === 'maintenance' ? 'selected' : ''}>Maintenance</option>
-              <option value="urgent" ${announcement && announcement.type === 'urgent' ? 'selected' : ''}>Urgent</option>
+              <option value="info" ${announcement && announcement.type === 'info' ? 'selected' : ''}>ℹ️ Info</option>
+              <option value="warning" ${announcement && announcement.type === 'warning' ? 'selected' : ''}>⚠️ Warning</option>
+              <option value="success" ${announcement && announcement.type === 'success' ? 'selected' : ''}>✅ Success</option>
+              <option value="maintenance" ${announcement && announcement.type === 'maintenance' ? 'selected' : ''}>🔧 Maintenance</option>
+              <option value="urgent" ${announcement && announcement.type === 'urgent' ? 'selected' : ''}>🚨 Urgent</option>
             </select>
           </div>
           
@@ -192,30 +266,42 @@
 
       if (!announcements || announcements.length === 0) {
         container.innerHTML =
-          '<p class="small">No announcements yet. Click "Add Announcement" to create one.</p>';
+          '<p class="small">No announcements yet. Click "+ Add Announcement" to create one.</p>';
         return;
       }
+
+      const typeEmoji = { info: 'ℹ️', warning: '⚠️', success: '✅', maintenance: '🔧', urgent: '🚨' };
 
       container.innerHTML = announcements
         .map(a => {
           const escapedId = AdminShared.escapeHtml(a.id);
+          const escapedType = AdminShared.escapeHtml(a.type || 'info');
           const createdAt = a.createdAt ? new Date(a.createdAt).toLocaleDateString() : '';
-          const notifiedInfo = a.notifiedCount
-            ? `• Notified: ${a.notifiedCount} time(s)`
+          const lastNotified = a.lastNotifiedAt
+            ? `Last sent: ${new Date(a.lastNotifiedAt).toLocaleDateString()}`
             : '';
+          const notifiedBadge = a.notifiedCount
+            ? `<span style="background:#ede9fe;color:#5b21b6;padding:0.1rem 0.45rem;border-radius:9999px;font-size:0.7rem;font-weight:600;">📢 ×${a.notifiedCount}</span>`
+            : '';
+          const emoji = typeEmoji[a.type] || 'ℹ️';
           return `
-          <div class="announcement-item" data-id="${escapedId}">
+          <div class="announcement-item" data-id="${escapedId}" data-type="${escapedType}">
             <div class="flex-between-start">
               <div class="flex-1">
-                <strong>${AdminShared.escapeHtml(a.message)}</strong>
-                <div class="small mt-025">
-                  Type: ${AdminShared.escapeHtml(a.type)} • ${a.active ? '<span style="color:#22c55e;">Active</span>' : '<span style="color:#6b7280;">Inactive</span>'}
-                  ${createdAt ? `• Created: ${createdAt}` : ''}
-                  ${a.createdBy ? `by ${AdminShared.escapeHtml(a.createdBy)}` : ''}
-                  ${notifiedInfo ? `<span style="color:#6366f1;">${AdminShared.escapeHtml(notifiedInfo)}</span>` : ''}
+                <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.25rem;">
+                  <strong>${AdminShared.escapeHtml(a.message)}</strong>
+                  ${a.active
+                    ? '<span style="background:#d1fae5;color:#065f46;padding:0.1rem 0.45rem;border-radius:9999px;font-size:0.7rem;font-weight:600;">● Active</span>'
+                    : '<span style="background:#f3f4f6;color:#6b7280;padding:0.1rem 0.45rem;border-radius:9999px;font-size:0.7rem;font-weight:600;">○ Inactive</span>'}
+                  ${notifiedBadge}
+                </div>
+                <div class="small" style="color:#6b7280;display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;">
+                  <span><span class="ann-type-badge ${escapedType}">${emoji} ${escapedType}</span></span>
+                  ${createdAt ? `<span>Created ${createdAt}${a.createdBy ? ` by ${AdminShared.escapeHtml(a.createdBy)}` : ''}</span>` : ''}
+                  ${lastNotified ? `<span style="color:#6366f1;">${AdminShared.escapeHtml(lastNotified)}</span>` : ''}
                 </div>
               </div>
-              <div class="flex-gap">
+              <div class="flex-gap" style="margin-left:0.75rem;flex-shrink:0;">
                 <button class="btn btn-secondary btn-small" data-action="edit" data-id="${escapedId}">Edit</button>
                 <button class="btn btn-primary btn-small" data-action="notify" data-id="${escapedId}">📢 Notify</button>
                 <button class="btn btn-danger btn-small" data-action="delete" data-id="${escapedId}">Delete</button>
