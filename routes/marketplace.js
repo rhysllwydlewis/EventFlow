@@ -153,12 +153,12 @@ router.get('/listings', async (req, res) => {
       sortOption = { price: -1 };
     }
 
-    // Apply limit parameter (default 12, cap at 24)
-    let resultLimit = 12;
+    // Apply limit parameter (default 500, cap at 500 — client paginates with Load More)
+    let resultLimit = 500;
     if (limit) {
       const parsedLimit = parseInt(limit, 10);
       if (!isNaN(parsedLimit) && parsedLimit > 0) {
-        resultLimit = Math.min(parsedLimit, 24);
+        resultLimit = Math.min(parsedLimit, 500);
       }
     }
 
