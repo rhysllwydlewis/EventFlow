@@ -79,6 +79,12 @@ app.use((req, res, next) => {
     return next();
   }
 
+  // Static JS assets under /messenger/js/ must be loadable on any page
+  // regardless of auth state — mirrors the server.js SPA guard exemption.
+  if (/^\/messenger\/js\/[^/]+\.js$/.test(req.path)) {
+    return next();
+  }
+
   const cookies = req.headers.cookie || '';
   const isAuthed = cookies.includes('test_auth=');
   if (!isAuthed) {
