@@ -62,6 +62,13 @@ describe('auth.html – security regressions', () => {
       // Message was updated to block submission instead of misleadingly allowing it
       expect(content).toContain('Verification failed to load');
     });
+
+    it('loads auth-altcha-init.js with defer to prevent race condition with the deferred ALTCHA shim', () => {
+      // Both the shim (altcha.min.js) and the init script must be deferred so they
+      // run in document order after parsing — preventing the init from executing
+      // before the custom element is defined or the altcha-loaded event is ready.
+      expect(content).toContain('auth-altcha-init.js" defer');
+    });
   });
 
   describe('waitForApiClient retry loop is bounded', () => {
