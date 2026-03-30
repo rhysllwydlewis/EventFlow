@@ -539,7 +539,7 @@
       container.innerHTML = packages.items
         .map(p => {
           const escapedId = AdminShared.escapeHtml(p.id);
-          const priceDisplay = p.price != null ? `£${Number(p.price).toLocaleString()}` : '';
+          const priceDisplay = p.price !== null && p.price !== undefined ? `£${Number(p.price).toLocaleString()}` : '';
           return `
           <div style="padding:1rem;background:#f9fafb;border-radius:4px;margin-bottom:0.5rem;" data-id="${escapedId}">
             <div class="flex-between">
