@@ -6423,6 +6423,26 @@ body:not(.supplier-dashboard-page) .section > .container {
   background: rgba(217, 119, 6, 0.08);
   border: 1px solid rgba(217, 119, 6, 0.2);
 }
+.sd-subscription-active__interval {
+  margin-left: auto;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ef-text-muted, #6b7280);
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 999px;
+  padding: 0.15em 0.6em;
+  white-space: nowrap;
+}
+.sd-subscription-active__trial-notice {
+  font-size: 0.775rem;
+  font-weight: 600;
+  margin: 0;
+  padding: 0.35rem 0.625rem;
+  border-radius: 6px;
+  color: #7c3aed;
+  background: rgba(124, 58, 237, 0.08);
+  border: 1px solid rgba(124, 58, 237, 0.2);
+}
 
 /* ── Improved card glass surfaces ── */
 .sd-card {

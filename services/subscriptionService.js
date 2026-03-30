@@ -33,6 +33,11 @@ async function persistUserSubscriptionState(userId, updates) {
  * @param {string} params.stripeSubscriptionId - Stripe subscription ID
  * @param {string} params.stripeCustomerId - Stripe customer ID
  * @param {Date} params.trialEnd - Trial end date (optional)
+ * @param {string} params.billingInterval - Billing interval ('month' or 'year') (optional)
+ * @param {string} params.currentPeriodStart - ISO string of current period start (optional)
+ * @param {string} params.currentPeriodEnd - ISO string of current period end (optional)
+ * @param {string} params.discountName - Coupon/discount name (optional)
+ * @param {number} params.discountPercent - Discount percent off (optional)
  * @returns {Promise<Object>} Created subscription
  */
 async function createSubscription({
@@ -41,6 +46,11 @@ async function createSubscription({
   stripeSubscriptionId,
   stripeCustomerId,
   trialEnd = null,
+  billingInterval = null,
+  currentPeriodStart = null,
+  currentPeriodEnd = null,
+  discountName = null,
+  discountPercent = null,
 }) {
   const now = new Date().toISOString();
   const subscription = {
@@ -52,12 +62,15 @@ async function createSubscription({
     stripeCustomerId: stripeCustomerId || null,
     trialStart: trialEnd ? now : null,
     trialEnd: trialEnd ? trialEnd.toISOString() : null,
-    currentPeriodStart: now,
-    currentPeriodEnd: null,
-    nextBillingDate: trialEnd ? trialEnd.toISOString() : null,
+    currentPeriodStart: currentPeriodStart || now,
+    currentPeriodEnd: currentPeriodEnd || null,
+    nextBillingDate: trialEnd ? trialEnd.toISOString() : currentPeriodEnd || null,
     cancelAtPeriodEnd: false,
     canceledAt: null,
     cancelReason: null,
+    billingInterval: billingInterval || null,
+    discountName: discountName || null,
+    discountPercent: discountPercent || null,
     billingHistory: [],
     metadata: {},
     createdAt: now,

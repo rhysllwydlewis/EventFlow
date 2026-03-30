@@ -342,12 +342,29 @@ async function handleSubscriptionCreated(stripeSubscription) {
     ? new Date(stripeSubscription.trial_end * 1000)
     : null;
 
+  const priceItem = stripeSubscription.items?.data?.[0];
+  const billingInterval = priceItem?.price?.recurring?.interval || null;
+  const currentPeriodStart = stripeSubscription.current_period_start
+    ? new Date(stripeSubscription.current_period_start * 1000).toISOString()
+    : null;
+  const currentPeriodEnd = stripeSubscription.current_period_end
+    ? new Date(stripeSubscription.current_period_end * 1000).toISOString()
+    : null;
+  const discountCoupon = stripeSubscription.discount?.coupon || null;
+  const discountName = discountCoupon?.name || discountCoupon?.id || null;
+  const discountPercent = discountCoupon?.percent_off || null;
+
   await subscriptionService.createSubscription({
     userId: payment.userId,
     plan,
     stripeSubscriptionId: stripeSubscription.id,
     stripeCustomerId: stripeSubscription.customer,
     trialEnd,
+    billingInterval,
+    currentPeriodStart,
+    currentPeriodEnd,
+    discountName,
+    discountPercent,
   });
 
   // Send subscription activated email
@@ -424,6 +441,18 @@ async function handleSubscriptionUpdated(stripeSubscription) {
     nextBillingDate: new Date(stripeSubscription.current_period_end * 1000).toISOString(),
     cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
   };
+
+  // Billing interval
+  const updatedItem = stripeSubscription.items?.data?.[0];
+  const updatedInterval = updatedItem?.price?.recurring?.interval;
+  if (updatedInterval) {
+    updates.billingInterval = updatedInterval;
+  }
+
+  // Discount / coupon
+  const updatedCoupon = stripeSubscription.discount?.coupon || null;
+  updates.discountName = updatedCoupon?.name || updatedCoupon?.id || null;
+  updates.discountPercent = updatedCoupon?.percent_off || null;
 
   if (stripeSubscription.canceled_at) {
     updates.canceledAt = new Date(stripeSubscription.canceled_at * 1000).toISOString();

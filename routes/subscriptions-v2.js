@@ -225,6 +225,24 @@ router.get('/me', authRequired, async (req, res) => {
     // For an immediate cancellation or no subscription it is null.
     const activeUntil = subscription?.currentPeriodEnd || null;
 
+    // Fetch payment method details from Stripe (best-effort)
+    let paymentMethodBrand = null;
+    let paymentMethodLast4 = null;
+    if (STRIPE_ENABLED && stripe && subscription?.stripeCustomerId) {
+      try {
+        const customer = await stripe.customers.retrieve(subscription.stripeCustomerId, {
+          expand: ['default_payment_method'],
+        });
+        const pm = customer?.default_payment_method;
+        if (pm && pm.card) {
+          paymentMethodBrand = pm.card.brand || null;
+          paymentMethodLast4 = pm.card.last4 || null;
+        }
+      } catch (_stripeErr) {
+        // best-effort — payment method info won't display if unavailable
+      }
+    }
+
     res.json({
       success: true,
       subscription,
@@ -233,6 +251,8 @@ router.get('/me', authRequired, async (req, res) => {
       activeUntil,
       cancelAtPeriodEnd: subscription?.cancelAtPeriodEnd ?? false,
       status: subscription?.status || 'free',
+      paymentMethodBrand,
+      paymentMethodLast4,
     });
   } catch (error) {
     logger.error('Error fetching current user subscription:', error);
