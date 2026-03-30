@@ -539,11 +539,31 @@ async function openBillingPortal(event) {
     button.disabled = true;
     button.textContent = 'Loading…';
 
+    // Fetch CSRF token
+    let csrfToken = window.__CSRF_TOKEN__ || '';
+    if (!csrfToken) {
+      try {
+        const csrfResp = await fetch('/api/v1/csrf-token', { credentials: 'include' });
+        if (csrfResp.ok) {
+          const csrfData = await csrfResp.json();
+          csrfToken = csrfData.csrfToken || csrfData.token || '';
+          window.__CSRF_TOKEN__ = csrfToken;
+        }
+      } catch (csrfErr) {
+        console.warn('[Subscription] Could not fetch CSRF token:', csrfErr);
+      }
+    }
+
+    const portalHeaders = {
+      'Content-Type': 'application/json',
+    };
+    if (csrfToken) {
+      portalHeaders['X-CSRF-Token'] = csrfToken;
+    }
+
     const response = await fetch('/api/payments/create-portal-session', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: portalHeaders,
       credentials: 'include',
       body: JSON.stringify({
         returnUrl: window.location.href,

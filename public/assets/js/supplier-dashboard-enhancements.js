@@ -259,6 +259,12 @@
     pills.forEach((pill, index) => {
       // Click handler
       pill.addEventListener('click', () => {
+        const href = pill.getAttribute('data-href');
+        if (href) {
+          window.location.href = href;
+          return;
+        }
+
         setActive(pill, { announce: true });
         const targetId = pill.getAttribute('data-section');
         const target = document.getElementById(targetId);

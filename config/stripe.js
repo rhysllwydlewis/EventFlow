@@ -23,7 +23,7 @@ function initializeStripe() {
       // eslint-disable-next-line global-require, node/no-missing-require
       const stripeLib = require('stripe');
       stripeClient = stripeLib(secret, {
-        apiVersion: '2025-12-15',
+        apiVersion: '2025-12-15.clover',
       });
       STRIPE_ENABLED = true;
 
