@@ -283,7 +283,7 @@ async function processSubscriptionPlanChange(subscription, newPlan) {
  * @param {string} newPlan - New plan tier (must be higher than current)
  * @returns {Promise<Object>} Updated subscription
  */
-async function upgradeSubscription(subscriptionId, newPlan) {
+async function upgradeSubscription(subscriptionId, newPlan, { skipStripe = false } = {}) {
   const subscription = await getSubscription(subscriptionId);
 
   if (!subscription) {
@@ -302,8 +302,10 @@ async function upgradeSubscription(subscriptionId, newPlan) {
     throw new Error('New plan must be higher tier than current plan');
   }
 
-  // Process prorated payment difference via Stripe
-  await processSubscriptionPlanChange(subscription, newPlan);
+  // Process prorated payment difference via Stripe (skip if caller already handled it)
+  if (!skipStripe) {
+    await processSubscriptionPlanChange(subscription, newPlan);
+  }
 
   // Upgrades apply immediately — clear any pending downgrade and reset cancelAtPeriodEnd
   return updateSubscription(subscriptionId, {

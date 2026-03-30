@@ -13,10 +13,23 @@ const { writeLimiter } = require('../middleware/rateLimits');
 const { csrfProtection } = require('../middleware/csrf');
 const subscriptionService = require('../services/subscriptionService');
 const paymentService = require('../services/paymentService');
-const { processWebhookEvent } = require('../webhooks/stripeWebhookHandler');
+const { processWebhookEvent, formatPlanName } = require('../webhooks/stripeWebhookHandler');
 const dbUnified = require('../db-unified');
 const { formatInvoice } = require('../models/Invoice');
+const { PLAN_FEATURES } = require('../models/Subscription');
 const { createAuditLog } = require('../utils/auditTrail');
+const postmark = require('../utils/postmark');
+
+/**
+ * HTML feature list items per plan tier, used in upgrade/downgrade emails.
+ */
+const PLAN_EMAIL_FEATURES = {
+  free: '<li>Basic messaging</li><li>Standard listing</li>',
+  pro: '<li>Unlimited messaging</li><li>Advanced analytics</li><li>Priority listing</li><li>Priority support</li>',
+  pro_plus:
+    '<li>Unlimited messaging</li><li>Advanced analytics</li><li>Priority listing</li>' +
+    '<li>Priority support</li><li>Custom branding</li><li>Homepage carousel</li>',
+};
 
 const router = express.Router();
 
@@ -489,7 +502,9 @@ router.post(
         });
       }
 
-      // Update Stripe subscription
+      // Update Stripe subscription — clear cancel_at_period_end and stale downgrade metadata
+      let stripeUnitAmount = null;
+      let stripeUpgradeBillingInterval = null;
       if (subscription.stripeSubscriptionId) {
         const stripeSubscription = await stripe.subscriptions.retrieve(
           subscription.stripeSubscriptionId
@@ -501,15 +516,19 @@ router.post(
               price: newPriceId,
             },
           ],
+          cancel_at_period_end: false,
           proration_behavior: 'create_prorations',
           metadata: {
             planName: newPlan,
+            downgrade_to: '',
           },
         });
+        stripeUnitAmount = stripeSubscription.items?.data?.[0]?.price?.unit_amount ?? null;
+        stripeUpgradeBillingInterval = stripeSubscription.items?.data?.[0]?.price?.recurring?.interval ?? 'month';
       }
 
-      // Upgrade in database
-      const updatedSubscription = await subscriptionService.upgradeSubscription(id, newPlan);
+      // Upgrade in database — Stripe already updated above, skip the duplicate Stripe call
+      const updatedSubscription = await subscriptionService.upgradeSubscription(id, newPlan, { skipStripe: true });
 
       // Log upgrade to audit trail
       await createAuditLog({
@@ -536,6 +555,43 @@ router.post(
         ipAddress: req.ip,
         userAgent: req.get('user-agent'),
       });
+
+      // Send upgrade confirmation email
+      try {
+        const user = req.user;
+        if (user && user.email) {
+          const baseUrl = process.env.APP_BASE_URL || process.env.BASE_URL || '';
+          const effectiveDate = new Date().toLocaleDateString('en-GB', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          });
+          const amount = stripeUnitAmount != null ? (stripeUnitAmount / 100).toFixed(2) : '0.00';
+          const billingCycle = stripeUpgradeBillingInterval || 'month';
+          const features = PLAN_EMAIL_FEATURES[newPlan] || PLAN_EMAIL_FEATURES.free;
+          await postmark.sendMail({
+            to: user.email,
+            subject: `Your EventFlow plan has been upgraded to ${formatPlanName(newPlan)}!`,
+            template: 'subscription-upgraded',
+            templateData: {
+              name: user.name || 'there',
+              previousPlan: formatPlanName(subscription.plan),
+              newPlan: formatPlanName(newPlan),
+              effectiveDate,
+              amount,
+              billingCycle,
+              features,
+              baseUrl,
+            },
+            from: postmark.FROM_BILLING,
+            tags: ['subscription-upgraded', 'transactional'],
+            messageStream: 'outbound',
+          });
+          logger.info(`Subscription upgraded email sent to ${user.email}`);
+        }
+      } catch (emailErr) {
+        logger.error('Failed to send subscription upgraded email:', emailErr.message);
+      }
 
       res.json({
         success: true,
@@ -594,13 +650,21 @@ router.post(
       }
 
       // Schedule downgrade at period end in Stripe
+      let stripeCurrentPeriodEnd = null;
+      let stripeCurrentUnitAmount = null;
+      let stripeDowngradeBillingInterval = null;
       if (subscription.stripeSubscriptionId) {
-        await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
+        const updatedStripeSubscription = await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
           cancel_at_period_end: true,
           metadata: {
             downgrade_to: newPlan,
           },
         });
+        stripeCurrentPeriodEnd = updatedStripeSubscription.current_period_end
+          ? new Date(updatedStripeSubscription.current_period_end * 1000)
+          : null;
+        stripeCurrentUnitAmount = updatedStripeSubscription.items?.data?.[0]?.price?.unit_amount ?? null;
+        stripeDowngradeBillingInterval = updatedStripeSubscription.items?.data?.[0]?.price?.recurring?.interval ?? 'month';
       }
 
       // Downgrade in database (scheduled at period end)
@@ -632,6 +696,51 @@ router.post(
         ipAddress: req.ip,
         userAgent: req.get('user-agent'),
       });
+
+      // Send downgrade scheduled confirmation email
+      try {
+        const user = req.user;
+        if (user && user.email) {
+          const baseUrl = process.env.APP_BASE_URL || process.env.BASE_URL || '';
+          const effectiveDate = stripeCurrentPeriodEnd
+            ? stripeCurrentPeriodEnd.toLocaleDateString('en-GB', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+              })
+            : new Date().toLocaleDateString('en-GB', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+              });
+          const currentAmount = stripeCurrentUnitAmount != null ? (stripeCurrentUnitAmount / 100).toFixed(2) : '0.00';
+          const billingCycle = stripeDowngradeBillingInterval || 'month';
+          // Derive new plan price from local plan config (Stripe price not yet active)
+          const newPlanFeatures = PLAN_FEATURES[newPlan];
+          const newAmount = newPlanFeatures ? newPlanFeatures.price.toFixed(2) : '0.00';
+          await postmark.sendMail({
+            to: user.email,
+            subject: `Your EventFlow plan change has been scheduled`,
+            template: 'subscription-downgrade-scheduled',
+            templateData: {
+              name: user.name || 'there',
+              currentPlan: formatPlanName(subscription.plan),
+              newPlan: formatPlanName(newPlan),
+              effectiveDate,
+              currentAmount,
+              newAmount,
+              billingCycle,
+              baseUrl,
+            },
+            from: postmark.FROM_BILLING,
+            tags: ['subscription-downgrade-scheduled', 'transactional'],
+            messageStream: 'outbound',
+          });
+          logger.info(`Subscription downgrade scheduled email sent to ${user.email}`);
+        }
+      } catch (emailErr) {
+        logger.error('Failed to send subscription downgrade scheduled email:', emailErr.message);
+      }
 
       res.json({
         success: true,
