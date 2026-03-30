@@ -46,6 +46,60 @@
   input:checked + .slider:before { transform:translateX(24px); }
   .slider.round { border-radius:24px; }
   .slider.round:before { border-radius:50%; }
+
+  /* Announcement item styling */
+  .announcement-item {
+    padding: 0.875rem 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    margin-bottom: 0.625rem;
+    background: #fff;
+    border-left-width: 4px;
+    transition: box-shadow 0.15s;
+  }
+  .announcement-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+  .announcement-item[data-type="info"]        { border-left-color: #3b82f6; }
+  .announcement-item[data-type="warning"]     { border-left-color: #f59e0b; }
+  .announcement-item[data-type="success"]     { border-left-color: #22c55e; }
+  .announcement-item[data-type="maintenance"] { border-left-color: #f97316; }
+  .announcement-item[data-type="urgent"]      { border-left-color: #ef4444; }
+
+  /* Announcement type badge */
+  .ann-type-badge {
+    display: inline-block;
+    padding: 0.125rem 0.5rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    vertical-align: middle;
+  }
+  .ann-type-badge.info        { background:#dbeafe; color:#1e40af; }
+  .ann-type-badge.warning     { background:#fef3c7; color:#92400e; }
+  .ann-type-badge.success     { background:#d1fae5; color:#065f46; }
+  .ann-type-badge.maintenance { background:#ffedd5; color:#9a3412; }
+  .ann-type-badge.urgent      { background:#fee2e2; color:#991b1b; }
+
+  /* FAQ item styling */
+  .faq-item {
+    padding: 0.875rem 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    margin-bottom: 0.625rem;
+    background: #fff;
+    transition: box-shadow 0.15s;
+  }
+  .faq-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+
+  /* Content tab action row */
+  .content-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+    align-items: center;
+  }
 </style>
 </head>
 <body class="has-admin-navbar admin">
@@ -98,9 +152,12 @@
     <div id="announcements" class="tab-content">
       <div class="card">
         <h2>Site-Wide Announcements</h2>
-        <p class="small">Create announcements that appear at the top of the site for all users.</p>
+        <p class="small">Create announcements that appear at the top of the site for all users. You can also push them as in-app notifications to users.</p>
         
-        <button class="btn btn-success" id="addAnnouncementBtn" class="mb-1">+ Add Announcement</button>
+        <div class="content-actions">
+          <button class="btn btn-success" id="addAnnouncementBtn">+ Add Announcement</button>
+          <button class="btn btn-primary" id="quickNotifyBtn">⚡ Quick Notify</button>
+        </div>
         
         <div id="announcementsList">
           <p class="small">Loading announcements...</p>
@@ -114,7 +171,7 @@
         <h2>Manage FAQs</h2>
         <p class="small">Add, edit, or remove frequently asked questions.</p>
         
-        <button class="btn btn-success" id="addFAQBtn" class="mb-1">+ Add FAQ</button>
+        <button class="btn btn-success mb-1" id="addFAQBtn">+ Add FAQ</button>
         
         <div id="faqsList">
           <p class="small">Loading FAQs...</p>

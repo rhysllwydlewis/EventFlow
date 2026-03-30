@@ -1631,6 +1631,7 @@
       setupNavButton('reportsQueueBtn', '/admin-reports');
       setupNavButton('auditLogBtn', '/admin-audit');
       setupNavButton('adminSettingsBtn', '/admin-settings');
+      setupNavButton('contentManagementBtn', '/admin-content');
       setupNavButton('mediaCenterBtn', '/admin-media');
       setupNavButton('globalSearchBtn', '/admin-search');
       setupNavButton('analyticsBtn', '/admin-analytics');

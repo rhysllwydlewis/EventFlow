@@ -182,12 +182,40 @@ POST   /api/admin/content/announcements    # Create announcement
 GET    /api/admin/content/announcements/:id # Get announcement
 PUT    /api/admin/content/announcements/:id # Update announcement
 DELETE /api/admin/content/announcements/:id # Delete announcement
+POST   /api/admin/content/announcements/:id/notify # Send announcement as in-app notifications
+POST   /api/admin/content/announcements/notify     # Quick Notify: create announcement + send notifications
 GET    /api/admin/content/faqs             # List FAQs
 POST   /api/admin/content/faqs             # Create FAQ
 GET    /api/admin/content/faqs/:id         # Get FAQ
 PUT    /api/admin/content/faqs/:id         # Update FAQ
 DELETE /api/admin/content/faqs/:id         # Delete FAQ
 ```
+
+#### Announcement Notification Endpoints
+
+**`POST /api/admin/content/announcements/:id/notify`**
+Send an existing announcement as in-app notifications to targeted users.
+
+Body:
+```json
+{ "target": "all" }
+```
+
+**`POST /api/admin/content/announcements/notify`**
+Quick Notify: creates a new announcement in the content store and sends it as in-app notifications in a single step.
+
+Body:
+```json
+{ "message": "...", "type": "info", "target": "customers" }
+```
+
+**`target` parameter options:**
+- `"all"` (default) — notify all users
+- `"customers"` — notify users with role `customer`
+- `"suppliers"` — notify users with role `supplier`
+- `"admins"` — notify users with role `admin`
+
+Both endpoints return `{ success: true, notifiedCount: N }`.
 
 ### System Settings
 
