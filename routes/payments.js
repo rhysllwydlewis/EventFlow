@@ -11,6 +11,8 @@ const { authRequired } = require('../middleware/auth');
 const { writeLimiter } = require('../middleware/rateLimits');
 const { csrfProtection } = require('../middleware/csrf');
 const dbUnified = require('../db-unified');
+const mongoDb = require('../db');
+const NotificationService = require('../services/notification.service');
 const { uid } = require('../store');
 
 const router = express.Router();
@@ -81,6 +83,23 @@ function getSubscriptionTier(planName) {
   }
 
   return 'free';
+}
+
+/**
+ * Get a NotificationService instance using the live DB.
+ * Uses global.wsServerV2 for WebSocket access since webhook handlers
+ * run outside of a request context.
+ * @returns {Promise<NotificationService|null>}
+ */
+async function getNotificationService() {
+  try {
+    const db = await mongoDb.getDb();
+    const wsServer = global.wsServerV2 || null;
+    return new NotificationService(db, wsServer);
+  } catch (err) {
+    logger.warn('Could not create NotificationService for payments route:', err.message);
+    return null;
+  }
 }
 
 /**
@@ -567,6 +586,25 @@ async function handleCheckoutCompleted(session) {
   await dbUnified.updateOne('payments', payment.id, updates);
 
   logger.info(`Payment ${payment.id} marked as succeeded`);
+
+  // Send payment and booking notifications (fire-and-forget)
+  getNotificationService()
+    .then(notifSvc => {
+      if (!notifSvc) {
+        return;
+      }
+      const description = payment.metadata?.planName || payment.type || 'service';
+      notifSvc.notifyPayment(userId, payment.amount, description).catch(err => {
+        logger.error('Failed to send payment notification:', err);
+      });
+      const supplierName = payment.metadata?.planName || 'EventFlow';
+      notifSvc.notifyBookingUpdate(userId, supplierName, 'confirmed').catch(err => {
+        logger.error('Failed to send booking notification:', err);
+      });
+    })
+    .catch(err => {
+      logger.warn('Could not send checkout notifications:', err.message);
+    });
 }
 
 /**
