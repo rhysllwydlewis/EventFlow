@@ -10,9 +10,14 @@
     window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
   let allListings = [];
+  let listingsById = new Map(); // O(1) lookup by listing id
   let currentUser = null;
   let savedListingIds = new Set();
   let pendingListingId = null;
+
+  // Pagination state
+  const PAGE_SIZE = 16;
+  let displayedCount = 0;
 
   // Issue 2 Fix: Initialization guards to prevent multiple calls
   let isInitialized = false;
@@ -41,6 +46,7 @@
     initLocationModal();
     initFilters();
     initViewToggle();
+    initLoadMore();
     initQuickActions();
     initMobileFilters();
     loadSavedLocation();
@@ -210,6 +216,7 @@
 
       const data = await res.json();
       allListings = data.listings || [];
+      listingsById = new Map(allListings.map(l => [l.id, l]));
       renderListings();
       updateResultCount();
       await maybeOpenListingFromUrl();
@@ -258,8 +265,9 @@
     resultsContainer.innerHTML = skeletonHTML;
   }
 
-  // Render listings
+  // Render listings — shows first PAGE_SIZE items; remainder are revealed by Load More
   function renderListings() {
+    displayedCount = 0;
     const resultsContainer = document.getElementById('marketplace-results');
     if (!resultsContainer) {
       return;
@@ -282,22 +290,76 @@
           ${currentUser ? '<a href="/supplier/marketplace-new-listing" class="btn btn-primary">List Your First Item</a>' : '<a href="/auth" class="btn btn-primary">Create Account</a>'}
         </div>
       `;
+      updateLoadMoreVisibility();
       return;
     }
 
-    resultsContainer.innerHTML = allListings.map(listing => createListingCard(listing)).join('');
+    const initialBatch = allListings.slice(0, PAGE_SIZE);
+    resultsContainer.innerHTML = initialBatch.map(listing => createListingCard(listing)).join('');
+    displayedCount = initialBatch.length;
+    attachCardListeners(Array.from(resultsContainer.querySelectorAll('.marketplace-item-card')));
+    updateLoadMoreVisibility();
+  }
 
-    // Re-attach event listeners
-    document.querySelectorAll('.marketplace-item-card').forEach((card, index) => {
-      card.addEventListener('click', () => showListingDetail(allListings[index]));
+  // Attach click + save listeners to an array of card elements, resolved via data-listing-id
+  function attachCardListeners(cards) {
+    cards.forEach(card => {
+      const listing = listingsById.get(card.dataset.listingId);
+      if (!listing) {
+        return;
+      }
+      card.addEventListener('click', () => showListingDetail(listing));
+      const saveBtn = card.querySelector('.marketplace-save-btn');
+      if (saveBtn) {
+        saveBtn.addEventListener('click', e => {
+          e.stopPropagation();
+          toggleSave(saveBtn, listing);
+        });
+      }
     });
+  }
 
-    document.querySelectorAll('.marketplace-save-btn').forEach((btn, index) => {
-      btn.addEventListener('click', e => {
-        e.stopPropagation();
-        toggleSave(btn, allListings[index]);
-      });
-    });
+  // Append the next PAGE_SIZE items to the results grid
+  function appendNextPage() {
+    if (displayedCount >= allListings.length) {
+      return;
+    }
+    const resultsContainer = document.getElementById('marketplace-results');
+    if (!resultsContainer) {
+      return;
+    }
+    const nextBatch = allListings.slice(displayedCount, displayedCount + PAGE_SIZE);
+    const wrapper = document.createElement('div');
+    wrapper.innerHTML = nextBatch.map(listing => createListingCard(listing)).join('');
+    const newCards = Array.from(wrapper.children);
+    newCards.forEach(card => resultsContainer.appendChild(card));
+    displayedCount += nextBatch.length;
+    attachCardListeners(newCards);
+    updateLoadMoreVisibility();
+    updateResultCount();
+  }
+
+  // Show or hide the Load More button based on remaining items
+  function updateLoadMoreVisibility() {
+    const btn = document.getElementById('marketplace-load-more-btn');
+    if (!btn) {
+      return;
+    }
+    const hasMore = displayedCount < allListings.length;
+    btn.style.display = hasMore ? 'inline-block' : 'none';
+    if (hasMore) {
+      const remaining = allListings.length - displayedCount;
+      const nextCount = Math.min(remaining, PAGE_SIZE);
+      btn.textContent = `Show ${nextCount} more`;
+    }
+  }
+
+  // Wire up the Load More button
+  function initLoadMore() {
+    const btn = document.getElementById('marketplace-load-more-btn');
+    if (btn) {
+      btn.addEventListener('click', appendNextPage);
+    }
   }
 
   function getListingImages(listing) {
@@ -1023,7 +1085,7 @@
     const listingIdToOpen = pendingListingId;
     pendingListingId = null;
 
-    let listing = allListings.find(item => item.id === listingIdToOpen);
+    let listing = listingsById.get(listingIdToOpen);
 
     if (!listing) {
       try {
@@ -1545,8 +1607,10 @@
     if (resultCount) {
       if (allListings.length === 0) {
         resultCount.textContent = 'No listings found';
+      } else if (displayedCount < allListings.length) {
+        resultCount.textContent = `Showing ${displayedCount} of ${allListings.length} listing${allListings.length !== 1 ? 's' : ''}`;
       } else {
-        resultCount.textContent = `Showing ${allListings.length} listing${allListings.length !== 1 ? 's' : ''}`;
+        resultCount.textContent = `Showing all ${allListings.length} listing${allListings.length !== 1 ? 's' : ''}`;
       }
     }
   }
