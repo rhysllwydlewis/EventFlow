@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <script src="/assets/js/dashboard-guard.js?v=17.0.2"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Campaigns — EventFlow Admin</title>
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="stylesheet" href="/assets/css/tokens.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/components.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/animations.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-enhanced.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-cards.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.3.0">
+  <link rel="icon" href="/favicon.svg">
+  <script src="/assets/js/components.js?v=18.3.0" defer></script>
+  <script src="/assets/js/admin-navbar.js?v=18.3.0" defer></script>
+</head>
+<body class="has-admin-navbar admin">
+<a href="#main-content" class="skip-to-content">Skip to main content</a>
+<!-- Navbar rendered dynamically by admin-navbar.js -->
+<div id="adminNavbarMount"></div>
+
+<main id="main-content" class="section">
+  <div class="dashboard-header">
+    <div class="header-content">
+      <div>
+        <h1 class="dashboard-title">📣 Campaigns</h1>
+        <p class="dashboard-subtitle">Compose a marketing email, preview it live, and send to opted-in recipients.</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn-secondary" id="backToDashboard">← Back to Dashboard</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="campaigns-layout">
+
+      <!-- ── Left panel: Editor ── -->
+      <section class="admin-card campaigns-editor" aria-label="Campaign editor">
+        <h2 class="admin-card-title">Editor</h2>
+
+        <div class="form-row">
+          <label for="campaignSubject">Subject line</label>
+          <input type="text" id="campaignSubject" placeholder="Your email subject…" autocomplete="off">
+        </div>
+
+        <div class="form-row">
+          <label for="campaignTitle">Email title</label>
+          <input type="text" id="campaignTitle" placeholder="Heading shown at top of email…" autocomplete="off">
+        </div>
+
+        <div class="form-row">
+          <label for="campaignMessage">Message body <span class="badge badge-info">HTML allowed</span></label>
+          <textarea id="campaignMessage" class="campaigns-textarea" rows="10" placeholder="Write your message here. Basic HTML tags are supported."></textarea>
+        </div>
+
+        <div class="form-row">
+          <label for="campaignCtaText">Button text <span class="badge badge-info">optional</span></label>
+          <input type="text" id="campaignCtaText" placeholder="e.g. Browse Events" autocomplete="off">
+        </div>
+
+        <div class="form-row">
+          <label for="campaignCtaUrl">Button URL <span class="badge badge-info">optional</span></label>
+          <input type="url" id="campaignCtaUrl" placeholder="https://…" autocomplete="off">
+        </div>
+
+        <hr class="campaigns-divider">
+
+        <!-- Test send -->
+        <div class="form-row">
+          <label for="campaignTestEmail">Send test to</label>
+          <div class="campaigns-inline-row">
+            <input type="email" id="campaignTestEmail" placeholder="test@example.com" autocomplete="email">
+            <button class="btn btn-secondary" id="campaignTestBtn" type="button">Send test</button>
+          </div>
+        </div>
+
+        <hr class="campaigns-divider">
+
+        <!-- Send campaign -->
+        <div class="form-row">
+          <label for="campaignAudience">Audience</label>
+          <select id="campaignAudience">
+            <option value="both">All opted-in (users + newsletter)</option>
+            <option value="marketing">Marketing opt-in users only</option>
+            <option value="newsletter">Newsletter subscribers only</option>
+          </select>
+        </div>
+
+        <div class="campaigns-send-row">
+          <button class="btn btn-primary campaigns-send-btn" id="campaignSendBtn" type="button">📣 Send campaign</button>
+          <span class="campaigns-send-warning small">This sends to all opted-in recipients. Double-check your content first.</span>
+        </div>
+
+        <div id="campaignStatus" class="campaigns-status" aria-live="polite"></div>
+      </section>
+
+      <!-- ── Right panel: Live preview ── -->
+      <section class="admin-card campaigns-preview-panel" aria-label="Email preview">
+        <div class="campaigns-preview-header">
+          <h2 class="admin-card-title">Live Preview</h2>
+          <button class="btn btn-secondary campaigns-refresh-btn" id="refreshPreviewBtn" type="button" title="Refresh preview">↻ Refresh</button>
+        </div>
+        <div class="campaigns-preview-wrap">
+          <iframe id="campaignPreviewFrame" class="campaigns-preview-frame" title="Email preview" sandbox="allow-same-origin"></iframe>
+        </div>
+      </section>
+
+    </div><!-- /.campaigns-layout -->
+  </div><!-- /.container -->
+</main>
+
+<footer class="footer" role="contentinfo">
+  <div class="container flex-between">
+    <div><strong>EventFlow</strong><br><span class="small">Event planning made simple.</span></div>
+    <div class="version">Version: <span id="ef-version-label">loading…</span></div>
+    <div class="small">
+      <a href="/guides">Guides</a> ·
+      <a href="/credits">Credits</a> ·
+      <a href="/contact">Contact</a> ·
+      <a href="/legal">Legal Hub</a> · <button type="button" data-cookie-prefs>Cookie preferences</button>
+    </div>
+    <div class="small" style="width: 100%; margin-top: 8px; text-align: center;">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
+  </div>
+</footer>
+
+<script src="/assets/js/admin-shared.js?v=18.3.0"></script>
+<script src="/assets/js/pages/admin-campaigns-init.js?v=18.3.0" defer></script>
+
+<script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
+</body>
+</html>

@@ -211,6 +211,15 @@ const REGISTRY = [
     inNav: true,
     desc: 'Data export & downloads',
   },
+  {
+    route: '/admin-campaigns',
+    htmlFile: 'admin-campaigns',
+    label: 'Campaigns',
+    icon: '📣',
+    category: 'operations',
+    inNav: true,
+    desc: 'Compose & send marketing email campaigns',
+  },
 
   // ── Content ───────────────────────────────────────────────────────────────
   {

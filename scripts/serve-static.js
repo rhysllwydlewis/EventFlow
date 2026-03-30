@@ -715,6 +715,7 @@ const adminPages = [
   'admin-debug',
   'admin-partners',
   'admin-cashout-requests',
+  'admin-campaigns',
 ];
 
 adminPages.forEach(page => {
