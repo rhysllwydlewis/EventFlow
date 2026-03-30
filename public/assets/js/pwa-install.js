@@ -76,6 +76,9 @@
     const style = document.createElement('style');
     style.id = 'ef-pwa-install-styles';
     style.textContent = `
+      :root {
+        --ef-pwa-banner-height: 80px;
+      }
       #ef-pwa-install-banner {
         position: fixed;
         bottom: 1rem;
@@ -148,7 +151,7 @@
       }
       @media (min-width: 769px) {
         body.ef-pwa-banner-visible {
-          padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+          padding-bottom: calc(var(--ef-pwa-banner-height) + env(safe-area-inset-bottom, 0px));
         }
       }
       @media (prefers-reduced-motion: reduce) {

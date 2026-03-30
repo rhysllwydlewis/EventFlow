@@ -1553,11 +1553,6 @@ h4 {
   #ef-pwa-install-banner {
     display: none !important;
   }
-
-  /* No body padding needed on mobile since banner is hidden */
-  body.ef-pwa-banner-visible {
-    padding-bottom: 0;
-  }
 }
 
 /* Keyboard-open state: hide banner to avoid overlapping the soft keyboard */
