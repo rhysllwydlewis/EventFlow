@@ -76,6 +76,9 @@
     const style = document.createElement('style');
     style.id = 'ef-pwa-install-styles';
     style.textContent = `
+      :root {
+        --ef-pwa-banner-height: 80px;
+      }
       #ef-pwa-install-banner {
         position: fixed;
         bottom: 1rem;
@@ -122,6 +125,7 @@
         font-size: 0.85rem;
         white-space: nowrap;
         flex-shrink: 0;
+        transition: background 0.15s ease;
       }
       #ef-pwa-install-banner .ef-pwa-install-btn:hover {
         background: #e6f4f2;
@@ -135,9 +139,29 @@
         padding: 0 0.25rem;
         flex-shrink: 0;
         line-height: 1;
+        transition: color 0.15s ease;
       }
       #ef-pwa-install-banner .ef-pwa-dismiss-btn:hover {
         color: #fff;
+      }
+      @media (max-width: 768px) {
+        #ef-pwa-install-banner {
+          display: none !important;
+        }
+      }
+      @media (min-width: 769px) {
+        body.ef-pwa-banner-visible {
+          padding-bottom: calc(var(--ef-pwa-banner-height) + env(safe-area-inset-bottom, 0px));
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #ef-pwa-install-banner {
+          animation: none;
+        }
+        #ef-pwa-install-banner .ef-pwa-install-btn,
+        #ef-pwa-install-banner .ef-pwa-dismiss-btn {
+          transition: none;
+        }
       }
     `;
     document.head.appendChild(style);
@@ -147,7 +171,7 @@
     injectStyles();
     const banner = document.createElement('div');
     banner.id = BANNER_ID;
-    banner.setAttribute('role', 'banner');
+    banner.setAttribute('role', 'region');
     banner.setAttribute('aria-label', 'Install EventFlow app');
     banner.innerHTML = `
       <span class="ef-pwa-icon" aria-hidden="true">📲</span>
@@ -197,6 +221,8 @@
             if (choiceResult.outcome === 'accepted') {
               markDismissed();
             }
+            deferredPrompt = null;
+          }).catch(() => {
             deferredPrompt = null;
           });
         }
