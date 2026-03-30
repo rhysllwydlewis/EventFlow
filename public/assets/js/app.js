@@ -5672,8 +5672,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Don't redirect - fall through to show verification message
                 if (regStatus) {
                   regStatus.innerHTML =
-                    'Account created. Check your email to verify your account, then you can sign in. ' +
-                    '<button type="button" id="resend-verify-btn" class="link-button" style="text-decoration:underline;margin-left:4px;">Resend email</button>';
+                    '<span>Account created! Check your email to verify your account, then you can sign in.</span>' +
+                    '<button type="button" id="resend-verify-btn" class="btn btn-primary btn-sm" style="margin-top:10px;">Resend email</button>';
 
                   // Add resend handler
                   const resendBtn = document.getElementById('resend-verify-btn');
@@ -5710,8 +5710,8 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
               if (regStatus) {
                 regStatus.innerHTML =
-                  'Account created. Check your email to verify your account, then you can sign in. ' +
-                  '<button type="button" id="resend-verify-btn" class="link-button" style="text-decoration:underline;margin-left:4px;">Resend email</button>';
+                  '<span>Account created! Check your email to verify your account, then you can sign in.</span>' +
+                  '<button type="button" id="resend-verify-btn" class="btn btn-primary btn-sm" style="margin-top:10px;">Resend email</button>';
 
                 // Add resend handler
                 const resendBtn = document.getElementById('resend-verify-btn');
