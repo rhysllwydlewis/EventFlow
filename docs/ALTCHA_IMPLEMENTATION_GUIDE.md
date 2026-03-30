@@ -252,3 +252,76 @@ directives for CDN fallback, but the self-hosted bundle will be used in normal o
 ## Lead Scoring
 
 Lead scoring uses the generic `captchaPassed` boolean field — no changes required. The ALTCHA verification result correctly sets `captchaPassed: true/false` in enquiry data.
+
+---
+
+## DevTools Verification Checklist
+
+Use the following steps to confirm that `captchaToken` is included in the
+`POST /api/v1/auth/register` payload in any environment.
+
+### 1. Open DevTools Network tab
+
+1. Go to `https://event-flow.co.uk/auth` (or your local server) and open DevTools
+   (`F12` / `Cmd+Opt+I`).
+2. Select the **Network** tab and filter by **Fetch/XHR**.
+
+### 2. Complete the ALTCHA widget
+
+Fill in the registration form and wait for the ALTCHA widget to show **"Verified"**.
+
+Confirm the payload is captured by running in the **Console**:
+
+```js
+window.__altchaRegPayload   // should be a non-empty base64 string
+```
+
+```js
+document.getElementById('reg-altcha-widget')?.value   // same value, alternative read
+```
+
+If either of these is `null` or `undefined` after "Verified" appears, the
+`statechange` listener in `auth-altcha-init.js` is not firing correctly.
+
+### 3. Submit the form and inspect the request
+
+Click **Create account** and then in the Network tab click the `register` request.
+
+Under the **Payload** / **Request Body** tab you should see:
+
+```json
+{
+  "firstName": "...",
+  "lastName": "...",
+  "email": "...",
+  "password": "...",
+  "captchaToken": "<non-empty base64 string>",
+  ...
+}
+```
+
+✅ **Pass** — `captchaToken` is present and non-empty.  
+❌ **Fail** — `captchaToken` is absent or empty → the frontend ALTCHA wiring is broken.
+
+### 4. Confirm the backend accepted the payload
+
+The response status should be **201 Created**. A **400** response with
+`{"error":"No ALTCHA payload provided"}` means `captchaToken` was either absent
+or could not be verified.
+
+### 5. Automated regression check
+
+The Playwright E2E suite (`e2e/auth.spec.js`, `ALTCHA Registration Payload` describe
+block) runs three tests that cover this flow automatically:
+
+| Test | What it checks |
+|---|---|
+| `registration request includes captchaToken …` | Outgoing payload has a non-empty `captchaToken` field |
+| `registration request does NOT produce "No ALTCHA payload provided"` | Payload is valid; backend mock returns 201, not 400 |
+| `registration form is blocked when ALTCHA widget is present but not yet verified` | Guard prevents submission and shows an inline error message |
+
+Run locally with:
+
+```bash
+npx playwright test e2e/auth.spec.js --grep "ALTCHA"
+```
