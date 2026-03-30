@@ -305,3 +305,180 @@ test.describe('Authentication Flow', () => {
     expect(forgotBox.y).toBeGreaterThan(inputBox.y + inputBox.height - 2);
   });
 });
+
+test.describe('ALTCHA Registration Payload', () => {
+  /**
+   * Simulate a verified ALTCHA widget so we can test payload wiring without
+   * actually solving a proof-of-work challenge.
+   */
+  async function simulateAltchaVerified(page, token = 'test-altcha-token') {
+    await page.evaluate(t => {
+      window.__altchaRegPayload = t;
+      // Belt-and-braces: also override .value on the widget element if it exists.
+      // Object.defineProperty may fail if the property is already non-configurable on a
+      // fully-initialised custom element — that's intentional and safe to ignore here
+      // because the __altchaRegPayload global is the primary token source.
+      const widget = document.getElementById('reg-altcha-widget');
+      if (widget) {
+        try {
+          Object.defineProperty(widget, 'value', { get: () => t, configurable: true });
+        } catch (_) {
+          // Property not configurable — __altchaRegPayload global is sufficient
+        }
+      }
+    }, token);
+  }
+
+  /**
+   * Fill all required registration fields so form validation passes and the
+   * submission handler reaches the ALTCHA check.
+   */
+  async function fillRequiredFields(page) {
+    await page.fill('#reg-firstname', 'Test');
+    await page.fill('#reg-lastname', 'User');
+    await page.fill('#reg-email', `altcha-test-${Date.now()}@example.com`);
+    await page.fill('#reg-password', 'TestPass123');
+    await page.fill('#reg-password-confirm', 'TestPass123');
+    // Location is required — select any valid UK county.
+    await page.selectOption('#reg-location', 'Greater London');
+    // Terms checkbox is required before the handler proceeds.
+    const termsCheckbox = page.locator('#reg-terms');
+    if ((await termsCheckbox.count()) > 0) {
+      await termsCheckbox.check();
+    }
+  }
+
+  test('registration request includes captchaToken when ALTCHA widget is verified', async ({
+    page,
+  }) => {
+    // Capture the outgoing register request body.
+    let capturedBody = null;
+    await page.route('**/api/v1/auth/register', async route => {
+      const request = route.request();
+      try {
+        capturedBody = JSON.parse(request.postData() || '{}');
+      } catch (_) {
+        // postData not valid JSON — fall back to empty object so assertions produce a clear failure
+        capturedBody = {};
+      }
+      // Return a mock success so the test does not depend on a live backend.
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true }),
+      });
+    });
+
+    await page.goto('/auth.html');
+    await page.waitForLoadState('networkidle');
+
+    // Switch to the registration tab.
+    await page.click('#tab-create');
+    await page.waitForSelector('#panel-create', { state: 'visible' });
+
+    await fillRequiredFields(page);
+
+    // Simulate the ALTCHA widget being verified.
+    await simulateAltchaVerified(page);
+
+    // Wait for the outgoing request while clicking submit.
+    const registerRequestPromise = page.waitForRequest('**/api/v1/auth/register');
+    await page.click('#register-form button[type="submit"]');
+    await registerRequestPromise;
+
+    // The outgoing payload MUST include captchaToken.
+    expect(capturedBody).not.toBeNull();
+    expect(capturedBody).toHaveProperty('captchaToken');
+    expect(capturedBody.captchaToken).toBe('test-altcha-token');
+  });
+
+  test('registration request does NOT produce "No ALTCHA payload provided" error', async ({
+    page,
+  }) => {
+    // Return 400 only when captchaToken is absent so the test detects the regression.
+    let altchaErrorSeen = false;
+    await page.route('**/api/v1/auth/register', async route => {
+      const request = route.request();
+      let body = {};
+      try {
+        body = JSON.parse(request.postData() || '{}');
+      } catch (_) {
+        // postData not valid JSON — treat as empty body (captchaToken will be absent)
+      }
+
+      if (!body.captchaToken) {
+        altchaErrorSeen = true;
+        await route.fulfill({
+          status: 400,
+          contentType: 'application/json',
+          body: JSON.stringify({ error: 'No ALTCHA payload provided' }),
+        });
+      } else {
+        await route.fulfill({
+          status: 201,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true }),
+        });
+      }
+    });
+
+    await page.goto('/auth.html');
+    await page.waitForLoadState('networkidle');
+
+    await page.click('#tab-create');
+    await page.waitForSelector('#panel-create', { state: 'visible' });
+
+    await fillRequiredFields(page);
+
+    // Simulate verified ALTCHA before submitting.
+    await simulateAltchaVerified(page);
+
+    const registerResponsePromise = page.waitForResponse('**/api/v1/auth/register');
+    await page.click('#register-form button[type="submit"]');
+    await registerResponsePromise;
+
+    expect(altchaErrorSeen).toBe(false);
+  });
+
+  test('registration form is blocked when ALTCHA widget is present but not yet verified', async ({
+    page,
+  }) => {
+    // Capture any request to the register endpoint.
+    let requestFired = false;
+    await page.route('**/api/v1/auth/register', async route => {
+      requestFired = true;
+      await route.fulfill({
+        status: 201,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true }),
+      });
+    });
+
+    await page.goto('/auth.html');
+    await page.waitForLoadState('networkidle');
+
+    await page.click('#tab-create');
+    await page.waitForSelector('#panel-create', { state: 'visible' });
+
+    // Fill all required fields so the handler reaches the ALTCHA check.
+    await fillRequiredFields(page);
+
+    // Explicitly leave ALTCHA unverified (clear any global that may have been set).
+    await page.evaluate(() => {
+      window.__altchaRegPayload = null;
+    });
+
+    await page.click('#register-form button[type="submit"]');
+
+    // Wait for the inline status/error message to appear.
+    const statusEl = page.locator('#reg-status');
+    await expect(statusEl).not.toBeEmpty({ timeout: 5000 });
+
+    // The request should NOT have been sent because the ALTCHA guard blocks it.
+    expect(requestFired).toBe(false);
+
+    // The message must relate to the ALTCHA verification challenge.
+    const statusText = await statusEl.textContent();
+    expect(statusText).toMatch(/verification|challenge/i);
+  });
+});

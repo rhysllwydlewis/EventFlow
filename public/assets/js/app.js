@@ -5532,6 +5532,7 @@ document.addEventListener('DOMContentLoaded', () => {
           // Include ALTCHA payload if the widget is present in the form.
           // Priority order: statechange-captured global → Shadow DOM hidden input → .value property.
           const altchaWidget = document.getElementById('reg-altcha-widget');
+          const altchaContainer = document.getElementById('reg-altcha-container');
           if (altchaWidget) {
             let captchaToken = window.__altchaRegPayload || null;
             if (!captchaToken) {
@@ -5569,6 +5570,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (regStatus) {
               regStatus.textContent =
                 'Verification is unavailable. Please refresh the page and try again.';
+            }
+            if (regBtn) {
+              regBtn.disabled = false;
+              regBtn.textContent = 'Create account';
+            }
+            return;
+          } else if (altchaContainer) {
+            // Container exists but widget element isn't in DOM yet (still loading).
+            // Block submission to prevent a guaranteed 400 from the backend.
+            if (regStatus) {
+              regStatus.textContent =
+                'Please wait for the verification to load and complete the challenge.';
             }
             if (regBtn) {
               regBtn.disabled = false;
