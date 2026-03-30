@@ -282,13 +282,20 @@ router.post(
             price_data: {
               currency: currency,
               product_data: {
-                name: 'EventFlow Payment',
+                name: planName || 'EventFlow Payment',
               },
               unit_amount: amount,
             },
             quantity: 1,
           },
         ];
+
+        // Store planName in session metadata so the checkout.session.completed
+        // webhook can use it for notifications.  Subscriptions do the same thing
+        // at the end of the else-block below (line ~327).
+        if (planName) {
+          sessionConfig.metadata.planName = planName;
+        }
       } else {
         // Subscription
         const effectivePriceId = useIntroPricing ? STRIPE_PRO_PRICE_ID : priceId;
@@ -599,7 +606,7 @@ async function handleCheckoutCompleted(session) {
         typeof session.amount_total === 'number' && session.amount_total > 0
           ? session.amount_total / 100
           : payment.amount;
-      const description = payment.metadata?.planName || payment.type || 'service';
+      const description = payment.metadata?.planName || 'EventFlow service';
       notifSvc.notifyPayment(userId, chargedAmount, description).catch(err => {
         logger.error('Failed to send payment notification:', err);
       });
@@ -781,6 +788,27 @@ async function handleSubscriptionDeleted(subscription) {
   }
 
   logger.info(`Subscription ${subscription.id} deleted for user ${userId}`);
+
+  // Notify the user their Pro subscription has ended (fire-and-forget)
+  getNotificationService()
+    .then(notifSvc => {
+      if (!notifSvc) {
+        return;
+      }
+      notifSvc
+        .notifySystem(
+          userId,
+          'Subscription Ended',
+          'Your EventFlow Pro subscription has ended. Visit billing to resubscribe.',
+          '/settings/billing'
+        )
+        .catch(err => {
+          logger.error('Failed to send subscription cancellation notification:', err);
+        });
+    })
+    .catch(err => {
+      logger.warn('Could not send subscription cancellation notification:', err.message);
+    });
 }
 
 /**
@@ -833,6 +861,29 @@ async function handlePaymentFailed(paymentIntent) {
   });
 
   logger.info(`Payment intent ${paymentIntent.id} failed`);
+
+  // Notify the user their payment failed (fire-and-forget)
+  getNotificationService()
+    .then(notifSvc => {
+      if (!notifSvc) {
+        return;
+      }
+      const reason =
+        paymentIntent.last_payment_error?.message || 'Please check your payment details.';
+      notifSvc
+        .notifySystem(
+          payment.userId,
+          'Payment Failed',
+          `Your payment could not be processed. ${reason}`,
+          '/settings/billing'
+        )
+        .catch(err => {
+          logger.error('Failed to send payment failure notification:', err);
+        });
+    })
+    .catch(err => {
+      logger.warn('Could not send payment failure notification:', err.message);
+    });
 }
 
 /**

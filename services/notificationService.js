@@ -28,8 +28,18 @@ class NotificationService extends CanonicalNotificationService {
    * Send a notification to a user.
    * Compatibility shim for websocket-server-v2.js — delegates to `create()`.
    *
+   * Field mapping from the legacy interface to the canonical one:
+   *   notification.type    → type    (defaults to 'system')
+   *   notification.title   → title   (defaults to 'Notification')
+   *   notification.message → message (defaults to '')
+   *   notification.data    → metadata (the legacy property name was `data`)
+   *
    * @param {string} userId - Recipient user ID
-   * @param {Object} notification - Notification data
+   * @param {Object} notification - Notification data (legacy shape)
+   * @param {string} [notification.type] - Notification type
+   * @param {string} [notification.title] - Notification title
+   * @param {string} [notification.message] - Notification body
+   * @param {Object} [notification.data] - Arbitrary metadata (mapped to `metadata`)
    * @returns {Promise<Object>} Created notification
    */
   async sendNotification(userId, notification) {
