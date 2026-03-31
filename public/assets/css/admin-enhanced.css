@@ -3695,17 +3695,31 @@ tbody tr.selected td {
 }
 
 /* Status feedback */
+/*
+ * Status area: pre-allocate a minimum height so the send-row above it does not
+ * jump when a success/error message appears. Use opacity transition for a
+ * smooth fade-in rather than a hard display toggle.
+ */
 .campaigns-status {
   margin-top: 14px;
   font-size: 14px;
-  min-height: 0;
+  min-height: 20px;
   border-radius: 8px;
-  transition: opacity 0.2s, background 0.2s;
+  opacity: 0;
+  transition: opacity 0.25s ease, background 0.2s;
   word-break: break-word;
 }
 
+/* Empty state: invisible but still occupies the reserved min-height */
 .campaigns-status:empty {
-  display: none;
+  pointer-events: none;
+  border: none;
+  background: transparent;
+}
+
+.campaigns-status--success,
+.campaigns-status--error {
+  opacity: 1;
 }
 
 .campaigns-status--success {

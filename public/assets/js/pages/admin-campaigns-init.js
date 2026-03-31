@@ -277,9 +277,11 @@
         'We have exciting news to share with you. Stay tuned for updates on new events and features coming to EventFlow.';
     }
 
-    // Load recipient count immediately; delay initial preview until CSRF token is
-    // available to avoid a spurious 403 (the CSRF fetch is async and may not have
-    // completed by the time DOMContentLoaded fires).
+    // Load recipient count immediately; delay initial preview until the CSRF
+    // token fetch has resolved. Although the preview endpoint itself does not
+    // require CSRF, ensuring the token is available before the first network
+    // request means subsequent state-changing calls (/test, /send) can fire
+    // immediately without waiting for a token round-trip.
     loadRecipientCount();
     if (window.__CSRF_TOKEN__) {
       refreshPreview();
