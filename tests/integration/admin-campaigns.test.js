@@ -4,7 +4,7 @@
  * Verifies:
  *   - Route structure (all three endpoints exist in admin-campaigns.js)
  *   - Auth required on every endpoint
- *   - CSRF protection on every endpoint
+ *   - CSRF protection on /test and /send (state-changing); /preview intentionally has none
  *   - Happy-path response shape
  *   - EMAIL_ENABLED guard on test/send endpoints
  */
@@ -96,10 +96,19 @@ describe('Admin Campaigns — Auth Enforcement', () => {
 });
 
 describe('Admin Campaigns — CSRF Enforcement', () => {
-  it('preview has csrfProtection', () => {
+  it('preview does NOT have csrfProtection (intentional: preview is idempotent/read-only)', () => {
+    // preview is a read-only operation that renders a template without persisting state.
+    // Removing CSRF here allows the auto-refresh on page load to work correctly
+    // (the CSRF token fetch is async and may not complete before the initial request fires).
     const idx = content.indexOf("'/preview'");
     const block = content.substring(idx, idx + 300);
-    expect(block).toContain('csrfProtection');
+    expect(block).not.toContain('csrfProtection');
+  });
+
+  it('preview still requires authRequired (not publicly accessible)', () => {
+    const idx = content.indexOf("'/preview'");
+    const block = content.substring(idx, idx + 300);
+    expect(block).toContain('authRequired');
   });
 
   it('test has csrfProtection', () => {
@@ -112,6 +121,28 @@ describe('Admin Campaigns — CSRF Enforcement', () => {
     const idx = content.indexOf("'/send'");
     const block = content.substring(idx, idx + 300);
     expect(block).toContain('csrfProtection');
+  });
+});
+
+// ── Email validation & message stream ────────────────────────────────────────
+
+describe('Admin Campaigns — Email validation & message stream', () => {
+  it('test endpoint validates email format (422 for invalid)', () => {
+    expect(content).toContain('emailRegex');
+    expect(content).toContain('422');
+  });
+
+  it('uses CAMPAIGN_MESSAGE_STREAM constant (not hardcoded broadcasts)', () => {
+    expect(content).toContain('CAMPAIGN_MESSAGE_STREAM');
+    // Hardcoded 'broadcasts' stream was replaced by the configurable constant
+    const testIdx = content.indexOf("'/test'");
+    const sendIdx = content.indexOf("module.exports");
+    const body = content.substring(testIdx, sendIdx);
+    expect(body).not.toContain("messageStream: 'broadcasts'");
+  });
+
+  it('CAMPAIGN_MESSAGE_STREAM defaults to outbound', () => {
+    expect(content).toContain("process.env.CAMPAIGN_MESSAGE_STREAM || 'outbound'");
   });
 });
 

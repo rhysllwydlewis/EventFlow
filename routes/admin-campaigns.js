@@ -10,7 +10,8 @@
  *   POST /campaigns/send     – send campaign to all opted-in recipients in batches
  *
  * Auth:  authRequired + roleRequired('admin') on every route
- * CSRF:  csrfProtection on every state-changing POST
+ * CSRF:  csrfProtection on /test and /send (state-changing POSTs).
+ *        /preview has no CSRF protection because it is idempotent (no side-effects).
  */
 
 'use strict';
@@ -30,6 +31,14 @@ const { EMAIL_ENABLED } = require('../config/email');
 const APP_BASE_URL = process.env.APP_BASE_URL || process.env.BASE_URL || 'http://localhost:3000';
 
 const DEFAULT_RECIPIENT_NAME = 'Subscriber';
+
+/**
+ * Postmark message stream used for campaign emails.
+ * Use 'outbound' (always available) unless a dedicated broadcasts stream is configured.
+ * Override via CAMPAIGN_MESSAGE_STREAM env var (e.g. 'broadcasts') if your Postmark
+ * account has a custom marketing stream set up.
+ */
+const CAMPAIGN_MESSAGE_STREAM = process.env.CAMPAIGN_MESSAGE_STREAM || 'outbound';
 
 /**
  * Build a personalised unsubscribe link for a recipient email address.
@@ -153,8 +162,10 @@ router.get('/recipient-count', authRequired, roleRequired('admin'), async (req, 
 });
 
 // ── POST /campaigns/preview ────────────────────────────────────────────────────
+// No csrfProtection: preview is idempotent (renders template, no side-effects).
+// It still requires authRequired + roleRequired('admin') to prevent unauthenticated access.
 
-router.post('/preview', authRequired, roleRequired('admin'), csrfProtection, async (req, res) => {
+router.post('/preview', authRequired, roleRequired('admin'), async (req, res) => {
   try {
     const { templateName = 'marketing', subject, title, bodyHtml, ctaText, ctaUrl } = req.body;
 
@@ -202,6 +213,14 @@ router.post(
         return res.status(400).json({ ok: false, error: 'Missing required field: to' });
       }
 
+      // Basic email format validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(to.trim())) {
+        return res
+          .status(422)
+          .json({ ok: false, error: `Invalid email address: ${to}` });
+      }
+
       const templateData = buildTemplateData({
         title,
         bodyHtml,
@@ -209,21 +228,21 @@ router.post(
         ctaUrl,
         name: 'Test Recipient',
       });
-      templateData.unsubscribeLink = buildUnsubscribeLink(to);
+      templateData.unsubscribeLink = buildUnsubscribeLink(to.trim());
 
       await postmark.sendMail({
-        to,
+        to: to.trim(),
         subject: `[TEST] ${subject}`,
         template: templateName,
         templateData,
-        messageStream: 'broadcasts',
+        messageStream: CAMPAIGN_MESSAGE_STREAM,
         tags: ['campaign-test'],
       });
 
       logger.info(`[campaigns/test] Test sent to ${to}`);
       return res.json({ ok: true, message: `Test email sent to ${to}.` });
     } catch (err) {
-      logger.error('[campaigns/test] Error:', err.message);
+      logger.error('[campaigns/test] Error:', { message: err.message, to: req.body?.to });
       return res
         .status(500)
         .json({ ok: false, error: err.message || 'Failed to send test email.' });
@@ -298,7 +317,7 @@ router.post(
                 subject,
                 template: templateName,
                 templateData,
-                messageStream: 'broadcasts',
+                messageStream: CAMPAIGN_MESSAGE_STREAM,
                 tags: ['campaign'],
               });
               sent++;

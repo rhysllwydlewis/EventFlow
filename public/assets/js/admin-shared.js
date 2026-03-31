@@ -229,9 +229,9 @@ const AdminShared = (function () {
         } else if (response.status === 403) {
           errorMessage = 'Access denied. You do not have permission to perform this action.';
         } else if (response.status === 500) {
-          errorMessage = 'Server error. Please try again later.';
+          errorMessage = data.error || 'Server error. Please try again later.';
         } else if (response.status === 503) {
-          errorMessage = 'Service temporarily unavailable. The database may be connecting.';
+          errorMessage = data.error || 'Service temporarily unavailable. Please try again later.';
         }
 
         throw new Error(errorMessage);

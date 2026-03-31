@@ -114,9 +114,15 @@
 
   // ── Test send ─────────────────────────────────────────────────────────────
   async function handleTestSend() {
-    const to = testEmailEl.value.trim();
+    const to = testEmailEl ? testEmailEl.value.trim() : '';
     if (!to) {
       setStatus('Please enter a test email address.', 'error');
+      return;
+    }
+
+    // Basic client-side email format check
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) {
+      setStatus('Please enter a valid email address.', 'error');
       return;
     }
 
@@ -137,7 +143,8 @@
       });
       setStatus(`✓ Test email sent to ${to}.`, 'success');
     } catch (err) {
-      setStatus(err.message || 'Test send failed.', 'error');
+      const msg = err && err.message ? err.message : 'Test send failed. Please try again.';
+      setStatus(msg, 'error');
     } finally {
       testBtn.disabled = false;
       testBtn.textContent = 'Send test';
@@ -185,7 +192,8 @@
         'success'
       );
     } catch (err) {
-      setStatus(err.message || 'Campaign send failed.', 'error');
+      const msg = err && err.message ? err.message : 'Campaign send failed. Please try again.';
+      setStatus(msg, 'error');
     } finally {
       sendBtn.disabled = false;
       sendBtn.textContent = '📣 Send campaign';
@@ -232,12 +240,22 @@
     }
 
     // Initial default content and preview
-    titleEl.value = 'Welcome to EventFlow';
-    messageEl.value =
-      'We have exciting news to share with you. Stay tuned for updates on new events and features coming to EventFlow.';
+    if (titleEl) {
+      titleEl.value = 'Welcome to EventFlow';
+    }
+    if (messageEl) {
+      messageEl.value =
+        'We have exciting news to share with you. Stay tuned for updates on new events and features coming to EventFlow.';
+    }
 
-    // Load recipient count and initial preview in parallel
+    // Load recipient count immediately; delay initial preview until CSRF token is
+    // available to avoid a spurious 403 (the CSRF fetch is async and may not have
+    // completed by the time DOMContentLoaded fires).
     loadRecipientCount();
-    refreshPreview();
+    if (window.__CSRF_TOKEN__) {
+      refreshPreview();
+    } else {
+      AdminShared.fetchCSRFToken().then(refreshPreview).catch(refreshPreview);
+    }
   });
 })();

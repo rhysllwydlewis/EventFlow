@@ -792,18 +792,27 @@ Unsubscribed / suppressed addresses (`emailUnsubscribed=true` or newsletter `sta
 
 ### Required environment variables
 
-| Variable             | Purpose                                     |
-| -------------------- | ------------------------------------------- |
-| `EMAIL_ENABLED=true` | Must be set to `true` for test/send to work |
-| `POSTMARK_API_KEY`   | Postmark server API key                     |
-| `POSTMARK_FROM`      | Verified sender address in Postmark         |
+| Variable                    | Purpose                                                     |
+| --------------------------- | ----------------------------------------------------------- |
+| `EMAIL_ENABLED=true`        | Must be set to `true` for test/send to work                 |
+| `POSTMARK_API_KEY`          | Postmark server API key                                     |
+| `POSTMARK_FROM`             | Verified sender address in Postmark                         |
+| `CAMPAIGN_MESSAGE_STREAM`   | Postmark message stream (default: `outbound`)               |
 
 Preview always works even when `EMAIL_ENABLED` is false. Test and Send return **503** when email is disabled.
 
-### API endpoints (admin-only, CSRF-protected)
+> **Note on `CAMPAIGN_MESSAGE_STREAM`:** The default value `outbound` works on every Postmark
+> account out of the box. Set it to `broadcasts` only if you have created a dedicated
+> "Broadcasts" message stream in your Postmark dashboard (Server → Message Streams → New Stream).
+> Using `broadcasts` without creating the stream first causes a **500** error when sending.
 
-| Method | Path                           | Description                      |
-| ------ | ------------------------------ | -------------------------------- |
-| POST   | `/api/admin/campaigns/preview` | Render template → `{ ok, html }` |
-| POST   | `/api/admin/campaigns/test`    | Send test email to one address   |
-| POST   | `/api/admin/campaigns/send`    | Broadcast to opted-in recipients |
+### API endpoints (admin-only, auth-protected)
+
+| Method | Path                           | CSRF? | Description                      |
+| ------ | ------------------------------ | ----- | -------------------------------- |
+| POST   | `/api/admin/campaigns/preview` | No    | Render template → `{ ok, html }` |
+| POST   | `/api/admin/campaigns/test`    | Yes   | Send test email to one address   |
+| POST   | `/api/admin/campaigns/send`    | Yes   | Broadcast to opted-in recipients |
+
+> **Note on preview CSRF:** The preview endpoint is idempotent (no state changes) so CSRF
+> protection is intentionally omitted to allow the auto-refresh to work correctly on page load.
