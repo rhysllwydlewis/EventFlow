@@ -227,20 +227,19 @@ router.post(
 
     // Check subscription and get package limit
     const subscriptionService = require('../services/subscriptionService');
-    const subscription = await subscriptionService.getSubscriptionByUserId(req.user.id);
     const features = await subscriptionService.getUserFeatures(req.user.id);
     const packageLimit = features.features.maxPackages;
 
-    // Count existing packages for this supplier
+    // Count existing ACTIVE packages for this supplier (paused !== true)
     const allPkgs = await dbUnified.read('packages');
     const existingForSupplier = allPkgs.filter(p => p.supplierId === supplierId);
-    const existingCount = existingForSupplier.length;
+    const activeCount = existingForSupplier.filter(p => p.paused !== true).length;
 
-    // Check if limit is reached (packageLimit = -1 means unlimited)
-    if (packageLimit !== -1 && existingCount >= packageLimit) {
+    // Check if active limit is reached (packageLimit = -1 means unlimited)
+    if (packageLimit !== -1 && activeCount >= packageLimit) {
       return res.status(403).json({
-        error: `Your ${subscription?.plan || 'free'} plan allows up to ${packageLimit} packages. Upgrade to create more.`,
-        currentCount: existingCount,
+        error: `Your ${features.name} plan allows up to ${packageLimit} active packages. Upgrade your plan to create more.`,
+        activeCount,
         limit: packageLimit,
         upgradeUrl: '/supplier/subscription.html',
       });
@@ -541,6 +540,29 @@ router.put(
         return;
       }
       const { pkg } = result;
+
+      // Enforce active package limit before unpausing
+      const subscriptionService = require('../services/subscriptionService');
+      const features = await subscriptionService.getUserFeatures(req.user.id);
+      const packageLimit = features.features.maxPackages;
+
+      if (packageLimit !== -1) {
+        // Count currently active packages for this supplier (excluding the one being unpaused)
+        const allPkgs = await dbUnified.read('packages');
+        const supplierPkgs = allPkgs.filter(p => p.supplierId === pkg.supplierId);
+        const activeCount = supplierPkgs.filter(p => p.paused !== true && p.id !== pkg.id).length;
+
+        if (activeCount >= packageLimit) {
+          const planName = features.name || 'current';
+          return res.status(403).json({
+            error: `Your ${planName} plan allows up to ${packageLimit} active packages. Pause another package to activate this one, or upgrade your plan.`,
+            limit: packageLimit,
+            activeCount,
+            upgradeUrl: '/supplier/subscription.html',
+          });
+        }
+      }
+
       const updatedAt = Date.now();
       await dbUnified.updateOne('packages', { id: pkg.id }, { $set: { paused: false, updatedAt } });
       suppliersRouter.invalidatePackageCaches();

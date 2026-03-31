@@ -273,4 +273,39 @@ describe('Supplier Packages — Pause/Unpause Routes', () => {
     expect(block).toContain('ok: true');
     expect(block).toContain('package:');
   });
+
+  it('PUT /me/packages/:id/unpause enforces active package limit via subscriptionService', () => {
+    const block = extractRouteBlock('put', '/me/packages/:id/unpause');
+    expect(block).toContain('subscriptionService');
+    expect(block).toContain('getUserFeatures');
+    expect(block).toContain('packageLimit');
+  });
+
+  it('PUT /me/packages/:id/unpause returns 403 when at active limit', () => {
+    const block = extractRouteBlock('put', '/me/packages/:id/unpause');
+    expect(block).toContain('res.status(403)');
+    expect(block).toContain('activeCount');
+    expect(block).toContain('upgradeUrl');
+  });
+});
+
+describe('Supplier Packages — POST /me/packages active-limit enforcement', () => {
+  it('POST /me/packages counts only active (non-paused) packages against the limit', () => {
+    const postStart = routesContent.indexOf("router.post(\n  '/me/packages'");
+    const postBlock = routesContent.substring(
+      postStart,
+      routesContent.indexOf('\nrouter.', postStart + 1)
+    );
+    expect(postBlock).toContain('paused !== true');
+    expect(postBlock).toContain('activeCount');
+  });
+
+  it('POST /me/packages error message references "active packages"', () => {
+    const postStart = routesContent.indexOf("router.post(\n  '/me/packages'");
+    const postBlock = routesContent.substring(
+      postStart,
+      routesContent.indexOf('\nrouter.', postStart + 1)
+    );
+    expect(postBlock).toContain('active packages');
+  });
 });

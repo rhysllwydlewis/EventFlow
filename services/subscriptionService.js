@@ -359,6 +359,8 @@ async function downgradeSubscription(subscriptionId, newPlan) {
  * Apply a pending plan change when the current billing period ends.
  * Called by the Stripe webhook when a renewal/deletion event confirms the
  * period has ended and the scheduled downgrade should take effect.
+ * Automatically pauses overflow active packages when the new plan has a
+ * lower maxPackages limit.
  *
  * @param {string} subscriptionId - Subscription ID
  * @returns {Promise<Object|null>} Updated subscription, or null if nothing to apply
@@ -370,11 +372,20 @@ async function applyPendingPlan(subscriptionId) {
     return null;
   }
 
-  return updateSubscription(subscriptionId, {
+  const updated = await updateSubscription(subscriptionId, {
     plan: subscription.pendingPlan,
     pendingPlan: null,
     cancelAtPeriodEnd: false,
   });
+
+  // Auto-pause overflow packages so active count stays within the new plan limit
+  try {
+    await enforceActivePackageLimit(subscription.userId);
+  } catch (err) {
+    logger.error('applyPendingPlan: enforceActivePackageLimit failed:', err);
+  }
+
+  return updated;
 }
 
 /**
@@ -403,7 +414,18 @@ async function cancelSubscription(subscriptionId, reason = null, immediately = f
     updates.cancelAtPeriodEnd = true;
   }
 
-  return updateSubscription(subscriptionId, updates);
+  const updated = await updateSubscription(subscriptionId, updates);
+
+  // When canceling immediately (plan drops to free), auto-pause overflow packages
+  if (immediately) {
+    try {
+      await enforceActivePackageLimit(subscription.userId);
+    } catch (err) {
+      logger.error('cancelSubscription: enforceActivePackageLimit failed:', err);
+    }
+  }
+
+  return updated;
 }
 
 /**
@@ -440,18 +462,105 @@ async function checkFeatureAccess(userId, feature) {
 }
 
 /**
- * Get features for user's subscription
+ * Get features for user's subscription.
+ * Respects subscription status and currentPeriodEnd so that expired,
+ * past_due, or canceled subscriptions do not grant Pro/Pro+ limits.
  * @param {string} userId - User ID
  * @returns {Promise<Object>} Feature configuration
  */
 async function getUserFeatures(userId) {
   const subscription = await getSubscriptionByUserId(userId);
 
-  if (!subscription) {
+  if (subscription) {
+    const { plan, status, currentPeriodEnd } = subscription;
+    const periodValid = !currentPeriodEnd || new Date(currentPeriodEnd) > new Date();
+    if ((status === 'active' || status === 'trialing') && periodValid) {
+      return getPlanFeatures(plan);
+    }
+    // Subscription exists but is expired/past_due/canceled — fall back to free
     return getPlanFeatures('free');
   }
 
-  return getPlanFeatures(subscription.plan);
+  // Fallback: check subscriptionTier on user record (set by Stripe webhook)
+  const users = await dbUnified.read('users');
+  const user = users.find(u => u.id === userId);
+  if (user?.subscriptionTier && user.subscriptionTier !== 'free') {
+    if (!user.proExpiresAt || new Date(user.proExpiresAt) > new Date()) {
+      return getPlanFeatures(user.subscriptionTier);
+    }
+  }
+
+  return getPlanFeatures('free');
+}
+
+/**
+ * Enforce the active package limit for a user after a plan change.
+ * If the user has more active packages than their tier allows, the oldest
+ * packages (by createdAt) are automatically paused until the active count
+ * is within the limit. The N most recently created packages remain active.
+ *
+ * "active" is defined as paused !== true.
+ *
+ * @param {string} userId - User ID
+ * @returns {Promise<string[]>} IDs of packages that were paused
+ */
+async function enforceActivePackageLimit(userId) {
+  const features = await getUserFeatures(userId);
+  const maxPackages = features.features.maxPackages;
+
+  // Unlimited plans (-1) never need enforcement
+  if (maxPackages === -1) {
+    return [];
+  }
+
+  // Find all suppliers owned by this user
+  const allSuppliers = await dbUnified.read('suppliers');
+  const supplierIds = allSuppliers.filter(s => s.ownerUserId === userId).map(s => s.id);
+
+  if (supplierIds.length === 0) {
+    return [];
+  }
+
+  // Gather all packages belonging to those suppliers
+  const allPkgs = await dbUnified.read('packages');
+  const userPkgs = allPkgs.filter(p => supplierIds.includes(p.supplierId));
+
+  // Split into active (paused !== true) and already-paused
+  const activePkgs = userPkgs.filter(p => p.paused !== true);
+
+  if (activePkgs.length <= maxPackages) {
+    return [];
+  }
+
+  // Sort active packages by createdAt ascending (oldest first) so we pause the oldest ones
+  const sorted = [...activePkgs].sort((a, b) => {
+    const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return aTime - bTime;
+  });
+
+  // Packages to pause = all but the last maxPackages (most recently created)
+  const toPause = sorted.slice(0, sorted.length - maxPackages);
+  const now = Date.now();
+  const pausedIds = [];
+
+  for (const pkg of toPause) {
+    await dbUnified.updateOne(
+      'packages',
+      { id: pkg.id },
+      { $set: { paused: true, updatedAt: now } }
+    );
+    pausedIds.push(pkg.id);
+  }
+
+  if (pausedIds.length > 0) {
+    logger.info(
+      `enforceActivePackageLimit: paused ${pausedIds.length} package(s) for user ${userId} ` +
+        `(plan limit: ${maxPackages} active)`
+    );
+  }
+
+  return pausedIds;
 }
 
 /**
@@ -570,6 +679,7 @@ module.exports = {
   cancelSubscription,
   checkFeatureAccess,
   getUserFeatures,
+  enforceActivePackageLimit,
   addBillingRecord,
   updateBillingDates,
   isInTrial,
