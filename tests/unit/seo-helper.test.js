@@ -5,6 +5,7 @@
  * already present in the supplied title string.
  */
 
+/* global document */
 'use strict';
 
 // Minimal DOM stub — Jest runs in Node (testEnvironment: 'node') so we mock
@@ -18,26 +19,35 @@ global.window = {
 };
 
 global.document = {
-  get title() { return _title; },
-  set title(v) { _title = v; },
-  querySelector: (sel) => {
+  get title() {
+    return _title;
+  },
+  set title(v) {
+    _title = v;
+  },
+  querySelector: sel => {
     // Return a minimal meta stub or null
-    const key = sel.replace(/^meta\[property="(.+)"\]$/, '$1')
-                   .replace(/^meta\[name="(.+)"\]$/, '$1')
-                   .replace(/^link\[rel="canonical"\]$/, '__canonical__');
+    const key = sel
+      .replace(/^meta\[property="(.+)"\]$/, '$1')
+      .replace(/^meta\[name="(.+)"\]$/, '$1')
+      .replace(/^link\[rel="canonical"\]$/, '__canonical__');
     return _metaStore[key] || null;
   },
-  createElement: (tag) => {
+  createElement: tag => {
     const el = { tagName: tag, _attrs: {}, textContent: '' };
-    el.setAttribute = (k, v) => { el._attrs[k] = v; };
-    el.getAttribute = (k) => el._attrs[k] || null;
+    el.setAttribute = (k, v) => {
+      el._attrs[k] = v;
+    };
+    el.getAttribute = k => el._attrs[k] || null;
     return el;
   },
   head: {
-    appendChild: (el) => {
+    appendChild: el => {
       // Track created meta tags by property/name
       const key = el._attrs && (el._attrs.property || el._attrs.name);
-      if (key) _metaStore[key] = el;
+      if (key) {
+        _metaStore[key] = el;
+      }
     },
   },
 };

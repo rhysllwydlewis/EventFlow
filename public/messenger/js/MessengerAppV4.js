@@ -10,20 +10,24 @@
 (function () {
   'use strict';
   function _handleImgError(e) {
-    var img = e.target;
-    if (!img || img.tagName !== 'IMG') return;
-    if (img.dataset.fallbackApplied) return;
+    const img = e.target;
+    if (!img || img.tagName !== 'IMG') {
+      return;
+    }
+    if (img.dataset.fallbackApplied) {
+      return;
+    }
     img.dataset.fallbackApplied = 'true';
     if (img.dataset.fallbackAction === 'attachment-error') {
       img.style.display = 'none';
       img.classList.add('messenger-v4__attachment-error');
       if (img.parentNode) {
-        var w = document.createElement('span');
+        const w = document.createElement('span');
         w.className = 'messenger-v4__attachment-error-label';
         w.title = 'Image unavailable';
-        var l = document.createElement('span');
+        const l = document.createElement('span');
         l.textContent = 'Image unavailable';
-        var h = document.createElement('span');
+        const h = document.createElement('span');
         h.className = 'messenger-v4__attachment-error-hint';
         h.textContent = 'The file may have been removed';
         w.appendChild(l);
@@ -32,7 +36,10 @@
       }
       return;
     }
-    if (img.dataset.fallbackSrc) { img.src = img.dataset.fallbackSrc; return; }
+    if (img.dataset.fallbackSrc) {
+      img.src = img.dataset.fallbackSrc;
+      return;
+    }
     if ('fallbackHide' in img.dataset) {
       img.style.display = 'none';
       if ('fallbackShowNext' in img.dataset && img.nextElementSibling) {
@@ -47,7 +54,7 @@
   }
 })();
 
-'use strict';
+('use strict');
 
 class MessengerAppV4 {
   constructor() {

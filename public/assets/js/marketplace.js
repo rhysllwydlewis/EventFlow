@@ -103,6 +103,7 @@
     const myListingsLink = document.getElementById('my-listings-link');
     const ctaSection = document.getElementById('marketplace-cta-section');
     const listBtn = document.getElementById('marketplace-list-btn');
+    const heroCreateBtn = document.getElementById('hero-create-listing-btn');
 
     if (currentUser) {
       // Hide entire CTA section for logged-in users
@@ -113,7 +114,7 @@
         authCta.style.display = 'none';
       }
       if (sellBtn) {
-        sellBtn.textContent = 'List an Item';
+        sellBtn.textContent = 'Create new listing';
         sellBtn.onclick = () => {
           window.location.href = '/supplier/marketplace-new-listing';
         };
@@ -123,6 +124,10 @@
       }
       if (listBtn) {
         listBtn.style.display = 'inline-flex';
+      }
+      // Logged-in: hero CTA goes directly to create listing
+      if (heroCreateBtn) {
+        heroCreateBtn.href = '/supplier/marketplace-new-listing';
       }
     } else {
       // Show CTA section for logged-out users
@@ -134,8 +139,7 @@
       }
       if (sellBtn) {
         sellBtn.onclick = () => {
-          showToast('Please log in to list items');
-          setTimeout(() => (window.location.href = '/auth'), 1500);
+          window.location.href = `/auth?redirect=${encodeURIComponent('/supplier/marketplace-new-listing')}`;
         };
       }
       if (myListingsLink) {
@@ -143,6 +147,10 @@
       }
       if (listBtn) {
         listBtn.style.display = 'none';
+      }
+      // Logged-out: hero CTA goes to auth with redirect back to create listing
+      if (heroCreateBtn) {
+        heroCreateBtn.href = `/auth?redirect=${encodeURIComponent('/supplier/marketplace-new-listing')}`;
       }
     }
   }
@@ -1325,10 +1333,22 @@
           useLocationBtn.disabled = false;
           showToast('Location detected');
         },
-        _error => {
-          showToast('Unable to get location', 'error');
+        error => {
           useLocationBtn.textContent = 'Use My Location';
           useLocationBtn.disabled = false;
+          if (error.code === error.PERMISSION_DENIED) {
+            showToast(
+              'Location access was denied. Please allow location access in your browser settings.',
+              'error'
+            );
+          } else if (error.code === error.POSITION_UNAVAILABLE) {
+            showToast(
+              'Location information is unavailable. Please enter your postcode manually.',
+              'error'
+            );
+          } else {
+            showToast('Unable to get location. Please enter your postcode manually.', 'error');
+          }
         }
       );
     });
