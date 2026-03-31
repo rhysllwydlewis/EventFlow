@@ -20,6 +20,7 @@
   <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.3.0">
   <link rel="icon" href="/favicon.svg">
+  <script src="/assets/js/admin-shared.js?v=18.3.0"></script>
   <script src="/assets/js/components.js?v=18.3.0" defer></script>
   <script src="/assets/js/admin-navbar.js?v=18.3.0" defer></script>
 </head>
@@ -28,7 +29,9 @@
 <!-- Navbar rendered dynamically by admin-navbar.js -->
 <div id="adminNavbarMount"></div>
 
-<main id="main-content" class="section">
+<main id="main-content" class="admin-main-content">
+
+  <!-- Page Header -->
   <div class="dashboard-header">
     <div class="header-content">
       <div>
@@ -36,87 +39,129 @@
         <p class="dashboard-subtitle">Compose a marketing email, preview it live, and send to opted-in recipients.</p>
       </div>
       <div class="header-actions">
-        <button class="btn-secondary" id="backToDashboard">← Back to Dashboard</button>
+        <a href="/admin" class="btn-secondary" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;">← Dashboard</a>
       </div>
     </div>
   </div>
 
-  <div class="container">
-    <div class="campaigns-layout">
+  <!-- Recipient count banner -->
+  <div class="campaigns-recipient-banner" id="recipientBanner" aria-live="polite">
+    <span id="recipientBannerText">Calculating recipients…</span>
+  </div>
 
-      <!-- ── Left panel: Editor ── -->
-      <section class="admin-card campaigns-editor" aria-label="Campaign editor">
-        <h2 class="admin-card-title">Editor</h2>
+  <!-- Two-column layout -->
+  <div class="campaigns-layout">
 
-        <div class="form-row">
-          <label for="campaignSubject">Subject line</label>
-          <input type="text" id="campaignSubject" placeholder="Your email subject…" autocomplete="off">
-        </div>
+    <!-- ── Left panel: Editor ────────────────────────────────────── -->
+    <section class="admin-card campaigns-editor" aria-label="Campaign editor">
 
-        <div class="form-row">
-          <label for="campaignTitle">Email title</label>
-          <input type="text" id="campaignTitle" placeholder="Heading shown at top of email…" autocomplete="off">
-        </div>
+      <div class="campaigns-section-heading">
+        <span class="campaigns-section-icon">✏️</span>
+        <h2 class="admin-card-title">Compose</h2>
+      </div>
 
-        <div class="form-row">
-          <label for="campaignMessage">Message body <span class="badge badge-info">HTML allowed</span></label>
-          <textarea id="campaignMessage" class="campaigns-textarea" rows="10" placeholder="Write your message here. Basic HTML tags are supported."></textarea>
-        </div>
+      <div class="form-row">
+        <label for="campaignSubject">Subject line <span class="campaigns-required">*</span></label>
+        <input type="text" id="campaignSubject" placeholder="Your email subject…" autocomplete="off" maxlength="200">
+      </div>
 
-        <div class="form-row">
-          <label for="campaignCtaText">Button text <span class="badge badge-info">optional</span></label>
-          <input type="text" id="campaignCtaText" placeholder="e.g. Browse Events" autocomplete="off">
-        </div>
+      <div class="form-row">
+        <label for="campaignTitle">Email title <span class="campaigns-required">*</span></label>
+        <input type="text" id="campaignTitle" placeholder="Heading shown at top of email…" autocomplete="off" maxlength="200">
+      </div>
 
-        <div class="form-row">
-          <label for="campaignCtaUrl">Button URL <span class="badge badge-info">optional</span></label>
-          <input type="url" id="campaignCtaUrl" placeholder="https://…" autocomplete="off">
-        </div>
+      <div class="form-row">
+        <label for="campaignMessage">
+          Message body <span class="badge badge-info">HTML allowed</span>
+        </label>
+        <textarea id="campaignMessage" class="campaigns-textarea" rows="10"
+          placeholder="Write your message here. Basic HTML tags like &lt;b&gt;, &lt;i&gt;, &lt;a&gt; are supported."></textarea>
+      </div>
 
-        <hr class="campaigns-divider">
-
-        <!-- Test send -->
-        <div class="form-row">
-          <label for="campaignTestEmail">Send test to</label>
-          <div class="campaigns-inline-row">
-            <input type="email" id="campaignTestEmail" placeholder="test@example.com" autocomplete="email">
-            <button class="btn btn-secondary" id="campaignTestBtn" type="button">Send test</button>
+      <div class="campaigns-cta-group">
+        <p class="campaigns-group-label">Call-to-action button <span class="badge badge-info">optional</span></p>
+        <div class="campaigns-cta-row">
+          <div class="form-row campaigns-cta-field">
+            <label for="campaignCtaText">Button text</label>
+            <input type="text" id="campaignCtaText" placeholder="e.g. Browse Events" autocomplete="off" maxlength="80">
+          </div>
+          <div class="form-row campaigns-cta-field">
+            <label for="campaignCtaUrl">Button URL</label>
+            <input type="url" id="campaignCtaUrl" placeholder="https://…" autocomplete="off">
           </div>
         </div>
+      </div>
 
-        <hr class="campaigns-divider">
+      <hr class="campaigns-divider">
 
-        <!-- Send campaign -->
-        <div class="form-row">
-          <label for="campaignAudience">Audience</label>
-          <select id="campaignAudience">
-            <option value="both">All opted-in (users + newsletter)</option>
-            <option value="marketing">Marketing opt-in users only</option>
-            <option value="newsletter">Newsletter subscribers only</option>
-          </select>
+      <!-- Test send -->
+      <div class="campaigns-section-heading campaigns-section-heading--sm">
+        <span class="campaigns-section-icon">🧪</span>
+        <h3 class="campaigns-sub-heading">Test delivery</h3>
+      </div>
+      <p class="campaigns-help-text">Send yourself a preview before broadcasting.</p>
+      <div class="form-row">
+        <label for="campaignTestEmail" class="visually-hidden">Test email address</label>
+        <div class="campaigns-inline-row">
+          <input type="email" id="campaignTestEmail" placeholder="test@example.com" autocomplete="email">
+          <button class="btn btn-secondary campaigns-test-btn" id="campaignTestBtn" type="button">Send test</button>
         </div>
+      </div>
 
-        <div class="campaigns-send-row">
-          <button class="btn btn-primary campaigns-send-btn" id="campaignSendBtn" type="button">📣 Send campaign</button>
-          <span class="campaigns-send-warning small">This sends to all opted-in recipients. Double-check your content first.</span>
-        </div>
+      <hr class="campaigns-divider">
 
-        <div id="campaignStatus" class="campaigns-status" aria-live="polite"></div>
-      </section>
+      <!-- Send campaign -->
+      <div class="campaigns-section-heading campaigns-section-heading--sm">
+        <span class="campaigns-section-icon">🚀</span>
+        <h3 class="campaigns-sub-heading">Send to recipients</h3>
+      </div>
+      <div class="form-row">
+        <label for="campaignAudience">Audience</label>
+        <select id="campaignAudience">
+          <option value="both">All opted-in (users + newsletter)</option>
+          <option value="marketing">Marketing opt-in users only</option>
+          <option value="newsletter">Newsletter subscribers only</option>
+        </select>
+      </div>
 
-      <!-- ── Right panel: Live preview ── -->
-      <section class="admin-card campaigns-preview-panel" aria-label="Email preview">
-        <div class="campaigns-preview-header">
+      <div class="campaigns-send-row">
+        <button class="btn btn-primary campaigns-send-btn" id="campaignSendBtn" type="button">
+          📣 Send campaign
+        </button>
+        <span class="campaigns-send-warning small">
+          ⚠️ This will send to all opted-in recipients. Double-check your content first.
+        </span>
+      </div>
+
+      <div id="campaignStatus" class="campaigns-status" aria-live="polite" role="status"></div>
+
+    </section>
+
+    <!-- ── Right panel: Live preview ─────────────────────────────── -->
+    <section class="admin-card campaigns-preview-panel" aria-label="Email preview">
+      <div class="campaigns-preview-header">
+        <div class="campaigns-section-heading campaigns-section-heading--no-mb">
+          <span class="campaigns-section-icon">👁️</span>
           <h2 class="admin-card-title">Live Preview</h2>
-          <button class="btn btn-secondary campaigns-refresh-btn" id="refreshPreviewBtn" type="button" title="Refresh preview">↻ Refresh</button>
         </div>
-        <div class="campaigns-preview-wrap">
-          <iframe id="campaignPreviewFrame" class="campaigns-preview-frame" title="Email preview" sandbox="allow-same-origin"></iframe>
+        <button class="btn btn-secondary campaigns-refresh-btn" id="refreshPreviewBtn" type="button"
+          title="Refresh preview" aria-label="Refresh preview">
+          ↻ Refresh
+        </button>
+      </div>
+      <p class="campaigns-help-text campaigns-preview-hint">Updates automatically as you type.</p>
+      <div class="campaigns-preview-wrap">
+        <div class="campaigns-preview-loading" id="previewLoading" aria-hidden="true">
+          <span class="campaigns-preview-loading-spinner"></span>
+          <span>Rendering preview…</span>
         </div>
-      </section>
+        <iframe id="campaignPreviewFrame" class="campaigns-preview-frame" title="Email preview"
+          sandbox="allow-same-origin"></iframe>
+      </div>
+    </section>
 
-    </div><!-- /.campaigns-layout -->
-  </div><!-- /.container -->
+  </div><!-- /.campaigns-layout -->
+
 </main>
 
 <footer class="footer" role="contentinfo">
@@ -133,9 +178,7 @@
   </div>
 </footer>
 
-<script src="/assets/js/admin-shared.js?v=18.3.0"></script>
 <script src="/assets/js/pages/admin-campaigns-init.js?v=18.3.0" defer></script>
-
 <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
 </body>
 </html>

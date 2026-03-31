@@ -27,15 +27,19 @@ beforeAll(() => {
 
 describe('Admin Campaigns — Route Structure', () => {
   it('preview endpoint exists', () => {
-    expect(content).toContain("router.post(\n  '/preview'");
+    expect(content).toMatch(/router\.post\(\s*['"]\/preview['"]/);
   });
 
   it('test endpoint exists', () => {
-    expect(content).toContain("router.post(\n  '/test'");
+    expect(content).toMatch(/router\.post\(\s*['"]\/test['"]/);
   });
 
   it('send endpoint exists', () => {
-    expect(content).toContain("router.post(\n  '/send'");
+    expect(content).toMatch(/router\.post\(\s*['"]\/send['"]/);
+  });
+
+  it('recipient-count GET endpoint exists', () => {
+    expect(content).toMatch(/router\.get\(\s*['"]\/recipient-count['"]/);
   });
 });
 
@@ -50,6 +54,18 @@ describe('Admin Campaigns — Auth Enforcement', () => {
 
   it('preview requires roleRequired admin', () => {
     const idx = content.indexOf("'/preview'");
+    const block = content.substring(idx, idx + 300);
+    expect(block).toContain("roleRequired('admin')");
+  });
+
+  it('recipient-count requires authRequired', () => {
+    const idx = content.indexOf("'/recipient-count'");
+    const block = content.substring(idx, idx + 300);
+    expect(block).toContain('authRequired');
+  });
+
+  it('recipient-count requires roleRequired admin', () => {
+    const idx = content.indexOf("'/recipient-count'");
     const block = content.substring(idx, idx + 300);
     expect(block).toContain("roleRequired('admin')");
   });

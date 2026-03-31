@@ -29,6 +29,18 @@ const { EMAIL_ENABLED } = require('../config/email');
 
 const APP_BASE_URL = process.env.APP_BASE_URL || process.env.BASE_URL || 'http://localhost:3000';
 
+const DEFAULT_RECIPIENT_NAME = 'Subscriber';
+
+/**
+ * Build a personalised unsubscribe link for a recipient email address.
+ * @param {string} email
+ * @returns {string}
+ */
+function buildUnsubscribeLink(email) {
+  const token = postmark.generateUnsubscribeToken(email);
+  return `${APP_BASE_URL}/api/auth/unsubscribe?email=${encodeURIComponent(email)}&token=${token}`;
+}
+
 /**
  * Build template data object from campaign fields.
  * Injects the CTA button HTML into the message if ctaText/ctaUrl are provided.
@@ -37,7 +49,13 @@ const APP_BASE_URL = process.env.APP_BASE_URL || process.env.BASE_URL || 'http:/
  * @returns {Object} templateData suitable for postmark.loadEmailTemplate
  */
 function buildTemplateData(fields) {
-  const { title = '', bodyHtml = '', ctaText = '', ctaUrl = '', name = 'Subscriber' } = fields;
+  const {
+    title = '',
+    bodyHtml = '',
+    ctaText = '',
+    ctaUrl = '',
+    name = DEFAULT_RECIPIENT_NAME,
+  } = fields;
 
   // Append a CTA button to the message body if both button fields are present
   let message = bodyHtml;
@@ -97,7 +115,7 @@ async function collectRecipients(audience) {
       return;
     }
     emailSet.add(key);
-    recipients.push({ email: email.trim(), name: name || 'Subscriber' });
+    recipients.push({ email: email.trim(), name: name || DEFAULT_RECIPIENT_NAME });
   }
 
   if (audience === 'marketing' || audience === 'both') {
@@ -121,6 +139,18 @@ async function collectRecipients(audience) {
 
   return recipients;
 }
+
+// ── GET /campaigns/recipient-count ───────────────────────────────────────────
+
+router.get('/recipient-count', authRequired, roleRequired('admin'), async (req, res) => {
+  try {
+    const recipients = await collectRecipients('both');
+    return res.json({ ok: true, total: recipients.length });
+  } catch (err) {
+    logger.error('[campaigns/recipient-count] Error:', err.message);
+    return res.status(500).json({ ok: false, error: 'Failed to count recipients.' });
+  }
+});
 
 // ── POST /campaigns/preview ────────────────────────────────────────────────────
 
@@ -179,8 +209,7 @@ router.post(
         ctaUrl,
         name: 'Test Recipient',
       });
-      const unsubscribeToken = postmark.generateUnsubscribeToken(to);
-      templateData.unsubscribeLink = `${APP_BASE_URL}/api/auth/unsubscribe?email=${encodeURIComponent(to)}&token=${unsubscribeToken}`;
+      templateData.unsubscribeLink = buildUnsubscribeLink(to);
 
       await postmark.sendMail({
         to,
@@ -262,8 +291,7 @@ router.post(
           batch.map(async ({ email, name }) => {
             try {
               const templateData = buildTemplateData({ title, bodyHtml, ctaText, ctaUrl, name });
-              const unsubscribeToken = postmark.generateUnsubscribeToken(email);
-              templateData.unsubscribeLink = `${APP_BASE_URL}/api/auth/unsubscribe?email=${encodeURIComponent(email)}&token=${unsubscribeToken}`;
+              templateData.unsubscribeLink = buildUnsubscribeLink(email);
 
               await postmark.sendMail({
                 to: email,

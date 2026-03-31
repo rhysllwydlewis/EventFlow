@@ -25,7 +25,8 @@
   // ── DOM refs ──────────────────────────────────────────────────────────────
   let subjectEl, titleEl, messageEl, ctaTextEl, ctaUrlEl;
   let testEmailEl, testBtn, sendBtn, audienceEl;
-  let previewFrame, refreshBtn, statusEl;
+  let previewFrame, previewLoading, refreshBtn, statusEl;
+  let recipientBannerText;
 
   // ── Collect current editor values ─────────────────────────────────────────
   function getEditorValues() {
@@ -39,9 +40,29 @@
     };
   }
 
+  // ── Preview loading indicator ─────────────────────────────────────────────
+  function showPreviewLoading() {
+    if (previewLoading) {
+      previewLoading.classList.remove('hidden');
+    }
+    if (previewFrame) {
+      previewFrame.classList.remove('loaded');
+    }
+  }
+
+  function hidePreviewLoading() {
+    if (previewLoading) {
+      previewLoading.classList.add('hidden');
+    }
+    if (previewFrame) {
+      previewFrame.classList.add('loaded');
+    }
+  }
+
   // ── Live preview ──────────────────────────────────────────────────────────
   async function refreshPreview() {
     const values = getEditorValues();
+    showPreviewLoading();
     try {
       const data = await AdminShared.api('/api/admin/campaigns/preview', 'POST', values);
       if (data && data.html) {
@@ -52,10 +73,27 @@
       }
     } catch (err) {
       // Preview errors are non-critical — silently ignore
+    } finally {
+      hidePreviewLoading();
     }
   }
 
   const debouncedRefreshPreview = debounce(refreshPreview, 400);
+
+  // ── Recipient banner ──────────────────────────────────────────────────────
+  async function loadRecipientCount() {
+    if (!recipientBannerText) {
+      return;
+    }
+    try {
+      const data = await AdminShared.api('/api/admin/campaigns/recipient-count', 'GET');
+      if (data && typeof data.total === 'number') {
+        recipientBannerText.textContent = `${data.total.toLocaleString()} opted-in recipient${data.total !== 1 ? 's' : ''} across all audiences`;
+      }
+    } catch (_err) {
+      recipientBannerText.textContent = 'Recipient count unavailable';
+    }
+  }
 
   // ── Status helpers ────────────────────────────────────────────────────────
   function setStatus(msg, type) {
@@ -97,7 +135,7 @@
         to,
         ...values,
       });
-      setStatus(`Test email sent to ${to}.`, 'success');
+      setStatus(`✓ Test email sent to ${to}.`, 'success');
     } catch (err) {
       setStatus(err.message || 'Test send failed.', 'error');
     } finally {
@@ -119,11 +157,15 @@
     }
 
     const audience = audienceEl.value;
+    const audienceLabel = audienceEl.options[audienceEl.selectedIndex].text;
 
-    const confirmed = await AdminShared.confirm(
-      `Send campaign to all opted-in recipients (audience: ${audience})?`,
-      { confirmText: 'Send campaign', danger: true }
-    );
+    const confirmed = await AdminShared.showConfirmModal({
+      title: 'Send Campaign',
+      message: `Send this campaign to all opted-in recipients?\n\nAudience: ${audienceLabel}`,
+      confirmText: 'Yes, send campaign',
+      cancelText: 'Cancel',
+      type: 'danger',
+    });
     if (!confirmed) {
       return;
     }
@@ -139,7 +181,7 @@
       });
       const { sent = 0, skipped = 0, total = 0 } = result || {};
       setStatus(
-        `Campaign sent. ${sent} delivered, ${skipped} skipped (unsubscribed/duplicate) out of ${total} recipients.`,
+        `✓ Campaign sent. ${sent} delivered, ${skipped} skipped out of ${total} recipients.`,
         'success'
       );
     } catch (err) {
@@ -147,16 +189,6 @@
     } finally {
       sendBtn.disabled = false;
       sendBtn.textContent = '📣 Send campaign';
-    }
-  }
-
-  // ── Back button ───────────────────────────────────────────────────────────
-  function initBackButton() {
-    const btn = document.getElementById('backToDashboard');
-    if (btn) {
-      btn.addEventListener('click', () => {
-        window.location.href = '/admin';
-      });
     }
   }
 
@@ -172,10 +204,10 @@
     sendBtn = document.getElementById('campaignSendBtn');
     audienceEl = document.getElementById('campaignAudience');
     previewFrame = document.getElementById('campaignPreviewFrame');
+    previewLoading = document.getElementById('previewLoading');
     refreshBtn = document.getElementById('refreshPreviewBtn');
     statusEl = document.getElementById('campaignStatus');
-
-    initBackButton();
+    recipientBannerText = document.getElementById('recipientBannerText');
 
     // Live preview on editor input
     [subjectEl, titleEl, messageEl, ctaTextEl, ctaUrlEl].forEach(el => {
@@ -199,10 +231,13 @@
       sendBtn.addEventListener('click', handleCampaignSend);
     }
 
-    // Initial preview load with default content
+    // Initial default content and preview
     titleEl.value = 'Welcome to EventFlow';
     messageEl.value =
       'We have exciting news to share with you. Stay tuned for updates on new events and features coming to EventFlow.';
+
+    // Load recipient count and initial preview in parallel
+    loadRecipientCount();
     refreshPreview();
   });
 })();

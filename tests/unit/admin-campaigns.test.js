@@ -40,6 +40,14 @@ describe('admin-campaigns-init.js — uses AdminShared.api()', () => {
     expect(initContent).toContain("AdminShared.api('/api/admin/campaigns/send'");
   });
 
+  it('calls AdminShared.api for the recipient count endpoint', () => {
+    expect(initContent).toContain("AdminShared.api('/api/admin/campaigns/recipient-count'");
+  });
+
+  it('uses AdminShared.showConfirmModal (not bare confirm) for send confirmation', () => {
+    expect(initContent).toContain('AdminShared.showConfirmModal(');
+  });
+
   it('does NOT use bare fetch() for campaign API calls', () => {
     // Remove comment lines to avoid false positives
     const code = initContent
@@ -200,5 +208,32 @@ describe('adminRegistry — campaigns page registered', () => {
     const idx = registryContent.indexOf("'/admin-campaigns'");
     const block = registryContent.substring(idx, idx + 200);
     expect(block).toContain('inNav: true');
+  });
+});
+
+// ── Admin Navbar ──────────────────────────────────────────────────────────────
+
+describe('admin-navbar.js — campaigns nav item', () => {
+  const NAVBAR_JS = path.join(__dirname, '../../public/assets/js/admin-navbar.js');
+  let navbarContent;
+
+  beforeAll(() => {
+    navbarContent = fs.readFileSync(NAVBAR_JS, 'utf8');
+  });
+
+  it('admin-navbar.js contains campaigns nav item', () => {
+    expect(navbarContent).toContain("href: '/admin-campaigns'");
+  });
+
+  it('campaigns nav item is in operations group', () => {
+    const idx = navbarContent.indexOf("href: '/admin-campaigns'");
+    const block = navbarContent.substring(idx, idx + 200);
+    expect(block).toContain("group: 'operations'");
+  });
+
+  it('campaigns nav item has the 📣 icon', () => {
+    const idx = navbarContent.indexOf("href: '/admin-campaigns'");
+    const block = navbarContent.substring(idx, idx + 200);
+    expect(block).toContain("icon: '📣'");
   });
 });

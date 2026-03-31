@@ -139,6 +139,13 @@
       desc: 'Data export & downloads',
     },
     {
+      href: '/admin-campaigns',
+      icon: '📣',
+      label: 'Campaigns',
+      group: 'operations',
+      desc: 'Compose & send marketing email campaigns',
+    },
+    {
       href: '/admin-homepage',
       icon: '🏠',
       label: 'Homepage',
