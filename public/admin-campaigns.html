@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <script src="/assets/js/dashboard-guard.js?v=17.0.2"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Campaigns — EventFlow Admin</title>
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="stylesheet" href="/assets/css/tokens.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/components.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/animations.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-enhanced.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-cards.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-ui-improvements.css?v=18.3.0">
+  <link rel="icon" href="/favicon.svg">
+  <script src="/assets/js/admin-shared.js?v=18.3.0"></script>
+  <script src="/assets/js/components.js?v=18.3.0" defer></script>
+  <script src="/assets/js/admin-navbar.js?v=18.3.0" defer></script>
+</head>
+<body class="has-admin-navbar admin">
+<a href="#main-content" class="skip-to-content">Skip to main content</a>
+<!-- Navbar rendered dynamically by admin-navbar.js -->
+<div id="adminNavbarMount"></div>
+
+<main id="main-content" class="admin-main-content">
+
+  <!-- Page Header -->
+  <div class="dashboard-header">
+    <div class="header-content">
+      <div>
+        <h1 class="dashboard-title">📣 Campaigns</h1>
+        <p class="dashboard-subtitle">Compose a marketing email, preview it live, and send to opted-in recipients.</p>
+      </div>
+      <div class="header-actions">
+        <a href="/admin" class="btn-secondary" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px;">← Dashboard</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recipient count banner -->
+  <div class="campaigns-recipient-banner" id="recipientBanner" aria-live="polite">
+    <span id="recipientBannerText">Calculating recipients…</span>
+  </div>
+
+  <!-- Two-column layout -->
+  <div class="campaigns-layout">
+
+    <!-- ── Left panel: Editor ────────────────────────────────────── -->
+    <section class="admin-card campaigns-editor" aria-label="Campaign editor">
+
+      <div class="campaigns-section-heading">
+        <span class="campaigns-section-icon">✏️</span>
+        <h2 class="admin-card-title">Compose</h2>
+      </div>
+
+      <div class="form-row">
+        <label for="campaignSubject">Subject line <span class="campaigns-required">*</span></label>
+        <input type="text" id="campaignSubject" placeholder="Your email subject…" autocomplete="off" maxlength="200">
+      </div>
+
+      <div class="form-row">
+        <label for="campaignTitle">Email title <span class="campaigns-required">*</span></label>
+        <input type="text" id="campaignTitle" placeholder="Heading shown at top of email…" autocomplete="off" maxlength="200">
+      </div>
+
+      <div class="form-row">
+        <label for="campaignMessage">
+          Message body <span class="badge badge-info">HTML allowed</span>
+        </label>
+        <textarea id="campaignMessage" class="campaigns-textarea" rows="10"
+          placeholder="Write your message here. Basic HTML tags like &lt;b&gt;, &lt;i&gt;, &lt;a&gt; are supported."></textarea>
+      </div>
+
+      <div class="campaigns-cta-group">
+        <p class="campaigns-group-label">Call-to-action button <span class="badge badge-info">optional</span></p>
+        <div class="campaigns-cta-row">
+          <div class="form-row campaigns-cta-field">
+            <label for="campaignCtaText">Button text</label>
+            <input type="text" id="campaignCtaText" placeholder="e.g. Browse Events" autocomplete="off" maxlength="80">
+          </div>
+          <div class="form-row campaigns-cta-field">
+            <label for="campaignCtaUrl">Button URL</label>
+            <input type="url" id="campaignCtaUrl" placeholder="https://…" autocomplete="off">
+          </div>
+        </div>
+      </div>
+
+      <hr class="campaigns-divider">
+
+      <!-- Test send -->
+      <div class="campaigns-section-heading campaigns-section-heading--sm">
+        <span class="campaigns-section-icon">🧪</span>
+        <h3 class="campaigns-sub-heading">Test delivery</h3>
+      </div>
+      <p class="campaigns-help-text">Send yourself a preview before broadcasting.</p>
+      <div class="form-row">
+        <label for="campaignTestEmail" class="visually-hidden">Test email address</label>
+        <div class="campaigns-inline-row">
+          <input type="email" id="campaignTestEmail" placeholder="test@example.com" autocomplete="email">
+          <button class="btn btn-secondary campaigns-test-btn" id="campaignTestBtn" type="button">Send test</button>
+        </div>
+      </div>
+
+      <hr class="campaigns-divider">
+
+      <!-- Send campaign -->
+      <div class="campaigns-section-heading campaigns-section-heading--sm">
+        <span class="campaigns-section-icon">🚀</span>
+        <h3 class="campaigns-sub-heading">Send to recipients</h3>
+      </div>
+      <div class="form-row">
+        <label for="campaignAudience">Audience</label>
+        <select id="campaignAudience">
+          <option value="both">All opted-in (users + newsletter)</option>
+          <option value="marketing">Marketing opt-in users only</option>
+          <option value="newsletter">Newsletter subscribers only</option>
+        </select>
+      </div>
+
+      <div class="campaigns-send-row">
+        <button class="btn btn-primary campaigns-send-btn" id="campaignSendBtn" type="button">
+          📣 Send campaign
+        </button>
+        <span class="campaigns-send-warning small">
+          ⚠️ This will send to all opted-in recipients. Double-check your content first.
+        </span>
+      </div>
+
+      <div id="campaignStatus" class="campaigns-status" aria-live="polite" role="status"></div>
+
+    </section>
+
+    <!-- ── Right panel: Live preview ─────────────────────────────── -->
+    <section class="admin-card campaigns-preview-panel" aria-label="Email preview">
+      <div class="campaigns-preview-header">
+        <div class="campaigns-section-heading campaigns-section-heading--no-mb">
+          <span class="campaigns-section-icon">👁️</span>
+          <h2 class="admin-card-title">Live Preview</h2>
+        </div>
+        <button class="btn btn-secondary campaigns-refresh-btn" id="refreshPreviewBtn" type="button"
+          title="Refresh preview" aria-label="Refresh preview">
+          ↻ Refresh
+        </button>
+      </div>
+      <p class="campaigns-help-text campaigns-preview-hint">Updates automatically as you type.</p>
+      <div class="campaigns-preview-wrap">
+        <div class="campaigns-preview-loading" id="previewLoading" aria-hidden="true">
+          <span class="campaigns-preview-loading-spinner"></span>
+          <span>Rendering preview…</span>
+        </div>
+        <iframe id="campaignPreviewFrame" class="campaigns-preview-frame" title="Email preview"
+          sandbox="allow-same-origin"></iframe>
+      </div>
+    </section>
+
+  </div><!-- /.campaigns-layout -->
+
+</main>
+
+<footer class="footer" role="contentinfo">
+  <div class="container flex-between">
+    <div><strong>EventFlow</strong><br><span class="small">Event planning made simple.</span></div>
+    <div class="version">Version: <span id="ef-version-label">loading…</span></div>
+    <div class="small">
+      <a href="/guides">Guides</a> ·
+      <a href="/credits">Credits</a> ·
+      <a href="/contact">Contact</a> ·
+      <a href="/legal">Legal Hub</a> · <button type="button" data-cookie-prefs>Cookie preferences</button>
+    </div>
+    <div class="small" style="width: 100%; margin-top: 8px; text-align: center;">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
+  </div>
+</footer>
+
+<script src="/assets/js/pages/admin-campaigns-init.js?v=18.3.0" defer></script>
+<script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
+</body>
+</html>

@@ -197,6 +197,7 @@ DELETE /api/admin/content/faqs/:id         # Delete FAQ
 Send an existing announcement as in-app notifications to targeted users.
 
 Body:
+
 ```json
 { "target": "all" }
 ```
@@ -205,11 +206,13 @@ Body:
 Quick Notify: creates a new announcement in the content store and sends it as in-app notifications in a single step.
 
 Body:
+
 ```json
 { "message": "...", "type": "info", "target": "customers" }
 ```
 
 **`target` parameter options:**
+
 - `"all"` (default) — notify all users
 - `"customers"` — notify users with role `customer`
 - `"suppliers"` — notify users with role `supplier`
@@ -763,3 +766,44 @@ For questions or issues:
 **Version**: 1.0.0  
 **Last Updated**: December 2024  
 **Maintained By**: EventFlow Team
+
+## Campaigns Page (`/admin-campaigns`)
+
+Send marketing email campaigns to opted-in recipients.
+
+### Usage
+
+1. Navigate to **Admin → Campaigns** (`/admin-campaigns`).
+2. Fill in **Subject**, **Title**, and **Message body** (basic HTML supported).
+3. Optionally add a **CTA button** (text + URL).
+4. The **Live Preview** panel updates as you type.
+5. Enter a test address and click **Send test** to verify delivery.
+6. Choose your **Audience** and click **Send campaign** to broadcast.
+
+### Audience options
+
+| Value            | Recipients                                                         |
+| ---------------- | ------------------------------------------------------------------ |
+| `both` (default) | Users with `notify_marketing=true` + active newsletter subscribers |
+| `marketing`      | Users with marketing opt-in only                                   |
+| `newsletter`     | Active newsletter subscribers only                                 |
+
+Unsubscribed / suppressed addresses (`emailUnsubscribed=true` or newsletter `status !== 'active'`) are always excluded. Duplicates are deduplicated by email.
+
+### Required environment variables
+
+| Variable             | Purpose                                     |
+| -------------------- | ------------------------------------------- |
+| `EMAIL_ENABLED=true` | Must be set to `true` for test/send to work |
+| `POSTMARK_API_KEY`   | Postmark server API key                     |
+| `POSTMARK_FROM`      | Verified sender address in Postmark         |
+
+Preview always works even when `EMAIL_ENABLED` is false. Test and Send return **503** when email is disabled.
+
+### API endpoints (admin-only, CSRF-protected)
+
+| Method | Path                           | Description                      |
+| ------ | ------------------------------ | -------------------------------- |
+| POST   | `/api/admin/campaigns/preview` | Render template → `{ ok, html }` |
+| POST   | `/api/admin/campaigns/test`    | Send test email to one address   |
+| POST   | `/api/admin/campaigns/send`    | Broadcast to opted-in recipients |

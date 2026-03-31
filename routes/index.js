@@ -120,6 +120,11 @@ function mountRoutes(app, deps) {
   app.use('/api/v1/admin', adminRoutes);
   app.use('/api/admin', adminRoutes); // Backward compatibility
 
+  // Admin campaigns routes
+  const adminCampaignsRoutes = require('./admin-campaigns');
+  app.use('/api/v1/admin/campaigns', adminCampaignsRoutes);
+  app.use('/api/admin/campaigns', adminCampaignsRoutes); // Backward compatibility
+
   // System-checks admin routes
   app.use('/api/v1/admin', systemChecksAdminRoutes);
   app.use('/api/admin', systemChecksAdminRoutes); // Backward compatibility
