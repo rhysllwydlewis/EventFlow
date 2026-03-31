@@ -54,8 +54,6 @@
   }
 })();
 
-('use strict');
-
 class MessengerAppV4 {
   constructor() {
     // Core services (rely on global classes from existing scripts)
