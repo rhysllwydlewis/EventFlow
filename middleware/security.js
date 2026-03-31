@@ -135,14 +135,16 @@ function configureHelmet(isProduction = false) {
 
 /**
  * Configure Permissions-Policy header middleware
- * Restricts browser features (geolocation, camera, microphone) by default
+ * Restricts browser features (geolocation, camera, microphone) by default.
+ * Geolocation is permitted for the Marketplace page (used by "Use My Location").
  * @returns {Function} Express middleware
  */
 function configurePermissionsPolicy() {
   return (req, res, next) => {
-    // Disable geolocation, camera, and microphone by default
-    // Only enable these permissions if truly needed for specific features
-    res.setHeader('Permissions-Policy', 'geolocation=(), camera=(), microphone=()');
+    // Allow geolocation only on the marketplace page (required for "Use My Location" feature)
+    const isMarketplacePage = req.path === '/marketplace' || req.path === '/marketplace.html';
+    const geolocationPolicy = isMarketplacePage ? 'geolocation=(self)' : 'geolocation=()';
+    res.setHeader('Permissions-Policy', `${geolocationPolicy}, camera=(), microphone=()`);
     next();
   };
 }

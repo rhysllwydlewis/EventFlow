@@ -164,7 +164,10 @@
           (requestUrl.indexOf('/uploads/') !== -1 ||
             requestUrl.match(/\.(png|jpg|jpeg|gif|webp|svg|ico|css|js)(\?|$)/) ||
             requestUrl.indexOf('/api/analytics') !== -1);
-        if (!isBenign404) {
+        // Suppress user notification for expected 401/403 (unauthenticated/forbidden).
+        // These are expected on public pages and should not surface as error toasts.
+        const isExpectedAuthError = response.status === 401 || response.status === 403;
+        if (!isBenign404 && !isExpectedAuthError) {
           notifyError(errorMessage);
         }
 
