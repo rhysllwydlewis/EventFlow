@@ -207,7 +207,13 @@ async function softDeletePartnerByUserId(userId) {
   await dbUnified.updateOne(
     'partners',
     { id: partner.id },
-    { $set: { status: 'deleted', deletedAt: new Date().toISOString(), updatedAt: new Date().toISOString() } }
+    {
+      $set: {
+        status: 'deleted',
+        deletedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+    }
   );
   logger.info(`Partner ${partner.id} marked as deleted (user ${userId} was deleted)`);
   return true;
@@ -684,6 +690,8 @@ async function createCashoutHold({ partnerId, amount, cashoutId }) {
 /**
  * Release a CASHOUT_HOLD when a cashout request is rejected or cancelled.
  * Inserts a CASHOUT_RELEASE transaction to restore the held points.
+ * Idempotent: if a CASHOUT_RELEASE already exists for this holdTxnId, the
+ * existing release is returned without creating a duplicate.
  *
  * @param {string} holdTxnId  - ID of the CASHOUT_HOLD transaction to release
  * @param {string} partnerId  - Partner ID (for logging)
@@ -693,11 +701,24 @@ async function releaseCashoutHold(holdTxnId, partnerId) {
   const txns = await dbUnified.read('partner_credit_transactions');
   const hold = txns.find(t => t.id === holdTxnId && t.partnerId === partnerId);
   if (!hold) {
-    logger.warn(
-      `releaseCashoutHold: transaction ${holdTxnId} not found for partner ${partnerId}`
-    );
+    logger.warn(`releaseCashoutHold: transaction ${holdTxnId} not found for partner ${partnerId}`);
     return null;
   }
+
+  // Idempotency check: don't create a second release for the same hold
+  const existingRelease = txns.find(
+    t =>
+      t.type === CREDIT_TYPES.CASHOUT_RELEASE &&
+      t.partnerId === partnerId &&
+      t.externalRef === holdTxnId
+  );
+  if (existingRelease) {
+    logger.info(
+      `releaseCashoutHold: release already exists (${existingRelease.id}) for hold ${holdTxnId} — skipping duplicate`
+    );
+    return existingRelease;
+  }
+
   const releaseAmount = Math.abs(hold.amount);
   const release = {
     id: uid('ptx'),

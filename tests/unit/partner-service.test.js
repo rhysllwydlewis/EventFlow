@@ -1,7 +1,7 @@
 /**
  * Unit tests for the Partner Service
  * Tests credit awarding idempotency, package bonus, subscription bonus,
- * referral attribution, and partner CRUD operations.
+ * referral attribution, partner CRUD operations, and cashout hold/release.
  */
 
 'use strict';
@@ -724,7 +724,7 @@ describe('PartnerService', () => {
         partnerId: 'prt_pending',
         supplierUserId: 'usr_s2',
         supplierCreatedAt: new Date().toISOString(),
-        packageQualified: true,  // already earned
+        packageQualified: true, // already earned
         subscriptionQualified: false,
       });
 
@@ -779,6 +779,95 @@ describe('PartnerService', () => {
       // Pending is separate — accessed via getPendingPoints
       const pending = await partnerService.getPendingPoints('prt_bp');
       expect(pending.totalPending).toBe(0); // no active referrals added
+    });
+  });
+
+  // ── POINTS_PER_GBP export ─────────────────────────────────────────────────────
+
+  describe('POINTS_PER_GBP', () => {
+    it('exports POINTS_PER_GBP as a positive integer', () => {
+      expect(typeof partnerService.POINTS_PER_GBP).toBe('number');
+      expect(Number.isInteger(partnerService.POINTS_PER_GBP)).toBe(true);
+      expect(partnerService.POINTS_PER_GBP).toBeGreaterThan(0);
+    });
+
+    it('defaults to 100 when env var is not set', () => {
+      // In test env POINTS_PER_GBP is not set, so should be 100
+      expect(partnerService.POINTS_PER_GBP).toBe(100);
+    });
+  });
+
+  // ── awardProfileApprovedBonus (disabled) ──────────────────────────────────────
+
+  describe('awardProfileApprovedBonus()', () => {
+    it('always returns null — bonus has been removed', async () => {
+      const result = await partnerService.awardProfileApprovedBonus('usr_any');
+      expect(result).toBeNull();
+    });
+
+    it('never creates a transaction', async () => {
+      await partnerService.awardProfileApprovedBonus('usr_any');
+      expect(mockStore.partner_credit_transactions).toHaveLength(0);
+    });
+  });
+
+  // ── releaseCashoutHold idempotency ────────────────────────────────────────────
+
+  describe('releaseCashoutHold() — idempotency', () => {
+    beforeEach(() => {
+      // Seed a CASHOUT_HOLD transaction
+      mockStore.partner_credit_transactions.push({
+        id: 'ptx_hold_001',
+        partnerId: 'prt_001',
+        supplierUserId: null,
+        type: 'CASHOUT_HOLD',
+        amount: -500,
+        notes: 'Cashout hold for request pcr_001',
+        externalRef: 'pcr_001',
+        createdAt: new Date().toISOString(),
+      });
+    });
+
+    it('creates a CASHOUT_RELEASE on first call', async () => {
+      const release = await partnerService.releaseCashoutHold('ptx_hold_001', 'prt_001');
+      expect(release).not.toBeNull();
+      expect(release.type).toBe('CASHOUT_RELEASE');
+      expect(release.amount).toBe(500);
+      expect(release.externalRef).toBe('ptx_hold_001');
+
+      const releases = mockStore.partner_credit_transactions.filter(
+        t => t.type === 'CASHOUT_RELEASE'
+      );
+      expect(releases).toHaveLength(1);
+    });
+
+    it('does NOT create a duplicate CASHOUT_RELEASE on second call', async () => {
+      // First call — creates release
+      await partnerService.releaseCashoutHold('ptx_hold_001', 'prt_001');
+      // Second call — should be idempotent
+      const secondRelease = await partnerService.releaseCashoutHold('ptx_hold_001', 'prt_001');
+
+      expect(secondRelease).not.toBeNull();
+      const releases = mockStore.partner_credit_transactions.filter(
+        t => t.type === 'CASHOUT_RELEASE'
+      );
+      expect(releases).toHaveLength(1); // still only one
+    });
+
+    it('returns the existing release on idempotent call', async () => {
+      const first = await partnerService.releaseCashoutHold('ptx_hold_001', 'prt_001');
+      const second = await partnerService.releaseCashoutHold('ptx_hold_001', 'prt_001');
+      expect(second.id).toBe(first.id);
+    });
+
+    it('returns null when holdTxnId does not exist', async () => {
+      const result = await partnerService.releaseCashoutHold('ptx_nonexistent', 'prt_001');
+      expect(result).toBeNull();
+    });
+
+    it('returns null when partnerId does not match hold', async () => {
+      const result = await partnerService.releaseCashoutHold('ptx_hold_001', 'prt_wrong');
+      expect(result).toBeNull();
     });
   });
 });

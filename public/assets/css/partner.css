@@ -385,6 +385,14 @@
   color: #6ee7b7;
 }
 
+.partner-status.info,
+.partner-status--info {
+  display: block;
+  background: rgba(99, 179, 237, 0.15);
+  border: 1px solid rgba(99, 179, 237, 0.25);
+  color: #93c5fd;
+}
+
 /* ─── Dashboard ─────────────────────────────────────────────────────────────── */
 
 .partner-dashboard {

@@ -53,7 +53,9 @@ router.get('/', async (req, res) => {
 
     if (status) {
       if (!VALID_STATUSES.includes(status)) {
-        return res.status(400).json({ error: `status must be one of: ${VALID_STATUSES.join(', ')}` });
+        return res
+          .status(400)
+          .json({ error: `status must be one of: ${VALID_STATUSES.join(', ')}` });
       }
       requests = requests.filter(r => r.status === status);
     }
@@ -155,7 +157,9 @@ router.patch('/:id', csrfProtection, async (req, res) => {
     // Status transition
     if (status !== undefined) {
       if (!VALID_STATUSES.includes(status)) {
-        return res.status(400).json({ error: `status must be one of: ${VALID_STATUSES.join(', ')}` });
+        return res
+          .status(400)
+          .json({ error: `status must be one of: ${VALID_STATUSES.join(', ')}` });
       }
       const allowed = VALID_TRANSITIONS[request.status] || [];
       if (!allowed.includes(status)) {
@@ -198,25 +202,52 @@ router.patch('/:id', csrfProtection, async (req, res) => {
         // Finalise the cashout: release the hold first, then insert a permanent REDEEM.
         // Net effect on available balance: hold release (+N) then redeem (-N) = 0 net change
         // from the held state, which is correct — points were already "reserved".
+        //
+        // Both steps are idempotent: releaseCashoutHold() skips duplicate releases, and
+        // we check for an existing REDEEM (by externalRef) before inserting a new one.
         if (request.holdTxnId) {
           await partnerService.releaseCashoutHold(request.holdTxnId, request.partnerId);
         }
-        const finalRedeem = {
-          id: uid('ptx'),
-          partnerId: request.partnerId,
-          supplierUserId: null,
-          type: partnerService.CREDIT_TYPES.REDEEM,
-          amount: -Math.abs(request.pointsHeld),
-          notes: `Cashout delivered: £${request.denominationGbp} via ${request.method} (request ${request.id})`,
-          externalRef: request.id,
-          createdAt: now,
-        };
-        await dbUnified.insertOne('partner_credit_transactions', finalRedeem);
 
-        updates.finalRedeemTxnId = finalRedeem.id;
-        logger.info(
-          `Cashout delivered: ${request.id} — finalRedeemTxn=${finalRedeem.id}`
-        );
+        // Idempotency guard: check whether a REDEEM for this cashout request was
+        // already created by a previous (partially-failed) attempt.
+        if (request.finalRedeemTxnId) {
+          // Previous attempt completed the REDEEM but failed before persisting
+          // finalRedeemTxnId — reuse the existing transaction ID.
+          updates.finalRedeemTxnId = request.finalRedeemTxnId;
+          logger.info(
+            `Cashout delivered (idempotent): ${request.id} — reusing finalRedeemTxn=${request.finalRedeemTxnId}`
+          );
+        } else {
+          // Check the transactions table for an existing REDEEM linked to this request
+          const allTxns = (await dbUnified.read('partner_credit_transactions')) || [];
+          const existingRedeem = allTxns.find(
+            t =>
+              t.type === partnerService.CREDIT_TYPES.REDEEM &&
+              t.partnerId === request.partnerId &&
+              t.externalRef === request.id
+          );
+          if (existingRedeem) {
+            updates.finalRedeemTxnId = existingRedeem.id;
+            logger.info(
+              `Cashout delivered (idempotent): ${request.id} — found existing REDEEM ${existingRedeem.id}`
+            );
+          } else {
+            const finalRedeem = {
+              id: uid('ptx'),
+              partnerId: request.partnerId,
+              supplierUserId: null,
+              type: partnerService.CREDIT_TYPES.REDEEM,
+              amount: -Math.abs(request.pointsHeld),
+              notes: `Cashout delivered: £${request.denominationGbp} via ${request.method} (request ${request.id})`,
+              externalRef: request.id,
+              createdAt: now,
+            };
+            await dbUnified.insertOne('partner_credit_transactions', finalRedeem);
+            updates.finalRedeemTxnId = finalRedeem.id;
+            logger.info(`Cashout delivered: ${request.id} — finalRedeemTxn=${finalRedeem.id}`);
+          }
+        }
       }
     }
 
@@ -227,11 +258,7 @@ router.patch('/:id', csrfProtection, async (req, res) => {
       updates.adminInternalNotes = String(adminInternalNotes).trim().slice(0, 2000) || null;
     }
 
-    await dbUnified.updateOne(
-      'partner_cashout_requests',
-      { id: req.params.id },
-      { $set: updates }
-    );
+    await dbUnified.updateOne('partner_cashout_requests', { id: req.params.id }, { $set: updates });
 
     logger.info(
       `Admin ${req.user.id} updated cashout request ${req.params.id}: ${JSON.stringify(updates)}`

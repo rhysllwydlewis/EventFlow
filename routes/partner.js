@@ -146,6 +146,7 @@ router.get('/me', authRequired, roleRequired('partner'), async (req, res) => {
         status: partner.status,
         createdAt: partner.createdAt,
       },
+      pointsPerGbp: partnerService.POINTS_PER_GBP,
       credits: {
         ...balance,
         pendingPoints: pending.totalPending,
@@ -853,11 +854,15 @@ const CASHOUT_DENOMINATIONS = (() => {
       .split(',')
       .map(s => parseInt(s.trim(), 10))
       .filter(n => Number.isInteger(n) && n > 0);
-    if (parsed.length > 0) return parsed;
+    if (parsed.length > 0) {
+      return parsed;
+    }
   }
   // Default: £15 – £500 in £5 increments
   const defaults = [];
-  for (let v = 15; v <= 500; v += 5) defaults.push(v);
+  for (let v = 15; v <= 500; v += 5) {
+    defaults.push(v);
+  }
   return defaults;
 })();
 

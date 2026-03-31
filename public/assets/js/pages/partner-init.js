@@ -210,6 +210,59 @@
     });
   }
 
+  // ── Forgot password ───────────────────────────────────────────────────────────
+
+  function initForgotPassword() {
+    const link = document.getElementById('partner-forgot-link');
+    const form = document.getElementById('partner-login-form');
+    const status = document.getElementById('login-status');
+    if (!link) {
+      return;
+    }
+
+    link.addEventListener('click', async e => {
+      e.preventDefault();
+      clearStatus(status);
+
+      const emailInput = form ? form.querySelector('#login-email') : null;
+      const email = emailInput ? emailInput.value.trim() : '';
+      if (!email) {
+        showStatus(
+          status,
+          'Enter your email address above first, then click "Forgot password?" to receive reset instructions.',
+          'info'
+        );
+        if (emailInput) {
+          emailInput.focus();
+        }
+        return;
+      }
+
+      showStatus(status, 'Sending reset instructions…', 'info');
+      try {
+        const csrfToken = await getCsrfToken();
+        await fetch('/api/v1/auth/forgot', {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken,
+          },
+          body: JSON.stringify({ email }),
+        });
+        // Always show the same message regardless of whether email was found
+        // (prevents user enumeration)
+        showStatus(
+          status,
+          "If that email is registered, we'll send password reset instructions.",
+          'success'
+        );
+      } catch (_) {
+        showStatus(status, 'Network error. Please try again.', 'error');
+      }
+    });
+  }
+
   // ── Signup form ───────────────────────────────────────────────────────────────
 
   function initSignupForm() {
@@ -289,6 +342,7 @@
     checkAlreadyLoggedIn();
     initTabs();
     initLoginForm();
+    initForgotPassword();
     initSignupForm();
   }
 
