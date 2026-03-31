@@ -369,3 +369,55 @@ describe('POST /api/partner/tremendous/orders — balance enforcement', () => {
     expect(typeof res.body.cashoutId).toBe('string');
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/partner/me — pointsPerGbp in response
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('GET /api/partner/me — pointsPerGbp', () => {
+  let app;
+
+  beforeEach(() => {
+    app = buildApp();
+    jest.clearAllMocks();
+    partnerService.getPartnerByUserId.mockResolvedValue(ACTIVE_PARTNER);
+    partnerService.getBalance.mockResolvedValue({
+      balance: 1000,
+      availableBalance: 500,
+      maturingBalance: 500,
+      totalEarned: 1000,
+      packageBonusTotal: 100,
+      subscriptionBonusTotal: 900,
+      adjustmentTotal: 0,
+      redeemed: 0,
+      transactions: [],
+    });
+    partnerService.getPendingPoints.mockResolvedValue({
+      totalPending: 0,
+      pendingPackage: 0,
+      pendingSubscription: 0,
+    });
+  });
+
+  it('includes pointsPerGbp in the response', async () => {
+    const res = await request(app).get('/api/partner/me').set('x-test-role', 'partner');
+    expect(res.status).toBe(200);
+    expect(res.body.pointsPerGbp).toBeDefined();
+    expect(typeof res.body.pointsPerGbp).toBe('number');
+    expect(res.body.pointsPerGbp).toBeGreaterThan(0);
+  });
+
+  it('pointsPerGbp matches the POINTS_PER_GBP service export', async () => {
+    const res = await request(app).get('/api/partner/me').set('x-test-role', 'partner');
+    expect(res.status).toBe(200);
+    expect(res.body.pointsPerGbp).toBe(partnerService.POINTS_PER_GBP);
+  });
+
+  it('returns partner profile and credits together with pointsPerGbp', async () => {
+    const res = await request(app).get('/api/partner/me').set('x-test-role', 'partner');
+    expect(res.status).toBe(200);
+    expect(res.body.partner).toBeDefined();
+    expect(res.body.credits).toBeDefined();
+    expect(res.body.pointsPerGbp).toBeDefined();
+  });
+});

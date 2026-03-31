@@ -358,6 +358,50 @@
   transform: none;
 }
 
+/* forgot password link */
+.partner-forgot-link {
+  display: block;
+  text-align: center;
+  margin-top: 0.85rem;
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.4);
+}
+
+.partner-forgot-link a {
+  color: rgba(16, 185, 129, 0.8);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.partner-forgot-link a:hover,
+.partner-forgot-link a:focus {
+  color: #34d399;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* small legal / terms links at bottom of signup form */
+.partner-legal-line {
+  text-align: center;
+  margin-top: 0.85rem;
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.35);
+  line-height: 1.5;
+}
+
+.partner-legal-line a {
+  color: rgba(16, 185, 129, 0.7);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.partner-legal-line a:hover,
+.partner-legal-line a:focus {
+  color: #34d399;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* status message */
 .partner-status {
   margin-top: 0.85rem;
@@ -383,6 +427,14 @@
   background: rgba(16, 185, 129, 0.15);
   border: 1px solid rgba(16, 185, 129, 0.25);
   color: #6ee7b7;
+}
+
+.partner-status.info,
+.partner-status--info {
+  display: block;
+  background: rgba(99, 179, 237, 0.15);
+  border: 1px solid rgba(99, 179, 237, 0.25);
+  color: #93c5fd;
 }
 
 /* ─── Dashboard ─────────────────────────────────────────────────────────────── */

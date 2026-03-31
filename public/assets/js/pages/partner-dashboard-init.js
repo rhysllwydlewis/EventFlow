@@ -28,8 +28,9 @@
     return typeof n === 'number' ? n.toLocaleString() : '—';
   }
 
-  function toPounds(credits) {
-    return `£${((credits || 0) / 100).toFixed(2)}`;
+  function toPounds(credits, pointsPerGbp) {
+    const rate = Number.isInteger(pointsPerGbp) && pointsPerGbp > 0 ? pointsPerGbp : 100;
+    return `£${((credits || 0) / rate).toFixed(2)}`;
   }
 
   function showToast(msg, type = 'success') {
@@ -159,7 +160,7 @@
 
   // ── Render stats ──────────────────────────────────────────────────────────────
 
-  function renderStats(credits, referralCount) {
+  function renderStats(credits, referralCount, pointsPerGbp) {
     if (!credits || typeof credits !== 'object') {
       return;
     }
@@ -168,7 +169,7 @@
     const maturing = credits.maturingBalance || 0;
     const potential = credits.pendingPoints || 0;
     document.getElementById('stat-balance').textContent = fmtCredits(available);
-    document.getElementById('stat-balance-gbp').textContent = toPounds(available);
+    document.getElementById('stat-balance-gbp').textContent = toPounds(available, pointsPerGbp);
     document.getElementById('stat-pending').textContent = fmtCredits(maturing);
     const potentialEl = document.getElementById('stat-potential');
     if (potentialEl) {
@@ -247,7 +248,7 @@
 
   // ── Render transactions ───────────────────────────────────────────────────────
 
-  function renderTransactions(txns) {
+  function renderTransactions(txns, pointsPerGbp) {
     const container = document.getElementById('transactions-container');
     if (!container) {
       return;
@@ -265,8 +266,12 @@
     const typeLabels = {
       PACKAGE_BONUS: { label: 'Package Bonus', icon: '📦' },
       SUBSCRIPTION_BONUS: { label: 'Subscription Bonus', icon: '💳' },
+      REFERRAL_SIGNUP_BONUS: { label: 'Referral Signup', icon: '🔗' },
+      FIRST_REVIEW_BONUS: { label: 'First Review Bonus', icon: '⭐' },
       ADJUSTMENT: { label: 'Admin Adjustment', icon: '⚙️' },
       REDEEM: { label: 'Redemption', icon: '🎁' },
+      CASHOUT_HOLD: { label: 'Cashout Hold', icon: '🔒' },
+      CASHOUT_RELEASE: { label: 'Hold Released', icon: '🔓' },
     };
 
     const rows = txns.slice(0, 50).map(t => {
@@ -275,8 +280,8 @@
       const amtStr = t.amount >= 0 ? `+${t.amount}` : `${t.amount}`;
       return `<tr>
         <td>${esc(meta.icon)} ${esc(meta.label)}</td>
-        <td style="${amtClass};font-weight:700;">${amtStr} credits</td>
-        <td style="color:rgba(255,255,255,0.45)">${toPounds(Math.abs(t.amount))}</td>
+        <td style="${amtClass};font-weight:700;">${amtStr} points</td>
+        <td style="color:rgba(255,255,255,0.45)">${toPounds(Math.abs(t.amount), pointsPerGbp)}</td>
         <td>${fmtDate(t.createdAt)}</td>
         <td style="color:rgba(255,255,255,0.4);font-size:0.78rem;">${esc(t.notes || '')}</td>
       </tr>`;
@@ -284,11 +289,11 @@
 
     container.innerHTML = `
       <div class="partner-table-wrap">
-        <table class="partner-table" aria-label="Credit transactions">
+        <table class="partner-table" aria-label="Point transactions">
           <thead>
             <tr>
               <th>Type</th>
-              <th>Credits</th>
+              <th>Points</th>
               <th>Value</th>
               <th>Date</th>
               <th>Notes</th>
@@ -619,15 +624,14 @@
       .replace(/'/g, '&#39;');
   }
 
-
   // ── Cashout Requests ──────────────────────────────────────────────────────────
 
   const CASHOUT_STATUS_MAP = {
     submitted: { label: 'Submitted', color: '#93c5fd', bg: 'rgba(59,130,246,0.15)' },
-    approved:  { label: 'Approved',  color: '#6ee7b7', bg: 'rgba(16,185,129,0.15)' },
-    processing:{ label: 'Processing',color: '#fcd34d', bg: 'rgba(245,158,11,0.15)' },
-    delivered: { label: 'Delivered', color: '#86efac', bg: 'rgba(34,197,94,0.18)'  },
-    rejected:  { label: 'Rejected',  color: '#fca5a5', bg: 'rgba(239,68,68,0.12)' },
+    approved: { label: 'Approved', color: '#6ee7b7', bg: 'rgba(16,185,129,0.15)' },
+    processing: { label: 'Processing', color: '#fcd34d', bg: 'rgba(245,158,11,0.15)' },
+    delivered: { label: 'Delivered', color: '#86efac', bg: 'rgba(34,197,94,0.18)' },
+    rejected: { label: 'Rejected', color: '#fca5a5', bg: 'rgba(239,68,68,0.12)' },
   };
 
   function getCashoutStatusBadge(status) {
@@ -641,11 +645,15 @@
 
   async function loadCashoutHistory() {
     const container = document.getElementById('cashout-history-container');
-    if (!container) return;
+    if (!container) {
+      return;
+    }
 
     try {
       const res = await fetch('/api/v1/partner/cashout-requests', { credentials: 'include' });
-      if (!res.ok) throw new Error('Failed to load cashout history');
+      if (!res.ok) {
+        throw new Error('Failed to load cashout history');
+      }
       const { items } = await res.json();
 
       if (!items || items.length === 0) {
@@ -657,17 +665,22 @@
         return;
       }
 
-      const rows = items.map(r => {
-        const methodLabel = r.method === 'amazon_voucher' ? 'Amazon Voucher'
-          : r.method === 'prepaid_debit_card' ? 'Pre-Paid Debit Card'
-          : escHtml(r.method || '');
-        const deliveryNote = r.status === 'submitted' || r.status === 'approved' || r.status === 'processing'
-          ? '<span style="font-size:0.75rem;opacity:0.6;"> · Est. 3–5 working days</span>'
-          : '';
-        const adminMsg = r.adminResponseMessage
-          ? `<div class="cashout-history-admin-msg">💬 ${escHtml(r.adminResponseMessage)}</div>`
-          : '';
-        return `
+      const rows = items
+        .map(r => {
+          const methodLabel =
+            r.method === 'amazon_voucher'
+              ? 'Amazon Voucher'
+              : r.method === 'prepaid_debit_card'
+                ? 'Pre-Paid Debit Card'
+                : escHtml(r.method || '');
+          const deliveryNote =
+            r.status === 'submitted' || r.status === 'approved' || r.status === 'processing'
+              ? '<span style="font-size:0.75rem;opacity:0.6;"> · Est. 3–5 working days</span>'
+              : '';
+          const adminMsg = r.adminResponseMessage
+            ? `<div class="cashout-history-admin-msg">💬 ${escHtml(r.adminResponseMessage)}</div>`
+            : '';
+          return `
           <div class="cashout-history-row">
             <div class="cashout-history-info">
               <div class="cashout-history-recipient"><strong>£${escHtml(String(r.denominationGbp))}</strong> — ${escHtml(methodLabel)}</div>
@@ -681,7 +694,8 @@
               ${getCashoutStatusBadge(r.status)}
             </div>
           </div>`;
-      }).join('');
+        })
+        .join('');
 
       container.innerHTML = `<div class="cashout-history-list">${rows}</div>`;
     } catch (err) {
@@ -693,33 +707,45 @@
     }
   }
 
-  function initCashoutSection(credits) {
+  function initCashoutSection(credits, pointsPerGbp) {
     const insufficientEl = document.getElementById('cashout-insufficient');
     const formWrap = document.getElementById('cashout-form-wrap');
     const confirmationEl = document.getElementById('cashout-confirmation');
 
-    if (!formWrap) return;
+    if (!formWrap) {
+      return;
+    }
 
-    const POINTS_PER_GBP = 100; // matches server default; denominations are in £5 increments, min £50
+    const rate = Number.isInteger(pointsPerGbp) && pointsPerGbp > 0 ? pointsPerGbp : 100;
     const MIN_DENOM = 50;
     const STEP = 5;
 
-    const availBal = credits ? (credits.availableBalance !== undefined ? credits.availableBalance : (credits.balance || 0)) : 0;
-    const availGbp = Math.floor(availBal / POINTS_PER_GBP);
+    const availBal = credits
+      ? credits.availableBalance !== undefined
+        ? credits.availableBalance
+        : credits.balance || 0
+      : 0;
+    const availGbp = Math.floor(availBal / rate);
     const maxDenom = Math.floor(availGbp / STEP) * STEP;
 
     // Update balance hint
     const balancePtsEl = document.getElementById('cashout-balance-pts');
     const balanceGbpEl = document.getElementById('cashout-balance-gbp');
-    if (balancePtsEl) balancePtsEl.textContent = availBal.toLocaleString();
-    if (balanceGbpEl) balanceGbpEl.textContent = toPounds(availBal);
+    if (balancePtsEl) {
+      balancePtsEl.textContent = availBal.toLocaleString();
+    }
+    if (balanceGbpEl) {
+      balanceGbpEl.textContent = toPounds(availBal, rate);
+    }
 
     // Insufficient balance?
     if (availGbp < MIN_DENOM) {
       if (insufficientEl) {
         insufficientEl.style.display = 'flex';
         const msgEl = document.getElementById('cashout-avail-gbp-msg');
-        if (msgEl) msgEl.textContent = toPounds(availBal);
+        if (msgEl) {
+          msgEl.textContent = toPounds(availBal, rate);
+        }
       }
       return; // Don't show the form
     }
@@ -746,9 +772,13 @@
 
     if (newBtn) {
       newBtn.addEventListener('click', () => {
-        if (confirmationEl) confirmationEl.style.display = 'none';
+        if (confirmationEl) {
+          confirmationEl.style.display = 'none';
+        }
         formWrap.style.display = 'block';
-        if (form) form.reset();
+        if (form) {
+          form.reset();
+        }
         if (denomSelect) {
           denomSelect.innerHTML = '<option value="">Select an amount…</option>';
           for (let d = MIN_DENOM; d <= maxDenom; d += STEP) {
@@ -758,30 +788,47 @@
             denomSelect.appendChild(opt);
           }
         }
-        if (statusEl) { statusEl.textContent = ''; statusEl.className = 'partner-status'; }
+        if (statusEl) {
+          statusEl.textContent = '';
+          statusEl.className = 'partner-status';
+        }
       });
     }
 
-    if (!form) return;
+    if (!form) {
+      return;
+    }
 
     form.addEventListener('submit', async e => {
       e.preventDefault();
-      if (statusEl) { statusEl.textContent = ''; statusEl.className = 'partner-status'; }
+      if (statusEl) {
+        statusEl.textContent = '';
+        statusEl.className = 'partner-status';
+      }
 
       const method = ((form.elements['method'] || {}).value || '').trim();
-      const denominationGbp = parseInt(((form.elements['denominationGbp'] || {}).value || ''), 10);
+      const denominationGbp = parseInt((form.elements['denominationGbp'] || {}).value || '', 10);
       const partnerMessage = ((form.elements['partnerMessage'] || {}).value || '').trim();
 
       if (!method) {
-        if (statusEl) { statusEl.textContent = 'Please select a payout method.'; statusEl.className = 'partner-status partner-status--error'; }
+        if (statusEl) {
+          statusEl.textContent = 'Please select a payout method.';
+          statusEl.className = 'partner-status partner-status--error';
+        }
         return;
       }
       if (!denominationGbp || isNaN(denominationGbp)) {
-        if (statusEl) { statusEl.textContent = 'Please select an amount.'; statusEl.className = 'partner-status partner-status--error'; }
+        if (statusEl) {
+          statusEl.textContent = 'Please select an amount.';
+          statusEl.className = 'partner-status partner-status--error';
+        }
         return;
       }
 
-      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Submitting…'; }
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Submitting…';
+      }
 
       try {
         const csrfToken = await getCsrfToken();
@@ -789,23 +836,37 @@
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
-          body: JSON.stringify({ method, denominationGbp, partnerMessage: partnerMessage || undefined }),
+          body: JSON.stringify({
+            method,
+            denominationGbp,
+            partnerMessage: partnerMessage || undefined,
+          }),
         });
 
         const body = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(body.error || 'Failed to submit cashout request');
+        if (!res.ok) {
+          throw new Error(body.error || 'Failed to submit cashout request');
+        }
 
         const methodLabel = method === 'amazon_voucher' ? 'Amazon Voucher' : 'Pre-Paid Debit Card';
         formWrap.style.display = 'none';
-        if (confirmationEl) confirmationEl.style.display = 'block';
+        if (confirmationEl) {
+          confirmationEl.style.display = 'block';
+        }
         if (confirmMsgEl) {
           confirmMsgEl.innerHTML = `Request for <strong>£${escHtml(String(denominationGbp))}</strong> via <strong>${escHtml(methodLabel)}</strong> submitted. Ref: <code style="font-family:monospace;font-size:0.8em;">${escHtml(body.cashoutRequestId || '')}</code><br>Typically processed within <strong>3–5 working days</strong>.`;
         }
         loadCashoutHistory();
       } catch (err) {
-        if (statusEl) { statusEl.textContent = err.message || 'Failed to submit request.'; statusEl.className = 'partner-status partner-status--error'; }
+        if (statusEl) {
+          statusEl.textContent = err.message || 'Failed to submit request.';
+          statusEl.className = 'partner-status partner-status--error';
+        }
       } finally {
-        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = '💸 Submit Cashout Request'; }
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = '💸 Submit Cashout Request';
+        }
       }
     });
   }
@@ -842,6 +903,7 @@
       const { partnerData, referralsData, txnsData, codeHistoryData } = await loadAll();
 
       const { partner, credits } = partnerData;
+      const pointsPerGbp = partnerData.pointsPerGbp || 100;
       const referrals = referralsData.items || [];
       const transactions = txnsData.items || [];
       const codeHistory = codeHistoryData.items || [];
@@ -864,7 +926,7 @@
       }
 
       // Render stats
-      renderStats(credits, referrals.length);
+      renderStats(credits, referrals.length, pointsPerGbp);
 
       // Referral link
       const refLinkEl = document.getElementById('partner-ref-link');
@@ -911,14 +973,14 @@
       loadAndRenderTickets();
 
       // Cashout request section
-      initCashoutSection(credits);
+      initCashoutSection(credits, pointsPerGbp);
 
       // Cashout request history
       loadCashoutHistory();
 
       // Referrals & transactions
       renderReferrals(referrals);
-      renderTransactions(transactions);
+      renderTransactions(transactions, pointsPerGbp);
     } catch (err) {
       console.error('Dashboard load error:', err);
       const statusLine = document.getElementById('partner-status-line');

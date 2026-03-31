@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Partner Portal is a **hidden** area of EventFlow that allows influencers, Facebook group admins, and community promoters to earn credits by referring wedding suppliers to sign up and get started on EventFlow.
+The Partner Portal is a **hidden** area of EventFlow that allows influencers, Facebook group admins, and community promoters to earn points by referring wedding suppliers to sign up and get started on EventFlow.
 
 It lives at `/partner` — this URL is **not indexed** (`noindex, nofollow`) and not linked from public navigation. You share the URL directly with partners.
 
@@ -25,46 +25,47 @@ It lives at `/partner` — this URL is **not indexed** (`noindex, nofollow`) and
 3. The `ref` code is passed in the form body and stored in the registration call
 4. On successful registration, a `partner_referral` record is created linking the supplier to the partner
 
-### Credits are earned
+### Points are earned
 
-- **+5 credits** when the referred supplier **signs up** via the partner's referral link (immediate on registration)
-- **+10 credits** when the referred supplier creates their **first-ever package** (within 30 days of their signup)
-- **+15 credits** when the referred supplier receives their **first customer review**
-- **+20 credits** when the referred supplier's **profile is approved** by an EventFlow admin
-- **+100 credits** when the referred supplier makes their **first successful Stripe subscription payment** (within 30 days of their signup, **not** trial activations or £0 invoices)
+- **+5 points** when the referred supplier **signs up** via the partner's referral link (immediate on registration)
+- **+10 points** when the referred supplier creates their **first-ever package** (within 30 days of their signup)
+- **+15 points** when the referred supplier receives their **first customer review**
+- **+100 points** when the referred supplier makes their **first successful Stripe subscription payment** (within 30 days of their signup, **not** trial activations or £0 invoices)
 - All bonuses are awarded **only once** per supplier (idempotent)
 
-### Available vs maturing credits
+> **Note:** A `PROFILE_APPROVED_BONUS` type exists in the ledger schema for historical reasons but is no longer awarded. Profile approval does not trigger any point bonus.
 
-Once earned, credits go through a **30-day maturation period** before they become available for cashout:
+### Available vs maturing points
 
-| Credit state  | Description                                                                             |
-| ------------- | --------------------------------------------------------------------------------------- |
-| **Maturing**  | Recently earned — not yet available for cashout (< 30 days old)                         |
-| **Available** | Mature credits (≥ 30 days old) — can be used for cashout requests                       |
-| **Potential** | Credits that _could_ be earned from active referrals in their 30-day attribution window |
+Once earned, points go through a **30-day maturation period** before they become available for cashout:
 
-### Credit value and conversion
+| Point state   | Description                                                                            |
+| ------------- | -------------------------------------------------------------------------------------- |
+| **Maturing**  | Recently earned — not yet available for cashout (< 30 days old)                        |
+| **Available** | Mature points (≥ 30 days old) — can be used for cashout requests                       |
+| **Potential** | Points that _could_ be earned from active referrals in their 30-day attribution window |
 
-Credits convert to GBP at a rate configured by the `POINTS_PER_GBP` environment variable (default: 100 points = £1):
+### Point value and conversion
 
-| Credits | GBP value |
-| ------- | --------- |
-| 1       | £0.01     |
-| 10      | £0.10     |
-| 100     | £1.00     |
+Points convert to GBP at a rate configured by the `POINTS_PER_GBP` environment variable (default: 100 points = £1). This rate is also returned by `GET /api/v1/partner/me` as `pointsPerGbp` so the dashboard always reflects the live configured rate.
+
+| Points | GBP value |
+| ------ | --------- |
+| 1      | £0.01     |
+| 10     | £0.10     |
+| 100    | £1.00     |
 
 ---
 
 ## Pages
 
-| URL                                | Who can access    | Description                                                        |
-| ---------------------------------- | ----------------- | ------------------------------------------------------------------ |
-| `/partner`                         | Public (hidden)   | Entry — login or sign up as partner                                |
-| `/partner/dashboard`               | Partners & admins | Dashboard with ref link, stats, referrals, and cashout requests    |
-| `/admin-partners`                  | Admins only       | Standalone partner moderation dashboard                            |
-| `/admin-cashout-requests`          | Admins only       | Partner cashout requests back-office (approve/reject/deliver)      |
-| `/admin` (Partners section in nav) | Admins only       | Partner moderation also accessible from the main admin navbar      |
+| URL                                | Who can access    | Description                                                     |
+| ---------------------------------- | ----------------- | --------------------------------------------------------------- |
+| `/partner`                         | Public (hidden)   | Entry — login or sign up as partner                             |
+| `/partner/dashboard`               | Partners & admins | Dashboard with ref link, stats, referrals, and cashout requests |
+| `/admin-partners`                  | Admins only       | Standalone partner moderation dashboard                         |
+| `/admin-cashout-requests`          | Admins only       | Partner cashout requests back-office (approve/reject/deliver)   |
+| `/admin` (Partners section in nav) | Admins only       | Partner moderation also accessible from the main admin navbar   |
 
 ---
 
@@ -72,19 +73,19 @@ Credits convert to GBP at a rate configured by the `POINTS_PER_GBP` environment 
 
 ### Partner (requires `partner` role)
 
-| Method | Path                                       | Description                                               |
-| ------ | ------------------------------------------ | --------------------------------------------------------- |
-| `POST` | `/api/v1/partner/register`                 | Create a new partner account                              |
-| `GET`  | `/api/v1/partner/me`                       | Get current partner profile, ref code, balance            |
-| `GET`  | `/api/v1/partner/referrals`                | List referred suppliers with statuses                     |
-| `GET`  | `/api/v1/partner/transactions`             | List credit transaction history                           |
-| `POST` | `/api/v1/partner/regenerate-code`          | Generate a new referral code (old code stays valid)       |
-| `GET`  | `/api/v1/partner/code-history`             | List previously used referral codes                       |
-| `POST` | `/api/v1/partner/support-ticket`           | Raise a general support ticket from the partner dashboard |
-| `GET`  | `/api/v1/partner/support-tickets`          | List all support tickets raised by the current partner    |
-| `POST` | `/api/v1/partner/cashout-requests`         | Submit a new cashout request (Amazon Voucher or Pre-Paid Debit Card) |
-| `GET`  | `/api/v1/partner/cashout-requests`         | List the current partner's own cashout requests           |
-| `GET`  | `/api/v1/partner/cashout-requests/:id`     | Get details of a single cashout request                   |
+| Method | Path                                   | Description                                                          |
+| ------ | -------------------------------------- | -------------------------------------------------------------------- |
+| `POST` | `/api/v1/partner/register`             | Create a new partner account                                         |
+| `GET`  | `/api/v1/partner/me`                   | Get current partner profile, ref code, balance                       |
+| `GET`  | `/api/v1/partner/referrals`            | List referred suppliers with statuses                                |
+| `GET`  | `/api/v1/partner/transactions`         | List point transaction history                                       |
+| `POST` | `/api/v1/partner/regenerate-code`      | Generate a new referral code (old code stays valid)                  |
+| `GET`  | `/api/v1/partner/code-history`         | List previously used referral codes                                  |
+| `POST` | `/api/v1/partner/support-ticket`       | Raise a general support ticket from the partner dashboard            |
+| `GET`  | `/api/v1/partner/support-tickets`      | List all support tickets raised by the current partner               |
+| `POST` | `/api/v1/partner/cashout-requests`     | Submit a new cashout request (Amazon Voucher or Pre-Paid Debit Card) |
+| `GET`  | `/api/v1/partner/cashout-requests`     | List the current partner's own cashout requests                      |
+| `GET`  | `/api/v1/partner/cashout-requests/:id` | Get details of a single cashout request                              |
 
 > **Note:** All partner API endpoints return `403 { error: "...", disabled: true }` if the partner's account status is `disabled`. The dashboard will show a clear "account disabled" message in this case.
 
@@ -101,7 +102,7 @@ Validation errors return HTTP `400` with a JSON body `{ "error": "..." }` descri
 
 Partners can submit cashout requests directly from the partner dashboard. The flow is:
 
-1. Partner checks their **available balance** (mature credits ≥ 30 days old).
+1. Partner checks their **available balance** (mature points ≥ 30 days old).
 2. Partner selects a **payout method**: Amazon Voucher or Pre-Paid Debit Card.
 3. Partner selects a **denomination** in £5 increments (minimum £50, maximum equal to available GBP balance).
 4. Dashboard submits `POST /cashout-requests`; the server validates the request and immediately creates a `CASHOUT_HOLD` ledger transaction to reserve the points.
@@ -111,6 +112,7 @@ Partners can submit cashout requests directly from the partner dashboard. The fl
 **Typical processing time:** 3–5 working days.
 
 **Denomination rules:**
+
 - Minimum: £50
 - Increments: £5 (£50, £55, £60, …)
 - Maximum: floor(availableGbp / 5) × 5
@@ -125,18 +127,18 @@ Partners can submit cashout requests directly from the partner dashboard. The fl
 
 ### Admin (requires `admin` role)
 
-| Method  | Path                                                      | Description                                                                  |
-| ------- | --------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| `GET`   | `/api/v1/admin/partners`                                  | List all partners (search & filter)                                          |
-| `GET`   | `/api/v1/admin/partners/:id`                              | Get full detail for a partner                                                |
-| `PATCH` | `/api/v1/admin/partners/:id/status`                       | Enable or disable a partner                                                  |
-| `POST`  | `/api/v1/admin/partners/:id/credits`                      | Apply manual credit adjustment                                               |
-| `GET`   | `/api/v1/admin/partners/payout-requests`                  | List all payout request tickets (legacy ticket-based flow)                   |
-| `PATCH` | `/api/v1/admin/partners/payout-requests/:ticketId/status` | Update payout ticket status (legacy)                                         |
-| `GET`   | `/api/v1/admin/cashout-requests`                          | List all partner cashout requests (filter: status, partnerId)                |
-| `GET`   | `/api/v1/admin/cashout-requests/:id`                      | Get full detail of a cashout request (with ledger transactions)              |
-| `PATCH` | `/api/v1/admin/cashout-requests/:id`                      | Update status/notes (approve → processing → delivered / reject) + CSRF      |
-| `DELETE`| `/api/v1/admin/cashout-requests/:id`                      | Delete a cashout request (only allowed for terminal states: rejected/delivered) + CSRF |
+| Method   | Path                                                      | Description                                                                            |
+| -------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `GET`    | `/api/v1/admin/partners`                                  | List all partners (search & filter)                                                    |
+| `GET`    | `/api/v1/admin/partners/:id`                              | Get full detail for a partner                                                          |
+| `PATCH`  | `/api/v1/admin/partners/:id/status`                       | Enable or disable a partner                                                            |
+| `POST`   | `/api/v1/admin/partners/:id/credits`                      | Apply manual credit adjustment                                                         |
+| `GET`    | `/api/v1/admin/partners/payout-requests`                  | List all payout request tickets (legacy ticket-based flow)                             |
+| `PATCH`  | `/api/v1/admin/partners/payout-requests/:ticketId/status` | Update payout ticket status (legacy)                                                   |
+| `GET`    | `/api/v1/admin/cashout-requests`                          | List all partner cashout requests (filter: status, partnerId)                          |
+| `GET`    | `/api/v1/admin/cashout-requests/:id`                      | Get full detail of a cashout request (with ledger transactions)                        |
+| `PATCH`  | `/api/v1/admin/cashout-requests/:id`                      | Update status/notes (approve → processing → delivered / reject) + CSRF                 |
+| `DELETE` | `/api/v1/admin/cashout-requests/:id`                      | Delete a cashout request (only allowed for terminal states: rejected/delivered) + CSRF |
 
 #### Cashout request status workflow
 
@@ -146,13 +148,13 @@ submitted → approved → processing → delivered
                     rejected (releases held points)
 ```
 
-| Status       | Transitions to          | Side effect                                                             |
-| ------------ | ----------------------- | ----------------------------------------------------------------------- |
-| `submitted`  | `approved`, `rejected`  | —                                                                       |
-| `approved`   | `processing`, `rejected`| —                                                                       |
-| `processing` | `delivered`, `rejected` | —                                                                       |
-| `delivered`  | (terminal)              | CASHOUT_HOLD released + final REDEEM transaction created                |
-| `rejected`   | (terminal)              | CASHOUT_HOLD released via CASHOUT_RELEASE — points restored to partner  |
+| Status       | Transitions to           | Side effect                                                            |
+| ------------ | ------------------------ | ---------------------------------------------------------------------- |
+| `submitted`  | `approved`, `rejected`   | —                                                                      |
+| `approved`   | `processing`, `rejected` | —                                                                      |
+| `processing` | `delivered`, `rejected`  | —                                                                      |
+| `delivered`  | (terminal)               | CASHOUT_HOLD released + final REDEEM transaction created               |
+| `rejected`   | (terminal)               | CASHOUT_HOLD released via CASHOUT_RELEASE — points restored to partner |
 
 ---
 
@@ -184,19 +186,19 @@ Three collections are used (in `store.js` and MongoDB):
 
 ### `partner_credit_transactions`
 
-| Field            | Type           | Description                                                                                                                               |
-| ---------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`             | string         | Unique ID (`ptx_...`)                                                                                                                     |
-| `partnerId`      | string         | Links to `partners`                                                                                                                       |
-| `supplierUserId` | string \| null | Supplier who triggered the credit (null for adjustments/debits)                                                                           |
-| `type`           | string         | `PACKAGE_BONUS`, `SUBSCRIPTION_BONUS`, `REFERRAL_SIGNUP_BONUS`, `FIRST_REVIEW_BONUS`, `PROFILE_APPROVED_BONUS`, `ADJUSTMENT`, `REDEEM`, `CASHOUT_HOLD`, or `CASHOUT_RELEASE` |
-| `amount`         | number         | Credit amount (positive = earn, negative = deduct/hold)                                                                                                                      |
-| `notes`          | string         | Human-readable note                                                                                                                                                          |
-| `adminUserId`    | string \| null | Set for admin adjustments                                                                                                                                                    |
-| `externalRef`    | string \| null | Reference to cashout request ID (set on CASHOUT_HOLD/CASHOUT_RELEASE/REDEEM)                                                                                                 |
-| `createdAt`      | ISO string     | Transaction timestamp                                                                                                                                                        |
+| Field            | Type           | Description                                                                                                                                                                                                 |
+| ---------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`             | string         | Unique ID (`ptx_...`)                                                                                                                                                                                       |
+| `partnerId`      | string         | Links to `partners`                                                                                                                                                                                         |
+| `supplierUserId` | string \| null | Supplier who triggered the point award (null for adjustments/debits)                                                                                                                                        |
+| `type`           | string         | `PACKAGE_BONUS`, `SUBSCRIPTION_BONUS`, `REFERRAL_SIGNUP_BONUS`, `FIRST_REVIEW_BONUS`, `PROFILE_APPROVED_BONUS` _(never awarded — deprecated)_, `ADJUSTMENT`, `REDEEM`, `CASHOUT_HOLD`, or `CASHOUT_RELEASE` |
+| `amount`         | number         | Point amount (positive = earn, negative = deduct/hold)                                                                                                                                                      |
+| `notes`          | string         | Human-readable note                                                                                                                                                                                         |
+| `adminUserId`    | string \| null | Set for admin adjustments                                                                                                                                                                                   |
+| `externalRef`    | string \| null | Reference to cashout request ID (set on CASHOUT_HOLD/CASHOUT_RELEASE/REDEEM)                                                                                                                                |
+| `createdAt`      | ISO string     | Transaction timestamp                                                                                                                                                                                       |
 
-> **Maturity rule:** Credits with `type !== REDEEM` and `type !== ADJUSTMENT` and `type !== CASHOUT_HOLD` and `type !== CASHOUT_RELEASE` are only included in `availableBalance` once they are ≥ 30 days old (`CREDIT_MATURITY_DAYS`). Younger credits appear in `maturingBalance`.
+> **Maturity rule:** Points with `type !== REDEEM` and `type !== ADJUSTMENT` and `type !== CASHOUT_HOLD` and `type !== CASHOUT_RELEASE` are only included in `availableBalance` once they are ≥ 30 days old (`CREDIT_MATURITY_DAYS`). Younger points appear in `maturingBalance`.
 >
 > **Hold rule:** `CASHOUT_HOLD` transactions count against `availableBalance` (treated like REDEEM for balance calculation). `CASHOUT_RELEASE` transactions restore the held amount (subtracted from the redeemed tally).
 
@@ -204,29 +206,29 @@ Three collections are used (in `store.js` and MongoDB):
 
 New in the cashout request system. Each record represents a manual cashout request from a partner.
 
-| Field                   | Type           | Description                                                              |
-| ----------------------- | -------------- | ------------------------------------------------------------------------ |
-| `id`                    | string         | Unique ID (`pcr_...`)                                                    |
-| `partnerId`             | string         | Links to `partners`                                                      |
-| `partnerUserId`         | string         | User ID of the partner                                                   |
-| `method`                | string         | `amazon_voucher` or `prepaid_debit_card`                                 |
-| `denominationGbp`       | number         | GBP amount (integer, £5 increments, min £50)                             |
-| `pointsHeld`            | number         | Points reserved via CASHOUT_HOLD                                         |
-| `pointsPerGbpSnapshot`  | number         | POINTS_PER_GBP rate at time of request (for audit)                       |
-| `status`                | string         | `submitted`, `approved`, `rejected`, `processing`, or `delivered`        |
-| `partnerMessage`        | string \| null | Optional notes from the partner                                          |
-| `adminResponseMessage`  | string \| null | Admin response visible to the partner                                    |
-| `adminInternalNotes`    | string \| null | Admin internal notes (not shown to partner)                              |
-| `adminUserIdApproved`   | string \| null | Admin user ID who last actioned the request                              |
-| `holdTxnId`             | string         | ID of the CASHOUT_HOLD transaction in `partner_credit_transactions`      |
-| `finalRedeemTxnId`      | string \| null | ID of the final REDEEM transaction (set on delivery)                     |
-| `deliveryDetails`       | object \| null | Delivery metadata (voucher code / card reference, etc.)                  |
-| `approvedAt`            | ISO string \| null | Timestamp when approved                                               |
-| `rejectedAt`            | ISO string \| null | Timestamp when rejected                                               |
-| `processingAt`          | ISO string \| null | Timestamp when moved to processing                                    |
-| `deliveredAt`           | ISO string \| null | Timestamp when delivered                                              |
-| `createdAt`             | ISO string     | Request creation timestamp                                               |
-| `updatedAt`             | ISO string     | Last update timestamp                                                    |
+| Field                  | Type               | Description                                                         |
+| ---------------------- | ------------------ | ------------------------------------------------------------------- |
+| `id`                   | string             | Unique ID (`pcr_...`)                                               |
+| `partnerId`            | string             | Links to `partners`                                                 |
+| `partnerUserId`        | string             | User ID of the partner                                              |
+| `method`               | string             | `amazon_voucher` or `prepaid_debit_card`                            |
+| `denominationGbp`      | number             | GBP amount (integer, £5 increments, min £50)                        |
+| `pointsHeld`           | number             | Points reserved via CASHOUT_HOLD                                    |
+| `pointsPerGbpSnapshot` | number             | POINTS_PER_GBP rate at time of request (for audit)                  |
+| `status`               | string             | `submitted`, `approved`, `rejected`, `processing`, or `delivered`   |
+| `partnerMessage`       | string \| null     | Optional notes from the partner                                     |
+| `adminResponseMessage` | string \| null     | Admin response visible to the partner                               |
+| `adminInternalNotes`   | string \| null     | Admin internal notes (not shown to partner)                         |
+| `adminUserIdApproved`  | string \| null     | Admin user ID who last actioned the request                         |
+| `holdTxnId`            | string             | ID of the CASHOUT_HOLD transaction in `partner_credit_transactions` |
+| `finalRedeemTxnId`     | string \| null     | ID of the final REDEEM transaction (set on delivery)                |
+| `deliveryDetails`      | object \| null     | Delivery metadata (voucher code / card reference, etc.)             |
+| `approvedAt`           | ISO string \| null | Timestamp when approved                                             |
+| `rejectedAt`           | ISO string \| null | Timestamp when rejected                                             |
+| `processingAt`         | ISO string \| null | Timestamp when moved to processing                                  |
+| `deliveredAt`          | ISO string \| null | Timestamp when delivered                                            |
+| `createdAt`            | ISO string         | Request creation timestamp                                          |
+| `updatedAt`            | ISO string         | Last update timestamp                                               |
 
 ### `partner_cashout_orders` (legacy — Tremendous integration)
 
@@ -266,10 +268,10 @@ When an admin sets a partner's status to `disabled`:
 
 - **API access blocked**: All partner dashboard API endpoints (`/me`, `/referrals`, `/transactions`) return `403` with `{ disabled: true }`.
 - **Dashboard**: The partner dashboard will display a clear "Account disabled — please contact support" message.
-- **No new credit awards**: `awardPackageBonus()` and `awardSubscriptionBonus()` both return `null` and skip the award for disabled partners.
-- **Referral recording**: New supplier sign-ups via a disabled partner's ref link are **still recorded** in `partner_referrals` (the attribution exists), but no credits will be awarded until the partner is re-enabled.
-- **Existing credits**: Disabling a partner does **not** remove existing credits or transactions from the ledger.
-- **Re-enabling**: When a partner is re-enabled (status set back to `active`), future qualifying events will resume awarding credits. However, bonuses that were missed while disabled are **not** retroactively awarded.
+- **No new point awards**: `awardPackageBonus()` and `awardSubscriptionBonus()` both return `null` and skip the award for disabled partners.
+- **Referral recording**: New supplier sign-ups via a disabled partner's ref link are **still recorded** in `partner_referrals` (the attribution exists), but no points will be awarded until the partner is re-enabled.
+- **Existing points**: Disabling a partner does **not** remove existing points or transactions from the ledger.
+- **Re-enabling**: When a partner is re-enabled (status set back to `active`), future qualifying events will resume awarding points. However, bonuses that were missed while disabled are **not** retroactively awarded.
 
 ---
 
@@ -283,7 +285,7 @@ When an admin sets a partner's status to `disabled`:
 
 `webhooks/stripeWebhookHandler.js` — inside `handleInvoicePaymentSucceeded()`, after updating subscription status, calls `partnerService.awardSubscriptionBonus(subscription.userId)`.
 
-**Important**: The subscription bonus is only awarded when `invoice.amount_paid > 0`. This prevents awarding credits for:
+**Important**: The subscription bonus is only awarded when `invoice.amount_paid > 0`. This prevents awarding points for:
 
 - Trial activations (£0 first invoice)
 - Free plan activations
@@ -346,9 +348,9 @@ The admin payout requests tab (`GET /api/v1/admin/partners/payout-requests`) and
 
 ### Enable / Disable a partner
 
-From `/admin-partners`, click "Disable" to prevent a partner from earning further credits. See [Disabled Partner Semantics](#disabled-partner-semantics) above for full behaviour details.
+From `/admin-partners`, click "Disable" to prevent a partner from earning further points. See [Disabled Partner Semantics](#disabled-partner-semantics) above for full behaviour details.
 
-### Manual credit adjustment
+### Manual point adjustment
 
 Click "Credits" next to any partner to open the adjustment modal. Enter a positive or negative integer and a **required** audit note. All adjustments are stored in the `partner_credit_transactions` ledger with `type: ADJUSTMENT`.
 
@@ -357,7 +359,7 @@ Click "Credits" next to any partner to open the adjustment modal. Enter a positi
 Click "View" to open a side panel showing:
 
 - Partner profile info
-- Credit breakdown (balance, package bonuses, subscription bonuses)
+- Point breakdown (balance, package bonuses, subscription bonuses)
 - Transaction history
 - Full referral list with qualification status
 

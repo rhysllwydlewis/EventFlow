@@ -105,7 +105,7 @@ describe('Admin Cashout Requests — Status Workflow', () => {
 
   it('creates a final REDEEM transaction on delivery', () => {
     expect(routeContent).toContain("status === 'delivered'");
-    expect(routeContent).toContain("CREDIT_TYPES.REDEEM");
+    expect(routeContent).toContain('CREDIT_TYPES.REDEEM');
   });
 });
 
@@ -142,5 +142,48 @@ describe('Admin Cashout Requests — Delete Endpoint', () => {
 
   it('logs the deletion action', () => {
     expect(routeContent).toContain('deleted cashout request');
+  });
+});
+
+// ─── Idempotency Guards ───────────────────────────────────────────────────────
+
+describe('Admin Cashout Requests — Delivery Idempotency', () => {
+  it('checks for an existing REDEEM before inserting a new one on delivery', () => {
+    // Confirms the delivered branch checks for existing REDEEM by externalRef
+    expect(routeContent).toContain('finalRedeemTxnId');
+    expect(routeContent).toContain('externalRef === request.id');
+  });
+
+  it('guards against duplicate REDEEM when finalRedeemTxnId is already set', () => {
+    expect(routeContent).toContain('request.finalRedeemTxnId');
+  });
+
+  it('uses releaseCashoutHold (idempotent) before inserting REDEEM', () => {
+    const releasePos = routeContent.indexOf('releaseCashoutHold');
+    const redeemPos = routeContent.indexOf('CREDIT_TYPES.REDEEM');
+    expect(releasePos).toBeGreaterThan(-1);
+    expect(redeemPos).toBeGreaterThan(-1);
+    // releaseCashoutHold is called before REDEEM is inserted
+    expect(releasePos).toBeLessThan(redeemPos);
+  });
+});
+
+// ─── SEO / noindex ────────────────────────────────────────────────────────────
+
+describe('Admin Cashout Requests — Noindex (SEO Middleware)', () => {
+  const seoMiddlewareFile = require('path').join(__dirname, '../../middleware/seo.js');
+  let seoContent;
+
+  beforeAll(() => {
+    seoContent = require('fs').readFileSync(seoMiddlewareFile, 'utf8');
+  });
+
+  it('seo middleware includes /partner in noindexPrefixes', () => {
+    expect(seoContent).toContain("'/partner'");
+  });
+
+  it('noindexMiddleware sets X-Robots-Tag header', () => {
+    expect(seoContent).toContain('X-Robots-Tag');
+    expect(seoContent).toContain('noindex, nofollow');
   });
 });
