@@ -8,6 +8,7 @@
 const express = require('express');
 const router = express.Router();
 const photoUpload = require('../photo-upload');
+const { geocodeLocation, calculateDistance } = require('../utils/geocoding');
 
 // These will be injected by server.js during route mounting
 let dbUnified;
@@ -114,12 +115,35 @@ async function attachSellerSupplierIds(listings) {
   });
 }
 
+// ---------- Geocoding ----------
+
+// Server-side postcode geocoding (keeps API calls off the client)
+router.get('/geocode-postcode', async (req, res) => {
+  const { postcode } = req.query;
+
+  if (!postcode || typeof postcode !== 'string' || !postcode.trim()) {
+    return res.status(400).json({ error: 'postcode query parameter is required' });
+  }
+
+  try {
+    const coords = await geocodeLocation(postcode.trim());
+    if (!coords) {
+      return res.status(404).json({ error: 'Postcode not found or could not be geocoded' });
+    }
+    return res.json({ latitude: coords.latitude, longitude: coords.longitude });
+  } catch (error) {
+    logger.error('Geocode postcode error:', error);
+    return res.status(500).json({ error: 'Geocoding service unavailable' });
+  }
+});
+
 // ---------- Marketplace Listings ----------
 
 // Get all marketplace listings (public)
 router.get('/listings', async (req, res) => {
   try {
-    const { category, condition, minPrice, maxPrice, search, sort, limit } = req.query;
+    const { category, condition, minPrice, maxPrice, search, sort, limit, lat, lng, radius } =
+      req.query;
 
     // Build MongoDB-style filter
     const filter = { approved: true, status: 'active' };
@@ -217,11 +241,50 @@ router.get('/listings', async (req, res) => {
       listings = allListings.slice(0, resultLimit);
     }
 
+    // Apply geo filter when lat/lng/radius are provided
+    if (lat && lng && radius) {
+      const userLat = parseFloat(lat);
+      const userLng = parseFloat(lng);
+      const radiusMiles = parseFloat(radius);
+
+      if (!isNaN(userLat) && !isNaN(userLng) && !isNaN(radiusMiles) && radiusMiles > 0) {
+        listings = listings.filter(listing => {
+          // Use stored GeoJSON coordinates if available: { type: 'Point', coordinates: [lng, lat] }
+          if (
+            listing.locationCoordinates &&
+            typeof listing.locationCoordinates.lat === 'number' &&
+            typeof listing.locationCoordinates.lng === 'number'
+          ) {
+            const dist = calculateDistance(
+              userLat,
+              userLng,
+              listing.locationCoordinates.lat,
+              listing.locationCoordinates.lng
+            );
+            return dist <= radiusMiles;
+          }
+          // Listings without stored coordinates are included (graceful degradation for legacy data)
+          return true;
+        });
+      }
+    }
+
     listings = await attachSellerSupplierIds(listings);
 
     logger.info('Marketplace listings fetched', {
       count: listings.length,
-      filters: { category, condition, minPrice, maxPrice, search, sort, limit: resultLimit },
+      filters: {
+        category,
+        condition,
+        minPrice,
+        maxPrice,
+        search,
+        sort,
+        limit: resultLimit,
+        lat,
+        lng,
+        radius,
+      },
       usedOptimizedQuery: dbType === 'mongodb' && !search,
     });
 
@@ -394,6 +457,21 @@ router.post(
         });
       }
 
+      const locationText = location ? String(location).slice(0, 100) : '';
+
+      // Attempt to geocode the location for future distance filtering
+      let locationCoordinates = null;
+      if (locationText) {
+        try {
+          const coords = await geocodeLocation(locationText);
+          if (coords) {
+            locationCoordinates = { lat: coords.latitude, lng: coords.longitude };
+          }
+        } catch (_geocodeErr) {
+          // Geocoding failure is non-fatal; listing is still created without coordinates
+        }
+      }
+
       const listing = {
         id: uid('mkt'),
         userId: req.user.id,
@@ -402,7 +480,8 @@ router.post(
         price: priceNum,
         category,
         condition,
-        location: location ? String(location).slice(0, 100) : '',
+        location: locationText,
+        ...(locationCoordinates ? { locationCoordinates } : {}),
         images: Array.isArray(images) ? images.slice(0, 5) : [],
         approved: true, // Auto-approve new listings
         status: 'active', // New listings start as active; status can be: active, sold, removed, or pending (for admin-moderated listings)

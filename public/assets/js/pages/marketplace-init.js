@@ -131,7 +131,7 @@ async function searchListings(filters, page = 1) {
 
   try {
     // Use the marketplace listings endpoint
-    const response = await fetch(`/api/marketplace/listings?${params.toString()}`, {
+    const response = await fetch(`/api/v1/marketplace/listings?${params.toString()}`, {
       credentials: 'include',
     });
 

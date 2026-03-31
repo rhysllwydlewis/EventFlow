@@ -886,6 +886,19 @@ async function createIndexes(db) {
     await db.collection('marketplace_images').createIndex({ listingId: 1, order: 1 });
     await db.collection('marketplace_images').createIndex({ uploadedAt: -1 });
 
+    // Marketplace listing indexes
+    await db.collection('marketplace_listings').createIndex({ id: 1 }, { unique: true });
+    await db.collection('marketplace_listings').createIndex({ userId: 1 });
+    await db.collection('marketplace_listings').createIndex({ approved: 1, status: 1 });
+    await db.collection('marketplace_listings').createIndex({ createdAt: -1 });
+    // Sparse 2dsphere index for geo-distance filtering on listings that have coordinates
+    await db
+      .collection('marketplace_listings')
+      .createIndex(
+        { 'locationCoordinates.lat': 1, 'locationCoordinates.lng': 1 },
+        { sparse: true }
+      );
+
     logger.info('Database indexes created successfully');
   } catch (error) {
     logger.error('Error creating indexes:', error.message);
