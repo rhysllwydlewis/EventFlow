@@ -2422,3 +2422,376 @@ article.container {
   font-size: 0.875rem;
   color: #667085;
 }
+
+/* ============================================================
+   18. CARD-LAYOUT ARTICLE PAGES
+   Styles for articles that use .card divs for content sections
+   (an older template). These styles bridge the visual gap with
+   the newer article-layout template.
+   ============================================================ */
+
+/* Article > header (plain header tag, not .article-header) */
+article > header {
+  margin-bottom: 28px;
+}
+
+article > header .small:first-child {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--guides-teal);
+  background: var(--guides-teal-pale);
+  padding: 4px 12px;
+  border-radius: 999px;
+  margin-bottom: 12px;
+}
+
+article > header h1 {
+  font-size: clamp(1.65rem, 4vw, 2.3rem);
+  font-weight: 900;
+  letter-spacing: -0.025em;
+  color: #0b1220;
+  line-height: 1.2;
+  margin: 0 0 14px;
+}
+
+article > header .lead {
+  font-size: 1.1rem;
+  line-height: 1.7;
+  color: #374151;
+  margin-bottom: 14px;
+}
+
+article > header .small:not(:first-child) {
+  font-size: 0.82rem;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Card-based article content sections */
+article .card {
+  background: #fff;
+  border: 1px solid rgba(11,128,115,0.12);
+  border-radius: var(--guides-radius-sm);
+  padding: 28px 32px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(11,128,115,0.06);
+}
+
+article .card + .card {
+  border-top: none;
+}
+
+article .card h2.h3,
+article .card h2 {
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #0b1220;
+  margin: 0 0 16px;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--guides-teal-pale);
+}
+
+article .card h3.h4,
+article .card h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 20px 0 8px;
+  line-height: 1.35;
+}
+
+article .card p {
+  font-size: 1.02rem;
+  line-height: 1.85;
+  color: #374151;
+  margin: 0 0 1rem;
+}
+
+article .card p:last-child {
+  margin-bottom: 0;
+}
+
+article .card ul,
+article .card ol {
+  margin: 0.75rem 0 1.25rem 1.5rem;
+  line-height: 1.85;
+}
+
+article .card li {
+  font-size: 1.02rem;
+  color: #374151;
+  margin-bottom: 0.5rem;
+}
+
+article .card li:last-child {
+  margin-bottom: 0;
+}
+
+article .card strong {
+  color: #111827;
+}
+
+article .card a {
+  color: var(--guides-teal);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+article .card a:hover {
+  color: #0a7069;
+}
+
+/* First card gets special treatment to match article-hero feel */
+article > .card:first-of-type,
+article > nav + header + .card,
+article > nav + header + div + .card {
+  border-top: 3px solid var(--guides-teal);
+}
+
+/* Lead paragraph (first p in first card) */
+article .card:first-of-type > p:first-child {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--guides-teal);
+  line-height: 1.7;
+}
+
+/* Ordered list styling */
+article .card ol {
+  counter-reset: none;
+}
+
+article .card ol li::marker {
+  color: var(--guides-teal);
+  font-weight: 700;
+}
+
+/* Table inside cards */
+article .card table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+  font-size: 0.95rem;
+}
+
+article .card table th {
+  background: var(--guides-teal-pale);
+  color: var(--guides-teal);
+  font-weight: 700;
+  padding: 10px 14px;
+  text-align: left;
+  border-bottom: 2px solid rgba(11,128,115,0.2);
+}
+
+article .card table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(11,128,115,0.08);
+  color: #374151;
+  vertical-align: top;
+}
+
+article .card table tr:last-child td {
+  border-bottom: none;
+}
+
+/* ============================================================
+   19. TABLE OF CONTENTS (TOC)
+   Self-contained TOC component shown before article body.
+   ============================================================ */
+.article-toc {
+  background: var(--guides-teal-pale);
+  border: 1px solid rgba(11,128,115,0.15);
+  border-left: 3px solid var(--guides-teal);
+  border-radius: var(--guides-radius-sm);
+  padding: 20px 24px;
+  margin: 0 0 32px;
+}
+
+.article-toc summary {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--guides-teal);
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.article-toc summary::-webkit-details-marker { display: none; }
+
+.article-toc summary::after {
+  content: '';
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid var(--guides-teal);
+  transition: transform 0.2s ease;
+  margin-left: auto;
+}
+
+.article-toc[open] summary::after {
+  transform: rotate(180deg);
+}
+
+.article-toc__list {
+  list-style: none;
+  padding: 0;
+  margin: 14px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.article-toc__item a {
+  font-size: 0.9rem;
+  color: #0b1220;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.article-toc__item a::before {
+  content: '';
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--guides-teal);
+  flex-shrink: 0;
+}
+
+.article-toc__item a:hover { color: var(--guides-teal); }
+
+.article-toc__item--sub {
+  padding-left: 20px;
+}
+
+.article-toc__item--sub a {
+  font-size: 0.85rem;
+  color: #667085;
+  font-weight: 400;
+}
+
+.article-toc__item--sub a::before {
+  width: 3px;
+  height: 3px;
+  background: #9ca3af;
+}
+
+/* ============================================================
+   20. ARTICLE KEY TAKEAWAYS BOX
+   ============================================================ */
+.article-key-takeaways {
+  background: linear-gradient(135deg, var(--guides-teal-pale) 0%, #e0f2f0 100%);
+  border: 1px solid rgba(11,128,115,0.18);
+  border-left: 4px solid var(--guides-teal);
+  border-radius: var(--guides-radius-sm);
+  padding: 20px 24px;
+  margin: 2rem 0;
+}
+
+.article-key-takeaways__title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--guides-teal);
+  margin: 0 0 12px;
+}
+
+.article-key-takeaways ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.article-key-takeaways li {
+  font-size: 0.95rem;
+  color: #374151;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  line-height: 1.6;
+}
+
+.article-key-takeaways li::before {
+  content: '✓';
+  color: var(--guides-teal);
+  font-weight: 700;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* ============================================================
+   21. RESPONSIVE IMPROVEMENTS
+   ============================================================ */
+@media (max-width: 768px) {
+  article .card {
+    padding: 20px 18px;
+  }
+
+  article > header h1 {
+    font-size: 1.6rem;
+  }
+
+  article .card h2.h3,
+  article .card h2 {
+    font-size: 1.25rem;
+  }
+
+  .article-toc {
+    padding: 16px 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  article .card {
+    padding: 16px 14px;
+    border-radius: 8px;
+  }
+}
+
+/* ============================================================
+   22. PRINT STYLES FOR ARTICLES
+   ============================================================ */
+@media print {
+  .article-progress-bar,
+  .guides-back-to-top,
+  .ef-header,
+  .ef-bottom-nav,
+  .footer,
+  .article-end-cta,
+  nav.article-breadcrumb {
+    display: none !important;
+  }
+
+  article .card {
+    border: 1px solid #ddd;
+    box-shadow: none;
+    break-inside: avoid;
+  }
+
+  .article-content h2,
+  article .card h2.h3 {
+    break-after: avoid;
+  }
+}
