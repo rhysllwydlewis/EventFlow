@@ -202,6 +202,14 @@
         }
       }
 
+      // Apply location/distance filter if postcode and radius are set
+      const savedLocation = JSON.parse(localStorage.getItem('marketplaceLocation') || '{}');
+      if (savedLocation.lat && savedLocation.lng && savedLocation.radius) {
+        params.append('lat', savedLocation.lat);
+        params.append('lng', savedLocation.lng);
+        params.append('radius', savedLocation.radius);
+      }
+
       const res = await fetch(`/api/v1/marketplace/listings?${params.toString()}`);
       if (!res.ok) {
         throw new Error('Failed to fetch listings');
@@ -1306,7 +1314,11 @@
         position => {
           const { latitude, longitude } = position.coords;
           const postcodeInput = overlay.querySelector('#location-postcode');
+          // Store coordinates as the postcode input text so Apply can use them
           postcodeInput.value = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+          // Store lat/lng directly on the input element as data attributes so Apply can skip geocoding
+          postcodeInput.dataset.lat = latitude;
+          postcodeInput.dataset.lng = longitude;
           useLocationBtn.textContent = 'Use My Location';
           useLocationBtn.disabled = false;
           showToast('Location detected');
@@ -1321,29 +1333,75 @@
 
     // Apply location
     const applyBtn = overlay.querySelector('#apply-location');
-    applyBtn.addEventListener('click', () => {
-      const postcode = overlay.querySelector('#location-postcode').value.trim();
+    applyBtn.addEventListener('click', async () => {
+      const postcodeInput = overlay.querySelector('#location-postcode');
+      const postcode = postcodeInput.value.trim();
       const radius = overlay.querySelector('#location-radius').value;
 
-      // Save to localStorage
-      localStorage.setItem('marketplaceLocation', JSON.stringify({ postcode, radius }));
+      if (!postcode || !radius) {
+        // Clear location filter if postcode or radius is missing
+        localStorage.setItem('marketplaceLocation', JSON.stringify({ postcode, radius }));
+        updateLocationSummary(postcode, radius);
+        closeModal(overlay);
+        loadListings();
+        showToast('Location filter cleared');
+        return;
+      }
 
-      // Update UI
-      updateLocationSummary(postcode, radius);
+      // If geolocation was used, lat/lng are already stored as data attributes — skip geocoding
+      const presetLat = postcodeInput.dataset.lat ? parseFloat(postcodeInput.dataset.lat) : null;
+      const presetLng = postcodeInput.dataset.lng ? parseFloat(postcodeInput.dataset.lng) : null;
 
-      // Close modal
-      closeModal(overlay);
+      if (presetLat && presetLng) {
+        localStorage.setItem(
+          'marketplaceLocation',
+          JSON.stringify({ postcode, radius, lat: presetLat, lng: presetLng })
+        );
+        updateLocationSummary(postcode, radius);
+        closeModal(overlay);
+        loadListings();
+        showToast('Location filter applied');
+        return;
+      }
 
-      // STUB: Location/distance filter saved to localStorage but not yet applied to API queries.
-      // To implement properly:
-      //   1. Resolve postcode to lat/lng (e.g. postcodes.io API)
-      //   2. Pass coordinates + radius to the listings API endpoint
-      //   3. Add a 2dsphere index on listing location field in MongoDB
-      //   4. Use MongoDB $geoNear or $near operator in the query
-      // For now, listings are reloaded without distance filtering.
-      loadListings();
+      // Geocode postcode via server-side endpoint to resolve to lat/lng
+      applyBtn.textContent = 'Applying...';
+      applyBtn.disabled = true;
 
-      showToast('Location updated');
+      try {
+        const res = await fetch(
+          `/api/v1/marketplace/geocode-postcode?postcode=${encodeURIComponent(postcode)}`
+        );
+
+        let lat = null;
+        let lng = null;
+
+        if (res.ok) {
+          const data = await res.json();
+          lat = data.latitude;
+          lng = data.longitude;
+        } else {
+          showToast('Could not find that postcode — showing all listings', 'warning');
+        }
+
+        // Save postcode, radius, and resolved coordinates to localStorage
+        localStorage.setItem('marketplaceLocation', JSON.stringify({ postcode, radius, lat, lng }));
+
+        updateLocationSummary(postcode, radius);
+        closeModal(overlay);
+        loadListings();
+        showToast(lat ? 'Location filter applied' : 'Location updated (no coordinates found)');
+      } catch (_err) {
+        // Network error — save without coordinates so UI still shows location text
+        localStorage.setItem('marketplaceLocation', JSON.stringify({ postcode, radius }));
+        updateLocationSummary(postcode, radius);
+        closeModal(overlay);
+        loadListings();
+        showToast('Location updated (geocoding unavailable)', 'warning');
+      } finally {
+        applyBtn.textContent = 'Apply';
+        applyBtn.disabled = false;
+      }
     });
   }
 

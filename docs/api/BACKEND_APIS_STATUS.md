@@ -76,23 +76,25 @@ Example analytics record format:
 
 ---
 
-## ✅ IMPLEMENTED: Marketplace Listings API (Phase 4)
+## ✅ IMPLEMENTED: Marketplace Listings API (Phase 4 + Phase 5)
 
 **Frontend Location:** `public/assets/js/marketplace.js`
 
-**Status:** ✅ Core listing CRUD implemented
+**Status:** ✅ Fully implemented including location/distance filter
 
 **Backend Endpoints:**
 
-- `GET /api/v1/marketplace/listings` — List/search listings (category, condition, price, keyword, sort)
-- `POST /api/v1/marketplace/listings` — Create listing (auth required)
-- `PATCH /api/v1/marketplace/listings/:id` — Update listing (auth required)
+- `GET /api/v1/marketplace/geocode-postcode` — Server-side postcode geocoding (proxies postcodes.io)
+- `GET /api/v1/marketplace/listings` — List/search listings (category, condition, price, keyword, sort, lat/lng/radius)
+- `POST /api/v1/marketplace/listings` — Create listing (auth required; auto-geocodes location)
+- `PUT /api/v1/marketplace/listings/:id` — Update listing (auth required)
 - `DELETE /api/v1/marketplace/listings/:id` — Delete listing (auth required)
 - `GET /api/v1/marketplace/listings/:id` — Get single listing
 
 **Notes:**
 
-- ⚠️ Location/distance filter is a stub — see `docs/MARKETPLACE_FILTER_STATUS.md`
+- ✅ Location/distance filter fully implemented — see `docs/marketplace/ARCHITECTURE.md`
+- Backward-compatible alias at `/api/marketplace/...` also available
 
 ---
 
