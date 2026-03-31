@@ -280,7 +280,7 @@
       const amtStr = t.amount >= 0 ? `+${t.amount}` : `${t.amount}`;
       return `<tr>
         <td>${esc(meta.icon)} ${esc(meta.label)}</td>
-        <td style="${amtClass};font-weight:700;">${amtStr} pts</td>
+        <td style="${amtClass};font-weight:700;">${amtStr} points</td>
         <td style="color:rgba(255,255,255,0.45)">${toPounds(Math.abs(t.amount), pointsPerGbp)}</td>
         <td>${fmtDate(t.createdAt)}</td>
         <td style="color:rgba(255,255,255,0.4);font-size:0.78rem;">${esc(t.notes || '')}</td>
