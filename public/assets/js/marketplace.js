@@ -818,7 +818,7 @@
     modal.innerHTML = `
       <div class="modal-content" style="max-width: 600px;">
         <div class="modal-header">
-          <h2>List an Item</h2>
+          <h2>Create new listing</h2>
           <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
         </div>
         <div class="modal-body">
