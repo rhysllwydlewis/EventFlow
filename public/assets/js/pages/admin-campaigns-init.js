@@ -26,17 +26,17 @@
   let subjectEl, titleEl, messageEl, ctaTextEl, ctaUrlEl;
   let testEmailEl, testBtn, sendBtn, audienceEl;
   let previewFrame, previewLoading, refreshBtn, statusEl;
-  let recipientBannerText;
+  let recipientBannerText, subjectCharCounter;
 
   // ── Collect current editor values ─────────────────────────────────────────
   function getEditorValues() {
     return {
       templateName: 'marketing',
-      subject: subjectEl.value.trim(),
-      title: titleEl.value.trim(),
-      bodyHtml: messageEl.value,
-      ctaText: ctaTextEl.value.trim(),
-      ctaUrl: ctaUrlEl.value.trim(),
+      subject: subjectEl ? subjectEl.value.trim() : '',
+      title: titleEl ? titleEl.value.trim() : '',
+      bodyHtml: messageEl ? messageEl.value : '',
+      ctaText: ctaTextEl ? ctaTextEl.value.trim() : '',
+      ctaUrl: ctaUrlEl ? ctaUrlEl.value.trim() : '',
     };
   }
 
@@ -100,8 +100,11 @@
     if (!statusEl) {
       return;
     }
-    statusEl.textContent = msg;
+    const icon = type === 'success' ? '✓ ' : type === 'error' ? '✕ ' : '';
+    statusEl.textContent = icon + msg;
     statusEl.className = `campaigns-status campaigns-status--${type}`;
+    // Scroll status into view smoothly so it's visible even on smaller screens
+    statusEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
   function clearStatus() {
@@ -110,6 +113,22 @@
     }
     statusEl.textContent = '';
     statusEl.className = 'campaigns-status';
+  }
+
+  // ── Subject character counter ─────────────────────────────────────────────
+  function updateCharCounter() {
+    if (!subjectEl || !subjectCharCounter) {
+      return;
+    }
+    const len = subjectEl.value.length;
+    const max = parseInt(subjectEl.getAttribute('maxlength') || '200', 10);
+    subjectCharCounter.textContent = `${len} / ${max}`;
+    subjectCharCounter.className = 'campaigns-char-counter';
+    if (len >= max) {
+      subjectCharCounter.classList.add('campaigns-char-counter--danger');
+    } else if (len >= max * 0.85) {
+      subjectCharCounter.classList.add('campaigns-char-counter--warn');
+    }
   }
 
   // ── Test send ─────────────────────────────────────────────────────────────
@@ -216,6 +235,7 @@
     refreshBtn = document.getElementById('refreshPreviewBtn');
     statusEl = document.getElementById('campaignStatus');
     recipientBannerText = document.getElementById('recipientBannerText');
+    subjectCharCounter = document.getElementById('subjectCharCounter');
 
     // Live preview on editor input
     [subjectEl, titleEl, messageEl, ctaTextEl, ctaUrlEl].forEach(el => {
@@ -223,6 +243,11 @@
         el.addEventListener('input', debouncedRefreshPreview);
       }
     });
+
+    // Subject character counter
+    if (subjectEl) {
+      subjectEl.addEventListener('input', updateCharCounter);
+    }
 
     // Manual refresh button
     if (refreshBtn) {
@@ -239,7 +264,11 @@
       sendBtn.addEventListener('click', handleCampaignSend);
     }
 
-    // Initial default content and preview
+    // Initial default content
+    if (subjectEl) {
+      subjectEl.value = 'News from EventFlow';
+      updateCharCounter();
+    }
     if (titleEl) {
       titleEl.value = 'Welcome to EventFlow';
     }

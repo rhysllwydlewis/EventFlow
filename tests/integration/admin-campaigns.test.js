@@ -227,6 +227,16 @@ describe('Admin Campaigns — Preview logic (unit simulation)', () => {
     // Structural check that the preview handler returns { ok: true, html }
     expect(content).toContain('return res.json({ ok: true, html })');
   });
+
+  it('preview sets unsubscribeLink placeholder in templateData', () => {
+    // Preview does not have a real email address so a placeholder link is injected
+    // so the marketing template renders a clickable (but non-functional) link.
+    const previewIdx = content.indexOf("'/preview'");
+    const sendIdx = content.indexOf("'/test'");
+    const previewBlock = content.substring(previewIdx, sendIdx);
+    expect(previewBlock).toContain('unsubscribeLink');
+    expect(previewBlock).toContain('preview=1');
+  });
 });
 
 // ── Recipient collection ──────────────────────────────────────────────────────

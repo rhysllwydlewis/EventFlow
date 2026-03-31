@@ -170,6 +170,9 @@ router.post('/preview', authRequired, roleRequired('admin'), async (req, res) =>
     const { templateName = 'marketing', subject, title, bodyHtml, ctaText, ctaUrl } = req.body;
 
     const templateData = buildTemplateData({ title, bodyHtml, ctaText, ctaUrl });
+    // Add a placeholder unsubscribe link so the template renders a visible link
+    // in preview mode (the real personalised link is only generated on /test and /send).
+    templateData.unsubscribeLink = `${APP_BASE_URL}/api/auth/unsubscribe?preview=1`;
     const html = postmark.loadEmailTemplate(templateName, templateData);
 
     if (!html) {

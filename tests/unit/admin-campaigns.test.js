@@ -101,6 +101,45 @@ describe('admin-campaigns-init.js — editor field handling', () => {
   it('reads audience selector', () => {
     expect(initContent).toContain("getElementById('campaignAudience')");
   });
+
+  it('reads subjectCharCounter element', () => {
+    expect(initContent).toContain("getElementById('subjectCharCounter')");
+  });
+
+  it('pre-fills subject with default value', () => {
+    expect(initContent).toContain("subjectEl.value = 'News from EventFlow'");
+  });
+
+  it('getEditorValues uses null-safe property access', () => {
+    // All five fields should be guarded with a conditional before .value
+    expect(initContent).toContain('subjectEl ? subjectEl.value.trim()');
+    expect(initContent).toContain('titleEl ? titleEl.value.trim()');
+    expect(initContent).toContain('messageEl ? messageEl.value');
+  });
+});
+
+// ── Character counter ─────────────────────────────────────────────────────────
+
+describe('admin-campaigns-init.js — character counter', () => {
+  it('defines updateCharCounter function', () => {
+    expect(initContent).toContain('function updateCharCounter(');
+  });
+
+  it('updates counter text with length / max format', () => {
+    expect(initContent).toContain('/ ${max}');
+  });
+
+  it('adds warn class near limit', () => {
+    expect(initContent).toContain('campaigns-char-counter--warn');
+  });
+
+  it('adds danger class at limit', () => {
+    expect(initContent).toContain('campaigns-char-counter--danger');
+  });
+
+  it('wires up input event on subject field', () => {
+    expect(initContent).toContain("addEventListener('input', updateCharCounter)");
+  });
 });
 
 // ── Payload shape ─────────────────────────────────────────────────────────────
@@ -186,8 +225,20 @@ describe('admin-campaigns.html — page structure', () => {
     expect(htmlContent).toContain('campaigns-layout');
   });
 
-  it('has noindex meta tag', () => {
-    expect(htmlContent).toContain('noindex,nofollow');
+  it('has test delivery block with tinted background class', () => {
+    expect(htmlContent).toContain('campaigns-test-block');
+  });
+
+  it('has send-to-recipients block with tinted background class', () => {
+    expect(htmlContent).toContain('campaigns-send-block');
+  });
+
+  it('has subject character counter element', () => {
+    expect(htmlContent).toContain('id="subjectCharCounter"');
+  });
+
+  it('test email input has aria-label (no hidden label wrapper)', () => {
+    expect(htmlContent).toContain('aria-label="Test email address"');
   });
 });
 

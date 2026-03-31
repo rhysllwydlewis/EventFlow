@@ -63,6 +63,7 @@
       <div class="form-row">
         <label for="campaignSubject">Subject line <span class="campaigns-required">*</span></label>
         <input type="text" id="campaignSubject" placeholder="Your email subject…" autocomplete="off" maxlength="200">
+        <div class="campaigns-char-counter" id="subjectCharCounter" aria-live="polite" aria-atomic="true">0 / 200</div>
       </div>
 
       <div class="form-row">
@@ -95,15 +96,14 @@
       <hr class="campaigns-divider">
 
       <!-- Test send -->
-      <div class="campaigns-section-heading campaigns-section-heading--sm">
-        <span class="campaigns-section-icon">🧪</span>
-        <h3 class="campaigns-sub-heading">Test delivery</h3>
-      </div>
-      <p class="campaigns-help-text">Send yourself a preview before broadcasting.</p>
-      <div class="form-row">
-        <label for="campaignTestEmail" class="visually-hidden">Test email address</label>
+      <div class="campaigns-test-block">
+        <div class="campaigns-section-heading campaigns-section-heading--sm">
+          <span class="campaigns-section-icon">🧪</span>
+          <h3 class="campaigns-sub-heading">Test delivery</h3>
+        </div>
+        <p class="campaigns-help-text">Send yourself a preview before broadcasting.</p>
         <div class="campaigns-inline-row">
-          <input type="email" id="campaignTestEmail" placeholder="test@example.com" autocomplete="email">
+          <input type="email" id="campaignTestEmail" placeholder="test@example.com" autocomplete="email" aria-label="Test email address">
           <button class="btn btn-secondary campaigns-test-btn" id="campaignTestBtn" type="button">Send test</button>
         </div>
       </div>
@@ -111,26 +111,28 @@
       <hr class="campaigns-divider">
 
       <!-- Send campaign -->
-      <div class="campaigns-section-heading campaigns-section-heading--sm">
-        <span class="campaigns-section-icon">🚀</span>
-        <h3 class="campaigns-sub-heading">Send to recipients</h3>
-      </div>
-      <div class="form-row">
-        <label for="campaignAudience">Audience</label>
-        <select id="campaignAudience">
-          <option value="both">All opted-in (users + newsletter)</option>
-          <option value="marketing">Marketing opt-in users only</option>
-          <option value="newsletter">Newsletter subscribers only</option>
-        </select>
-      </div>
+      <div class="campaigns-send-block">
+        <div class="campaigns-section-heading campaigns-section-heading--sm">
+          <span class="campaigns-section-icon">🚀</span>
+          <h3 class="campaigns-sub-heading">Send to recipients</h3>
+        </div>
+        <div class="form-row">
+          <label for="campaignAudience">Audience</label>
+          <select id="campaignAudience">
+            <option value="both">All opted-in (users + newsletter)</option>
+            <option value="marketing">Marketing opt-in users only</option>
+            <option value="newsletter">Newsletter subscribers only</option>
+          </select>
+        </div>
 
-      <div class="campaigns-send-row">
-        <button class="btn btn-primary campaigns-send-btn" id="campaignSendBtn" type="button">
-          📣 Send campaign
-        </button>
-        <span class="campaigns-send-warning small">
-          ⚠️ This will send to all opted-in recipients. Double-check your content first.
-        </span>
+        <div class="campaigns-send-row">
+          <button class="btn btn-primary campaigns-send-btn" id="campaignSendBtn" type="button">
+            📣 Send campaign
+          </button>
+          <span class="campaigns-send-warning small">
+            ⚠️ This will send to all opted-in recipients. Double-check your content first.
+          </span>
+        </div>
       </div>
 
       <div id="campaignStatus" class="campaigns-status" aria-live="polite" role="status"></div>

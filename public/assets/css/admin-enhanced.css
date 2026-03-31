@@ -3584,11 +3584,42 @@ tbody tr.selected td {
   margin: 24px 0;
 }
 
-/* Test send row */
+/* ── Test delivery block ─────────────────────────────────────────────────── */
+/*
+ * Gives the "Test delivery" section a subtle teal-tinted background so it
+ * visually stands out from the compose fields above it.
+ */
+.campaigns-test-block {
+  background: #f0fdfa;
+  border: 1px solid #a7f3d0;
+  border-radius: 10px;
+  padding: 16px 16px 12px;
+  margin-top: 4px;
+}
+
+.campaigns-test-block .campaigns-section-heading--sm {
+  margin-bottom: 6px;
+}
+
+.campaigns-test-block .campaigns-help-text {
+  margin-bottom: 10px;
+}
+
+/* Test send inline row */
 .campaigns-inline-row {
   display: flex;
   gap: 8px;
   align-items: stretch;
+}
+
+/*
+ * Higher-specificity override to prevent ui-ux-fixes.css rule
+ * `.form-row > div { flex-direction: column }` from stacking the
+ * inline row vertically when it is a direct div child of .form-row.
+ */
+.form-row > .campaigns-inline-row,
+.campaigns-inline-row {
+  flex-direction: row;
 }
 
 .campaigns-inline-row input {
@@ -3599,9 +3630,31 @@ tbody tr.selected td {
 .campaigns-test-btn {
   white-space: nowrap;
   flex-shrink: 0;
+  /* Teal-tinted outline to visually distinguish from secondary grey */
+  border-color: #0b8073;
+  color: #0b8073;
 }
 
-/* Send row */
+.campaigns-test-btn:hover:not(:disabled) {
+  background: #0b8073;
+  color: #fff;
+  border-color: #0b8073;
+}
+
+/* ── Send row ────────────────────────────────────────────────────────────── */
+/* Send-to-recipients block: amber-tinted to signal "broadcast action" */
+.campaigns-send-block {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  padding: 16px 16px 12px;
+  margin-top: 4px;
+}
+
+.campaigns-send-block .campaigns-section-heading--sm {
+  margin-bottom: 6px;
+}
+
 .campaigns-send-row {
   display: flex;
   align-items: flex-start;
@@ -3623,6 +3676,24 @@ tbody tr.selected td {
   min-width: 160px;
 }
 
+/* Subject character counter */
+.campaigns-char-counter {
+  font-size: 11px;
+  color: var(--color-text-muted, #9ca3af);
+  text-align: right;
+  margin-top: 2px;
+  transition: color 0.2s;
+}
+
+.campaigns-char-counter--warn {
+  color: #d97706;
+}
+
+.campaigns-char-counter--danger {
+  color: #dc2626;
+  font-weight: 600;
+}
+
 /* Status feedback */
 .campaigns-status {
   margin-top: 14px;
@@ -3641,14 +3712,20 @@ tbody tr.selected td {
   color: #166534;
   background: #dcfce7;
   border: 1px solid #bbf7d0;
-  padding: 12px 16px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
 }
 
 .campaigns-status--error {
   color: #991b1b;
   background: #fee2e2;
   border: 1px solid #fca5a5;
-  padding: 12px 16px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
 }
 
 /* Disabled-state styling for campaign action buttons */
