@@ -266,8 +266,12 @@
     const typeLabels = {
       PACKAGE_BONUS: { label: 'Package Bonus', icon: '📦' },
       SUBSCRIPTION_BONUS: { label: 'Subscription Bonus', icon: '💳' },
+      REFERRAL_SIGNUP_BONUS: { label: 'Referral Signup', icon: '🔗' },
+      FIRST_REVIEW_BONUS: { label: 'First Review Bonus', icon: '⭐' },
       ADJUSTMENT: { label: 'Admin Adjustment', icon: '⚙️' },
       REDEEM: { label: 'Redemption', icon: '🎁' },
+      CASHOUT_HOLD: { label: 'Cashout Hold', icon: '🔒' },
+      CASHOUT_RELEASE: { label: 'Hold Released', icon: '🔓' },
     };
 
     const rows = txns.slice(0, 50).map(t => {
@@ -276,7 +280,7 @@
       const amtStr = t.amount >= 0 ? `+${t.amount}` : `${t.amount}`;
       return `<tr>
         <td>${esc(meta.icon)} ${esc(meta.label)}</td>
-        <td style="${amtClass};font-weight:700;">${amtStr} credits</td>
+        <td style="${amtClass};font-weight:700;">${amtStr} pts</td>
         <td style="color:rgba(255,255,255,0.45)">${toPounds(Math.abs(t.amount), pointsPerGbp)}</td>
         <td>${fmtDate(t.createdAt)}</td>
         <td style="color:rgba(255,255,255,0.4);font-size:0.78rem;">${esc(t.notes || '')}</td>
@@ -285,11 +289,11 @@
 
     container.innerHTML = `
       <div class="partner-table-wrap">
-        <table class="partner-table" aria-label="Credit transactions">
+        <table class="partner-table" aria-label="Point transactions">
           <thead>
             <tr>
               <th>Type</th>
-              <th>Credits</th>
+              <th>Points</th>
               <th>Value</th>
               <th>Date</th>
               <th>Notes</th>

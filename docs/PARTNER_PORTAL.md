@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Partner Portal is a **hidden** area of EventFlow that allows influencers, Facebook group admins, and community promoters to earn credits by referring wedding suppliers to sign up and get started on EventFlow.
+The Partner Portal is a **hidden** area of EventFlow that allows influencers, Facebook group admins, and community promoters to earn points by referring wedding suppliers to sign up and get started on EventFlow.
 
 It lives at `/partner` — this URL is **not indexed** (`noindex, nofollow`) and not linked from public navigation. You share the URL directly with partners.
 
@@ -78,7 +78,7 @@ Points convert to GBP at a rate configured by the `POINTS_PER_GBP` environment v
 | `POST` | `/api/v1/partner/register`             | Create a new partner account                                         |
 | `GET`  | `/api/v1/partner/me`                   | Get current partner profile, ref code, balance                       |
 | `GET`  | `/api/v1/partner/referrals`            | List referred suppliers with statuses                                |
-| `GET`  | `/api/v1/partner/transactions`         | List credit transaction history                                      |
+| `GET`  | `/api/v1/partner/transactions`         | List point transaction history                                       |
 | `POST` | `/api/v1/partner/regenerate-code`      | Generate a new referral code (old code stays valid)                  |
 | `GET`  | `/api/v1/partner/code-history`         | List previously used referral codes                                  |
 | `POST` | `/api/v1/partner/support-ticket`       | Raise a general support ticket from the partner dashboard            |
@@ -102,7 +102,7 @@ Validation errors return HTTP `400` with a JSON body `{ "error": "..." }` descri
 
 Partners can submit cashout requests directly from the partner dashboard. The flow is:
 
-1. Partner checks their **available balance** (mature credits ≥ 30 days old).
+1. Partner checks their **available balance** (mature points ≥ 30 days old).
 2. Partner selects a **payout method**: Amazon Voucher or Pre-Paid Debit Card.
 3. Partner selects a **denomination** in £5 increments (minimum £50, maximum equal to available GBP balance).
 4. Dashboard submits `POST /cashout-requests`; the server validates the request and immediately creates a `CASHOUT_HOLD` ledger transaction to reserve the points.
@@ -190,9 +190,9 @@ Three collections are used (in `store.js` and MongoDB):
 | ---------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `id`             | string         | Unique ID (`ptx_...`)                                                                                                                                                                                       |
 | `partnerId`      | string         | Links to `partners`                                                                                                                                                                                         |
-| `supplierUserId` | string \| null | Supplier who triggered the credit (null for adjustments/debits)                                                                                                                                             |
+| `supplierUserId` | string \| null | Supplier who triggered the point award (null for adjustments/debits)                                                                                                                                        |
 | `type`           | string         | `PACKAGE_BONUS`, `SUBSCRIPTION_BONUS`, `REFERRAL_SIGNUP_BONUS`, `FIRST_REVIEW_BONUS`, `PROFILE_APPROVED_BONUS` _(never awarded — deprecated)_, `ADJUSTMENT`, `REDEEM`, `CASHOUT_HOLD`, or `CASHOUT_RELEASE` |
-| `amount`         | number         | Credit amount (positive = earn, negative = deduct/hold)                                                                                                                                                     |
+| `amount`         | number         | Point amount (positive = earn, negative = deduct/hold)                                                                                                                                                      |
 | `notes`          | string         | Human-readable note                                                                                                                                                                                         |
 | `adminUserId`    | string \| null | Set for admin adjustments                                                                                                                                                                                   |
 | `externalRef`    | string \| null | Reference to cashout request ID (set on CASHOUT_HOLD/CASHOUT_RELEASE/REDEEM)                                                                                                                                |
@@ -268,10 +268,10 @@ When an admin sets a partner's status to `disabled`:
 
 - **API access blocked**: All partner dashboard API endpoints (`/me`, `/referrals`, `/transactions`) return `403` with `{ disabled: true }`.
 - **Dashboard**: The partner dashboard will display a clear "Account disabled — please contact support" message.
-- **No new credit awards**: `awardPackageBonus()` and `awardSubscriptionBonus()` both return `null` and skip the award for disabled partners.
-- **Referral recording**: New supplier sign-ups via a disabled partner's ref link are **still recorded** in `partner_referrals` (the attribution exists), but no credits will be awarded until the partner is re-enabled.
-- **Existing credits**: Disabling a partner does **not** remove existing credits or transactions from the ledger.
-- **Re-enabling**: When a partner is re-enabled (status set back to `active`), future qualifying events will resume awarding credits. However, bonuses that were missed while disabled are **not** retroactively awarded.
+- **No new point awards**: `awardPackageBonus()` and `awardSubscriptionBonus()` both return `null` and skip the award for disabled partners.
+- **Referral recording**: New supplier sign-ups via a disabled partner's ref link are **still recorded** in `partner_referrals` (the attribution exists), but no points will be awarded until the partner is re-enabled.
+- **Existing points**: Disabling a partner does **not** remove existing points or transactions from the ledger.
+- **Re-enabling**: When a partner is re-enabled (status set back to `active`), future qualifying events will resume awarding points. However, bonuses that were missed while disabled are **not** retroactively awarded.
 
 ---
 
@@ -285,7 +285,7 @@ When an admin sets a partner's status to `disabled`:
 
 `webhooks/stripeWebhookHandler.js` — inside `handleInvoicePaymentSucceeded()`, after updating subscription status, calls `partnerService.awardSubscriptionBonus(subscription.userId)`.
 
-**Important**: The subscription bonus is only awarded when `invoice.amount_paid > 0`. This prevents awarding credits for:
+**Important**: The subscription bonus is only awarded when `invoice.amount_paid > 0`. This prevents awarding points for:
 
 - Trial activations (£0 first invoice)
 - Free plan activations
@@ -348,9 +348,9 @@ The admin payout requests tab (`GET /api/v1/admin/partners/payout-requests`) and
 
 ### Enable / Disable a partner
 
-From `/admin-partners`, click "Disable" to prevent a partner from earning further credits. See [Disabled Partner Semantics](#disabled-partner-semantics) above for full behaviour details.
+From `/admin-partners`, click "Disable" to prevent a partner from earning further points. See [Disabled Partner Semantics](#disabled-partner-semantics) above for full behaviour details.
 
-### Manual credit adjustment
+### Manual point adjustment
 
 Click "Credits" next to any partner to open the adjustment modal. Enter a positive or negative integer and a **required** audit note. All adjustments are stored in the `partner_credit_transactions` ledger with `type: ADJUSTMENT`.
 
@@ -359,7 +359,7 @@ Click "Credits" next to any partner to open the adjustment modal. Enter a positi
 Click "View" to open a side panel showing:
 
 - Partner profile info
-- Credit breakdown (balance, package bonuses, subscription bonuses)
+- Point breakdown (balance, package bonuses, subscription bonuses)
 - Transaction history
 - Full referral list with qualification status
 
