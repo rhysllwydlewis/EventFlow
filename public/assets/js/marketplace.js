@@ -1242,6 +1242,8 @@
     overlay.className = 'location-modal-overlay';
 
     const savedLocation = JSON.parse(localStorage.getItem('marketplaceLocation') || '{}');
+    // Escape user-controlled values before embedding in HTML
+    const escapedPostcode = escapeHtml(savedLocation.postcode || '');
 
     overlay.innerHTML = `
       <div class="location-modal">
@@ -1256,7 +1258,7 @@
               type="text" 
               id="location-postcode" 
               placeholder="e.g. SW1A 1AA or London"
-              value="${savedLocation.postcode || ''}"
+              value="${escapedPostcode}"
             >
           </div>
           <div class="location-modal-group">
