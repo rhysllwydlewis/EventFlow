@@ -393,15 +393,22 @@ describe('Canonical Stripe webhook endpoint documentation', () => {
     expect(content).toContain('/api/v2/webhooks/stripe');
   });
 
-  it('routes/payments.js webhook redirects (308) to canonical endpoint', () => {
+  it('routes/payments.js webhook is marked deprecated in the Swagger doc and still functional (no redirect)', () => {
     const fs = require('fs');
     const path = require('path');
 
     const paymentsPath = path.join(__dirname, '../../routes/payments.js');
     const content = fs.readFileSync(paymentsPath, 'utf8');
 
-    // Handler must use redirect(308, ...) rather than processing events itself
-    expect(content).toContain('redirect(308');
+    // The JSDoc / Swagger block for /webhook must include 'deprecated'
+    expect(content).toMatch(/deprecated/i);
+    // And it must reference the canonical path as the replacement
     expect(content).toContain('/api/v2/webhooks/stripe');
+    // Must NOT be a redirect — Stripe does not follow redirects, so the endpoint
+    // must process events in-process to avoid dropping webhook deliveries
+    expect(content).not.toContain('redirect(308');
+    expect(content).not.toContain('redirect(307');
+    // Must still verify signatures
+    expect(content).toContain('constructEvent');
   });
 });

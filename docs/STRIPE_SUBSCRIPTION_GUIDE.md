@@ -195,10 +195,13 @@ POST https://event-flow.co.uk/api/v2/webhooks/stripe
 ```
 
 > **Deprecated endpoint:** `POST /api/payments/webhook` (also reachable as
-> `/api/v1/payments/webhook`) is deprecated and now issues an HTTP **308
-> Permanent Redirect** to the canonical path. Update your Stripe dashboard
-> webhook destination to `/api/v2/webhooks/stripe` immediately to avoid
-> redirect-related delivery failures.
+> `/api/v1/payments/webhook`) is deprecated and will be removed in a future release.
+> It remains fully functional for now — **Stripe does not follow HTTP redirects**, so
+> removing it immediately would drop webhook deliveries for any Stripe dashboard configs
+> still pointing at the old URL.
+> Migrate your Stripe dashboard webhook destination to `/api/v2/webhooks/stripe`
+> at your earliest convenience. Each delivery to the old endpoint logs a deprecation
+> warning to help you track when migration is complete.
 
 A compatibility alias is also supported at:
 

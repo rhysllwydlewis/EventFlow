@@ -108,13 +108,19 @@ describe('Stripe Analytics — Graceful Degradation (no Stripe configured)', () 
     expect(block).toContain('Stripe analytics are not available');
   });
 
-  it('payments.js webhook is deprecated and redirects (308) to canonical endpoint', () => {
+  it('payments.js webhook is deprecated but still functional (logs warning, processes events)', () => {
     const paymentsContent = readSrc('routes', 'payments.js');
     const webhookIdx = paymentsContent.indexOf("router.post('/webhook'");
     expect(webhookIdx).toBeGreaterThan(-1);
-    const block = paymentsContent.substring(webhookIdx, webhookIdx + 500);
-    expect(block).toContain('redirect(308');
+    const block = paymentsContent.substring(webhookIdx, webhookIdx + 1200);
+    // Must log a deprecation warning
+    expect(block).toContain('deprecated');
+    // Must reference the canonical replacement endpoint
     expect(block).toContain('/api/v2/webhooks/stripe');
+    // Must NOT be a redirect (Stripe does not follow redirects)
+    expect(block).not.toContain('redirect(');
+    // Must still verify signatures
+    expect(block).toContain('STRIPE_WEBHOOK_SECRET');
   });
 
   it('paymentService.js has STRIPE_ENABLED flag that defaults to false', () => {
@@ -344,17 +350,33 @@ describe('Stripe Analytics — Route Security (contract)', () => {
     expect(block).toContain("roleRequired('admin')");
   });
 
-  it('POST /webhook is deprecated and redirects to /api/v2/webhooks/stripe', () => {
+  it('POST /webhook is deprecated but functional — logs warning, verifies signatures, references canonical endpoint', () => {
     const webhookIdx = paymentsContent.indexOf("router.post('/webhook'");
-    const block = paymentsContent.substring(webhookIdx, webhookIdx + 1500);
-    expect(block).toContain('redirect(308');
+    const block = paymentsContent.substring(webhookIdx, webhookIdx + 3500);
+    // References canonical endpoint in deprecation warning
     expect(block).toContain('/api/v2/webhooks/stripe');
+    // Must NOT be a redirect — Stripe does not follow redirects
+    expect(block).not.toContain('redirect(');
+    // Must still handle signatures
+    expect(block).toContain('constructEvent');
+    // Must process events
+    expect(block).toContain('checkout.session.completed');
   });
 
-  it('POST /webhook deprecation notice references canonical endpoint', () => {
+  it('POST /webhook returns 503 when Stripe is not configured', () => {
     const webhookIdx = paymentsContent.indexOf("router.post('/webhook'");
-    const block = paymentsContent.substring(webhookIdx, webhookIdx + 1000);
-    expect(block).toContain('/api/v2/webhooks/stripe');
+    const block = paymentsContent.substring(webhookIdx, webhookIdx + 2000);
+    expect(block).toContain('STRIPE_ENABLED');
+    expect(block).toContain('status(503)');
+    expect(block).toContain('Stripe not configured');
+  });
+
+  it('POST /webhook validates Stripe signature and references canonical endpoint', () => {
+    const webhookIdx = paymentsContent.indexOf("router.post('/webhook'");
+    const block = paymentsContent.substring(webhookIdx, webhookIdx + 2000);
+    expect(block).toContain('STRIPE_WEBHOOK_SECRET');
+    expect(block).toContain('constructEvent');
+    expect(block).toContain('stripe-signature');
   });
 });
 
