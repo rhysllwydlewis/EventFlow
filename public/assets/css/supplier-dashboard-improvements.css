@@ -5057,6 +5057,14 @@ body.supplier-dashboard-page .sd-two-col > .card {
   transform: translateY(-1px);
 }
 
+/* On mobile both the disabled button and upgrade link are full-width */
+@media (max-width: 640px) {
+  .pkg-upgrade-link {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 /* ------------------------------------------
    SD REVIEWS PLACEHOLDER — empty-state styling
    Replaces inline styles in the reviews section

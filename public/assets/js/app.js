@@ -3201,7 +3201,8 @@ async function initDashSupplier() {
             : 'As a Pro supplier you can create unlimited packages.';
         } else if (activeCount > freeLimit) {
           // Over-limit (e.g. after a downgrade): surface the excess clearly.
-          note.textContent = `You have ${activeCount} active packages but your Starter plan allows ${freeLimit}. Pause or delete ${activeCount - freeLimit} package${activeCount - freeLimit === 1 ? '' : 's'} to stay within your limit, or upgrade.`;
+          const surplus = activeCount - freeLimit;
+          note.textContent = `You have ${activeCount} active packages but your Starter plan allows ${freeLimit}. Pause or delete ${surplus} package${surplus === 1 ? '' : 's'} to stay within your limit, or upgrade.`;
         } else {
           note.textContent = activeCount
             ? `You have ${activeCount} of ${freeLimit} active packages on the Starter plan.`
@@ -3941,12 +3942,14 @@ function editPackage(packageId) {
     }
   }
 
-  // When entering edit mode the toggle button acts as a Cancel button,
-  // so it must be enabled regardless of plan limits.
+  // Always update the toggle button to the Cancel / edit-mode state, regardless
+  // of whether the form was already expanded. This ensures an at-limit supplier
+  // who had a disabled button can still cancel out of an edit they just opened.
   if (toggleBtn) {
     toggleBtn.disabled = false;
     toggleBtn.classList.remove('form-toggle-btn--at-limit');
     toggleBtn.setAttribute('aria-label', 'Cancel editing package');
+    toggleBtn.title = '';
     const upgradeCta = document.getElementById('pkg-upgrade-cta');
     if (upgradeCta) {
       upgradeCta.style.display = 'none';
