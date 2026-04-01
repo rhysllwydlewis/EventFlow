@@ -895,8 +895,9 @@ body.auth-page .auth-card select.auth-input {
   outline-offset: 2px;
 }
 
-/* Suppress browser-native password reveal buttons (Edge ::-ms-reveal, Chrome autofill)
-   so only the custom .password-toggle remains visible */
+/* Suppress the browser-native password reveal/clear buttons in Edge / IE
+   (::-ms-reveal = show-password eye, ::-ms-clear = × clear button)
+   so only the custom .password-toggle is visible */
 .auth-input-wrap input[type="password"]::-ms-reveal,
 .auth-input-wrap input[type="password"]::-ms-clear {
   display: none;
