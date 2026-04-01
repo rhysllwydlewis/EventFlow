@@ -199,6 +199,7 @@
 
     // Disable submit button
     submitBtn.disabled = true;
+    submitBtn.setAttribute('aria-busy', 'true');
     submitBtn.textContent = 'Resetting...';
     resetStatusEl.textContent = '';
 
@@ -228,6 +229,7 @@
         resetStatusEl.textContent = data.error || 'Failed to reset password';
         resetStatusEl.style.color = '#b00020';
         submitBtn.disabled = false;
+        submitBtn.removeAttribute('aria-busy');
         submitBtn.textContent = 'Reset password';
       }
     } catch (err) {
@@ -235,6 +237,7 @@
       resetStatusEl.textContent = 'Network error. Please try again.';
       resetStatusEl.style.color = '#b00020';
       submitBtn.disabled = false;
+      submitBtn.removeAttribute('aria-busy');
       submitBtn.textContent = 'Reset password';
     }
   });

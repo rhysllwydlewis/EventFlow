@@ -223,13 +223,23 @@ class FormValidator {
     field.classList.remove('form-field-success');
     field.setAttribute('aria-invalid', 'true');
 
+    // Find the right container for the error message.
+    // When an input is wrapped in an .auth-input-wrap (e.g. password fields), appending
+    // the error span inside that wrapper makes the wrapper taller and causes any
+    // absolutely-positioned sibling (like the password toggle) to shift down.
+    // Use the wrapper's parent instead so the error lives outside the input wrap.
+    let container = field.parentElement;
+    if (container && container.classList.contains('auth-input-wrap')) {
+      container = container.parentElement || container;
+    }
+
     // Find or create error message element
-    let errorEl = field.parentElement.querySelector('.form-error-message');
+    let errorEl = container.querySelector(':scope > .form-error-message');
     if (!errorEl) {
       errorEl = document.createElement('span');
       errorEl.className = 'form-error-message';
       errorEl.setAttribute('role', 'alert');
-      field.parentElement.appendChild(errorEl);
+      container.appendChild(errorEl);
     }
     errorEl.textContent = message;
     errorEl.style.display = 'block';
@@ -240,7 +250,15 @@ class FormValidator {
     field.classList.remove('form-field-error');
     field.removeAttribute('aria-invalid');
 
-    const errorEl = field.parentElement.querySelector('.form-error-message');
+    // Mirror the container-lookup logic from showError so we find the element
+    // that was appended to the correct parent (either the direct parent or, for
+    // inputs inside .auth-input-wrap, the wrapper's parent).
+    let container = field.parentElement;
+    if (container && container.classList.contains('auth-input-wrap')) {
+      container = container.parentElement || container;
+    }
+
+    const errorEl = container && container.querySelector(':scope > .form-error-message');
     if (errorEl) {
       errorEl.style.display = 'none';
     }

@@ -480,6 +480,7 @@ const canonicalPages = [
   'package',
   'data-rights',
   'reset-password',
+  'forgot-password',
   'dashboard',
   'public-calendar',
 ];

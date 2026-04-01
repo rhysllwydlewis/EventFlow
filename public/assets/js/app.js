@@ -5365,6 +5365,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (loginBtn) {
           loginBtn.disabled = true;
+          loginBtn.setAttribute('aria-busy', 'true');
           loginBtn.textContent = 'Signing in…';
         }
         try {
@@ -5471,6 +5472,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
           if (loginBtn) {
             loginBtn.disabled = false;
+            loginBtn.removeAttribute('aria-busy');
             loginBtn.textContent = 'Log in';
           }
         }
@@ -5535,6 +5537,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (regBtn) {
           regBtn.disabled = true;
+          regBtn.setAttribute('aria-busy', 'true');
           regBtn.textContent = 'Creating…';
         }
         try {
@@ -5810,6 +5813,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } finally {
           if (regBtn) {
             regBtn.disabled = false;
+            regBtn.removeAttribute('aria-busy');
             regBtn.textContent = 'Create account';
           }
         }
