@@ -134,7 +134,16 @@
     return overlay;
   }
 
-  function openModal(overlay, dateStr, calendarInstance) {
+  /**
+   * Open the Add/Edit modal.
+   *
+   * @param {HTMLElement}   overlay         - The modal overlay element from ensureModal()
+   * @param {string}        [dateStr]        - Pre-fill the date field (YYYY-MM-DD)
+   * @param {Object|null}   [calendarInstance] - FullCalendar instance (or null in fallback mode)
+   * @param {Object|null}   [entryToEdit]   - If provided, the modal opens in edit mode
+   *   with fields pre-filled from entryToEdit and submits a PUT instead of POST.
+   */
+  function openModal(overlay, dateStr, calendarInstance, entryToEdit = null) {
     const titleInput = overlay.querySelector('#cal-entry-title');
     const typeSelect = overlay.querySelector('#cal-entry-type');
     const dateInput = overlay.querySelector('#cal-entry-date');
@@ -142,6 +151,11 @@
     const descInput = overlay.querySelector('#cal-entry-description');
     const errorEl = overlay.querySelector('#cal-entry-error');
     const form = overlay.querySelector('#cal-entry-form');
+    const modalTitle = overlay.querySelector('#cal-entry-modal-title');
+    const saveBtn = overlay.querySelector('#cal-entry-save-btn');
+    const saveLabel = saveBtn ? saveBtn.querySelector('.cal-entry-save-label') : null;
+
+    const isEditing = Boolean(entryToEdit);
 
     // Abort any submit listener from a previous open (prevents stacking)
     if (overlay._submitAC) {
@@ -150,11 +164,28 @@
     const ac = new AbortController();
     overlay._submitAC = ac;
 
-    // Reset form
+    // Set modal title and submit button label to match add/edit mode
+    if (modalTitle) {
+      modalTitle.textContent = isEditing ? 'Edit Calendar Entry' : 'Add Calendar Entry';
+    }
+    if (saveLabel) {
+      saveLabel.textContent = isEditing ? 'Save Changes' : 'Add Entry';
+    }
+
+    // Reset form, then pre-fill if editing
     form.reset();
-    if (dateStr) {
+    if (isEditing) {
+      titleInput.value = entryToEdit.title || '';
+      typeSelect.value = entryToEdit.type || '';
+      dateInput.value = entryToEdit.date || '';
+      timeInput.value = entryToEdit.time || '';
+      if (descInput) {
+        descInput.value = entryToEdit.description || '';
+      }
+    } else if (dateStr) {
       dateInput.value = dateStr;
     }
+
     if (errorEl) {
       errorEl.style.display = 'none';
       errorEl.textContent = '';
@@ -166,8 +197,6 @@
     let submitting = false;
 
     // Wire submit — auto-removed when ac is aborted (on close or next open).
-    // Uses a submitting guard instead of aborting on validation failures so the
-    // user can fix errors and resubmit without reopening the modal.
     form.addEventListener(
       'submit',
       async e => {
@@ -200,10 +229,10 @@
         }
 
         submitting = true;
-        const saveBtn = overlay.querySelector('#cal-entry-save-btn');
-        const saveLabel = saveBtn.querySelector('.cal-entry-save-label');
-        const saveSpinner = saveBtn.querySelector('.cal-entry-save-spinner');
-        saveBtn.disabled = true;
+        if (saveBtn) {
+          saveBtn.disabled = true;
+        }
+        const saveSpinner = saveBtn ? saveBtn.querySelector('.cal-entry-save-spinner') : null;
         if (saveLabel) {
           saveLabel.textContent = 'Saving…';
         }
@@ -217,8 +246,13 @@
 
         try {
           const csrfToken = getCsrfTokenFromPage();
-          const resp = await fetch('/api/me/calendar-entries', {
-            method: 'POST',
+          const url = isEditing
+            ? `/api/me/calendar-entries/${encodeURIComponent(entryToEdit.id)}`
+            : '/api/me/calendar-entries';
+          const method = isEditing ? 'PUT' : 'POST';
+
+          const resp = await fetch(url, {
+            method,
             credentials: 'include',
             headers: {
               'Content-Type': 'application/json',
@@ -230,43 +264,75 @@
           const data = await resp.json();
 
           if (!resp.ok) {
-            throw new Error(data.error || 'Failed to save entry');
+            throw new Error(
+              data.error || (isEditing ? 'Failed to update entry' : 'Failed to save entry')
+            );
           }
 
-          // Immediately add the new event to the calendar without a full reload
-          if (calendarInstance && data.entry) {
-            const entry = data.entry;
-            const start = entry.time ? `${entry.date}T${entry.time}` : entry.date;
-            calendarInstance.addEvent({
-              id: entry.id,
-              title: entry.title,
-              start,
-              allDay: !entry.time,
-              backgroundColor: getEntryColor(entry.type),
-              borderColor: getEntryColor(entry.type),
-              extendedProps: {
-                entryType: entry.type,
-                description: entry.description,
-                personalEntry: true,
-              },
-            });
-          } else if (!calendarInstance) {
-            // Fallback mode: re-render the list so the new entry appears
-            const calEl = document.getElementById('events-calendar');
-            if (calEl) {
-              await renderFallbackCalendar(calEl);
+          if (isEditing) {
+            // Update the event in FullCalendar if available
+            if (calendarInstance && data.entry) {
+              const ev = calendarInstance.getEventById(entryToEdit.id);
+              if (ev) {
+                const newStart = data.entry.time
+                  ? `${data.entry.date}T${data.entry.time}`
+                  : data.entry.date;
+                ev.setProp('title', data.entry.title);
+                ev.setStart(newStart);
+                ev.setAllDay(!data.entry.time);
+                ev.setProp('backgroundColor', getEntryColor(data.entry.type));
+                ev.setProp('borderColor', getEntryColor(data.entry.type));
+                ev.setExtendedProp('entryType', data.entry.type);
+                ev.setExtendedProp('description', data.entry.description);
+                ev.setExtendedProp('rawEntry', data.entry);
+              }
+            } else if (!calendarInstance) {
+              // Fallback list mode: re-render
+              const calEl = document.getElementById('events-calendar');
+              if (calEl) {
+                await renderFallbackCalendar(calEl);
+              }
             }
+            showToast(`"${title}" updated`, 'success');
+          } else {
+            // Immediately add the new event to the calendar without a full reload
+            if (calendarInstance && data.entry) {
+              const entry = data.entry;
+              const start = entry.time ? `${entry.date}T${entry.time}` : entry.date;
+              calendarInstance.addEvent({
+                id: entry.id,
+                title: entry.title,
+                start,
+                allDay: !entry.time,
+                backgroundColor: getEntryColor(entry.type),
+                borderColor: getEntryColor(entry.type),
+                extendedProps: {
+                  entryType: entry.type,
+                  description: entry.description,
+                  personalEntry: true,
+                  rawEntry: entry,
+                },
+              });
+            } else if (!calendarInstance) {
+              // Fallback mode: re-render the list so the new entry appears
+              const calEl = document.getElementById('events-calendar');
+              if (calEl) {
+                await renderFallbackCalendar(calEl);
+              }
+            }
+            showToast(`"${title}" added to your calendar`, 'success');
           }
 
           closeModal(overlay);
-          showToast(`"${escapeHtml(title)}" added to your calendar`, 'success');
         } catch (err) {
           showModalError(errorEl, err.message || 'Could not save the entry. Please try again.');
         } finally {
           submitting = false;
-          saveBtn.disabled = false;
+          if (saveBtn) {
+            saveBtn.disabled = false;
+          }
           if (saveLabel) {
-            saveLabel.textContent = 'Add Entry';
+            saveLabel.textContent = isEditing ? 'Save Changes' : 'Add Entry';
           }
           if (saveSpinner) {
             saveSpinner.style.display = 'none';
@@ -318,26 +384,34 @@
     return '';
   }
 
-  // ── Delete popover ────────────────────────────────────────────────────────
+  // ── Entry actions popover ─────────────────────────────────────────────────
 
   /**
-   * Show a small inline popover asking the user to confirm deletion of a
-   * personal calendar entry.  The popover is anchored to the clicked event
-   * element and is removed on confirm, cancel, or outside click.
+   * Show a small inline popover offering Edit and Delete actions for a personal
+   * calendar entry.  The popover is anchored near the clicked element.
+   *
+   * Edit opens the modal pre-filled with the entry's current data and submits
+   * a PUT request on save.  Delete shows an inline confirmation before calling
+   * the DELETE endpoint.
+   *
+   * @param {HTMLElement}  anchorEl         - Element to anchor the popover near
+   * @param {Object}       entry            - The raw calendar entry object
+   * @param {Object|null}  calendarInstance - FullCalendar instance (or null)
+   * @param {HTMLElement}  modal            - The modal overlay from ensureModal()
    */
-  function showDeletePopover(anchorEl, eventId, eventTitle, calendarInstance) {
+  function showEntryActions(anchorEl, entry, calendarInstance, modal) {
     // Remove any existing popover
     document.querySelectorAll('.cal-delete-popover').forEach(el => el.remove());
 
     const pop = document.createElement('div');
     pop.className = 'cal-delete-popover';
     pop.setAttribute('role', 'dialog');
-    pop.setAttribute('aria-label', 'Delete entry');
+    pop.setAttribute('aria-label', 'Entry actions');
     pop.innerHTML = `
-      <p class="cal-delete-popover__msg">Delete <strong>${escapeHtml(eventTitle)}</strong>?</p>
+      <p class="cal-delete-popover__msg">${escapeHtml(entry.title)}</p>
       <div class="cal-delete-popover__actions">
-        <button type="button" class="cal-delete-popover__btn cal-delete-popover__btn--cancel">Keep</button>
-        <button type="button" class="cal-delete-popover__btn cal-delete-popover__btn--confirm">Delete</button>
+        <button type="button" class="cal-delete-popover__btn cal-delete-popover__btn--edit">Edit</button>
+        <button type="button" class="cal-delete-popover__btn cal-delete-popover__btn--delete">Delete</button>
       </div>
     `;
     document.body.appendChild(pop);
@@ -354,8 +428,8 @@
       z-index:10001;
     `;
 
-    // Trap first focus
-    setTimeout(() => pop.querySelector('.cal-delete-popover__btn--cancel').focus(), 50);
+    // Trap first focus on the Edit button
+    setTimeout(() => pop.querySelector('.cal-delete-popover__btn--edit').focus(), 50);
 
     const dismiss = () => {
       if (pop.parentNode) {
@@ -370,43 +444,60 @@
       }
     };
 
-    pop.querySelector('.cal-delete-popover__btn--cancel').addEventListener('click', dismiss);
-
-    pop.querySelector('.cal-delete-popover__btn--confirm').addEventListener('click', async () => {
+    pop.querySelector('.cal-delete-popover__btn--edit').addEventListener('click', () => {
       dismiss();
-      try {
-        const csrfToken = getCsrfTokenFromPage();
-        const resp = await fetch(`/api/me/calendar-entries/${encodeURIComponent(eventId)}`, {
-          method: 'DELETE',
-          credentials: 'include',
-          headers: { 'X-CSRF-Token': csrfToken },
-        });
-        if (!resp.ok) {
-          const data = await resp.json().catch(() => ({}));
-          throw new Error(data.error || 'Failed to delete entry');
-        }
-        // Remove from calendar UI
-        if (calendarInstance) {
-          const ev = calendarInstance.getEventById(eventId);
-          if (ev) {
-            ev.remove();
+      openModal(modal, null, calendarInstance, entry);
+    });
+
+    pop.querySelector('.cal-delete-popover__btn--delete').addEventListener('click', () => {
+      // Replace popover content with inline delete confirmation
+      pop.innerHTML = `
+        <p class="cal-delete-popover__msg">Delete <strong>${escapeHtml(entry.title)}</strong>?</p>
+        <div class="cal-delete-popover__actions">
+          <button type="button" class="cal-delete-popover__btn cal-delete-popover__btn--cancel">Keep</button>
+          <button type="button" class="cal-delete-popover__btn cal-delete-popover__btn--confirm">Delete</button>
+        </div>
+      `;
+
+      pop.querySelector('.cal-delete-popover__btn--cancel').addEventListener('click', dismiss);
+
+      pop.querySelector('.cal-delete-popover__btn--confirm').addEventListener('click', async () => {
+        dismiss();
+        try {
+          const csrfToken = getCsrfTokenFromPage();
+          const resp = await fetch(`/api/me/calendar-entries/${encodeURIComponent(entry.id)}`, {
+            method: 'DELETE',
+            credentials: 'include',
+            headers: { 'X-CSRF-Token': csrfToken },
+          });
+          if (!resp.ok) {
+            const data = await resp.json().catch(() => ({}));
+            throw new Error(data.error || 'Failed to delete entry');
           }
-        } else {
-          // Fallback list mode: remove the row or refresh the list
-          const listItem = anchorEl.closest('.cal-fallback-item');
-          if (listItem) {
-            listItem.remove();
-            // If the list is now empty, show the empty state
-            const calEl = document.getElementById('events-calendar');
-            if (calEl && !calEl.querySelector('.cal-fallback-item')) {
-              await renderFallbackCalendar(calEl);
+          // Remove from calendar UI
+          if (calendarInstance) {
+            const ev = calendarInstance.getEventById(entry.id);
+            if (ev) {
+              ev.remove();
+            }
+          } else {
+            // Fallback list mode: remove the row or refresh the list
+            const listItem = anchorEl.closest('.cal-fallback-item');
+            if (listItem) {
+              listItem.remove();
+              const calEl = document.getElementById('events-calendar');
+              if (calEl && !calEl.querySelector('.cal-fallback-item')) {
+                await renderFallbackCalendar(calEl);
+              }
             }
           }
+          showToast('Entry deleted', 'success');
+        } catch (err) {
+          showToast(err.message || 'Could not delete entry', 'error');
         }
-        showToast('Entry deleted', 'success');
-      } catch (err) {
-        showToast(err.message || 'Could not delete entry', 'error');
-      }
+      });
+
+      setTimeout(() => pop.querySelector('.cal-delete-popover__btn--cancel').focus(), 50);
     });
 
     pop.addEventListener('keydown', e => {
@@ -463,26 +554,42 @@
         <span class="cal-fallback-item__date">${formatDate(entry.date)}${timeStr}</span>
         <span class="cal-fallback-item__badge cal-entry-badge cal-entry-badge--${escapeHtml(entry.type)}">${escapeHtml(entry.type)}</span>
         <span class="cal-fallback-item__title">${escapeHtml(entry.title)}</span>
+        <button type="button" class="cal-fallback-item__edit" aria-label="Edit ${escapeHtml(entry.title)}" data-id="${escapeHtml(entry.id)}">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <path d="M10 2l2 2-7 7H3v-2l7-7z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+          </svg>
+        </button>
         <button type="button" class="cal-fallback-item__delete" aria-label="Delete ${escapeHtml(entry.title)}" data-id="${escapeHtml(entry.id)}" data-title="${escapeHtml(entry.title)}">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
             <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
         </button>
       `;
+      // Store raw entry data on the li for edit pre-fill
+      li._calEntry = entry;
       listEl.appendChild(li);
     });
 
     container.replaceChildren(listEl);
 
-    // Handle deletes in fallback mode — use the accessible popover, not confirm()
+    // Handle edits and deletes in fallback mode
     listEl.addEventListener('click', e => {
+      const editBtn = e.target.closest('.cal-fallback-item__edit');
+      if (editBtn) {
+        const li = editBtn.closest('.cal-fallback-item');
+        const entry = li ? li._calEntry : null;
+        if (entry) {
+          openModal(ensureModal(), null, null, entry);
+        }
+        return;
+      }
       const btn = e.target.closest('.cal-fallback-item__delete');
       if (!btn) {
         return;
       }
       const id = btn.dataset.id;
       const title = btn.dataset.title;
-      showDeletePopover(btn, id, title, null);
+      showEntryActions(btn, { id, title }, null, ensureModal());
     });
   }
 
@@ -619,6 +726,7 @@
             entryType: entry.type,
             description: entry.description,
             personalEntry: true,
+            rawEntry: entry, // stored for edit pre-fill
           },
         }));
         events = events.concat(entryEvents);
@@ -647,9 +755,13 @@
       },
       eventClick: function (info) {
         info.jsEvent.preventDefault();
-        // Personal entries: show delete popover instead of navigating
+        // Personal entries: show edit/delete action popover instead of navigating
         if (info.event.extendedProps.personalEntry) {
-          showDeletePopover(info.el, info.event.id, info.event.title, calendar);
+          const rawEntry = info.event.extendedProps.rawEntry || {
+            id: info.event.id,
+            title: info.event.title,
+          };
+          showEntryActions(info.el, rawEntry, calendar, modal);
           return;
         }
         if (info.event.url) {
@@ -672,15 +784,15 @@
           const typeLabel = entryType
             ? `<span class="cal-entry-badge cal-entry-badge--${escapeHtml(entryType)}">${escapeHtml(entryType)}</span><br>`
             : '';
-          const deleteHint = entryType
-            ? `<br><small style="color:#9ca3af;font-size:0.75rem;">Click to delete</small>`
+          const actionHint = entryType
+            ? `<br><small style="color:#9ca3af;font-size:0.75rem;">Click to edit or delete</small>`
             : '';
           tooltip.innerHTML = `
             ${typeLabel}
             <strong>${escapeHtml(info.event.title)}</strong>
             ${loc ? `<br><small>📍 ${escapeHtml(loc)}</small>` : ''}
             ${desc ? `<br><small style="color:#6b7280;">${escapeHtml(String(desc).substring(0, 120))}${String(desc).length > 120 ? '…' : ''}</small>` : ''}
-            ${deleteHint}
+            ${actionHint}
           `;
 
           info.el.addEventListener('mouseenter', () => {
