@@ -19,7 +19,7 @@ const PLANS = {
     price: 0,
     features: [
       '1 supplier profile',
-      'Up to 2 packages',
+      'Up to 3 active packages',
       'Basic enquiry inbox',
       'Standard listing position',
     ],
@@ -59,6 +59,9 @@ const PLANS = {
 
 // Plan hierarchy for determining upgrade vs downgrade direction
 const PLAN_HIERARCHY = ['free', 'pro', 'pro_plus'];
+
+// Max active packages per tier (mirrors server models/Subscription.js PLAN_FEATURES)
+const PLAN_MAX_PACKAGES = { free: 3, pro: 50, pro_plus: -1 };
 
 // Helper: look up a PLANS entry by tier code
 const planByTier = tier => Object.values(PLANS).find(p => p.tier === tier);
@@ -125,7 +128,7 @@ async function initSubscriptionPage() {
     await loadSubscriptionStatus();
 
     // Render pending downgrade banner (if applicable)
-    renderDowngradeBanner();
+    await renderDowngradeBanner();
 
     // Render plans
     renderSubscriptionPlans();
@@ -235,7 +238,7 @@ async function loadSubscriptionStatus() {
 /**
  * Render a persistent banner when a downgrade is scheduled for the next billing period.
  */
-function renderDowngradeBanner() {
+async function renderDowngradeBanner() {
   const bannerContainer = document.getElementById('current-subscription-status');
   if (!bannerContainer) {
     return;
@@ -253,8 +256,32 @@ function renderDowngradeBanner() {
 
   const periodEnd = currentSubscription?.currentPeriodEnd;
   const dateStr = periodEnd
-    ? new Date(periodEnd).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+    ? new Date(periodEnd).toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      })
     : 'the end of your billing period';
+
+  // Compute auto-pause warning: if the target plan has a lower maxPackages, warn
+  // how many active packages will be paused when the downgrade takes effect.
+  let pauseWarningHtml = '';
+  const targetMax = PLAN_MAX_PACKAGES[pendingPlan];
+  if (targetMax !== undefined && targetMax >= 0) {
+    try {
+      const pkgResp = await fetch('/api/me/packages', { credentials: 'include' });
+      if (pkgResp.ok) {
+        const pkgData = await pkgResp.json();
+        const activeCount = (pkgData.items || []).filter(p => !p.paused).length;
+        const willPause = Math.max(0, activeCount - targetMax);
+        if (willPause > 0) {
+          pauseWarningHtml = `<p class="downgrade-banner__warning">⚠️ When the downgrade takes effect, ${willPause} active package${willPause === 1 ? '' : 's'} will be automatically paused to stay within the ${pendingPlanName} plan limit of ${targetMax} active packages.</p>`;
+        }
+      }
+    } catch (_) {
+      // Non-fatal — omit the warning if packages can't be fetched
+    }
+  }
 
   bannerContainer.innerHTML = `
     <div class="downgrade-banner" role="status" aria-live="polite">
@@ -262,6 +289,7 @@ function renderDowngradeBanner() {
       <div class="downgrade-banner__body">
         <p class="downgrade-banner__title">Downgrade to ${pendingPlanName} scheduled</p>
         <p class="downgrade-banner__message">Your ${currentPlanName} plan remains active until ${dateStr}. You can upgrade at any time.</p>
+        ${pauseWarningHtml}
       </div>
     </div>
   `;
@@ -298,7 +326,7 @@ function renderSubscriptionPlans() {
             ? new Date(periodEnd).toLocaleDateString('en-GB', DATE_FORMAT_OPTIONS)
             : null;
           const pendingTier = currentSubscription.pendingPlan;
-          const pendingPlanName = pendingTier ? (planByTier(pendingTier)?.name || pendingTier) : null;
+          const pendingPlanName = pendingTier ? planByTier(pendingTier)?.name || pendingTier : null;
           const cancelNotice =
             currentSubscription.cancelAtPeriodEnd && periodEndStr
               ? pendingPlanName
@@ -474,7 +502,7 @@ async function handleSubscribe(planId) {
         'Downgrade to Starter scheduled. Your current plan remains active until the end of your billing period.'
       );
       await loadSubscriptionStatus();
-      renderDowngradeBanner();
+      await renderDowngradeBanner();
       renderSubscriptionPlans();
       return;
     }
@@ -503,7 +531,7 @@ async function handleSubscribe(planId) {
           currentUser = refreshed;
         }
         await loadSubscriptionStatus();
-        renderDowngradeBanner();
+        await renderDowngradeBanner();
         renderSubscriptionPlans();
         return;
       } else {
@@ -522,7 +550,7 @@ async function handleSubscribe(planId) {
           `Downgrade to ${plan.name} scheduled. Your current plan remains active until the end of your billing period.`
         );
         await loadSubscriptionStatus();
-        renderDowngradeBanner();
+        await renderDowngradeBanner();
         renderSubscriptionPlans();
         return;
       }

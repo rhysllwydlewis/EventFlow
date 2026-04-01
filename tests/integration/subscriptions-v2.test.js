@@ -473,4 +473,259 @@ describe('Subscription Service Integration Tests', () => {
       expect(sub.stripeCustomerId).toBe('cus_upcoming_test');
     });
   });
+
+  describe('getUserFeatures — effective tier resolution', () => {
+    it('should return free plan features when subscription is expired', async () => {
+      mockSubscriptions = [
+        {
+          id: 'sub-exp',
+          userId: 'usr-1',
+          plan: 'pro',
+          status: 'active',
+          currentPeriodEnd: new Date(Date.now() - 1000).toISOString(), // expired
+        },
+      ];
+
+      const features = await subscriptionService.getUserFeatures('usr-1');
+      expect(features.name).toBe('Free');
+      expect(features.features.maxPackages).toBe(3);
+    });
+
+    it('should return free plan features when subscription is past_due', async () => {
+      mockSubscriptions = [
+        {
+          id: 'sub-pd',
+          userId: 'usr-1',
+          plan: 'pro',
+          status: 'past_due',
+          currentPeriodEnd: new Date(Date.now() + 86400000).toISOString(),
+        },
+      ];
+
+      const features = await subscriptionService.getUserFeatures('usr-1');
+      expect(features.name).toBe('Free');
+      expect(features.features.maxPackages).toBe(3);
+    });
+
+    it('should return pro features when subscription is active and within period', async () => {
+      mockSubscriptions = [
+        {
+          id: 'sub-active',
+          userId: 'usr-1',
+          plan: 'pro',
+          status: 'active',
+          currentPeriodEnd: new Date(Date.now() + 86400000).toISOString(),
+        },
+      ];
+
+      const features = await subscriptionService.getUserFeatures('usr-1');
+      expect(features.name).toBe('Professional');
+      expect(features.features.maxPackages).toBe(50);
+    });
+
+    it('should fall back to user.subscriptionTier when no subscription record exists', async () => {
+      mockUsers = [
+        {
+          id: 'usr-1',
+          subscriptionTier: 'pro',
+          proExpiresAt: new Date(Date.now() + 86400000).toISOString(),
+        },
+      ];
+
+      const features = await subscriptionService.getUserFeatures('usr-1');
+      expect(features.name).toBe('Professional');
+    });
+
+    it('should return free features when user fallback tier has expired proExpiresAt', async () => {
+      mockUsers = [
+        {
+          id: 'usr-1',
+          subscriptionTier: 'pro',
+          proExpiresAt: new Date(Date.now() - 1000).toISOString(),
+        },
+      ];
+
+      const features = await subscriptionService.getUserFeatures('usr-1');
+      expect(features.name).toBe('Free');
+    });
+  });
+
+  describe('enforceActivePackageLimit', () => {
+    let mockPackages;
+    let mockSuppliers;
+
+    beforeEach(() => {
+      mockPackages = [];
+      mockSuppliers = [{ id: 'sup-1', ownerUserId: 'usr-1' }];
+
+      dbUnified.read.mockImplementation(async collection => {
+        switch (collection) {
+          case 'subscriptions':
+            return [...mockSubscriptions];
+          case 'users':
+            return [...mockUsers];
+          case 'packages':
+            return [...mockPackages];
+          case 'suppliers':
+            return [...mockSuppliers];
+          default:
+            return [];
+        }
+      });
+
+      dbUnified.updateOne.mockImplementation(async (collection, filter, update) => {
+        if (collection === 'packages' && update.$set) {
+          const idx = mockPackages.findIndex(p =>
+            Object.keys(filter).every(k => p[k] === filter[k])
+          );
+          if (idx >= 0) {
+            mockPackages[idx] = { ...mockPackages[idx], ...update.$set };
+          }
+        }
+        if (collection === 'users' && update.$set) {
+          const idx = mockUsers.findIndex(u => u.id === filter.id);
+          if (idx >= 0) {
+            mockUsers[idx] = { ...mockUsers[idx], ...update.$set };
+          }
+        }
+        if (collection === 'subscriptions' && update.$set) {
+          const idx = mockSubscriptions.findIndex(s =>
+            Object.keys(filter).every(k => s[k] === filter[k])
+          );
+          if (idx >= 0) {
+            mockSubscriptions[idx] = { ...mockSubscriptions[idx], ...update.$set };
+          }
+        }
+      });
+    });
+
+    it('should not pause any packages when user is within limit', async () => {
+      // Free plan: limit 3; user has 2 active packages
+      mockPackages = [
+        { id: 'pkg-1', supplierId: 'sup-1', paused: false, createdAt: '2024-01-01T00:00:00Z' },
+        { id: 'pkg-2', supplierId: 'sup-1', paused: false, createdAt: '2024-01-02T00:00:00Z' },
+      ];
+
+      const paused = await subscriptionService.enforceActivePackageLimit('usr-1');
+      expect(paused).toHaveLength(0);
+      expect(mockPackages.every(p => p.paused === false)).toBe(true);
+    });
+
+    it('should pause oldest packages when over the active limit on downgrade', async () => {
+      // Free plan limit is 3; user has 5 active packages
+      mockPackages = [
+        { id: 'pkg-1', supplierId: 'sup-1', paused: false, createdAt: '2024-01-01T00:00:00Z' },
+        { id: 'pkg-2', supplierId: 'sup-1', paused: false, createdAt: '2024-01-02T00:00:00Z' },
+        { id: 'pkg-3', supplierId: 'sup-1', paused: false, createdAt: '2024-01-03T00:00:00Z' },
+        { id: 'pkg-4', supplierId: 'sup-1', paused: false, createdAt: '2024-01-04T00:00:00Z' },
+        { id: 'pkg-5', supplierId: 'sup-1', paused: false, createdAt: '2024-01-05T00:00:00Z' },
+      ];
+
+      const paused = await subscriptionService.enforceActivePackageLimit('usr-1');
+
+      // Should have paused 2 (oldest: pkg-1, pkg-2)
+      expect(paused).toHaveLength(2);
+      expect(paused).toContain('pkg-1');
+      expect(paused).toContain('pkg-2');
+
+      // pkg-3, pkg-4, pkg-5 should remain active
+      const updatedPkgs = mockPackages;
+      expect(updatedPkgs.find(p => p.id === 'pkg-3').paused).not.toBe(true);
+      expect(updatedPkgs.find(p => p.id === 'pkg-4').paused).not.toBe(true);
+      expect(updatedPkgs.find(p => p.id === 'pkg-5').paused).not.toBe(true);
+    });
+
+    it('should not pause already-paused packages', async () => {
+      // Free plan limit is 3; 3 active + 2 already paused = should not touch paused ones
+      mockPackages = [
+        { id: 'pkg-1', supplierId: 'sup-1', paused: true, createdAt: '2024-01-01T00:00:00Z' },
+        { id: 'pkg-2', supplierId: 'sup-1', paused: true, createdAt: '2024-01-02T00:00:00Z' },
+        { id: 'pkg-3', supplierId: 'sup-1', paused: false, createdAt: '2024-01-03T00:00:00Z' },
+        { id: 'pkg-4', supplierId: 'sup-1', paused: false, createdAt: '2024-01-04T00:00:00Z' },
+        { id: 'pkg-5', supplierId: 'sup-1', paused: false, createdAt: '2024-01-05T00:00:00Z' },
+      ];
+
+      const paused = await subscriptionService.enforceActivePackageLimit('usr-1');
+      expect(paused).toHaveLength(0);
+    });
+
+    it('should return empty array for unlimited plan (pro_plus)', async () => {
+      mockSubscriptions = [
+        {
+          id: 'sub-pp',
+          userId: 'usr-1',
+          plan: 'pro_plus',
+          status: 'active',
+          currentPeriodEnd: new Date(Date.now() + 86400000).toISOString(),
+        },
+      ];
+      mockPackages = Array.from({ length: 10 }, (_, i) => ({
+        id: `pkg-${i}`,
+        supplierId: 'sup-1',
+        paused: false,
+        createdAt: `2024-01-0${i + 1}T00:00:00Z`,
+      }));
+
+      const paused = await subscriptionService.enforceActivePackageLimit('usr-1');
+      expect(paused).toHaveLength(0);
+    });
+
+    it('applyPendingPlan should auto-pause overflow packages', async () => {
+      // Setup: user has pro subscription with pending downgrade to free
+      mockSubscriptions = [
+        {
+          id: 'sub-pending',
+          userId: 'usr-1',
+          plan: 'pro',
+          status: 'active',
+          pendingPlan: 'free',
+          cancelAtPeriodEnd: true,
+          currentPeriodEnd: new Date(Date.now() + 86400000).toISOString(),
+        },
+      ];
+      // 5 active packages
+      mockPackages = [
+        { id: 'pkg-1', supplierId: 'sup-1', paused: false, createdAt: '2024-01-01T00:00:00Z' },
+        { id: 'pkg-2', supplierId: 'sup-1', paused: false, createdAt: '2024-01-02T00:00:00Z' },
+        { id: 'pkg-3', supplierId: 'sup-1', paused: false, createdAt: '2024-01-03T00:00:00Z' },
+        { id: 'pkg-4', supplierId: 'sup-1', paused: false, createdAt: '2024-01-04T00:00:00Z' },
+        { id: 'pkg-5', supplierId: 'sup-1', paused: false, createdAt: '2024-01-05T00:00:00Z' },
+      ];
+
+      await subscriptionService.applyPendingPlan('sub-pending');
+
+      // After applying, subscription plan should be 'free'
+      const sub = mockSubscriptions.find(s => s.id === 'sub-pending');
+      expect(sub.plan).toBe('free');
+
+      // After applying, only 3 active packages remain (pkg-3, pkg-4, pkg-5)
+      const active = mockPackages.filter(p => p.paused !== true);
+      expect(active).toHaveLength(3);
+      expect(active.map(p => p.id).sort()).toEqual(['pkg-3', 'pkg-4', 'pkg-5']);
+    });
+
+    it('cancelSubscription immediately should auto-pause overflow packages', async () => {
+      mockSubscriptions = [
+        {
+          id: 'sub-cancel',
+          userId: 'usr-1',
+          plan: 'pro',
+          status: 'active',
+          currentPeriodEnd: new Date(Date.now() + 86400000).toISOString(),
+        },
+      ];
+      mockPackages = [
+        { id: 'pkg-1', supplierId: 'sup-1', paused: false, createdAt: '2024-01-01T00:00:00Z' },
+        { id: 'pkg-2', supplierId: 'sup-1', paused: false, createdAt: '2024-01-02T00:00:00Z' },
+        { id: 'pkg-3', supplierId: 'sup-1', paused: false, createdAt: '2024-01-03T00:00:00Z' },
+        { id: 'pkg-4', supplierId: 'sup-1', paused: false, createdAt: '2024-01-04T00:00:00Z' },
+      ];
+
+      await subscriptionService.cancelSubscription('sub-cancel', 'test', true);
+
+      // After immediate cancellation, only 3 active packages remain
+      const active = mockPackages.filter(p => p.paused !== true);
+      expect(active).toHaveLength(3);
+    });
+  });
 });

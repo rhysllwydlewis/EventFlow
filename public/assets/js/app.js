@@ -3188,19 +3188,21 @@ async function initDashSupplier() {
       const note = document.getElementById('pkg-limit-note');
       const d = await api('/api/me/packages');
       const items = d?.items && Array.isArray(d.items) ? d.items : [];
-      const count = items.length;
+      // Only count active (non-paused) packages against the plan limit; paused packages
+      // are preserved but don't occupy a slot, matching the server-side enforcement.
+      const activeCount = items.filter(p => !p.paused).length;
       const freeLimit = 3; // keep in sync with server FREE_PACKAGE_LIMIT default
 
       // Update note about allowance
       if (note) {
         if (currentIsPro) {
-          note.textContent = count
-            ? `You have ${count} package${count === 1 ? '' : 's'}. As a Pro supplier you can create unlimited packages.`
+          note.textContent = activeCount
+            ? `You have ${activeCount} active package${activeCount === 1 ? '' : 's'}. As a Pro supplier you can create unlimited packages.`
             : 'As a Pro supplier you can create unlimited packages.';
         } else {
-          note.textContent = count
-            ? `You have ${count} of ${freeLimit} packages on the Starter plan. Upgrade to Pro to unlock more.`
-            : `On the Starter plan you can create up to ${freeLimit} packages.`;
+          note.textContent = activeCount
+            ? `You have ${activeCount} of ${freeLimit} active packages on the Starter plan. Upgrade to Pro to unlock more.`
+            : `On the Starter plan you can create up to ${freeLimit} active packages.`;
         }
       }
 
@@ -3208,7 +3210,7 @@ async function initDashSupplier() {
       // Only block *creating* new packages — editing existing ones must remain allowed.
       const pkgForm = document.getElementById('package-form');
       const pkgStatus = document.getElementById('pkg-status');
-      const atLimit = !currentIsPro && count >= freeLimit;
+      const atLimit = !currentIsPro && activeCount >= freeLimit;
       // Expose globally so togglePackageForm() and editPackage() can reference it.
       window._pkgAtLimit = atLimit;
 
@@ -3761,9 +3763,9 @@ async function initDashSupplier() {
 
 // Package Form Toggle, Edit, and Delete Functions
 
-/** Message shown in #pkg-status when the free-tier package limit is reached. */
+/** Message shown in #pkg-status when the free-tier active package limit is reached. */
 const PKG_LIMIT_MESSAGE =
-  'You have reached the package limit on the Starter plan. Upgrade to Pro to add more.';
+  'You have reached the active package limit on the Starter plan. Upgrade to Pro to add more.';
 
 /**
  * Enable or disable all inputs / the submit button in #package-form and update

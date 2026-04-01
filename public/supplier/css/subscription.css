@@ -48,6 +48,14 @@
   line-height: 1.5;
 }
 
+.downgrade-banner__warning {
+  font-size: 0.875rem;
+  color: #92400e;
+  margin: 0.5rem 0 0;
+  line-height: 1.5;
+  font-weight: 500;
+}
+
 @media (max-width: 480px) {
   .downgrade-banner {
     flex-direction: column;
