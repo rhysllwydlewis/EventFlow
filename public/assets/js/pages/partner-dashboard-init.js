@@ -371,7 +371,8 @@
           document.body.removeChild(ta);
         }
         showToast('Partner code copied!', 'success');
-      } catch (_) {
+      } catch (err) {
+        console.error('Failed to copy partner code:', err);
         showToast('Could not copy — please copy the code manually.', 'error');
       }
     }

@@ -1575,9 +1575,9 @@ select.partner-modal-input option {
 }
 
 /* Error border on inputs */
-.partner-input--error {
-  border-color: rgba(239, 68, 68, 0.6) !important;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+.partner-input.partner-input--error {
+  border-color: rgba(239, 68, 68, 0.6);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
 }
 
 /* ─── Partner programme explainer (above auth tabs) ──────────────────────── */
@@ -1773,11 +1773,11 @@ select.partner-modal-input option {
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 6px;
-  /* Override gradient text so shimmer is visible */
-  -webkit-background-clip: unset !important;
-  background-clip: unset !important;
-  -webkit-text-fill-color: transparent !important;
-  color: transparent !important;
+  /* Override gradient text so shimmer is visible; higher specificity beats the base rule */
+  -webkit-background-clip: unset;
+  background-clip: unset;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
 }
 
 .partner-stats-grid[data-loading='true'] .partner-stat-sub {
@@ -1793,7 +1793,7 @@ select.partner-modal-input option {
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite 0.2s;
   border-radius: 4px;
-  color: transparent !important;
+  color: transparent;
 }
 
 /* ─── Prefers reduced motion ─────────────────────────────────────────────── */

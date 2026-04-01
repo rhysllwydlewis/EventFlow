@@ -62,8 +62,8 @@
   }
 
   // ── Safe redirect helper ──────────────────────────────────────────────────────
-  // Validates a redirect query param to ensure it is a safe relative path.
-  // Prevents open redirect attacks.
+  // Validates a redirect query param to ensure it is a safe same-origin relative path.
+  // Prevents open redirect attacks by parsing with the URL API and checking origin.
 
   function getSafeRedirect() {
     const params = new URLSearchParams(window.location.search);
@@ -71,15 +71,20 @@
     if (!redir) {
       return null;
     }
-    // Must be relative: start with / but not // (protocol-relative)
-    if (!redir.startsWith('/') || redir.startsWith('//')) {
+    try {
+      // Resolve the redirect against our own origin — this normalises protocol-relative
+      // or absolute URLs so the origin check below can catch them reliably.
+      const parsed = new URL(redir, window.location.origin);
+      // Reject if it would navigate away from the current origin
+      if (parsed.origin !== window.location.origin) {
+        return null;
+      }
+      // Return only pathname + search + hash; never scheme or host
+      return parsed.pathname + parsed.search + parsed.hash;
+    } catch (_) {
+      // URL parsing failed — not a valid path
       return null;
     }
-    // Must not contain a protocol or backslash (e.g. javascript:, http://, \)
-    if (redir.includes('://') || redir.includes('\\')) {
-      return null;
-    }
-    return redir;
   }
 
   // ── Redirect if already logged in as partner ─────────────────────────────────
@@ -273,7 +278,7 @@
       if (!email) {
         setFieldError(emailEl, emailErrorEl, 'Email address is required.');
         hasFieldError = true;
-      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+/.test(email)) {
         setFieldError(emailEl, emailErrorEl, 'Please enter a valid email address.');
         hasFieldError = true;
       }
