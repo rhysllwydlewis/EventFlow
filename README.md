@@ -780,6 +780,58 @@ During development without Postmark configured, emails are saved to `/outbox` fo
 
 **Webhook URL (optional):** `https://your-domain.com/api/webhooks/postmark`
 
+## 🍃 MongoDB Atlas Webhooks
+
+EventFlow supports receiving real-time change events from MongoDB Atlas via **Database Triggers** or **App Services HTTP Endpoints**.
+
+### Endpoint
+
+```
+POST /api/webhooks/mongodb
+```
+
+### How It Works
+
+When a document in your Atlas cluster changes (insert, update, delete, etc.), Atlas can call this endpoint with a [change event](https://www.mongodb.com/docs/manual/reference/change-events/) payload.  EventFlow verifies the payload signature, logs the event, and runs any registered handlers.
+
+### Configuration
+
+| Environment variable        | Description |
+|-----------------------------|-------------|
+| `MONGODB_WEBHOOK_SECRET`    | **Required in production.** Shared HMAC-SHA256 secret. Set in both `.env` and Atlas Trigger settings. |
+| `MONGODB_WEBHOOK_ENABLED`   | Set to `false` to disable the endpoint entirely (default: `true`). |
+
+Generate a strong secret:
+
+```bash
+openssl rand -hex 32
+```
+
+### Setting Up in MongoDB Atlas
+
+1. Open **Atlas App Services** → **Triggers** → **Add Trigger** (choose *Database* trigger).
+2. Configure the trigger for the collection(s) you want to watch.
+3. In **Event Type**, tick the operations you care about (Insert, Update, Delete, etc.).
+4. Under **Function / HTTP Endpoint**, choose *Send an HTTP request* and set the URL to:
+   ```
+   https://your-domain.com/api/webhooks/mongodb
+   ```
+5. Add a custom header:
+   - **Name:** `X-MongoDB-Webhook-Signature`
+   - **Value:** `sha256=${HMAC-SHA256(body, MONGODB_WEBHOOK_SECRET)}`
+   > Atlas supports custom headers and secrets via the *Secrets* feature in App Services.
+6. Save the trigger.  EventFlow will verify every incoming request against the secret.
+
+> **In development** (when `MONGODB_WEBHOOK_SECRET` is not set) requests are processed with a warning — verification is not enforced outside of production.
+
+### Idempotency
+
+The handler records processed event IDs in the `mongodb_webhook_events` collection (TTL 7 days).  Retried deliveries from Atlas are automatically deduplicated.
+
+### Testing from Admin Debug
+
+Navigate to **Admin → Debug → Webhooks** tab and click **Test All Webhooks**.  This sends a signed probe request to the MongoDB (and all other configured) webhook endpoints and surfaces pass/fail results in the UI.
+
 ## 📁 Project Structure
 
 ```

@@ -1,8 +1,11 @@
 /**
- * Postmark Webhook Routes
- * Handles incoming webhook events from Postmark
+ * Postmark & MongoDB Webhook Routes
  *
- * Webhook Events:
+ * POST /api/webhooks/postmark  — Handles incoming webhook events from Postmark.
+ * POST /api/webhooks/mongodb   — Handles incoming webhook events from MongoDB
+ *                                Atlas Database Triggers / App Services.
+ *
+ * Postmark events:
  * - Delivery: Email was successfully delivered
  * - Bounce: Email bounced (hard or soft)
  * - SpamComplaint: Recipient marked email as spam
@@ -10,20 +13,18 @@
  * - Open: Email was opened (if tracking enabled)
  * - Click: Link in email was clicked (if tracking enabled)
  *
- * Configuration in Postmark:
- * 1. Go to: https://account.postmarkapp.com/servers/[YOUR-SERVER]/webhooks
- * 2. Add webhook URL: https://your-domain.com/api/webhooks/postmark
- * 3. Select events to track (recommended: Delivery, Bounce, SpamComplaint)
- * 4. Test webhook using Postmark's test feature
+ * MongoDB Atlas events:
+ * - insert / update / replace / delete / drop / rename / invalidate
  *
- * Security: Webhook requests should ideally be verified using Basic Auth
- * or custom headers configured in Postmark dashboard
+ * See also: webhooks/mongodbWebhookHandler.js
  */
 
 'use strict';
 
 const express = require('express');
 const logger = require('../utils/logger');
+const { apiLimiter } = require('../middleware/rateLimits');
+const { buildMongodbWebhookHandler } = require('../webhooks/mongodbWebhookHandler');
 const router = express.Router();
 
 /**
@@ -383,5 +384,24 @@ async function handleClick(event, db) {
     }
   }
 }
+
+// ---------------------------------------------------------------------------
+// MongoDB Atlas Webhook
+// ---------------------------------------------------------------------------
+
+/**
+ * POST /api/webhooks/mongodb
+ *
+ * Receives MongoDB Atlas Database Trigger / App Services webhook events.
+ *
+ * Authentication: HMAC-SHA256 signature in X-MongoDB-Webhook-Signature header.
+ * Set MONGODB_WEBHOOK_SECRET in your environment and configure the same value
+ * in MongoDB Atlas → App Services → Triggers → HTTP Endpoint settings.
+ *
+ * Event payload: MongoDB Atlas change-event document (operationType, ns, etc.)
+ *
+ * See webhooks/mongodbWebhookHandler.js for the full handler logic.
+ */
+router.post('/mongodb', apiLimiter, express.raw({ type: '*/*' }), buildMongodbWebhookHandler());
 
 module.exports = router;
