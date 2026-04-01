@@ -85,6 +85,25 @@
 
           <!-- Auth panel -->
           <div class="partner-auth-panel" role="region" aria-label="Sign in or create account">
+
+            <!-- Partner programme explainer -->
+            <div class="partner-explainer" aria-label="About the Partner Programme">
+              <p>
+                <strong style="color:rgba(255,255,255,0.85);">What is it?</strong>
+                Join EventFlow's partner programme and earn reward points every time a wedding supplier
+                signs up through your unique referral link and gets started on the platform.
+              </p>
+              <p>
+                Points mature after <strong>30 days</strong> and can be cashed out as an
+                Amazon Voucher or Pre-Paid Debit Card once you reach £50 (100 pts = £1).
+              </p>
+              <p>
+                <a href="/legal.html#partner-programme" target="_blank" rel="noopener noreferrer">
+                  Read the full Partner Programme terms →
+                </a>
+              </p>
+            </div>
+
             <div class="partner-tabs" role="tablist" aria-label="Authentication options">
               <button
                 class="partner-tab active"
@@ -117,21 +136,37 @@
                     autocomplete="email"
                     required
                     placeholder="you@example.com"
+                    aria-describedby="login-email-error"
                   />
+                  <span class="partner-field-error" id="login-email-error" role="alert" aria-live="polite"></span>
                 </div>
                 <div class="partner-field">
                   <label for="login-password">Password</label>
-                  <input
-                    id="login-password"
-                    name="password"
-                    type="password"
-                    class="partner-input"
-                    autocomplete="current-password"
-                    required
-                    placeholder="Your password"
-                  />
+                  <div class="partner-pw-wrap">
+                    <input
+                      id="login-password"
+                      name="password"
+                      type="password"
+                      class="partner-input"
+                      autocomplete="current-password"
+                      required
+                      placeholder="Your password"
+                      aria-describedby="login-password-error login-capslock"
+                    />
+                    <button
+                      type="button"
+                      class="partner-pw-toggle"
+                      aria-label="Show password"
+                      data-target="login-password"
+                    >
+                      <!-- eye icon (show state) -->
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                  </div>
+                  <span class="partner-capslock-hint" id="login-capslock" aria-live="polite" hidden>⚠️ Caps Lock is on</span>
+                  <span class="partner-field-error" id="login-password-error" role="alert" aria-live="polite"></span>
                 </div>
-                <div id="login-status" class="partner-status" role="alert" aria-live="polite"></div>
+                <div id="login-status" class="partner-status" role="alert" aria-live="assertive"></div>
                 <button type="submit" class="partner-submit-btn" id="login-btn">
                   <span class="btn-text">Log in to dashboard</span>
                 </button>
@@ -160,7 +195,27 @@
                 </div>
                 <div class="partner-field">
                   <label for="reg-password">Password</label>
-                  <input id="reg-password" name="password" type="password" class="partner-input" autocomplete="new-password" required placeholder="Min 8 characters" />
+                  <div class="partner-pw-wrap">
+                    <input
+                      id="reg-password"
+                      name="password"
+                      type="password"
+                      class="partner-input"
+                      autocomplete="new-password"
+                      required
+                      placeholder="Min 8 characters"
+                      aria-describedby="reg-capslock"
+                    />
+                    <button
+                      type="button"
+                      class="partner-pw-toggle"
+                      aria-label="Show password"
+                      data-target="reg-password"
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    </button>
+                  </div>
+                  <span class="partner-capslock-hint" id="reg-capslock" aria-live="polite" hidden>⚠️ Caps Lock is on</span>
                 </div>
                 <div class="partner-field">
                   <label for="reg-location">Your location</label>

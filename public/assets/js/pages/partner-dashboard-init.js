@@ -38,6 +38,8 @@
     if (!toast) {
       return;
     }
+    // Set ARIA role: 'alert' for errors (assertive announcement), 'status' for others
+    toast.setAttribute('role', type === 'error' ? 'alert' : 'status');
     toast.textContent = msg;
     toast.className = `partner-toast partner-toast--${type} show`;
     setTimeout(() => toast.classList.remove('show'), 3000);
@@ -163,6 +165,11 @@
   function renderStats(credits, referralCount, pointsPerGbp) {
     if (!credits || typeof credits !== 'object') {
       return;
+    }
+    // Remove skeleton loading state from stats grid
+    const statsGrid = document.querySelector('.partner-stats-grid');
+    if (statsGrid) {
+      statsGrid.removeAttribute('data-loading');
     }
     const available =
       credits.availableBalance !== undefined ? credits.availableBalance : credits.balance;
@@ -335,6 +342,45 @@
         document.execCommand('copy');
         document.body.removeChild(ta);
         showToast('Referral link copied!', 'success');
+      }
+    });
+  }
+
+  // ── Referral code badge copy ──────────────────────────────────────────────────
+
+  function initRefCodeCopy(refCode) {
+    const badge = document.getElementById('partner-ref-code-badge');
+    if (!badge || !refCode) {
+      return;
+    }
+
+    async function copyCode() {
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(refCode);
+        } else {
+          // Fallback for older browsers
+          const ta = document.createElement('textarea');
+          ta.value = refCode;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.focus();
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+        }
+        showToast('Partner code copied!', 'success');
+      } catch (_) {
+        showToast('Could not copy — please copy the code manually.', 'error');
+      }
+    }
+
+    badge.addEventListener('click', copyCode);
+    badge.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        copyCode();
       }
     });
   }
@@ -939,6 +985,9 @@
       }
       initCopyButton(partner.refLink);
 
+      // Copy referral code badge
+      initRefCodeCopy(partner.refCode);
+
       // Code management
       const codeDisplay = document.getElementById('partner-code-display');
       if (codeDisplay) {
@@ -983,16 +1032,48 @@
       renderTransactions(transactions, pointsPerGbp);
     } catch (err) {
       console.error('Dashboard load error:', err);
+
+      // Remove skeleton state so stats grid doesn't hang in loading animation
+      const statsGrid = document.querySelector('.partner-stats-grid');
+      if (statsGrid) {
+        statsGrid.removeAttribute('data-loading');
+      }
+
       const statusLine = document.getElementById('partner-status-line');
       if (err.disabled) {
-        // Account disabled — show prominent message
-        if (statusLine) {
-          statusLine.textContent = err.message;
-          statusLine.style.color = '#fca5a5';
+        // Account disabled — show the dedicated disabled panel with next steps
+        const disabledPanel = document.getElementById('partner-disabled-panel');
+        const disabledMsg = document.getElementById('partner-disabled-msg');
+        const disabledSupportLink = document.getElementById('partner-disabled-support-link');
+
+        if (disabledPanel) {
+          if (disabledMsg) {
+            disabledMsg.textContent =
+              err.message || 'Your partner account has been disabled.';
+          }
+          disabledPanel.removeAttribute('hidden');
         }
+
         if (nameHeading) {
           nameHeading.textContent = 'Account Disabled';
         }
+        if (statusLine) {
+          statusLine.textContent = 'Contact support to resolve this.';
+          statusLine.style.color = '#fca5a5';
+        }
+
+        // Wire up the support link inside the disabled panel to open the modal
+        if (disabledSupportLink) {
+          disabledSupportLink.addEventListener('click', e => {
+            e.preventDefault();
+            const openBtn = document.getElementById('partner-support-btn');
+            if (openBtn) {
+              openBtn.click();
+            }
+          });
+        }
+
+        // Clear loading placeholders in data containers
         const containers = [
           'referrals-container',
           'transactions-container',
@@ -1004,7 +1085,7 @@
             el.innerHTML = `
               <div class="partner-empty">
                 <div class="partner-empty-icon" aria-hidden="true">🚫</div>
-                <p class="partner-empty-text">Your partner account has been disabled. Please contact support to resolve this.</p>
+                <p class="partner-empty-text">Account disabled — data unavailable.</p>
               </div>`;
           }
         });
