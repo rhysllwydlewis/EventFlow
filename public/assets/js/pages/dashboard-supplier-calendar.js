@@ -130,32 +130,19 @@
   // ── Supplier profile ───────────────────────────────────────────────────────
 
   async function loadSupplierProfile() {
-    let loaded = false;
     try {
-      const res = await fetch('/api/v1/me/suppliers/profile', { credentials: 'include' });
+      const res = await fetch('/api/me/suppliers', { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
-        currentSupplier = data.supplier || data;
-        loaded = true;
+        const list = data.suppliers || data.items || data;
+        if (Array.isArray(list) && list.length) {
+          currentSupplier = list[0];
+        } else {
+          currentSupplier = data.supplier || data;
+        }
       }
     } catch (_) {
-      /* network error — fall through to alternate */
-    }
-
-    // Fallback: try the list endpoint if primary endpoint failed or returned non-OK
-    if (!loaded) {
-      try {
-        const res2 = await fetch('/api/me/suppliers', { credentials: 'include' });
-        if (res2.ok) {
-          const data = await res2.json();
-          const list = data.suppliers || data.items || data;
-          if (Array.isArray(list) && list.length) {
-            currentSupplier = list[0];
-          }
-        }
-      } catch (__) {
-        /* ignore */
-      }
+      /* network error — ignore */
     }
 
     if (currentSupplier) {
