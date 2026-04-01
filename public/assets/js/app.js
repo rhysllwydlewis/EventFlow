@@ -3213,6 +3213,48 @@ async function initDashSupplier() {
       const atLimit = !currentIsPro && activeCount >= freeLimit;
       // Expose globally so togglePackageForm() and editPackage() can reference it.
       window._pkgAtLimit = atLimit;
+      // Store limit label text so togglePackageForm() can restore it after edit mode.
+      window._pkgLimitLabel = atLimit
+        ? `${activeCount}/${freeLimit} Active \u2013 Limit reached`
+        : 'Create Package';
+
+      // Update the "Create Package" toggle button to reflect the plan limit.
+      const toggleBtn = document.getElementById('toggle-package-form');
+      if (toggleBtn) {
+        const labelEl = toggleBtn.querySelector('.label');
+        // Only change the label when the form is collapsed (not in edit/cancel state).
+        const formIsOpen = document.getElementById('package-form-section')?.classList.contains('expanded') ?? false;
+        if (!formIsOpen) {
+          if (atLimit) {
+            toggleBtn.disabled = true;
+            toggleBtn.classList.add('form-toggle-btn--at-limit');
+            if (labelEl) {
+              labelEl.textContent = window._pkgLimitLabel;
+            }
+          } else {
+            toggleBtn.disabled = false;
+            toggleBtn.classList.remove('form-toggle-btn--at-limit');
+            if (labelEl) {
+              labelEl.textContent = 'Create Package';
+            }
+          }
+        }
+        // Show or hide upgrade CTA alongside the button.
+        let upgradeCta = document.getElementById('pkg-upgrade-cta');
+        if (atLimit) {
+          if (!upgradeCta) {
+            upgradeCta = document.createElement('a');
+            upgradeCta.id = 'pkg-upgrade-cta';
+            upgradeCta.href = '/supplier/subscription.html';
+            upgradeCta.className = 'pkg-upgrade-link';
+            upgradeCta.textContent = 'Upgrade plan';
+            toggleBtn.insertAdjacentElement('afterend', upgradeCta);
+          }
+          upgradeCta.style.display = '';
+        } else if (upgradeCta) {
+          upgradeCta.style.display = 'none';
+        }
+      }
 
       if (pkgForm) {
         // Determine whether the form is currently in edit mode (has a package ID).
@@ -3839,6 +3881,17 @@ function togglePackageForm() {
     // Form is returning to create mode — re-apply package limit restrictions if needed.
     if (window._pkgAtLimit) {
       setPkgFormDisabled(true);
+      // Restore at-limit label and disabled state on the toggle button.
+      toggleBtn.disabled = true;
+      toggleBtn.classList.add('form-toggle-btn--at-limit');
+      const labelElRestore = toggleBtn.querySelector('.label');
+      if (labelElRestore) {
+        labelElRestore.textContent = window._pkgLimitLabel || `Limit reached`;
+      }
+      const upgradeCta = document.getElementById('pkg-upgrade-cta');
+      if (upgradeCta) {
+        upgradeCta.style.display = '';
+      }
     }
   } else {
     // Expand form

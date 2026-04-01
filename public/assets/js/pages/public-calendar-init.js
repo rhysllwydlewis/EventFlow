@@ -99,19 +99,15 @@
 
   async function loadSupplierDoc() {
     try {
-      const data = await apiFetch('/api/v1/me/suppliers/profile');
-      supplierDoc = data.supplier || data;
-    } catch (_) {
-      // try alternate endpoint
-      try {
-        const data = await apiFetch('/api/me/suppliers');
-        const list = data.suppliers || data;
-        if (Array.isArray(list) && list.length) {
-          supplierDoc = list[0];
-        }
-      } catch (__) {
-        /* ignore */
+      const data = await apiFetch('/api/me/suppliers');
+      const list = data.suppliers || data.items || data;
+      if (Array.isArray(list) && list.length) {
+        supplierDoc = list[0];
+      } else {
+        supplierDoc = data.supplier || data;
       }
+    } catch (_) {
+      /* ignore */
     }
 
     if (supplierDoc) {
