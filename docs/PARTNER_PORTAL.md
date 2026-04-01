@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Partner Portal is a **hidden** area of EventFlow that allows influencers, Facebook group admins, and community promoters to earn points by referring wedding suppliers to sign up and get started on EventFlow.
+The Partner Portal is a **hidden** area of EventFlow that allows influencers, Facebook group admins, and community promoters to earn points by referring event suppliers to sign up and get started on EventFlow.
 
 It lives at `/partner` — this URL is **not indexed** (`noindex, nofollow`) and not linked from public navigation. You share the URL directly with partners.
 
@@ -104,7 +104,7 @@ Partners can submit cashout requests directly from the partner dashboard. The fl
 
 1. Partner checks their **available balance** (mature points ≥ 30 days old).
 2. Partner selects a **payout method**: Amazon Voucher or Pre-Paid Debit Card.
-3. Partner selects a **denomination** in £5 increments (minimum £50, maximum equal to available GBP balance).
+3. Partner selects a **denomination** in £5 increments (minimum £15, maximum equal to available GBP balance).
 4. Dashboard submits `POST /cashout-requests`; the server validates the request and immediately creates a `CASHOUT_HOLD` ledger transaction to reserve the points.
 5. Request is placed in `submitted` status and appears in the admin cashout requests queue at `/admin-cashout-requests`.
 6. Partner sees a history list with status updates and any admin response messages.
@@ -113,8 +113,8 @@ Partners can submit cashout requests directly from the partner dashboard. The fl
 
 **Denomination rules:**
 
-- Minimum: £50
-- Increments: £5 (£50, £55, £60, …)
+- Minimum: £15
+- Increments: £5 (£15, £20, £25, …)
 - Maximum: floor(availableGbp / 5) × 5
 - Configurable via `CASHOUT_DENOMINATIONS` env var (comma-separated integers)
 
@@ -212,7 +212,7 @@ New in the cashout request system. Each record represents a manual cashout reque
 | `partnerId`            | string             | Links to `partners`                                                 |
 | `partnerUserId`        | string             | User ID of the partner                                              |
 | `method`               | string             | `amazon_voucher` or `prepaid_debit_card`                            |
-| `denominationGbp`      | number             | GBP amount (integer, £5 increments, min £50)                        |
+| `denominationGbp`      | number             | GBP amount (integer, £5 increments, min £15)                        |
 | `pointsHeld`           | number             | Points reserved via CASHOUT_HOLD                                    |
 | `pointsPerGbpSnapshot` | number             | POINTS_PER_GBP rate at time of request (for audit)                  |
 | `status`               | string             | `submitted`, `approved`, `rejected`, `processing`, or `delivered`   |

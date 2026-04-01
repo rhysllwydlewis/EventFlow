@@ -764,7 +764,7 @@
     }
 
     const rate = Number.isInteger(pointsPerGbp) && pointsPerGbp > 0 ? pointsPerGbp : 100;
-    const MIN_DENOM = 50;
+    const MIN_DENOM = 15;
     const STEP = 5;
 
     const availBal = credits
