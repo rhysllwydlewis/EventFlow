@@ -842,9 +842,121 @@
     });
   }
 
+  // ---------------------------------------------------------------------------
+  // Webhooks tab — "Test All Webhooks"
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Icons / badge colours for webhook test results.
+   */
+  const WEBHOOK_ICONS = {
+    pass: '✅',
+    warn: '⚠️',
+    fail: '❌',
+    unconfigured: '⚪',
+  };
+
+  /**
+   * Render the webhook test results into #sc-webhooks-result.
+   * @param {Array} results - Array of { name, configured, ok, status, details } objects.
+   * @param {Object} summary - { total, configured, passed }
+   */
+  function renderWebhookResults(results, summary) {
+    const el = document.getElementById('sc-webhooks-result');
+    if (!el) {
+      return;
+    }
+
+    const rows = results
+      .map(r => {
+        let icon, label;
+        if (!r.configured) {
+          icon = WEBHOOK_ICONS.unconfigured;
+          label = 'Not configured';
+        } else if (r.ok === false) {
+          icon = WEBHOOK_ICONS.fail;
+          label = 'Failed';
+        } else if (r.ok === null) {
+          icon = WEBHOOK_ICONS.warn;
+          label = 'Skipped (no secret)';
+        } else {
+          icon = WEBHOOK_ICONS.pass;
+          label = 'OK';
+        }
+
+        const detail = escHtml(r.details || r.error || '');
+        return `
+          <tr>
+            <td style="white-space:nowrap;">${icon} <strong>${escHtml(r.name)}</strong></td>
+            <td>${label}</td>
+            <td style="color:var(--color-text-muted,#6b7280);font-size:.875em;">${detail}</td>
+          </tr>`;
+      })
+      .join('');
+
+    const allOk = summary && summary.passed === summary.total;
+    const summaryClass = allOk ? 'sc-info-banner--ok' : 'sc-info-banner--error';
+    const summaryText = allOk
+      ? `✅ All ${summary.total} webhook(s) passed`
+      : `${summary.passed} / ${summary.total} webhook(s) passed`;
+
+    el.innerHTML = `
+      <div class="sc-info-banner ${summaryClass}" role="status" style="margin-bottom:1rem;">
+        ${summaryText}
+      </div>
+      <div class="card" style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;">
+          <thead>
+            <tr>
+              <th style="text-align:left;padding:.5rem .75rem;border-bottom:1px solid var(--color-border,#e5e7eb);">Integration</th>
+              <th style="text-align:left;padding:.5rem .75rem;border-bottom:1px solid var(--color-border,#e5e7eb);">Status</th>
+              <th style="text-align:left;padding:.5rem .75rem;border-bottom:1px solid var(--color-border,#e5e7eb);">Details</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  }
+
+  /**
+   * Initialise the Webhooks tab — wire the "Test All Webhooks" button.
+   */
+  function initWebhooksTab() {
+    const btn = document.getElementById('sc-test-webhooks-btn');
+    const resultEl = document.getElementById('sc-webhooks-result');
+    if (!btn) {
+      return;
+    }
+
+    btn.addEventListener('click', async () => {
+      btn.disabled = true;
+      btn.textContent = 'Testing…';
+      if (resultEl) {
+        resultEl.innerHTML = '<p style="opacity:.6;">Running webhook tests…</p>';
+      }
+
+      try {
+        const data = await AdminShared.adminFetch(`${DEBUG_BASE_URL}/test-webhooks`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        });
+        renderWebhookResults(data.results || [], data.summary || {});
+      } catch (err) {
+        if (resultEl) {
+          resultEl.innerHTML = `<div class="sc-info-banner sc-info-banner--error" role="alert">⚠️ ${escHtml(err.message || 'Webhook test failed')}</div>`;
+        }
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Test All Webhooks`;
+      }
+    });
+  }
+
   function init() {
     loadData();
     initAcctTools();
+    initWebhooksTab();
   }
 
   if (document.readyState === 'loading') {

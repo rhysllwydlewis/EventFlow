@@ -68,6 +68,7 @@
       <button class="sc-tab-btn" role="tab" aria-selected="true"  aria-controls="tab-overview"  id="tab-btn-overview"  type="button">Overview</button>
       <button class="sc-tab-btn" role="tab" aria-selected="false" aria-controls="tab-coverage"  id="tab-btn-coverage"  type="button">Coverage</button>
       <button class="sc-tab-btn" role="tab" aria-selected="false" aria-controls="tab-history"   id="tab-btn-history"   type="button">History</button>
+      <button class="sc-tab-btn" role="tab" aria-selected="false" aria-controls="tab-webhooks"  id="tab-btn-webhooks"  type="button">Webhooks</button>
       <button class="sc-tab-btn" role="tab" aria-selected="false" aria-controls="tab-acct-tools" id="tab-btn-acct-tools" type="button">Account Tools</button>
     </nav>
 
@@ -152,6 +153,30 @@
         </table>
       </div>
     </div><!-- /#tab-history -->
+
+    <!-- ── Tab: Webhooks ─────────────────────────────────────────────── -->
+    <div id="tab-webhooks" class="sc-tab-panel" role="tabpanel" aria-labelledby="tab-btn-webhooks" style="margin-bottom:3rem;">
+
+      <p class="small" style="margin-bottom:1rem;color:var(--color-text-muted,#6b7280);">
+        Test all configured webhook integrations from one place. Sends a synthetic probe
+        request to each enabled endpoint and reports the result.
+      </p>
+
+      <div class="sc-warning-banner" role="note">
+        ℹ️ Only webhooks whose secrets are configured will perform a signed probe. Unconfigured
+        webhooks are flagged as <strong>not configured</strong> — no request is sent.
+      </div>
+
+      <div style="margin:1.25rem 0;">
+        <button id="sc-test-webhooks-btn" type="button" class="sc-run-btn" aria-label="Test all webhooks">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          Test All Webhooks
+        </button>
+      </div>
+
+      <div id="sc-webhooks-result" aria-live="polite" aria-atomic="true"></div>
+
+    </div><!-- /#tab-webhooks -->
 
     <!-- ── Tab: Account Tools ────────────────────────────────────────── -->
     <div id="tab-acct-tools" class="sc-tab-panel" role="tabpanel" aria-labelledby="tab-btn-acct-tools" style="margin-bottom:3rem;">
