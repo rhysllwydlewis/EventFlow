@@ -304,6 +304,63 @@ test.describe('Authentication Flow', () => {
     // Forgot link top edge must be below the password input's bottom edge
     expect(forgotBox.y).toBeGreaterThan(inputBox.y + inputBox.height - 2);
   });
+
+  test('first and last name fields maintain top alignment regardless of validation errors', async ({
+    page,
+  }) => {
+    await page.goto('/auth.html');
+    // Wait for the login form to be visible (indicates JS has initialised)
+    await page.waitForSelector('#login-form', { state: 'visible' });
+
+    // Switch to create account tab and wait for the first name field to be rendered
+    await page.click('#tab-create');
+    await page.waitForSelector('#reg-firstname', { state: 'visible' });
+
+    // Use CSS :has() to locate each field's containing .auth-field wrapper
+    const firstNameField = page.locator('.auth-field:has(#reg-firstname)');
+    const lastNameField = page.locator('.auth-field:has(#reg-lastname)');
+
+    await expect(firstNameField).toBeVisible();
+    await expect(lastNameField).toBeVisible();
+
+    const firstBox = await firstNameField.boundingBox();
+    const lastBox = await lastNameField.boundingBox();
+
+    // Both columns must start at the same Y coordinate (within 2px tolerance)
+    expect(Math.abs(firstBox.y - lastBox.y)).toBeLessThanOrEqual(2);
+  });
+
+  test('each password wrapper has exactly one toggle button before and after typing', async ({
+    page,
+  }) => {
+    await page.goto('/auth.html');
+    // Wait for the login form to be visible (indicates JS has initialised)
+    await page.waitForSelector('#login-form', { state: 'visible' });
+
+    // Switch to create account tab and wait for the password field to be rendered
+    await page.click('#tab-create');
+    await page.waitForSelector('#reg-password', { state: 'visible' });
+
+    // Wait for app.js to inject the password toggles into the wrapper
+    await page.waitForSelector('.auth-pw-wrap .password-toggle', { state: 'attached' });
+
+    // Check password field – exactly one toggle before typing
+    const pwToggles = page.locator('.auth-pw-wrap:has(#reg-password) .password-toggle');
+    await expect(pwToggles).toHaveCount(1);
+
+    // Check confirm password field – exactly one toggle before typing
+    const confirmToggles = page.locator(
+      '.auth-pw-wrap:has(#reg-password-confirm) .password-toggle'
+    );
+    await expect(confirmToggles).toHaveCount(1);
+
+    // Type into the password fields and verify no second toggle appears
+    await page.fill('#reg-password', 'TestPassword1');
+    await expect(pwToggles).toHaveCount(1);
+
+    await page.fill('#reg-password-confirm', 'TestPassword1');
+    await expect(confirmToggles).toHaveCount(1);
+  });
 });
 
 test.describe('ALTCHA Registration Payload', () => {

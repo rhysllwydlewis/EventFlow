@@ -5735,6 +5735,18 @@ document.addEventListener('DOMContentLoaded', () => {
   // Attach password visibility toggles to any remaining fields on any page
   // (the guard in attachPasswordToggle prevents double-initialization)
   document.querySelectorAll('.form-row input[type="password"]').forEach(attachPasswordToggle);
+
+  // Defensive cleanup: if a wrapper somehow ended up with more than one .password-toggle
+  // (e.g. from a legacy or browser-injected duplicate), keep only the last one so a single
+  // custom toggle remains visible.
+  document.querySelectorAll('.auth-pw-wrap, .auth-input-wrap').forEach(wrapper => {
+    const toggles = wrapper.querySelectorAll('.password-toggle');
+    if (toggles.length > 1) {
+      for (let i = 0; i < toggles.length - 1; i++) {
+        toggles[i].remove();
+      }
+    }
+  });
 });
 
 // Helper function to create resend verification form
