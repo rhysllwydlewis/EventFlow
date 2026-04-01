@@ -61,6 +61,32 @@
     }
   }
 
+  // ── Safe redirect helper ──────────────────────────────────────────────────────
+  // Validates a redirect query param to ensure it is a safe same-origin relative path.
+  // Prevents open redirect attacks by parsing with the URL API and checking origin.
+
+  function getSafeRedirect() {
+    const params = new URLSearchParams(window.location.search);
+    const redir = params.get('redirect');
+    if (!redir) {
+      return null;
+    }
+    try {
+      // Resolve the redirect against our own origin — this normalises protocol-relative
+      // or absolute URLs so the origin check below can catch them reliably.
+      const parsed = new URL(redir, window.location.origin);
+      // Reject if it would navigate away from the current origin
+      if (parsed.origin !== window.location.origin) {
+        return null;
+      }
+      // Return only pathname + search + hash; never scheme or host
+      return parsed.pathname + parsed.search + parsed.hash;
+    } catch (_) {
+      // URL parsing failed — not a valid path
+      return null;
+    }
+  }
+
   // ── Redirect if already logged in as partner ─────────────────────────────────
 
   async function checkAlreadyLoggedIn() {
@@ -70,7 +96,8 @@
         const data = await res.json();
         const role = (data && data.user && data.user.role) || (data && data.role);
         if (role === 'partner') {
-          window.location.replace('/partner/dashboard');
+          const safeRedirect = getSafeRedirect();
+          window.location.replace(safeRedirect || '/partner/dashboard');
         }
         // Admins have their own partners overview — don't send them to the partner portal
         if (role === 'admin') {
@@ -103,6 +130,11 @@
       activePanel.removeAttribute('hidden');
       inactivePanel.classList.remove('active');
       inactivePanel.setAttribute('hidden', '');
+      // Move focus to the first focusable input in the newly active panel
+      const firstInput = activePanel.querySelector('input, select, textarea');
+      if (firstInput) {
+        firstInput.focus();
+      }
     }
 
     tabSignin.addEventListener('click', () => {
@@ -135,6 +167,83 @@
     }
   }
 
+  // ── Password show/hide toggles ────────────────────────────────────────────────
+
+  // SVG icons for the toggle button
+  const EYE_ICON =
+    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const EYE_OFF_ICON =
+    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+
+  function initPasswordToggles() {
+    document.querySelectorAll('.partner-pw-toggle').forEach(btn => {
+      const targetId = btn.dataset.target;
+      if (!targetId) {
+        return;
+      }
+      const input = document.getElementById(targetId);
+      if (!input) {
+        return;
+      }
+
+      btn.addEventListener('click', () => {
+        const isPassword = input.type === 'password';
+        input.type = isPassword ? 'text' : 'password';
+        btn.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+        btn.innerHTML = isPassword ? EYE_OFF_ICON : EYE_ICON;
+      });
+    });
+  }
+
+  // ── Caps-lock hints ───────────────────────────────────────────────────────────
+
+  function initCapsLockHints() {
+    [
+      { inputId: 'login-password', hintId: 'login-capslock' },
+      { inputId: 'reg-password', hintId: 'reg-capslock' },
+    ].forEach(({ inputId, hintId }) => {
+      const input = document.getElementById(inputId);
+      const hint = document.getElementById(hintId);
+      if (!input || !hint) {
+        return;
+      }
+
+      function handleCapsLock(e) {
+        if (e.getModifierState) {
+          const capsOn = e.getModifierState('CapsLock');
+          if (capsOn) {
+            hint.removeAttribute('hidden');
+          } else {
+            hint.setAttribute('hidden', '');
+          }
+        }
+      }
+
+      input.addEventListener('keydown', handleCapsLock);
+      input.addEventListener('keyup', handleCapsLock);
+    });
+  }
+
+  // ── Per-field validation helpers ──────────────────────────────────────────────
+
+  function setFieldError(inputEl, errorEl, msg) {
+    if (errorEl) {
+      errorEl.textContent = msg;
+    }
+    if (inputEl) {
+      inputEl.classList.add('partner-input--error');
+    }
+  }
+
+  function clearFieldError(inputEl, errorEl) {
+    if (errorEl) {
+      errorEl.textContent = '';
+    }
+    if (inputEl) {
+      inputEl.classList.remove('partner-input--error');
+    }
+  }
+
   // ── Login form ────────────────────────────────────────────────────────────────
 
   function initLoginForm() {
@@ -151,11 +260,40 @@
       e.preventDefault();
       clearStatus(status);
 
-      const email = form.querySelector('#login-email').value.trim();
-      const password = form.querySelector('#login-password').value;
+      const emailEl = form.querySelector('#login-email');
+      const passwordEl = form.querySelector('#login-password');
+      const emailErrorEl = document.getElementById('login-email-error');
+      const passwordErrorEl = document.getElementById('login-password-error');
 
-      if (!email || !password) {
-        showStatus(status, 'Please enter your email and password.', 'error');
+      const email = emailEl ? emailEl.value.trim() : '';
+      const password = passwordEl ? passwordEl.value : '';
+
+      // Clear previous field errors
+      clearFieldError(emailEl, emailErrorEl);
+      clearFieldError(passwordEl, passwordErrorEl);
+
+      // Field-level validation
+      let hasFieldError = false;
+
+      if (!email) {
+        setFieldError(emailEl, emailErrorEl, 'Email address is required.');
+        hasFieldError = true;
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+/.test(email)) {
+        setFieldError(emailEl, emailErrorEl, 'Please enter a valid email address.');
+        hasFieldError = true;
+      }
+
+      if (!password) {
+        setFieldError(passwordEl, passwordErrorEl, 'Password is required.');
+        hasFieldError = true;
+      }
+
+      if (hasFieldError) {
+        // Focus the first field with an error
+        const firstErrorInput = form.querySelector('.partner-input--error');
+        if (firstErrorInput) {
+          firstErrorInput.focus();
+        }
         return;
       }
 
@@ -200,8 +338,9 @@
           return;
         }
 
-        // Partner — redirect to partner dashboard
-        window.location.replace('/partner/dashboard');
+        // Partner — honour safe redirect param or fall back to dashboard
+        const safeRedirect = getSafeRedirect();
+        window.location.replace(safeRedirect || '/partner/dashboard');
       } catch (err) {
         showStatus(status, 'Network error. Please try again.', 'error');
       } finally {
@@ -341,6 +480,8 @@
     prefetchCsrfToken();
     checkAlreadyLoggedIn();
     initTabs();
+    initPasswordToggles();
+    initCapsLockHints();
     initLoginForm();
     initForgotPassword();
     initSignupForm();

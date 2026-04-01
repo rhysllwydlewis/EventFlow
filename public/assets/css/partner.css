@@ -1512,3 +1512,309 @@ select.partner-modal-input option {
   color: rgba(110, 231, 183, 0.75);
   font-style: italic;
 }
+
+/* ─── Password show/hide wrapper ─────────────────────────────────────────── */
+
+.partner-pw-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.partner-pw-wrap .partner-input {
+  padding-right: 2.75rem; /* room for toggle button */
+}
+
+.partner-pw-toggle {
+  position: absolute;
+  right: 0.65rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  padding: 0.25rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s;
+  flex-shrink: 0;
+}
+
+.partner-pw-toggle:hover {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.partner-pw-toggle:focus-visible {
+  outline: 2px solid rgba(16, 185, 129, 0.6);
+  border-radius: 4px;
+  outline-offset: 2px;
+}
+
+/* ─── Caps lock hint ─────────────────────────────────────────────────────── */
+
+.partner-capslock-hint {
+  display: block;
+  font-size: 0.75rem;
+  color: #fcd34d;
+  margin-top: 0.3rem;
+}
+
+.partner-capslock-hint[hidden] {
+  display: none;
+}
+
+/* ─── Per-field error messages ───────────────────────────────────────────── */
+
+.partner-field-error {
+  display: block;
+  font-size: 0.75rem;
+  color: #fca5a5;
+  margin-top: 0.3rem;
+}
+
+/* Collapse the span (and its margin) when it carries no text */
+.partner-field-error:empty {
+  display: none;
+  margin-top: 0;
+}
+
+/* Error border on inputs */
+.partner-input.partner-input--error {
+  border-color: rgba(239, 68, 68, 0.6);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+/* ─── Partner programme explainer (above auth tabs) ──────────────────────── */
+
+.partner-explainer {
+  background: rgba(16, 185, 129, 0.06);
+  border: 1px solid rgba(16, 185, 129, 0.18);
+  border-left: 3px solid rgba(16, 185, 129, 0.5);
+  border-radius: 0 10px 10px 0;
+  padding: 0.85rem 1rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.55;
+}
+
+.partner-explainer p {
+  margin: 0 0 0.4rem;
+}
+
+.partner-explainer p:last-child {
+  margin-bottom: 0;
+}
+
+.partner-explainer a {
+  color: rgba(52, 211, 153, 0.9);
+  text-decoration: none;
+}
+
+.partner-explainer a:hover,
+.partner-explainer a:focus {
+  color: #34d399;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ─── "How points work" collapsible ─────────────────────────────────────── */
+
+.partner-how-points {
+  margin-bottom: 1.75rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.partner-how-points-summary {
+  padding: 0.75rem 1.1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.65);
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: color 0.15s;
+}
+
+.partner-how-points-summary::-webkit-details-marker {
+  display: none;
+}
+
+.partner-how-points-summary::after {
+  content: '▾';
+  margin-left: auto;
+  font-size: 0.75rem;
+  opacity: 0.5;
+  transition: transform 0.2s;
+}
+
+.partner-how-points[open] .partner-how-points-summary {
+  color: rgba(255, 255, 255, 0.85);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.partner-how-points[open] .partner-how-points-summary::after {
+  transform: rotate(180deg);
+}
+
+.partner-how-points-summary:hover {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.partner-how-points-summary:focus-visible {
+  outline: 2px solid rgba(16, 185, 129, 0.6);
+  outline-offset: -2px;
+  border-radius: 14px;
+}
+
+.partner-how-points-body {
+  padding: 0.85rem 1.1rem;
+}
+
+.partner-how-points-list {
+  margin: 0 0 0.65rem;
+  padding: 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.3rem 0.75rem;
+  align-items: baseline;
+}
+
+.partner-how-points-list dt {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.75);
+  white-space: nowrap;
+}
+
+.partner-how-points-list dd {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0;
+}
+
+.partner-how-points-rate {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.35);
+  margin: 0;
+}
+
+/* ─── Ref-code badge — copyable ──────────────────────────────────────────── */
+
+.partner-ref-code-badge--copyable {
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.partner-ref-code-badge--copyable:hover {
+  opacity: 0.8;
+}
+
+.partner-ref-code-badge--copyable:focus-visible {
+  outline: 2px solid rgba(16, 185, 129, 0.6);
+  outline-offset: 3px;
+  border-radius: 100px;
+  opacity: 0.8;
+}
+
+/* ─── Disabled account panel ─────────────────────────────────────────────── */
+
+.partner-disabled-panel {
+  text-align: center;
+  padding: 2.5rem 1.5rem;
+  background: rgba(239, 68, 68, 0.07);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 18px;
+  margin-bottom: 2rem;
+}
+
+.partner-disabled-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.partner-disabled-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fca5a5;
+  margin-bottom: 0.5rem;
+}
+
+.partner-disabled-msg {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 0.75rem;
+}
+
+.partner-disabled-next {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1.6;
+}
+
+.partner-disabled-next a {
+  color: rgba(52, 211, 153, 0.85);
+  text-decoration: none;
+}
+
+.partner-disabled-next a:hover,
+.partner-disabled-next a:focus {
+  color: #34d399;
+  text-decoration: underline;
+}
+
+/* ─── Stats grid — skeleton loading state ────────────────────────────────── */
+
+.partner-stats-grid[data-loading='true'] .partner-stat-value {
+  display: block;
+  height: 1.8rem;
+  width: 55%;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.06) 25%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0.06) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 6px;
+  /* Override gradient text so shimmer is visible; higher specificity beats the base rule */
+  -webkit-background-clip: unset;
+  background-clip: unset;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+.partner-stats-grid[data-loading='true'] .partner-stat-sub {
+  height: 0.85rem;
+  width: 70%;
+  display: block;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.08) 50%,
+    rgba(255, 255, 255, 0.04) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite 0.2s;
+  border-radius: 4px;
+  color: transparent;
+}
+
+/* ─── Prefers reduced motion ─────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .partner-stats-grid[data-loading='true'] .partner-stat-value,
+  .partner-stats-grid[data-loading='true'] .partner-stat-sub {
+    animation: none;
+  }
+}

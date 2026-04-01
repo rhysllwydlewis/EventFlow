@@ -49,6 +49,19 @@
 
     <main class="partner-main partner-dashboard" id="main-content">
 
+      <!-- Account disabled panel (hidden by default; shown via JS when account is disabled) -->
+      <div id="partner-disabled-panel" class="partner-disabled-panel" hidden>
+        <div class="partner-disabled-icon" aria-hidden="true">🚫</div>
+        <h2 class="partner-disabled-title">Account Disabled</h2>
+        <p class="partner-disabled-msg" id="partner-disabled-msg">Your partner account has been disabled.</p>
+        <p class="partner-disabled-next">
+          If you think this is a mistake, please
+          <a href="#" id="partner-disabled-support-link">raise a support ticket</a>
+          or contact our team at
+          <a href="mailto:hello@event-flow.co.uk">hello@event-flow.co.uk</a>.
+        </p>
+      </div>
+
       <!-- Page heading -->
       <div class="partner-dashboard-header">
         <h1 class="partner-greeting">Welcome, <span id="partner-name-heading">Partner</span></h1>
@@ -56,7 +69,7 @@
       </div>
 
       <!-- Stats row -->
-      <div class="partner-stats-grid" aria-label="Your credit summary">
+      <div class="partner-stats-grid" aria-label="Your credit summary" data-loading="true">
         <div class="partner-stat-card partner-stat-card--highlight" role="group" aria-labelledby="stat-balance-label">
           <div class="partner-stat-label" id="stat-balance-label">Available Points</div>
           <div class="partner-stat-value" id="stat-balance">—</div>
@@ -89,6 +102,22 @@
         </div>
       </div>
 
+      <!-- "How points work" collapsible explainer -->
+      <details class="partner-how-points">
+        <summary class="partner-how-points-summary">ℹ️ How points work</summary>
+        <div class="partner-how-points-body">
+          <dl class="partner-how-points-list">
+            <dt>Available Points</dt>
+            <dd>Matured points ready to cash out (minimum £50 required).</dd>
+            <dt>Maturing Points</dt>
+            <dd>Earned but not yet available — they unlock 30 days after the qualifying event.</dd>
+            <dt>Potential Points</dt>
+            <dd>Points you could earn from active referrals still within their qualifying window.</dd>
+          </dl>
+          <p class="partner-how-points-rate">100 points = £1.00 · Minimum cashout £50 · Increments of £5</p>
+        </div>
+      </details>
+
       <!-- Referral link section -->
       <section class="partner-section" aria-labelledby="ref-link-heading">
         <div class="partner-section-header">
@@ -96,7 +125,7 @@
             <h2 class="partner-section-title" id="ref-link-heading">Your Referral Link</h2>
             <p class="partner-section-subtitle">Share this link with wedding suppliers to start earning</p>
           </div>
-          <span id="partner-ref-code-badge" class="p-badge p-badge--success" style="font-family:monospace;font-size:0.8rem;"></span>
+          <span id="partner-ref-code-badge" class="p-badge p-badge--success partner-ref-code-badge--copyable" style="font-family:monospace;font-size:0.8rem;" tabindex="0" role="button" aria-label="Copy partner code to clipboard"></span>
         </div>
         <div class="partner-ref-link-box" role="group" aria-label="Referral link">
           <span class="partner-ref-link-text" id="partner-ref-link">Loading…</span>
