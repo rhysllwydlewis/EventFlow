@@ -3199,9 +3199,12 @@ async function initDashSupplier() {
           note.textContent = activeCount
             ? `You have ${activeCount} active package${activeCount === 1 ? '' : 's'}. As a Pro supplier you can create unlimited packages.`
             : 'As a Pro supplier you can create unlimited packages.';
+        } else if (activeCount > freeLimit) {
+          // Over-limit (e.g. after a downgrade): surface the excess clearly.
+          note.textContent = `You have ${activeCount} active packages but your Starter plan allows ${freeLimit}. Pause or delete ${activeCount - freeLimit} package${activeCount - freeLimit === 1 ? '' : 's'} to stay within your limit, or upgrade.`;
         } else {
           note.textContent = activeCount
-            ? `You have ${activeCount} of ${freeLimit} active packages on the Starter plan. Upgrade to Pro to unlock more.`
+            ? `You have ${activeCount} of ${freeLimit} active packages on the Starter plan.`
             : `On the Starter plan you can create up to ${freeLimit} active packages.`;
         }
       }
@@ -3215,7 +3218,7 @@ async function initDashSupplier() {
       window._pkgAtLimit = atLimit;
       // Store limit label text so togglePackageForm() can restore it after edit mode.
       window._pkgLimitLabel = atLimit
-        ? `${activeCount}/${freeLimit} Active \u2013 Limit reached`
+        ? `${activeCount}/${freeLimit} Active — Limit reached`
         : 'Create Package';
 
       // Update the "Create Package" toggle button to reflect the plan limit.
@@ -3223,17 +3226,25 @@ async function initDashSupplier() {
       if (toggleBtn) {
         const labelEl = toggleBtn.querySelector('.label');
         // Only change the label when the form is collapsed (not in edit/cancel state).
-        const formIsOpen = document.getElementById('package-form-section')?.classList.contains('expanded') ?? false;
+        const formIsOpen =
+          document.getElementById('package-form-section')?.classList.contains('expanded') ?? false;
         if (!formIsOpen) {
           if (atLimit) {
             toggleBtn.disabled = true;
             toggleBtn.classList.add('form-toggle-btn--at-limit');
+            toggleBtn.setAttribute(
+              'aria-label',
+              `Package limit reached: ${activeCount} of ${freeLimit} active. Upgrade to create more.`
+            );
+            toggleBtn.title = `You've reached your ${freeLimit}-package limit. Pause or delete a package, or upgrade your plan.`;
             if (labelEl) {
               labelEl.textContent = window._pkgLimitLabel;
             }
           } else {
             toggleBtn.disabled = false;
             toggleBtn.classList.remove('form-toggle-btn--at-limit');
+            toggleBtn.setAttribute('aria-label', 'Toggle package creation form');
+            toggleBtn.title = '';
             if (labelEl) {
               labelEl.textContent = 'Create Package';
             }
@@ -3250,7 +3261,7 @@ async function initDashSupplier() {
             upgradeCta.textContent = 'Upgrade plan';
             toggleBtn.insertAdjacentElement('afterend', upgradeCta);
           }
-          upgradeCta.style.display = '';
+          upgradeCta.style.display = 'inline-flex';
         } else if (upgradeCta) {
           upgradeCta.style.display = 'none';
         }
@@ -3884,14 +3895,20 @@ function togglePackageForm() {
       // Restore at-limit label and disabled state on the toggle button.
       toggleBtn.disabled = true;
       toggleBtn.classList.add('form-toggle-btn--at-limit');
+      toggleBtn.setAttribute('aria-label', 'Package limit reached — upgrade to create more');
+      toggleBtn.title =
+        "You've reached your package limit. Pause or delete a package, or upgrade your plan.";
       const labelElRestore = toggleBtn.querySelector('.label');
       if (labelElRestore) {
-        labelElRestore.textContent = window._pkgLimitLabel || `Limit reached`;
+        labelElRestore.textContent = window._pkgLimitLabel || 'Limit reached';
       }
       const upgradeCta = document.getElementById('pkg-upgrade-cta');
       if (upgradeCta) {
-        upgradeCta.style.display = '';
+        upgradeCta.style.display = 'inline-flex';
       }
+    } else {
+      toggleBtn.setAttribute('aria-label', 'Toggle package creation form');
+      toggleBtn.title = '';
     }
   } else {
     // Expand form
@@ -3921,6 +3938,18 @@ function editPackage(packageId) {
       toggleBtn.setAttribute('aria-expanded', 'true');
       toggleBtn.querySelector('.label').textContent = 'Cancel';
       toggleBtn.classList.add('active');
+    }
+  }
+
+  // When entering edit mode the toggle button acts as a Cancel button,
+  // so it must be enabled regardless of plan limits.
+  if (toggleBtn) {
+    toggleBtn.disabled = false;
+    toggleBtn.classList.remove('form-toggle-btn--at-limit');
+    toggleBtn.setAttribute('aria-label', 'Cancel editing package');
+    const upgradeCta = document.getElementById('pkg-upgrade-cta');
+    if (upgradeCta) {
+      upgradeCta.style.display = 'none';
     }
   }
 
