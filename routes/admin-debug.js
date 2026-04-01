@@ -6,6 +6,7 @@
 
 'use strict';
 
+const crypto = require('crypto');
 const express = require('express');
 const logger = require('../utils/logger');
 const bcrypt = require('bcryptjs');
@@ -464,7 +465,6 @@ router.post(
       });
     } else {
       // Build a minimal Stripe-like signed payload for the probe
-      const crypto = require('crypto');
       const timestamp = Math.floor(Date.now() / 1000);
       const testBody = JSON.stringify({ type: 'ping', data: { object: {} } });
       const signedPayload = `${timestamp}.${testBody}`;
@@ -482,7 +482,7 @@ router.post(
       const stripeReachable =
         stripeResult.status === 200 || stripeResult.status === 400;
       stripeResult.ok = stripeReachable;
-      stripeResult.details = stripeResult.status != null
+      stripeResult.details = stripeResult.status !== null
         ? `Endpoint reachable (HTTP ${stripeResult.status}${stripeResult.status === 400 ? ' — test event type rejected, signature accepted' : ''})`
         : stripeResult.error;
       results.push(stripeResult);
@@ -508,7 +508,7 @@ router.post(
         { Authorization: `Basic ${creds}` }
       );
       postmarkResult.details =
-        postmarkResult.status != null
+        postmarkResult.status !== null
           ? `Endpoint responded with HTTP ${postmarkResult.status}`
           : postmarkResult.error;
       results.push(postmarkResult);
@@ -525,7 +525,6 @@ router.post(
           'MONGODB_WEBHOOK_SECRET is not set — signature verification skipped in non-production',
       });
     } else {
-      const crypto = require('crypto');
       const testBody = JSON.stringify({
         operationType: 'insert',
         ns: { db: 'eventflow', coll: '__debug_probe__' },
@@ -540,7 +539,7 @@ router.post(
         { 'x-mongodb-webhook-signature': `sha256=${sig}` }
       );
       mongoResult.details =
-        mongoResult.status != null
+        mongoResult.status !== null
           ? `Endpoint responded with HTTP ${mongoResult.status}`
           : mongoResult.error;
       results.push(mongoResult);
