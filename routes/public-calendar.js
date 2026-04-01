@@ -57,12 +57,18 @@ const { withLock } = require('../utils/asyncMutex');
  * (YYYY-MM-DD with no time component) as UTC midnight so that filtering is
  * consistent regardless of the server's local timezone.
  *
- * @param {string} str - Date string from a query parameter
+ * When `endOfDay` is true a bare date is treated as the last millisecond of
+ * that UTC day (T23:59:59.999Z) so that events occurring at any point during
+ * the day are included in an "on or before" filter.
+ *
+ * @param {string}  str      - Date string from a query parameter
+ * @param {boolean} [endOfDay=false] - Normalise bare dates to end of day
  * @returns {Date|null} - Parsed Date, or null if invalid
  */
-function parseFilterDate(str) {
-  // If the string looks like a bare date (YYYY-MM-DD) append UTC midnight.
-  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(str.trim()) ? `${str.trim()}T00:00:00Z` : str;
+function parseFilterDate(str, endOfDay = false) {
+  const trimmed = str.trim();
+  const isBareDate = /^\d{4}-\d{2}-\d{2}$/.test(trimmed);
+  const normalized = isBareDate ? `${trimmed}${endOfDay ? 'T23:59:59.999Z' : 'T00:00:00Z'}` : str;
   const d = new Date(normalized);
   return isNaN(d.getTime()) ? null : d;
 }
@@ -188,7 +194,9 @@ function validateEventBody(body) {
   }
   if (body.category !== undefined) {
     // Trim and normalise to lower-case so filtering is case-insensitive.
-    data.category = stripHtml(String(body.category).trim()).slice(0, MAX_CATEGORY_LENGTH).toLowerCase();
+    data.category = stripHtml(String(body.category).trim())
+      .slice(0, MAX_CATEGORY_LENGTH)
+      .toLowerCase();
   }
   if (body.imageUrl !== undefined) {
     const url = String(body.imageUrl).trim();
@@ -237,7 +245,8 @@ router.get('/events', apiLimiter, userExtractionMiddleware, async (req, res) => 
       }
     }
     if (req.query.endDate) {
-      const to = parseFilterDate(String(req.query.endDate));
+      // Pass endOfDay=true so bare dates include all events on that calendar day.
+      const to = parseFilterDate(String(req.query.endDate), true);
       if (to) {
         events = events.filter(e => new Date(e.startDate) <= to);
       }
@@ -402,7 +411,10 @@ router.put(
         if (req.user.role !== 'admin' && existing.createdByUserId !== req.user.id) {
           earlyExit = {
             status: 403,
-            body: { error: 'Forbidden', message: 'You can only edit your own public calendar events.' },
+            body: {
+              error: 'Forbidden',
+              message: 'You can only edit your own public calendar events.',
+            },
           };
           return;
         }
@@ -471,7 +483,10 @@ router.delete(
         if (req.user.role !== 'admin' && existing.createdByUserId !== req.user.id) {
           earlyExit = {
             status: 403,
-            body: { error: 'Forbidden', message: 'You can only delete your own public calendar events.' },
+            body: {
+              error: 'Forbidden',
+              message: 'You can only delete your own public calendar events.',
+            },
           };
           return;
         }
