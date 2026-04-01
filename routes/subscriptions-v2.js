@@ -297,8 +297,16 @@ router.get('/upcoming-invoice', authRequired, async (req, res) => {
     }
 
     try {
+      const customerId = subscription.stripeCustomerId;
+      // Guard: customer IDs must start with "cus_" — reject obviously invalid values
+      // to avoid a guaranteed 400 from Stripe.
+      if (!customerId || !customerId.startsWith('cus_')) {
+        logger.warn('upcoming-invoice: invalid or missing stripeCustomerId', { customerId });
+        return res.json({ success: true, upcomingInvoice: null });
+      }
+
       const invoice = await stripe.invoices.createPreview({
-        customer: subscription.stripeCustomerId,
+        customer: customerId,
       });
       return res.json({
         success: true,
@@ -307,8 +315,16 @@ router.get('/upcoming-invoice', authRequired, async (req, res) => {
           currency: invoice.currency,
         },
       });
-    } catch (_stripeErr) {
-      // No upcoming invoice or Stripe error — return null gracefully
+    } catch (stripeErr) {
+      // Log Stripe-specific error details to aid debugging (type/code/param/requestId)
+      logger.warn('upcoming-invoice: Stripe error', {
+        type: stripeErr.type,
+        code: stripeErr.code,
+        param: stripeErr.param,
+        statusCode: stripeErr.statusCode,
+        requestId: stripeErr.requestId,
+        message: stripeErr.message,
+      });
       return res.json({ success: true, upcomingInvoice: null });
     }
   } catch (error) {
@@ -1234,8 +1250,15 @@ async function stripeWebhookHandler(req, res) {
       logger.error('req.body is Buffer:', Buffer.isBuffer(req.body));
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
+  } else if (process.env.NODE_ENV === 'production') {
+    // Fail closed in production: never skip signature verification
+    logger.error(
+      'STRIPE_WEBHOOK_SECRET is not set in production — rejecting unsigned webhook request'
+    );
+    return res.status(400).send('Webhook Error: signature verification required in production');
   } else {
-    // In development without webhook secret, parse body directly
+    // In development/test without webhook secret, parse body directly
+    logger.warn('⚠️  Webhook signature verification skipped (STRIPE_WEBHOOK_SECRET not set)');
     try {
       event = JSON.parse(req.body.toString());
     } catch (err) {

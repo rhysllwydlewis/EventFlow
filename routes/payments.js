@@ -459,102 +459,24 @@ router.post(
  * @swagger
  * /api/payments/webhook:
  *   post:
- *     summary: Stripe webhook endpoint
- *     description: Handle Stripe webhook events for payments and subscriptions
+ *     deprecated: true
+ *     summary: Stripe webhook endpoint (deprecated)
+ *     description: >
+ *       **Deprecated.** Use the canonical endpoint `POST /api/v2/webhooks/stripe` instead.
+ *       This endpoint now returns HTTP 308 Permanent Redirect to the canonical path.
+ *       Update your Stripe dashboard webhook destination to `/api/v2/webhooks/stripe`.
  *     tags: [Payments]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
  *     responses:
- *       200:
- *         description: Webhook processed successfully
- *       400:
- *         description: Invalid signature or missing signature
- *       503:
- *         description: Stripe not configured
+ *       308:
+ *         description: Permanent redirect to canonical Stripe webhook endpoint
  */
-router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-  if (!STRIPE_ENABLED || !stripe) {
-    return res.status(503).json({ error: 'Stripe not configured' });
-  }
-
-  const sig = req.headers['stripe-signature'];
-
-  if (!sig) {
-    logger.error('Missing Stripe signature header');
-    return res.status(400).json({ error: 'Missing signature' });
-  }
-
-  let event;
-
-  try {
-    // Verify webhook signature
-    if (STRIPE_WEBHOOK_SECRET) {
-      event = stripe.webhooks.constructEvent(req.body, sig, STRIPE_WEBHOOK_SECRET);
-    } else {
-      // In development/test, parse without verification
-      logger.warn('⚠️  Webhook signature verification skipped (STRIPE_WEBHOOK_SECRET not set)');
-      event = JSON.parse(req.body.toString());
-    }
-  } catch (err) {
-    logger.error('Webhook signature verification failed:', err.message);
-    logger.error('req.body type:', typeof req.body);
-    logger.error('req.body is Buffer:', Buffer.isBuffer(req.body));
-    return res.status(400).json({ error: 'Invalid signature' });
-  }
-
-  logger.info(`Received webhook event: ${event.type}`);
-
-  try {
-    switch (event.type) {
-      case 'checkout.session.completed': {
-        const session = event.data.object;
-        await handleCheckoutCompleted(session);
-        break;
-      }
-
-      case 'customer.subscription.created': {
-        const subscription = event.data.object;
-        await handleSubscriptionCreated(subscription);
-        break;
-      }
-
-      case 'customer.subscription.updated': {
-        const subscription = event.data.object;
-        await handleSubscriptionUpdated(subscription);
-        break;
-      }
-
-      case 'customer.subscription.deleted': {
-        const subscription = event.data.object;
-        await handleSubscriptionDeleted(subscription);
-        break;
-      }
-
-      case 'payment_intent.succeeded': {
-        const paymentIntent = event.data.object;
-        await handlePaymentSucceeded(paymentIntent);
-        break;
-      }
-
-      case 'payment_intent.payment_failed': {
-        const paymentIntent = event.data.object;
-        await handlePaymentFailed(paymentIntent);
-        break;
-      }
-
-      default:
-        logger.info(`Unhandled event type: ${event.type}`);
-    }
-
-    res.json({ received: true });
-  } catch (error) {
-    logger.error('Error processing webhook:', error);
-    res.status(500).json({ error: 'Webhook processing failed' });
-  }
+router.post('/webhook', (req, res) => {
+  logger.warn(
+    'Stripe webhook received on deprecated endpoint /api/payments/webhook — ' +
+      'please update your Stripe dashboard to POST /api/v2/webhooks/stripe'
+  );
+  // Preserve method and body across the redirect (308 Permanent Redirect)
+  res.redirect(308, '/api/v2/webhooks/stripe');
 });
 
 /**

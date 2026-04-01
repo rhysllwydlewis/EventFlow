@@ -194,15 +194,34 @@ Configure your Stripe webhook destination to:
 POST https://event-flow.co.uk/api/v2/webhooks/stripe
 ```
 
+> **Deprecated endpoint:** `POST /api/payments/webhook` (also reachable as
+> `/api/v1/payments/webhook`) is deprecated and now issues an HTTP **308
+> Permanent Redirect** to the canonical path. Update your Stripe dashboard
+> webhook destination to `/api/v2/webhooks/stripe` immediately to avoid
+> redirect-related delivery failures.
+
 A compatibility alias is also supported at:
 
 ```
 POST https://event-flow.co.uk/api/v2/subscriptions/webhooks/stripe
 ```
 
-Both paths invoke the same handler — no redirects are required.  
-A `GET` request to either path returns a JSON info message (useful for browser
-verification), but Stripe only uses `POST`.
+Both `/api/v2/webhooks/stripe` and its compat alias invoke the same handler —
+no redirects are required. A `GET` request to either path returns a JSON info
+message (useful for browser verification), but Stripe only uses `POST`.
+
+### Required environment variables
+
+| Variable                          | Required                   | Description                                                                                                                                                          |
+| --------------------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `STRIPE_SECRET_KEY`               | ✅ Yes                     | Stripe API secret key (`sk_live_…` / `sk_test_…`)                                                                                                                    |
+| `STRIPE_PUBLISHABLE_KEY`          | ✅ Yes                     | Stripe publishable key (`pk_live_…` / `pk_test_…`)                                                                                                                   |
+| `STRIPE_WEBHOOK_SECRET`           | ✅ **Production required** | Signing secret from Stripe dashboard or `stripe listen` output (`whsec_…`). **If absent in `NODE_ENV=production`, ALL webhook requests are rejected (fail-closed).** |
+| `STRIPE_PRO_PRICE_ID`             | ✅ Yes                     | Stripe Price ID for Pro Monthly plan                                                                                                                                 |
+| `STRIPE_PRO_PLUS_PRICE_ID`        | ✅ Yes                     | Stripe Price ID for Pro+ Monthly plan                                                                                                                                |
+| `STRIPE_PRO_YEARLY_PRICE_ID`      | ✅ Yes                     | Stripe Price ID for Pro Yearly plan                                                                                                                                  |
+| `STRIPE_PRO_PLUS_YEARLY_PRICE_ID` | ✅ Yes                     | Stripe Price ID for Pro+ Yearly plan                                                                                                                                 |
+| `STRIPE_PRO_INTRO_COUPON_ID`      | ⚙️ Optional                | Coupon ID for introductory pricing (disable promo-code box when set)                                                                                                 |
 
 ### Local development
 
@@ -241,12 +260,13 @@ EventFlow enables this automatically for all subscription checkout sessions
 set), because Stripe does not allow both a pre-applied discount and an
 open-entry promotion code on the same session.
 
-| Scenario | Coupon box shown? |
-|---|---|
-| Standard subscription checkout | ✅ Yes (`allow_promotion_codes: true`) |
+| Scenario                                                    | Coupon box shown?                                |
+| ----------------------------------------------------------- | ------------------------------------------------ |
+| Standard subscription checkout                              | ✅ Yes (`allow_promotion_codes: true`)           |
 | Intro pricing coupon applied (`STRIPE_PRO_INTRO_COUPON_ID`) | ❌ No (discount pre-applied; Stripe restriction) |
 
 To create a testable promotion code:
+
 1. Stripe Dashboard → **Product catalogue → Coupons** → Create coupon.
 2. On the coupon page, create a **Promotion code** (e.g. `FREE100TEST`).
 3. Go through checkout on your site — the **"Add promotion code"** link will appear.
@@ -331,12 +351,13 @@ User errors (invalid card, authentication failures) are not retried.
 
 ## Environment Variables
 
-Required environment variables:
+See the **Required environment variables** table in the [Webhook Configuration](#webhook-configuration) section above for the complete list. Full example:
 
 ```bash
 # Stripe Configuration (Required)
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_PUBLISHABLE_KEY=pk_test_...
+# REQUIRED in production — omitting causes all webhook requests to be rejected
 STRIPE_WEBHOOK_SECRET=whsec_...
 
 # Stripe Price IDs (Required)
@@ -354,7 +375,9 @@ STRIPE_PRO_INTRO_COUPON_ID=coup_xxxxx # £20 off for 3 months
 Before deploying to production:
 
 - [ ] Update Stripe keys from test to live mode
-- [ ] Configure Stripe webhook endpoint in dashboard
+- [ ] **Set `STRIPE_WEBHOOK_SECRET`** (required — missing secret causes all webhook requests to be rejected in production)
+- [ ] Configure Stripe webhook endpoint in dashboard to `POST https://event-flow.co.uk/api/v2/webhooks/stripe`
+- [ ] **Remove any old webhook destination** pointing at `/api/payments/webhook` (now deprecated / 308 redirect)
 - [ ] Test all payment scenarios in production
 - [ ] Set up monitoring and alerts for failed payments
 - [ ] Configure email notifications for trial endings

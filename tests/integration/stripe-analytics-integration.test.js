@@ -108,14 +108,13 @@ describe('Stripe Analytics — Graceful Degradation (no Stripe configured)', () 
     expect(block).toContain('Stripe analytics are not available');
   });
 
-  it('payments.js webhook returns 503 when Stripe is not configured', () => {
+  it('payments.js webhook is deprecated and redirects (308) to canonical endpoint', () => {
     const paymentsContent = readSrc('routes', 'payments.js');
     const webhookIdx = paymentsContent.indexOf("router.post('/webhook'");
     expect(webhookIdx).toBeGreaterThan(-1);
     const block = paymentsContent.substring(webhookIdx, webhookIdx + 500);
-    expect(block).toContain('STRIPE_ENABLED');
-    expect(block).toContain('status(503)');
-    expect(block).toContain('Stripe not configured');
+    expect(block).toContain('redirect(308');
+    expect(block).toContain('/api/v2/webhooks/stripe');
   });
 
   it('paymentService.js has STRIPE_ENABLED flag that defaults to false', () => {
@@ -345,19 +344,17 @@ describe('Stripe Analytics — Route Security (contract)', () => {
     expect(block).toContain("roleRequired('admin')");
   });
 
-  it('POST /webhook validates Stripe signature when secret is configured', () => {
+  it('POST /webhook is deprecated and redirects to /api/v2/webhooks/stripe', () => {
     const webhookIdx = paymentsContent.indexOf("router.post('/webhook'");
     const block = paymentsContent.substring(webhookIdx, webhookIdx + 1500);
-    expect(block).toContain('STRIPE_WEBHOOK_SECRET');
-    expect(block).toContain('constructEvent');
-    expect(block).toContain('stripe-signature');
+    expect(block).toContain('redirect(308');
+    expect(block).toContain('/api/v2/webhooks/stripe');
   });
 
-  it('POST /webhook returns 400 when signature header is missing', () => {
+  it('POST /webhook deprecation notice references canonical endpoint', () => {
     const webhookIdx = paymentsContent.indexOf("router.post('/webhook'");
     const block = paymentsContent.substring(webhookIdx, webhookIdx + 1000);
-    expect(block).toContain('Missing Stripe signature header');
-    expect(block).toContain('status(400)');
+    expect(block).toContain('/api/v2/webhooks/stripe');
   });
 });
 
