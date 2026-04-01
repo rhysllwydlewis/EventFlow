@@ -7025,6 +7025,24 @@ label .required {
   background: #b91c1c;
 }
 
+.cal-delete-popover__btn--edit {
+  background: #0b8073;
+  color: #fff;
+}
+
+.cal-delete-popover__btn--edit:hover {
+  background: #097065;
+}
+
+.cal-delete-popover__btn--delete {
+  background: #dc2626;
+  color: #fff;
+}
+
+.cal-delete-popover__btn--delete:hover {
+  background: #b91c1c;
+}
+
 /* Day cell "+" hint button */
 .cal-day-add-btn {
   position: absolute;

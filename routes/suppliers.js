@@ -9,6 +9,7 @@ const express = require('express');
 const router = express.Router();
 const { apiLimiter } = require('../middleware/rateLimits');
 const subscriptionService = require('../services/subscriptionService');
+const { canPublishPublicCalendar } = require('../utils/calendarPermissions');
 
 // Dependencies injected by server.js
 let dbUnified;
@@ -303,6 +304,8 @@ router.get('/me/suppliers', applyAuthRequired, applyRoleRequired('supplier'), as
         // Fresh subscription tier takes precedence over any stale value stored on the supplier document.
         subscriptionTier: subscriptionTier || s.subscriptionTier || null,
         proExpiresAt: s.proExpiresAt || null,
+        // Derived publishing right so clients don't need to duplicate the logic.
+        canPublishPublicCalendar: canPublishPublicCalendar(s),
       }))
     );
     res.json({ items: list });

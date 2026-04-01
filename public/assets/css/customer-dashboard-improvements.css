@@ -858,10 +858,33 @@
   transition: color 0.15s ease, background 0.15s ease;
 }
 
+.cal-fallback-item__edit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: var(--ef-text-muted);
+  cursor: pointer;
+  border-radius: var(--ef-radius-sm);
+  flex-shrink: 0;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
 .cal-fallback-item__delete:hover,
 .cal-fallback-item__delete:focus-visible {
   color: #dc2626;
   background: #fef2f2;
+  outline: none;
+}
+
+.cal-fallback-item__edit:hover,
+.cal-fallback-item__edit:focus-visible {
+  color: #0b8073;
+  background: #f0fdf9;
   outline: none;
 }
 
@@ -967,6 +990,24 @@
 }
 
 .cal-delete-popover__btn--confirm:hover {
+  background: #b91c1c;
+}
+
+.cal-delete-popover__btn--edit {
+  background: #0b8073;
+  color: #fff;
+}
+
+.cal-delete-popover__btn--edit:hover {
+  background: #097065;
+}
+
+.cal-delete-popover__btn--delete {
+  background: #dc2626;
+  color: #fff;
+}
+
+.cal-delete-popover__btn--delete:hover {
   background: #b91c1c;
 }
 

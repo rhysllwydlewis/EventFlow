@@ -18,12 +18,10 @@
 (function () {
   'use strict';
 
-  const PUBLISHER_CATEGORIES = ['Event Planner', 'Wedding Fayre'];
-
-  let currentSupplier = null;      // Current supplier's profile document
-  let isPublisher = false;          // Whether this supplier can publish public events
-  let calendarInstance = null;      // FullCalendar instance
-  let savedEventIds = new Set();    // IDs of public events the supplier has saved
+  let currentSupplier = null; // Current supplier's profile document
+  let isPublisher = false; // Whether this supplier can publish public events (set from server)
+  let calendarInstance = null; // FullCalendar instance
+  const savedEventIds = new Set(); // IDs of public events the supplier has saved
 
   // ── CSRF Token ─────────────────────────────────────────────────────────────
 
@@ -145,15 +143,9 @@
       /* network error — ignore */
     }
 
+    // Use the server-computed flag (avoids duplicating PUBLISHER_CATEGORIES here).
     if (currentSupplier) {
-      const override = currentSupplier.publicCalendarPublisherOverride;
-      if (override === true) {
-        isPublisher = true;
-      } else if (override === false) {
-        isPublisher = false;
-      } else {
-        isPublisher = PUBLISHER_CATEGORIES.includes(currentSupplier.category || '');
-      }
+      isPublisher = currentSupplier.canPublishPublicCalendar === true;
     }
   }
 
@@ -243,8 +235,12 @@
 
     document.body.appendChild(overlay);
 
-    overlay.querySelector('.cal-entry-modal__close').addEventListener('click', () => closeEntryModal(overlay));
-    overlay.querySelector('#sup-cal-entry-cancel').addEventListener('click', () => closeEntryModal(overlay));
+    overlay
+      .querySelector('.cal-entry-modal__close')
+      .addEventListener('click', () => closeEntryModal(overlay));
+    overlay
+      .querySelector('#sup-cal-entry-cancel')
+      .addEventListener('click', () => closeEntryModal(overlay));
     overlay.addEventListener('click', e => {
       if (e.target === overlay) {
         closeEntryModal(overlay);
@@ -255,7 +251,9 @@
         closeEntryModal(overlay);
       }
     });
-    overlay.querySelector('#sup-cal-entry-form').addEventListener('submit', e => submitEntryForm(e, overlay));
+    overlay
+      .querySelector('#sup-cal-entry-form')
+      .addEventListener('submit', e => submitEntryForm(e, overlay));
 
     return overlay;
   }
@@ -263,7 +261,8 @@
   function openEntryModal(modal, dateStr) {
     modal.querySelector('#sup-cal-entry-title').value = '';
     modal.querySelector('#sup-cal-entry-type').value = '';
-    modal.querySelector('#sup-cal-entry-date').value = dateStr || new Date().toISOString().slice(0, 10);
+    modal.querySelector('#sup-cal-entry-date').value =
+      dateStr || new Date().toISOString().slice(0, 10);
     modal.querySelector('#sup-cal-entry-time').value = '';
     modal.querySelector('#sup-cal-entry-notes').value = '';
     const errorEl = modal.querySelector('#sup-cal-entry-error');
@@ -399,11 +398,15 @@
     popover.style.top = `${Math.min(rect.bottom + 6, window.innerHeight - 140)}px`;
     popover.style.width = `${popW}px`;
 
-    popover.querySelector('.cal-delete-popover__btn--cancel').addEventListener('click', () => popover.remove());
-    popover.querySelector('.cal-delete-popover__btn--confirm').addEventListener('click', async () => {
-      popover.remove();
-      await deletePersonalEntry(entryId, calInst);
-    });
+    popover
+      .querySelector('.cal-delete-popover__btn--cancel')
+      .addEventListener('click', () => popover.remove());
+    popover
+      .querySelector('.cal-delete-popover__btn--confirm')
+      .addEventListener('click', async () => {
+        popover.remove();
+        await deletePersonalEntry(entryId, calInst);
+      });
 
     const closeOutside = e => {
       if (!popover.contains(e.target) && e.target !== anchorEl) {
@@ -442,7 +445,9 @@
   // ── Public event action popover ────────────────────────────────────────────
 
   function showPublicEventPopover(anchorEl, ev) {
-    document.querySelectorAll('.cal-delete-popover, .sup-cal-event-popover').forEach(p => p.remove());
+    document
+      .querySelectorAll('.cal-delete-popover, .sup-cal-event-popover')
+      .forEach(p => p.remove());
 
     const rawId = ev.extendedProps.rawId;
     const isSaved = savedEventIds.has(String(rawId));
@@ -473,7 +478,11 @@
     }
 
     const startLabel = ev.startStr
-      ? new Date(ev.startStr + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+      ? new Date(`${ev.startStr}T00:00:00`).toLocaleDateString('en-GB', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        })
       : '';
 
     popover.innerHTML = `
@@ -613,8 +622,12 @@
 
     document.body.appendChild(overlay);
 
-    overlay.querySelector('.cal-entry-modal__close').addEventListener('click', () => closePublicEventModal(overlay));
-    overlay.querySelector('#sup-cal-pub-event-cancel').addEventListener('click', () => closePublicEventModal(overlay));
+    overlay
+      .querySelector('.cal-entry-modal__close')
+      .addEventListener('click', () => closePublicEventModal(overlay));
+    overlay
+      .querySelector('#sup-cal-pub-event-cancel')
+      .addEventListener('click', () => closePublicEventModal(overlay));
     overlay.addEventListener('click', e => {
       if (e.target === overlay) {
         closePublicEventModal(overlay);
@@ -625,7 +638,9 @@
         closePublicEventModal(overlay);
       }
     });
-    overlay.querySelector('#sup-cal-pub-event-form').addEventListener('submit', e => submitPublicEventForm(e, overlay));
+    overlay
+      .querySelector('#sup-cal-pub-event-form')
+      .addEventListener('submit', e => submitPublicEventForm(e, overlay));
 
     return overlay;
   }
@@ -651,8 +666,8 @@
       titleInput.value = ev ? ev.title : '';
       startInput.value = ev ? (ev.startStr || '').slice(0, 10) : '';
       endInput.value = ev && ev.endStr ? ev.endStr.slice(0, 10) : '';
-      locationInput.value = ev ? (ev.extendedProps.location || '') : '';
-      descInput.value = ev ? (ev.extendedProps.description || '') : '';
+      locationInput.value = ev ? ev.extendedProps.location || '' : '';
+      descInput.value = ev ? ev.extendedProps.description || '' : '';
     } else {
       // Create mode
       titleEl.textContent = 'Add Public Event';
@@ -899,7 +914,9 @@
 
     // 1. Load saved event IDs first (for correct colour coding)
     try {
-      const savedRes = await fetch('/api/v1/public-calendar/events/saved', { credentials: 'include' });
+      const savedRes = await fetch('/api/v1/public-calendar/events/saved', {
+        credentials: 'include',
+      });
       if (savedRes.ok) {
         const savedData = await savedRes.json();
         (savedData.events || []).forEach(ev => savedEventIds.add(String(ev.id)));
@@ -1053,7 +1070,9 @@
         }
       },
       noEventsContent: function () {
-        return { html: '<div class="cal-no-events">No events yet. Click any day to add one.</div>' };
+        return {
+          html: '<div class="cal-no-events">No events yet. Click any day to add one.</div>',
+        };
       },
       height: 500,
     });

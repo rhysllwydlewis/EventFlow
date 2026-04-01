@@ -498,3 +498,209 @@ describe('GET /api/public-calendar/events/saved', () => {
     expect(res.body.events.length).toBe(0);
   });
 });
+
+// ─── New behaviour tests (Fix 1, 3, 5, 8) ───────────────────────────────────
+
+describe('GET /api/public-calendar/events — case-insensitive category filter', () => {
+  let app;
+  // Simulate an event stored with a mixed-case category (legacy data).
+  const mixedCaseEvent = { ...SAMPLE_EVENT, id: 'pce_mixed', category: 'Wedding Fayre' };
+  // Simulate an event stored with a lowercase category (created via the new API).
+  const lowerCaseEvent = { ...SAMPLE_EVENT, id: 'pce_lower', category: 'wedding fayre' };
+
+  beforeEach(() => {
+    app = buildApp();
+    setupReadMock({ events: [mixedCaseEvent, lowerCaseEvent] });
+  });
+
+  it('finds event stored with mixed-case category when query is lowercase', async () => {
+    const res = await request(app).get('/api/public-calendar/events?category=wedding+fayre');
+    expect(res.status).toBe(200);
+    expect(res.body.events.map(e => e.id)).toContain('pce_mixed');
+  });
+
+  it('finds event stored with lowercase category when query is mixed-case', async () => {
+    const res = await request(app).get('/api/public-calendar/events?category=Wedding+Fayre');
+    expect(res.status).toBe(200);
+    expect(res.body.events.map(e => e.id)).toContain('pce_lower');
+  });
+
+  it('returns both events regardless of stored-casing when query matches', async () => {
+    const res = await request(app).get('/api/public-calendar/events?category=WEDDING+FAYRE');
+    expect(res.status).toBe(200);
+    expect(res.body.events.length).toBe(2);
+  });
+});
+
+describe('GET /api/public-calendar/events — bare-date filter is timezone-safe', () => {
+  let app;
+  // An event starting at UTC midnight on 2027-03-01.
+  const eventOnDay = { ...SAMPLE_EVENT, id: 'pce_day', startDate: '2027-03-01T00:00:00.000Z' };
+  // An event starting the day before.
+  const eventBefore = { ...SAMPLE_EVENT, id: 'pce_before', startDate: '2027-02-28T23:59:59.000Z' };
+
+  beforeEach(() => {
+    app = buildApp();
+    setupReadMock({ events: [eventBefore, eventOnDay] });
+  });
+
+  it('includes event on the start date when filtering with a bare date', async () => {
+    const res = await request(app).get('/api/public-calendar/events?startDate=2027-03-01');
+    expect(res.status).toBe(200);
+    expect(res.body.events.map(e => e.id)).toContain('pce_day');
+    expect(res.body.events.map(e => e.id)).not.toContain('pce_before');
+  });
+
+  it('excludes events after the end date when filtering with a bare date', async () => {
+    const res = await request(app).get('/api/public-calendar/events?endDate=2027-02-28');
+    expect(res.status).toBe(200);
+    expect(res.body.events.map(e => e.id)).toContain('pce_before');
+    expect(res.body.events.map(e => e.id)).not.toContain('pce_day');
+  });
+});
+
+describe('POST /api/public-calendar/events — URL validation', () => {
+  let app;
+
+  beforeEach(() => {
+    app = buildApp();
+    setupReadMock({ events: [], suppliers: [PUBLISHER_SUPPLIER_DOC] });
+    dbUnified.write.mockClear();
+  });
+
+  it('rejects javascript: scheme in imageUrl', async () => {
+    const res = await withAuth(
+      request(app).post('/api/public-calendar/events').send({
+        title: 'XSS Event',
+        startDate: '2027-06-01T10:00:00Z',
+        imageUrl: 'javascript:alert(1)',
+      }),
+      PUBLISHER_SUPPLIER_USER
+    );
+    expect(res.status).toBe(400);
+    expect(res.body.details).toEqual(
+      expect.arrayContaining(['imageUrl must be a valid http or https URL'])
+    );
+  });
+
+  it('rejects data: URI in imageUrl', async () => {
+    const res = await withAuth(
+      request(app).post('/api/public-calendar/events').send({
+        title: 'Data Event',
+        startDate: '2027-06-01T10:00:00Z',
+        imageUrl: 'data:text/html,<script>alert(1)</script>',
+      }),
+      PUBLISHER_SUPPLIER_USER
+    );
+    expect(res.status).toBe(400);
+    expect(res.body.details).toEqual(
+      expect.arrayContaining(['imageUrl must be a valid http or https URL'])
+    );
+  });
+
+  it('rejects javascript: scheme in externalUrl', async () => {
+    const res = await withAuth(
+      request(app).post('/api/public-calendar/events').send({
+        title: 'XSS Ext',
+        startDate: '2027-06-01T10:00:00Z',
+        externalUrl: 'javascript:void(0)',
+      }),
+      PUBLISHER_SUPPLIER_USER
+    );
+    expect(res.status).toBe(400);
+    expect(res.body.details).toEqual(
+      expect.arrayContaining(['externalUrl must be a valid http or https URL'])
+    );
+  });
+
+  it('accepts a valid https imageUrl', async () => {
+    dbUnified.write.mockResolvedValue(undefined);
+    const res = await withAuth(
+      request(app).post('/api/public-calendar/events').send({
+        title: 'Good Image',
+        startDate: '2027-06-01T10:00:00Z',
+        imageUrl: 'https://example.com/image.jpg',
+      }),
+      PUBLISHER_SUPPLIER_USER
+    );
+    expect(res.status).toBe(201);
+    expect(res.body.event.imageUrl).toBe('https://example.com/image.jpg');
+  });
+
+  it('accepts a valid http externalUrl', async () => {
+    dbUnified.write.mockResolvedValue(undefined);
+    const res = await withAuth(
+      request(app).post('/api/public-calendar/events').send({
+        title: 'Good Ext',
+        startDate: '2027-06-01T10:00:00Z',
+        externalUrl: 'http://example.com/booking',
+      }),
+      PUBLISHER_SUPPLIER_USER
+    );
+    expect(res.status).toBe(201);
+    expect(res.body.event.externalUrl).toBe('http://example.com/booking');
+  });
+
+  it('accepts an empty imageUrl (clears the field)', async () => {
+    dbUnified.write.mockResolvedValue(undefined);
+    const res = await withAuth(
+      request(app).post('/api/public-calendar/events').send({
+        title: 'No Image',
+        startDate: '2027-06-01T10:00:00Z',
+        imageUrl: '',
+      }),
+      PUBLISHER_SUPPLIER_USER
+    );
+    expect(res.status).toBe(201);
+    expect(res.body.event.imageUrl).toBe('');
+  });
+
+  it('normalises category to lowercase on creation', async () => {
+    dbUnified.write.mockResolvedValue(undefined);
+    const res = await withAuth(
+      request(app).post('/api/public-calendar/events').send({
+        title: 'Cat Test',
+        startDate: '2027-06-01T10:00:00Z',
+        category: 'Wedding Fayre',
+      }),
+      PUBLISHER_SUPPLIER_USER
+    );
+    expect(res.status).toBe(201);
+    expect(res.body.event.category).toBe('wedding fayre');
+  });
+});
+
+describe('PUT /api/public-calendar/events/:id — updatedByUserId', () => {
+  let app;
+
+  beforeEach(() => {
+    app = buildApp();
+    setupReadMock({
+      events: [SAMPLE_EVENT],
+      suppliers: [PUBLISHER_SUPPLIER_DOC],
+    });
+    dbUnified.write.mockClear();
+  });
+
+  it('response includes updatedByUserId matching the caller', async () => {
+    const res = await withAuth(
+      request(app)
+        .put(`/api/public-calendar/events/${SAMPLE_EVENT.id}`)
+        .send({ title: 'New Title', startDate: SAMPLE_EVENT.startDate }),
+      PUBLISHER_SUPPLIER_USER
+    );
+    expect(res.status).toBe(200);
+    expect(res.body.event.updatedByUserId).toBe(PUBLISHER_SUPPLIER_USER.id);
+  });
+
+  it('admin update also records updatedByUserId', async () => {
+    const res = await withAuth(
+      request(app)
+        .put(`/api/public-calendar/events/${SAMPLE_EVENT.id}`)
+        .send({ title: 'Admin Title', startDate: SAMPLE_EVENT.startDate }),
+      ADMIN_USER
+    );
+    expect(res.status).toBe(200);
+    expect(res.body.event.updatedByUserId).toBe(ADMIN_USER.id);
+  });
+});
