@@ -3763,9 +3763,9 @@ async function initDashSupplier() {
 
 // Package Form Toggle, Edit, and Delete Functions
 
-/** Message shown in #pkg-status when the free-tier package limit is reached. */
+/** Message shown in #pkg-status when the free-tier active package limit is reached. */
 const PKG_LIMIT_MESSAGE =
-  'You have reached the package limit on the Starter plan. Upgrade to Pro to add more.';
+  'You have reached the active package limit on the Starter plan. Upgrade to Pro to add more.';
 
 /**
  * Enable or disable all inputs / the submit button in #package-form and update
