@@ -891,7 +891,9 @@ body.auth-page .auth-card select.auth-input {
 }
 
 /* Hidden 44×44 px touch target so the icon-only button meets WCAG 2.5.5.
-   The pseudo-element is fully transparent — the visible icon is the SVG inside. */
+   The pseudo-element is fully transparent — the visible icon is the SVG inside.
+   pointer-events:auto (default) ensures clicks on the extended area bubble up
+   to the parent button and trigger its click handler. */
 .password-toggle::before {
   content: '';
   position: absolute;
@@ -900,6 +902,7 @@ body.auth-page .auth-card select.auth-input {
   transform: translate(-50%, -50%);
   width: 44px;
   height: 44px;
+  pointer-events: auto;
 }
 
 /* On the auth page anchor the toggle to the input height (44 px) so that

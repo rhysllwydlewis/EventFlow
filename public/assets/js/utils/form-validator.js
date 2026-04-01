@@ -258,7 +258,7 @@ class FormValidator {
       container = container.parentElement || container;
     }
 
-    const errorEl = container ? container.querySelector(':scope > .form-error-message') : null;
+    const errorEl = container && container.querySelector(':scope > .form-error-message');
     if (errorEl) {
       errorEl.style.display = 'none';
     }
