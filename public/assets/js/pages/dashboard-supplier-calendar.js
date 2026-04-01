@@ -18,10 +18,8 @@
 (function () {
   'use strict';
 
-  const PUBLISHER_CATEGORIES = ['Event Planner', 'Wedding Fayre'];
-
   let currentSupplier = null;      // Current supplier's profile document
-  let isPublisher = false;          // Whether this supplier can publish public events
+  let isPublisher = false;          // Whether this supplier can publish public events (set from server)
   let calendarInstance = null;      // FullCalendar instance
   let savedEventIds = new Set();    // IDs of public events the supplier has saved
 
@@ -145,15 +143,9 @@
       /* network error — ignore */
     }
 
+    // Use the server-computed flag (avoids duplicating PUBLISHER_CATEGORIES here).
     if (currentSupplier) {
-      const override = currentSupplier.publicCalendarPublisherOverride;
-      if (override === true) {
-        isPublisher = true;
-      } else if (override === false) {
-        isPublisher = false;
-      } else {
-        isPublisher = PUBLISHER_CATEGORIES.includes(currentSupplier.category || '');
-      }
+      isPublisher = currentSupplier.canPublishPublicCalendar === true;
     }
   }
 

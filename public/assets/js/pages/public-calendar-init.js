@@ -110,16 +110,9 @@
       /* ignore */
     }
 
+    // Use the server-computed flag (avoids duplicating PUBLISHER_CATEGORIES here).
     if (supplierDoc) {
-      const override = supplierDoc.publicCalendarPublisherOverride;
-      const publisherCategories = ['Event Planner', 'Wedding Fayre'];
-      if (override === true) {
-        isPublisher = true;
-      } else if (override === false) {
-        isPublisher = false;
-      } else {
-        isPublisher = publisherCategories.includes(supplierDoc.category || '');
-      }
+      isPublisher = supplierDoc.canPublishPublicCalendar === true;
     }
   }
 

@@ -14,12 +14,15 @@
  * @property {string}  endDate         - ISO 8601 date/datetime (optional; >= startDate)
  * @property {string}  location        - Venue/location name (max 200 chars)
  * @property {string}  category        - Event category for filtering (max 100 chars)
- * @property {string}  imageUrl        - Optional cover image URL (max 500 chars)
- * @property {string}  externalUrl     - Optional link to more info / booking (max 500 chars)
+ * @property {string}  imageUrl        - Optional cover image URL; must be http or https (max 500 chars)
+ * @property {string}  externalUrl     - Optional link to more info / booking; must be http or https (max 500 chars)
  *
  * Ownership (immutable after creation — admin can change via direct DB update):
  * @property {string}  createdByUserId - ID of the user who created the event
  * @property {string}  supplierId      - ID of the supplier profile used to publish
+ *
+ * Mutation tracking:
+ * @property {string}  updatedByUserId - ID of the user who last updated the event
  *
  * Timestamps:
  * @property {string}  createdAt       - ISO timestamp of creation

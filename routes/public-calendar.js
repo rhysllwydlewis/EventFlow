@@ -48,8 +48,43 @@ const {
   MAX_URL_LENGTH,
 } = require('../models/PublicCalendarEvent');
 const { stripHtml } = require('../utils/helpers');
+const { withLock } = require('../utils/asyncMutex');
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/**
+ * Parse a user-supplied date filter string to a Date, treating bare dates
+ * (YYYY-MM-DD with no time component) as UTC midnight so that filtering is
+ * consistent regardless of the server's local timezone.
+ *
+ * @param {string} str - Date string from a query parameter
+ * @returns {Date|null} - Parsed Date, or null if invalid
+ */
+function parseFilterDate(str) {
+  // If the string looks like a bare date (YYYY-MM-DD) append UTC midnight.
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(str.trim()) ? `${str.trim()}T00:00:00Z` : str;
+  const d = new Date(normalized);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+/**
+ * Returns true only for http:// and https:// URLs.
+ * Rejects javascript:, data:, and other schemes that could enable XSS.
+ *
+ * @param {string} str - URL string to check
+ * @returns {boolean}
+ */
+function isAllowedUrl(str) {
+  if (!str) {
+    return true; // empty / blank is fine — the field is optional
+  }
+  try {
+    const url = new URL(str);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch (_) {
+    return false;
+  }
+}
 
 /**
  * Middleware: authenticate, then check the user is a publisher or admin.
@@ -152,15 +187,24 @@ function validateEventBody(body) {
     data.location = stripHtml(String(body.location).trim()).slice(0, MAX_LOCATION_LENGTH);
   }
   if (body.category !== undefined) {
-    data.category = stripHtml(String(body.category).trim()).slice(0, MAX_CATEGORY_LENGTH);
+    // Trim and normalise to lower-case so filtering is case-insensitive.
+    data.category = stripHtml(String(body.category).trim()).slice(0, MAX_CATEGORY_LENGTH).toLowerCase();
   }
   if (body.imageUrl !== undefined) {
     const url = String(body.imageUrl).trim();
-    data.imageUrl = url ? url.slice(0, MAX_URL_LENGTH) : '';
+    if (!isAllowedUrl(url)) {
+      errors.push('imageUrl must be a valid http or https URL');
+    } else {
+      data.imageUrl = url ? url.slice(0, MAX_URL_LENGTH) : '';
+    }
   }
   if (body.externalUrl !== undefined) {
     const url = String(body.externalUrl).trim();
-    data.externalUrl = url ? url.slice(0, MAX_URL_LENGTH) : '';
+    if (!isAllowedUrl(url)) {
+      errors.push('externalUrl must be a valid http or https URL');
+    } else {
+      data.externalUrl = url ? url.slice(0, MAX_URL_LENGTH) : '';
+    }
   }
 
   return { data, errors };
@@ -179,22 +223,22 @@ router.get('/events', apiLimiter, userExtractionMiddleware, async (req, res) => 
 
     // Filters
     if (req.query.category) {
-      const cat = String(req.query.category).trim();
-      events = events.filter(e => e.category === cat);
+      const cat = String(req.query.category).trim().toLowerCase();
+      events = events.filter(e => (e.category || '').toLowerCase() === cat);
     }
     if (req.query.location) {
       const loc = String(req.query.location).trim().toLowerCase();
       events = events.filter(e => e.location && e.location.toLowerCase().includes(loc));
     }
     if (req.query.startDate) {
-      const from = new Date(req.query.startDate);
-      if (!isNaN(from.getTime())) {
+      const from = parseFilterDate(String(req.query.startDate));
+      if (from) {
         events = events.filter(e => new Date(e.startDate) >= from);
       }
     }
     if (req.query.endDate) {
-      const to = new Date(req.query.endDate);
-      if (!isNaN(to.getTime())) {
+      const to = parseFilterDate(String(req.query.endDate));
+      if (to) {
         events = events.filter(e => new Date(e.startDate) <= to);
       }
     }
@@ -237,9 +281,10 @@ router.get('/events/saved', authRequired, apiLimiter, async (req, res) => {
     const userSaves = saves.filter(s => s.userId === req.user.id);
 
     const events = await dbUnified.read('public_calendar_events');
+    const eventMap = new Map(events.map(e => [e.id, e]));
     const savedEvents = userSaves
       .map(s => {
-        const ev = events.find(e => e.id === s.eventId);
+        const ev = eventMap.get(s.eventId);
         if (!ev) {
           return null;
         }
@@ -308,9 +353,12 @@ router.post(
         updatedAt: now,
       };
 
-      const events = await dbUnified.read('public_calendar_events');
-      events.push(event);
-      await dbUnified.write('public_calendar_events', events);
+      // Serialise the read-modify-write to prevent concurrent request data loss.
+      await withLock('public_calendar_events', async () => {
+        const events = await dbUnified.read('public_calendar_events');
+        events.push(event);
+        await dbUnified.write('public_calendar_events', events);
+      });
 
       logger.info(`Public calendar event created: ${event.id} by user ${req.user.id}`);
       res.status(201).json({ ok: true, event });
@@ -334,36 +382,55 @@ router.put(
   requirePublisher,
   async (req, res) => {
     try {
-      const events = await dbUnified.read('public_calendar_events');
-      const idx = events.findIndex(e => e.id === req.params.id);
+      let earlyExit = null;
+      let updatedEvent = null;
 
-      if (idx === -1) {
-        return res.status(404).json({ error: 'Event not found' });
+      // Ownership check, validation, and write are all performed inside the
+      // lock so no concurrent update can slip between the read and write.
+      await withLock('public_calendar_events', async () => {
+        const events = await dbUnified.read('public_calendar_events');
+        const idx = events.findIndex(e => e.id === req.params.id);
+
+        if (idx === -1) {
+          earlyExit = { status: 404, body: { error: 'Event not found' } };
+          return;
+        }
+
+        const existing = events[idx];
+
+        // Ownership check — admin can skip
+        if (req.user.role !== 'admin' && existing.createdByUserId !== req.user.id) {
+          earlyExit = {
+            status: 403,
+            body: { error: 'Forbidden', message: 'You can only edit your own public calendar events.' },
+          };
+          return;
+        }
+
+        const { data, errors } = validateEventBody({ ...existing, ...req.body });
+        if (errors.length) {
+          earlyExit = { status: 400, body: { error: 'Validation failed', details: errors } };
+          return;
+        }
+
+        events[idx] = {
+          ...existing,
+          ...data,
+          updatedAt: new Date().toISOString(),
+          updatedByUserId: req.user.id,
+        };
+        await dbUnified.write('public_calendar_events', events);
+        updatedEvent = events[idx];
+      });
+
+      if (earlyExit) {
+        return res.status(earlyExit.status).json(earlyExit.body);
       }
 
-      const existing = events[idx];
-
-      // Ownership check — admin can skip
-      if (req.user.role !== 'admin' && existing.createdByUserId !== req.user.id) {
-        return res.status(403).json({
-          error: 'Forbidden',
-          message: 'You can only edit your own public calendar events.',
-        });
-      }
-
-      const { data, errors } = validateEventBody({ ...existing, ...req.body });
-      if (errors.length) {
-        return res.status(400).json({ error: 'Validation failed', details: errors });
-      }
-
-      events[idx] = {
-        ...existing,
-        ...data,
-        updatedAt: new Date().toISOString(),
-      };
-      await dbUnified.write('public_calendar_events', events);
-
-      res.json({ ok: true, event: events[idx] });
+      logger.info(
+        `Public calendar event updated: ${updatedEvent.id} by user ${req.user.id}${req.user.role === 'admin' ? ' [admin]' : ''}`
+      );
+      res.json({ ok: true, event: updatedEvent });
     } catch (err) {
       logger.error('PUT /public-calendar/events/:id error:', err);
       res.status(500).json({ error: 'Failed to update event' });
@@ -384,32 +451,50 @@ router.delete(
   requirePublisher,
   async (req, res) => {
     try {
-      const events = await dbUnified.read('public_calendar_events');
-      const idx = events.findIndex(e => e.id === req.params.id);
+      let earlyExit = null;
+      let cascadeCount = 0;
 
-      if (idx === -1) {
-        return res.status(404).json({ error: 'Event not found' });
-      }
+      // Lock the events collection first, then the saves collection (consistent
+      // lock order prevents deadlocks).
+      await withLock('public_calendar_events', async () => {
+        const events = await dbUnified.read('public_calendar_events');
+        const idx = events.findIndex(e => e.id === req.params.id);
 
-      const existing = events[idx];
+        if (idx === -1) {
+          earlyExit = { status: 404, body: { error: 'Event not found' } };
+          return;
+        }
 
-      // Ownership check — admin can skip
-      if (req.user.role !== 'admin' && existing.createdByUserId !== req.user.id) {
-        return res.status(403).json({
-          error: 'Forbidden',
-          message: 'You can only delete your own public calendar events.',
+        const existing = events[idx];
+
+        // Ownership check — admin can skip
+        if (req.user.role !== 'admin' && existing.createdByUserId !== req.user.id) {
+          earlyExit = {
+            status: 403,
+            body: { error: 'Forbidden', message: 'You can only delete your own public calendar events.' },
+          };
+          return;
+        }
+
+        const updatedEvents = events.filter(e => e.id !== req.params.id);
+        await dbUnified.write('public_calendar_events', updatedEvents);
+
+        // Cascade: also remove all saves for this event
+        await withLock('public_calendar_saves', async () => {
+          const saves = await dbUnified.read('public_calendar_saves');
+          const updatedSaves = saves.filter(s => s.eventId !== req.params.id);
+          cascadeCount = saves.length - updatedSaves.length;
+          await dbUnified.write('public_calendar_saves', updatedSaves);
         });
+      });
+
+      if (earlyExit) {
+        return res.status(earlyExit.status).json(earlyExit.body);
       }
 
-      const updatedEvents = events.filter(e => e.id !== req.params.id);
-      await dbUnified.write('public_calendar_events', updatedEvents);
-
-      // Also remove all saves for this event
-      const saves = await dbUnified.read('public_calendar_saves');
-      const updatedSaves = saves.filter(s => s.eventId !== req.params.id);
-      await dbUnified.write('public_calendar_saves', updatedSaves);
-
-      logger.info(`Public calendar event deleted: ${req.params.id} by user ${req.user.id}`);
+      logger.info(
+        `Public calendar event deleted: ${req.params.id} by user ${req.user.id}${req.user.role === 'admin' ? ' [admin]' : ''}; ${cascadeCount} save(s) cascaded`
+      );
       res.json({ ok: true, message: 'Event deleted' });
     } catch (err) {
       logger.error('DELETE /public-calendar/events/:id error:', err);
@@ -425,30 +510,39 @@ router.delete(
  */
 router.post('/events/:id/save', writeLimiter, authRequired, csrfProtection, async (req, res) => {
   try {
-    const events = await dbUnified.read('public_calendar_events');
-    const event = events.find(e => e.id === req.params.id);
-
-    if (!event) {
+    // Pre-check: verify the event exists (read-only, outside the lock).
+    const allEvents = await dbUnified.read('public_calendar_events');
+    if (!allEvents.find(e => e.id === req.params.id)) {
       return res.status(404).json({ error: 'Event not found' });
     }
 
-    const saves = await dbUnified.read('public_calendar_saves');
-    const existing = saves.find(s => s.userId === req.user.id && s.eventId === req.params.id);
+    let alreadySaved = null;
+    let newSave = null;
 
-    if (existing) {
-      return res.json({ ok: true, message: 'Already saved', save: existing });
+    await withLock('public_calendar_saves', async () => {
+      const saves = await dbUnified.read('public_calendar_saves');
+      const existing = saves.find(s => s.userId === req.user.id && s.eventId === req.params.id);
+
+      if (existing) {
+        alreadySaved = existing;
+        return;
+      }
+
+      const save = {
+        id: uid('pcs'),
+        userId: req.user.id,
+        eventId: req.params.id,
+        savedAt: new Date().toISOString(),
+      };
+      saves.push(save);
+      await dbUnified.write('public_calendar_saves', saves);
+      newSave = save;
+    });
+
+    if (alreadySaved) {
+      return res.json({ ok: true, message: 'Already saved', save: alreadySaved });
     }
-
-    const save = {
-      id: uid('pcs'),
-      userId: req.user.id,
-      eventId: req.params.id,
-      savedAt: new Date().toISOString(),
-    };
-    saves.push(save);
-    await dbUnified.write('public_calendar_saves', saves);
-
-    res.status(201).json({ ok: true, save });
+    res.status(201).json({ ok: true, save: newSave });
   } catch (err) {
     logger.error('POST /public-calendar/events/:id/save error:', err);
     res.status(500).json({ error: 'Failed to save event' });
@@ -461,14 +555,23 @@ router.post('/events/:id/save', writeLimiter, authRequired, csrfProtection, asyn
  */
 router.delete('/events/:id/save', writeLimiter, authRequired, csrfProtection, async (req, res) => {
   try {
-    const saves = await dbUnified.read('public_calendar_saves');
-    const updated = saves.filter(s => !(s.userId === req.user.id && s.eventId === req.params.id));
+    let found = false;
 
-    if (updated.length === saves.length) {
+    await withLock('public_calendar_saves', async () => {
+      const saves = await dbUnified.read('public_calendar_saves');
+      const updated = saves.filter(s => !(s.userId === req.user.id && s.eventId === req.params.id));
+
+      if (updated.length === saves.length) {
+        return; // save record not found — nothing to remove
+      }
+
+      found = true;
+      await dbUnified.write('public_calendar_saves', updated);
+    });
+
+    if (!found) {
       return res.status(404).json({ error: 'Save record not found' });
     }
-
-    await dbUnified.write('public_calendar_saves', updated);
     res.json({ ok: true, message: 'Event removed from your calendar' });
   } catch (err) {
     logger.error('DELETE /public-calendar/events/:id/save error:', err);
