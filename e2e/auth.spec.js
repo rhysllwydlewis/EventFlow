@@ -304,6 +304,63 @@ test.describe('Authentication Flow', () => {
     // Forgot link top edge must be below the password input's bottom edge
     expect(forgotBox.y).toBeGreaterThan(inputBox.y + inputBox.height - 2);
   });
+
+  test('first and last name fields are top-aligned on create account tab', async ({ page }) => {
+    await page.goto('/auth.html');
+    await page.waitForLoadState('load');
+    await page.waitForTimeout(600);
+
+    // Switch to create account tab
+    await page.click('#tab-create');
+    await page.waitForTimeout(300);
+
+    const firstNameField = page
+      .locator('#reg-firstname')
+      .locator('xpath=ancestor::*[contains(@class,"auth-field")][1]');
+    const lastNameField = page
+      .locator('#reg-lastname')
+      .locator('xpath=ancestor::*[contains(@class,"auth-field")][1]');
+
+    await expect(firstNameField).toBeVisible();
+    await expect(lastNameField).toBeVisible();
+
+    const firstBox = await firstNameField.boundingBox();
+    const lastBox = await lastNameField.boundingBox();
+
+    // Both columns must start at the same Y coordinate (within 2px tolerance)
+    expect(Math.abs(firstBox.y - lastBox.y)).toBeLessThanOrEqual(2);
+  });
+
+  test('each password wrapper has exactly one toggle button before and after typing', async ({
+    page,
+  }) => {
+    await page.goto('/auth.html');
+    await page.waitForLoadState('load');
+    await page.waitForTimeout(600);
+
+    // Switch to create account tab
+    await page.click('#tab-create');
+    await page.waitForTimeout(300);
+
+    // Check password field – exactly one toggle before typing
+    const pwWrap = page.locator('#reg-password').locator('xpath=parent::*');
+    const pwToggles = pwWrap.locator('.password-toggle');
+    await expect(pwToggles).toHaveCount(1);
+
+    // Check confirm password field – exactly one toggle before typing
+    const confirmWrap = page.locator('#reg-password-confirm').locator('xpath=parent::*');
+    const confirmToggles = confirmWrap.locator('.password-toggle');
+    await expect(confirmToggles).toHaveCount(1);
+
+    // Type into the password fields and verify no second toggle appears
+    await page.fill('#reg-password', 'TestPassword1');
+    await page.waitForTimeout(300);
+    await expect(pwToggles).toHaveCount(1);
+
+    await page.fill('#reg-password-confirm', 'TestPassword1');
+    await page.waitForTimeout(300);
+    await expect(confirmToggles).toHaveCount(1);
+  });
 });
 
 test.describe('ALTCHA Registration Payload', () => {
