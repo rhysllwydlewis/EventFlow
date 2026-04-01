@@ -762,6 +762,7 @@ body.auth-page form.auth-card:hover {
   grid-template-columns: 1fr 1fr;
   gap: 0.75rem;
   margin-bottom: 0;
+  align-items: start;
 }
 
 .auth-label {
@@ -892,6 +893,13 @@ body.auth-page .auth-card select.auth-input {
 .password-toggle:focus-visible {
   outline: 2px solid #0B8073;
   outline-offset: 2px;
+}
+
+/* Suppress browser-native password reveal buttons (Edge ::-ms-reveal, Chrome autofill)
+   so only the custom .password-toggle remains visible */
+.auth-input-wrap input[type="password"]::-ms-reveal,
+.auth-input-wrap input[type="password"]::-ms-clear {
+  display: none;
 }
 
 /* Forgot password link */
