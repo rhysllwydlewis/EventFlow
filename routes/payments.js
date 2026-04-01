@@ -459,8 +459,14 @@ router.post(
  * @swagger
  * /api/payments/webhook:
  *   post:
- *     summary: Stripe webhook endpoint
- *     description: Handle Stripe webhook events for payments and subscriptions
+ *     deprecated: true
+ *     summary: Stripe webhook endpoint (deprecated — still functional)
+ *     description: >
+ *       **Deprecated.** This endpoint continues to work but will be removed in a future release.
+ *       Migrate your Stripe dashboard webhook destination to the canonical endpoint:
+ *       `POST /api/v2/webhooks/stripe`.
+ *       Both endpoints share the same signature verification logic and production fail-closed
+ *       behaviour (STRIPE_WEBHOOK_SECRET required in production).
  *     tags: [Payments]
  *     requestBody:
  *       required: true
@@ -472,38 +478,49 @@ router.post(
  *       200:
  *         description: Webhook processed successfully
  *       400:
- *         description: Invalid signature or missing signature
+ *         description: Invalid or missing signature
  *       503:
  *         description: Stripe not configured
  */
 router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+  // Deprecation notice — visible in server logs to prompt dashboard migration
+  logger.warn(
+    '⚠️  Stripe webhook received on deprecated endpoint /api/payments/webhook — ' +
+      'please migrate your Stripe dashboard destination to POST /api/v2/webhooks/stripe'
+  );
+
   if (!STRIPE_ENABLED || !stripe) {
     return res.status(503).json({ error: 'Stripe not configured' });
   }
 
   const sig = req.headers['stripe-signature'];
 
-  if (!sig) {
-    logger.error('Missing Stripe signature header');
-    return res.status(400).json({ error: 'Missing signature' });
-  }
-
   let event;
 
-  try {
-    // Verify webhook signature
-    if (STRIPE_WEBHOOK_SECRET) {
+  if (STRIPE_WEBHOOK_SECRET) {
+    try {
       event = stripe.webhooks.constructEvent(req.body, sig, STRIPE_WEBHOOK_SECRET);
-    } else {
-      // In development/test, parse without verification
-      logger.warn('⚠️  Webhook signature verification skipped (STRIPE_WEBHOOK_SECRET not set)');
-      event = JSON.parse(req.body.toString());
+    } catch (err) {
+      logger.error('Webhook signature verification failed:', err.message);
+      logger.error('req.body type:', typeof req.body);
+      logger.error('req.body is Buffer:', Buffer.isBuffer(req.body));
+      return res.status(400).json({ error: 'Invalid signature' });
     }
-  } catch (err) {
-    logger.error('Webhook signature verification failed:', err.message);
-    logger.error('req.body type:', typeof req.body);
-    logger.error('req.body is Buffer:', Buffer.isBuffer(req.body));
-    return res.status(400).json({ error: 'Invalid signature' });
+  } else if (process.env.NODE_ENV === 'production') {
+    // Fail closed in production: never skip signature verification
+    logger.error(
+      'STRIPE_WEBHOOK_SECRET is not set in production — rejecting unsigned webhook request'
+    );
+    return res.status(400).json({ error: 'Webhook signature verification required in production' });
+  } else {
+    // In development/test without webhook secret, parse body directly
+    logger.warn('⚠️  Webhook signature verification skipped (STRIPE_WEBHOOK_SECRET not set)');
+    try {
+      event = JSON.parse(req.body.toString());
+    } catch (err) {
+      logger.error('Failed to parse webhook body:', err.message);
+      return res.status(400).json({ error: 'Invalid request body' });
+    }
   }
 
   logger.info(`Received webhook event: ${event.type}`);
