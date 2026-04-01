@@ -867,6 +867,7 @@ body.auth-page .auth-card select.auth-input {
   transform: translateY(-50%) !important;
   background: transparent !important;
   border: none !important;
+  box-shadow: none !important;
   cursor: pointer;
   color: #6B7280;
   padding: 4px !important;
@@ -884,6 +885,28 @@ body.auth-page .auth-card select.auth-input {
   justify-content: center !important;
   /* !important overrides `button { transition: all }` in p3-features.css to prevent transform transition */
   transition: color 0.2s ease !important;
+  /* overflow:visible lets the ::before touch-target pseudo-element extend beyond the
+     button's visual bounds without being clipped */
+  overflow: visible !important;
+}
+
+/* Hidden 44×44 px touch target so the icon-only button meets WCAG 2.5.5.
+   The pseudo-element is fully transparent — the visible icon is the SVG inside. */
+.password-toggle::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 44px;
+  height: 44px;
+}
+
+/* On the auth page anchor the toggle to the input height (44 px) so that
+   form-validation error messages that appear below the input cannot push
+   the toggle outside the input bounds by growing .auth-input-wrap. */
+body.auth-page .auth-pw-wrap .password-toggle {
+  top: 22px !important; /* = 44px input height ÷ 2 */
 }
 
 .password-toggle:hover {
@@ -895,12 +918,18 @@ body.auth-page .auth-card select.auth-input {
   outline-offset: 2px;
 }
 
-/* Suppress the browser-native password reveal/clear buttons in Edge / IE
-   (::-ms-reveal = show-password eye, ::-ms-clear = × clear button)
-   so only the custom .password-toggle is visible */
+/* Suppress browser-native password reveal/clear buttons so only the custom
+   .password-toggle is visible.
+   - ::-ms-reveal / ::-ms-clear  = Edge (legacy) & IE  password eye / × button
+   - ::-webkit-credentials-auto-fill-button = Chrome / Edge autofill key icon
+   - ::-webkit-contacts-auto-fill-button    = WebKit contacts autofill icon   */
 .auth-input-wrap input[type="password"]::-ms-reveal,
-.auth-input-wrap input[type="password"]::-ms-clear {
+.auth-input-wrap input[type="password"]::-ms-clear,
+.auth-input-wrap input[type="password"]::-webkit-credentials-auto-fill-button,
+.auth-input-wrap input[type="password"]::-webkit-contacts-auto-fill-button {
   display: none;
+  width: 0;
+  height: 0;
 }
 
 /* Forgot password link */
