@@ -909,7 +909,7 @@ body.auth-page .auth-card select.auth-input {
    form-validation error messages that appear below the input cannot push
    the toggle outside the input bounds by growing .auth-input-wrap. */
 body.auth-page .auth-pw-wrap .password-toggle {
-  top: 22px !important; /* = 44px input height ÷ 2 */
+  top: calc(44px / 2) !important; /* = auth-input height ÷ 2 */
 }
 
 .password-toggle:hover {
