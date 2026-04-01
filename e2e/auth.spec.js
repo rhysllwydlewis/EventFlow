@@ -305,21 +305,20 @@ test.describe('Authentication Flow', () => {
     expect(forgotBox.y).toBeGreaterThan(inputBox.y + inputBox.height - 2);
   });
 
-  test('first and last name fields are top-aligned on create account tab', async ({ page }) => {
+  test('first and last name fields maintain top alignment regardless of validation errors', async ({
+    page,
+  }) => {
     await page.goto('/auth.html');
-    await page.waitForLoadState('load');
-    await page.waitForTimeout(600);
+    // Wait for the login form to be visible (indicates JS has initialised)
+    await page.waitForSelector('#login-form', { state: 'visible' });
 
-    // Switch to create account tab
+    // Switch to create account tab and wait for the first name field to be rendered
     await page.click('#tab-create');
-    await page.waitForTimeout(300);
+    await page.waitForSelector('#reg-firstname', { state: 'visible' });
 
-    const firstNameField = page
-      .locator('#reg-firstname')
-      .locator('xpath=ancestor::*[contains(@class,"auth-field")][1]');
-    const lastNameField = page
-      .locator('#reg-lastname')
-      .locator('xpath=ancestor::*[contains(@class,"auth-field")][1]');
+    // Use CSS :has() to locate each field's containing .auth-field wrapper
+    const firstNameField = page.locator('.auth-field:has(#reg-firstname)');
+    const lastNameField = page.locator('.auth-field:has(#reg-lastname)');
 
     await expect(firstNameField).toBeVisible();
     await expect(lastNameField).toBeVisible();
@@ -335,30 +334,31 @@ test.describe('Authentication Flow', () => {
     page,
   }) => {
     await page.goto('/auth.html');
-    await page.waitForLoadState('load');
-    await page.waitForTimeout(600);
+    // Wait for the login form to be visible (indicates JS has initialised)
+    await page.waitForSelector('#login-form', { state: 'visible' });
 
-    // Switch to create account tab
+    // Switch to create account tab and wait for the password field to be rendered
     await page.click('#tab-create');
-    await page.waitForTimeout(300);
+    await page.waitForSelector('#reg-password', { state: 'visible' });
+
+    // Wait for app.js to inject the password toggles into the wrapper
+    await page.waitForSelector('.auth-pw-wrap .password-toggle', { state: 'attached' });
 
     // Check password field – exactly one toggle before typing
-    const pwWrap = page.locator('#reg-password').locator('xpath=parent::*');
-    const pwToggles = pwWrap.locator('.password-toggle');
+    const pwToggles = page.locator('.auth-pw-wrap:has(#reg-password) .password-toggle');
     await expect(pwToggles).toHaveCount(1);
 
     // Check confirm password field – exactly one toggle before typing
-    const confirmWrap = page.locator('#reg-password-confirm').locator('xpath=parent::*');
-    const confirmToggles = confirmWrap.locator('.password-toggle');
+    const confirmToggles = page.locator(
+      '.auth-pw-wrap:has(#reg-password-confirm) .password-toggle'
+    );
     await expect(confirmToggles).toHaveCount(1);
 
     // Type into the password fields and verify no second toggle appears
     await page.fill('#reg-password', 'TestPassword1');
-    await page.waitForTimeout(300);
     await expect(pwToggles).toHaveCount(1);
 
     await page.fill('#reg-password-confirm', 'TestPassword1');
-    await page.waitForTimeout(300);
     await expect(confirmToggles).toHaveCount(1);
   });
 });
