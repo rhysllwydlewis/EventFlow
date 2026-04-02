@@ -6,7 +6,6 @@
 
 'use strict';
 
-const crypto = require('crypto');
 const express = require('express');
 const logger = require('../utils/logger');
 const bcrypt = require('bcryptjs');
