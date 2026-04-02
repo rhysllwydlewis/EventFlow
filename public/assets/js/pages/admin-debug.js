@@ -21,8 +21,8 @@
   const API_URL = '/api/admin/system-checks';
   const RUN_URL = '/api/admin/system-checks/run';
   const CATALOG_URL = '/api/admin/system-checks/catalog';
-  const DEBUG_STATUS_URL = '/api/admin/debug/status';
-  const DEBUG_BASE_URL = '/api/admin/debug';
+  const DEBUG_STATUS_URL = '/api/v1/admin/debug/status';
+  const DEBUG_BASE_URL = '/api/v1/admin/debug';
 
   /* ── DOM refs ──────────────────────────────────────────────────────────── */
   const summaryEl = document.getElementById('sc-summary');
@@ -941,10 +941,16 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({}),
         });
+        // Guard against unexpected non-object responses
+        if (!data || typeof data !== 'object' || Array.isArray(data)) {
+          throw new Error('Unexpected response from server — please try again.');
+        }
         renderWebhookResults(data.results || [], data.summary || {});
       } catch (err) {
         if (resultEl) {
-          resultEl.innerHTML = `<div class="sc-info-banner sc-info-banner--error" role="alert">⚠️ ${escHtml(err.message || 'Webhook test failed')}</div>`;
+          // Produce a friendly message; avoid secondary TypeError if err.message is empty
+          const msg = (err && err.message) ? err.message : 'Webhook test failed — please try again.';
+          resultEl.innerHTML = `<div class="sc-info-banner sc-info-banner--error" role="alert">⚠️ ${escHtml(msg)}</div>`;
         }
       } finally {
         btn.disabled = false;

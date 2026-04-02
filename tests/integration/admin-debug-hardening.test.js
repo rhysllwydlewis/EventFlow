@@ -16,11 +16,20 @@ const fs = require('fs');
 const path = require('path');
 
 const DEBUG_ROUTES = path.join(__dirname, '../../routes/admin-debug.js');
+const WEBHOOKS_TEST_ROUTES = path.join(__dirname, '../../routes/admin-webhooks-test.js');
+const INDEX_ROUTES = path.join(__dirname, '../../routes/index.js');
+const FRONTEND_DEBUG = path.join(__dirname, '../../public/assets/js/pages/admin-debug.js');
 
 let debugContent;
+let webhooksTestContent;
+let indexContent;
+let frontendDebugContent;
 
 beforeAll(() => {
   debugContent = fs.readFileSync(DEBUG_ROUTES, 'utf8');
+  webhooksTestContent = fs.readFileSync(WEBHOOKS_TEST_ROUTES, 'utf8');
+  indexContent = fs.readFileSync(INDEX_ROUTES, 'utf8');
+  frontendDebugContent = fs.readFileSync(FRONTEND_DEBUG, 'utf8');
 });
 
 // ─── File Existence ───────────────────────────────────────────────────────────
@@ -222,5 +231,73 @@ describe('Admin Debug Hardening — Operational Logging', () => {
     const block = debugContent.substring(verifyIdx, verifyIdx + 1000);
     expect(block).toContain('req.user.email');
     expect(block).toMatch(/logger\.info/);
+  });
+});
+
+// ─── Webhooks Test Route — Route Separation Regression ───────────────────────
+//
+// Ensures that POST /test-webhooks lives in admin-webhooks-test.js (always
+// mounted, including production) and is NOT duplicated in admin-debug.js
+// (which is gated to non-production only).  This is the regression that caused
+// the 404 in production described in the bug report.
+
+describe('Admin Webhooks Test — File Structure', () => {
+  it('routes/admin-webhooks-test.js exists', () => {
+    expect(fs.existsSync(WEBHOOKS_TEST_ROUTES)).toBe(true);
+  });
+
+  it('admin-webhooks-test.js defines POST /test-webhooks handler', () => {
+    expect(webhooksTestContent).toContain("'/test-webhooks'");
+    expect(webhooksTestContent).toContain('router.post');
+  });
+
+  it('admin-webhooks-test.js requires authRequired and roleRequired', () => {
+    expect(webhooksTestContent).toContain('authRequired');
+    expect(webhooksTestContent).toContain("roleRequired('admin')");
+  });
+
+  it('admin-webhooks-test.js requires csrfProtection (no CSRF regression)', () => {
+    expect(webhooksTestContent).toContain('csrfProtection');
+  });
+
+  it('admin-webhooks-test.js records an audit log entry', () => {
+    expect(webhooksTestContent).toContain('auditLog');
+    expect(webhooksTestContent).toContain("action: 'test_webhooks'");
+  });
+
+  it('admin-debug.js does NOT contain a duplicate /test-webhooks handler', () => {
+    // The comment referencing test-webhooks is acceptable; the actual router.post handler must not be there.
+    const idx = debugContent.indexOf("router.post(\n  '/test-webhooks'");
+    expect(idx).toBe(-1);
+  });
+});
+
+describe('Admin Webhooks Test — Route Mounting (no production gate)', () => {
+  it('routes/index.js mounts admin-webhooks-test unconditionally (outside the isProduction gate)', () => {
+    // The require for admin-webhooks-test must appear BEFORE the if (!isProduction...) block.
+    const webhooksIdx = indexContent.indexOf("require('./admin-webhooks-test')");
+    const productionGateIdx = indexContent.indexOf('if (!isProduction && debugRoutesEnabled)');
+    expect(webhooksIdx).toBeGreaterThan(-1);
+    expect(productionGateIdx).toBeGreaterThan(-1);
+    expect(webhooksIdx).toBeLessThan(productionGateIdx);
+  });
+
+  it('routes/index.js mounts admin-webhooks-test at the canonical versioned path', () => {
+    expect(indexContent).toMatch(/app\.use\(['"]\/api\/v1\/admin\/debug['"],\s*adminWebhooksTestRoutes\)/);
+  });
+
+  it('routes/index.js mounts admin-webhooks-test at the backward-compat unversioned path', () => {
+    expect(indexContent).toMatch(/app\.use\(['"]\/api\/admin\/debug['"],\s*adminWebhooksTestRoutes\)/);
+  });
+});
+
+describe('Admin Webhooks Test — Frontend URL', () => {
+  it('frontend admin-debug.js uses the canonical versioned DEBUG_BASE_URL', () => {
+    expect(frontendDebugContent).toContain("const DEBUG_BASE_URL = '/api/v1/admin/debug'");
+  });
+
+  it('frontend admin-debug.js does NOT use the bare unversioned debug base URL', () => {
+    // Must not hardcode the old unversioned path as the constant value
+    expect(frontendDebugContent).not.toContain("const DEBUG_BASE_URL = '/api/admin/debug'");
   });
 });

@@ -140,6 +140,12 @@ function mountRoutes(app, deps) {
   app.use('/api/v1/admin/debug', adminDebugStatusRoutes);
   app.use('/api/admin/debug', adminDebugStatusRoutes); // Backward compatibility
 
+  // Webhook test endpoint is ALWAYS mounted (including production) — it is a
+  // read-only health check (no data mutation) protected by admin auth + CSRF.
+  const adminWebhooksTestRoutes = require('./admin-webhooks-test');
+  app.use('/api/v1/admin/debug', adminWebhooksTestRoutes);
+  app.use('/api/admin/debug', adminWebhooksTestRoutes); // Backward compatibility
+
   if (!isProduction && debugRoutesEnabled) {
     const adminDebugRoutes = require('./admin-debug');
     app.use('/api/v1/admin/debug', adminDebugRoutes);
