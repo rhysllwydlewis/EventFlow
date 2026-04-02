@@ -19,6 +19,46 @@
 
 const crypto = require('crypto');
 
+// ---------------------------------------------------------------------------
+// Shared helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Build a signed Stripe probe payload.
+ * The Stripe signature scheme is:
+ *   signed_payload = "<unix_timestamp>.<json_body>"
+ *   sig = HMAC-SHA256(signed_payload, secret)
+ *   header = "t=<timestamp>,v1=<sig>"
+ *
+ * @param {string} secret - STRIPE_WEBHOOK_SECRET value.
+ * @param {string} [notes] - Notes to include in the probe result.
+ * @returns {{ body: Object, headers: Object, notes: string } | null}
+ */
+function buildStripeProbe(secret, notes) {
+  if (!secret) {
+    return null;
+  }
+  const timestamp = Math.floor(Date.now() / 1000);
+  const testBody = JSON.stringify({ type: 'ping', data: { object: {} } });
+  const signedPayload = `${timestamp}.${testBody}`;
+  const sig = crypto.createHmac('sha256', secret).update(signedPayload).digest('hex');
+  return {
+    body: JSON.parse(testBody),
+    headers: {
+      'stripe-signature': `t=${timestamp},v1=${sig}`,
+      'content-type': 'application/json',
+    },
+    notes,
+  };
+}
+
+/** HTTP status codes treated as ok for Stripe probes. */
+function stripeSuccessCriteria(status) {
+  // 400 is expected for the 'ping' event type — signature verification still passed.
+  // 200 = event type is handled.
+  return status === 200 || status === 400;
+}
+
 const integrations = [
   // ── Stripe (canonical) ───────────────────────────────────────────────────
   {
@@ -33,34 +73,18 @@ const integrations = [
       return { configured: missing.length === 0, missing };
     },
     buildProbe() {
-      const secret = process.env.STRIPE_WEBHOOK_SECRET;
-      if (!secret) {
-        return null;
-      }
-      const timestamp = Math.floor(Date.now() / 1000);
-      const testBody = JSON.stringify({ type: 'ping', data: { object: {} } });
-      const signedPayload = `${timestamp}.${testBody}`;
-      const sig = crypto.createHmac('sha256', secret).update(signedPayload).digest('hex');
-      return {
-        body: JSON.parse(testBody),
-        headers: {
-          'stripe-signature': `t=${timestamp},v1=${sig}`,
-          'content-type': 'application/json',
-        },
-        notes:
-          'HTTP 200 = event accepted; HTTP 400 = signature accepted, event type unknown — both count as ok',
-      };
+      return buildStripeProbe(
+        process.env.STRIPE_WEBHOOK_SECRET,
+        'HTTP 200 = event accepted; HTTP 400 = signature accepted, event type unknown — both count as ok'
+      );
     },
-    successCriteria(status) {
-      // 400 is expected for the 'ping' event type — signature verification still passed
-      return status === 200 || status === 400;
-    },
+    successCriteria: stripeSuccessCriteria,
   },
 
   // ── Stripe legacy deprecated endpoint ────────────────────────────────────
   {
     name: 'stripe-legacy',
-    label: 'Stripe (deprecated /api/v1/payments/webhook)',
+    label: 'Stripe (legacy)',
     path: '/api/v1/payments/webhook',
     isConfigured() {
       const missing = [];
@@ -70,26 +94,12 @@ const integrations = [
       return { configured: missing.length === 0, missing };
     },
     buildProbe() {
-      const secret = process.env.STRIPE_WEBHOOK_SECRET;
-      if (!secret) {
-        return null;
-      }
-      const timestamp = Math.floor(Date.now() / 1000);
-      const testBody = JSON.stringify({ type: 'ping', data: { object: {} } });
-      const signedPayload = `${timestamp}.${testBody}`;
-      const sig = crypto.createHmac('sha256', secret).update(signedPayload).digest('hex');
-      return {
-        body: JSON.parse(testBody),
-        headers: {
-          'stripe-signature': `t=${timestamp},v1=${sig}`,
-          'content-type': 'application/json',
-        },
-        notes: 'Deprecated — migrate Stripe dashboard to POST /api/v2/webhooks/stripe',
-      };
+      return buildStripeProbe(
+        process.env.STRIPE_WEBHOOK_SECRET,
+        'Deprecated endpoint — migrate Stripe dashboard to POST /api/v2/webhooks/stripe'
+      );
     },
-    successCriteria(status) {
-      return status === 200 || status === 400;
-    },
+    successCriteria: stripeSuccessCriteria,
   },
 
   // ── Postmark ─────────────────────────────────────────────────────────────
