@@ -59,19 +59,22 @@ function stripeSuccessCriteria(status) {
   return status === 200 || status === 400;
 }
 
+/** Shared isConfigured() for both Stripe catalog entries. */
+function stripeIsConfigured() {
+  const missing = [];
+  if (!process.env.STRIPE_WEBHOOK_SECRET) {
+    missing.push('STRIPE_WEBHOOK_SECRET');
+  }
+  return { configured: missing.length === 0, missing };
+}
+
 const integrations = [
   // ── Stripe (canonical) ───────────────────────────────────────────────────
   {
     name: 'stripe',
     label: 'Stripe',
     path: '/api/v2/webhooks/stripe',
-    isConfigured() {
-      const missing = [];
-      if (!process.env.STRIPE_WEBHOOK_SECRET) {
-        missing.push('STRIPE_WEBHOOK_SECRET');
-      }
-      return { configured: missing.length === 0, missing };
-    },
+    isConfigured: stripeIsConfigured,
     buildProbe() {
       return buildStripeProbe(
         process.env.STRIPE_WEBHOOK_SECRET,
@@ -86,13 +89,7 @@ const integrations = [
     name: 'stripe-legacy',
     label: 'Stripe (legacy)',
     path: '/api/v1/payments/webhook',
-    isConfigured() {
-      const missing = [];
-      if (!process.env.STRIPE_WEBHOOK_SECRET) {
-        missing.push('STRIPE_WEBHOOK_SECRET');
-      }
-      return { configured: missing.length === 0, missing };
-    },
+    isConfigured: stripeIsConfigured,
     buildProbe() {
       return buildStripeProbe(
         process.env.STRIPE_WEBHOOK_SECRET,

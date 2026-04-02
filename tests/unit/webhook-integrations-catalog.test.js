@@ -20,6 +20,38 @@ const path = require('path');
 const CATALOG_PATH = path.join(__dirname, '../../webhooks/integrations.js');
 const HANDLER_PATH = path.join(__dirname, '../../routes/admin-webhooks-test.js');
 
+// ─── Shared test helpers ──────────────────────────────────────────────────────
+
+/**
+ * Run fn() with the given env-var overrides, then restore originals.
+ * Pass `undefined` as a value to delete the key during the test.
+ *
+ * @param {Object} vars  { KEY: value | undefined }
+ * @param {Function} fn  Synchronous callback.
+ */
+function withEnv(vars, fn) {
+  const originals = {};
+  for (const [k, v] of Object.entries(vars)) {
+    originals[k] = process.env[k];
+    if (v === undefined) {
+      delete process.env[k];
+    } else {
+      process.env[k] = v;
+    }
+  }
+  try {
+    return fn();
+  } finally {
+    for (const [k, v] of Object.entries(originals)) {
+      if (v === undefined) {
+        delete process.env[k];
+      } else {
+        process.env[k] = v;
+      }
+    }
+  }
+}
+
 // ─── Catalog module shape ─────────────────────────────────────────────────────
 
 describe('Webhook Integrations Catalog — module shape', () => {
@@ -108,30 +140,6 @@ describe('Webhook Integrations Catalog — isConfigured()', () => {
     ({ integrations } = require(CATALOG_PATH));
   });
 
-  // Helper: run with env var overrides, then restore
-  function withEnv(vars, fn) {
-    const originals = {};
-    for (const [k, v] of Object.entries(vars)) {
-      originals[k] = process.env[k];
-      if (v === undefined) {
-        delete process.env[k];
-      } else {
-        process.env[k] = v;
-      }
-    }
-    try {
-      return fn();
-    } finally {
-      for (const [k, v] of Object.entries(originals)) {
-        if (v === undefined) {
-          delete process.env[k];
-        } else {
-          process.env[k] = v;
-        }
-      }
-    }
-  }
-
   it('stripe — not configured when STRIPE_WEBHOOK_SECRET is absent', () => {
     const stripe = integrations.find(i => i.name === 'stripe');
     withEnv({ STRIPE_WEBHOOK_SECRET: undefined }, () => {
@@ -202,29 +210,6 @@ describe('Webhook Integrations Catalog — buildProbe()', () => {
   beforeAll(() => {
     ({ integrations } = require(CATALOG_PATH));
   });
-
-  function withEnv(vars, fn) {
-    const originals = {};
-    for (const [k, v] of Object.entries(vars)) {
-      originals[k] = process.env[k];
-      if (v === undefined) {
-        delete process.env[k];
-      } else {
-        process.env[k] = v;
-      }
-    }
-    try {
-      return fn();
-    } finally {
-      for (const [k, v] of Object.entries(originals)) {
-        if (v === undefined) {
-          delete process.env[k];
-        } else {
-          process.env[k] = v;
-        }
-      }
-    }
-  }
 
   it('stripe — buildProbe() returns null when secret is absent', () => {
     const stripe = integrations.find(i => i.name === 'stripe');
@@ -354,10 +339,11 @@ describe('Admin Webhooks Test Handler — catalog-based enumeration', () => {
 
 describe('Webhook Integrations Catalog — extensibility', () => {
   it('a new integration added to the catalog is included in results', () => {
-    // Re-require the catalog with a module-scope override to avoid Jest module cache issues
+    // jest.isolateModules gives a fresh module registry — mutations here do not
+    // affect the module instance used by other describe blocks.
     jest.isolateModules(() => {
       const catalog = require(CATALOG_PATH);
-      const orig = catalog.integrations.slice();
+      const originalLength = catalog.integrations.length;
 
       // Add a synthetic integration
       catalog.integrations.push({
@@ -369,12 +355,11 @@ describe('Webhook Integrations Catalog — extensibility', () => {
         successCriteria: () => false,
       });
 
-      expect(catalog.integrations.length).toBe(orig.length + 1);
+      expect(catalog.integrations.length).toBe(originalLength + 1);
       expect(catalog.integrations.map(i => i.name)).toContain('test-synthetic');
-
-      // Restore
-      catalog.integrations.splice(0, catalog.integrations.length, ...orig);
     });
+    // Isolated module registry is discarded when jest.isolateModules() returns —
+    // no cleanup needed.
   });
 });
 
