@@ -858,10 +858,11 @@
 
   /**
    * Render the webhook test results into #sc-webhooks-result.
-   * @param {Array} results - Array of { name, configured, ok, status, details } objects.
+   * @param {Array} results - Array of { name, label, path, configured, ok, status, details } objects.
    * @param {Object} summary - { total, configured, passed }
+   * @param {boolean} serverOk - The top-level ok flag returned by the server.
    */
-  function renderWebhookResults(results, summary) {
+  function renderWebhookResults(results, summary, serverOk) {
     const el = document.getElementById('sc-webhooks-result');
     if (!el) {
       return;
@@ -869,36 +870,60 @@
 
     const rows = results
       .map(r => {
-        let icon, label;
+        let icon, statusLabel;
         if (!r.configured) {
           icon = WEBHOOK_ICONS.unconfigured;
-          label = 'Not configured';
+          statusLabel = 'Not configured';
         } else if (r.ok === false) {
           icon = WEBHOOK_ICONS.fail;
-          label = 'Failed';
+          statusLabel = 'Failed';
         } else if (r.ok === null) {
           icon = WEBHOOK_ICONS.warn;
-          label = 'Skipped (no secret)';
+          statusLabel = 'Skipped';
         } else {
           icon = WEBHOOK_ICONS.pass;
-          label = 'OK';
+          statusLabel = 'OK';
         }
 
+        // Prefer label over name; show path as a hint when available
+        const displayName = escHtml(r.label || r.name);
+        const pathHint = r.path
+          ? `<br><span style="font-weight:normal;opacity:.65;font-size:.8em;">${escHtml(r.path)}</span>`
+          : '';
         const detail = escHtml(r.details || r.error || '');
         return `
           <tr>
-            <td style="white-space:nowrap;">${icon} <strong>${escHtml(r.name)}</strong></td>
-            <td>${label}</td>
+            <td style="white-space:nowrap;">${icon} <strong>${displayName}</strong>${pathHint}</td>
+            <td>${statusLabel}</td>
             <td style="color:var(--color-text-muted,#6b7280);font-size:.875em;">${detail}</td>
           </tr>`;
       })
       .join('');
 
-    const allOk = summary && summary.passed === summary.total;
+    // Use the server-provided ok flag when available; fall back to local calculation
+    const allOk =
+      typeof serverOk === 'boolean'
+        ? serverOk
+        : summary && (summary.configured === 0 || summary.passed === summary.configured);
     const summaryClass = allOk ? 'sc-info-banner--ok' : 'sc-info-banner--error';
-    const summaryText = allOk
-      ? `✅ All ${summary.total} webhook(s) passed`
-      : `${summary.passed} / ${summary.total} webhook(s) passed`;
+    const unconfiguredCount =
+      summary && summary.total !== null && summary.configured !== null
+        ? summary.total - summary.configured
+        : 0;
+    let summaryText;
+    if (allOk && summary && summary.configured === 0) {
+      summaryText = `⚪ No webhooks configured (${summary.total} integration${summary.total !== 1 ? 's' : ''} in catalog)`;
+    } else if (allOk) {
+      summaryText = `✅ All ${summary.configured} configured webhook${summary.configured !== 1 ? 's' : ''} passed`;
+      if (unconfiguredCount > 0) {
+        summaryText += ` (${unconfiguredCount} not configured)`;
+      }
+    } else {
+      summaryText = `${summary.passed} / ${summary.configured} configured webhook${summary.configured !== 1 ? 's' : ''} passed`;
+      if (unconfiguredCount > 0) {
+        summaryText += ` — ${unconfiguredCount} not configured`;
+      }
+    }
 
     el.innerHTML = `
       <div class="sc-info-banner ${summaryClass}" role="status" style="margin-bottom:1rem;">
@@ -945,11 +970,11 @@
         if (!data || typeof data !== 'object' || Array.isArray(data)) {
           throw new Error('Unexpected response from server — please try again.');
         }
-        renderWebhookResults(data.results || [], data.summary || {});
+        renderWebhookResults(data.results || [], data.summary || {}, data.ok);
       } catch (err) {
         if (resultEl) {
           // Produce a friendly message; avoid secondary TypeError if err.message is empty
-          const msg = (err && err.message) ? err.message : 'Webhook test failed — please try again.';
+          const msg = err && err.message ? err.message : 'Webhook test failed — please try again.';
           resultEl.innerHTML = `<div class="sc-info-banner sc-info-banner--error" role="alert">⚠️ ${escHtml(msg)}</div>`;
         }
       } finally {
