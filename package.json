@@ -11,6 +11,11 @@
     "start": "node server.js",
     "migrate": "node migrate-to-mongodb.js",
     "migrate:messenger-v4": "node scripts/migrate-to-messenger-v4.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate deploy",
+    "prisma:migrate:dev": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
+    "prisma:validate": "prisma validate",
     "lint": "eslint . --ext .js",
     "lint:fix": "eslint . --ext .js --fix",
     "format": "prettier --write \"**/*.{js,json,md}\"",
@@ -38,6 +43,7 @@
     "test:full": "jest --coverage"
   },
   "dependencies": {
+    "@prisma/client": "^5.22.0",
     "@sentry/node": "^8.0.0",
     "altcha-lib": "^1.4.1",
     "bcryptjs": "^2.4.3",
@@ -106,6 +112,7 @@
     "lint-staged": "^15.5.2",
     "mongodb-memory-server": "^11.0.1",
     "prettier": "^3.7.4",
+    "prisma": "^5.22.0",
     "supertest": "^6.3.4",
     "xlsx": "^0.18.5"
   },

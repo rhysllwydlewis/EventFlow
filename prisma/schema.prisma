@@ -1,0 +1,804 @@
+// Prisma Schema for EventFlow (PostgreSQL)
+//
+// PR1 Foundation: Initial schema mirroring existing MongoDB collections.
+// MongoDB remains the active database until PR2+ swaps the DAL.
+//
+// Design decisions documented here:
+//
+// 1. packages.categories / packages.eventTypes  → TEXT[] (String[]) with a
+//    GIN index (see migration SQL).  This preserves exact $in / overlap query
+//    semantics that the current Mongo code relies on.
+//
+// 2. conversations_v4.participants              → Json (JSONB).  Will be
+//    normalised into a conversation_participants table in PR4.
+//
+// 3. conversations_v4.metadata / .context       → Json (JSONB).  The metadata
+//    field is an open schema; context has a known shape but is simple enough
+//    to keep as JSONB in this PR.
+//
+// 4. TTL collections (notifications.expiresAt, link_previews.expiresAt,
+//    mongodb_webhook_events 7-day TTL) → expires_at columns created here.
+//    pg_cron cleanup jobs will be added in PR3.
+//
+// 5. Sparse/partial indexes (slug, Stripe IDs) are noted in the migration SQL
+//    with WHERE col IS NOT NULL predicates.
+//
+// 6. All string-typed timestamps from MongoDB are stored as String? here so
+//    the schema can accept ISO-8601 strings directly.  They will be converted
+//    to DateTime in PR2 when data is migrated.
+//
+// 7. ID generation strategy:
+//    • Most models use application-level IDs (matching MongoDB's `id` string
+//      field), so no @default is set on those models.
+//    • Collections where MongoDB uses auto-generated ObjectId (e.g.
+//      conversations_v4, chat_messages_v4, analytics, link_previews,
+//      webhook_events, email_*) use @default(cuid()) so Prisma generates
+//      IDs automatically when the application does not supply one.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Core Application Models
+// ──────────────────────────────────────────────────────────────────────────────
+
+model User {
+  id                         String    @id
+  email                      String    @unique
+  name                       String?
+  firstName                  String?
+  lastName                   String?
+  role                       String // 'customer' | 'supplier' | 'admin'
+  passwordHash               String
+  location                   String?
+  postcode                   String?
+  company                    String?
+  jobTitle                   String?
+  website                    String?
+  /// Social media URLs stored as JSONB { instagram, facebook, twitter, linkedin }
+  socials                    Json?
+  avatarUrl                  String?
+  notify                     Boolean?
+  notifyAccount              Boolean?
+  notifyMarketing            Boolean?
+  marketingOptIn             Boolean?
+  verified                   Boolean?
+  verificationToken          String?
+  verificationTokenExpiresAt String?
+  emailVerified              Boolean?
+  emailVerificationToken     String?
+  emailVerificationExpires   String?
+  phoneNumber                String?
+  phoneVerified              Boolean?
+  phoneVerificationCode      String?
+  phoneVerificationExpires   String?
+  phoneNumberToVerify        String?
+  twoFactorEnabled           Boolean?
+  twoFactorSecret            String?
+  twoFactorBackupCodes       String[]
+  resetToken                 String?
+  resetTokenExpiresAt        String?
+  isPro                      Boolean?
+  subscriptionId             String?
+  badges                     String[]
+  createdAt                  String?
+  lastLoginAt                String?
+
+  @@map("users")
+}
+
+model Supplier {
+  id                String   @id
+  ownerUserId       String?
+  name              String
+  logo              String?
+  blurb             String?
+  category          String
+  location          String?
+  priceDisplay      String?
+  website           String?
+  email             String?
+  phone             String?
+  license           String?
+  amenities         String[]
+  maxGuests         Int?
+  descriptionShort  String?
+  descriptionLong   String?
+  /// Photo gallery stored as JSONB [{ url, approved, uploadedAt }]
+  photosGallery     Json?
+  bannerUrl         String?
+  tagline           String?
+  highlights        String[]
+  featuredServices  String[]
+  themeColor        String?
+  /// Social links stored as JSONB { facebook, instagram, twitter, linkedin, youtube, tiktok }
+  socialLinks       Json?
+  approved          Boolean?
+  isPro             Boolean?
+  proExpiresAt      String?
+  aiTags            String[]
+  aiScore           Float?
+  aiUpdatedAt       String?
+  badges            String[]
+  isTest            Boolean?
+  seedBatch         String?
+  createdAt         String?
+
+  @@map("suppliers")
+}
+
+model Package {
+  id               String   @id
+  supplierId       String
+  title            String
+  /// Sparse unique slug (WHERE slug IS NOT NULL) — see migration SQL
+  slug             String?
+  description      String?
+  price            String?
+  priceDisplay     String?
+  location         String?
+  image            String?
+  /// Image gallery stored as JSONB [{ url, approved, uploadedAt }]
+  gallery          Json?
+  /// TEXT[] — multi-value category slugs; GIN-indexed in migration SQL
+  categories       String[]
+  primaryCategoryKey String?
+  /// TEXT[] — event types e.g. ['wedding','other']; GIN-indexed in migration SQL
+  eventTypes       String[]
+  tags             String[]
+  approved         Boolean?
+  featured         Boolean?
+  isFeatured       Boolean?
+  isTest           Boolean?
+  seedBatch        String?
+  createdAt        String?
+
+  @@map("packages")
+}
+
+model Category {
+  id          String  @id
+  name        String
+  slug        String  @unique
+  description String?
+  heroImage   String?
+  icon        String?
+  order       Int?
+
+  @@map("categories")
+}
+
+model Plan {
+  id        String   @id
+  userId    String
+  supplierId String?
+  /// Full plan data structure stored as JSONB
+  plan      Json?
+  eventType String?
+  eventName String?
+  location  String?
+  date      String?
+  guests    Int?
+  budget    String?
+  /// Array of package IDs
+  packages  String[]
+  createdAt String?
+  updatedAt String?
+
+  @@map("plans")
+}
+
+model Note {
+  id        String  @id
+  userId    String
+  text      String?
+  createdAt String?
+  updatedAt String?
+
+  @@map("notes")
+}
+
+model Event {
+  id          String  @id
+  userId      String?
+  title       String?
+  date        String?
+  location    String?
+  description String?
+  createdAt   String?
+  updatedAt   String?
+
+  @@map("events")
+}
+
+model Badge {
+  id                 String  @id
+  name               String
+  /// Sparse unique slug (WHERE slug IS NOT NULL) — see migration SQL
+  slug               String?
+  type               String // 'founder' | 'pro' | 'pro-plus' | 'verified' | 'featured' | 'custom'
+  description        String?
+  icon               String?
+  color              String?
+  autoAssign         Boolean?
+  /// Auto-assign criteria stored as JSONB
+  autoAssignCriteria Json?
+  displayOrder       Int?
+  active             Boolean?
+  createdAt          String?
+  updatedAt          String?
+
+  @@map("badges")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Payments & Subscriptions
+// ──────────────────────────────────────────────────────────────────────────────
+
+model Payment {
+  id                   String  @id
+  /// Stripe payment intent ID — sparse unique (WHERE col IS NOT NULL)
+  stripePaymentId      String?
+  /// Stripe customer ID — sparse (WHERE col IS NOT NULL)
+  stripeCustomerId     String?
+  /// Stripe subscription ID — sparse (WHERE col IS NOT NULL)
+  stripeSubscriptionId String?
+  userId               String
+  amount               Float
+  currency             String
+  status               String // 'pending'|'succeeded'|'failed'|'cancelled'|'refunded'
+  type                 String? // 'one_time'|'subscription'
+  /// Subscription details stored as JSONB
+  subscriptionDetails  Json?
+  /// Additional Stripe metadata stored as JSONB
+  metadata             Json?
+  createdAt            String?
+  updatedAt            String?
+
+  @@map("payments")
+}
+
+model Subscription {
+  id                   String   @id
+  userId               String
+  /// Stripe subscription ID — sparse unique (WHERE col IS NOT NULL)
+  stripeSubscriptionId String?
+  /// Stripe customer ID — sparse (WHERE col IS NOT NULL)
+  stripeCustomerId     String?
+  plan                 String // 'free'|'pro'|'pro_plus'
+  pendingPlan          String?
+  status               String // 'active'|'trialing'|'past_due'|'canceled'|'unpaid'
+  trialStart           String?
+  trialEnd             String?
+  currentPeriodStart   String?
+  currentPeriodEnd     String?
+  /// Sparse field (WHERE col IS NOT NULL) — see migration SQL
+  nextBillingDate      String?
+  cancelAtPeriodEnd    Boolean?
+  canceledAt           String?
+  cancelReason         String?
+  /// Billing history stored as JSONB [{ invoiceId, amount, currency, paid, date }]
+  billingHistory       Json?
+  /// Additional Stripe metadata stored as JSONB
+  metadata             Json?
+  createdAt            String?
+  updatedAt            String?
+
+  @@map("subscriptions")
+}
+
+model Invoice {
+  id                    String  @id
+  subscriptionId        String?
+  userId                String
+  /// Stripe invoice ID — sparse unique (WHERE col IS NOT NULL)
+  stripeInvoiceId       String?
+  stripePaymentIntentId String?
+  amount                Float
+  currency              String
+  status                String // 'draft'|'open'|'paid'|'void'|'uncollectible'
+  /// Sparse field (WHERE col IS NOT NULL) — see migration SQL
+  dueDate               String?
+  paidAt                String?
+  /// Line items stored as JSONB [{ name, description, quantity, unitPrice }]
+  lineItems             Json?
+  /// Additional metadata stored as JSONB
+  metadata              Json?
+  createdAt             String?
+  updatedAt             String?
+
+  @@map("invoices")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Reviews & Social
+// ──────────────────────────────────────────────────────────────────────────────
+
+model Review {
+  id               String   @id
+  supplierId       String
+  userId           String
+  userName         String?
+  rating           Int
+  title            String?
+  comment          String?
+  recommend        Boolean?
+  eventType        String?
+  eventDate        String?
+  verified         Boolean?
+  emailVerified    Boolean?
+  approved         Boolean?
+  approvedAt       String?
+  approvedBy       String?
+  flagged          Boolean?
+  flagReason       String[]
+  ipAddress        String?
+  userAgent        String?
+  helpfulCount     Int?
+  unhelpfulCount   Int?
+  /// Supplier response stored as JSONB { text, respondedAt, respondedBy }
+  supplierResponse Json?
+  createdAt        String?
+  updatedAt        String?
+
+  @@map("reviews")
+}
+
+model ReviewVote {
+  id        String  @id
+  reviewId  String
+  userId    String?
+  voteType  String // 'helpful'|'unhelpful'
+  ipAddress String?
+  createdAt String?
+
+  @@map("review_votes")
+}
+
+model SupplierAnalytics {
+  id                  String  @id
+  supplierId          String  @unique
+  averageRating       Float?
+  totalReviews        Int?
+  /// Rating distribution stored as JSONB { "1": n, "2": n, ... }
+  ratingDistribution  Json?
+  recommendationRate  Float?
+  trustScore          Float?
+  responseRate        Float?
+  averageResponseTime Float?
+  badges              String[]
+  lastCalculated      String?
+  updatedAt           String?
+
+  @@map("supplier_analytics")
+}
+
+model ReviewModeration {
+  id            String  @id
+  reviewId      String
+  moderatorId   String
+  action        String // 'approve'|'reject'|'flag'|'unflag'
+  reason        String?
+  notes         String?
+  /// Review state before this action stored as JSONB
+  previousState Json?
+  createdAt     String?
+
+  @@map("review_moderations")
+}
+
+model Report {
+  id         String  @id
+  type       String?
+  targetId   String?
+  reportedBy String?
+  status     String?
+  reason     String?
+  details    String?
+  createdAt  String?
+
+  @@map("reports")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Messaging
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Unified conversation (v4 messaging system).
+/// participants is stored as JSONB in PR1; it will be normalised to a
+/// conversation_participants relational table in PR4.
+///
+/// Note on ID: MongoDB uses auto-generated ObjectId for this collection.
+/// We use cuid() here so Prisma can generate IDs when the app does not
+/// supply one explicitly (matches MongoDB's auto-id behaviour).
+model ConversationV4 {
+  id           String  @id @default(cuid())
+  type         String
+  /// JSONB array of participant objects.  Schema:
+  /// [{ userId, displayName, avatar, role, isPinned, isMuted,
+  ///    isArchived, unreadCount, lastReadAt }]
+  participants Json
+  /// JSONB context object { type, referenceId, referenceTitle, referenceImage }
+  context      Json?
+  /// JSONB snapshot of last message { content, senderId, senderName, sentAt, type }
+  lastMessage  Json?
+  /// Open-schema JSONB metadata blob
+  metadata     Json?
+  status       String  @default("active") // 'active'|'closed'
+  messageCount Int     @default(0)
+  createdAt    String?
+  updatedAt    String?
+
+  messages ChatMessageV4[]
+
+  @@map("conversations_v4")
+}
+
+model ChatMessageV4 {
+  id             String         @id @default(cuid())
+  conversationId String
+  senderId       String
+  senderName     String
+  content        String?
+  type           String         @default("text") // 'text'|'image'|'file'|'system'
+  /// Reactions stored as JSONB [{ userId, emoji, createdAt }]
+  reactions      Json?
+  /// Read receipts stored as JSONB [{ userId, readAt }]
+  readBy         Json?
+  /// Reply threading — reference to parent message
+  replyToId      String?
+  isDeleted      Boolean        @default(false)
+  isEdited       Boolean        @default(false)
+  editedAt       String?
+  /// Attachments stored as JSONB [{ url, name, size, mimeType }]
+  attachments    Json?
+  createdAt      String?
+  updatedAt      String?
+
+  conversation ConversationV4 @relation(fields: [conversationId], references: [id])
+
+  @@map("chat_messages_v4")
+}
+
+/// Legacy v1 threads (kept for data migration purposes; superseded by conversations_v4)
+model Thread {
+  id             String   @id
+  participantIds String[]
+  subject        String?
+  createdAt      String?
+  updatedAt      String?
+
+  messages Message[]
+
+  @@map("threads")
+}
+
+/// Legacy v1/v2 messages (kept for data migration purposes)
+model Message {
+  id          String  @id
+  threadId    String
+  senderId    String
+  recipientId String?
+  content     String?
+  read        Boolean @default(false)
+  createdAt   String?
+
+  thread Thread @relation(fields: [threadId], references: [id])
+
+  @@map("messages")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Infrastructure / Analytics
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// User notification.  expires_at mirrors MongoDB TTL index.
+/// A pg_cron cleanup job (DELETE WHERE expires_at < NOW()) will be added in PR3.
+model Notification {
+  id          String   @id
+  userId      String
+  type        String
+  title       String
+  message     String
+  actionUrl   String?
+  actionText  String?
+  icon        String?
+  priority    String?
+  category    String?
+  /// Additional structured data stored as JSONB
+  metadata    Json?
+  isRead      Boolean  @default(false)
+  readAt      String?
+  isDismissed Boolean  @default(false)
+  dismissedAt String?
+  /// TTL field — Prisma exposes it; cleanup via pg_cron in PR3
+  expiresAt   String?
+  createdAt   String?
+  updatedAt   String?
+
+  @@map("notifications")
+}
+
+model AuditLog {
+  id         String  @id
+  /// Actor stored as JSONB { id, email, role }
+  actor      Json?
+  action     String?
+  /// Resource stored as JSONB { type, id }
+  resource   Json?
+  /// Changes (before/after) stored as JSONB
+  changes    Json?
+  ipAddress  String?
+  userAgent  String?
+  /// Additional details stored as JSONB
+  details    Json?
+  timestamp  String?
+  createdAt  String?
+
+  @@map("audit_logs")
+}
+
+model SearchHistory {
+  id           String  @id
+  userId       String?
+  sessionId    String?
+  queryText    String?
+  /// Applied filters stored as JSONB
+  filters      Json?
+  resultsCount Int?
+  timestamp    String?
+  createdAt    String?
+
+  @@map("search_history")
+}
+
+/// Supplier view/enquiry analytics counters.
+/// Uses INSERT … ON CONFLICT DO UPDATE (upsert) in future DAL.
+///
+/// Note on ID: The MongoDB analytics collection uses a composite key
+/// (supplierId + date).  We add a surrogate cuid() PK here for Prisma
+/// compatibility; the unique constraint on (supplierId, date) acts as the
+/// natural key.
+model Analytics {
+  id            String  @id @default(cuid())
+  supplierId    String
+  date          String
+  views         Int     @default(0)
+  enquiries     Int     @default(0)
+  /// Debug-only bounded array stored as JSONB (kept for parity; drop in PR5)
+  viewDetails   Json?
+  createdAt     String?
+  updatedAt     String?
+
+  @@unique([supplierId, date])
+  @@map("analytics")
+}
+
+/// Link preview cache.  expires_at mirrors MongoDB TTL index.
+/// Cleanup via pg_cron in PR3.
+model LinkPreview {
+  id            String  @id @default(cuid())
+  url           String?
+  normalizedUrl String  @unique
+  title         String?
+  description   String?
+  image         String?
+  siteName      String?
+  favicon       String?
+  mediaType     String?
+  /// Additional Open Graph / Twitter Card data stored as JSONB
+  metadata      Json?
+  fetchedAt     String?
+  /// TTL field — cleanup via pg_cron in PR3
+  expiresAt     String?
+  fetchError    String?
+  createdAt     String?
+
+  @@map("link_previews")
+}
+
+/// Webhook idempotency store (replaces mongodb_webhook_events collection).
+/// created_at + expires_at mirrors 7-day MongoDB TTL.
+/// Cleanup via pg_cron in PR3.
+model WebhookEvent {
+  id         String  @id @default(cuid())
+  eventId    String  @unique // Atlas change event _id
+  source     String? // e.g. 'mongodb_atlas'
+  payload    Json?
+  /// TTL field (7 days) — cleanup via pg_cron in PR3
+  expiresAt  String?
+  createdAt  String?
+
+  @@map("webhook_events")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Marketplace
+// ──────────────────────────────────────────────────────────────────────────────
+
+model MarketplaceImage {
+  id        String  @id
+  listingId String
+  userId    String
+  imageData String?
+  size      String? // 'original'|'thumbnail'|'optimized'|'large'
+  mimeType  String?
+  fileSize  Int?
+  url       String?
+  order     Int?
+  filename  String?
+  uploadedAt String?
+
+  @@map("marketplace_images")
+}
+
+model MarketplaceListing {
+  id                   String  @id
+  userId               String
+  approved             Boolean?
+  status               String?
+  /// Location coordinates stored as JSONB { lat, lng } — sparse field
+  locationCoordinates  Json?
+  createdAt            String?
+  updatedAt            String?
+
+  @@map("marketplace_listings")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Email Tracking (written by routes/webhooks.js Postmark handler)
+// ──────────────────────────────────────────────────────────────────────────────
+
+model EmailLog {
+  id          String  @id @default(cuid())
+  messageId   String?
+  recipient   String?
+  subject     String?
+  status      String?
+  /// Raw Postmark data stored as JSONB
+  rawData     Json?
+  createdAt   String?
+  updatedAt   String?
+
+  @@map("email_logs")
+}
+
+model EmailBounce {
+  id          String  @id @default(cuid())
+  messageId   String?
+  email       String?
+  bounceType  String?
+  description String?
+  /// Raw Postmark bounce data stored as JSONB
+  rawData     Json?
+  createdAt   String?
+
+  @@map("email_bounces")
+}
+
+model EmailOpen {
+  id          String  @id @default(cuid())
+  messageId   String?
+  email       String?
+  userAgent   String?
+  /// Raw Postmark data stored as JSONB
+  rawData     Json?
+  createdAt   String?
+
+  @@map("email_opens")
+}
+
+model EmailClick {
+  id          String  @id @default(cuid())
+  messageId   String?
+  email       String?
+  clickedLink String?
+  userAgent   String?
+  /// Raw Postmark data stored as JSONB
+  rawData     Json?
+  createdAt   String?
+
+  @@map("email_clicks")
+}
+
+model EmailComplaint {
+  id          String  @id @default(cuid())
+  messageId   String?
+  email       String?
+  /// Raw Postmark data stored as JSONB
+  rawData     Json?
+  createdAt   String?
+
+  @@map("email_complaints")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Partner Programme
+// ──────────────────────────────────────────────────────────────────────────────
+
+model Partner {
+  id        String  @id
+  userId    String  @unique
+  refCode   String  @unique
+  status    String?
+  /// Additional partner data stored as JSONB
+  data      Json?
+  createdAt String?
+  updatedAt String?
+
+  @@map("partners")
+}
+
+model PartnerReferral {
+  id                   String  @id
+  supplierUserId       String  @unique
+  partnerId            String
+  attributionExpiresAt String?
+  /// Additional referral data stored as JSONB
+  data                 Json?
+  createdAt            String?
+  updatedAt            String?
+
+  @@map("partner_referrals")
+}
+
+model PartnerCreditTransaction {
+  id             String  @id
+  partnerId      String
+  supplierUserId String?
+  type           String?
+  amount         Float?
+  description    String?
+  /// Additional transaction data stored as JSONB
+  data           Json?
+  createdAt      String?
+
+  @@map("partner_credit_transactions")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Public Calendar
+// ──────────────────────────────────────────────────────────────────────────────
+
+model PublicCalendarEvent {
+  id               String  @id
+  title            String
+  description      String?
+  startDate        String
+  endDate          String?
+  location         String?
+  category         String?
+  imageUrl         String?
+  externalUrl      String?
+  createdByUserId  String
+  supplierId       String
+  updatedByUserId  String?
+  createdAt        String?
+  updatedAt        String?
+
+  @@map("public_calendar_events")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Customer Calendar
+// ──────────────────────────────────────────────────────────────────────────────
+
+model CustomerCalendarEntry {
+  id          String  @id
+  userId      String
+  title       String
+  type        String // 'meeting'|'event'|'appointment'
+  date        String // YYYY-MM-DD
+  time        String? // HH:MM
+  description String?
+  createdAt   String?
+  updatedAt   String?
+
+  @@map("customer_calendar_entries")
+}
