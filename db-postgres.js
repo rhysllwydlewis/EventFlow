@@ -111,7 +111,9 @@ async function disconnect() {
 // Register shutdown handlers (mirror db.js pattern)
 let _disconnecting = false;
 async function _gracefulShutdown(signal) {
-  if (_disconnecting) return;
+  if (_disconnecting) {
+    return;
+  }
   _disconnecting = true;
   logger.info(`Received ${signal} — disconnecting Prisma…`);
   await disconnect();
@@ -143,8 +145,15 @@ async function isPostgresAvailable() {
 
 // ─── Exports ──────────────────────────────────────────────────────────────────
 
-/** Shared PrismaClient singleton — use this in DAL / route handlers */
-const prisma = getPrismaClient();
+/**
+ * Shared PrismaClient singleton — use this in DAL / route handlers.
+ *
+ * NOTE: In PR1 this module is not imported by any route/service.  When PR2
+ * imports it, DATABASE_URL must be set.  If DATABASE_URL is absent the
+ * PrismaClient will still instantiate successfully but every query will throw
+ * a connection error; `isPostgresAvailable()` returns false in that case.
+ */
+const prisma = process.env.DATABASE_URL ? getPrismaClient() : null;
 
 module.exports = {
   prisma,

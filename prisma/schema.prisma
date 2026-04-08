@@ -802,3 +802,379 @@ model CustomerCalendarEntry {
 
   @@map("customer_calendar_entries")
 }
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Support Tickets
+// ──────────────────────────────────────────────────────────────────────────────
+
+model Ticket {
+  id          String   @id
+  senderId    String?
+  senderType  String? // 'customer' | 'supplier'
+  senderName  String?
+  senderEmail String?
+  subject     String?
+  message     String?
+  status      String? // 'open' | 'in_progress' | 'resolved' | 'closed'
+  priority    String?
+  accountTier String?
+  prioritySource String?
+  assignedTo  String?
+  lastReplyAt String?
+  lastReplyBy String?
+  /// Thread of responses stored as JSONB [{ id, authorId, message, createdAt }]
+  responses   Json?
+  createdAt   String?
+  updatedAt   String?
+
+  @@map("tickets")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Shortlists
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// One shortlist document per user (unique on userId)
+model Shortlist {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  /// Array of supplier IDs stored as TEXT[]
+  supplierIds String[]
+  createdAt   String?
+  updatedAt   String?
+
+  @@map("shortlists")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Enquiries & Quote Requests
+// ──────────────────────────────────────────────────────────────────────────────
+
+model Enquiry {
+  id           String  @id
+  supplierId   String?
+  supplierName String?
+  senderName   String?
+  senderEmail  String?
+  message      String?
+  status       String? // 'pending' | 'responded' | etc.
+  createdAt    String?
+
+  @@map("enquiries")
+}
+
+model ContactEnquiry {
+  id          String  @id
+  senderType  String?
+  senderName  String?
+  senderEmail String?
+  subject     String?
+  message     String?
+  status      String? // 'new' | 'read' | 'responded'
+  /// Thread of responses stored as JSONB
+  responses   Json?
+  createdAt   String?
+  updatedAt   String?
+
+  @@map("contact_enquiries")
+}
+
+model QuoteRequest {
+  id        String  @id
+  userId    String?
+  name      String?
+  email     String?
+  phone     String?
+  eventType String?
+  eventDate String?
+  location  String?
+  budget    String?
+  notes     String?
+  /// Array of supplier targets stored as JSONB [{ supplierId, supplierName, category }]
+  suppliers Json?
+  status    String?
+  createdAt String?
+  updatedAt String?
+
+  @@map("quote_requests")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Referrals
+// ──────────────────────────────────────────────────────────────────────────────
+
+model Referral {
+  id              String  @id
+  referrerId      String?
+  referredUserId  String?
+  referralCode    String?
+  status          String? // 'pending' | 'active' | 'completed'
+  createdAt       String?
+  updatedAt       String?
+
+  @@map("referrals")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Saved Searches & Saved Items
+// ──────────────────────────────────────────────────────────────────────────────
+
+model SavedSearch {
+  id                   String  @id
+  userId               String?
+  name                 String?
+  description          String?
+  /// Serialised search criteria stored as JSONB
+  criteria             Json?
+  notificationsEnabled Boolean @default(false)
+  useCount             Int     @default(0)
+  lastUsedAt           String?
+  createdAt            String?
+
+  @@map("saved_searches")
+}
+
+/// Catch-all saved items (e.g. marketplace items saved by a user)
+model SavedItem {
+  id        String  @id @default(cuid())
+  userId    String?
+  itemId    String?
+  itemType  String?
+  /// Additional item snapshot stored as JSONB
+  data      Json?
+  createdAt String?
+
+  @@map("saved_items")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Newsletter
+// ──────────────────────────────────────────────────────────────────────────────
+
+model NewsletterSubscriber {
+  id         String  @id @default(cuid())
+  email      String  @unique
+  status     String? // 'active' | 'unsubscribed'
+  source     String?
+  createdAt  String?
+  updatedAt  String?
+
+  @@map("newsletter_subscribers")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Partner Cashout
+// ──────────────────────────────────────────────────────────────────────────────
+
+model PartnerCashoutOrder {
+  id             String  @id
+  partnerId      String?
+  partnerUserId  String?
+  externalRef    String?
+  debitTxnId     String?
+  pointsDebited  Int?
+  valueGbp       Float?
+  currency       String?
+  productId      String?
+  recipientName  String?
+  status         String?
+  /// Full Tremendous API response stored as JSONB
+  apiResponse    Json?
+  createdAt      String?
+  updatedAt      String?
+
+  @@map("partner_cashout_orders")
+}
+
+model PartnerCashoutRequest {
+  id                    String  @id
+  partnerId             String?
+  partnerUserId         String?
+  method                String?
+  denominationGbp       Int?
+  pointsHeld            Int?
+  pointsPerGbpSnapshot  Int?
+  status                String? // 'submitted' | 'approved' | 'rejected' | 'paid'
+  partnerMessage        String?
+  adminResponseMessage  String?
+  /// Additional data stored as JSONB
+  data                  Json?
+  createdAt             String?
+  updatedAt             String?
+
+  @@map("partner_cashout_requests")
+}
+
+model PartnerCodeHistory {
+  id        String  @id @default(cuid())
+  partnerId String?
+  refCode   String?
+  reason    String?
+  changedBy String?
+  createdAt String?
+
+  @@map("partner_code_history")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Photos (binary image store)
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Generic photo store used by routes/photos.js for supplier/package photos.
+/// imageData is a base64-encoded string.  Consider migrating to a CDN (Cloudinary)
+/// in a future PR so this table holds only metadata.
+model Photo {
+  id          String  @id @default(cuid())
+  url         String?
+  thumbnail   String?
+  large       String?
+  original    String?
+  /// Entity type this photo belongs to: 'supplier' | 'package'
+  entityType  String?
+  entityId    String?
+  approved    Boolean @default(true)
+  uploadedBy  String?
+  /// Open Graph/Cloudinary metadata stored as JSONB
+  metadata    Json?
+  uploadedAt  String?
+
+  @@map("photos")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Public Calendar Saves
+// ──────────────────────────────────────────────────────────────────────────────
+
+model PublicCalendarSave {
+  id        String  @id @default(cuid())
+  userId    String?
+  eventId   String?
+  createdAt String?
+
+  @@unique([userId, eventId])
+  @@map("public_calendar_saves")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Analytics Events (raw event log)
+// ──────────────────────────────────────────────────────────────────────────────
+
+model AnalyticsEvent {
+  id         String  @id @default(cuid())
+  eventType  String?
+  userId     String?
+  supplierId String?
+  /// Event payload stored as JSONB
+  data       Json?
+  createdAt  String?
+
+  @@map("analytics_events")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// FAQ Votes
+// ──────────────────────────────────────────────────────────────────────────────
+
+model FaqVote {
+  id        String  @id @default(cuid())
+  faqId     String?
+  userId    String?
+  voteType  String? // 'helpful' | 'unhelpful'
+  createdAt String?
+
+  @@map("faq_votes")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Marketplace Saved Items
+// ──────────────────────────────────────────────────────────────────────────────
+
+model MarketplaceSavedItem {
+  id        String  @id @default(cuid())
+  userId    String?
+  listingId String?
+  createdAt String?
+
+  @@unique([userId, listingId])
+  @@map("marketplace_saved_items")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Settings (key/value store)
+// ──────────────────────────────────────────────────────────────────────────────
+
+/// Single-row application settings document (id = 'system')
+model Setting {
+  id        String  @id
+  /// All settings stored as a JSONB object for flexibility
+  data      Json
+  updatedAt String?
+
+  @@map("settings")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// CMS Content
+// ──────────────────────────────────────────────────────────────────────────────
+
+model Content {
+  id        String  @id
+  key       String  @unique
+  type      String?
+  /// Content body stored as JSONB (supports structured and rich-text content)
+  body      Json?
+  createdAt String?
+  updatedAt String?
+
+  @@map("content")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Bookings
+// ──────────────────────────────────────────────────────────────────────────────
+
+model Booking {
+  id         String  @id @default(cuid())
+  userId     String?
+  supplierId String?
+  packageId  String?
+  status     String?
+  eventDate  String?
+  /// Full booking details stored as JSONB
+  details    Json?
+  createdAt  String?
+  updatedAt  String?
+
+  @@map("bookings")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Popular Searches
+// ──────────────────────────────────────────────────────────────────────────────
+
+model PopularSearch {
+  id        String  @id @default(cuid())
+  query     String  @unique
+  count     Int     @default(0)
+  updatedAt String?
+
+  @@map("popular_searches")
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// System Checks
+// ──────────────────────────────────────────────────────────────────────────────
+
+model SystemCheck {
+  id         String  @id @default(cuid())
+  status     String?
+  /// Check results stored as JSONB
+  results    Json?
+  triggeredBy String?
+  startedAt  String?
+  completedAt String?
+  createdAt  String?
+
+  @@map("system_checks")
+}
+

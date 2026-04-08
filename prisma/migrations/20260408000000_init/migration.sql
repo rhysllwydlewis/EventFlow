@@ -814,6 +814,345 @@ CREATE INDEX "public_calendar_events_startDate_idx" ON "public_calendar_events"(
 CREATE INDEX "customer_calendar_entries_userId_idx" ON "customer_calendar_entries"("userId");
 
 -- =============================================================================
+-- Additional Tables (collections missed in initial draft)
+-- =============================================================================
+
+-- CreateTable
+CREATE TABLE "tickets" (
+    "id" TEXT NOT NULL,
+    "senderId" TEXT,
+    "senderType" TEXT,
+    "senderName" TEXT,
+    "senderEmail" TEXT,
+    "subject" TEXT,
+    "message" TEXT,
+    "status" TEXT,
+    "priority" TEXT,
+    "accountTier" TEXT,
+    "prioritySource" TEXT,
+    "assignedTo" TEXT,
+    "lastReplyAt" TEXT,
+    "lastReplyBy" TEXT,
+    "responses" JSONB,
+    "createdAt" TEXT,
+    "updatedAt" TEXT,
+
+    CONSTRAINT "tickets_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "shortlists" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "supplierIds" TEXT[],
+    "createdAt" TEXT,
+    "updatedAt" TEXT,
+
+    CONSTRAINT "shortlists_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "enquiries" (
+    "id" TEXT NOT NULL,
+    "supplierId" TEXT,
+    "supplierName" TEXT,
+    "senderName" TEXT,
+    "senderEmail" TEXT,
+    "message" TEXT,
+    "status" TEXT,
+    "createdAt" TEXT,
+
+    CONSTRAINT "enquiries_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "contact_enquiries" (
+    "id" TEXT NOT NULL,
+    "senderType" TEXT,
+    "senderName" TEXT,
+    "senderEmail" TEXT,
+    "subject" TEXT,
+    "message" TEXT,
+    "status" TEXT,
+    "responses" JSONB,
+    "createdAt" TEXT,
+    "updatedAt" TEXT,
+
+    CONSTRAINT "contact_enquiries_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "quote_requests" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT,
+    "name" TEXT,
+    "email" TEXT,
+    "phone" TEXT,
+    "eventType" TEXT,
+    "eventDate" TEXT,
+    "location" TEXT,
+    "budget" TEXT,
+    "notes" TEXT,
+    "suppliers" JSONB,
+    "status" TEXT,
+    "createdAt" TEXT,
+    "updatedAt" TEXT,
+
+    CONSTRAINT "quote_requests_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "referrals" (
+    "id" TEXT NOT NULL,
+    "referrerId" TEXT,
+    "referredUserId" TEXT,
+    "referralCode" TEXT,
+    "status" TEXT,
+    "createdAt" TEXT,
+    "updatedAt" TEXT,
+
+    CONSTRAINT "referrals_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "saved_searches" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT,
+    "name" TEXT,
+    "description" TEXT,
+    "criteria" JSONB,
+    "notificationsEnabled" BOOLEAN NOT NULL DEFAULT false,
+    "useCount" INTEGER NOT NULL DEFAULT 0,
+    "lastUsedAt" TEXT,
+    "createdAt" TEXT,
+
+    CONSTRAINT "saved_searches_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "saved_items" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT,
+    "itemId" TEXT,
+    "itemType" TEXT,
+    "data" JSONB,
+    "createdAt" TEXT,
+
+    CONSTRAINT "saved_items_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "newsletter_subscribers" (
+    "id" TEXT NOT NULL,
+    "email" TEXT NOT NULL,
+    "status" TEXT,
+    "source" TEXT,
+    "createdAt" TEXT,
+    "updatedAt" TEXT,
+
+    CONSTRAINT "newsletter_subscribers_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "partner_cashout_orders" (
+    "id" TEXT NOT NULL,
+    "partnerId" TEXT,
+    "partnerUserId" TEXT,
+    "externalRef" TEXT,
+    "debitTxnId" TEXT,
+    "pointsDebited" INTEGER,
+    "valueGbp" DOUBLE PRECISION,
+    "currency" TEXT,
+    "productId" TEXT,
+    "recipientName" TEXT,
+    "status" TEXT,
+    "apiResponse" JSONB,
+    "createdAt" TEXT,
+    "updatedAt" TEXT,
+
+    CONSTRAINT "partner_cashout_orders_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "partner_cashout_requests" (
+    "id" TEXT NOT NULL,
+    "partnerId" TEXT,
+    "partnerUserId" TEXT,
+    "method" TEXT,
+    "denominationGbp" INTEGER,
+    "pointsHeld" INTEGER,
+    "pointsPerGbpSnapshot" INTEGER,
+    "status" TEXT,
+    "partnerMessage" TEXT,
+    "adminResponseMessage" TEXT,
+    "data" JSONB,
+    "createdAt" TEXT,
+    "updatedAt" TEXT,
+
+    CONSTRAINT "partner_cashout_requests_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "partner_code_history" (
+    "id" TEXT NOT NULL,
+    "partnerId" TEXT,
+    "refCode" TEXT,
+    "reason" TEXT,
+    "changedBy" TEXT,
+    "createdAt" TEXT,
+
+    CONSTRAINT "partner_code_history_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "photos" (
+    "id" TEXT NOT NULL,
+    "url" TEXT,
+    "thumbnail" TEXT,
+    "large" TEXT,
+    "original" TEXT,
+    "entityType" TEXT,
+    "entityId" TEXT,
+    "approved" BOOLEAN NOT NULL DEFAULT true,
+    "uploadedBy" TEXT,
+    "metadata" JSONB,
+    "uploadedAt" TEXT,
+
+    CONSTRAINT "photos_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "public_calendar_saves" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT,
+    "eventId" TEXT,
+    "createdAt" TEXT,
+
+    CONSTRAINT "public_calendar_saves_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "analytics_events" (
+    "id" TEXT NOT NULL,
+    "eventType" TEXT,
+    "userId" TEXT,
+    "supplierId" TEXT,
+    "data" JSONB,
+    "createdAt" TEXT,
+
+    CONSTRAINT "analytics_events_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "faq_votes" (
+    "id" TEXT NOT NULL,
+    "faqId" TEXT,
+    "userId" TEXT,
+    "voteType" TEXT,
+    "createdAt" TEXT,
+
+    CONSTRAINT "faq_votes_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "marketplace_saved_items" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT,
+    "listingId" TEXT,
+    "createdAt" TEXT,
+
+    CONSTRAINT "marketplace_saved_items_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "settings" (
+    "id" TEXT NOT NULL,
+    "data" JSONB NOT NULL,
+    "updatedAt" TEXT,
+
+    CONSTRAINT "settings_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "content" (
+    "id" TEXT NOT NULL,
+    "key" TEXT NOT NULL,
+    "type" TEXT,
+    "body" JSONB,
+    "createdAt" TEXT,
+    "updatedAt" TEXT,
+
+    CONSTRAINT "content_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "bookings" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT,
+    "supplierId" TEXT,
+    "packageId" TEXT,
+    "status" TEXT,
+    "eventDate" TEXT,
+    "details" JSONB,
+    "createdAt" TEXT,
+    "updatedAt" TEXT,
+
+    CONSTRAINT "bookings_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "popular_searches" (
+    "id" TEXT NOT NULL,
+    "query" TEXT NOT NULL,
+    "count" INTEGER NOT NULL DEFAULT 0,
+    "updatedAt" TEXT,
+
+    CONSTRAINT "popular_searches_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "system_checks" (
+    "id" TEXT NOT NULL,
+    "status" TEXT,
+    "results" JSONB,
+    "triggeredBy" TEXT,
+    "startedAt" TEXT,
+    "completedAt" TEXT,
+    "createdAt" TEXT,
+
+    CONSTRAINT "system_checks_pkey" PRIMARY KEY ("id")
+);
+
+-- Unique indexes for new tables
+CREATE UNIQUE INDEX "shortlists_userId_key" ON "shortlists"("userId");
+CREATE UNIQUE INDEX "newsletter_subscribers_email_key" ON "newsletter_subscribers"("email");
+CREATE UNIQUE INDEX "public_calendar_saves_userId_eventId_key" ON "public_calendar_saves"("userId", "eventId");
+CREATE UNIQUE INDEX "marketplace_saved_items_userId_listingId_key" ON "marketplace_saved_items"("userId", "listingId");
+CREATE UNIQUE INDEX "content_key_key" ON "content"("key");
+CREATE UNIQUE INDEX "popular_searches_query_key" ON "popular_searches"("query");
+
+-- Performance indexes for new tables
+CREATE INDEX "tickets_senderId_idx" ON "tickets"("senderId");
+CREATE INDEX "tickets_status_idx" ON "tickets"("status");
+CREATE INDEX "tickets_createdAt_idx" ON "tickets"("createdAt");
+CREATE INDEX "enquiries_supplierId_idx" ON "enquiries"("supplierId");
+CREATE INDEX "enquiries_senderEmail_idx" ON "enquiries"("senderEmail");
+CREATE INDEX "contact_enquiries_senderEmail_idx" ON "contact_enquiries"("senderEmail");
+CREATE INDEX "contact_enquiries_status_idx" ON "contact_enquiries"("status");
+CREATE INDEX "quote_requests_userId_idx" ON "quote_requests"("userId");
+CREATE INDEX "saved_searches_userId_idx" ON "saved_searches"("userId");
+CREATE INDEX "saved_items_userId_idx" ON "saved_items"("userId");
+CREATE INDEX "partner_cashout_orders_partnerId_idx" ON "partner_cashout_orders"("partnerId");
+CREATE INDEX "partner_cashout_requests_partnerId_idx" ON "partner_cashout_requests"("partnerId");
+CREATE INDEX "partner_code_history_partnerId_idx" ON "partner_code_history"("partnerId");
+CREATE INDEX "photos_entityType_entityId_idx" ON "photos"("entityType", "entityId");
+CREATE INDEX "analytics_events_supplierId_idx" ON "analytics_events"("supplierId");
+CREATE INDEX "analytics_events_createdAt_idx" ON "analytics_events"("createdAt");
+CREATE INDEX "bookings_userId_idx" ON "bookings"("userId");
+CREATE INDEX "bookings_supplierId_idx" ON "bookings"("supplierId");
+CREATE INDEX "system_checks_startedAt_idx" ON "system_checks"("startedAt");
+
+-- =============================================================================
 -- Foreign Keys
 -- =============================================================================
 
