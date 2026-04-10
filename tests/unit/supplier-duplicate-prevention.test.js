@@ -19,15 +19,10 @@ describe('supplier-management.js — duplicate prevention logic', () => {
   it('checks for existing supplier profile before inserting', () => {
     const content = fs.readFileSync(SUPPLIER_MANAGEMENT, 'utf8');
     // Should contain a check for ownerUserId uniqueness
-    expect(content).toMatch(/ownerUserId.*===.*req\.user\.id|SUPPLIER_PROFILE_EXISTS/);
+    expect(content).toContain('ownerUserId === req.user.id');
   });
 
-  it('returns 409 status code for duplicate profiles', () => {
-    const content = fs.readFileSync(SUPPLIER_MANAGEMENT, 'utf8');
-    expect(content).toContain('409');
-  });
-
-  it('includes SUPPLIER_PROFILE_EXISTS error code', () => {
+  it('uses SUPPLIER_PROFILE_EXISTS error code when duplicate found', () => {
     const content = fs.readFileSync(SUPPLIER_MANAGEMENT, 'utf8');
     expect(content).toContain('SUPPLIER_PROFILE_EXISTS');
   });

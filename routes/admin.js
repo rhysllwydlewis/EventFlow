@@ -812,7 +812,7 @@ router.post(
       // Write audit log entry
       try {
         await dbUnified.insertOne('audit_log', {
-          id: require('../store').uid('audit'),
+          id: uid('audit'),
           action: 'supplier_duplicate_cleanup',
           ownerUserId,
           keptSupplierId: keepProfile.id,

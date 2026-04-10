@@ -231,7 +231,7 @@ router.post(
       .map(x => x.trim())
       .filter(Boolean);
 
-    const allUsers = await dbUnified.read('users');
+    const ownerUser = await dbUnified.findOne('users', { id: req.user.id });
     const s = {
       id: uid('sup'),
       ownerUserId: req.user.id,
@@ -246,7 +246,7 @@ router.post(
       description_short: String(b.description_short || '').slice(0, 220),
       description_long: String(b.description_long || '').slice(0, 2000),
       photosGallery: [],
-      email: (allUsers.find(u => u.id === req.user.id) || {}).email || '',
+      email: ownerUser?.email || '',
       approved: false,
     };
 

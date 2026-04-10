@@ -16,6 +16,7 @@ let requireVerifiedUser;
 let csrfProtection;
 let featureRequired;
 let photoUpload;
+let writeLimiter;
 
 /**
  * Initialize dependencies from server.js
@@ -34,6 +35,7 @@ function initializeDependencies(deps) {
     'csrfProtection',
     'featureRequired',
     'photoUpload',
+    'writeLimiter',
   ];
 
   const missing = required.filter(key => deps[key] === undefined);
@@ -47,6 +49,7 @@ function initializeDependencies(deps) {
   csrfProtection = deps.csrfProtection;
   featureRequired = deps.featureRequired;
   photoUpload = deps.photoUpload;
+  writeLimiter = deps.writeLimiter;
 }
 
 /**
@@ -83,6 +86,13 @@ function applyRequireVerifiedUser(req, res, next) {
     return res.status(503).json({ error: 'Verification service not initialized' });
   }
   return requireVerifiedUser(req, res, next);
+}
+
+function applyWriteLimiter(req, res, next) {
+  if (!writeLimiter) {
+    return res.status(503).json({ error: 'Rate limiter not initialized' });
+  }
+  return writeLimiter(req, res, next);
 }
 
 /**
@@ -199,6 +209,7 @@ router.post(
  */
 router.delete(
   '/:id/photos/:photoId',
+  applyWriteLimiter,
   applyAuthRequired,
   applyRequireVerifiedUser,
   applyCsrfProtection,
