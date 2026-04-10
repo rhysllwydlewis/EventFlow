@@ -386,11 +386,11 @@
 
         if (user) {
           if (user.role === 'admin') {
-            redirectUrl = '/admin';
+            redirectUrl = '/admin.html';
           } else if (user.role === 'supplier') {
-            redirectUrl = '/dashboard/supplier';
+            redirectUrl = '/dashboard-supplier.html';
           } else {
-            redirectUrl = '/dashboard/customer';
+            redirectUrl = '/dashboard-customer.html';
           }
         }
 

@@ -14,6 +14,7 @@ const router = express.Router();
 let dbUnified;
 let authRequired;
 let roleRequired;
+let requireVerifiedUser;
 let csrfProtection;
 let writeLimiter;
 let uid;
@@ -34,6 +35,7 @@ function initializeDependencies(deps) {
     'dbUnified',
     'authRequired',
     'roleRequired',
+    'requireVerifiedUser',
     'csrfProtection',
     'writeLimiter',
     'uid',
@@ -51,6 +53,7 @@ function initializeDependencies(deps) {
   dbUnified = deps.dbUnified;
   authRequired = deps.authRequired;
   roleRequired = deps.roleRequired;
+  requireVerifiedUser = deps.requireVerifiedUser;
   csrfProtection = deps.csrfProtection;
   writeLimiter = deps.writeLimiter;
   uid = deps.uid;
@@ -92,6 +95,13 @@ function applyWriteLimiter(req, res, next) {
     return res.status(503).json({ error: 'Rate limiter not initialized' });
   }
   return writeLimiter(req, res, next);
+}
+
+function applyRequireVerifiedUser(req, res, next) {
+  if (!requireVerifiedUser) {
+    return res.status(503).json({ error: 'Verification service not initialized' });
+  }
+  return requireVerifiedUser(req, res, next);
 }
 
 /**
@@ -171,18 +181,36 @@ router.post(
 
 /**
  * POST /api/me/suppliers
- * Create a new supplier
+ * Create a new supplier profile (strictly 1:1 with user account)
  */
 router.post(
   '/',
   applyWriteLimiter,
   applyAuthRequired,
   applyRoleRequired('supplier'),
+  applyRequireVerifiedUser,
   applyCsrfProtection,
   async (req, res) => {
     const b = req.body || {};
     if (!b.name || !b.category) {
       return res.status(400).json({ error: 'Missing fields' });
+    }
+
+    // Enforce 1:1 relationship: one supplier profile per user account
+    const existingSuppliers = await dbUnified.read('suppliers');
+    const existing = existingSuppliers.find(s => s.ownerUserId === req.user.id);
+    if (existing) {
+      logger.warn('Duplicate supplier profile creation prevented', {
+        userId: req.user.id,
+        existingSupplierId: existing.id,
+      });
+      return res.status(409).json({
+        error: 'Supplier profile already exists',
+        code: 'SUPPLIER_PROFILE_EXISTS',
+        supplierId: existing.id,
+        message:
+          'You already have a supplier profile. Each account can only have one supplier profile.',
+      });
     }
 
     // For Venues category, validate and require venuePostcode
@@ -203,6 +231,7 @@ router.post(
       .map(x => x.trim())
       .filter(Boolean);
 
+    const allUsers = await dbUnified.read('users');
     const s = {
       id: uid('sup'),
       ownerUserId: req.user.id,
@@ -217,7 +246,7 @@ router.post(
       description_short: String(b.description_short || '').slice(0, 220),
       description_long: String(b.description_long || '').slice(0, 2000),
       photosGallery: [],
-      email: ((await dbUnified.read('users')).find(u => u.id === req.user.id) || {}).email || '',
+      email: (allUsers.find(u => u.id === req.user.id) || {}).email || '',
       approved: false,
     };
 
@@ -243,6 +272,7 @@ router.post(
     }
 
     await dbUnified.insertOne('suppliers', s);
+    logger.info('Supplier profile created', { supplierId: s.id, userId: req.user.id });
     res.json({ ok: true, supplier: s });
   }
 );
@@ -256,6 +286,7 @@ router.patch(
   applyWriteLimiter,
   applyAuthRequired,
   applyRoleRequired('supplier'),
+  applyRequireVerifiedUser,
   applyCsrfProtection,
   async (req, res) => {
     const all = await dbUnified.read('suppliers');

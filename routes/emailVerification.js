@@ -63,7 +63,7 @@ router.post('/send-verification', resendEmailLimiter, authRequired, async (req, 
 
     // Send verification email
     const baseUrl = process.env.BASE_URL || 'https://event-flow.co.uk';
-    const verificationLink = `${baseUrl}/verify-email?token=${token}`;
+    const verificationLink = `${baseUrl}/verify?token=${token}`;
 
     try {
       await postmark.sendMail({

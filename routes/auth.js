@@ -823,31 +823,59 @@ router.get('/verify', async (req, res) => {
     });
   }
 
-  // Handle legacy tokens
+  // Handle legacy tokens (verificationToken field or emailVerificationToken field)
   logger.info('Processing legacy verification token');
   const legacyUsers = await dbUnified.read('users');
-  const legacyIdx = legacyUsers.findIndex(u => u.verificationToken === token);
+
+  // Check both legacy token fields for backward compatibility
+  let legacyIdx = legacyUsers.findIndex(u => u.verificationToken === token);
+  let tokenField = 'verificationToken';
+  let expiresField = 'verificationTokenExpiresAt';
 
   if (legacyIdx === -1) {
-    logger.error('Verification failed: Invalid token');
-    return res.status(400).json({ error: 'Invalid or expired token' });
-  }
-
-  const legacyUser = legacyUsers[legacyIdx];
-  logger.debug('Found user for legacy verification');
-
-  // Check if token has expired
-  if (legacyUser.verificationTokenExpiresAt) {
-    const expiresAt = new Date(legacyUser.verificationTokenExpiresAt);
-    if (expiresAt < new Date()) {
-      logger.error('Verification failed: Token expired');
-      return res
-        .status(400)
-        .json({ error: 'Verification token has expired. Please request a new one.' });
+    // Also check the emailVerificationToken field used by emailVerification.js
+    legacyIdx = legacyUsers.findIndex(u => u.emailVerificationToken === token);
+    if (legacyIdx !== -1) {
+      tokenField = 'emailVerificationToken';
+      expiresField = 'emailVerificationExpires';
+      logger.info('Matched token via emailVerificationToken field');
     }
   }
 
-  // Mark user as verified and clear token
+  if (legacyIdx === -1) {
+    logger.error('Verification failed: Invalid token');
+    return res.status(400).json({ error: 'Invalid or expired token', code: 'INVALID_TOKEN' });
+  }
+
+  const legacyUser = legacyUsers[legacyIdx];
+  logger.debug('Found user for legacy verification', { tokenField });
+
+  // Check if already verified
+  if (legacyUser.verified === true) {
+    logger.info('User already verified (legacy path)');
+    return res.json({
+      ok: true,
+      message: 'Email already verified',
+      alreadyVerified: true,
+    });
+  }
+
+  // Check if token has expired
+  if (legacyUser[expiresField]) {
+    const expiresAt = new Date(legacyUser[expiresField]);
+    if (expiresAt < new Date()) {
+      logger.error('Verification failed: Token expired', { tokenField });
+      return res
+        .status(400)
+        .json({
+          error: 'Verification token has expired. Please request a new one.',
+          code: 'TOKEN_EXPIRED',
+          canResend: true,
+        });
+    }
+  }
+
+  // Mark user as verified and clear all legacy token fields
   const legacyVerifyUpdates = {
     verified: true,
     verifiedAt: new Date().toISOString(),
@@ -865,10 +893,15 @@ router.get('/verify', async (req, res) => {
     { id: legacyUser.id },
     {
       $set: legacyVerifyUpdates,
-      $unset: { verificationToken: '', verificationTokenExpiresAt: '' },
+      $unset: {
+        verificationToken: '',
+        verificationTokenExpiresAt: '',
+        emailVerificationToken: '',
+        emailVerificationExpires: '',
+      },
     }
   );
-  logger.info('User verified successfully (legacy)');
+  logger.info('User verified successfully (legacy)', { tokenField });
 
   // Send welcome email after successful verification (non-blocking)
   (async () => {
@@ -882,7 +915,15 @@ router.get('/verify', async (req, res) => {
     }
   })();
 
-  res.json({ ok: true, message: 'Email verified successfully' });
+  res.json({
+    ok: true,
+    message: 'Email verified successfully',
+    user: {
+      id: legacyUser.id,
+      email: legacyUser.email,
+      name: legacyUser.name,
+    },
+  });
 });
 
 /**
@@ -1240,6 +1281,8 @@ router.get('/me', async (req, res) => {
           lastName: u.lastName,
           email: u.email,
           role: u.role,
+          verified: u.verified === true,
+          emailVerified: u.verified === true || u.emailVerified === true,
           location: u.location,
           postcode: u.postcode,
           company: u.company,

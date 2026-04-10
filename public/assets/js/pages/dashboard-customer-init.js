@@ -176,6 +176,11 @@ async function initDashboard() {
   // Check for guest plan token and claim it
   await claimGuestPlanIfExists();
 
+  // Show email verification banner if user is not yet verified
+  if (!user.verified && !user.emailVerified) {
+    showCustomerEmailVerificationBanner(user.email);
+  }
+
   // Load all dashboard components IN PARALLEL
   // Fetch /api/me/plans once and share the result to avoid duplicate requests
   let sharedPlans;
@@ -686,6 +691,75 @@ async function ensureCsrfToken() {
     /* network error — fall back to cookie/meta if available */
   }
   return getCsrfToken();
+}
+
+/**
+ * Show a persistent email-verification reminder banner at the top of the customer dashboard.
+ * Includes a "Resend" link that fires the resend API and shows inline feedback.
+ * @param {string} email - The user's email address
+ */
+async function showCustomerEmailVerificationBanner(email) {
+  if (document.getElementById('email-verify-banner')) {
+    return;
+  }
+
+  const csrfToken = await ensureCsrfToken();
+
+  const banner = document.createElement('div');
+  banner.id = 'email-verify-banner';
+  banner.setAttribute('role', 'alert');
+  banner.style.cssText =
+    'background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:0.75rem 1rem;' +
+    'margin-bottom:1rem;display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;font-size:0.875rem;';
+
+  const msg = document.createElement('span');
+  msg.textContent =
+    '⚠️ Please verify your email address to unlock all features. Check your inbox for a verification link.';
+  msg.style.flex = '1';
+
+  const resendBtn = document.createElement('button');
+  resendBtn.type = 'button';
+  resendBtn.textContent = 'Resend email';
+  resendBtn.style.cssText =
+    'background:none;border:1px solid #d97706;border-radius:6px;padding:0.25rem 0.75rem;' +
+    'cursor:pointer;color:#92400e;font-size:0.8rem;white-space:nowrap;';
+
+  resendBtn.addEventListener('click', async () => {
+    resendBtn.disabled = true;
+    resendBtn.textContent = 'Sending…';
+    try {
+      const token = csrfToken || (await ensureCsrfToken());
+      const resp = await fetch('/api/v1/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token },
+        credentials: 'include',
+        body: JSON.stringify({ email }),
+      });
+      if (resp.ok) {
+        msg.textContent = '✓ Verification email sent! Please check your inbox.';
+        resendBtn.remove();
+      } else {
+        resendBtn.disabled = false;
+        resendBtn.textContent = 'Resend email';
+        msg.textContent = '⚠️ Could not resend verification email. Please try again.';
+      }
+    } catch (err) {
+      resendBtn.disabled = false;
+      resendBtn.textContent = 'Resend email';
+    }
+  });
+
+  banner.appendChild(msg);
+  banner.appendChild(resendBtn);
+
+  const firstSection =
+    document.querySelector('main > *:first-child, .cd-section, .dashboard-hero') ||
+    document.body.firstElementChild;
+  if (firstSection && firstSection.parentNode) {
+    firstSection.parentNode.insertBefore(banner, firstSection);
+  } else {
+    document.body.insertBefore(banner, document.body.firstChild);
+  }
 }
 
 // Single initialization call - use readyState check for reliability

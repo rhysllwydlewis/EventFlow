@@ -70,6 +70,7 @@ const { notFoundHandler, errorHandler } = require('./middleware/errorHandler');
 const {
   authRequired,
   roleRequired,
+  requireVerifiedUser,
   getUserFromCookie,
   userExtractionMiddleware,
 } = require('./middleware/auth');
@@ -985,6 +986,7 @@ mountRoutes(app, {
   // Authentication & authorization middleware
   authRequired,
   roleRequired,
+  requireVerifiedUser,
   getUserFromCookie,
   featureRequired,
 
