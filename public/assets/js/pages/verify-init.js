@@ -361,9 +361,11 @@
           `;
         }
       } else {
-        // Handle verification success
+        // Handle verification success (or already-verified)
+        const isAlreadyVerified = data.alreadyVerified === true;
+
         if (headingEl) {
-          headingEl.textContent = 'Email Verified!';
+          headingEl.textContent = isAlreadyVerified ? 'Already Verified' : 'Email Verified!';
         }
         if (iconEl) {
           iconEl.textContent = '✓';
@@ -371,7 +373,12 @@
         }
 
         if (statusEl) {
-          statusEl.innerHTML = `
+          statusEl.innerHTML = isAlreadyVerified
+            ? `
+            <p><strong>Your email is already verified.</strong> You can proceed to your dashboard.</p>
+            <p class="small verify-status__redirect">Redirecting you in a few seconds...</p>
+          `
+            : `
             <p><strong>Success!</strong> Your email address has been verified.</p>
             <p class="small verify-status__note">
               ${data.withinGracePeriod ? '⚠️ Note: Your verification link had expired, but we accepted it within the grace period.' : ''}
@@ -407,8 +414,8 @@
           window.location.href = redirectUrl;
         }, 3000);
 
-        // Optional: Show confetti celebration if available
-        if (typeof efConfetti === 'function') {
+        // Show confetti only for fresh verifications (not already-verified redirects)
+        if (!isAlreadyVerified && typeof efConfetti === 'function') {
           setTimeout(efConfetti, 300);
         }
       }

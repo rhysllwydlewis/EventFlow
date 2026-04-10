@@ -40,6 +40,33 @@ describe('supplier-management.js — duplicate prevention logic', () => {
   });
 });
 
+describe('packages.js — verification gating', () => {
+  const PACKAGES_ROUTES = path.join(__dirname, '../../routes/packages.js');
+
+  it('requires verified user for package creation (POST /me/packages)', () => {
+    const content = fs.readFileSync(PACKAGES_ROUTES, 'utf8');
+    // Find the POST /me/packages route and check for applyRequireVerifiedUser
+    const postSection = content.slice(content.indexOf("'/me/packages',\n  applyWriteLimiter"));
+    expect(postSection.slice(0, 300)).toContain('applyRequireVerifiedUser');
+  });
+
+  it('requires verified user for package update (PUT /me/packages/:id)', () => {
+    const content = fs.readFileSync(PACKAGES_ROUTES, 'utf8');
+    // Find PUT route via its preceding JSDoc comment
+    const putIdx = content.indexOf('PUT /api/me/packages/:id\n * Update a package');
+    const putSection = content.slice(putIdx, putIdx + 400);
+    expect(putSection).toContain('applyRequireVerifiedUser');
+  });
+
+  it('requires verified user for package deletion (DELETE /me/packages/:id)', () => {
+    const content = fs.readFileSync(PACKAGES_ROUTES, 'utf8');
+    // Find the DELETE route block
+    const deleteIdx = content.indexOf('DELETE /api/me/packages/:id');
+    const deleteSection = content.slice(deleteIdx, deleteIdx + 400);
+    expect(deleteSection).toContain('applyRequireVerifiedUser');
+  });
+});
+
 describe('admin.js — duplicate detection endpoints', () => {
   it('has GET /suppliers/duplicates endpoint', () => {
     const content = fs.readFileSync(ADMIN_ROUTES, 'utf8');
