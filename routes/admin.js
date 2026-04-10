@@ -772,9 +772,9 @@ router.post(
         }
       } else {
         keepProfile = group.reduce((best, s) => {
-          const bestDate = best.updatedAt || best.createdAt || '';
-          const sDate = s.updatedAt || s.createdAt || '';
-          return sDate > bestDate ? s : best;
+          const bestTs = new Date(best.updatedAt || best.createdAt || 0).getTime();
+          const sTs = new Date(s.updatedAt || s.createdAt || 0).getTime();
+          return sTs > bestTs ? s : best;
         });
       }
 

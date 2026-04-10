@@ -70,7 +70,12 @@ function showUrgentAlert(message, type = 'warning') {
  * Show a persistent email-verification reminder banner at the top of the dashboard.
  * Includes a "Resend" link that fires the resend API and shows inline feedback.
  */
-function showEmailVerificationBanner() {
+/**
+ * Show a persistent email-verification reminder banner at the top of the dashboard.
+ * Includes a "Resend" link that fires the resend API and shows inline feedback.
+ * @param {string} [userEmail] - The user's email address (avoids extra /me API call)
+ */
+function showEmailVerificationBanner(userEmail) {
   // Avoid duplicate banners
   if (document.getElementById('email-verify-banner')) {
     return;
@@ -110,10 +115,14 @@ function showEmailVerificationBanner() {
           }
         }
       }
-      // Get user email from /me endpoint
-      const meResp = await fetch('/api/v1/auth/me', { credentials: 'include' });
-      const meData = meResp.ok ? await meResp.json() : {};
-      const email = meData.user?.email || '';
+
+      // Use provided email; fall back to a /me call only if not available
+      let email = userEmail;
+      if (!email) {
+        const meResp = await fetch('/api/v1/auth/me', { credentials: 'include' });
+        const meData = meResp.ok ? await meResp.json() : {};
+        email = meData.user?.email || '';
+      }
       if (!email) {
         throw new Error('No email found');
       }
@@ -474,12 +483,14 @@ async function initSupplierDashboardWidgets() {
 
     // Check email verification status
     let emailVerified = false;
+    let userEmail = '';
 
     try {
       const userResponse = await fetch('/api/v1/auth/me', { credentials: 'include' });
       if (userResponse.ok) {
         const userData = await userResponse.json();
         emailVerified = userData.user?.emailVerified || userData.user?.verified || false;
+        userEmail = userData.user?.email || '';
       }
     } catch (err) {
       console.error('Error checking email verification:', err);
@@ -487,7 +498,7 @@ async function initSupplierDashboardWidgets() {
 
     // Show email verification banner if user is not yet verified
     if (!emailVerified) {
-      showEmailVerificationBanner();
+      showEmailVerificationBanner(userEmail);
     }
 
     // Show the most important urgent alert based on summary data

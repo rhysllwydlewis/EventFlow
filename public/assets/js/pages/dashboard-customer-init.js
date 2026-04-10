@@ -728,7 +728,7 @@ async function showCustomerEmailVerificationBanner(email) {
     resendBtn.disabled = true;
     resendBtn.textContent = 'Sending…';
     try {
-      const token = csrfToken || (await ensureCsrfToken());
+      const token = csrfToken || getCsrfToken();
       const resp = await fetch('/api/v1/auth/resend-verification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token },
