@@ -15,6 +15,7 @@ const router = express.Router();
 let dbUnified;
 let authRequired;
 let roleRequired;
+let requireVerifiedUser;
 let featureRequired;
 let csrfProtection;
 let reviewsSystem;
@@ -33,6 +34,7 @@ function initializeDependencies(deps) {
     'dbUnified',
     'authRequired',
     'roleRequired',
+    'requireVerifiedUser',
     'featureRequired',
     'csrfProtection',
     'reviewsSystem',
@@ -46,6 +48,7 @@ function initializeDependencies(deps) {
   dbUnified = deps.dbUnified;
   authRequired = deps.authRequired;
   roleRequired = deps.roleRequired;
+  requireVerifiedUser = deps.requireVerifiedUser;
   featureRequired = deps.featureRequired;
   csrfProtection = deps.csrfProtection;
   reviewsSystem = deps.reviewsSystem;
@@ -62,6 +65,13 @@ function applyAuthRequired(req, res, next) {
     return res.status(503).json({ error: 'Auth service not initialized' });
   }
   return authRequired(req, res, next);
+}
+
+function applyRequireVerifiedUser(req, res, next) {
+  if (!requireVerifiedUser) {
+    return res.status(503).json({ error: 'Verification service not initialized' });
+  }
+  return requireVerifiedUser(req, res, next);
 }
 
 function applyRoleRequired(role) {
@@ -140,6 +150,7 @@ router.post(
   '/suppliers/:supplierId/reviews',
   applyFeatureRequired('reviews'),
   applyAuthRequired,
+  applyRequireVerifiedUser,
   applyCsrfProtection,
   async (req, res) => {
     try {
@@ -223,6 +234,7 @@ router.post(
   '/reviews',
   applyFeatureRequired('reviews'),
   applyAuthRequired,
+  applyRequireVerifiedUser,
   applyCsrfProtection,
   async (req, res) => {
     try {

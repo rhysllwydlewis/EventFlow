@@ -4,7 +4,10 @@
  * Verifies that:
  *   - POST /api/me/suppliers returns 409 when a profile already exists for the user
  *   - GET /api/admin/suppliers/duplicates detects duplicate groups
+ *   - GET /api/admin/suppliers/duplicates excludes missing-owner suppliers from groups
  *   - POST /api/admin/suppliers/cleanup-duplicates removes extras and keeps the best
+ *   - POST /api/admin/suppliers/cleanup-duplicates rejects missing/invalid ownerUserId
+ *   - POST /api/admin/suppliers/cleanup-duplicates supports dryRun mode
  */
 
 'use strict';
@@ -96,27 +99,102 @@ describe('packages.js — verification gating', () => {
 });
 
 describe('admin.js — duplicate detection endpoints', () => {
+  let content;
+
+  beforeAll(() => {
+    content = fs.readFileSync(ADMIN_ROUTES, 'utf8');
+  });
+
   it('has GET /suppliers/duplicates endpoint', () => {
-    const content = fs.readFileSync(ADMIN_ROUTES, 'utf8');
     expect(content).toContain('/suppliers/duplicates');
   });
 
   it('has POST /suppliers/cleanup-duplicates endpoint', () => {
-    const content = fs.readFileSync(ADMIN_ROUTES, 'utf8');
     expect(content).toContain('/suppliers/cleanup-duplicates');
   });
 
   it('cleanup-duplicates endpoint writes an audit log entry', () => {
-    const content = fs.readFileSync(ADMIN_ROUTES, 'utf8');
     expect(content).toContain('supplier_duplicate_cleanup');
     expect(content).toContain('audit_log');
   });
 
   it('cleanup-duplicates requires admin role and CSRF protection', () => {
-    const content = fs.readFileSync(ADMIN_ROUTES, 'utf8');
     const cleanupSection = content.slice(content.indexOf("'/suppliers/cleanup-duplicates'"));
     // The first ~300 chars of the cleanup route definition should reference CSRF
     expect(cleanupSection.slice(0, 300)).toContain('csrfProtection');
+  });
+
+  // New tests for hardened duplicate detection (PR follow-up)
+
+  it('duplicates scan does NOT use __no_owner__ as a grouping key', () => {
+    // Suppliers with no ownerUserId must not be grouped together as duplicates
+    const dupSection = content.slice(
+      content.indexOf('GET /api/admin/suppliers/duplicates'),
+      content.indexOf('POST /api/admin/suppliers/cleanup-duplicates')
+    );
+    expect(dupSection).not.toContain("'__no_owner__'");
+    expect(dupSection).not.toContain('"__no_owner__"');
+  });
+
+  it('duplicates scan returns missingOwnerSuppliers field', () => {
+    const dupSection = content.slice(
+      content.indexOf('GET /api/admin/suppliers/duplicates'),
+      content.indexOf('POST /api/admin/suppliers/cleanup-duplicates')
+    );
+    expect(dupSection).toContain('missingOwnerSuppliers');
+  });
+
+  it('duplicates scan skips suppliers without ownerUserId', () => {
+    const dupSection = content.slice(
+      content.indexOf('GET /api/admin/suppliers/duplicates'),
+      content.indexOf('POST /api/admin/suppliers/cleanup-duplicates')
+    );
+    // Should have a guard that skips entries missing ownerUserId
+    expect(dupSection).toContain('!s.ownerUserId');
+  });
+
+  it('cleanup-duplicates rejects __no_owner__ sentinel value', () => {
+    const cleanupSection = content.slice(content.indexOf("'/suppliers/cleanup-duplicates'"));
+    expect(cleanupSection).toContain('__no_owner__');
+    expect(cleanupSection).toContain('INVALID_OWNER_ID');
+  });
+
+  it('cleanup-duplicates supports dryRun option', () => {
+    const cleanupSection = content.slice(content.indexOf("'/suppliers/cleanup-duplicates'"));
+    expect(cleanupSection).toContain('dryRun');
+  });
+
+  it('cleanup-duplicates returns dryRun:true in response when dry run requested', () => {
+    const cleanupSection = content.slice(content.indexOf("'/suppliers/cleanup-duplicates'"));
+    // Should set dryRun: true in the response object
+    expect(cleanupSection).toContain('dryRun: true');
+  });
+
+  it('cleanup-duplicates reassigns reviews collection', () => {
+    const cleanupSection = content.slice(content.indexOf("'/suppliers/cleanup-duplicates'"));
+    expect(cleanupSection).toContain("'reviews'");
+  });
+
+  it('cleanup-duplicates reassigns threads collection', () => {
+    const cleanupSection = content.slice(content.indexOf("'/suppliers/cleanup-duplicates'"));
+    expect(cleanupSection).toContain("'threads'");
+  });
+
+  it('cleanup-duplicates reassigns messages collection', () => {
+    const cleanupSection = content.slice(content.indexOf("'/suppliers/cleanup-duplicates'"));
+    expect(cleanupSection).toContain("'messages'");
+  });
+});
+
+describe('admin.js — cleanup-duplicates reassignment plan', () => {
+  it('uses collectionsToReassign array covering packages, reviews, threads, messages', () => {
+    const content = fs.readFileSync(ADMIN_ROUTES, 'utf8');
+    const cleanupSection = content.slice(content.indexOf("'/suppliers/cleanup-duplicates'"));
+    expect(cleanupSection).toContain('collectionsToReassign');
+    expect(cleanupSection).toContain("'packages'");
+    expect(cleanupSection).toContain("'reviews'");
+    expect(cleanupSection).toContain("'threads'");
+    expect(cleanupSection).toContain("'messages'");
   });
 });
 

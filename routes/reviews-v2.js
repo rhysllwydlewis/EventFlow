@@ -13,7 +13,7 @@ const express = require('express');
 const logger = require('../utils/logger');
 const router = express.Router();
 const reviewService = require('../services/reviewService');
-const { authRequired } = require('../middleware/auth');
+const { authRequired, requireVerifiedUser } = require('../middleware/auth');
 const { csrfProtection } = require('../middleware/csrf');
 const { writeLimiter } = require('../middleware/rateLimits');
 const reviewModeration = require('../middleware/reviewModeration');
@@ -31,45 +31,52 @@ const MIN_DISPUTE_REASON_LENGTH = 20; // Minimum characters for dispute reasons
  * POST /api/v2/reviews/with-verification
  * Body: { supplierId, bookingId, rating, title, text, eventDetails }
  */
-router.post('/with-verification', writeLimiter, authRequired, csrfProtection, async (req, res) => {
-  try {
-    const { supplierId, bookingId, rating, title, text, eventDetails } = req.body;
+router.post(
+  '/with-verification',
+  writeLimiter,
+  authRequired,
+  requireVerifiedUser,
+  csrfProtection,
+  async (req, res) => {
+    try {
+      const { supplierId, bookingId, rating, title, text, eventDetails } = req.body;
 
-    // Validate required fields
-    if (!supplierId || !rating) {
-      return res.status(400).json({
-        error: 'Missing required fields: supplierId and rating are required',
+      // Validate required fields
+      if (!supplierId || !rating) {
+        return res.status(400).json({
+          error: 'Missing required fields: supplierId and rating are required',
+        });
+      }
+
+      const result = await reviewService.createReview(
+        {
+          supplierId,
+          bookingId,
+          rating,
+          title,
+          text,
+          eventDetails,
+        },
+        req.user.id,
+        {
+          ipAddress: req.ip,
+          userAgent: req.get('user-agent'),
+        }
+      );
+
+      res.json({
+        success: true,
+        data: result,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      logger.error('Create review error:', error);
+      res.status(400).json({
+        error: error.message,
       });
     }
-
-    const result = await reviewService.createReview(
-      {
-        supplierId,
-        bookingId,
-        rating,
-        title,
-        text,
-        eventDetails,
-      },
-      req.user.id,
-      {
-        ipAddress: req.ip,
-        userAgent: req.get('user-agent'),
-      }
-    );
-
-    res.json({
-      success: true,
-      data: result,
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    logger.error('Create review error:', error);
-    res.status(400).json({
-      error: error.message,
-    });
   }
-});
+);
 
 /**
  * Get supplier reviews with pagination

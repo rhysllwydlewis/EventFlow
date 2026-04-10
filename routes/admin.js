@@ -682,21 +682,39 @@ router.get(
 
 /**
  * GET /api/admin/suppliers/duplicates
- * Identify duplicate supplier profiles (same ownerUserId)
+ * Identify duplicate supplier profiles (same ownerUserId).
+ * Suppliers that are missing ownerUserId are NOT grouped as duplicates — they are
+ * returned separately in `missingOwnerSuppliers` for admin visibility.
  * Must be declared BEFORE /suppliers/:id to prevent Express wildcard capture.
  */
 router.get('/suppliers/duplicates', authRequired, roleRequired('admin'), async (_req, res) => {
   try {
     const suppliers = await dbUnified.read('suppliers');
 
-    // Group by ownerUserId to find duplicates
+    // Separate suppliers that have no ownerUserId — these must not be grouped
+    // together as "duplicates" since they are unrelated orphaned records.
+    const missingOwnerSuppliers = suppliers
+      .filter(s => !s.ownerUserId)
+      .map(s => ({
+        id: s.id,
+        name: s.name,
+        email: s.email,
+        approved: s.approved,
+        verified: s.verified,
+        createdAt: s.createdAt,
+        updatedAt: s.updatedAt,
+      }));
+
+    // Group only suppliers that have an ownerUserId
     const byOwner = {};
     for (const s of suppliers) {
-      const key = s.ownerUserId || '__no_owner__';
-      if (!byOwner[key]) {
-        byOwner[key] = [];
+      if (!s.ownerUserId) {
+        continue; // skip; reported separately above
       }
-      byOwner[key].push(s);
+      if (!byOwner[s.ownerUserId]) {
+        byOwner[s.ownerUserId] = [];
+      }
+      byOwner[s.ownerUserId].push(s);
     }
 
     const duplicateGroups = Object.entries(byOwner)
@@ -718,6 +736,7 @@ router.get('/suppliers/duplicates', authRequired, roleRequired('admin'), async (
     logger.info('Admin: duplicate supplier scan completed', {
       totalSuppliers: suppliers.length,
       duplicateGroups: duplicateGroups.length,
+      missingOwnerCount: missingOwnerSuppliers.length,
     });
 
     res.json({
@@ -725,6 +744,7 @@ router.get('/suppliers/duplicates', authRequired, roleRequired('admin'), async (
       totalSuppliers: suppliers.length,
       duplicateGroups,
       duplicateCount: duplicateGroups.reduce((sum, g) => sum + g.count - 1, 0),
+      missingOwnerSuppliers,
     });
   } catch (error) {
     logger.error('Error scanning for duplicate suppliers:', error);
@@ -736,7 +756,17 @@ router.get('/suppliers/duplicates', authRequired, roleRequired('admin'), async (
  * POST /api/admin/suppliers/cleanup-duplicates
  * Clean up duplicate supplier profiles for a given ownerUserId.
  * Strategy: keep the most recently updated profile; delete the rest.
- * Reassigns packages, photos, and analytics references before deleting.
+ * Reassigns packages, reviews, threads, and messages references before deleting.
+ *
+ * Body params:
+ *   ownerUserId {string} — required; must be a real user ID (not empty / __no_owner__)
+ *   keepId      {string} — optional; which supplier profile to retain
+ *   dryRun      {boolean} — optional (default false); when true returns planned actions
+ *                           without mutating the database
+ *
+ * Collections reassigned: packages, reviews, threads, messages
+ * Collections NOT reassigned (embedded/derived): analytics view counts, featured flags
+ * (these are aggregated metrics and do not reference supplierId as a FK).
  */
 router.post(
   '/suppliers/cleanup-duplicates',
@@ -744,10 +774,18 @@ router.post(
   roleRequired('admin'),
   csrfProtection,
   async (req, res) => {
-    const { ownerUserId, keepId } = req.body || {};
+    const { ownerUserId, keepId, dryRun = false } = req.body || {};
 
     if (!ownerUserId) {
       return res.status(400).json({ error: 'ownerUserId is required' });
+    }
+
+    // Guard: refuse to process the sentinel value used for missing-owner records.
+    if (ownerUserId === '__no_owner__') {
+      return res.status(400).json({
+        error: 'Cannot clean up suppliers with missing ownerUserId via this endpoint',
+        code: 'INVALID_OWNER_ID',
+      });
     }
 
     try {
@@ -759,6 +797,7 @@ router.post(
           ok: true,
           message: 'No duplicates found for this user',
           removed: 0,
+          dryRun: !!dryRun,
         });
       }
 
@@ -781,18 +820,55 @@ router.post(
       const toDelete = group.filter(s => s.id !== keepProfile.id);
       const removedIds = toDelete.map(s => s.id);
 
-      // Reassign packages referencing deleted supplier IDs to the kept profile
-      const packages = await dbUnified.read('packages');
-      for (const pkg of packages) {
-        if (removedIds.includes(pkg.supplierId)) {
+      // -----------------------------------------------------------------------
+      // Build the list of reassignment actions across all collections that store
+      // supplierId as a foreign key.  Reassignment is planned first (dry-run safe)
+      // then executed only when dryRun is false.
+      // -----------------------------------------------------------------------
+      const collectionsToReassign = ['packages', 'reviews', 'threads', 'messages'];
+      const reassignmentPlan = {}; // collectionName -> [{ id, fromSupplierId }]
+
+      for (const collectionName of collectionsToReassign) {
+        let items;
+        try {
+          items = (await dbUnified.read(collectionName)) || [];
+        } catch (_err) {
+          items = []; // collection may not exist in this deployment
+        }
+        const affected = items.filter(
+          item => item.supplierId && removedIds.includes(item.supplierId)
+        );
+        reassignmentPlan[collectionName] = affected.map(item => ({
+          id: item.id,
+          fromSupplierId: item.supplierId,
+        }));
+      }
+
+      // Return the planned actions without mutating when dryRun is true
+      if (dryRun) {
+        return res.json({
+          ok: true,
+          dryRun: true,
+          message: `Dry run: would clean up ${toDelete.length} duplicate profile(s) for user ${ownerUserId}`,
+          keptSupplierId: keepProfile.id,
+          wouldRemoveSupplierIds: removedIds,
+          wouldRemove: toDelete.length,
+          reassignmentPlan,
+        });
+      }
+
+      // Execute reassignments
+      for (const [collectionName, items] of Object.entries(reassignmentPlan)) {
+        for (const item of items) {
           await dbUnified.updateOne(
-            'packages',
-            { id: pkg.id },
+            collectionName,
+            { id: item.id },
             { $set: { supplierId: keepProfile.id } }
           );
-          logger.info('Reassigned package to kept supplier profile', {
-            packageId: pkg.id,
-            fromSupplierId: pkg.supplierId,
+          logger.info(`Reassigned ${collectionName} record to kept supplier profile`, {
+            collectionName,
+            recordId: item.id,
+            fromSupplierId: item.fromSupplierId,
             toSupplierId: keepProfile.id,
           });
         }
@@ -817,6 +893,7 @@ router.post(
           ownerUserId,
           keptSupplierId: keepProfile.id,
           removedSupplierIds: removedIds,
+          reassignmentPlan,
           performedBy: req.user?.id,
           performedAt: new Date().toISOString(),
         });
@@ -826,10 +903,12 @@ router.post(
 
       res.json({
         ok: true,
+        dryRun: false,
         message: `Cleaned up ${toDelete.length} duplicate profile(s) for user ${ownerUserId}`,
         keptSupplierId: keepProfile.id,
         removedSupplierIds: removedIds,
         removed: toDelete.length,
+        reassignmentPlan,
       });
     } catch (error) {
       logger.error('Error cleaning up duplicate suppliers:', error);

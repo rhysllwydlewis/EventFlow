@@ -36,6 +36,7 @@ describe('Reviews Routes Loading', () => {
       dbUnified: {},
       authRequired: jest.fn((req, res, next) => next()),
       roleRequired: jest.fn(_role => (req, res, next) => next()),
+      requireVerifiedUser: jest.fn((req, res, next) => next()),
       featureRequired: jest.fn(_feature => (req, res, next) => next()),
       csrfProtection: jest.fn((req, res, next) => next()),
       reviewsSystem: {
