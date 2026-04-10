@@ -14,6 +14,7 @@ const router = express.Router();
 let dbUnified;
 let authRequired;
 let roleRequired;
+let requireVerifiedUser;
 let csrfProtection;
 let featureRequired;
 let writeLimiter;
@@ -36,6 +37,7 @@ function initializeDependencies(deps) {
     'dbUnified',
     'authRequired',
     'roleRequired',
+    'requireVerifiedUser',
     'csrfProtection',
     'featureRequired',
     'writeLimiter',
@@ -53,6 +55,7 @@ function initializeDependencies(deps) {
   dbUnified = deps.dbUnified;
   authRequired = deps.authRequired;
   roleRequired = deps.roleRequired;
+  requireVerifiedUser = deps.requireVerifiedUser;
   csrfProtection = deps.csrfProtection;
   featureRequired = deps.featureRequired;
   writeLimiter = deps.writeLimiter;
@@ -123,6 +126,13 @@ function applyWriteLimiter(req, res, next) {
   return writeLimiter(req, res, next);
 }
 
+function applyRequireVerifiedUser(req, res, next) {
+  if (!requireVerifiedUser) {
+    return res.status(503).json({ error: 'Verification service not initialized' });
+  }
+  return requireVerifiedUser(req, res, next);
+}
+
 function applyPhotoUploadSingle(fieldName) {
   return (req, res, next) => {
     if (!photoUpload) {
@@ -186,6 +196,7 @@ router.post(
   applyWriteLimiter,
   applyAuthRequired,
   applyRoleRequired('supplier'),
+  applyRequireVerifiedUser,
   applyCsrfProtection,
   async (req, res) => {
     const { supplierId, title, description, price, image, primaryCategoryKey, eventTypes } =
@@ -376,6 +387,7 @@ router.put(
   applyWriteLimiter,
   applyAuthRequired,
   applyRoleRequired('supplier'),
+  applyRequireVerifiedUser,
   applyCsrfProtection,
   async (req, res) => {
     try {
@@ -475,6 +487,7 @@ router.delete(
   applyWriteLimiter,
   applyAuthRequired,
   applyRoleRequired('supplier'),
+  applyRequireVerifiedUser,
   applyCsrfProtection,
   async (req, res) => {
     try {
@@ -504,6 +517,7 @@ router.put(
   applyWriteLimiter,
   applyAuthRequired,
   applyRoleRequired('supplier'),
+  applyRequireVerifiedUser,
   applyCsrfProtection,
   async (req, res) => {
     try {
@@ -532,6 +546,7 @@ router.put(
   applyWriteLimiter,
   applyAuthRequired,
   applyRoleRequired('supplier'),
+  applyRequireVerifiedUser,
   applyCsrfProtection,
   async (req, res) => {
     try {
@@ -582,6 +597,7 @@ router.post(
   '/me/packages/:id/photos',
   applyFeatureRequired('photoUploads'),
   applyAuthRequired,
+  applyRequireVerifiedUser,
   applyCsrfProtection,
   async (req, res) => {
     const { image } = req.body || {};
@@ -630,6 +646,7 @@ router.delete(
   '/me/packages/:id/photos',
   applyWriteLimiter,
   applyAuthRequired,
+  applyRequireVerifiedUser,
   applyCsrfProtection,
   async (req, res) => {
     const { url } = req.body || {};

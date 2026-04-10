@@ -67,6 +67,97 @@ function showUrgentAlert(message, type = 'warning') {
 }
 
 /**
+ * Show a persistent email-verification reminder banner at the top of the dashboard.
+ * Includes a "Resend" link that fires the resend API and shows inline feedback.
+ * @param {string} [userEmail] - The user's email address (avoids extra /me API call)
+ */
+function showEmailVerificationBanner(userEmail) {
+  // Avoid duplicate banners
+  if (document.getElementById('email-verify-banner')) {
+    return;
+  }
+
+  const banner = document.createElement('div');
+  banner.id = 'email-verify-banner';
+  banner.setAttribute('role', 'alert');
+  banner.style.cssText =
+    'background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:0.75rem 1rem;' +
+    'margin-bottom:1rem;display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;font-size:0.875rem;';
+
+  const msg = document.createElement('span');
+  msg.textContent =
+    '⚠️ Please verify your email address to unlock all features. Check your inbox for a verification link.';
+  msg.style.flex = '1';
+
+  const resendBtn = document.createElement('button');
+  resendBtn.type = 'button';
+  resendBtn.textContent = 'Resend email';
+  resendBtn.style.cssText =
+    'background:none;border:1px solid #d97706;border-radius:6px;padding:0.25rem 0.75rem;' +
+    'cursor:pointer;color:#92400e;font-size:0.8rem;white-space:nowrap;';
+
+  resendBtn.addEventListener('click', async () => {
+    resendBtn.disabled = true;
+    resendBtn.textContent = 'Sending…';
+    try {
+      let csrfToken = window.__CSRF_TOKEN__;
+      if (!csrfToken) {
+        const r = await fetch('/api/csrf-token', { credentials: 'include' });
+        if (r.ok) {
+          const d = await r.json();
+          csrfToken = d.csrfToken || d.token || '';
+          if (csrfToken) {
+            window.__CSRF_TOKEN__ = csrfToken;
+          }
+        }
+      }
+
+      // Use provided email; fall back to a /me call only if not available
+      let email = userEmail;
+      if (!email) {
+        const meResp = await fetch('/api/v1/auth/me', { credentials: 'include' });
+        const meData = meResp.ok ? await meResp.json() : {};
+        email = meData.user?.email || '';
+      }
+      if (!email) {
+        throw new Error('No email found');
+      }
+
+      const resp = await fetch('/api/v1/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+        credentials: 'include',
+        body: JSON.stringify({ email }),
+      });
+      if (resp.ok) {
+        msg.textContent = '✓ Verification email sent! Please check your inbox.';
+        resendBtn.remove();
+      } else {
+        resendBtn.disabled = false;
+        resendBtn.textContent = 'Resend email';
+        msg.textContent = '⚠️ Could not resend verification email. Please try again.';
+      }
+    } catch (err) {
+      resendBtn.disabled = false;
+      resendBtn.textContent = 'Resend email';
+    }
+  });
+
+  banner.appendChild(msg);
+  banner.appendChild(resendBtn);
+
+  // Insert at the top of the page content, before the first section
+  const firstSection =
+    document.querySelector('.sd-section, .dashboard-hero, main > *:first-child') ||
+    document.body.firstElementChild;
+  if (firstSection && firstSection.parentNode) {
+    firstSection.parentNode.insertBefore(banner, firstSection);
+  } else {
+    document.body.insertBefore(banner, document.body.firstChild);
+  }
+}
+
+/**
  * Update the hero welcome heading with a business/profile name.
  * @param {string} name - Business name to display
  */
@@ -388,15 +479,22 @@ async function initSupplierDashboardWidgets() {
 
     // Check email verification status
     let emailVerified = false;
+    let userEmail = '';
 
     try {
       const userResponse = await fetch('/api/v1/auth/me', { credentials: 'include' });
       if (userResponse.ok) {
         const userData = await userResponse.json();
-        emailVerified = userData.user?.emailVerified || false;
+        emailVerified = userData.user?.emailVerified || userData.user?.verified || false;
+        userEmail = userData.user?.email || '';
       }
     } catch (err) {
       console.error('Error checking email verification:', err);
+    }
+
+    // Show email verification banner if user is not yet verified
+    if (!emailVerified) {
+      showEmailVerificationBanner(userEmail);
     }
 
     // Show the most important urgent alert based on summary data

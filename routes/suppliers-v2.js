@@ -12,9 +12,11 @@ const router = express.Router();
 // Dependencies injected by server.js
 let dbUnified;
 let authRequired;
+let requireVerifiedUser;
 let csrfProtection;
 let featureRequired;
 let photoUpload;
+let writeLimiter;
 
 /**
  * Initialize dependencies from server.js
@@ -29,9 +31,11 @@ function initializeDependencies(deps) {
   const required = [
     'dbUnified',
     'authRequired',
+    'requireVerifiedUser',
     'csrfProtection',
     'featureRequired',
     'photoUpload',
+    'writeLimiter',
   ];
 
   const missing = required.filter(key => deps[key] === undefined);
@@ -41,9 +45,11 @@ function initializeDependencies(deps) {
 
   dbUnified = deps.dbUnified;
   authRequired = deps.authRequired;
+  requireVerifiedUser = deps.requireVerifiedUser;
   csrfProtection = deps.csrfProtection;
   featureRequired = deps.featureRequired;
   photoUpload = deps.photoUpload;
+  writeLimiter = deps.writeLimiter;
 }
 
 /**
@@ -73,6 +79,20 @@ function applyFeatureRequired(feature) {
     }
     return featureRequired(feature)(req, res, next);
   };
+}
+
+function applyRequireVerifiedUser(req, res, next) {
+  if (!requireVerifiedUser) {
+    return res.status(503).json({ error: 'Verification service not initialized' });
+  }
+  return requireVerifiedUser(req, res, next);
+}
+
+function applyWriteLimiter(req, res, next) {
+  if (!writeLimiter) {
+    return res.status(503).json({ error: 'Rate limiter not initialized' });
+  }
+  return writeLimiter(req, res, next);
 }
 
 /**
@@ -139,12 +159,10 @@ router.get('/:id/photos', applyAuthRequired, async (req, res) => {
     });
   } catch (error) {
     logger.error('List photos error:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to list photos',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to list photos',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 
@@ -154,8 +172,10 @@ router.get('/:id/photos', applyAuthRequired, async (req, res) => {
  */
 router.post(
   '/:id/photos',
+  applyWriteLimiter,
   applyFeatureRequired('photoUploads'),
   applyAuthRequired,
+  applyRequireVerifiedUser,
   applyCsrfProtection,
   async (req, res) => {
     const { image } = req.body || {};
@@ -188,70 +208,77 @@ router.post(
  * DELETE /api/me/suppliers/:id/photos/:photoId
  * Delete a specific photo from supplier gallery
  */
-router.delete('/:id/photos/:photoId', applyAuthRequired, applyCsrfProtection, async (req, res) => {
-  try {
-    const { id, photoId } = req.params;
-    const userId = req.user.id;
+router.delete(
+  '/:id/photos/:photoId',
+  applyWriteLimiter,
+  applyAuthRequired,
+  applyRequireVerifiedUser,
+  applyCsrfProtection,
+  async (req, res) => {
+    try {
+      const { id, photoId } = req.params;
+      const userId = req.user.id;
 
-    // Get supplier and verify ownership
-    const suppliers = await dbUnified.read('suppliers');
-    const supplierIndex = suppliers.findIndex(s => s.id === id);
+      // Get supplier and verify ownership
+      const suppliers = await dbUnified.read('suppliers');
+      const supplierIndex = suppliers.findIndex(s => s.id === id);
 
-    if (supplierIndex === -1) {
-      return res.status(404).json({ error: 'Supplier not found' });
-    }
-
-    const supplier = suppliers[supplierIndex];
-
-    // Check ownership
-    if (supplier.ownerUserId !== userId && req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-
-    // Find and remove photo from gallery
-    if (!supplier.photosGallery || !Array.isArray(supplier.photosGallery)) {
-      return res.status(404).json({ error: 'Photo not found' });
-    }
-
-    const photoIndex = supplier.photosGallery.findIndex(p => p.id === photoId || p.url === photoId);
-
-    if (photoIndex === -1) {
-      return res.status(404).json({ error: 'Photo not found' });
-    }
-
-    // Remove photo
-    const removedPhoto = supplier.photosGallery.splice(photoIndex, 1)[0];
-    await dbUnified.updateOne(
-      'suppliers',
-      { id },
-      {
-        $set: { photosGallery: supplier.photosGallery, updatedAt: new Date().toISOString() },
+      if (supplierIndex === -1) {
+        return res.status(404).json({ error: 'Supplier not found' });
       }
-    );
 
-    // Delete the photo from MongoDB (for /api/photos/ URLs) or skip gracefully for legacy /uploads/ paths
-    if (removedPhoto.url) {
-      if (removedPhoto.url.startsWith('/api/photos/')) {
-        await photoUpload.deleteImage(removedPhoto.url);
+      const supplier = suppliers[supplierIndex];
+
+      // Check ownership
+      if (supplier.ownerUserId !== userId && req.user.role !== 'admin') {
+        return res.status(403).json({ error: 'Access denied' });
       }
-      // Legacy /uploads/ URLs: the file may not exist on disk; just remove the reference (already done above)
-    }
 
-    res.json({
-      success: true,
-      message: 'Photo deleted successfully',
-      remainingPhotos: supplier.photosGallery.length,
-    });
-  } catch (error) {
-    logger.error('Delete photo error:', error);
-    res
-      .status(500)
-      .json({
+      // Find and remove photo from gallery
+      if (!supplier.photosGallery || !Array.isArray(supplier.photosGallery)) {
+        return res.status(404).json({ error: 'Photo not found' });
+      }
+
+      const photoIndex = supplier.photosGallery.findIndex(
+        p => p.id === photoId || p.url === photoId
+      );
+
+      if (photoIndex === -1) {
+        return res.status(404).json({ error: 'Photo not found' });
+      }
+
+      // Remove photo
+      const removedPhoto = supplier.photosGallery.splice(photoIndex, 1)[0];
+      await dbUnified.updateOne(
+        'suppliers',
+        { id },
+        {
+          $set: { photosGallery: supplier.photosGallery, updatedAt: new Date().toISOString() },
+        }
+      );
+
+      // Delete the photo from MongoDB (for /api/photos/ URLs) or skip gracefully for legacy /uploads/ paths
+      if (removedPhoto.url) {
+        if (removedPhoto.url.startsWith('/api/photos/')) {
+          await photoUpload.deleteImage(removedPhoto.url);
+        }
+        // Legacy /uploads/ URLs: the file may not exist on disk; just remove the reference (already done above)
+      }
+
+      res.json({
+        success: true,
+        message: 'Photo deleted successfully',
+        remainingPhotos: supplier.photosGallery.length,
+      });
+    } catch (error) {
+      logger.error('Delete photo error:', error);
+      res.status(500).json({
         error: 'Failed to delete photo',
         details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
       });
+    }
   }
-});
+);
 
 module.exports = router;
 module.exports.initializeDependencies = initializeDependencies;

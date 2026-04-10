@@ -550,7 +550,9 @@ router.get('/metrics', authRequired, roleRequired('admin'), async (_req, res) =>
         suppliersTotal: suppliers.length,
         pendingSuppliers: suppliers.filter(s => s.approved !== true && s.verified !== true).length,
         proSuppliers: suppliers.filter(s => {
-          if (s.subscription && s.subscription.status === 'active') return true;
+          if (s.subscription && s.subscription.status === 'active') {
+            return true;
+          }
           return s.isPro === true;
         }).length,
         packagesTotal: pkgs.length,
@@ -674,6 +676,164 @@ router.get(
     } catch (error) {
       logger.error('Error fetching pending verification suppliers:', error);
       res.status(500).json({ suppliers: [], count: 0, error: 'Failed to fetch pending suppliers' });
+    }
+  }
+);
+
+/**
+ * GET /api/admin/suppliers/duplicates
+ * Identify duplicate supplier profiles (same ownerUserId)
+ * Must be declared BEFORE /suppliers/:id to prevent Express wildcard capture.
+ */
+router.get('/suppliers/duplicates', authRequired, roleRequired('admin'), async (_req, res) => {
+  try {
+    const suppliers = await dbUnified.read('suppliers');
+
+    // Group by ownerUserId to find duplicates
+    const byOwner = {};
+    for (const s of suppliers) {
+      const key = s.ownerUserId || '__no_owner__';
+      if (!byOwner[key]) {
+        byOwner[key] = [];
+      }
+      byOwner[key].push(s);
+    }
+
+    const duplicateGroups = Object.entries(byOwner)
+      .filter(([, group]) => group.length > 1)
+      .map(([ownerUserId, group]) => ({
+        ownerUserId,
+        count: group.length,
+        suppliers: group.map(s => ({
+          id: s.id,
+          name: s.name,
+          email: s.email,
+          approved: s.approved,
+          verified: s.verified,
+          createdAt: s.createdAt,
+          updatedAt: s.updatedAt,
+        })),
+      }));
+
+    logger.info('Admin: duplicate supplier scan completed', {
+      totalSuppliers: suppliers.length,
+      duplicateGroups: duplicateGroups.length,
+    });
+
+    res.json({
+      ok: true,
+      totalSuppliers: suppliers.length,
+      duplicateGroups,
+      duplicateCount: duplicateGroups.reduce((sum, g) => sum + g.count - 1, 0),
+    });
+  } catch (error) {
+    logger.error('Error scanning for duplicate suppliers:', error);
+    res.status(500).json({ error: 'Failed to scan for duplicates' });
+  }
+});
+
+/**
+ * POST /api/admin/suppliers/cleanup-duplicates
+ * Clean up duplicate supplier profiles for a given ownerUserId.
+ * Strategy: keep the most recently updated profile; delete the rest.
+ * Reassigns packages, photos, and analytics references before deleting.
+ */
+router.post(
+  '/suppliers/cleanup-duplicates',
+  authRequired,
+  roleRequired('admin'),
+  csrfProtection,
+  async (req, res) => {
+    const { ownerUserId, keepId } = req.body || {};
+
+    if (!ownerUserId) {
+      return res.status(400).json({ error: 'ownerUserId is required' });
+    }
+
+    try {
+      const suppliers = await dbUnified.read('suppliers');
+      const group = suppliers.filter(s => s.ownerUserId === ownerUserId);
+
+      if (group.length <= 1) {
+        return res.json({
+          ok: true,
+          message: 'No duplicates found for this user',
+          removed: 0,
+        });
+      }
+
+      // Determine which profile to keep:
+      // If keepId is specified and valid, use it; otherwise keep the most recently updated.
+      let keepProfile;
+      if (keepId) {
+        keepProfile = group.find(s => s.id === keepId);
+        if (!keepProfile) {
+          return res.status(400).json({ error: 'keepId does not belong to this ownerUserId' });
+        }
+      } else {
+        keepProfile = group.reduce((best, s) => {
+          const bestTs = new Date(best.updatedAt || best.createdAt || 0).getTime();
+          const sTs = new Date(s.updatedAt || s.createdAt || 0).getTime();
+          return sTs > bestTs ? s : best;
+        });
+      }
+
+      const toDelete = group.filter(s => s.id !== keepProfile.id);
+      const removedIds = toDelete.map(s => s.id);
+
+      // Reassign packages referencing deleted supplier IDs to the kept profile
+      const packages = await dbUnified.read('packages');
+      for (const pkg of packages) {
+        if (removedIds.includes(pkg.supplierId)) {
+          await dbUnified.updateOne(
+            'packages',
+            { id: pkg.id },
+            { $set: { supplierId: keepProfile.id } }
+          );
+          logger.info('Reassigned package to kept supplier profile', {
+            packageId: pkg.id,
+            fromSupplierId: pkg.supplierId,
+            toSupplierId: keepProfile.id,
+          });
+        }
+      }
+
+      // Delete the duplicate profiles
+      for (const dup of toDelete) {
+        await dbUnified.deleteOne('suppliers', { id: dup.id });
+        logger.info('Deleted duplicate supplier profile', {
+          deletedId: dup.id,
+          keptId: keepProfile.id,
+          ownerUserId,
+          deletedBy: req.user?.id,
+        });
+      }
+
+      // Write audit log entry
+      try {
+        await dbUnified.insertOne('audit_log', {
+          id: uid('audit'),
+          action: 'supplier_duplicate_cleanup',
+          ownerUserId,
+          keptSupplierId: keepProfile.id,
+          removedSupplierIds: removedIds,
+          performedBy: req.user?.id,
+          performedAt: new Date().toISOString(),
+        });
+      } catch (auditErr) {
+        logger.warn('Failed to write audit log for duplicate cleanup:', auditErr.message);
+      }
+
+      res.json({
+        ok: true,
+        message: `Cleaned up ${toDelete.length} duplicate profile(s) for user ${ownerUserId}`,
+        keptSupplierId: keepProfile.id,
+        removedSupplierIds: removedIds,
+        removed: toDelete.length,
+      });
+    } catch (error) {
+      logger.error('Error cleaning up duplicate suppliers:', error);
+      res.status(500).json({ error: 'Failed to clean up duplicates' });
     }
   }
 );
@@ -2538,7 +2698,9 @@ router.post(
 
     const VALID_TARGETS = ['all', 'customers', 'suppliers', 'admins'];
     if (!VALID_TARGETS.includes(target)) {
-      return res.status(400).json({ error: 'Invalid target. Must be one of: all, customers, suppliers, admins' });
+      return res
+        .status(400)
+        .json({ error: 'Invalid target. Must be one of: all, customers, suppliers, admins' });
     }
 
     try {
@@ -2637,7 +2799,9 @@ router.post(
 
     const VALID_TARGETS = ['all', 'customers', 'suppliers', 'admins'];
     if (!VALID_TARGETS.includes(target)) {
-      return res.status(400).json({ error: 'Invalid target. Must be one of: all, customers, suppliers, admins' });
+      return res
+        .status(400)
+        .json({ error: 'Invalid target. Must be one of: all, customers, suppliers, admins' });
     }
 
     try {

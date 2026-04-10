@@ -298,6 +298,58 @@ function planOwnerOnly(req, res, next) {
   next();
 }
 
+/**
+ * Middleware to require email verification
+ * Must be used after authRequired, as it relies on req.user
+ * Returns 403 with a structured error for unverified users so frontends
+ * can display a "please verify your email" banner instead of a generic error.
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next function
+ */
+async function requireVerifiedUser(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({
+      error: 'Unauthenticated',
+      message: 'Please log in to access this resource.',
+    });
+  }
+
+  try {
+    const dbUnified = require('../db-unified');
+    const dbUser = await dbUnified.findOne('users', { id: req.user.id });
+
+    if (!dbUser) {
+      return res.status(401).json({
+        error: 'Unauthenticated',
+        message: 'User account not found. Please log in again.',
+      });
+    }
+
+    if (!dbUser.verified) {
+      logger.warn('Unverified user attempted restricted action', {
+        userId: req.user.id,
+        path: req.path,
+        method: req.method,
+      });
+      return res.status(403).json({
+        error: 'Email not verified',
+        code: 'EMAIL_NOT_VERIFIED',
+        message:
+          'Please verify your email address before using this feature. Check your inbox for a verification link.',
+      });
+    }
+
+    next();
+  } catch (error) {
+    logger.error('Error checking verification status in requireVerifiedUser:', error);
+    return res.status(503).json({
+      error: 'Service temporarily unavailable',
+      message: 'Unable to verify account status. Please try again.',
+    });
+  }
+}
+
 module.exports = {
   JWT_SECRET,
   setAuthCookie,
@@ -306,5 +358,6 @@ module.exports = {
   userExtractionMiddleware,
   authRequired,
   roleRequired,
+  requireVerifiedUser,
   planOwnerOnly,
 };
