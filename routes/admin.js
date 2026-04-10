@@ -759,10 +759,12 @@ router.get('/suppliers/duplicates', authRequired, roleRequired('admin'), async (
  * Reassigns packages, reviews, threads, and messages references before deleting.
  *
  * Body params:
- *   ownerUserId {string} — required; must be a real user ID (not empty / __no_owner__)
- *   keepId      {string} — optional; which supplier profile to retain
- *   dryRun      {boolean} — optional (default false); when true returns planned actions
+ *   ownerUserId {string}  — required; must be a real user ID (not empty / __no_owner__)
+ *   keepId      {string}  — optional; which supplier profile to retain
+ *   dryRun      {boolean} — optional (default true); when true returns planned actions
  *                           without mutating the database
+ *   confirm     {boolean} — required when dryRun=false; must be true to allow
+ *                           destructive updates/deletes (safety gate)
  *
  * Collections reassigned: packages, reviews, threads, messages
  * Collections NOT reassigned (embedded/derived): analytics view counts, featured flags
@@ -774,10 +776,12 @@ router.post(
   roleRequired('admin'),
   csrfProtection,
   async (req, res) => {
-    const { ownerUserId, keepId, dryRun = false } = req.body || {};
+    const { ownerUserId, keepId, dryRun = true, confirm } = req.body || {};
 
-    if (!ownerUserId) {
-      return res.status(400).json({ error: 'ownerUserId is required' });
+    if (!ownerUserId || !ownerUserId.trim()) {
+      return res
+        .status(400)
+        .json({ error: 'ownerUserId is required and must not be blank', code: 'INVALID_OWNER_ID' });
     }
 
     // Guard: refuse to process the sentinel value used for missing-owner records.
@@ -785,6 +789,14 @@ router.post(
       return res.status(400).json({
         error: 'Cannot clean up suppliers with missing ownerUserId via this endpoint',
         code: 'INVALID_OWNER_ID',
+      });
+    }
+
+    // Safety gate: destructive operations require explicit confirmation.
+    if (dryRun === false && confirm !== true) {
+      return res.status(400).json({
+        error: 'Destructive cleanup requires confirm=true in the request body',
+        code: 'CONFIRMATION_REQUIRED',
       });
     }
 
