@@ -197,7 +197,11 @@ router.post(
     }
 
     // Enforce 1:1 relationship: one supplier profile per user account
-    const existingSuppliers = await dbUnified.read('suppliers');
+    // Fetch user and suppliers concurrently
+    const [existingSuppliers, ownerUser] = await Promise.all([
+      dbUnified.read('suppliers'),
+      dbUnified.findOne('users', { id: req.user.id }),
+    ]);
     const existing = existingSuppliers.find(s => s.ownerUserId === req.user.id);
     if (existing) {
       logger.warn('Duplicate supplier profile creation prevented', {
@@ -231,7 +235,6 @@ router.post(
       .map(x => x.trim())
       .filter(Boolean);
 
-    const ownerUser = await dbUnified.findOne('users', { id: req.user.id });
     const s = {
       id: uid('sup'),
       ownerUserId: req.user.id,

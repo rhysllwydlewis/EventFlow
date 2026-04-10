@@ -69,10 +69,6 @@ function showUrgentAlert(message, type = 'warning') {
 /**
  * Show a persistent email-verification reminder banner at the top of the dashboard.
  * Includes a "Resend" link that fires the resend API and shows inline feedback.
- */
-/**
- * Show a persistent email-verification reminder banner at the top of the dashboard.
- * Includes a "Resend" link that fires the resend API and shows inline feedback.
  * @param {string} [userEmail] - The user's email address (avoids extra /me API call)
  */
 function showEmailVerificationBanner(userEmail) {

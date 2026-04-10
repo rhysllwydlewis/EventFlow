@@ -172,6 +172,7 @@ router.get('/:id/photos', applyAuthRequired, async (req, res) => {
  */
 router.post(
   '/:id/photos',
+  applyWriteLimiter,
   applyFeatureRequired('photoUploads'),
   applyAuthRequired,
   applyRequireVerifiedUser,

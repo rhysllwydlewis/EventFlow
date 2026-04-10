@@ -65,6 +65,34 @@ describe('packages.js — verification gating', () => {
     const deleteSection = content.slice(deleteIdx, deleteIdx + 400);
     expect(deleteSection).toContain('applyRequireVerifiedUser');
   });
+
+  it('requires verified user for package photo upload (POST /me/packages/:id/photos)', () => {
+    const content = fs.readFileSync(PACKAGES_ROUTES, 'utf8');
+    const photoIdx = content.indexOf('POST /api/me/packages/:id/photos');
+    const photoSection = content.slice(photoIdx, photoIdx + 400);
+    expect(photoSection).toContain('applyRequireVerifiedUser');
+  });
+
+  it('requires verified user for package photo delete (DELETE /me/packages/:id/photos)', () => {
+    const content = fs.readFileSync(PACKAGES_ROUTES, 'utf8');
+    const photoDeleteIdx = content.indexOf('DELETE /api/me/packages/:id/photos');
+    const photoDeleteSection = content.slice(photoDeleteIdx, photoDeleteIdx + 400);
+    expect(photoDeleteSection).toContain('applyRequireVerifiedUser');
+  });
+
+  it('requires verified user for package pause (PUT /me/packages/:id/pause)', () => {
+    const content = fs.readFileSync(PACKAGES_ROUTES, 'utf8');
+    const pauseIdx = content.indexOf('PUT /api/me/packages/:id/pause');
+    const pauseSection = content.slice(pauseIdx, pauseIdx + 400);
+    expect(pauseSection).toContain('applyRequireVerifiedUser');
+  });
+
+  it('requires verified user for package unpause (PUT /me/packages/:id/unpause)', () => {
+    const content = fs.readFileSync(PACKAGES_ROUTES, 'utf8');
+    const unpauseIdx = content.indexOf('PUT /api/me/packages/:id/unpause');
+    const unpauseSection = content.slice(unpauseIdx, unpauseIdx + 400);
+    expect(unpauseSection).toContain('applyRequireVerifiedUser');
+  });
 });
 
 describe('admin.js — duplicate detection endpoints', () => {
