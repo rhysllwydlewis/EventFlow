@@ -170,6 +170,25 @@ describe('admin.js — duplicate detection endpoints', () => {
     expect(cleanupSection).toContain('dryRun: true');
   });
 
+  it('cleanup-duplicates defaults dryRun to true (safe-by-default)', () => {
+    const cleanupSection = content.slice(content.indexOf("'/suppliers/cleanup-duplicates'"));
+    // Default parameter must be true so omitting dryRun performs a dry run
+    expect(cleanupSection).toContain('dryRun = true');
+  });
+
+  it('cleanup-duplicates requires confirm=true when dryRun is false', () => {
+    const cleanupSection = content.slice(content.indexOf("'/suppliers/cleanup-duplicates'"));
+    // Must gate destructive path behind explicit confirmation
+    expect(cleanupSection).toContain('CONFIRMATION_REQUIRED');
+    expect(cleanupSection).toContain('confirm !== true');
+  });
+
+  it('cleanup-duplicates rejects empty/whitespace ownerUserId', () => {
+    const cleanupSection = content.slice(content.indexOf("'/suppliers/cleanup-duplicates'"));
+    // Must trim/check for blank ownerUserId, not just falsy
+    expect(cleanupSection).toContain('ownerUserId.trim()');
+  });
+
   it('cleanup-duplicates reassigns reviews collection', () => {
     const cleanupSection = content.slice(content.indexOf("'/suppliers/cleanup-duplicates'"));
     expect(cleanupSection).toContain("'reviews'");

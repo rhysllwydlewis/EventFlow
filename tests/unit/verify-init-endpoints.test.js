@@ -44,21 +44,20 @@ describe('verify-init.js — redirect URLs after verification', () => {
     expect(content).toContain('/admin.html');
   });
 
-  it('redirects supplier users to /dashboard-supplier.html', () => {
-    expect(content).toContain('/dashboard-supplier.html');
+  it('redirects supplier users to /dashboard/supplier', () => {
+    expect(content).toContain('/dashboard/supplier');
   });
 
-  it('redirects customer users to /dashboard-customer.html', () => {
-    expect(content).toContain('/dashboard-customer.html');
+  it('redirects customer users to /dashboard/customer', () => {
+    expect(content).toContain('/dashboard/customer');
   });
 
-  it('does NOT redirect to /dashboard/supplier (wrong path)', () => {
-    // The wrong path used before this fix
-    expect(content).not.toContain("redirectUrl = '/dashboard/supplier'");
+  it('does NOT redirect to /dashboard-supplier.html (use canonical clean route instead)', () => {
+    expect(content).not.toContain("redirectUrl = '/dashboard-supplier.html'");
   });
 
-  it('does NOT redirect to /dashboard/customer (wrong path)', () => {
-    expect(content).not.toContain("redirectUrl = '/dashboard/customer'");
+  it('does NOT redirect to /dashboard-customer.html (use canonical clean route instead)', () => {
+    expect(content).not.toContain("redirectUrl = '/dashboard-customer.html'");
   });
 
   it('does NOT redirect to /admin without .html extension (wrong path)', () => {

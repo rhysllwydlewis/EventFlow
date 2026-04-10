@@ -395,9 +395,9 @@
           if (user.role === 'admin') {
             redirectUrl = '/admin.html';
           } else if (user.role === 'supplier') {
-            redirectUrl = '/dashboard-supplier.html';
+            redirectUrl = '/dashboard/supplier';
           } else {
-            redirectUrl = '/dashboard-customer.html';
+            redirectUrl = '/dashboard/customer';
           }
         }
 
