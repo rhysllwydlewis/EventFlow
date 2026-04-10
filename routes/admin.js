@@ -833,7 +833,11 @@ router.post(
         try {
           items = (await dbUnified.read(collectionName)) || [];
         } catch (_err) {
-          items = []; // collection may not exist in this deployment
+          logger.warn(
+            `cleanup-duplicates: could not read collection "${collectionName}" — skipping reassignment for this collection`,
+            { collectionName, err: _err.message }
+          );
+          items = [];
         }
         const affected = items.filter(
           item => item.supplierId && removedIds.includes(item.supplierId)

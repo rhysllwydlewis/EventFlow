@@ -32,15 +32,15 @@ describe('reviews-v2.js — verification gating', () => {
   });
 
   it('POST /with-verification route requires verified user', () => {
-    // Find the route definition for the review creation endpoint
-    const routeIdx = content.indexOf("router.post('/with-verification'");
+    // Find the route definition for the review creation endpoint (multi-line)
+    const routeIdx = content.indexOf("'/with-verification'");
     expect(routeIdx).not.toBe(-1);
     const routeSection = content.slice(routeIdx, routeIdx + 300);
     expect(routeSection).toContain('requireVerifiedUser');
   });
 
   it('POST /with-verification route also requires authRequired', () => {
-    const routeIdx = content.indexOf("router.post('/with-verification'");
+    const routeIdx = content.indexOf("'/with-verification'");
     const routeSection = content.slice(routeIdx, routeIdx + 300);
     expect(routeSection).toContain('authRequired');
   });
