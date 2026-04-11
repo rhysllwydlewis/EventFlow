@@ -16,6 +16,7 @@ const fs = require('fs');
 const path = require('path');
 
 const SUPPLIER_ADMIN = path.join(__dirname, '../../routes/supplier-admin.js');
+const ADMIN_ROUTES = path.join(__dirname, '../../routes/admin.js');
 const SEARCH_SERVICE = path.join(__dirname, '../../services/searchService.js');
 const SEARCH_WEIGHTING = path.join(__dirname, '../../utils/searchWeighting.js');
 
@@ -125,5 +126,28 @@ describe('searchWeighting.js — businessName fallback in calculateRelevanceScor
     expect(fnIdx).not.toBe(-1);
     const fnBody = content.slice(fnIdx, fnIdx + 400);
     expect(fnBody).toContain('item.businessName');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// routes/admin.js — directory-health must not be swallowed by /suppliers/:id
+// ---------------------------------------------------------------------------
+describe('admin.js — directory-health route ordering prevents wildcard capture', () => {
+  let content;
+
+  beforeAll(() => {
+    content = fs.readFileSync(ADMIN_ROUTES, 'utf8');
+  });
+
+  it('has a pass-through or handler for /suppliers/directory-health', () => {
+    expect(content).toContain('/suppliers/directory-health');
+  });
+
+  it('declares /suppliers/directory-health BEFORE /suppliers/:id', () => {
+    const healthIdx = content.indexOf('/suppliers/directory-health');
+    const wildcardIdx = content.indexOf("router.get('/suppliers/:id'");
+    expect(healthIdx).not.toBe(-1);
+    expect(wildcardIdx).not.toBe(-1);
+    expect(healthIdx).toBeLessThan(wildcardIdx);
   });
 });
