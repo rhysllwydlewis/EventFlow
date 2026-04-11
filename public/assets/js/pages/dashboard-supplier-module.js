@@ -8,7 +8,6 @@ import {
 import { createStatsGrid } from '/assets/js/dashboard-widgets.js';
 import {
   createPerformanceChart,
-  createEnquiryTrendChart,
   loadReviewStats,
   createConversionFunnelWidget,
   createResponseTimeWidget,
@@ -344,10 +343,10 @@ async function initSupplierDashboardWidgets() {
           color: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)',
         },
         {
-          icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
-          value: totalEnquiries,
-          label: 'Total Enquiries',
-          format: 'number',
+          icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>',
+          value: views7d > 0 ? Math.round((totalEnquiries / views7d) * 100) : 0,
+          label: 'Conversion Rate',
+          format: 'percent',
           color: 'linear-gradient(135deg, #10B981 0%, #34D399 100%)',
         },
         {
@@ -398,9 +397,6 @@ async function initSupplierDashboardWidgets() {
       enquiriesData,
       labels
     );
-
-    // Create enquiry trend chart
-    await createEnquiryTrendChart('enquiry-trend-chart');
 
     // Initialize ROI analytics widgets (uses date-range selector)
     await createConversionFunnelWidget('supplier-conversion-funnel');
