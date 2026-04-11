@@ -23,7 +23,9 @@
   /** sessionStorage key for persisting the panel open/closed state */
   var STORAGE_KEY = 'sp_adv_open';
 
-  /** Must match the CSS @media (max-width: 640px) breakpoint in suppliers-page.css */
+  /** Must match the CSS @media (max-width: 640px) breakpoint in suppliers-page.css
+   *  AND the MOBILE_BP constant in public/assets/js/pages/suppliers-init.js.
+   *  ⚠ If this value changes, update all three locations. */
   var MOBILE_BP = 640;
 
   /** IDs of the inputs that live inside the advanced panel (used for badge count) */

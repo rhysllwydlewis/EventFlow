@@ -956,7 +956,10 @@ async function initSuppliersPage() {
      * On mobile (≤640px) the CSS override `--sp-pkg-mini-width: min(68vw, 260px)`
      * makes only one card fit in the carousel viewport at a time, so we treat it as
      * a single-card carousel. On larger screens two cards are visible.
-     * This constant must stay in sync with the CSS breakpoint in suppliers-page.css.
+     *
+     * ⚠ Keep in sync with:
+     *   - MOBILE_BP constant in public/assets/js/pages/suppliers-mobile.js
+     *   - @media (max-width: 640px) breakpoint in public/assets/css/suppliers-page.css
      */
     const MOBILE_BP = 640;
     const visibleCount = window.innerWidth <= MOBILE_BP ? 1 : 2;

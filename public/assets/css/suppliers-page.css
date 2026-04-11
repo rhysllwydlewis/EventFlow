@@ -1500,7 +1500,13 @@
   }
 
   .sp-advanced-filters.is-open {
-    max-height: 400px;  /* generous ceiling; enough for 3 rows of controls */
+    /*
+     * max-height drives the CSS expand animation (max-height: 0 → this value).
+     * 3 rows of 2 select controls ≈ 3 × (label ~16px + select ~38px + gap ~6px) = ~180px,
+     * plus a comfortable buffer for padding/borders. 400px is generous enough to
+     * prevent clipping even if text scales or line-heights vary.
+     */
+    max-height: 400px;
     padding-bottom: 2px;
   }
 
