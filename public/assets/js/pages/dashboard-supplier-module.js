@@ -341,6 +341,7 @@ async function initSupplierDashboardWidgets() {
           label: 'Profile Views (7d)',
           format: 'number',
           color: 'linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%)',
+          dataColor: 'blue',
         },
         {
           icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>',
@@ -350,6 +351,7 @@ async function initSupplierDashboardWidgets() {
           label: 'Enquiry Rate',
           format: 'percent',
           color: 'linear-gradient(135deg, #10B981 0%, #34D399 100%)',
+          dataColor: 'green',
         },
         {
           icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg>',
@@ -357,6 +359,7 @@ async function initSupplierDashboardWidgets() {
           label: 'Response Rate',
           format: 'percent',
           color: 'linear-gradient(135deg, #F59E0B 0%, #FBBF24 100%)',
+          dataColor: 'amber',
         },
         {
           icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
@@ -364,6 +367,7 @@ async function initSupplierDashboardWidgets() {
           label: 'Avg Response Time',
           format: 'time',
           color: 'linear-gradient(135deg, #8B5CF6 0%, #A78BFA 100%)',
+          dataColor: 'purple',
           pulse: true,
         },
       ],
