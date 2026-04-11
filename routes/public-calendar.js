@@ -34,7 +34,12 @@
 const express = require('express');
 const router = express.Router();
 const logger = require('../utils/logger');
-const { authRequired, userExtractionMiddleware, requireApprovedSupplier } = require('../middleware/auth');
+const {
+  authRequired,
+  userExtractionMiddleware,
+  requireApprovedSupplier,
+  requireVerifiedUser,
+} = require('../middleware/auth');
 const { csrfProtection } = require('../middleware/csrf');
 const { writeLimiter, apiLimiter } = require('../middleware/rateLimits');
 const dbUnified = require('../db-unified');
@@ -343,6 +348,7 @@ router.post(
   '/events',
   writeLimiter,
   authRequired,
+  requireVerifiedUser,
   requireApprovedSupplier,
   csrfProtection,
   requirePublisher,
@@ -388,6 +394,7 @@ router.put(
   '/events/:id',
   writeLimiter,
   authRequired,
+  requireVerifiedUser,
   requireApprovedSupplier,
   csrfProtection,
   requirePublisher,
@@ -461,6 +468,7 @@ router.delete(
   '/events/:id',
   writeLimiter,
   authRequired,
+  requireVerifiedUser,
   requireApprovedSupplier,
   csrfProtection,
   requirePublisher,
@@ -526,75 +534,91 @@ router.delete(
  * Customer (or any authenticated user) saves a public event to their calendar.
  * Idempotent — saving an already-saved event returns 200 without duplication.
  */
-router.post('/events/:id/save', writeLimiter, authRequired, csrfProtection, async (req, res) => {
-  try {
-    // Pre-check: verify the event exists (read-only, outside the lock).
-    const allEvents = await dbUnified.read('public_calendar_events');
-    if (!allEvents.find(e => e.id === req.params.id)) {
-      return res.status(404).json({ error: 'Event not found' });
-    }
-
-    let alreadySaved = null;
-    let newSave = null;
-
-    await withLock('public_calendar_saves', async () => {
-      const saves = await dbUnified.read('public_calendar_saves');
-      const existing = saves.find(s => s.userId === req.user.id && s.eventId === req.params.id);
-
-      if (existing) {
-        alreadySaved = existing;
-        return;
+router.post(
+  '/events/:id/save',
+  writeLimiter,
+  authRequired,
+  requireVerifiedUser,
+  csrfProtection,
+  async (req, res) => {
+    try {
+      // Pre-check: verify the event exists (read-only, outside the lock).
+      const allEvents = await dbUnified.read('public_calendar_events');
+      if (!allEvents.find(e => e.id === req.params.id)) {
+        return res.status(404).json({ error: 'Event not found' });
       }
 
-      const save = {
-        id: uid('pcs'),
-        userId: req.user.id,
-        eventId: req.params.id,
-        savedAt: new Date().toISOString(),
-      };
-      saves.push(save);
-      await dbUnified.write('public_calendar_saves', saves);
-      newSave = save;
-    });
+      let alreadySaved = null;
+      let newSave = null;
 
-    if (alreadySaved) {
-      return res.json({ ok: true, message: 'Already saved', save: alreadySaved });
+      await withLock('public_calendar_saves', async () => {
+        const saves = await dbUnified.read('public_calendar_saves');
+        const existing = saves.find(s => s.userId === req.user.id && s.eventId === req.params.id);
+
+        if (existing) {
+          alreadySaved = existing;
+          return;
+        }
+
+        const save = {
+          id: uid('pcs'),
+          userId: req.user.id,
+          eventId: req.params.id,
+          savedAt: new Date().toISOString(),
+        };
+        saves.push(save);
+        await dbUnified.write('public_calendar_saves', saves);
+        newSave = save;
+      });
+
+      if (alreadySaved) {
+        return res.json({ ok: true, message: 'Already saved', save: alreadySaved });
+      }
+      res.status(201).json({ ok: true, save: newSave });
+    } catch (err) {
+      logger.error('POST /public-calendar/events/:id/save error:', err);
+      res.status(500).json({ error: 'Failed to save event' });
     }
-    res.status(201).json({ ok: true, save: newSave });
-  } catch (err) {
-    logger.error('POST /public-calendar/events/:id/save error:', err);
-    res.status(500).json({ error: 'Failed to save event' });
   }
-});
+);
 
 /**
  * DELETE /events/:id/save
  * Remove a previously saved public event from the user's calendar.
  */
-router.delete('/events/:id/save', writeLimiter, authRequired, csrfProtection, async (req, res) => {
-  try {
-    let found = false;
+router.delete(
+  '/events/:id/save',
+  writeLimiter,
+  authRequired,
+  requireVerifiedUser,
+  csrfProtection,
+  async (req, res) => {
+    try {
+      let found = false;
 
-    await withLock('public_calendar_saves', async () => {
-      const saves = await dbUnified.read('public_calendar_saves');
-      const updated = saves.filter(s => !(s.userId === req.user.id && s.eventId === req.params.id));
+      await withLock('public_calendar_saves', async () => {
+        const saves = await dbUnified.read('public_calendar_saves');
+        const updated = saves.filter(
+          s => !(s.userId === req.user.id && s.eventId === req.params.id)
+        );
 
-      if (updated.length === saves.length) {
-        return; // save record not found — nothing to remove
+        if (updated.length === saves.length) {
+          return; // save record not found — nothing to remove
+        }
+
+        found = true;
+        await dbUnified.write('public_calendar_saves', updated);
+      });
+
+      if (!found) {
+        return res.status(404).json({ error: 'Save record not found' });
       }
-
-      found = true;
-      await dbUnified.write('public_calendar_saves', updated);
-    });
-
-    if (!found) {
-      return res.status(404).json({ error: 'Save record not found' });
+      res.json({ ok: true, message: 'Event removed from your calendar' });
+    } catch (err) {
+      logger.error('DELETE /public-calendar/events/:id/save error:', err);
+      res.status(500).json({ error: 'Failed to remove saved event' });
     }
-    res.json({ ok: true, message: 'Event removed from your calendar' });
-  } catch (err) {
-    logger.error('DELETE /public-calendar/events/:id/save error:', err);
-    res.status(500).json({ error: 'Failed to remove saved event' });
   }
-});
+);
 
 module.exports = router;

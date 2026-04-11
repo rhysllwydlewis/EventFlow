@@ -959,6 +959,16 @@ router.post(
 router.get('/suppliers/directory-health', (_req, _res, next) => next('router'));
 
 /**
+ * GET /api/admin/suppliers/:id/visibility-diagnostics
+ * Pass-through to routes/supplier-admin.js.
+ * Must be declared after /suppliers/directory-health but handled by supplier-admin router.
+ * The wildcard /suppliers/:id in THIS router would otherwise shadow it — we explicitly
+ * skip to allow the supplier-admin router (mounted later) to handle it.
+ */
+// prettier-ignore
+router.get('/suppliers/:id/visibility-diagnostics', (_req, _res, next) => next('router'));
+
+/**
  * GET /api/admin/suppliers/:id
  * Get details of a specific supplier
  * NOTE: dbUnified.read() fetches the full collection; use dbUnified.findOne() for efficiency

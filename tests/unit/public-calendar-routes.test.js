@@ -59,11 +59,31 @@ function makeToken(payload) {
   return jwt.sign(payload, JWT_SECRET);
 }
 
-const PUBLISHER_SUPPLIER_USER = { id: 'user_pub1', email: 'planner@test.com', role: 'supplier' };
-const OTHER_PUBLISHER_USER = { id: 'user_pub2', email: 'fayre@test.com', role: 'supplier' };
-const NON_PUBLISHER_USER = { id: 'user_photo1', email: 'photo@test.com', role: 'supplier' };
-const CUSTOMER_USER = { id: 'user_cust1', email: 'cust@test.com', role: 'customer' };
-const ADMIN_USER = { id: 'user_admin1', email: 'admin@test.com', role: 'admin' };
+const PUBLISHER_SUPPLIER_USER = {
+  id: 'user_pub1',
+  email: 'planner@test.com',
+  role: 'supplier',
+  verified: true,
+};
+const OTHER_PUBLISHER_USER = {
+  id: 'user_pub2',
+  email: 'fayre@test.com',
+  role: 'supplier',
+  verified: true,
+};
+const NON_PUBLISHER_USER = {
+  id: 'user_photo1',
+  email: 'photo@test.com',
+  role: 'supplier',
+  verified: true,
+};
+const CUSTOMER_USER = {
+  id: 'user_cust1',
+  email: 'cust@test.com',
+  role: 'customer',
+  verified: true,
+};
+const ADMIN_USER = { id: 'user_admin1', email: 'admin@test.com', role: 'admin', verified: true };
 
 const PUBLISHER_SUPPLIER_DOC = {
   id: 'sup_pub1',
@@ -153,10 +173,13 @@ function setupReadMock({ events = [], saves = [], suppliers = [], users = [] } =
         NON_PUBLISHER_SUPPLIER_DOC,
         ...suppliers,
       ];
-      return all.find(s =>
-        (!filter.id || s.id === filter.id) &&
-        (!filter.ownerUserId || s.ownerUserId === filter.ownerUserId)
-      ) || null;
+      return (
+        all.find(
+          s =>
+            (!filter.id || s.id === filter.id) &&
+            (!filter.ownerUserId || s.ownerUserId === filter.ownerUserId)
+        ) || null
+      );
     }
     return null;
   });
