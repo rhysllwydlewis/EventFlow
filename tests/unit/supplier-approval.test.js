@@ -237,10 +237,27 @@ describe('packages.js — approval gating', () => {
     const unpauseSection = content.slice(unpauseIdx, unpauseIdx + 500);
     expect(unpauseSection).toContain('applyRequireApprovedSupplier');
   });
+
+  it('requires approved supplier for gallery reorder (PUT /me/packages/:id/gallery/order)', () => {
+    const galleryIdx = content.indexOf('PUT /api/me/packages/:id/gallery/order');
+    const gallerySection = content.slice(galleryIdx, galleryIdx + 600);
+    expect(gallerySection).toContain('applyRequireApprovedSupplier');
+  });
+
+  it('requires role=supplier for package photo upload (POST /me/packages/:id/photos)', () => {
+    const photoIdx = content.indexOf('POST /api/me/packages/:id/photos');
+    const photoSection = content.slice(photoIdx, photoIdx + 600);
+    expect(photoSection).toContain("applyRoleRequired('supplier')");
+  });
+
+  it('requires role=supplier for package photo delete (DELETE /me/packages/:id/photos)', () => {
+    const photoDeleteIdx = content.indexOf('DELETE /api/me/packages/:id/photos');
+    const photoDeleteSection = content.slice(photoDeleteIdx, photoDeleteIdx + 600);
+    expect(photoDeleteSection).toContain("applyRoleRequired('supplier')");
+  });
 });
 
 // ─── D) Admin approval endpoint ─────────────────────────────────────────────
-
 describe('supplier-admin.js — admin approve endpoint', () => {
   let content;
 
@@ -316,5 +333,53 @@ describe('server.js — /api/auth/me includes supplierApproved', () => {
   it('fetches supplier profile only for supplier-role users', () => {
     const meSection = content.slice(content.indexOf("app.get('/api/auth/me'"));
     expect(meSection.slice(0, 2000)).toContain("u.role === 'supplier'");
+  });
+});
+
+// ─── F) Public directory only shows approved suppliers ───────────────────────
+
+describe('routes/suppliers.js — public directory filters unapproved', () => {
+  const SUPPLIERS_ROUTES = path.join(__dirname, '../../routes/suppliers.js');
+  let content;
+
+  beforeAll(() => {
+    content = fs.readFileSync(SUPPLIERS_ROUTES, 'utf8');
+  });
+
+  it('filters list endpoint to only return approved suppliers', () => {
+    // GET /api/suppliers should filter by approved
+    const listSection = content.slice(content.indexOf("router.get('/suppliers'"));
+    expect(listSection.slice(0, 500)).toContain('s.approved');
+  });
+
+  it('hides unapproved supplier profiles from non-admin/non-owner public access', () => {
+    // GET /api/suppliers/:id should check approval
+    expect(content).toContain('!sRaw.approved');
+    expect(content).toContain("status(404).json({ error: 'Supplier not found' })");
+  });
+});
+
+// ─── G) Migration defaults approved: true for existing suppliers ─────────────
+
+describe('db-utils.js — migration preserves approved for existing suppliers', () => {
+  const DB_UTILS = path.join(__dirname, '../../db-utils.js');
+  let content;
+
+  beforeAll(() => {
+    content = fs.readFileSync(DB_UTILS, 'utf8');
+  });
+
+  it('migration sets approved field defaulting existing suppliers to true', () => {
+    const migrationSection = content.slice(content.indexOf('// Admin approval'));
+    // Should use s.approved !== false (not just preserve undefined)
+    expect(migrationSection.slice(0, 200)).toContain('approved:');
+  });
+
+  it('migration does not hard-code approved: false for existing suppliers', () => {
+    const migrationSection = content.slice(content.indexOf('migrateSuppliers_AddNewFields'));
+    // Must not unconditionally set approved to false (that would break live suppliers)
+    // Should use approved: s.approved !== false pattern instead
+    const approvedTruePos = migrationSection.indexOf('approved: s.approved');
+    expect(approvedTruePos).not.toBe(-1);
   });
 });

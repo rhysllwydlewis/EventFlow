@@ -611,7 +611,9 @@ router.put(
 router.post(
   '/me/packages/:id/photos',
   applyFeatureRequired('photoUploads'),
+  applyWriteLimiter,
   applyAuthRequired,
+  applyRoleRequired('supplier'),
   applyRequireVerifiedUser,
   applyRequireApprovedSupplier,
   applyCsrfProtection,
@@ -662,6 +664,7 @@ router.delete(
   '/me/packages/:id/photos',
   applyWriteLimiter,
   applyAuthRequired,
+  applyRoleRequired('supplier'),
   applyRequireVerifiedUser,
   applyRequireApprovedSupplier,
   applyCsrfProtection,
@@ -717,6 +720,9 @@ router.put(
   '/me/packages/:id/gallery/order',
   applyWriteLimiter,
   applyAuthRequired,
+  applyRoleRequired('supplier'),
+  applyRequireVerifiedUser,
+  applyRequireApprovedSupplier,
   applyCsrfProtection,
   async (req, res) => {
     const { urls } = req.body || {};
