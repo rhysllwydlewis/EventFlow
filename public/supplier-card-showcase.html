@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Supplier Card Showcase — All Screen Sizes</title>
+
+<!-- Real CSS stack from suppliers.html -->
+<link rel="stylesheet" href="/assets/css/tokens.css">
+<link rel="stylesheet" href="/assets/css/styles.css">
+<link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css">
+<link rel="stylesheet" href="/assets/css/utilities.css">
+<link rel="stylesheet" href="/assets/css/components.css">
+<link rel="stylesheet" href="/assets/css/suppliers-page.css">
+
+<style>
+  /* Showcase wrapper — neutral background, single column, full-width */
+  body {
+    background: #f0f4f8;
+    padding: 0;
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+  }
+  .showcase-header {
+    background: #0b8073;
+    color: #fff;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .02em;
+  }
+  .showcase-inner {
+    padding: 16px;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  /* Ensure sp-card fills available width in showcase */
+  .sp-card {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: #9ca3af;
+    padding: 8px 0 6px;
+    border-bottom: 1px solid #e5e7eb;
+    margin-bottom: 12px;
+  }
+</style>
+</head>
+<body>
+<div class="showcase-header" id="viewport-label">Supplier Cards — Responsive Showcase</div>
+<div class="showcase-inner">
+
+<!-- ─── CARD 1: Pro supplier with 2 packages ─── -->
+<div class="section-label">Pro Supplier — with 2 packages</div>
+<article class="sp-card sp-card--pro" data-supplier-id="s1" aria-label="Elmwood Photography">
+
+  <div class="sp-card-profile">
+    <div class="sp-card-avatar-wrap">
+      <div class="sp-card-avatar-fallback" style="background:linear-gradient(135deg,#13B6A2 0%,#0B8073 100%);">E</div>
+    </div>
+    <h3 class="sp-card-name">
+      <a href="#" class="sp-card-link">Elmwood Photography</a>
+      <span style="font-size:12px;" title="Pro supplier">⭐</span>
+    </h3>
+    <p class="sp-card-category">📂 Photography</p>
+    <p class="sp-card-location">📍 London, UK</p>
+    <div class="sp-card-rating-widget">
+      <span class="sp-rating-star">★</span>
+      <span class="sp-rating-score">4.9</span>
+      <span class="sp-rating-count">(47 reviews)</span>
+    </div>
+    <div class="sp-card-badges">
+      <span class="sp-badge sp-badge--verified">✓ Verified</span>
+      <span class="sp-badge sp-badge--pro">Pro</span>
+      <span class="sp-badge sp-badge--distance">3.2 mi</span>
+    </div>
+    <p class="sp-card-description">Award-winning wedding and event photography. Capturing your special moments with a natural, documentary style.</p>
+  </div>
+
+  <div class="sp-card-packages">
+    <div class="sp-pkg-label">Packages</div>
+    <div class="sp-pkg-carousel">
+      <button class="sp-pkg-arrow sp-pkg-arrow--prev" aria-label="Show previous packages" disabled>&#8249;</button>
+      <div class="sp-pkg-carousel-viewport">
+        <div class="sp-pkg-carousel-track">
+          <a class="sp-pkg-mini" href="#" aria-label="View Wedding Coverage package details">
+            <div class="sp-pkg-mini-thumb">
+              <div class="sp-pkg-mini-img-fallback" aria-hidden="true">📸</div>
+            </div>
+            <div class="sp-pkg-mini-body">
+              <p class="sp-pkg-mini-title">Full Wedding Coverage</p>
+              <p class="sp-pkg-mini-price">£1,200</p>
+              <button class="sp-btn sp-btn--plan btn-add-to-plan">Add to plan</button>
+            </div>
+          </a>
+          <a class="sp-pkg-mini" href="#" aria-label="View Engagement Shoot package details">
+            <div class="sp-pkg-mini-thumb">
+              <div class="sp-pkg-mini-img-fallback" aria-hidden="true">💑</div>
+            </div>
+            <div class="sp-pkg-mini-body">
+              <p class="sp-pkg-mini-title">Engagement Shoot</p>
+              <p class="sp-pkg-mini-price">£350</p>
+              <button class="sp-btn sp-btn--plan btn-add-to-plan">Add to plan</button>
+            </div>
+          </a>
+        </div>
+      </div>
+      <button class="sp-pkg-arrow sp-pkg-arrow--next" aria-label="Show next packages">&#8250;</button>
+    </div>
+  </div>
+
+  <div class="sp-card-actions">
+    <button class="sp-btn sp-btn--shortlist btn-shortlist" aria-label="Save to shortlist">♡ Save</button>
+    <a href="#" class="sp-btn sp-btn--secondary" aria-label="View profile">View Profile</a>
+    <button class="sp-btn sp-btn--primary btn-contact-supplier" aria-label="Message">Message</button>
+  </div>
+</article>
+
+<!-- ─── CARD 2: Standard supplier with 3 packages ─── -->
+<div class="section-label" style="margin-top:20px;">Standard Supplier — with 3 packages</div>
+<article class="sp-card" data-supplier-id="s2" aria-label="Bloom & Blossom Florist">
+
+  <div class="sp-card-profile">
+    <div class="sp-card-avatar-wrap">
+      <div class="sp-card-avatar-fallback" style="background:linear-gradient(135deg,#EC4899 0%,#DB2777 100%);">B</div>
+    </div>
+    <h3 class="sp-card-name">
+      <a href="#" class="sp-card-link">Bloom &amp; Blossom Florist</a>
+    </h3>
+    <p class="sp-card-category">📂 Florist</p>
+    <p class="sp-card-location">📍 Manchester, UK</p>
+    <div class="sp-card-rating-widget">
+      <span class="sp-rating-star">★</span>
+      <span class="sp-rating-score">4.6</span>
+      <span class="sp-rating-count">(23 reviews)</span>
+    </div>
+    <div class="sp-card-badges">
+      <span class="sp-badge sp-badge--email">✉ Email</span>
+      <span class="sp-badge sp-badge--phone">📞 Phone</span>
+    </div>
+    <p class="sp-card-description">Beautiful seasonal flower arrangements for weddings, birthdays and corporate events.</p>
+  </div>
+
+  <div class="sp-card-packages">
+    <div class="sp-pkg-label">Packages</div>
+    <div class="sp-pkg-carousel">
+      <button class="sp-pkg-arrow sp-pkg-arrow--prev" aria-label="Show previous packages" disabled>&#8249;</button>
+      <div class="sp-pkg-carousel-viewport">
+        <div class="sp-pkg-carousel-track">
+          <a class="sp-pkg-mini" href="#" aria-label="View Bridal Bouquet package details">
+            <div class="sp-pkg-mini-thumb">
+              <div class="sp-pkg-mini-img-fallback" aria-hidden="true">💐</div>
+            </div>
+            <div class="sp-pkg-mini-body">
+              <p class="sp-pkg-mini-title">Bridal Bouquet</p>
+              <p class="sp-pkg-mini-price">£180</p>
+              <button class="sp-btn sp-btn--plan btn-add-to-plan">Add to plan</button>
+            </div>
+          </a>
+          <a class="sp-pkg-mini" href="#" aria-label="View Centrepiece package details">
+            <div class="sp-pkg-mini-thumb">
+              <div class="sp-pkg-mini-img-fallback" aria-hidden="true">🌹</div>
+            </div>
+            <div class="sp-pkg-mini-body">
+              <p class="sp-pkg-mini-title">Table Centrepieces (×10)</p>
+              <p class="sp-pkg-mini-price">£450</p>
+              <button class="sp-btn sp-btn--plan btn-add-to-plan">Add to plan</button>
+            </div>
+          </a>
+          <a class="sp-pkg-mini" href="#" aria-label="View Full Venue package details">
+            <div class="sp-pkg-mini-thumb">
+              <div class="sp-pkg-mini-img-fallback" aria-hidden="true">🏛️</div>
+            </div>
+            <div class="sp-pkg-mini-body">
+              <p class="sp-pkg-mini-title">Full Venue Dressing</p>
+              <p class="sp-pkg-mini-price">£1,800</p>
+              <button class="sp-btn sp-btn--plan btn-add-to-plan">Add to plan</button>
+            </div>
+          </a>
+        </div>
+      </div>
+      <button class="sp-pkg-arrow sp-pkg-arrow--next" aria-label="Show next packages">&#8250;</button>
+    </div>
+  </div>
+
+  <div class="sp-card-actions">
+    <button class="sp-btn sp-btn--shortlist btn-shortlist" aria-label="Save to shortlist">♡ Save</button>
+    <a href="#" class="sp-btn sp-btn--secondary" aria-label="View profile">View Profile</a>
+    <button class="sp-btn sp-btn--primary btn-contact-supplier" aria-label="Message">Message</button>
+  </div>
+</article>
+
+<!-- ─── CARD 3: Pro Plus supplier — no packages ─── -->
+<div class="section-label" style="margin-top:20px;">Pro+ Supplier — no packages (empty state)</div>
+<article class="sp-card sp-card--pro-plus" data-supplier-id="s3" aria-label="Grand Pavilion Venues">
+
+  <div class="sp-card-profile">
+    <div class="sp-card-avatar-wrap">
+      <div class="sp-card-avatar-fallback" style="background:linear-gradient(135deg,#8B5CF6 0%,#6D28D9 100%);">G</div>
+    </div>
+    <h3 class="sp-card-name">
+      <a href="#" class="sp-card-link">Grand Pavilion Venues</a>
+      <span style="font-size:12px;" title="Pro+ supplier">💎</span>
+    </h3>
+    <p class="sp-card-category">📂 Venues</p>
+    <p class="sp-card-location">📍 Birmingham, UK</p>
+    <div class="sp-card-rating-widget">
+      <span class="sp-rating-star sp-rating-star--empty">★</span>
+      <span class="sp-rating-none">No reviews yet</span>
+    </div>
+    <div class="sp-card-badges">
+      <span class="sp-badge sp-badge--pro-plus">Pro+</span>
+      <span class="sp-badge sp-badge--featured">Featured</span>
+    </div>
+    <p class="sp-card-description">Elegant event spaces for up to 500 guests. Fully catered or self-catering options available.</p>
+  </div>
+
+  <div class="sp-card-packages">
+    <div class="sp-pkg-label">Packages</div>
+    <div class="sp-pkg-empty">
+      <span class="sp-pkg-empty-icon" aria-hidden="true">📦</span>
+      <p class="sp-pkg-empty-text">No packages listed yet</p>
+      <a href="#" class="sp-pkg-empty-link">View profile</a>
+    </div>
+  </div>
+
+  <div class="sp-card-actions">
+    <button class="sp-btn sp-btn--shortlist-active btn-shortlist" aria-label="Remove from shortlist">❤️ Saved</button>
+    <a href="#" class="sp-btn sp-btn--secondary" aria-label="View profile">View Profile</a>
+    <button class="sp-btn sp-btn--primary btn-contact-supplier" aria-label="Message">Message</button>
+  </div>
+</article>
+
+</div><!-- /.showcase-inner -->
+
+<script>
+(function() {
+  // Show current viewport width in the header
+  var lbl = document.getElementById('viewport-label');
+  function updateLabel() {
+    lbl.textContent = 'Supplier Cards — viewport: ' + window.innerWidth + 'px × ' + window.innerHeight + 'px';
+  }
+  updateLabel();
+  window.addEventListener('resize', updateLabel);
+
+  // Minimal carousel init matching suppliers-init.js
+  var MOBILE_BP = 640;
+  function attachCarousels() {
+    var visibleCount = window.innerWidth <= MOBILE_BP ? 1 : 2;
+    document.querySelectorAll('.sp-pkg-carousel').forEach(function(carousel) {
+      var track   = carousel.querySelector('.sp-pkg-carousel-track');
+      var prevBtn = carousel.querySelector('.sp-pkg-arrow--prev');
+      var nextBtn = carousel.querySelector('.sp-pkg-arrow--next');
+      if (!track || !prevBtn || !nextBtn) return;
+      var items = Array.from(track.querySelectorAll('.sp-pkg-mini'));
+      var total = items.length;
+      if (total <= visibleCount) {
+        prevBtn.disabled = true; nextBtn.disabled = true; return;
+      }
+      var idx = 0;
+      var maxIdx = total - visibleCount;
+      function getStep() {
+        var gap = parseFloat(getComputedStyle(track).columnGap) || 6;
+        return items[0] ? (items[0].getBoundingClientRect().width + gap) : 212;
+      }
+      function update() {
+        track.style.transform = 'translateX(' + (-idx * getStep()) + 'px)';
+        prevBtn.disabled = idx === 0;
+        nextBtn.disabled = idx >= maxIdx;
+      }
+      prevBtn.addEventListener('click', function(e) { e.stopPropagation(); if(idx>0){idx--;update();} });
+      nextBtn.addEventListener('click', function(e) { e.stopPropagation(); if(idx<maxIdx){idx++;update();} });
+      update();
+    });
+  }
+  attachCarousels();
+})();
+</script>
+</body>
+</html>
