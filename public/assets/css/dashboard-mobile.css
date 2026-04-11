@@ -703,3 +703,342 @@
     text-align: center;
   }
 }
+
+/* ============================================================
+   Q) SUPPLIER DASHBOARD HERO — mobile redesign (≤ 480 px)
+   Inspired by screenshot 3: cleaner card with illustration on right
+   ============================================================ */
+
+/* --- illustration element (hidden by default, shown on mobile) --- */
+.dashboard-hero__illus {
+  display: none;
+}
+
+@media (max-width: 480px) {
+
+  /* Tighter hero padding on small phones.
+     Right padding is larger to give the card-collapse button (right: 8px)
+     some clearance so it doesn't overlap the illustration tile. */
+  .dashboard-hero {
+    border-radius: 16px;
+    margin-bottom: 10px;
+  }
+
+  .dashboard-hero__content {
+    padding: 14px 36px 12px 14px; /* right: 36px clears the 8px+20px btn */
+    gap: 10px;
+  }
+
+  /* Two-column header: text on left, illustration on right.
+     Stats wrap to a new row below. */
+  .dashboard-hero__header {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px 10px;
+  }
+
+  .dashboard-hero__greeting-wrapper {
+    flex: 1;
+    min-width: 0;
+    gap: 3px;
+  }
+
+  /* Push stats to a new row spanning full width */
+  .dashboard-hero__stats {
+    flex-basis: 100%;
+    order: 3; /* ensure it appears after greeting + illus */
+  }
+
+  .dashboard-hero__greeting {
+    font-size: 10px;
+    letter-spacing: 0.07em;
+  }
+
+  .dashboard-hero__title {
+    font-size: 17px;
+    line-height: 1.2;
+    gap: 1px;
+  }
+
+  .dashboard-hero__title-main {
+    font-size: 17px;
+  }
+
+  .dashboard-hero__title-highlight {
+    font-size: 17px;
+  }
+
+  .dashboard-hero__subtitle {
+    font-size: 0.725rem;
+    line-height: 1.45;
+    max-width: 100%;
+  }
+
+  /* Show and style the decorative illustration */
+  .dashboard-hero__illus {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 76px;
+    margin-top: 2px;
+  }
+
+  .dashboard-hero__illus-inner {
+    position: relative;
+    width: 68px;
+    height: 68px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 14px;
+    box-shadow:
+      0 2px 8px rgba(0, 0, 0, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px;
+    overflow: hidden;
+  }
+
+  .dashboard-hero__illus-inner::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 70% 30%, rgba(16, 185, 129, 0.3) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .dashboard-hero__illus-chart {
+    width: 44px;
+    height: 28px;
+    color: #10b981;
+    position: relative;
+    z-index: 1;
+  }
+
+  .dashboard-hero__illus-chart svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .dashboard-hero__illus-check {
+    width: 18px;
+    height: 18px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    color: #fff;
+    position: relative;
+    z-index: 1;
+  }
+
+  .dashboard-hero__illus-check svg {
+    width: 11px;
+    height: 11px;
+  }
+
+  /* Stat cards: keep 3-col compact on small phone */
+  .dashboard-hero__stats {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+
+  .dashboard-stat-card {
+    padding: 8px 6px;
+    border-radius: 10px;
+    gap: 4px;
+  }
+
+  .dashboard-stat-card__icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+  }
+
+  .dashboard-stat-card__icon svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .dashboard-stat-card__value {
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  .dashboard-stat-card__label {
+    font-size: 9.5px;
+    letter-spacing: 0.03em;
+  }
+
+  /* Action chips: 3-col on very small, fallback 2-col via grid */
+  .dashboard-hero__actions {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+  }
+
+  .dashboard-action-chip {
+    padding: 5px 4px;
+    font-size: 0.7rem;
+    min-height: 44px;
+    border-radius: 8px;
+    gap: 3px;
+  }
+
+  .dashboard-action-chip svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  /* Pro-tip spans full width */
+  .dashboard-hero__tip {
+    grid-column: 1 / -1;
+    padding: 8px 12px;
+    font-size: 0.75rem;
+  }
+}
+
+/* ============================================================
+   R) PRO-RIBBON / UPGRADE CALLOUT — mobile redesign (≤ 480 px)
+   Layout: icon | text | CTA button — all on one row
+   ============================================================ */
+
+/* Shared layout for the new structured inner element */
+.pro-ribbon__inner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+}
+
+.pro-ribbon__icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.pro-ribbon__text-group {
+  flex: 1;
+  min-width: 0;
+}
+
+.pro-ribbon__desc {
+  display: inline;
+}
+
+/* Mobile-specific overrides */
+@media (max-width: 480px) {
+  .pro-ribbon {
+    padding: 12px 14px;
+    border-radius: 14px;
+    margin-bottom: 10px;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+  }
+
+  /* Starter plan: warm amber gradient card */
+  .pro-ribbon.pro-ribbon--starter {
+    background: linear-gradient(135deg, #fffbf2 0%, #fef3c7 60%, #fde68a 100%);
+    border: 1.5px solid rgba(245, 158, 11, 0.35);
+    box-shadow:
+      0 2px 8px rgba(245, 158, 11, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    color: #78350f;
+  }
+
+  .pro-ribbon.pro-ribbon--starter strong {
+    color: #92400e;
+  }
+
+  /* Hide the long description text to keep ribbon compact on very small screens */
+  .pro-ribbon.pro-ribbon--starter .pro-ribbon__desc {
+    display: none;
+  }
+
+  .pro-ribbon__inner {
+    gap: 10px;
+  }
+
+  .pro-ribbon__icon {
+    font-size: 1.35rem;
+    width: 36px;
+    height: 36px;
+    background: rgba(245, 158, 11, 0.15);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .pro-ribbon__text-group {
+    flex: 1;
+    min-width: 0;
+    font-weight: 600;
+    font-size: 0.8rem;
+  }
+
+  /* CTA button: right-aligned pill */
+  .pro-ribbon.pro-ribbon--starter .pro-ribbon__cta,
+  .pro-ribbon.pro-ribbon--starter a.pro-ribbon__cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 8px 14px;
+    height: 36px;
+    background: linear-gradient(135deg, #0B8073 0%, #10b981 100%);
+    color: #fff !important;
+    border-radius: 10px;
+    font-size: 0.775rem;
+    font-weight: 700;
+    text-decoration: none !important;
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(11, 128, 115, 0.3);
+    transition: opacity 0.15s, transform 0.15s;
+    margin-left: 0;
+    vertical-align: unset;
+    border: none;
+  }
+
+  .pro-ribbon.pro-ribbon--starter .pro-ribbon__cta:hover,
+  .pro-ribbon.pro-ribbon--starter a.pro-ribbon__cta:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+    text-decoration: none !important;
+  }
+
+  .pro-ribbon.pro-ribbon--starter .pro-ribbon__cta:active,
+  .pro-ribbon.pro-ribbon--starter a.pro-ribbon__cta:active {
+    transform: translateY(0);
+  }
+}
+
+/* At 430 px and below, keep the description hidden but keep icon */
+@media (max-width: 390px) {
+  .pro-ribbon.pro-ribbon--starter .pro-ribbon__icon {
+    width: 32px;
+    height: 32px;
+    font-size: 1.1rem;
+  }
+
+  .pro-ribbon__text-group {
+    font-size: 0.775rem;
+  }
+
+  .pro-ribbon.pro-ribbon--starter .pro-ribbon__cta,
+  .pro-ribbon.pro-ribbon--starter a.pro-ribbon__cta {
+    padding: 7px 11px;
+    font-size: 0.74rem;
+    height: 32px;
+  }
+}
