@@ -16,7 +16,7 @@ const { paginationHelper } = require('../utils/database');
  * Publisher types (Event Planner / Wedding Fayre) grant public-calendar write
  * access by default (subject to publicCalendarPublisherOverride).
  */
-const { VALID_CATEGORIES, PUBLISHER_CATEGORIES } = require('../models/Supplier');
+const { VALID_CATEGORIES } = require('../models/Supplier');
 
 /**
  * Generate SEO-friendly slug from text
@@ -255,6 +255,7 @@ class SupplierService {
    * @returns {Promise<Object>} - Updated supplier
    */
   async updateSupplier(id, updates, userId, userRole) {
+    let pendingUpdates = updates;
     const supplier = await this.db.findOne('suppliers', { id });
 
     if (!supplier) {
@@ -267,30 +268,36 @@ class SupplierService {
     }
 
     // Validate fields if provided
-    if (updates.category !== undefined && !VALID_CATEGORIES.includes(updates.category)) {
+    if (
+      pendingUpdates.category !== undefined &&
+      !VALID_CATEGORIES.includes(pendingUpdates.category)
+    ) {
       throw new ValidationError(`Category must be one of: ${VALID_CATEGORIES.join(', ')}`);
     }
-    if (updates.name !== undefined && String(updates.name).trim().length > 100) {
+    if (pendingUpdates.name !== undefined && String(pendingUpdates.name).trim().length > 100) {
       throw new ValidationError('Supplier name must be 100 characters or fewer');
     }
-    if (updates.description !== undefined && String(updates.description).trim().length > 5000) {
+    if (
+      pendingUpdates.description !== undefined &&
+      String(pendingUpdates.description).trim().length > 5000
+    ) {
       throw new ValidationError('Description must be 5000 characters or fewer');
     }
-    if (updates.email !== undefined && updates.email) {
-      if (String(updates.email).length > 254) {
+    if (pendingUpdates.email !== undefined && pendingUpdates.email) {
+      if (String(pendingUpdates.email).length > 254) {
         throw new ValidationError('Email must be 254 characters or fewer');
       }
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(String(updates.email))) {
+      if (!emailRegex.test(String(pendingUpdates.email))) {
         throw new ValidationError('Invalid email format');
       }
     }
-    if (updates.phone !== undefined && updates.phone) {
-      if (String(updates.phone).length > 20) {
+    if (pendingUpdates.phone !== undefined && pendingUpdates.phone) {
+      if (String(pendingUpdates.phone).length > 20) {
         throw new ValidationError('Phone must be 20 characters or fewer');
       }
       const phoneRegex = /^[0-9+\-\s().]{1,20}$/;
-      if (!phoneRegex.test(String(updates.phone))) {
+      if (!phoneRegex.test(String(pendingUpdates.phone))) {
         throw new ValidationError('Invalid phone number format');
       }
     }
@@ -300,12 +307,12 @@ class SupplierService {
       { field: 'videoUrl', label: 'Video URL' },
     ];
     for (const { field, label } of urlUpdateFields) {
-      if (updates[field] !== undefined && updates[field]) {
-        if (String(updates[field]).length > 500) {
+      if (pendingUpdates[field] !== undefined && pendingUpdates[field]) {
+        if (String(pendingUpdates[field]).length > 500) {
           throw new ValidationError(`${label} must be 500 characters or fewer`);
         }
         try {
-          new URL(String(updates[field]));
+          new URL(String(pendingUpdates[field]));
         } catch {
           throw new ValidationError(`${label} must be a valid URL`);
         }
@@ -313,16 +320,17 @@ class SupplierService {
     }
 
     // Enforce slug uniqueness if name or slug changes
-    if (updates.name !== undefined || updates.slug !== undefined) {
+    if (pendingUpdates.name !== undefined || pendingUpdates.slug !== undefined) {
       const allSuppliers = await this.db.read('suppliers');
-      const baseSlug = updates.slug || generateSlug(String(updates.name || supplier.name).trim());
+      const baseSlug =
+        pendingUpdates.slug || generateSlug(String(pendingUpdates.name || supplier.name).trim());
       let slug = baseSlug;
       let suffix = 2;
       while (allSuppliers.find(s => s.slug === slug && s.id !== id)) {
         slug = `${baseSlug}-${suffix}`;
         suffix++;
       }
-      updates = { ...updates, slug };
+      pendingUpdates = { ...pendingUpdates, slug };
     }
 
     // Allowed fields
@@ -374,8 +382,8 @@ class SupplierService {
     // Apply updates
     const setFields = { updatedAt: new Date().toISOString() };
     allowedFields.forEach(field => {
-      if (updates[field] !== undefined) {
-        setFields[field] = updates[field];
+      if (pendingUpdates[field] !== undefined) {
+        setFields[field] = pendingUpdates[field];
       }
     });
 
