@@ -344,8 +344,10 @@ async function initSupplierDashboardWidgets() {
         },
         {
           icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>',
+          // Both totalEnquiries and totalViews come from the same summary query (same period),
+          // so the ratio is a valid same-window conversion rate.
           value: views7d > 0 ? Math.round((totalEnquiries / views7d) * 100) : 0,
-          label: 'Conversion Rate',
+          label: 'Enquiry Rate',
           format: 'percent',
           color: 'linear-gradient(135deg, #10B981 0%, #34D399 100%)',
         },
@@ -1020,18 +1022,9 @@ const SUPPLIER_WELCOME_DISMISS_KEY = 'ef_supplier_welcome_dismissed';
   if (!welcomeSection) {
     return;
   }
-  let dismissed = false;
-  try {
-    dismissed = localStorage.getItem(SUPPLIER_WELCOME_DISMISS_KEY) === '1';
-  } catch (_) {
-    /* ignore storage errors */
-  }
-  if (dismissed) {
-    welcomeSection.style.display = 'none';
-    return;
-  }
 
-  // Wire up the hero dismiss × button
+  // Wire up the hero dismiss × button regardless of dismissed state,
+  // so it works if the section is shown again (e.g. after localStorage clear).
   const dismissBtn = document.getElementById('hero-dismiss-btn');
   if (dismissBtn) {
     dismissBtn.addEventListener('click', () => {
@@ -1052,6 +1045,17 @@ const SUPPLIER_WELCOME_DISMISS_KEY = 'ef_supplier_welcome_dismissed';
         /* ignore storage errors */
       }
     });
+  }
+
+  // Apply persisted dismissed state after wiring the handler.
+  let dismissed = false;
+  try {
+    dismissed = localStorage.getItem(SUPPLIER_WELCOME_DISMISS_KEY) === '1';
+  } catch (_) {
+    /* ignore storage errors */
+  }
+  if (dismissed) {
+    welcomeSection.style.display = 'none';
   }
 })();
 
