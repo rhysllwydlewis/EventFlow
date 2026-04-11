@@ -1835,6 +1835,34 @@
   min-height: 40px !important;
 }
 
+/*
+ * Package carousel arrow buttons — must NOT be affected by the global
+ * styles.css button rule, which inadvertently applies:
+ *   border-radius: 12px !important;  (breaks circular shape)
+ *   padding: 10px 18px !important;   (explodes the button size)
+ *   font-size: 15px !important;
+ *   font-weight: 600 !important;
+ * and, at ≤600px:
+ *   width: 100%;  (collapses the carousel viewport to zero, hiding package cards)
+ *   margin-top: 6px;
+ *
+ * sp-pkg-arrow is a compact 22×22 circular icon button.
+ * All overrides here use !important to beat the specificity (0,20,1) of the
+ * global selector.
+ */
+.sp-pkg-arrow {
+  width: 22px !important;
+  height: 22px !important;
+  min-height: 22px !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  font-size: 16px !important;
+  font-weight: 400 !important;
+  box-shadow: none !important;
+  margin-top: 0 !important;
+  flex-shrink: 0 !important;
+}
+
 .sp-btn {
   padding: 11px 14px !important;
   font-size: 13px !important;
