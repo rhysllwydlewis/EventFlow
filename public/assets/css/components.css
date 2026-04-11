@@ -1686,6 +1686,7 @@
     font-weight: 600;
     white-space: normal;
     word-break: normal;
+    overflow-wrap: anywhere;
     line-height: 1.2;
     min-height: 44px;
     display: inline-flex;
