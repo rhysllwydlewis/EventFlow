@@ -49,7 +49,7 @@
       autoApproveVerification = newValue;
       updateVerificationToggleUI(autoApproveVerification);
       showToast(
-        `Supplier verification auto-approve ${newValue ? 'enabled' : 'disabled'}`,
+        `Auto-approve new suppliers ${newValue ? 'enabled' : 'disabled'}`,
         'success'
       );
     } catch (err) {
@@ -381,8 +381,9 @@
               <div style="display: flex; gap: 8px;">
                 <button onclick="window.viewSupplier('${escapeHtml(supplier.id)}')" class="btn-xs" title="View Profile">👁️</button>
                 <button onclick="window.editSupplier('${escapeHtml(supplier.id)}')" class="btn-xs" title="Edit">✏️</button>
-                ${!supplier.approved ? `<button onclick="window.approveSupplier('${escapeHtml(supplier.id)}')" class="btn-xs" style="background: #10b981; color: white;" title="Approve">✓</button>` : ''}
-                <button onclick="window.deleteSupplier('${escapeHtml(supplier.id)}')" class="btn-xs" style="background: #ef4444; color: white;" title="Delete">🗑️</button>
+                ${!supplier.approved ? `<button onclick="window.approveSupplier('${escapeHtml(supplier.id)}')" class="btn-xs" style="background: #10b981; color: white;" title="Approve supplier">✓ Approve</button>` : ''}
+                ${!supplier.approved ? `<button onclick="window.rejectSupplier('${escapeHtml(supplier.id)}')" class="btn-xs" style="background: #ef4444; color: white;" title="Reject supplier">✗ Reject</button>` : ''}
+                <button onclick="window.deleteSupplier('${escapeHtml(supplier.id)}')" class="btn-xs" style="background: #6b7280; color: white;" title="Delete">🗑️</button>
               </div>
               <div style="display: flex; gap: 4px; align-items: center; flex-wrap: wrap;">
                 <select id="sub-tier-${escapeHtml(supplier.id)}" class="btn-xs" style="padding: 2px 4px; font-size: 11px;" title="Subscription tier">
@@ -694,7 +695,7 @@
   window.approveSupplier = async function (id) {
     const confirmed = await AdminShared.showConfirmModal({
       title: 'Approve Supplier',
-      message: 'Approve this supplier?',
+      message: 'Approve this supplier? They will be able to create packages, send messages, appear in search, and publish calendar events.',
       confirmText: 'Approve',
     });
     if (confirmed) {
@@ -706,6 +707,25 @@
       } catch (error) {
         console.error('Error approving supplier:', error);
         showToast(`Failed to approve supplier: ${error.message}`, 'error');
+      }
+    }
+  };
+
+  window.rejectSupplier = async function (id) {
+    const confirmed = await AdminShared.showConfirmModal({
+      title: 'Reject Supplier',
+      message: 'Reject this supplier? They will remain unapproved and will see a dashboard banner prompting them to re-submit.',
+      confirmText: 'Reject',
+    });
+    if (confirmed) {
+      try {
+        await AdminShared.api(`/api/admin/suppliers/${id}/approve`, 'POST', { approved: false });
+        showToast('Supplier rejected', 'success');
+        await loadSuppliers();
+        renderTable();
+      } catch (error) {
+        console.error('Error rejecting supplier:', error);
+        showToast(`Failed to reject supplier: ${error.message}`, 'error');
       }
     }
   };

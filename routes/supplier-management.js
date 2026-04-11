@@ -274,8 +274,20 @@ router.post(
       }
     }
 
+    // Check if admin has enabled auto-approve for new suppliers
+    try {
+      const settings = (await dbUnified.read('settings')) || {};
+      if ((settings.features || {}).autoApproveSupplierVerification === true) {
+        s.approved = true;
+        s.approvedAt = new Date().toISOString();
+        s.approvedBy = 'system';
+      }
+    } catch (settingsErr) {
+      logger.warn('Could not read settings for auto-approve check:', settingsErr.message);
+    }
+
     await dbUnified.insertOne('suppliers', s);
-    logger.info('Supplier profile created', { supplierId: s.id, userId: req.user.id });
+    logger.info('Supplier profile created', { supplierId: s.id, userId: req.user.id, approved: s.approved });
     res.json({ ok: true, supplier: s });
   }
 );
@@ -408,7 +420,7 @@ router.patch(
     if (b.maxGuests != null) {
       supplierPatch.maxGuests = parseInt(b.maxGuests, 10) || 0;
     }
-    supplierPatch.approved = false;
+    // NOTE: do NOT touch approved here — supplier edits must never revoke approval.
     await dbUnified.updateOne('suppliers', { id: req.params.id }, { $set: supplierPatch });
 
     // Bust catalog cache — profile edit means the supplier data may have changed
@@ -457,6 +469,109 @@ router.post(
     }
 
     res.json({ ok: true, updatedSuppliers: changed });
+  }
+);
+
+/**
+ * POST /api/me/suppliers/verification-request
+ * Submit a supplier verification request (creates a support ticket for admin review).
+ * Rate-limited and duplicate-protected: only one open/pending ticket per supplier.
+ * This endpoint does NOT require approval — unapproved suppliers must be able to call it.
+ */
+router.post(
+  '/verification-request',
+  applyWriteLimiter,
+  applyAuthRequired,
+  applyRoleRequired('supplier'),
+  applyRequireVerifiedUser,
+  applyCsrfProtection,
+  async (req, res) => {
+    try {
+      const userId = req.user.id;
+
+      // Find the supplier profile for this user
+      const suppliers = await dbUnified.read('suppliers');
+      const supplier = suppliers.find(s => s.ownerUserId === userId);
+      if (!supplier) {
+        return res.status(404).json({ error: 'Supplier profile not found' });
+      }
+
+      // Check for an existing open/pending verification ticket from this supplier
+      const allTickets = await dbUnified.read('tickets');
+      const existingTicket = allTickets.find(
+        t =>
+          t.senderId === userId &&
+          t.ticketType === 'supplier_verification' &&
+          (t.status === 'open' || t.status === 'in_progress')
+      );
+      if (existingTicket) {
+        return res.status(409).json({
+          error: 'A verification request is already pending review.',
+          code: 'VERIFICATION_REQUEST_PENDING',
+          ticketId: existingTicket.id,
+          message:
+            'You have already submitted a verification request. Our team will review it within 24 hours.',
+        });
+      }
+
+      // Collect form fields (allow user-supplied overrides; fall back to profile values)
+      const businessName = String(req.body.businessName || supplier.name || '').trim().slice(0, 120);
+      const website = String(req.body.website || supplier.website || '').trim().slice(0, 200);
+      const phone = String(req.body.phone || supplier.phone || '').trim().slice(0, 30);
+      const postcode = String(req.body.postcode || supplier.venuePostcode || supplier.location || '').trim().slice(0, 60);
+      const note = String(req.body.note || '').trim().slice(0, 1000);
+
+      if (!businessName) {
+        return res.status(400).json({ error: 'Business name is required' });
+      }
+
+      const now = new Date().toISOString();
+      const { uid } = require('../store');
+      const newTicket = {
+        id: uid(),
+        senderId: userId,
+        senderType: 'supplier',
+        senderName: req.user.name || req.user.firstName || req.user.displayName || businessName,
+        senderEmail: req.user.email || supplier.email || '',
+        subject: `Supplier Verification Request: ${businessName}`,
+        message: [
+          `Business Name: ${businessName}`,
+          website ? `Website: ${website}` : null,
+          phone ? `Phone: ${phone}` : null,
+          postcode ? `Location / Postcode: ${postcode}` : null,
+          note ? `\nAdditional information:\n${note}` : null,
+        ]
+          .filter(Boolean)
+          .join('\n'),
+        status: 'open',
+        priority: 'medium',
+        ticketType: 'supplier_verification',
+        supplierId: supplier.id,
+        assignedTo: null,
+        lastReplyAt: now,
+        lastReplyBy: 'supplier',
+        responses: [],
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      await dbUnified.insertOne('tickets', newTicket);
+      logger.info('Supplier verification ticket created', {
+        ticketId: newTicket.id,
+        supplierId: supplier.id,
+        userId,
+      });
+
+      res.status(201).json({
+        ok: true,
+        message:
+          'Your verification request has been submitted. Our team will review it within 24 hours.',
+        ticketId: newTicket.id,
+      });
+    } catch (error) {
+      logger.error('Error creating supplier verification request:', error);
+      res.status(500).json({ error: 'Failed to submit verification request' });
+    }
   }
 );
 
