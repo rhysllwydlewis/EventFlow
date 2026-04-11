@@ -241,7 +241,8 @@ describe('customer-calendar.js — write endpoints require requireVerifiedUser',
   });
 
   it('POST / (create entry) includes requireVerifiedUser', () => {
-    const idx = content.indexOf("router.post('/'");
+    // The route may be formatted as single-line or multi-line by prettier
+    const idx = content.search(/router\.post\(\s*['"]\/['"]/);
     expect(idx).not.toBe(-1);
     const handlerStart = content.indexOf('async (req, res)', idx);
     const middlewareSection = content.slice(idx, handlerStart);
@@ -249,7 +250,7 @@ describe('customer-calendar.js — write endpoints require requireVerifiedUser',
   });
 
   it('PUT /:id (update entry) includes requireVerifiedUser', () => {
-    const idx = content.indexOf("router.put('/:id'");
+    const idx = content.search(/router\.put\(\s*['"][/]:id['"]/);
     expect(idx).not.toBe(-1);
     const handlerStart = content.indexOf('async (req, res)', idx);
     const middlewareSection = content.slice(idx, handlerStart);
@@ -257,7 +258,7 @@ describe('customer-calendar.js — write endpoints require requireVerifiedUser',
   });
 
   it('DELETE /:id (delete entry) includes requireVerifiedUser', () => {
-    const idx = content.indexOf("router.delete('/:id'");
+    const idx = content.search(/router\.delete\(\s*['"][/]:id['"]/);
     expect(idx).not.toBe(-1);
     const handlerStart = content.indexOf('async (req, res)', idx);
     const middlewareSection = content.slice(idx, handlerStart);
@@ -266,7 +267,7 @@ describe('customer-calendar.js — write endpoints require requireVerifiedUser',
 
   it('GET / (list entries) does NOT require requireVerifiedUser (read-only)', () => {
     // Read-only endpoints don't need verification gating — only writes do
-    const idx = content.indexOf("router.get('/'");
+    const idx = content.search(/router\.get\(\s*['"]\/['"]/);
     expect(idx).not.toBe(-1);
     const handlerStart = content.indexOf('async (req, res)', idx);
     const middlewareSection = content.slice(idx, handlerStart);
@@ -299,6 +300,10 @@ describe('supplier-admin.js — visibility-diagnostics endpoint', () => {
     const idx = content.indexOf("'/suppliers/:id/visibility-diagnostics'");
     const section = content.slice(idx, idx + 500);
     expect(section).toContain('applyAuthRequired');
+    // Rate limiter should come before auth (CodeQL pattern)
+    const limiterPos = section.indexOf('apiLimiter');
+    const authPos = section.indexOf('applyAuthRequired');
+    expect(limiterPos).toBeLessThan(authPos);
   });
 
   it('returns approved status in response', () => {
@@ -339,7 +344,7 @@ describe('supplier-admin.js — visibility-diagnostics endpoint', () => {
 
   it('checks for duplicate ownerUserId', () => {
     const idx = content.indexOf("'/suppliers/:id/visibility-diagnostics'");
-    const section = content.slice(idx, idx + 3000);
+    const section = content.slice(idx, idx + 4000);
     expect(section).toContain('duplicate');
   });
 

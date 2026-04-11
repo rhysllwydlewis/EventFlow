@@ -1084,9 +1084,9 @@ router.get(
  */
 router.get(
   '/suppliers/:id/visibility-diagnostics',
+  apiLimiter,
   applyAuthRequired,
   applyRoleRequired('admin'),
-  apiLimiter,
   async (req, res) => {
     try {
       const supplierId = req.params.id;
