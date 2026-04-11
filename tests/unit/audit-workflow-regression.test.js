@@ -224,6 +224,23 @@ describe('public-calendar.js — write endpoints require requireVerifiedUser', (
     const approvedPos = middlewareSection.indexOf('requireApprovedSupplier');
     expect(verifiedPos).toBeLessThan(approvedPos);
   });
+
+  it('POST /events/:id/save includes requireVerifiedUser (saved items gate)', () => {
+    // Problem statement explicitly lists "saved items" as requiring verification
+    const idx = content.search(/router\.post\(\s*['"]\/events\/:id\/save['"]/);
+    expect(idx).not.toBe(-1);
+    const handlerStart = content.indexOf('async (req, res)', idx);
+    const middlewareSection = content.slice(idx, handlerStart);
+    expect(middlewareSection).toContain('requireVerifiedUser');
+  });
+
+  it('DELETE /events/:id/save includes requireVerifiedUser (saved items gate)', () => {
+    const idx = content.search(/router\.delete\(\s*['"]\/events\/:id\/save['"]/);
+    expect(idx).not.toBe(-1);
+    const handlerStart = content.indexOf('async (req, res)', idx);
+    const middlewareSection = content.slice(idx, handlerStart);
+    expect(middlewareSection).toContain('requireVerifiedUser');
+  });
 });
 
 // ─── A4: customer-calendar.js verification gating ────────────────────────────
@@ -336,10 +353,14 @@ describe('supplier-admin.js — visibility-diagnostics endpoint', () => {
     expect(section).toContain('exclusionReasons');
   });
 
-  it('returns verdict field', () => {
+  it('returns verdict field with tri-state value', () => {
     const idx = content.indexOf("'/suppliers/:id/visibility-diagnostics'");
     const section = content.slice(idx, idx + 4000);
     expect(section).toContain('verdict');
+    // Must use tri-state verdicts: VISIBLE / PARTIALLY_VISIBLE / EXCLUDED
+    expect(section).toContain('VISIBLE');
+    expect(section).toContain('PARTIALLY_VISIBLE');
+    expect(section).toContain('EXCLUDED');
   });
 
   it('checks for duplicate ownerUserId', () => {

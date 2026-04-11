@@ -1183,7 +1183,19 @@ router.get(
       checks.visibleInSearchService = checks.approved;
       checks.visibleInSupplierService = checks.approved && checks.status === 'published';
 
-      const verdict = exclusionReasons.length === 0 ? 'VISIBLE' : 'EXCLUDED';
+      // Tri-state verdict: VISIBLE / PARTIALLY_VISIBLE / EXCLUDED
+      //   VISIBLE           — passes all checks (shown by both services)
+      //   PARTIALLY_VISIBLE — approved but status≠published; visible in searchService.js but
+      //                       not in supplier.service.js public search
+      //   EXCLUDED          — not approved (invisible to both services)
+      let verdict;
+      if (checks.visibleInSearchService && checks.visibleInSupplierService) {
+        verdict = 'VISIBLE';
+      } else if (checks.visibleInSearchService && !checks.visibleInSupplierService) {
+        verdict = 'PARTIALLY_VISIBLE';
+      } else {
+        verdict = 'EXCLUDED';
+      }
 
       res.json({
         ok: true,
