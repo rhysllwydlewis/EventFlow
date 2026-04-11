@@ -438,6 +438,8 @@ describe('supplier-management.js — verification-request endpoint', () => {
     const section = content.slice(content.indexOf("'/verification-request'"));
     // Bug guard: must not do require('../store') inside the handler
     expect(section.slice(0, 4000)).not.toContain("require('../store')");
+    // Positive guard: uid() must be called to generate the ticket id
+    expect(section.slice(0, 4000)).toContain('uid()');
   });
 });
 
@@ -550,7 +552,8 @@ describe('dashboard-supplier-verification.js — banner reads data.user.*', () =
 
   it('includes live character counter for note textarea', () => {
     expect(content).toContain('sv-note-counter');
-    expect(content).toContain('noteEl.value.length');
+    expect(content).toContain('charCount');
+    expect(content).toContain('1000 characters');
   });
 });
 

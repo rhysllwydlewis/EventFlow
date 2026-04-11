@@ -142,9 +142,9 @@
     const noteCounter = document.getElementById('sv-note-counter');
     if (noteEl && noteCounter) {
       noteEl.addEventListener('input', function () {
-        const remaining = noteEl.value.length;
-        noteCounter.textContent = `${remaining} / 1000 characters`;
-        noteCounter.style.color = remaining > 900 ? '#f59e0b' : '#9ca3af';
+        const charCount = noteEl.value.length;
+        noteCounter.textContent = `${charCount} / 1000 characters`;
+        noteCounter.style.color = charCount > 900 ? '#f59e0b' : '#9ca3af';
       });
     }
 

@@ -277,7 +277,7 @@ router.post(
     // Check if admin has enabled auto-approve for new suppliers
     try {
       const settings = (await dbUnified.read('settings')) || {};
-      if ((settings.features || {}).autoApproveSupplierVerification === true) {
+      if (settings.features?.autoApproveSupplierVerification === true) {
         s.approved = true;
         s.approvedAt = new Date().toISOString();
         s.approvedBy = 'system';
