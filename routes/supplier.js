@@ -16,7 +16,9 @@ const router = express.Router();
 
 // Initialize Stripe at module level to avoid creating a new instance per request
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-const stripe = stripeSecretKey ? require('stripe')(stripeSecretKey, { apiVersion: '2025-12-15.clover' }) : null;
+const stripe = stripeSecretKey
+  ? require('stripe')(stripeSecretKey, { apiVersion: '2025-12-15.clover' })
+  : null;
 
 // Constants
 const TRIAL_DURATION_DAYS = 14;
@@ -618,6 +620,7 @@ router.get('/verification/status', authRequired, async (req, res) => {
         state === VERIFICATION_STATES.NEEDS_CHANGES || state === VERIFICATION_STATES.REJECTED
           ? supplier.verificationNotes || ''
           : undefined,
+      verificationRejectionCount: supplier.verificationRejectionCount || 0,
     });
   } catch (error) {
     logger.error('Error fetching verification status:', error);
@@ -649,6 +652,16 @@ router.post(
       }
 
       const supplier = suppliers[supplierIndex];
+
+      // Block resubmission after 5 rejections
+      if ((supplier.verificationRejectionCount || 0) >= 5) {
+        return res.status(403).json({
+          error:
+            'You have reached the maximum number of verification submissions. Please contact support.',
+          code: 'VERIFICATION_MAX_REJECTIONS',
+        });
+      }
+
       const currentState = normaliseState(supplier.verificationStatus, supplier.verified);
       const check = canTransition(currentState, VERIFICATION_STATES.PENDING_REVIEW, 'supplier');
 

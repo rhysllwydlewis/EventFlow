@@ -449,15 +449,15 @@ describe('routes/supplier.js — POST /verification/submit uses state machine', 
 
   it('auto-approves when autoApproveSupplierVerification is enabled', () => {
     const section = content.slice(content.indexOf("'/verification/submit'"));
-    expect(section.slice(0, 4000)).toContain('autoApproveSupplierVerification');
-    expect(section.slice(0, 4000)).toContain('APPROVED');
-    expect(section.slice(0, 4000)).toContain('autoApproved');
+    expect(section.slice(0, 5500)).toContain('autoApproveSupplierVerification');
+    expect(section.slice(0, 5500)).toContain('APPROVED');
+    expect(section.slice(0, 5500)).toContain('autoApproved');
   });
 
   it('does NOT create support tickets', () => {
     const section = content.slice(content.indexOf("'/verification/submit'"));
-    expect(section.slice(0, 3000)).not.toContain("ticketType: 'supplier_verification'");
-    expect(section.slice(0, 3000)).not.toContain("insertOne('tickets'");
+    expect(section.slice(0, 5500)).not.toContain("ticketType: 'supplier_verification'");
+    expect(section.slice(0, 5500)).not.toContain("insertOne('tickets'");
   });
 });
 
@@ -642,5 +642,163 @@ describe('db-utils.js — migration preserves approved for existing suppliers', 
     // Should use approved: s.approved !== false pattern instead
     const approvedTruePos = migrationSection.indexOf('approved: s.approved');
     expect(approvedTruePos).not.toBe(-1);
+  });
+});
+
+// ─── H) Admin suppliers UI calls /reject (not /approve with approved:false) ──
+
+describe('admin-suppliers-init.js — rejectSupplier calls correct endpoint', () => {
+  const ADMIN_SUPPLIERS_INIT = path.join(
+    __dirname,
+    '../../public/assets/js/pages/admin-suppliers-init.js'
+  );
+  let content;
+
+  beforeAll(() => {
+    content = fs.readFileSync(ADMIN_SUPPLIERS_INIT, 'utf8');
+  });
+
+  it('rejectSupplier calls POST /api/admin/suppliers/:id/reject', () => {
+    const rejectFnIdx = content.indexOf('window.rejectSupplier = async function');
+    expect(rejectFnIdx).not.toBe(-1);
+    const rejectFnSection = content.slice(rejectFnIdx, rejectFnIdx + 700);
+    expect(rejectFnSection).toContain('/reject');
+  });
+
+  it('rejectSupplier does NOT call the approve endpoint with approved:false', () => {
+    const rejectFnIdx = content.indexOf('window.rejectSupplier = async function');
+    const rejectFnSection = content.slice(rejectFnIdx, rejectFnIdx + 700);
+    // Must not use the approve endpoint as a workaround
+    expect(rejectFnSection).not.toContain('/approve');
+  });
+
+  it('rejectSupplier prompts for rejection notes via input modal', () => {
+    const rejectFnIdx = content.indexOf('window.rejectSupplier = async function');
+    const rejectFnSection = content.slice(rejectFnIdx, rejectFnIdx + 700);
+    expect(rejectFnSection).toContain('showInputModal');
+  });
+
+  it('rejectSupplier sends notes field in request body', () => {
+    const rejectFnIdx = content.indexOf('window.rejectSupplier = async function');
+    const rejectFnSection = content.slice(rejectFnIdx, rejectFnIdx + 700);
+    expect(rejectFnSection).toContain('notes');
+  });
+});
+
+// ─── I) Admin reject endpoint increments verificationRejectionCount ──────────
+
+describe('supplier-admin.js — reject endpoint increments rejection counter', () => {
+  let content;
+
+  beforeAll(() => {
+    content = fs.readFileSync(SUPPLIER_ADMIN_ROUTES, 'utf8');
+  });
+
+  it('stores verificationRejectionCount in reject endpoint updates', () => {
+    const rejectSection = content.slice(content.indexOf("'/suppliers/:id/reject'"));
+    expect(rejectSection.slice(0, 1500)).toContain('verificationRejectionCount');
+  });
+
+  it('increments the existing rejection count (not hardcoded)', () => {
+    const rejectSection = content.slice(content.indexOf("'/suppliers/:id/reject'"));
+    // Should read the existing count and add 1
+    expect(rejectSection.slice(0, 1500)).toContain('verificationRejectionCount || 0');
+  });
+
+  it('stores rejection notes in verificationNotes field', () => {
+    const rejectSection = content.slice(content.indexOf("'/suppliers/:id/reject'"));
+    expect(rejectSection.slice(0, 1500)).toContain('verificationNotes');
+  });
+
+  it('accepts notes field from request body', () => {
+    const rejectSection = content.slice(content.indexOf("'/suppliers/:id/reject'"));
+    expect(rejectSection.slice(0, 1000)).toContain('req.body.notes');
+  });
+});
+
+// ─── J) Submit endpoint blocks after 5 rejections ────────────────────────────
+
+describe('routes/supplier.js — submit blocks after 5 rejections', () => {
+  const SUPPLIER_ROUTE = path.join(__dirname, '../../routes/supplier.js');
+  let content;
+
+  beforeAll(() => {
+    content = fs.readFileSync(SUPPLIER_ROUTE, 'utf8');
+  });
+
+  it('checks verificationRejectionCount before allowing resubmission', () => {
+    const submitSection = content.slice(content.indexOf("'/verification/submit'"));
+    expect(submitSection.slice(0, 3000)).toContain('verificationRejectionCount');
+  });
+
+  it('returns 403 when rejection count >= 5', () => {
+    const submitSection = content.slice(content.indexOf("'/verification/submit'"));
+    expect(submitSection.slice(0, 3000)).toContain('status(403)');
+    expect(submitSection.slice(0, 3000)).toContain('VERIFICATION_MAX_REJECTIONS');
+  });
+
+  it('uses >= 5 as the blocking threshold', () => {
+    const submitSection = content.slice(content.indexOf("'/verification/submit'"));
+    expect(submitSection.slice(0, 3000)).toMatch(/>= *5/);
+  });
+});
+
+// ─── K) Status endpoint includes verificationRejectionCount ──────────────────
+
+describe('routes/supplier.js — status endpoint includes rejection count', () => {
+  const SUPPLIER_ROUTE = path.join(__dirname, '../../routes/supplier.js');
+  let content;
+
+  beforeAll(() => {
+    content = fs.readFileSync(SUPPLIER_ROUTE, 'utf8');
+  });
+
+  it('status endpoint returns verificationRejectionCount field', () => {
+    const statusSection = content.slice(content.indexOf("'/verification/status'"));
+    expect(statusSection.slice(0, 1500)).toContain('verificationRejectionCount');
+  });
+});
+
+// ─── L) Supplier dashboard widget handles rejected/blocked states ─────────────
+
+describe('dashboard-supplier-verification.js — rejection and blocked state handling', () => {
+  const BANNER_JS = path.join(
+    __dirname,
+    '../../public/assets/js/pages/dashboard-supplier-verification.js'
+  );
+  let content;
+
+  beforeAll(() => {
+    content = fs.readFileSync(BANNER_JS, 'utf8');
+  });
+
+  it('handles rejected verificationStatus state', () => {
+    expect(content).toContain("verificationStatus === 'rejected'");
+  });
+
+  it('handles needs_changes verificationStatus state', () => {
+    expect(content).toContain("verificationStatus === 'needs_changes'");
+  });
+
+  it('shows blocked banner when verificationRejectionCount >= 5', () => {
+    expect(content).toContain('verificationRejectionCount >= 5');
+  });
+
+  it('displays admin rejection notes in the banner for rejected state', () => {
+    expect(content).toContain('verificationNotes');
+  });
+
+  it('shows rejection notes in modal when resubmitting', () => {
+    expect(content).toContain('sv-rejection-notes-block');
+    expect(content).toContain('rejectionNotes');
+  });
+
+  it('shows supplier notes textarea in resubmit modal', () => {
+    expect(content).toContain('sv-supplier-note-block');
+    expect(content).toContain('sv-supplier-note');
+  });
+
+  it('handles VERIFICATION_MAX_REJECTIONS error from submit endpoint', () => {
+    expect(content).toContain('VERIFICATION_MAX_REJECTIONS');
   });
 });

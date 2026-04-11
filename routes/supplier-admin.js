@@ -359,12 +359,13 @@ router.post(
         return res.status(409).json({ error: check.reason });
       }
 
-      const reason = sanitiseText((req.body && req.body.reason) || '');
+      const reason = sanitiseText((req.body && (req.body.notes || req.body.reason)) || '');
       if (!reason) {
         return res.status(400).json({ error: 'A rejection reason is required' });
       }
 
       const now = new Date().toISOString();
+      const newRejectionCount = (s.verificationRejectionCount || 0) + 1;
       const updates = {
         approved: false,
         verified: false,
@@ -374,6 +375,7 @@ router.post(
         verificationNotes: reason,
         rejectedAt: now,
         rejectedBy: req.user.id,
+        verificationRejectionCount: newRejectionCount,
         updatedAt: now,
       };
 
