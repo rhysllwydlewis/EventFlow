@@ -1650,26 +1650,21 @@
     padding-left: 28px !important;
   }
 
-  /* ── Supplier card: compact two-column mobile layout ─── */
+  /* ── Supplier card: compact mobile layout ─────────────── */
   /*
-   * Mobile layout (≤640px):
-   *   Column 1 (1fr)   : .sp-card-profile — avatar + info + description
-   *   Column 2 (108px) : .sp-card-actions — stacked Save/View/Message buttons
-   *   Row 2 (full-width): .sp-card-packages — package carousel
-   *
-   * This keeps the card compact and utilises every pixel:
-   * no blank space between the supplier info and the packages.
+   * Row 1: .sp-card-profile (col 1) | .sp-card-actions (col 2, centred)
+   * Row 2: .sp-card-description — full-width, spans both columns
+   * Row 3: .sp-card-packages — full-width carousel
    */
   .sp-card {
     grid-template-columns: 1fr 108px !important;
-    grid-template-rows: auto auto !important;
+    grid-template-rows: auto auto auto !important;
   }
 
   /*
    * Profile section: col 1, row 1.
    * Internal CSS grid: col 1 = avatar (56px), col 2 = name/info (1fr).
-   * Description is given grid-column:1/-1 below so it spans both
-   * columns — keeping it full-width while info sits beside the avatar.
+   * Description is NOT inside here — it lives as a direct .sp-card child in row 2.
    */
   .sp-card-profile {
     grid-column: 1;
@@ -1699,8 +1694,8 @@
     flex-shrink: 0;
   }
 
-  /* Every direct child except avatar and description goes to info column (col 2) */
-  .sp-card-profile > *:not(.sp-card-avatar-wrap):not(.sp-card-description) {
+  /* Every direct child of the profile sub-grid goes to info column (col 2) except the avatar */
+  .sp-card-profile > *:not(.sp-card-avatar-wrap) {
     grid-column: 2;
     text-align: left;
     width: 100%;
@@ -1746,20 +1741,25 @@
     row-gap: 3px;
   }
 
-  .sp-card-description {
-    grid-column: 1 / -1; /* span avatar + info columns so description is full-width */
+  /* Description: row 2, full card width — direct child of .sp-card outer grid */
+  .sp-card > .sp-card-description {
+    grid-row: 2;
+    grid-column: 1 / -1;
+    margin: 0;
+    padding: 8px 14px 10px;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
     text-align: left;
     -webkit-line-clamp: 2;
-    padding-top: 4px;
+    font-size: 12px;
   }
 
-  /* Actions: col 2, row 1 — stacked buttons on the right of the profile */
+  /* Actions: col 2, row 1 — stacked buttons vertically centred */
   .sp-card-actions {
     grid-column: 2 !important;
     grid-row: 1 !important;
     flex-direction: column !important;
     flex-wrap: nowrap;
-    justify-content: flex-start;
+    justify-content: center;
     align-items: stretch;
     padding: 10px 8px;
     border-left: 1px solid rgba(0, 0, 0, 0.06);
@@ -1768,15 +1768,9 @@
     gap: 5px;
   }
 
-  /* ── Package carousel: full-width row below profile+actions ── */
-  /*
-   * Packages now occupy row 2, spanning both columns (full card width).
-   * --sp-pkg-mini-width is tuned so ~2 cards are visible at a time on
-   * narrow viewports, making the carousel feel natural rather than
-   * showing a single giant card.
-   */
+  /* ── Package carousel: row 3, full card width ───────── */
   .sp-card-packages {
-    grid-row: 2;
+    grid-row: 3;
     grid-column: 1 / -1;
     display: flex !important; /* override display:none from 768px breakpoint */
     padding: 10px 12px 14px;
