@@ -865,13 +865,11 @@ router.get('/verify', async (req, res) => {
     const expiresAt = new Date(legacyUser[expiresField]);
     if (expiresAt < new Date()) {
       logger.error('Verification failed: Token expired', { tokenField });
-      return res
-        .status(400)
-        .json({
-          error: 'Verification token has expired. Please request a new one.',
-          code: 'TOKEN_EXPIRED',
-          canResend: true,
-        });
+      return res.status(400).json({
+        error: 'Verification token has expired. Please request a new one.',
+        code: 'TOKEN_EXPIRED',
+        canResend: true,
+      });
     }
   }
 
@@ -1272,33 +1270,47 @@ router.get('/me', async (req, res) => {
   }
   const users = await dbUnified.read('users');
   const u = users.find(x => x.id === p.id);
+  if (!u) {
+    return res.json({ user: null });
+  }
+
+  // For supplier users, include approval status so the frontend can show pending-approval UX
+  let supplierApproved = null;
+  if (u.role === 'supplier') {
+    try {
+      const supplierProfile = await dbUnified.findOne('suppliers', { ownerUserId: u.id });
+      supplierApproved = supplierProfile ? supplierProfile.approved === true : null;
+    } catch (e) {
+      logger.warn('Could not fetch supplier profile for /api/auth/me', { userId: u.id });
+    }
+  }
+
   res.json({
-    user: u
-      ? {
-          id: u.id,
-          name: u.name,
-          firstName: u.firstName,
-          lastName: u.lastName,
-          email: u.email,
-          role: u.role,
-          verified: u.verified === true,
-          emailVerified: u.verified === true || u.emailVerified === true,
-          location: u.location,
-          postcode: u.postcode,
-          company: u.company,
-          jobTitle: u.jobTitle,
-          website: u.website,
-          socials: u.socials || {},
-          avatarUrl: u.avatarUrl,
-          badges: u.badges || [],
-          isPro: u.isPro || false,
-          proExpiresAt: u.proExpiresAt || null,
-          subscriptionTier: u.subscriptionTier || 'free',
-          notify: u.notify !== false,
-          notify_account: u.notify_account !== false,
-          notify_marketing: u.notify_marketing === true,
-        }
-      : null,
+    user: {
+      id: u.id,
+      name: u.name,
+      firstName: u.firstName,
+      lastName: u.lastName,
+      email: u.email,
+      role: u.role,
+      verified: u.verified === true,
+      emailVerified: u.verified === true || u.emailVerified === true,
+      supplierApproved,
+      location: u.location,
+      postcode: u.postcode,
+      company: u.company,
+      jobTitle: u.jobTitle,
+      website: u.website,
+      socials: u.socials || {},
+      avatarUrl: u.avatarUrl,
+      badges: u.badges || [],
+      isPro: u.isPro || false,
+      proExpiresAt: u.proExpiresAt || null,
+      subscriptionTier: u.subscriptionTier || 'free',
+      notify: u.notify !== false,
+      notify_account: u.notify_account !== false,
+      notify_marketing: u.notify_marketing === true,
+    },
   });
 });
 

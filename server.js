@@ -71,6 +71,7 @@ const {
   authRequired,
   roleRequired,
   requireVerifiedUser,
+  requireApprovedSupplier,
   getUserFromCookie,
   userExtractionMiddleware,
 } = require('./middleware/auth');
@@ -987,6 +988,7 @@ mountRoutes(app, {
   authRequired,
   roleRequired,
   requireVerifiedUser,
+  requireApprovedSupplier,
   getUserFromCookie,
   featureRequired,
 

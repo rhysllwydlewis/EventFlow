@@ -187,6 +187,7 @@ class SupplierService {
       enquiryCount: 0,
 
       // Admin approval — hardcoded to safe defaults; never trust user input
+      approved: false,
       approvedAt: null,
       approvedBy: null,
     };
