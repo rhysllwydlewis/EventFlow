@@ -206,8 +206,15 @@
         <input id="filterQuery" class="sp-filter-control sp-search-input" type="search" placeholder="Search suppliers by name, service or keyword…" aria-label="Search suppliers" autocomplete="off">
       </div>
 
-      <!-- Primary filters row -->
+      <!-- Primary filters row
+           On desktop all 8 fields are always visible (sp-advanced-filters uses display:contents
+           so its children flow directly into the parent grid).
+           On mobile (≤640px) only Category + Postcode are visible by default; the remaining
+           six fields collapse inside #sp-advanced-filters and are revealed by the toggle button.
+      -->
       <div class="sp-filter-grid">
+
+        <!-- ── BASIC: always visible ──────────────────────────── -->
         <div class="sp-filter-group">
           <label for="filterCategory" class="sp-filter-label">Category</label>
           <select id="filterCategory" class="sp-filter-control" aria-label="Filter by category">
@@ -236,76 +243,111 @@
         </div>
 
         <div class="sp-filter-group">
-          <label for="filterEventType" class="sp-filter-label">Event type</label>
-          <select id="filterEventType" class="sp-filter-control" aria-label="Filter by event type">
-            <option value="">Any event</option>
-            <option value="wedding">Wedding</option>
-            <option value="corporate">Corporate</option>
-            <option value="birthday">Birthday</option>
-            <option value="party">Party</option>
-            <option value="conference">Conference</option>
-            <option value="festival">Festival</option>
-            <option value="charity">Charity</option>
-          </select>
-        </div>
-
-        <div class="sp-filter-group">
           <label for="filterPostcode" class="sp-filter-label">Postcode</label>
           <input id="filterPostcode" class="sp-filter-control" type="text" placeholder="e.g. SW1A 1AA" maxlength="10" aria-label="Enter postcode for distance filtering" inputmode="text" autocomplete="postal-code">
         </div>
 
-        <div class="sp-filter-group">
-          <label for="filterDistance" class="sp-filter-label">Distance</label>
-          <select id="filterDistance" class="sp-filter-control" aria-label="Maximum distance from postcode">
-            <option value="">Any distance</option>
-            <option value="5">Within 5 mi</option>
-            <option value="10">Within 10 mi</option>
-            <option value="25">Within 25 mi</option>
-            <option value="50">Within 50 mi</option>
-            <option value="100">Within 100 mi</option>
-          </select>
-        </div>
+        <!-- ── ADVANCED: collapsible on mobile ────────────────── -->
+        <!-- display:contents on desktop; collapses to max-height:0 on mobile until toggled -->
+        <div id="sp-advanced-filters" class="sp-advanced-filters">
 
-        <div class="sp-filter-group">
-          <label for="filterPrice" class="sp-filter-label">Price</label>
-          <select id="filterPrice" class="sp-filter-control" aria-label="Filter by price range">
-            <option value="">Any price</option>
-            <option value="1">£ Budget</option>
-            <option value="2">££ Mid-range</option>
-            <option value="3">£££ Premium</option>
-            <option value="4">££££ Luxury</option>
-          </select>
-        </div>
+          <div class="sp-filter-group">
+            <label for="filterEventType" class="sp-filter-label">Event type</label>
+            <select id="filterEventType" class="sp-filter-control" aria-label="Filter by event type">
+              <option value="">Any event</option>
+              <option value="wedding">Wedding</option>
+              <option value="corporate">Corporate</option>
+              <option value="birthday">Birthday</option>
+              <option value="party">Party</option>
+              <option value="conference">Conference</option>
+              <option value="festival">Festival</option>
+              <option value="charity">Charity</option>
+            </select>
+          </div>
 
-        <div class="sp-filter-group">
-          <label for="filterRating" class="sp-filter-label">Min rating</label>
-          <select id="filterRating" class="sp-filter-control" aria-label="Minimum rating filter">
-            <option value="">Any rating</option>
-            <option value="4">4★+</option>
-            <option value="4.5">4.5★+</option>
-          </select>
-        </div>
+          <div class="sp-filter-group">
+            <label for="filterDistance" class="sp-filter-label">Distance</label>
+            <select id="filterDistance" class="sp-filter-control" aria-label="Maximum distance from postcode">
+              <option value="">Any distance</option>
+              <option value="5">Within 5 mi</option>
+              <option value="10">Within 10 mi</option>
+              <option value="25">Within 25 mi</option>
+              <option value="50">Within 50 mi</option>
+              <option value="100">Within 100 mi</option>
+            </select>
+          </div>
 
-        <div class="sp-filter-group">
-          <label for="filterSort" class="sp-filter-label">Sort by</label>
-          <select id="filterSort" class="sp-filter-control" aria-label="Sort results by">
-            <option value="relevance">Best match</option>
-            <option value="rating">Highest rated</option>
-            <option value="reviews">Most reviewed</option>
-            <option value="distance">Nearest first</option>
-            <option value="priceAsc">Price: low–high</option>
-            <option value="priceDesc">Price: high–low</option>
-            <option value="newest">Recently joined</option>
-          </select>
-        </div>
+          <div class="sp-filter-group">
+            <label for="filterPrice" class="sp-filter-label">Price</label>
+            <select id="filterPrice" class="sp-filter-control" aria-label="Filter by price range">
+              <option value="">Any price</option>
+              <option value="1">£ Budget</option>
+              <option value="2">££ Mid-range</option>
+              <option value="3">£££ Premium</option>
+              <option value="4">££££ Luxury</option>
+            </select>
+          </div>
 
-        <div class="sp-filter-group sp-filter-group--verified">
-          <label class="sp-filter-checkbox-label" for="filterVerified">
-            <input type="checkbox" id="filterVerified" aria-label="Show verified suppliers only">
-            <span>Verified only</span>
-          </label>
-        </div>
-      </div>
+          <div class="sp-filter-group">
+            <label for="filterRating" class="sp-filter-label">Min rating</label>
+            <select id="filterRating" class="sp-filter-control" aria-label="Minimum rating filter">
+              <option value="">Any rating</option>
+              <option value="4">4★+</option>
+              <option value="4.5">4.5★+</option>
+            </select>
+          </div>
+
+          <div class="sp-filter-group">
+            <label for="filterSort" class="sp-filter-label">Sort by</label>
+            <select id="filterSort" class="sp-filter-control" aria-label="Sort results by">
+              <option value="relevance">Best match</option>
+              <option value="rating">Highest rated</option>
+              <option value="reviews">Most reviewed</option>
+              <option value="distance">Nearest first</option>
+              <option value="priceAsc">Price: low–high</option>
+              <option value="priceDesc">Price: high–low</option>
+              <option value="newest">Recently joined</option>
+            </select>
+          </div>
+
+          <div class="sp-filter-group sp-filter-group--verified">
+            <label class="sp-filter-checkbox-label" for="filterVerified">
+              <input type="checkbox" id="filterVerified" aria-label="Show verified suppliers only">
+              <span>Verified only</span>
+            </label>
+          </div>
+
+        </div><!-- /#sp-advanced-filters -->
+
+      </div><!-- /.sp-filter-grid -->
+
+      <!--
+        Advanced filters toggle button — hidden on tablet/desktop via CSS (.sp-adv-toggle { display:none }).
+        Visible only on mobile (≤640px). aria-expanded and aria-controls are managed by suppliers-mobile.js.
+        No-JS fallback: noscript block below reveals the panel and hides this button.
+      -->
+      <button
+        id="sp-adv-toggle"
+        class="sp-adv-toggle"
+        type="button"
+        aria-expanded="false"
+        aria-controls="sp-advanced-filters"
+        aria-label="Show advanced filters">
+        <svg class="sp-adv-toggle-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="14" y2="12"/><line x1="4" y1="18" x2="10" y2="18"/></svg>
+        <span class="sp-adv-toggle-label">More filters</span>
+        <span id="sp-adv-badge" class="sp-adv-badge" hidden aria-hidden="true"></span>
+        <svg class="sp-adv-toggle-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+
+      <!-- Progressive enhancement: without JS the panel stays collapsed, so reveal it -->
+      <noscript>
+        <style>
+          @media (max-width: 640px) {
+            #sp-advanced-filters { max-height: none !important; overflow: visible !important; padding-top: 6px !important; }
+            .sp-adv-toggle { display: none !important; }
+          }
+        </style>
+      </noscript>
 
       <!-- Filter footer: quick shortcuts + clear -->
       <div class="sp-filter-footer">
@@ -455,6 +497,8 @@
          is available as a global when mini-card image URLs are resolved -->
     <script src="/assets/js/utils/package-image-resolver.js" defer></script>
     <script src="/assets/js/pages/suppliers-init.js" type="module" defer></script>
+    <!-- Mobile UX: advanced filter toggle, touch-swipe carousel, per-session panel state -->
+    <script src="/assets/js/pages/suppliers-mobile.js" defer></script>
     <script src="/assets/js/utils/pexels-client.js" defer></script>
     <script src="/assets/js/config/page-init.js"></script>
   <script src="/assets/js/app.js" defer></script>

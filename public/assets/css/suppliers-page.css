@@ -1450,7 +1450,270 @@
    ========================================================= */
 
 /* =========================================================
-   OVERRIDES — defeat global styles.css button rules
+   ADVANCED FILTER TOGGLE — Desktop/Tablet: display:contents
+   On desktop the #sp-advanced-filters wrapper is invisible
+   (display:contents) so its six children participate directly
+   in the parent .sp-filter-grid as normal grid items.
+   The toggle button is hidden at all non-mobile widths.
+   ========================================================= */
+
+.sp-advanced-filters {
+  /* Transparent wrapper — children flow into parent CSS grid */
+  display: contents;
+}
+
+/* Toggle button hidden on tablet and desktop */
+.sp-adv-toggle {
+  display: none;
+}
+
+/* =========================================================
+   MOBILE — 640px: Advanced filter collapse + card reflow
+   ========================================================= */
+
+@media (max-width: 640px) {
+
+  /* ── Advanced filter panel ───────────────────────────── */
+
+  /*
+   * #sp-advanced-filters becomes a real grid item that spans
+   * all columns of the parent grid and houses its own 2-col
+   * sub-grid for the six advanced filter groups.
+   * max-height: 0 + overflow: hidden provides the collapse.
+   * The CSS transition is added by JS (suppliers-mobile.js)
+   * after the first user interaction so there's no flash on
+   * page load.
+   */
+  .sp-advanced-filters {
+    display: grid;
+    grid-column: 1 / -1;             /* span full parent grid width */
+    grid-template-columns: 1fr 1fr;  /* 2-column inner grid */
+    gap: 6px;
+    overflow: hidden;
+    max-height: 0;
+    padding-bottom: 0;
+  }
+
+  /* Smooth expand/collapse animation — class added by JS */
+  .sp-advanced-filters.sp-advanced-filters--animate {
+    transition: max-height 0.35s ease, padding-bottom 0.35s ease;
+  }
+
+  .sp-advanced-filters.is-open {
+    max-height: 400px;  /* generous ceiling; enough for 3 rows of controls */
+    padding-bottom: 2px;
+  }
+
+  /* ── Advanced filter toggle button ──────────────────── */
+
+  .sp-adv-toggle {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    width: 100%;
+    margin-top: 8px;
+    padding: 9px 14px;
+    background: rgba(11, 128, 115, 0.06);
+    border: 1px solid rgba(11, 128, 115, 0.2);
+    border-radius: 9px;
+    color: #0b8073;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    line-height: 1;
+    text-align: left;
+    transition: background 0.15s, border-color 0.15s;
+    /* Ensure global styles.css doesn't override sizing */
+    box-sizing: border-box;
+  }
+
+  .sp-adv-toggle:hover {
+    background: rgba(11, 128, 115, 0.11);
+    border-color: rgba(11, 128, 115, 0.35);
+  }
+
+  .sp-adv-toggle:focus-visible {
+    outline: 2px solid #0b8073;
+    outline-offset: 2px;
+  }
+
+  .sp-adv-toggle[aria-expanded="true"] {
+    background: rgba(11, 128, 115, 0.1);
+    border-color: rgba(11, 128, 115, 0.3);
+  }
+
+  .sp-adv-toggle-icon {
+    flex-shrink: 0;
+    width: 14px;
+    height: 14px;
+  }
+
+  .sp-adv-toggle-label {
+    flex: 1;
+  }
+
+  /* Badge showing count of active advanced filters */
+  .sp-adv-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    background: #0b8073;
+    color: #fff;
+    border-radius: 9px;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  /* Chevron rotates when panel is expanded */
+  .sp-adv-toggle-chevron {
+    flex-shrink: 0;
+    width: 14px;
+    height: 14px;
+    transition: transform 0.25s ease;
+    color: #9ca3af;
+  }
+
+  .sp-adv-toggle[aria-expanded="true"] .sp-adv-toggle-chevron {
+    transform: rotate(180deg);
+  }
+
+  /* ── Supplier card: single-column stack ─────────────── */
+  /*
+   * Override the 768px two-column layout (profile | actions).
+   * Mobile order: profile → actions → packages.
+   * Explicit grid-row values enforce visual order independent
+   * of DOM order. grid-column: 1/-1 ensures each section
+   * spans the single column.
+   */
+  .sp-card {
+    grid-template-columns: 1fr !important;
+    grid-template-rows: auto auto auto !important;
+  }
+
+  .sp-card-profile {
+    grid-row: 1;
+    grid-column: 1 / -1;
+    border-right: none;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    flex-direction: row;     /* avatar left, text block right */
+    text-align: left;
+    align-items: flex-start;
+    padding: 12px 14px;
+    gap: 12px;
+  }
+
+  /* Keep the avatar a fixed size within the row layout */
+  .sp-card-avatar-wrap {
+    flex-shrink: 0;
+    margin-bottom: 0;
+  }
+
+  /* Text content sits in a column next to the avatar */
+  .sp-card-profile > :not(.sp-card-avatar-wrap) {
+    width: auto;
+    text-align: left;
+  }
+
+  .sp-card-name {
+    font-size: 13px;
+    text-align: left;
+  }
+
+  .sp-card-category,
+  .sp-card-location {
+    white-space: normal;
+    text-align: left;
+  }
+
+  .sp-card-badges {
+    justify-content: flex-start;
+  }
+
+  .sp-card-description {
+    text-align: left;
+    -webkit-line-clamp: 2;
+  }
+
+  .sp-card-actions {
+    grid-row: 2;
+    grid-column: 1 / -1 !important; /* override grid-column: 2/-1 from 768px rule */
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: stretch;
+    padding: 8px 12px 10px;
+    border-left: none;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    background: rgba(248, 250, 252, 0.4);
+    gap: 6px;
+  }
+
+  /* Three action buttons sit side-by-side in a row */
+  .sp-card-actions .sp-btn {
+    flex: 1 1 0 !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    padding: 10px 6px !important;
+    font-size: 11px !important;
+    white-space: nowrap;
+  }
+
+  /* ── Package carousel: show on mobile ───────────────── */
+  /*
+   * At 768px the carousel is hidden (display:none). On mobile
+   * we restore it and give it a dedicated row below the actions.
+   * --sp-pkg-mini-width is overridden so only one card fills
+   * the viewport at a time, making the carousel easy to use
+   * on small screens.
+   */
+  .sp-card-packages {
+    grid-row: 3;
+    grid-column: 1 / -1;
+    display: flex !important; /* override display:none from 768px breakpoint */
+    padding: 10px 12px 14px;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+  }
+
+  /* Single-card carousel: override the CSS custom property */
+  :root {
+    --sp-pkg-mini-width: min(68vw, 260px);
+  }
+
+  /* Slightly shorter thumbnail on mobile to save vertical space */
+  .sp-pkg-mini-thumb {
+    height: 82px;
+  }
+
+  .sp-pkg-mini-body {
+    padding: 8px 10px;
+    gap: 4px;
+  }
+
+  .sp-pkg-mini-title {
+    font-size: 12px;
+  }
+
+  .sp-pkg-mini-price {
+    font-size: 13px;
+  }
+
+  /* Make the "Add to plan" button smaller to fit the narrow card */
+  .sp-btn--plan {
+    padding: 5px 10px !important;
+    font-size: 11px !important;
+    min-height: 30px !important;
+  }
+
+}
+
+/* =========================================================
+   GLOBAL OVERRIDES — defeat global styles.css button rules
    styles.css applies: padding:10px 18px !important;
    font-size:15px !important; and on mobile width:100%
    ========================================================= */
@@ -1461,10 +1724,20 @@
 .sp-clear-btn,
 .sp-load-more-btn,
 .sp-map-toggle,
+.sp-adv-toggle,
 .btn-glass {
   width: auto !important;
   margin-top: 0 !important;
   border-radius: 12px !important;
+}
+
+/* Override specifically for the advanced-filter toggle (full-width pill) */
+.sp-adv-toggle {
+  width: 100% !important;
+  border-radius: 9px !important;
+  padding: 9px 14px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
 }
 
 /* sp-btn inside the card actions: full-width (column layout) */

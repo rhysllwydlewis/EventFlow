@@ -952,7 +952,14 @@ async function initSuppliersPage() {
 
   // Activate left/right navigation on every .sp-pkg-carousel in resultsContainer
   function attachCarousels() {
-    const VISIBLE = 2; // cards shown at once
+    /*
+     * On mobile (≤640px) the CSS override `--sp-pkg-mini-width: min(68vw, 260px)`
+     * makes only one card fit in the carousel viewport at a time, so we treat it as
+     * a single-card carousel. On larger screens two cards are visible.
+     * This constant must stay in sync with the CSS breakpoint in suppliers-page.css.
+     */
+    const MOBILE_BP = 640;
+    const visibleCount = window.innerWidth <= MOBILE_BP ? 1 : 2;
 
     resultsContainer.querySelectorAll('.sp-pkg-carousel').forEach(carousel => {
       const track = carousel.querySelector('.sp-pkg-carousel-track');
@@ -966,7 +973,7 @@ async function initSuppliersPage() {
       const items = [...track.querySelectorAll('.sp-pkg-mini')];
       const total = items.length;
 
-      if (total <= VISIBLE) {
+      if (total <= visibleCount) {
         // Nothing to scroll — keep both arrows permanently disabled
         prevBtn.disabled = true;
         nextBtn.disabled = true;
@@ -974,7 +981,7 @@ async function initSuppliersPage() {
       }
 
       let idx = 0;
-      const maxIdx = total - VISIBLE;
+      const maxIdx = total - visibleCount;
 
       function getStepPx() {
         const item = items[0];
