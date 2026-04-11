@@ -67,8 +67,12 @@
       }
       #sv-cancel-btn:hover { border-color: #d1d5db; color: #374151; }
       #sv-modal-close:hover { color: #111827; }
-      #sv-open-widget-btn:hover { background: #d97706 !important; }
-      #sv-open-widget-btn:active { transform: scale(0.97); }
+      /* "Get Verified" amber button */
+      .sv-open-widget-btn--amber:hover { background: #d97706 !important; }
+      .sv-open-widget-btn--amber:active { transform: scale(0.97); }
+      /* "Resubmit" / "Blocked" red button */
+      .sv-open-widget-btn--red:hover { background: #dc2626 !important; }
+      .sv-open-widget-btn--red:active { transform: scale(0.97); }
     `;
     document.head.appendChild(style);
   }
@@ -262,7 +266,10 @@
         errorEl.style.display = 'block';
       } finally {
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Submit for Verification';
+        submitBtn.textContent =
+          submitBtn.dataset.mode === 'resubmit'
+            ? 'Resubmit for Verification'
+            : 'Submit for Verification';
       }
     });
 
@@ -343,6 +350,7 @@
       }
       if (submitBtn) {
         submitBtn.textContent = 'Resubmit for Verification';
+        submitBtn.dataset.mode = 'resubmit';
       }
     } else {
       if (titleEl) {
@@ -354,6 +362,7 @@
       }
       if (submitBtn) {
         submitBtn.textContent = 'Submit for Verification';
+        submitBtn.dataset.mode = 'submit';
       }
     }
     modal.classList.add('sv-open');
@@ -428,18 +437,21 @@
         // Non-fatal
       }
 
-      // Render banner
-      banner.style.cssText = [
+      // Render banner — build each state independently for clean styling
+      const baseBannerStyle = [
         'display:block',
         'margin-bottom:1.25rem',
         'padding:1rem 1.25rem',
         'border-radius:12px',
-        'border-left:4px solid #f59e0b',
-        'background:linear-gradient(135deg,rgba(245,158,11,0.12) 0%,rgba(251,191,36,0.06) 100%)',
-        'box-shadow:0 2px 8px rgba(245,158,11,0.12)',
       ].join(';');
 
       if (isPending) {
+        banner.style.cssText = [
+          baseBannerStyle,
+          'border-left:4px solid #f59e0b',
+          'background:linear-gradient(135deg,rgba(245,158,11,0.12) 0%,rgba(251,191,36,0.06) 100%)',
+          'box-shadow:0 2px 8px rgba(245,158,11,0.12)',
+        ].join(';');
         banner.innerHTML = `
           <div style="display:flex;align-items:center;gap:0.875rem;flex-wrap:wrap;">
             <span style="font-size:1.5rem;flex-shrink:0;line-height:1;" aria-hidden="true">⏳</span>
@@ -452,9 +464,15 @@
           </div>`;
       } else if (verificationRejectionCount >= 5) {
         // Blocked — max rejections reached
-        banner.style.borderLeftColor = '#ef4444';
-        banner.style.background =
-          'linear-gradient(135deg,rgba(239,68,68,0.10) 0%,rgba(254,202,202,0.06) 100%)';
+        const notesHtml = verificationNotes
+          ? `<div style="margin-top:0.5rem;padding:0.5rem 0.75rem;background:rgba(239,68,68,0.08);border-radius:6px;font-size:0.8125rem;color:#7f1d1d;border-left:3px solid #ef4444;white-space:pre-wrap;">${verificationNotes.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')}</div>`
+          : '';
+        banner.style.cssText = [
+          baseBannerStyle,
+          'border-left:4px solid #ef4444',
+          'background:linear-gradient(135deg,rgba(239,68,68,0.10) 0%,rgba(254,202,202,0.06) 100%)',
+          'box-shadow:0 2px 8px rgba(239,68,68,0.12)',
+        ].join(';');
         banner.innerHTML = `
           <div style="display:flex;align-items:flex-start;gap:0.875rem;flex-wrap:wrap;">
             <span style="font-size:1.5rem;flex-shrink:0;line-height:1;" aria-hidden="true">🚫</span>
@@ -463,6 +481,7 @@
               <span style="font-size:0.8125rem;color:#7f1d1d;line-height:1.45;">
                 Your profile has been rejected 5 times and can no longer be resubmitted. Please contact support for assistance.
               </span>
+              ${notesHtml}
             </div>
           </div>`;
       } else if (verificationStatus === 'rejected' || verificationStatus === 'needs_changes') {
@@ -476,9 +495,12 @@
         const notesHtml = verificationNotes
           ? `<div style="margin-top:0.5rem;padding:0.5rem 0.75rem;background:rgba(239,68,68,0.08);border-radius:6px;font-size:0.8125rem;color:#7f1d1d;border-left:3px solid #ef4444;white-space:pre-wrap;">${verificationNotes.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')}</div>`
           : '';
-        banner.style.borderLeftColor = '#ef4444';
-        banner.style.background =
-          'linear-gradient(135deg,rgba(239,68,68,0.10) 0%,rgba(254,202,202,0.06) 100%)';
+        banner.style.cssText = [
+          baseBannerStyle,
+          'border-left:4px solid #ef4444',
+          'background:linear-gradient(135deg,rgba(239,68,68,0.10) 0%,rgba(254,202,202,0.06) 100%)',
+          'box-shadow:0 2px 8px rgba(239,68,68,0.12)',
+        ].join(';');
         banner.innerHTML = `
           <div style="display:flex;align-items:flex-start;gap:0.875rem;flex-wrap:wrap;">
             <span style="font-size:1.5rem;flex-shrink:0;line-height:1;" aria-hidden="true">❌</span>
@@ -487,7 +509,7 @@
               <span style="font-size:0.8125rem;color:#7f1d1d;line-height:1.45;">${bodyText}</span>
               ${notesHtml}
             </div>
-            <button id="sv-open-widget-btn"
+            <button id="sv-open-widget-btn" class="sv-open-widget-btn--red"
               style="flex-shrink:0;padding:0.5rem 1.25rem;background:#ef4444;color:#fff;border:none;border-radius:999px;font-weight:700;font-size:0.8125rem;cursor:pointer;transition:background 0.15s,transform 0.1s;letter-spacing:0.01em;white-space:nowrap;"
               aria-label="Open verification resubmission form">
               Resubmit →
@@ -498,16 +520,22 @@
           openVerificationModal(supplierProfile, { rejectionNotes: verificationNotes });
         });
       } else {
+        banner.style.cssText = [
+          baseBannerStyle,
+          'border-left:4px solid #f59e0b',
+          'background:linear-gradient(135deg,rgba(245,158,11,0.12) 0%,rgba(251,191,36,0.06) 100%)',
+          'box-shadow:0 2px 8px rgba(245,158,11,0.12)',
+        ].join(';');
         banner.innerHTML = `
           <div style="display:flex;align-items:center;gap:0.875rem;flex-wrap:wrap;">
-            <span style="font-size:1.5rem;flex-shrink:0;line-height:1;" aria-hidden="true">⏳</span>
+            <span style="font-size:1.5rem;flex-shrink:0;line-height:1;" aria-hidden="true">⚠️</span>
             <div style="flex:1;min-width:180px;">
               <strong style="display:block;font-size:0.9375rem;color:#92400e;margin-bottom:0.2rem;">Supplier profile pending approval</strong>
               <span style="font-size:0.8125rem;color:#78350f;line-height:1.45;">
                 You won't appear in search results or be able to create packages, send messages, or publish calendar events until an admin approves your profile.
               </span>
             </div>
-            <button id="sv-open-widget-btn"
+            <button id="sv-open-widget-btn" class="sv-open-widget-btn--amber"
               style="flex-shrink:0;padding:0.5rem 1.25rem;background:#f59e0b;color:#fff;border:none;border-radius:999px;font-weight:700;font-size:0.8125rem;cursor:pointer;transition:background 0.15s,transform 0.1s;letter-spacing:0.01em;white-space:nowrap;"
               aria-label="Open verification request form">
               Get Verified →

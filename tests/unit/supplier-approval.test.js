@@ -801,4 +801,37 @@ describe('dashboard-supplier-verification.js — rejection and blocked state han
   it('handles VERIFICATION_MAX_REJECTIONS error from submit endpoint', () => {
     expect(content).toContain('VERIFICATION_MAX_REJECTIONS');
   });
+
+  it('uses distinct CSS class for amber (get-verified) button hover', () => {
+    expect(content).toContain('sv-open-widget-btn--amber');
+  });
+
+  it('uses distinct CSS class for red (resubmit) button hover', () => {
+    expect(content).toContain('sv-open-widget-btn--red');
+  });
+
+  it('uses correct red hover colour for resubmit button (not amber)', () => {
+    // The amber hover must not apply to red resubmit button
+    expect(content).toContain('sv-open-widget-btn--red:hover');
+    // Must NOT use a single #sv-open-widget-btn:hover that applies to both
+    expect(content).not.toContain('#sv-open-widget-btn:hover');
+  });
+
+  it('shows rejection notes in blocked banner', () => {
+    const blockedIdx = content.indexOf('verificationRejectionCount >= 5');
+    const blockedSection = content.slice(blockedIdx, blockedIdx + 1500);
+    expect(blockedSection).toContain('verificationNotes');
+  });
+
+  it('uses data-mode on submit button to preserve label during async retry', () => {
+    expect(content).toContain("dataset.mode = 'resubmit'");
+    expect(content).toContain("dataset.mode === 'resubmit'");
+  });
+
+  it('uses ⚠️ emoji for unverified (not submitted) state instead of ⏳', () => {
+    // The unverified "Get Verified" banner should use ⚠️ (warning) not ⏳ (hourglass)
+    // ⏳ is reserved for the pending_review state
+    expect(content).toContain('⚠️');
+    expect(content).toContain('⏳');
+  });
 });
