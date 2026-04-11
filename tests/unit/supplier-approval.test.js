@@ -66,7 +66,7 @@ describe('supplier-management.js — PATCH must not revoke approval', () => {
   it('does NOT assign approved in the PATCH route body', () => {
     const content = fs.readFileSync(SUPPLIER_MANAGEMENT, 'utf8');
     // Find the PATCH handler block
-    const patchStart = content.indexOf("PATCH /api/me/suppliers/:id");
+    const patchStart = content.indexOf('PATCH /api/me/suppliers/:id');
     const patchSection = content.slice(patchStart, patchStart + 2000);
     // Should not contain unconditional supplierPatch.approved = false
     expect(patchSection).not.toContain('supplierPatch.approved = false');
@@ -391,61 +391,79 @@ describe('supplier-admin.js — admin approve endpoint', () => {
   });
 });
 
-// ─── D2) Verification request endpoint ─────────────────────────────────────
+// ─── D2) verification-request endpoint removed; state-machine submit exists ──
 
-describe('supplier-management.js — verification-request endpoint', () => {
+describe('supplier-management.js — legacy verification-request endpoint returns 410', () => {
   let content;
 
   beforeAll(() => {
     content = fs.readFileSync(SUPPLIER_MANAGEMENT, 'utf8');
   });
 
-  it('has POST /verification-request endpoint', () => {
+  it('has the /verification-request route returning 410 (removed)', () => {
     expect(content).toContain("'/verification-request'");
+    // The route must return 410 Gone (endpoint removed)
+    const section = content.slice(content.indexOf("'/verification-request'"));
+    expect(section.slice(0, 400)).toContain('410');
   });
 
-  it('creates a support ticket with ticketType supplier_verification', () => {
-    const section = content.slice(content.indexOf("'/verification-request'"));
-    expect(section.slice(0, 3000)).toContain("ticketType: 'supplier_verification'");
+  it('does NOT create support tickets for supplier verification', () => {
+    expect(content).not.toContain("ticketType: 'supplier_verification'");
   });
 
-  it('prevents duplicate tickets with 409 and VERIFICATION_REQUEST_PENDING code', () => {
+  it('does NOT insert into the tickets collection for verification', () => {
+    // The old ticket insertion must be absent
     const section = content.slice(content.indexOf("'/verification-request'"));
-    expect(section.slice(0, 3000)).toContain('status(409)');
-    expect(section.slice(0, 3000)).toContain('VERIFICATION_REQUEST_PENDING');
-  });
-
-  it('does NOT require approval (unapproved suppliers can submit)', () => {
-    const section = content.slice(content.indexOf("'/verification-request'"));
-    // Must NOT include applyRequireApprovedSupplier in this route
-    const routeSection = section.slice(0, section.indexOf('async (req, res)'));
-    expect(routeSection).not.toContain('applyRequireApprovedSupplier');
-  });
-
-  it('requires verified user and supplier role', () => {
-    const section = content.slice(content.indexOf("'/verification-request'"));
-    const routeSection = section.slice(0, section.indexOf('async (req, res)'));
-    expect(routeSection).toContain('applyRequireVerifiedUser');
-    expect(routeSection).toContain("applyRoleRequired('supplier')");
-  });
-
-  it('inserts the ticket into the tickets collection', () => {
-    const section = content.slice(content.indexOf("'/verification-request'"));
-    expect(section.slice(0, 3500)).toContain("insertOne('tickets'");
-  });
-
-  it('does NOT use inline require() for uid — uses injected uid dependency', () => {
-    const section = content.slice(content.indexOf("'/verification-request'"));
-    // Bug guard: must not do require('../store') inside the handler
-    expect(section.slice(0, 4000)).not.toContain("require('../store')");
-    // Positive guard: uid() must be called to generate the ticket id
-    expect(section.slice(0, 4000)).toContain('uid()');
+    expect(section.slice(0, 500)).not.toContain("insertOne('tickets'");
   });
 });
 
-// ─── D3) Admin verification-requests endpoint ───────────────────────────────
+// ─── D3) State-machine verification submit endpoint in routes/supplier.js ────
 
-describe('routes/admin.js — GET /suppliers/verification-requests', () => {
+describe('routes/supplier.js — POST /verification/submit uses state machine', () => {
+  const SUPPLIER_ROUTE = path.join(__dirname, '../../routes/supplier.js');
+  let content;
+
+  beforeAll(() => {
+    content = fs.readFileSync(SUPPLIER_ROUTE, 'utf8');
+  });
+
+  it('has POST /verification/submit endpoint', () => {
+    expect(content).toContain("'/verification/submit'");
+  });
+
+  it('transitions supplier to pending_review state', () => {
+    const section = content.slice(content.indexOf("'/verification/submit'"));
+    expect(section.slice(0, 2000)).toContain('PENDING_REVIEW');
+  });
+
+  it('checks the state machine canTransition before updating', () => {
+    const section = content.slice(content.indexOf("'/verification/submit'"));
+    expect(section.slice(0, 2000)).toContain('canTransition');
+  });
+
+  it('returns 409 when transition is not allowed (e.g. already pending)', () => {
+    const section = content.slice(content.indexOf("'/verification/submit'"));
+    expect(section.slice(0, 2000)).toContain('status(409)');
+  });
+
+  it('auto-approves when autoApproveSupplierVerification is enabled', () => {
+    const section = content.slice(content.indexOf("'/verification/submit'"));
+    expect(section.slice(0, 4000)).toContain('autoApproveSupplierVerification');
+    expect(section.slice(0, 4000)).toContain('APPROVED');
+    expect(section.slice(0, 4000)).toContain('autoApproved');
+  });
+
+  it('does NOT create support tickets', () => {
+    const section = content.slice(content.indexOf("'/verification/submit'"));
+    expect(section.slice(0, 3000)).not.toContain("ticketType: 'supplier_verification'");
+    expect(section.slice(0, 3000)).not.toContain("insertOne('tickets'");
+  });
+});
+
+// ─── D4) Admin verification-requests endpoint returns 410 ───────────────────
+
+describe('routes/admin.js — GET /suppliers/verification-requests returns 410', () => {
   const ADMIN_ROUTES = path.join(__dirname, '../../routes/admin.js');
   let content;
 
@@ -453,28 +471,47 @@ describe('routes/admin.js — GET /suppliers/verification-requests', () => {
     content = fs.readFileSync(ADMIN_ROUTES, 'utf8');
   });
 
-  it('has GET /suppliers/verification-requests endpoint', () => {
+  it('still has the /suppliers/verification-requests route (returns 410)', () => {
     expect(content).toContain("'/suppliers/verification-requests'");
   });
 
-  it('filters tickets by ticketType supplier_verification', () => {
+  it('returns 410 Gone (endpoint removed)', () => {
     const section = content.slice(content.indexOf("'/suppliers/verification-requests'"));
-    expect(section.slice(0, 800)).toContain("ticketType === 'supplier_verification'");
+    expect(section.slice(0, 400)).toContain('410');
   });
 
-  it('filters tickets by open or in_progress status', () => {
+  it('does NOT scan tickets for supplier_verification ticketType', () => {
     const section = content.slice(content.indexOf("'/suppliers/verification-requests'"));
-    expect(section.slice(0, 800)).toContain("status === 'open'");
-    expect(section.slice(0, 800)).toContain("status === 'in_progress'");
-  });
-
-  it('returns pendingByUserId object', () => {
-    const section = content.slice(content.indexOf("'/suppliers/verification-requests'"));
-    expect(section.slice(0, 800)).toContain('pendingByUserId');
+    expect(section.slice(0, 600)).not.toContain("ticketType === 'supplier_verification'");
   });
 
   it('requires admin role', () => {
     const section = content.slice(content.indexOf("'/suppliers/verification-requests'"));
+    expect(section.slice(0, 300)).toContain("'admin'");
+  });
+});
+
+// ─── D5) Admin pending-verification endpoint uses state machine ─────────────
+
+describe('routes/admin.js — GET /suppliers/pending-verification uses verificationStatus', () => {
+  const ADMIN_ROUTES = path.join(__dirname, '../../routes/admin.js');
+  let content;
+
+  beforeAll(() => {
+    content = fs.readFileSync(ADMIN_ROUTES, 'utf8');
+  });
+
+  it('has GET /suppliers/pending-verification endpoint', () => {
+    expect(content).toContain("'/suppliers/pending-verification'");
+  });
+
+  it('filters by verificationStatus (state-machine states)', () => {
+    const section = content.slice(content.indexOf("'/suppliers/pending-verification'"));
+    expect(section.slice(0, 800)).toContain('verificationStatus');
+  });
+
+  it('requires admin role', () => {
+    const section = content.slice(content.indexOf("'/suppliers/pending-verification'"));
     expect(section.slice(0, 200)).toContain("'admin'");
   });
 });
@@ -550,10 +587,13 @@ describe('dashboard-supplier-verification.js — banner reads data.user.*', () =
     expect(content).not.toMatch(/\bdata\.supplierApproved\b/);
   });
 
-  it('includes live character counter for note textarea', () => {
-    expect(content).toContain('sv-note-counter');
-    expect(content).toContain('charCount');
-    expect(content).toContain('1000 characters');
+  it('uses state-machine submit endpoint, not the removed ticket endpoint', () => {
+    expect(content).toContain('/api/supplier/verification/submit');
+    expect(content).not.toContain('/api/me/suppliers/verification-request');
+  });
+
+  it('shows pending state message when supplier is already in pending_review', () => {
+    expect(content).toContain('pending_review');
   });
 });
 

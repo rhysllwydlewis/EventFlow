@@ -97,56 +97,44 @@
     modal.innerHTML = `
       <div id="sv-modal-inner" style="background:#fff;border-radius:16px;max-width:480px;width:100%;padding:2rem;box-shadow:0 20px 60px rgba(0,0,0,0.25);position:relative;max-height:calc(100vh - 2rem);overflow-y:auto;">
         <button id="sv-modal-close" aria-label="Close dialog" style="position:absolute;top:1rem;right:1rem;background:none;border:none;font-size:1.5rem;cursor:pointer;color:#9ca3af;line-height:1;padding:0.25rem;border-radius:4px;transition:color 0.15s;">×</button>
-        <h2 id="sv-modal-title" style="margin:0 0 0.25rem;font-size:1.25rem;font-weight:700;color:#111827;">Request Supplier Verification</h2>
-        <p style="margin:0 0 1.5rem;font-size:0.875rem;color:#6b7280;line-height:1.5;">Complete the form below and our team will review your request within <strong>24 hours</strong>.</p>
+        <h2 id="sv-modal-title" style="margin:0 0 0.25rem;font-size:1.25rem;font-weight:700;color:#111827;">Submit for Supplier Verification</h2>
+        <p style="margin:0 0 1.5rem;font-size:0.875rem;color:#6b7280;line-height:1.5;">Confirm your details below and submit your profile for admin review.</p>
         <div id="sv-modal-error" role="alert" aria-live="assertive" style="display:none;background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;font-size:0.875rem;color:#991b1b;"></div>
         <div id="sv-modal-success" role="status" aria-live="polite" style="display:none;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:1rem;margin-bottom:1rem;font-size:0.9rem;color:#166534;line-height:1.5;"></div>
         <form id="sv-verification-form" novalidate>
           <div style="margin-bottom:1rem;">
-            <label for="sv-businessName" style="display:block;font-size:0.8125rem;font-weight:600;margin-bottom:0.4rem;color:#374151;">Business Name <span style="color:#ef4444;" aria-hidden="true">*</span></label>
-            <input id="sv-businessName" name="businessName" type="text" required maxlength="120"
+            <label for="sv-name" style="display:block;font-size:0.8125rem;font-weight:600;margin-bottom:0.4rem;color:#374151;">Business Name <span style="color:#ef4444;" aria-hidden="true">*</span></label>
+            <input id="sv-name" name="name" type="text" required maxlength="120"
               class="sv-input" placeholder="Your registered business name" autocomplete="organization" />
           </div>
           <div style="margin-bottom:1rem;">
-            <label for="sv-website" style="display:block;font-size:0.8125rem;font-weight:600;margin-bottom:0.4rem;color:#374151;">Website</label>
-            <input id="sv-website" name="website" type="url" maxlength="200"
-              class="sv-input" placeholder="https://yourbusiness.com" autocomplete="url" />
+            <label for="sv-category" style="display:block;font-size:0.8125rem;font-weight:600;margin-bottom:0.4rem;color:#374151;">Category <span style="color:#ef4444;" aria-hidden="true">*</span></label>
+            <input id="sv-category" name="category" type="text" required maxlength="80"
+              class="sv-input" placeholder="e.g. Photographer, Venue, Catering" />
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem;">
             <div>
-              <label for="sv-phone" style="display:block;font-size:0.8125rem;font-weight:600;margin-bottom:0.4rem;color:#374151;">Phone</label>
-              <input id="sv-phone" name="phone" type="tel" maxlength="30"
+              <label for="sv-phone" style="display:block;font-size:0.8125rem;font-weight:600;margin-bottom:0.4rem;color:#374151;">Phone <span style="color:#ef4444;" aria-hidden="true">*</span></label>
+              <input id="sv-phone" name="phone" type="tel" required maxlength="30"
                 class="sv-input" placeholder="+44 7700 000000" autocomplete="tel" />
             </div>
             <div>
-              <label for="sv-postcode" style="display:block;font-size:0.8125rem;font-weight:600;margin-bottom:0.4rem;color:#374151;">Postcode / Location</label>
-              <input id="sv-postcode" name="postcode" type="text" maxlength="60"
-                class="sv-input" placeholder="SW1A 1AA" autocomplete="postal-code" />
+              <label for="sv-location" style="display:block;font-size:0.8125rem;font-weight:600;margin-bottom:0.4rem;color:#374151;">Location <span style="color:#ef4444;" aria-hidden="true">*</span></label>
+              <input id="sv-location" name="location" type="text" required maxlength="200"
+                class="sv-input" placeholder="City or postcode" autocomplete="address-level2" />
             </div>
           </div>
-          <div style="margin-bottom:1.5rem;">
-            <label for="sv-note" style="display:block;font-size:0.8125rem;font-weight:600;margin-bottom:0.4rem;color:#374151;">Additional information</label>
-            <textarea id="sv-note" name="note" maxlength="1000" rows="3"
-              class="sv-input" placeholder="Briefly describe your business and why you'd like to be verified…" style="resize:vertical;"></textarea>
-            <p id="sv-note-counter" style="margin:0.3rem 0 0;font-size:0.75rem;color:#9ca3af;">0 / 1000 characters</p>
+          <div style="margin-bottom:1rem;">
+            <label for="sv-email" style="display:block;font-size:0.8125rem;font-weight:600;margin-bottom:0.4rem;color:#374151;">Contact Email <span style="color:#ef4444;" aria-hidden="true">*</span></label>
+            <input id="sv-email" name="email" type="email" required maxlength="254"
+              class="sv-input" placeholder="contact@yourbusiness.com" autocomplete="email" />
           </div>
-          <button type="submit" id="sv-submit-btn">Submit Verification Request</button>
+          <button type="submit" id="sv-submit-btn">Submit for Verification</button>
           <button type="button" id="sv-cancel-btn">Cancel</button>
         </form>
       </div>`;
 
     document.body.appendChild(modal);
-
-    // Live character counter for note textarea
-    const noteEl = document.getElementById('sv-note');
-    const noteCounter = document.getElementById('sv-note-counter');
-    if (noteEl && noteCounter) {
-      noteEl.addEventListener('input', function () {
-        const charCount = noteEl.value.length;
-        noteCounter.textContent = `${charCount} / 1000 characters`;
-        noteCounter.style.color = charCount > 900 ? '#f59e0b' : '#9ca3af';
-      });
-    }
 
     // Close handlers
     function closeModal() {
@@ -154,19 +142,19 @@
     }
     document.getElementById('sv-modal-close').addEventListener('click', closeModal);
     document.getElementById('sv-cancel-btn').addEventListener('click', closeModal);
-    modal.addEventListener('click', function (e) {
+    modal.addEventListener('click', e => {
       if (e.target === modal) {
         closeModal();
       }
     });
-    document.addEventListener('keydown', function (e) {
+    document.addEventListener('keydown', e => {
       if (e.key === 'Escape' && modal.classList.contains('sv-open')) {
         closeModal();
       }
     });
 
-    // Form submit
-    document.getElementById('sv-verification-form').addEventListener('submit', async function (e) {
+    // Form submit — uses the existing state-machine verification endpoint
+    document.getElementById('sv-verification-form').addEventListener('submit', async e => {
       e.preventDefault();
       const errorEl = document.getElementById('sv-modal-error');
       const successEl = document.getElementById('sv-modal-success');
@@ -174,11 +162,32 @@
       errorEl.style.display = 'none';
       successEl.style.display = 'none';
 
-      const businessName = document.getElementById('sv-businessName').value.trim();
-      if (!businessName) {
-        errorEl.textContent = 'Business name is required.';
+      const name = document.getElementById('sv-name').value.trim();
+      const category = document.getElementById('sv-category').value.trim();
+      const phone = document.getElementById('sv-phone').value.trim();
+      const location = document.getElementById('sv-location').value.trim();
+      const email = document.getElementById('sv-email').value.trim();
+
+      const missing = [];
+      if (!name) {
+        missing.push('Business name');
+      }
+      if (!category) {
+        missing.push('Category');
+      }
+      if (!phone) {
+        missing.push('Phone');
+      }
+      if (!location) {
+        missing.push('Location');
+      }
+      if (!email) {
+        missing.push('Contact email');
+      }
+
+      if (missing.length > 0) {
+        errorEl.textContent = `Required fields are missing: ${missing.join(', ')}`;
         errorEl.style.display = 'block';
-        document.getElementById('sv-businessName').focus();
         return;
       }
 
@@ -191,15 +200,9 @@
         const csrfData = csrfRes.ok ? await csrfRes.json() : {};
         const csrfToken = csrfData.csrfToken || '';
 
-        const body = {
-          businessName,
-          website: document.getElementById('sv-website').value.trim(),
-          phone: document.getElementById('sv-phone').value.trim(),
-          postcode: document.getElementById('sv-postcode').value.trim(),
-          note: document.getElementById('sv-note').value.trim(),
-        };
+        const body = { name, category, phone, location, email };
 
-        const res = await fetch('/api/me/suppliers/verification-request', {
+        const res = await fetch('/api/supplier/verification/submit', {
           method: 'POST',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
@@ -209,21 +212,27 @@
         const data = await res.json();
 
         if (res.status === 409) {
-          successEl.innerHTML =
-            '✅ ' + (data.message || 'A verification request is already under review. Our team will be in touch within 24 hours.');
+          // Already pending or already approved
+          successEl.innerHTML = `✅ ${data.error || 'Your verification is already under review or approved.'}`;
           successEl.style.display = 'block';
           document.getElementById('sv-verification-form').style.display = 'none';
           return;
         }
 
         if (!res.ok) {
-          errorEl.textContent = data.error || 'Failed to submit request. Please try again.';
+          if (data.missingFields && data.missingFields.length > 0) {
+            errorEl.textContent = `Please complete your profile first. Missing: ${data.missingFields.join(', ')}`;
+          } else {
+            errorEl.textContent = data.error || 'Failed to submit request. Please try again.';
+          }
           errorEl.style.display = 'block';
           return;
         }
 
-        successEl.innerHTML =
-          '✅ ' + (data.message || 'Verification request submitted! Our team will review it within 24 hours.');
+        const isAutoApproved = data.autoApproved === true;
+        successEl.innerHTML = isAutoApproved
+          ? '✅ Your profile has been verified and approved!'
+          : `✅ ${data.message || 'Verification submitted! An admin will review your profile shortly.'}`;
         successEl.style.display = 'block';
         document.getElementById('sv-verification-form').style.display = 'none';
       } catch (err) {
@@ -231,7 +240,7 @@
         errorEl.style.display = 'block';
       } finally {
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Submit Verification Request';
+        submitBtn.textContent = 'Submit for Verification';
       }
     });
 
@@ -242,21 +251,25 @@
     const modal = buildModal();
     // Pre-fill fields if profile data is available
     if (supplierProfile) {
-      const nameEl = document.getElementById('sv-businessName');
-      const websiteEl = document.getElementById('sv-website');
+      const nameEl = document.getElementById('sv-name');
+      const categoryEl = document.getElementById('sv-category');
       const phoneEl = document.getElementById('sv-phone');
-      const postcodeEl = document.getElementById('sv-postcode');
+      const locationEl = document.getElementById('sv-location');
+      const emailEl = document.getElementById('sv-email');
       if (nameEl && supplierProfile.name) {
         nameEl.value = supplierProfile.name;
       }
-      if (websiteEl && supplierProfile.website) {
-        websiteEl.value = supplierProfile.website;
+      if (categoryEl && supplierProfile.category) {
+        categoryEl.value = supplierProfile.category;
       }
       if (phoneEl && supplierProfile.phone) {
         phoneEl.value = supplierProfile.phone;
       }
-      if (postcodeEl) {
-        postcodeEl.value = supplierProfile.venuePostcode || supplierProfile.location || '';
+      if (locationEl) {
+        locationEl.value = supplierProfile.location || supplierProfile.venuePostcode || '';
+      }
+      if (emailEl && supplierProfile.email) {
+        emailEl.value = supplierProfile.email;
       }
     }
     // Reset form state
@@ -274,8 +287,8 @@
     }
     modal.classList.add('sv-open');
     // Focus first input after animation
-    setTimeout(function () {
-      const firstInput = document.getElementById('sv-businessName');
+    setTimeout(() => {
+      const firstInput = document.getElementById('sv-name');
       if (firstInput) {
         firstInput.focus();
       }
@@ -324,6 +337,20 @@
         // Non-fatal — widget can still open without pre-fill
       }
 
+      // Determine if already pending review
+      let isPending = false;
+      try {
+        const statusRes = await fetch('/api/supplier/verification/status', {
+          credentials: 'include',
+        });
+        if (statusRes.ok) {
+          const statusData = await statusRes.json();
+          isPending = statusData.verificationStatus === 'pending_review';
+        }
+      } catch (_) {
+        // Non-fatal
+      }
+
       // Render banner
       banner.style.cssText = [
         'display:block',
@@ -335,25 +362,38 @@
         'box-shadow:0 2px 8px rgba(245,158,11,0.12)',
       ].join(';');
 
-      banner.innerHTML = `
-        <div style="display:flex;align-items:center;gap:0.875rem;flex-wrap:wrap;">
-          <span style="font-size:1.5rem;flex-shrink:0;line-height:1;" aria-hidden="true">⏳</span>
-          <div style="flex:1;min-width:180px;">
-            <strong style="display:block;font-size:0.9375rem;color:#92400e;margin-bottom:0.2rem;">Supplier profile pending approval</strong>
-            <span style="font-size:0.8125rem;color:#78350f;line-height:1.45;">
-              You won't appear in search results or be able to create packages, send messages, or publish calendar events until an admin approves your profile.
-            </span>
-          </div>
-          <button id="sv-open-widget-btn"
-            style="flex-shrink:0;padding:0.5rem 1.25rem;background:#f59e0b;color:#fff;border:none;border-radius:999px;font-weight:700;font-size:0.8125rem;cursor:pointer;transition:background 0.15s,transform 0.1s;letter-spacing:0.01em;white-space:nowrap;"
-            aria-label="Open verification request form">
-            Get Verified →
-          </button>
-        </div>`;
+      if (isPending) {
+        banner.innerHTML = `
+          <div style="display:flex;align-items:center;gap:0.875rem;flex-wrap:wrap;">
+            <span style="font-size:1.5rem;flex-shrink:0;line-height:1;" aria-hidden="true">⏳</span>
+            <div style="flex:1;min-width:180px;">
+              <strong style="display:block;font-size:0.9375rem;color:#92400e;margin-bottom:0.2rem;">Verification under review</strong>
+              <span style="font-size:0.8125rem;color:#78350f;line-height:1.45;">
+                Your profile has been submitted and is awaiting admin review. You'll be notified once a decision is made.
+              </span>
+            </div>
+          </div>`;
+      } else {
+        banner.innerHTML = `
+          <div style="display:flex;align-items:center;gap:0.875rem;flex-wrap:wrap;">
+            <span style="font-size:1.5rem;flex-shrink:0;line-height:1;" aria-hidden="true">⏳</span>
+            <div style="flex:1;min-width:180px;">
+              <strong style="display:block;font-size:0.9375rem;color:#92400e;margin-bottom:0.2rem;">Supplier profile pending approval</strong>
+              <span style="font-size:0.8125rem;color:#78350f;line-height:1.45;">
+                You won't appear in search results or be able to create packages, send messages, or publish calendar events until an admin approves your profile.
+              </span>
+            </div>
+            <button id="sv-open-widget-btn"
+              style="flex-shrink:0;padding:0.5rem 1.25rem;background:#f59e0b;color:#fff;border:none;border-radius:999px;font-weight:700;font-size:0.8125rem;cursor:pointer;transition:background 0.15s,transform 0.1s;letter-spacing:0.01em;white-space:nowrap;"
+              aria-label="Open verification request form">
+              Get Verified →
+            </button>
+          </div>`;
 
-      document.getElementById('sv-open-widget-btn').addEventListener('click', function () {
-        openVerificationModal(supplierProfile);
-      });
+        document.getElementById('sv-open-widget-btn')?.addEventListener('click', () => {
+          openVerificationModal(supplierProfile);
+        });
+      }
     } catch (_) {
       // Ensure the banner stays hidden if the API call fails.
       if (banner) {
@@ -368,4 +408,3 @@
     loadApprovalBanner();
   }
 })();
-
