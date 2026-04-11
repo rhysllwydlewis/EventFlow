@@ -128,7 +128,7 @@
             <label for="sv-note" style="display:block;font-size:0.8125rem;font-weight:600;margin-bottom:0.4rem;color:#374151;">Additional information</label>
             <textarea id="sv-note" name="note" maxlength="1000" rows="3"
               class="sv-input" placeholder="Briefly describe your business and why you'd like to be verified…" style="resize:vertical;"></textarea>
-            <p style="margin:0.3rem 0 0;font-size:0.75rem;color:#9ca3af;">Max 1000 characters</p>
+            <p id="sv-note-counter" style="margin:0.3rem 0 0;font-size:0.75rem;color:#9ca3af;">0 / 1000 characters</p>
           </div>
           <button type="submit" id="sv-submit-btn">Submit Verification Request</button>
           <button type="button" id="sv-cancel-btn">Cancel</button>
@@ -136,6 +136,17 @@
       </div>`;
 
     document.body.appendChild(modal);
+
+    // Live character counter for note textarea
+    const noteEl = document.getElementById('sv-note');
+    const noteCounter = document.getElementById('sv-note-counter');
+    if (noteEl && noteCounter) {
+      noteEl.addEventListener('input', function () {
+        const remaining = noteEl.value.length;
+        noteCounter.textContent = `${remaining} / 1000 characters`;
+        noteCounter.style.color = remaining > 900 ? '#f59e0b' : '#9ca3af';
+      });
+    }
 
     // Close handlers
     function closeModal() {
@@ -284,12 +295,17 @@
         return;
       }
       const data = await res.json();
-
-      // Only show banner for supplier role users with an unapproved profile
-      if (data.role !== 'supplier') {
+      // /api/auth/me returns { user: { role, supplierApproved, ... } }
+      const user = data.user;
+      if (!user) {
         return;
       }
-      if (data.supplierApproved === true) {
+
+      // Only show banner for supplier role users with an unapproved profile
+      if (user.role !== 'supplier') {
+        return;
+      }
+      if (user.supplierApproved === true) {
         // Approved — keep dashboard clean
         return;
       }

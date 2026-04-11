@@ -523,6 +523,37 @@ describe('server.js — /api/auth/me includes supplierApproved', () => {
   });
 });
 
+// ─── E2) dashboard-supplier-verification.js reads data.user correctly ────────
+
+describe('dashboard-supplier-verification.js — banner reads data.user.*', () => {
+  const BANNER_JS = path.join(
+    __dirname,
+    '../../public/assets/js/pages/dashboard-supplier-verification.js'
+  );
+  let content;
+
+  beforeAll(() => {
+    content = fs.readFileSync(BANNER_JS, 'utf8');
+  });
+
+  it('reads role from data.user not data directly', () => {
+    // Bug guard: must use data.user.role, not data.role
+    expect(content).toContain('user.role');
+    expect(content).not.toMatch(/\bdata\.role\b/);
+  });
+
+  it('reads supplierApproved from data.user not data directly', () => {
+    // Bug guard: must use user.supplierApproved, not data.supplierApproved
+    expect(content).toContain('user.supplierApproved');
+    expect(content).not.toMatch(/\bdata\.supplierApproved\b/);
+  });
+
+  it('includes live character counter for note textarea', () => {
+    expect(content).toContain('sv-note-counter');
+    expect(content).toContain('noteEl.value.length');
+  });
+});
+
 // ─── F) Public directory only shows approved suppliers ───────────────────────
 
 describe('routes/suppliers.js — public directory filters unapproved', () => {
