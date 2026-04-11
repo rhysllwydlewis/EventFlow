@@ -1018,8 +1018,16 @@ async function initSuppliersPage() {
           updateCarousel();
         }
       });
-    });
-  }
+
+      /*
+       * Call once at init to set the correct initial arrow states.
+       * The HTML template always sets both buttons as disabled; we must
+       * call updateCarousel() here to enable the next button when
+       * total > visibleCount (e.g. 2 packages on mobile with visibleCount=1).
+       */
+      updateCarousel();
+    }); // end of forEach
+  } // end of attachCarousels
 
   function attachEmptyStateHandlers() {
     const clearBtn = document.getElementById('clear-filters-btn');
