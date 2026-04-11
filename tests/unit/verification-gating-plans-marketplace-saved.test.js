@@ -32,24 +32,30 @@ describe('plans.js — verification gating', () => {
   });
 
   it('POST / (create plan) requires verified user', () => {
-    // Find the create-plan route definition
-    const routeIdx = content.indexOf("router.post('/', authRequired, requireVerifiedUser");
+    // Find the create-plan route definition (multi-line format after Prettier)
+    const routeIdx = content.indexOf(
+      "router.post(\n  '/',\n  authRequired,\n  requireVerifiedUser"
+    );
     expect(routeIdx).not.toBe(-1);
   });
 
   it('PATCH /:id (update plan) requires verified user', () => {
-    const routeIdx = content.indexOf("router.patch('/:id', authRequired, requireVerifiedUser");
+    const routeIdx = content.indexOf(
+      "router.patch(\n  '/:id',\n  authRequired,\n  requireVerifiedUser"
+    );
     expect(routeIdx).not.toBe(-1);
   });
 
   it('DELETE /:id (delete plan) requires verified user', () => {
-    const routeIdx = content.indexOf("router.delete('/:id', authRequired, requireVerifiedUser");
+    const routeIdx = content.indexOf(
+      "router.delete(\n  '/:id',\n  authRequired,\n  requireVerifiedUser"
+    );
     expect(routeIdx).not.toBe(-1);
   });
 
   it('POST /:planId/budget requires verified user', () => {
     const routeIdx = content.indexOf(
-      "router.post('/:planId/budget', authRequired, requireVerifiedUser"
+      "router.post(\n  '/:planId/budget',\n  authRequired,\n  requireVerifiedUser"
     );
     expect(routeIdx).not.toBe(-1);
   });
@@ -123,21 +129,22 @@ describe('saved.js — verification gating', () => {
   });
 
   it('POST / (save item) requires verified user', () => {
-    const routeIdx = content.indexOf('router.post');
+    // After Prettier reformatting the route is multi-line
+    const routeIdx = content.indexOf("router.post(\n  '/',");
     expect(routeIdx).not.toBe(-1);
     const routeSection = content.slice(routeIdx, routeIdx + 150);
     expect(routeSection).toContain('requireVerifiedUser');
   });
 
   it('DELETE /by-item (unsave by item) requires verified user', () => {
-    const routeIdx = content.indexOf("router.delete('/by-item'");
+    const routeIdx = content.indexOf("router.delete(\n  '/by-item'");
     expect(routeIdx).not.toBe(-1);
     const routeSection = content.slice(routeIdx, routeIdx + 150);
     expect(routeSection).toContain('requireVerifiedUser');
   });
 
   it('DELETE /:id (unsave by id) requires verified user', () => {
-    const routeIdx = content.indexOf("router.delete('/:id'");
+    const routeIdx = content.indexOf("router.delete(\n  '/:id'");
     expect(routeIdx).not.toBe(-1);
     const routeSection = content.slice(routeIdx, routeIdx + 150);
     expect(routeSection).toContain('requireVerifiedUser');

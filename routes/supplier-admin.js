@@ -1006,6 +1006,7 @@ router.get(
   '/suppliers/directory-health',
   applyAuthRequired,
   applyRoleRequired('admin'),
+  apiLimiter,
   async (_req, res) => {
     try {
       const [allUsers, allSuppliers] = await Promise.all([
