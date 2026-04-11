@@ -641,36 +641,17 @@ router.get('/suppliers', authRequired, roleRequired('admin'), async (_req, res) 
 
 /**
  * GET /api/admin/suppliers/verification-requests
- * Returns a map of { [supplierId]: ticketId } for suppliers that have an open or
- * in-progress supplier_verification support ticket. Used by the admin suppliers UI
- * to surface a "Pending Request" badge without re-fetching all tickets.
+ * This endpoint has been removed. Use GET /api/admin/suppliers/pending-verification
+ * to retrieve suppliers awaiting verification via the state-machine system.
  * Must be declared BEFORE /suppliers/:id to prevent Express wildcard capture.
  */
-router.get(
-  '/suppliers/verification-requests',
-  authRequired,
-  roleRequired('admin'),
-  async (_req, res) => {
-    try {
-      const tickets = (await dbUnified.read('tickets')) || [];
-      const pendingByUserId = {};
-      for (const t of tickets) {
-        if (
-          t.ticketType === 'supplier_verification' &&
-          (t.status === 'open' || t.status === 'in_progress') &&
-          t.senderId &&
-          !pendingByUserId[t.senderId]
-        ) {
-          pendingByUserId[t.senderId] = t.id;
-        }
-      }
-      res.json({ pendingByUserId });
-    } catch (error) {
-      logger.error('Error fetching supplier verification requests:', error);
-      res.status(500).json({ pendingByUserId: {} });
-    }
-  }
-);
+router.get('/suppliers/verification-requests', authRequired, roleRequired('admin'), (_req, res) => {
+  res.status(410).json({
+    error: 'This endpoint has been removed.',
+    message: 'Use GET /api/admin/suppliers/pending-verification to retrieve pending suppliers.',
+    code: 'ENDPOINT_REMOVED',
+  });
+});
 
 /**
  * GET /api/admin/suppliers/pending-verification
