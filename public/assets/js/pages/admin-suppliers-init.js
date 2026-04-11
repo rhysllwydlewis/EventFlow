@@ -725,15 +725,20 @@
   };
 
   window.rejectSupplier = async function (id) {
-    const confirmed = await AdminShared.showConfirmModal({
+    const result = await AdminShared.showInputModal({
       title: 'Reject Supplier',
       message:
-        'Reject this supplier? They will remain unapproved and will see a dashboard banner prompting them to re-submit.',
-      confirmText: 'Reject',
+        'Reject this supplier? They will remain unapproved and will see a dashboard banner prompting them to resubmit. Please provide a reason.',
+      label: 'Rejection Notes',
+      placeholder: 'e.g., Incomplete documentation, failed identity check…',
+      required: true,
+      type: 'textarea',
     });
-    if (confirmed) {
+    if (result && result.confirmed) {
       try {
-        await AdminShared.api(`/api/admin/suppliers/${id}/approve`, 'POST', { approved: false });
+        await AdminShared.api(`/api/admin/suppliers/${id}/reject`, 'POST', {
+          notes: result.value,
+        });
         showToast('Supplier rejected', 'success');
         await loadSuppliers();
         renderTable();
