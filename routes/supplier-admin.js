@@ -989,5 +989,110 @@ router.put(
   }
 );
 
+/**
+ * GET /api/admin/suppliers/directory-health
+ * Diagnostic endpoint: surfaces why supplier-role users may not appear in the public
+ * supplier directory (which requires approved=true on the supplier profile record).
+ *
+ * Returns four groups:
+ *   - noProfile      : users with role=supplier that have no supplier profile at all
+ *   - notApproved    : supplier profiles that exist but are not yet approved
+ *   - orphaned       : supplier profiles that have no ownerUserId (so cannot be linked to a user)
+ *   - missingName    : supplier profiles that have neither `name` nor `businessName`
+ *
+ * Each entry includes a human-readable `excludedReason` field to aid triage.
+ */
+router.get(
+  '/suppliers/directory-health',
+  applyAuthRequired,
+  applyRoleRequired('admin'),
+  apiLimiter,
+  async (_req, res) => {
+    try {
+      const [allUsers, allSuppliers] = await Promise.all([
+        dbUnified.read('users'),
+        dbUnified.read('suppliers'),
+      ]);
+
+      const supplierUsers = (allUsers || []).filter(u => u.role === 'supplier');
+      const supplierProfiles = allSuppliers || [];
+
+      // Index profiles by ownerUserId for O(1) lookup
+      const profilesByOwner = new Map();
+      for (const s of supplierProfiles) {
+        if (s.ownerUserId) {
+          if (!profilesByOwner.has(s.ownerUserId)) {
+            profilesByOwner.set(s.ownerUserId, []);
+          }
+          profilesByOwner.get(s.ownerUserId).push(s);
+        }
+      }
+
+      // Group 1: supplier-role users with no profile at all
+      const noProfile = supplierUsers
+        .filter(u => !profilesByOwner.has(u.id))
+        .map(u => ({
+          userId: u.id,
+          email: u.email,
+          excludedReason: 'No supplier profile record found for this user',
+        }));
+
+      // Group 2: profiles that exist but are not approved
+      const notApproved = supplierProfiles
+        .filter(s => s.ownerUserId && s.approved !== true)
+        .map(s => ({
+          supplierId: s.id,
+          ownerUserId: s.ownerUserId,
+          name: s.name,
+          verificationStatus: s.verificationStatus || 'unverified',
+          verified: s.verified || false,
+          approved: s.approved || false,
+          excludedReason: `approved=${s.approved ?? 'undefined'} — profile must have approved=true to appear in directory`,
+        }));
+
+      // Group 3: profiles with no ownerUserId (orphaned)
+      const orphaned = supplierProfiles
+        .filter(s => !s.ownerUserId)
+        .map(s => ({
+          supplierId: s.id,
+          name: s.name || s.businessName,
+          createdAt: s.createdAt,
+          excludedReason:
+            'ownerUserId is missing — profile is orphaned and cannot be linked to a user account',
+        }));
+
+      // Group 4: profiles with neither name nor businessName (will be invisible in search)
+      const missingName = supplierProfiles
+        .filter(s => !s.name && !s.businessName)
+        .map(s => ({
+          supplierId: s.id,
+          ownerUserId: s.ownerUserId || null,
+          createdAt: s.createdAt,
+          excludedReason:
+            'Neither `name` nor `businessName` is set — supplier will have no visible title in search results',
+        }));
+
+      res.json({
+        ok: true,
+        summary: {
+          supplierUsers: supplierUsers.length,
+          supplierProfiles: supplierProfiles.length,
+          noProfile: noProfile.length,
+          notApproved: notApproved.length,
+          orphaned: orphaned.length,
+          missingName: missingName.length,
+        },
+        noProfile,
+        notApproved,
+        orphaned,
+        missingName,
+      });
+    } catch (error) {
+      logger.error('Error generating supplier directory health report:', error);
+      res.status(500).json({ error: 'Failed to generate directory health report' });
+    }
+  }
+);
+
 module.exports = router;
 module.exports.initializeDependencies = initializeDependencies;

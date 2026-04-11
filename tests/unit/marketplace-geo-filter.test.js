@@ -140,6 +140,7 @@ function createTestApp() {
   marketplaceRoutes.initializeDependencies({
     dbUnified: mockDbUnified,
     authRequired: (_req, _res, next) => next(),
+    requireVerifiedUser: (_req, _res, next) => next(),
     csrfProtection: (_req, _res, next) => next(),
     writeLimiter: (_req, _res, next) => next(),
     uid: prefix => `${prefix}_test_${Date.now()}`,
