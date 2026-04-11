@@ -6,6 +6,8 @@
  *   - GET /api/admin/suppliers/directory-health endpoint exists in supplier-admin.js
  *   - The endpoint is admin-only
  *   - The endpoint groups excluded suppliers by the correct reasons
+ *   - routes/admin.js declares a pass-through for /suppliers/directory-health BEFORE
+ *     the /suppliers/:id wildcard (prevents Express from swallowing the static path)
  *   - searchService.js normalises businessName → name when projecting public fields
  *   - searchWeighting.js scores against businessName as a fallback for name
  */
