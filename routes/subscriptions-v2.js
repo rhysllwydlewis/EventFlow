@@ -296,8 +296,16 @@ router.get('/upcoming-invoice', authRequired, async (req, res) => {
       return res.json({ success: true, upcomingInvoice: null });
     }
 
+    // Stripe requires at least one of: subscription, schedule, subscription_details.items,
+    // schedule_details.phases, or invoice_items. Without a subscription ID we cannot
+    // produce a meaningful preview and would receive a guaranteed 400 from Stripe.
+    if (!subscription.stripeSubscriptionId) {
+      return res.json({ success: true, upcomingInvoice: null });
+    }
+
     try {
       const customerId = subscription.stripeCustomerId;
+      const stripeSubscriptionId = subscription.stripeSubscriptionId;
       // Guard: customer IDs must start with "cus_" — reject obviously invalid values
       // to avoid a guaranteed 400 from Stripe.
       if (!customerId || !customerId.startsWith('cus_')) {
@@ -307,6 +315,7 @@ router.get('/upcoming-invoice', authRequired, async (req, res) => {
 
       const invoice = await stripe.invoices.createPreview({
         customer: customerId,
+        subscription: stripeSubscriptionId,
       });
       return res.json({
         success: true,
