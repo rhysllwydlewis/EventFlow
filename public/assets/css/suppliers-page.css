@@ -1650,41 +1650,38 @@
     padding-left: 28px !important;
   }
 
-  /* ── Supplier card: single-column stack ─────────────── */
+  /* ── Supplier card: compact two-column mobile layout ─── */
   /*
-   * Override the 768px two-column layout (profile | actions).
-   * Mobile order: profile → actions → packages.
-   * Explicit grid-row values enforce visual order independent
-   * of DOM order. grid-column: 1/-1 ensures each section
-   * spans the single column.
+   * Mobile layout (≤640px):
+   *   Column 1 (1fr)   : .sp-card-profile — avatar + info + description
+   *   Column 2 (108px) : .sp-card-actions — stacked Save/View/Message buttons
+   *   Row 2 (full-width): .sp-card-packages — package carousel
+   *
+   * This keeps the card compact and utilises every pixel:
+   * no blank space between the supplier info and the packages.
    */
   .sp-card {
-    grid-template-columns: 1fr !important;
-    grid-template-rows: auto auto auto !important;
+    grid-template-columns: 1fr 108px !important;
+    grid-template-rows: auto auto !important;
   }
 
   /*
-   * Profile section: CSS grid layout.
-   * Column 1 (auto): avatar — spans all content rows via grid-row: 1 / 99
-   * Column 2 (1fr): name, category, location, rating, badges, description
-   *   — each child is a grid row, left-aligned.
-   *
-   * We use grid (not flex-row) because the text children are ALL direct
-   * siblings of the avatar and need to be collected into a single column.
-   * flex-direction:row would place them all as individual row items next to
-   * the avatar in a horizontal line.
+   * Profile section: col 1, row 1.
+   * Internal CSS grid: col 1 = avatar (56px), col 2 = name/info (1fr).
+   * Description is given grid-column:1/-1 below so it spans both
+   * columns — keeping it full-width while info sits beside the avatar.
    */
   .sp-card-profile {
+    grid-column: 1;
     grid-row: 1;
-    grid-column: 1 / -1;
     display: grid;
-    grid-template-columns: 60px 1fr;
-    column-gap: 12px;
-    row-gap: 4px;
+    grid-template-columns: 56px 1fr;
+    column-gap: 10px;
+    row-gap: 3px;
     align-items: start;
-    border-right: none;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-    padding: 12px 14px;
+    border-right: 1px solid rgba(0, 0, 0, 0.06);
+    border-bottom: none;
+    padding: 10px 10px 10px 12px;
     text-align: left;
   }
 
@@ -1702,8 +1699,8 @@
     flex-shrink: 0;
   }
 
-  /* Every other direct child goes into column 2 */
-  .sp-card-profile > *:not(.sp-card-avatar-wrap) {
+  /* Every direct child except avatar and description goes to info column (col 2) */
+  .sp-card-profile > *:not(.sp-card-avatar-wrap):not(.sp-card-description) {
     grid-column: 2;
     text-align: left;
     width: 100%;
@@ -1750,42 +1747,45 @@
   }
 
   .sp-card-description {
+    grid-column: 1 / -1; /* span avatar + info columns so description is full-width */
     text-align: left;
     -webkit-line-clamp: 2;
+    padding-top: 4px;
   }
 
+  /* Actions: col 2, row 1 — stacked buttons on the right of the profile */
   .sp-card-actions {
-    grid-row: 2;
-    grid-column: 1 / -1 !important; /* override grid-column: 2/-1 from 768px rule */
-    flex-direction: row;
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    flex-direction: column !important;
     flex-wrap: nowrap;
-    justify-content: stretch;
-    padding: 8px 12px 10px;
-    border-left: none;
-    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    justify-content: flex-start;
+    align-items: stretch;
+    padding: 10px 8px;
+    border-left: 1px solid rgba(0, 0, 0, 0.06);
+    border-top: none;
     background: rgba(248, 250, 252, 0.4);
-    gap: 6px;
+    gap: 5px;
   }
 
-  /* ── Package carousel: show on mobile ───────────────── */
+  /* ── Package carousel: full-width row below profile+actions ── */
   /*
-   * At 768px the carousel is hidden (display:none). On mobile
-   * we restore it and give it a dedicated row below the actions.
-   * --sp-pkg-mini-width is overridden so only one card fills
-   * the viewport at a time, making the carousel easy to use
-   * on small screens.
+   * Packages now occupy row 2, spanning both columns (full card width).
+   * --sp-pkg-mini-width is tuned so ~2 cards are visible at a time on
+   * narrow viewports, making the carousel feel natural rather than
+   * showing a single giant card.
    */
   .sp-card-packages {
-    grid-row: 3;
+    grid-row: 2;
     grid-column: 1 / -1;
     display: flex !important; /* override display:none from 768px breakpoint */
     padding: 10px 12px 14px;
     border-top: 1px solid rgba(0, 0, 0, 0.06);
   }
 
-  /* Single-card carousel: override the CSS custom property */
+  /* Two visible cards at a time on mobile */
   :root {
-    --sp-pkg-mini-width: min(68vw, 260px);
+    --sp-pkg-mini-width: min(44vw, 175px);
   }
 
   /* Slightly shorter thumbnail on mobile to save vertical space */
@@ -2005,20 +2005,19 @@
 @media (max-width: 640px) {
 
   /*
-   * Global OVERRIDES sets `.sp-card-actions .sp-btn { width: 100% !important }`
-   * which causes the three action buttons to stack vertically.
-   * Re-override here (later in the cascade = higher priority when specificity ties)
-   * to make the buttons share the row.
+   * Action buttons in the 108px right column: stacked, full column width.
+   * Each button gets width:100% to fill the column, and compact
+   * padding/font so all three fit without crowding.
    */
   .sp-card-actions .sp-btn {
-    flex: 1 1 0 !important;
-    width: auto !important;       /* counteract global width:100% !important */
+    flex: none !important;
+    width: 100% !important;
     min-width: 0 !important;
     max-width: none !important;
-    padding: 10px 6px !important;
+    padding: 8px 4px !important;
     font-size: 11px !important;
     font-weight: 600 !important;
-    min-height: 38px !important;
+    min-height: 32px !important;
     white-space: nowrap;
   }
 
