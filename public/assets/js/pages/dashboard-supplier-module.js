@@ -665,22 +665,26 @@ async function displaySubscriptionStatus() {
       // best-effort — subscriptionRecord stays null; billing details won't display
     }
 
-    // Load upcoming invoice amount/currency info (best-effort)
+    // Load upcoming invoice amount/currency info (best-effort).
+    // Only fetch when the subscription record has a Stripe subscription ID —
+    // without it the server would return null anyway, so we save the round-trip.
     let paymentAmount = null;
     let paymentCurrency = 'gbp';
-    try {
-      const upcomingResponse = await fetch('/api/v2/subscriptions/upcoming-invoice', {
-        credentials: 'include',
-      });
-      if (upcomingResponse.ok) {
-        const data = await upcomingResponse.json();
-        if (data.upcomingInvoice) {
-          paymentAmount = data.upcomingInvoice.amount;
-          paymentCurrency = data.upcomingInvoice.currency || 'gbp';
+    if (subscriptionRecord?.stripeSubscriptionId) {
+      try {
+        const upcomingResponse = await fetch('/api/v2/subscriptions/upcoming-invoice', {
+          credentials: 'include',
+        });
+        if (upcomingResponse.ok) {
+          const data = await upcomingResponse.json();
+          if (data.upcomingInvoice) {
+            paymentAmount = data.upcomingInvoice.amount;
+            paymentCurrency = data.upcomingInvoice.currency || 'gbp';
+          }
         }
+      } catch (_err) {
+        // best-effort
       }
-    } catch (_err) {
-      // best-effort
     }
 
     if (currentTier !== 'free') {

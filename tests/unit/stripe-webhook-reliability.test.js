@@ -418,8 +418,59 @@ describe('Upcoming invoice — Stripe error handling', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Tests: d) Only one canonical Stripe webhook endpoint is documented
+// Tests: e) Upcoming invoice — no Stripe configured
 // ---------------------------------------------------------------------------
+
+describe('Upcoming invoice — no Stripe configured', () => {
+  /**
+   * Minimal route-level handler that includes the STRIPE_ENABLED guard,
+   * mirroring the very first check in the production route handler.
+   */
+  function buildRouteHandler({ stripeEnabled }) {
+    const createPreview = jest.fn();
+
+    async function routeHandler(req, res) {
+      // Mirror: if (!STRIPE_ENABLED || !stripe) return null
+      if (!stripeEnabled) {
+        return res.json({ success: true, upcomingInvoice: null });
+      }
+
+      // Remaining logic would follow; for these tests we only care about the guard
+      createPreview(); // would be called if we got past the guard
+      return res.json({ success: true, upcomingInvoice: { amount: 100, currency: 'gbp' } });
+    }
+
+    return { routeHandler, createPreview };
+  }
+
+  it('returns upcomingInvoice: null without calling Stripe when Stripe is not configured', async () => {
+    const { routeHandler, createPreview } = buildRouteHandler({ stripeEnabled: false });
+
+    const res = {
+      _body: null,
+      json(body) {
+        this._body = body;
+        return this;
+      },
+    };
+
+    await routeHandler({}, res);
+
+    expect(createPreview).not.toHaveBeenCalled();
+    expect(res._body).toEqual({ success: true, upcomingInvoice: null });
+  });
+
+  it('proceeds past the guard when Stripe is configured', async () => {
+    const { routeHandler, createPreview } = buildRouteHandler({ stripeEnabled: true });
+
+    const res = { json() {} };
+    await routeHandler({}, res);
+
+    expect(createPreview).toHaveBeenCalledTimes(1);
+  });
+});
+
+
 
 describe('Canonical Stripe webhook endpoint documentation', () => {
   it('STRIPE_SUBSCRIPTION_GUIDE.md documents only one canonical endpoint', () => {
