@@ -1694,17 +1694,17 @@
     flex-shrink: 0;
   }
 
-  /* Every direct child of the profile sub-grid goes to info column (col 2) except the avatar */
-  .sp-card-profile > *:not(.sp-card-avatar-wrap) {
+  /*
+   * Name sits beside the avatar (col 2, row 1).
+   * Category, Location, Rating widget, and Badges span the full profile width
+   * (1/-1) so they appear BELOW the avatar+name row, not squeezed beside it.
+   */
+  .sp-card-name {
     grid-column: 2;
     text-align: left;
     width: 100%;
-    min-width: 0; /* prevent text overflow from blowing out the grid */
-  }
-
-  .sp-card-name {
+    min-width: 0;
     font-size: 13px;
-    text-align: left;
     white-space: normal;
     overflow: hidden;
     display: -webkit-box;
@@ -1712,13 +1712,6 @@
     -webkit-box-orient: vertical;
   }
 
-  /*
-   * Revert the desktop flex-truncation behaviour inside the mobile -webkit-box
-   * clamp. On mobile the profile column is ~287px (60px avatar + 1fr), so most
-   * names fit on one line without needing `white-space: nowrap`. The
-   * -webkit-line-clamp on the parent h3 provides the safety cap for very long
-   * names.
-   */
   .sp-card-name a {
     flex: none;
     white-space: normal;
@@ -1727,11 +1720,20 @@
   }
 
   .sp-card-category,
+  .sp-card-location,
+  .sp-card-rating-widget,
+  .sp-card-badges {
+    grid-column: 1 / -1; /* span avatar + name columns — full profile width */
+    text-align: left;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .sp-card-category,
   .sp-card-location {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    text-align: left;
     font-size: 11px;
   }
 
