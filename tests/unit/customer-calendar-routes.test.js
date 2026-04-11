@@ -53,8 +53,8 @@ function makeToken(payload) {
   return jwt.sign(payload, JWT_SECRET);
 }
 
-const USER_A = { id: 'user_a', email: 'a@test.com', role: 'customer' };
-const USER_B = { id: 'user_b', email: 'b@test.com', role: 'customer' };
+const USER_A = { id: 'user_a', email: 'a@test.com', role: 'customer', verified: true };
+const USER_B = { id: 'user_b', email: 'b@test.com', role: 'customer', verified: true };
 
 const EXISTING_ENTRY = {
   id: 'ce_001',

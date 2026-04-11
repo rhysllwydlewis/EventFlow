@@ -20,7 +20,7 @@
 const express = require('express');
 const router = express.Router();
 const logger = require('../utils/logger');
-const { authRequired } = require('../middleware/auth');
+const { authRequired, requireVerifiedUser } = require('../middleware/auth');
 const { csrfProtection } = require('../middleware/csrf');
 const { writeLimiter } = require('../middleware/rateLimits');
 const dbUnified = require('../db-unified');
@@ -79,7 +79,9 @@ function validateEntryBody(body) {
     if (typeof description === 'string' && description.length > MAX_DESCRIPTION_LENGTH) {
       errors.push(`Description must be at most ${MAX_DESCRIPTION_LENGTH} characters`);
     } else {
-      data.description = description ? stripHtml(String(description).trim()).substring(0, MAX_DESCRIPTION_LENGTH) : '';
+      data.description = description
+        ? stripHtml(String(description).trim()).substring(0, MAX_DESCRIPTION_LENGTH)
+        : '';
     }
   }
 
@@ -106,119 +108,139 @@ router.get('/', authRequired, async (req, res) => {
  * POST /api/me/calendar-entries
  * Create a new personal calendar entry.
  */
-router.post('/', authRequired, csrfProtection, writeLimiter, async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { data, errors } = validateEntryBody(req.body);
-    if (errors.length) {
-      return res.status(400).json({ error: errors[0] });
+router.post(
+  '/',
+  authRequired,
+  requireVerifiedUser,
+  csrfProtection,
+  writeLimiter,
+  async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const { data, errors } = validateEntryBody(req.body);
+      if (errors.length) {
+        return res.status(400).json({ error: errors[0] });
+      }
+
+      const entry = {
+        id: uid('ce'),
+        userId,
+        title: data.title,
+        type: data.type,
+        date: data.date,
+        time: data.time !== undefined ? data.time : null,
+        description: data.description !== undefined ? data.description : '',
+        createdAt: new Date().toISOString(),
+      };
+
+      await withLock('customer_calendar_entries', async () => {
+        const entries = await dbUnified.read('customer_calendar_entries');
+        entries.push(entry);
+        await dbUnified.write('customer_calendar_entries', entries);
+      });
+
+      logger.info(`Calendar entry created: ${entry.id} by user ${userId}`);
+      res.status(201).json({ ok: true, entry });
+    } catch (error) {
+      logger.error('Error creating calendar entry:', error);
+      res.status(500).json({ error: 'Failed to create calendar entry' });
     }
-
-    const entry = {
-      id: uid('ce'),
-      userId,
-      title: data.title,
-      type: data.type,
-      date: data.date,
-      time: data.time !== undefined ? data.time : null,
-      description: data.description !== undefined ? data.description : '',
-      createdAt: new Date().toISOString(),
-    };
-
-    await withLock('customer_calendar_entries', async () => {
-      const entries = await dbUnified.read('customer_calendar_entries');
-      entries.push(entry);
-      await dbUnified.write('customer_calendar_entries', entries);
-    });
-
-    logger.info(`Calendar entry created: ${entry.id} by user ${userId}`);
-    res.status(201).json({ ok: true, entry });
-  } catch (error) {
-    logger.error('Error creating calendar entry:', error);
-    res.status(500).json({ error: 'Failed to create calendar entry' });
   }
-});
+);
 
 /**
  * PUT /api/me/calendar-entries/:id
  * Update an existing personal calendar entry (owner only).
  */
-router.put('/:id', authRequired, csrfProtection, writeLimiter, async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const entryId = req.params.id;
-    const { data, errors } = validateEntryBody(req.body);
-    if (errors.length) {
-      return res.status(400).json({ error: errors[0] });
-    }
-
-    let earlyExit = null;
-    let updatedEntry = null;
-
-    await withLock('customer_calendar_entries', async () => {
-      const entries = await dbUnified.read('customer_calendar_entries');
-      const idx = entries.findIndex(e => e.id === entryId && e.userId === userId);
-
-      if (idx === -1) {
-        earlyExit = { status: 404, body: { error: 'Entry not found' } };
-        return;
+router.put(
+  '/:id',
+  authRequired,
+  requireVerifiedUser,
+  csrfProtection,
+  writeLimiter,
+  async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const entryId = req.params.id;
+      const { data, errors } = validateEntryBody(req.body);
+      if (errors.length) {
+        return res.status(400).json({ error: errors[0] });
       }
 
-      entries[idx] = {
-        ...entries[idx],
-        title: data.title,
-        type: data.type,
-        date: data.date,
-        time: data.time !== undefined ? data.time : entries[idx].time,
-        description: data.description !== undefined ? data.description : entries[idx].description,
-        updatedAt: new Date().toISOString(),
-      };
-      await dbUnified.write('customer_calendar_entries', entries);
-      updatedEntry = entries[idx];
-    });
+      let earlyExit = null;
+      let updatedEntry = null;
 
-    if (earlyExit) {
-      return res.status(earlyExit.status).json(earlyExit.body);
+      await withLock('customer_calendar_entries', async () => {
+        const entries = await dbUnified.read('customer_calendar_entries');
+        const idx = entries.findIndex(e => e.id === entryId && e.userId === userId);
+
+        if (idx === -1) {
+          earlyExit = { status: 404, body: { error: 'Entry not found' } };
+          return;
+        }
+
+        entries[idx] = {
+          ...entries[idx],
+          title: data.title,
+          type: data.type,
+          date: data.date,
+          time: data.time !== undefined ? data.time : entries[idx].time,
+          description: data.description !== undefined ? data.description : entries[idx].description,
+          updatedAt: new Date().toISOString(),
+        };
+        await dbUnified.write('customer_calendar_entries', entries);
+        updatedEntry = entries[idx];
+      });
+
+      if (earlyExit) {
+        return res.status(earlyExit.status).json(earlyExit.body);
+      }
+
+      logger.info(`Calendar entry updated: ${entryId} by user ${userId}`);
+      res.json({ ok: true, entry: updatedEntry });
+    } catch (error) {
+      logger.error('Error updating calendar entry:', error);
+      res.status(500).json({ error: 'Failed to update calendar entry' });
     }
-
-    logger.info(`Calendar entry updated: ${entryId} by user ${userId}`);
-    res.json({ ok: true, entry: updatedEntry });
-  } catch (error) {
-    logger.error('Error updating calendar entry:', error);
-    res.status(500).json({ error: 'Failed to update calendar entry' });
   }
-});
+);
 
 /**
  * DELETE /api/me/calendar-entries/:id
  * Delete a personal calendar entry (owner only).
  */
-router.delete('/:id', authRequired, csrfProtection, writeLimiter, async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const entryId = req.params.id;
-    let found = false;
+router.delete(
+  '/:id',
+  authRequired,
+  requireVerifiedUser,
+  csrfProtection,
+  writeLimiter,
+  async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const entryId = req.params.id;
+      let found = false;
 
-    await withLock('customer_calendar_entries', async () => {
-      const entries = await dbUnified.read('customer_calendar_entries');
-      const idx = entries.findIndex(e => e.id === entryId && e.userId === userId);
-      if (idx === -1) {
-        return;
+      await withLock('customer_calendar_entries', async () => {
+        const entries = await dbUnified.read('customer_calendar_entries');
+        const idx = entries.findIndex(e => e.id === entryId && e.userId === userId);
+        if (idx === -1) {
+          return;
+        }
+        found = true;
+        entries.splice(idx, 1);
+        await dbUnified.write('customer_calendar_entries', entries);
+      });
+
+      if (!found) {
+        return res.status(404).json({ error: 'Entry not found' });
       }
-      found = true;
-      entries.splice(idx, 1);
-      await dbUnified.write('customer_calendar_entries', entries);
-    });
-
-    if (!found) {
-      return res.status(404).json({ error: 'Entry not found' });
+      res.json({ ok: true });
+    } catch (error) {
+      logger.error('Error deleting calendar entry:', error);
+      res.status(500).json({ error: 'Failed to delete calendar entry' });
     }
-    res.json({ ok: true });
-  } catch (error) {
-    logger.error('Error deleting calendar entry:', error);
-    res.status(500).json({ error: 'Failed to delete calendar entry' });
   }
-});
+);
 
 module.exports = router;
-

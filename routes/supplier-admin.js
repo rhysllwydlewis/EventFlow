@@ -1066,5 +1066,158 @@ router.get(
   }
 );
 
+/**
+ * GET /api/admin/suppliers/:id/visibility-diagnostics
+ * Admin-only diagnostic endpoint: returns a structured JSON explanation of
+ * why a specific supplier is or isn't publicly visible in the directory/search.
+ *
+ * Checks:
+ *   - approved flag
+ *   - verificationStatus
+ *   - status / published
+ *   - ownerUserId present
+ *   - required listing fields (name / businessName, category, location)
+ *   - duplicate ownerUserId (more than one profile for the same user)
+ *   - search filter compliance (approved AND status=published)
+ *
+ * Non-destructive read-only endpoint.
+ */
+router.get(
+  '/suppliers/:id/visibility-diagnostics',
+  applyAuthRequired,
+  applyRoleRequired('admin'),
+  apiLimiter,
+  async (req, res) => {
+    try {
+      const supplierId = req.params.id;
+      const allSuppliers = await dbUnified.read('suppliers');
+
+      const supplier = allSuppliers.find(s => s.id === supplierId);
+      if (!supplier) {
+        return res.status(404).json({ error: 'Supplier not found' });
+      }
+
+      // ── Visibility checks ───────────────────────────────────────────────
+      const checks = {};
+      const exclusionReasons = [];
+      const inclusions = [];
+
+      // 1. approved flag
+      checks.approved = supplier.approved === true;
+      if (!checks.approved) {
+        exclusionReasons.push(
+          `approved=${supplier.approved ?? 'undefined'} — must be true to appear in public directory`
+        );
+      } else {
+        inclusions.push('approved=true ✓');
+      }
+
+      // 2. verificationStatus
+      checks.verificationStatus = supplier.verificationStatus || 'unverified';
+      const blockedStatuses = ['rejected', 'suspended', 'blocked'];
+      if (blockedStatuses.includes(checks.verificationStatus)) {
+        exclusionReasons.push(
+          `verificationStatus="${checks.verificationStatus}" — suppliers with this status are excluded from public listings`
+        );
+      }
+
+      // 3. status / published (supplier.service.js requires status==='published')
+      checks.status = supplier.status || 'draft';
+      if (checks.status !== 'published') {
+        exclusionReasons.push(
+          `status="${checks.status}" — supplier.service.js public search requires status==="published" (searchService.js does not apply this filter)`
+        );
+      } else {
+        inclusions.push('status=published ✓');
+      }
+
+      // 4. ownerUserId present
+      checks.hasOwnerUserId = Boolean(supplier.ownerUserId);
+      if (!checks.hasOwnerUserId) {
+        exclusionReasons.push(
+          'ownerUserId is missing — orphaned profile cannot be linked to a user account'
+        );
+      } else {
+        inclusions.push('ownerUserId present ✓');
+      }
+
+      // 5. Required listing fields
+      const hasName = Boolean(supplier.name || supplier.businessName);
+      checks.hasName = hasName;
+      if (!hasName) {
+        exclusionReasons.push(
+          'Neither name nor businessName is set — supplier will appear untitled in search results'
+        );
+      } else {
+        inclusions.push(`name="${supplier.name || supplier.businessName}" ✓`);
+      }
+
+      checks.hasCategory = Boolean(supplier.category);
+      if (!checks.hasCategory) {
+        exclusionReasons.push(
+          'category is missing — search filters will not return this supplier for category queries'
+        );
+      }
+
+      checks.hasLocation = Boolean(supplier.location);
+      if (!checks.hasLocation) {
+        exclusionReasons.push(
+          'location is missing — distance/location-based search will not surface this supplier'
+        );
+      }
+
+      // 6. Duplicate ownerUserId check
+      const duplicates = supplier.ownerUserId
+        ? allSuppliers.filter(s => s.ownerUserId === supplier.ownerUserId && s.id !== supplierId)
+        : [];
+      checks.duplicateOwnerUserId = duplicates.length > 0;
+      if (checks.duplicateOwnerUserId) {
+        exclusionReasons.push(
+          `ownerUserId "${supplier.ownerUserId}" has ${duplicates.length} other profile(s): ${duplicates.map(d => d.id).join(', ')} — duplicate profiles can cause inconsistent search results`
+        );
+      }
+
+      // 7. Overall public visibility verdict
+      // searchService.js filters: s.approved === true
+      // supplier.service.js filters: s.approved === true && s.status === 'published'
+      checks.visibleInSearchService = checks.approved;
+      checks.visibleInSupplierService = checks.approved && checks.status === 'published';
+
+      const verdict = exclusionReasons.length === 0 ? 'VISIBLE' : 'EXCLUDED';
+
+      res.json({
+        ok: true,
+        supplierId,
+        supplierName: supplier.name || supplier.businessName || null,
+        verdict,
+        visibilityRules: {
+          searchServiceJs: checks.visibleInSearchService
+            ? 'INCLUDED (approved=true)'
+            : 'EXCLUDED (approved must be true)',
+          supplierServiceJs: checks.visibleInSupplierService
+            ? 'INCLUDED (approved=true AND status=published)'
+            : 'EXCLUDED (requires approved=true AND status=published)',
+        },
+        checks,
+        exclusionReasons,
+        inclusions,
+        rawFields: {
+          approved: supplier.approved,
+          verificationStatus: supplier.verificationStatus,
+          status: supplier.status,
+          ownerUserId: supplier.ownerUserId,
+          name: supplier.name,
+          businessName: supplier.businessName,
+          category: supplier.category,
+          location: supplier.location,
+        },
+      });
+    } catch (error) {
+      logger.error('Error generating supplier visibility diagnostics:', error);
+      res.status(500).json({ error: 'Failed to generate visibility diagnostics' });
+    }
+  }
+);
+
 module.exports = router;
 module.exports.initializeDependencies = initializeDependencies;

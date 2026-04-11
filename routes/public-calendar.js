@@ -34,7 +34,12 @@
 const express = require('express');
 const router = express.Router();
 const logger = require('../utils/logger');
-const { authRequired, userExtractionMiddleware, requireApprovedSupplier } = require('../middleware/auth');
+const {
+  authRequired,
+  userExtractionMiddleware,
+  requireApprovedSupplier,
+  requireVerifiedUser,
+} = require('../middleware/auth');
 const { csrfProtection } = require('../middleware/csrf');
 const { writeLimiter, apiLimiter } = require('../middleware/rateLimits');
 const dbUnified = require('../db-unified');
@@ -343,6 +348,7 @@ router.post(
   '/events',
   writeLimiter,
   authRequired,
+  requireVerifiedUser,
   requireApprovedSupplier,
   csrfProtection,
   requirePublisher,
@@ -388,6 +394,7 @@ router.put(
   '/events/:id',
   writeLimiter,
   authRequired,
+  requireVerifiedUser,
   requireApprovedSupplier,
   csrfProtection,
   requirePublisher,
@@ -461,6 +468,7 @@ router.delete(
   '/events/:id',
   writeLimiter,
   authRequired,
+  requireVerifiedUser,
   requireApprovedSupplier,
   csrfProtection,
   requirePublisher,
