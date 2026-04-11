@@ -1317,17 +1317,29 @@
   }
 
   .sp-card {
-    /* Tablet: 2-col — hide carousel */
+    /* Tablet: 2-col profile|packages top row, full-width actions bottom row */
     grid-template-columns: 160px 1fr;
     grid-template-rows: auto auto;
   }
 
+  .sp-card-profile {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
   .sp-card-packages {
-    display: none; /* hide carousel at tablet — show on desktop only */
+    /* Show carousel at tablet, positioned in top-right cell */
+    display: flex;
+    grid-column: 2;
+    grid-row: 1;
+    border-left: 1px solid rgba(0, 0, 0, 0.06);
+    border-bottom: none;
+    padding: 12px 10px;
   }
 
   .sp-card-actions {
-    grid-column: 2 / -1;
+    grid-column: 1 / -1;
+    grid-row: 2;
     flex-direction: row;
     flex-wrap: wrap;
     justify-content: flex-end;
@@ -1339,8 +1351,9 @@
 
   .sp-card-actions .sp-btn {
     flex: 1 1 auto;
+    width: auto !important;
     min-width: 80px;
-    max-width: 120px;
+    max-width: 130px;
   }
 
   .sp-card-avatar,
@@ -1675,11 +1688,15 @@
     text-align: left;
   }
 
-  /* Avatar spans all text rows, pinned to the top so it aligns with the
-     supplier name rather than sitting vertically centred across all rows. */
+  /* Avatar sits in row 1 (same row as the supplier name).
+     grid-row: 1/99 was previously used to span all text rows, but it created
+     92+ implicit zero-height rows each with a 4px row-gap, producing ~388px
+     of blank space. Single-row placement is correct: row 1 is sized by the
+     avatar height (56px) which is taller than the name text, so the avatar
+     fills its cell perfectly with no overflow. */
   .sp-card-avatar-wrap {
     grid-column: 1;
-    grid-row: 1 / 99; /* span more rows than any supplier can have */
+    grid-row: 1;
     align-self: start;
     margin-bottom: 0;
     flex-shrink: 0;
@@ -1826,9 +1843,13 @@
   font-weight: 600 !important;
 }
 
-/* sp-btn inside the card actions: full-width (column layout) */
+/* sp-btn inside the card actions.
+ * width is intentionally NOT set here — desktop uses align-items:stretch on
+ * the flex column container to achieve full-width buttons, tablet and mobile
+ * each set their own width/flex rules in their respective media query blocks.
+ * Setting width:100%!important here (without a media query) was what caused
+ * the 768px tablet buttons to be enormous (each wrapped to its own full row). */
 .sp-card-actions .sp-btn {
-  width: 100% !important;
   padding: 11px 12px !important;
   font-size: 13px !important;
   font-weight: 700 !important;
