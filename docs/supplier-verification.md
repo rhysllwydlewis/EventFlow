@@ -161,11 +161,11 @@ Content-Type: application/json
 X-CSRF-Token: <csrf-token>
 
 {
-  "reason": "Incomplete documentation"
+  "notes": "Incomplete documentation"
 }
 ```
 
-A **reason is required**. Sets `verificationStatus → rejected`, `verified → false`. Logs `supplier_rejected` audit event.
+A **notes field is required** (the `reason` field is also accepted for backwards compatibility). Sets `verificationStatus → rejected`, `verified → false`, increments `verificationRejectionCount`, and stores `verificationNotes` for the supplier to see. After **5 rejections** the supplier cannot resubmit and must contact support. Logs `supplier_rejected` audit event.
 
 ### Request Changes
 
