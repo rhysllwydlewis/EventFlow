@@ -562,6 +562,39 @@ describe('Admin Regression — bulk-reject route sets canonical verification fie
   });
 });
 
+// ─── Bulk Reject Route — notes sanitisation ──────────────────────────────────
+
+describe('Admin Regression — bulk-reject route sanitises notes', () => {
+  it('bulk-reject calls sanitiseText on notes', () => {
+    const bulkIdx = adminContent.indexOf("'/suppliers/bulk-reject'");
+    const bulkSection = adminContent.substring(bulkIdx, bulkIdx + 2000);
+    expect(bulkSection).toContain('sanitiseText');
+  });
+
+  it('sanitiseText function is defined in routes/admin.js', () => {
+    expect(adminContent).toContain('function sanitiseText(');
+  });
+
+  it('sanitiseText strips HTML tags (e.g. <b>Test</b> → Test)', () => {
+    const start = adminContent.indexOf('function sanitiseText(');
+    const snippet = adminContent.slice(start);
+    const end = snippet.search(/\n\}/);
+    const fnStr = snippet.slice(0, end + 2);
+    // eslint-disable-next-line no-new-func
+    const sanitiseText = new Function(`${fnStr}; return sanitiseText;`)();
+    expect(sanitiseText('<b>Test</b>')).toBe('Test');
+    expect(sanitiseText('<script>alert(1)</script>')).toBe('alert(1)');
+    expect(sanitiseText('<b><i>nested</i></b>')).toBe('nested');
+    expect(sanitiseText(null)).toBe('');
+  });
+
+  it('bulk-reject defaults to "Bulk rejected by admin" when notes sanitise to empty', () => {
+    const bulkIdx = adminContent.indexOf("'/suppliers/bulk-reject'");
+    const bulkSection = adminContent.substring(bulkIdx, bulkIdx + 2000);
+    expect(bulkSection).toContain("'Bulk rejected by admin'");
+  });
+});
+
 // ─── admin-suppliers-init.js bulk reject — notes prompt ──────────────────────
 
 describe('Admin Regression — admin-suppliers-init.js bulk reject prompts for notes', () => {
