@@ -542,20 +542,40 @@
     }
 
     const actionText = action === 'approve' ? 'approve' : action === 'reject' ? 'reject' : 'delete';
-    const confirmed = await AdminShared.showConfirmModal({
-      title: 'Confirm Bulk Action',
-      message: `Are you sure you want to ${actionText} ${selectedSuppliers.size} supplier(s)?`,
-      confirmText: actionText.charAt(0).toUpperCase() + actionText.slice(1),
-    });
-    if (!confirmed) {
-      return;
+
+    // For bulk reject, prompt for a shared rejection note before confirming
+    let bulkRejectNotes = null;
+    if (action === 'reject') {
+      const noteResult = await AdminShared.showInputModal({
+        title: `Reject ${selectedSuppliers.size} Supplier(s)`,
+        message:
+          'Provide a rejection reason that will be sent to all selected suppliers (each supplier may resubmit up to 5 times).',
+        label: 'Rejection Notes',
+        placeholder: 'e.g., Incomplete documentation, failed identity check…',
+        required: true,
+        type: 'textarea',
+      });
+      if (!noteResult || !noteResult.confirmed) {
+        return;
+      }
+      bulkRejectNotes = noteResult.value;
+    } else {
+      const confirmed = await AdminShared.showConfirmModal({
+        title: 'Confirm Bulk Action',
+        message: `Are you sure you want to ${actionText} ${selectedSuppliers.size} supplier(s)?`,
+        confirmText: actionText.charAt(0).toUpperCase() + actionText.slice(1),
+      });
+      if (!confirmed) {
+        return;
+      }
     }
 
     try {
       const supplierIds = Array.from(selectedSuppliers);
       const endpoint = `/api/admin/suppliers/bulk-${action}`;
+      const body = action === 'reject' ? { supplierIds, notes: bulkRejectNotes } : { supplierIds };
 
-      const result = await AdminShared.api(endpoint, 'POST', { supplierIds });
+      const result = await AdminShared.api(endpoint, 'POST', body);
       showToast(
         result.message || `Successfully ${actionText}ed ${selectedSuppliers.size} supplier(s)`,
         'success'

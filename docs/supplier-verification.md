@@ -161,11 +161,26 @@ Content-Type: application/json
 X-CSRF-Token: <csrf-token>
 
 {
-  "reason": "Incomplete documentation"
+  "notes": "Incomplete documentation"
 }
 ```
 
-A **reason is required**. Sets `verificationStatus → rejected`, `verified → false`. Logs `supplier_rejected` audit event.
+A **notes field is required** (the `reason` field is also accepted for backwards compatibility). Sets `verificationStatus → rejected`, `verified → false`, increments `verificationRejectionCount`, and stores `verificationNotes` for the supplier to see. After **5 rejections** the supplier cannot resubmit and must contact support. Logs `supplier_rejected` audit event.
+
+### Bulk Reject Suppliers
+
+```http
+POST /api/admin/suppliers/bulk-reject
+Content-Type: application/json
+X-CSRF-Token: <csrf-token>
+
+{
+  "supplierIds": ["sup-001", "sup-002"],
+  "notes": "Incomplete documentation"
+}
+```
+
+Rejects multiple suppliers in one request (max 100 per batch). The `notes` field is optional — if omitted, a default of `"Bulk rejected by admin"` is used. Each supplier receives the same canonical state-machine transition as a single reject: `verificationStatus → rejected`, `verified → false`, `verificationRejectionCount` incremented, `verificationNotes` stored. Returns `{ success: true, count: N }`.
 
 ### Request Changes
 
@@ -294,14 +309,18 @@ E2E tests use route mocking (no live database required) and run deterministicall
 
 ## Implementation Files
 
-| File                                                   | Purpose                                                           |
-| ------------------------------------------------------ | ----------------------------------------------------------------- |
-| `utils/supplierVerificationStateMachine.js`            | State definitions, allowed transitions, `canTransition()` helper  |
-| `routes/supplier-admin.js`                             | Admin endpoints: approve, reject, request-changes, suspend, audit |
-| `routes/admin-user-management.js`                      | Legacy `/verify` endpoint (state-machine-backed)                  |
-| `routes/supplier.js`                                   | Supplier-facing: `/verification/status`, `/verification/submit`   |
-| `middleware/audit.js`                                  | Audit action constants                                            |
-| `public/admin-supplier-detail.html`                    | Admin UI with all action buttons                                  |
-| `public/assets/js/pages/admin-supplier-detail-init.js` | Button wiring, state-aware enable/disable logic                   |
-| `tests/integration/supplier-verification-flow.test.js` | Unit + integration tests (63 tests)                               |
-| `e2e/supplier-verification-flow.spec.js`               | E2E Playwright tests                                              |
+| File                                                   | Purpose                                                                              |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| `utils/supplierVerificationStateMachine.js`            | State definitions, allowed transitions, `canTransition()` helper                    |
+| `routes/supplier-admin.js`                             | Admin endpoints: approve, reject, request-changes, suspend, audit                   |
+| `routes/admin.js`                                      | Bulk-reject endpoint (`POST /api/admin/suppliers/bulk-reject`) with full state-machine transition |
+| `routes/admin-user-management.js`                      | Legacy `/verify` endpoint (state-machine-backed)                                    |
+| `routes/supplier.js`                                   | Supplier-facing: `/verification/status`, `/verification/submit`                     |
+| `middleware/audit.js`                                  | Audit action constants                                                               |
+| `public/admin-supplier-detail.html`                    | Admin UI with all action buttons                                                     |
+| `public/assets/js/pages/admin-supplier-detail-init.js` | Button wiring, state-aware enable/disable logic                                      |
+| `public/assets/js/pages/admin-suppliers-init.js`       | Supplier list admin UI: single + bulk reject with notes prompt                       |
+| `public/assets/js/pages/admin-init.js`                 | Legacy combined admin page: `rejectSup()` + bulk reject wired to canonical `/reject` |
+| `tests/integration/supplier-verification-flow.test.js` | Unit + integration tests (63 tests)                                                  |
+| `tests/unit/admin-regression.test.js`                  | Admin-side regression guards: reject endpoint, bulk-reject state fields              |
+| `e2e/supplier-verification-flow.spec.js`               | E2E Playwright tests                                                                 |

@@ -25,6 +25,7 @@ const { PLACEHOLDER_PACKAGE_IMAGE } = require('../utils/constants');
 const photoUpload = require('../photo-upload');
 const postmark = require('../utils/postmark');
 const { FROM_SUPPORT: POSTMARK_FROM_SUPPORT_ADDR } = postmark;
+const { VERIFICATION_STATES } = require('../utils/supplierVerificationStateMachine');
 
 const router = express.Router();
 
@@ -1676,25 +1677,41 @@ router.post('/suppliers/bulk-approve', authRequired, roleRequired('admin'), csrf
 // prettier-ignore
 router.post('/suppliers/bulk-reject', authRequired, roleRequired('admin'), csrfProtection, async (req, res) => {
     try {
-      const { supplierIds } = req.body;
+      const { supplierIds, notes } = req.body;
       if (!Array.isArray(supplierIds) || supplierIds.length === 0) {
         return res.status(400).json({ error: 'supplierIds must be a non-empty array' });
       }
+      const MAX_BATCH_SIZE = 100;
+      if (supplierIds.length > MAX_BATCH_SIZE) {
+        return res.status(400).json({ error: `Batch size cannot exceed ${MAX_BATCH_SIZE} items` });
+      }
+      const rejectionNotes = (typeof notes === 'string' && notes.trim()) ? notes.trim() : 'Bulk rejected by admin';
       const all = await dbUnified.read('suppliers');
       const now = new Date().toISOString();
       const toUpdate = supplierIds.filter(id => all.some(s => s.id === id));
       const count = toUpdate.length;
       await Promise.all(
-        toUpdate.map(id =>
-          dbUnified.updateOne('suppliers', { id }, {
-            $set: { approved: false, rejectedAt: now },
-          })
-        )
+        toUpdate.map(id => {
+          const s = all.find(sup => sup.id === id);
+          const newRejectionCount = ((s && s.verificationRejectionCount) || 0) + 1;
+          return dbUnified.updateOne('suppliers', { id }, {
+            $set: {
+              approved: false,
+              verified: false,
+              verificationStatus: VERIFICATION_STATES.REJECTED,
+              verificationNotes: rejectionNotes,
+              verificationRejectionCount: newRejectionCount,
+              rejectedAt: now,
+              rejectedBy: req.user.id,
+              updatedAt: now,
+            },
+          });
+        })
       );
       await auditLog({
         action: AUDIT_ACTIONS.SUPPLIER_REJECTED,
         userId: req.user.id,
-        meta: { count },
+        meta: { count, notes: rejectionNotes },
       });
       res.json({ success: true, count });
     } catch (error) {

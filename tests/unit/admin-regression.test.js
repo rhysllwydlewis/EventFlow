@@ -483,3 +483,110 @@ describe('Admin Regression — Subscription modal DOM present in admin-users.htm
     expect(adminUsersHtml).toContain('admin-users-init.js');
   });
 });
+
+// ─── Admin Reject Flow — canonical endpoint enforcement ───────────────────────
+
+describe('Admin Regression — rejectSup uses canonical /reject endpoint (not /approve)', () => {
+  it('admin-init.js rejectSup does NOT call /approve with {approved:false}', () => {
+    // Guard against regression: reject must not piggyback on the approve endpoint
+    expect(adminInitContent).not.toMatch(/\/approve.*approved.*false/);
+    // Also ensure no reversed form
+    expect(adminInitContent).not.toMatch(/approved.*false.*\/approve/);
+  });
+
+  it('admin-init.js rejectSup calls the canonical /reject endpoint', () => {
+    // The rejectSup function must route to the state-machine reject endpoint
+    const rejectIdx = adminInitContent.indexOf('window.rejectSup');
+    expect(rejectIdx).toBeGreaterThan(-1);
+    const rejectSection = adminInitContent.substring(rejectIdx, rejectIdx + 2000);
+    expect(rejectSection).toContain('/reject');
+  });
+
+  it('admin-init.js rejectSup sends { notes } not just a bare approval flag', () => {
+    const rejectIdx = adminInitContent.indexOf('window.rejectSup');
+    const rejectSection = adminInitContent.substring(rejectIdx, rejectIdx + 2000);
+    expect(rejectSection).toContain('notes');
+  });
+
+  it('admin-init.js bulk reject sends notes with each /reject call', () => {
+    // Bulk reject must pass a note through — either per-call or via a shared prompt
+    const bulkIdx = adminInitContent.indexOf('bulkRejectSuppliers');
+    expect(bulkIdx).toBeGreaterThan(-1);
+    const bulkSection = adminInitContent.substring(bulkIdx, bulkIdx + 2000);
+    expect(bulkSection).toContain('/reject');
+    expect(bulkSection).toContain('notes');
+  });
+});
+
+// ─── Bulk Reject Route — canonical state-machine fields ──────────────────────
+
+describe('Admin Regression — bulk-reject route sets canonical verification fields', () => {
+  it('bulk-reject sets verificationStatus to rejected', () => {
+    expect(adminContent).toContain('verificationStatus');
+    const bulkIdx = adminContent.indexOf("'/suppliers/bulk-reject'");
+    expect(bulkIdx).toBeGreaterThan(-1);
+    const bulkSection = adminContent.substring(bulkIdx, bulkIdx + 2000);
+    expect(bulkSection).toContain('verificationStatus');
+    expect(bulkSection).toContain('REJECTED');
+  });
+
+  it('bulk-reject sets verified: false', () => {
+    const bulkIdx = adminContent.indexOf("'/suppliers/bulk-reject'");
+    const bulkSection = adminContent.substring(bulkIdx, bulkIdx + 2000);
+    expect(bulkSection).toContain('verified: false');
+  });
+
+  it('bulk-reject increments verificationRejectionCount', () => {
+    const bulkIdx = adminContent.indexOf("'/suppliers/bulk-reject'");
+    const bulkSection = adminContent.substring(bulkIdx, bulkIdx + 2000);
+    expect(bulkSection).toContain('verificationRejectionCount');
+  });
+
+  it('bulk-reject stores verificationNotes', () => {
+    const bulkIdx = adminContent.indexOf("'/suppliers/bulk-reject'");
+    const bulkSection = adminContent.substring(bulkIdx, bulkIdx + 2000);
+    expect(bulkSection).toContain('verificationNotes');
+  });
+
+  it('bulk-reject enforces max batch size', () => {
+    const bulkIdx = adminContent.indexOf("'/suppliers/bulk-reject'");
+    const bulkSection = adminContent.substring(bulkIdx, bulkIdx + 2000);
+    expect(bulkSection).toContain('MAX_BATCH_SIZE');
+  });
+
+  it('bulk-reject accepts optional notes field from body', () => {
+    const bulkIdx = adminContent.indexOf("'/suppliers/bulk-reject'");
+    const bulkSection = adminContent.substring(bulkIdx, bulkIdx + 2000);
+    // notes destructured from req.body
+    expect(bulkSection).toMatch(/const\s*\{[^}]*notes/);
+  });
+});
+
+// ─── admin-suppliers-init.js bulk reject — notes prompt ──────────────────────
+
+describe('Admin Regression — admin-suppliers-init.js bulk reject prompts for notes', () => {
+  it('bulkAction for reject prompts for notes via showInputModal', () => {
+    const bulkIdx = suppliersInitContent.indexOf('async function bulkAction(');
+    expect(bulkIdx).toBeGreaterThan(-1);
+    const bulkSection = suppliersInitContent.substring(bulkIdx, bulkIdx + 2000);
+    expect(bulkSection).toContain('showInputModal');
+    expect(bulkSection).toContain("action === 'reject'");
+  });
+
+  it('bulkAction sends notes to the bulk-reject endpoint', () => {
+    const bulkIdx = suppliersInitContent.indexOf('async function bulkAction(');
+    const bulkSection = suppliersInitContent.substring(bulkIdx, bulkIdx + 2000);
+    // notes must be included in the request body for bulk-reject
+    expect(bulkSection).toContain('notes');
+    // Endpoint is built dynamically as `bulk-${action}`
+    expect(bulkSection).toContain('bulk-');
+  });
+
+  it('bulkAction does NOT call bulk-reject without checking for notes', () => {
+    // The old code passed only { supplierIds } to bulk-reject; now notes must be included
+    const bulkIdx = suppliersInitContent.indexOf('async function bulkAction(');
+    const bulkSection = suppliersInitContent.substring(bulkIdx, bulkIdx + 2000);
+    // Ensure the body for reject includes notes, not just supplierIds alone
+    expect(bulkSection).toMatch(/notes.*bulkRejectNotes|bulkRejectNotes.*notes/);
+  });
+});

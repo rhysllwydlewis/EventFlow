@@ -639,15 +639,56 @@
   };
 
   window.rejectSup = function (id) {
-    return safeExecute(() => {
-      if (typeof Modal !== 'undefined') {
+    return safeExecute(async () => {
+      // Prompt for required rejection notes using AdminShared.showInputModal when available
+      if (window.AdminShared && window.AdminShared.showInputModal) {
+        const result = await window.AdminShared.showInputModal({
+          title: 'Reject Supplier',
+          message:
+            'Reject this supplier? They will remain unapproved and can resubmit (up to 5 times). Please provide a reason.',
+          label: 'Rejection Notes',
+          placeholder: 'e.g., Incomplete documentation, failed identity check…',
+          required: true,
+          type: 'textarea',
+        });
+        if (!result || !result.confirmed) {
+          return;
+        }
+        api(`/api/admin/suppliers/${id}/reject`, 'POST', { notes: result.value })
+          .then(() => {
+            if (typeof Toast !== 'undefined') {
+              Toast.success('Supplier rejected.');
+            } else {
+              _adminToast('Supplier rejected.', 'success');
+            }
+            loadAll();
+          })
+          .catch(err => {
+            console.error('rejectSup failed', err);
+            if (typeof Toast !== 'undefined') {
+              Toast.error(`Failed to reject supplier: ${err.message}`);
+            } else {
+              _adminToast(`Failed to reject supplier: ${err.message}`, 'error');
+            }
+          });
+      } else if (typeof Modal !== 'undefined') {
+        // Legacy Modal fallback — prompt inline for notes
+        const notesInput =
+          '<p>Reject this supplier? Please provide a reason:</p>' +
+          '<textarea id="rejectSupNotes" rows="3" style="width:100%;margin-top:8px" ' +
+          'placeholder="e.g., Incomplete documentation…"></textarea>';
         const modal = new Modal({
           title: 'Reject Supplier',
-          content: '<p>Are you sure you want to reject this supplier?</p>',
+          content: notesInput,
           confirmText: 'Reject',
           cancelText: 'Cancel',
           onConfirm: function () {
-            api(`/api/admin/suppliers/${id}/approve`, 'POST', { approved: false })
+            const notes = (document.getElementById('rejectSupNotes') || {}).value || '';
+            if (!notes.trim()) {
+              _adminToast('Rejection notes are required.', 'error');
+              return;
+            }
+            api(`/api/admin/suppliers/${id}/reject`, 'POST', { notes: notes.trim() })
               .then(() => {
                 if (typeof Toast !== 'undefined') {
                   Toast.success('Supplier rejected.');
@@ -668,8 +709,12 @@
         });
         modal.show();
       } else {
-        // Fallback to confirm dialog
-        api(`/api/admin/suppliers/${id}/approve`, 'POST', { approved: false })
+        // Minimal fallback — confirm action and use a default rejection note
+        const confirmed = await _adminConfirm('Reject this supplier? A default rejection note will be used.');
+        if (!confirmed) {
+          return;
+        }
+        api(`/api/admin/suppliers/${id}/reject`, 'POST', { notes: 'Rejected by admin' })
           .then(() => {
             _adminToast('Supplier rejected.', 'success');
             loadAll();
@@ -2140,12 +2185,35 @@
         return;
       }
 
-      if (!(await _adminConfirm(`Reject ${selected.length} supplier(s)?`))) {
-        return;
+      // Prompt for a shared rejection note before rejecting
+      let sharedNote = '';
+      if (window.AdminShared && window.AdminShared.showInputModal) {
+        const result = await window.AdminShared.showInputModal({
+          title: `Reject ${selected.length} Supplier(s)`,
+          message:
+            'Provide a rejection reason that will be sent to all selected suppliers (up to 5 rejections allowed per supplier).',
+          label: 'Rejection Notes',
+          placeholder: 'e.g., Incomplete documentation, failed identity check…',
+          required: true,
+          type: 'textarea',
+        });
+        if (!result || !result.confirmed) {
+          return;
+        }
+        sharedNote = result.value;
+      } else {
+        if (!(await _adminConfirm(`Reject ${selected.length} supplier(s)?`))) {
+          return;
+        }
+        sharedNote = 'Bulk rejected by admin';
       }
 
       try {
-        await Promise.all(selected.map(id => api(`/api/admin/suppliers/${id}/reject`, 'POST')));
+        await Promise.all(
+          selected.map(id =>
+            api(`/api/admin/suppliers/${id}/reject`, 'POST', { notes: sharedNote })
+          )
+        );
         if (typeof Toast !== 'undefined') {
           Toast.success(`Rejected ${selected.length} supplier(s)`);
         } else {
