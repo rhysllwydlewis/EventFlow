@@ -1281,7 +1281,10 @@ router.get('/me', async (req, res) => {
       const supplierProfile = await dbUnified.findOne('suppliers', { ownerUserId: u.id });
       supplierApproved = supplierProfile ? supplierProfile.approved === true : null;
     } catch (e) {
-      logger.warn('Could not fetch supplier profile for /api/auth/me', { userId: u.id });
+      logger.warn('Could not fetch supplier profile for /api/auth/me', {
+        userId: u.id,
+        error: e.message,
+      });
     }
   }
 

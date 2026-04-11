@@ -842,6 +842,21 @@ app.get('/api/auth/me', async (req, res) => {
       return res.status(200).json({ user: null });
     }
     const isOwner = u.email && u.email.toLowerCase() === OWNER_EMAIL.toLowerCase();
+
+    // For supplier users, include approval status so the frontend can show pending-approval UX
+    let supplierApproved = null;
+    if (u.role === 'supplier') {
+      try {
+        const supplierProfile = await dbUnified.findOne('suppliers', { ownerUserId: u.id });
+        supplierApproved = supplierProfile ? supplierProfile.approved === true : null;
+      } catch (profileErr) {
+        logger.warn('Could not fetch supplier profile for /api/auth/me', {
+          userId: u.id,
+          error: profileErr.message,
+        });
+      }
+    }
+
     const userData = {
       id: u.id,
       name: u.name,
@@ -850,6 +865,7 @@ app.get('/api/auth/me', async (req, res) => {
       role: isOwner ? 'admin' : u.role,
       isOwner,
       verified: u.verified,
+      supplierApproved,
       avatarUrl: u.avatarUrl || null,
     };
     return res.json({ user: userData, ...userData });

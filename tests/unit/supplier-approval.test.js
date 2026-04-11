@@ -272,3 +272,49 @@ describe('supplier-admin.js — admin approve endpoint', () => {
     expect(approveSection.slice(0, 1200)).toContain('auditLog');
   });
 });
+
+// ─── E) supplierApproved in /api/auth/me ────────────────────────────────────
+
+describe('routes/auth.js — /api/auth/me includes supplierApproved', () => {
+  const AUTH_ROUTES = path.join(__dirname, '../../routes/auth.js');
+  let content;
+
+  beforeAll(() => {
+    content = fs.readFileSync(AUTH_ROUTES, 'utf8');
+  });
+
+  it('includes supplierApproved in /me response for supplier users', () => {
+    const meSection = content.slice(content.indexOf("router.get('/me'"));
+    expect(meSection.slice(0, 2000)).toContain('supplierApproved');
+  });
+
+  it('fetches supplier profile to determine approval status', () => {
+    const meSection = content.slice(content.indexOf("router.get('/me'"));
+    expect(meSection.slice(0, 2000)).toContain("u.role === 'supplier'");
+    expect(meSection.slice(0, 2000)).toContain('ownerUserId: u.id');
+  });
+
+  it('returns null supplierApproved for non-supplier users', () => {
+    const meSection = content.slice(content.indexOf("router.get('/me'"));
+    expect(meSection.slice(0, 2000)).toContain('supplierApproved = null');
+  });
+});
+
+describe('server.js — /api/auth/me includes supplierApproved', () => {
+  const SERVER_JS = path.join(__dirname, '../../server.js');
+  let content;
+
+  beforeAll(() => {
+    content = fs.readFileSync(SERVER_JS, 'utf8');
+  });
+
+  it('includes supplierApproved in /api/auth/me response', () => {
+    const meSection = content.slice(content.indexOf("app.get('/api/auth/me'"));
+    expect(meSection.slice(0, 2000)).toContain('supplierApproved');
+  });
+
+  it('fetches supplier profile only for supplier-role users', () => {
+    const meSection = content.slice(content.indexOf("app.get('/api/auth/me'"));
+    expect(meSection.slice(0, 2000)).toContain("u.role === 'supplier'");
+  });
+});
