@@ -26,6 +26,7 @@ const photoUpload = require('../photo-upload');
 const postmark = require('../utils/postmark');
 const { FROM_SUPPORT: POSTMARK_FROM_SUPPORT_ADDR } = postmark;
 const { VERIFICATION_STATES } = require('../utils/supplierVerificationStateMachine');
+const { sanitiseText } = require('../utils/sanitise');
 
 const router = express.Router();
 
@@ -1685,7 +1686,8 @@ router.post('/suppliers/bulk-reject', authRequired, roleRequired('admin'), csrfP
       if (supplierIds.length > MAX_BATCH_SIZE) {
         return res.status(400).json({ error: `Batch size cannot exceed ${MAX_BATCH_SIZE} items` });
       }
-      const rejectionNotes = (typeof notes === 'string' && notes.trim()) ? notes.trim() : 'Bulk rejected by admin';
+      const sanitised = sanitiseText(typeof notes === 'string' ? notes : '');
+      const rejectionNotes = sanitised || 'Bulk rejected by admin';
       const all = await dbUnified.read('suppliers');
       const now = new Date().toISOString();
       const toUpdate = supplierIds.filter(id => all.some(s => s.id === id));
