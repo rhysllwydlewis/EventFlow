@@ -1627,6 +1627,21 @@
     transform: rotate(180deg);
   }
 
+  /* ── Search field: tighten placeholder padding on mobile ── */
+  /*
+   * The base styles add 34px left padding to make room for the search icon
+   * (positioned at left: 11px). On mobile the extra spacing pushes the ghost
+   * text noticeably away from the left edge. Reduce the padding and nudge the
+   * icon inward so text starts closer to the left without overlapping the icon.
+   */
+  .sp-search-icon {
+    left: 9px;
+  }
+
+  .sp-search-input {
+    padding-left: 28px !important;
+  }
+
   /* ── Supplier card: single-column stack ─────────────── */
   /*
    * Override the 768px two-column layout (profile | actions).
@@ -1665,11 +1680,12 @@
     text-align: left;
   }
 
-  /* Avatar spans all text rows so it sits centre-left */
+  /* Avatar spans all text rows, pinned to the top so it aligns with the
+     supplier name rather than sitting vertically centred across all rows. */
   .sp-card-avatar-wrap {
     grid-column: 1;
     grid-row: 1 / 99; /* span more rows than any supplier can have */
-    align-self: center;
+    align-self: start;
     margin-bottom: 0;
     flex-shrink: 0;
   }
