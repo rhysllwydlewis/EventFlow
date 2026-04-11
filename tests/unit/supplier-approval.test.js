@@ -826,6 +826,8 @@ describe('dashboard-supplier-verification.js — rejection and blocked state han
   it('uses data-mode on submit button to preserve label during async retry', () => {
     expect(content).toContain("dataset.mode = 'resubmit'");
     expect(content).toContain("dataset.mode === 'resubmit'");
+    // Both branches must be covered so the label is always correct after a failed attempt
+    expect(content).toContain("dataset.mode = 'submit'");
   });
 
   it('uses ⚠️ emoji for unverified (not submitted) state instead of ⏳', () => {
