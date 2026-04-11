@@ -253,8 +253,8 @@ function createSupplierCard(supplier, position) {
         ${supplier.location ? `<p class="sp-card-location">📍 ${escapeHtml(supplier.location)}</p>` : ''}
         ${ratingWidget}
         ${badges.length || distanceBadge ? `<div class="sp-card-badges">${badges.slice(0, 3).join('')}${distanceBadge}</div>` : ''}
-        ${supplier.description_short ? `<p class="sp-card-description">${escapeHtml(supplier.description_short)}</p>` : ''}
       </div>
+      ${supplier.description_short ? `<p class="sp-card-description">${escapeHtml(supplier.description_short)}</p>` : ''}
 
       <!-- MIDDLE: Package mini-cards -->
       <div class="sp-card-packages">
