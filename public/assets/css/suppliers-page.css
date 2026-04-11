@@ -154,6 +154,12 @@
   font-size: 14px;
 }
 
+/* Search icon tints to brand colour when the field has focus */
+.sp-filter-search-wrap--top:focus-within .sp-search-icon {
+  color: #0b8073;
+  transition: color 0.15s;
+}
+
 /* ---- Filter grid ---- */
 .sp-filter-grid {
   display: grid;
@@ -1423,31 +1429,20 @@
    ========================================================= */
 
 @media (max-width: 360px) {
+  /* Hide hero CTAs on very small screens */
   .suppliers-hero-cta {
-    display: none; /* very small screens: hide CTAs entirely */
+    display: none;
   }
 
-  .sp-card {
-    grid-template-columns: 120px 1fr;
-  }
+  /*
+   * NOTE: card, avatar, and action-button rules that used to live here are
+   * intentionally removed. The later @media (max-width: 640px) mobile-overhaul
+   * block handles these elements with !important overrides and the single-column
+   * stacked card layout, so any 360px-specific rules for those selectors had no
+   * effect and were dead code.
+   */
 
-  .sp-card-profile {
-    padding: 10px 6px;
-  }
-
-  .sp-card-avatar,
-  .sp-card-avatar-fallback {
-    width: 44px;
-    height: 44px;
-    font-size: 17px;
-  }
-
-  .sp-card-actions .sp-btn {
-    min-width: 60px;
-    font-size: 11px;
-    padding: 5px 6px;
-  }
-
+  /* Stack the basic filter grid to a single column at 360px */
   .sp-filter-grid {
     grid-template-columns: 1fr;
   }
