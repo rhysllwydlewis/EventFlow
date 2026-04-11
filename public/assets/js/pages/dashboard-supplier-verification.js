@@ -474,7 +474,7 @@
             ? 'Your verification request was rejected. Please review the notes below, make any necessary changes, and resubmit.'
             : 'The admin has requested changes to your profile. Please review the notes below and resubmit.';
         const notesHtml = verificationNotes
-          ? `<div style="margin-top:0.5rem;padding:0.5rem 0.75rem;background:rgba(239,68,68,0.08);border-radius:6px;font-size:0.8125rem;color:#7f1d1d;border-left:3px solid #ef4444;white-space:pre-wrap;">${verificationNotes.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>`
+          ? `<div style="margin-top:0.5rem;padding:0.5rem 0.75rem;background:rgba(239,68,68,0.08);border-radius:6px;font-size:0.8125rem;color:#7f1d1d;border-left:3px solid #ef4444;white-space:pre-wrap;">${verificationNotes.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')}</div>`
           : '';
         banner.style.borderLeftColor = '#ef4444';
         banner.style.background =

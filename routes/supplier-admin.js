@@ -359,8 +359,8 @@ router.post(
         return res.status(409).json({ error: check.reason });
       }
 
-      const reason = sanitiseText((req.body && (req.body.notes || req.body.reason)) || '');
-      if (!reason) {
+      const rejectionNotes = sanitiseText((req.body && (req.body.notes || req.body.reason)) || '');
+      if (!rejectionNotes) {
         return res.status(400).json({ error: 'A rejection reason is required' });
       }
 
@@ -372,7 +372,7 @@ router.post(
         verificationStatus: VERIFICATION_STATES.REJECTED,
         verifiedAt: null,
         verifiedBy: null,
-        verificationNotes: reason,
+        verificationNotes: rejectionNotes,
         rejectedAt: now,
         rejectedBy: req.user.id,
         verificationRejectionCount: newRejectionCount,
@@ -387,11 +387,11 @@ router.post(
         action: AUDIT_ACTIONS.SUPPLIER_REJECTED,
         targetType: 'supplier',
         targetId: s.id,
-        details: { name: s.name, reason },
+        details: { name: s.name, reason: rejectionNotes },
       });
 
       // Non-blocking email notification to supplier
-      sendVerificationEmail(s, 'rejected', reason).catch(emailErr => {
+      sendVerificationEmail(s, 'rejected', rejectionNotes).catch(emailErr => {
         logger.warn('Verification email delivery failed', { error: emailErr.message });
       });
 

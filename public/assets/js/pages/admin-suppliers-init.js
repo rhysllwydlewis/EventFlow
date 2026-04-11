@@ -728,7 +728,7 @@
     const result = await AdminShared.showInputModal({
       title: 'Reject Supplier',
       message:
-        'Reject this supplier? They will remain unapproved and will see a dashboard banner prompting them to re-submit. Please provide a reason.',
+        'Reject this supplier? They will remain unapproved and will see a dashboard banner prompting them to resubmit. Please provide a reason.',
       label: 'Rejection Notes',
       placeholder: 'e.g., Incomplete documentation, failed identity check…',
       required: true,
