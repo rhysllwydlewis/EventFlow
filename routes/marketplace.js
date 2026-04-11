@@ -13,6 +13,7 @@ const { geocodeLocation, calculateDistance } = require('../utils/geocoding');
 // These will be injected by server.js during route mounting
 let dbUnified;
 let authRequired;
+let requireVerifiedUser;
 let csrfProtection;
 let writeLimiter;
 let uid;
@@ -32,6 +33,7 @@ function initializeDependencies(deps) {
   const required = [
     'dbUnified',
     'authRequired',
+    'requireVerifiedUser',
     'csrfProtection',
     'writeLimiter',
     'uid',
@@ -46,6 +48,7 @@ function initializeDependencies(deps) {
 
   dbUnified = deps.dbUnified;
   authRequired = deps.authRequired;
+  requireVerifiedUser = deps.requireVerifiedUser;
   csrfProtection = deps.csrfProtection;
   writeLimiter = deps.writeLimiter;
   uid = deps.uid;
@@ -64,6 +67,13 @@ function applyAuthRequired(req, res, next) {
     return res.status(503).json({ error: 'Auth service not initialized' });
   }
   return authRequired(req, res, next);
+}
+
+function applyRequireVerifiedUser(req, res, next) {
+  if (!requireVerifiedUser) {
+    return res.status(503).json({ error: 'Verification service not initialized' });
+  }
+  return requireVerifiedUser(req, res, next);
 }
 
 function applyCsrfProtection(req, res, next) {
@@ -381,6 +391,7 @@ router.post(
   '/listings',
   applyWriteLimiter,
   applyAuthRequired,
+  applyRequireVerifiedUser,
   applyCsrfProtection,
   async (req, res) => {
     try {
@@ -655,6 +666,7 @@ router.put(
   '/listings/:id',
   applyWriteLimiter,
   applyAuthRequired,
+  applyRequireVerifiedUser,
   applyCsrfProtection,
   async (req, res) => {
     try {
@@ -744,6 +756,7 @@ router.delete(
   '/listings/:id',
   applyWriteLimiter,
   applyAuthRequired,
+  applyRequireVerifiedUser,
   applyCsrfProtection,
   async (req, res) => {
     try {

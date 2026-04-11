@@ -164,7 +164,11 @@ function calculateRelevanceScore(item, query, filters = {}) {
     score = calculateQualityScore(item);
   } else {
     // Calculate field match scores
-    score += calculateFieldScore(item.name || '', queryLower, FIELD_WEIGHTS.supplierName);
+    score += calculateFieldScore(
+      item.name || item.businessName || '',
+      queryLower,
+      FIELD_WEIGHTS.supplierName
+    );
     score += calculateFieldScore(item.title || '', queryLower, FIELD_WEIGHTS.packageTitle);
     score += calculateFieldScore(
       item.description_short || '',
@@ -538,7 +542,7 @@ function getMatchingFields(item, query) {
   const queryLower = query.toLowerCase();
   const matchedFields = [];
 
-  if ((item.name || '').toLowerCase().includes(queryLower)) {
+  if ((item.name || item.businessName || '').toLowerCase().includes(queryLower)) {
     matchedFields.push('name');
   }
   if ((item.title || '').toLowerCase().includes(queryLower)) {

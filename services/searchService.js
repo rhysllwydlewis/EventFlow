@@ -147,7 +147,9 @@ function getPriceLevel(priceDisplay) {
 function projectPublicSupplierFields(supplier) {
   return {
     id: supplier.id,
-    name: supplier.name,
+    // Normalise: legacy records may store the business name in `businessName`;
+    // always surface a populated `name` so search and display are consistent.
+    name: supplier.name || supplier.businessName,
     category: supplier.category,
     location: supplier.location,
     description_short: supplier.description_short,
