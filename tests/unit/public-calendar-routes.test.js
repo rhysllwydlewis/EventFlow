@@ -70,18 +70,21 @@ const PUBLISHER_SUPPLIER_DOC = {
   ownerUserId: 'user_pub1',
   category: 'Event Planner',
   name: 'EventPro Ltd',
+  approved: true,
 };
 const OTHER_PUBLISHER_SUPPLIER_DOC = {
   id: 'sup_pub2',
   ownerUserId: 'user_pub2',
   category: 'Wedding Fayre',
   name: 'Fayre Co',
+  approved: true,
 };
 const NON_PUBLISHER_SUPPLIER_DOC = {
   id: 'sup_photo1',
   ownerUserId: 'user_photo1',
   category: 'Photography',
   name: 'Photo Studio',
+  approved: true,
 };
 
 /** Sample public calendar event owned by PUBLISHER_SUPPLIER_USER */
@@ -142,6 +145,18 @@ function setupReadMock({ events = [], saves = [], suppliers = [], users = [] } =
         ADMIN_USER,
       ];
       return allUsers.find(u => u.id === filter.id) || null;
+    }
+    if (collection === 'suppliers') {
+      const all = [
+        PUBLISHER_SUPPLIER_DOC,
+        OTHER_PUBLISHER_SUPPLIER_DOC,
+        NON_PUBLISHER_SUPPLIER_DOC,
+        ...suppliers,
+      ];
+      return all.find(s =>
+        (!filter.id || s.id === filter.id) &&
+        (!filter.ownerUserId || s.ownerUserId === filter.ownerUserId)
+      ) || null;
     }
     return null;
   });

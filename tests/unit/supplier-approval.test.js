@@ -3,11 +3,16 @@
  *
  * Verifies that:
  *   - New supplier profiles always default to approved: false
+ *   - PATCH route does NOT modify approved field (profile edits preserve approval)
+ *   - Auto-approve at creation respects settings.features.autoApproveSupplierVerification
  *   - requireApprovedSupplier middleware blocks unapproved suppliers with SUPPLIER_NOT_APPROVED
  *   - requireApprovedSupplier middleware passes through for approved suppliers
  *   - requireApprovedSupplier middleware is applied to package write routes
+ *   - Messaging write routes are gated with requireApprovedSupplier
+ *   - Calendar write routes are gated with requireApprovedSupplier
  *   - Admin approve endpoint sets approved: true
  *   - Public search/directory only includes approved suppliers
+ *   - Verification request endpoint creates support ticket and prevents duplicates
  */
 
 'use strict';
@@ -20,6 +25,8 @@ const AUTH_MIDDLEWARE = path.join(__dirname, '../../middleware/auth.js');
 const PACKAGES_ROUTES = path.join(__dirname, '../../routes/packages.js');
 const SUPPLIER_ADMIN_ROUTES = path.join(__dirname, '../../routes/supplier-admin.js');
 const SUPPLIER_MANAGEMENT = path.join(__dirname, '../../routes/supplier-management.js');
+const MESSENGER_V4_ROUTES = path.join(__dirname, '../../routes/messenger-v4.js');
+const PUBLIC_CALENDAR_ROUTES = path.join(__dirname, '../../routes/public-calendar.js');
 
 // ─── A) Default approved: false on creation ────────────────────────────────
 
@@ -42,6 +49,32 @@ describe('supplier-management.js — createSupplier defaults', () => {
   it('sets approved: false on inline supplier profile creation', () => {
     const content = fs.readFileSync(SUPPLIER_MANAGEMENT, 'utf8');
     expect(content).toContain('approved: false,');
+  });
+
+  it('checks autoApproveSupplierVerification setting and sets approved: true when ON', () => {
+    const content = fs.readFileSync(SUPPLIER_MANAGEMENT, 'utf8');
+    expect(content).toContain('autoApproveSupplierVerification');
+    expect(content).toContain('s.approved = true');
+    expect(content).toContain('s.approvedAt');
+    expect(content).toContain("s.approvedBy = 'system'");
+  });
+});
+
+// ─── A2) PATCH must not touch approved ────────────────────────────────────────
+
+describe('supplier-management.js — PATCH must not revoke approval', () => {
+  it('does NOT assign approved in the PATCH route body', () => {
+    const content = fs.readFileSync(SUPPLIER_MANAGEMENT, 'utf8');
+    // Find the PATCH handler block
+    const patchStart = content.indexOf("PATCH /api/me/suppliers/:id");
+    const patchSection = content.slice(patchStart, patchStart + 2000);
+    // Should not contain unconditional supplierPatch.approved = false
+    expect(patchSection).not.toContain('supplierPatch.approved = false');
+  });
+
+  it('has a comment noting that approved must not be touched on edit', () => {
+    const content = fs.readFileSync(SUPPLIER_MANAGEMENT, 'utf8');
+    expect(content).toContain('must never revoke approval');
   });
 });
 
@@ -257,6 +290,74 @@ describe('packages.js — approval gating', () => {
   });
 });
 
+// ─── C2) Approval gating on messenger write routes ─────────────────────────
+
+describe('messenger-v4.js — approval gating', () => {
+  let content;
+
+  beforeAll(() => {
+    content = fs.readFileSync(MESSENGER_V4_ROUTES, 'utf8');
+  });
+
+  it('accepts requireApprovedSupplier as injected dependency', () => {
+    expect(content).toContain('requireApprovedSupplier');
+  });
+
+  it('defines applyRequireApprovedSupplier wrapper', () => {
+    expect(content).toContain('function applyRequireApprovedSupplier');
+  });
+
+  it('gates POST /conversations with applyRequireApprovedSupplier', () => {
+    // Find the route definition itself (the array of middleware), not the comment
+    const routeIdx = content.indexOf("router.post(\n  '/conversations'");
+    expect(routeIdx).not.toBe(-1);
+    const routeSection = content.slice(routeIdx, routeIdx + 300);
+    expect(routeSection).toContain('applyRequireApprovedSupplier');
+  });
+
+  it('gates POST /conversations/:id/messages with applyRequireApprovedSupplier', () => {
+    const routeIdx = content.indexOf("router.post(\n  '/conversations/:id/messages'");
+    expect(routeIdx).not.toBe(-1);
+    const routeSection = content.slice(routeIdx, routeIdx + 300);
+    expect(routeSection).toContain('applyRequireApprovedSupplier');
+  });
+});
+
+// ─── C3) Approval gating on public calendar write routes ───────────────────
+
+describe('public-calendar.js — approval gating', () => {
+  let content;
+
+  beforeAll(() => {
+    content = fs.readFileSync(PUBLIC_CALENDAR_ROUTES, 'utf8');
+  });
+
+  it('imports requireApprovedSupplier from middleware/auth', () => {
+    expect(content).toContain('requireApprovedSupplier');
+  });
+
+  it('gates POST /events with requireApprovedSupplier', () => {
+    const routeIdx = content.indexOf("router.post(\n  '/events'");
+    expect(routeIdx).not.toBe(-1);
+    const routeSection = content.slice(routeIdx, routeIdx + 250);
+    expect(routeSection).toContain('requireApprovedSupplier');
+  });
+
+  it('gates PUT /events/:id with requireApprovedSupplier', () => {
+    const routeIdx = content.indexOf("router.put(\n  '/events/:id'");
+    expect(routeIdx).not.toBe(-1);
+    const routeSection = content.slice(routeIdx, routeIdx + 250);
+    expect(routeSection).toContain('requireApprovedSupplier');
+  });
+
+  it('gates DELETE /events/:id with requireApprovedSupplier', () => {
+    const routeIdx = content.indexOf("router.delete(\n  '/events/:id'");
+    expect(routeIdx).not.toBe(-1);
+    const routeSection = content.slice(routeIdx, routeIdx + 250);
+    expect(routeSection).toContain('requireApprovedSupplier');
+  });
+});
+
 // ─── D) Admin approval endpoint ─────────────────────────────────────────────
 describe('supplier-admin.js — admin approve endpoint', () => {
   let content;
@@ -287,6 +388,94 @@ describe('supplier-admin.js — admin approve endpoint', () => {
   it('writes an audit log entry when approving', () => {
     const approveSection = content.slice(content.indexOf("'/suppliers/:id/approve'"));
     expect(approveSection.slice(0, 1200)).toContain('auditLog');
+  });
+});
+
+// ─── D2) Verification request endpoint ─────────────────────────────────────
+
+describe('supplier-management.js — verification-request endpoint', () => {
+  let content;
+
+  beforeAll(() => {
+    content = fs.readFileSync(SUPPLIER_MANAGEMENT, 'utf8');
+  });
+
+  it('has POST /verification-request endpoint', () => {
+    expect(content).toContain("'/verification-request'");
+  });
+
+  it('creates a support ticket with ticketType supplier_verification', () => {
+    const section = content.slice(content.indexOf("'/verification-request'"));
+    expect(section.slice(0, 3000)).toContain("ticketType: 'supplier_verification'");
+  });
+
+  it('prevents duplicate tickets with 409 and VERIFICATION_REQUEST_PENDING code', () => {
+    const section = content.slice(content.indexOf("'/verification-request'"));
+    expect(section.slice(0, 3000)).toContain('status(409)');
+    expect(section.slice(0, 3000)).toContain('VERIFICATION_REQUEST_PENDING');
+  });
+
+  it('does NOT require approval (unapproved suppliers can submit)', () => {
+    const section = content.slice(content.indexOf("'/verification-request'"));
+    // Must NOT include applyRequireApprovedSupplier in this route
+    const routeSection = section.slice(0, section.indexOf('async (req, res)'));
+    expect(routeSection).not.toContain('applyRequireApprovedSupplier');
+  });
+
+  it('requires verified user and supplier role', () => {
+    const section = content.slice(content.indexOf("'/verification-request'"));
+    const routeSection = section.slice(0, section.indexOf('async (req, res)'));
+    expect(routeSection).toContain('applyRequireVerifiedUser');
+    expect(routeSection).toContain("applyRoleRequired('supplier')");
+  });
+
+  it('inserts the ticket into the tickets collection', () => {
+    const section = content.slice(content.indexOf("'/verification-request'"));
+    expect(section.slice(0, 3500)).toContain("insertOne('tickets'");
+  });
+
+  it('does NOT use inline require() for uid — uses injected uid dependency', () => {
+    const section = content.slice(content.indexOf("'/verification-request'"));
+    // Bug guard: must not do require('../store') inside the handler
+    expect(section.slice(0, 4000)).not.toContain("require('../store')");
+    // Positive guard: uid() must be called to generate the ticket id
+    expect(section.slice(0, 4000)).toContain('uid()');
+  });
+});
+
+// ─── D3) Admin verification-requests endpoint ───────────────────────────────
+
+describe('routes/admin.js — GET /suppliers/verification-requests', () => {
+  const ADMIN_ROUTES = path.join(__dirname, '../../routes/admin.js');
+  let content;
+
+  beforeAll(() => {
+    content = fs.readFileSync(ADMIN_ROUTES, 'utf8');
+  });
+
+  it('has GET /suppliers/verification-requests endpoint', () => {
+    expect(content).toContain("'/suppliers/verification-requests'");
+  });
+
+  it('filters tickets by ticketType supplier_verification', () => {
+    const section = content.slice(content.indexOf("'/suppliers/verification-requests'"));
+    expect(section.slice(0, 800)).toContain("ticketType === 'supplier_verification'");
+  });
+
+  it('filters tickets by open or in_progress status', () => {
+    const section = content.slice(content.indexOf("'/suppliers/verification-requests'"));
+    expect(section.slice(0, 800)).toContain("status === 'open'");
+    expect(section.slice(0, 800)).toContain("status === 'in_progress'");
+  });
+
+  it('returns pendingByUserId object', () => {
+    const section = content.slice(content.indexOf("'/suppliers/verification-requests'"));
+    expect(section.slice(0, 800)).toContain('pendingByUserId');
+  });
+
+  it('requires admin role', () => {
+    const section = content.slice(content.indexOf("'/suppliers/verification-requests'"));
+    expect(section.slice(0, 200)).toContain("'admin'");
   });
 });
 
@@ -333,6 +522,38 @@ describe('server.js — /api/auth/me includes supplierApproved', () => {
   it('fetches supplier profile only for supplier-role users', () => {
     const meSection = content.slice(content.indexOf("app.get('/api/auth/me'"));
     expect(meSection.slice(0, 2000)).toContain("u.role === 'supplier'");
+  });
+});
+
+// ─── E2) dashboard-supplier-verification.js reads data.user correctly ────────
+
+describe('dashboard-supplier-verification.js — banner reads data.user.*', () => {
+  const BANNER_JS = path.join(
+    __dirname,
+    '../../public/assets/js/pages/dashboard-supplier-verification.js'
+  );
+  let content;
+
+  beforeAll(() => {
+    content = fs.readFileSync(BANNER_JS, 'utf8');
+  });
+
+  it('reads role from data.user not data directly', () => {
+    // Bug guard: must use data.user.role, not data.role
+    expect(content).toContain('user.role');
+    expect(content).not.toMatch(/\bdata\.role\b/);
+  });
+
+  it('reads supplierApproved from data.user not data directly', () => {
+    // Bug guard: must use user.supplierApproved, not data.supplierApproved
+    expect(content).toContain('user.supplierApproved');
+    expect(content).not.toMatch(/\bdata\.supplierApproved\b/);
+  });
+
+  it('includes live character counter for note textarea', () => {
+    expect(content).toContain('sv-note-counter');
+    expect(content).toContain('charCount');
+    expect(content).toContain('1000 characters');
   });
 });
 

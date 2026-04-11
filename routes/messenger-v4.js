@@ -67,6 +67,7 @@ function messengerErrorStatus(msg) {
 let authRequired;
 let csrfProtection;
 let requireVerifiedUser;
+let requireApprovedSupplier;
 let db;
 // Stored as a getter so the real WS server (initialized after HTTP listen) is always used
 let _getWsServer = null;
@@ -91,6 +92,14 @@ function applyRequireVerifiedUser(req, res, next) {
     return res.status(503).json({ error: 'Verification service not initialized' });
   }
   return requireVerifiedUser(req, res, next);
+}
+
+function applyRequireApprovedSupplier(req, res, next) {
+  if (!requireApprovedSupplier) {
+    // If not injected, fall back to allowing the request (not a hard dep)
+    return next();
+  }
+  return requireApprovedSupplier(req, res, next);
 }
 
 function applyCsrfProtection(req, res, next) {
@@ -151,6 +160,7 @@ function initialize(dependencies) {
   authRequired = dependencies.authRequired;
   csrfProtection = dependencies.csrfProtection;
   requireVerifiedUser = dependencies.requireVerifiedUser || null;
+  requireApprovedSupplier = dependencies.requireApprovedSupplier || null;
 
   // db can be either mongoDb module or db instance
   // Store as mongoDb for lazy initialization
@@ -255,6 +265,7 @@ router.post(
   '/conversations',
   applyAuthRequired,
   applyRequireVerifiedUser,
+  applyRequireApprovedSupplier,
   applyCsrfProtection,
   writeLimiter,
   async (req, res) => {
@@ -541,6 +552,7 @@ router.post(
   '/conversations/:id/messages',
   applyAuthRequired,
   applyRequireVerifiedUser,
+  applyRequireApprovedSupplier,
   applyCsrfProtection,
   writeLimiter,
   upload.array('attachments', 10),

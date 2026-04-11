@@ -49,7 +49,7 @@
       autoApproveVerification = newValue;
       updateVerificationToggleUI(autoApproveVerification);
       showToast(
-        `Supplier verification auto-approve ${newValue ? 'enabled' : 'disabled'}`,
+        `Auto-approve new suppliers ${newValue ? 'enabled' : 'disabled'}`,
         'success'
       );
     } catch (err) {
@@ -59,12 +59,28 @@
     }
   }
 
+  // ── Pending verification requests (ticket-based) ─────────────────────────
+  // Map of ownerUserId -> ticketId for suppliers with an open verification ticket.
+  let pendingVerificationByUserId = {};
+
+  async function loadVerificationRequests() {
+    try {
+      const data = await AdminShared.api('/api/admin/suppliers/verification-requests');
+      pendingVerificationByUserId = data.pendingByUserId || {};
+    } catch (_) {
+      pendingVerificationByUserId = {};
+    }
+  }
+
   // Load suppliers data
   async function loadSuppliers() {
     try {
-      const data = await AdminShared.api('/api/admin/suppliers');
+      const [suppliersData] = await Promise.all([
+        AdminShared.api('/api/admin/suppliers'),
+        loadVerificationRequests(),
+      ]);
       // API may return data.items or data.suppliers - accept both for compatibility
-      allSuppliers = data.items || data.suppliers || [];
+      allSuppliers = suppliersData.items || suppliersData.suppliers || [];
 
       // Calculate health scores for all suppliers
       allSuppliers = await Promise.all(
@@ -366,12 +382,20 @@
 
         const verificationBadge = getVerificationBadge(getEffectiveVerificationStatus(supplier));
 
+        // Show a "Pending Request" pill when this supplier has an open verification ticket
+        const hasPendingTicket = !supplier.approved && pendingVerificationByUserId[supplier.ownerUserId];
+        const approvalCell = supplier.approved
+          ? '<span style="color: #10b981;">✓ Approved</span>'
+          : hasPendingTicket
+            ? '<span style="color: #f59e0b;">Pending</span><br><span style="font-size:10px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;border-radius:999px;padding:1px 6px;white-space:nowrap;">📋 Request submitted</span>'
+            : '<span style="color: #9ca3af;">Unapproved</span>';
+
         return `
         <tr>
           <td><input type="checkbox" aria-label="Select ${escapeHtml(supplier.name || 'supplier')}" ${isSelected ? 'checked' : ''} onchange="window.toggleSupplierSelection('${escapeHtml(supplier.id)}')"></td>
           <td><a href="/admin-supplier-detail?id=${escapeHtml(supplier.id)}" style="color: #667eea; font-weight: 500;">${escapeHtml(supplier.name || 'Unknown')}</a></td>
           <td>${escapeHtml(supplier.email || '')}</td>
-          <td>${supplier.approved ? '<span style="color: #10b981;">✓ Yes</span>' : '<span style="color: #f59e0b;">Pending</span>'}</td>
+          <td>${approvalCell}</td>
           <td>${verificationBadge}</td>
           <td>${subscriptionBadge}</td>
           <td>${healthScoreBadge}</td>
@@ -381,8 +405,11 @@
               <div style="display: flex; gap: 8px;">
                 <button onclick="window.viewSupplier('${escapeHtml(supplier.id)}')" class="btn-xs" title="View Profile">👁️</button>
                 <button onclick="window.editSupplier('${escapeHtml(supplier.id)}')" class="btn-xs" title="Edit">✏️</button>
-                ${!supplier.approved ? `<button onclick="window.approveSupplier('${escapeHtml(supplier.id)}')" class="btn-xs" style="background: #10b981; color: white;" title="Approve">✓</button>` : ''}
-                <button onclick="window.deleteSupplier('${escapeHtml(supplier.id)}')" class="btn-xs" style="background: #ef4444; color: white;" title="Delete">🗑️</button>
+                ${!supplier.approved ? [
+                    `<button onclick="window.approveSupplier('${escapeHtml(supplier.id)}')" class="btn-xs" style="background: #10b981; color: white;" title="Approve supplier">✓ Approve</button>`,
+                    `<button onclick="window.rejectSupplier('${escapeHtml(supplier.id)}')" class="btn-xs" style="background: #ef4444; color: white;" title="Reject supplier">✗ Reject</button>`,
+                  ].join('') : ''}
+                <button onclick="window.deleteSupplier('${escapeHtml(supplier.id)}')" class="btn-xs" style="background: #6b7280; color: white;" title="Delete">🗑️</button>
               </div>
               <div style="display: flex; gap: 4px; align-items: center; flex-wrap: wrap;">
                 <select id="sub-tier-${escapeHtml(supplier.id)}" class="btn-xs" style="padding: 2px 4px; font-size: 11px;" title="Subscription tier">
@@ -694,7 +721,7 @@
   window.approveSupplier = async function (id) {
     const confirmed = await AdminShared.showConfirmModal({
       title: 'Approve Supplier',
-      message: 'Approve this supplier?',
+      message: 'Approve this supplier? They will be able to create packages, send messages, appear in search, and publish calendar events.',
       confirmText: 'Approve',
     });
     if (confirmed) {
@@ -706,6 +733,25 @@
       } catch (error) {
         console.error('Error approving supplier:', error);
         showToast(`Failed to approve supplier: ${error.message}`, 'error');
+      }
+    }
+  };
+
+  window.rejectSupplier = async function (id) {
+    const confirmed = await AdminShared.showConfirmModal({
+      title: 'Reject Supplier',
+      message: 'Reject this supplier? They will remain unapproved and will see a dashboard banner prompting them to re-submit.',
+      confirmText: 'Reject',
+    });
+    if (confirmed) {
+      try {
+        await AdminShared.api(`/api/admin/suppliers/${id}/approve`, 'POST', { approved: false });
+        showToast('Supplier rejected', 'success');
+        await loadSuppliers();
+        renderTable();
+      } catch (error) {
+        console.error('Error rejecting supplier:', error);
+        showToast(`Failed to reject supplier: ${error.message}`, 'error');
       }
     }
   };
