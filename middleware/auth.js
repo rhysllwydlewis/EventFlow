@@ -350,6 +350,66 @@ async function requireVerifiedUser(req, res, next) {
   }
 }
 
+/**
+ * Middleware to require admin-approved supplier profile
+ * Must be used after authRequired + roleRequired('supplier'), as it relies on req.user
+ * Returns 403 with a structured error code for unapproved suppliers so frontends
+ * can display a "pending approval" banner instead of a generic error.
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next function
+ */
+async function requireApprovedSupplier(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({
+      error: 'Unauthenticated',
+      message: 'Please log in to access this resource.',
+    });
+  }
+
+  // Only enforce approval for supplier-role users
+  if (req.user.role !== 'supplier') {
+    return next();
+  }
+
+  try {
+    const dbUnified = require('../db-unified');
+    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: req.user.id });
+
+    if (!supplier) {
+      return res.status(403).json({
+        error: 'Supplier profile not found',
+        code: 'SUPPLIER_NOT_APPROVED',
+        message:
+          'No supplier profile found for your account. Please complete your supplier profile setup.',
+      });
+    }
+
+    if (supplier.approved !== true) {
+      logger.warn('Unapproved supplier attempted restricted action', {
+        userId: req.user.id,
+        supplierId: supplier.id,
+        path: req.path,
+        method: req.method,
+      });
+      return res.status(403).json({
+        error: 'Supplier not approved',
+        code: 'SUPPLIER_NOT_APPROVED',
+        message:
+          'Your supplier profile is pending admin approval. You will be notified once your account has been reviewed.',
+      });
+    }
+
+    next();
+  } catch (error) {
+    logger.error('Error checking supplier approval status in requireApprovedSupplier:', error);
+    return res.status(503).json({
+      error: 'Service temporarily unavailable',
+      message: 'Unable to verify supplier approval status. Please try again.',
+    });
+  }
+}
+
 module.exports = {
   JWT_SECRET,
   setAuthCookie,
@@ -359,5 +419,6 @@ module.exports = {
   authRequired,
   roleRequired,
   requireVerifiedUser,
+  requireApprovedSupplier,
   planOwnerOnly,
 };

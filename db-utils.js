@@ -368,7 +368,10 @@ async function migrateSuppliers_AddNewFields() {
         viewCount: s.viewCount || 0,
         enquiryCount: s.enquiryCount || 0,
 
-        // Admin approval
+        // Admin approval — default existing suppliers to approved:true so they remain
+        // visible after migration (pre-existing = already live on the platform).
+        // Only explicitly-false values stay false.
+        approved: s.approved !== false,
         approvedAt: s.approvedAt || null,
         approvedBy: s.approvedBy || null,
 
