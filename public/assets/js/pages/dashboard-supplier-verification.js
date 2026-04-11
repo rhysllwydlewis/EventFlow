@@ -390,7 +390,7 @@
             </button>
           </div>`;
 
-        document.getElementById('sv-open-widget-btn').addEventListener('click', () => {
+        document.getElementById('sv-open-widget-btn')?.addEventListener('click', () => {
           openVerificationModal(supplierProfile);
         });
       }

@@ -421,11 +421,11 @@ describe('supplier-management.js — legacy verification-request endpoint return
 // ─── D3) State-machine verification submit endpoint in routes/supplier.js ────
 
 describe('routes/supplier.js — POST /verification/submit uses state machine', () => {
-  const SUPPLIER_ROUTES = path.join(__dirname, '../../routes/supplier.js');
+  const SUPPLIER_ROUTE = path.join(__dirname, '../../routes/supplier.js');
   let content;
 
   beforeAll(() => {
-    content = fs.readFileSync(SUPPLIER_ROUTES, 'utf8');
+    content = fs.readFileSync(SUPPLIER_ROUTE, 'utf8');
   });
 
   it('has POST /verification/submit endpoint', () => {
