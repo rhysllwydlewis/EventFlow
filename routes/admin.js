@@ -48,7 +48,8 @@ function sanitiseText(input, maxLength = 2000) {
   if (typeof input !== 'string') {
     return '';
   }
-  let text = input;
+  // Cap early to bound regex work on adversarial long inputs
+  let text = input.slice(0, maxLength + 500);
   let prev;
   let iterations = 0;
   const MAX_ITERATIONS = 20; // guard against adversarial deeply-nested tag input
