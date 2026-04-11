@@ -404,22 +404,44 @@
             <div class="dashboard-hero__grid"></div>
           </div>
 
+
+          <!-- Mobile dismiss × button (absolutely positioned at card level, mobile only) -->
+          <!-- card-collapse.js inserts its chevron btn at top-right (right:8px). -->
+          <!-- This dismiss btn sits to its left (right:36px). -->
+          <button
+            id="hero-dismiss-btn"
+            type="button"
+            class="dashboard-hero__dismiss-btn"
+            aria-label="Dismiss welcome card"
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+              <path d="M1.5 1.5l9 9M10.5 1.5l-9 9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+
           <!-- Main Content -->
           <div class="dashboard-hero__content">
             <!-- Header Section -->
             <div class="dashboard-hero__header">
+
               <div class="dashboard-hero__greeting-wrapper">
+                <!-- Mobile-only welcome heading — replaces the desktop title at ≤ 480px -->
+                <h1 id="welcome-heading" class="dashboard-hero__mob-heading">
+                  Welcome to Your<br>Supplier Dashboard!
+                </h1>
+
+                <!-- Desktop title (hidden on mobile via CSS) -->
                 <span
-                  class="dashboard-hero__greeting"
+                  class="dashboard-hero__greeting dashboard-hero__greeting--desktop"
                   id="welcome-greeting"
                   data-test="time-greeting"
                   >Good day</span
                 >
-                <h1 id="welcome-heading" class="dashboard-hero__title">
+                <p class="dashboard-hero__title dashboard-hero__title--desktop" aria-hidden="true">
                   <span class="dashboard-hero__title-main">Your Dashboard</span>
                   <span class="dashboard-hero__title-highlight">Control Centre</span>
-                </h1>
-                <p class="dashboard-hero__subtitle">
+                </p>
+                <p class="dashboard-hero__subtitle dashboard-hero__subtitle--desktop">
                   Manage your business, track performance, and grow your presence
                 </p>
               </div>
@@ -427,18 +449,48 @@
               <!-- Mobile decorative illustration — hidden on desktop via CSS -->
               <div class="dashboard-hero__illus" aria-hidden="true">
                 <div class="dashboard-hero__illus-inner">
+                  <!-- Dotted grid background pattern -->
+                  <svg class="dashboard-hero__illus-grid" viewBox="0 0 72 72" aria-hidden="true">
+                    <defs>
+                      <pattern id="heroGrid" x="0" y="0" width="9" height="9" patternUnits="userSpaceOnUse">
+                        <circle cx="1" cy="1" r="0.9" fill="currentColor" opacity="0.25"/>
+                      </pattern>
+                    </defs>
+                    <rect width="72" height="72" fill="url(#heroGrid)"/>
+                  </svg>
+                  <!-- Trending upward arrow chart line -->
                   <div class="dashboard-hero__illus-chart">
-                    <svg viewBox="0 0 48 40" fill="none" aria-hidden="true">
-                      <rect x="2"  y="22" width="7" height="16" rx="2.5" fill="currentColor" opacity="0.55"/>
-                      <rect x="12" y="14" width="7" height="24" rx="2.5" fill="currentColor" opacity="0.7"/>
-                      <rect x="22" y="7"  width="7" height="31" rx="2.5" fill="currentColor" opacity="0.85"/>
-                      <rect x="32" y="17" width="7" height="21" rx="2.5" fill="currentColor" opacity="0.65"/>
-                      <polyline points="5.5,22 15.5,14 25.5,7 35.5,17" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.45"/>
+                    <svg viewBox="0 0 56 44" fill="none" aria-hidden="true">
+                      <!-- Smooth upward trend line -->
+                      <polyline
+                        points="4,36 14,28 24,30 34,16 44,10"
+                        stroke="#10b981"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        fill="none"
+                      />
+                      <!-- Arrow head at trend end -->
+                      <polyline
+                        points="38,6 44,10 40,16"
+                        stroke="#10b981"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        fill="none"
+                      />
+                      <!-- Shaded area under the trend -->
+                      <path
+                        d="M4,36 14,28 24,30 34,16 44,10 44,44 4,44 Z"
+                        fill="#10b981"
+                        opacity="0.08"
+                      />
                     </svg>
                   </div>
+                  <!-- Checkmark badge -->
                   <div class="dashboard-hero__illus-check">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <polyline points="20 6 9 17 4 12"/>
+                    <svg viewBox="0 0 20 20" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <polyline points="4 10 8.5 14.5 16 6"/>
                     </svg>
                   </div>
                 </div>

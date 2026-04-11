@@ -1032,6 +1032,27 @@ const SUPPLIER_WELCOME_DISMISS_KEY = 'ef_supplier_welcome_dismissed';
   }
   if (dismissed) {
     welcomeSection.style.display = 'none';
+    return;
+  }
+
+  // Wire up the hero dismiss × button
+  const dismissBtn = document.getElementById('hero-dismiss-btn');
+  if (dismissBtn) {
+    dismissBtn.addEventListener('click', () => {
+      const easing = 'cubic-bezier(0.4, 0, 0.2, 1)';
+      welcomeSection.style.transition = `opacity 0.3s ${easing}, transform 0.3s ${easing}, margin-bottom 0.3s ${easing}`;
+      welcomeSection.style.opacity = '0';
+      welcomeSection.style.transform = 'scale(0.97) translateY(-6px)';
+      welcomeSection.style.marginBottom = '0';
+      setTimeout(() => {
+        welcomeSection.style.display = 'none';
+      }, 300);
+      try {
+        localStorage.setItem(SUPPLIER_WELCOME_DISMISS_KEY, '1');
+      } catch (_) {
+        /* ignore storage errors */
+      }
+    });
   }
 })();
 

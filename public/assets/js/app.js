@@ -2822,8 +2822,8 @@ async function initDashSupplier() {
             <div class="pro-ribbon__inner">
               <span class="pro-ribbon__icon" aria-hidden="true">🚀</span>
               <div class="pro-ribbon__text-group">
-                <strong>Starter plan.</strong>
-                <span class="pro-ribbon__desc"> Upgrade to unlock priority visibility, more packages &amp; dedicated support.</span>
+                <strong>Level up your plan to Pro!</strong>
+                <span class="pro-ribbon__desc">Unlock priority visibility, offer more packages, and get dedicated support.</span>
               </div>
               <a href="/pricing" class="pro-ribbon__cta">Upgrade to Pro</a>
             </div>`;
