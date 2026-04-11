@@ -133,8 +133,9 @@ function createSupplierCard(supplier, position) {
          <span class="sp-rating-score">${Number(ratingValue).toFixed(1)}</span>
          ${reviewCountLabel}
        </div>`
-    : `<div class="sp-card-rating-widget" title="No reviews yet">
+    : `<div class="sp-card-rating-widget" title="No reviews yet" aria-label="No reviews yet">
          <span class="sp-rating-star sp-rating-star--empty" aria-hidden="true">☆</span>
+         <span class="sp-rating-none">No reviews</span>
        </div>`;
 
   const priceDisplay = supplier.price_display || '';

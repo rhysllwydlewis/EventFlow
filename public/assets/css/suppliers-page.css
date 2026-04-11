@@ -506,9 +506,24 @@
   line-height: 1.3;
   color: #0b1220;
   width: 100%;
+  /*
+   * Flex layout keeps the inline tier icon (⭐/💎) on the same line as the
+   * supplier name even when the name nearly fills the profile column.
+   * Without flex, the icon wraps onto its own line and looks like a star rating,
+   * creating visual confusion with the rating widget below.
+   */
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: nowrap;
 }
 
 .sp-card-name a {
+  flex: 1;
+  min-width: 0; /* allow the link to shrink below its natural content width */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   text-decoration: none;
   color: inherit;
   transition: color 0.15s;
@@ -546,6 +561,20 @@
 
 .sp-rating-star--empty {
   color: #d1d5db;
+  /*
+   * The rated star is 18px (matching score & count text scale). The empty-state
+   * star is shown alongside a "No reviews" text label, so a smaller size
+   * reduces visual weight and prevents it being mistaken for a tier icon.
+   */
+  font-size: 13px;
+}
+
+/* "No reviews" label shown next to the empty star in the rating widget */
+.sp-rating-none {
+  font-size: 10px;
+  font-weight: 400;
+  color: #9ca3af;
+  line-height: 1;
 }
 
 .sp-rating-score {
@@ -1661,6 +1690,20 @@
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
+  }
+
+  /*
+   * Revert the desktop flex-truncation behaviour inside the mobile -webkit-box
+   * clamp. On mobile the profile column is ~287px (60px avatar + 1fr), so most
+   * names fit on one line without needing `white-space: nowrap`. The
+   * -webkit-line-clamp on the parent h3 provides the safety cap for very long
+   * names.
+   */
+  .sp-card-name a {
+    flex: none;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
   }
 
   .sp-card-category,

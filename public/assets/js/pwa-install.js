@@ -84,7 +84,13 @@
         bottom: 1rem;
         left: 50%;
         transform: translateX(-50%);
-        z-index: 9999;
+        /*
+         * z-index: 8000 — below cookie consent (z-index: 9999 in components.css)
+         * so the consent dialog always renders above the install banner and its
+         * buttons remain clickable regardless of which element was inserted into
+         * the DOM last.
+         */
+        z-index: 8000;
         display: flex;
         align-items: center;
         gap: 0.75rem;
@@ -217,14 +223,16 @@
         removeBanner();
         if (deferredPrompt) {
           deferredPrompt.prompt();
-          deferredPrompt.userChoice.then(choiceResult => {
-            if (choiceResult.outcome === 'accepted') {
-              markDismissed();
-            }
-            deferredPrompt = null;
-          }).catch(() => {
-            deferredPrompt = null;
-          });
+          deferredPrompt.userChoice
+            .then(choiceResult => {
+              if (choiceResult.outcome === 'accepted') {
+                markDismissed();
+              }
+              deferredPrompt = null;
+            })
+            .catch(() => {
+              deferredPrompt = null;
+            });
         }
       },
       // Dismiss button
