@@ -133,8 +133,9 @@ function createSupplierCard(supplier, position) {
          <span class="sp-rating-score">${Number(ratingValue).toFixed(1)}</span>
          ${reviewCountLabel}
        </div>`
-    : `<div class="sp-card-rating-widget" title="No reviews yet">
+    : `<div class="sp-card-rating-widget" title="No reviews yet" aria-label="No reviews yet">
          <span class="sp-rating-star sp-rating-star--empty" aria-hidden="true">☆</span>
+         <span class="sp-rating-none">No reviews</span>
        </div>`;
 
   const priceDisplay = supplier.price_display || '';
@@ -952,7 +953,17 @@ async function initSuppliersPage() {
 
   // Activate left/right navigation on every .sp-pkg-carousel in resultsContainer
   function attachCarousels() {
-    const VISIBLE = 2; // cards shown at once
+    /*
+     * On mobile (≤640px) the CSS override `--sp-pkg-mini-width: min(68vw, 260px)`
+     * makes only one card fit in the carousel viewport at a time, so we treat it as
+     * a single-card carousel. On larger screens two cards are visible.
+     *
+     * ⚠ Keep in sync with:
+     *   - MOBILE_BP constant in public/assets/js/pages/suppliers-mobile.js
+     *   - @media (max-width: 640px) breakpoint in public/assets/css/suppliers-page.css
+     */
+    const MOBILE_BP = 640;
+    const visibleCount = window.innerWidth <= MOBILE_BP ? 1 : 2;
 
     resultsContainer.querySelectorAll('.sp-pkg-carousel').forEach(carousel => {
       const track = carousel.querySelector('.sp-pkg-carousel-track');
@@ -966,7 +977,7 @@ async function initSuppliersPage() {
       const items = [...track.querySelectorAll('.sp-pkg-mini')];
       const total = items.length;
 
-      if (total <= VISIBLE) {
+      if (total <= visibleCount) {
         // Nothing to scroll — keep both arrows permanently disabled
         prevBtn.disabled = true;
         nextBtn.disabled = true;
@@ -974,7 +985,7 @@ async function initSuppliersPage() {
       }
 
       let idx = 0;
-      const maxIdx = total - VISIBLE;
+      const maxIdx = total - visibleCount;
 
       function getStepPx() {
         const item = items[0];
@@ -1008,8 +1019,16 @@ async function initSuppliersPage() {
           updateCarousel();
         }
       });
-    });
-  }
+
+      /*
+       * Call once at init to set the correct initial arrow states.
+       * The HTML template always sets both buttons as disabled; we must
+       * call updateCarousel() here to enable the next button when
+       * total > visibleCount (e.g. 2 packages on mobile with visibleCount=1).
+       */
+      updateCarousel();
+    }); // end of forEach
+  } // end of attachCarousels
 
   function attachEmptyStateHandlers() {
     const clearBtn = document.getElementById('clear-filters-btn');
