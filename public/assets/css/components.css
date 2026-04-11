@@ -1684,10 +1684,14 @@
     padding: 0.5rem 0.4rem;
     font-size: 0.75rem;
     font-weight: 600;
-    text-align: center;
     white-space: normal;
     word-break: normal;
     line-height: 1.2;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
   }
 
   .cookie-consent-manage {
