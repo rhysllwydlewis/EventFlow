@@ -725,7 +725,7 @@
   }
 
   .dashboard-hero__content {
-    padding: 14px 36px 12px 14px; /* right: 36px clears the 8px+20px btn */
+    padding: 14px 36px 12px 14px; /* extra right gap clears card-collapse btn (right:8px, width:20px) */
     gap: 10px;
   }
 
