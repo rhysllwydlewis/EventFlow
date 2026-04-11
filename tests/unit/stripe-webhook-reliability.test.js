@@ -6,6 +6,8 @@
  *  b) webhook endpoint accepts a valid signed payload
  *  c) upcoming-invoice endpoint handles Stripe errors gracefully + logs diagnostics
  *  d) only one canonical Stripe webhook endpoint is documented
+ *  e) upcoming-invoice returns null (without calling Stripe) when subscription ID is absent
+ *  f) upcoming-invoice calls Stripe with correct params when subscription ID is present
  */
 
 'use strict';
@@ -209,6 +211,10 @@ describe('Upcoming invoice — Stripe error handling', () => {
   /**
    * Build a minimal upcoming-invoice handler that mirrors the production code
    * so we can inject a failing stripe.invoices.createPreview mock.
+   *
+   * req._customerId        — stripeCustomerId on the subscription
+   * req._subscriptionId    — stripeSubscriptionId on the subscription; when absent
+   *                          the handler returns null without calling Stripe
    */
   function buildUpcomingInvoiceHandler(createPreviewImpl) {
     const logger = {
@@ -230,15 +236,26 @@ describe('Upcoming invoice — Stripe error handling', () => {
 
     async function upcomingInvoiceHandler(req, res) {
       const customerId = req._customerId;
+      const stripeSubscriptionId = req._subscriptionId;
 
-      // Guard: must start with 'cus_'
+      // Stripe requires subscription — skip the call when absent.
+      // (The production handler also supports schedule/items, but this helper
+      // models the subscription path only.)
+      if (!stripeSubscriptionId) {
+        return res.json({ success: true, upcomingInvoice: null });
+      }
+
+      // Guard: customer IDs must start with 'cus_'
       if (!customerId || !customerId.startsWith('cus_')) {
         logger.warn('upcoming-invoice: invalid or missing stripeCustomerId', { customerId });
         return res.json({ success: true, upcomingInvoice: null });
       }
 
       try {
-        const invoice = await stripe.invoices.createPreview({ customer: customerId });
+        const invoice = await stripe.invoices.createPreview({
+          customer: customerId,
+          subscription: stripeSubscriptionId,
+        });
         return res.json({
           success: true,
           upcomingInvoice: { amount: invoice.amount_due, currency: invoice.currency },
@@ -272,7 +289,7 @@ describe('Upcoming invoice — Stripe error handling', () => {
       throw err;
     });
 
-    const req = { _customerId: 'cus_valid123' };
+    const req = { _customerId: 'cus_valid123', _subscriptionId: 'sub_abc123' };
     const res = {
       _body: null,
       json(body) {
@@ -299,7 +316,7 @@ describe('Upcoming invoice — Stripe error handling', () => {
       throw err;
     });
 
-    const req = { _customerId: 'cus_diag' };
+    const req = { _customerId: 'cus_diag', _subscriptionId: 'sub_diag' };
     const res = { json() {} };
     await upcomingInvoiceHandler(req, res);
 
@@ -319,7 +336,7 @@ describe('Upcoming invoice — Stripe error handling', () => {
     const createPreview = jest.fn();
     const { upcomingInvoiceHandler, logger } = buildUpcomingInvoiceHandler(createPreview);
 
-    const req = { _customerId: 'invalid_id_without_prefix' };
+    const req = { _customerId: 'invalid_id_without_prefix', _subscriptionId: 'sub_abc' };
     const res = {
       _body: null,
       json(body) {
@@ -336,12 +353,10 @@ describe('Upcoming invoice — Stripe error handling', () => {
   });
 
   it('returns invoice details when createPreview succeeds', async () => {
-    const { upcomingInvoiceHandler } = buildUpcomingInvoiceHandler(async () => ({
-      amount_due: 5900,
-      currency: 'gbp',
-    }));
+    const createPreview = jest.fn().mockResolvedValue({ amount_due: 5900, currency: 'gbp' });
+    const { upcomingInvoiceHandler } = buildUpcomingInvoiceHandler(createPreview);
 
-    const req = { _customerId: 'cus_happy_path' };
+    const req = { _customerId: 'cus_happy_path', _subscriptionId: 'sub_happy' };
     const res = {
       _body: null,
       json(body) {
@@ -356,6 +371,49 @@ describe('Upcoming invoice — Stripe error handling', () => {
       success: true,
       upcomingInvoice: { amount: 5900, currency: 'gbp' },
     });
+    // Verify correct params are sent to Stripe (customer + subscription)
+    expect(createPreview).toHaveBeenCalledWith({
+      customer: 'cus_happy_path',
+      subscription: 'sub_happy',
+    });
+  });
+
+  it('returns null without calling Stripe when stripeSubscriptionId is absent', async () => {
+    const createPreview = jest.fn();
+    const { upcomingInvoiceHandler } = buildUpcomingInvoiceHandler(createPreview);
+
+    const req = { _customerId: 'cus_no_sub' }; // no _subscriptionId
+    const res = {
+      _body: null,
+      json(body) {
+        this._body = body;
+        return this;
+      },
+    };
+
+    await upcomingInvoiceHandler(req, res);
+
+    expect(createPreview).not.toHaveBeenCalled();
+    expect(res._body).toEqual({ success: true, upcomingInvoice: null });
+  });
+
+  it('returns null without calling Stripe when stripeSubscriptionId is null', async () => {
+    const createPreview = jest.fn();
+    const { upcomingInvoiceHandler } = buildUpcomingInvoiceHandler(createPreview);
+
+    const req = { _customerId: 'cus_null_sub', _subscriptionId: null };
+    const res = {
+      _body: null,
+      json(body) {
+        this._body = body;
+        return this;
+      },
+    };
+
+    await upcomingInvoiceHandler(req, res);
+
+    expect(createPreview).not.toHaveBeenCalled();
+    expect(res._body).toEqual({ success: true, upcomingInvoice: null });
   });
 });
 
