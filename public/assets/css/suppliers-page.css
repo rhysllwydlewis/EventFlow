@@ -154,6 +154,12 @@
   font-size: 14px;
 }
 
+/* Search icon tints to brand colour when the field has focus */
+.sp-filter-search-wrap--top:focus-within .sp-search-icon {
+  color: #0b8073;
+  transition: color 0.15s;
+}
+
 /* ---- Filter grid ---- */
 .sp-filter-grid {
   display: grid;
@@ -1423,31 +1429,20 @@
    ========================================================= */
 
 @media (max-width: 360px) {
+  /* Hide hero CTAs on very small screens */
   .suppliers-hero-cta {
-    display: none; /* very small screens: hide CTAs entirely */
+    display: none;
   }
 
-  .sp-card {
-    grid-template-columns: 120px 1fr;
-  }
+  /*
+   * NOTE: card, avatar, and action-button rules that used to live here are
+   * intentionally removed. The later @media (max-width: 640px) mobile-overhaul
+   * block handles these elements with !important overrides and the single-column
+   * stacked card layout, so any 360px-specific rules for those selectors had no
+   * effect and were dead code.
+   */
 
-  .sp-card-profile {
-    padding: 10px 6px;
-  }
-
-  .sp-card-avatar,
-  .sp-card-avatar-fallback {
-    width: 44px;
-    height: 44px;
-    font-size: 17px;
-  }
-
-  .sp-card-actions .sp-btn {
-    min-width: 60px;
-    font-size: 11px;
-    padding: 5px 6px;
-  }
-
+  /* Stack the basic filter grid to a single column at 360px */
   .sp-filter-grid {
     grid-template-columns: 1fr;
   }
@@ -1627,6 +1622,21 @@
     transform: rotate(180deg);
   }
 
+  /* ── Search field: tighten placeholder padding on mobile ── */
+  /*
+   * The base styles add 34px left padding to make room for the search icon
+   * (positioned at left: 11px). On mobile the extra spacing pushes the ghost
+   * text noticeably away from the left edge. Reduce the padding and nudge the
+   * icon inward so text starts closer to the left without overlapping the icon.
+   */
+  .sp-search-icon {
+    left: 9px;
+  }
+
+  .sp-search-input {
+    padding-left: 28px !important;
+  }
+
   /* ── Supplier card: single-column stack ─────────────── */
   /*
    * Override the 768px two-column layout (profile | actions).
@@ -1665,11 +1675,12 @@
     text-align: left;
   }
 
-  /* Avatar spans all text rows so it sits centre-left */
+  /* Avatar spans all text rows, pinned to the top so it aligns with the
+     supplier name rather than sitting vertically centred across all rows. */
   .sp-card-avatar-wrap {
     grid-column: 1;
     grid-row: 1 / 99; /* span more rows than any supplier can have */
-    align-self: center;
+    align-self: start;
     margin-bottom: 0;
     flex-shrink: 0;
   }
