@@ -111,6 +111,20 @@ describe('marketplace.js — verification gating', () => {
     const routeSection = content.slice(commentIdx, commentIdx + 300);
     expect(routeSection).toContain('applyRequireVerifiedUser');
   });
+
+  it('POST /saved/:listingId? (save marketplace listing) requires verified user', () => {
+    const commentIdx = content.indexOf('// Save a marketplace listing for authenticated user');
+    expect(commentIdx).not.toBe(-1);
+    const routeSection = content.slice(commentIdx, commentIdx + 200);
+    expect(routeSection).toContain('applyRequireVerifiedUser');
+  });
+
+  it('DELETE /saved/:listingId (unsave marketplace listing) requires verified user', () => {
+    const commentIdx = content.indexOf('// Unsave a marketplace listing for authenticated user');
+    expect(commentIdx).not.toBe(-1);
+    const routeSection = content.slice(commentIdx, commentIdx + 200);
+    expect(routeSection).toContain('applyRequireVerifiedUser');
+  });
 });
 
 // ---------------------------------------------------------------------------

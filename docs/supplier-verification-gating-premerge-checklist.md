@@ -56,19 +56,22 @@ npx nodemon server.js
 Using a user account whose email has **not** been verified, confirm each of the
 following returns `403` with `code: "EMAIL_NOT_VERIFIED"`:
 
-| Action                       | Endpoint                                  |
-| ---------------------------- | ----------------------------------------- |
-| Create a plan                | `POST /api/me/plans`                      |
-| Update a plan                | `PATCH /api/me/plans/:id`                 |
-| Delete a plan                | `DELETE /api/me/plans/:id`                |
-| Save budget items            | `POST /api/me/plans/:id/budget`           |
-| Create a marketplace listing | `POST /api/v1/marketplace/listings`       |
-| Update a marketplace listing | `PUT /api/v1/marketplace/listings/:id`    |
-| Delete a marketplace listing | `DELETE /api/v1/marketplace/listings/:id` |
-| Save a supplier/package      | `POST /api/me/saved`                      |
-| Unsave an item               | `DELETE /api/me/saved/:id`                |
-| Post a review                | `POST /api/reviews/suppliers/:id/reviews` |
-| Send a message               | `POST /api/v1/messages/conversations`     |
+| Action                             | Endpoint                                      |
+| ---------------------------------- | --------------------------------------------- |
+| Create a plan                      | `POST /api/v1/me/plans`                       |
+| Update a plan                      | `PATCH /api/v1/me/plans/:id`                  |
+| Delete a plan                      | `DELETE /api/v1/me/plans/:id`                 |
+| Save budget items                  | `POST /api/v1/me/plans/:id/budget`            |
+| Create a marketplace listing       | `POST /api/v1/marketplace/listings`           |
+| Update a marketplace listing       | `PUT /api/v1/marketplace/listings/:id`        |
+| Delete a marketplace listing       | `DELETE /api/v1/marketplace/listings/:id`     |
+| Save a marketplace listing         | `POST /api/v1/marketplace/saved/:listingId`   |
+| Unsave a marketplace listing       | `DELETE /api/v1/marketplace/saved/:listingId` |
+| Save a supplier/package            | `POST /api/v1/me/saved`                       |
+| Unsave an item                     | `DELETE /api/v1/me/saved/:id`                 |
+| Post a review (main reviews route) | `POST /api/v1/suppliers/:supplierId/reviews`  |
+| Post a review (verified reviews)   | `POST /api/v1/reviews/with-verification`      |
+| Create a messaging conversation    | `POST /api/v4/messenger/conversations`        |
 
 These endpoints are gated by `requireVerifiedUser` in addition to `authRequired`.
 

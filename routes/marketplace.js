@@ -586,6 +586,7 @@ router.post(
   '/saved/:listingId?',
   applyWriteLimiter,
   applyAuthRequired,
+  applyRequireVerifiedUser,
   applyCsrfProtection,
   async (req, res) => {
     try {
@@ -637,6 +638,7 @@ router.delete(
   '/saved/:listingId',
   applyWriteLimiter,
   applyAuthRequired,
+  applyRequireVerifiedUser,
   applyCsrfProtection,
   async (req, res) => {
     try {
