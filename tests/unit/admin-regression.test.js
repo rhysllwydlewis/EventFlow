@@ -20,6 +20,7 @@ const PHOTOS_INIT = path.join(__dirname, '../../public/assets/js/pages/admin-pho
 const USERS_INIT = path.join(__dirname, '../../public/assets/js/pages/admin-users-init.js');
 const SUPPLIERS_INIT = path.join(__dirname, '../../public/assets/js/pages/admin-suppliers-init.js');
 const ADMIN_SHARED = path.join(__dirname, '../../public/assets/js/admin-shared.js');
+const SANITISE_UTIL = path.join(__dirname, '../../utils/sanitise.js');
 
 let adminContent;
 let packagesInitContent;
@@ -28,6 +29,7 @@ let usersInitContent;
 let suppliersInitContent;
 let adminInitContent;
 let adminSharedContent;
+let sanitiseContent;
 
 beforeAll(() => {
   adminContent = fs.readFileSync(ADMIN_ROUTES, 'utf8');
@@ -37,6 +39,7 @@ beforeAll(() => {
   suppliersInitContent = fs.readFileSync(SUPPLIERS_INIT, 'utf8');
   adminInitContent = fs.readFileSync(ADMIN_INIT, 'utf8');
   adminSharedContent = fs.readFileSync(ADMIN_SHARED, 'utf8');
+  sanitiseContent = fs.readFileSync(SANITISE_UTIL, 'utf8');
 });
 
 // ─── Empty-State Handling ─────────────────────────────────────────────────────
@@ -571,17 +574,16 @@ describe('Admin Regression — bulk-reject route sanitises notes', () => {
     expect(bulkSection).toContain('sanitiseText');
   });
 
-  it('sanitiseText function is defined in routes/admin.js', () => {
-    expect(adminContent).toContain('function sanitiseText(');
+  it('sanitiseText function is defined in utils/sanitise.js', () => {
+    expect(sanitiseContent).toContain('function sanitiseText(');
+  });
+
+  it('routes/admin.js requires sanitiseText from utils/sanitise', () => {
+    expect(adminContent).toContain("require('../utils/sanitise')");
   });
 
   it('sanitiseText strips HTML tags (e.g. <b>Test</b> → Test)', () => {
-    const start = adminContent.indexOf('function sanitiseText(');
-    const snippet = adminContent.slice(start);
-    const end = snippet.search(/\n\}/);
-    const fnStr = snippet.slice(0, end + 2);
-    // eslint-disable-next-line no-new-func
-    const sanitiseText = new Function(`${fnStr}; return sanitiseText;`)();
+    const { sanitiseText } = require('../../utils/sanitise');
     expect(sanitiseText('<b>Test</b>')).toBe('Test');
     expect(sanitiseText('<script>alert(1)</script>')).toBe('alert(1)');
     expect(sanitiseText('<b><i>nested</i></b>')).toBe('nested');
