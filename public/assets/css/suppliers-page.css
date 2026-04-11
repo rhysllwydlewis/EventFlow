@@ -440,7 +440,7 @@
   position: absolute;
   top: 0;
   left: 0;
-  width: 3px;
+  width: 4px; /* was 3px — slightly more prominent */
   height: 100%;
   border-radius: 16px 0 0 16px;
 }
@@ -455,15 +455,69 @@
 
 /* ─── LEFT COLUMN: Profile ─────────────────────────────── */
 
+/*
+ * Desktop: 4 direct sp-card children, 3 columns.
+ * Explicit placement prevents CSS auto-placement from misrouting items.
+ *
+ *   col 1 (180px)     col 2 (1fr)       col 3 (164px)
+ *   ┌─────────────┐   ┌──────────────┐  ┌────────────┐
+ *   │ profile     │   │              │  │            │
+ *   │  (row 1)    │   │  packages    │  │  actions   │
+ *   ├─────────────┤   │  (rows 1-2)  │  │  (rows 1-2)│
+ *   │ description │   │              │  │            │
+ *   │  (row 2)    │   └──────────────┘  └────────────┘
+ *   └─────────────┘
+ */
 .sp-card-profile {
+  grid-column: 1;
+  grid-row: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 16px 12px;
+  padding: 16px 12px 8px;
   border-right: 1px solid rgba(0, 0, 0, 0.06);
   background: rgba(248, 250, 252, 0.5);
   gap: 5px;
+}
+
+/* Description sits in col 1 row 2 — below profile, same visual lane */
+.sp-card > .sp-card-description {
+  grid-column: 1;
+  grid-row: 2;
+  padding: 2px 12px 14px;
+  border-right: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(248, 250, 252, 0.5);
+  -webkit-line-clamp: 3; /* extra line since it has its own row */
+  text-align: center;
+}
+
+/* Packages span both rows so they fill the full card height */
+.sp-card-packages {
+  grid-column: 2;
+  grid-row: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  padding: 8px 8px 4px;
+  min-width: 0;
+  gap: 3px;
+  overflow: hidden;
+  justify-content: flex-start;
+}
+
+/* Actions span both rows so they fill the full card height */
+.sp-card-actions {
+  grid-column: 3;
+  grid-row: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 12px 10px 10px;
+  flex-shrink: 0;
+  align-items: stretch;
+  border-left: 1px solid rgba(0, 0, 0, 0.06);
+  justify-content: flex-start;
+  background: rgba(248, 250, 252, 0.35);
 }
 
 .sp-card-avatar-wrap {
@@ -479,7 +533,7 @@
   object-fit: cover;
   flex-shrink: 0;
   display: block;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15); /* was 0 2px 8px rgba(0,0,0,0.12) */
 }
 
 .sp-card-avatar-fallback {
@@ -599,9 +653,9 @@
 
 .sp-card-description {
   font-size: 11px;
-  color: #9ca3af;
+  color: #667085; /* improved contrast — was #9ca3af */
   margin: 0;
-  line-height: 1.4;
+  line-height: 1.5; /* was 1.4 */
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -622,13 +676,13 @@
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  padding: 1px 5px;
-  font-size: 9px;
+  padding: 2px 6px; /* was 1px 5px */
+  font-size: 10px; /* was 9px */
   font-weight: 700;
   border-radius: 4px;
   border: 1px solid transparent;
   white-space: nowrap;
-  line-height: 1.6;
+  line-height: 1.5; /* was 1.6 */
 }
 
 .sp-badge--verified {
@@ -692,22 +746,14 @@
   --sp-pkg-mini-width: 200px;
 }
 
-.sp-card-packages {
-  display: flex;
-  flex-direction: column;
-  padding: 8px 8px 4px;
-  min-width: 0;
-  gap: 3px;
-  overflow: hidden;
-  justify-content: flex-start;
-}
+/* Note: .sp-card-packages grid-column/row is set with the sp-card-profile block above */
 
 .sp-pkg-label {
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #9ca3af;
+  color: #0b8073; /* was #9ca3af — brand teal gives the section a clear anchor */
 }
 
 /* ── Carousel outer shell ──────────────────────────────── */
@@ -795,7 +841,7 @@
 .sp-pkg-mini-thumb {
   width: 100%;
   height: 100px;
-  background: linear-gradient(135deg, #e0f7f4 0%, #e8f4fd 100%);
+  background: linear-gradient(135deg, #d9f4f0 0%, #edf9f7 50%, #e5f0fa 100%); /* subtler, more polished gradient */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -903,18 +949,7 @@
 .sp-pkg-empty-link:hover { text-decoration: underline; }
 
 /* ─── RIGHT COLUMN: Action buttons ────────────────────── */
-
-.sp-card-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  padding: 12px 10px 10px;
-  flex-shrink: 0;
-  align-items: stretch;
-  border-left: 1px solid rgba(0, 0, 0, 0.06);
-  justify-content: flex-start;
-  background: rgba(248, 250, 252, 0.35);
-}
+/* Note: .sp-card-actions grid-column/row is set with the sp-card-profile block above */
 
 /* All action buttons: same height, same font, same padding */
 .sp-btn {
@@ -1672,7 +1707,7 @@
     display: grid;
     grid-template-columns: 56px 1fr;
     column-gap: 10px;
-    row-gap: 3px;
+    row-gap: 4px; /* was 3px — extra breathing room between metadata rows */
     align-items: start;
     border-right: 1px solid rgba(0, 0, 0, 0.06);
     border-bottom: none;
@@ -1753,6 +1788,7 @@
     text-align: left;
     -webkit-line-clamp: 2;
     font-size: 12px;
+    color: #667085; /* reinforce improved contrast on mobile */
   }
 
   /* Actions: col 2, row 1 — stacked buttons vertically centred */
@@ -1807,6 +1843,22 @@
     padding: 5px 10px !important;
     font-size: 11px !important;
     min-height: 30px !important;
+  }
+
+  /* Smaller rating star — proportionate to the compact mobile layout */
+  .sp-card-rating-widget .sp-rating-star {
+    font-size: 14px; /* was 18px */
+  }
+
+  .sp-card-rating-widget .sp-rating-star--empty {
+    font-size: 11px; /* was 13px */
+  }
+
+  /* Compact action buttons — save ~12px of vertical height */
+  .sp-card-actions .sp-btn {
+    min-height: 36px !important; /* was 40px */
+    font-size: 12px !important;
+    padding: 8px 8px !important;
   }
 
 }
