@@ -1039,8 +1039,11 @@ const SUPPLIER_WELCOME_DISMISS_KEY = 'ef_supplier_welcome_dismissed';
   const dismissBtn = document.getElementById('hero-dismiss-btn');
   if (dismissBtn) {
     dismissBtn.addEventListener('click', () => {
-      const easing = 'cubic-bezier(0.4, 0, 0.2, 1)';
-      welcomeSection.style.transition = `opacity 0.3s ${easing}, transform 0.3s ${easing}, margin-bottom 0.3s ${easing}`;
+      const DISMISS_TRANSITION =
+        'opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), ' +
+        'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), ' +
+        'margin-bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+      welcomeSection.style.transition = DISMISS_TRANSITION;
       welcomeSection.style.opacity = '0';
       welcomeSection.style.transform = 'scale(0.97) translateY(-6px)';
       welcomeSection.style.marginBottom = '0';

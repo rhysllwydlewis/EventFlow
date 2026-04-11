@@ -1061,7 +1061,8 @@
     align-items: center;
   }
 
-  /* Icon: just the emoji, no box — like reference image */
+  /* Icon: just the emoji, no box — like reference image.
+     position:relative enables the ::after sparkle decoration. */
   .pro-ribbon__icon {
     font-size: 1.6rem;
     width: auto;
@@ -1072,6 +1073,7 @@
     display: block;
     flex-shrink: 0;
     line-height: 1;
+    position: relative;
   }
 
   /* Sparkle decorations on the icon via ::after */
@@ -1083,11 +1085,6 @@
     font-size: 0.55rem;
     color: #f59e0b;
     pointer-events: none;
-  }
-
-  /* Icon wrapper needs relative positioning for sparkle */
-  .pro-ribbon.pro-ribbon--starter .pro-ribbon__icon {
-    position: relative;
   }
 
   .pro-ribbon__text-group {
