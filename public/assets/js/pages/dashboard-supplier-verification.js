@@ -71,6 +71,10 @@
             style="width:100%;padding:0.65rem 1rem;background:#6366f1;color:#fff;font-size:0.9rem;font-weight:600;border:none;border-radius:8px;cursor:pointer;transition:background 0.15s;">
             Submit Verification Request
           </button>
+          <button type="button" id="sv-cancel-btn"
+            style="width:100%;margin-top:0.5rem;padding:0.5rem 1rem;background:none;color:#6b7280;font-size:0.875rem;font-weight:500;border:1px solid #e5e7eb;border-radius:8px;cursor:pointer;">
+            Cancel
+          </button>
         </form>
       </div>`;
 
@@ -81,6 +85,7 @@
       modal.style.display = 'none';
     }
     document.getElementById('sv-modal-close').addEventListener('click', closeModal);
+    document.getElementById('sv-cancel-btn').addEventListener('click', closeModal);
     modal.addEventListener('click', function (e) {
       if (e.target === modal) {
         closeModal();

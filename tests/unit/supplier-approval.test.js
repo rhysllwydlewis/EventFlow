@@ -308,13 +308,18 @@ describe('messenger-v4.js — approval gating', () => {
   });
 
   it('gates POST /conversations with applyRequireApprovedSupplier', () => {
-    const postConvSection = content.slice(content.indexOf("POST /api/v4/messenger/conversations\n * Create a new conversation"));
-    expect(postConvSection.slice(0, 300)).toContain('applyRequireApprovedSupplier');
+    // Find the route definition itself (the array of middleware), not the comment
+    const routeIdx = content.indexOf("router.post(\n  '/conversations'");
+    expect(routeIdx).not.toBe(-1);
+    const routeSection = content.slice(routeIdx, routeIdx + 300);
+    expect(routeSection).toContain('applyRequireApprovedSupplier');
   });
 
   it('gates POST /conversations/:id/messages with applyRequireApprovedSupplier', () => {
-    const postMsgSection = content.slice(content.indexOf("POST /api/v4/messenger/conversations/:id/messages"));
-    expect(postMsgSection.slice(0, 300)).toContain('applyRequireApprovedSupplier');
+    const routeIdx = content.indexOf("router.post(\n  '/conversations/:id/messages'");
+    expect(routeIdx).not.toBe(-1);
+    const routeSection = content.slice(routeIdx, routeIdx + 300);
+    expect(routeSection).toContain('applyRequireApprovedSupplier');
   });
 });
 
@@ -332,18 +337,24 @@ describe('public-calendar.js — approval gating', () => {
   });
 
   it('gates POST /events with requireApprovedSupplier', () => {
-    const postSection = content.slice(content.indexOf("POST /events\n * Create a new public calendar event"));
-    expect(postSection.slice(0, 250)).toContain('requireApprovedSupplier');
+    const routeIdx = content.indexOf("router.post(\n  '/events'");
+    expect(routeIdx).not.toBe(-1);
+    const routeSection = content.slice(routeIdx, routeIdx + 250);
+    expect(routeSection).toContain('requireApprovedSupplier');
   });
 
   it('gates PUT /events/:id with requireApprovedSupplier', () => {
-    const putSection = content.slice(content.indexOf("PUT /events/:id\n * Update a public calendar event"));
-    expect(putSection.slice(0, 250)).toContain('requireApprovedSupplier');
+    const routeIdx = content.indexOf("router.put(\n  '/events/:id'");
+    expect(routeIdx).not.toBe(-1);
+    const routeSection = content.slice(routeIdx, routeIdx + 250);
+    expect(routeSection).toContain('requireApprovedSupplier');
   });
 
   it('gates DELETE /events/:id with requireApprovedSupplier', () => {
-    const deleteSection = content.slice(content.indexOf("DELETE /events/:id\n * Delete a public calendar event"));
-    expect(deleteSection.slice(0, 250)).toContain('requireApprovedSupplier');
+    const routeIdx = content.indexOf("router.delete(\n  '/events/:id'");
+    expect(routeIdx).not.toBe(-1);
+    const routeSection = content.slice(routeIdx, routeIdx + 250);
+    expect(routeSection).toContain('requireApprovedSupplier');
   });
 });
 
