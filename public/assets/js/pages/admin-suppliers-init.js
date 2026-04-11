@@ -405,7 +405,10 @@
               <div style="display: flex; gap: 8px;">
                 <button onclick="window.viewSupplier('${escapeHtml(supplier.id)}')" class="btn-xs" title="View Profile">👁️</button>
                 <button onclick="window.editSupplier('${escapeHtml(supplier.id)}')" class="btn-xs" title="Edit">✏️</button>
-                ${!supplier.approved ? `<button onclick="window.approveSupplier('${escapeHtml(supplier.id)}')" class="btn-xs" style="background: #10b981; color: white;" title="Approve supplier">✓ Approve</button><button onclick="window.rejectSupplier('${escapeHtml(supplier.id)}')" class="btn-xs" style="background: #ef4444; color: white;" title="Reject supplier">✗ Reject</button>` : ''}
+                ${!supplier.approved ? [
+                    `<button onclick="window.approveSupplier('${escapeHtml(supplier.id)}')" class="btn-xs" style="background: #10b981; color: white;" title="Approve supplier">✓ Approve</button>`,
+                    `<button onclick="window.rejectSupplier('${escapeHtml(supplier.id)}')" class="btn-xs" style="background: #ef4444; color: white;" title="Reject supplier">✗ Reject</button>`,
+                  ].join('') : ''}
                 <button onclick="window.deleteSupplier('${escapeHtml(supplier.id)}')" class="btn-xs" style="background: #6b7280; color: white;" title="Delete">🗑️</button>
               </div>
               <div style="display: flex; gap: 4px; align-items: center; flex-wrap: wrap;">
