@@ -526,7 +526,6 @@ router.post(
       }
 
       const now = new Date().toISOString();
-      const { uid } = require('../store');
       const newTicket = {
         id: uid(),
         senderId: userId,

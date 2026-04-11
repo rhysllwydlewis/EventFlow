@@ -63,8 +63,8 @@ describe('Admin API Fixes', () => {
         'utf8'
       );
 
-      // Should use data.items not data.suppliers
-      expect(content).toContain('allSuppliers = data.items');
+      // Should use suppliersData.items (destructured from Promise.all response)
+      expect(content).toContain('suppliersData.items');
     });
 
     it('should load suppliers from the correct endpoint', () => {
@@ -171,8 +171,8 @@ describe('Admin API Fixes', () => {
       );
 
       // Should not reference data.suppliers in actual code (comments are ok)
-      // Check that the actual assignment uses data.items
-      expect(content).toContain('allSuppliers = data.items');
+      // Check that the actual assignment uses suppliersData.items (parallel fetch pattern)
+      expect(content).toContain('suppliersData.items');
       expect(content).not.toContain('allSuppliers = data.suppliers');
     });
   });

@@ -59,12 +59,28 @@
     }
   }
 
+  // ── Pending verification requests (ticket-based) ─────────────────────────
+  // Map of ownerUserId -> ticketId for suppliers with an open verification ticket.
+  let pendingVerificationByUserId = {};
+
+  async function loadVerificationRequests() {
+    try {
+      const data = await AdminShared.api('/api/admin/suppliers/verification-requests');
+      pendingVerificationByUserId = data.pendingByUserId || {};
+    } catch (_) {
+      pendingVerificationByUserId = {};
+    }
+  }
+
   // Load suppliers data
   async function loadSuppliers() {
     try {
-      const data = await AdminShared.api('/api/admin/suppliers');
+      const [suppliersData] = await Promise.all([
+        AdminShared.api('/api/admin/suppliers'),
+        loadVerificationRequests(),
+      ]);
       // API may return data.items or data.suppliers - accept both for compatibility
-      allSuppliers = data.items || data.suppliers || [];
+      allSuppliers = suppliersData.items || suppliersData.suppliers || [];
 
       // Calculate health scores for all suppliers
       allSuppliers = await Promise.all(
@@ -366,12 +382,20 @@
 
         const verificationBadge = getVerificationBadge(getEffectiveVerificationStatus(supplier));
 
+        // Show a "Pending Request" pill when this supplier has an open verification ticket
+        const hasPendingTicket = !supplier.approved && pendingVerificationByUserId[supplier.ownerUserId];
+        const approvalCell = supplier.approved
+          ? '<span style="color: #10b981;">✓ Approved</span>'
+          : hasPendingTicket
+            ? '<span style="color: #f59e0b;">Pending</span><br><span style="font-size:10px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;border-radius:999px;padding:1px 6px;white-space:nowrap;">📋 Request submitted</span>'
+            : '<span style="color: #9ca3af;">Unapproved</span>';
+
         return `
         <tr>
           <td><input type="checkbox" aria-label="Select ${escapeHtml(supplier.name || 'supplier')}" ${isSelected ? 'checked' : ''} onchange="window.toggleSupplierSelection('${escapeHtml(supplier.id)}')"></td>
           <td><a href="/admin-supplier-detail?id=${escapeHtml(supplier.id)}" style="color: #667eea; font-weight: 500;">${escapeHtml(supplier.name || 'Unknown')}</a></td>
           <td>${escapeHtml(supplier.email || '')}</td>
-          <td>${supplier.approved ? '<span style="color: #10b981;">✓ Yes</span>' : '<span style="color: #f59e0b;">Pending</span>'}</td>
+          <td>${approvalCell}</td>
           <td>${verificationBadge}</td>
           <td>${subscriptionBadge}</td>
           <td>${healthScoreBadge}</td>

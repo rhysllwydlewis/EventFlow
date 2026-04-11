@@ -433,6 +433,48 @@ describe('supplier-management.js — verification-request endpoint', () => {
     const section = content.slice(content.indexOf("'/verification-request'"));
     expect(section.slice(0, 3500)).toContain("insertOne('tickets'");
   });
+
+  it('does NOT use inline require() for uid — uses injected uid dependency', () => {
+    const section = content.slice(content.indexOf("'/verification-request'"));
+    // Bug guard: must not do require('../store') inside the handler
+    expect(section.slice(0, 4000)).not.toContain("require('../store')");
+  });
+});
+
+// ─── D3) Admin verification-requests endpoint ───────────────────────────────
+
+describe('routes/admin.js — GET /suppliers/verification-requests', () => {
+  const ADMIN_ROUTES = path.join(__dirname, '../../routes/admin.js');
+  let content;
+
+  beforeAll(() => {
+    content = fs.readFileSync(ADMIN_ROUTES, 'utf8');
+  });
+
+  it('has GET /suppliers/verification-requests endpoint', () => {
+    expect(content).toContain("'/suppliers/verification-requests'");
+  });
+
+  it('filters tickets by ticketType supplier_verification', () => {
+    const section = content.slice(content.indexOf("'/suppliers/verification-requests'"));
+    expect(section.slice(0, 800)).toContain("ticketType === 'supplier_verification'");
+  });
+
+  it('filters tickets by open or in_progress status', () => {
+    const section = content.slice(content.indexOf("'/suppliers/verification-requests'"));
+    expect(section.slice(0, 800)).toContain("status === 'open'");
+    expect(section.slice(0, 800)).toContain("status === 'in_progress'");
+  });
+
+  it('returns pendingByUserId object', () => {
+    const section = content.slice(content.indexOf("'/suppliers/verification-requests'"));
+    expect(section.slice(0, 800)).toContain('pendingByUserId');
+  });
+
+  it('requires admin role', () => {
+    const section = content.slice(content.indexOf("'/suppliers/verification-requests'"));
+    expect(section.slice(0, 200)).toContain("'admin'");
+  });
 });
 
 // ─── E) supplierApproved in /api/auth/me ────────────────────────────────────
