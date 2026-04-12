@@ -79,7 +79,9 @@ describe('Supplier welcome banner dismiss persistence', () => {
     expect(welcomeEl.style.display).toBe('');
   });
 
-  it('hides welcome section and sets both dismiss keys when "Got it!" button is clicked', () => {
+  it('hides welcome section and sets both dismiss keys when either X button or "Got it!" is clicked (shared handler)', () => {
+    // Both buttons (X and "Got it!") share the same dismissWelcomeSection handler.
+    // Verify the handler itself produces the correct side effects.
     const storage = { store: {} };
     storage.getItem = key => storage.store[key] || null;
     storage.setItem = (key, val) => {
@@ -96,25 +98,7 @@ describe('Supplier welcome banner dismiss persistence', () => {
     expect(storage.store['ef_onboarding_dismissed']).toBe('1');
   });
 
-  it('hides welcome section and sets both dismiss keys when X button is clicked', () => {
-    const storage = { store: {} };
-    storage.getItem = key => storage.store[key] || null;
-    storage.setItem = (key, val) => {
-      storage.store[key] = val;
-    };
-
-    const welcomeEl = { style: { display: '' } };
-    // X button and "Got it!" use the same handler
-    const dismiss = makeDismissHandler(storage, welcomeEl);
-
-    dismiss();
-
-    expect(welcomeEl.style.display).toBe('none');
-    expect(storage.store[DISMISS_KEY]).toBe('1');
-    expect(storage.store['ef_onboarding_dismissed']).toBe('1');
-  });
-
-  it('hides welcome section and sets both dismiss keys when dismiss button is clicked', () => {
+  it('hides welcome section and sets both dismiss keys when overlay "Got it!" button is clicked', () => {
     const storage = { store: {} };
     storage.getItem = key => storage.store[key] || null;
     storage.setItem = (key, val) => {
@@ -125,7 +109,7 @@ describe('Supplier welcome banner dismiss persistence', () => {
     const dismissBtn = {};
     const listeners = applyOnboardingDismissHandler(storage, welcomeEl, dismissBtn);
 
-    // Simulate clicking the "Got it! Let's go" button
+    // Simulate clicking the "Got it! Let's go" button on the overlay card
     listeners.click();
 
     expect(welcomeEl.style.display).toBe('none');
