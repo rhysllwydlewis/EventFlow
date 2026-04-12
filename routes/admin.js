@@ -3435,6 +3435,111 @@ router.put(
   }
 );
 
+// ---------- Email Automation Settings ----------
+
+/**
+ * GET /api/admin/settings/email-automation
+ * Get email automation settings (action-prompt emails)
+ */
+router.get('/settings/email-automation', authRequired, roleRequired('admin'), async (req, res) => {
+  try {
+    const settings = (await dbUnified.read('settings')) || {};
+    const defaults = {
+      enabled: false,
+      cron: '0 9 * * *',
+      promptTypes: {
+        missingPackages: true,
+        incompleteProfile: true,
+      },
+    };
+    const emailAutomation = settings.emailAutomation || {};
+    const actionPrompts = emailAutomation.actionPrompts || {};
+    const response = {
+      enabled: actionPrompts.enabled !== undefined ? actionPrompts.enabled : defaults.enabled,
+      cron: actionPrompts.cron || defaults.cron,
+      promptTypes: {
+        missingPackages: actionPrompts.promptTypes?.missingPackages !== false,
+        incompleteProfile: actionPrompts.promptTypes?.incompleteProfile !== false,
+      },
+      updatedAt: actionPrompts.updatedAt,
+      updatedBy: actionPrompts.updatedBy,
+    };
+    res.json(response);
+  } catch (error) {
+    logger.error('Error reading email-automation settings:', error);
+    res.status(500).json({ error: 'Failed to read settings' });
+  }
+});
+
+/**
+ * PUT /api/admin/settings/email-automation
+ * Update email automation settings (action-prompt emails)
+ */
+router.put(
+  '/settings/email-automation',
+  authRequired,
+  roleRequired('admin'),
+  csrfProtection,
+  writeLimiter,
+  async (req, res) => {
+    try {
+      const { enabled, cron, promptTypes } = req.body;
+
+      if (enabled !== undefined && typeof enabled !== 'boolean') {
+        return res.status(400).json({ error: 'enabled must be a boolean' });
+      }
+      if (cron !== undefined && typeof cron !== 'string') {
+        return res.status(400).json({ error: 'cron must be a string' });
+      }
+      if (promptTypes !== undefined && typeof promptTypes !== 'object') {
+        return res.status(400).json({ error: 'promptTypes must be an object' });
+      }
+
+      const settings = (await dbUnified.read('settings')) || {};
+      const existingActionPrompts = settings.emailAutomation?.actionPrompts || {};
+
+      const newActionPrompts = {
+        ...existingActionPrompts,
+        ...(enabled !== undefined ? { enabled } : {}),
+        ...(cron !== undefined ? { cron } : {}),
+        promptTypes: {
+          missingPackages:
+            promptTypes?.missingPackages !== undefined
+              ? promptTypes.missingPackages
+              : existingActionPrompts.promptTypes?.missingPackages !== false,
+          incompleteProfile:
+            promptTypes?.incompleteProfile !== undefined
+              ? promptTypes.incompleteProfile
+              : existingActionPrompts.promptTypes?.incompleteProfile !== false,
+        },
+        updatedAt: new Date().toISOString(),
+        updatedBy: req.user.email,
+      };
+
+      settings.emailAutomation = {
+        ...(settings.emailAutomation || {}),
+        actionPrompts: newActionPrompts,
+      };
+
+      await dbUnified.writeAndVerify('settings', settings);
+
+      auditLog({
+        adminId: req.user.id,
+        adminEmail: req.user.email,
+        action: 'EMAIL_AUTOMATION_UPDATED',
+        targetType: 'settings',
+        targetId: null,
+        details: newActionPrompts,
+      });
+
+      res.json({ success: true, actionPrompts: newActionPrompts });
+    } catch (error) {
+      logger.error('Error updating email-automation settings:', error);
+      res.status(500).json({ error: 'Failed to update settings' });
+    }
+  }
+);
+
 /**
  * GET /api/admin/settings/maintenance
  * Get maintenance mode settings

@@ -1708,6 +1708,28 @@ async function startServer() {
           logger.warn('   ⚠️  System Check Scheduler failed to initialize:', scsErr.message);
           logger.warn('   Daily system checks will not run automatically');
         }
+
+        // 4e. Initialize Action Prompt Scheduler
+        logger.info('');
+        logger.info('📬 Initializing Action Prompt Scheduler...');
+        try {
+          const { scheduleActionPrompts } = require('./services/actionPromptScheduler');
+          const apResult = scheduleActionPrompts();
+
+          if (apResult.scheduled) {
+            logger.info('   ✅ Action prompt emails scheduled');
+            logger.info(`   ✅ Cron: ${apResult.cronExpr}`);
+            if (apResult.nextRun) {
+              logger.info(`   ⏰ Next run: ${apResult.nextRun.toISOString()}`);
+            }
+          } else {
+            logger.info('   ℹ️  Action prompt scheduler disabled');
+            logger.info('   Set ACTION_PROMPTS_ENABLED=true to enable');
+          }
+        } catch (apErr) {
+          logger.warn('   ⚠️  Action Prompt Scheduler failed to initialize:', apErr.message);
+          logger.warn('   Automated action-prompt emails will not run');
+        }
       } catch (error) {
         logger.error('');
         logger.error('='.repeat(70));

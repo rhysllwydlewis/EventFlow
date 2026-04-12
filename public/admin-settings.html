@@ -188,6 +188,63 @@
       </div>
     </div>
     
+    <!-- Email Automation -->
+    <div class="card">
+      <h2>Email Automation — Supplier Action Prompts</h2>
+      <p class="small">Automatically remind suppliers of outstanding actions (missing packages, incomplete profile). Only verified suppliers with the setting enabled will receive these emails.</p>
+
+      <div id="emailAutomationStatus" class="feature-flags-status" style="display: none;">
+        <strong>Status:</strong> <span id="emailAutomationStatusText">Loading...</span>
+      </div>
+
+      <div id="emailAutomationSettings">
+        <div class="feature-item">
+          <div>
+            <strong>Enable Action-Prompt Emails</strong>
+            <div class="small">Master switch — when off, no automated reminders are sent</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="emailAutoEnabled">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="feature-item">
+          <div>
+            <strong>Remind: Missing Packages</strong>
+            <div class="small">Email suppliers who have not created any packages</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="emailAutoMissingPackages">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="feature-item">
+          <div>
+            <strong>Remind: Incomplete Profile</strong>
+            <div class="small">Email suppliers whose profiles are missing required fields</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="emailAutoIncompleteProfile">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="form-row" style="margin-top:1rem;">
+          <label for="emailAutoCron" style="font-weight:600;font-size:0.9rem;">Cron Schedule</label>
+          <input type="text" id="emailAutoCron" placeholder="0 9 * * *" style="font-family:monospace;max-width:220px;" aria-describedby="emailAutoCronHint">
+          <p id="emailAutoCronHint" class="small" style="margin-top:0.25rem;color:#6b7280;">Default: <code>0 9 * * *</code> (9am daily). Requires server restart to take effect.</p>
+        </div>
+      </div>
+
+      <div id="emailAutoLastUpdated" style="margin-top:1rem;padding:0.75rem;background:#f8f9fa;border-radius:4px;font-size:0.9rem;color:#666;display:none;">
+        <strong>Last updated:</strong> <span id="emailAutoUpdatedTime">-</span> by <span id="emailAutoUpdatedBy">-</span>
+      </div>
+
+      <button class="btn btn-primary mt-1" id="saveEmailAutomation" disabled>Save Email Automation</button>
+    </div>
+
     <!-- Audit Log Viewer -->
     <div class="card">
       <h2>Recent Audit Log</h2>

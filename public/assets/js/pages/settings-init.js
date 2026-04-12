@@ -80,6 +80,15 @@ async function loadProfile() {
       if (callout) {
         callout.style.display = 'block';
       }
+      // Show supplier reminder email prefs section
+      const reminderPrefs = document.getElementById('supplier-reminder-prefs');
+      if (reminderPrefs) {
+        reminderPrefs.style.display = 'block';
+      }
+      // Update sub-prefs visibility based on master toggle
+      updateApSubPrefsVisibility();
+      // Load email prefs from settings API
+      loadEmailPrefs();
     }
 
     // Avatar preview
@@ -262,6 +271,47 @@ document.getElementById('profile-form').addEventListener('submit', async e => {
 // Load profile on page load
 loadProfile();
 
+// ===== ACTION PROMPT PREFS (loaded after profile to know the role) =====
+function updateApSubPrefsVisibility() {
+  const masterEnabled = document.getElementById('ap-enabled')?.checked !== false;
+  const subPrefs = document.getElementById('ap-sub-prefs');
+  if (subPrefs) {
+    subPrefs.style.opacity = masterEnabled ? '1' : '0.5';
+    subPrefs.style.pointerEvents = masterEnabled ? 'auto' : 'none';
+  }
+}
+
+// Load email prefs from API and populate supplier reminder checkboxes
+async function loadEmailPrefs() {
+  try {
+    const r = await fetch('/api/me/settings', { credentials: 'include' });
+    if (!r.ok) {
+      return;
+    }
+    const d = await r.json();
+    const ap = d.emailPrefs?.actionPrompts;
+    if (!ap) {
+      return;
+    }
+
+    const setChecked = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.checked = val;
+      }
+    };
+    setChecked('ap-enabled', ap.enabled !== false);
+    setChecked('ap-missing-packages', ap.missingPackages !== false);
+    setChecked('ap-incomplete-profile', ap.incompleteProfile !== false);
+    updateApSubPrefsVisibility();
+  } catch (e) {
+    // Non-fatal — defaults are all ON
+  }
+}
+
+// Wire master toggle visibility
+document.getElementById('ap-enabled')?.addEventListener('change', updateApSubPrefsVisibility);
+
 // ===== RESTART TOUR =====
 document.getElementById('restart-tour').addEventListener('click', function () {
   localStorage.removeItem('ef_homepage_tour_completed');
@@ -355,11 +405,25 @@ document.getElementById('save-settings').addEventListener('click', async () => {
   try {
     localStorage.setItem('ef_notification_sound_enabled', soundEnabled);
     localStorage.setItem('ef_notification_volume', volume);
+
+    // Build payload — include emailPrefs if supplier prefs section is visible
+    const payload = { notify };
+    const reminderPrefs = document.getElementById('supplier-reminder-prefs');
+    if (reminderPrefs && reminderPrefs.style.display !== 'none') {
+      payload.emailPrefs = {
+        actionPrompts: {
+          enabled: document.getElementById('ap-enabled')?.checked !== false,
+          missingPackages: document.getElementById('ap-missing-packages')?.checked !== false,
+          incompleteProfile: document.getElementById('ap-incomplete-profile')?.checked !== false,
+        },
+      };
+    }
+
     const response = await fetch('/api/me/settings', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.__CSRF_TOKEN__ || '' },
       credentials: 'include',
-      body: JSON.stringify({ notify }),
+      body: JSON.stringify(payload),
     });
     if (!response.ok) {
       throw new Error('Failed to save');

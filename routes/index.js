@@ -57,6 +57,7 @@ const emailVerificationRoutes = require('./emailVerification');
 const catalogRoutes = require('./catalog');
 const publicCalendarRoutes = require('./public-calendar');
 const customerCalendarRoutes = require('./customer-calendar');
+const emailUnsubscribeRoutes = require('./emailUnsubscribe');
 
 /**
  * Mount all route modules
@@ -421,6 +422,9 @@ function mountRoutes(app, deps) {
   // Redirect old messages page to new messenger
   app.get('/messages', (req, res) => res.redirect(301, '/messenger/'));
   app.get('/messages.html', (req, res) => res.redirect(301, '/messenger/'));
+
+  // Email unsubscribe routes (public — no auth required)
+  app.use('/email', emailUnsubscribeRoutes);
 
   // Redirect old conversation page to new messenger
   app.get('/conversation', (req, res) => {

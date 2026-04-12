@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang='en-GB'>
+<head>
+  <meta charset='utf-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes'>
+  <meta name='theme-color' content='#0B8073'>
+  <title>Unsubscribed — EventFlow</title>
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.3.0">
+  <link rel='stylesheet' href='/assets/css/navbar.css?v=18.3.0'>
+  <link rel='stylesheet' href='/assets/css/eventflow-17.0.0.css?v=18.3.0'>
+  <link rel='stylesheet' href='/assets/css/utilities.css?v=18.3.0'>
+  <link rel='stylesheet' href='/assets/css/components.css?v=18.3.0'>
+  <link rel='stylesheet' href='/assets/css/animations.css?v=18.3.0'>
+  <link rel='stylesheet' href='/assets/css/mobile-optimizations.css?v=18.3.0'>
+  <link rel='icon' href='/favicon.svg'>
+</head>
+<body>
+<main style="min-height:70vh;display:flex;align-items:center;justify-content:center;padding:2rem;">
+  <div style="max-width:480px;width:100%;text-align:center;">
+    <div id="success-content" style="display:none;">
+      <div style="width:72px;height:72px;background:linear-gradient(135deg,#0B8073,#13B6A2);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <h1 style="font-size:1.75rem;font-weight:700;color:#0B1220;margin:0 0 1rem;">You've been unsubscribed</h1>
+      <p style="font-size:1rem;color:#334155;line-height:1.7;margin:0 0 1.5rem;">
+        You will no longer receive automated reminder emails from EventFlow.
+        You can re-enable them at any time in your
+        <a href="/settings" style="color:#0B8073;font-weight:600;">account settings</a>.
+      </p>
+      <a href="/" style="display:inline-block;padding:12px 32px;background:linear-gradient(135deg,#0B8073,#13B6A2);color:#fff;border-radius:10px;text-decoration:none;font-weight:600;font-size:0.95rem;">Back to EventFlow</a>
+    </div>
+
+    <div id="error-content" style="display:none;">
+      <div style="width:72px;height:72px;background:#fee2e2;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
+      <h1 style="font-size:1.75rem;font-weight:700;color:#0B1220;margin:0 0 1rem;">Something went wrong</h1>
+      <p style="font-size:1rem;color:#334155;line-height:1.7;margin:0 0 1.5rem;" id="error-message">
+        This unsubscribe link is invalid or has expired.
+        You can manage your email preferences in your
+        <a href="/settings" style="color:#0B8073;font-weight:600;">account settings</a>.
+      </p>
+      <a href="/" style="display:inline-block;padding:12px 32px;background:#e5e7eb;color:#374151;border-radius:10px;text-decoration:none;font-weight:600;font-size:0.95rem;">Back to EventFlow</a>
+    </div>
+  </div>
+</main>
+
+<script src="/assets/js/pages/unsubscribed-action-prompts.js"></script>
+</body>
+</html>

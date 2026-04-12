@@ -444,6 +444,50 @@
       <span id="test-sound-feedback" style="font-size:0.82rem;min-height:1.2rem;" role="status" aria-live="polite"></span>
     </div>
   </div>
+
+  <!-- Supplier Reminder Emails (shown for supplier accounts only) -->
+  <div id="supplier-reminder-prefs" style="display:none;margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid #f3f4f6;">
+    <h3 style="margin:0 0 0.5rem;font-size:1rem;font-weight:600;color:#0B1220;">Supplier Reminder Emails</h3>
+    <p style="margin:0 0 1rem;font-size:0.875rem;color:#6b7280;line-height:1.6;">
+      Occasionally we'll email you reminders about outstanding items on your supplier account.
+      You can control which reminders you receive below.
+    </p>
+
+    <div class="toggle-row">
+      <label class="toggle-label" for="ap-enabled">
+        <span>Send me reminder emails about incomplete tasks</span>
+        <small>Master switch for all action-prompt reminders</small>
+      </label>
+      <label class="toggle-switch">
+        <input id="ap-enabled" type="checkbox" role="switch" checked>
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+
+    <div id="ap-sub-prefs" style="margin-left:1rem;border-left:2px solid #e5e7eb;padding-left:1rem;margin-top:0.5rem;">
+      <div class="toggle-row">
+        <label class="toggle-label" for="ap-missing-packages">
+          <span>Remind me to create packages</span>
+          <small>Email me if I haven't created any service packages yet</small>
+        </label>
+        <label class="toggle-switch">
+          <input id="ap-missing-packages" type="checkbox" role="switch" checked>
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row" style="margin-top:0.5rem;">
+        <label class="toggle-label" for="ap-incomplete-profile">
+          <span>Remind me to complete my profile</span>
+          <small>Email me if my supplier profile is missing required information</small>
+        </label>
+        <label class="toggle-switch">
+          <input id="ap-incomplete-profile" type="checkbox" role="switch" checked>
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+    </div>
+  </div>
   
   <div class="form-actions" style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid #f3f4f6;">
     <button class="cta" id="save-settings">Save Preferences</button>
