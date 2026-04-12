@@ -279,7 +279,7 @@
     const name = supplierName || '';
     images = photoUrls.map((url, i) => ({
       src: url,
-      alt: name ? `${name} \u2014 photo ${i + 1}` : `Photo ${i + 1}`,
+      alt: name ? `${name} \u2014 photo ${i + 1}` : `photo ${i + 1}`,
       caption: '',
     }));
 
