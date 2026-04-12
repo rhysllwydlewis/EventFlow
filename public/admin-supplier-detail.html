@@ -71,6 +71,7 @@
       <button class="tab-btn" data-tab="reviews">Reviews</button>
       <button class="tab-btn" data-tab="analytics">Analytics</button>
       <button class="tab-btn" data-tab="verification">Verification Audit</button>
+      <button class="tab-btn" data-tab="action-prompts">📧 Action Prompts</button>
     </div>
 
     <div id="overview" class="tab-content active">
@@ -143,6 +144,32 @@
             <p>Health Score</p>
           </div>
         </div>
+      </div>
+    </div>
+
+    <div id="action-prompts" class="tab-content">
+      <div class="info-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;margin-bottom:1rem;">
+          <h3 style="margin:0;">Action Prompt Emails</h3>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+            <button class="btn btn-secondary" id="apCopyDebugBtn" type="button">📋 Copy Debug Summary</button>
+            <button class="btn btn-secondary" id="apRefreshBtn" type="button">↻ Refresh</button>
+          </div>
+        </div>
+        <div id="apDiagnosticsPanel">
+          <p style="color:#6b7280;">Click the <strong>Action Prompts</strong> tab to load diagnostics.</p>
+        </div>
+      </div>
+
+      <div class="info-card">
+        <h3>Admin Actions</h3>
+        <p class="small" style="color:#6b7280;margin-bottom:1rem;">Use these controls to manage reminder emails for this supplier. All actions are logged.</p>
+        <div style="display:flex;gap:0.625rem;flex-wrap:wrap;">
+          <button class="btn btn-secondary" id="apEnableBtn" type="button" title="Re-enable action-prompt reminder emails for this supplier">Enable Reminders</button>
+          <button class="btn btn-secondary" id="apDisableBtn" type="button" style="color:#dc2626;border-color:#dc2626;" title="Disable action-prompt reminder emails for this supplier">Disable Reminders</button>
+          <button class="btn btn-secondary" id="apResetCadenceBtn" type="button" title="Reset the send-cadence counter so the supplier starts the daily→weekly→monthly cycle from scratch">Reset Cadence</button>
+        </div>
+        <div id="apActionStatus" style="margin-top:0.75rem;display:none;"></div>
       </div>
     </div>
 

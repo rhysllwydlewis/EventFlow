@@ -1076,3 +1076,111 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+
+// ── Next Steps / Action Checklist ─────────────────────────────────────────
+// Loads outstanding action items from the server (same logic as action-prompt emails)
+// and renders a clear card with severity badges and direct CTA links.
+(function () {
+  const DISMISS_KEY = 'ef_next_steps_dismissed_v1';
+
+  function isDismissed() {
+    try {
+      return localStorage.getItem(DISMISS_KEY) === '1';
+    } catch {
+      return false;
+    }
+  }
+
+  function severityStyle(severity) {
+    if (severity === 'red') {
+      return {
+        bg: '#fee2e2',
+        border: '#dc2626',
+        text: '#991b1b',
+        badge: '#dc2626',
+        badgeText: '#fff',
+        label: 'Required',
+      };
+    }
+    return {
+      bg: '#fffbeb',
+      border: '#d97706',
+      text: '#92400e',
+      badge: '#d97706',
+      badgeText: '#fff',
+      label: 'Recommended',
+    };
+  }
+
+  function renderNextSteps(data) {
+    const card = document.getElementById('next-steps-card');
+    const list = document.getElementById('next-steps-list');
+    if (!card || !list) {
+      return;
+    }
+
+    if (!data || data.outstanding.length === 0) {
+      card.style.display = 'none';
+      return;
+    }
+
+    if (isDismissed()) {
+      card.style.display = 'none';
+      return;
+    }
+
+    card.style.display = '';
+
+    const items = data.outstanding
+      .map(action => {
+        const s = severityStyle(action.severity);
+        const ctaHtml = action.ctaUrl
+          ? `<a href="${action.ctaUrl}" style="display:inline-block;margin-top:0.5rem;padding:0.35rem 0.875rem;background:#0b8073;color:#fff;border-radius:6px;font-size:0.8rem;font-weight:600;text-decoration:none;">${action.ctaText || 'Fix now'}</a>`
+          : '';
+        return `<div style="display:flex;gap:0.875rem;padding:0.875rem;background:${s.bg};border:1px solid ${s.border};border-radius:8px;margin-bottom:0.625rem;">
+        <div style="flex-shrink:0;margin-top:0.125rem;">
+          <span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:9999px;background:${s.badge};color:${s.badgeText};font-size:0.7rem;font-weight:700;">${s.label}</span>
+        </div>
+        <div style="flex:1;">
+          <div style="font-weight:600;color:${s.text};margin-bottom:0.25rem;">${action.title || action.key}</div>
+          <div style="font-size:0.82rem;color:${s.text};opacity:0.9;">${action.description || ''}</div>
+          ${ctaHtml}
+        </div>
+      </div>`;
+      })
+      .join('');
+
+    const dismissHtml = `<div style="text-align:right;margin-top:0.25rem;">
+      <button type="button" id="nextStepsDismissBtn" style="background:none;border:none;color:#94a3b8;font-size:0.78rem;cursor:pointer;padding:0.25rem 0;">Dismiss for now</button>
+    </div>`;
+
+    list.innerHTML = items + dismissHtml;
+
+    document.getElementById('nextStepsDismissBtn')?.addEventListener('click', () => {
+      try {
+        localStorage.setItem(DISMISS_KEY, '1');
+      } catch {
+        /* */
+      }
+      card.style.display = 'none';
+    });
+  }
+
+  async function loadNextSteps() {
+    try {
+      const res = await fetch('/api/me/action-prompt-checklist', { credentials: 'include' });
+      if (!res.ok) {
+        return;
+      }
+      const data = await res.json();
+      renderNextSteps(data);
+    } catch {
+      // Non-critical — silently skip if endpoint is unavailable
+    }
+  }
+
+  // Load after a short delay so higher-priority widgets load first
+  window.addEventListener('load', () => {
+    setTimeout(loadNextSteps, 800);
+  });
+})();

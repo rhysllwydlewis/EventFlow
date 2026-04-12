@@ -478,13 +478,33 @@ async function runActionPrompts({ dryRun = false, limit } = {}) {
     `[ActionPrompts] Run complete: scanned=${scanned}, sent=${sent}, skippedCadence=${skippedCadence}, errors=${errors}, cappedByLimit=${cappedByLimit}`
   );
 
-  // Persist lastRun to settings so admin UI can display it
+  // Persist lastRun + runHistory to settings so admin UI can display it
   if (!dryRun) {
     try {
       const settings = (await dbUnified.read('settings')) || {};
       settings.emailAutomation = settings.emailAutomation || {};
       settings.emailAutomation.actionPrompts = settings.emailAutomation.actionPrompts || {};
       settings.emailAutomation.actionPrompts.lastRun = summary;
+
+      // Maintain a capped history list (last 20 runs, most-recent first)
+      const RUN_HISTORY_MAX = 20;
+      const historyEntry = {
+        finishedAt: summary.finishedAt,
+        startedAt: summary.startedAt,
+        durationMs: summary.durationMs,
+        dryRun: summary.dryRun,
+        scanned: summary.scanned,
+        sent: summary.sent,
+        skippedCadence: summary.skippedCadence,
+        cappedByLimit: summary.cappedByLimit,
+        errors: summary.errors,
+      };
+      const existing = settings.emailAutomation.actionPrompts.runHistory || [];
+      settings.emailAutomation.actionPrompts.runHistory = [historyEntry, ...existing].slice(
+        0,
+        RUN_HISTORY_MAX
+      );
+
       await dbUnified.writeAndVerify('settings', settings);
     } catch (err) {
       logger.warn('[ActionPrompts] Failed to persist lastRun to settings:', err.message);

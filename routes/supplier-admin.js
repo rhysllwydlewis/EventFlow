@@ -1231,5 +1231,304 @@ router.get(
   }
 );
 
+// ── Action Prompt admin endpoints ─────────────────────────────────────────
+
+// Lazy-load so we don't create a circular dep at module initialisation time
+function getActionPromptService() {
+  return require('../services/actionPromptService');
+}
+
+/**
+ * GET /api/admin/suppliers/:id/action-prompts/diagnostics
+ * Returns a plain-English diagnostics snapshot for the admin: global settings,
+ * user prefs, current outstanding actions, cadence state, and optional warnings.
+ */
+router.get(
+  '/suppliers/:id/action-prompts/diagnostics',
+  apiLimiter,
+  applyAuthRequired,
+  applyRoleRequired('admin'),
+  async (req, res) => {
+    try {
+      const supplierId = req.params.id;
+      const [allSuppliers, allUsers, allPackages, settings] = await Promise.all([
+        dbUnified.read('suppliers'),
+        dbUnified.read('users'),
+        dbUnified.read('packages'),
+        dbUnified.read('settings'),
+      ]);
+
+      const supplier = allSuppliers.find(s => s.id === supplierId);
+      if (!supplier) {
+        return res.status(404).json({ error: 'Supplier not found' });
+      }
+
+      const user = allUsers.find(u => u.id === supplier.ownerUserId);
+      const actionPromptSettings = settings?.emailAutomation?.actionPrompts || {};
+      const { computeFullReport, evaluateCadence, REQUIRED_PROFILE_FIELDS } =
+        getActionPromptService();
+
+      // Global state
+      const globalEnabled = actionPromptSettings.enabled === true;
+      const promptTypes = actionPromptSettings.promptTypes || {};
+      const globalToggles = {
+        missingPackages: promptTypes.missingPackages !== false,
+        incompleteProfile: promptTypes.incompleteProfile !== false,
+        missingPhotos: promptTypes.missingPhotos !== false,
+      };
+
+      // User state
+      const userVerified = user ? user.verified === true : false;
+      const userEmailPrefs = user?.emailPrefs?.actionPrompts || {};
+      const userPrefsEnabled = userEmailPrefs.enabled !== false;
+      const userPerTypePrefs = {
+        missingPackages: userEmailPrefs.missingPackages !== false,
+        incompleteProfile: userEmailPrefs.incompleteProfile !== false,
+        missingPhotos: userEmailPrefs.missingPhotos !== false,
+      };
+
+      // Outstanding actions — always compute using a synthetic all-prefs-enabled user when
+      // no real user is linked, so the admin can see what the supplier's state looks like
+      // even if the user account is missing. actionsBasedOnSyntheticUser flag distinguishes this.
+      const reportUser = user || {
+        emailPrefs: {
+          actionPrompts: {
+            enabled: true,
+            missingPackages: true,
+            incompleteProfile: true,
+            missingPhotos: true,
+          },
+        },
+      };
+      const report = computeFullReport(supplier, allPackages, settings || {}, reportUser);
+      const outstandingActions = report.outstanding;
+      const completedActions = report.completed;
+      const ragStatus = report.ragStatus;
+      const completionPercent = report.completionPercent;
+      const actionsBasedOnSyntheticUser = !user;
+
+      // Cadence state
+      const cadenceState = user?.actionPromptState || null;
+      let cadenceEval = null;
+      if (outstandingActions.length > 0) {
+        cadenceEval = evaluateCadence(cadenceState, new Date());
+      }
+
+      // Warnings
+      const warnings = [];
+      const unsubscribeSecret = process.env.UNSUBSCRIBE_SECRET || process.env.JWT_SECRET || null;
+      if (!unsubscribeSecret && process.env.NODE_ENV === 'production') {
+        warnings.push(
+          'UNSUBSCRIBE_SECRET (or JWT_SECRET) is not set — unsubscribe links are disabled in production. Emails will not include an unsubscribe link.'
+        );
+      }
+      if (!globalEnabled) {
+        warnings.push('Global action-prompt emails are disabled. No reminders will be sent.');
+      }
+      if (!userVerified) {
+        warnings.push('Supplier user email is not verified. They are excluded from all sends.');
+      }
+      if (user && !userPrefsEnabled) {
+        warnings.push('This supplier has disabled action-prompt reminders in their settings.');
+      }
+
+      // Profile completeness detail
+      const missingProfileFields = REQUIRED_PROFILE_FIELDS.filter(
+        f => !supplier[f] || String(supplier[f]).trim() === ''
+      );
+
+      // Last run info (global)
+      const lastRun = actionPromptSettings.lastRun || null;
+
+      // Debug summary text (for "Copy debug summary" button)
+      const debugLines = [
+        `=== Action Prompt Diagnostics: ${supplier.name || supplierId} ===`,
+        `Generated: ${new Date().toISOString()}`,
+        '',
+        `Global enabled: ${globalEnabled}`,
+        `Global prompt-type toggles: missingPackages=${globalToggles.missingPackages}, incompleteProfile=${globalToggles.incompleteProfile}, missingPhotos=${globalToggles.missingPhotos}`,
+        '',
+        `Supplier: ${supplier.name || 'N/A'} (${supplierId})`,
+        `Owner user: ${user ? `${user.email} (${user.id})` : 'NO USER LINKED'}`,
+        `User verified: ${userVerified}`,
+        `User prefs enabled: ${userPrefsEnabled}`,
+        `User per-type prefs: missingPackages=${userPerTypePrefs.missingPackages}, incompleteProfile=${userPerTypePrefs.incompleteProfile}, missingPhotos=${userPerTypePrefs.missingPhotos}`,
+        '',
+        `Outstanding actions (${outstandingActions.length}): ${outstandingActions.map(a => a.key).join(', ') || 'none'}`,
+        `Completed actions (${completedActions.length}): ${completedActions.map(a => a.key).join(', ') || 'none'}`,
+        `RAG status: ${ragStatus} (${completionPercent}% complete)`,
+        missingProfileFields.length > 0
+          ? `Missing profile fields: ${missingProfileFields.join(', ')}`
+          : 'Profile fields: all present',
+        '',
+        `Cadence state: ${cadenceState ? `stage=${cadenceState.cadence}, dailySends=${cadenceState.sendCountDaily ?? 0}, weeklySends=${cadenceState.sendCountWeekly ?? 0}, monthlySends=${cadenceState.sendCountMonthly ?? 0}` : 'none (not yet initialised)'}`,
+        cadenceState?.lastSentAt
+          ? `Last sent at: ${cadenceState.lastSentAt}`
+          : 'Last sent at: never',
+        cadenceState?.nextSendAt ? `Next send at: ${cadenceState.nextSendAt}` : '',
+        cadenceState?.firstOutstandingAt
+          ? `First outstanding at: ${cadenceState.firstOutstandingAt}`
+          : '',
+        cadenceEval ? `Would send now: ${cadenceEval.shouldSend}` : '',
+        '',
+        lastRun
+          ? `Last global run: ${lastRun.finishedAt} — scanned=${lastRun.scanned}, sent=${lastRun.sent}, errors=${lastRun.errors}`
+          : 'Last global run: no run recorded yet',
+        warnings.length > 0 ? `\nWarnings:\n  - ${warnings.join('\n  - ')}` : '',
+      ]
+        .filter(l => l !== undefined)
+        .join('\n');
+
+      res.json({
+        ok: true,
+        supplierId,
+        supplierName: supplier.name || null,
+        global: {
+          enabled: globalEnabled,
+          promptTypes: globalToggles,
+        },
+        user: user
+          ? {
+              id: user.id,
+              email: user.email,
+              verified: userVerified,
+              emailPrefsEnabled: userPrefsEnabled,
+              emailPrefsPerType: userPerTypePrefs,
+            }
+          : null,
+        actions: {
+          outstanding: outstandingActions,
+          completed: completedActions,
+          ragStatus,
+          completionPercent,
+          missingProfileFields,
+          basedOnSyntheticUser: actionsBasedOnSyntheticUser,
+        },
+        cadence: {
+          state: cadenceState,
+          wouldSendNow: cadenceEval ? cadenceEval.shouldSend : false,
+        },
+        lastRun,
+        warnings,
+        debugSummary: debugLines,
+      });
+    } catch (error) {
+      logger.error('Error generating action-prompt diagnostics:', error);
+      res.status(500).json({ error: 'Failed to generate action-prompt diagnostics' });
+    }
+  }
+);
+
+/**
+ * POST /api/admin/suppliers/:id/action-prompts/reset-cadence
+ * Clears the actionPromptState for the supplier's user account.
+ * After this, the cadence restarts from the beginning (daily stage) the next time
+ * they have outstanding actions.
+ */
+router.post(
+  '/suppliers/:id/action-prompts/reset-cadence',
+  writeLimiter,
+  applyAuthRequired,
+  applyRoleRequired('admin'),
+  applyCsrfProtection,
+  async (req, res) => {
+    try {
+      const supplierId = req.params.id;
+      const allSuppliers = await dbUnified.read('suppliers');
+      const supplier = allSuppliers.find(s => s.id === supplierId);
+      if (!supplier) {
+        return res.status(404).json({ error: 'Supplier not found' });
+      }
+
+      const allUsers = await dbUnified.read('users');
+      const user = allUsers.find(u => u.id === supplier.ownerUserId);
+      if (!user) {
+        return res.status(404).json({ error: 'No user linked to this supplier' });
+      }
+
+      await dbUnified.updateOne('users', { id: user.id }, { $set: { actionPromptState: null } });
+
+      await auditLog({
+        adminId: req.user.id,
+        adminEmail: req.user.email,
+        action: 'ACTION_PROMPT_CADENCE_RESET',
+        targetType: 'user',
+        targetId: user.id,
+        details: { supplierId },
+      });
+
+      res.json({ ok: true, message: 'Cadence state reset. Will reinitialise on next run.' });
+    } catch (error) {
+      logger.error('Error resetting action-prompt cadence:', error);
+      res.status(500).json({ error: 'Failed to reset cadence' });
+    }
+  }
+);
+
+/**
+ * POST /api/admin/suppliers/:id/action-prompts/set-enabled
+ * Body: { enabled: boolean }
+ * Sets the supplier user's emailPrefs.actionPrompts.enabled flag.
+ */
+router.post(
+  '/suppliers/:id/action-prompts/set-enabled',
+  writeLimiter,
+  applyAuthRequired,
+  applyRoleRequired('admin'),
+  applyCsrfProtection,
+  async (req, res) => {
+    try {
+      const supplierId = req.params.id;
+      const { enabled } = req.body;
+
+      if (typeof enabled !== 'boolean') {
+        return res.status(400).json({ error: 'enabled must be a boolean' });
+      }
+
+      const allSuppliers = await dbUnified.read('suppliers');
+      const supplier = allSuppliers.find(s => s.id === supplierId);
+      if (!supplier) {
+        return res.status(404).json({ error: 'Supplier not found' });
+      }
+
+      const allUsers = await dbUnified.read('users');
+      const user = allUsers.find(u => u.id === supplier.ownerUserId);
+      if (!user) {
+        return res.status(404).json({ error: 'No user linked to this supplier' });
+      }
+
+      const updatedPrefs = {
+        ...(user.emailPrefs || {}),
+        actionPrompts: {
+          ...(user.emailPrefs?.actionPrompts || {}),
+          enabled,
+        },
+      };
+
+      await dbUnified.updateOne('users', { id: user.id }, { $set: { emailPrefs: updatedPrefs } });
+
+      await auditLog({
+        adminId: req.user.id,
+        adminEmail: req.user.email,
+        action: enabled ? 'ACTION_PROMPT_ENABLED' : 'ACTION_PROMPT_DISABLED',
+        targetType: 'user',
+        targetId: user.id,
+        details: { supplierId, enabled },
+      });
+
+      res.json({
+        ok: true,
+        message: enabled
+          ? 'Action-prompt reminders enabled for this supplier.'
+          : 'Action-prompt reminders disabled for this supplier.',
+        enabled,
+      });
+    } catch (error) {
+      logger.error('Error updating action-prompt enabled state:', error);
+      res.status(500).json({ error: 'Failed to update action-prompt setting' });
+    }
+  }
+);
+
 module.exports = router;
 module.exports.initializeDependencies = initializeDependencies;

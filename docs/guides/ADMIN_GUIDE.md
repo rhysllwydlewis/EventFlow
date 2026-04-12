@@ -93,10 +93,10 @@ The owner account (`admin@event-flow.co.uk`) has special protections:
 
 At the top of the Supplier Management page there is an **Auto-approve supplier verification** toggle:
 
-| Setting | Effect |
-|---------|--------|
-| OFF (default) | Suppliers who submit for verification enter the pending verification queue. Admins must manually approve, reject, or request changes. |
-| ON | When a supplier submits their profile for verification it is automatically approved and they become a verified supplier immediately. Audit trail records the system attribution. |
+| Setting       | Effect                                                                                                                                                                           |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| OFF (default) | Suppliers who submit for verification enter the pending verification queue. Admins must manually approve, reject, or request changes.                                            |
+| ON            | When a supplier submits their profile for verification it is automatically approved and they become a verified supplier immediately. Audit trail records the system attribution. |
 
 #### Viewing Suppliers
 
@@ -184,10 +184,10 @@ Photos are now **auto-approved on upload** — the manual approval workflow has 
 
 **Auto-approve behaviour:**
 
-| Setting | Effect |
-|---------|--------|
+| Setting      | Effect                                                                                                                                                      |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | ON (default) | Qualifying reviews (verified booking + no spam + sentiment ≥ -0.3) are approved immediately by the system. Only borderline/flagged reviews enter the queue. |
-| OFF | Every new review is held in the pending queue regardless of quality signals. Admins must manually approve or reject each one. |
+| OFF          | Every new review is held in the pending queue regardless of quality signals. Admins must manually approve or reject each one.                               |
 
 ### 6. Reports Queue
 
@@ -432,6 +432,109 @@ All admin endpoints require authentication and admin role.
 - Check popup blocker settings
 - Verify admin authentication
 - Try different browser
+
+---
+
+## Supplier Action-Prompt Email Automation
+
+### Overview
+
+EventFlow automatically sends reminder emails to verified suppliers who have
+outstanding actions (missing packages, incomplete profile, missing photos). The
+system uses a daily → weekly → monthly cadence and respects individual supplier
+preferences.
+
+### Global Controls (Admin Settings page)
+
+Navigate to **Admin Settings → Email Automation — Supplier Action Prompts**.
+
+| Control                     | Description                                                                  |
+| --------------------------- | ---------------------------------------------------------------------------- |
+| Enable Action-Prompt Emails | Master switch. **Off by default.** Must be turned on to send any reminders.  |
+| Remind: Missing Packages    | Send reminders to suppliers with 0 packages.                                 |
+| Remind: Incomplete Profile  | Send reminders to suppliers with missing profile fields.                     |
+| Remind: Missing Photos      | Send reminders to suppliers who have no gallery photos.                      |
+| Cron Schedule               | When the daily job runs (default: `0 9 * * *` = 9 am).                       |
+| **Dry Run**                 | Simulate a run — shows how many suppliers would be emailed, without sending. |
+| **Send Now…**               | Immediately send emails to all eligible suppliers (with confirmation).       |
+
+### Last Run & Run History
+
+After every real send, the **Last run** chip updates automatically on the Admin
+Settings page. Scroll down to the **Action Prompt Run History** table to see the
+last 20 runs, including scanned/sent/skipped/error counts.
+
+### Per-Supplier Controls (Admin Supplier Detail page)
+
+1. Open **Admin → Suppliers** and click on a supplier.
+2. Click the **📧 Action Prompts** tab.
+
+The panel shows (in plain English):
+
+- Whether global settings and per-type toggles are on/off.
+- Whether the supplier's email is verified.
+- Whether the supplier has opted out of reminders in their own settings.
+- Current outstanding actions with severity badges.
+- The full cadence state: current stage (daily/weekly/monthly), sends to date, last
+  sent time, and next scheduled send time.
+- The last global run summary.
+- Any warnings (e.g. missing secret key, user unverified).
+
+**Admin actions available on the tab:**
+
+| Button                    | What it does                                                                                                                                                                       |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Enable Reminders**      | Sets `emailPrefs.actionPrompts.enabled = true` for this supplier's user account.                                                                                                   |
+| **Disable Reminders**     | Sets `emailPrefs.actionPrompts.enabled = false` — no further emails until re-enabled.                                                                                              |
+| **Reset Cadence**         | Clears `actionPromptState` — the daily→weekly→monthly cycle restarts from scratch on the next scheduled run. Useful after a supplier has fixed all issues and fallen behind again. |
+| **📋 Copy Debug Summary** | Copies a plain-text diagnostics block to the clipboard. Paste this into a support ticket or Slack message for quick investigation.                                                 |
+
+All write actions are logged to the Audit Log.
+
+### Email Preview Tool (Admin Settings page)
+
+Scroll to the **Email Preview — Action Prompts** card.
+
+1. Enter the supplier's user ID (e.g. `user_abc123`) or email address.
+2. Click **Preview** — the rendered email HTML appears in a sandboxed iframe.
+3. Optionally click **Send Preview to Me** — the email is sent to **your** admin
+   email address (not the supplier). Requires confirmation.
+
+> **Security note:** The preview iframe uses `sandbox="allow-same-origin"` to
+> prevent script execution. The email HTML is rendered server-side using the
+> same template pipeline as production.
+
+### Cadence Explained
+
+| Stage       | Interval       | Max sends  |
+| ----------- | -------------- | ---------- |
+| **Daily**   | Every 24 hours | 7 sends    |
+| **Weekly**  | Every 7 days   | 4 sends    |
+| **Monthly** | Every 30 days  | Indefinite |
+
+The cadence resets automatically when a supplier fixes all outstanding actions.
+
+### Unsubscribe Links
+
+Each action-prompt email contains an unsubscribe link. Clicking it disables
+reminders for that supplier (`emailPrefs.actionPrompts.enabled = false`). They
+can re-enable it from their **Account → Notification Preferences** page.
+
+> If `UNSUBSCRIBE_SECRET` (or `JWT_SECRET`) is not set in production, unsubscribe
+> links are omitted from emails. A warning will appear on the Action Prompts
+> diagnostics tab for affected suppliers.
+
+### Environment Variables
+
+| Variable                              | Purpose                                                              |
+| ------------------------------------- | -------------------------------------------------------------------- |
+| `ACTION_PROMPTS_CRON`                 | Override the cron expression (bypasses DB setting).                  |
+| `ACTION_PROMPTS_ENABLED`              | Set to `false` or `0` to disable the scheduler outside production.   |
+| `ACTION_PROMPTS_MAX_SEND_PER_RUN`     | Hard cap on emails sent per run (default: 500 prod / 50 dev).        |
+| `ACTION_PROMPTS_UNSUBSCRIBE_TTL_DAYS` | Unsubscribe link expiry in days (default: 30).                       |
+| `UNSUBSCRIBE_SECRET`                  | Secret used to sign unsubscribe tokens (falls back to `JWT_SECRET`). |
+
+---
 
 ## Support
 
