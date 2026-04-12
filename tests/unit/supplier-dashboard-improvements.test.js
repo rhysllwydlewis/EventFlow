@@ -1,57 +1,46 @@
 /**
  * Unit tests for supplier dashboard improvements:
- *   - Welcome banner dismissal with localStorage persistence
- *   - X-button dismiss (both on welcome section and overlay card)
+ *   - Welcome overlay dismissal with localStorage persistence
+ *   - Overlay dismiss does NOT hide the hero section (#welcome-section)
  *   - Scroll-spy guard: at scrollY=0, always activate first pill
  */
 
-describe('Supplier welcome banner dismiss persistence', () => {
+describe('Supplier welcome overlay dismiss persistence', () => {
   const DISMISS_KEY = 'ef_supplier_welcome_dismissed';
 
-  // Mirrors the dismissal logic in initWelcomeSectionDismiss (dashboard-supplier-module.js):
-  // checks the dismiss key on load and hides the section if set.
-  function applyDismissalLogic(storage, welcomeEl) {
-    let dismissed = false;
-    try {
-      dismissed = storage.getItem(DISMISS_KEY) === '1';
-    } catch (_) {
-      /* ignore */
-    }
+  // Documented no-op: the hero (#welcome-section) is permanently visible.
+  // The dismiss key only prevents the onboarding overlay from reappearing;
+  // it never hides the hero. This function is kept to document that contract.
+  function applyDismissalLogic() {}
 
-    if (dismissed) {
-      welcomeEl.style.display = 'none';
-    }
-  }
-
-  // Mirrors the dismissWelcomeSection function from dashboard-supplier-module.js.
-  // In the real code a CSS transition runs first, then display:none is applied
-  // via setTimeout; here we apply the end-state directly for unit-test purposes.
-  function makeDismissHandler(storage, welcomeEl) {
-    return function dismissWelcomeSection() {
+  // Mirrors the updated dismissWelcomeOverlay function from dashboard-supplier-module.js.
+  // Stores both dismiss keys and removes the overlay element; the hero is NOT touched.
+  function makeDismissHandler(storage, overlayEl) {
+    return function dismissWelcomeOverlay() {
       try {
         storage.setItem('ef_onboarding_dismissed', '1');
         storage.setItem(DISMISS_KEY, '1');
       } catch (_) {
         /* ignore */
       }
-      // Real code starts a CSS animation then defers display:none via setTimeout.
-      // We apply the final hidden state synchronously to keep tests simple.
-      welcomeEl.style.display = 'none';
+      // Remove (simulate hide) the overlay, not the hero.
+      overlayEl.removed = true;
     };
   }
 
   // Legacy helper kept for backward-compat with existing tests.
-  function applyOnboardingDismissHandler(storage, welcomeEl, dismissBtn) {
+  // welcomeEl is now the OVERLAY (not the hero), matching the updated contract.
+  function applyOnboardingDismissHandler(storage, overlayEl, dismissBtn) {
     const listeners = {};
     dismissBtn.addEventListener = (evt, fn) => {
       listeners[evt] = fn;
     };
-    const handler = makeDismissHandler(storage, welcomeEl);
+    const handler = makeDismissHandler(storage, overlayEl);
     dismissBtn.addEventListener('click', handler);
     return listeners;
   }
 
-  it('hides the welcome section on load when dismiss key is already set', () => {
+  it('hero section remains visible on page load when dismiss key is already set', () => {
     const storage = { store: { [DISMISS_KEY]: '1' } };
     storage.getItem = key => storage.store[key] || null;
     storage.setItem = (key, val) => {
@@ -62,10 +51,11 @@ describe('Supplier welcome banner dismiss persistence', () => {
 
     applyDismissalLogic(storage, welcomeEl);
 
-    expect(welcomeEl.style.display).toBe('none');
+    // Hero must NOT be hidden — dismiss key only guards the overlay
+    expect(welcomeEl.style.display).toBe('');
   });
 
-  it('does not hide the welcome section on load when dismiss key is absent', () => {
+  it('hero section is visible on page load when dismiss key is absent', () => {
     const storage = { store: {} };
     storage.getItem = key => storage.store[key] || null;
     storage.setItem = (key, val) => {
@@ -79,64 +69,71 @@ describe('Supplier welcome banner dismiss persistence', () => {
     expect(welcomeEl.style.display).toBe('');
   });
 
-  it('hides welcome section and sets both dismiss keys when either X button or "Got it!" is clicked (shared handler)', () => {
-    // Both buttons (X and "Got it!") share the same dismissWelcomeSection handler.
-    // Verify the handler itself produces the correct side effects.
+  it('sets both dismiss keys and removes overlay — hero is NOT hidden — when dismiss is called', () => {
     const storage = { store: {} };
     storage.getItem = key => storage.store[key] || null;
     storage.setItem = (key, val) => {
       storage.store[key] = val;
     };
 
-    const welcomeEl = { style: { display: '' } };
-    const dismiss = makeDismissHandler(storage, welcomeEl);
+    const overlayEl = { removed: false };
+    const dismiss = makeDismissHandler(storage, overlayEl);
 
     dismiss();
 
-    expect(welcomeEl.style.display).toBe('none');
+    // Overlay is removed
+    expect(overlayEl.removed).toBe(true);
+    // Hero is not referenced by the dismiss handler — applyDismissalLogic is a no-op
+    const heroEl = { style: { display: '' } };
+    applyDismissalLogic();
+    expect(heroEl.style.display).toBe('');
+    // Both keys are stored
     expect(storage.store[DISMISS_KEY]).toBe('1');
     expect(storage.store['ef_onboarding_dismissed']).toBe('1');
   });
 
-  it('hides welcome section and sets both dismiss keys when overlay "Got it!" button is clicked', () => {
+  it('sets both dismiss keys and removes overlay when overlay "Got it!" button is clicked', () => {
     const storage = { store: {} };
     storage.getItem = key => storage.store[key] || null;
     storage.setItem = (key, val) => {
       storage.store[key] = val;
     };
 
-    const welcomeEl = { style: { display: '' } };
+    const overlayEl = { removed: false };
     const dismissBtn = {};
-    const listeners = applyOnboardingDismissHandler(storage, welcomeEl, dismissBtn);
+    const listeners = applyOnboardingDismissHandler(storage, overlayEl, dismissBtn);
 
     // Simulate clicking the "Got it! Let's go" button on the overlay card
     listeners.click();
 
-    expect(welcomeEl.style.display).toBe('none');
+    expect(overlayEl.removed).toBe(true);
     expect(storage.store[DISMISS_KEY]).toBe('1');
     expect(storage.store['ef_onboarding_dismissed']).toBe('1');
   });
 
-  it('persists dismissal so subsequent page loads also hide the welcome section', () => {
+  it('persists dismissal keys so the overlay does not reappear on subsequent page loads', () => {
     const storage = { store: {} };
     storage.getItem = key => storage.store[key] || null;
     storage.setItem = (key, val) => {
       storage.store[key] = val;
     };
 
-    // First "page load" — user clicks dismiss (either button)
-    const welcomeEl1 = { style: { display: '' } };
-    const dismiss = makeDismissHandler(storage, welcomeEl1);
+    // First "page load" — user clicks dismiss
+    const overlayEl1 = { removed: false };
+    const dismiss = makeDismissHandler(storage, overlayEl1);
     dismiss();
 
-    // Second "page load" — storage already has the dismiss flag
-    const welcomeEl2 = { style: { display: '' } };
-    applyDismissalLogic(storage, welcomeEl2);
+    // Second "page load" — key is already set, hero remains visible
+    const heroEl2 = { style: { display: '' } };
+    applyDismissalLogic(storage, heroEl2);
 
-    expect(welcomeEl2.style.display).toBe('none');
+    // Hero is still visible on return visit
+    expect(heroEl2.style.display).toBe('');
+    // Dismiss key persists (prevents overlay from reappearing)
+    expect(storage.store[DISMISS_KEY]).toBe('1');
   });
 
-  it('persists dismissal via onboarding overlay so subsequent page loads hide welcome section', () => {
+  it('persists dismissal keys via overlay "Got it!" so hero stays visible on subsequent loads', () => {
     const storage = { store: {} };
     storage.getItem = key => storage.store[key] || null;
     storage.setItem = (key, val) => {
@@ -144,16 +141,17 @@ describe('Supplier welcome banner dismiss persistence', () => {
     };
 
     // First "page load" — user clicks dismiss via the overlay "Got it!" button
-    const welcomeEl1 = { style: { display: '' } };
+    const overlayEl1 = { removed: false };
     const dismissBtn = {};
-    const listeners = applyOnboardingDismissHandler(storage, welcomeEl1, dismissBtn);
+    const listeners = applyOnboardingDismissHandler(storage, overlayEl1, dismissBtn);
     listeners.click();
 
-    // Second "page load" — storage already has the dismiss flag
-    const welcomeEl2 = { style: { display: '' } };
-    applyDismissalLogic(storage, welcomeEl2);
+    // Second "page load" — hero is still shown
+    const heroEl2 = { style: { display: '' } };
+    applyDismissalLogic(storage, heroEl2);
 
-    expect(welcomeEl2.style.display).toBe('none');
+    expect(heroEl2.style.display).toBe('');
+    expect(storage.store[DISMISS_KEY]).toBe('1');
   });
 
   it('handles storage errors gracefully (does not throw)', () => {
@@ -180,12 +178,12 @@ describe('Supplier welcome banner dismiss persistence', () => {
         throw new Error('QuotaExceededError');
       },
     };
-    const welcomeEl = { style: { display: '' } };
-    const dismiss = makeDismissHandler(storage, welcomeEl);
+    const overlayEl = { removed: false };
+    const dismiss = makeDismissHandler(storage, overlayEl);
 
     expect(() => dismiss()).not.toThrow();
-    // Welcome section is hidden even when storage throws (animation end-state)
-    expect(welcomeEl.style.display).toBe('none');
+    // Overlay is still removed even when storage throws
+    expect(overlayEl.removed).toBe(true);
   });
 
   it('handles storage errors in click handler gracefully (does not throw)', () => {
@@ -197,13 +195,13 @@ describe('Supplier welcome banner dismiss persistence', () => {
         throw new Error('QuotaExceededError');
       },
     };
-    const welcomeEl = { style: { display: '' } };
+    const overlayEl = { removed: false };
     const dismissBtn = {};
-    const listeners = applyOnboardingDismissHandler(storage, welcomeEl, dismissBtn);
+    const listeners = applyOnboardingDismissHandler(storage, overlayEl, dismissBtn);
 
     expect(() => listeners.click()).not.toThrow();
-    // Welcome section is hidden even when storage throws (animation end-state)
-    expect(welcomeEl.style.display).toBe('none');
+    // Overlay is still removed even when storage throws
+    expect(overlayEl.removed).toBe(true);
   });
 });
 

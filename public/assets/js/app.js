@@ -2562,7 +2562,7 @@ function efMaybeShowOnboarding(page) {
     }
 
     // Shared dismiss handler — delegates to module function if already loaded
-    function doOverlayDismiss() {
+    const doOverlayDismiss = function () {
       if (typeof window.dismissSupplierWelcome === 'function') {
         window.dismissSupplierWelcome();
         return;
@@ -2578,18 +2578,8 @@ function efMaybeShowOnboarding(page) {
       box.style.transition = `opacity 0.3s ${easing}, transform 0.3s ${easing}`;
       box.style.opacity = '0';
       box.style.transform = 'scale(0.95)';
-      const welcomeSection = document.getElementById('welcome-section');
-      if (welcomeSection) {
-        welcomeSection.style.transition = `opacity 0.35s ${easing}, transform 0.35s ${easing}, margin-bottom 0.35s ${easing}`;
-        welcomeSection.style.opacity = '0';
-        welcomeSection.style.transform = 'scale(0.98) translateY(-8px)';
-        welcomeSection.style.marginBottom = '0';
-        setTimeout(() => {
-          welcomeSection.style.display = 'none';
-        }, 350);
-      }
       setTimeout(() => box.remove(), 300);
-    }
+    };
 
     // Add X close button to the overlay card
     const xCloseBtn = document.createElement('button');
@@ -2671,19 +2661,6 @@ function efMaybeShowOnboarding(page) {
 
 async function initDashSupplier() {
   efMaybeShowOnboarding('dash_supplier');
-
-  // Hide welcome section immediately if previously dismissed — ensures no flash
-  // of the welcome widget on return visits before the module script runs.
-  try {
-    if (localStorage.getItem('ef_supplier_welcome_dismissed') === '1') {
-      const ws = document.getElementById('welcome-section');
-      if (ws) {
-        ws.style.display = 'none';
-      }
-    }
-  } catch (_) {
-    /* Ignore localStorage errors */
-  }
 
   // Fetch CSRF token if not already available
   async function ensureCsrfToken() {
