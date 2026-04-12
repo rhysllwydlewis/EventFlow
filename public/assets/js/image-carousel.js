@@ -69,7 +69,10 @@
           class="carousel-close" 
           aria-label="Close carousel"
         >
-          <span aria-hidden="true">×</span>
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
         </button>
         
         <button 
@@ -77,7 +80,9 @@
           class="carousel-nav carousel-prev" 
           aria-label="Previous image"
         >
-          <span aria-hidden="true">‹</span>
+          <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
         </button>
         
         <div class="carousel-image-container">
@@ -95,7 +100,9 @@
           class="carousel-nav carousel-next" 
           aria-label="Next image"
         >
-          <span aria-hidden="true">›</span>
+          <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
         </button>
         
         <div class="carousel-counter" id="carousel-counter" aria-live="polite">
