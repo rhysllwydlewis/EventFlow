@@ -335,7 +335,14 @@ router.get('/upcoming-invoice', authRequired, async (req, res) => {
       // Guard: customer IDs must start with "cus_" — reject obviously invalid values
       // to avoid a guaranteed 400 from Stripe.
       if (!customerId || !customerId.startsWith('cus_')) {
-        logger.warn('upcoming-invoice: invalid or missing stripeCustomerId', { customerId });
+        // Sanitise before logging to prevent log injection from a malformed stored value.
+        const safeId =
+          typeof customerId === 'string'
+            ? customerId.replace(/[\r\n\t]/g, '_').slice(0, 64)
+            : '[non-string]';
+        logger.warn('upcoming-invoice: invalid or missing stripeCustomerId', {
+          customerId: safeId,
+        });
         return res.json({ success: true, upcomingInvoice: null });
       }
 
