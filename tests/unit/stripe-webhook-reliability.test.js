@@ -470,7 +470,205 @@ describe('Upcoming invoice — no Stripe configured', () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// Tests: f) subscriptions/me — Stripe customer retrieve guards and logging
+// ---------------------------------------------------------------------------
 
+describe('subscriptions/me — Stripe customer retrieve', () => {
+  /**
+   * Minimal handler mirroring the production /me logic for the Stripe
+   * customer-retrieve section.
+   *
+   * req._customerId  — stripeCustomerId stored on the subscription record
+   * retrieveImpl     — injectable stripe.customers.retrieve implementation
+   */
+  function buildMeHandler(retrieveImpl) {
+    const logger = {
+      _warns: [],
+      warn(...args) {
+        this._warns.push(args);
+      },
+      error() {},
+    };
+
+    const stripe = {
+      customers: {
+        retrieve: retrieveImpl,
+      },
+    };
+
+    async function meHandler(req, res) {
+      let paymentMethodBrand = null;
+      let paymentMethodLast4 = null;
+      const rawCustomerId = req._customerId;
+
+      if (rawCustomerId) {
+        if (!rawCustomerId.startsWith('cus_')) {
+          logger.warn('subscriptions/me: invalid stripeCustomerId format — skipping Stripe call', {
+            customerId: rawCustomerId,
+          });
+        } else {
+          try {
+            const customer = await stripe.customers.retrieve(rawCustomerId, {
+              expand: ['default_payment_method'],
+            });
+            const pm = customer && customer.default_payment_method;
+            if (pm && pm.card) {
+              paymentMethodBrand = pm.card.brand || null;
+              paymentMethodLast4 = pm.card.last4 || null;
+            }
+          } catch (stripeErr) {
+            logger.warn('subscriptions/me: Stripe customer retrieve failed', {
+              type: stripeErr.type,
+              code: stripeErr.code,
+              param: stripeErr.param,
+              statusCode: stripeErr.statusCode,
+              requestId: stripeErr.requestId,
+              message: stripeErr.message,
+            });
+          }
+        }
+      }
+
+      return res.json({ success: true, paymentMethodBrand, paymentMethodLast4 });
+    }
+
+    return { meHandler, logger };
+  }
+
+  it('does not call Stripe when customerId does not start with cus_', async () => {
+    const retrieve = jest.fn();
+    const { meHandler, logger } = buildMeHandler(retrieve);
+
+    const req = { _customerId: 'invalid_not_a_stripe_id' };
+    const res = {
+      _body: null,
+      json(b) {
+        this._body = b;
+        return this;
+      },
+    };
+
+    await meHandler(req, res);
+
+    expect(retrieve).not.toHaveBeenCalled();
+    expect(res._body).toEqual({
+      success: true,
+      paymentMethodBrand: null,
+      paymentMethodLast4: null,
+    });
+    expect(logger._warns.length).toBeGreaterThan(0);
+    expect(logger._warns[0][0]).toContain('invalid stripeCustomerId format');
+  });
+
+  it('does not call Stripe when customerId is absent', async () => {
+    const retrieve = jest.fn();
+    const { meHandler } = buildMeHandler(retrieve);
+
+    const req = {}; // no _customerId
+    const res = {
+      _body: null,
+      json(b) {
+        this._body = b;
+        return this;
+      },
+    };
+
+    await meHandler(req, res);
+
+    expect(retrieve).not.toHaveBeenCalled();
+    expect(res._body).toEqual({
+      success: true,
+      paymentMethodBrand: null,
+      paymentMethodLast4: null,
+    });
+  });
+
+  it('returns payment method details when Stripe customer retrieve succeeds', async () => {
+    const retrieve = jest.fn().mockResolvedValue({
+      default_payment_method: {
+        card: { brand: 'visa', last4: '4242' },
+      },
+    });
+    const { meHandler } = buildMeHandler(retrieve);
+
+    const req = { _customerId: 'cus_validcustomer123' };
+    const res = {
+      _body: null,
+      json(b) {
+        this._body = b;
+        return this;
+      },
+    };
+
+    await meHandler(req, res);
+
+    expect(retrieve).toHaveBeenCalledWith('cus_validcustomer123', {
+      expand: ['default_payment_method'],
+    });
+    expect(res._body).toEqual({
+      success: true,
+      paymentMethodBrand: 'visa',
+      paymentMethodLast4: '4242',
+    });
+  });
+
+  it('returns null payment method and logs warn when Stripe returns an error', async () => {
+    const stripeErr = Object.assign(new Error('No such customer'), {
+      type: 'StripeInvalidRequestError',
+      code: 'resource_missing',
+      param: 'id',
+      statusCode: 400,
+      requestId: 'req_test_nocustomer',
+    });
+    const retrieve = jest.fn().mockRejectedValue(stripeErr);
+    const { meHandler, logger } = buildMeHandler(retrieve);
+
+    const req = { _customerId: 'cus_staleOrWrongMode' };
+    const res = {
+      _body: null,
+      json(b) {
+        this._body = b;
+        return this;
+      },
+    };
+
+    await meHandler(req, res);
+
+    expect(res._body).toEqual({
+      success: true,
+      paymentMethodBrand: null,
+      paymentMethodLast4: null,
+    });
+    expect(logger._warns.length).toBeGreaterThan(0);
+    const diagnostics = logger._warns[0][1];
+    expect(diagnostics).toMatchObject({
+      type: 'StripeInvalidRequestError',
+      code: 'resource_missing',
+      statusCode: 400,
+      requestId: 'req_test_nocustomer',
+    });
+  });
+
+  it('does not expose error to the caller — response is always 200-shaped', async () => {
+    const retrieve = jest.fn().mockRejectedValue(new Error('Stripe down'));
+    const { meHandler } = buildMeHandler(retrieve);
+
+    const req = { _customerId: 'cus_any' };
+    const res = {
+      _body: null,
+      json(b) {
+        this._body = b;
+        return this;
+      },
+    };
+
+    await meHandler(req, res);
+
+    expect(res._body.success).toBe(true);
+    expect(res._body.paymentMethodBrand).toBeNull();
+  });
+});
 
 describe('Canonical Stripe webhook endpoint documentation', () => {
   it('STRIPE_SUBSCRIPTION_GUIDE.md documents only one canonical endpoint', () => {
