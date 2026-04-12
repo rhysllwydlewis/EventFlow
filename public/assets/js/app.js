@@ -2807,13 +2807,26 @@ async function initDashSupplier() {
         if (currentIsPro) {
           proRibbon.classList.remove('pro-ribbon--starter');
           proRibbon.style.display = 'block';
-          proRibbon.innerHTML =
-            "⭐ <strong>You're on EventFlow Pro.</strong> Your listing appears higher in search and you have access to premium features.";
+          proRibbon.innerHTML = `
+            <div class="pro-ribbon__inner">
+              <span class="pro-ribbon__icon" aria-hidden="true">⭐</span>
+              <div class="pro-ribbon__text-group">
+                <strong>You're on EventFlow Pro.</strong>
+                <span class="pro-ribbon__desc"> Your listing appears higher in search and you have access to premium features.</span>
+              </div>
+            </div>`;
         } else {
           proRibbon.classList.add('pro-ribbon--starter');
           proRibbon.style.display = 'block';
-          proRibbon.innerHTML =
-            '🚀 <strong>You\'re on the Starter plan.</strong> Upgrade to unlock priority visibility, more packages and dedicated support. <a href="/pricing" class="pro-ribbon__cta">Upgrade to Pro →</a>';
+          proRibbon.innerHTML = `
+            <div class="pro-ribbon__inner">
+              <span class="pro-ribbon__icon" aria-hidden="true">🚀</span>
+              <div class="pro-ribbon__text-group">
+                <strong>Level up your plan to Pro!</strong>
+                <span class="pro-ribbon__desc">Unlock priority visibility, offer more packages, and get dedicated support.</span>
+              </div>
+              <a href="/pricing" class="pro-ribbon__cta">Upgrade to Pro</a>
+            </div>`;
         }
       }
 

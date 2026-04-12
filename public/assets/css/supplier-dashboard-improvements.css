@@ -1055,8 +1055,8 @@ body.supplier-dashboard-page .supplier-cta-section {
   display: block;
 }
 
-@media (max-width: 430px) {
-  /* Hide text labels on mobile, show only SVG icons */
+@media (max-width: 1023px) {
+  /* Hide text labels on mobile + tablet, show only SVG icons */
   .mobile-nav-pill .pill-text {
     display: none;
   }
@@ -1080,8 +1080,10 @@ body.supplier-dashboard-page .supplier-cta-section {
     width: 20px;
     height: 20px;
   }
+}
 
-  /* Keep badge visible on mobile */
+@media (max-width: 430px) {
+  /* Keep badge visible on small mobile */
   .mobile-nav-pill .pill-badge {
     position: absolute;
     top: 2px;
@@ -1102,10 +1104,10 @@ body.supplier-dashboard-page .supplier-cta-section {
   }
 }
 
-/* Tablet and desktop - show both icon and text */
-@media (min-width: 431px) {
+/* Desktop only - show both icon and text */
+@media (min-width: 1024px) {
   .mobile-nav-pill .pill-text {
-    display: inline; /* Show text on larger screens */
+    display: inline;
   }
 }
 
@@ -2224,11 +2226,31 @@ textarea:focus {
 }
 
 .stat-widget:hover {
-  border-color: rgba(11, 128, 115, 0.3);
+  border-color: rgba(11, 128, 115, 0.25);
   box-shadow:
-    var(--ef-shadow-md, 0 4px 12px rgba(0, 0, 0, 0.08)),
-    0 4px 15px rgba(11, 128, 115, 0.1);
-  transform: translateY(-2px);
+    0 8px 24px rgba(0, 0, 0, 0.09),
+    0 2px 6px rgba(0, 0, 0, 0.05);
+  transform: translateY(-3px);
+}
+
+.stat-widget[data-color='blue']:hover {
+  border-color: rgba(59, 130, 246, 0.35);
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.12), 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.stat-widget[data-color='green']:hover {
+  border-color: rgba(16, 185, 129, 0.35);
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.12), 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.stat-widget[data-color='amber']:hover {
+  border-color: rgba(245, 158, 11, 0.35);
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.12), 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.stat-widget[data-color='purple']:hover {
+  border-color: rgba(139, 92, 246, 0.35);
+  box-shadow: 0 8px 24px rgba(139, 92, 246, 0.12), 0 2px 6px rgba(0, 0, 0, 0.05);
 }
 
 .stat-widget:hover::before {
@@ -2997,24 +3019,44 @@ textarea:focus-visible {
 /* ===========================================
    39. STATS CARDS WITH TRENDS
    =========================================== */
+/* Swap colored accent from bottom border to top border for stronger visual hierarchy.
+   Also improve base shadow and add color-matched left-side hover accent. */
 .stat-widget {
-  border-bottom: 3px solid transparent;
+  border-top: 3px solid transparent;
+  border-bottom: none;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .stat-widget[data-color='blue'] {
-  border-bottom-color: #3b82f6;
+  border-top-color: #3b82f6;
+}
+
+.stat-widget[data-color='blue']::before {
+  background: linear-gradient(180deg, #3b82f6, #60a5fa);
 }
 
 .stat-widget[data-color='green'] {
-  border-bottom-color: #10b981;
+  border-top-color: #10b981;
+}
+
+.stat-widget[data-color='green']::before {
+  background: linear-gradient(180deg, #10b981, #34d399);
 }
 
 .stat-widget[data-color='amber'] {
-  border-bottom-color: #f59e0b;
+  border-top-color: #f59e0b;
+}
+
+.stat-widget[data-color='amber']::before {
+  background: linear-gradient(180deg, #f59e0b, #fbbf24);
 }
 
 .stat-widget[data-color='purple'] {
-  border-bottom-color: #8b5cf6;
+  border-top-color: #8b5cf6;
+}
+
+.stat-widget[data-color='purple']::before {
+  background: linear-gradient(180deg, #8b5cf6, #a78bfa);
 }
 
 .stat-trend {

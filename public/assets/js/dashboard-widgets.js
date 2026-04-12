@@ -34,7 +34,7 @@ export function createStatsGrid(stats, containerId) {
       ${stats
         .map(
           stat => `
-        <div class="stat-widget card" style="padding: 1.5rem;">
+        <div class="stat-widget card" ${stat.dataColor ? `data-color="${stat.dataColor}"` : ''} style="padding: 1.5rem;">
           <div style="display: flex; align-items: center; gap: 1rem;">
             <div class="icon-with-gradient ${stat.pulse ? 'pulse' : ''}" style="${stat.color ? `background: ${stat.color};` : ''}">
               ${stat.icon || '📊'}

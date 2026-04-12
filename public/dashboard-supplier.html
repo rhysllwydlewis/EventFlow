@@ -404,24 +404,82 @@
             <div class="dashboard-hero__grid"></div>
           </div>
 
+
           <!-- Main Content -->
           <div class="dashboard-hero__content">
             <!-- Header Section -->
             <div class="dashboard-hero__header">
+
               <div class="dashboard-hero__greeting-wrapper">
+                <!-- Mobile-only welcome heading — replaces the desktop title at ≤ 480px -->
+                <h1 id="welcome-heading" class="dashboard-hero__mob-heading">
+                  Welcome to Your<br>Supplier Dashboard!
+                </h1>
+
+                <!-- Desktop title (hidden on mobile via CSS) -->
                 <span
-                  class="dashboard-hero__greeting"
+                  class="dashboard-hero__greeting dashboard-hero__greeting--desktop"
                   id="welcome-greeting"
                   data-test="time-greeting"
                   >Good day</span
                 >
-                <h1 id="welcome-heading" class="dashboard-hero__title">
+                <p class="dashboard-hero__title dashboard-hero__title--desktop">
                   <span class="dashboard-hero__title-main">Your Dashboard</span>
                   <span class="dashboard-hero__title-highlight">Control Centre</span>
-                </h1>
-                <p class="dashboard-hero__subtitle">
+                </p>
+                <p class="dashboard-hero__subtitle dashboard-hero__subtitle--desktop">
                   Manage your business, track performance, and grow your presence
                 </p>
+              </div>
+
+              <!-- Mobile decorative illustration — hidden on desktop via CSS -->
+              <div class="dashboard-hero__illus" aria-hidden="true">
+                <div class="dashboard-hero__illus-inner">
+                  <!-- Dotted grid background pattern -->
+                  <svg class="dashboard-hero__illus-grid" viewBox="0 0 72 72" aria-hidden="true">
+                    <defs>
+                      <pattern id="heroGrid" x="0" y="0" width="9" height="9" patternUnits="userSpaceOnUse">
+                        <circle cx="1" cy="1" r="0.9" fill="currentColor" opacity="0.25"/>
+                      </pattern>
+                    </defs>
+                    <rect width="72" height="72" fill="url(#heroGrid)"/>
+                  </svg>
+                  <!-- Trending upward arrow chart line -->
+                  <div class="dashboard-hero__illus-chart">
+                    <svg viewBox="0 0 56 44" fill="none" aria-hidden="true">
+                      <!-- Smooth upward trend line -->
+                      <polyline
+                        points="4,36 14,28 24,30 34,16 44,10"
+                        stroke="#10b981"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        fill="none"
+                      />
+                      <!-- Arrow head at trend end -->
+                      <polyline
+                        points="38,6 44,10 40,16"
+                        stroke="#10b981"
+                        stroke-width="2.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        fill="none"
+                      />
+                      <!-- Shaded area under the trend -->
+                      <path
+                        d="M4,36 14,28 24,30 34,16 44,10 44,44 4,44 Z"
+                        fill="#10b981"
+                        opacity="0.08"
+                      />
+                    </svg>
+                  </div>
+                  <!-- Checkmark badge -->
+                  <div class="dashboard-hero__illus-check">
+                    <svg viewBox="0 0 20 20" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <polyline points="4 10 8.5 14.5 16 6"/>
+                    </svg>
+                  </div>
+                </div>
               </div>
 
               <!-- Quick Stats Grid -->
@@ -499,8 +557,9 @@
             <!-- Quick Actions Bar -->
             <div class="dashboard-hero__actions">
               <button
-                class="dashboard-action-chip"
+                class="dashboard-action-chip dashboard-action-chip--primary"
                 data-action="create-profile"
+                aria-label="Create Profile"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="10"/>
@@ -513,6 +572,7 @@
               <button
                 class="dashboard-action-chip"
                 data-action="new-package"
+                aria-label="New Package"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="m7.5 4.27 9 5.15"/>
@@ -523,14 +583,14 @@
                 <span>New Package</span>
               </button>
 
-              <button class="dashboard-action-chip" id="viewConversationsBtn">
+              <button class="dashboard-action-chip" id="viewConversationsBtn" aria-label="Messages">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                 </svg>
                 <span>Messages</span>
               </button>
 
-              <button class="dashboard-action-chip" data-action="view-earnings">
+              <button class="dashboard-action-chip" data-action="view-earnings" aria-label="View Earnings">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="7"/>
                   <path d="M14.5 9.5a2.5 2.5 0 1 0-5 0"/>
@@ -544,6 +604,7 @@
               <button
                 class="dashboard-action-chip"
                 data-action="view-stats"
+                aria-label="View Stats"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M18 20V10"/>
@@ -556,6 +617,7 @@
               <button
                 class="dashboard-action-chip"
                 data-action="get-help"
+                aria-label="Get Help"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="10"/>
@@ -611,31 +673,6 @@
             </div>
           </div>
           <div id="supplier-performance-chart" class="section"></div>
-        </div>
-
-        <!-- Enquiry Trend Chart -->
-        <div class="card sd-card supplier-dashboard-card">
-          <div class="supplier-card-header sd-card-header sd-card-header--blue">
-            <div class="sd-card-header__left">
-              <div class="sd-card-header__title-row">
-                <div class="sd-card-header__icon sd-card-header__icon--blue" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="2" y="3" width="20" height="15.5" rx="1.5" fill="currentColor" fill-opacity="0.06"/>
-                    <line x1="4" y1="17" x2="22" y2="17"/>
-                    <path d="M4 17 L7.5 14 L11.5 11 L16 7.5 L20 5.5 L22 5.5 L22 17 Z" fill="currentColor" fill-opacity="0.09" stroke="none"/>
-                    <polyline points="4 17 7.5 14 11.5 11 16 7.5 20 5.5"/>
-                    <polyline points="17 5.5 20.5 5 20 8.5"/>
-                    <circle cx="7.5" cy="14" r="1.5" fill="currentColor"/>
-                    <circle cx="11.5" cy="11" r="1.5" fill="currentColor"/>
-                    <circle cx="16" cy="7.5" r="1.5" fill="currentColor"/>
-                  </svg>
-                </div>
-                <h3 class="sd-card-header__heading">Enquiry Trends</h3>
-              </div>
-              <p class="sd-card-header__subtitle">Analyse enquiry patterns over time</p>
-            </div>
-          </div>
-          <div id="enquiry-trend-chart" class="section"></div>
         </div>
 
         <!-- ROI Analytics Widgets: Conversion Funnel + Response Time -->
