@@ -2483,10 +2483,13 @@ async function renderThreads(targetEl) {
 }
 
 function efMaybeShowOnboarding(page) {
-  // Check if onboarding has been permanently dismissed
+  // Check if onboarding has been permanently dismissed (either key suffices)
   try {
     const dismissed = localStorage.getItem('ef_onboarding_dismissed');
     if (dismissed === '1') {
+      return;
+    }
+    if (page === 'dash_supplier' && localStorage.getItem('ef_supplier_welcome_dismissed') === '1') {
       return;
     }
   } catch (_) {
@@ -2517,11 +2520,13 @@ function efMaybeShowOnboarding(page) {
     }
 
     const box = document.createElement('div');
+    box.id = 'ef-onboarding-box';
     box.className = 'card glass-card glass-card--teal glass-card--elevated';
     box.style.background = '#ffffff';
     box.style.color = '#1f2937';
     box.style.padding = '2rem';
     box.style.borderRadius = '16px';
+    box.style.position = 'relative';
     box.style.boxShadow =
       '0 12px 40px rgba(11, 128, 115, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.15)';
     box.style.textAlign = 'center';
@@ -2556,6 +2561,50 @@ function efMaybeShowOnboarding(page) {
       container.insertBefore(box, container.firstChild);
     }
 
+    // Shared dismiss handler — delegates to module function if already loaded
+    function doOverlayDismiss() {
+      if (typeof window.dismissSupplierWelcome === 'function') {
+        window.dismissSupplierWelcome();
+        return;
+      }
+      // Fallback (module not yet loaded): handle inline
+      try {
+        localStorage.setItem('ef_onboarding_dismissed', '1');
+        localStorage.setItem('ef_supplier_welcome_dismissed', '1');
+      } catch (_) {
+        /* Ignore localStorage errors */
+      }
+      const easing = 'cubic-bezier(0.4, 0, 0.2, 1)';
+      box.style.transition = `opacity 0.3s ${easing}, transform 0.3s ${easing}`;
+      box.style.opacity = '0';
+      box.style.transform = 'scale(0.95)';
+      const welcomeSection = document.getElementById('welcome-section');
+      if (welcomeSection) {
+        welcomeSection.style.transition = `opacity 0.35s ${easing}, transform 0.35s ${easing}, margin-bottom 0.35s ${easing}`;
+        welcomeSection.style.opacity = '0';
+        welcomeSection.style.transform = 'scale(0.98) translateY(-8px)';
+        welcomeSection.style.marginBottom = '0';
+        setTimeout(() => {
+          welcomeSection.style.display = 'none';
+        }, 350);
+      }
+      setTimeout(() => box.remove(), 300);
+    }
+
+    // Add X close button to the overlay card
+    const xCloseBtn = document.createElement('button');
+    xCloseBtn.type = 'button';
+    xCloseBtn.setAttribute('aria-label', 'Dismiss welcome onboarding');
+    xCloseBtn.style.cssText =
+      'position:absolute;top:12px;right:12px;width:32px;height:32px;min-width:32px;min-height:32px;' +
+      'padding:0;background:rgba(0,0,0,0.07);border:1px solid rgba(0,0,0,0.1);border-radius:50%;' +
+      'cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;' +
+      'transition:background 0.2s;color:#374151;';
+    xCloseBtn.innerHTML =
+      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    xCloseBtn.addEventListener('click', doOverlayDismiss);
+    box.appendChild(xCloseBtn);
+
     const btn = box.querySelector('#ef-onboarding-dismiss');
     if (btn) {
       // Add hover effect with teal theme glow
@@ -2568,32 +2617,7 @@ function efMaybeShowOnboarding(page) {
         btn.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
       });
 
-      // Save permanent dismissal and remove card; also hide the static welcome hero
-      btn.addEventListener('click', () => {
-        try {
-          localStorage.setItem('ef_onboarding_dismissed', '1');
-          localStorage.setItem('ef_supplier_welcome_dismissed', '1');
-        } catch (_) {
-          /* Ignore localStorage errors */
-        }
-        const easing = 'cubic-bezier(0.4, 0, 0.2, 1)';
-        // Animate the onboarding overlay card away
-        box.style.transition = `opacity 0.3s ${easing}, transform 0.3s ${easing}`;
-        box.style.opacity = '0';
-        box.style.transform = 'scale(0.95)';
-        // Animate the static welcome hero away in sync, then fully hide it
-        const welcomeSection = document.getElementById('welcome-section');
-        if (welcomeSection) {
-          welcomeSection.style.transition = `opacity 0.35s ${easing}, transform 0.35s ${easing}, margin-bottom 0.35s ${easing}`;
-          welcomeSection.style.opacity = '0';
-          welcomeSection.style.transform = 'scale(0.98) translateY(-8px)';
-          welcomeSection.style.marginBottom = '0';
-          setTimeout(() => {
-            welcomeSection.style.display = 'none';
-          }, 350);
-        }
-        setTimeout(() => box.remove(), 300);
-      });
+      btn.addEventListener('click', doOverlayDismiss);
     }
     return;
   }
@@ -2647,6 +2671,19 @@ function efMaybeShowOnboarding(page) {
 
 async function initDashSupplier() {
   efMaybeShowOnboarding('dash_supplier');
+
+  // Hide welcome section immediately if previously dismissed — ensures no flash
+  // of the welcome widget on return visits before the module script runs.
+  try {
+    if (localStorage.getItem('ef_supplier_welcome_dismissed') === '1') {
+      const ws = document.getElementById('welcome-section');
+      if (ws) {
+        ws.style.display = 'none';
+      }
+    }
+  } catch (_) {
+    /* Ignore localStorage errors */
+  }
 
   // Fetch CSRF token if not already available
   async function ensureCsrfToken() {

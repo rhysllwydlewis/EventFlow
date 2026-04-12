@@ -952,6 +952,38 @@
     padding: 8px 12px;
     font-size: 0.75rem;
   }
+
+  /* ── Welcome dismiss buttons: compact mobile sizing ── */
+  .welcome-section__dismiss-x {
+    top: 8px;
+    right: 8px;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+  }
+
+  .dashboard-hero__got-it-btn {
+    font-size: 0.875rem;
+    padding: 9px 18px;
+    min-height: 44px;
+  }
+
+  .dashboard-hero__dismiss-row {
+    padding-top: 2px;
+  }
+
+  /* ── Reduce overall hero heading size for compactness ── */
+  .dashboard-hero__mob-heading {
+    font-size: 18px;
+    line-height: 1.2;
+  }
+
+  /* ── Reduce content padding slightly for even more compactness ── */
+  .dashboard-hero__content {
+    padding: 12px 14px 12px;
+    gap: 10px;
+  }
 }
 
 /* ============================================================

@@ -396,6 +396,19 @@
           aria-labelledby="welcome-heading"
           data-test="welcome-card"
         >
+          <!-- Dismiss X button — top-right corner -->
+          <button
+            type="button"
+            class="welcome-section__dismiss-x"
+            id="welcome-dismiss-x"
+            aria-label="Dismiss welcome section"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+
           <!-- Animated Background Elements -->
           <div class="dashboard-hero__bg">
             <div class="dashboard-hero__gradient"></div>
@@ -641,6 +654,16 @@
                 </svg>
                 <span id="pro-tip-text">Tip: Fast responses lead to more bookings</span>
               </div>
+            </div>
+
+            <!-- Dismiss row -->
+            <div class="dashboard-hero__dismiss-row">
+              <button
+                type="button"
+                class="dashboard-hero__got-it-btn"
+                id="welcome-dismiss-btn"
+                aria-label="Got it, dismiss welcome section"
+              >Got it! Let's go 🚀</button>
             </div>
           </div>
         </section>
