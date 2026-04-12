@@ -1,13 +1,15 @@
 /**
  * Unit tests for supplier dashboard improvements:
  *   - Welcome banner dismissal with localStorage persistence
+ *   - X-button dismiss (both on welcome section and overlay card)
  *   - Scroll-spy guard: at scrollY=0, always activate first pill
  */
 
 describe('Supplier welcome banner dismiss persistence', () => {
   const DISMISS_KEY = 'ef_supplier_welcome_dismissed';
 
-  // Mirrors the dismissal logic added to dashboard-supplier-module.js
+  // Mirrors the dismissal logic in initWelcomeSectionDismiss (dashboard-supplier-module.js):
+  // checks the dismiss key on load and hides the section if set.
   function applyDismissalLogic(storage, welcomeEl) {
     let dismissed = false;
     try {
@@ -21,16 +23,11 @@ describe('Supplier welcome banner dismiss persistence', () => {
     }
   }
 
-  // Mirrors the dismiss handler added to efMaybeShowOnboarding in app.js.
+  // Mirrors the dismissWelcomeSection function from dashboard-supplier-module.js.
   // In the real code a CSS transition runs first, then display:none is applied
   // via setTimeout; here we apply the end-state directly for unit-test purposes.
-  function applyOnboardingDismissHandler(storage, welcomeEl, dismissBtn) {
-    const listeners = {};
-    dismissBtn.addEventListener = (evt, fn) => {
-      listeners[evt] = fn;
-    };
-
-    dismissBtn.addEventListener('click', () => {
+  function makeDismissHandler(storage, welcomeEl) {
+    return function dismissWelcomeSection() {
       try {
         storage.setItem('ef_onboarding_dismissed', '1');
         storage.setItem(DISMISS_KEY, '1');
@@ -40,8 +37,17 @@ describe('Supplier welcome banner dismiss persistence', () => {
       // Real code starts a CSS animation then defers display:none via setTimeout.
       // We apply the final hidden state synchronously to keep tests simple.
       welcomeEl.style.display = 'none';
-    });
+    };
+  }
 
+  // Legacy helper kept for backward-compat with existing tests.
+  function applyOnboardingDismissHandler(storage, welcomeEl, dismissBtn) {
+    const listeners = {};
+    dismissBtn.addEventListener = (evt, fn) => {
+      listeners[evt] = fn;
+    };
+    const handler = makeDismissHandler(storage, welcomeEl);
+    dismissBtn.addEventListener('click', handler);
     return listeners;
   }
 
@@ -73,7 +79,26 @@ describe('Supplier welcome banner dismiss persistence', () => {
     expect(welcomeEl.style.display).toBe('');
   });
 
-  it('hides welcome section and sets both dismiss keys when dismiss button is clicked', () => {
+  it('hides welcome section and sets both dismiss keys when either X button or "Got it!" is clicked (shared handler)', () => {
+    // Both buttons (X and "Got it!") share the same dismissWelcomeSection handler.
+    // Verify the handler itself produces the correct side effects.
+    const storage = { store: {} };
+    storage.getItem = key => storage.store[key] || null;
+    storage.setItem = (key, val) => {
+      storage.store[key] = val;
+    };
+
+    const welcomeEl = { style: { display: '' } };
+    const dismiss = makeDismissHandler(storage, welcomeEl);
+
+    dismiss();
+
+    expect(welcomeEl.style.display).toBe('none');
+    expect(storage.store[DISMISS_KEY]).toBe('1');
+    expect(storage.store['ef_onboarding_dismissed']).toBe('1');
+  });
+
+  it('hides welcome section and sets both dismiss keys when overlay "Got it!" button is clicked', () => {
     const storage = { store: {} };
     storage.getItem = key => storage.store[key] || null;
     storage.setItem = (key, val) => {
@@ -84,7 +109,7 @@ describe('Supplier welcome banner dismiss persistence', () => {
     const dismissBtn = {};
     const listeners = applyOnboardingDismissHandler(storage, welcomeEl, dismissBtn);
 
-    // Simulate clicking the "Got it! Let's go" button
+    // Simulate clicking the "Got it! Let's go" button on the overlay card
     listeners.click();
 
     expect(welcomeEl.style.display).toBe('none');
@@ -99,7 +124,26 @@ describe('Supplier welcome banner dismiss persistence', () => {
       storage.store[key] = val;
     };
 
-    // First "page load" — user clicks dismiss
+    // First "page load" — user clicks dismiss (either button)
+    const welcomeEl1 = { style: { display: '' } };
+    const dismiss = makeDismissHandler(storage, welcomeEl1);
+    dismiss();
+
+    // Second "page load" — storage already has the dismiss flag
+    const welcomeEl2 = { style: { display: '' } };
+    applyDismissalLogic(storage, welcomeEl2);
+
+    expect(welcomeEl2.style.display).toBe('none');
+  });
+
+  it('persists dismissal via onboarding overlay so subsequent page loads hide welcome section', () => {
+    const storage = { store: {} };
+    storage.getItem = key => storage.store[key] || null;
+    storage.setItem = (key, val) => {
+      storage.store[key] = val;
+    };
+
+    // First "page load" — user clicks dismiss via the overlay "Got it!" button
     const welcomeEl1 = { style: { display: '' } };
     const dismissBtn = {};
     const listeners = applyOnboardingDismissHandler(storage, welcomeEl1, dismissBtn);
@@ -125,6 +169,23 @@ describe('Supplier welcome banner dismiss persistence', () => {
 
     expect(() => applyDismissalLogic(storage, welcomeEl)).not.toThrow();
     expect(welcomeEl.style.display).toBe('');
+  });
+
+  it('handles storage errors in dismiss handler gracefully (does not throw)', () => {
+    const storage = {
+      getItem: () => {
+        throw new Error('QuotaExceededError');
+      },
+      setItem: () => {
+        throw new Error('QuotaExceededError');
+      },
+    };
+    const welcomeEl = { style: { display: '' } };
+    const dismiss = makeDismissHandler(storage, welcomeEl);
+
+    expect(() => dismiss()).not.toThrow();
+    // Welcome section is hidden even when storage throws (animation end-state)
+    expect(welcomeEl.style.display).toBe('none');
   });
 
   it('handles storage errors in click handler gracefully (does not throw)', () => {

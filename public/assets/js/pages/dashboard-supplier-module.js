@@ -1018,6 +1018,76 @@ displayLeadQualityBreakdown();
 
 displaySubscriptionStatus();
 
+// ─── Welcome widget dismiss logic ─────────────────────────────────────────────
+// Manages permanent dismissal of #welcome-section via "Got it!" button and X.
+// localStorage key: ef_supplier_welcome_dismissed
+// Once set, the section is hidden immediately on page load (handled here and
+// also in initDashSupplier in app.js for an early synchronous hide).
+(function initWelcomeSectionDismiss() {
+  const DISMISS_KEY = 'ef_supplier_welcome_dismissed';
+
+  function dismissWelcomeSection() {
+    try {
+      localStorage.setItem(DISMISS_KEY, '1');
+      localStorage.setItem('ef_onboarding_dismissed', '1');
+    } catch (_) {
+      /* Ignore localStorage errors */
+    }
+
+    const easing = 'cubic-bezier(0.4, 0, 0.2, 1)';
+    const ws = document.getElementById('welcome-section');
+    if (ws) {
+      ws.style.transition = `opacity 0.3s ${easing}, transform 0.3s ${easing}, margin-bottom 0.3s ${easing}`;
+      ws.style.opacity = '0';
+      ws.style.transform = 'scale(0.98) translateY(-8px)';
+      ws.style.marginBottom = '0';
+      setTimeout(() => {
+        ws.style.display = 'none';
+      }, 300);
+    }
+
+    // Also remove the onboarding overlay card if it is still visible
+    const overlay = document.getElementById('ef-onboarding-box');
+    if (overlay) {
+      overlay.style.transition = `opacity 0.3s ${easing}`;
+      overlay.style.opacity = '0';
+      setTimeout(() => overlay.remove(), 300);
+    }
+  }
+
+  // Export so that the onboarding overlay card in app.js can call this too
+  window.dismissSupplierWelcome = dismissWelcomeSection;
+
+  // If already dismissed, hide immediately (belt-and-suspenders alongside the
+  // synchronous check in initDashSupplier)
+  let alreadyDismissed = false;
+  try {
+    alreadyDismissed = localStorage.getItem(DISMISS_KEY) === '1';
+  } catch (_) {
+    /* Ignore localStorage errors */
+  }
+
+  if (alreadyDismissed) {
+    const ws = document.getElementById('welcome-section');
+    if (ws) {
+      ws.style.display = 'none';
+    }
+    return;
+  }
+
+  // Wire up the X close button
+  const xBtn = document.getElementById('welcome-dismiss-x');
+  if (xBtn) {
+    xBtn.addEventListener('click', dismissWelcomeSection);
+  }
+
+  // Wire up the "Got it! Let's go" button
+  const gotItBtn = document.getElementById('welcome-dismiss-btn');
+  if (gotItBtn) {
+    gotItBtn.addEventListener('click', dismissWelcomeSection);
+  }
+})();
+
 // Earnings Overview CTA: scroll to packages section and open the form if collapsed
 document.addEventListener('DOMContentLoaded', () => {
   const earningsCta = document.getElementById('earnings-create-pkg-cta');
