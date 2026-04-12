@@ -354,10 +354,10 @@ async function sendActionPromptEmail(user, report, baseUrl, dryRun) {
     actionsHtml,
     loginUrl,
     managePrefsUrl,
+    unsubscribeSection: unsubscribeUrl
+      ? `&nbsp;&middot;&nbsp;<a href="${unsubscribeUrl}" style="color:#94A3B8;text-decoration:none;">Unsubscribe from reminders</a>`
+      : '',
   };
-  if (unsubscribeUrl) {
-    templateData.unsubscribeUrl = unsubscribeUrl;
-  }
 
   await postmark.sendMail({
     to: user.email,
