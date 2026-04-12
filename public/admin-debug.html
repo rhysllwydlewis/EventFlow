@@ -167,6 +167,19 @@
         webhooks are flagged as <strong>not configured</strong> — no request is sent.
       </div>
 
+      <div class="sc-warning-banner" role="note" style="margin-top:.75rem;">
+        🔑 <strong>Stripe key mode is shown in the Details column</strong> for each Stripe result
+        (<code>test</code> or <code>live</code>). If you see repeated
+        <code>GET /v1/customers/cus_…</code> 400 errors in
+        <a href="https://dashboard.stripe.com/workbench/logs" target="_blank" rel="noopener" aria-label="Stripe Workbench logs (opens in new tab)">Stripe Workbench</a>,
+        the most likely cause is a <strong>test-vs-live key mismatch</strong> — your database
+        contains customer IDs created with a <em>different</em> Stripe mode than the key currently
+        set in <code>STRIPE_SECRET_KEY</code>. Check the key mode here, compare it to the mode
+        used when the stored <code>cus_…</code> IDs were created, and update the env var or
+        clear the stale IDs. See <code>docs/STRIPE_SUBSCRIPTION_GUIDE.md</code> → Troubleshooting
+        for details.
+      </div>
+
       <div style="margin:1.25rem 0;">
         <button id="sc-test-webhooks-btn" type="button" class="sc-run-btn" aria-label="Test all webhooks">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>

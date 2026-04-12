@@ -392,6 +392,58 @@ Before deploying to production:
 
 ## Troubleshooting
 
+### 400 errors in Stripe Workbench / API logs
+
+If you see repeated `GET /v1/customers/cus_...` or `POST /v1/invoices/create_preview` entries
+returning **400** in the Stripe Dashboard → Developers → Workbench, the most common causes are:
+
+#### 1. Test-vs-live key mismatch (most common)
+
+Your database contains a `cus_...` customer ID that was created using a **test** Stripe key, but
+your deployed server is now using a **live** Stripe key (or vice versa). Stripe will return
+`"No such customer"` (400) for every request that references that ID.
+
+**Fix:**
+
+- In the Stripe Dashboard, confirm whether you are viewing **Test mode** or **Live mode**.
+- Check the first few characters of your `STRIPE_SECRET_KEY` environment variable:
+  - `sk_test_…` — test mode
+  - `sk_live_…` — live mode
+- If you switched from test to live (or vice versa), the stored `cus_...` IDs in your database
+  are invalid for the new mode. You must either:
+  - Clear / migrate the `stripeCustomerId` fields in the `payments` and `subscriptions`
+    collections so the server creates fresh customers in the correct mode, **or**
+  - Switch back to the key that matches your existing customer IDs.
+
+#### 2. Stale or placeholder customer IDs
+
+A value that was stored as `stripeCustomerId` in your database does not start with `cus_`
+(e.g. a placeholder, a test value, or data from an older schema). The server now validates the
+`cus_` prefix before calling Stripe and logs a `warn` entry rather than generating a 400.
+Check your server logs for:
+
+```
+subscriptions/me: invalid stripeCustomerId format — skipping Stripe call
+```
+
+If you see this, update or remove the invalid `stripeCustomerId` in the database record for
+the affected user.
+
+#### 3. Invoice preview called without a subscription ID
+
+`POST /v1/invoices/create_preview` requires at least one of: `subscription`, `schedule`,
+`subscription_details.items`, etc. The `/api/v2/subscriptions/upcoming-invoice` endpoint now
+returns `upcomingInvoice: null` without calling Stripe whenever `stripeSubscriptionId` is
+absent — so this should no longer produce 400s. If you still see them, check that the
+subscription record has a valid `stripeSubscriptionId`.
+
+#### Reading Stripe error diagnostics from logs
+
+Both the `/me` and `/upcoming-invoice` endpoints log Stripe errors at `warn` level (once per
+request) with the fields `type`, `code`, `param`, `statusCode`, and `requestId`. Search your
+server logs for `subscriptions/me: Stripe` or `upcoming-invoice: Stripe` to find the exact
+Stripe error detail without needing to open Stripe Workbench.
+
 ### Subscription not activating
 
 1. Check webhook endpoint is configured in Stripe dashboard

@@ -18,6 +18,7 @@
 'use strict';
 
 const crypto = require('crypto');
+const { getStripeKeyMode } = require('../utils/config');
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -59,11 +60,23 @@ function stripeSuccessCriteria(status) {
   return status === 200 || status === 400;
 }
 
+/**
+ * Derive the Stripe key mode from the secret key prefix.
+ * Returns 'live', 'test', or 'unknown' (without exposing the key itself).
+ * @returns {'live'|'test'|'unknown'}
+ */
+function stripeKeyMode() {
+  return getStripeKeyMode();
+}
+
 /** Shared isConfigured() for both Stripe catalog entries. */
 function stripeIsConfigured() {
   const missing = [];
   if (!process.env.STRIPE_WEBHOOK_SECRET) {
     missing.push('STRIPE_WEBHOOK_SECRET');
+  }
+  if (!process.env.STRIPE_SECRET_KEY) {
+    missing.push('STRIPE_SECRET_KEY');
   }
   return { configured: missing.length === 0, missing };
 }
@@ -76,9 +89,10 @@ const integrations = [
     path: '/api/v2/webhooks/stripe',
     isConfigured: stripeIsConfigured,
     buildProbe() {
+      const mode = stripeKeyMode();
       return buildStripeProbe(
         process.env.STRIPE_WEBHOOK_SECRET,
-        'HTTP 200 = event accepted; HTTP 400 = signature accepted, event type unknown — both count as ok'
+        `HTTP 200 = event accepted; HTTP 400 = signature accepted, event type unknown — both count as ok | Stripe key mode: ${mode}`
       );
     },
     successCriteria: stripeSuccessCriteria,
@@ -91,9 +105,10 @@ const integrations = [
     path: '/api/v1/payments/webhook',
     isConfigured: stripeIsConfigured,
     buildProbe() {
+      const mode = stripeKeyMode();
       return buildStripeProbe(
         process.env.STRIPE_WEBHOOK_SECRET,
-        'Deprecated endpoint — migrate Stripe dashboard to POST /api/v2/webhooks/stripe'
+        `Deprecated endpoint — migrate Stripe dashboard to POST /api/v2/webhooks/stripe | Stripe key mode: ${mode}`
       );
     },
     successCriteria: stripeSuccessCriteria,

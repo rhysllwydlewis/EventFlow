@@ -241,18 +241,44 @@ router.get('/me', authRequired, async (req, res) => {
     // Fetch payment method details from Stripe (best-effort)
     let paymentMethodBrand = null;
     let paymentMethodLast4 = null;
-    if (STRIPE_ENABLED && stripe && subscription?.stripeCustomerId) {
-      try {
-        const customer = await stripe.customers.retrieve(subscription.stripeCustomerId, {
-          expand: ['default_payment_method'],
+    const rawCustomerId = subscription?.stripeCustomerId;
+    if (STRIPE_ENABLED && stripe && rawCustomerId) {
+      // Sanitise before any logging: truncate to a safe length and strip control
+      // characters to prevent log injection from a malformed stored value.
+      const safeCustomerId =
+        typeof rawCustomerId === 'string'
+          ? rawCustomerId.replace(/[\r\n\t]/g, '_').slice(0, 64)
+          : '[non-string]';
+      // Guard: customer IDs must start with "cus_" to avoid a guaranteed 400 from Stripe
+      // (stale IDs, test-vs-live key mismatch, or placeholder values would otherwise
+      // generate noisy 400 errors in Stripe Workbench on every supplier login).
+      if (!rawCustomerId.startsWith('cus_')) {
+        logger.warn('subscriptions/me: invalid stripeCustomerId format — skipping Stripe call', {
+          customerId: safeCustomerId,
         });
-        const pm = customer?.default_payment_method;
-        if (pm && pm.card) {
-          paymentMethodBrand = pm.card.brand || null;
-          paymentMethodLast4 = pm.card.last4 || null;
+      } else {
+        try {
+          const customer = await stripe.customers.retrieve(rawCustomerId, {
+            expand: ['default_payment_method'],
+          });
+          const pm = customer?.default_payment_method;
+          if (pm && pm.card) {
+            paymentMethodBrand = pm.card.brand || null;
+            paymentMethodLast4 = pm.card.last4 || null;
+          }
+        } catch (stripeErr) {
+          // Log once at warn so stale/mismatched IDs are visible in server logs
+          // (type/code/param/requestId help diagnose test-vs-live key issues)
+          // but do not throw — payment method info simply won't display.
+          logger.warn('subscriptions/me: Stripe customer retrieve failed', {
+            type: stripeErr.type,
+            code: stripeErr.code,
+            param: stripeErr.param,
+            statusCode: stripeErr.statusCode,
+            requestId: stripeErr.requestId,
+            message: stripeErr.message,
+          });
         }
-      } catch (_stripeErr) {
-        // best-effort — payment method info won't display if unavailable
       }
     }
 
@@ -309,7 +335,14 @@ router.get('/upcoming-invoice', authRequired, async (req, res) => {
       // Guard: customer IDs must start with "cus_" — reject obviously invalid values
       // to avoid a guaranteed 400 from Stripe.
       if (!customerId || !customerId.startsWith('cus_')) {
-        logger.warn('upcoming-invoice: invalid or missing stripeCustomerId', { customerId });
+        // Sanitise before logging to prevent log injection from a malformed stored value.
+        const safeId =
+          typeof customerId === 'string'
+            ? customerId.replace(/[\r\n\t]/g, '_').slice(0, 64)
+            : '[non-string]';
+        logger.warn('upcoming-invoice: invalid or missing stripeCustomerId', {
+          customerId: safeId,
+        });
         return res.json({ success: true, upcomingInvoice: null });
       }
 

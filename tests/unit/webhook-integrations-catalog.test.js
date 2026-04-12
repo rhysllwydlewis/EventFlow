@@ -142,16 +142,25 @@ describe('Webhook Integrations Catalog — isConfigured()', () => {
 
   it('stripe — not configured when STRIPE_WEBHOOK_SECRET is absent', () => {
     const stripe = integrations.find(i => i.name === 'stripe');
-    withEnv({ STRIPE_WEBHOOK_SECRET: undefined }, () => {
+    withEnv({ STRIPE_WEBHOOK_SECRET: undefined, STRIPE_SECRET_KEY: 'sk_test_abc' }, () => {
       const { configured, missing } = stripe.isConfigured();
       expect(configured).toBe(false);
       expect(missing).toContain('STRIPE_WEBHOOK_SECRET');
     });
   });
 
-  it('stripe — configured when STRIPE_WEBHOOK_SECRET is set', () => {
+  it('stripe — not configured when STRIPE_SECRET_KEY is absent', () => {
     const stripe = integrations.find(i => i.name === 'stripe');
-    withEnv({ STRIPE_WEBHOOK_SECRET: 'whsec_test' }, () => {
+    withEnv({ STRIPE_WEBHOOK_SECRET: 'whsec_test', STRIPE_SECRET_KEY: undefined }, () => {
+      const { configured, missing } = stripe.isConfigured();
+      expect(configured).toBe(false);
+      expect(missing).toContain('STRIPE_SECRET_KEY');
+    });
+  });
+
+  it('stripe — configured when both STRIPE_WEBHOOK_SECRET and STRIPE_SECRET_KEY are set', () => {
+    const stripe = integrations.find(i => i.name === 'stripe');
+    withEnv({ STRIPE_WEBHOOK_SECRET: 'whsec_test', STRIPE_SECRET_KEY: 'sk_test_abc' }, () => {
       const { configured, missing } = stripe.isConfigured();
       expect(configured).toBe(true);
       expect(missing).toHaveLength(0);
@@ -220,13 +229,15 @@ describe('Webhook Integrations Catalog — buildProbe()', () => {
 
   it('stripe — buildProbe() returns { body, headers, notes } when secret is set', () => {
     const stripe = integrations.find(i => i.name === 'stripe');
-    withEnv({ STRIPE_WEBHOOK_SECRET: 'whsec_test' }, () => {
+    withEnv({ STRIPE_WEBHOOK_SECRET: 'whsec_test', STRIPE_SECRET_KEY: 'sk_test_abc' }, () => {
       const probe = stripe.buildProbe();
       expect(probe).not.toBeNull();
       expect(probe.body).toBeDefined();
       expect(probe.headers).toBeDefined();
       expect(probe.headers['stripe-signature']).toMatch(/^t=\d+,v1=[a-f0-9]+$/);
       expect(typeof probe.notes).toBe('string');
+      // Notes must include the key mode so admins can spot test/live mismatches
+      expect(probe.notes).toMatch(/Stripe key mode: (test|live|unknown)/);
     });
   });
 
