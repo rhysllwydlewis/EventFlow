@@ -912,26 +912,38 @@
     color: #64748b;
   }
 
-  /* ── Action chips: compact 3-col ── */
+  /* ── Action chips: compact 3-col, icon-only ── */
   .dashboard-hero__actions {
     grid-template-columns: repeat(3, 1fr);
     gap: 5px;
   }
 
   .dashboard-action-chip {
-    padding: 6px 4px;
-    font-size: 0.7rem;
-    min-height: 44px;
-    border-radius: 8px;
-    gap: 3px;
+    padding: 10px 4px;
+    min-height: 48px;
+    border-radius: 10px;
+    gap: 0;
+    justify-content: center;
     background: rgba(248, 250, 252, 0.95);
     border: 1px solid rgba(226, 232, 240, 0.8);
     color: #334155;
   }
 
+  /* Hide text labels — button has aria-label for screen readers */
+  .dashboard-action-chip > span {
+    display: none;
+  }
+
   .dashboard-action-chip svg {
-    width: 14px;
-    height: 14px;
+    width: 20px;
+    height: 20px;
+  }
+
+  /* Primary chip: keep accent colour */
+  .dashboard-action-chip--primary {
+    background: linear-gradient(135deg, var(--dashboard-primary, #10b981), var(--dashboard-primary-dark, #059669));
+    border-color: transparent;
+    color: white;
   }
 
   /* Pro-tip spans full width */

@@ -1055,8 +1055,8 @@ body.supplier-dashboard-page .supplier-cta-section {
   display: block;
 }
 
-@media (max-width: 430px) {
-  /* Hide text labels on mobile, show only SVG icons */
+@media (max-width: 1023px) {
+  /* Hide text labels on mobile + tablet, show only SVG icons */
   .mobile-nav-pill .pill-text {
     display: none;
   }
@@ -1080,8 +1080,10 @@ body.supplier-dashboard-page .supplier-cta-section {
     width: 20px;
     height: 20px;
   }
+}
 
-  /* Keep badge visible on mobile */
+@media (max-width: 430px) {
+  /* Keep badge visible on small mobile */
   .mobile-nav-pill .pill-badge {
     position: absolute;
     top: 2px;
@@ -1102,10 +1104,10 @@ body.supplier-dashboard-page .supplier-cta-section {
   }
 }
 
-/* Tablet and desktop - show both icon and text */
-@media (min-width: 431px) {
+/* Desktop only - show both icon and text */
+@media (min-width: 1024px) {
   .mobile-nav-pill .pill-text {
-    display: inline; /* Show text on larger screens */
+    display: inline;
   }
 }
 
