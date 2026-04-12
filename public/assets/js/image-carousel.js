@@ -12,6 +12,7 @@
   let currentIndex = 0;
   let images = [];
   let carousel = null;
+  let lastFocused = null;
 
   /**
    * Initialize image carousel on gallery images
@@ -55,6 +56,8 @@
     modal.className = 'image-carousel-modal';
     modal.setAttribute('role', 'dialog');
     modal.setAttribute('aria-label', 'Image carousel');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('tabindex', '-1');
     modal.style.display = 'none';
 
     modal.innerHTML = `
@@ -65,7 +68,10 @@
           class="carousel-close" 
           aria-label="Close carousel"
         >
-          <span aria-hidden="true">×</span>
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
         </button>
         
         <button 
@@ -73,7 +79,9 @@
           class="carousel-nav carousel-prev" 
           aria-label="Previous image"
         >
-          <span aria-hidden="true">‹</span>
+          <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
         </button>
         
         <div class="carousel-image-container">
@@ -91,7 +99,9 @@
           class="carousel-nav carousel-next" 
           aria-label="Next image"
         >
-          <span aria-hidden="true">›</span>
+          <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
         </button>
         
         <div class="carousel-counter" id="carousel-counter" aria-live="polite">
@@ -140,6 +150,7 @@
       return;
     }
 
+    lastFocused = document.activeElement || null;
     currentIndex = index;
     updateCarouselImage();
 
@@ -147,8 +158,13 @@
     carousel.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
 
-    // Focus the carousel for keyboard navigation
-    carousel.focus();
+    // Focus the close button for keyboard navigation (more discoverable than the backdrop)
+    const closeBtn = carousel.querySelector('.carousel-close');
+    if (closeBtn) {
+      closeBtn.focus();
+    } else {
+      carousel.focus();
+    }
   }
 
   /**
@@ -162,6 +178,12 @@
     carousel.style.display = 'none';
     carousel.setAttribute('aria-hidden', 'true');
     document.body.style.overflow = '';
+
+    // Return focus to the element that opened the carousel
+    if (lastFocused && typeof lastFocused.focus === 'function') {
+      lastFocused.focus();
+      lastFocused = null;
+    }
   }
 
   /**
@@ -263,11 +285,36 @@
     initCarousel();
   }
 
+  /**
+   * Open carousel with an explicit array of photo URLs.
+   * This bypasses DOM scanning and works for any gallery whose images
+   * are not covered by the default selector (.gallery-image etc.).
+   * @param {string[]} photoUrls - Array of image URLs
+   * @param {number} [startIndex=0] - Index to open at
+   * @param {string} [supplierName=''] - Optional name used in alt text
+   */
+  function openWithImages(photoUrls, startIndex, supplierName) {
+    if (!Array.isArray(photoUrls) || photoUrls.length === 0) {
+      return;
+    }
+
+    const name = supplierName || '';
+    images = photoUrls.map((url, i) => ({
+      src: url,
+      alt: name ? `${name} — photo ${i + 1}` : `photo ${i + 1}`,
+      caption: '',
+    }));
+
+    createCarouselModal();
+    openCarousel(typeof startIndex === 'number' ? startIndex : 0);
+  }
+
   // Export public API
   if (typeof window !== 'undefined') {
     window.ImageCarousel = {
       init: initCarousel,
       open: openCarousel,
+      openWithImages: openWithImages,
       close: closeCarousel,
       next: nextImage,
       prev: prevImage,
