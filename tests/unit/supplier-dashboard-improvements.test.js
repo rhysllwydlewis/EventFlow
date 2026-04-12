@@ -103,7 +103,7 @@ describe('Supplier welcome overlay dismiss persistence', () => {
     const dismissBtn = {};
     const listeners = applyOnboardingDismissHandler(storage, overlayEl, dismissBtn);
 
-    // Simulate clicking the "Got it! Let's go" button on the overlay card
+    // Simulate clicking the "Got it! Let's do this" button on the overlay card
     listeners.click();
 
     expect(overlayEl.removed).toBe(true);

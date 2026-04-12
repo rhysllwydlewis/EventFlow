@@ -2556,37 +2556,39 @@ function efMaybeShowOnboarding(page) {
 
     const box = document.createElement('div');
     box.id = 'ef-onboarding-box';
-    box.className = 'card glass-card glass-card--teal glass-card--elevated';
-    box.style.background = '#ffffff';
+    box.className = 'card';
     box.style.color = '#1f2937';
     box.style.padding = '2rem';
     box.style.borderRadius = '16px';
     box.style.position = 'relative';
-    box.style.boxShadow =
-      '0 12px 40px rgba(11, 128, 115, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.15)';
+    box.style.boxShadow = '0 4px 24px rgba(13, 148, 136, 0.12), 0 1px 4px rgba(0, 0, 0, 0.06)';
     box.style.textAlign = 'center';
-    box.style.border = '1px solid rgba(11, 128, 115, 0.15)';
+    box.style.border = '2px solid transparent';
+    box.style.backgroundImage =
+      'linear-gradient(#ffffff, #ffffff), linear-gradient(to bottom, #0d9488, #a7f3d0)';
+    box.style.backgroundOrigin = 'padding-box, border-box';
+    box.style.backgroundClip = 'padding-box, border-box';
 
     box.innerHTML = `
-      <h2 style="color: #1f2937; font-size: 1.75rem; font-weight: 700; margin-bottom: 0.75rem;">Welcome to Your Supplier Dashboard!</h2>
-      <p style="color: #4b5563; font-size: 1.1rem; line-height: 1.6; margin-bottom: 1.5rem; max-width: 600px; margin-left: auto; margin-right: auto;">
-        You're all set to showcase your services and connect with event planners. Let's help you get started on your journey!
+      <h2 style="color: #1e3a5f; font-size: 1.75rem; font-weight: 700; margin-bottom: 0.75rem;">Welcome to your Supplier Dashboard!</h2>
+      <p style="color: #6b7280; font-size: 1rem; line-height: 1.6; margin-bottom: 1.5rem; max-width: 560px; margin-left: auto; margin-right: auto;">
+        Get ready to showcase your services and connect with event planners. Let's start with a few quick tasks:
       </p>
-      <div style="background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem; text-align: left; max-width: 600px; margin-left: auto; margin-right: auto;">
-        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+      <div style="margin-bottom: 1.5rem; max-width: 420px; margin-left: auto; margin-right: auto;">
+        <div style="display: flex; align-items: center; justify-content: center; gap: 0.75rem; margin-bottom: 0.75rem;">
           <span style="font-size: 1.5rem;" aria-hidden="true">✨</span>
           <span style="color: #1f2937; font-weight: 500;">Complete your supplier profile</span>
         </div>
-        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+        <div style="display: flex; align-items: center; justify-content: center; gap: 0.75rem; margin-bottom: 0.75rem;">
           <span style="font-size: 1.5rem;" aria-hidden="true">📦</span>
           <span style="color: #1f2937; font-weight: 500;">Add your first package or service</span>
         </div>
-        <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <div style="display: flex; align-items: center; justify-content: center; gap: 0.75rem;">
           <span style="font-size: 1.5rem;" aria-hidden="true">💬</span>
           <span style="color: #1f2937; font-weight: 500;">Start engaging with customers</span>
         </div>
       </div>
-      <button type="button" class="cta" id="ef-onboarding-dismiss" aria-label="Dismiss onboarding and start using dashboard" style="background: #0B8073; color: #ffffff; font-weight: 600; padding: 0.75rem 2rem; border-radius: 10px; border: none; cursor: pointer; font-size: 1rem; box-shadow: 0 4px 12px rgba(11, 128, 115, 0.3); transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);">Got it! Let's go 🚀</button>
+      <button type="button" class="cta" id="ef-onboarding-dismiss" aria-label="Dismiss onboarding and start using dashboard" style="background: linear-gradient(135deg, #22c55e, #16a34a); color: #ffffff; font-weight: 600; padding: 0.75rem 2rem; border-radius: 10px; border: none; cursor: pointer; font-size: 1rem; box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3); transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);">Got it! Let's do this 🚀</button>
     `;
 
     const cards = container.querySelector('.cards');
@@ -2632,14 +2634,14 @@ function efMaybeShowOnboarding(page) {
 
     const btn = box.querySelector('#ef-onboarding-dismiss');
     if (btn) {
-      // Add hover effect with teal theme glow
+      // Add hover effect with green theme glow
       btn.addEventListener('mouseenter', () => {
         btn.style.transform = 'scale(1.05) translateY(-2px)';
-        btn.style.boxShadow = '0 8px 20px rgba(11, 128, 115, 0.3)';
+        btn.style.boxShadow = '0 8px 20px rgba(34, 197, 94, 0.4)';
       });
       btn.addEventListener('mouseleave', () => {
         btn.style.transform = 'scale(1) translateY(0)';
-        btn.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+        btn.style.boxShadow = '0 4px 12px rgba(34, 197, 94, 0.3)';
       });
 
       btn.addEventListener('click', doOverlayDismiss);
