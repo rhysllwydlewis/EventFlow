@@ -2558,12 +2558,11 @@ function efMaybeShowOnboarding(page) {
     box.id = 'ef-onboarding-box';
     box.className = 'card';
     box.style.color = '#1f2937';
-    box.style.padding = '2.5rem 2.5rem 2.25rem';
-    box.style.borderRadius = '20px';
+    box.style.padding = '1rem 1.5rem 1.125rem';
+    box.style.borderRadius = '16px';
     box.style.position = 'relative';
     box.style.overflow = 'hidden';
     box.style.boxShadow = '0 4px 32px rgba(13, 148, 136, 0.13), 0 1px 4px rgba(0, 0, 0, 0.06)';
-    box.style.textAlign = 'center';
     box.style.border = '2px solid transparent';
     box.style.backgroundImage =
       'linear-gradient(#ffffff, #ffffff), linear-gradient(to bottom, #0d9488, #a7f3d0)';
@@ -2571,26 +2570,28 @@ function efMaybeShowOnboarding(page) {
     box.style.backgroundClip = 'padding-box, border-box';
 
     box.innerHTML = `
-      <div style="position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#0d9488,#5eead4);"></div>
-      <h2 style="color: #1e3a5f; font-size: 1.875rem; font-weight: 800; letter-spacing: -0.025em; line-height: 1.15; margin-bottom: 0.75rem; margin-top: 0.25rem;">Welcome to your Supplier Dashboard!</h2>
-      <p style="color: #6b7280; font-size: 0.9375rem; line-height: 1.65; margin-bottom: 1.75rem; max-width: 480px; margin-left: auto; margin-right: auto;">
-        Get ready to showcase your services and connect with event planners. Let's start with a few quick tasks:
-      </p>
-      <div style="display: flex; flex-direction: column; gap: 0.625rem; max-width: 380px; margin: 0 auto 1.875rem;">
-        <div style="display: flex; align-items: center; gap: 0.875rem; padding: 0.6875rem 1.125rem; background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 12px;">
-          <span style="font-size: 1.25rem; line-height: 1; flex-shrink: 0;" aria-hidden="true">✨</span>
-          <span style="color: #134e4a; font-weight: 500; font-size: 0.9375rem;">Complete your supplier profile</span>
+      <style>
+        #ef-ob-inner{display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap;padding-top:0.125rem;}
+        #ef-ob-title{flex:1;min-width:200px;text-align:left;}
+        #ef-ob-right{display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;justify-content:flex-end;}
+        #ef-onboarding-dismiss{flex-shrink:0;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;font-weight:700;padding:0.5625rem 1.25rem;border-radius:10px;border:none;cursor:pointer;font-size:0.875rem;box-shadow:0 3px 12px rgba(22,163,74,0.3);white-space:nowrap;transition:all 0.2s cubic-bezier(0.4,0,0.2,1);}
+        .ef-ob-pill{display:flex;align-items:center;gap:0.375rem;padding:0.375rem 0.625rem;background:#f0fdfa;border:1px solid #99f6e4;border-radius:8px;}
+        .ef-ob-pill span:last-child{color:#134e4a;font-weight:500;font-size:0.8125rem;white-space:nowrap;}
+        @media(max-width:540px){#ef-ob-right{justify-content:flex-start;width:100%;}#ef-onboarding-dismiss{width:100%;text-align:center;margin-top:0.125rem;}#ef-ob-inner{gap:0.75rem;}}
+      </style>
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#0d9488,#5eead4);"></div>
+      <div id="ef-ob-inner">
+        <div id="ef-ob-title">
+          <h2 style="color:#1e3a5f;font-size:1.25rem;font-weight:800;letter-spacing:-0.02em;line-height:1.2;margin-bottom:0.2rem;">Welcome to your Supplier Dashboard! 👋</h2>
+          <p style="color:#6b7280;font-size:0.8125rem;line-height:1.5;margin:0;">Showcase your services and connect with event planners.</p>
         </div>
-        <div style="display: flex; align-items: center; gap: 0.875rem; padding: 0.6875rem 1.125rem; background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 12px;">
-          <span style="font-size: 1.25rem; line-height: 1; flex-shrink: 0;" aria-hidden="true">📦</span>
-          <span style="color: #134e4a; font-weight: 500; font-size: 0.9375rem;">Add your first package or service</span>
-        </div>
-        <div style="display: flex; align-items: center; gap: 0.875rem; padding: 0.6875rem 1.125rem; background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 12px;">
-          <span style="font-size: 1.25rem; line-height: 1; flex-shrink: 0;" aria-hidden="true">💬</span>
-          <span style="color: #134e4a; font-weight: 500; font-size: 0.9375rem;">Start engaging with customers</span>
+        <div id="ef-ob-right">
+          <div class="ef-ob-pill"><span style="font-size:1rem;line-height:1;" aria-hidden="true">✨</span><span>Complete profile</span></div>
+          <div class="ef-ob-pill"><span style="font-size:1rem;line-height:1;" aria-hidden="true">📦</span><span>Add a package</span></div>
+          <div class="ef-ob-pill"><span style="font-size:1rem;line-height:1;" aria-hidden="true">💬</span><span>Engage customers</span></div>
+          <button type="button" class="cta" id="ef-onboarding-dismiss" aria-label="Dismiss onboarding and start using dashboard">Got it! 🚀</button>
         </div>
       </div>
-      <button type="button" class="cta" id="ef-onboarding-dismiss" aria-label="Dismiss onboarding and start using dashboard" style="display: inline-block; background: linear-gradient(135deg, #22c55e, #16a34a); color: #ffffff; font-weight: 700; padding: 0.875rem 2.75rem; border-radius: 12px; border: none; cursor: pointer; font-size: 1rem; letter-spacing: 0.01em; box-shadow: 0 4px 16px rgba(22, 163, 74, 0.35); transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);">Got it! Let's do this 🚀</button>
     `;
 
     const cards = container.querySelector('.cards');
@@ -2643,7 +2644,7 @@ function efMaybeShowOnboarding(page) {
       });
       btn.addEventListener('mouseleave', () => {
         btn.style.transform = 'scale(1) translateY(0)';
-        btn.style.boxShadow = '0 4px 16px rgba(22, 163, 74, 0.35)';
+        btn.style.boxShadow = '0 3px 12px rgba(22, 163, 74, 0.3)';
       });
 
       btn.addEventListener('click', doOverlayDismiss);
