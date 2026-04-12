@@ -774,7 +774,7 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
         } else {
           // Graceful fallback: open the clicked image directly in a new tab
           const imgEl = el.querySelector('img');
-          const url = photos[idx] || '' || (imgEl ? imgEl.src : '');
+          const url = photos[idx] || (imgEl ? imgEl.src : '');
           if (url) {
             window.open(url, '_blank', 'noopener,noreferrer');
           }
