@@ -83,6 +83,14 @@
             <polyline points="15 18 9 12 15 6"/>
           </svg>
         </button>
+
+        <div 
+          class="carousel-side-preview carousel-side-preview--prev" 
+          id="carousel-prev-preview" 
+          aria-hidden="true"
+        >
+          <img src="" alt="" class="carousel-side-preview__img" />
+        </div>
         
         <div class="carousel-image-container">
           <img 
@@ -92,6 +100,14 @@
             class="carousel-image"
           />
           <div id="carousel-caption" class="carousel-caption"></div>
+        </div>
+
+        <div 
+          class="carousel-side-preview carousel-side-preview--next" 
+          id="carousel-next-preview" 
+          aria-hidden="true"
+        >
+          <img src="" alt="" class="carousel-side-preview__img" />
         </div>
         
         <button 
@@ -104,8 +120,10 @@
           </svg>
         </button>
         
-        <div class="carousel-counter" id="carousel-counter" aria-live="polite">
-          <span id="carousel-current">1</span> / <span id="carousel-total">1</span>
+        <div class="carousel-counter" id="carousel-counter">
+          <div class="carousel-dots" id="carousel-dots" role="tablist" aria-label="Image navigation"></div>
+          <div class="carousel-divider" aria-hidden="true"></div>
+          <span aria-live="polite"><span id="carousel-current">1</span> / <span id="carousel-total">1</span></span>
         </div>
       </div>
     `;
@@ -118,6 +136,8 @@
     const closeBtn = modal.querySelector('.carousel-close');
     const prevBtn = modal.querySelector('.carousel-prev');
     const nextBtn = modal.querySelector('.carousel-next');
+    const prevPreviewEl = modal.querySelector('#carousel-prev-preview');
+    const nextPreviewEl = modal.querySelector('#carousel-next-preview');
 
     if (overlay) {
       overlay.addEventListener('click', closeCarousel);
@@ -137,6 +157,12 @@
     if (nextBtn) {
       nextBtn.addEventListener('click', nextImage);
     }
+    if (prevPreviewEl) {
+      prevPreviewEl.addEventListener('click', prevImage);
+    }
+    if (nextPreviewEl) {
+      nextPreviewEl.addEventListener('click', nextImage);
+    }
 
     // Keyboard navigation
     document.addEventListener('keydown', handleKeyboard);
@@ -152,6 +178,7 @@
 
     lastFocused = document.activeElement || null;
     currentIndex = index;
+    rebuildDots();
     updateCarouselImage();
 
     carousel.style.display = 'flex';
@@ -240,9 +267,52 @@
       current.textContent = currentIndex + 1;
       total.textContent = images.length;
 
+      // Update dot indicators
+      const dotsContainer = document.getElementById('carousel-dots');
+      if (dotsContainer) {
+        Array.from(dotsContainer.querySelectorAll('.carousel-dot')).forEach((dot, i) => {
+          const isActive = i === currentIndex;
+          dot.classList.toggle('active', isActive);
+          dot.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        });
+      }
+
       // Fade in
       img.style.opacity = '1';
     }, 150);
+
+    // Update prev/next thumbnail previews immediately (no fade delay needed)
+    const prevPreview = document.getElementById('carousel-prev-preview');
+    const nextPreview = document.getElementById('carousel-next-preview');
+
+    if (images.length > 1) {
+      const prevIdx = (currentIndex - 1 + images.length) % images.length;
+      const nextIdx = (currentIndex + 1) % images.length;
+
+      if (prevPreview) {
+        const prevImg = prevPreview.querySelector('img');
+        if (prevImg) {
+          prevImg.src = images[prevIdx].src;
+          prevImg.alt = '';
+        }
+        prevPreview.classList.add('visible');
+      }
+      if (nextPreview) {
+        const nextImg = nextPreview.querySelector('img');
+        if (nextImg) {
+          nextImg.src = images[nextIdx].src;
+          nextImg.alt = '';
+        }
+        nextPreview.classList.add('visible');
+      }
+    } else {
+      if (prevPreview) {
+        prevPreview.classList.remove('visible');
+      }
+      if (nextPreview) {
+        nextPreview.classList.remove('visible');
+      }
+    }
 
     // Update navigation buttons visibility
     const prevBtn = carousel.querySelector('.carousel-prev');
@@ -255,6 +325,47 @@
       prevBtn.style.display = 'flex';
       nextBtn.style.display = 'flex';
     }
+  }
+
+  /**
+   * Rebuild dot indicators whenever the images array changes.
+   * Shows dots for 2–10 images; hides them otherwise.
+   */
+  const MAX_DOTS = 10;
+
+  function rebuildDots() {
+    const dotsContainer = document.getElementById('carousel-dots');
+    const divider = carousel ? carousel.querySelector('.carousel-divider') : null;
+    if (!dotsContainer) {
+      return;
+    }
+
+    dotsContainer.innerHTML = '';
+
+    const showDots = images.length >= 2 && images.length <= MAX_DOTS;
+    dotsContainer.style.display = showDots ? 'flex' : 'none';
+    if (divider) {
+      divider.style.display = showDots ? 'block' : 'none';
+    }
+
+    if (!showDots) {
+      return;
+    }
+
+    images.forEach((_, i) => {
+      const dot = document.createElement('button');
+      dot.type = 'button';
+      dot.className = `carousel-dot${i === currentIndex ? ' active' : ''}`;
+      dot.setAttribute('role', 'tab');
+      dot.setAttribute('aria-label', `Go to image ${i + 1} of ${images.length}`);
+      dot.setAttribute('aria-selected', i === currentIndex ? 'true' : 'false');
+      dot.addEventListener('click', e => {
+        e.stopPropagation();
+        currentIndex = i;
+        updateCarouselImage();
+      });
+      dotsContainer.appendChild(dot);
+    });
   }
 
   /**
