@@ -8,10 +8,21 @@
  *  3. missingPhotos     — supplier has no photos/gallery          (AMBER)
  *
  * Cadence (per-supplier while actions remain outstanding):
- *  • Email 1: 1 day  after first outstanding detection
- *  • Email 2: 1 week after first outstanding detection
- *  • Email 3+: every 30 days (monthly) from last send
+ *  • DAILY stage  : send once per 24 h for up to DAILY_SENDS_BEFORE_WEEKLY (7) sends
+ *  • WEEKLY stage : send once per 7 days for up to WEEKLY_SENDS_BEFORE_MONTHLY (4) sends
+ *  • MONTHLY stage: send once per 30 days indefinitely
  *  Cadence resets when all actions are cleared.
+ *
+ * actionPromptState schema:
+ *  {
+ *    cadence: 'daily'|'weekly'|'monthly',
+ *    sendCountDaily: number,
+ *    sendCountWeekly: number,
+ *    sendCountMonthly: number,
+ *    lastSentAt: ISO string | null,
+ *    nextSendAt: ISO string,
+ *    firstOutstandingAt: ISO string
+ *  }
  */
 
 'use strict';
@@ -20,12 +31,21 @@ const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
 
 // Required supplier profile fields for "complete profile" check
-const REQUIRED_PROFILE_FIELDS = ['name', 'description_short', 'location', 'email'];
+const REQUIRED_PROFILE_FIELDS = ['name', 'description_short', 'location'];
 
-// Cadence timing
-const INITIAL_DELAY_MS = 24 * 60 * 60 * 1000; // 1 day  — first email
-const SECOND_SEND_DELAY_MS = 7 * 24 * 60 * 60 * 1000; // 7 days — second email (from firstOutstandingAt)
-const MONTHLY_DELAY_MS = 30 * 24 * 60 * 60 * 1000; // 30 days — subsequent emails
+// Cadence thresholds
+const DAILY_SENDS_BEFORE_WEEKLY = 7;
+const WEEKLY_SENDS_BEFORE_MONTHLY = 4;
+
+// Cadence intervals
+const DAILY_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const WEEKLY_INTERVAL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+const MONTHLY_INTERVAL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+// Keep these exported for backwards-compatibility with tests
+const INITIAL_DELAY_MS = DAILY_INTERVAL_MS;
+const SECOND_SEND_DELAY_MS = WEEKLY_INTERVAL_MS;
+const MONTHLY_DELAY_MS = MONTHLY_INTERVAL_MS;
 
 // Action definitions with severity labels
 const ACTION_DEFINITIONS = {
@@ -226,10 +246,10 @@ function computeFullReport(supplier, packages, settings, user) {
  * Also returns the updated state to persist after a successful send.
  *
  * Cadence schedule:
- *  • No state:           do NOT send yet; schedule first email for 1 day from now
- *  • sendCount === 0:    send now; next email at firstOutstandingAt + 7 days
- *  • sendCount === 1:    send now; next email at lastSentAt + 30 days
- *  • sendCount >= 2:     send now; next email at lastSentAt + 30 days (monthly)
+ *  • No state:          do NOT send yet; schedule first email for 24 h from now (daily stage)
+ *  • DAILY stage:       send once per 24 h for DAILY_SENDS_BEFORE_WEEKLY (7) sends, then → weekly
+ *  • WEEKLY stage:      send once per 7 days for WEEKLY_SENDS_BEFORE_MONTHLY (4) sends, then → monthly
+ *  • MONTHLY stage:     send once per 30 days indefinitely
  *
  * @param {Object|undefined} state - Current actionPromptState from user document
  * @param {Date}             now   - Current timestamp
@@ -240,13 +260,16 @@ function evaluateCadence(state, now) {
 
   if (!state) {
     // First outstanding detection — do NOT send immediately.
-    // Schedule the first email for 1 day from now.
+    // Schedule the first email for 24 h from now (start of daily stage).
     return {
       shouldSend: false,
       nextState: {
-        sendCount: 0,
+        cadence: 'daily',
+        sendCountDaily: 0,
+        sendCountWeekly: 0,
+        sendCountMonthly: 0,
         lastSentAt: null,
-        nextSendAt: new Date(nowMs + INITIAL_DELAY_MS).toISOString(),
+        nextSendAt: new Date(nowMs + DAILY_INTERVAL_MS).toISOString(),
         firstOutstandingAt: now.toISOString(),
       },
     };
@@ -257,32 +280,69 @@ function evaluateCadence(state, now) {
     return { shouldSend: false, nextState: state };
   }
 
-  // Time to send — compute updated state
-  const sendCount = state.sendCount || 0;
-  const newSendCount = sendCount + 1;
-  const firstMs = new Date(state.firstOutstandingAt || state.nextSendAt).getTime();
+  // Resolve current cadence, defaulting to 'daily' for legacy states
+  const cadence = state.cadence || 'daily';
+  const sendCountDaily =
+    state.sendCountDaily ??
+    (cadence === 'daily' ? state.sendCount || 0 : DAILY_SENDS_BEFORE_WEEKLY);
+  const sendCountWeekly =
+    state.sendCountWeekly ??
+    (cadence === 'weekly'
+      ? state.sendCount || 0
+      : cadence === 'monthly'
+        ? WEEKLY_SENDS_BEFORE_MONTHLY
+        : 0);
+  const sendCountMonthly =
+    state.sendCountMonthly ??
+    (cadence === 'monthly'
+      ? (state.sendCount || 1) - DAILY_SENDS_BEFORE_WEEKLY - WEEKLY_SENDS_BEFORE_MONTHLY
+      : 0);
+  const firstOutstandingAt = state.firstOutstandingAt || now.toISOString();
 
-  let nextSendAt;
-  let cadenceLabel;
+  // Compute the new state after this send
+  let newCadence;
+  let newSendCountDaily = sendCountDaily;
+  let newSendCountWeekly = sendCountWeekly;
+  let newSendCountMonthly = sendCountMonthly;
+  let nextIntervalMs;
 
-  if (newSendCount === 1) {
-    // After 1st send (day 1) → next is 1 week from firstOutstandingAt
-    nextSendAt = new Date(firstMs + SECOND_SEND_DELAY_MS).toISOString();
-    cadenceLabel = 'weekly';
+  if (cadence === 'daily') {
+    newSendCountDaily = sendCountDaily + 1;
+    if (newSendCountDaily >= DAILY_SENDS_BEFORE_WEEKLY) {
+      // Transition to weekly after completing the daily stage
+      newCadence = 'weekly';
+      nextIntervalMs = WEEKLY_INTERVAL_MS;
+    } else {
+      newCadence = 'daily';
+      nextIntervalMs = DAILY_INTERVAL_MS;
+    }
+  } else if (cadence === 'weekly') {
+    newSendCountWeekly = sendCountWeekly + 1;
+    if (newSendCountWeekly >= WEEKLY_SENDS_BEFORE_MONTHLY) {
+      // Transition to monthly after completing the weekly stage
+      newCadence = 'monthly';
+      nextIntervalMs = MONTHLY_INTERVAL_MS;
+    } else {
+      newCadence = 'weekly';
+      nextIntervalMs = WEEKLY_INTERVAL_MS;
+    }
   } else {
-    // After 2nd send and beyond → monthly
-    nextSendAt = new Date(nowMs + MONTHLY_DELAY_MS).toISOString();
-    cadenceLabel = 'monthly';
+    // monthly — send indefinitely
+    newCadence = 'monthly';
+    newSendCountMonthly = sendCountMonthly + 1;
+    nextIntervalMs = MONTHLY_INTERVAL_MS;
   }
 
   return {
     shouldSend: true,
     nextState: {
-      sendCount: newSendCount,
-      cadence: cadenceLabel,
+      cadence: newCadence,
+      sendCountDaily: newSendCountDaily,
+      sendCountWeekly: newSendCountWeekly,
+      sendCountMonthly: newSendCountMonthly,
       lastSentAt: now.toISOString(),
-      nextSendAt,
-      firstOutstandingAt: state.firstOutstandingAt || now.toISOString(),
+      nextSendAt: new Date(nowMs + nextIntervalMs).toISOString(),
+      firstOutstandingAt,
     },
   };
 }
@@ -377,6 +437,12 @@ module.exports = {
   clearCadenceState,
   updateCadenceState,
   REQUIRED_PROFILE_FIELDS,
+  DAILY_SENDS_BEFORE_WEEKLY,
+  WEEKLY_SENDS_BEFORE_MONTHLY,
+  DAILY_INTERVAL_MS,
+  WEEKLY_INTERVAL_MS,
+  MONTHLY_INTERVAL_MS,
+  // backwards-compat aliases
   INITIAL_DELAY_MS,
   SECOND_SEND_DELAY_MS,
   MONTHLY_DELAY_MS,

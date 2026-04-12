@@ -4,10 +4,14 @@
  *
  * Reads the cron expression and enable flag from settings (DB-backed) at runtime,
  * so admin changes take effect on the next scheduled execution without restart.
+ * A periodic poll every CRON_POLL_INTERVAL_MS detects cron changes in the DB and
+ * reschedules the job without a server restart.
  *
  * Environment variables:
- *   ACTION_PROMPTS_CRON  — override cron expression (default: '0 9 * * *')
- *   ACTION_PROMPTS_ENABLED — set to 'false'/'0' to disable outside production
+ *   ACTION_PROMPTS_CRON         — override cron expression (default: '0 9 * * *')
+ *   ACTION_PROMPTS_ENABLED      — set to 'false'/'0' to disable outside production
+ *   ACTION_PROMPTS_MAX_SEND_PER_RUN — hard cap on emails sent per run (default: 500 in prod, 50 in dev)
+ *   ACTION_PROMPTS_UNSUBSCRIBE_TTL_DAYS — token expiry in days (default: 30)
  */
 
 'use strict';
@@ -21,11 +25,17 @@ const {
 } = require('./actionPromptService');
 const postmark = require('../utils/postmark');
 const logger = require('../utils/logger');
+const dbUnified = require('../db-unified');
 
 const DEFAULT_CRON = '0 9 * * *'; // 09:00 every day
+const CRON_POLL_INTERVAL_MS = 5 * 60 * 1000; // Check for DB cron changes every 5 minutes
 
 // In-memory lock to prevent overlapping runs
 let _running = false;
+
+// Track the currently active scheduled job and its cron expression
+let _activeJob = null;
+let _activeCronExpr = null;
 
 // ── RAG colour palette ──────────────────────────────────────────────────────
 
@@ -241,15 +251,51 @@ function buildRagHtml(report, baseUrl) {
 // ── Token generation ────────────────────────────────────────────────────────
 
 /**
+ * Resolve the HMAC secret for unsubscribe tokens.
+ * In production, requires UNSUBSCRIBE_SECRET or JWT_SECRET to be set.
+ * Returns null when no secret is available (caller must handle gracefully).
+ * @returns {string|null}
+ */
+function resolveUnsubscribeSecret() {
+  const secret = process.env.UNSUBSCRIBE_SECRET || process.env.JWT_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      logger.warn(
+        '[ActionPrompts] UNSUBSCRIBE_SECRET / JWT_SECRET not set — unsubscribe links disabled in production'
+      );
+      return null;
+    }
+    // Development only: use a deterministic fallback (never in production)
+    return 'dev-fallback-secret';
+  }
+  return secret;
+}
+
+/**
  * Generate an HMAC-based unsubscribe token for a user.
+ * Token includes iat (issued-at) and exp (expiry) for revocation support.
+ * Returns null when no secret is configured in production.
+ *
  * @param {string} userId
  * @param {string} email
- * @returns {string}
+ * @returns {string|null}
  */
 function generateActionPromptUnsubscribeToken(userId, email) {
-  const secret = process.env.UNSUBSCRIBE_SECRET || process.env.JWT_SECRET || 'fallback-secret';
+  const secret = resolveUnsubscribeSecret();
+  if (!secret) {
+    return null;
+  }
+  const ttlDays = Number(process.env.ACTION_PROMPTS_UNSUBSCRIBE_TTL_DAYS) || 30;
+  const now = Math.floor(Date.now() / 1000);
   const payload = Buffer.from(
-    JSON.stringify({ userId, email: email.toLowerCase(), purpose: 'actionPrompts' })
+    JSON.stringify({
+      v: 1,
+      userId,
+      email: email.toLowerCase(),
+      purpose: 'actionPrompts',
+      iat: now,
+      exp: now + ttlDays * 24 * 60 * 60,
+    })
   ).toString('base64url');
   const sig = crypto.createHmac('sha256', secret).update(payload).digest('base64url');
   return `${payload}.${sig}`;
@@ -283,13 +329,18 @@ function getEmailSubject(report, sendCount) {
  */
 async function sendActionPromptEmail(user, report, baseUrl, dryRun) {
   const unsubscribeToken = generateActionPromptUnsubscribeToken(user.id, user.email);
-  const unsubscribeUrl = `${baseUrl}/email/action-prompts/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`;
+  const unsubscribeUrl = unsubscribeToken
+    ? `${baseUrl}/email/action-prompts/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`
+    : null;
   const managePrefsUrl = `${baseUrl}/settings`;
   const loginUrl = `${baseUrl}/dashboard/supplier`;
   const actionsHtml = buildRagHtml(report, baseUrl);
 
-  const sendCount = user.actionPromptState?.sendCount ?? 0;
-  const subject = getEmailSubject(report, sendCount);
+  // Total emails sent across all cadence stages
+  const state = user.actionPromptState;
+  const totalSendCount =
+    (state?.sendCountDaily ?? 0) + (state?.sendCountWeekly ?? 0) + (state?.sendCountMonthly ?? 0);
+  const subject = getEmailSubject(report, totalSendCount);
 
   if (dryRun) {
     logger.info(
@@ -298,24 +349,28 @@ async function sendActionPromptEmail(user, report, baseUrl, dryRun) {
     return;
   }
 
+  const templateData = {
+    name: user.firstName || user.name || 'there',
+    actionsHtml,
+    loginUrl,
+    managePrefsUrl,
+  };
+  if (unsubscribeUrl) {
+    templateData.unsubscribeUrl = unsubscribeUrl;
+  }
+
   await postmark.sendMail({
     to: user.email,
     subject,
     template: 'action-prompts',
-    templateData: {
-      name: user.firstName || user.name || 'there',
-      actionsHtml,
-      loginUrl,
-      managePrefsUrl,
-      unsubscribeUrl,
-    },
+    templateData,
     from: postmark.FROM_NOREPLY,
     messageStream: 'outbound',
     tags: ['action_prompt'],
   });
 
   logger.info(
-    `[ActionPrompts] Sent to ${user.email} — status: ${report.ragStatus}, actions: ${report.outstanding.map(a => a.key).join(', ')}`
+    `[ActionPrompts] Sent to ${user.email} — cadence: ${state?.cadence ?? 'daily'}, status: ${report.ragStatus}, actions: ${report.outstanding.map(a => a.key).join(', ')}`
   );
 }
 
@@ -326,9 +381,10 @@ async function sendActionPromptEmail(user, report, baseUrl, dryRun) {
  *
  * @param {Object} [opts]
  * @param {boolean} [opts.dryRun=false] - Log actions without sending
+ * @param {number}  [opts.limit]        - Override max send cap for this run
  * @returns {Promise<Object>} Summary stats
  */
-async function runActionPrompts({ dryRun = false } = {}) {
+async function runActionPrompts({ dryRun = false, limit } = {}) {
   if (_running) {
     logger.warn('[ActionPrompts] Previous run still in progress — skipping');
     return { skipped: true, reason: 'already-running' };
@@ -336,12 +392,21 @@ async function runActionPrompts({ dryRun = false } = {}) {
 
   _running = true;
   const startedAt = new Date();
-  logger.info(`[ActionPrompts] Run started at ${startedAt.toISOString()} (dryRun=${dryRun})`);
+  const isProduction = process.env.NODE_ENV === 'production';
+  const defaultCap = isProduction ? 500 : 50;
+  const maxSendPerRun =
+    limit ?? (Number(process.env.ACTION_PROMPTS_MAX_SEND_PER_RUN) || defaultCap);
+
+  logger.info(
+    `[ActionPrompts] Run started at ${startedAt.toISOString()} (dryRun=${dryRun}, maxSendPerRun=${maxSendPerRun})`
+  );
 
   let scanned = 0;
   let sent = 0;
   let skippedCadence = 0;
+  let cappedByLimit = false;
   let errors = 0;
+  const sampleRecipients = [];
 
   try {
     const items = await getSupplierActionItems();
@@ -351,19 +416,32 @@ async function runActionPrompts({ dryRun = false } = {}) {
     const baseUrl = process.env.APP_BASE_URL || process.env.BASE_URL || 'http://localhost:3000';
 
     for (const { user, report } of items) {
+      // Hard cap to prevent bulk sends
+      if (sent >= maxSendPerRun) {
+        cappedByLimit = true;
+        logger.warn(
+          `[ActionPrompts] Reached max send cap (${maxSendPerRun}) — stopping run. Remaining users will be processed next run.`
+        );
+        break;
+      }
+
       try {
         const { shouldSend, nextState } = evaluateCadence(user.actionPromptState, now);
 
         if (!shouldSend) {
           skippedCadence++;
           logger.debug(
-            `[ActionPrompts] Skipping ${user.email} — next send at ${user.actionPromptState?.nextSendAt || nextState.nextSendAt}`
+            `[ActionPrompts] Skipping ${user.email} — cadence: ${user.actionPromptState?.cadence ?? 'daily'}, next send at ${user.actionPromptState?.nextSendAt || nextState.nextSendAt}`
           );
           // Persist initial state if this is the first detection
           if (!user.actionPromptState && !dryRun) {
             await updateCadenceState(user.id, nextState);
           }
           continue;
+        }
+
+        if (sampleRecipients.length < 5) {
+          sampleRecipients.push({ email: user.email, actions: report.outstanding.map(a => a.key) });
         }
 
         await sendActionPromptEmail(user, report, baseUrl, dryRun);
@@ -391,17 +469,87 @@ async function runActionPrompts({ dryRun = false } = {}) {
     scanned,
     sent,
     skippedCadence,
+    cappedByLimit,
     errors,
+    sampleRecipients,
   };
 
-  logger.info('[ActionPrompts] Run complete:', JSON.stringify(summary));
+  logger.info(
+    `[ActionPrompts] Run complete: scanned=${scanned}, sent=${sent}, skippedCadence=${skippedCadence}, errors=${errors}, cappedByLimit=${cappedByLimit}`
+  );
+
+  // Persist lastRun to settings so admin UI can display it
+  if (!dryRun) {
+    try {
+      const settings = (await dbUnified.read('settings')) || {};
+      settings.emailAutomation = settings.emailAutomation || {};
+      settings.emailAutomation.actionPrompts = settings.emailAutomation.actionPrompts || {};
+      settings.emailAutomation.actionPrompts.lastRun = summary;
+      await dbUnified.writeAndVerify('settings', settings);
+    } catch (err) {
+      logger.warn('[ActionPrompts] Failed to persist lastRun to settings:', err.message);
+    }
+  }
+
   return summary;
 }
 
 /**
+ * Resolve the effective cron expression.
+ * env var > DB setting > hard-coded default.
+ * @param {Object} [dbSettings] - Loaded settings document (optional)
+ * @returns {string}
+ */
+function resolveActiveCronExpr(dbSettings) {
+  if (process.env.ACTION_PROMPTS_CRON) {
+    return process.env.ACTION_PROMPTS_CRON;
+  }
+  const dbCron = dbSettings?.emailAutomation?.actionPrompts?.cron;
+  return dbCron || DEFAULT_CRON;
+}
+
+/**
+ * Reschedule the action-prompt job with a new cron expression.
+ * Cancels the existing job first to avoid overlaps.
+ * @param {string} newCronExpr
+ */
+function _rescheduleJob(newCronExpr) {
+  if (_activeJob) {
+    _activeJob.cancel();
+    _activeJob = null;
+    logger.info(`[ActionPrompts] Cancelled previous job (was: "${_activeCronExpr}")`);
+  }
+
+  const job = schedule.scheduleJob(newCronExpr, async () => {
+    try {
+      await runActionPrompts();
+    } catch (err) {
+      logger.error('[ActionPrompts] Scheduled run failed:', err.message);
+    }
+  });
+
+  if (!job) {
+    logger.error(
+      `[ActionPrompts] Failed to schedule job — invalid cron expression? "${newCronExpr}"`
+    );
+    _activeJob = null;
+    _activeCronExpr = null;
+    return;
+  }
+
+  _activeJob = job;
+  _activeCronExpr = newCronExpr;
+  const nextRun = job.nextInvocation();
+  logger.info(
+    `[ActionPrompts] Scheduled: cron="${newCronExpr}", nextRun=${nextRun ? nextRun.toISOString() : 'unknown'}`
+  );
+}
+
+/**
  * Schedule action-prompt emails using node-schedule.
+ * Sets up a periodic cron-change poll so admin updates take effect without restart.
  *
- * @returns {{ scheduled: boolean, cronExpr: string, nextRun: Date|null }}
+ * @returns {{ scheduled: boolean, cronExpr: string|null, nextRun: Date|null }}
  */
 function scheduleActionPrompts() {
   const enabledEnv = process.env.ACTION_PROMPTS_ENABLED;
@@ -414,33 +562,64 @@ function scheduleActionPrompts() {
     return { scheduled: false, cronExpr: null, nextRun: null };
   }
 
-  const cronExpr = process.env.ACTION_PROMPTS_CRON || DEFAULT_CRON;
+  const cronExpr = resolveActiveCronExpr();
+  _rescheduleJob(cronExpr);
 
-  const job = schedule.scheduleJob(cronExpr, async () => {
-    try {
-      await runActionPrompts();
-    } catch (err) {
-      logger.error('[ActionPrompts] Scheduled run failed:', err.message);
-    }
-  });
-
-  if (!job) {
-    logger.error('[ActionPrompts] Failed to schedule job — invalid cron expression?', cronExpr);
+  if (!_activeJob) {
     return { scheduled: false, cronExpr, nextRun: null };
   }
 
-  const nextRun = job.nextInvocation();
-  logger.info(
-    `[ActionPrompts] Scheduled: cron="${cronExpr}", nextRun=${nextRun ? nextRun.toISOString() : 'unknown'}`
-  );
+  // Periodic poll to detect DB cron changes
+  setInterval(async () => {
+    try {
+      const enabledNow =
+        process.env.ACTION_PROMPTS_ENABLED !== undefined
+          ? process.env.ACTION_PROMPTS_ENABLED !== 'false' &&
+            process.env.ACTION_PROMPTS_ENABLED !== '0'
+          : process.env.NODE_ENV === 'production';
+      if (!enabledNow) {
+        return;
+      }
+      const settings = await dbUnified.read('settings');
+      const newCron = resolveActiveCronExpr(settings);
+      if (newCron !== _activeCronExpr) {
+        logger.info(
+          `[ActionPrompts] Cron changed (${_activeCronExpr} → ${newCron}) — rescheduling`
+        );
+        _rescheduleJob(newCron);
+      }
+    } catch (err) {
+      logger.debug('[ActionPrompts] Cron poll error (non-fatal):', err.message);
+    }
+  }, CRON_POLL_INTERVAL_MS);
 
+  const nextRun = _activeJob.nextInvocation();
   return { scheduled: true, cronExpr, nextRun };
+}
+
+/**
+ * Trigger an immediate reschedule after an admin cron update.
+ * Called by the admin settings PUT endpoint so changes take effect faster than the poll.
+ */
+async function notifyCronChanged() {
+  try {
+    const settings = await dbUnified.read('settings');
+    const newCron = resolveActiveCronExpr(settings);
+    if (newCron !== _activeCronExpr) {
+      logger.info(`[ActionPrompts] Admin triggered reschedule: ${_activeCronExpr} → ${newCron}`);
+      _rescheduleJob(newCron);
+    }
+  } catch (err) {
+    logger.warn('[ActionPrompts] notifyCronChanged error (non-fatal):', err.message);
+  }
 }
 
 module.exports = {
   runActionPrompts,
   scheduleActionPrompts,
+  notifyCronChanged,
   generateActionPromptUnsubscribeToken,
+  resolveUnsubscribeSecret,
   buildRagHtml,
   getEmailSubject,
 };

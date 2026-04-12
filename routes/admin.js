@@ -27,6 +27,7 @@ const postmark = require('../utils/postmark');
 const { FROM_SUPPORT: POSTMARK_FROM_SUPPORT_ADDR } = postmark;
 const { VERIFICATION_STATES } = require('../utils/supplierVerificationStateMachine');
 const { sanitiseText } = require('../utils/sanitise');
+const { runActionPrompts, notifyCronChanged } = require('../services/actionPromptScheduler');
 
 const router = express.Router();
 
@@ -3466,6 +3467,7 @@ router.get('/settings/email-automation', authRequired, roleRequired('admin'), as
       },
       updatedAt: actionPrompts.updatedAt,
       updatedBy: actionPrompts.updatedBy,
+      lastRun: actionPrompts.lastRun || null,
     };
     res.json(response);
   } catch (error) {
@@ -3540,9 +3542,67 @@ router.put(
       });
 
       res.json({ success: true, actionPrompts: newActionPrompts });
+
+      // Trigger immediate reschedule if cron changed (fire-and-forget)
+      notifyCronChanged().catch(() => {});
     } catch (error) {
       logger.error('Error updating email-automation settings:', error);
       res.status(500).json({ error: 'Failed to update settings' });
+    }
+  }
+);
+
+/**
+ * POST /api/admin/email-automation/action-prompts/run
+ * Manually trigger an action-prompt email run.
+ * Body: { dryRun: boolean, confirm?: boolean, limit?: number }
+ * - dryRun=true: returns a summary without sending any emails (safe)
+ * - dryRun=false: requires confirm=true to prevent accidental bulk sends
+ */
+router.post(
+  '/email-automation/action-prompts/run',
+  authRequired,
+  roleRequired('admin'),
+  csrfProtection,
+  writeLimiter,
+  async (req, res) => {
+    try {
+      const { dryRun = true, confirm = false, limit } = req.body;
+
+      if (typeof dryRun !== 'boolean') {
+        return res.status(400).json({ error: 'dryRun must be a boolean' });
+      }
+
+      if (!dryRun && !confirm) {
+        return res
+          .status(400)
+          .json({
+            error: 'confirm=true required for non-dry-run to prevent accidental bulk sends',
+          });
+      }
+
+      if (limit !== undefined && (!Number.isInteger(limit) || limit < 1)) {
+        return res.status(400).json({ error: 'limit must be a positive integer' });
+      }
+
+      logger.info(
+        `[Admin] Manual action-prompt run triggered by ${req.user.email} (dryRun=${dryRun}, limit=${limit ?? 'default'})`
+      );
+
+      const summary = await runActionPrompts({ dryRun, ...(limit !== undefined ? { limit } : {}) });
+
+      auditLog({
+        adminEmail: req.user.email,
+        action: 'EMAIL_AUTOMATION_RUN',
+        targetType: 'action_prompts',
+        targetId: null,
+        details: { dryRun, limit, summary },
+      });
+
+      res.json({ success: true, summary });
+    } catch (error) {
+      logger.error('Error running action-prompt emails:', error);
+      res.status(500).json({ error: 'Failed to run action-prompt emails' });
     }
   }
 );

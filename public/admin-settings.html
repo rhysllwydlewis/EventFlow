@@ -252,7 +252,7 @@
         <div class="form-row" style="margin-top:0.5rem;">
           <label for="emailAutoCron" style="font-weight:600;font-size:0.9rem;">Cron Schedule</label>
           <input type="text" id="emailAutoCron" placeholder="0 9 * * *" style="font-family:monospace;max-width:220px;" aria-describedby="emailAutoCronHint">
-          <p id="emailAutoCronHint" class="small" style="margin-top:0.25rem;color:#6b7280;">Default: <code>0 9 * * *</code> (9am daily). Stored here for reference. The active cron is set via the <code>ACTION_PROMPTS_CRON</code> environment variable and read at server startup.</p>
+          <p id="emailAutoCronHint" class="small" style="margin-top:0.25rem;color:#6b7280;">Default: <code>0 9 * * *</code> (9 am daily). Stored in the database and applied at runtime — the active job is rescheduled automatically within 5 minutes of saving, or instantly after clicking <em>Save Email Automation</em>. The <code>ACTION_PROMPTS_CRON</code> env var overrides this value if set.</p>
         </div>
       </div>
 
@@ -261,7 +261,34 @@
         <strong>Last updated:</strong> <span id="emailAutoUpdatedTime">-</span> by <span id="emailAutoUpdatedBy">-</span>
       </div>
 
-      <button class="btn btn-primary mt-1" id="saveEmailAutomation" disabled>Save Email Automation</button>
+      <!-- Last run status -->
+      <div id="emailAutoLastRun" style="margin-top:0.75rem;padding:0.75rem 1rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:0.82rem;color:#374151;display:none;">
+        <strong>Last run:</strong>
+        <span id="emailAutoLastRunTime">-</span> &mdash;
+        scanned <strong id="emailAutoLastRunScanned">-</strong>,
+        sent <strong id="emailAutoLastRunSent">-</strong>,
+        skipped <strong id="emailAutoLastRunSkipped">-</strong>
+        <span id="emailAutoLastRunErrors" style="color:#dc2626;display:none;">, <strong id="emailAutoLastRunErrorCount">0</strong> error(s)</span>
+        <span id="emailAutoLastRunCapped" style="color:#d97706;display:none;"> &mdash; ⚠ run capped by limit</span>
+      </div>
+
+      <div style="display:flex;align-items:center;flex-wrap:wrap;gap:0.5rem;margin-top:1rem;">
+        <button class="btn btn-primary" id="saveEmailAutomation" disabled>Save Email Automation</button>
+        <button class="btn" id="emailAutoDryRun" type="button">Dry Run</button>
+        <button class="btn" id="emailAutoSendNow" type="button" style="border-color:#dc2626;color:#dc2626;">Send Now…</button>
+      </div>
+
+      <!-- Confirmation modal for Send Now -->
+      <div id="emailAutoConfirmModal" role="dialog" aria-modal="true" aria-labelledby="emailAutoConfirmTitle" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:9999;align-items:center;justify-content:center;">
+        <div style="background:#fff;border-radius:12px;padding:1.5rem 1.75rem;max-width:440px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
+          <h3 id="emailAutoConfirmTitle" style="margin:0 0 0.75rem;font-size:1.1rem;color:#dc2626;">⚠ Send action-prompt emails now?</h3>
+          <p style="margin:0 0 1.25rem;font-size:0.9rem;color:#374151;">This will immediately send reminder emails to all eligible suppliers who are due for their next send. This action cannot be undone.</p>
+          <div style="display:flex;gap:0.625rem;justify-content:flex-end;">
+            <button class="btn" id="emailAutoConfirmCancel">Cancel</button>
+            <button class="btn btn-primary" id="emailAutoConfirmSend" style="background:#dc2626;border-color:#dc2626;">Yes, Send Now</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Audit Log Viewer -->
