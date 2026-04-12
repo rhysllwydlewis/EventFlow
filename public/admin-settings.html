@@ -234,7 +234,7 @@
         <div class="form-row" style="margin-top:1rem;">
           <label for="emailAutoCron" style="font-weight:600;font-size:0.9rem;">Cron Schedule</label>
           <input type="text" id="emailAutoCron" placeholder="0 9 * * *" style="font-family:monospace;max-width:220px;" aria-describedby="emailAutoCronHint">
-          <p id="emailAutoCronHint" class="small" style="margin-top:0.25rem;color:#6b7280;">Default: <code>0 9 * * *</code> (9am daily). Requires server restart to take effect.</p>
+          <p id="emailAutoCronHint" class="small" style="margin-top:0.25rem;color:#6b7280;">Default: <code>0 9 * * *</code> (9am daily). Stored here for reference. The active cron is set via the <code>ACTION_PROMPTS_CRON</code> environment variable and read at server startup.</p>
         </div>
       </div>
 

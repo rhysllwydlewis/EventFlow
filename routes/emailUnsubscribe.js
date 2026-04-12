@@ -14,6 +14,7 @@ const express = require('express');
 const crypto = require('crypto');
 const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
+const { apiLimiter } = require('../middleware/rateLimits');
 
 const router = express.Router();
 
@@ -62,7 +63,7 @@ function verifyToken(token) {
  * GET /email/action-prompts/unsubscribe
  * One-click unsubscribe — no authentication required.
  */
-router.get('/action-prompts/unsubscribe', async (req, res) => {
+router.get('/action-prompts/unsubscribe', apiLimiter, async (req, res) => {
   const { token } = req.query;
 
   if (!token) {

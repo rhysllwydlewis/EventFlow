@@ -123,7 +123,7 @@ function evaluateCadence(state, now) {
     newDailyCount += 1;
     if (newDailyCount >= DAILY_TO_WEEKLY_THRESHOLD) {
       newCadence = 'weekly';
-      newWeeklyCount = 0; // reset weekly count when escalating
+      newWeeklyCount = 1; // this send counts as the first weekly send
     }
   } else if (newCadence === 'weekly') {
     newWeeklyCount += 1;
@@ -171,8 +171,8 @@ async function getSupplierActionItems() {
 
   const globalSettings = settings || {};
 
-  // Check master enable flag (default: enabled)
-  const automationEnabled = globalSettings.emailAutomation?.actionPrompts?.enabled !== false;
+  // Check master enable flag — must be explicitly true to prevent accidental sends
+  const automationEnabled = globalSettings.emailAutomation?.actionPrompts?.enabled === true;
   if (!automationEnabled) {
     logger.info('[ActionPrompts] Global auto action prompts disabled — skipping');
     return [];

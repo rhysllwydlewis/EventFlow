@@ -189,6 +189,7 @@ describe('evaluateCadence', () => {
     const { shouldSend, nextState } = evaluateCadence(state, now);
     expect(shouldSend).toBe(true);
     expect(nextState.cadence).toBe('weekly');
+    expect(nextState.weeklySendsCount).toBe(1); // first weekly send counted
   });
 
   it(`escalates from weekly to monthly after ${WEEKLY_TO_MONTHLY_THRESHOLD} weekly sends`, () => {
@@ -257,6 +258,17 @@ describe('getSupplierActionItems', () => {
     expect(items).toHaveLength(0);
   });
 
+  it('returns empty array when email automation is not yet configured (explicit opt-in required)', async () => {
+    setupDb({
+      settings: {},
+      users: [makeUser()],
+      suppliers: [makeSupplier()],
+      packages: [],
+    });
+    const items = await getSupplierActionItems();
+    expect(items).toHaveLength(0);
+  });
+
   it('skips non-supplier users', async () => {
     setupDb({
       settings: makeSettings(),
@@ -312,7 +324,6 @@ describe('getSupplierActionItems', () => {
     expect(items).toHaveLength(1);
     expect(items[0].actions.some(a => a.key === 'missingPackages')).toBe(true);
   });
-
   it('includes all relevant actions in one item', async () => {
     const incompleteSupplier = makeSupplier({ description_short: '' });
     setupDb({
