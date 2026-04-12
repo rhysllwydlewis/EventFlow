@@ -7326,8 +7326,35 @@ label .required {
 }
 
 /* ── Supplier Gallery Photo Tiles (existing photos with delete + reorder) ── */
+
+/*
+ * #sup-photo-preview sits inside a .form-row > div, which ui-ux-fixes.css sets
+ * to flex-direction:column. Override to restore horizontal wrap layout.
+ */
+#sup-photo-preview.photo-preview-grid,
+#sup-photo-preview.pkg-gallery-sortable {
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  gap: 10px !important;
+  padding: 4px 0;
+}
+
+/*
+ * Tile structure:
+ *   .photo-preview-item.photo-preview-item--existing  (position:relative, fixed 90×90)
+ *     ├── .photo-first-badge   (absolute, bottom-left overlay)
+ *     ├── .photo-drag-handle   (absolute, top-left overlay)
+ *     ├── .photo-delete-btn    (absolute, top-right overlay)
+ *     └── .photo-preview-item__image-wrap  (absolute fill, overflow:hidden → clips image)
+ *           └── img
+ *
+ * Keeping overflow:visible on the outer wrapper lets the delete ✕ button protrude
+ * slightly beyond the tile edge for easy tapping. The image-wrap provides the clip.
+ */
+
 .photo-preview-item--existing {
   position: relative;
+  display: inline-block; /* flex item fallback */
   width: 90px;
   height: 90px;
   border-radius: 6px;
@@ -7336,13 +7363,24 @@ label .required {
   border: 2px solid transparent;
   transition: border-color 0.15s, transform 0.12s, box-shadow 0.12s;
   flex-shrink: 0;
+  flex-grow: 0;
+  vertical-align: top;
 }
 
-.photo-preview-item--existing img {
+/* Inner image container — provides the clip so broken images don't expand tile */
+.photo-preview-item__image-wrap {
+  position: absolute;
+  inset: 0;
+  border-radius: 5px;
+  overflow: hidden;
+  z-index: 0;
+  background: #f0f0f0; /* placeholder tint while image loads */
+}
+
+.photo-preview-item__image-wrap img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 5px;
   display: block;
   pointer-events: none;
   user-select: none;
@@ -7367,66 +7405,115 @@ label .required {
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25);
 }
 
-/* Drag handle */
+/* Drag handle — top-left overlay */
 .photo-drag-handle {
   position: absolute;
-  top: 3px;
-  left: 3px;
+  top: 4px;
+  left: 4px;
   width: 18px;
   height: 18px;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(0, 0, 0, 0.5);
   color: #fff;
-  font-size: 12px;
+  font-size: 11px;
   line-height: 18px;
   text-align: center;
   border-radius: 3px;
   cursor: grab;
   user-select: none;
-  z-index: 2;
-  transition: background 0.15s;
-}
-
-.photo-preview-item--existing:hover .photo-drag-handle {
-  background: rgba(0, 0, 0, 0.68);
-}
-
-/* "Cover" badge on the first existing photo */
-.photo-first-badge {
-  position: absolute;
-  bottom: 3px;
-  left: 3px;
-  padding: 1px 5px;
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  background: #6366f1;
-  color: #fff;
-  border-radius: 3px;
-  z-index: 2;
-  pointer-events: none;
-}
-
-/* Delete button for existing photos */
-.photo-preview-item--existing .photo-delete-btn {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 20px;
-  height: 20px;
-  padding: 0;
-  background: rgba(239, 68, 68, 0.85);
-  color: #fff;
-  border: none;
-  border-radius: 50%;
-  font-size: 12px;
-  line-height: 20px;
-  text-align: center;
-  cursor: pointer;
   z-index: 3;
   transition: background 0.15s;
 }
 
-.photo-preview-item--existing .photo-delete-btn:hover {
+.photo-preview-item--existing:hover .photo-drag-handle {
+  background: rgba(0, 0, 0, 0.72);
+}
+
+/* "Cover" badge — bottom-left overlay */
+.photo-first-badge {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  padding: 1px 5px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: #6366f1;
+  color: #fff;
+  border-radius: 3px;
+  z-index: 3;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+/* Delete / remove button — top-right overlay */
+.photo-preview-item--existing .photo-delete-btn,
+.photo-preview-item--pending .photo-remove-btn {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  background: rgba(239, 68, 68, 0.9);
+  color: #fff;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  font-size: 10px;
+  line-height: 16px;
+  text-align: center;
+  cursor: pointer;
+  z-index: 4;
+  transition: background 0.15s, transform 0.1s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+}
+
+.photo-preview-item--existing .photo-delete-btn:hover,
+.photo-preview-item--pending .photo-remove-btn:hover {
   background: rgba(220, 38, 38, 1);
+  transform: scale(1.1);
+}
+
+/* ── Pending upload tiles — match existing-photo tile size & shape ─────────── */
+
+.photo-preview-item--pending {
+  position: relative;
+  display: inline-block;
+  width: 90px;
+  height: 90px;
+  border-radius: 6px;
+  overflow: visible;
+  border: 2px dashed rgba(99, 102, 241, 0.45);
+  flex-shrink: 0;
+  flex-grow: 0;
+  vertical-align: top;
+}
+
+/* Override the global 72px image rule for tiles inside the supplier preview grid */
+#sup-photo-preview .photo-preview-item__image-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 0; /* border-radius handled by the wrap itself */
+  display: block;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* "Pending" badge on staged upload tiles — bottom-left overlay */
+.photo-pending-badge {
+  position: absolute;
+  bottom: 4px;
+  left: 4px;
+  padding: 1px 5px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: rgba(99, 102, 241, 0.75);
+  color: #fff;
+  border-radius: 3px;
+  z-index: 3;
+  pointer-events: none;
+  white-space: nowrap;
 }

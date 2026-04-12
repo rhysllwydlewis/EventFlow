@@ -184,7 +184,7 @@ router.post(
       return res.status(400).json({ error: 'Missing image' });
     }
     const suppliers = await dbUnified.read('suppliers');
-    const s = suppliers.find(x => x.id === req.params.id && x.ownerUserId === req.userId);
+    const s = suppliers.find(x => x.id === req.params.id && x.ownerUserId === req.user.id);
     if (!s) {
       return res.status(403).json({ error: 'Not owner' });
     }

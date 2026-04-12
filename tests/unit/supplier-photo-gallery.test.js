@@ -169,3 +169,14 @@ describe('Suppliers V2 — catalogCache dependency', () => {
     expect(routesContent).toContain("require('../services/catalogCache')");
   });
 });
+
+// ─── POST /:id/photos ownership fix ──────────────────────────────────────────
+
+describe('Suppliers V2 — POST /:id/photos ownership check', () => {
+  it('uses req.user.id (not req.userId) for ownership check', () => {
+    // req.userId is always undefined — ensure the correct property is used
+    const block = extractRouteBlock('post', '/:id/photos');
+    expect(block).not.toContain('req.userId');
+    expect(block).toContain('req.user.id');
+  });
+});

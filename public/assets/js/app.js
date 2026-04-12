@@ -3247,6 +3247,13 @@ async function initDashSupplier() {
     if (previewBtn && supplier.id) {
       previewBtn.style.display = 'inline-block';
     }
+
+    // Reload the supplier gallery photo tiles whenever the form is populated
+    // with a supplier. This handles both the initial page load (where gallery.js
+    // setup() runs before supplier data is fetched) and switching between suppliers.
+    if (supplier.id && typeof window.loadSupplierGalleryPhotos === 'function') {
+      window.loadSupplierGalleryPhotos(supplier.id);
+    }
   }
 
   // Expose populateSupplierForm globally so editProfile() (defined outside this

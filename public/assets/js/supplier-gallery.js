@@ -159,31 +159,22 @@ class SupplierGalleryManager {
 
     reader.addEventListener('load', e => {
       const wrapper = document.createElement('div');
-      wrapper.className = 'photo-preview-item';
-      wrapper.style.position = 'relative';
+      wrapper.className = 'photo-preview-item photo-preview-item--pending';
 
-      const img = document.createElement('img');
-      img.src = e.target.result;
-      img.alt = file.name;
+      // "Pending" label so the user can distinguish staged files from uploaded ones
+      const pendingBadge = document.createElement('span');
+      pendingBadge.className = 'photo-pending-badge';
+      pendingBadge.textContent = 'Pending';
+      pendingBadge.setAttribute('aria-hidden', 'true');
+      wrapper.appendChild(pendingBadge);
 
-      // Add remove button
+      // Remove button (before upload)
       const removeBtn = document.createElement('button');
       removeBtn.type = 'button';
-      removeBtn.textContent = '×';
+      removeBtn.textContent = '✕';
       removeBtn.className = 'photo-remove-btn';
-      removeBtn.style.position = 'absolute';
-      removeBtn.style.top = '4px';
-      removeBtn.style.right = '4px';
-      removeBtn.style.background = 'rgba(255,255,255,0.9)';
-      removeBtn.style.border = '1px solid #ccc';
-      removeBtn.style.borderRadius = '50%';
-      removeBtn.style.width = '24px';
-      removeBtn.style.height = '24px';
-      removeBtn.style.cursor = 'pointer';
-      removeBtn.style.fontSize = '16px';
-      removeBtn.style.lineHeight = '1';
-      removeBtn.style.padding = '0';
-
+      removeBtn.setAttribute('aria-label', 'Remove photo');
+      removeBtn.title = 'Remove from upload queue';
       removeBtn.addEventListener('click', () => {
         // Remove from pending uploads - ensure pendingUploads is defined
         if (this.pendingUploads && Array.isArray(this.pendingUploads)) {
@@ -195,9 +186,17 @@ class SupplierGalleryManager {
         // Remove preview
         wrapper.remove();
       });
-
-      wrapper.appendChild(img);
       wrapper.appendChild(removeBtn);
+
+      // Image container — overflow:hidden keeps the tile at a fixed size
+      const imgWrap = document.createElement('div');
+      imgWrap.className = 'photo-preview-item__image-wrap';
+      const img = document.createElement('img');
+      img.src = e.target.result;
+      img.alt = file.name;
+      imgWrap.appendChild(img);
+      wrapper.appendChild(imgWrap);
+
       previewContainer.appendChild(wrapper);
     });
 
@@ -396,8 +395,19 @@ class SupplierGalleryManager {
     if (!supplierIdField || !supplierIdField.value) {
       return; // No supplier ID, must be creating a new supplier
     }
+    await this.loadPhotosForSupplier(supplierIdField.value);
+  }
 
-    const supplierId = supplierIdField.value;
+  /**
+   * Load and render photos for a specific supplier.
+   * Called both at setup time and whenever the supplier form is populated
+   * (via window.loadSupplierGalleryPhotos exposed below).
+   * @param {string} supplierId
+   */
+  async loadPhotosForSupplier(supplierId) {
+    if (!supplierId) {
+      return;
+    }
     this.currentSupplierId = supplierId;
 
     try {
@@ -407,15 +417,17 @@ class SupplierGalleryManager {
           url: p.url,
           id: p.id || p.url || `photo_${i}`,
         }));
+      } else {
+        this.uploadedPhotos = [];
+      }
 
-        const previewContainer = document.getElementById('sup-photo-preview');
-        if (previewContainer) {
-          this.renderExistingPhotos(previewContainer);
-        }
+      const previewContainer = document.getElementById('sup-photo-preview');
+      if (previewContainer) {
+        this.renderExistingPhotos(previewContainer);
+      }
 
-        if (isDevelopment) {
-          console.log('Loaded existing photos:', this.uploadedPhotos);
-        }
+      if (isDevelopment) {
+        console.log('Loaded existing photos for supplier', supplierId, this.uploadedPhotos);
       }
     } catch (error) {
       console.error('Error loading existing photos:', error);
@@ -440,9 +452,8 @@ class SupplierGalleryManager {
       wrapper.className = 'photo-preview-item photo-preview-item--existing';
       wrapper.draggable = true;
       wrapper.dataset.photoId = photo.id;
-      wrapper.style.position = 'relative';
 
-      // "Cover" badge on first photo
+      // "Cover" badge on first photo (absolutely positioned, inside wrapper)
       if (index === 0) {
         const badge = document.createElement('span');
         badge.className = 'photo-first-badge';
@@ -450,19 +461,15 @@ class SupplierGalleryManager {
         wrapper.appendChild(badge);
       }
 
-      // Drag handle
+      // Drag handle (absolutely positioned, inside wrapper)
       const dragHandle = document.createElement('span');
       dragHandle.className = 'photo-drag-handle';
       dragHandle.title = 'Drag to reorder';
       dragHandle.setAttribute('aria-hidden', 'true');
       dragHandle.textContent = '⠿';
+      wrapper.appendChild(dragHandle);
 
-      const img = document.createElement('img');
-      img.src = photo.url;
-      img.alt = 'Gallery photo';
-      img.loading = 'lazy';
-
-      // Delete button
+      // Delete button (absolutely positioned, inside wrapper)
       const deleteBtn = document.createElement('button');
       deleteBtn.type = 'button';
       deleteBtn.textContent = '✕';
@@ -470,10 +477,19 @@ class SupplierGalleryManager {
       deleteBtn.setAttribute('aria-label', 'Delete photo');
       deleteBtn.title = 'Delete photo';
       deleteBtn.addEventListener('click', () => this.deleteExistingPhoto(photo.id, wrapper));
-
-      wrapper.appendChild(dragHandle);
-      wrapper.appendChild(img);
       wrapper.appendChild(deleteBtn);
+
+      // Image container — overflow:hidden keeps the tile fixed at 90×90 regardless
+      // of image load state; absolute-positioned overlays (badge, handle, btn) sit above.
+      const imgWrap = document.createElement('div');
+      imgWrap.className = 'photo-preview-item__image-wrap';
+
+      const img = document.createElement('img');
+      img.src = photo.url;
+      img.alt = 'Gallery photo';
+      img.loading = 'lazy';
+      imgWrap.appendChild(img);
+      wrapper.appendChild(imgWrap);
 
       // Insert before the first pending-upload tile (if any) so existing photos come first
       if (pendingNodes.length > 0 && pendingNodes[0].parentNode === previewContainer) {
@@ -558,8 +574,15 @@ class SupplierGalleryManager {
 
   /**
    * Attach drag-and-drop handlers for reordering existing photos.
+   * Guards against multiple calls by using a data attribute on the container.
    */
   attachExistingPhotoDragDrop(container) {
+    // Only attach once — re-renders clear and re-create tiles but keep the same container
+    if (container.dataset.dragHandlersAttached) {
+      return;
+    }
+    container.dataset.dragHandlersAttached = '1';
+
     container.addEventListener('dragstart', e => {
       const item = e.target.closest('.photo-preview-item--existing');
       if (!item) {
@@ -623,6 +646,7 @@ class SupplierGalleryManager {
 
   /**
    * Show "Cover" badge only on the first existing-photo tile.
+   * The badge is inserted before the image-wrap div so it sits above the image.
    */
   _refreshFirstBadge(container) {
     const items = container.querySelectorAll('.photo-preview-item--existing');
@@ -633,7 +657,9 @@ class SupplierGalleryManager {
           badge = document.createElement('span');
           badge.className = 'photo-first-badge';
           badge.textContent = 'Cover';
-          item.insertBefore(badge, item.firstChild);
+          // Insert before the image-wrap so it appears inside the tile overlay stack
+          const imgWrap = item.querySelector('.photo-preview-item__image-wrap');
+          item.insertBefore(badge, imgWrap || item.firstChild);
         }
       } else if (badge) {
         badge.remove();
@@ -748,5 +774,9 @@ const galleryManager = new SupplierGalleryManager();
 
 // Expose save-order so the HTML button can call it directly
 window.saveSupplierGalleryOrder = () => galleryManager.savePhotoOrder();
+
+// Expose photo-load so populateSupplierForm (app.js) can trigger a reload
+// whenever the supplier edit form is populated with a different supplier.
+window.loadSupplierGalleryPhotos = supplierId => galleryManager.loadPhotosForSupplier(supplierId);
 
 export default galleryManager;
