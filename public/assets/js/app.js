@@ -2575,20 +2575,21 @@ function efMaybeShowOnboarding(page) {
         #ef-ob-title{flex:1;min-width:200px;text-align:left;}
         #ef-ob-right{display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;justify-content:flex-end;}
         #ef-onboarding-dismiss{flex-shrink:0;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;font-weight:700;padding:0.5625rem 1.25rem;border-radius:10px;border:none;cursor:pointer;font-size:0.875rem;box-shadow:0 3px 12px rgba(22,163,74,0.3);white-space:nowrap;transition:all 0.2s cubic-bezier(0.4,0,0.2,1);}
-        .ef-ob-pill{display:flex;align-items:center;gap:0.375rem;padding:0.375rem 0.625rem;background:#f0fdfa;border:1px solid #99f6e4;border-radius:8px;}
+        .ef-ob-pill{flex:0 0 148px;display:flex;align-items:center;gap:0.375rem;padding:0.375rem 0.75rem;background:#f0fdfa;border:1px solid #99f6e4;border-radius:8px;}
         .ef-ob-pill span:last-child{color:#134e4a;font-weight:500;font-size:0.8125rem;white-space:nowrap;}
-        @media(max-width:540px){#ef-ob-right{justify-content:flex-start;width:100%;}#ef-onboarding-dismiss{width:100%;text-align:center;margin-top:0.125rem;}#ef-ob-inner{gap:0.75rem;}}
+        @media(max-width:540px){#ef-ob-inner{gap:0.75rem;}#ef-ob-right{display:grid;grid-template-columns:1fr 1fr;width:100%;gap:0.5rem;}#ef-onboarding-dismiss{grid-column:1/-1;text-align:center;}.ef-ob-pill{flex:unset;width:auto;}}
       </style>
       <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#0d9488,#5eead4);"></div>
       <div id="ef-ob-inner">
         <div id="ef-ob-title">
-          <h2 style="color:#1e3a5f;font-size:1.25rem;font-weight:800;letter-spacing:-0.02em;line-height:1.2;margin-bottom:0.2rem;">Welcome to your Supplier Dashboard! 👋</h2>
-          <p style="color:#6b7280;font-size:0.8125rem;line-height:1.5;margin:0;">Showcase your services and connect with event planners.</p>
+          <h2 style="color:#1e3a5f;font-size:1.25rem;font-weight:800;letter-spacing:-0.02em;line-height:1.2;margin-bottom:0.25rem;">Welcome to your Supplier Dashboard! 👋</h2>
+          <p style="color:#6b7280;font-size:0.8125rem;line-height:1.5;margin:0;">Manage your packages, respond to enquiries, track performance and set your availability — everything in the sections below.</p>
         </div>
         <div id="ef-ob-right">
           <div class="ef-ob-pill"><span style="font-size:1rem;line-height:1;" aria-hidden="true">✨</span><span>Complete profile</span></div>
           <div class="ef-ob-pill"><span style="font-size:1rem;line-height:1;" aria-hidden="true">📦</span><span>Add a package</span></div>
           <div class="ef-ob-pill"><span style="font-size:1rem;line-height:1;" aria-hidden="true">💬</span><span>Engage customers</span></div>
+          <div class="ef-ob-pill"><span style="font-size:1rem;line-height:1;" aria-hidden="true">📅</span><span>Set availability</span></div>
           <button type="button" class="cta" id="ef-onboarding-dismiss" aria-label="Dismiss onboarding and start using dashboard">Got it! 🚀</button>
         </div>
       </div>
