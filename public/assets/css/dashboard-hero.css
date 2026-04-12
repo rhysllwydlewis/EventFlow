@@ -486,6 +486,15 @@
   transform: scale(1.1);
 }
 
+.welcome-section__dismiss-x:focus-visible {
+  outline: 2px solid #0B8073;
+  outline-offset: 2px;
+}
+
+.welcome-section__dismiss-x:active {
+  transform: scale(0.95);
+}
+
 .welcome-section__dismiss-x svg {
   width: 14px;
   height: 14px;

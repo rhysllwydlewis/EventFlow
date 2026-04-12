@@ -749,10 +749,10 @@
     display: none;
   }
 
-  /* Content padding: comfortable all around */
+  /* Content padding: compact on mobile */
   .dashboard-hero__content {
-    padding: 16px 16px 14px;
-    gap: 12px;
+    padding: 12px 14px 12px;
+    gap: 10px;
     background: transparent;
   }
 
@@ -785,9 +785,9 @@
   .dashboard-hero__mob-heading {
     display: block;
     margin: 0;
-    font-size: 22px;
+    font-size: 18px;
     font-weight: 800;
-    line-height: 1.18;
+    line-height: 1.2;
     letter-spacing: -0.025em;
     color: #0f172a;
     /* No gradient text on mobile — solid dark navy like reference */
@@ -812,6 +812,9 @@
     width: 82px;
     /* Align to first line of the heading */
     margin-top: 0;
+    /* Keep clear of the absolute-positioned X dismiss button (right:8px, 36px wide = 44px from card edge).
+       Content has 14px right padding; illustration needs extra 30px to clear the button. */
+    margin-right: 36px;
   }
 
   .dashboard-hero__illus-inner {
@@ -963,26 +966,16 @@
     min-height: 36px;
   }
 
+  /* Full-width CTA on mobile for maximum tap-ability */
   .dashboard-hero__got-it-btn {
+    width: 100%;
     font-size: 0.875rem;
-    padding: 9px 18px;
+    padding: 11px 18px;
     min-height: 44px;
   }
 
   .dashboard-hero__dismiss-row {
-    padding-top: 2px;
-  }
-
-  /* ── Reduce overall hero heading size for compactness ── */
-  .dashboard-hero__mob-heading {
-    font-size: 18px;
-    line-height: 1.2;
-  }
-
-  /* ── Reduce content padding slightly for even more compactness ── */
-  .dashboard-hero__content {
-    padding: 12px 14px 12px;
-    gap: 10px;
+    padding-top: 4px;
   }
 }
 
