@@ -3445,11 +3445,13 @@ router.get('/settings/email-automation', authRequired, roleRequired('admin'), as
   try {
     const settings = (await dbUnified.read('settings')) || {};
     const defaults = {
+      // Explicitly opt-in — disabled by default to prevent accidental bulk emails on new installations
       enabled: false,
       cron: '0 9 * * *',
       promptTypes: {
         missingPackages: true,
         incompleteProfile: true,
+        missingPhotos: true,
       },
     };
     const emailAutomation = settings.emailAutomation || {};
