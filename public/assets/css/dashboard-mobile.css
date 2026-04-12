@@ -707,16 +707,11 @@
 /* ============================================================
    Q) SUPPLIER DASHBOARD HERO — mobile redesign (≤ 480 px)
    Reference: white card, "Welcome to Your Supplier Dashboard!",
-   trend-line illustration tile, dismiss × button top-right
+   trend-line illustration tile
    ============================================================ */
 
 /* --- Mobile-only heading: hidden by default, shown on mobile --- */
 .dashboard-hero__mob-heading {
-  display: none;
-}
-
-/* --- Mobile dismiss button: hidden by default --- */
-.dashboard-hero__dismiss-btn {
   display: none;
 }
 
@@ -754,9 +749,9 @@
     display: none;
   }
 
-  /* Content padding: tight left/bottom, roomy top for dismiss btn */
+  /* Content padding: comfortable all around */
   .dashboard-hero__content {
-    padding: 18px 16px 14px;
+    padding: 16px 16px 14px;
     gap: 12px;
     background: transparent;
   }
@@ -806,47 +801,6 @@
   .dashboard-hero__title--desktop,
   .dashboard-hero__subtitle--desktop {
     display: none !important;
-  }
-
-  /* ── Dismiss × button: card-level absolute, left of card-collapse chevron ── */
-  .dashboard-hero__dismiss-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: absolute;
-    top: 8px;
-    /* card-collapse btn is at right:8px width:24px → our btn sits at 36px from right */
-    right: 36px;
-    width: 24px;
-    height: 24px;
-    min-width: 24px;
-    min-height: 24px;
-    padding: 0;
-    background: rgba(241, 245, 249, 0.85);
-    border: 1px solid rgba(203, 213, 225, 0.6);
-    border-radius: 7px;
-    color: #64748b;
-    cursor: pointer;
-    z-index: 11;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-    transition: background 0.15s, color 0.15s;
-    overflow: visible;
-  }
-
-  .dashboard-hero__dismiss-btn::before {
-    content: '';
-    position: absolute;
-    inset: -10px;
-  }
-
-  .dashboard-hero__dismiss-btn:hover {
-    background: #fee2e2;
-    color: #dc2626;
-    border-color: rgba(239, 68, 68, 0.3);
-  }
-
-  .dashboard-hero__dismiss-btn:active {
-    transform: scale(0.9);
   }
 
   /* ── Illustration tile: right column ── */

@@ -458,71 +458,6 @@
 }
 
 /* ============================================
-   DISMISS BUTTON
-   ============================================ */
-.dashboard-hero__dismiss {
-  position: absolute;
-  top: var(--ef-space-4, 16px);
-  right: var(--ef-space-4, 16px);
-  z-index: 10;
-  width: 44px;
-  height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 2px solid rgba(0, 0, 0, 0.1);
-  border-radius: 12px;
-  color: #374151;
-  cursor: pointer;
-  transition: all var(--dashboard-transition);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.dashboard-hero__dismiss svg {
-  width: 24px;
-  height: 24px;
-  stroke-width: 2.5;
-}
-
-.dashboard-hero__dismiss:hover {
-  background: white;
-  border-color: rgba(239, 68, 68, 0.4);
-  color: #dc2626;
-  transform: scale(1.05);
-  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.2), 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.dashboard-hero__dismiss:active {
-  transform: scale(0.95);
-}
-
-.dashboard-hero__dismiss:focus-visible {
-  outline: 3px solid rgba(59, 130, 246, 0.5);
-  outline-offset: 2px;
-}
-
-/* ============================================
-   DISMISS ANIMATION
-   ============================================ */
-.dashboard-hero.dismissing {
-  animation: dashboard-hero-dismiss 0.4s ease forwards;
-}
-
-@keyframes dashboard-hero-dismiss {
-  0% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-30px) scale(0.95);
-  }
-}
-
-/* ============================================
    RESPONSIVE DESIGN
    ============================================ */
 @media (max-width: 768px) {
@@ -586,14 +521,12 @@
    REDUCED MOTION
    ============================================ */
 @media (prefers-reduced-motion: reduce) {
-  .dashboard-hero__blob,
-  .dashboard-hero.dismissing {
+  .dashboard-hero__blob {
     animation: none;
   }
-  
+
   .dashboard-stat-card,
   .dashboard-action-chip,
-  .dashboard-hero__dismiss,
   .dashboard-hero__tip {
     animation: none;
     transition: none;
@@ -605,10 +538,6 @@
    ============================================ */
 @media print {
   .dashboard-hero__bg {
-    display: none;
-  }
-  
-  .dashboard-hero__dismiss {
     display: none;
   }
 }
