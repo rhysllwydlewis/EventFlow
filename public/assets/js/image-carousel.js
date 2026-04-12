@@ -57,7 +57,6 @@
     modal.setAttribute('role', 'dialog');
     modal.setAttribute('aria-label', 'Image carousel');
     modal.setAttribute('aria-modal', 'true');
-    modal.setAttribute('aria-hidden', 'true');
     modal.setAttribute('tabindex', '-1');
     modal.style.display = 'none';
 
@@ -302,7 +301,7 @@
     const name = supplierName || '';
     images = photoUrls.map((url, i) => ({
       src: url,
-      alt: name ? `${name} \u2014 photo ${i + 1}` : `photo ${i + 1}`,
+      alt: name ? `${name} — photo ${i + 1}` : `photo ${i + 1}`,
       caption: '',
     }));
 
