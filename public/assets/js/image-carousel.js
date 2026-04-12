@@ -263,11 +263,36 @@
     initCarousel();
   }
 
+  /**
+   * Open carousel with an explicit array of photo URLs.
+   * This bypasses DOM scanning and works for any gallery whose images
+   * are not covered by the default selector (.gallery-image etc.).
+   * @param {string[]} photoUrls - Array of image URLs
+   * @param {number} [startIndex=0] - Index to open at
+   * @param {string} [supplierName=''] - Optional name used in alt text
+   */
+  function openWithImages(photoUrls, startIndex, supplierName) {
+    if (!Array.isArray(photoUrls) || photoUrls.length === 0) {
+      return;
+    }
+
+    const name = supplierName || '';
+    images = photoUrls.map((url, i) => ({
+      src: url,
+      alt: name ? `${name} \u2014 photo ${i + 1}` : `Photo ${i + 1}`,
+      caption: '',
+    }));
+
+    createCarouselModal();
+    openCarousel(typeof startIndex === 'number' ? startIndex : 0);
+  }
+
   // Export public API
   if (typeof window !== 'undefined') {
     window.ImageCarousel = {
       init: initCarousel,
       open: openCarousel,
+      openWithImages: openWithImages,
       close: closeCarousel,
       next: nextImage,
       prev: prevImage,

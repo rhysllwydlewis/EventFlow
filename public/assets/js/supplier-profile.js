@@ -769,10 +769,15 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     const thumbEls = container.querySelectorAll('.sp-gallery__featured, .sp-gallery__thumb');
     thumbEls.forEach((el, idx) => {
       el.addEventListener('click', () => {
-        if (window.EFImageCarousel?.open) {
-          window.EFImageCarousel.open(photos, idx);
-        } else if (window.initImageCarousel) {
-          window.initImageCarousel(photos, idx, supplierName);
+        if (window.ImageCarousel?.openWithImages) {
+          window.ImageCarousel.openWithImages(photos, idx, supplierName);
+        } else {
+          // Graceful fallback: open the clicked image directly in a new tab
+          const imgEl = el.querySelector('img');
+          const url = imgEl ? imgEl.src : (photos[idx] || '');
+          if (url) {
+            window.open(url, '_blank', 'noopener,noreferrer');
+          }
         }
       });
       el.addEventListener('keydown', e => {
