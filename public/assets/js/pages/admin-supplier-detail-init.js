@@ -1087,6 +1087,7 @@
           Outstanding Actions
           ${apBadge(actions.outstanding.length, actions.outstanding.length > 0 ? 'red' : 'green')}
           <span style="font-weight:400;font-size:0.82rem;color:#6b7280;margin-left:0.5rem;">${actions.completionPercent}% complete</span>
+          ${actions.basedOnSyntheticUser ? '<span style="font-weight:400;font-size:0.78rem;color:#92400e;background:#fef3c7;padding:1px 6px;border-radius:4px;margin-left:0.5rem;">Based on profile data — no linked user account</span>' : ''}
         </div>
         <ul style="margin:0;padding-left:1.25rem;">${outstandingHtml}</ul>
       </div>

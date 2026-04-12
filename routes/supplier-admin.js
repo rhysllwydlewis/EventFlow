@@ -1287,23 +1287,30 @@ router.get(
         missingPhotos: userEmailPrefs.missingPhotos !== false,
       };
 
-      // Outstanding actions
-      let outstandingActions = [];
-      let completedActions = [];
-      let ragStatus = 'green';
-      let completionPercent = 100;
-      if (user) {
-        const report = computeFullReport(supplier, allPackages, settings || {}, user);
-        outstandingActions = report.outstanding;
-        completedActions = report.completed;
-        ragStatus = report.ragStatus;
-        completionPercent = report.completionPercent;
-      }
+      // Outstanding actions — always compute using a synthetic all-prefs-enabled user when
+      // no real user is linked, so the admin can see what the supplier's state looks like
+      // even if the user account is missing. actionsBasedOnSyntheticUser flag distinguishes this.
+      const reportUser = user || {
+        emailPrefs: {
+          actionPrompts: {
+            enabled: true,
+            missingPackages: true,
+            incompleteProfile: true,
+            missingPhotos: true,
+          },
+        },
+      };
+      const report = computeFullReport(supplier, allPackages, settings || {}, reportUser);
+      const outstandingActions = report.outstanding;
+      const completedActions = report.completed;
+      const ragStatus = report.ragStatus;
+      const completionPercent = report.completionPercent;
+      const actionsBasedOnSyntheticUser = !user;
 
       // Cadence state
       const cadenceState = user?.actionPromptState || null;
       let cadenceEval = null;
-      if (user && outstandingActions.length > 0) {
+      if (outstandingActions.length > 0) {
         cadenceEval = evaluateCadence(cadenceState, new Date());
       }
 
@@ -1395,6 +1402,7 @@ router.get(
           ragStatus,
           completionPercent,
           missingProfileFields,
+          basedOnSyntheticUser: actionsBasedOnSyntheticUser,
         },
         cadence: {
           state: cadenceState,

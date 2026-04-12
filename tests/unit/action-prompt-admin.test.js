@@ -89,6 +89,11 @@ describe('Action Prompt Admin — supplier-admin.js endpoint declarations', () =
     expect(src).toContain('UNSUBSCRIBE_SECRET');
   });
 
+  it('diagnostics uses synthetic user when no real user linked', () => {
+    expect(src).toContain('actionsBasedOnSyntheticUser');
+    expect(src).toContain('basedOnSyntheticUser');
+  });
+
   it('reset-cadence uses auditLog', () => {
     const resetSection = src.slice(
       src.indexOf("'/suppliers/:id/action-prompts/reset-cadence'"),
@@ -325,6 +330,16 @@ describe('Action Prompt Admin — UI files updated', () => {
     expect(html).toContain('apResetCadenceBtn');
     expect(html).toContain('apEnableBtn');
     expect(html).toContain('apDisableBtn');
+  });
+
+  it('admin-supplier-detail.html retains verification tab with correct id', () => {
+    const html = fs.readFileSync(
+      path.join(__dirname, '../../public/admin-supplier-detail.html'),
+      'utf8'
+    );
+    expect(html).toContain('data-tab="verification"');
+    expect(html).toContain('id="verification"');
+    expect(html).toContain('verificationTimeline');
   });
 
   it('admin-supplier-detail-init.js has loadApDiagnostics function', () => {
