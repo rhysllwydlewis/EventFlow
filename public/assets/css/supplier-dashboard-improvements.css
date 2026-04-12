@@ -712,10 +712,6 @@ body.supplier-dashboard-page #main-content.section {
   padding-bottom: 20px;
 }
 
-body.supplier-dashboard-page .dashboard-breadcrumb {
-  margin-bottom: 12px;
-}
-
 body.supplier-dashboard-page .supplier-dashboard-card,
 body.supplier-dashboard-page .supplier-section-card,
 body.supplier-dashboard-page .profile-checklist,
@@ -753,10 +749,6 @@ body.supplier-dashboard-page .supplier-cta-section {
     padding-bottom: 16px;
   }
 
-  body.supplier-dashboard-page .dashboard-breadcrumb {
-    margin-bottom: 10px;
-  }
-
   body.supplier-dashboard-page .supplier-dashboard-card,
   body.supplier-dashboard-page .supplier-section-card,
   body.supplier-dashboard-page .profile-checklist,
@@ -786,10 +778,6 @@ body.supplier-dashboard-page .supplier-cta-section {
   body.supplier-dashboard-page #main-content.section {
     padding-top: 12px;
     padding-bottom: 12px;
-  }
-
-  body.supplier-dashboard-page .dashboard-breadcrumb {
-    margin-bottom: 8px;
   }
 
   body.supplier-dashboard-page .supplier-dashboard-card,
@@ -970,6 +958,7 @@ body.supplier-dashboard-page .supplier-cta-section {
 .mobile-nav-indicator {
   position: absolute;
   bottom: 4px;
+  left: 0;
   height: 3px;
   background: linear-gradient(90deg, var(--ef-primary, #0b8073), var(--ef-success, #10b981));
   border-radius: 999px;
