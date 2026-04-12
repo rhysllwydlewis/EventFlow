@@ -1255,3 +1255,142 @@
     }
   });
 })();
+
+// ── Email Automation Settings ─────────────────────────────────────────────
+(function () {
+  let emailAutoLoaded = false;
+  let originalEmailAuto = {};
+
+  const STATUS_HIDE_MS = 3000;
+
+  function updateEmailAutoStatus(status, text) {
+    const el = document.getElementById('emailAutomationStatus');
+    const textEl = document.getElementById('emailAutomationStatusText');
+    if (el && textEl) {
+      el.style.display = status === 'hidden' ? 'none' : 'block';
+      textEl.textContent = text || '';
+      el.className = `feature-flags-status feature-flags-status-${status}`;
+    }
+  }
+
+  function getEmailAutoValues() {
+    return {
+      enabled: document.getElementById('emailAutoEnabled')?.checked ?? false,
+      cron: document.getElementById('emailAutoCron')?.value?.trim() || '0 9 * * *',
+      promptTypes: {
+        missingPackages: document.getElementById('emailAutoMissingPackages')?.checked ?? true,
+        incompleteProfile: document.getElementById('emailAutoIncompleteProfile')?.checked ?? true,
+        missingPhotos: document.getElementById('emailAutoMissingPhotos')?.checked ?? true,
+      },
+    };
+  }
+
+  function hasEmailAutoChanged() {
+    if (!emailAutoLoaded) {
+      return false;
+    }
+    const current = getEmailAutoValues();
+    return JSON.stringify(current) !== JSON.stringify(originalEmailAuto);
+  }
+
+  function updateEmailAutoSaveBtn() {
+    const btn = document.getElementById('saveEmailAutomation');
+    if (btn) {
+      btn.disabled = !(emailAutoLoaded && window.__CSRF_TOKEN__ && hasEmailAutoChanged());
+    }
+  }
+
+  async function loadEmailAutoSettings() {
+    updateEmailAutoStatus('loading', 'Loading...');
+    emailAutoLoaded = false;
+    try {
+      const data = await AdminShared.adminFetch('/api/admin/settings/email-automation', {
+        method: 'GET',
+      });
+
+      const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.checked = val;
+        }
+      };
+      const setTxt = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.value = val || '';
+        }
+      };
+
+      setVal('emailAutoEnabled', data.enabled);
+      setVal('emailAutoMissingPackages', data.promptTypes?.missingPackages !== false);
+      setVal('emailAutoIncompleteProfile', data.promptTypes?.incompleteProfile !== false);
+      setVal('emailAutoMissingPhotos', data.promptTypes?.missingPhotos !== false);
+      setTxt('emailAutoCron', data.cron || '0 9 * * *');
+
+      originalEmailAuto = getEmailAutoValues();
+      emailAutoLoaded = true;
+
+      const updatedAtEl = document.getElementById('emailAutoUpdatedTime');
+      const updatedByEl = document.getElementById('emailAutoUpdatedBy');
+      const lastUpdEl = document.getElementById('emailAutoLastUpdated');
+      if (updatedAtEl && updatedByEl && lastUpdEl && data.updatedAt && data.updatedBy) {
+        updatedAtEl.textContent = new Date(data.updatedAt).toLocaleString();
+        updatedByEl.textContent = data.updatedBy;
+        lastUpdEl.style.display = 'block';
+      }
+
+      updateEmailAutoStatus('hidden');
+      updateEmailAutoSaveBtn();
+    } catch (err) {
+      AdminShared.debugError('Failed to load email automation settings:', err);
+      updateEmailAutoStatus('error', 'Error loading settings');
+    }
+  }
+
+  // Change listeners
+  [
+    'emailAutoEnabled',
+    'emailAutoMissingPackages',
+    'emailAutoIncompleteProfile',
+    'emailAutoMissingPhotos',
+    'emailAutoCron',
+  ].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('change', updateEmailAutoSaveBtn);
+    }
+    if (el && el.type === 'text') {
+      el.addEventListener('input', updateEmailAutoSaveBtn);
+    }
+  });
+
+  // Save button
+  document.getElementById('saveEmailAutomation')?.addEventListener('click', async () => {
+    const btn = document.getElementById('saveEmailAutomation');
+    if (!btn || btn.disabled) {
+      return;
+    }
+
+    const data = getEmailAutoValues();
+    await AdminShared.safeAction(
+      btn,
+      async () => {
+        const result = await AdminShared.adminFetch('/api/admin/settings/email-automation', {
+          method: 'PUT',
+          body: data,
+        });
+        updateEmailAutoStatus('saved', 'Saved');
+        setTimeout(() => updateEmailAutoStatus('hidden'), STATUS_HIDE_MS);
+        await loadEmailAutoSettings();
+        return result;
+      },
+      {
+        loadingText: 'Saving...',
+        successMessage: 'Email automation settings saved',
+        errorMessage: 'Failed to save settings',
+      }
+    );
+  });
+
+  loadEmailAutoSettings();
+})();

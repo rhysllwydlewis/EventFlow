@@ -444,6 +444,66 @@
       <span id="test-sound-feedback" style="font-size:0.82rem;min-height:1.2rem;" role="status" aria-live="polite"></span>
     </div>
   </div>
+
+  <!-- Supplier Reminder Emails (shown for supplier accounts only) -->
+  <div id="supplier-reminder-prefs" style="display:none;margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid #f3f4f6;">
+    <div style="display:flex;align-items:center;gap:0.625rem;margin-bottom:0.5rem;">
+      <div style="width:32px;height:32px;background:linear-gradient(135deg,#0B8073,#13B6A2);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;" aria-hidden="true">
+        <svg width="16" height="16" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      </div>
+      <h3 style="margin:0;font-size:1rem;font-weight:700;color:#0B1220;">Supplier Reminder Emails</h3>
+    </div>
+    <p style="margin:0 0 1rem;font-size:0.875rem;color:#6b7280;line-height:1.6;">
+      Occasionally we'll email you reminders about outstanding items on your supplier account.
+      You can control which reminders you receive below.
+    </p>
+
+    <div class="toggle-row" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:0.75rem 1rem;margin-bottom:0.75rem;">
+      <label class="toggle-label" for="ap-enabled">
+        <span style="font-weight:600;">Send me reminder emails about incomplete tasks</span>
+        <small>Master switch for all action-prompt reminders</small>
+      </label>
+      <label class="toggle-switch">
+        <input id="ap-enabled" type="checkbox" role="switch" checked>
+        <span class="toggle-track"></span>
+      </label>
+    </div>
+
+    <div id="ap-sub-prefs" style="margin-left:0.75rem;border-left:3px solid #e2e8f0;padding-left:0.875rem;margin-top:0.25rem;display:flex;flex-direction:column;gap:0.5rem;">
+      <div class="toggle-row">
+        <label class="toggle-label" for="ap-missing-packages">
+          <span>Remind me to create packages</span>
+          <small>Email me if I haven't created any service packages yet</small>
+        </label>
+        <label class="toggle-switch">
+          <input id="ap-missing-packages" type="checkbox" role="switch" checked>
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row">
+        <label class="toggle-label" for="ap-incomplete-profile">
+          <span>Remind me to complete my profile</span>
+          <small>Email me if my supplier profile is missing required information</small>
+        </label>
+        <label class="toggle-switch">
+          <input id="ap-incomplete-profile" type="checkbox" role="switch" checked>
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row">
+        <label class="toggle-label" for="ap-missing-photos">
+          <span>Remind me to upload photos</span>
+          <small>Email me if I haven't added any photos to my supplier listing</small>
+        </label>
+        <label class="toggle-switch">
+          <input id="ap-missing-photos" type="checkbox" role="switch" checked>
+          <span class="toggle-track"></span>
+        </label>
+      </div>
+    </div>
+  </div>
   
   <div class="form-actions" style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid #f3f4f6;">
     <button class="cta" id="save-settings">Save Preferences</button>

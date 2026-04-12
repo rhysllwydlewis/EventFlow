@@ -188,6 +188,82 @@
       </div>
     </div>
     
+    <!-- Email Automation -->
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.5rem;">
+        <div style="width:36px;height:36px;background:linear-gradient(135deg,#0B8073,#13B6A2);border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;" aria-hidden="true">
+          <svg width="18" height="18" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        </div>
+        <h2 style="margin:0;">Email Automation — Supplier Action Prompts</h2>
+      </div>
+      <p class="small">Automatically remind suppliers of outstanding actions (missing packages, incomplete profile, missing photos). Only verified suppliers with the setting enabled will receive these emails. The system is <strong>disabled by default</strong> to prevent accidental bulk sends.</p>
+
+      <div id="emailAutomationStatus" class="feature-flags-status" style="display: none;">
+        <strong>Status:</strong> <span id="emailAutomationStatusText">Loading...</span>
+      </div>
+
+      <div id="emailAutomationSettings">
+        <div class="feature-item" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:0.875rem 1rem;margin-bottom:0.5rem;">
+          <div>
+            <strong>Enable Action-Prompt Emails</strong>
+            <div class="small">Master switch — when off, no automated reminders are sent</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="emailAutoEnabled">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div style="margin-left:0.5rem;border-left:3px solid #e2e8f0;padding-left:0.875rem;display:flex;flex-direction:column;gap:0.375rem;margin-bottom:0.75rem;">
+          <div class="feature-item">
+            <div>
+              <strong>Remind: Missing Packages</strong>
+              <div class="small">Email suppliers who have not created any packages</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="emailAutoMissingPackages">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="feature-item">
+            <div>
+              <strong>Remind: Incomplete Profile</strong>
+              <div class="small">Email suppliers whose profiles are missing required fields</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="emailAutoIncompleteProfile">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+
+          <div class="feature-item">
+            <div>
+              <strong>Remind: Missing Photos</strong>
+              <div class="small">Email suppliers who haven't uploaded any photos to their listing</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="emailAutoMissingPhotos">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-row" style="margin-top:0.5rem;">
+          <label for="emailAutoCron" style="font-weight:600;font-size:0.9rem;">Cron Schedule</label>
+          <input type="text" id="emailAutoCron" placeholder="0 9 * * *" style="font-family:monospace;max-width:220px;" aria-describedby="emailAutoCronHint">
+          <p id="emailAutoCronHint" class="small" style="margin-top:0.25rem;color:#6b7280;">Default: <code>0 9 * * *</code> (9am daily). Stored here for reference. The active cron is set via the <code>ACTION_PROMPTS_CRON</code> environment variable and read at server startup.</p>
+        </div>
+      </div>
+
+      <div id="emailAutoLastUpdated" style="margin-top:1rem;padding:0.75rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;font-size:0.875rem;color:#166534;display:none;">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="vertical-align:-2px;margin-right:4px;" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <strong>Last updated:</strong> <span id="emailAutoUpdatedTime">-</span> by <span id="emailAutoUpdatedBy">-</span>
+      </div>
+
+      <button class="btn btn-primary mt-1" id="saveEmailAutomation" disabled>Save Email Automation</button>
+    </div>
+
     <!-- Audit Log Viewer -->
     <div class="card">
       <h2>Recent Audit Log</h2>
