@@ -213,9 +213,11 @@
       window.scrollTo({ top: Math.max(0, y), behavior: scrollBehavior });
     };
 
+    // Sort by DOM position so scroll-spy works correctly regardless of pill order
     const sections = Array.from(pills)
       .map(pill => ({ pill, target: document.getElementById(pill.getAttribute('data-section')) }))
-      .filter(item => item.target);
+      .filter(item => item.target)
+      .sort((a, b) => a.target.offsetTop - b.target.offsetTop);
 
     const updateActiveByScroll = () => {
       if (!sections.length) {
@@ -223,11 +225,11 @@
       }
 
       // If the user is at (or very near) the top of the page, always highlight
-      // the first pill (Overview). Without this guard the sticky-offset added to
-      // scrollY=0 can push currentY past several section tops and land on a later
-      // section such as "Tickets" before the layout has fully settled.
+      // the first pill (Overview). Using pills[0] directly (not sections[0].pill)
+      // so Overview is always selected even if welcome-section is not yet in the
+      // DOM at measurement time (e.g. dynamic content or race condition).
       if (window.scrollY < 10) {
-        setActive(sections[0].pill);
+        setActive(pills[0]);
         return;
       }
 
@@ -321,14 +323,30 @@
 
     window.addEventListener('scroll', onScroll, { passive: true });
 
-    // Wait for layout/paint to measure pill widths; rAF ensures post-paint
+    // Wait for layout/paint to measure pill widths; rAF ensures post-paint.
+    // Disable the CSS transition on first placement so the indicator snaps into
+    // position without animating from the left edge (which looks like a "blank" underline).
     requestAnimationFrame(() =>
       setTimeout(() => {
+        indicator.style.transition = 'none';
         setActive(pills[0]);
         updateActiveByScroll();
-        // tabindex already set to '0' in loop above
+        // Re-enable transition after the browser has painted the snapped position
+        requestAnimationFrame(() => {
+          indicator.style.transition = '';
+        });
       }, LAYOUT_PAINT_DELAY)
     );
+
+    // Re-measure after fonts settle to keep indicator width/position accurate
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => {
+        const activePill = nav.querySelector('.mobile-nav-pill.active') || pills[0];
+        if (activePill) {
+          moveIndicator(activePill);
+        }
+      });
+    }
   }
 
   /**

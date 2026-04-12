@@ -657,12 +657,6 @@
     padding-top: 0 !important;
   }
 
-  /* Hide breadcrumb on mobile — users scroll vertically and don't
-     need wayfinding crumbs that always show the same path. */
-  .dashboard-breadcrumb {
-    display: none;
-  }
-
   /* Reduce dashboard-hero min-height on mobile for compact display.
      120px is the safe floor — hero content (heading + subtitle + stats) always
      exceeds this, but it prevents any theoretical collapse during paint. */
