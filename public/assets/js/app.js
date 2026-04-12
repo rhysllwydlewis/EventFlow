@@ -3502,6 +3502,13 @@ async function initDashSupplier() {
     if (target.matches('#pkg-gallery-save-order')) {
       savePkgGalleryOrder();
     }
+
+    // Handle supplier gallery save-order button
+    if (target.matches('#sup-gallery-save-order')) {
+      if (typeof window.saveSupplierGalleryOrder === 'function') {
+        window.saveSupplierGalleryOrder();
+      }
+    }
   });
 
   function buildSupplierPayload(form) {
