@@ -174,7 +174,11 @@ function loadEmailTemplate(templateName, data = {}) {
       const regex = new RegExp(`{{${key}}}`, 'g');
       // Don't escape if the value contains HTML tags (for message content)
       const value =
-        key === 'message' || key === 'html' || key === 'features' || key === 'actionsHtml'
+        key === 'message' ||
+        key === 'html' ||
+        key === 'features' ||
+        key === 'actionsHtml' ||
+        key === 'unsubscribeSection'
           ? data[key]
           : escapeHtml(data[key]);
       html = html.replace(regex, value || '');

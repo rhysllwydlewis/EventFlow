@@ -1339,11 +1339,52 @@
         lastUpdEl.style.display = 'block';
       }
 
+      // Populate last-run status chip
+      renderLastRun(data.lastRun);
+
       updateEmailAutoStatus('hidden');
       updateEmailAutoSaveBtn();
     } catch (err) {
       AdminShared.debugError('Failed to load email automation settings:', err);
       updateEmailAutoStatus('error', 'Error loading settings');
+    }
+  }
+
+  function renderLastRun(lastRun) {
+    const el = document.getElementById('emailAutoLastRun');
+    if (!el || !lastRun) {
+      return;
+    }
+    el.style.display = 'block';
+    const timeEl = document.getElementById('emailAutoLastRunTime');
+    const scannedEl = document.getElementById('emailAutoLastRunScanned');
+    const sentEl = document.getElementById('emailAutoLastRunSent');
+    const skippedEl = document.getElementById('emailAutoLastRunSkipped');
+    const errorsEl = document.getElementById('emailAutoLastRunErrors');
+    const errCountEl = document.getElementById('emailAutoLastRunErrorCount');
+    const cappedEl = document.getElementById('emailAutoLastRunCapped');
+    if (timeEl) {
+      timeEl.textContent = lastRun.finishedAt ? new Date(lastRun.finishedAt).toLocaleString() : '?';
+    }
+    if (scannedEl) {
+      scannedEl.textContent = lastRun.scanned ?? '-';
+    }
+    if (sentEl) {
+      sentEl.textContent = lastRun.sent ?? '-';
+    }
+    if (skippedEl) {
+      skippedEl.textContent = lastRun.skippedCadence ?? '-';
+    }
+    if (errorsEl && errCountEl) {
+      if (lastRun.errors > 0) {
+        errCountEl.textContent = lastRun.errors;
+        errorsEl.style.display = '';
+      } else {
+        errorsEl.style.display = 'none';
+      }
+    }
+    if (cappedEl) {
+      cappedEl.style.display = lastRun.cappedByLimit ? '' : 'none';
     }
   }
 
@@ -1388,6 +1429,80 @@
         loadingText: 'Saving...',
         successMessage: 'Email automation settings saved',
         errorMessage: 'Failed to save settings',
+      }
+    );
+  });
+
+  // Dry Run button
+  document.getElementById('emailAutoDryRun')?.addEventListener('click', async () => {
+    const btn = document.getElementById('emailAutoDryRun');
+    if (!btn) {
+      return;
+    }
+    await AdminShared.safeAction(
+      btn,
+      async () => {
+        const result = await AdminShared.adminFetch(
+          '/api/admin/email-automation/action-prompts/run',
+          { method: 'POST', body: { dryRun: true } }
+        );
+        const s = result.summary || {};
+        updateEmailAutoStatus(
+          'saved',
+          `Dry run: scanned ${s.scanned ?? 0}, would-send ${s.sent ?? 0}, skipped ${s.skippedCadence ?? 0}`
+        );
+        setTimeout(() => updateEmailAutoStatus('hidden'), 6000);
+        return result;
+      },
+      {
+        loadingText: 'Running dry run…',
+        successMessage: 'Dry run complete',
+        errorMessage: 'Dry run failed',
+      }
+    );
+  });
+
+  // Send Now button — opens confirmation modal
+  document.getElementById('emailAutoSendNow')?.addEventListener('click', () => {
+    const modal = document.getElementById('emailAutoConfirmModal');
+    if (modal) {
+      modal.style.display = 'flex';
+    }
+  });
+
+  document.getElementById('emailAutoConfirmCancel')?.addEventListener('click', () => {
+    const modal = document.getElementById('emailAutoConfirmModal');
+    if (modal) {
+      modal.style.display = 'none';
+    }
+  });
+
+  document.getElementById('emailAutoConfirmSend')?.addEventListener('click', async () => {
+    const modal = document.getElementById('emailAutoConfirmModal');
+    if (modal) {
+      modal.style.display = 'none';
+    }
+    const btn = document.getElementById('emailAutoSendNow');
+    await AdminShared.safeAction(
+      btn,
+      async () => {
+        const result = await AdminShared.adminFetch(
+          '/api/admin/email-automation/action-prompts/run',
+          { method: 'POST', body: { dryRun: false, confirm: true } }
+        );
+        const s = result.summary || {};
+        updateEmailAutoStatus(
+          'saved',
+          `Run complete: scanned ${s.scanned ?? 0}, sent ${s.sent ?? 0}, errors ${s.errors ?? 0}`
+        );
+        setTimeout(() => updateEmailAutoStatus('hidden'), 6000);
+        await loadEmailAutoSettings();
+        return result;
+      },
+      {
+        loadingText: 'Sending…',
+        successMessage: 'Email run complete',
+        errorMessage: 'Email run failed',
       }
     );
   });

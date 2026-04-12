@@ -276,8 +276,11 @@ function updateApSubPrefsVisibility() {
   const masterEnabled = document.getElementById('ap-enabled')?.checked !== false;
   const subPrefs = document.getElementById('ap-sub-prefs');
   if (subPrefs) {
-    subPrefs.style.opacity = masterEnabled ? '1' : '0.5';
+    subPrefs.style.opacity = masterEnabled ? '1' : '0.45';
     subPrefs.style.pointerEvents = masterEnabled ? 'auto' : 'none';
+    subPrefs.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+      cb.disabled = !masterEnabled;
+    });
   }
 }
 
