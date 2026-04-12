@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Welcome Card Preview</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: #f1f5f9;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 16px;
+    }
+    .page-wrap {
+      width: 100%;
+      max-width: 900px;
+    }
+    h1 { font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 24px; }
+  </style>
+</head>
+<body>
+<div class="page-wrap">
+  <h1>Current implementation</h1>
+  <div id="current-card"></div>
+</div>
+
+<script>
+// ---- replicate exactly what app.js produces ----
+(function buildCard() {
+  const box = document.createElement('div');
+  box.id = 'ef-onboarding-box';
+  box.className = 'card';
+  box.style.color = '#1f2937';
+  box.style.padding = '2rem';
+  box.style.borderRadius = '16px';
+  box.style.position = 'relative';
+  box.style.boxShadow = '0 4px 24px rgba(13, 148, 136, 0.12), 0 1px 4px rgba(0, 0, 0, 0.06)';
+  box.style.textAlign = 'center';
+  box.style.border = '2px solid transparent';
+  box.style.backgroundImage =
+    'linear-gradient(#ffffff, #ffffff), linear-gradient(to bottom, #0d9488, #a7f3d0)';
+  box.style.backgroundOrigin = 'padding-box, border-box';
+  box.style.backgroundClip = 'padding-box, border-box';
+  box.style.backgroundColor = '#ffffff';
+
+  box.innerHTML = `
+    <h2 style="color: #1e3a5f; font-size: 1.75rem; font-weight: 700; margin-bottom: 0.75rem;">Welcome to your Supplier Dashboard!</h2>
+    <p style="color: #6b7280; font-size: 1rem; line-height: 1.6; margin-bottom: 1.5rem; max-width: 560px; margin-left: auto; margin-right: auto;">
+      Get ready to showcase your services and connect with event planners. Let's start with a few quick tasks:
+    </p>
+    <div style="margin-bottom: 1.5rem; max-width: 420px; margin-left: auto; margin-right: auto;">
+      <div style="display: flex; align-items: center; justify-content: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+        <span style="font-size: 1.5rem;" aria-hidden="true">✨</span>
+        <span style="color: #1f2937; font-weight: 500;">Complete your supplier profile</span>
+      </div>
+      <div style="display: flex; align-items: center; justify-content: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+        <span style="font-size: 1.5rem;" aria-hidden="true">📦</span>
+        <span style="color: #1f2937; font-weight: 500;">Add your first package or service</span>
+      </div>
+      <div style="display: flex; align-items: center; justify-content: center; gap: 0.75rem;">
+        <span style="font-size: 1.5rem;" aria-hidden="true">💬</span>
+        <span style="color: #1f2937; font-weight: 500;">Start engaging with customers</span>
+      </div>
+    </div>
+    <button type="button" style="background: linear-gradient(135deg, #22c55e, #16a34a); color: #ffffff; font-weight: 600; padding: 0.75rem 2rem; border-radius: 10px; border: none; cursor: pointer; font-size: 1rem; box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3); transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);">Got it! Let's do this 🚀</button>
+  `;
+
+  // X button
+  const xBtn = document.createElement('button');
+  xBtn.type = 'button';
+  xBtn.style.cssText =
+    'position:absolute;top:12px;right:12px;width:32px;height:32px;min-width:32px;min-height:32px;' +
+    'padding:0;background:rgba(0,0,0,0.07);border:1px solid rgba(0,0,0,0.1);border-radius:50%;' +
+    'cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;' +
+    'transition:background 0.2s;color:#374151;';
+  xBtn.innerHTML =
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+  box.appendChild(xBtn);
+
+  document.getElementById('current-card').appendChild(box);
+})();
+</script>
+</body>
+</html>
