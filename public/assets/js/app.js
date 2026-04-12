@@ -2558,10 +2558,11 @@ function efMaybeShowOnboarding(page) {
     box.id = 'ef-onboarding-box';
     box.className = 'card';
     box.style.color = '#1f2937';
-    box.style.padding = '2rem';
-    box.style.borderRadius = '16px';
+    box.style.padding = '2.5rem 2.5rem 2.25rem';
+    box.style.borderRadius = '20px';
     box.style.position = 'relative';
-    box.style.boxShadow = '0 4px 24px rgba(13, 148, 136, 0.12), 0 1px 4px rgba(0, 0, 0, 0.06)';
+    box.style.overflow = 'hidden';
+    box.style.boxShadow = '0 4px 32px rgba(13, 148, 136, 0.13), 0 1px 4px rgba(0, 0, 0, 0.06)';
     box.style.textAlign = 'center';
     box.style.border = '2px solid transparent';
     box.style.backgroundImage =
@@ -2570,25 +2571,26 @@ function efMaybeShowOnboarding(page) {
     box.style.backgroundClip = 'padding-box, border-box';
 
     box.innerHTML = `
-      <h2 style="color: #1e3a5f; font-size: 1.75rem; font-weight: 700; margin-bottom: 0.75rem;">Welcome to your Supplier Dashboard!</h2>
-      <p style="color: #6b7280; font-size: 1rem; line-height: 1.6; margin-bottom: 1.5rem; max-width: 560px; margin-left: auto; margin-right: auto;">
+      <div style="position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#0d9488,#5eead4);"></div>
+      <h2 style="color: #1e3a5f; font-size: 1.875rem; font-weight: 800; letter-spacing: -0.025em; line-height: 1.15; margin-bottom: 0.75rem; margin-top: 0.25rem;">Welcome to your Supplier Dashboard!</h2>
+      <p style="color: #6b7280; font-size: 0.9375rem; line-height: 1.65; margin-bottom: 1.75rem; max-width: 480px; margin-left: auto; margin-right: auto;">
         Get ready to showcase your services and connect with event planners. Let's start with a few quick tasks:
       </p>
-      <div style="margin-bottom: 1.5rem; max-width: 420px; margin-left: auto; margin-right: auto;">
-        <div style="display: flex; align-items: center; justify-content: center; gap: 0.75rem; margin-bottom: 0.75rem;">
-          <span style="font-size: 1.5rem;" aria-hidden="true">✨</span>
-          <span style="color: #1f2937; font-weight: 500;">Complete your supplier profile</span>
+      <div style="display: flex; flex-direction: column; gap: 0.625rem; max-width: 380px; margin: 0 auto 1.875rem;">
+        <div style="display: flex; align-items: center; gap: 0.875rem; padding: 0.6875rem 1.125rem; background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 12px;">
+          <span style="font-size: 1.25rem; line-height: 1; flex-shrink: 0;" aria-hidden="true">✨</span>
+          <span style="color: #134e4a; font-weight: 500; font-size: 0.9375rem;">Complete your supplier profile</span>
         </div>
-        <div style="display: flex; align-items: center; justify-content: center; gap: 0.75rem; margin-bottom: 0.75rem;">
-          <span style="font-size: 1.5rem;" aria-hidden="true">📦</span>
-          <span style="color: #1f2937; font-weight: 500;">Add your first package or service</span>
+        <div style="display: flex; align-items: center; gap: 0.875rem; padding: 0.6875rem 1.125rem; background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 12px;">
+          <span style="font-size: 1.25rem; line-height: 1; flex-shrink: 0;" aria-hidden="true">📦</span>
+          <span style="color: #134e4a; font-weight: 500; font-size: 0.9375rem;">Add your first package or service</span>
         </div>
-        <div style="display: flex; align-items: center; justify-content: center; gap: 0.75rem;">
-          <span style="font-size: 1.5rem;" aria-hidden="true">💬</span>
-          <span style="color: #1f2937; font-weight: 500;">Start engaging with customers</span>
+        <div style="display: flex; align-items: center; gap: 0.875rem; padding: 0.6875rem 1.125rem; background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 12px;">
+          <span style="font-size: 1.25rem; line-height: 1; flex-shrink: 0;" aria-hidden="true">💬</span>
+          <span style="color: #134e4a; font-weight: 500; font-size: 0.9375rem;">Start engaging with customers</span>
         </div>
       </div>
-      <button type="button" class="cta" id="ef-onboarding-dismiss" aria-label="Dismiss onboarding and start using dashboard" style="background: linear-gradient(135deg, #22c55e, #16a34a); color: #ffffff; font-weight: 600; padding: 0.75rem 2rem; border-radius: 10px; border: none; cursor: pointer; font-size: 1rem; box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3); transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);">Got it! Let's do this 🚀</button>
+      <button type="button" class="cta" id="ef-onboarding-dismiss" aria-label="Dismiss onboarding and start using dashboard" style="display: inline-block; background: linear-gradient(135deg, #22c55e, #16a34a); color: #ffffff; font-weight: 700; padding: 0.875rem 2.75rem; border-radius: 12px; border: none; cursor: pointer; font-size: 1rem; letter-spacing: 0.01em; box-shadow: 0 4px 16px rgba(22, 163, 74, 0.35); transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);">Got it! Let's do this 🚀</button>
     `;
 
     const cards = container.querySelector('.cards');
@@ -2623,12 +2625,12 @@ function efMaybeShowOnboarding(page) {
     xCloseBtn.type = 'button';
     xCloseBtn.setAttribute('aria-label', 'Dismiss welcome onboarding');
     xCloseBtn.style.cssText =
-      'position:absolute;top:12px;right:12px;width:32px;height:32px;min-width:32px;min-height:32px;' +
-      'padding:0;background:rgba(0,0,0,0.07);border:1px solid rgba(0,0,0,0.1);border-radius:50%;' +
+      'position:absolute;top:14px;right:14px;width:30px;height:30px;min-width:30px;min-height:30px;' +
+      'padding:0;background:rgba(0,0,0,0.06);border:1px solid rgba(0,0,0,0.08);border-radius:50%;' +
       'cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;' +
-      'transition:background 0.2s;color:#374151;';
+      'transition:background 0.15s;color:#6b7280;';
     xCloseBtn.innerHTML =
-      '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
     xCloseBtn.addEventListener('click', doOverlayDismiss);
     box.appendChild(xCloseBtn);
 
@@ -2641,7 +2643,7 @@ function efMaybeShowOnboarding(page) {
       });
       btn.addEventListener('mouseleave', () => {
         btn.style.transform = 'scale(1) translateY(0)';
-        btn.style.boxShadow = '0 4px 12px rgba(34, 197, 94, 0.3)';
+        btn.style.boxShadow = '0 4px 16px rgba(22, 163, 74, 0.35)';
       });
 
       btn.addEventListener('click', doOverlayDismiss);
