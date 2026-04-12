@@ -12,6 +12,7 @@
   let currentIndex = 0;
   let images = [];
   let carousel = null;
+  let lastFocused = null;
 
   /**
    * Initialize image carousel on gallery images
@@ -55,6 +56,9 @@
     modal.className = 'image-carousel-modal';
     modal.setAttribute('role', 'dialog');
     modal.setAttribute('aria-label', 'Image carousel');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-hidden', 'true');
+    modal.setAttribute('tabindex', '-1');
     modal.style.display = 'none';
 
     modal.innerHTML = `
@@ -140,6 +144,7 @@
       return;
     }
 
+    lastFocused = document.activeElement || null;
     currentIndex = index;
     updateCarouselImage();
 
@@ -147,8 +152,13 @@
     carousel.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
 
-    // Focus the carousel for keyboard navigation
-    carousel.focus();
+    // Focus the close button for keyboard navigation (more discoverable than the backdrop)
+    const closeBtn = carousel.querySelector('.carousel-close');
+    if (closeBtn) {
+      closeBtn.focus();
+    } else {
+      carousel.focus();
+    }
   }
 
   /**
@@ -162,6 +172,12 @@
     carousel.style.display = 'none';
     carousel.setAttribute('aria-hidden', 'true');
     document.body.style.overflow = '';
+
+    // Return focus to the element that opened the carousel
+    if (lastFocused && typeof lastFocused.focus === 'function') {
+      lastFocused.focus();
+      lastFocused = null;
+    }
   }
 
   /**
