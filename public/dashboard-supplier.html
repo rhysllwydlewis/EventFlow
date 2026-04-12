@@ -393,7 +393,7 @@
         <!-- Inline early-dismiss guard: hide welcome section synchronously before any paint
              if the user has already permanently dismissed it. This prevents a flash of the
              widget on return visits before the deferred module script executes. -->
-        <script>try{if(localStorage.getItem('ef_supplier_welcome_dismissed')==='1'){document.write('<style>#welcome-section{display:none!important}</style>');}}catch(e){}</script>
+        <script>try{if(localStorage.getItem('ef_supplier_welcome_dismissed')==='1'){var _s=document.createElement('style');_s.textContent='#welcome-section{display:none!important}';document.head.appendChild(_s);}}catch(e){}</script>
         <section
           id="welcome-section"
           class="dashboard-hero"

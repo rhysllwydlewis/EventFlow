@@ -813,7 +813,7 @@
     /* Align to first line of the heading */
     margin-top: 0;
     /* Keep clear of the absolute-positioned X dismiss button (right:8px, 36px wide = 44px from card edge).
-       Content has 14px right padding; illustration needs extra 30px to clear the button. */
+       Content has 14px right padding; illustration needs extra 36px to clear the button. */
     margin-right: 36px;
   }
 
