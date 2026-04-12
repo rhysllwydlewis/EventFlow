@@ -970,6 +970,17 @@ router.get('/suppliers/directory-health', (_req, _res, next) => next('router'));
 router.get('/suppliers/:id/visibility-diagnostics', (_req, _res, next) => next('router'));
 
 /**
+ * Action-prompt sub-routes on /suppliers/:id — pass through to supplier-admin router.
+ * Must appear before the /suppliers/:id wildcard GET handler.
+ */
+// prettier-ignore
+router.get('/suppliers/:id/action-prompts/diagnostics', (_req, _res, next) => next('router'));
+// prettier-ignore
+router.post('/suppliers/:id/action-prompts/reset-cadence', (_req, _res, next) => next('router'));
+// prettier-ignore
+router.post('/suppliers/:id/action-prompts/set-enabled', (_req, _res, next) => next('router'));
+
+/**
  * GET /api/admin/suppliers/:id
  * Get details of a specific supplier
  * NOTE: dbUnified.read() fetches the full collection; use dbUnified.findOne() for efficiency
@@ -3468,6 +3479,7 @@ router.get('/settings/email-automation', authRequired, roleRequired('admin'), as
       updatedAt: actionPrompts.updatedAt,
       updatedBy: actionPrompts.updatedBy,
       lastRun: actionPrompts.lastRun || null,
+      runHistory: actionPrompts.runHistory || [],
     };
     res.json(response);
   } catch (error) {
@@ -3574,11 +3586,9 @@ router.post(
       }
 
       if (!dryRun && !confirm) {
-        return res
-          .status(400)
-          .json({
-            error: 'confirm=true required for non-dry-run to prevent accidental bulk sends',
-          });
+        return res.status(400).json({
+          error: 'confirm=true required for non-dry-run to prevent accidental bulk sends',
+        });
       }
 
       if (limit !== undefined && (!Number.isInteger(limit) || limit < 1)) {
@@ -3603,6 +3613,209 @@ router.post(
     } catch (error) {
       logger.error('Error running action-prompt emails:', error);
       res.status(500).json({ error: 'Failed to run action-prompt emails' });
+    }
+  }
+);
+
+/**
+ * POST /api/admin/email-automation/action-prompts/preview
+ * Body: { supplierUserId: string }
+ * Renders the exact action-prompt email HTML (using the same template + data as production)
+ * and returns it to the admin — WITHOUT sending. Safe, idempotent.
+ */
+router.post(
+  '/email-automation/action-prompts/preview',
+  authRequired,
+  roleRequired('admin'),
+  apiLimiter,
+  async (req, res) => {
+    try {
+      const { supplierUserId } = req.body;
+      if (!supplierUserId || typeof supplierUserId !== 'string') {
+        return res.status(400).json({ error: 'supplierUserId is required' });
+      }
+
+      const [allSuppliers, allUsers, allPackages, settings] = await Promise.all([
+        dbUnified.read('suppliers'),
+        dbUnified.read('users'),
+        dbUnified.read('packages'),
+        dbUnified.read('settings'),
+      ]);
+
+      const user = allUsers.find(u => u.id === supplierUserId || u.email === supplierUserId);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      const supplier = allSuppliers.find(s => s.ownerUserId === user.id);
+      if (!supplier) {
+        return res.status(404).json({ error: 'No supplier profile linked to this user' });
+      }
+
+      const { computeFullReport, evaluateCadence } = require('../services/actionPromptService');
+      const {
+        buildRagHtml,
+        getEmailSubject,
+        generateActionPromptUnsubscribeToken,
+      } = require('../services/actionPromptScheduler');
+      const { loadEmailTemplate } = postmark;
+
+      const report = computeFullReport(supplier, allPackages, settings || {}, user);
+      const state = user.actionPromptState;
+      const totalSendCount =
+        (state?.sendCountDaily ?? 0) +
+        (state?.sendCountWeekly ?? 0) +
+        (state?.sendCountMonthly ?? 0);
+      const subject = getEmailSubject(report, totalSendCount);
+
+      const baseUrl = process.env.APP_BASE_URL || process.env.BASE_URL || 'http://localhost:3000';
+      const actionsHtml = buildRagHtml(report, baseUrl);
+      const unsubscribeToken = generateActionPromptUnsubscribeToken(user.id, user.email);
+      const unsubscribeUrl = unsubscribeToken
+        ? `${baseUrl}/email/action-prompts/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`
+        : null;
+
+      const templateData = {
+        name: user.firstName || user.name || 'there',
+        actionsHtml,
+        loginUrl: `${baseUrl}/dashboard/supplier`,
+        managePrefsUrl: `${baseUrl}/settings`,
+        unsubscribeSection: unsubscribeUrl
+          ? `&nbsp;&middot;&nbsp;<a href="${unsubscribeUrl}" style="color:#94A3B8;text-decoration:none;">Unsubscribe from reminders</a>`
+          : '',
+      };
+
+      const html = loadEmailTemplate('action-prompts', templateData);
+
+      const cadenceEval = evaluateCadence(state, new Date());
+
+      res.json({
+        ok: true,
+        to: user.email,
+        subject,
+        html: html || '<p>(Template could not be loaded)</p>',
+        actions: report.outstanding,
+        eligibility: {
+          globalEnabled: settings?.emailAutomation?.actionPrompts?.enabled === true,
+          userVerified: user.verified === true,
+          userPrefsEnabled: user.emailPrefs?.actionPrompts?.enabled !== false,
+          hasOutstandingActions: report.outstanding.length > 0,
+          wouldSendNow: cadenceEval.shouldSend,
+        },
+        cadence: user.actionPromptState || null,
+      });
+    } catch (error) {
+      logger.error('Error generating action-prompt email preview:', error);
+      res.status(500).json({ error: 'Failed to generate email preview' });
+    }
+  }
+);
+
+/**
+ * POST /api/admin/email-automation/action-prompts/send-preview-to-admin
+ * Body: { supplierUserId: string, confirm: true }
+ * Renders the action-prompt email for the given supplier and sends it to the
+ * requesting admin's email address (NOT the supplier). Requires confirm=true.
+ */
+router.post(
+  '/email-automation/action-prompts/send-preview-to-admin',
+  authRequired,
+  roleRequired('admin'),
+  csrfProtection,
+  writeLimiter,
+  async (req, res) => {
+    try {
+      const { supplierUserId, confirm } = req.body;
+
+      if (!supplierUserId || typeof supplierUserId !== 'string') {
+        return res.status(400).json({ error: 'supplierUserId is required' });
+      }
+      if (confirm !== true) {
+        return res.status(400).json({ error: 'confirm must be true to send the preview email' });
+      }
+
+      const adminEmail = req.user.email;
+      if (!adminEmail) {
+        return res.status(400).json({ error: 'Admin user has no email address on record' });
+      }
+
+      const [allSuppliers, allUsers, allPackages, settings] = await Promise.all([
+        dbUnified.read('suppliers'),
+        dbUnified.read('users'),
+        dbUnified.read('packages'),
+        dbUnified.read('settings'),
+      ]);
+
+      const user = allUsers.find(u => u.id === supplierUserId || u.email === supplierUserId);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      const supplier = allSuppliers.find(s => s.ownerUserId === user.id);
+      if (!supplier) {
+        return res.status(404).json({ error: 'No supplier profile linked to this user' });
+      }
+
+      const { computeFullReport } = require('../services/actionPromptService');
+      const {
+        buildRagHtml,
+        getEmailSubject,
+        generateActionPromptUnsubscribeToken,
+      } = require('../services/actionPromptScheduler');
+
+      const report = computeFullReport(supplier, allPackages, settings || {}, user);
+      const state = user.actionPromptState;
+      const totalSendCount =
+        (state?.sendCountDaily ?? 0) +
+        (state?.sendCountWeekly ?? 0) +
+        (state?.sendCountMonthly ?? 0);
+      const subject = `[ADMIN PREVIEW] ${getEmailSubject(report, totalSendCount)}`;
+
+      const baseUrl = process.env.APP_BASE_URL || process.env.BASE_URL || 'http://localhost:3000';
+      const actionsHtml = buildRagHtml(report, baseUrl);
+      const unsubscribeToken = generateActionPromptUnsubscribeToken(user.id, user.email);
+      const unsubscribeUrl = unsubscribeToken
+        ? `${baseUrl}/email/action-prompts/unsubscribe?token=${encodeURIComponent(unsubscribeToken)}`
+        : null;
+
+      const templateData = {
+        name: user.firstName || user.name || 'there',
+        actionsHtml,
+        loginUrl: `${baseUrl}/dashboard/supplier`,
+        managePrefsUrl: `${baseUrl}/settings`,
+        unsubscribeSection: unsubscribeUrl
+          ? `&nbsp;&middot;&nbsp;<a href="${unsubscribeUrl}" style="color:#94A3B8;text-decoration:none;">Unsubscribe from reminders</a>`
+          : '',
+      };
+
+      await postmark.sendMail({
+        to: adminEmail,
+        subject,
+        template: 'action-prompts',
+        templateData,
+        from: postmark.FROM_NOREPLY,
+        messageStream: 'outbound',
+        tags: ['action_prompt_preview'],
+      });
+
+      auditLog({
+        adminId: req.user.id,
+        adminEmail,
+        action: 'ACTION_PROMPT_PREVIEW_SENT',
+        targetType: 'user',
+        targetId: user.id,
+        details: { supplierUserId, sentTo: adminEmail },
+      });
+
+      res.json({
+        ok: true,
+        message: `Preview email sent to ${adminEmail}`,
+        sentTo: adminEmail,
+        subject,
+      });
+    } catch (error) {
+      logger.error('Error sending action-prompt preview email:', error);
+      res.status(500).json({ error: 'Failed to send preview email' });
     }
   }
 );

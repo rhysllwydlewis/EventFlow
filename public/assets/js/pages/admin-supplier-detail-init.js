@@ -12,6 +12,7 @@
   let verificationAuditLoaded = false;
 
   // Tab switching
+  let apDiagnosticsLoaded = false;
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const tab = btn.dataset.tab;
@@ -25,6 +26,10 @@
       // Lazy-load verification audit only once
       if (tab === 'verification' && !verificationAuditLoaded) {
         loadVerificationAudit();
+      }
+      // Lazy-load action-prompt diagnostics only once
+      if (tab === 'action-prompts' && !apDiagnosticsLoaded) {
+        loadApDiagnostics();
       }
     });
   });
@@ -965,6 +970,258 @@
           'error'
         );
       }
+    }
+  });
+
+  // ── Action Prompt Diagnostics ──────────────────────────────────────────
+
+  let apDiagnosticsData = null;
+
+  function apBadge(text, color) {
+    const bg =
+      { green: '#d1fae5', red: '#fee2e2', amber: '#fef3c7', grey: '#f1f5f9' }[color] || '#f1f5f9';
+    const fg =
+      { green: '#065f46', red: '#991b1b', amber: '#92400e', grey: '#374151' }[color] || '#374151';
+    return `<span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:9999px;background:${bg};color:${fg};font-size:0.78rem;font-weight:600;">${escapeHtml(String(text))}</span>`;
+  }
+
+  function apBool(val) {
+    return val ? apBadge('✓ Yes', 'green') : apBadge('✗ No', 'red');
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  function renderApDiagnostics(data) {
+    const panel = document.getElementById('apDiagnosticsPanel');
+    if (!panel) {
+      return;
+    }
+
+    const { global: g, user, actions, cadence, lastRun, warnings } = data;
+
+    const warningHtml =
+      warnings && warnings.length > 0
+        ? `<div style="background:#fef3c7;border:1px solid #d97706;border-radius:8px;padding:0.75rem 1rem;margin-bottom:1rem;">
+          <strong style="color:#92400e;">⚠ Warnings</strong>
+          <ul style="margin:0.5rem 0 0 1.25rem;padding:0;color:#92400e;">
+            ${warnings.map(w => `<li>${escapeHtml(w)}</li>`).join('')}
+          </ul>
+        </div>`
+        : '';
+
+    const outstandingHtml =
+      actions.outstanding.length > 0
+        ? actions.outstanding
+            .map(a => {
+              const sev = a.severity === 'red' ? 'red' : 'amber';
+              return `<li style="margin-bottom:0.4rem;">${apBadge(a.severity?.toUpperCase() || 'AMBER', sev)} <strong>${escapeHtml(a.title)}</strong> <span style="color:#6b7280;font-size:0.85rem;">(${escapeHtml(a.key)})</span></li>`;
+            })
+            .join('')
+        : '<li style="color:#059669;">✓ No outstanding actions</li>';
+
+    const completedHtml =
+      actions.completed.length > 0
+        ? actions.completed
+            .map(a => `<li style="color:#6b7280;">${escapeHtml(a.title)}</li>`)
+            .join('')
+        : '<li style="color:#6b7280;">—</li>';
+
+    const cs = cadence.state;
+    const cadenceHtml = cs
+      ? `<table style="width:100%;border-collapse:collapse;font-size:0.875rem;">
+          <tr><td style="padding:0.35rem 0.5rem;color:#6b7280;">Stage</td><td style="padding:0.35rem 0.5rem;font-weight:600;">${escapeHtml(cs.cadence || 'daily')}</td></tr>
+          <tr style="background:#f8fafc;"><td style="padding:0.35rem 0.5rem;color:#6b7280;">Daily sends</td><td style="padding:0.35rem 0.5rem;">${cs.sendCountDaily ?? 0} / 7</td></tr>
+          <tr><td style="padding:0.35rem 0.5rem;color:#6b7280;">Weekly sends</td><td style="padding:0.35rem 0.5rem;">${cs.sendCountWeekly ?? 0} / 4</td></tr>
+          <tr style="background:#f8fafc;"><td style="padding:0.35rem 0.5rem;color:#6b7280;">Monthly sends</td><td style="padding:0.35rem 0.5rem;">${cs.sendCountMonthly ?? 0}</td></tr>
+          <tr><td style="padding:0.35rem 0.5rem;color:#6b7280;">Last sent</td><td style="padding:0.35rem 0.5rem;">${cs.lastSentAt ? new Date(cs.lastSentAt).toLocaleString() : 'Never'}</td></tr>
+          <tr style="background:#f8fafc;"><td style="padding:0.35rem 0.5rem;color:#6b7280;">Next send</td><td style="padding:0.35rem 0.5rem;">${cs.nextSendAt ? new Date(cs.nextSendAt).toLocaleString() : '—'}</td></tr>
+          <tr><td style="padding:0.35rem 0.5rem;color:#6b7280;">First outstanding</td><td style="padding:0.35rem 0.5rem;">${cs.firstOutstandingAt ? new Date(cs.firstOutstandingAt).toLocaleString() : '—'}</td></tr>
+          <tr style="background:#f8fafc;"><td style="padding:0.35rem 0.5rem;color:#6b7280;">Would send now?</td><td style="padding:0.35rem 0.5rem;">${cadence.wouldSendNow ? apBadge('Yes', 'green') : apBadge('No', 'grey')}</td></tr>
+        </table>`
+      : `<p style="color:#6b7280;margin:0;">No cadence state — this supplier has not been queued yet.</p>`;
+
+    const lastRunHtml = lastRun
+      ? `<span style="font-size:0.85rem;">Last global run: <strong>${new Date(lastRun.finishedAt).toLocaleString()}</strong> — scanned ${lastRun.scanned}, sent ${lastRun.sent}, errors ${lastRun.errors}</span>`
+      : `<span style="color:#6b7280;font-size:0.85rem;">No global run recorded yet.</span>`;
+
+    panel.innerHTML = `
+      ${warningHtml}
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.25rem;">
+        <!-- Global settings -->
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:0.875rem;">
+          <div style="font-weight:600;margin-bottom:0.625rem;font-size:0.9rem;">Global Settings</div>
+          <table style="width:100%;border-collapse:collapse;font-size:0.875rem;">
+            <tr><td style="padding:0.3rem 0;color:#6b7280;">Master enabled</td><td style="padding:0.3rem 0;">${apBool(g.enabled)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#6b7280;">Missing packages</td><td>${apBool(g.promptTypes.missingPackages)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#6b7280;">Incomplete profile</td><td>${apBool(g.promptTypes.incompleteProfile)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#6b7280;">Missing photos</td><td>${apBool(g.promptTypes.missingPhotos)}</td></tr>
+          </table>
+        </div>
+        <!-- User / Supplier settings -->
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:0.875rem;">
+          <div style="font-weight:600;margin-bottom:0.625rem;font-size:0.9rem;">Supplier / User Settings</div>
+          ${
+            user
+              ? `<table style="width:100%;border-collapse:collapse;font-size:0.875rem;">
+            <tr><td style="padding:0.3rem 0;color:#6b7280;">Email</td><td style="padding:0.3rem 0;word-break:break-all;">${escapeHtml(user.email)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#6b7280;">Verified</td><td>${apBool(user.verified)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#6b7280;">Prefs enabled</td><td>${apBool(user.emailPrefsEnabled)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#6b7280;">Pref: packages</td><td>${apBool(user.emailPrefsPerType.missingPackages)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#6b7280;">Pref: profile</td><td>${apBool(user.emailPrefsPerType.incompleteProfile)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#6b7280;">Pref: photos</td><td>${apBool(user.emailPrefsPerType.missingPhotos)}</td></tr>
+          </table>`
+              : `<p style="color:#dc2626;font-size:0.875rem;margin:0;">⚠ No user account linked to this supplier.</p>`
+          }
+        </div>
+      </div>
+      <!-- Outstanding actions -->
+      <div style="margin-bottom:1.25rem;">
+        <div style="font-weight:600;margin-bottom:0.5rem;font-size:0.9rem;">
+          Outstanding Actions
+          ${apBadge(actions.outstanding.length, actions.outstanding.length > 0 ? 'red' : 'green')}
+          <span style="font-weight:400;font-size:0.82rem;color:#6b7280;margin-left:0.5rem;">${actions.completionPercent}% complete</span>
+        </div>
+        <ul style="margin:0;padding-left:1.25rem;">${outstandingHtml}</ul>
+      </div>
+      <div style="margin-bottom:1.25rem;">
+        <div style="font-weight:600;margin-bottom:0.5rem;font-size:0.9rem;">Completed ✓</div>
+        <ul style="margin:0;padding-left:1.25rem;">${completedHtml}</ul>
+      </div>
+      <!-- Cadence state -->
+      <div style="margin-bottom:1.25rem;">
+        <div style="font-weight:600;margin-bottom:0.5rem;font-size:0.9rem;">Cadence State</div>
+        ${cadenceHtml}
+      </div>
+      <!-- Last run -->
+      <div style="margin-top:0.5rem;padding:0.625rem 0.875rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;">
+        ${lastRunHtml}
+      </div>
+    `;
+  }
+
+  async function loadApDiagnostics() {
+    const panel = document.getElementById('apDiagnosticsPanel');
+    if (!panel) {
+      return;
+    }
+    panel.innerHTML = '<p style="color:#6b7280;">Loading…</p>';
+    try {
+      const data = await AdminShared.api(
+        `/api/admin/suppliers/${supplierId}/action-prompts/diagnostics`
+      );
+      apDiagnosticsData = data;
+      apDiagnosticsLoaded = true;
+      renderApDiagnostics(data);
+    } catch (err) {
+      console.error('Failed to load action-prompt diagnostics:', err);
+      panel.innerHTML = `<p style="color:#dc2626;">Failed to load diagnostics: ${escapeHtml(err.message || 'Unknown error')}</p>`;
+    }
+  }
+
+  // Refresh button
+  document.getElementById('apRefreshBtn')?.addEventListener('click', () => {
+    apDiagnosticsLoaded = false;
+    loadApDiagnostics();
+  });
+
+  // Copy debug summary
+  document.getElementById('apCopyDebugBtn')?.addEventListener('click', async () => {
+    if (!apDiagnosticsData?.debugSummary) {
+      AdminShared.showToast('Load diagnostics first', 'warning');
+      return;
+    }
+    try {
+      const text = Array.isArray(apDiagnosticsData.debugSummary)
+        ? apDiagnosticsData.debugSummary.join('\n')
+        : String(apDiagnosticsData.debugSummary);
+      await navigator.clipboard.writeText(text);
+      AdminShared.showToast('Debug summary copied to clipboard', 'success');
+    } catch {
+      AdminShared.showToast('Clipboard copy failed — try manually selecting the text', 'error');
+    }
+  });
+
+  // Enable reminders
+  document.getElementById('apEnableBtn')?.addEventListener('click', async () => {
+    if (
+      !(await AdminShared.showConfirmModal({
+        title: 'Enable Reminders',
+        message: 'Enable action-prompt reminder emails for this supplier?',
+        confirmText: 'Enable',
+      }))
+    ) {
+      return;
+    }
+    try {
+      await AdminShared.api(
+        `/api/admin/suppliers/${supplierId}/action-prompts/set-enabled`,
+        'POST',
+        { enabled: true }
+      );
+      AdminShared.showToast('Reminders enabled', 'success');
+      apDiagnosticsLoaded = false;
+      loadApDiagnostics();
+    } catch (err) {
+      AdminShared.showToast(`Failed: ${err.message || 'Unknown error'}`, 'error');
+    }
+  });
+
+  // Disable reminders
+  document.getElementById('apDisableBtn')?.addEventListener('click', async () => {
+    if (
+      !(await AdminShared.showConfirmModal({
+        title: 'Disable Reminders',
+        message:
+          'Disable action-prompt reminder emails for this supplier? They will not receive any more reminder emails until re-enabled.',
+        confirmText: 'Disable',
+      }))
+    ) {
+      return;
+    }
+    try {
+      await AdminShared.api(
+        `/api/admin/suppliers/${supplierId}/action-prompts/set-enabled`,
+        'POST',
+        { enabled: false }
+      );
+      AdminShared.showToast('Reminders disabled', 'success');
+      apDiagnosticsLoaded = false;
+      loadApDiagnostics();
+    } catch (err) {
+      AdminShared.showToast(`Failed: ${err.message || 'Unknown error'}`, 'error');
+    }
+  });
+
+  // Reset cadence
+  document.getElementById('apResetCadenceBtn')?.addEventListener('click', async () => {
+    if (
+      !(await AdminShared.showConfirmModal({
+        title: 'Reset Cadence',
+        message:
+          'Reset the send cadence for this supplier? The daily→weekly→monthly cycle will restart from the beginning on the next run.',
+        confirmText: 'Reset',
+      }))
+    ) {
+      return;
+    }
+    try {
+      await AdminShared.api(
+        `/api/admin/suppliers/${supplierId}/action-prompts/reset-cadence`,
+        'POST',
+        {}
+      );
+      AdminShared.showToast('Cadence reset successfully', 'success');
+      apDiagnosticsLoaded = false;
+      loadApDiagnostics();
+    } catch (err) {
+      AdminShared.showToast(`Failed: ${err.message || 'Unknown error'}`, 'error');
     }
   });
 

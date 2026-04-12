@@ -1344,6 +1344,9 @@
 
       updateEmailAutoStatus('hidden');
       updateEmailAutoSaveBtn();
+
+      // Notify other IIFEs that settings have been loaded (for run history, etc.)
+      document.dispatchEvent(new CustomEvent('emailAutoSettingsLoaded', { detail: data }));
     } catch (err) {
       AdminShared.debugError('Failed to load email automation settings:', err);
       updateEmailAutoStatus('error', 'Error loading settings');
@@ -1508,4 +1511,193 @@
   });
 
   loadEmailAutoSettings();
+})();
+
+// ── Run History ───────────────────────────────────────────────────────────
+(function () {
+  function renderRunHistory(runHistory) {
+    const container = document.getElementById('emailAutoRunHistoryContainer');
+    if (!container) {
+      return;
+    }
+
+    if (!runHistory || runHistory.length === 0) {
+      container.innerHTML =
+        '<p style="color:#6b7280;font-size:0.875rem;">No runs recorded yet. History is populated after each real (non-dry-run) send.</p>';
+      return;
+    }
+
+    const rows = runHistory
+      .map(r => {
+        const dt = r.finishedAt ? new Date(r.finishedAt).toLocaleString() : '?';
+        const errStyle = r.errors > 0 ? 'color:#dc2626;font-weight:600;' : 'color:#059669;';
+        const cappedBadge = r.cappedByLimit
+          ? '<span style="display:inline-block;padding:0.1rem 0.4rem;border-radius:9999px;background:#fef3c7;color:#92400e;font-size:0.7rem;font-weight:600;">CAPPED</span>'
+          : '';
+        return `<tr>
+          <td style="padding:0.4rem 0.5rem;font-size:0.8rem;white-space:nowrap;">${dt}</td>
+          <td style="padding:0.4rem 0.5rem;text-align:right;">${r.scanned ?? '-'}</td>
+          <td style="padding:0.4rem 0.5rem;text-align:right;font-weight:600;color:#059669;">${r.sent ?? '-'}</td>
+          <td style="padding:0.4rem 0.5rem;text-align:right;">${r.skippedCadence ?? '-'}</td>
+          <td style="padding:0.4rem 0.5rem;text-align:right;${errStyle}">${r.errors ?? '-'}</td>
+          <td style="padding:0.4rem 0.5rem;text-align:right;">${cappedBadge}</td>
+        </tr>`;
+      })
+      .join('');
+
+    container.innerHTML = `
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+          <thead>
+            <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0;">
+              <th style="padding:0.4rem 0.5rem;text-align:left;font-weight:600;">Finished At</th>
+              <th style="padding:0.4rem 0.5rem;text-align:right;font-weight:600;">Scanned</th>
+              <th style="padding:0.4rem 0.5rem;text-align:right;font-weight:600;">Sent</th>
+              <th style="padding:0.4rem 0.5rem;text-align:right;font-weight:600;">Skipped</th>
+              <th style="padding:0.4rem 0.5rem;text-align:right;font-weight:600;">Errors</th>
+              <th style="padding:0.4rem 0.5rem;text-align:right;font-weight:600;"></th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>`;
+  }
+
+  // Hook into email-automation settings load — re-use the event when settings are loaded
+  // by patching after the existing IIFE sets up. We listen for a custom event dispatched
+  // after loadEmailAutoSettings completes.
+  document.addEventListener('emailAutoSettingsLoaded', e => {
+    renderRunHistory(e.detail?.runHistory);
+  });
+})();
+
+// ── Email Preview Tool ────────────────────────────────────────────────────
+(function () {
+  let currentPreviewUserId = null;
+
+  function setPreviewStatus(msg, type) {
+    const el = document.getElementById('emailPreviewStatus');
+    if (!el) {
+      return;
+    }
+    if (!msg) {
+      el.style.display = 'none';
+      return;
+    }
+    el.style.display = 'block';
+    el.style.cssText = `display:block;padding:0.5rem 0.75rem;border-radius:6px;font-size:0.875rem;background:${type === 'error' ? '#fee2e2' : '#f0fdf4'};color:${type === 'error' ? '#991b1b' : '#166534'};border:1px solid ${type === 'error' ? '#fca5a5' : '#bbf7d0'};`;
+    el.textContent = msg;
+  }
+
+  document.getElementById('emailPreviewBtn')?.addEventListener('click', async () => {
+    const input = document.getElementById('emailPreviewSupplierInput')?.value?.trim();
+    if (!input) {
+      setPreviewStatus('Please enter a supplier user ID or email address.', 'error');
+      return;
+    }
+    setPreviewStatus('Loading preview…', 'info');
+    document.getElementById('emailPreviewResult').style.display = 'none';
+    document.getElementById('emailPreviewSendToAdminBtn').style.display = 'none';
+
+    try {
+      const data = await AdminShared.adminFetch(
+        '/api/admin/email-automation/action-prompts/preview',
+        {
+          method: 'POST',
+          body: { supplierUserId: input },
+        }
+      );
+
+      currentPreviewUserId = input;
+
+      const toEl = document.getElementById('emailPreviewTo');
+      const subEl = document.getElementById('emailPreviewSubject');
+      const iframeEl = document.getElementById('emailPreviewIframe');
+      const eligEl = document.getElementById('emailPreviewEligibility');
+      const resultEl = document.getElementById('emailPreviewResult');
+
+      if (toEl) {
+        toEl.textContent = data.to || '?';
+      }
+      if (subEl) {
+        subEl.textContent = data.subject || '?';
+      }
+
+      if (eligEl) {
+        const e = data.eligibility || {};
+        const items = [
+          `Global enabled: ${e.globalEnabled ? '✓' : '✗'}`,
+          `Verified: ${e.userVerified ? '✓' : '✗'}`,
+          `Prefs enabled: ${e.userPrefsEnabled ? '✓' : '✗'}`,
+          `Has outstanding actions: ${e.hasOutstandingActions ? '✓' : '✗'}`,
+          `Would send now: ${e.wouldSendNow ? '✓' : '✗'}`,
+        ].join(' &nbsp;|&nbsp; ');
+        eligEl.innerHTML = `<strong>Eligibility:</strong> ${items}`;
+        eligEl.style.display = 'block';
+      }
+
+      if (iframeEl && data.html) {
+        iframeEl.srcdoc = data.html;
+      }
+
+      if (resultEl) {
+        resultEl.style.display = 'block';
+      }
+      document.getElementById('emailPreviewSendToAdminBtn').style.display = '';
+      setPreviewStatus('', null);
+    } catch (err) {
+      setPreviewStatus(`Preview failed: ${err.message || 'Unknown error'}`, 'error');
+    }
+  });
+
+  // Send preview to admin
+  document.getElementById('emailPreviewSendToAdminBtn')?.addEventListener('click', () => {
+    const modal = document.getElementById('emailPreviewConfirmModal');
+    const msgEl = document.getElementById('emailPreviewConfirmMsg');
+    if (!modal) {
+      return;
+    }
+    if (msgEl) {
+      msgEl.textContent = `This will send the action-prompt preview email to your admin email address. The supplier will NOT receive anything.`;
+    }
+    modal.style.display = 'flex';
+  });
+
+  document.getElementById('emailPreviewConfirmCancel')?.addEventListener('click', () => {
+    document.getElementById('emailPreviewConfirmModal').style.display = 'none';
+  });
+
+  document.getElementById('emailPreviewConfirmSend')?.addEventListener('click', async () => {
+    document.getElementById('emailPreviewConfirmModal').style.display = 'none';
+    const input =
+      currentPreviewUserId || document.getElementById('emailPreviewSupplierInput')?.value?.trim();
+    if (!input) {
+      return;
+    }
+
+    const btn = document.getElementById('emailPreviewSendToAdminBtn');
+    await AdminShared.safeAction(
+      btn,
+      async () => {
+        const result = await AdminShared.adminFetch(
+          '/api/admin/email-automation/action-prompts/send-preview-to-admin',
+          { method: 'POST', body: { supplierUserId: input, confirm: true } }
+        );
+        setPreviewStatus(`Preview sent to ${result.sentTo || 'your email'}`, 'success');
+        return result;
+      },
+      {
+        loadingText: 'Sending…',
+        successMessage: 'Preview email sent to your admin address',
+        errorMessage: 'Failed to send preview',
+      }
+    );
+  });
+
+  // Close modal on backdrop click
+  document.getElementById('emailPreviewConfirmModal')?.addEventListener('click', e => {
+    if (e.target === document.getElementById('emailPreviewConfirmModal')) {
+      document.getElementById('emailPreviewConfirmModal').style.display = 'none';
+    }
+  });
 })();

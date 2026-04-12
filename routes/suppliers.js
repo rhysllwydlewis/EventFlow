@@ -641,6 +641,64 @@ router.get('/packages/:slug', async (req, res) => {
 });
 
 // Export router and initialization function
+
+/**
+ * GET /api/me/action-prompt-checklist
+ * Returns the supplier's outstanding action items using the same detection logic
+ * as the action-prompt email system. Used by the Supplier Dashboard "Next Steps" card.
+ * Only available to authenticated suppliers.
+ */
+router.get(
+  '/me/action-prompt-checklist',
+  apiLimiter,
+  applyAuthRequired,
+  applyRoleRequired('supplier'),
+  async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const [allSuppliers, allPackages, settings] = await Promise.all([
+        dbUnified.read('suppliers'),
+        dbUnified.read('packages'),
+        dbUnified.read('settings'),
+      ]);
+
+      const supplier = allSuppliers.find(s => s.ownerUserId === userId);
+      if (!supplier) {
+        // No profile yet — show all items as outstanding
+        return res.json({
+          outstanding: [
+            {
+              key: 'missingPackages',
+              severity: 'red',
+              title: 'Create your first package',
+              description:
+                'Attract customers by listing your services. Suppliers with active packages receive significantly more enquiries.',
+              ctaUrl: '/dashboard/supplier',
+              ctaText: 'Go to Dashboard',
+            },
+          ],
+          completed: [],
+          ragStatus: 'red',
+          completionPercent: 0,
+        });
+      }
+
+      const { computeFullReport } = require('../services/actionPromptService');
+      const report = computeFullReport(supplier, allPackages, settings || {}, req.user);
+
+      res.json({
+        outstanding: report.outstanding,
+        completed: report.completed,
+        ragStatus: report.ragStatus,
+        completionPercent: report.completionPercent,
+      });
+    } catch (error) {
+      logger.error('Error loading action-prompt checklist:', error);
+      res.status(500).json({ error: 'Failed to load checklist' });
+    }
+  }
+);
+
 module.exports = router;
 module.exports.initializeDependencies = initializeDependencies;
 module.exports.invalidatePackageCaches = invalidatePackageCaches;
