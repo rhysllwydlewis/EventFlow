@@ -1018,7 +1018,7 @@ displayLeadQualityBreakdown();
 
 displaySubscriptionStatus();
 
-// ─── Welcome overlay dismiss logic ────────────────────────────────────────────
+// --- Welcome overlay dismiss logic ---
 // Manages permanent dismissal of the first-login onboarding overlay only.
 // The hero section (#welcome-section) is permanently visible; only the overlay
 // (#ef-onboarding-box) is removed when the supplier acknowledges the welcome.

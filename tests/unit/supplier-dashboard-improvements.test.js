@@ -83,7 +83,7 @@ describe('Supplier welcome overlay dismiss persistence', () => {
 
     // Overlay is removed
     expect(overlayEl.removed).toBe(true);
-    // Hero is not referenced by the dismiss handler — applyDismissalLogic is a no-op
+    // Hero is not referenced by the dismiss handler - applyDismissalLogic is a no-op
     const heroEl = { style: { display: '' } };
     applyDismissalLogic();
     expect(heroEl.style.display).toBe('');
