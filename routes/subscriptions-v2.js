@@ -243,12 +243,18 @@ router.get('/me', authRequired, async (req, res) => {
     let paymentMethodLast4 = null;
     const rawCustomerId = subscription?.stripeCustomerId;
     if (STRIPE_ENABLED && stripe && rawCustomerId) {
+      // Sanitise before any logging: truncate to a safe length and strip control
+      // characters to prevent log injection from a malformed stored value.
+      const safeCustomerId =
+        typeof rawCustomerId === 'string'
+          ? rawCustomerId.replace(/[\r\n\t]/g, '_').slice(0, 64)
+          : '[non-string]';
       // Guard: customer IDs must start with "cus_" to avoid a guaranteed 400 from Stripe
       // (stale IDs, test-vs-live key mismatch, or placeholder values would otherwise
       // generate noisy 400 errors in Stripe Workbench on every supplier login).
       if (!rawCustomerId.startsWith('cus_')) {
         logger.warn('subscriptions/me: invalid stripeCustomerId format — skipping Stripe call', {
-          customerId: rawCustomerId,
+          customerId: safeCustomerId,
         });
       } else {
         try {

@@ -50,6 +50,41 @@
 })();
 
 /**
+ * Deduplicated fetch-as-JSON utility.
+ *
+ * The supplier dashboard makes several independent async calls to
+ * `/api/v2/subscriptions/me` on page load (once from app.js's loadSuppliers
+ * fallback, once from dashboard-supplier-module.js's displaySubscriptionStatus).
+ * Without deduplication, both calls hit the server — and the server calls
+ * stripe.customers.retrieve for each one, doubling the noise in Stripe Workbench.
+ *
+ * This helper stores the in-flight Promise for each URL so that concurrent
+ * callers share a single network request and get the same parsed JSON result.
+ * The cache entry is cleared once the request settles.
+ *
+ * @param {string} url  - The URL to fetch.
+ * @param {object} opts - Fetch options (credentials, headers, etc.).
+ * @returns {Promise<object|null>} Parsed JSON body or null on error.
+ */
+window._efFetchOnceJSON = function _efFetchOnceJSON(url, opts) {
+  const cache = (window._efFetchOnceCache = window._efFetchOnceCache || {});
+  if (!cache[url]) {
+    cache[url] = fetch(url, opts || {})
+      .then(r => {
+        return r.ok ? r.json() : null;
+      })
+      .catch(() => {
+        return null;
+      })
+      .finally(() => {
+        // Remove from cache once settled so the next explicit reload gets a fresh result.
+        delete cache[url];
+      });
+  }
+  return cache[url];
+};
+
+/**
  * Set up a photo drag-and-drop zone with validation, preview, and removal support.
  *
  * @param {string}        dropId    - ID of the drop-zone element.
@@ -2806,9 +2841,14 @@ async function initDashSupplier() {
       );
 
       // Fallback: if no supplier object indicates Pro, check the user's subscription directly.
+      // Use the shared dedup helper so this call and the concurrent
+      // displaySubscriptionStatus() call in dashboard-supplier-module.js both
+      // share a single network request (and therefore a single Stripe API call).
       if (!currentIsPro) {
         try {
-          const subData = await api('/api/v2/subscriptions/me');
+          const subData = await window._efFetchOnceJSON('/api/v2/subscriptions/me', {
+            credentials: 'include',
+          });
           if (subData && (subData.plan === 'pro' || subData.plan === 'pro_plus')) {
             currentIsPro = true;
           }

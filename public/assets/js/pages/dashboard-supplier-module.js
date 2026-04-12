@@ -656,9 +656,15 @@ async function displaySubscriptionStatus() {
     let paymentMethodBrand = null;
     let paymentMethodLast4 = null;
     try {
-      const subResponse = await fetch('/api/v2/subscriptions/me', { credentials: 'include' });
-      if (subResponse.ok) {
-        const subJson = await subResponse.json();
+      // Use the shared dedup helper (window._efFetchOnceJSON defined in app.js) so
+      // this call and the concurrent loadSuppliers() fallback in app.js share a single
+      // network request — and therefore trigger only one Stripe customer retrieve.
+      const subJson = window._efFetchOnceJSON
+        ? await window._efFetchOnceJSON('/api/v2/subscriptions/me', { credentials: 'include' })
+        : await fetch('/api/v2/subscriptions/me', { credentials: 'include' })
+            .then(r => (r.ok ? r.json() : null))
+            .catch(() => null);
+      if (subJson) {
         subscriptionRecord = subJson.subscription || null;
         paymentMethodBrand = subJson.paymentMethodBrand || null;
         paymentMethodLast4 = subJson.paymentMethodLast4 || null;

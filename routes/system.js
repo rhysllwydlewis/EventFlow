@@ -7,6 +7,7 @@
 
 const express = require('express');
 const { apiLimiter } = require('../middleware/rateLimits');
+const { getStripeKeyMode } = require('../utils/config');
 const router = express.Router();
 
 // These will be injected by server.js during route mounting
@@ -89,6 +90,7 @@ function getIntegrationStatus() {
 
   const sentryEnabled = !!process.env.SENTRY_DSN;
   const stripeEnabled = !!process.env.STRIPE_SECRET_KEY;
+  const stripeMode = getStripeKeyMode();
   const openAIEnabled = !!process.env.OPENAI_API_KEY;
   const redisConfigured = !!process.env.REDIS_URL;
   const mongoConfigured = !!process.env.MONGODB_URI;
@@ -98,6 +100,7 @@ function getIntegrationStatus() {
   return {
     sentry: sentryEnabled ? 'configured' : 'disabled',
     stripe: stripeEnabled ? 'configured' : 'disabled',
+    stripeMode,
     openai: openAIEnabled ? 'configured' : 'disabled',
     redis: redisConfigured ? 'configured' : 'disabled',
     redisAdapter: redisAdapterInstalled ? 'installed' : 'not_installed',

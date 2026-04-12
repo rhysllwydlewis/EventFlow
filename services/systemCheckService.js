@@ -417,6 +417,28 @@ function getCatalog() {
       description: 'Admin badge counts',
       expectedStatuses: [200, 401, 403],
     },
+
+    // ── Stripe API Endpoints ──────────────────────────────────────────────
+    // These confirm that the Stripe routes are mounted and reachable.
+    // /subscriptions/plans is fully public (no auth needed).
+    // /subscriptions/me requires auth — 401 means the server is healthy.
+    // Neither check calls Stripe's API directly; they only verify that the
+    // EventFlow route layer is responding correctly.
+    {
+      name: 'stripe-plans-api',
+      type: 'api',
+      path: '/api/v2/subscriptions/plans',
+      group: 'api-public',
+      description: 'Stripe subscription plans (public)',
+    },
+    {
+      name: 'stripe-me-api',
+      type: 'api',
+      path: '/api/v2/subscriptions/me',
+      group: 'api-auth',
+      description: 'Stripe subscription status (auth gate)',
+      expectedStatuses: [200, 401],
+    },
   ];
 }
 
@@ -464,7 +486,7 @@ async function runCheck(check) {
     // Detect auth redirects: when redirect:'follow', if we ended up at /auth the
     // page was auth-gated. Capture this for transparency without marking as fail.
     const wasRedirected = res.redirected === true;
-    const finalUrl = wasRedirected ? (res.url || null) : null;
+    const finalUrl = wasRedirected ? res.url || null : null;
     const redirectedToAuth =
       wasRedirected &&
       finalUrl !== null &&
