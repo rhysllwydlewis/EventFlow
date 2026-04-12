@@ -128,7 +128,7 @@ async function saveImageBase64(base64, namePrefix) {
  * GET /api/me/suppliers/:id/photos
  * List all photos for a supplier
  */
-router.get('/:id/photos', applyAuthRequired, async (req, res) => {
+router.get('/:id/photos', applyWriteLimiter, applyAuthRequired, async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;

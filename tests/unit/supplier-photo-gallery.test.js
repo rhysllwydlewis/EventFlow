@@ -46,6 +46,12 @@ describe('Suppliers V2 — Route Structure', () => {
     expect(routesContent).toContain("router.get('/:id/photos'");
   });
 
+  it('GET /:id/photos has rate limiting (applyWriteLimiter)', () => {
+    const idx = routesContent.indexOf("router.get('/:id/photos'");
+    const block = routesContent.substring(idx, routesContent.indexOf('\nrouter.', idx + 1));
+    expect(block).toContain('applyWriteLimiter');
+  });
+
   it('POST /:id/photos route exists', () => {
     expect(routesContent).toContain("router.post(\n  '/:id/photos'");
   });
