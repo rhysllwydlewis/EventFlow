@@ -319,7 +319,8 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.18);
-  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  /* Only transition background/border/shadow — animation handles transform to avoid conflict */
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   z-index: 2;
 }
 
@@ -395,28 +396,49 @@
 .carousel-dots {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 0;
   flex-shrink: 0;
 }
 
 .carousel-dot {
+  /* 18×18px hit target (WCAG 2.5.5) while visual dot stays small via ::before */
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  outline: none;
+}
+
+.carousel-dot:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.65);
+  outline-offset: 2px;
+  border-radius: 50%;
+}
+
+.carousel-dot::before {
+  content: '';
   width: 6px;
   height: 6px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.3);
-  border: none;
-  padding: 0;
-  cursor: pointer;
   transition: background 0.2s ease, transform 0.2s ease;
+  display: block;
   flex-shrink: 0;
 }
 
-.carousel-dot.active {
+.carousel-dot.active::before {
   background: rgba(255, 255, 255, 0.9);
   transform: scale(1.4);
 }
 
-.carousel-dot:hover:not(.active) {
+.carousel-dot:hover:not(.active)::before {
   background: rgba(255, 255, 255, 0.6);
 }
 
@@ -433,15 +455,20 @@
   top: 50%;
   transform: translateY(-50%);
   opacity: 0;
-  transition: opacity 0.25s ease;
-  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
   z-index: 2;
   display: flex;
   align-items: center;
+  cursor: pointer;
 }
 
 .carousel-side-preview.visible {
+  opacity: 0.65;
+}
+
+.carousel-side-preview.visible:hover {
   opacity: 1;
+  transform: translateY(-50%) scale(1.06);
 }
 
 .carousel-side-preview--prev {
@@ -461,6 +488,11 @@
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
   display: block;
   background: rgba(0, 0, 0, 0.3);
+  transition: border-color 0.2s ease;
+}
+
+.carousel-side-preview:hover .carousel-side-preview__img {
+  border-color: rgba(255, 255, 255, 0.7);
 }
 
 /* ====================================
@@ -932,6 +964,10 @@ img {
   .carousel-nav:hover {
     animation: none;
     transform: translateY(-50%) scale(1.06);
+  }
+
+  .carousel-side-preview.visible:hover {
+    transform: translateY(-50%);
   }
 }
 

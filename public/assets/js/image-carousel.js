@@ -84,7 +84,11 @@
           </svg>
         </button>
 
-        <div class="carousel-side-preview carousel-side-preview--prev" id="carousel-prev-preview" aria-hidden="true">
+        <div 
+          class="carousel-side-preview carousel-side-preview--prev" 
+          id="carousel-prev-preview" 
+          aria-hidden="true"
+        >
           <img src="" alt="" class="carousel-side-preview__img" />
         </div>
         
@@ -98,7 +102,11 @@
           <div id="carousel-caption" class="carousel-caption"></div>
         </div>
 
-        <div class="carousel-side-preview carousel-side-preview--next" id="carousel-next-preview" aria-hidden="true">
+        <div 
+          class="carousel-side-preview carousel-side-preview--next" 
+          id="carousel-next-preview" 
+          aria-hidden="true"
+        >
           <img src="" alt="" class="carousel-side-preview__img" />
         </div>
         
@@ -128,6 +136,8 @@
     const closeBtn = modal.querySelector('.carousel-close');
     const prevBtn = modal.querySelector('.carousel-prev');
     const nextBtn = modal.querySelector('.carousel-next');
+    const prevPreviewEl = modal.querySelector('#carousel-prev-preview');
+    const nextPreviewEl = modal.querySelector('#carousel-next-preview');
 
     if (overlay) {
       overlay.addEventListener('click', closeCarousel);
@@ -146,6 +156,12 @@
     }
     if (nextBtn) {
       nextBtn.addEventListener('click', nextImage);
+    }
+    if (prevPreviewEl) {
+      prevPreviewEl.addEventListener('click', prevImage);
+    }
+    if (nextPreviewEl) {
+      nextPreviewEl.addEventListener('click', nextImage);
     }
 
     // Keyboard navigation
