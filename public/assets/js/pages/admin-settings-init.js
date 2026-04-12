@@ -1280,6 +1280,7 @@
       promptTypes: {
         missingPackages: document.getElementById('emailAutoMissingPackages')?.checked ?? true,
         incompleteProfile: document.getElementById('emailAutoIncompleteProfile')?.checked ?? true,
+        missingPhotos: document.getElementById('emailAutoMissingPhotos')?.checked ?? true,
       },
     };
   }
@@ -1323,6 +1324,7 @@
       setVal('emailAutoEnabled', data.enabled);
       setVal('emailAutoMissingPackages', data.promptTypes?.missingPackages !== false);
       setVal('emailAutoIncompleteProfile', data.promptTypes?.incompleteProfile !== false);
+      setVal('emailAutoMissingPhotos', data.promptTypes?.missingPhotos !== false);
       setTxt('emailAutoCron', data.cron || '0 9 * * *');
 
       originalEmailAuto = getEmailAutoValues();
@@ -1350,6 +1352,7 @@
     'emailAutoEnabled',
     'emailAutoMissingPackages',
     'emailAutoIncompleteProfile',
+    'emailAutoMissingPhotos',
     'emailAutoCron',
   ].forEach(id => {
     const el = document.getElementById(id);

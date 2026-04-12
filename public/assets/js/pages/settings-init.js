@@ -303,6 +303,7 @@ async function loadEmailPrefs() {
     setChecked('ap-enabled', ap.enabled !== false);
     setChecked('ap-missing-packages', ap.missingPackages !== false);
     setChecked('ap-incomplete-profile', ap.incompleteProfile !== false);
+    setChecked('ap-missing-photos', ap.missingPhotos !== false);
     updateApSubPrefsVisibility();
   } catch (e) {
     // Non-fatal — defaults are all ON
@@ -415,6 +416,7 @@ document.getElementById('save-settings').addEventListener('click', async () => {
           enabled: document.getElementById('ap-enabled')?.checked !== false,
           missingPackages: document.getElementById('ap-missing-packages')?.checked !== false,
           incompleteProfile: document.getElementById('ap-incomplete-profile')?.checked !== false,
+          missingPhotos: document.getElementById('ap-missing-photos')?.checked !== false,
         },
       };
     }

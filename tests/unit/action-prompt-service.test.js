@@ -152,6 +152,49 @@ describe('computeActions', () => {
     const actions = computeActions(supplier, [makePackage()], makeSettings(), user);
     expect(actions.some(a => a.key === 'incompleteProfile')).toBe(false);
   });
+
+  it('returns missingPhotos action when supplier has no photos', () => {
+    const noPhotosSupplier = makeSupplier({ photosGallery: [] });
+    const actions = computeActions(noPhotosSupplier, [makePackage()], makeSettings(), makeUser());
+    expect(actions.some(a => a.key === 'missingPhotos')).toBe(true);
+  });
+
+  it('missingPhotos action has severity amber', () => {
+    const noPhotosSupplier = makeSupplier({ photosGallery: [] });
+    const actions = computeActions(noPhotosSupplier, [makePackage()], makeSettings(), makeUser());
+    const photo = actions.find(a => a.key === 'missingPhotos');
+    expect(photo.severity).toBe('amber');
+  });
+
+  it('does not return missingPhotos when supplier has photos', () => {
+    const actions = computeActions(makeSupplier(), [makePackage()], makeSettings(), makeUser());
+    expect(actions.some(a => a.key === 'missingPhotos')).toBe(false);
+  });
+
+  it('respects global missingPhotos disable', () => {
+    const settings = makeSettings({
+      promptTypes: { missingPackages: true, incompleteProfile: true, missingPhotos: false },
+    });
+    const noPhotosSupplier = makeSupplier({ photosGallery: [] });
+    const actions = computeActions(noPhotosSupplier, [makePackage()], settings, makeUser());
+    expect(actions.some(a => a.key === 'missingPhotos')).toBe(false);
+  });
+
+  it('respects user missingPhotos opt-out', () => {
+    const user = makeUser({
+      emailPrefs: {
+        actionPrompts: {
+          enabled: true,
+          missingPackages: true,
+          incompleteProfile: true,
+          missingPhotos: false,
+        },
+      },
+    });
+    const noPhotosSupplier = makeSupplier({ photosGallery: [] });
+    const actions = computeActions(noPhotosSupplier, [makePackage()], makeSettings(), user);
+    expect(actions.some(a => a.key === 'missingPhotos')).toBe(false);
+  });
 });
 
 // ── computeFullReport ────────────────────────────────────────────────────────
@@ -306,10 +349,18 @@ describe('getSupplierActionItems', () => {
 
   function setupDb({ settings, users, suppliers, packages }) {
     dbUnified.read.mockImplementation(collection => {
-      if (collection === 'settings') return Promise.resolve(settings);
-      if (collection === 'users') return Promise.resolve(users);
-      if (collection === 'suppliers') return Promise.resolve(suppliers);
-      if (collection === 'packages') return Promise.resolve(packages);
+      if (collection === 'settings') {
+        return Promise.resolve(settings);
+      }
+      if (collection === 'users') {
+        return Promise.resolve(users);
+      }
+      if (collection === 'suppliers') {
+        return Promise.resolve(suppliers);
+      }
+      if (collection === 'packages') {
+        return Promise.resolve(packages);
+      }
       return Promise.resolve([]);
     });
   }

@@ -35,6 +35,7 @@ router.get('/', authRequired, async (req, res) => {
           enabled: actionPrompts.enabled !== false,
           missingPackages: actionPrompts.missingPackages !== false,
           incompleteProfile: actionPrompts.incompleteProfile !== false,
+          missingPhotos: actionPrompts.missingPhotos !== false,
         },
       },
     });
@@ -73,6 +74,11 @@ router.post('/', writeLimiter, authRequired, csrfProtection, async (req, res) =>
           .status(400)
           .json({ error: 'emailPrefs.actionPrompts.incompleteProfile must be a boolean' });
       }
+      if (ap.missingPhotos !== undefined && typeof ap.missingPhotos !== 'boolean') {
+        return res
+          .status(400)
+          .json({ error: 'emailPrefs.actionPrompts.missingPhotos must be a boolean' });
+      }
       if (ap.enabled !== undefined) {
         updateFields['emailPrefs.actionPrompts.enabled'] = ap.enabled;
       }
@@ -81,6 +87,9 @@ router.post('/', writeLimiter, authRequired, csrfProtection, async (req, res) =>
       }
       if (ap.incompleteProfile !== undefined) {
         updateFields['emailPrefs.actionPrompts.incompleteProfile'] = ap.incompleteProfile;
+      }
+      if (ap.missingPhotos !== undefined) {
+        updateFields['emailPrefs.actionPrompts.missingPhotos'] = ap.missingPhotos;
       }
     }
 

@@ -3460,6 +3460,7 @@ router.get('/settings/email-automation', authRequired, roleRequired('admin'), as
       promptTypes: {
         missingPackages: actionPrompts.promptTypes?.missingPackages !== false,
         incompleteProfile: actionPrompts.promptTypes?.incompleteProfile !== false,
+        missingPhotos: actionPrompts.promptTypes?.missingPhotos !== false,
       },
       updatedAt: actionPrompts.updatedAt,
       updatedBy: actionPrompts.updatedBy,
@@ -3511,6 +3512,10 @@ router.put(
             promptTypes?.incompleteProfile !== undefined
               ? promptTypes.incompleteProfile
               : existingActionPrompts.promptTypes?.incompleteProfile !== false,
+          missingPhotos:
+            promptTypes?.missingPhotos !== undefined
+              ? promptTypes.missingPhotos
+              : existingActionPrompts.promptTypes?.missingPhotos !== false,
         },
         updatedAt: new Date().toISOString(),
         updatedBy: req.user.email,

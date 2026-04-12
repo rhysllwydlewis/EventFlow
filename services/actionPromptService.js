@@ -107,10 +107,11 @@ function computeActions(supplier, packages, settings, user) {
     }
   }
 
-  // 3. Missing photos (AMBER — always checked, not behind a toggle)
-  const hasPhotos =
-    Array.isArray(supplier.photosGallery) && supplier.photosGallery.length > 0;
-  if (!hasPhotos) {
+  // 3. Missing photos (AMBER — behind global and user toggles)
+  const globalMissingPhotos = promptTypes.missingPhotos !== false;
+  const userMissingPhotosPref = userPrefs.missingPhotos !== false;
+  const hasPhotos = Array.isArray(supplier.photosGallery) && supplier.photosGallery.length > 0;
+  if (globalMissingPhotos && userMissingPhotosPref && !hasPhotos) {
     actions.push({
       key: 'missingPhotos',
       ...ACTION_DEFINITIONS.missingPhotos,
@@ -186,16 +187,19 @@ function computeFullReport(supplier, packages, settings, user) {
     });
   }
 
-  // 3. Photos (always checked)
-  const hasPhotos =
-    Array.isArray(supplier.photosGallery) && supplier.photosGallery.length > 0;
+  // 3. Photos (behind global and user toggles)
+  const globalMissingPhotos = promptTypes.missingPhotos !== false;
+  const userMissingPhotosPref = userPrefs.missingPhotos !== false;
+  const hasPhotos = Array.isArray(supplier.photosGallery) && supplier.photosGallery.length > 0;
   if (!hasPhotos) {
-    outstanding.push({
-      key: 'missingPhotos',
-      ...ACTION_DEFINITIONS.missingPhotos,
-      ctaUrl: `${baseUrl}/dashboard/supplier`,
-      status: 'incomplete',
-    });
+    if (globalMissingPhotos && userMissingPhotosPref) {
+      outstanding.push({
+        key: 'missingPhotos',
+        ...ACTION_DEFINITIONS.missingPhotos,
+        ctaUrl: `${baseUrl}/dashboard/supplier`,
+        status: 'incomplete',
+      });
+    }
   } else {
     completed.push({
       key: 'hasPhotos',
@@ -321,17 +325,25 @@ async function getSupplierActionItems() {
 
   for (const user of users) {
     // Only suppliers
-    if (user.role !== 'supplier') continue;
+    if (user.role !== 'supplier') {
+      continue;
+    }
 
     // Only verified users
-    if (!user.verified) continue;
+    if (!user.verified) {
+      continue;
+    }
 
     // Check master user-level pref (missing == enabled)
-    if (user.emailPrefs?.actionPrompts?.enabled === false) continue;
+    if (user.emailPrefs?.actionPrompts?.enabled === false) {
+      continue;
+    }
 
     // Find the supplier profile linked to this user
     const supplier = suppliers.find(s => s.ownerUserId === user.id);
-    if (!supplier) continue;
+    if (!supplier) {
+      continue;
+    }
 
     // Compute full report
     const report = computeFullReport(supplier, packages, globalSettings, user);
