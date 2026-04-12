@@ -956,27 +956,6 @@
     font-size: 0.75rem;
   }
 
-  /* ── Welcome dismiss buttons: compact mobile sizing ── */
-  .welcome-section__dismiss-x {
-    top: 8px;
-    right: 8px;
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
-    min-height: 36px;
-  }
-
-  /* Full-width CTA on mobile for maximum tap-ability */
-  .dashboard-hero__got-it-btn {
-    width: 100%;
-    font-size: 0.875rem;
-    padding: 11px 18px;
-    min-height: 44px;
-  }
-
-  .dashboard-hero__dismiss-row {
-    padding-top: 4px;
-  }
 }
 
 /* ============================================================

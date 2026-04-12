@@ -22,8 +22,8 @@
  * Optional localStorage keys cleared when functional consent is denied:
  *   theme, ef_expanded_folders, marketplaceLocation,
  *   jadeassist-teaser-dismissed, ef_onboarding_dismissed,
- *   eventflow_onboarding_new, ef_notification_sound_enabled,
- *   ef_notification_volume
+ *   ef_supplier_welcome_dismissed, eventflow_onboarding_new,
+ *   ef_notification_sound_enabled, ef_notification_volume
  */
 
 (function () {
@@ -42,6 +42,7 @@
     'marketplaceLocation',
     'jadeassist-teaser-dismissed',
     'ef_onboarding_dismissed',
+    'ef_supplier_welcome_dismissed',
     'eventflow_onboarding_new',
     'ef_notification_sound_enabled',
     'ef_notification_volume',
