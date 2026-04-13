@@ -126,7 +126,7 @@ The connection string has a placeholder `<password>` that you need to replace:
      ```
      to this:
      ```
-     mongodb+srv://eventflowuser:MySecurePass123@cluster0...
+     mongodb+srv://<YOUR-USERNAME>:<YOUR-PASSWORD>@<YOUR-CLUSTER>...
      ```
 5. Make sure there are NO `<` or `>` brackets left
 6. Copy the complete connection string

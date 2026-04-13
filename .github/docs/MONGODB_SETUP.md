@@ -39,7 +39,7 @@ You have two options:
 3. Get your connection string
 4. Set environment variable:
    ```bash
-   MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/eventflow?retryWrites=true&w=majority
+   MONGODB_URI=mongodb+srv://<USERNAME>:<PASSWORD>@<CLUSTER>.mongodb.net/eventflow?retryWrites=true&w=majority
    ```
 
 ### 3. Configure Environment Variables
@@ -54,7 +54,7 @@ Edit `.env` with your MongoDB connection details:
 
 ```
 # For cloud MongoDB Atlas
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/eventflow?retryWrites=true&w=majority
+MONGODB_URI=mongodb+srv://<USERNAME>:<PASSWORD>@<CLUSTER>.mongodb.net/eventflow?retryWrites=true&w=majority
 
 # OR for local MongoDB
 MONGODB_LOCAL_URI=mongodb://localhost:27017/eventflow

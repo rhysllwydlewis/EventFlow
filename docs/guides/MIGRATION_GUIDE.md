@@ -42,7 +42,7 @@ If you need to manually migrate data (e.g., to migrate TO production MongoDB FRO
 Create a `.env.production` file or set environment variables:
 
 ```bash
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/eventflow?retryWrites=true&w=majority
+MONGODB_URI=mongodb+srv://<USERNAME>:<PASSWORD>@<CLUSTER>.mongodb.net/eventflow?retryWrites=true&w=majority
 JWT_SECRET=your-production-jwt-secret
 NODE_ENV=production
 ```
