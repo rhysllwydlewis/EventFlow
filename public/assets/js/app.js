@@ -3609,11 +3609,59 @@ async function initDashSupplier() {
     }, ms);
   }
 
+  function setSupplierFieldError(fieldEl, errorEl, message) {
+    if (fieldEl) {
+      fieldEl.setAttribute('aria-invalid', 'true');
+      fieldEl.classList.add('supplier-field-invalid');
+    }
+    if (errorEl) {
+      errorEl.textContent = message || '';
+      errorEl.classList.toggle('visible', Boolean(message));
+      errorEl.setAttribute('aria-hidden', message ? 'false' : 'true');
+    }
+  }
+
+  function clearSupplierFieldError(fieldEl, errorEl) {
+    if (fieldEl) {
+      fieldEl.setAttribute('aria-invalid', 'false');
+      fieldEl.classList.remove('supplier-field-invalid');
+    }
+    if (errorEl) {
+      errorEl.textContent = '';
+      errorEl.classList.remove('visible');
+      errorEl.setAttribute('aria-hidden', 'true');
+    }
+  }
+
+  function normalizeAndValidateWebsiteInput(inputEl) {
+    if (!inputEl) {
+      return { ok: true, value: '' };
+    }
+    const raw = (inputEl.value || '').trim();
+    if (!raw) {
+      inputEl.value = '';
+      return { ok: true, value: '' };
+    }
+    const normalized = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+    let parsed;
+    try {
+      parsed = new URL(normalized);
+    } catch (_e) {
+      return { ok: false, value: raw };
+    }
+    if (!/^https?:$/i.test(parsed.protocol)) {
+      return { ok: false, value: raw };
+    }
+    inputEl.value = normalized;
+    return { ok: true, value: normalized };
+  }
+
   const supForm = document.getElementById('supplier-form');
   if (supForm) {
     supForm.addEventListener('submit', async e => {
       e.preventDefault();
       const saveBtn = supForm.querySelector('button[type="submit"]');
+      const originalSaveBtnText = saveBtn ? saveBtn.textContent : '';
 
       if (saveBtn && saveBtn.disabled) {
         return;
@@ -3629,7 +3677,15 @@ async function initDashSupplier() {
       const statusEl = document.getElementById('sup-status');
       const nameEl = supForm.querySelector('#sup-name');
       const categoryEl = supForm.querySelector('#sup-category');
+      const websiteEl = supForm.querySelector('#sup-website');
+      const nameErrorEl = supForm.querySelector('#sup-name-error');
+      const categoryErrorEl = supForm.querySelector('#sup-category-error');
+      const websiteErrorEl = supForm.querySelector('#sup-website-error');
+      clearSupplierFieldError(nameEl, nameErrorEl);
+      clearSupplierFieldError(categoryEl, categoryErrorEl);
+      clearSupplierFieldError(websiteEl, websiteErrorEl);
       if (!nameEl || !nameEl.value.trim()) {
+        setSupplierFieldError(nameEl, nameErrorEl, 'Business name is required.');
         if (statusEl) {
           clearSupplierStatusTimer();
           statusEl.setAttribute('data-tone', 'error');
@@ -3643,6 +3699,7 @@ async function initDashSupplier() {
         return;
       }
       if (!categoryEl || !categoryEl.value) {
+        setSupplierFieldError(categoryEl, categoryErrorEl, 'Please select a category.');
         if (statusEl) {
           clearSupplierStatusTimer();
           statusEl.setAttribute('data-tone', 'error');
@@ -3655,10 +3712,31 @@ async function initDashSupplier() {
         }
         return;
       }
+      const websiteCheck = normalizeAndValidateWebsiteInput(websiteEl);
+      if (!websiteCheck.ok) {
+        setSupplierFieldError(
+          websiteEl,
+          websiteErrorEl,
+          'Please enter a valid website URL (for example: https://example.com).'
+        );
+        if (statusEl) {
+          clearSupplierStatusTimer();
+          statusEl.setAttribute('data-tone', 'error');
+          statusEl.textContent = 'Please fix the website URL and try again.';
+          statusEl.style.color = '#ef4444';
+          scheduleSupplierStatusClear(statusEl, 5000);
+        }
+        if (websiteEl) {
+          websiteEl.focus();
+        }
+        return;
+      }
 
       if (saveBtn) {
         saveBtn.disabled = true;
         saveBtn.setAttribute('aria-disabled', 'true');
+        saveBtn.classList.add('is-loading');
+        saveBtn.textContent = 'Saving…';
       }
       supForm.setAttribute('aria-busy', 'true');
       try {
@@ -3757,6 +3835,8 @@ async function initDashSupplier() {
         if (saveBtn) {
           saveBtn.disabled = false;
           saveBtn.removeAttribute('aria-disabled');
+          saveBtn.classList.remove('is-loading');
+          saveBtn.textContent = originalSaveBtnText || 'Save profile';
         }
         supForm.setAttribute('aria-busy', 'false');
       }

@@ -221,6 +221,17 @@ describe('Supplier profile form – website field browser validation disabled', 
     expect(dashboardHtml).not.toMatch(/id="sup-website"[^>]*type="url"/);
     expect(dashboardHtml).toMatch(/id="sup-website"/);
   });
+
+  it('supplier-form includes inline error regions for name/category/website validation', () => {
+    expect(dashboardHtml).toContain('id="sup-name-error"');
+    expect(dashboardHtml).toContain('id="sup-category-error"');
+    expect(dashboardHtml).toContain('id="sup-website-error"');
+  });
+
+  it('website input includes helper text for https:// auto-normalization', () => {
+    expect(dashboardHtml).toContain('id="sup-website-help"');
+    expect(dashboardHtml).toContain('https:// is added automatically');
+  });
 });
 
 describe('Gallery photo 404 error handling', () => {
@@ -279,7 +290,7 @@ describe('Supplier form submit – double-submit prevention (sequencing)', () =>
     // Verify saveBtn.disabled = true appears BEFORE the first await in the submit block
     const submitIdx = appJs.indexOf("supForm.addEventListener('submit'");
     expect(submitIdx).toBeGreaterThan(-1);
-    const handlerBlock = appJs.slice(submitIdx, submitIdx + 3000);
+    const handlerBlock = appJs.slice(submitIdx, submitIdx + 5000);
     const disabledIdx = handlerBlock.indexOf('saveBtn.disabled = true');
     const awaitIdx = handlerBlock.indexOf('await ensureCsrfToken');
     expect(disabledIdx).toBeGreaterThan(-1);
@@ -290,7 +301,7 @@ describe('Supplier form submit – double-submit prevention (sequencing)', () =>
   it('app.js re-enables the submit button inside a finally block', () => {
     const submitIdx = appJs.indexOf("supForm.addEventListener('submit'");
     // The submit handler is large (validation + API call); use a generous slice
-    const handlerBlock = appJs.slice(submitIdx, submitIdx + 6000);
+    const handlerBlock = appJs.slice(submitIdx, submitIdx + 8000);
     const finallyIdx = handlerBlock.indexOf('} finally {');
     const reEnableIdx = handlerBlock.indexOf('saveBtn.disabled = false');
     expect(finallyIdx).toBeGreaterThan(-1);
@@ -304,6 +315,14 @@ describe('Supplier form submit – double-submit prevention (sequencing)', () =>
     const handlerBlock = appJs.slice(submitIdx, submitIdx + 500);
     expect(handlerBlock).toContain('saveBtn.disabled');
     expect(handlerBlock).toContain('return');
+  });
+
+  it('app.js applies and removes save-button loading state', () => {
+    const submitIdx = appJs.indexOf("supForm.addEventListener('submit'");
+    const handlerBlock = appJs.slice(submitIdx, submitIdx + 8000);
+    expect(handlerBlock).toContain("saveBtn.classList.add('is-loading')");
+    expect(handlerBlock).toContain("saveBtn.classList.remove('is-loading')");
+    expect(handlerBlock).toContain("saveBtn.textContent = 'Saving…'");
   });
 });
 
@@ -349,6 +368,12 @@ describe('Supplier form submit – required field JS validation', () => {
     expect(handlerBlock).toContain('nameEl.focus');
     expect(handlerBlock).toContain('Business name is required');
   });
+
+  it('app.js toggles inline validation helpers/classes for supplier fields', () => {
+    expect(appJs).toContain('setSupplierFieldError');
+    expect(appJs).toContain('clearSupplierFieldError');
+    expect(appJs).toContain('supplier-field-invalid');
+  });
 });
 
 describe('Supplier form – website URL normalization', () => {
@@ -376,6 +401,13 @@ describe('Supplier form – website URL normalization', () => {
     const buildStart = appJs.indexOf('function buildSupplierPayload(form)');
     const buildBlock = appJs.slice(buildStart, buildStart + 2000);
     expect(buildBlock).toContain('https?:');
+  });
+
+  it('app.js validates website URL format before submit', () => {
+    const submitIdx = appJs.indexOf("supForm.addEventListener('submit'");
+    const handlerBlock = appJs.slice(submitIdx, submitIdx + 8000);
+    expect(handlerBlock).toContain('normalizeAndValidateWebsiteInput');
+    expect(handlerBlock).toContain('Please fix the website URL and try again.');
   });
 });
 
@@ -442,5 +474,11 @@ describe('CSS – prefers-reduced-motion uses !important to prevent cascade over
     expect(prmIdx).toBeGreaterThan(-1);
     const prmBlock = supplierDashImprovementsCss.slice(prmIdx, prmIdx + 500);
     expect(prmBlock).toMatch(/transform[^;]+!important/);
+  });
+
+  it('supplier-dashboard-improvements.css includes loading/error field polish styles', () => {
+    expect(supplierDashImprovementsCss).toContain('.supplier-field-invalid');
+    expect(supplierDashImprovementsCss).toContain('#sup-create.is-loading::after');
+    expect(supplierDashImprovementsCss).toContain('@keyframes supplier-save-spin');
   });
 });

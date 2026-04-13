@@ -2508,6 +2508,7 @@ textarea:focus {
   color: var(--ef-text-muted, #667085);
   margin-top: var(--ef-space-1, 4px);
   font-size: var(--ef-text-sm, 14px);
+  line-height: 1.35;
 }
 
 .form-error-text {
@@ -2515,10 +2516,47 @@ textarea:focus {
   margin-top: var(--ef-space-1, 4px);
   font-size: var(--ef-text-sm, 14px);
   display: none;
+  line-height: 1.35;
 }
 
 .form-error-text.visible {
   display: block;
+}
+
+#supplier-form .supplier-field-invalid {
+  border-color: var(--ef-error, #ef4444) !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.14);
+}
+
+#supplier-form #sup-create.is-loading {
+  position: relative;
+  opacity: 0.92;
+  cursor: progress;
+}
+
+#supplier-form #sup-create.is-loading::after {
+  content: '';
+  width: 0.9em;
+  height: 0.9em;
+  margin-left: 0.5em;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  display: inline-block;
+  vertical-align: -0.1em;
+  animation: supplier-save-spin 0.8s linear infinite;
+}
+
+@keyframes supplier-save-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #supplier-form #sup-create.is-loading::after {
+    animation: none;
+  }
 }
 
 /* ===========================================

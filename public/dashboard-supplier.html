@@ -669,11 +669,18 @@
               <div class="form-row supplier-form-grid">
                 <div>
                   <label for="sup-name">Business name</label>
-                  <input id="sup-name" name="name" required maxlength="100" />
+                  <input
+                    id="sup-name"
+                    name="name"
+                    required
+                    maxlength="100"
+                    aria-describedby="sup-name-error"
+                  />
+                  <p class="small form-error-text" id="sup-name-error" role="alert" aria-live="polite"></p>
                 </div>
                 <div>
-                  <label>Category</label>
-                  <select id="sup-category" name="category" required>
+                  <label for="sup-category">Category</label>
+                  <select id="sup-category" name="category" required aria-describedby="sup-category-error">
                     <option value="">Choose a category…</option>
                     <option>Venues</option>
                     <option>Catering</option>
@@ -696,6 +703,12 @@
                     <option>Planning</option>
                     <option>Other</option>
                   </select>
+                  <p
+                    class="small form-error-text"
+                    id="sup-category-error"
+                    role="alert"
+                    aria-live="polite"
+                  ></p>
                 </div>
                 <div>
                   <label>Location</label>
@@ -718,8 +731,24 @@
               </div>
 
               <div class="form-row">
-                <label>Website</label>
-                <input id="sup-website" name="website" type="text" placeholder="https://your-website.com" maxlength="500" />
+                <label for="sup-website">Website</label>
+                <input
+                  id="sup-website"
+                  name="website"
+                  type="text"
+                  placeholder="https://your-website.com"
+                  maxlength="500"
+                  aria-describedby="sup-website-help sup-website-error"
+                />
+                <p class="small form-help-text" id="sup-website-help">
+                  Enter your full website address. If no protocol is provided, https:// is added automatically.
+                </p>
+                <p
+                  class="small form-error-text"
+                  id="sup-website-error"
+                  role="alert"
+                  aria-live="polite"
+                ></p>
               </div>
 
               <div class="form-row">
