@@ -371,6 +371,7 @@ class SupplierGalleryManager {
 
       // "Cover" badge on first photo (absolutely positioned, inside wrapper)
       if (index === 0) {
+        wrapper.classList.add('photo-preview-item--cover');
         const badge = document.createElement('span');
         badge.className = 'photo-first-badge';
         badge.textContent = 'Cover';
@@ -590,6 +591,7 @@ class SupplierGalleryManager {
     items.forEach((item, idx) => {
       let badge = item.querySelector('.photo-first-badge');
       if (idx === 0) {
+        item.classList.add('photo-preview-item--cover');
         if (!badge) {
           badge = document.createElement('span');
           badge.className = 'photo-first-badge';
@@ -598,8 +600,11 @@ class SupplierGalleryManager {
           const imgWrap = item.querySelector('.photo-preview-item__image-wrap');
           item.insertBefore(badge, imgWrap || item.firstChild);
         }
-      } else if (badge) {
-        badge.remove();
+      } else {
+        item.classList.remove('photo-preview-item--cover');
+        if (badge) {
+          badge.remove();
+        }
       }
     });
   }
