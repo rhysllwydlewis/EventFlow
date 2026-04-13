@@ -1294,11 +1294,147 @@ select:focus-visible {
   border-width: 0;
 }
 
-/* Reduced Motion */
-@media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+.review-author-name--link {
+  font-weight: 600;
+  color: #4f46e5;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.review-author-name--link:hover {
+  color: #3730a3;
+  text-decoration: underline;
+}
+
+/* ========================================
+   Edit / Delete / Report Action Buttons
+   ======================================== */
+
+.review-edit-btn {
+  color: #374151;
+}
+
+.review-edit-btn:hover {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.review-delete-btn {
+  color: #374151;
+}
+
+.review-delete-btn:hover {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.review-report-btn {
+  margin-left: auto;
+  color: #6b7280;
+  font-size: 0.85rem;
+}
+
+.review-report-btn:hover {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+/* ========================================
+   Edited Timestamp Note
+   ======================================== */
+
+.review-edited-note {
+  font-size: 0.78rem;
+  color: #9ca3af;
+  font-style: italic;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+}
+
+/* ========================================
+   Delete Confirmation Dialog
+   ======================================== */
+
+.review-confirm-dialog {
+  background: #ffffff;
+  border-radius: 16px;
+  max-width: 420px;
+  width: 100%;
+  padding: 2.5rem 2rem 2rem;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.review-confirm-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.review-confirm-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 0.75rem;
+}
+
+.review-confirm-message {
+  font-size: 0.95rem;
+  color: #6b7280;
+  line-height: 1.6;
+  margin-bottom: 1.75rem;
+}
+
+.review-confirm-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.btn-danger {
+  padding: 0.75rem 1.5rem;
+  background: #ef4444;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+}
+
+/* ========================================
+   Small Modal Variant (report)
+   ======================================== */
+
+.review-modal--sm {
+  max-width: 460px;
+}
+
+/* ========================================
+   Supplier badge in review cards (inline variant)
+   ======================================== */
+
+.badge-supplier {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.5rem;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  color: #ffffff;
+  border: 1px solid #4338ca;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Responsive adjustments for new buttons */
+@media (max-width: 480px) {
+  .review-report-btn {
+    margin-left: 0;
+    width: 100%;
+    justify-content: center;
   }
 }

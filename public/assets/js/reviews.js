@@ -278,11 +278,20 @@
 
       container.innerHTML = reviews.map(review => this.renderReviewCard(review)).join('');
 
+      // Cache reviews for edit modal access
+      this._reviewCache = {};
+      reviews.forEach(r => {
+        this._reviewCache[r.id] = r;
+      });
+
       // Render pagination
       this.renderPagination(pagination);
 
       // Setup vote buttons
       this.setupVoteButtons();
+
+      // Setup edit, delete, and report buttons
+      this.setupReviewActionButtons();
     },
 
     /**
@@ -290,12 +299,20 @@
      */
     renderReviewCard(review) {
       const stars = this.renderStars(review.rating);
+
+      // Issue 3 fix: ticks come from CSS ::before — no inline ✓ in text
       const verified = review.verified
-        ? '<span class="badge-verified">✓ Verified Customer</span>'
+        ? '<span class="badge-verified">Verified Customer</span>'
         : '';
       const emailVerified = review.emailVerified
-        ? '<span class="badge-email-verified">✓ Email Verified</span>'
+        ? '<span class="badge-email-verified">Email Verified</span>'
         : '';
+
+      // Issue 2: Supplier badge for supplier reviewers
+      const supplierBadge =
+        review.isSupplier || review.authorSupplierId
+          ? '<span class="badge-supplier">Supplier</span>'
+          : '';
 
       const recommend = review.recommend
         ? '<div class="review-recommendation">👍 Recommends this supplier</div>'
@@ -304,7 +321,7 @@
       const photos =
         review.photos && review.photos.length > 0
           ? `<div class="review-photos">
-             ${review.photos.map(photo => `<div class="review-photo"><img src="${photo}" alt="Review photo" /></div>`).join('')}
+             ${review.photos.map(photo => `<div class="review-photo"><img src="${this.escapeHtml(photo)}" alt="Review photo" /></div>`).join('')}
            </div>`
           : '';
 
@@ -321,8 +338,41 @@
            </div>`
         : '';
 
+      // Issue 1: Hyperlinked name for supplier reviewers
+      const authorNameHtml =
+        review.isSupplier && review.authorSupplierId
+          ? `<a class="review-author-name review-author-name--link" href="/supplier?id=${this.escapeHtml(review.authorSupplierId)}">${this.escapeHtml(review.userName)}</a>`
+          : `<div class="review-author-name">${this.escapeHtml(review.userName)}</div>`;
+
       const helpfulCount = review.helpfulCount || 0;
       const unhelpfulCount = review.unhelpfulCount || 0;
+
+      // Issue 4 & 5: Edit/Delete buttons for the review author
+      const currentUserId = this.currentUser?.id || this.currentUser?.uid || this.currentUser?._id;
+      const isAuthor = currentUserId && review.userId && currentUserId === review.userId;
+
+      const ownerActions = isAuthor
+        ? `<button class="review-action-btn review-edit-btn" data-review-id="${review.id}" aria-label="Edit your review">
+             ✏️ <span>Edit</span>
+           </button>
+           <button class="review-action-btn review-delete-btn" data-review-id="${review.id}" aria-label="Delete your review">
+             🗑️ <span>Delete</span>
+           </button>`
+        : '';
+
+      // Issue 6: Report button for non-authors (logged-in users only)
+      const reportBtn =
+        this.currentUser && !isAuthor
+          ? `<button class="review-action-btn review-report-btn" data-review-id="${review.id}" aria-label="Report this review">
+               🚩 <span>Report</span>
+             </button>`
+          : '';
+
+      // Issue 4: Show "Edited on" timestamp if the review was edited
+      const editedNote =
+        review.editedAt || (review.updatedAt && review.updatedAt !== review.createdAt)
+          ? `<div class="review-edited-note">Edited on ${this.formatDateTime(review.editedAt || review.updatedAt)}</div>`
+          : '';
 
       return `
         <div class="review-card ${review.flagged ? 'flagged' : ''}" data-review-id="${review.id}">
@@ -332,10 +382,11 @@
                 ${this.getInitials(review.userName)}
               </div>
               <div class="review-author-details">
-                <div class="review-author-name">${this.escapeHtml(review.userName)}</div>
+                ${authorNameHtml}
                 <div class="review-badges-inline">
                   ${verified}
                   ${emailVerified}
+                  ${supplierBadge}
                 </div>
                 <div class="review-meta">
                   <span class="review-date">${this.formatDate(review.createdAt)}</span>
@@ -357,6 +408,7 @@
           </div>
           
           ${supplierResponse}
+          ${editedNote}
           
           <div class="review-card-actions">
             <button class="review-action-btn vote-btn" data-review-id="${review.id}" data-vote-type="helpful">
@@ -369,6 +421,8 @@
               <span>Not Helpful</span>
               <span class="vote-count">(${unhelpfulCount})</span>
             </button>
+            ${ownerActions}
+            ${reportBtn}
           </div>
         </div>
       `;
@@ -432,6 +486,20 @@
         return `${Math.floor(days / 30)} months ago`;
       }
       return date.toLocaleDateString();
+    },
+
+    /**
+     * Format date and time for edit timestamps
+     */
+    formatDateTime(dateString) {
+      const date = new Date(dateString);
+      return date.toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
     },
 
     /**
@@ -914,6 +982,10 @@
           // Reload reviews
           this.loadReviews();
           this.loadRatingDistribution();
+          // Issue 7: Handle notification data from API if present
+          if (result.notification) {
+            this.handleReviewNotification(result.notification);
+          }
         } else {
           this.showToast(result.error || 'Failed to submit review', 'error');
         }
@@ -938,6 +1010,502 @@
         if (form) {
           form.reset();
         }
+      }
+    },
+
+    /**
+     * Setup edit, delete, and report button event listeners
+     */
+    setupReviewActionButtons() {
+      // Edit buttons
+      document.querySelectorAll('.review-edit-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const reviewId = btn.dataset.reviewId;
+          const card = document.querySelector(`.review-card[data-review-id="${reviewId}"]`);
+          // Reconstruct a lightweight review object from the card data to pre-fill the modal
+          const review = this._reviewCache ? this._reviewCache[reviewId] : null;
+          if (review) {
+            this.openEditModal(review);
+          } else {
+            this.showToast('Unable to load review data. Please refresh.', 'error');
+          }
+        });
+      });
+
+      // Delete buttons
+      document.querySelectorAll('.review-delete-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const reviewId = btn.dataset.reviewId;
+          this.openDeleteConfirmation(reviewId);
+        });
+      });
+
+      // Report buttons
+      document.querySelectorAll('.review-report-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const reviewId = btn.dataset.reviewId;
+          this.openReportModal(reviewId);
+        });
+      });
+    },
+
+    // -------------------------------------------------------------------------
+    // Issue 4: Edit Own Review
+    // -------------------------------------------------------------------------
+
+    /**
+     * Open the edit modal pre-populated with existing review data
+     */
+    openEditModal(review) {
+      // Remove stale modal if any
+      const existing = document.getElementById('review-edit-modal');
+      if (existing) {
+        existing.remove();
+      }
+
+      this.createEditModal(review);
+
+      const modal = document.getElementById('review-edit-modal');
+      modal.style.display = 'flex';
+
+      // Pre-fill rating
+      const ratingInput = document.getElementById('edit-review-rating');
+      if (ratingInput) {
+        ratingInput.value = review.rating;
+      }
+      const stars = document.querySelectorAll('#edit-star-rating-input .star');
+      this.highlightStars(stars, review.rating);
+
+      // Wire up star rating for edit modal
+      let selectedRating = review.rating;
+      const descriptions = {
+        1: 'Poor - Would not recommend',
+        2: 'Fair - Below expectations',
+        3: 'Good - Met expectations',
+        4: 'Very Good - Exceeded expectations',
+        5: 'Excellent - Outstanding!',
+      };
+      stars.forEach(star => {
+        star.addEventListener('mouseenter', () => {
+          this.highlightStars(stars, parseInt(star.dataset.rating));
+        });
+        star.addEventListener('mouseleave', () => {
+          this.highlightStars(stars, selectedRating);
+        });
+        star.addEventListener('click', () => {
+          selectedRating = parseInt(star.dataset.rating);
+          ratingInput.value = selectedRating;
+          this.highlightStars(stars, selectedRating);
+          const desc = document.getElementById('edit-rating-description');
+          if (desc) {
+            desc.textContent = descriptions[selectedRating];
+          }
+        });
+      });
+
+      // Pre-fill form fields
+      const titleInput = document.getElementById('edit-review-title');
+      if (titleInput) {
+        titleInput.value = review.title || '';
+      }
+
+      const commentTextarea = document.getElementById('edit-review-comment');
+      if (commentTextarea) {
+        commentTextarea.value = review.comment || '';
+        const charCount = document.getElementById('edit-char-count');
+        if (charCount) {
+          charCount.textContent = (review.comment || '').length;
+        }
+        commentTextarea.addEventListener('input', () => {
+          if (charCount) {
+            charCount.textContent = commentTextarea.value.length;
+          }
+        });
+      }
+
+      const recommendCheckbox = document.getElementById('edit-review-recommend');
+      if (recommendCheckbox) {
+        recommendCheckbox.checked = review.recommend === true;
+      }
+
+      const eventTypeSelect = document.getElementById('edit-review-event-type');
+      if (eventTypeSelect) {
+        eventTypeSelect.value = review.eventType || '';
+      }
+
+      // Wire up submit
+      const form = document.getElementById('edit-review-form');
+      if (form) {
+        form.onsubmit = e => {
+          e.preventDefault();
+          this.submitEditReview(review.id);
+        };
+      }
+    },
+
+    /**
+     * Create the edit modal HTML
+     */
+    createEditModal(review) {
+      const modalHTML = `
+        <div id="review-edit-modal" class="review-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
+          <div class="review-modal">
+            <div class="review-modal-header">
+              <h2 class="review-modal-title" id="edit-modal-title">Edit Your Review</h2>
+              <p class="review-modal-subtitle">Update your experience with this supplier</p>
+            </div>
+
+            <form id="edit-review-form" class="review-modal-body">
+              <div class="review-form-group">
+                <label class="review-form-label required">Overall Rating</label>
+                <div class="star-rating-input" id="edit-star-rating-input" aria-label="Rating">
+                  <span class="star" data-rating="1" role="button" tabindex="0" aria-label="1 star">★</span>
+                  <span class="star" data-rating="2" role="button" tabindex="0" aria-label="2 stars">★</span>
+                  <span class="star" data-rating="3" role="button" tabindex="0" aria-label="3 stars">★</span>
+                  <span class="star" data-rating="4" role="button" tabindex="0" aria-label="4 stars">★</span>
+                  <span class="star" data-rating="5" role="button" tabindex="0" aria-label="5 stars">★</span>
+                </div>
+                <div class="rating-description" id="edit-rating-description"></div>
+                <input type="hidden" id="edit-review-rating" name="rating" required />
+              </div>
+
+              <div class="review-form-group">
+                <label class="review-form-label" for="edit-review-title">Review Title</label>
+                <input
+                  type="text"
+                  id="edit-review-title"
+                  name="title"
+                  class="review-input"
+                  placeholder="Sum up your experience"
+                  maxlength="100"
+                />
+              </div>
+
+              <div class="review-form-group">
+                <label class="review-form-label required" for="edit-review-comment">Your Review</label>
+                <textarea
+                  id="edit-review-comment"
+                  name="comment"
+                  class="review-textarea"
+                  placeholder="Share details of your experience..."
+                  required
+                  minlength="20"
+                  maxlength="2000"
+                ></textarea>
+                <div class="character-count">
+                  <span id="edit-char-count">0</span> / 2000 characters (minimum 20)
+                </div>
+              </div>
+
+              <div class="review-form-group">
+                <label class="review-checkbox">
+                  <input type="checkbox" id="edit-review-recommend" name="recommend" />
+                  <span class="review-checkbox-label">
+                    <strong>I would recommend this supplier</strong>
+                  </span>
+                </label>
+              </div>
+
+              <div class="review-form-group">
+                <label class="review-form-label" for="edit-review-event-type">Event Type</label>
+                <select id="edit-review-event-type" name="eventType" class="review-filter-select">
+                  <option value="">Select event type (optional)</option>
+                  <option value="Wedding">Wedding</option>
+                  <option value="Birthday">Birthday</option>
+                  <option value="Corporate">Corporate Event</option>
+                  <option value="Anniversary">Anniversary</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </form>
+
+            <div class="review-modal-footer">
+              <button type="button" class="btn-cancel" id="btn-edit-cancel">Cancel</button>
+              <button type="submit" form="edit-review-form" class="btn-submit-review" id="btn-submit-edit">
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+      const modal = document.getElementById('review-edit-modal');
+
+      modal.addEventListener('click', e => {
+        if (e.target === modal) {
+          this.closeEditModal();
+        }
+      });
+
+      document.getElementById('btn-edit-cancel').addEventListener('click', () => {
+        this.closeEditModal();
+      });
+    },
+
+    /**
+     * Submit the edited review
+     */
+    async submitEditReview(reviewId) {
+      const submitBtn = document.getElementById('btn-submit-edit');
+      const rating = document.getElementById('edit-review-rating')?.value;
+      const comment = document.getElementById('edit-review-comment')?.value || '';
+      const title = document.getElementById('edit-review-title')?.value || '';
+      const recommend = document.getElementById('edit-review-recommend')?.checked;
+      const eventType = document.getElementById('edit-review-event-type')?.value || '';
+
+      if (!rating) {
+        this.showToast('Please select a rating', 'error');
+        return;
+      }
+      if (comment.length < 20) {
+        this.showToast('Review must be at least 20 characters', 'error');
+        return;
+      }
+
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Saving...';
+
+      try {
+        const { response, data } = await this.fetchWithCSRF(`/api/reviews/${reviewId}`, {
+          method: 'PUT',
+          body: JSON.stringify({ rating: parseInt(rating), title, comment, recommend, eventType }),
+        });
+
+        if (response.ok) {
+          this.showToast('Review updated successfully!', 'success');
+          this.closeEditModal();
+          this.loadReviews();
+        } else {
+          this.showToast(data.error || 'Failed to update review', 'error');
+        }
+      } catch (error) {
+        console.error('Edit review error:', error);
+        this.showToast('Network error. Please try again.', 'error');
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Save Changes';
+        }
+      }
+    },
+
+    /**
+     * Close the edit modal
+     */
+    closeEditModal() {
+      const modal = document.getElementById('review-edit-modal');
+      if (modal) {
+        modal.remove();
+      }
+    },
+
+    // -------------------------------------------------------------------------
+    // Issue 5: Delete Own Review
+    // -------------------------------------------------------------------------
+
+    /**
+     * Open the delete confirmation widget
+     */
+    openDeleteConfirmation(reviewId) {
+      const existing = document.getElementById('review-delete-confirm');
+      if (existing) {
+        existing.remove();
+      }
+
+      const widgetHTML = `
+        <div id="review-delete-confirm" class="review-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="delete-confirm-title">
+          <div class="review-confirm-dialog">
+            <div class="review-confirm-icon">🗑️</div>
+            <h3 class="review-confirm-title" id="delete-confirm-title">Delete Review</h3>
+            <p class="review-confirm-message">Are you sure you want to delete this review? This action cannot be undone.</p>
+            <div class="review-confirm-actions">
+              <button class="btn-cancel" id="btn-delete-cancel">Cancel</button>
+              <button class="btn-danger" id="btn-delete-confirm" data-review-id="${reviewId}">Delete Review</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.insertAdjacentHTML('beforeend', widgetHTML);
+
+      const overlay = document.getElementById('review-delete-confirm');
+      overlay.addEventListener('click', e => {
+        if (e.target === overlay) {
+          overlay.remove();
+        }
+      });
+
+      document.getElementById('btn-delete-cancel').addEventListener('click', () => {
+        overlay.remove();
+      });
+
+      document.getElementById('btn-delete-confirm').addEventListener('click', () => {
+        this.deleteReview(reviewId);
+        overlay.remove();
+      });
+    },
+
+    /**
+     * Delete a review
+     */
+    async deleteReview(reviewId) {
+      try {
+        const { response, data } = await this.fetchWithCSRF(`/api/reviews/${reviewId}`, {
+          method: 'DELETE',
+        });
+
+        if (response.ok) {
+          this.showToast('Review deleted successfully.', 'success');
+          this.loadReviews();
+          this.loadRatingDistribution();
+        } else {
+          this.showToast(data.error || 'Failed to delete review', 'error');
+        }
+      } catch (error) {
+        console.error('Delete review error:', error);
+        this.showToast('Network error. Please try again.', 'error');
+      }
+    },
+
+    // -------------------------------------------------------------------------
+    // Issue 6: Report a Review
+    // -------------------------------------------------------------------------
+
+    /**
+     * Open the report modal
+     */
+    openReportModal(reviewId) {
+      const existing = document.getElementById('review-report-modal');
+      if (existing) {
+        existing.remove();
+      }
+
+      const modalHTML = `
+        <div id="review-report-modal" class="review-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="report-modal-title">
+          <div class="review-modal review-modal--sm">
+            <div class="review-modal-header">
+              <h2 class="review-modal-title" id="report-modal-title">🚩 Report Review</h2>
+              <p class="review-modal-subtitle">Help us keep reviews trustworthy and accurate</p>
+            </div>
+            <div class="review-modal-body">
+              <div class="review-form-group">
+                <label class="review-form-label required" for="report-reason-select">Reason for reporting</label>
+                <select id="report-reason-select" class="review-filter-select" style="width:100%" aria-required="true">
+                  <option value="">Select a reason...</option>
+                  <option value="inappropriate">Inappropriate content</option>
+                  <option value="spam">Spam or advertising</option>
+                  <option value="fake">Fake or misleading review</option>
+                  <option value="offensive">Offensive language</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div class="review-form-group" id="report-detail-group" style="display:none">
+                <label class="review-form-label" for="report-detail">Additional details (optional)</label>
+                <textarea
+                  id="report-detail"
+                  class="review-textarea"
+                  placeholder="Please provide any additional context..."
+                  maxlength="500"
+                  style="min-height:80px"
+                ></textarea>
+              </div>
+            </div>
+            <div class="review-modal-footer">
+              <button type="button" class="btn-cancel" id="btn-report-cancel">Cancel</button>
+              <button type="button" class="btn-submit-review" id="btn-report-submit" disabled>Submit Report</button>
+            </div>
+          </div>
+        </div>
+      `;
+
+      document.body.insertAdjacentHTML('beforeend', modalHTML);
+
+      const overlay = document.getElementById('review-report-modal');
+      const reasonSelect = document.getElementById('report-reason-select');
+      const detailGroup = document.getElementById('report-detail-group');
+      const submitBtn = document.getElementById('btn-report-submit');
+
+      overlay.addEventListener('click', e => {
+        if (e.target === overlay) {
+          overlay.remove();
+        }
+      });
+
+      document.getElementById('btn-report-cancel').addEventListener('click', () => {
+        overlay.remove();
+      });
+
+      reasonSelect.addEventListener('change', () => {
+        const hasReason = reasonSelect.value !== '';
+        submitBtn.disabled = !hasReason;
+        detailGroup.style.display = reasonSelect.value === 'other' ? 'block' : 'none';
+      });
+
+      submitBtn.addEventListener('click', () => {
+        const reason = reasonSelect.value;
+        const detail = document.getElementById('report-detail')?.value || '';
+        if (!reason) {
+          this.showToast('Please select a reason for the report', 'error');
+          return;
+        }
+        this.submitReport(reviewId, reason, detail);
+        overlay.remove();
+      });
+    },
+
+    /**
+     * Submit a review report
+     */
+    async submitReport(reviewId, reason, detail = '') {
+      try {
+        const { response, data } = await this.fetchWithCSRF(`/api/reviews/${reviewId}/report`, {
+          method: 'POST',
+          body: JSON.stringify({ reason, detail }),
+        });
+
+        if (response.ok) {
+          this.showToast('Thank you for your report. Our team will review it.', 'success');
+        } else {
+          this.showToast(data.error || 'Failed to submit report. Please try again.', 'error');
+        }
+      } catch (error) {
+        console.error('Report error:', error);
+        this.showToast('Network error. Please try again.', 'error');
+      }
+    },
+
+    // -------------------------------------------------------------------------
+    // Issue 7: New Review Notification (front-end helper)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Handle a review notification received from the API response.
+     * Increments the notification bell badge if present and shows a toast.
+     */
+    handleReviewNotification(notification) {
+      // Increment unread badge on any notification bell elements
+      const bells = document.querySelectorAll(
+        '.notification-bell, .notification-badge, [data-notification-count], #notification-count'
+      );
+      bells.forEach(el => {
+        if (el.dataset.notificationCount !== undefined) {
+          const current = parseInt(el.dataset.notificationCount || '0', 10);
+          el.dataset.notificationCount = current + 1;
+          el.textContent = current + 1;
+        } else {
+          const countEl = el.querySelector('.badge, .count, [data-count]');
+          if (countEl) {
+            const current = parseInt(countEl.textContent || '0', 10);
+            countEl.textContent = current + 1;
+          }
+        }
+        el.classList.add('has-notifications');
+      });
+
+      if (notification.message) {
+        this.showToast(`🔔 ${notification.message}`, 'info');
       }
     },
 

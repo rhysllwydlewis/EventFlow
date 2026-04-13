@@ -48,6 +48,26 @@
   font-weight: 700;
 }
 
+/* Verified Customer Badge (review cards) — tick via CSS ::before */
+.badge-verified::before {
+  content: '✓';
+  margin-right: 0.25rem;
+  font-weight: 700;
+}
+
+/* Supplier Reviewer Badge */
+.badge-supplier {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  color: #ffffff;
+  border: 1px solid #4338ca;
+}
+
+.badge-supplier::before {
+  content: '🏢';
+  margin-right: 0.25rem;
+  font-size: 0.85em;
+}
+
 /* Phone Verified Badge */
 .badge-phone-verified {
   background: #d1fae5;

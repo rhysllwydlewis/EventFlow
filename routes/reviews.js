@@ -704,5 +704,150 @@ router.delete('/reviews/:reviewId', applyAuthRequired, applyCsrfProtection, asyn
   }
 });
 
+/**
+ * Edit own review
+ * PUT /api/reviews/:reviewId
+ * Body: { rating, title, comment, recommend, eventType }
+ */
+router.put('/reviews/:reviewId', applyAuthRequired, applyCsrfProtection, async (req, res) => {
+  try {
+    const { reviewId } = req.params;
+    const { rating, title, comment, recommend, eventType } = req.body;
+
+    if (!comment || comment.length < 20) {
+      return res.status(400).json({ error: 'Review comment must be at least 20 characters' });
+    }
+    if (rating !== undefined && (Number(rating) < 1 || Number(rating) > 5)) {
+      return res.status(400).json({ error: 'Rating must be between 1 and 5' });
+    }
+
+    const reviews = await dbUnified.read('reviews');
+    const review = reviews.find(r => r.id === reviewId);
+
+    if (!review) {
+      return res.status(404).json({ error: 'Review not found' });
+    }
+
+    if (review.userId !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'You can only edit your own reviews' });
+    }
+
+    const updates = {
+      editedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    if (rating !== undefined) {
+      updates.rating = parseInt(rating, 10);
+    }
+    if (title !== undefined) {
+      updates.title = title;
+    }
+    if (comment !== undefined) {
+      updates.comment = comment;
+    }
+    if (recommend !== undefined) {
+      updates.recommend = recommend === true || recommend === 'true';
+    }
+    if (eventType !== undefined) {
+      updates.eventType = eventType;
+    }
+
+    await dbUnified.updateOne('reviews', { id: reviewId }, { $set: updates });
+
+    res.json({
+      success: true,
+      message: 'Review updated successfully',
+      review: { ...review, ...updates },
+    });
+  } catch (error) {
+    logger.error('Edit review error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Report a review
+ * POST /api/reviews/:reviewId/report
+ * Body: { reason, detail }
+ */
+router.post(
+  '/reviews/:reviewId/report',
+  applyAuthRequired,
+  applyCsrfProtection,
+  async (req, res) => {
+    try {
+      const { reviewId } = req.params;
+      const { reason, detail } = req.body;
+
+      const VALID_REASONS = ['inappropriate', 'spam', 'fake', 'offensive', 'other'];
+      if (!reason || !VALID_REASONS.includes(reason)) {
+        return res.status(400).json({ error: 'A valid reason is required to report a review' });
+      }
+
+      const reviews = await dbUnified.read('reviews');
+      const review = reviews.find(r => r.id === reviewId);
+
+      if (!review) {
+        return res.status(404).json({ error: 'Review not found' });
+      }
+
+      if (review.userId === req.user.id) {
+        return res.status(400).json({ error: 'You cannot report your own review' });
+      }
+
+      // Record the report on the review
+      const reports = review.reports || [];
+      const alreadyReported = reports.some(r => r.reportedBy === req.user.id);
+      if (alreadyReported) {
+        return res.status(409).json({ error: 'You have already reported this review' });
+      }
+
+      const reportEntry = {
+        reportedBy: req.user.id,
+        reason,
+        detail: detail || '',
+        reportedAt: new Date().toISOString(),
+      };
+      reports.push(reportEntry);
+
+      await dbUnified.updateOne(
+        'reviews',
+        { id: reviewId },
+        { $set: { reports, flagged: true, updatedAt: new Date().toISOString() } }
+      );
+
+      // Create a support ticket so admins can review it
+      try {
+        const ticketData = {
+          id: require('../store').uid('tkt'),
+          type: 'review_report',
+          status: 'open',
+          reportedBy: req.user.id,
+          reviewId,
+          supplierId: review.supplierId,
+          reason,
+          detail: detail || '',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        await dbUnified.insertOne('support_tickets', ticketData);
+      } catch (ticketErr) {
+        logger.warn(
+          'Failed to create support ticket for review report (non-blocking):',
+          ticketErr.message
+        );
+      }
+
+      res.json({
+        success: true,
+        message: 'Report submitted. Our team will review it shortly.',
+      });
+    } catch (error) {
+      logger.error('Report review error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+);
+
 module.exports = router;
 module.exports.initializeDependencies = initializeDependencies;
