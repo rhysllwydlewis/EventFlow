@@ -7,6 +7,7 @@
 
 const express = require('express');
 const logger = require('../utils/logger');
+const catalogCache = require('../services/catalogCache');
 const router = express.Router();
 
 // Dependencies injected by server.js
@@ -127,7 +128,9 @@ async function saveImageBase64(base64, namePrefix) {
  * GET /api/me/suppliers/:id/photos
  * List all photos for a supplier
  */
-router.get('/:id/photos', applyAuthRequired, async (req, res) => {
+// Rate-limited via applyWriteLimiter (deferred wrapper around express-rate-limit writeLimiter)
+router.get('/:id/photos', applyWriteLimiter, applyAuthRequired, async (req, res) => {
+  // lgtm[js/missing-rate-limiting]
   try {
     const { id } = req.params;
     const userId = req.user.id;
@@ -183,7 +186,7 @@ router.post(
       return res.status(400).json({ error: 'Missing image' });
     }
     const suppliers = await dbUnified.read('suppliers');
-    const s = suppliers.find(x => x.id === req.params.id && x.ownerUserId === req.userId);
+    const s = suppliers.find(x => x.id === req.params.id && x.ownerUserId === req.user.id);
     if (!s) {
       return res.status(403).json({ error: 'Not owner' });
     }
@@ -274,6 +277,99 @@ router.delete(
       logger.error('Delete photo error:', error);
       res.status(500).json({
         error: 'Failed to delete photo',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
+    }
+  }
+);
+
+/**
+ * PATCH /api/me/suppliers/:id/photos/order
+ * Reorder photos in a supplier's gallery.
+ * Body: { photoIds: [string, ...] }  — full ordered list of photo IDs or URLs.
+ * Validates ownership, CSRF, rate limit, and that provided IDs belong to this supplier.
+ */
+// Rate-limited via applyWriteLimiter (deferred wrapper around express-rate-limit writeLimiter)
+router.patch(
+  '/:id/photos/order', // lgtm[js/missing-rate-limiting]
+  applyWriteLimiter,
+  applyAuthRequired,
+  applyRequireVerifiedUser,
+  applyCsrfProtection,
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { photoIds } = req.body || {};
+
+      if (!Array.isArray(photoIds)) {
+        return res.status(400).json({ error: 'photoIds must be an array' });
+      }
+
+      if (photoIds.length > 10) {
+        return res.status(400).json({ error: 'Cannot have more than 10 photos' });
+      }
+
+      const suppliers = await dbUnified.read('suppliers');
+      const supplier = suppliers.find(s => s.id === id);
+
+      if (!supplier) {
+        return res.status(404).json({ error: 'Supplier not found' });
+      }
+
+      // Check ownership
+      if (supplier.ownerUserId !== req.user.id && req.user.role !== 'admin') {
+        return res.status(403).json({ error: 'Access denied' });
+      }
+
+      const existingGallery = supplier.photosGallery || [];
+
+      // Validate that all provided IDs exist in this supplier's gallery
+      const existingIds = new Set(existingGallery.map((p, i) => p.id || p.url || `photo_${i}`));
+      const invalidIds = photoIds.filter(pid => !existingIds.has(pid));
+      if (invalidIds.length > 0) {
+        return res.status(400).json({
+          error: 'Some photo IDs do not belong to this supplier',
+          invalidIds,
+        });
+      }
+
+      // Build the new ordered gallery, preserving all photo metadata
+      const galleryByKey = {};
+      existingGallery.forEach((p, i) => {
+        const key = p.id || p.url || `photo_${i}`;
+        galleryByKey[key] = p;
+      });
+
+      const reorderedGallery = photoIds.map(pid => galleryByKey[pid]).filter(Boolean);
+
+      // Append any photos not included in the new order (keep them at the end)
+      existingGallery.forEach((p, i) => {
+        const key = p.id || p.url || `photo_${i}`;
+        if (!photoIds.includes(key)) {
+          reorderedGallery.push(p);
+        }
+      });
+
+      await dbUnified.updateOne(
+        'suppliers',
+        { id },
+        { $set: { photosGallery: reorderedGallery, updatedAt: new Date().toISOString() } }
+      );
+
+      // Bust catalog cache — photo order affects public listing
+      catalogCache
+        .invalidate()
+        .catch(e => logger.warn('[catalogCache] invalidate error:', e.message));
+
+      res.json({
+        success: true,
+        message: 'Photo order saved',
+        photosGallery: reorderedGallery,
+      });
+    } catch (error) {
+      logger.error('Photo reorder error:', error);
+      res.status(500).json({
+        error: 'Failed to save photo order',
         details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
       });
     }
