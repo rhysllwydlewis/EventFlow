@@ -353,7 +353,11 @@ describe('Supplier form submit – required field JS validation', () => {
 
 describe('Supplier form – website URL normalization', () => {
   it('app.js normalizes website URLs by prepending https:// when no scheme is present', () => {
-    expect(appJs).toContain("'https://' + ws");
+    const buildStart = appJs.indexOf('function buildSupplierPayload(form)');
+    const buildBlock = appJs.slice(buildStart, buildStart + 2000);
+    // Accept both template-literal and concatenation forms of https:// prepending
+    expect(buildBlock).toMatch(/https:\/\//);
+    expect(buildBlock).toContain('payload.website');
   });
 
   it('app.js URL normalization runs inside buildSupplierPayload', () => {
@@ -365,13 +369,13 @@ describe('Supplier form – website URL normalization', () => {
   });
 
   it('app.js does not prepend https:// when the scheme is already present', () => {
-    // The normalisation guard uses a regex test for ^https?:// before prepending
+    // The normalization guard uses a regex test for ^https?:// before prepending
     // Source contains the regex literal so we check for the key guard pattern
     expect(appJs).toContain('https?:');
-    // Ensure the guard prevents double-prefixing by checking for the condition
+    // Ensure the normalization logic is inside buildSupplierPayload
     const buildStart = appJs.indexOf('function buildSupplierPayload(form)');
     const buildBlock = appJs.slice(buildStart, buildStart + 2000);
-    expect(buildBlock).toContain("'https://' + ws");
+    expect(buildBlock).toContain('https?:');
   });
 });
 

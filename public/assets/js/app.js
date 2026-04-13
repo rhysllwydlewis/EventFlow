@@ -3583,11 +3583,7 @@ async function initDashSupplier() {
     // Normalize website URL: prepend https:// if a scheme is missing
     if (payload.website) {
       const ws = payload.website.trim();
-      if (ws && !/^https?:\/\//i.test(ws)) {
-        payload.website = `https://${ws}`;
-      } else {
-        payload.website = ws;
-      }
+      payload.website = ws && !/^https?:\/\//i.test(ws) ? `https://${ws}` : ws;
     }
     return payload;
   }
