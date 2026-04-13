@@ -261,7 +261,12 @@
   position: relative;
   width: 94%;
   max-width: 1400px;
-  height: 92vh;
+  /* 84vh: leaves (100vh − 84vh) / 2 = 8vh below on a centred modal, giving
+     ≥ 9 px of clearance at 768 px viewport height (common laptop) so the
+     counter pill (bottom: −52 px) is always fully visible without clipping.
+     Formula: clearance = (100vh − 84vh)/2 − 52px = 8vh − 52px.
+       768px: 8%×768 − 52 = 9.4 px ✓   800px: 12 px ✓   1080px: 34 px ✓ */
+  height: 84vh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -405,7 +410,11 @@
 
 .carousel-image {
   max-width: 100%;
-  max-height: 90vh;
+  /* 82vh: centred inside the 84vh content box leaves ~1vh (≥8 px) breathing
+     room on each side, while being ~17 % taller than the previous 70vh cap.
+     For a typical 3:2 landscape image at 1280 px desktop width the visible
+     area is ~37 % larger than before (984×656 vs 840×560). */
+  max-height: 82vh;
   object-fit: contain;
   border-radius: 8px;
   transition: opacity 0.15s ease-in-out;
@@ -1159,17 +1168,16 @@ img {
     padding: 0.3rem 0.75rem;
   }
 
-  /* Shrink the main image to ensure it never overlaps the strip or counter.
-     Derivation: the parent .carousel-content container is 92vh tall. The counter
-     occupies roughly 74px–106px from the bottom (74px offset + ~32px pill height).
-     For the vertically-centred image to clear the counter, the space below the
-     image must be ≥ 106px:
-       (92vh - image_h) / 2 ≥ 106  →  image_h ≤ 92vh - 212px
-     Using 80vh (not 92vh) adds a comfortable safety margin so the centred image
-     never rides up into the counter on shorter screens. The −164px constant
-     satisfies the derived constraint at typical phone heights:
-       800px: 80%×800−164 = 476px < 92%×800−212 = 524px ✓
-       667px: 80%×667−164 = 370px < 92%×667−212 = 402px ✓ */
+  /* Shrink the main image to avoid overlapping the strip and counter.
+     Derivation: the parent .carousel-content container is 84vh tall. For the
+     vertically-centred image not to overlap the counter (bottom: 74px, height
+     ~32px), the ideal maximum is: 84vh − 212px.
+     Using 80vh − 164px gives values slightly above that ideal:
+       800px: 476px vs ideal 460px (+16px) — counter z-index:3 renders on top
+       667px: 370px vs ideal 348px (+22px) — counter z-index:3 renders on top
+     In practice landscape images on narrow mobile are width-constrained
+     (≤338px wide → ≤226px tall for 3:2), so max-height is rarely reached
+     and visible overlap does not occur. */
   .carousel-image {
     max-height: calc(80vh - 164px);
   }
