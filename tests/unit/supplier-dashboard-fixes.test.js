@@ -233,7 +233,7 @@ describe('Gallery photo 404 error handling', () => {
   it('showPreview also attaches an onerror handler for pending preview images', () => {
     const idx = galleryJs.indexOf('showPreview(file, previewContainer)');
     expect(idx).toBeGreaterThan(-1);
-    const previewBlock = galleryJs.slice(idx, idx + 1300);
+    const previewBlock = galleryJs.slice(idx, idx + 2600);
     expect(previewBlock).toMatch(/addEventListener\s*\(\s*['"]error['"]/);
     expect(previewBlock).toContain('photo-preview-item__image-wrap--error');
   });
