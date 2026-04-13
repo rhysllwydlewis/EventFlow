@@ -50,7 +50,9 @@ jest.mock('../../middleware/auth', () => {
   const JWT_SECRET = 'test-secret';
   function authRequired(req, res, next) {
     const role = req.headers['x-test-role'];
-    if (role === 'none') return res.status(401).json({ error: 'Unauthorized' });
+    if (role === 'none') {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
     req.user = {
       id: req.headers['x-test-user-id'] || 'usr_partner_001',
       role: role || 'partner',
@@ -92,15 +94,6 @@ jest.mock('validator', () => ({
 }));
 jest.mock('../../middleware/validation', () => ({
   passwordOk: jest.fn().mockReturnValue(true),
-}));
-
-jest.mock('../../services/tremendousService', () => ({
-  getTremendousService: jest.fn(() => ({
-    listProducts: jest.fn().mockResolvedValue([]),
-    createOrder: jest.fn().mockResolvedValue({ id: 'ord_001' }),
-    getOrder: jest.fn().mockResolvedValue({ id: 'ord_001', status: 'EXECUTED', rewards: [] }),
-    resendReward: jest.fn().mockResolvedValue({}),
-  })),
 }));
 
 const mockPartnerService = {
@@ -438,16 +431,12 @@ describe('GET /api/partner/cashout-requests', () => {
   });
 
   it('returns 401 when unauthenticated', async () => {
-    const res = await request(app)
-      .get('/api/partner/cashout-requests')
-      .set('x-test-role', 'none');
+    const res = await request(app).get('/api/partner/cashout-requests').set('x-test-role', 'none');
     expect(res.status).toBe(401);
   });
 
   it('returns 403 for non-partner role', async () => {
-    const res = await request(app)
-      .get('/api/partner/cashout-requests')
-      .set('x-test-role', 'admin');
+    const res = await request(app).get('/api/partner/cashout-requests').set('x-test-role', 'admin');
     expect(res.status).toBe(403);
   });
 
@@ -460,8 +449,18 @@ describe('GET /api/partner/cashout-requests', () => {
 
   it("returns only the current partner's requests", async () => {
     mockDb.read.mockResolvedValue([
-      { id: 'pcr_001', partnerId: 'prt_001', status: 'submitted', createdAt: new Date().toISOString() },
-      { id: 'pcr_002', partnerId: 'prt_OTHER', status: 'submitted', createdAt: new Date().toISOString() },
+      {
+        id: 'pcr_001',
+        partnerId: 'prt_001',
+        status: 'submitted',
+        createdAt: new Date().toISOString(),
+      },
+      {
+        id: 'pcr_002',
+        partnerId: 'prt_OTHER',
+        status: 'submitted',
+        createdAt: new Date().toISOString(),
+      },
     ]);
     const res = await request(app).get('/api/partner/cashout-requests');
     expect(res.status).toBe(200);
@@ -496,14 +495,24 @@ describe('GET /api/partner/cashout-requests/:id', () => {
 
   it('returns 404 when request belongs to another partner', async () => {
     mockDb.read.mockResolvedValue([
-      { id: 'pcr_other', partnerId: 'prt_OTHER', status: 'submitted', createdAt: new Date().toISOString() },
+      {
+        id: 'pcr_other',
+        partnerId: 'prt_OTHER',
+        status: 'submitted',
+        createdAt: new Date().toISOString(),
+      },
     ]);
     const res = await request(app).get('/api/partner/cashout-requests/pcr_other');
     expect(res.status).toBe(404);
   });
 
   it('returns 200 with request when it belongs to the current partner', async () => {
-    const mockRequest = { id: 'pcr_mine', partnerId: 'prt_001', status: 'submitted', createdAt: new Date().toISOString() };
+    const mockRequest = {
+      id: 'pcr_mine',
+      partnerId: 'prt_001',
+      status: 'submitted',
+      createdAt: new Date().toISOString(),
+    };
     mockDb.read.mockResolvedValue([mockRequest]);
     const res = await request(app).get('/api/partner/cashout-requests/pcr_mine');
     expect(res.status).toBe(200);

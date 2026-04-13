@@ -230,24 +230,6 @@ New in the cashout request system. Each record represents a manual cashout reque
 | `createdAt`            | ISO string         | Request creation timestamp                                          |
 | `updatedAt`            | ISO string         | Last update timestamp                                               |
 
-### `partner_cashout_orders` (legacy — Tremendous integration)
-
-Retained for historical records from the Tremendous gift card integration (parked). New cashout requests use `partner_cashout_requests` instead.
-
-| Field                | Type           | Description                                                   |
-| -------------------- | -------------- | ------------------------------------------------------------- |
-| `id`                 | string         | Unique ID (`pco_...`)                                         |
-| `partnerId`          | string         | Links to `partners`                                           |
-| `partnerUserId`      | string         | User ID of the partner who initiated the cashout              |
-| `externalRef`        | string         | Idempotency key used as Tremendous `custom_identifier`        |
-| `debitTxnId`         | string         | ID of the REDEEM transaction in `partner_credit_transactions` |
-| `pointsDebited`      | number         | Number of points debited                                      |
-| `valueGbp`           | number         | GBP value of the gift card                                    |
-| `tremendousOrderId`  | string \| null | Tremendous order ID (after successful creation)               |
-| `tremendousRewardId` | string \| null | Tremendous reward ID (first reward in the order)              |
-| `status`             | string         | `created`, `failed`                                           |
-| `createdAt`          | ISO string     | Record creation timestamp                                     |
-
 ### Database Indexes / Uniqueness
 
 The following unique constraints are enforced via MongoDB indexes (see `db-init.js`):
@@ -321,15 +303,12 @@ The `ref-capture.js` utility (or inline auth form logic) should read the `ref` q
 
 ## Environment Variables
 
-| Variable                 | Required      | Description                                                                |
-| ------------------------ | ------------- | -------------------------------------------------------------------------- |
-| `BASE_URL`               | No            | Full URL used to generate referral links (e.g. `https://event-flow.co.uk`) |
-| `JWT_SECRET`             | Yes           | JWT signing secret (shared with rest of app)                               |
-| `MONGODB_URI`            | Yes (prod)    | MongoDB connection string                                                  |
-| `TREMENDOUS_API_KEY`     | Yes (cashout) | Tremendous API bearer token                                                |
-| `TREMENDOUS_ENV`         | No            | `sandbox` (default) or `production`                                        |
-| `TREMENDOUS_AUDIT_EMAIL` | No            | Email to receive audit copies of every gift card order                     |
-| `POINTS_PER_GBP`         | No            | Conversion rate: points per £1 (default: `100`)                            |
+| Variable         | Required   | Description                                                                |
+| ---------------- | ---------- | -------------------------------------------------------------------------- |
+| `BASE_URL`       | No         | Full URL used to generate referral links (e.g. `https://event-flow.co.uk`) |
+| `JWT_SECRET`     | Yes        | JWT signing secret (shared with rest of app)                               |
+| `MONGODB_URI`    | Yes (prod) | MongoDB connection string                                                  |
+| `POINTS_PER_GBP` | No         | Conversion rate: points per £1 (default: `100`)                            |
 
 ---
 
@@ -344,7 +323,7 @@ Partner moderation is available in **two places**:
 
 ### Gift card payout requests (admin)
 
-The admin payout requests tab (`GET /api/v1/admin/partners/payout-requests`) and status update endpoint (`PATCH /api/v1/admin/partners/payout-requests/:ticketId/status`) remain available for any legacy tickets already in the system. New payout requests via `/payout-request` now return 503 until the Tremendous integration is complete.
+The admin payout requests tab (`GET /api/v1/admin/partners/payout-requests`) and status update endpoint (`PATCH /api/v1/admin/partners/payout-requests/:ticketId/status`) remain available for any legacy tickets already in the system.
 
 ### Enable / Disable a partner
 
@@ -374,7 +353,6 @@ Click "View" to open a side panel showing:
 - All admin partner API routes require `authRequired + roleRequired('admin')` middleware.
 - Server-side HTML guards in `server.js` prevent unauthenticated access to `/partner/dashboard` and `/admin-partners` before `express.static()` serves the files.
 - Disabled partner accounts are blocked at the API layer — the middleware check runs before any data is returned.
-- **Tremendous gift card endpoints** (`/api/v1/partner/tremendous/*`) are protected by `authRequired + roleRequired('partner')` server-side. Supplier, customer, and admin accounts all receive `403 Forbidden`. UI gating is a secondary measure only.
 
 ---
 
@@ -387,11 +365,8 @@ npx jest tests/unit/partner-service.test.js --verbose
 # Run partner points enhancements tests (new bonus types, available/maturing balance)
 npx jest tests/unit/partner-points-enhancements.test.js --verbose
 
-# Run new partner endpoints tests (support tickets, cashout balance enforcement)
+# Run new partner endpoints tests (support tickets, pointsPerGbp)
 npx jest tests/unit/partner-new-endpoints.test.js --verbose
-
-# Run Tremendous gift card endpoint tests
-npx jest tests/unit/partner-tremendous.test.js --verbose
 
 # Run partner payout validation unit tests
 npx jest tests/unit/partner-payout-validation.test.js --verbose

@@ -33,11 +33,16 @@ router.get('/', async (req, res) => {
     const users = await dbUnified.read('users');
 
     const enriched = await Promise.all(
-      partners.map(async p => {
+      partners.map(async partner => {
         // Repair missing id: generate one and persist it so action buttons work
+        let p = partner;
         if (!p.id) {
           const newId = uid('prt');
-          await dbUnified.updateOne('partners', { refCode: p.refCode }, { $set: { id: newId, updatedAt: new Date().toISOString() } });
+          await dbUnified.updateOne(
+            'partners',
+            { refCode: p.refCode },
+            { $set: { id: newId, updatedAt: new Date().toISOString() } }
+          );
           p = { ...p, id: newId };
           logger.info(`Repaired missing partner id → ${newId} (refCode=${p.refCode})`);
         }
@@ -289,48 +294,6 @@ router.post('/:id/credits', csrfProtection, async (req, res) => {
     res.json({ ok: true, transaction: txn });
   } catch (err) {
     logger.error('Error applying credit adjustment:', err);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-// ─── Cashout Orders (Tremendous) ─────────────────────────────────────────────
-
-/**
- * GET /api/admin/partners/cashout-orders
- * List Tremendous cashout orders (all partners), sorted newest first.
- * Query params: partnerId (filter), status (filter), limit (default 100)
- */
-router.get('/cashout-orders', async (req, res) => {
-  try {
-    const { partnerId, status, limit } = req.query;
-    const maxLimit = Math.min(parseInt(limit, 10) || 100, 500);
-
-    let orders = (await dbUnified.read('partner_cashout_orders')) || [];
-
-    if (partnerId) {
-      orders = orders.filter(o => o.partnerId === partnerId);
-    }
-    if (status) {
-      orders = orders.filter(o => o.status === status);
-    }
-
-    orders.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    orders = orders.slice(0, maxLimit);
-
-    // Enrich with partner user info
-    const users = await dbUnified.read('users');
-    const enriched = orders.map(o => {
-      const user = users.find(u => u.id === o.partnerUserId);
-      return {
-        ...o,
-        partnerUser: user ? { name: user.name, email: user.email } : null,
-        deletedUser: !user,
-      };
-    });
-
-    res.json({ items: enriched, total: enriched.length });
-  } catch (err) {
-    logger.error('Error listing cashout orders:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

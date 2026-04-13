@@ -1182,7 +1182,7 @@
   padding: 0.25rem 0;
 }
 
-/* ─── Gift Card Cashout (Tremendous) ─────────────────────────────────────── */
+/* ─── Gift Card Cashout ───────────────────────────────────────────────────── */
 
 /* Inline form that lives in the dashboard section (not a modal) */
 .cashout-form-grid {
@@ -1332,28 +1332,6 @@ select.partner-modal-input option {
 .cashout-action-btn--primary:hover {
   box-shadow: 0 5px 16px rgba(11, 128, 115, 0.45);
   transform: translateY(-1px);
-}
-
-/* Tremendous badge/attribution strip */
-.cashout-powered-by {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.28);
-  margin-top: 0.9rem;
-  letter-spacing: 0.02em;
-}
-
-.cashout-powered-by a {
-  color: rgba(255, 255, 255, 0.45);
-  text-decoration: none;
-  font-weight: 600;
-  transition: color 0.15s;
-}
-
-.cashout-powered-by a:hover {
-  color: rgba(255, 255, 255, 0.75);
 }
 
 /* Not-configured notice */

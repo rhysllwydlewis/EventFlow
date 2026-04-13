@@ -2,7 +2,7 @@
  * Integration tests for new partner endpoints:
  *
  * 1. GET /api/partner/support-tickets  — list partner's own tickets
- * 2. POST /api/partner/tremendous/orders — balance enforcement (insufficient points)
+ * 2. GET /api/partner/me               — pointsPerGbp in response
  */
 
 'use strict';
@@ -93,23 +93,6 @@ const ACTIVE_PARTNER = {
   status: 'active',
 };
 
-const SUFFICIENT_BALANCE = {
-  balance: 10000,
-  availableBalance: 10000,
-  maturingBalance: 0,
-  totalEarned: 10000,
-  packageBonusTotal: 0,
-  subscriptionBonusTotal: 10000,
-  adjustmentTotal: 0,
-  redeemed: 0,
-  transactions: [],
-};
-
-const INSUFFICIENT_BALANCE = {
-  ...SUFFICIENT_BALANCE,
-  availableBalance: 5, // 5 points = £0.05 — not enough for £10 order
-};
-
 jest.mock('../../services/partnerService', () => ({
   getPartnerByUserId: jest.fn(),
   getBalance: jest.fn(),
@@ -137,15 +120,10 @@ jest.mock('../../store', () => ({
   DATA_DIR: '/tmp/test-data',
 }));
 
-jest.mock('../../services/tremendousService', () => ({
-  getTremendousService: jest.fn(),
-}));
-
 // ─── App setup ────────────────────────────────────────────────────────────────
 
 const partnerService = require('../../services/partnerService');
 const dbUnified = require('../../db-unified');
-const { getTremendousService } = require('../../services/tremendousService');
 const partnerRouter = require('../../routes/partner');
 
 function buildApp() {
@@ -276,97 +254,6 @@ describe('GET /api/partner/support-tickets', () => {
     const res = await request(app).get('/api/partner/support-tickets');
     expect(res.status).toBe(403);
     expect(res.body.disabled).toBe(true);
-  });
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-// POST /api/partner/tremendous/orders — balance enforcement
-// ─────────────────────────────────────────────────────────────────────────────
-
-describe('POST /api/partner/tremendous/orders — balance enforcement', () => {
-  let app;
-  let mockTremendous;
-
-  const VALID_BODY = {
-    productId: 'prod_amazon',
-    value: 10,
-    currency: 'GBP',
-    recipientName: 'Jane Doe',
-    recipientEmail: 'jane@example.com',
-  };
-
-  const MOCK_ORDER = {
-    id: 'ord_abc123',
-    status: 'EXECUTED',
-    rewards: [{ id: 'rwd_xyz', delivery_status: 'DELIVERED', status: 'DELIVERED' }],
-  };
-
-  beforeEach(() => {
-    app = buildApp();
-    jest.clearAllMocks();
-    partnerService.getPartnerByUserId.mockResolvedValue(ACTIVE_PARTNER);
-    partnerService.getBalance.mockResolvedValue(SUFFICIENT_BALANCE);
-    partnerService.debitPoints.mockResolvedValue({ id: 'ptx_debit_001' });
-    partnerService.reverseDebit.mockResolvedValue({ id: 'ptx_reversal_001' });
-
-    mockTremendous = {
-      listProducts: jest.fn(),
-      createOrder: jest.fn().mockResolvedValue(MOCK_ORDER),
-      getOrder: jest.fn(),
-      resendReward: jest.fn(),
-    };
-    getTremendousService.mockReturnValue(mockTremendous);
-  });
-
-  it('returns 400 when partner has insufficient available points', async () => {
-    partnerService.getBalance.mockResolvedValue(INSUFFICIENT_BALANCE);
-    const res = await request(app).post('/api/partner/tremendous/orders').send(VALID_BODY);
-    expect(res.status).toBe(400);
-    expect(res.body.error).toMatch(/insufficient available points/i);
-    expect(res.body.requiredPoints).toBeDefined();
-    expect(res.body.availablePoints).toBeDefined();
-  });
-
-  it('does not call Tremendous when balance is insufficient', async () => {
-    partnerService.getBalance.mockResolvedValue(INSUFFICIENT_BALANCE);
-    await request(app).post('/api/partner/tremendous/orders').send(VALID_BODY);
-    expect(mockTremendous.createOrder).not.toHaveBeenCalled();
-  });
-
-  it('calls debitPoints before calling Tremendous when balance is sufficient', async () => {
-    const res = await request(app).post('/api/partner/tremendous/orders').send(VALID_BODY);
-    expect(res.status).toBe(201);
-    expect(partnerService.debitPoints).toHaveBeenCalledTimes(1);
-    expect(mockTremendous.createOrder).toHaveBeenCalledTimes(1);
-  });
-
-  it('reverses debit when Tremendous API call fails', async () => {
-    const err = new Error('Tremendous upstream error');
-    mockTremendous.createOrder.mockRejectedValue(err);
-
-    const res = await request(app).post('/api/partner/tremendous/orders').send(VALID_BODY);
-    expect(res.status).toBe(502);
-    expect(partnerService.debitPoints).toHaveBeenCalledTimes(1);
-    expect(partnerService.reverseDebit).toHaveBeenCalledTimes(1);
-  });
-
-  it('persists cashout record to DB on success', async () => {
-    const res = await request(app).post('/api/partner/tremendous/orders').send(VALID_BODY);
-    expect(res.status).toBe(201);
-    expect(res.body.cashoutId).toBeDefined();
-    expect(dbUnified.insertOne).toHaveBeenCalledWith(
-      'partner_cashout_orders',
-      expect.objectContaining({
-        partnerId: ACTIVE_PARTNER.id,
-        tremendousOrderId: MOCK_ORDER.id,
-      })
-    );
-  });
-
-  it('returns cashoutId in response on success', async () => {
-    const res = await request(app).post('/api/partner/tremendous/orders').send(VALID_BODY);
-    expect(res.status).toBe(201);
-    expect(typeof res.body.cashoutId).toBe('string');
   });
 });
 
