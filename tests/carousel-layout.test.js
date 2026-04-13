@@ -26,8 +26,8 @@ describe('Carousel layout CSS snapshot', () => {
     expect(css).toMatch(/\.carousel-image\s*\{[\s\S]*?max-height:\s*82vh/);
   });
 
-  test('mobile carousel-image max-height uses calc(84vh - 220px)', () => {
-    expect(css).toContain('calc(84vh - 220px)');
+  test('mobile carousel-image max-height uses calc(84vh - 252px)', () => {
+    expect(css).toContain('calc(84vh - 252px)');
   });
 
   test('carousel-counter bottom is 12px (desktop)', () => {

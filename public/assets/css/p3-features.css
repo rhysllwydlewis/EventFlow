@@ -611,9 +611,9 @@
      Grows with iOS home-indicator safe area so thumbnails are never squeezed. */
   height: calc(80px + env(safe-area-inset-bottom, 0px));
   min-height: 80px;
-  padding: 10px 12px;
+  padding: 12px;
   /* Reserve space for iOS home indicator */
-  padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
+  padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
   /* Hidden on desktop; shown via the ≤640px media query below */
   display: none;
   flex-direction: row;
@@ -1227,10 +1227,11 @@ img {
   /* Shrink the main image to avoid overlapping the strip and counter.
      Derivation: the parent .carousel-content container is 84vh tall. For the
      vertically-centred image not to overlap the counter (bottom: 90px, height
-     ~32px), the ideal upper bound is ~84vh − 228px.
-     We use 84vh − 236px for an 8px safety buffer across short mobile viewports. */
+     ~32px), the counter top is 122px from the container bottom.
+     The condition for a centered image: (84vh − h) / 2 ≥ 122px → h ≤ 84vh − 244px.
+     We use 84vh − 252px for an 8px safety buffer across short mobile viewports. */
   .carousel-image {
-    max-height: calc(84vh - 236px);
+    max-height: calc(84vh - 252px);
   }
 
   /* Single-image carousel: strip is hidden so image can use nearly full height. */
