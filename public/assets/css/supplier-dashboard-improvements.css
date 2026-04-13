@@ -2124,6 +2124,19 @@ details[open] .faq-question::after {
     0 0 0 1px rgba(11, 128, 115, 0.05);
 }
 
+/*
+ * Supplier dashboard cards that contain forms or interactive fields must NOT
+ * shift position on hover — the translate lift makes it difficult to click
+ * inputs and buttons inside the card, and causes forced reflows.
+ * We keep the subtle box-shadow enhancement but cancel the translateY.
+ */
+.sd-card:hover,
+.card:has(form):hover,
+.card:has(input):hover,
+.card:has(textarea):hover {
+  transform: none;
+}
+
 /* Dashboard-specific card hover */
 .supplier-dashboard-card {
   transition: all var(--ef-transition-slow, 300ms cubic-bezier(0.4, 0, 0.2, 1));
@@ -2132,6 +2145,28 @@ details[open] .faq-question::after {
 .supplier-dashboard-card:hover {
   border-color: rgba(11, 128, 115, 0.2);
   transform: translateY(-2px);
+}
+
+/* Form-containing supplier dashboard cards should also not shift */
+.supplier-dashboard-card:has(form):hover,
+.supplier-dashboard-card:has(input):hover,
+.supplier-dashboard-card:has(textarea):hover {
+  transform: none;
+}
+
+/* Respect prefers-reduced-motion — disable all card hover transforms */
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .supplier-dashboard-card,
+  .dashboard-card {
+    transition: box-shadow 0.15s ease;
+  }
+
+  .card:hover,
+  .supplier-dashboard-card:hover,
+  .dashboard-card:hover {
+    transform: none;
+  }
 }
 
 /* ===========================================
@@ -7375,6 +7410,21 @@ label .required {
   overflow: hidden;
   z-index: 0;
   background: #f0f0f0; /* placeholder tint while image loads */
+}
+
+/* Error state: image failed to load — show a muted broken-image indicator */
+.photo-preview-item__image-wrap--error {
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.photo-preview-item__image-wrap--error::after {
+  content: '⚠';
+  font-size: 1.25rem;
+  color: #9ca3af;
+  pointer-events: none;
 }
 
 .photo-preview-item__image-wrap img {

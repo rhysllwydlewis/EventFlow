@@ -3194,6 +3194,20 @@ async function initDashSupplier() {
         img.src = supplier.bannerUrl; // Browser automatically sanitizes
         img.alt = 'Banner preview';
         img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:8px;';
+        img.addEventListener(
+          'error',
+          () => {
+            if (img.dataset.errorHandled) {
+              return;
+            }
+            img.dataset.errorHandled = '1';
+            img.alt = 'Banner image unavailable';
+            img.title = 'Could not load banner — upload a new one to replace it';
+            imgDiv.style.background = '#f3f4f6';
+            img.style.display = 'none';
+          },
+          { once: true }
+        );
 
         const removeBtn = document.createElement('button');
         removeBtn.type = 'button';
@@ -3605,11 +3619,37 @@ async function initDashSupplier() {
           body: JSON.stringify(payload),
         });
 
+        // Determine the saved supplier ID (use server response for new profiles)
+        const savedId =
+          response && response.supplier && response.supplier.id ? response.supplier.id : id;
+
         // Update currently editing supplier ID with the saved/created ID
-        if (response && response.supplier && response.supplier.id) {
-          currentEditingSupplierId = response.supplier.id;
-        } else if (id) {
-          currentEditingSupplierId = id;
+        if (savedId) {
+          currentEditingSupplierId = savedId;
+          // Also update the hidden ID field so subsequent saves use PATCH
+          const supIdField = document.getElementById('sup-id');
+          if (supIdField && !supIdField.value) {
+            supIdField.value = savedId;
+          }
+        }
+
+        // Upload any pending gallery photos now that we have a valid supplier ID
+        if (savedId && typeof window.uploadPendingGalleryPhotos === 'function') {
+          try {
+            await window.uploadPendingGalleryPhotos(savedId);
+          } catch (photoErr) {
+            console.error('Photo upload error (profile saved):', photoErr);
+            if (statusEl) {
+              statusEl.textContent = 'Warning: Profile saved but some photos failed to upload';
+              statusEl.style.color = '#f59e0b';
+              setTimeout(() => {
+                statusEl.textContent = '';
+              }, 5000);
+            }
+            // Don't rethrow — the profile save succeeded
+            await loadSuppliers();
+            return;
+          }
         }
 
         await loadSuppliers();

@@ -96,6 +96,34 @@
   box-shadow: 0 20px 60px rgba(11, 128, 115, 0.12);
 }
 
+/*
+ * Cards that contain forms or interactive inputs must NOT shift on hover —
+ * the translateY lift interferes with clicking inputs/buttons inside the card
+ * and causes forced reflows during JS layout reads.
+ */
+.sd-card:hover,
+.card:has(form):hover,
+.card:has(input):hover,
+.card:has(textarea):hover,
+.dashboard-card:has(form):hover,
+.dashboard-card:has(input):hover,
+.dashboard-card:has(textarea):hover {
+  transform: none;
+}
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-card,
+  .card {
+    transition: box-shadow 0.15s ease;
+  }
+
+  .dashboard-card:hover,
+  .card:hover {
+    transform: none;
+  }
+}
+
 /* Staggered card animations */
 .cards > .card,
 .dashboard-grid > .dashboard-card {

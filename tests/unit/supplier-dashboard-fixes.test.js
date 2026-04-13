@@ -163,3 +163,103 @@ describe('global-error-handler.js – fetch interceptor null-safety', () => {
     expect(errorHandlerJs).toContain('throw error');
   });
 });
+
+// ─── Fix: supplier profile save / form interaction regressions ──────────────
+
+const galleryJs = fs.readFileSync(
+  path.join(process.cwd(), 'public/assets/js/supplier-gallery.js'),
+  'utf8'
+);
+
+const appJs = fs.readFileSync(path.join(process.cwd(), 'public/assets/js/app.js'), 'utf8');
+
+const dashboardAnimationsCss = fs.readFileSync(
+  path.join(process.cwd(), 'public/assets/css/dashboard-animations.css'),
+  'utf8'
+);
+
+const supplierDashImprovementsCss = fs.readFileSync(
+  path.join(process.cwd(), 'public/assets/css/supplier-dashboard-improvements.css'),
+  'utf8'
+);
+
+describe('Supplier profile save – no duplicate form submit handler', () => {
+  it('supplier-gallery.js setupFormIntercept is a no-op (does not add a submit listener)', () => {
+    // The old implementation added its own submit listener that raced with app.js.
+    // Confirm setupFormIntercept no longer registers addEventListener('submit', ...).
+    // We find the method body and verify it contains no 'submit' event binding.
+    const methodStart = galleryJs.indexOf('setupFormIntercept(');
+    expect(methodStart).toBeGreaterThan(-1);
+    // Extract up to the next method definition
+    const methodBody = galleryJs.slice(methodStart, galleryJs.indexOf('\n  }', methodStart) + 4);
+    expect(methodBody).not.toContain("addEventListener('submit'");
+    expect(methodBody).not.toContain('addEventListener("submit"');
+  });
+
+  it('supplier-gallery.js exposes uploadPendingGalleryPhotos on window', () => {
+    expect(galleryJs).toContain('window.uploadPendingGalleryPhotos');
+  });
+
+  it('app.js calls window.uploadPendingGalleryPhotos after saving the supplier', () => {
+    expect(appJs).toContain('uploadPendingGalleryPhotos');
+  });
+
+  it('app.js updates the sup-id hidden field for newly created suppliers', () => {
+    expect(appJs).toContain('supIdField.value = savedId');
+  });
+});
+
+describe('Supplier profile form – website field browser validation disabled', () => {
+  it('supplier-form has novalidate attribute to prevent browser URL validation blocking save', () => {
+    expect(dashboardHtml).toContain('id="supplier-form"');
+    expect(dashboardHtml).toMatch(
+      /id="supplier-form"[^>]*novalidate|novalidate[^>]*id="supplier-form"/
+    );
+  });
+
+  it('sup-website input is type="text" not type="url" to avoid browser scroll-to-field validation', () => {
+    expect(dashboardHtml).not.toMatch(/id="sup-website"[^>]*type="url"/);
+    expect(dashboardHtml).toMatch(/id="sup-website"/);
+  });
+});
+
+describe('Gallery photo 404 error handling', () => {
+  it('renderExistingPhotos attaches an onerror handler on gallery <img> elements', () => {
+    // Prettier may split addEventListener args across lines; match flexibly
+    expect(galleryJs).toMatch(/addEventListener\s*\(\s*['"]error['"]/);
+    expect(galleryJs).toContain('photo-preview-item__image-wrap--error');
+  });
+
+  it('banner preview in app.js attaches an onerror handler', () => {
+    // Find the banner preview block and confirm error handling is present
+    const idx = appJs.indexOf('sup-banner-preview');
+    expect(idx).toBeGreaterThan(-1);
+    const bannerBlock = appJs.slice(idx, idx + 1000);
+    expect(bannerBlock).toMatch(/addEventListener\s*\(\s*['"]error['"]/);
+  });
+});
+
+describe('Card hover animation – no layout shift on form cards', () => {
+  it('dashboard-animations.css cancels translateY for sd-card on hover', () => {
+    expect(dashboardAnimationsCss).toContain('.sd-card:hover');
+    expect(dashboardAnimationsCss).toContain('transform: none');
+  });
+
+  it('dashboard-animations.css includes prefers-reduced-motion rule', () => {
+    expect(dashboardAnimationsCss).toContain('prefers-reduced-motion');
+    expect(dashboardAnimationsCss).toContain('transform: none');
+  });
+
+  it('supplier-dashboard-improvements.css cancels translateY for sd-card on hover', () => {
+    expect(supplierDashImprovementsCss).toContain('.sd-card:hover');
+    expect(supplierDashImprovementsCss).toContain('transform: none');
+  });
+
+  it('supplier-dashboard-improvements.css includes prefers-reduced-motion rule', () => {
+    expect(supplierDashImprovementsCss).toContain('prefers-reduced-motion');
+  });
+
+  it('supplier-dashboard-improvements.css includes error state CSS for image wrap', () => {
+    expect(supplierDashImprovementsCss).toContain('photo-preview-item__image-wrap--error');
+  });
+});
