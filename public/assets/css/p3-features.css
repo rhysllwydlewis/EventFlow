@@ -589,9 +589,15 @@
 }
 
 .carousel-thumb-item {
-  flex-shrink: 0;
-  width: 44px;
-  height: 44px;
+  /* Hard-lock sizing so no global button rule (e.g. width:100%) can override */
+  flex: 0 0 auto !important;
+  width: 44px !important;
+  min-width: 44px !important;
+  max-width: 44px !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+  margin-top: 0 !important;
   border-radius: 6px;
   overflow: hidden;
   cursor: pointer;
@@ -600,8 +606,8 @@
   opacity: 0.6;
   background: rgba(0, 0, 0, 0.3);
   display: block;
-  padding: 0;
-  box-sizing: border-box;
+  padding: 0 !important;
+  box-sizing: border-box !important;
   scroll-snap-align: center;
 }
 
@@ -629,7 +635,7 @@
 .carousel-thumb-item img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   pointer-events: none;
   display: block;
 }
@@ -1136,11 +1142,21 @@ img {
     display: flex;
   }
 
-  /* Pull the counter inside the modal, floating above the thumb strip.
-     Strip is now 64px tall, so counter sits 74px from bottom (10px gap). */
+  /* On mobile the thumbnail strip already provides visual navigation context,
+     so hide the dots to avoid a "double bar" look. Only the "N / total" text
+     counter remains, keeping the pill compact and clearly readable. */
+  .carousel-counter .carousel-dots,
+  .carousel-counter .carousel-divider {
+    display: none;
+  }
+
+  /* Make the counter pill width hug its content (just the text counter). */
   .carousel-counter {
     /* safe-area-inset-bottom for iOS home-indicator area */
     bottom: calc(74px + env(safe-area-inset-bottom, 0px));
+    width: auto;
+    min-width: 0;
+    padding: 0.3rem 0.75rem;
   }
 
   /* Shrink the main image to ensure it never overlaps the strip or counter.
