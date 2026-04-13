@@ -173,6 +173,9 @@
 
     // Keyboard navigation
     document.addEventListener('keydown', handleKeyboard);
+
+    // Touch swipe navigation (mobile)
+    addSwipeListeners(modal);
   }
 
   /**
@@ -290,7 +293,13 @@
       if (strip) {
         const thumbs = strip.querySelectorAll('.carousel-thumb-item');
         thumbs.forEach((thumb, i) => {
-          thumb.classList.toggle('active', i === currentIndex);
+          const isActive = i === currentIndex;
+          thumb.classList.toggle('active', isActive);
+          if (isActive) {
+            thumb.setAttribute('aria-current', 'true');
+          } else {
+            thumb.removeAttribute('aria-current');
+          }
         });
         // Scroll active thumbnail into view
         const activeThumb = thumbs[currentIndex];
@@ -391,6 +400,48 @@
   }
 
   /**
+   * Add touch-swipe navigation to an element (for mobile).
+   * Horizontal swipe left → next image; swipe right → prev image.
+   * Ignores mostly-vertical swipes so normal page scroll still works.
+   */
+  function addSwipeListeners(el) {
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    el.addEventListener(
+      'touchstart',
+      e => {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      },
+      { passive: true }
+    );
+
+    el.addEventListener(
+      'touchend',
+      e => {
+        if (!e.changedTouches.length) {
+          return;
+        }
+        const dx = e.changedTouches[0].clientX - touchStartX;
+        const dy = e.changedTouches[0].clientY - touchStartY;
+
+        // Only treat as horizontal swipe when horizontal movement dominates
+        if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy) * 1.5) {
+          return;
+        }
+
+        if (dx < 0) {
+          nextImage();
+        } else {
+          prevImage();
+        }
+      },
+      { passive: true }
+    );
+  }
+
+  /**
    * Rebuild the mobile bottom thumbnail strip.
    * Visible only on small screens (CSS controls display: none / flex).
    */
@@ -409,8 +460,12 @@
     images.forEach((image, i) => {
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = `carousel-thumb-item${i === currentIndex ? ' active' : ''}`;
+      const isActive = i === currentIndex;
+      btn.className = `carousel-thumb-item${isActive ? ' active' : ''}`;
       btn.setAttribute('aria-label', `Go to image ${i + 1} of ${images.length}`);
+      if (isActive) {
+        btn.setAttribute('aria-current', 'true');
+      }
 
       const img = document.createElement('img');
       img.src = image.src;

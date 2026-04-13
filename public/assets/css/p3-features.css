@@ -325,6 +325,8 @@
   height: 52px;
   min-width: 52px;
   max-width: 52px;
+  min-height: 52px;
+  max-height: 52px;
   box-sizing: border-box;
   padding: 0;
   line-height: 1;
@@ -524,7 +526,9 @@
   bottom: 0;
   left: 0;
   right: 0;
-  height: 56px;
+  /* Grow with iOS home-indicator safe area so thumbnails are never squeezed */
+  height: calc(56px + env(safe-area-inset-bottom, 0px));
+  min-height: 56px;
   padding: 6px 12px;
   /* Reserve space for iOS home indicator */
   padding-bottom: max(6px, env(safe-area-inset-bottom, 0px));
@@ -1007,6 +1011,8 @@ img {
     height: 46px;
     min-width: 46px;
     max-width: 46px;
+    min-height: 46px;
+    max-height: 46px;
   }
 
   .carousel-prev {
@@ -1080,9 +1086,11 @@ img {
     bottom: calc(64px + env(safe-area-inset-bottom, 0px));
   }
 
-  /* Shrink the main image a little to make room for the strip + counter */
+  /* Shrink the main image to ensure it never overlaps the strip or counter.
+     Clearance math: content 80vh, counter top at ~96px from bottom, requires
+     image_h ≤ 80vh - 192px. Using 70vh - 140px gives a comfortable margin. */
   .carousel-image {
-    max-height: calc(70vh - 100px);
+    max-height: calc(70vh - 140px);
   }
 }
 
@@ -1093,6 +1101,8 @@ img {
     height: 42px;
     min-width: 42px;
     max-width: 42px;
+    min-height: 42px;
+    max-height: 42px;
   }
 
   .carousel-close {
