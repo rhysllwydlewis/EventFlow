@@ -24,11 +24,11 @@ describe('Carousel modal CSS regressions', () => {
   });
 
   it('uses overlap-safe mobile image max-height formula', () => {
-    expect(carouselCss).toContain('max-height: calc(84vh - 220px);');
+    expect(carouselCss).toContain('max-height: calc(84vh - 252px);');
   });
 
   it('keeps mobile counter above thumbnail strip with safe-area handling', () => {
-    expect(carouselCss).toContain('bottom: calc(74px + env(safe-area-inset-bottom, 0px));');
+    expect(carouselCss).toContain('bottom: calc(90px + env(safe-area-inset-bottom, 0px));');
   });
 
   it('adds overflow guard and loading style for carousel images', () => {
@@ -61,7 +61,7 @@ describe('Carousel modal CSS regressions', () => {
   });
 
   it('uses object-fit: cover (not contain) for thumbnail strip images', () => {
-    // cover fills the 44×44 tile cleanly; contain leaves letterbox gaps
+    // cover fills the 56×56 tile cleanly; contain leaves letterbox gaps
     expect(carouselCss).toContain('.carousel-thumb-item img');
     const thumbIdx = carouselCss.indexOf('.carousel-thumb-item img');
     // Grab the rule block following the selector

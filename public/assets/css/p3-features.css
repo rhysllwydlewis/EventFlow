@@ -607,13 +607,13 @@
   bottom: 0;
   left: 0;
   right: 0;
-  /* 64px base height gives 10px padding + 44px thumbnail + 10px padding breathing room.
+  /* 80px base height gives 12px padding + 56px thumbnail + 12px padding breathing room.
      Grows with iOS home-indicator safe area so thumbnails are never squeezed. */
-  height: calc(64px + env(safe-area-inset-bottom, 0px));
-  min-height: 64px;
-  padding: 10px 12px;
+  height: calc(80px + env(safe-area-inset-bottom, 0px));
+  min-height: 80px;
+  padding: 12px;
   /* Reserve space for iOS home indicator */
-  padding-bottom: max(10px, env(safe-area-inset-bottom, 0px));
+  padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
   /* Hidden on desktop; shown via the ≤640px media query below */
   display: none;
   flex-direction: row;
@@ -639,12 +639,12 @@
 .carousel-thumb-item {
   /* Hard-lock sizing so no global button rule (e.g. width:100%) can override */
   flex: 0 0 auto !important;
-  width: 44px !important;
-  min-width: 44px !important;
-  max-width: 44px !important;
-  height: 44px !important;
-  min-height: 44px !important;
-  max-height: 44px !important;
+  width: 56px !important;
+  min-width: 56px !important;
+  max-width: 56px !important;
+  height: 56px !important;
+  min-height: 56px !important;
+  max-height: 56px !important;
   margin-top: 0 !important;
   border-radius: 6px;
   overflow: hidden;
@@ -1211,7 +1211,7 @@ img {
   /* Make the counter pill width hug its content (just the text counter). */
   .carousel-counter {
     /* safe-area-inset-bottom for iOS home-indicator area */
-    bottom: calc(74px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(90px + env(safe-area-inset-bottom, 0px));
     width: auto;
     min-width: 0;
     padding: 0.3rem 0.75rem;
@@ -1226,11 +1226,12 @@ img {
 
   /* Shrink the main image to avoid overlapping the strip and counter.
      Derivation: the parent .carousel-content container is 84vh tall. For the
-     vertically-centred image not to overlap the counter (bottom: 74px, height
-     ~32px), the ideal upper bound is ~84vh − 212px.
-     We use 84vh − 220px for an 8px safety buffer across short mobile viewports. */
+     vertically-centred image not to overlap the counter (bottom: 90px, height
+     ~32px), the counter top is 122px from the container bottom.
+     The condition for a centered image: (84vh − h) / 2 ≥ 122px → h ≤ 84vh − 244px.
+     We use 84vh − 252px for an 8px safety buffer across short mobile viewports. */
   .carousel-image {
-    max-height: calc(84vh - 220px);
+    max-height: calc(84vh - 252px);
   }
 
   /* Single-image carousel: strip is hidden so image can use nearly full height. */
@@ -1247,7 +1248,7 @@ img {
   }
 
   .carousel-counter {
-    bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(70px + env(safe-area-inset-bottom, 0px));
     font-size: 0.75rem;
     padding: 0.2rem 0.6rem;
   }
@@ -1257,18 +1258,18 @@ img {
   }
 
   .carousel-thumb-strip {
-    height: calc(52px + env(safe-area-inset-bottom, 0px));
-    min-height: 52px;
+    height: calc(60px + env(safe-area-inset-bottom, 0px));
+    min-height: 60px;
     padding: 6px 8px;
   }
 
   .carousel-thumb-item {
-    width: 36px !important;
-    min-width: 36px !important;
-    max-width: 36px !important;
-    height: 36px !important;
-    min-height: 36px !important;
-    max-height: 36px !important;
+    width: 44px !important;
+    min-width: 44px !important;
+    max-width: 44px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    max-height: 44px !important;
   }
 }
 

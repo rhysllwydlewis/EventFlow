@@ -557,8 +557,8 @@
       // Match the CSS display dimensions so the browser can reserve layout space
       // and avoid cumulative layout shift. The full-size image will still be
       // downloaded and scaled down via object-fit: cover in CSS.
-      img.width = 44;
-      img.height = 44;
+      img.width = 56;
+      img.height = 56;
 
       btn.appendChild(img);
       btn.addEventListener('click', e => {
