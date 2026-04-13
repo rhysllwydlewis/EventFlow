@@ -1734,6 +1734,70 @@ body.supplier-dashboard-page .supplier-cta-section {
   align-items: center;
 }
 
+#sup-status {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.65rem;
+  border-radius: 10px;
+  line-height: 1.35;
+  max-width: min(100%, 46ch);
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+#sup-status:not(:empty) {
+  border: 1px solid transparent;
+}
+
+#sup-status[data-tone='info'] {
+  background: rgba(102, 112, 133, 0.1);
+  border-color: rgba(102, 112, 133, 0.28);
+}
+
+#sup-status[data-tone='success'] {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+#sup-status[data-tone='warning'] {
+  background: rgba(245, 158, 11, 0.14);
+  border-color: rgba(180, 83, 9, 0.28);
+}
+
+#sup-status[data-tone='error'] {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.28);
+}
+
+#supplier-form[aria-busy='true'] #sup-create {
+  position: relative;
+  cursor: progress;
+  filter: saturate(0.92) brightness(0.98);
+}
+
+#supplier-form[aria-busy='true'] #sup-create::after {
+  content: '';
+  width: 0.85rem;
+  height: 0.85rem;
+  margin-left: 0.45rem;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: rgba(255, 255, 255, 0.92);
+  display: inline-block;
+  vertical-align: middle;
+  animation: sup-save-spin 0.7s linear infinite;
+}
+
+@keyframes sup-save-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* ===========================================
    15. FOOTER (Shared)
    =========================================== */

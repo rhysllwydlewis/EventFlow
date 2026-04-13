@@ -102,6 +102,12 @@ describe('Supplier Profile Save Fixes', () => {
         "venuePostcodeInput.setAttribute('aria-invalid', 'false')"
       );
       expect(dashboardSupplierHtml).toContain("venuePostcodeError.textContent = ''");
+      expect(dashboardSupplierHtml).toContain(
+        "venuePostcodeError.setAttribute('aria-hidden', 'true')"
+      );
+      expect(dashboardSupplierHtml).toContain(
+        "venuePostcodeError.setAttribute('aria-hidden', 'false')"
+      );
     });
   });
 
@@ -159,6 +165,13 @@ describe('Supplier Profile Save Fixes', () => {
         /getElementById\('supplier-form'\)[\s\S]{0,8000}saveBtn\.disabled[\s\S]{0,8000}aria-busy[\s\S]{0,8000}finally/
       );
       expect(supplierFormMatch).toBeTruthy();
+    });
+
+    it('should apply status tone attributes for info/success/warning/error states', () => {
+      expect(appJsContent).toContain("statusEl.setAttribute('data-tone', 'info')");
+      expect(appJsContent).toContain("statusEl.setAttribute('data-tone', 'success')");
+      expect(appJsContent).toContain("statusEl.setAttribute('data-tone', 'warning')");
+      expect(appJsContent).toContain("statusEl.setAttribute('data-tone', 'error')");
     });
 
     it('should include credentials in fetch requests', () => {

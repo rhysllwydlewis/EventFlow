@@ -28,12 +28,14 @@
   function clearVenuePostcodeError() {
     venuePostcodeError.textContent = '';
     venuePostcodeError.classList.remove('visible');
+    venuePostcodeError.setAttribute('aria-hidden', 'true');
     venuePostcodeInput.setAttribute('aria-invalid', 'false');
   }
 
   function showVenuePostcodeError(message) {
     venuePostcodeError.textContent = message;
     venuePostcodeError.classList.add('visible');
+    venuePostcodeError.setAttribute('aria-hidden', 'false');
     venuePostcodeInput.setAttribute('aria-invalid', 'true');
   }
 
