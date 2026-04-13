@@ -1946,33 +1946,28 @@ details[open] .faq-question::after {
 }
 
 .supplier-cta-banner {
-  background: linear-gradient(
-    135deg,
-    var(--ef-primary, #0b8073) 0%,
-    var(--ef-primary-hover, #097267) 100%
-  );
+  background: linear-gradient(135deg, #0b8073 0%, #0a6e63 50%, #085f56 100%);
   color: white;
-  padding: var(--ef-space-5, 24px);
-  border-radius: var(--ef-radius-lg, 12px);
+  padding: 32px 40px;
+  border-radius: 16px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
+  text-align: center;
   gap: var(--ef-space-4, 16px);
   margin-top: var(--ef-space-5, 24px);
   margin-bottom: var(--ef-space-5, 24px);
-  box-shadow: var(--ef-shadow-md);
+  box-shadow: 0 4px 20px rgba(11, 128, 115, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 .supplier-cta-banner-content {
-  flex: 1;
-  min-width: 200px;
+  width: 100%;
 }
 
 .supplier-cta-banner-title {
   margin: 0 0 var(--ef-space-2, 8px) 0;
-  font-size: var(--ef-text-lg, 18px);
-  font-weight: var(--ef-font-semibold, 600);
+  font-size: 1.35rem;
+  font-weight: 700;
 }
 
 .supplier-cta-banner-badge {
@@ -1983,10 +1978,11 @@ details[open] .faq-question::after {
   padding: var(--ef-space-1, 4px) var(--ef-space-2, 8px);
   border-radius: var(--ef-radius-full, 9999px);
   font-weight: var(--ef-font-medium, 500);
+  vertical-align: middle;
 }
 
 .supplier-cta-banner-text {
-  color: rgba(255, 255, 255, 0.9);
+  color: rgba(255, 255, 255, 0.95);
   margin: 0;
   font-size: var(--ef-text-sm, 14px);
 }
@@ -1996,22 +1992,23 @@ details[open] .faq-question::after {
   color: var(--ef-primary, #0b8073);
   text-decoration: none;
   white-space: nowrap;
-  padding: var(--ef-space-3, 12px) var(--ef-space-5, 24px);
+  padding: 14px 32px;
   font-weight: var(--ef-font-semibold, 600);
-  border-radius: var(--ef-radius-sm, 6px);
+  border-radius: 8px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
   transition: all var(--ef-transition-base, 200ms cubic-bezier(0.4, 0, 0.2, 1));
+  display: inline-block;
 }
 
 .supplier-cta-banner-button:hover {
   background: var(--ef-primary-light, #f2fbf9);
-  transform: translateY(-1px);
-  box-shadow: var(--ef-shadow-md, 0 4px 12px rgba(0, 0, 0, 0.08));
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
 }
 
 @media (max-width: 640px) {
   .supplier-cta-banner {
-    flex-direction: column;
-    text-align: center;
+    padding: 24px 20px;
   }
 
   .supplier-cta-banner-button {
@@ -7684,12 +7681,12 @@ label .required {
   position: absolute;
   bottom: 4px;
   left: 4px;
-  padding: 1px 5px;
-  font-size: 0.6rem;
+  padding: 2px 6px;
+  font-size: 0.55rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  background: #6366f1;
+  background: linear-gradient(135deg, #d4a017, #b8860b);
   color: #fff;
   border-radius: 3px;
   z-index: 3;
@@ -7697,32 +7694,38 @@ label .required {
   white-space: nowrap;
 }
 
+/* Cover slot wrapper — gold border and subtle glow */
+.photo-preview-item.photo-preview-item--cover {
+  border: 2px solid #d4a017;
+  box-shadow: 0 0 8px rgba(212, 160, 23, 0.3);
+}
+
 /* Delete / remove button — top-right overlay */
 .photo-preview-item--existing .photo-delete-btn,
 .photo-preview-item--pending .photo-remove-btn {
   position: absolute;
-  top: -6px;
-  right: -6px;
-  width: 20px;
-  height: 20px;
+  top: -4px;
+  right: -4px;
+  width: 16px;
+  height: 16px;
   padding: 0;
-  background: rgba(239, 68, 68, 0.9);
+  background: rgba(239, 68, 68, 0.7);
   color: #fff;
-  border: 2px solid #fff;
+  border: 1.5px solid #fff;
   border-radius: 50%;
-  font-size: 10px;
-  line-height: 16px;
+  font-size: 8px;
+  line-height: 13px;
   text-align: center;
   cursor: pointer;
   z-index: 4;
   transition: background 0.15s, transform 0.1s;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
 
 .photo-preview-item--existing .photo-delete-btn:hover,
 .photo-preview-item--pending .photo-remove-btn:hover {
   background: rgba(220, 38, 38, 1);
-  transform: scale(1.1);
+  transform: scale(1.05);
 }
 
 /* ── Pending upload tiles — match existing-photo tile size & shape ─────────── */
