@@ -1995,7 +1995,7 @@ details[open] .faq-question::after {
   padding: 14px 32px;
   font-weight: var(--ef-font-semibold, 600);
   border-radius: 8px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  border: none;
   transition: all var(--ef-transition-base, 200ms cubic-bezier(0.4, 0, 0.2, 1));
   display: inline-block;
 }
@@ -7044,19 +7044,13 @@ label .required {
   display: block;
 }
 
-/* Profile Customization banner — inline sparkle icon */
+/* Profile Customization banner — title flex layout */
 .supplier-cta-banner-title {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   flex-wrap: wrap;
-}
-
-.supplier-cta-banner-icon {
-  display: inline-flex;
-  align-items: center;
-  flex-shrink: 0;
-  color: var(--ef-primary, #0b8073);
 }
 
 /* Reviews tip title — inline bulb icon */
@@ -7698,6 +7692,12 @@ label .required {
 .photo-preview-item.photo-preview-item--cover {
   border: 2px solid #d4a017;
   box-shadow: 0 0 8px rgba(212, 160, 23, 0.3);
+}
+
+/* Keep gold styling on hover (overrides the default purple hover) */
+.photo-preview-item.photo-preview-item--cover:hover {
+  border-color: #d4a017;
+  box-shadow: 0 0 12px rgba(212, 160, 23, 0.5);
 }
 
 /* Delete / remove button — top-right overlay */
