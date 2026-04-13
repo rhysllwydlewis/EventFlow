@@ -3640,7 +3640,7 @@ async function initDashSupplier() {
           } catch (photoErr) {
             console.error('Photo upload error (profile saved):', photoErr);
             if (statusEl) {
-              statusEl.textContent = '⚠ Profile saved but some photos failed to upload';
+              statusEl.textContent = 'Warning: Profile saved but some photos failed to upload';
               statusEl.style.color = '#f59e0b';
               setTimeout(() => {
                 statusEl.textContent = '';

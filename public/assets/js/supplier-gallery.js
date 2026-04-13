@@ -204,21 +204,12 @@ class SupplierGalleryManager {
   }
 
   /**
-   * Register the gallery as ready to accept photo-upload requests from the
-   * main form-save handler (app.js).  The old `setupFormIntercept` approach
-   * attached a second 'submit' listener to the supplier form which raced with
-   * the handler in app.js and sent duplicate/incomplete save requests.  The
-   * new contract is:
-   *   1. app.js saves the supplier profile (POST/PATCH) and gets a supplier ID.
-   *   2. app.js calls window.uploadPendingGalleryPhotos(supplierId) so we can
-   *      upload any staged photos now that we have a valid ID.
-   * This method keeps the form-intercept wiring alive for backward-compat but
-   * only uploads photos — it no longer saves the text-field payload itself.
+   * @deprecated No-op kept for backward-compatibility.
+   * Photo uploads are now triggered by app.js via window.uploadPendingGalleryPhotos()
+   * after the supplier profile is saved, eliminating the duplicate-submit race condition.
    */
   setupFormIntercept(_form) {
-    // No-op: photo uploads are now triggered by app.js via
-    // window.uploadPendingGalleryPhotos() after the supplier is saved.
-    // Keeping this method so callers that pass `form` don't throw.
+    // No-op: photo uploads are triggered by app.js after a successful profile save.
   }
 
   /**

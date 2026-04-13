@@ -225,7 +225,8 @@ describe('Supplier profile form – website field browser validation disabled', 
 
 describe('Gallery photo 404 error handling', () => {
   it('renderExistingPhotos attaches an onerror handler on gallery <img> elements', () => {
-    expect(galleryJs).toContain("addEventListener('error'");
+    // Prettier may split addEventListener args across lines; match flexibly
+    expect(galleryJs).toMatch(/addEventListener\s*\(\s*['"]error['"]/);
     expect(galleryJs).toContain('photo-preview-item__image-wrap--error');
   });
 
@@ -234,7 +235,7 @@ describe('Gallery photo 404 error handling', () => {
     const idx = appJs.indexOf('sup-banner-preview');
     expect(idx).toBeGreaterThan(-1);
     const bannerBlock = appJs.slice(idx, idx + 1000);
-    expect(bannerBlock).toContain("addEventListener('error'");
+    expect(bannerBlock).toMatch(/addEventListener\s*\(\s*['"]error['"]/);
   });
 });
 
