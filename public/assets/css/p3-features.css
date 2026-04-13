@@ -287,7 +287,6 @@
   min-height: 44px;
   max-height: 44px;
   box-sizing: border-box;
-  flex: 0 0 44px;
   padding: 0;
   line-height: 1;
   font-size: 0;
@@ -1112,7 +1111,6 @@ img {
     max-width: 40px;
     min-height: 40px;
     max-height: 40px;
-    flex: 0 0 40px;
   }
 
   .carousel-prev {

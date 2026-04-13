@@ -471,6 +471,11 @@
       img.src = image.src;
       img.alt = '';
       img.loading = 'lazy';
+      // Explicit intrinsic size helps the browser pre-allocate layout space.
+      // The data model has only the full-size URL; the browser will scale it
+      // down via object-fit:cover to the 44×36px CSS dimensions.
+      img.width = 44;
+      img.height = 36;
 
       btn.appendChild(img);
       btn.addEventListener('click', e => {
