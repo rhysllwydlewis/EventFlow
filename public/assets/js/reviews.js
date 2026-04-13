@@ -28,6 +28,13 @@
     csrfToken: null,
 
     /**
+     * Build the sign-in URL that redirects back to the current page after auth
+     */
+    getSignInRedirectUrl() {
+      return `/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+    },
+
+    /**
      * Initialize the reviews system
      */
     init(supplierId, user = null) {
@@ -178,8 +185,12 @@
       const verifiedCheckbox = document.getElementById('filter-verified');
       if (verifiedCheckbox) {
         // NOTE: The verified-customers filter is currently hidden (display:none in reviews.css)
-        // and the verification system is not yet implemented. The listener is preserved so it
-        // can be re-enabled in the future; verifiedOnly is forced to false until then.
+        // and the verification system is not yet implemented.
+        // The checkbox is disabled and hidden; the listener below is a safety-net guard
+        // that keeps verifiedOnly=false in case this code is re-enabled in the future
+        // without updating this listener.
+        verifiedCheckbox.disabled = true;
+        verifiedCheckbox.setAttribute('aria-hidden', 'true');
         verifiedCheckbox.addEventListener('change', () => {
           this.filters.verifiedOnly = false;
         });
@@ -255,7 +266,11 @@
             <div class="empty-icon">⭐</div>
             <h3 class="empty-title">No Reviews Yet</h3>
             <p class="empty-message">This supplier is new to our platform. Be the first to share your experience!</p>
-            ${this.currentUser ? '<button class="btn-write-review" onclick="reviewsManager.openReviewModal()">Write the First Review</button>' : '<p style="color: #6b7280; margin-top: 1rem;">Sign in to write a review</p>'}
+            ${
+              this.currentUser
+                ? '<button class="btn-write-review" onclick="reviewsManager.openReviewModal()">Write the First Review</button>'
+                : `<a href="${this.getSignInRedirectUrl()}" class="reviews-empty__signin-cta">Sign in to write a review</a>`
+            }
           </div>
         `;
         return;
@@ -640,7 +655,7 @@
 
       if (!this.currentUser) {
         this.showToast('Please sign in to write a review', 'error');
-        window.location.href = `/auth?redirect=${encodeURIComponent(window.location.pathname)}`;
+        window.location.href = this.getSignInRedirectUrl();
         return;
       }
 
