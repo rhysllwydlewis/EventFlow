@@ -60,6 +60,23 @@ describe('Carousel modal CSS regressions', () => {
     expect(prmBlock).toContain('animation: none;');
   });
 
+  it('uses object-fit: cover (not contain) for thumbnail strip images', () => {
+    // cover fills the 44×44 tile cleanly; contain leaves letterbox gaps
+    expect(carouselCss).toContain('.carousel-thumb-item img');
+    const thumbIdx = carouselCss.indexOf('.carousel-thumb-item img');
+    // Grab the rule block following the selector
+    const afterThumb = carouselCss.slice(thumbIdx);
+    const ruleEnd = afterThumb.indexOf('}');
+    const ruleBlock = afterThumb.slice(0, ruleEnd);
+    expect(ruleBlock).toContain('object-fit: cover;');
+    expect(ruleBlock).not.toContain('object-fit: contain;');
+  });
+
+  it('repositions counter to bottom: 12px when thumb strip is hidden', () => {
+    expect(carouselCss).toContain('.carousel-content--no-strip .carousel-counter');
+    expect(carouselCss).toContain('.carousel-content--no-strip .carousel-image');
+  });
+
   it('includes a short-landscape viewport fallback for carousel sizing', () => {
     expect(carouselCss).toContain('@media (min-height: 451px) and (max-height: 500px) and (orientation: landscape)');
     expect(carouselCss).toContain('max-height: calc(100vh - 140px);');
@@ -86,5 +103,13 @@ describe('Carousel modal JS regressions', () => {
     expect(carouselJs).toContain('img.onerror = () =>');
     expect(carouselJs).toContain("img.classList.remove('is-loading');");
     expect(carouselJs).toContain("img.style.opacity = '1';");
+  });
+
+  it('hides thumb strip for single-image galleries and adds carousel-content--no-strip class', () => {
+    // Strip must be explicitly hidden so it does not occupy space on mobile
+    expect(carouselJs).toContain("strip.style.display = hasMultiple ? '' : 'none'");
+    // Parent content container gets a modifier class so CSS can reposition counter + image
+    expect(carouselJs).toContain("'carousel-content--no-strip'");
+    expect(carouselJs).toContain('classList.toggle');
   });
 });

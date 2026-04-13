@@ -683,7 +683,7 @@
 .carousel-thumb-item img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   pointer-events: none;
   display: block;
 }
@@ -1217,6 +1217,13 @@ img {
     padding: 0.3rem 0.75rem;
   }
 
+  /* When the gallery has only one image the thumbnail strip is hidden via JS
+     (.carousel-content--no-strip). Restore the counter to its desktop position
+     so it isn't floating awkwardly high above an invisible strip. */
+  .carousel-content--no-strip .carousel-counter {
+    bottom: 12px;
+  }
+
   /* Shrink the main image to avoid overlapping the strip and counter.
      Derivation: the parent .carousel-content container is 84vh tall. For the
      vertically-centred image not to overlap the counter (bottom: 74px, height
@@ -1224,6 +1231,11 @@ img {
      We use 84vh − 220px for an 8px safety buffer across short mobile viewports. */
   .carousel-image {
     max-height: calc(84vh - 220px);
+  }
+
+  /* Single-image carousel: strip is hidden so image can use nearly full height. */
+  .carousel-content--no-strip .carousel-image {
+    max-height: calc(84vh - 60px);
   }
 }
 

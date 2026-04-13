@@ -741,7 +741,7 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
           (url, idx) => `
         <div class="sp-gallery__${idx === 0 ? 'featured' : 'thumb'}" role="button" aria-label="Open gallery photo ${idx + 1}" tabindex="0">
           <img ${idx > 0 ? 'loading="lazy"' : ''} src="${escapeHtml(url)}" alt="${escapeHtml(supplier.name)} — photo ${idx + 1}">
-          <div class="sp-gallery__overlay" aria-hidden="true">🔍</div>
+          <div class="sp-gallery__overlay" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
         </div>`
         )
         .join('');
