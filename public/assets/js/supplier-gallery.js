@@ -261,7 +261,7 @@ class SupplierGalleryManager {
         if (!id && supplierId) {
           const csrfToken = await this.ensureCsrfToken();
           const updateResponse = await fetch(
-            `/api/me/suppliers/${encodeURIComponent(supplierId)}`,
+            `/api/v1/me/suppliers/${encodeURIComponent(supplierId)}`,
             {
               method: 'PATCH',
               credentials: 'include',
@@ -441,6 +441,8 @@ class SupplierGalleryManager {
   renderExistingPhotos(previewContainer) {
     // Remove any previously rendered existing-photo tiles (avoid duplicates on re-render)
     previewContainer.querySelectorAll('.photo-preview-item--existing').forEach(el => el.remove());
+    // Remove any previous empty-state hint
+    previewContainer.querySelectorAll('.photo-preview-empty-hint').forEach(el => el.remove());
 
     // Keep track of any pending-upload tiles so we insert existing photos before them
     const pendingNodes = Array.from(
@@ -499,6 +501,14 @@ class SupplierGalleryManager {
       }
     });
 
+    // Show empty-state hint when there are no photos at all (uploaded or pending)
+    if (this.uploadedPhotos.length === 0 && pendingNodes.length === 0) {
+      const hint = document.createElement('p');
+      hint.className = 'photo-preview-empty-hint';
+      hint.textContent = 'No photos yet — drag & drop above to add some.';
+      previewContainer.appendChild(hint);
+    }
+
     this.attachExistingPhotoDragDrop(previewContainer);
     this.updateReorderBar();
   }
@@ -524,7 +534,7 @@ class SupplierGalleryManager {
     try {
       const csrfToken = await this.ensureCsrfToken();
       const response = await fetch(
-        `/api/me/suppliers/${encodeURIComponent(supplierId)}/photos/${encodeURIComponent(photoId)}`,
+        `/api/v1/me/suppliers/${encodeURIComponent(supplierId)}/photos/${encodeURIComponent(photoId)}`,
         {
           method: 'DELETE',
           credentials: 'include',
@@ -723,7 +733,7 @@ class SupplierGalleryManager {
     try {
       const csrfToken = await this.ensureCsrfToken();
       const response = await fetch(
-        `/api/me/suppliers/${encodeURIComponent(supplierId)}/photos/order`,
+        `/api/v1/me/suppliers/${encodeURIComponent(supplierId)}/photos/order`,
         {
           method: 'PATCH',
           credentials: 'include',

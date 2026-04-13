@@ -11,60 +11,73 @@ Suppliers can manage their gallery photos from the dashboard. Supported actions:
 
 ## UI Components (`public/dashboard-supplier.html`)
 
-| Element | Purpose |
-|---|---|
-| `#sup-photo-drop` | Drop zone / click-to-upload |
-| `#sup-photo-preview` | Preview grid (pending uploads + existing photos) |
-| `#sup-gallery-reorder-bar` | Save-order toolbar (shown when ≥2 photos exist) |
-| `#sup-gallery-save-order` | "Save order" button |
-| `#sup-gallery-order-status` | Status message after save |
+| Element                     | Purpose                                                                             |
+| --------------------------- | ----------------------------------------------------------------------------------- |
+| `#sup-photo-drop`           | Drop zone / click-to-upload                                                         |
+| `#sup-photo-preview`        | Preview grid (pending uploads + existing photos; shows empty-state hint when empty) |
+| `#sup-gallery-reorder-bar`  | Save-order toolbar (shown when ≥2 photos exist)                                     |
+| `#sup-gallery-save-order`   | "Save order" button                                                                 |
+| `#sup-gallery-order-status` | Status message after save                                                           |
 
 ## Client-side Logic (`public/assets/js/supplier-gallery.js`)
 
 ### `SupplierGalleryManager`
 
-| Method | Description |
-|---|---|
-| `loadExistingPhotos()` | Fetches current supplier data; renders existing `photosGallery` into the preview grid |
-| `renderExistingPhotos(container)` | Renders existing-photo tiles with delete button and drag handle |
-| `deleteExistingPhoto(photoId, wrapperEl)` | Calls `DELETE /api/me/suppliers/:id/photos/:photoId` and removes the tile |
-| `attachExistingPhotoDragDrop(container)` | Wires HTML5 drag-and-drop on existing-photo tiles |
-| `savePhotoOrder()` | Collects the current DOM order and calls `PATCH /api/me/suppliers/:id/photos/order` |
-| `uploadPendingPhotos(supplierId)` | Uploads staged files; on success moves them into the existing-photos list |
-| `updateReorderBar()` | Shows/hides the "Save order" bar depending on photo count |
+| Method                                    | Description                                                                                                                                                                                                           |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `loadExistingPhotos()`                    | Reads `#sup-id`; delegates to `loadPhotosForSupplier()`                                                                                                                                                               |
+| `loadPhotosForSupplier(supplierId)`       | Fetches supplier data via `supplierManager`; renders `photosGallery` into the preview grid. Also exposed as `window.loadSupplierGalleryPhotos(id)` so `app.js` can trigger it when populating the supplier edit form. |
+| `renderExistingPhotos(container)`         | Renders existing-photo tiles with delete button and drag handle; shows an empty-state hint when there are no photos                                                                                                   |
+| `deleteExistingPhoto(photoId, wrapperEl)` | Calls `DELETE /api/v1/me/suppliers/:id/photos/:photoId` and removes the tile                                                                                                                                          |
+| `attachExistingPhotoDragDrop(container)`  | Wires HTML5 drag-and-drop on existing-photo tiles (guarded against handler accumulation with `data-drag-handlers-attached`)                                                                                           |
+| `savePhotoOrder()`                        | Collects the current DOM order and calls `PATCH /api/v1/me/suppliers/:id/photos/order`. Exposed as `window.saveSupplierGalleryOrder()`.                                                                               |
+| `uploadPendingPhotos(supplierId)`         | Uploads staged files; on success moves them into the existing-photos list                                                                                                                                             |
+| `updateReorderBar()`                      | Shows/hides the "Save order" bar depending on photo count                                                                                                                                                             |
 
-The `savePhotoOrder` function is also exposed as `window.saveSupplierGalleryOrder()` for the inline `onclick` on the save-order button.
+### `app.js` integration
+
+`populateSupplierForm(supplier)` calls `window.loadSupplierGalleryPhotos(supplier.id)` after populating the edit form fields. This is needed because `supplier-gallery.js` initialises before `app.js` has fetched the supplier data (the `#sup-id` field is empty at setup time).
 
 ## API Endpoints
 
+All endpoints are available at both `/api/v1/me/suppliers/...` and `/api/me/suppliers/...` (backward-compatibility alias).
+
 ### List photos
+
 ```
-GET /api/me/suppliers/:id/photos
+GET /api/v1/me/suppliers/:id/photos
 ```
-- **Auth**: owner or admin
+
+- **Auth**: owner or admin, rate-limited
 - **Response**: `{ success, count, photos: [{id, url, thumbnail, approved, uploadedAt}] }`
 
 ### Upload a photo
+
 ```
-POST /api/me/suppliers/:id/photos
+POST /api/v1/me/suppliers/:id/photos
 ```
+
 - **Auth**: verified owner, CSRF, rate-limited, `photoUploads` feature flag
 - **Body**: `{ image: "<base64 data URI>" }`
 - **Response**: `{ ok: true, url }`
 
 ### Delete a photo
+
 ```
-DELETE /api/me/suppliers/:id/photos/:photoId
+DELETE /api/v1/me/suppliers/:id/photos/:photoId
 ```
+
 - **Auth**: verified owner or admin, CSRF, rate-limited
 - **`:photoId`**: `id` field or URL of the photo in `photosGallery`
 - **Effect**: removes the entry from `supplier.photosGallery`; deletes the physical file for `/api/photos/...` URLs
 - **Response**: `{ success, message, remainingPhotos }`
 
 ### Reorder photos
+
 ```
-PATCH /api/me/suppliers/:id/photos/order
+PATCH /api/v1/me/suppliers/:id/photos/order
 ```
+
 - **Auth**: verified owner, CSRF, rate-limited
 - **Body**: `{ photoIds: [string, ...] }` — full ordered list of photo IDs (or URLs if no `id` field)
 - **Validation**:
@@ -96,3 +109,4 @@ Photos are ordered as they appear in `photosGallery`. The **first entry is the c
 - A supplier can have at most **10** gallery photos.
 - Reordering the gallery also invalidates the public catalog cache so the new order is reflected immediately.
 - `photosGallery` items uploaded before the `id` field was introduced may have `id: undefined`; these are matched by URL in the delete endpoint and keyed by URL in the reorder endpoint.
+- Gallery tile transitions respect `prefers-reduced-motion` — all CSS transitions are disabled for users who prefer reduced motion.

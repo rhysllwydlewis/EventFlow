@@ -7517,3 +7517,28 @@ label .required {
   pointer-events: none;
   white-space: nowrap;
 }
+
+/* ── Empty state hint inside preview grid ─────────────────────────────────── */
+.photo-preview-empty-hint {
+  width: 100%;
+  padding: 10px 0 2px;
+  font-size: 0.8rem;
+  color: #9ca3af;
+  text-align: center;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ── Accessibility: disable transitions for users who prefer reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .photo-preview-item--existing,
+  .photo-preview-item--pending,
+  .photo-drag-handle,
+  .photo-preview-item--existing .photo-delete-btn,
+  .photo-preview-item--pending .photo-remove-btn {
+    transition: none !important;
+  }
+  .photo-preview-item--existing.photo-gallery-dragging {
+    transform: none;
+  }
+}
