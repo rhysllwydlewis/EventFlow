@@ -56,10 +56,12 @@ describe('Carousel modal CSS regressions', () => {
     expect(prmBlock).not.toContain('transform: translateY(-50%) scale(1.06);');
     expect(prmBlock).toContain('.carousel-image');
     expect(prmBlock).toContain('transition: none;');
+    expect(prmBlock).toContain('.carousel-image.is-loading');
+    expect(prmBlock).toContain('animation: none;');
   });
 
   it('includes a short-landscape viewport fallback for carousel sizing', () => {
-    expect(carouselCss).toContain('@media (max-height: 500px) and (orientation: landscape)');
+    expect(carouselCss).toContain('@media (min-height: 451px) and (max-height: 500px) and (orientation: landscape)');
     expect(carouselCss).toContain('max-height: calc(100vh - 140px);');
   });
 });

@@ -434,8 +434,10 @@
     rgba(255, 255, 255, 0.06) 60%,
     rgba(255, 255, 255, 0.0) 100%
   );
+  background-repeat: no-repeat;
   background-size: 200% 100%;
   animation: carousel-skeleton-shimmer 1.5s ease-in-out infinite;
+  will-change: background-position;
   /* Give the skeleton a minimum size so it's visible before the image loads */
   min-width: 200px;
   min-height: 150px;
@@ -1178,6 +1180,11 @@ img {
   .carousel-image {
     transition: none;
   }
+
+  .carousel-image.is-loading {
+    animation: none;
+    background-position: 50% 0;
+  }
 }
 
 /* Hide side-preview thumbnails on small screens — not enough horizontal room.
@@ -1252,8 +1259,9 @@ img {
   }
 }
 
-/* Improve very short landscape viewport usability on phones/tablets. */
-@media (max-height: 500px) and (orientation: landscape) {
+/* Improve short landscape viewport usability on phones/tablets that are taller
+   than the "extremely short" ≤450px case handled above. */
+@media (min-height: 451px) and (max-height: 500px) and (orientation: landscape) {
   .carousel-content {
     height: 92vh;
   }
