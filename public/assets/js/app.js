@@ -3582,6 +3582,11 @@ async function initDashSupplier() {
   if (supForm) {
     supForm.addEventListener('submit', async e => {
       e.preventDefault();
+      const saveBtn = supForm.querySelector('button[type="submit"]');
+
+      if (saveBtn && saveBtn.disabled) {
+        return;
+      }
 
       if (typeof window.validateVenuePostcode === 'function') {
         if (!window.validateVenuePostcode()) {
@@ -3590,6 +3595,11 @@ async function initDashSupplier() {
       }
 
       const statusEl = document.getElementById('sup-status');
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.setAttribute('aria-disabled', 'true');
+      }
+      supForm.setAttribute('aria-busy', 'true');
       try {
         // Ensure CSRF token is available
         const csrfToken = await ensureCsrfToken();
@@ -3667,6 +3677,12 @@ async function initDashSupplier() {
           statusEl.textContent = `Error: ${err.message || 'Please try again'}`;
           statusEl.style.color = '#ef4444';
         }
+      } finally {
+        if (saveBtn) {
+          saveBtn.disabled = false;
+          saveBtn.removeAttribute('aria-disabled');
+        }
+        supForm.setAttribute('aria-busy', 'false');
       }
     });
   }
@@ -3675,12 +3691,29 @@ async function initDashSupplier() {
   const previewBtn = document.getElementById('sup-preview');
   if (previewBtn) {
     previewBtn.addEventListener('click', () => {
+      const statusEl = document.getElementById('sup-status');
+      const saveBtn = document.getElementById('sup-create');
+      const formEl = document.getElementById('supplier-form');
+      const isSaving = formEl?.getAttribute('aria-busy') === 'true';
+      if (isSaving) {
+        if (statusEl) {
+          statusEl.textContent = 'Please wait for the current save to finish before previewing.';
+          statusEl.style.color = '#b45309';
+        }
+        return;
+      }
       const supplierIdInput = document.getElementById('sup-id');
       if (supplierIdInput && supplierIdInput.value) {
         const supplierId = supplierIdInput.value;
         window.open(`/supplier?id=${encodeURIComponent(supplierId)}&preview=true`, '_blank');
       } else {
-        alert('Please save your profile first before previewing.');
+        if (statusEl) {
+          statusEl.textContent = 'Please save your profile first before previewing.';
+          statusEl.style.color = '#b45309';
+        }
+        if (saveBtn) {
+          saveBtn.focus();
+        }
       }
     });
   }

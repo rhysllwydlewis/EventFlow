@@ -87,6 +87,12 @@ describe('Supplier Profile Save Fixes', () => {
     it('should have smooth scrolling to error field', () => {
       expect(dashboardSupplierHtml).toContain("scrollIntoView({ behavior: 'smooth'");
     });
+
+    it('should expose supplier status region with polite live updates', () => {
+      expect(dashboardSupplierHtml).toContain('id="sup-status"');
+      expect(dashboardSupplierHtml).toContain('role="status"');
+      expect(dashboardSupplierHtml).toContain('aria-live="polite"');
+    });
   });
 
   describe('Form Submission Logic in app.js', () => {
@@ -134,6 +140,13 @@ describe('Supplier Profile Save Fixes', () => {
     it('should clean up payload for non-Venues categories', () => {
       const supplierFormMatch = appJsContent.match(
         /getElementById\('supplier-form'\)[\s\S]{0,1500}delete\s+payload\.venuePostcode/
+      );
+      expect(supplierFormMatch).toBeTruthy();
+    });
+
+    it('should guard against duplicate submits and toggle form busy state', () => {
+      const supplierFormMatch = appJsContent.match(
+        /getElementById\('supplier-form'\)[\s\S]{0,2200}saveBtn\.disabled[\s\S]{0,2200}aria-busy[\s\S]{0,2200}finally/
       );
       expect(supplierFormMatch).toBeTruthy();
     });
@@ -270,6 +283,14 @@ describe('Supplier Profile Save Fixes', () => {
         /getElementById\('supplier-form'\)[\s\S]{0,2000}statusEl\.style\.color\s*=\s*['"]#ef4444['"]/
       );
       expect(supplierFormMatch).toBeTruthy();
+    });
+
+    it('should use in-form status messaging for preview guidance instead of alert()', () => {
+      const previewMatch = appJsContent.match(
+        /getElementById\('sup-preview'\)[\s\S]{0,1200}statusEl\.textContent\s*=\s*['"]Please save your profile first before previewing\./
+      );
+      expect(previewMatch).toBeTruthy();
+      expect(previewMatch[0]).not.toContain('alert(');
     });
   });
 });

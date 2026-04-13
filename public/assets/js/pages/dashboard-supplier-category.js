@@ -25,42 +25,60 @@
     return { valid: true, message: '' };
   }
 
+  function clearVenuePostcodeError() {
+    venuePostcodeError.textContent = '';
+    venuePostcodeError.classList.remove('visible');
+    venuePostcodeInput.setAttribute('aria-invalid', 'false');
+  }
+
+  function showVenuePostcodeError(message) {
+    venuePostcodeError.textContent = message;
+    venuePostcodeError.classList.add('visible');
+    venuePostcodeInput.setAttribute('aria-invalid', 'true');
+  }
+
   function updateVenuePostcodeVisibility() {
     const selectedCategory = categorySelect.value;
     if (selectedCategory === 'Venues') {
       venuePostcodeRow.classList.remove('form-row-hidden');
+      venuePostcodeRow.style.display = '';
       venuePostcodeInput.setAttribute('aria-required', 'true');
     } else {
       venuePostcodeRow.classList.add('form-row-hidden');
+      venuePostcodeRow.style.display = 'none';
       venuePostcodeInput.value = ''; // Clear value when not Venues
       venuePostcodeInput.setAttribute('aria-required', 'false');
-      venuePostcodeError.classList.remove('visible');
+      clearVenuePostcodeError();
     }
   }
 
   // Real-time validation on input
-  venuePostcodeInput.addEventListener('input', function () {
+  venuePostcodeInput.addEventListener('input', () => {
     if (categorySelect.value !== 'Venues') {
+      clearVenuePostcodeError();
       return;
     }
-    const result = validatePostcode(this.value);
-    if (!result.valid && this.value.trim()) {
-      venuePostcodeError.textContent = result.message;
-      venuePostcodeError.classList.add('visible');
+
+    const value = venuePostcodeInput.value;
+    const result = validatePostcode(value);
+    if (!result.valid && value.trim()) {
+      showVenuePostcodeError(result.message);
     } else {
-      venuePostcodeError.classList.remove('visible');
+      clearVenuePostcodeError();
     }
   });
 
   // Validate on blur
-  venuePostcodeInput.addEventListener('blur', function () {
+  venuePostcodeInput.addEventListener('blur', () => {
     if (categorySelect.value !== 'Venues') {
+      clearVenuePostcodeError();
       return;
     }
-    const result = validatePostcode(this.value);
+    const result = validatePostcode(venuePostcodeInput.value);
     if (!result.valid) {
-      venuePostcodeError.textContent = result.message;
-      venuePostcodeError.classList.add('visible');
+      showVenuePostcodeError(result.message);
+    } else {
+      clearVenuePostcodeError();
     }
   });
 
@@ -72,17 +90,21 @@
 
   // Make validation function available globally for form submission
   window.validateVenuePostcode = function () {
-    if (categorySelect.value === 'Venues') {
-      const result = validatePostcode(venuePostcodeInput.value);
-      if (!result.valid) {
-        venuePostcodeError.textContent = result.message;
-        venuePostcodeError.classList.add('visible');
-        venuePostcodeInput.focus();
-        // Scroll to the error field smoothly
-        venuePostcodeInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        return false;
-      }
+    if (categorySelect.value !== 'Venues') {
+      clearVenuePostcodeError();
+      return true;
     }
+
+    const result = validatePostcode(venuePostcodeInput.value);
+    if (!result.valid) {
+      showVenuePostcodeError(result.message);
+      venuePostcodeInput.focus();
+      // Scroll to the error field smoothly
+      venuePostcodeInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return false;
+    }
+
+    clearVenuePostcodeError();
     return true;
   };
 })();

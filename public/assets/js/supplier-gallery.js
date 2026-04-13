@@ -194,6 +194,19 @@ class SupplierGalleryManager {
       const img = document.createElement('img');
       img.src = e.target.result;
       img.alt = file.name;
+      img.addEventListener(
+        'error',
+        () => {
+          if (img.dataset.errorHandled) {
+            return;
+          }
+          img.dataset.errorHandled = '1';
+          img.alt = 'Image unavailable';
+          img.title = 'Could not load image';
+          imgWrap.classList.add('photo-preview-item__image-wrap--error');
+        },
+        { once: true }
+      );
       imgWrap.appendChild(img);
       wrapper.appendChild(imgWrap);
 
