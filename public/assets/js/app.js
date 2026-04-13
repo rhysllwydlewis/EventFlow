@@ -3716,8 +3716,7 @@ async function initDashSupplier() {
     previewBtn.addEventListener('click', () => {
       const statusEl = document.getElementById('sup-status');
       const saveBtn = document.getElementById('sup-create');
-      const formEl = document.getElementById('supplier-form');
-      const isSaving = formEl?.getAttribute('aria-busy') === 'true';
+      const isSaving = Boolean(saveBtn?.disabled);
       if (isSaving) {
         if (statusEl) {
           clearSupplierStatusTimer();
