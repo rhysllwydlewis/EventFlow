@@ -203,124 +203,39 @@ class SupplierGalleryManager {
     reader.readAsDataURL(file);
   }
 
-  setupFormIntercept(form) {
-    form.addEventListener('submit', async e => {
-      e.preventDefault();
+  /**
+   * Register the gallery as ready to accept photo-upload requests from the
+   * main form-save handler (app.js).  The old `setupFormIntercept` approach
+   * attached a second 'submit' listener to the supplier form which raced with
+   * the handler in app.js and sent duplicate/incomplete save requests.  The
+   * new contract is:
+   *   1. app.js saves the supplier profile (POST/PATCH) and gets a supplier ID.
+   *   2. app.js calls window.uploadPendingGalleryPhotos(supplierId) so we can
+   *      upload any staged photos now that we have a valid ID.
+   * This method keeps the form-intercept wiring alive for backward-compat but
+   * only uploads photos — it no longer saves the text-field payload itself.
+   */
+  setupFormIntercept(_form) {
+    // No-op: photo uploads are now triggered by app.js via
+    // window.uploadPendingGalleryPhotos() after the supplier is saved.
+    // Keeping this method so callers that pass `form` don't throw.
+  }
 
-      // Get or determine supplier ID
-      const supplierIdField = document.getElementById('sup-id');
-      let supplierId = supplierIdField ? supplierIdField.value : null;
-
-      // Prepare form data
-      const formData = new FormData(form);
-      const payload = {};
-      formData.forEach((v, k) => (payload[k] = v));
-
-      const id = (payload.id || '').toString().trim();
-
-      try {
-        // If no supplier ID, create the supplier first to get a valid ID from the server
-        if (!supplierId || supplierId.trim() === '') {
-          // Create new supplier
-          const csrfToken = await this.ensureCsrfToken();
-          const response = await fetch('/api/v1/me/suppliers', {
-            method: 'POST',
-            credentials: 'include',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-CSRF-Token': csrfToken,
-            },
-            body: JSON.stringify(payload),
-          });
-
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || 'Failed to create supplier profile');
-          }
-
-          const data = await response.json();
-          supplierId = data.supplier?.id || data.id;
-
-          // Update the form field with the server-generated ID
-          if (supplierIdField && supplierId) {
-            supplierIdField.value = supplierId;
-          }
-
-          if (isDevelopment) {
-            console.log('Supplier created with ID:', supplierId);
-          }
-        }
-
-        // Upload pending photos now that we have a valid supplier ID
-        if (this.pendingUploads.length > 0 && supplierId) {
-          await this.uploadPendingPhotos(supplierId);
-          // Photos are persisted in photosGallery by uploadPendingPhotos — no extra payload update needed
-        }
-
-        // Now update the supplier with photo URLs if this was a new supplier
-        if (!id && supplierId) {
-          const csrfToken = await this.ensureCsrfToken();
-          const updateResponse = await fetch(
-            `/api/v1/me/suppliers/${encodeURIComponent(supplierId)}`,
-            {
-              method: 'PATCH',
-              credentials: 'include',
-              headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-Token': csrfToken,
-              },
-              body: JSON.stringify(payload),
-            }
-          );
-
-          if (!updateResponse.ok) {
-            const errorData = await updateResponse.json().catch(() => ({}));
-            throw new Error(errorData.error || 'Failed to update supplier profile with photos');
-          }
-        } else if (id) {
-          // If editing existing supplier, update it
-          const csrfToken = await this.ensureCsrfToken();
-          const updateResponse = await fetch(`/api/v1/me/suppliers/${encodeURIComponent(id)}`, {
-            method: 'PATCH',
-            credentials: 'include',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-CSRF-Token': csrfToken,
-            },
-            body: JSON.stringify(payload),
-          });
-
-          if (!updateResponse.ok) {
-            const errorData = await updateResponse.json().catch(() => ({}));
-            throw new Error(errorData.error || 'Failed to save supplier profile');
-          }
-        }
-
-        // Clear pending uploads
-        this.pendingUploads = [];
-
-        // Use Toast if available, fallback to alert
-        if (typeof Toast !== 'undefined') {
-          Toast.success('Supplier profile and photos saved successfully!');
-        } else {
-          alert('Saved supplier profile with photos!');
-        }
-
-        // Reload the page or refresh suppliers list
-        if (typeof window.loadSuppliers === 'function') {
-          await window.loadSuppliers();
-        }
-      } catch (error) {
-        console.error('Error saving supplier:', error);
-
-        // Use Toast if available, fallback to alert
-        if (typeof Toast !== 'undefined') {
-          Toast.error(`Error saving supplier profile: ${error.message}`);
-        } else {
-          alert(`Error saving supplier profile: ${error.message}`);
-        }
-      }
-    });
+  /**
+   * Upload any pending (staged) photos for the given supplier ID.
+   * Called by the app.js save handler after the supplier profile has been
+   * persisted, so we always have a valid supplier ID when uploading.
+   * @param {string} supplierId
+   * @returns {Promise<void>}
+   */
+  async uploadPendingGalleryPhotos(supplierId) {
+    if (!supplierId) {
+      return;
+    }
+    this.currentSupplierId = supplierId;
+    if (this.pendingUploads.length > 0) {
+      await this.uploadPendingPhotos(supplierId);
+    }
   }
 
   async uploadPendingPhotos(supplierId) {
@@ -490,6 +405,19 @@ class SupplierGalleryManager {
       img.src = photo.url;
       img.alt = 'Gallery photo';
       img.loading = 'lazy';
+      img.addEventListener(
+        'error',
+        () => {
+          if (img.dataset.errorHandled) {
+            return;
+          }
+          img.dataset.errorHandled = '1';
+          img.alt = 'Image unavailable';
+          img.title = 'Could not load image';
+          imgWrap.classList.add('photo-preview-item__image-wrap--error');
+        },
+        { once: true }
+      );
       imgWrap.appendChild(img);
       wrapper.appendChild(imgWrap);
 
@@ -788,5 +716,10 @@ window.saveSupplierGalleryOrder = () => galleryManager.savePhotoOrder();
 // Expose photo-load so populateSupplierForm (app.js) can trigger a reload
 // whenever the supplier edit form is populated with a different supplier.
 window.loadSupplierGalleryPhotos = supplierId => galleryManager.loadPhotosForSupplier(supplierId);
+
+// Expose pending-photo upload so app.js can trigger uploads after the
+// supplier profile has been successfully saved and a supplier ID is known.
+window.uploadPendingGalleryPhotos = supplierId =>
+  galleryManager.uploadPendingGalleryPhotos(supplierId);
 
 export default galleryManager;
