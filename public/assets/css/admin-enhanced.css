@@ -3839,3 +3839,36 @@ tbody tr.selected td {
   white-space: nowrap;
   border: 0;
 }
+
+/* ─── Suppliers Table: column-width fixes ──────────────────────────────────
+ * Without min-width the name column collapses and the Actions column
+ * clips the Approve/Reject buttons. Force horizontal scroll on the wrapper
+ * rather than squishing columns.
+ * ───────────────────────────────────────────────────────────────────────── */
+#suppliersTable {
+  min-width: 1050px;
+}
+
+/* Keep supplier names on one line; let the name column grow */
+#suppliersTable td:nth-child(2),
+#suppliersTable th:nth-child(2) {
+  min-width: 140px;
+}
+
+#suppliersTable td:nth-child(2) a {
+  white-space: nowrap;
+}
+
+/* Email column: never collapse below readable width */
+#suppliersTable td:nth-child(3),
+#suppliersTable th:nth-child(3) {
+  min-width: 150px;
+  white-space: nowrap;
+}
+
+/* Actions column: wide enough for approve + reject + delete row.
+ * 5 × btn-xs (≈30–90px each) + 4 × 8px gap = ~310px content + padding. */
+#suppliersTable td:nth-child(9),
+#suppliersTable th:nth-child(9) {
+  min-width: 310px;
+}
