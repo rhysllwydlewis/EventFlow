@@ -34,8 +34,13 @@
       if (!seenSrcs.has(src)) {
         const idx = images.length;
         seenSrcs.set(src, idx);
+        // Prefer a dedicated thumbnail URL (data-thumb) if available.
+        // Fall back to the display src (which is often already a smaller size)
+        // rather than the full-size URL so thumbnails load quickly.
+        const thumb = img.dataset.thumb || img.src;
         images.push({
           src,
+          thumb,
           alt: img.alt || `Image ${idx + 1}`,
           caption: img.dataset.caption || img.title || '',
         });
@@ -481,7 +486,7 @@
       }
 
       const img = document.createElement('img');
-      img.src = image.src;
+      img.src = image.thumb || image.src;
       img.alt = '';
       img.loading = 'lazy';
       // Match the CSS display dimensions so the browser can reserve layout space
@@ -557,6 +562,7 @@
 
     images = deduped.map((url, i) => ({
       src: url,
+      thumb: url,
       alt: name ? `${name} — photo ${i + 1}` : `photo ${i + 1}`,
       caption: '',
     }));
