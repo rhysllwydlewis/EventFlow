@@ -487,4 +487,16 @@ describe('CSS – prefers-reduced-motion uses !important to prevent cascade over
     expect(supplierDashImprovementsCss).toContain('box-sizing: border-box');
     expect(supplierDashImprovementsCss).toContain('@media (max-width: 680px)');
   });
+
+  it('supplier-dashboard-improvements.css keeps profile-form helper/error text compact and scoped', () => {
+    expect(supplierDashImprovementsCss).toContain(
+      '#profile-form-section #supplier-form .small.form-error-text'
+    );
+    expect(supplierDashImprovementsCss).toContain(
+      '#profile-form-section #supplier-form .form-help-text'
+    );
+    expect(supplierDashImprovementsCss).toContain(
+      '#profile-form-section #supplier-form .supplier-form-actions'
+    );
+  });
 });
