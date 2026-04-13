@@ -2480,8 +2480,21 @@ textarea:focus {
    =========================================== */
 .supplier-form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: var(--ef-space-4, 16px);
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  column-gap: clamp(12px, 2vw, 18px);
+  row-gap: var(--ef-space-4, 16px);
+}
+
+#supplier-form .supplier-form-grid > div {
+  min-width: 0;
+}
+
+#supplier-form input,
+#supplier-form select,
+#supplier-form textarea {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .supplier-form-grid-2col {
@@ -2525,7 +2538,20 @@ textarea:focus {
 
 #supplier-form .supplier-field-invalid {
   border-color: var(--ef-error, #ef4444) !important;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.14);
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.14);
+}
+
+@media (max-width: 900px) {
+  #supplier-form .supplier-form-grid {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  #supplier-form .supplier-form-grid {
+    grid-template-columns: 1fr;
+    row-gap: var(--ef-space-3, 12px);
+  }
 }
 
 #supplier-form #sup-create.is-loading {

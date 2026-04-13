@@ -231,6 +231,7 @@ describe('Supplier profile form – website field browser validation disabled', 
   it('website input includes helper text for https:// auto-normalization', () => {
     expect(dashboardHtml).toContain('id="sup-website-help"');
     expect(dashboardHtml).toContain('https:// will be added when you save');
+    expect(dashboardHtml).toContain('www.event-flow.co.uk');
   });
 });
 
@@ -408,6 +409,7 @@ describe('Supplier form – website URL normalization', () => {
     const handlerBlock = appJs.slice(submitIdx, submitIdx + 8000);
     expect(handlerBlock).toContain('normalizeAndValidateWebsiteInput');
     expect(handlerBlock).toContain('Please fix the website URL and try again.');
+    expect(handlerBlock).toContain('www.example.com');
   });
 });
 
@@ -476,5 +478,11 @@ describe('CSS – prefers-reduced-motion uses !important to prevent cascade over
     expect(supplierDashImprovementsCss).toContain('.supplier-field-invalid');
     expect(supplierDashImprovementsCss).toContain('#sup-create.is-loading::after');
     expect(supplierDashImprovementsCss).toContain('@keyframes supplier-save-spin');
+  });
+
+  it('supplier-dashboard-improvements.css includes responsive supplier form spacing guards', () => {
+    expect(supplierDashImprovementsCss).toContain('#supplier-form .supplier-form-grid > div');
+    expect(supplierDashImprovementsCss).toContain('box-sizing: border-box');
+    expect(supplierDashImprovementsCss).toContain('@media (max-width: 680px)');
   });
 });

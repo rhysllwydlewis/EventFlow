@@ -3642,7 +3642,11 @@ async function initDashSupplier() {
       inputEl.value = '';
       return { ok: true, value: '' };
     }
-    const normalized = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+    if (/\s/.test(raw)) {
+      return { ok: false, value: raw };
+    }
+    const hasHttpScheme = /^https?:\/\//i.test(raw);
+    const normalized = hasHttpScheme ? raw : `https://${raw.replace(/^\/+/, '')}`;
     let parsed;
     try {
       parsed = new URL(normalized);
@@ -3651,6 +3655,16 @@ async function initDashSupplier() {
     }
     if (!/^https?:$/i.test(parsed.protocol)) {
       return { ok: false, value: raw };
+    }
+    // For no-scheme input, require a plausible host shape (domain, localhost, or IPv4).
+    if (!hasHttpScheme) {
+      const host = (parsed.hostname || '').toLowerCase();
+      const isLikelyDomain = host.includes('.');
+      const isLocalhost = host === 'localhost';
+      const isIPv4 = /^(?:\d{1,3}\.){3}\d{1,3}$/.test(host);
+      if (!host || (!isLikelyDomain && !isLocalhost && !isIPv4)) {
+        return { ok: false, value: raw };
+      }
     }
     inputEl.value = normalized;
     return { ok: true, value: normalized };
@@ -3717,7 +3731,7 @@ async function initDashSupplier() {
         setSupplierFieldError(
           websiteEl,
           websiteErrorEl,
-          'Please enter a valid website URL (for example: https://example.com).'
+          'Please enter a valid website (for example: https://example.com, www.example.com, or example.com).'
         );
         if (statusEl) {
           clearSupplierStatusTimer();
