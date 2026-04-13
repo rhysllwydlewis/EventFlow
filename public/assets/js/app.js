@@ -3661,11 +3661,11 @@ async function initDashSupplier() {
     supForm.addEventListener('submit', async e => {
       e.preventDefault();
       const saveBtn = supForm.querySelector('button[type="submit"]');
-      const originalSaveBtnText = saveBtn ? saveBtn.textContent : '';
 
       if (saveBtn && saveBtn.disabled) {
         return;
       }
+      const originalSaveBtnText = saveBtn ? saveBtn.textContent : '';
 
       if (typeof window.validateVenuePostcode === 'function') {
         if (!window.validateVenuePostcode()) {
@@ -3774,13 +3774,12 @@ async function initDashSupplier() {
         const savedId =
           response && response.supplier && response.supplier.id ? response.supplier.id : id;
 
-        // Guard: for new profiles (POST), the server must return a valid ID.
-        // If it doesn't, we cannot proceed reliably — show an error and abort.
-        if (!savedId && method === 'POST') {
+        // Guard: all successful saves should resolve to a usable supplier ID.
+        if (!savedId) {
           if (statusEl) {
             clearSupplierStatusTimer();
             statusEl.setAttribute('data-tone', 'error');
-            statusEl.textContent = 'Error: Server did not return a supplier ID. Please try again.';
+            statusEl.textContent = 'Error: Save did not return a supplier ID. Please try again.';
             statusEl.style.color = '#ef4444';
             scheduleSupplierStatusClear(statusEl, 8000);
           }
@@ -3788,17 +3787,15 @@ async function initDashSupplier() {
         }
 
         // Update currently editing supplier ID with the saved/created ID
-        if (savedId) {
-          currentEditingSupplierId = savedId;
-          // Also update the hidden ID field so subsequent saves use PATCH
-          const supIdField = document.getElementById('sup-id');
-          if (supIdField && !supIdField.value) {
-            supIdField.value = savedId;
-          }
+        currentEditingSupplierId = savedId;
+        // Also update the hidden ID field so subsequent saves use PATCH
+        const supIdField = document.getElementById('sup-id');
+        if (supIdField && !supIdField.value) {
+          supIdField.value = savedId;
         }
 
         // Upload any pending gallery photos now that we have a valid supplier ID
-        if (savedId && typeof window.uploadPendingGalleryPhotos === 'function') {
+        if (typeof window.uploadPendingGalleryPhotos === 'function') {
           try {
             await window.uploadPendingGalleryPhotos(savedId);
           } catch (photoErr) {

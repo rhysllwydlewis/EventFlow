@@ -230,7 +230,7 @@ describe('Supplier profile form – website field browser validation disabled', 
 
   it('website input includes helper text for https:// auto-normalization', () => {
     expect(dashboardHtml).toContain('id="sup-website-help"');
-    expect(dashboardHtml).toContain('https:// is added automatically');
+    expect(dashboardHtml).toContain('https:// will be added when you save');
   });
 });
 
@@ -327,12 +327,12 @@ describe('Supplier form submit – double-submit prevention (sequencing)', () =>
 });
 
 describe('Supplier form submit – savedId empty guard', () => {
-  it('app.js checks for empty savedId when method is POST and aborts with an error message', () => {
-    expect(appJs).toContain("!savedId && method === 'POST'");
+  it('app.js checks for empty savedId and aborts with an error message', () => {
+    expect(appJs).toContain('if (!savedId)');
   });
 
-  it('app.js shows an error status message when savedId is empty after POST', () => {
-    const guardIdx = appJs.indexOf("!savedId && method === 'POST'");
+  it('app.js shows an error status message when savedId is empty after save', () => {
+    const guardIdx = appJs.indexOf('if (!savedId)');
     const guardBlock = appJs.slice(guardIdx, guardIdx + 400);
     expect(guardBlock).toContain('error');
     expect(guardBlock).toContain('return');
@@ -430,13 +430,9 @@ describe('supplier-gallery.js – dead setupFormIntercept call removed', () => {
   it('setup() no longer contains a live call to setupFormIntercept', () => {
     const setupIdx = galleryJs.indexOf('setup() {');
     expect(setupIdx).toBeGreaterThan(-1);
-    // Extract the setup() method body (up to the next top-level method)
-    const nextMethodIdx = galleryJs.indexOf('\n  setup', setupIdx + 1);
-    const endIdx =
-      nextMethodIdx !== -1
-        ? galleryJs.indexOf('\n  ', nextMethodIdx + 5)
-        : galleryJs.indexOf('\n  }', setupIdx) + 4;
-    const setupBody = galleryJs.slice(setupIdx, endIdx > setupIdx ? endIdx : setupIdx + 800);
+    const loadExistingIdx = galleryJs.indexOf('this.loadExistingPhotos();', setupIdx);
+    expect(loadExistingIdx).toBeGreaterThan(setupIdx);
+    const setupBody = galleryJs.slice(setupIdx, loadExistingIdx + 100);
     expect(setupBody).not.toContain('this.setupFormIntercept(');
   });
 });
