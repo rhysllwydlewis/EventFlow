@@ -525,7 +525,18 @@
 
     strip.innerHTML = '';
 
-    if (images.length <= 1) {
+    const hasMultiple = images.length > 1;
+    // Hide the strip element when there's only one image so it doesn't occupy
+    // space at the bottom of the modal on mobile. The parent content container
+    // gains the carousel-content--no-strip class so the counter and image
+    // max-height rules can be recalculated via CSS.
+    strip.style.display = hasMultiple ? '' : 'none';
+    const content = strip.closest('.carousel-content');
+    if (content) {
+      content.classList.toggle('carousel-content--no-strip', !hasMultiple);
+    }
+
+    if (!hasMultiple) {
       return;
     }
 
