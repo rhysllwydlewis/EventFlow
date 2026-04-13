@@ -945,7 +945,10 @@ router.post(
         try {
           await partnerService.softDeletePartnerByUserId(deletedUser.id);
         } catch (partnerErr) {
-          logger.warn(`Could not soft-delete partner record for user ${deletedUser.id}:`, partnerErr);
+          logger.warn(
+            `Could not soft-delete partner record for user ${deletedUser.id}:`,
+            partnerErr
+          );
         }
       }
 
@@ -1599,14 +1602,20 @@ router.put(
 
       const supplier = suppliers[supplierIndex];
 
-      // Store previous version for history
+      // Store previous version for history (cap at 20 entries; omit nested history to prevent exponential growth)
       if (!supplier.versionHistory) {
         supplier.versionHistory = [];
       }
+      // Trim BEFORE adding so the array never temporarily exceeds the cap
+      if (supplier.versionHistory.length >= 20) {
+        supplier.versionHistory = supplier.versionHistory.slice(-19);
+      }
+      const previousStateSnap = { ...supplier };
+      delete previousStateSnap.versionHistory;
       supplier.versionHistory.push({
         timestamp: new Date().toISOString(),
         editedBy: req.user.id,
-        previousState: { ...supplier },
+        previousState: previousStateSnap,
       });
 
       // Update fields if provided
@@ -1667,7 +1676,7 @@ router.put(
       res.json({ success: true, supplier });
     } catch (error) {
       logger.error('Error updating supplier:', error);
-      res.status(500).json({ error: 'Failed to update supplier' });
+      res.status(500).json({ error: error.message || 'Failed to update supplier' });
     }
   }
 );

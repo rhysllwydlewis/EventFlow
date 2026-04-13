@@ -53,7 +53,10 @@
       AdminShared.showToast('Failed to load supplier details', 'error');
       if (header) {
         header.innerHTML =
-          '<p class="empty-state-card"><span class="empty-icon">⚠️</span><br>Failed to load supplier. <a href="" onclick="location.reload()">Retry</a></p>';
+          '<p class="empty-state-card"><span class="empty-icon">⚠️</span><br>Failed to load supplier. <button type="button" id="retryLoadSupplierBtn" style="background:none;border:none;color:#667eea;cursor:pointer;padding:0;text-decoration:underline;font-size:inherit;">Retry</button></p>';
+        header
+          .querySelector('#retryLoadSupplierBtn')
+          ?.addEventListener('click', () => location.reload());
       }
     } finally {
       if (header) {
@@ -238,21 +241,27 @@
     proPlanHtml += `
       <div style="margin-top: 1rem; border-top: 1px solid #e5e7eb; padding-top: 1rem;">
         <h4 style="margin-bottom: 0.75rem; font-size: 0.9rem; font-weight: 600;">Manage Subscription</h4>
-        <label for="subscriptionTier" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Tier:</label>
-        <select id="subscriptionTier" class="form-control" style="margin-bottom: 1rem;">
-          <option value="pro">Pro</option>
-          <option value="pro_plus">Pro Plus</option>
-        </select>
-        <label for="subscriptionDuration" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">Duration:</label>
-        <select id="subscriptionDuration" class="form-control" style="margin-bottom: 1rem;">
-          <option value="7">7 days (Trial)</option>
-          <option value="14">14 days (Trial)</option>
-          <option value="30" selected>30 days (1 Month)</option>
-          <option value="60">60 days (2 Months)</option>
-          <option value="90">90 days (3 Months)</option>
-          <option value="180">180 days (6 Months)</option>
-          <option value="365">365 days (1 Year)</option>
-        </select>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
+          <div>
+            <label for="subscriptionTier" style="display: block; margin-bottom: 0.35rem; font-size: 0.8rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.4px;">Tier</label>
+            <select id="subscriptionTier" class="form-control" style="width: 100%;">
+              <option value="pro">Pro</option>
+              <option value="pro_plus">Pro Plus</option>
+            </select>
+          </div>
+          <div>
+            <label for="subscriptionDuration" style="display: block; margin-bottom: 0.35rem; font-size: 0.8rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.4px;">Duration</label>
+            <select id="subscriptionDuration" class="form-control" style="width: 100%;">
+              <option value="7">7 days (Trial)</option>
+              <option value="14">14 days (Trial)</option>
+              <option value="30" selected>30 days (1 Month)</option>
+              <option value="60">60 days (2 Months)</option>
+              <option value="90">90 days (3 Months)</option>
+              <option value="180">180 days (6 Months)</option>
+              <option value="365">365 days (1 Year)</option>
+            </select>
+          </div>
+        </div>
         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
           <button class="btn btn-primary" id="grantProBtn">Grant / Extend</button>
           ${hasActiveSub ? '<button class="btn btn-secondary" id="cancelProBtn">Remove Subscription</button>' : ''}
@@ -340,7 +349,7 @@
             <p>${AdminShared.escapeHtml(pkg.price_display || pkg.price || 'Price not set')} • ${pkg.approved ? 'Approved' : 'Pending'}</p>
           </div>
           <div class="flex-gap">
-            <button class="btn btn-small btn-primary" onclick="window.open('/package?id=${pkg.id}', '_blank')">View</button>
+            <button class="btn btn-small btn-primary" data-action="viewPackage" data-id="${AdminShared.escapeHtml(pkg.id)}">View</button>
             <button class="btn btn-small btn-secondary" data-action="editPackage" data-id="${pkg.id}">Edit</button>
             ${!pkg.approved ? `<button class="btn btn-small btn-success" data-action="approvePackage" data-id="${pkg.id}">Approve</button>` : ''}
           </div>
@@ -648,14 +657,40 @@
       return;
     }
 
+    // Client-side validation for website URL — use URL constructor for structural check
+    if (matched.key === 'website' && valueResult.value) {
+      try {
+        const parsed = new URL(valueResult.value);
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+          throw new Error('protocol');
+        }
+      } catch {
+        AdminShared.showToast('Website URL must be a valid http:// or https:// address', 'error');
+        return;
+      }
+    }
+
+    // Client-side validation for required fields — derive a clean value to send
+    let finalValue = valueResult.value;
+    if (matched.key === 'name') {
+      finalValue = valueResult.value.trim();
+      if (!finalValue) {
+        AdminShared.showToast('Business name cannot be empty', 'error');
+        return;
+      }
+    }
+
     try {
       await AdminShared.api(`/api/admin/suppliers/${supplierId}`, 'PUT', {
-        [matched.key]: valueResult.value,
+        [matched.key]: finalValue,
       });
       AdminShared.showToast(`${matched.label} updated successfully`, 'success');
       loadSupplier();
     } catch (err) {
-      AdminShared.showToast(`Failed to update: ${err.message || 'Unknown error'}`, 'error');
+      AdminShared.showToast(
+        `Failed to update ${matched.label}: ${err.message || 'Unknown error'}`,
+        'error'
+      );
     }
   });
 
@@ -714,7 +749,9 @@
     const action = btn.dataset.action;
     const id = btn.dataset.id;
 
-    if (action === 'editPackage') {
+    if (action === 'viewPackage') {
+      window.open(`/package?id=${encodeURIComponent(id)}`, '_blank', 'noopener,noreferrer');
+    } else if (action === 'editPackage') {
       window.location.href = `/admin-packages?id=${encodeURIComponent(id)}`;
     } else if (action === 'approvePackage') {
       if (
