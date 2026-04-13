@@ -77,7 +77,7 @@ mongo --eval "db.version()"
 3. Get your connection string
 4. Add to `.env`:
    ```env
-   MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/eventflow?retryWrites=true&w=majority
+   MONGODB_URI=mongodb+srv://<USERNAME>:<PASSWORD>@<CLUSTER>.mongodb.net/eventflow?retryWrites=true&w=majority
    ```
 
 ### Step 4: Run Migrations
@@ -305,7 +305,7 @@ sudo certbot renew --dry-run
 JWT_SECRET=very-long-random-secret-at-least-32-chars
 
 # Database
-MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/eventflow?retryWrites=true&w=majority
+MONGODB_URI=mongodb+srv://<USERNAME>:<PASSWORD>@<CLUSTER>.mongodb.net/eventflow?retryWrites=true&w=majority
 MONGODB_DB_NAME=eventflow
 
 # Server
@@ -378,7 +378,7 @@ For production deployments:
 3. **Get Connection String**
 
    ```
-   mongodb+srv://username:password@cluster.mongodb.net/eventflow?retryWrites=true&w=majority
+   mongodb+srv://<USERNAME>:<PASSWORD>@<CLUSTER>.mongodb.net/eventflow?retryWrites=true&w=majority
    ```
 
 4. **Performance Optimization**

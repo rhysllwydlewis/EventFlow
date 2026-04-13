@@ -151,7 +151,7 @@ git push heroku main
 **Required for production:**
 
 ```bash
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/eventflow
+MONGODB_URI=mongodb+srv://<USERNAME>:<PASSWORD>@<CLUSTER>.mongodb.net/eventflow
 JWT_SECRET=your-secret-key-min-32-chars
 NODE_ENV=production
 BASE_URL=https://yourdomain.com

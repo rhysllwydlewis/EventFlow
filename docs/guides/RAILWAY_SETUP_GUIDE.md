@@ -59,7 +59,7 @@ TRUST_PROXY=true
 **Option A: MongoDB Atlas (Recommended for Production)**
 
 ```bash
-MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/eventflow?retryWrites=true&w=majority
+MONGODB_URI=mongodb+srv://<USERNAME>:<PASSWORD>@<CLUSTER>.mongodb.net/eventflow?retryWrites=true&w=majority
 MONGODB_DB_NAME=eventflow
 ```
 
@@ -160,7 +160,7 @@ OPENAI_MODEL=gpt-4-turbo-mini
 
 - Find: `MONGODB_URI`
 - If it contains `localhost` → Replace with MongoDB Atlas connection string
-- Example: `mongodb+srv://username:password@cluster.mongodb.net/eventflow`
+- Example: `mongodb+srv://<USERNAME>:<PASSWORD>@<CLUSTER>.mongodb.net/eventflow`
 - Click "Update" or "Save"
 
 ### Step 4: Verify Email Configuration

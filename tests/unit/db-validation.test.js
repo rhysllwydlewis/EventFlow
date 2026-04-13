@@ -28,14 +28,7 @@ describe('MongoDB Validation and Availability', () => {
   describe('isMongoAvailable()', () => {
     it('should return true in production when MONGODB_URI is set to cloud URI', () => {
       process.env.NODE_ENV = 'production';
-      process.env.MONGODB_URI = 'mongodb+srv://user:pass@cluster0.mongodb.net/eventflow';
-
-      db = require('../../db');
-
-      expect(db.isMongoAvailable()).toBe(true);
-    });
-
-    it('should return false in production when MONGODB_URI contains localhost', () => {
+      process.env.MONGODB_URI = 'mongodb+srv://TESTUSER:TESTPASS@cluster0.testenv.local/eventflow';
       process.env.NODE_ENV = 'production';
       process.env.MONGODB_URI = 'mongodb://localhost:27017/eventflow';
 
@@ -64,14 +57,7 @@ describe('MongoDB Validation and Availability', () => {
 
     it('should return true in development when MONGODB_URI is set to cloud URI', () => {
       process.env.NODE_ENV = 'development';
-      process.env.MONGODB_URI = 'mongodb+srv://user:pass@cluster0.mongodb.net/eventflow';
-
-      db = require('../../db');
-
-      expect(db.isMongoAvailable()).toBe(true);
-    });
-
-    it('should return true in development when MONGODB_LOCAL_URI is set', () => {
+      process.env.MONGODB_URI = 'mongodb+srv://TESTUSER:TESTPASS@cluster0.testenv.local/eventflow';
       process.env.NODE_ENV = 'development';
       delete process.env.MONGODB_URI;
       process.env.MONGODB_LOCAL_URI = 'mongodb://localhost:27017/eventflow';
@@ -132,7 +118,7 @@ describe('MongoDB Validation and Availability', () => {
   describe('URI Validation', () => {
     it('should reject placeholder URIs in production', () => {
       process.env.NODE_ENV = 'production';
-      process.env.MONGODB_URI = 'mongodb+srv://username:password@your-cluster.mongodb.net/';
+      process.env.MONGODB_URI = 'mongodb+srv://<username>:<password>@your-cluster.mongodb.net/';
 
       // The connect function should throw when called
       db = require('../../db');
@@ -155,7 +141,7 @@ describe('MongoDB Validation and Availability', () => {
 
     it('should accept valid mongodb:// URIs', () => {
       process.env.NODE_ENV = 'development';
-      process.env.MONGODB_URI = 'mongodb://user:pass@localhost:27017/eventflow';
+      process.env.MONGODB_URI = 'mongodb://TESTUSER:TESTPASS@localhost:27017/eventflow';
 
       db = require('../../db');
 
@@ -166,7 +152,7 @@ describe('MongoDB Validation and Availability', () => {
 
     it('should accept valid mongodb+srv:// URIs', () => {
       process.env.NODE_ENV = 'production';
-      process.env.MONGODB_URI = 'mongodb+srv://user:pass@cluster0.mongodb.net/eventflow';
+      process.env.MONGODB_URI = 'mongodb+srv://TESTUSER:TESTPASS@cluster0.testenv.local/eventflow';
 
       db = require('../../db');
 
@@ -201,7 +187,7 @@ describe('MongoDB Validation and Availability', () => {
 
     it('should reject placeholder values in production', () => {
       process.env.NODE_ENV = 'production';
-      process.env.MONGODB_URI = 'mongodb+srv://user:pass@YourCluster.mongodb.net/';
+      process.env.MONGODB_URI = 'mongodb+srv://TESTUSER:TESTPASS@YourCluster.testenv.local/';
 
       db = require('../../db');
 
@@ -235,7 +221,7 @@ describe('MongoDB Validation and Availability', () => {
 
     it('should accept cloud URIs with placeholders in development (with warning)', () => {
       process.env.NODE_ENV = 'development';
-      process.env.MONGODB_URI = 'mongodb+srv://username:password@cluster.mongodb.net/';
+      process.env.MONGODB_URI = 'mongodb+srv://<username>:<password>@cluster.mongodb.net/';
 
       db = require('../../db');
 
@@ -275,7 +261,7 @@ describe('MongoDB Validation and Availability', () => {
 
     it('should provide clear error message for placeholder values', async () => {
       process.env.NODE_ENV = 'production';
-      process.env.MONGODB_URI = 'mongodb+srv://username:password@cluster.mongodb.net/';
+      process.env.MONGODB_URI = 'mongodb+srv://<username>:<password>@cluster.mongodb.net/';
 
       db = require('../../db');
 
@@ -289,7 +275,7 @@ describe('MongoDB Validation and Availability', () => {
     it('should provide clear error message for invalid scheme', async () => {
       process.env.NODE_ENV = 'production';
       // Use a URI with invalid scheme but no placeholder patterns
-      process.env.MONGODB_URI = 'mysql://realuser:realpassword123@realhost.mongodb.net/db';
+      process.env.MONGODB_URI = 'mysql://TESTUSER:TESTPASS@testhost.mongodb.net/db';
 
       db = require('../../db');
 

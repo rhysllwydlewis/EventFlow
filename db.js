@@ -127,7 +127,7 @@ function getConnectionUri() {
       logger.error('');
       logger.error('Your MONGODB_URI should look like:');
       logger.error(
-        '  mongodb+srv://myuser:mypassword@cluster0.abcde.mongodb.net/?retryWrites=true&w=majority'
+        '  mongodb+srv://<USERNAME>:<PASSWORD>@cluster0.abcde.mongodb.net/?retryWrites=true&w=majority'
       );
       logger.error('');
       logger.error('Common issues:');

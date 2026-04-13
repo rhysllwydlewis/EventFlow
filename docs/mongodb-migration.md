@@ -32,7 +32,7 @@ The system uses **environment-based configuration** rather than runtime feature 
 
 ```env
 # Production Configuration (MongoDB enabled)
-MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/eventflow
+MONGODB_URI=mongodb+srv://<USERNAME>:<PASSWORD>@<CLUSTER>.mongodb.net/eventflow
 
 # Development Configuration (local fallback)
 # MONGODB_URI not set = uses local JSON files
@@ -228,7 +228,7 @@ For production-like local development:
 5. Get connection string
 6. Set in `.env`:
    ```env
-   MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/eventflow
+   MONGODB_URI=mongodb+srv://<USERNAME>:<PASSWORD>@<CLUSTER>.mongodb.net/eventflow
    ```
 
 ### Option 3: Local File Storage (Quickest)
@@ -403,7 +403,7 @@ Tests are backend-agnostic and validate:
 
 ```env
 # MongoDB Atlas connection string
-MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/eventflow
+MONGODB_URI=mongodb+srv://<USERNAME>:<PASSWORD>@<CLUSTER>.mongodb.net/eventflow
 
 # Application configuration
 NODE_ENV=production
@@ -506,7 +506,7 @@ docker run -p 3000:3000 \
 
 ```env
 # ❌ Bad - in .env (committed to git)
-MONGODB_URI=mongodb+srv://realuser:realpass@...
+MONGODB_URI=mongodb+srv://<USERNAME>:<PASSWORD>@...
 
 # ✅ Good - in environment (Railway/Heroku config)
 # Set via: railway variables set MONGODB_URI="..."
@@ -559,7 +559,7 @@ MONGODB_URI=mongodb://...
 
 ```env
 # Get from MongoDB Atlas → Connect → Connect Your Application
-MONGODB_URI=mongodb+srv://your-actual-user:your-actual-password@cluster.mongodb.net/
+MONGODB_URI=mongodb+srv://<USERNAME>:<PASSWORD>@<CLUSTER>.mongodb.net/
 ```
 
 #### 2. "Authentication failed"
