@@ -221,6 +221,20 @@ describe('Supplier profile form – website field browser validation disabled', 
     expect(dashboardHtml).not.toMatch(/id="sup-website"[^>]*type="url"/);
     expect(dashboardHtml).toMatch(/id="sup-website"/);
   });
+
+  it('supplier-form includes inline error regions for name/category/website validation', () => {
+    expect(dashboardHtml).toContain('id="sup-name-error"');
+    expect(dashboardHtml).toContain('id="sup-category-error"');
+    expect(dashboardHtml).toContain('id="sup-website-error"');
+  });
+
+  it('website input includes helper text for https:// auto-normalization', () => {
+    expect(dashboardHtml).toContain('id="sup-website-help"');
+    expect(dashboardHtml).toContain(
+      'If no protocol is provided, https:// will be added when you save'
+    );
+    expect(dashboardHtml).toContain('www.event-flow.co.uk');
+  });
 });
 
 describe('Gallery photo 404 error handling', () => {
@@ -269,5 +283,220 @@ describe('Card hover animation – no layout shift on form cards', () => {
 
   it('supplier-dashboard-improvements.css includes error state CSS for image wrap', () => {
     expect(supplierDashImprovementsCss).toContain('photo-preview-item__image-wrap--error');
+  });
+});
+
+// ─── Audit remediation – behavioral / sequencing checks ──────────────────────
+
+describe('Supplier form submit – double-submit prevention (sequencing)', () => {
+  it('app.js disables the submit button before any await in the save handler', () => {
+    // Verify saveBtn.disabled = true appears BEFORE the first await in the submit block
+    const submitIdx = appJs.indexOf("supForm.addEventListener('submit'");
+    expect(submitIdx).toBeGreaterThan(-1);
+    const handlerBlock = appJs.slice(submitIdx, submitIdx + 5000);
+    const disabledIdx = handlerBlock.indexOf('saveBtn.disabled = true');
+    const awaitIdx = handlerBlock.indexOf('await ensureCsrfToken');
+    expect(disabledIdx).toBeGreaterThan(-1);
+    expect(awaitIdx).toBeGreaterThan(-1);
+    expect(disabledIdx).toBeLessThan(awaitIdx);
+  });
+
+  it('app.js re-enables the submit button inside a finally block', () => {
+    const submitIdx = appJs.indexOf("supForm.addEventListener('submit'");
+    // The submit handler is large (validation + API call); use a generous slice
+    const handlerBlock = appJs.slice(submitIdx, submitIdx + 8000);
+    const finallyIdx = handlerBlock.indexOf('} finally {');
+    const reEnableIdx = handlerBlock.indexOf('saveBtn.disabled = false');
+    expect(finallyIdx).toBeGreaterThan(-1);
+    expect(reEnableIdx).toBeGreaterThan(-1);
+    // re-enable must come after the finally keyword
+    expect(reEnableIdx).toBeGreaterThan(finallyIdx);
+  });
+
+  it('app.js early-returns if the save button is already disabled (re-entry guard)', () => {
+    const submitIdx = appJs.indexOf("supForm.addEventListener('submit'");
+    const handlerBlock = appJs.slice(submitIdx, submitIdx + 500);
+    expect(handlerBlock).toContain('saveBtn.disabled');
+    expect(handlerBlock).toContain('return');
+  });
+
+  it('app.js applies and removes save-button loading state', () => {
+    const submitIdx = appJs.indexOf("supForm.addEventListener('submit'");
+    const handlerBlock = appJs.slice(submitIdx, submitIdx + 8000);
+    expect(handlerBlock).toContain("saveBtn.classList.add('is-loading')");
+    expect(handlerBlock).toContain("saveBtn.classList.remove('is-loading')");
+    expect(handlerBlock).toContain("saveBtn.textContent = 'Saving…'");
+  });
+});
+
+describe('Supplier form submit – savedId empty guard', () => {
+  it('app.js checks for empty savedId and aborts with an error message', () => {
+    expect(appJs).toContain('if (!savedId)');
+  });
+
+  it('app.js shows an error status message when savedId is empty after save', () => {
+    const guardIdx = appJs.indexOf('if (!savedId)');
+    const guardBlock = appJs.slice(guardIdx, guardIdx + 400);
+    expect(guardBlock).toContain('error');
+    expect(guardBlock).toContain('return');
+  });
+});
+
+describe('Supplier form submit – required field JS validation', () => {
+  it('app.js validates the name field before invoking buildSupplierPayload', () => {
+    const submitIdx = appJs.indexOf("supForm.addEventListener('submit'");
+    const handlerBlock = appJs.slice(submitIdx, submitIdx + 5000);
+    const nameCheckIdx = handlerBlock.indexOf('sup-name');
+    const buildPayloadIdx = handlerBlock.indexOf('buildSupplierPayload');
+    expect(nameCheckIdx).toBeGreaterThan(-1);
+    expect(buildPayloadIdx).toBeGreaterThan(-1);
+    // name check must occur before buildSupplierPayload is called
+    expect(nameCheckIdx).toBeLessThan(buildPayloadIdx);
+  });
+
+  it('app.js validates the category field before invoking buildSupplierPayload', () => {
+    const submitIdx = appJs.indexOf("supForm.addEventListener('submit'");
+    const handlerBlock = appJs.slice(submitIdx, submitIdx + 5000);
+    const catCheckIdx = handlerBlock.indexOf('sup-category');
+    const buildPayloadIdx = handlerBlock.indexOf('buildSupplierPayload');
+    expect(catCheckIdx).toBeGreaterThan(-1);
+    expect(buildPayloadIdx).toBeGreaterThan(-1);
+    expect(catCheckIdx).toBeLessThan(buildPayloadIdx);
+  });
+
+  it('app.js shows an inline error and focuses the name field when name is empty', () => {
+    // Search within the submit handler block to avoid matching populateSupplierForm
+    const submitIdx = appJs.indexOf("supForm.addEventListener('submit'");
+    const handlerBlock = appJs.slice(submitIdx, submitIdx + 6000);
+    expect(handlerBlock).toContain('nameEl.focus');
+    expect(handlerBlock).toContain('Business name is required');
+  });
+
+  it('app.js toggles inline validation helpers/classes for supplier fields', () => {
+    expect(appJs).toContain('setSupplierFieldError');
+    expect(appJs).toContain('clearSupplierFieldError');
+    expect(appJs).toContain('supplier-field-invalid');
+  });
+});
+
+describe('Supplier form – website URL normalization', () => {
+  it('app.js normalizes website URLs by prepending https:// when no scheme is present', () => {
+    const buildStart = appJs.indexOf('function buildSupplierPayload(form)');
+    const buildBlock = appJs.slice(buildStart, buildStart + 2000);
+    // Accept both template-literal and concatenation forms of https:// prepending
+    expect(buildBlock).toMatch(/https:\/\//);
+    expect(buildBlock).toContain('payload.website');
+  });
+
+  it('app.js URL normalization runs inside buildSupplierPayload', () => {
+    const buildStart = appJs.indexOf('function buildSupplierPayload(form)');
+    expect(buildStart).toBeGreaterThan(-1);
+    const buildBlock = appJs.slice(buildStart, buildStart + 2000);
+    expect(buildBlock).toContain('https://');
+    expect(buildBlock).toContain('payload.website');
+  });
+
+  it('app.js does not prepend https:// when the scheme is already present', () => {
+    // The normalization guard uses a regex test for ^https?:// before prepending
+    // Source contains the regex literal so we check for the key guard pattern
+    expect(appJs).toContain('https?:');
+    // Ensure the normalization logic is inside buildSupplierPayload
+    const buildStart = appJs.indexOf('function buildSupplierPayload(form)');
+    const buildBlock = appJs.slice(buildStart, buildStart + 2000);
+    expect(buildBlock).toContain('https?:');
+  });
+
+  it('app.js validates website URL format before submit', () => {
+    const submitIdx = appJs.indexOf("supForm.addEventListener('submit'");
+    const handlerBlock = appJs.slice(submitIdx, submitIdx + 8000);
+    expect(handlerBlock).toContain('normalizeAndValidateWebsiteInput');
+    expect(handlerBlock).toContain('Please fix the website URL and try again.');
+    expect(handlerBlock).toContain('www.example.com');
+  });
+});
+
+describe('Banner error state – ⚠ warning indicator consistency', () => {
+  it('app.js adds photo-preview-item__image-wrap--error class on banner image load failure', () => {
+    // The banner error handler must apply the same error class used by gallery errors
+    const bannerIdx = appJs.indexOf('Could not load banner');
+    expect(bannerIdx).toBeGreaterThan(-1);
+    const bannerBlock = appJs.slice(bannerIdx, bannerIdx + 300);
+    expect(bannerBlock).toContain('photo-preview-item__image-wrap--error');
+  });
+
+  it('gallery and banner error states share the same CSS error class', () => {
+    // Verify gallery.js also uses the same class (not a one-off)
+    expect(galleryJs).toContain('photo-preview-item__image-wrap--error');
+  });
+});
+
+describe('supplier-gallery.js – dead setupFormIntercept call removed', () => {
+  it('setup() no longer contains a live call to setupFormIntercept', () => {
+    const setupIdx = galleryJs.indexOf('setup() {');
+    expect(setupIdx).toBeGreaterThan(-1);
+    const loadExistingIdx = galleryJs.indexOf('this.loadExistingPhotos();', setupIdx);
+    expect(loadExistingIdx).toBeGreaterThan(setupIdx);
+    const setupBody = galleryJs.slice(setupIdx, loadExistingIdx + 100);
+    expect(setupBody).not.toContain('this.setupFormIntercept(');
+  });
+});
+
+describe('CSS – :has() selectors wrapped in @supports for older Firefox compatibility', () => {
+  it('dashboard-animations.css wraps :has() hover rules in @supports selector(:has(*))', () => {
+    expect(dashboardAnimationsCss).toContain('@supports selector(:has(*))');
+    // The :has() selectors must appear inside the @supports block
+    const supportsIdx = dashboardAnimationsCss.indexOf('@supports selector(:has(*))');
+    const supportsBlock = dashboardAnimationsCss.slice(supportsIdx, supportsIdx + 500);
+    expect(supportsBlock).toContain(':has(form):hover');
+  });
+
+  it('supplier-dashboard-improvements.css wraps :has() hover rules in @supports selector(:has(*))', () => {
+    expect(supplierDashImprovementsCss).toContain('@supports selector(:has(*))');
+    const supportsIdx = supplierDashImprovementsCss.indexOf('@supports selector(:has(*))');
+    const supportsBlock = supplierDashImprovementsCss.slice(supportsIdx, supportsIdx + 500);
+    expect(supportsBlock).toContain(':has(');
+  });
+});
+
+describe('CSS – prefers-reduced-motion uses !important to prevent cascade override', () => {
+  it('dashboard-animations.css prefers-reduced-motion transition rule uses !important', () => {
+    const prmIdx = dashboardAnimationsCss.indexOf('@media (prefers-reduced-motion: reduce)');
+    expect(prmIdx).toBeGreaterThan(-1);
+    const prmBlock = dashboardAnimationsCss.slice(prmIdx, prmIdx + 400);
+    expect(prmBlock).toMatch(/transition[^;]+!important/);
+  });
+
+  it('supplier-dashboard-improvements.css prefers-reduced-motion transform rule uses !important', () => {
+    // Find the card-specific prefers-reduced-motion block (there may be multiple)
+    const prmIdx = supplierDashImprovementsCss.indexOf(
+      '/* Respect prefers-reduced-motion — use !important'
+    );
+    expect(prmIdx).toBeGreaterThan(-1);
+    const prmBlock = supplierDashImprovementsCss.slice(prmIdx, prmIdx + 500);
+    expect(prmBlock).toMatch(/transform[^;]+!important/);
+  });
+
+  it('supplier-dashboard-improvements.css includes loading/error field polish styles', () => {
+    expect(supplierDashImprovementsCss).toContain('.supplier-field-invalid');
+    expect(supplierDashImprovementsCss).toContain('#sup-create.is-loading::after');
+    expect(supplierDashImprovementsCss).toContain('@keyframes supplier-save-spin');
+  });
+
+  it('supplier-dashboard-improvements.css includes responsive supplier form spacing guards', () => {
+    expect(supplierDashImprovementsCss).toContain('#supplier-form .supplier-form-grid > div');
+    expect(supplierDashImprovementsCss).toContain('box-sizing: border-box');
+    expect(supplierDashImprovementsCss).toContain('@media (max-width: 680px)');
+  });
+
+  it('supplier-dashboard-improvements.css keeps profile-form helper/error text compact and scoped', () => {
+    expect(supplierDashImprovementsCss).toContain(
+      '#profile-form-section #supplier-form .small.form-error-text'
+    );
+    expect(supplierDashImprovementsCss).toContain(
+      '#profile-form-section #supplier-form .form-help-text'
+    );
+    expect(supplierDashImprovementsCss).toContain(
+      '#profile-form-section #supplier-form .supplier-form-actions'
+    );
   });
 });

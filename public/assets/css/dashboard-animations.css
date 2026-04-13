@@ -100,27 +100,40 @@
  * Cards that contain forms or interactive inputs must NOT shift on hover —
  * the translateY lift interferes with clicking inputs/buttons inside the card
  * and causes forced reflows during JS layout reads.
+ * NOTE: Forced-reflow risk: batch all DOM reads before writes when toggling card
+ * state; avoid interleaving offsetHeight reads with style mutations inside loops.
+ * Use requestAnimationFrame for any animations that read layout properties.
  */
-.sd-card:hover,
-.card:has(form):hover,
-.card:has(input):hover,
-.card:has(textarea):hover,
-.dashboard-card:has(form):hover,
-.dashboard-card:has(input):hover,
-.dashboard-card:has(textarea):hover {
+.sd-card:hover {
   transform: none;
 }
 
-/* Respect prefers-reduced-motion */
+/* Progressively-enhanced :has() rules — only applied in browsers that support it.
+ * Fallback: .sd-card:hover above already cancels transforms for the main form card.
+ * Pre-Firefox-121 and other browsers without :has() support will rely on the fallback. */
+@supports selector(:has(*)) {
+  .card:has(form):hover,
+  .card:has(input):hover,
+  .card:has(textarea):hover,
+  .dashboard-card:has(form):hover,
+  .dashboard-card:has(input):hover,
+  .dashboard-card:has(textarea):hover {
+    transform: none;
+  }
+}
+
+/* Respect prefers-reduced-motion — use !important so later rules in the cascade
+ * (including rules from other stylesheets loaded after this file) cannot re-enable
+ * motion for users who have requested it be reduced. */
 @media (prefers-reduced-motion: reduce) {
   .dashboard-card,
   .card {
-    transition: box-shadow 0.15s ease;
+    transition: box-shadow 0.15s ease !important;
   }
 
   .dashboard-card:hover,
   .card:hover {
-    transform: none;
+    transform: none !important;
   }
 }
 

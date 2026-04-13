@@ -60,11 +60,6 @@ class SupplierGalleryManager {
     // Set up drag and drop
     this.setupDragAndDrop(dropZone, previewContainer);
 
-    // Intercept supplier form submission to upload photos first
-    if (supplierForm) {
-      this.setupFormIntercept(supplierForm);
-    }
-
     // Load existing photos if editing a supplier
     this.loadExistingPhotos();
   }

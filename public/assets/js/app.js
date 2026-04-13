@@ -2812,6 +2812,9 @@ async function initDashSupplier() {
             'The uploaded image is too large. Please use an image smaller than 5 MB.'
           );
         }
+        // 404 Not Found: the requested resource does not exist (e.g. a stale URL after a data
+        // migration). The thrown Error propagates to the caller's catch block, which shows a
+        // user-visible message via the status element — so 404s never fail silently.
         const errorData = await r.json().catch(() => ({ error: 'Request failed' }));
         throw new Error(errorData.error || `HTTP ${r.status}`);
       }
@@ -3205,6 +3208,8 @@ async function initDashSupplier() {
             img.title = 'Could not load banner — upload a new one to replace it';
             imgDiv.style.background = '#f3f4f6';
             img.style.display = 'none';
+            // Add ⚠ warning indicator — consistent with gallery error state
+            imgDiv.classList.add('photo-preview-item__image-wrap--error');
           },
           { once: true }
         );
@@ -3575,6 +3580,11 @@ async function initDashSupplier() {
     if (tc && tc.value) {
       payload.themeColor = tc.value;
     }
+    // Normalize website URL: prepend https:// if a scheme is missing
+    if (payload.website) {
+      const ws = payload.website.trim();
+      payload.website = ws && !/^https?:\/\//i.test(ws) ? `https://${ws}` : ws;
+    }
     return payload;
   }
 
@@ -3599,6 +3609,67 @@ async function initDashSupplier() {
     }, ms);
   }
 
+  function setSupplierFieldError(fieldEl, errorEl, message) {
+    if (fieldEl) {
+      fieldEl.setAttribute('aria-invalid', 'true');
+      fieldEl.classList.add('supplier-field-invalid');
+    }
+    if (errorEl) {
+      errorEl.textContent = message || '';
+      errorEl.classList.toggle('visible', Boolean(message));
+      errorEl.setAttribute('aria-hidden', message ? 'false' : 'true');
+    }
+  }
+
+  function clearSupplierFieldError(fieldEl, errorEl) {
+    if (fieldEl) {
+      fieldEl.setAttribute('aria-invalid', 'false');
+      fieldEl.classList.remove('supplier-field-invalid');
+    }
+    if (errorEl) {
+      errorEl.textContent = '';
+      errorEl.classList.remove('visible');
+      errorEl.setAttribute('aria-hidden', 'true');
+    }
+  }
+
+  function normalizeAndValidateWebsiteInput(inputEl) {
+    if (!inputEl) {
+      return { ok: true, value: '' };
+    }
+    const raw = (inputEl.value || '').trim();
+    if (!raw) {
+      inputEl.value = '';
+      return { ok: true, value: '' };
+    }
+    if (/\s/.test(raw)) {
+      return { ok: false, value: raw };
+    }
+    const hasHttpScheme = /^https?:\/\//i.test(raw);
+    const normalized = hasHttpScheme ? raw : `https://${raw.replace(/^\/+/, '')}`;
+    let parsed;
+    try {
+      parsed = new URL(normalized);
+    } catch (_e) {
+      return { ok: false, value: raw };
+    }
+    if (!/^https?:$/i.test(parsed.protocol)) {
+      return { ok: false, value: raw };
+    }
+    // For no-scheme input, require a plausible host shape (domain, localhost, or IPv4).
+    if (!hasHttpScheme) {
+      const host = (parsed.hostname || '').toLowerCase();
+      const isLikelyDomain = host.includes('.');
+      const isLocalhost = host === 'localhost';
+      const isIPv4 = /^(?:\d{1,3}\.){3}\d{1,3}$/.test(host);
+      if (!host || (!isLikelyDomain && !isLocalhost && !isIPv4)) {
+        return { ok: false, value: raw };
+      }
+    }
+    inputEl.value = normalized;
+    return { ok: true, value: normalized };
+  }
+
   const supForm = document.getElementById('supplier-form');
   if (supForm) {
     supForm.addEventListener('submit', async e => {
@@ -3608,6 +3679,7 @@ async function initDashSupplier() {
       if (saveBtn && saveBtn.disabled) {
         return;
       }
+      const originalSaveBtnText = saveBtn ? saveBtn.textContent : '';
 
       if (typeof window.validateVenuePostcode === 'function') {
         if (!window.validateVenuePostcode()) {
@@ -3615,10 +3687,70 @@ async function initDashSupplier() {
         }
       }
 
+      // JS validation for required fields (novalidate disables browser validation)
       const statusEl = document.getElementById('sup-status');
+      const nameEl = supForm.querySelector('#sup-name');
+      const categoryEl = supForm.querySelector('#sup-category');
+      const websiteEl = supForm.querySelector('#sup-website');
+      const nameErrorEl = supForm.querySelector('#sup-name-error');
+      const categoryErrorEl = supForm.querySelector('#sup-category-error');
+      const websiteErrorEl = supForm.querySelector('#sup-website-error');
+      clearSupplierFieldError(nameEl, nameErrorEl);
+      clearSupplierFieldError(categoryEl, categoryErrorEl);
+      clearSupplierFieldError(websiteEl, websiteErrorEl);
+      if (!nameEl || !nameEl.value.trim()) {
+        setSupplierFieldError(nameEl, nameErrorEl, 'Business name is required.');
+        if (statusEl) {
+          clearSupplierStatusTimer();
+          statusEl.setAttribute('data-tone', 'error');
+          statusEl.textContent = 'Business name is required.';
+          statusEl.style.color = '#ef4444';
+          scheduleSupplierStatusClear(statusEl, 5000);
+        }
+        if (nameEl) {
+          nameEl.focus();
+        }
+        return;
+      }
+      if (!categoryEl || !categoryEl.value) {
+        setSupplierFieldError(categoryEl, categoryErrorEl, 'Please select a category.');
+        if (statusEl) {
+          clearSupplierStatusTimer();
+          statusEl.setAttribute('data-tone', 'error');
+          statusEl.textContent = 'Please select a category.';
+          statusEl.style.color = '#ef4444';
+          scheduleSupplierStatusClear(statusEl, 5000);
+        }
+        if (categoryEl) {
+          categoryEl.focus();
+        }
+        return;
+      }
+      const websiteCheck = normalizeAndValidateWebsiteInput(websiteEl);
+      if (!websiteCheck.ok) {
+        setSupplierFieldError(
+          websiteEl,
+          websiteErrorEl,
+          'Please enter a valid website (for example: https://example.com, www.example.com, or example.com).'
+        );
+        if (statusEl) {
+          clearSupplierStatusTimer();
+          statusEl.setAttribute('data-tone', 'error');
+          statusEl.textContent = 'Please fix the website URL and try again.';
+          statusEl.style.color = '#ef4444';
+          scheduleSupplierStatusClear(statusEl, 5000);
+        }
+        if (websiteEl) {
+          websiteEl.focus();
+        }
+        return;
+      }
+
       if (saveBtn) {
         saveBtn.disabled = true;
         saveBtn.setAttribute('aria-disabled', 'true');
+        saveBtn.classList.add('is-loading');
+        saveBtn.textContent = 'Saving…';
       }
       supForm.setAttribute('aria-busy', 'true');
       try {
@@ -3656,18 +3788,28 @@ async function initDashSupplier() {
         const savedId =
           response && response.supplier && response.supplier.id ? response.supplier.id : id;
 
-        // Update currently editing supplier ID with the saved/created ID
-        if (savedId) {
-          currentEditingSupplierId = savedId;
-          // Also update the hidden ID field so subsequent saves use PATCH
-          const supIdField = document.getElementById('sup-id');
-          if (supIdField && !supIdField.value) {
-            supIdField.value = savedId;
+        // Guard: all successful saves should resolve to a usable supplier ID.
+        if (!savedId) {
+          if (statusEl) {
+            clearSupplierStatusTimer();
+            statusEl.setAttribute('data-tone', 'error');
+            statusEl.textContent = 'Error: Save did not return a supplier ID. Please try again.';
+            statusEl.style.color = '#ef4444';
+            scheduleSupplierStatusClear(statusEl, 8000);
           }
+          return;
+        }
+
+        // Update currently editing supplier ID with the saved/created ID
+        currentEditingSupplierId = savedId;
+        // Also update the hidden ID field so subsequent saves use PATCH
+        const supIdField = document.getElementById('sup-id');
+        if (supIdField && !supIdField.value) {
+          supIdField.value = savedId;
         }
 
         // Upload any pending gallery photos now that we have a valid supplier ID
-        if (savedId && typeof window.uploadPendingGalleryPhotos === 'function') {
+        if (typeof window.uploadPendingGalleryPhotos === 'function') {
           try {
             await window.uploadPendingGalleryPhotos(savedId);
           } catch (photoErr) {
@@ -3704,6 +3846,8 @@ async function initDashSupplier() {
         if (saveBtn) {
           saveBtn.disabled = false;
           saveBtn.removeAttribute('aria-disabled');
+          saveBtn.classList.remove('is-loading');
+          saveBtn.textContent = originalSaveBtnText || 'Save profile';
         }
         supForm.setAttribute('aria-busy', 'false');
       }
