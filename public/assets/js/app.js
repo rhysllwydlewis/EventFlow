@@ -3578,10 +3578,36 @@ async function initDashSupplier() {
     return payload;
   }
 
+  let supplierStatusClearTimer = null;
+  function clearSupplierStatusTimer() {
+    if (supplierStatusClearTimer) {
+      clearTimeout(supplierStatusClearTimer);
+      supplierStatusClearTimer = null;
+    }
+  }
+
+  function scheduleSupplierStatusClear(statusEl, ms) {
+    if (!statusEl || !ms) {
+      return;
+    }
+    clearSupplierStatusTimer();
+    supplierStatusClearTimer = setTimeout(() => {
+      statusEl.textContent = '';
+      statusEl.removeAttribute('data-tone');
+      statusEl.style.color = '';
+      supplierStatusClearTimer = null;
+    }, ms);
+  }
+
   const supForm = document.getElementById('supplier-form');
   if (supForm) {
     supForm.addEventListener('submit', async e => {
       e.preventDefault();
+      const saveBtn = supForm.querySelector('button[type="submit"]');
+
+      if (saveBtn && saveBtn.disabled) {
+        return;
+      }
 
       if (typeof window.validateVenuePostcode === 'function') {
         if (!window.validateVenuePostcode()) {
@@ -3590,6 +3616,11 @@ async function initDashSupplier() {
       }
 
       const statusEl = document.getElementById('sup-status');
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.setAttribute('aria-disabled', 'true');
+      }
+      supForm.setAttribute('aria-busy', 'true');
       try {
         // Ensure CSRF token is available
         const csrfToken = await ensureCsrfToken();
@@ -3606,6 +3637,8 @@ async function initDashSupplier() {
         const method = id ? 'PATCH' : 'POST';
 
         if (statusEl) {
+          clearSupplierStatusTimer();
+          statusEl.setAttribute('data-tone', 'info');
           statusEl.textContent = 'Saving...';
           statusEl.style.color = '#667085';
         }
@@ -3640,11 +3673,10 @@ async function initDashSupplier() {
           } catch (photoErr) {
             console.error('Photo upload error (profile saved):', photoErr);
             if (statusEl) {
+              statusEl.setAttribute('data-tone', 'warning');
               statusEl.textContent = 'Warning: Profile saved but some photos failed to upload';
               statusEl.style.color = '#f59e0b';
-              setTimeout(() => {
-                statusEl.textContent = '';
-              }, 5000);
+              scheduleSupplierStatusClear(statusEl, 5000);
             }
             // Don't rethrow — the profile save succeeded
             await loadSuppliers();
@@ -3655,18 +3687,25 @@ async function initDashSupplier() {
         await loadSuppliers();
 
         if (statusEl) {
+          statusEl.setAttribute('data-tone', 'success');
           statusEl.textContent = '✓ Saved successfully';
           statusEl.style.color = '#10b981';
-          setTimeout(() => {
-            statusEl.textContent = '';
-          }, 3000);
+          scheduleSupplierStatusClear(statusEl, 3000);
         }
       } catch (err) {
         console.error('Error saving supplier:', err);
         if (statusEl) {
+          statusEl.setAttribute('data-tone', 'error');
           statusEl.textContent = `Error: ${err.message || 'Please try again'}`;
           statusEl.style.color = '#ef4444';
+          scheduleSupplierStatusClear(statusEl, 8000);
         }
+      } finally {
+        if (saveBtn) {
+          saveBtn.disabled = false;
+          saveBtn.removeAttribute('aria-disabled');
+        }
+        supForm.setAttribute('aria-busy', 'false');
       }
     });
   }
@@ -3675,12 +3714,34 @@ async function initDashSupplier() {
   const previewBtn = document.getElementById('sup-preview');
   if (previewBtn) {
     previewBtn.addEventListener('click', () => {
+      const statusEl = document.getElementById('sup-status');
+      const saveBtn = document.getElementById('sup-create');
+      const isSaving = Boolean(saveBtn?.disabled);
+      if (isSaving) {
+        if (statusEl) {
+          clearSupplierStatusTimer();
+          statusEl.setAttribute('data-tone', 'warning');
+          statusEl.textContent = 'Please wait for the current save to finish before previewing.';
+          statusEl.style.color = '#b45309';
+          scheduleSupplierStatusClear(statusEl, 4500);
+        }
+        return;
+      }
       const supplierIdInput = document.getElementById('sup-id');
       if (supplierIdInput && supplierIdInput.value) {
         const supplierId = supplierIdInput.value;
         window.open(`/supplier?id=${encodeURIComponent(supplierId)}&preview=true`, '_blank');
       } else {
-        alert('Please save your profile first before previewing.');
+        if (statusEl) {
+          clearSupplierStatusTimer();
+          statusEl.setAttribute('data-tone', 'warning');
+          statusEl.textContent = 'Please save your profile first before previewing.';
+          statusEl.style.color = '#b45309';
+          scheduleSupplierStatusClear(statusEl, 4500);
+        }
+        if (saveBtn) {
+          saveBtn.focus();
+        }
       }
     });
   }

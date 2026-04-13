@@ -87,6 +87,28 @@ describe('Supplier Profile Save Fixes', () => {
     it('should have smooth scrolling to error field', () => {
       expect(dashboardSupplierHtml).toContain("scrollIntoView({ behavior: 'smooth'");
     });
+
+    it('should expose supplier status region with polite live updates', () => {
+      expect(dashboardSupplierHtml).toContain('id="sup-status"');
+      expect(dashboardSupplierHtml).toContain('role="status"');
+      expect(dashboardSupplierHtml).toContain('aria-live="polite"');
+    });
+
+    it('should manage venue postcode aria-invalid state and clear errors when hidden', () => {
+      expect(dashboardSupplierHtml).toContain(
+        "venuePostcodeInput.setAttribute('aria-invalid', 'true')"
+      );
+      expect(dashboardSupplierHtml).toContain(
+        "venuePostcodeInput.setAttribute('aria-invalid', 'false')"
+      );
+      expect(dashboardSupplierHtml).toContain("venuePostcodeError.textContent = ''");
+      expect(dashboardSupplierHtml).toContain(
+        "venuePostcodeError.setAttribute('aria-hidden', 'true')"
+      );
+      expect(dashboardSupplierHtml).toContain(
+        "venuePostcodeError.setAttribute('aria-hidden', 'false')"
+      );
+    });
   });
 
   describe('Form Submission Logic in app.js', () => {
@@ -112,7 +134,7 @@ describe('Supplier Profile Save Fixes', () => {
 
     it('should have try-catch error handling in supplier form submission', () => {
       const supplierFormMatch = appJsContent.match(
-        /getElementById\('supplier-form'\)[\s\S]{0,1500}try[\s\S]{0,1500}catch\s*\(\s*err\s*\)/
+        /getElementById\('supplier-form'\)[\s\S]{0,6000}try[\s\S]{0,6000}catch\s*\(\s*err\s*\)/
       );
       expect(supplierFormMatch).toBeTruthy();
     });
@@ -126,7 +148,7 @@ describe('Supplier Profile Save Fixes', () => {
 
     it('should display error messages to user', () => {
       const supplierFormMatch = appJsContent.match(
-        /getElementById\('supplier-form'\)[\s\S]{0,2000}statusEl\.textContent\s*=.*err\.message/
+        /getElementById\('supplier-form'\)[\s\S]{0,7000}statusEl\.textContent\s*=\s*`Error:\s*\$\{err\.message/
       );
       expect(supplierFormMatch).toBeTruthy();
     });
@@ -136,6 +158,20 @@ describe('Supplier Profile Save Fixes', () => {
         /getElementById\('supplier-form'\)[\s\S]{0,1500}delete\s+payload\.venuePostcode/
       );
       expect(supplierFormMatch).toBeTruthy();
+    });
+
+    it('should guard against duplicate submits and toggle form busy state', () => {
+      const supplierFormMatch = appJsContent.match(
+        /getElementById\('supplier-form'\)[\s\S]{0,8000}saveBtn\.disabled[\s\S]{0,8000}aria-busy[\s\S]{0,8000}finally/
+      );
+      expect(supplierFormMatch).toBeTruthy();
+    });
+
+    it('should apply status tone attributes for info/success/warning/error states', () => {
+      expect(appJsContent).toContain("statusEl.setAttribute('data-tone', 'info')");
+      expect(appJsContent).toContain("statusEl.setAttribute('data-tone', 'success')");
+      expect(appJsContent).toContain("statusEl.setAttribute('data-tone', 'warning')");
+      expect(appJsContent).toContain("statusEl.setAttribute('data-tone', 'error')");
     });
 
     it('should include credentials in fetch requests', () => {
@@ -171,8 +207,8 @@ describe('Supplier Profile Save Fixes', () => {
 
   describe('Supplier Gallery Updates', () => {
     it('should have improved error handling with backend error messages', () => {
-      expect(supplierGalleryContent).toContain('const errorData = await response.json()');
-      expect(supplierGalleryContent).toContain('errorData.error ||');
+      expect(supplierGalleryContent).toContain('await response.json().catch(() => ({}))');
+      expect(supplierGalleryContent).toContain("err.error || 'Failed to delete photo'");
     });
 
     it('should include CSRF token in requests', () => {
@@ -260,16 +296,24 @@ describe('Supplier Profile Save Fixes', () => {
 
     it('should show success state with green color', () => {
       const supplierFormMatch = appJsContent.match(
-        /getElementById\('supplier-form'\)[\s\S]{0,2000}statusEl\.style\.color\s*=\s*['"]#10b981['"]/
+        /getElementById\('supplier-form'\)[\s\S]{0,9000}statusEl\.style\.color\s*=\s*['"]#10b981['"]/
       );
       expect(supplierFormMatch).toBeTruthy();
     });
 
     it('should show error state with red color', () => {
       const supplierFormMatch = appJsContent.match(
-        /getElementById\('supplier-form'\)[\s\S]{0,2000}statusEl\.style\.color\s*=\s*['"]#ef4444['"]/
+        /getElementById\('supplier-form'\)[\s\S]{0,9000}statusEl\.style\.color\s*=\s*['"]#ef4444['"]/
       );
       expect(supplierFormMatch).toBeTruthy();
+    });
+
+    it('should use in-form status messaging for preview guidance instead of alert()', () => {
+      const previewMatch = appJsContent.match(
+        /getElementById\('sup-preview'\)[\s\S]{0,1200}statusEl\.textContent\s*=\s*['"]Please save your profile first before previewing\./
+      );
+      expect(previewMatch).toBeTruthy();
+      expect(previewMatch[0]).not.toContain('alert(');
     });
   });
 });
