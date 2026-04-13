@@ -347,7 +347,9 @@
       const helpfulCount = review.helpfulCount || 0;
       const unhelpfulCount = review.unhelpfulCount || 0;
 
-      // Issue 4 & 5: Edit/Delete buttons for the review author
+      // Issue 4 & 5: Edit/Delete buttons for the review author.
+      // Check multiple possible user ID properties because the auth system may return
+      // the user object with 'id', 'uid', or '_id' depending on the auth provider.
       const currentUserId = this.currentUser?.id || this.currentUser?.uid || this.currentUser?._id;
       const isAuthor = currentUserId && review.userId && currentUserId === review.userId;
 

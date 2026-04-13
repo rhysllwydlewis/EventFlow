@@ -723,7 +723,13 @@ router.put(
       if (!comment || comment.length < 20) {
         return res.status(400).json({ error: 'Review comment must be at least 20 characters' });
       }
-      if (rating !== undefined && (Number(rating) < 1 || Number(rating) > 5)) {
+
+      // Parse and validate rating once to avoid duplicate conversions
+      const parsedRating = rating !== undefined ? parseInt(rating, 10) : undefined;
+      if (
+        parsedRating !== undefined &&
+        (isNaN(parsedRating) || parsedRating < 1 || parsedRating > 5)
+      ) {
         return res.status(400).json({ error: 'Rating must be between 1 and 5' });
       }
 
@@ -742,8 +748,8 @@ router.put(
         editedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
-      if (rating !== undefined) {
-        updates.rating = parseInt(rating, 10);
+      if (parsedRating !== undefined) {
+        updates.rating = parsedRating;
       }
       if (title !== undefined) {
         updates.title = title;
