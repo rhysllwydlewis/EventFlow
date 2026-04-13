@@ -290,6 +290,7 @@
   padding: 0;
   line-height: 1;
   font-size: 0;
+  /* display:flex centers the SVG icon inside the button */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1086,8 +1087,12 @@ img {
   }
 
   /* Shrink the main image to ensure it never overlaps the strip or counter.
-     Clearance math: content 80vh, counter top at ~96px from bottom, requires
-     image_h ≤ 80vh - 192px. Using 70vh - 140px gives a comfortable margin. */
+     Derivation: content box is 80vh. Counter occupies roughly 64px–96px from
+     the bottom (64px offset + ~32px pill height). For the image to clear the
+     counter, both halves of the remaining space must be ≥ 96px:
+       (80vh - image_h) / 2 ≥ 96  →  image_h ≤ 80vh - 192px
+     calc(70vh - 140px) satisfies this on typical phone heights
+     (e.g. 800px: 420px < 448px limit; 667px: 327px < 342px limit). */
   .carousel-image {
     max-height: calc(70vh - 140px);
   }

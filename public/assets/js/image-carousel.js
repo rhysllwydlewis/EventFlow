@@ -471,9 +471,9 @@
       img.src = image.src;
       img.alt = '';
       img.loading = 'lazy';
-      // Explicit intrinsic size helps the browser pre-allocate layout space.
-      // The data model has only the full-size URL; the browser will scale it
-      // down via object-fit:cover to the 44×36px CSS dimensions.
+      // Match the CSS display dimensions so the browser can reserve layout space
+      // and avoid cumulative layout shift. The full-size image will still be
+      // downloaded and scaled down via object-fit: cover in CSS.
       img.width = 44;
       img.height = 36;
 
