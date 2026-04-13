@@ -43,11 +43,9 @@
     const selectedCategory = categorySelect.value;
     if (selectedCategory === 'Venues') {
       venuePostcodeRow.classList.remove('form-row-hidden');
-      venuePostcodeRow.style.display = '';
       venuePostcodeInput.setAttribute('aria-required', 'true');
     } else {
       venuePostcodeRow.classList.add('form-row-hidden');
-      venuePostcodeRow.style.display = 'none';
       venuePostcodeInput.value = ''; // Clear value when not Venues
       venuePostcodeInput.setAttribute('aria-required', 'false');
       clearVenuePostcodeError();
