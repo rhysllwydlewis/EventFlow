@@ -276,6 +276,57 @@
         verificationToggleEl.disabled = false;
       });
     }
+
+    // Delegated click handler for table row action buttons (CSP-safe: no inline onclick)
+    const tbody = document.getElementById('suppliersTableBody');
+    if (tbody) {
+      tbody.addEventListener('click', e => {
+        const btn = e.target.closest('button[data-action]');
+        if (!btn) {
+          return;
+        }
+        const action = btn.dataset.action;
+        const id = btn.dataset.id;
+        if (!id) {
+          return;
+        }
+        switch (action) {
+          case 'view':
+            window.viewSupplier(id);
+            break;
+          case 'edit':
+            window.editSupplier(id);
+            break;
+          case 'approve':
+            window.approveSupplier(id);
+            break;
+          case 'reject':
+            window.rejectSupplier(id);
+            break;
+          case 'delete':
+            window.deleteSupplier(id);
+            break;
+          case 'grantSubscription':
+            window.grantSubscription(id);
+            break;
+          case 'removeSubscription':
+            window.removeSubscription(id);
+            break;
+        }
+      });
+
+      // Delegated change handler for row checkboxes (CSP-safe: no inline onchange)
+      tbody.addEventListener('change', e => {
+        const checkbox = e.target.closest('input[type="checkbox"][data-action="toggleSelect"]');
+        if (!checkbox) {
+          return;
+        }
+        const id = checkbox.dataset.id;
+        if (id) {
+          window.toggleSupplierSelection(id);
+        }
+      });
+    }
   }
 
   // Handle filters
@@ -374,7 +425,7 @@
 
         return `
         <tr>
-          <td><input type="checkbox" aria-label="Select ${escapeHtml(supplier.name || 'supplier')}" ${isSelected ? 'checked' : ''} onchange="window.toggleSupplierSelection('${escapeHtml(supplier.id)}')"></td>
+          <td><input type="checkbox" aria-label="Select ${escapeHtml(supplier.name || 'supplier')}" ${isSelected ? 'checked' : ''} data-action="toggleSelect" data-id="${escapeHtml(supplier.id)}"></td>
           <td><a href="/admin-supplier-detail?id=${escapeHtml(supplier.id)}" style="color: #667eea; font-weight: 500;">${escapeHtml(supplier.name || 'Unknown')}</a></td>
           <td>${escapeHtml(supplier.email || '')}</td>
           <td>${approvalCell}</td>
@@ -385,17 +436,17 @@
           <td>
             <div style="display: flex; flex-direction: column; gap: 6px;">
               <div style="display: flex; gap: 8px;">
-                <button onclick="window.viewSupplier('${escapeHtml(supplier.id)}')" class="btn-xs" title="View Profile">👁️</button>
-                <button onclick="window.editSupplier('${escapeHtml(supplier.id)}')" class="btn-xs" title="Edit">✏️</button>
+                <button data-action="view" data-id="${escapeHtml(supplier.id)}" class="btn-xs" title="View Profile">👁️</button>
+                <button data-action="edit" data-id="${escapeHtml(supplier.id)}" class="btn-xs" title="Edit">✏️</button>
                 ${
                   !supplier.approved
                     ? [
-                        `<button onclick="window.approveSupplier('${escapeHtml(supplier.id)}')" class="btn-xs" style="background: #10b981; color: white;" title="Approve supplier">✓ Approve</button>`,
-                        `<button onclick="window.rejectSupplier('${escapeHtml(supplier.id)}')" class="btn-xs" style="background: #ef4444; color: white;" title="Reject supplier">✗ Reject</button>`,
+                        `<button data-action="approve" data-id="${escapeHtml(supplier.id)}" class="btn-xs" style="background: #10b981; color: white;" title="Approve supplier">✓ Approve</button>`,
+                        `<button data-action="reject" data-id="${escapeHtml(supplier.id)}" class="btn-xs" style="background: #ef4444; color: white;" title="Reject supplier">✗ Reject</button>`,
                       ].join('')
                     : ''
                 }
-                <button onclick="window.deleteSupplier('${escapeHtml(supplier.id)}')" class="btn-xs" style="background: #6b7280; color: white;" title="Delete">🗑️</button>
+                <button data-action="delete" data-id="${escapeHtml(supplier.id)}" class="btn-xs" style="background: #6b7280; color: white;" title="Delete">🗑️</button>
               </div>
               <div style="display: flex; gap: 4px; align-items: center; flex-wrap: wrap;">
                 <select id="sub-tier-${escapeHtml(supplier.id)}" class="btn-xs" style="padding: 2px 4px; font-size: 11px;" title="Subscription tier">
@@ -408,8 +459,8 @@
                   <option value="90">90 days</option>
                   <option value="365">1 year</option>
                 </select>
-                <button onclick="window.grantSubscription('${escapeHtml(supplier.id)}')" class="btn-xs" style="background: #667eea; color: white; font-size: 11px;" title="Grant subscription">Grant</button>
-                <button onclick="window.removeSubscription('${escapeHtml(supplier.id)}')" class="btn-xs" style="background: #6b7280; color: white; font-size: 11px;" title="Remove subscription">Remove</button>
+                <button data-action="grantSubscription" data-id="${escapeHtml(supplier.id)}" class="btn-xs" style="background: #667eea; color: white; font-size: 11px;" title="Grant subscription">Grant</button>
+                <button data-action="removeSubscription" data-id="${escapeHtml(supplier.id)}" class="btn-xs" style="background: #6b7280; color: white; font-size: 11px;" title="Remove subscription">Remove</button>
               </div>
             </div>
           </td>

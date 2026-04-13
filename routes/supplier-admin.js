@@ -671,57 +671,62 @@ router.put(
   applyRoleRequired('admin'),
   applyCsrfProtection,
   async (req, res) => {
-    const { id } = req.params;
-    const suppliers = await dbUnified.read('suppliers');
-    const supplier = suppliers.find(s => s.id === id);
+    try {
+      const { id } = req.params;
+      const suppliers = await dbUnified.read('suppliers');
+      const supplier = suppliers.find(s => s.id === id);
 
-    if (!supplier) {
-      return res.status(404).json({ error: 'Supplier not found' });
-    }
-
-    const now = new Date().toISOString();
-    const supplierUpdates = {};
-
-    // Update allowed fields
-    const fields = [
-      'name',
-      'category',
-      'location',
-      'price_display',
-      'website',
-      'email',
-      'phone',
-      'maxGuests',
-      'description_short',
-      'description_long',
-      'blurb',
-      'amenities',
-      'tags',
-    ];
-    for (const field of fields) {
-      if (req.body[field] !== undefined) {
-        supplierUpdates[field] = req.body[field];
+      if (!supplier) {
+        return res.status(404).json({ error: 'Supplier not found' });
       }
+
+      const now = new Date().toISOString();
+      const supplierUpdates = {};
+
+      // Update allowed fields
+      const fields = [
+        'name',
+        'category',
+        'location',
+        'price_display',
+        'website',
+        'email',
+        'phone',
+        'maxGuests',
+        'description_short',
+        'description_long',
+        'blurb',
+        'amenities',
+        'tags',
+      ];
+      for (const field of fields) {
+        if (req.body[field] !== undefined) {
+          supplierUpdates[field] = req.body[field];
+        }
+      }
+      // Verified and approved are managed by the verification state machine endpoints
+      // (approve, reject, request-changes, suspend). Reject any attempt to set them directly.
+      if ('verified' in req.body || 'approved' in req.body) {
+        return res.status(400).json({
+          error:
+            'verified and approved cannot be set directly. Use the /approve, /reject, /request-changes, or /suspend endpoints.',
+        });
+      }
+
+      supplierUpdates.updatedAt = now;
+
+      await dbUnified.updateOne('suppliers', { id }, { $set: supplierUpdates });
+
+      // Bust catalog cache — profile data changed
+      catalogCache
+        .invalidate()
+        .catch(e => logger.warn('[catalogCache] invalidate error:', e.message));
+
+      res.json({ ok: true, supplier: { ...supplier, ...supplierUpdates } });
+    } catch (error) {
+      logger.error('Error updating supplier:', { error: error.message, id: req.params.id });
+      res.status(500).json({ error: error.message || 'Failed to update supplier' });
     }
-    // Verified and approved are managed by the verification state machine endpoints
-    // (approve, reject, request-changes, suspend). Reject any attempt to set them directly.
-    if ('verified' in req.body || 'approved' in req.body) {
-      return res.status(400).json({
-        error:
-          'verified and approved cannot be set directly. Use the /approve, /reject, /request-changes, or /suspend endpoints.',
-      });
-    }
-
-    supplierUpdates.updatedAt = now;
-
-    await dbUnified.updateOne('suppliers', { id }, { $set: supplierUpdates });
-
-    // Bust catalog cache — profile data changed
-    catalogCache
-      .invalidate()
-      .catch(e => logger.warn('[catalogCache] invalidate error:', e.message));
-
-    res.json({ ok: true, supplier: { ...supplier, ...supplierUpdates } });
   }
 );
 

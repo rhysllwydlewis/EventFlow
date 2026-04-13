@@ -53,7 +53,8 @@
       AdminShared.showToast('Failed to load supplier details', 'error');
       if (header) {
         header.innerHTML =
-          '<p class="empty-state-card"><span class="empty-icon">⚠️</span><br>Failed to load supplier. <a href="" onclick="location.reload()">Retry</a></p>';
+          '<p class="empty-state-card"><span class="empty-icon">⚠️</span><br>Failed to load supplier. <button type="button" id="retryLoadSupplierBtn" style="background:none;border:none;color:#667eea;cursor:pointer;padding:0;text-decoration:underline;font-size:inherit;">Retry</button></p>';
+        header.querySelector('#retryLoadSupplierBtn')?.addEventListener('click', () => location.reload());
       }
     } finally {
       if (header) {
@@ -340,7 +341,7 @@
             <p>${AdminShared.escapeHtml(pkg.price_display || pkg.price || 'Price not set')} • ${pkg.approved ? 'Approved' : 'Pending'}</p>
           </div>
           <div class="flex-gap">
-            <button class="btn btn-small btn-primary" onclick="window.open('/package?id=${pkg.id}', '_blank')">View</button>
+            <button class="btn btn-small btn-primary" data-action="viewPackage" data-id="${AdminShared.escapeHtml(pkg.id)}">View</button>
             <button class="btn btn-small btn-secondary" data-action="editPackage" data-id="${pkg.id}">Edit</button>
             ${!pkg.approved ? `<button class="btn btn-small btn-success" data-action="approvePackage" data-id="${pkg.id}">Approve</button>` : ''}
           </div>
@@ -648,6 +649,20 @@
       return;
     }
 
+    // Client-side validation for website URL
+    if (matched.key === 'website' && valueResult.value) {
+      if (!/^https?:\/\//i.test(valueResult.value)) {
+        AdminShared.showToast('Website URL must start with http:// or https://', 'error');
+        return;
+      }
+    }
+
+    // Client-side validation for required fields
+    if (matched.key === 'name' && !valueResult.value.trim()) {
+      AdminShared.showToast('Business name cannot be empty', 'error');
+      return;
+    }
+
     try {
       await AdminShared.api(`/api/admin/suppliers/${supplierId}`, 'PUT', {
         [matched.key]: valueResult.value,
@@ -655,7 +670,7 @@
       AdminShared.showToast(`${matched.label} updated successfully`, 'success');
       loadSupplier();
     } catch (err) {
-      AdminShared.showToast(`Failed to update: ${err.message || 'Unknown error'}`, 'error');
+      AdminShared.showToast(`Failed to update ${matched.label}: ${err.message || 'Unknown error'}`, 'error');
     }
   });
 
@@ -714,7 +729,9 @@
     const action = btn.dataset.action;
     const id = btn.dataset.id;
 
-    if (action === 'editPackage') {
+    if (action === 'viewPackage') {
+      window.open(`/package?id=${encodeURIComponent(id)}`, '_blank', 'noopener,noreferrer');
+    } else if (action === 'editPackage') {
       window.location.href = `/admin-packages?id=${encodeURIComponent(id)}`;
     } else if (action === 'approvePackage') {
       if (
