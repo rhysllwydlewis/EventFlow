@@ -298,7 +298,8 @@
 }
 
 .review-verified-filter {
-  display: flex;
+  /* Hidden: verification system not yet implemented — re-enable by removing this line */
+  display: none;
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;

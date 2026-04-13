@@ -964,10 +964,23 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     _initReviewsManager(suppId);
   }
 
-  function _initReviewsManager(suppId) {
+  async function _initReviewsManager(suppId) {
+    // Fetch the current user so reviewsManager knows whether the visitor is signed in.
+    // This prevents openReviewModal() from incorrectly redirecting logged-in users.
+    let currentUser = null;
+    try {
+      const response = await fetch('/api/v1/auth/me', { credentials: 'include' });
+      if (response.ok) {
+        const data = await response.json();
+        currentUser = (data && data.user) || null;
+      }
+    } catch (_) {
+      // Network error — proceed with null (guest) user
+    }
+
     const doInit = () => {
       try {
-        window.reviewsManager.init(suppId, null);
+        window.reviewsManager.init(suppId, currentUser);
       } catch (e) {
         console.error('ReviewsManager init error:', e);
       }

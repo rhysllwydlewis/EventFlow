@@ -177,10 +177,11 @@
 
       const verifiedCheckbox = document.getElementById('filter-verified');
       if (verifiedCheckbox) {
-        verifiedCheckbox.addEventListener('change', e => {
-          this.filters.verifiedOnly = e.target.checked;
-          this.currentPage = 1;
-          this.loadReviews();
+        // NOTE: The verified-customers filter is currently hidden (display:none in reviews.css)
+        // and the verification system is not yet implemented. The listener is preserved so it
+        // can be re-enabled in the future; verifiedOnly is forced to false until then.
+        verifiedCheckbox.addEventListener('change', () => {
+          this.filters.verifiedOnly = false;
         });
       }
     },
@@ -512,7 +513,7 @@
      */
     async voteOnReview(reviewId, voteType) {
       try {
-        const { response, data } = await this.fetchWithCSRF(`/api/v1/reviews/${reviewId}/vote`, {
+        const { response, data } = await this.fetchWithCSRF(`/api/reviews/${reviewId}/vote`, {
           method: 'POST',
           body: JSON.stringify({ voteType }),
         });
@@ -621,7 +622,22 @@
     /**
      * Open review submission modal
      */
-    openReviewModal() {
+    async openReviewModal() {
+      // If currentUser wasn't passed during init, try fetching it from the auth endpoint
+      if (!this.currentUser) {
+        try {
+          const response = await fetch('/api/v1/auth/me', { credentials: 'include' });
+          if (response.ok) {
+            const data = await response.json();
+            if (data && data.user) {
+              this.currentUser = data.user;
+            }
+          }
+        } catch (_) {
+          // ignore network errors — fall through to redirect if still unauthenticated
+        }
+      }
+
       if (!this.currentUser) {
         this.showToast('Please sign in to write a review', 'error');
         window.location.href = `/auth?redirect=${encodeURIComponent(window.location.pathname)}`;
@@ -870,7 +886,7 @@
         };
 
         const { response, data: result } = await this.fetchWithCSRF(
-          `/api/v1/suppliers/${this.currentSupplierId}/reviews`,
+          `/api/suppliers/${this.currentSupplierId}/reviews`,
           {
             method: 'POST',
             body: JSON.stringify(data),
