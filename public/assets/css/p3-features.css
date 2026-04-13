@@ -1183,6 +1183,7 @@ img {
 
   .carousel-image.is-loading {
     animation: none;
+    /* Keep the static highlight centered when shimmer animation is disabled. */
     background-position: 50% 0;
   }
 }
