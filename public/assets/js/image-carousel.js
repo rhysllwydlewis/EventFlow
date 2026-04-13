@@ -24,17 +24,30 @@
       return;
     }
 
-    // Store images data
-    images = Array.from(galleryImages).map((img, index) => ({
-      src: img.dataset.fullsize || img.src,
-      alt: img.alt || `Image ${index + 1}`,
-      caption: img.dataset.caption || img.title || '',
-    }));
+    // Store images data, deduplicating by src so the thumbnail strip never
+    // shows the same image twice (e.g. a featured image that also appears in
+    // the gallery grid).
+    const seenSrcs = new Map(); // src → index in deduplicated images array
+    images = [];
+    Array.from(galleryImages).forEach(img => {
+      const src = img.dataset.fullsize || img.src;
+      if (!seenSrcs.has(src)) {
+        const idx = images.length;
+        seenSrcs.set(src, idx);
+        images.push({
+          src,
+          alt: img.alt || `Image ${idx + 1}`,
+          caption: img.dataset.caption || img.title || '',
+        });
+      }
+    });
 
-    // Add click handlers to images
-    galleryImages.forEach((img, index) => {
+    // Add click handlers to images — map each element to its deduplicated index
+    galleryImages.forEach(img => {
+      const src = img.dataset.fullsize || img.src;
+      const dedupedIndex = seenSrcs.get(src) ?? 0;
       img.style.cursor = 'pointer';
-      img.addEventListener('click', () => openCarousel(index));
+      img.addEventListener('click', () => openCarousel(dedupedIndex));
     });
 
     createCarouselModal();
@@ -68,7 +81,7 @@
           class="carousel-close" 
           aria-label="Close carousel"
         >
-          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="18" y1="6" x2="6" y2="18"/>
             <line x1="6" y1="6" x2="18" y2="18"/>
           </svg>
@@ -475,7 +488,7 @@
       // and avoid cumulative layout shift. The full-size image will still be
       // downloaded and scaled down via object-fit: cover in CSS.
       img.width = 44;
-      img.height = 36;
+      img.height = 44;
 
       btn.appendChild(img);
       btn.addEventListener('click', e => {
@@ -530,14 +543,35 @@
     }
 
     const name = supplierName || '';
-    images = photoUrls.map((url, i) => ({
+
+    // Dedupe URLs by value while preserving order so the thumbnail strip never
+    // shows the same photo twice when the source array contains duplicates.
+    const seenUrls = new Set();
+    const deduped = [];
+    photoUrls.forEach(url => {
+      if (!seenUrls.has(url)) {
+        seenUrls.add(url);
+        deduped.push(url);
+      }
+    });
+
+    images = deduped.map((url, i) => ({
       src: url,
       alt: name ? `${name} — photo ${i + 1}` : `photo ${i + 1}`,
       caption: '',
     }));
 
+    // Map the original startIndex into the deduplicated array so the carousel
+    // still opens on the photo the user tapped.
+    // Note: targetUrl is always present in deduped (it came from photoUrls),
+    // so indexOf will always return ≥ 0; the Math.max guard handles the
+    // theoretical edge case where rawStart is out of bounds.
+    const rawStart = typeof startIndex === 'number' ? startIndex : 0;
+    const targetUrl = photoUrls[rawStart] || deduped[0];
+    const adjustedIndex = Math.max(0, deduped.indexOf(targetUrl));
+
     createCarouselModal();
-    openCarousel(typeof startIndex === 'number' ? startIndex : 0);
+    openCarousel(adjustedIndex);
   }
 
   // Export public API
