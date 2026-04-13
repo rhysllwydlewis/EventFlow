@@ -971,7 +971,13 @@ async function initSupplier() {
       ? `<div class="supplier-trust-card"><h3 class="trust-card__title">Trust &amp; Safety</h3><div class="trust-item-list">${trustItems.join('')}</div></div>`
       : '';
 
-  document.getElementById('supplier-container').innerHTML = `
+  // supplier-container is only present in the legacy HTML layout.
+  // The current supplier.html uses supplier-profile.js as the authoritative renderer.
+  const supplierContainer = document.getElementById('supplier-container');
+  if (!supplierContainer) {
+    return;
+  }
+  supplierContainer.innerHTML = `
     ${statsHtml}
     
     ${highlightsHtml}

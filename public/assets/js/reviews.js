@@ -28,6 +28,13 @@
     csrfToken: null,
 
     /**
+     * Build the sign-in URL that redirects back to the current page after auth
+     */
+    getSignInRedirectUrl() {
+      return `/auth?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+    },
+
+    /**
      * Initialize the reviews system
      */
     init(supplierId, user = null) {
@@ -177,10 +184,15 @@
 
       const verifiedCheckbox = document.getElementById('filter-verified');
       if (verifiedCheckbox) {
-        verifiedCheckbox.addEventListener('change', e => {
-          this.filters.verifiedOnly = e.target.checked;
-          this.currentPage = 1;
-          this.loadReviews();
+        // NOTE: The verified-customers filter is currently hidden (display:none in reviews.css)
+        // and the verification system is not yet implemented.
+        // The checkbox is disabled and hidden; the listener below is a safety-net guard
+        // that keeps verifiedOnly=false in case this code is re-enabled in the future
+        // without updating this listener.
+        verifiedCheckbox.disabled = true;
+        verifiedCheckbox.setAttribute('aria-hidden', 'true');
+        verifiedCheckbox.addEventListener('change', () => {
+          this.filters.verifiedOnly = false;
         });
       }
     },
@@ -254,7 +266,11 @@
             <div class="empty-icon">⭐</div>
             <h3 class="empty-title">No Reviews Yet</h3>
             <p class="empty-message">This supplier is new to our platform. Be the first to share your experience!</p>
-            ${this.currentUser ? '<button class="btn-write-review" onclick="reviewsManager.openReviewModal()">Write the First Review</button>' : '<p style="color: #6b7280; margin-top: 1rem;">Sign in to write a review</p>'}
+            ${
+              this.currentUser
+                ? '<button class="btn-write-review" onclick="reviewsManager.openReviewModal()">Write the First Review</button>'
+                : `<a href="${this.getSignInRedirectUrl()}" class="reviews-empty__signin-cta">Sign in to write a review</a>`
+            }
           </div>
         `;
         return;
@@ -512,7 +528,7 @@
      */
     async voteOnReview(reviewId, voteType) {
       try {
-        const { response, data } = await this.fetchWithCSRF(`/api/v1/reviews/${reviewId}/vote`, {
+        const { response, data } = await this.fetchWithCSRF(`/api/reviews/${reviewId}/vote`, {
           method: 'POST',
           body: JSON.stringify({ voteType }),
         });
@@ -621,10 +637,25 @@
     /**
      * Open review submission modal
      */
-    openReviewModal() {
+    async openReviewModal() {
+      // If currentUser wasn't passed during init, try fetching it from the auth endpoint
+      if (!this.currentUser) {
+        try {
+          const response = await fetch('/api/v1/auth/me', { credentials: 'include' });
+          if (response.ok) {
+            const data = await response.json();
+            if (data && data.user) {
+              this.currentUser = data.user;
+            }
+          }
+        } catch (_) {
+          // ignore network errors — fall through to redirect if still unauthenticated
+        }
+      }
+
       if (!this.currentUser) {
         this.showToast('Please sign in to write a review', 'error');
-        window.location.href = `/auth?redirect=${encodeURIComponent(window.location.pathname)}`;
+        window.location.href = this.getSignInRedirectUrl();
         return;
       }
 
@@ -870,7 +901,7 @@
         };
 
         const { response, data: result } = await this.fetchWithCSRF(
-          `/api/v1/suppliers/${this.currentSupplierId}/reviews`,
+          `/api/suppliers/${this.currentSupplierId}/reviews`,
           {
             method: 'POST',
             body: JSON.stringify(data),
