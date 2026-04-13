@@ -230,7 +230,9 @@ describe('Supplier profile form – website field browser validation disabled', 
 
   it('website input includes helper text for https:// auto-normalization', () => {
     expect(dashboardHtml).toContain('id="sup-website-help"');
-    expect(dashboardHtml).toContain('https:// will be added when you save');
+    expect(dashboardHtml).toContain(
+      'If no protocol is provided, https:// will be added when you save'
+    );
     expect(dashboardHtml).toContain('www.event-flow.co.uk');
   });
 });
