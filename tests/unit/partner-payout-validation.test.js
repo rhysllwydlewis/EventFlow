@@ -142,21 +142,6 @@ const DISABLED_PARTNER = {
   status: 'disabled',
 };
 
-jest.mock('../../services/tremendousService', () => ({
-  getTremendousService: jest.fn(() => ({
-    listProducts: jest.fn().mockResolvedValue([]),
-    createOrder: jest.fn().mockResolvedValue({ id: 'ord_001' }),
-    getOrder: jest.fn().mockResolvedValue({ id: 'ord_001', status: 'EXECUTED', rewards: [] }),
-    resendReward: jest.fn().mockResolvedValue({}),
-  })),
-}));
-
-// ─── Payout request — Tremendous integration (replaces coming-soon stub) ─────
-
-// NOTE: The old POST /api/partner/payout-request (503 coming-soon stub) has been
-// replaced by the real Tremendous gift card integration. See
-// tests/unit/partner-tremendous.test.js for the comprehensive Tremendous endpoint tests.
-
 // ─── Support ticket ───────────────────────────────────────────────────────────
 
 describe('POST /api/partner/support-ticket — validation', () => {

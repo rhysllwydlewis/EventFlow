@@ -600,7 +600,6 @@ async function awardProfileApprovedBonus(_supplierUserId) {
 
 /**
  * Debit points from a partner's balance as part of a cashout.
- * This is called immediately before the Tremendous order is created.
  *
  * @param {object} opts
  * @param {string} opts.partnerId     - Partner ID
@@ -628,7 +627,7 @@ async function debitPoints({ partnerId, amount, notes, externalRef }) {
 }
 
 /**
- * Reverse a debit transaction (e.g. if the Tremendous order fails).
+ * Reverse a debit transaction (e.g. if a cashout order fails).
  *
  * @param {string} debitTxnId  - ID of the REDEEM transaction to reverse
  * @param {string} partnerId   - Partner ID (for logging)

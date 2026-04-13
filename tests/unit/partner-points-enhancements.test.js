@@ -6,8 +6,7 @@
  * 3. awardProfileApprovedBonus (+20 credits) — referred supplier's profile was approved
  * 4. getBalance() — availableBalance vs maturingBalance (30-day maturity)
  * 5. debitPoints / reverseDebit — cashout debit lifecycle
- * 6. Cashout balance enforcement in POST /api/partner/tremendous/orders
- * 7. GET /api/partner/support-tickets endpoint
+ * 6. GET /api/partner/support-tickets endpoint
  */
 
 'use strict';
