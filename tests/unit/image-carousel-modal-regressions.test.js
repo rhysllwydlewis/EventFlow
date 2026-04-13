@@ -3,6 +3,9 @@
 const fs = require('fs');
 const path = require('path');
 
+// These regression tests intentionally inspect source files on disk (similar to
+// other unit tests in this repository) to lock CSS/JS behavior that is not
+// exposed as importable modules in Node/Jest.
 const carouselCss = fs.readFileSync(
   path.join(process.cwd(), 'public/assets/css/p3-features.css'),
   'utf8'
@@ -45,7 +48,8 @@ describe('Carousel modal CSS regressions', () => {
     const prmIdx = carouselCss.indexOf('@media (prefers-reduced-motion: reduce)');
     expect(prmIdx).toBeGreaterThan(-1);
     const afterPrm = carouselCss.slice(prmIdx);
-    const nextMediaIdx = afterPrm.indexOf('\n@media (max-width: 640px)');
+    const nextMediaMatch = afterPrm.match(/@media\s*\(max-width:\s*640px\)/);
+    const nextMediaIdx = nextMediaMatch ? nextMediaMatch.index : -1;
     const prmBlock = nextMediaIdx > -1 ? afterPrm.slice(0, nextMediaIdx) : afterPrm;
     expect(prmBlock).toContain('.carousel-nav:hover');
     expect(prmBlock).toContain('transform: translateY(-50%);');
