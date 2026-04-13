@@ -563,9 +563,11 @@
 
     // Map the original startIndex into the deduplicated array so the carousel
     // still opens on the photo the user tapped.
-    // Note: targetUrl is always present in deduped (it came from photoUrls),
-    // so indexOf will always return ≥ 0; the Math.max guard handles the
-    // theoretical edge case where rawStart is out of bounds.
+    // Edge cases handled:
+    //   - rawStart out of bounds (> photoUrls.length): falls back to deduped[0]
+    //   - targetUrl always exists in deduped because either it came from photoUrls
+    //     (guaranteed to be in deduped) or it IS deduped[0], so indexOf returns ≥ 0;
+    //     Math.max(0, …) is a defensive guard for future callers.
     const rawStart = typeof startIndex === 'number' ? startIndex : 0;
     const targetUrl = photoUrls[rawStart] || deduped[0];
     const adjustedIndex = Math.max(0, deduped.indexOf(targetUrl));
