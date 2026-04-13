@@ -1138,6 +1138,10 @@ img {
   .carousel-thumb-item:hover:not(.active) {
     transform: none;
   }
+
+  .carousel-image {
+    transition: none;
+  }
 }
 
 /* Hide side-preview thumbnails on small screens — not enough horizontal room.

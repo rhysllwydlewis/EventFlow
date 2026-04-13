@@ -44,10 +44,14 @@ describe('Carousel modal CSS regressions', () => {
   it('disables nav hover scale in reduced-motion mode', () => {
     const prmIdx = carouselCss.indexOf('@media (prefers-reduced-motion: reduce)');
     expect(prmIdx).toBeGreaterThan(-1);
-    const prmBlock = carouselCss.slice(prmIdx, prmIdx + 800);
+    const afterPrm = carouselCss.slice(prmIdx);
+    const nextMediaIdx = afterPrm.indexOf('\n@media (max-width: 640px)');
+    const prmBlock = nextMediaIdx > -1 ? afterPrm.slice(0, nextMediaIdx) : afterPrm;
     expect(prmBlock).toContain('.carousel-nav:hover');
     expect(prmBlock).toContain('transform: translateY(-50%);');
     expect(prmBlock).not.toContain('transform: translateY(-50%) scale(1.06);');
+    expect(prmBlock).toContain('.carousel-image');
+    expect(prmBlock).toContain('transition: none;');
   });
 
   it('includes a short-landscape viewport fallback for carousel sizing', () => {
