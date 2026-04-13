@@ -125,6 +125,13 @@
           <div class="carousel-divider" aria-hidden="true"></div>
           <span aria-live="polite"><span id="carousel-current">1</span> / <span id="carousel-total">1</span></span>
         </div>
+
+        <div
+          class="carousel-thumb-strip"
+          id="carousel-thumb-strip"
+          role="group"
+          aria-label="Gallery thumbnails"
+        ></div>
       </div>
     `;
 
@@ -179,6 +186,7 @@
     lastFocused = document.activeElement || null;
     currentIndex = index;
     rebuildDots();
+    rebuildThumbStrip();
     updateCarouselImage();
 
     carousel.style.display = 'flex';
@@ -277,6 +285,20 @@
         });
       }
 
+      // Update mobile thumbnail strip active state
+      const strip = document.getElementById('carousel-thumb-strip');
+      if (strip) {
+        const thumbs = strip.querySelectorAll('.carousel-thumb-item');
+        thumbs.forEach((thumb, i) => {
+          thumb.classList.toggle('active', i === currentIndex);
+        });
+        // Scroll active thumbnail into view
+        const activeThumb = thumbs[currentIndex];
+        if (activeThumb) {
+          activeThumb.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        }
+      }
+
       // Fade in
       img.style.opacity = '1';
     }, 150);
@@ -365,6 +387,44 @@
         updateCarouselImage();
       });
       dotsContainer.appendChild(dot);
+    });
+  }
+
+  /**
+   * Rebuild the mobile bottom thumbnail strip.
+   * Visible only on small screens (CSS controls display: none / flex).
+   */
+  function rebuildThumbStrip() {
+    const strip = document.getElementById('carousel-thumb-strip');
+    if (!strip) {
+      return;
+    }
+
+    strip.innerHTML = '';
+
+    if (images.length <= 1) {
+      return;
+    }
+
+    images.forEach((image, i) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `carousel-thumb-item${i === currentIndex ? ' active' : ''}`;
+      btn.setAttribute('aria-label', `Go to image ${i + 1} of ${images.length}`);
+
+      const img = document.createElement('img');
+      img.src = image.src;
+      img.alt = '';
+      img.loading = 'lazy';
+
+      btn.appendChild(img);
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        currentIndex = i;
+        updateCarouselImage();
+      });
+
+      strip.appendChild(btn);
     });
   }
 
