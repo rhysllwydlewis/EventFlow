@@ -657,18 +657,27 @@
       return;
     }
 
-    // Client-side validation for website URL
+    // Client-side validation for website URL — use URL constructor for structural check
     if (matched.key === 'website' && valueResult.value) {
-      if (!/^https?:\/\//i.test(valueResult.value)) {
-        AdminShared.showToast('Website URL must start with http:// or https://', 'error');
+      try {
+        const parsed = new URL(valueResult.value);
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+          throw new Error('protocol');
+        }
+      } catch {
+        AdminShared.showToast('Website URL must be a valid http:// or https:// address', 'error');
         return;
       }
     }
 
-    // Client-side validation for required fields
-    if (matched.key === 'name' && !valueResult.value.trim()) {
-      AdminShared.showToast('Business name cannot be empty', 'error');
-      return;
+    // Client-side validation for required fields — store trimmed value and use it in the API call
+    if (matched.key === 'name') {
+      const trimmed = valueResult.value.trim();
+      if (!trimmed) {
+        AdminShared.showToast('Business name cannot be empty', 'error');
+        return;
+      }
+      valueResult.value = trimmed;
     }
 
     try {

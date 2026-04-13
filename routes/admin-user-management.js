@@ -945,7 +945,10 @@ router.post(
         try {
           await partnerService.softDeletePartnerByUserId(deletedUser.id);
         } catch (partnerErr) {
-          logger.warn(`Could not soft-delete partner record for user ${deletedUser.id}:`, partnerErr);
+          logger.warn(
+            `Could not soft-delete partner record for user ${deletedUser.id}:`,
+            partnerErr
+          );
         }
       }
 
@@ -1603,6 +1606,10 @@ router.put(
       if (!supplier.versionHistory) {
         supplier.versionHistory = [];
       }
+      // Trim BEFORE adding so the array never temporarily exceeds the cap
+      if (supplier.versionHistory.length >= 20) {
+        supplier.versionHistory = supplier.versionHistory.slice(-(20 - 1));
+      }
       const previousStateSnap = { ...supplier };
       delete previousStateSnap.versionHistory;
       supplier.versionHistory.push({
@@ -1610,9 +1617,6 @@ router.put(
         editedBy: req.user.id,
         previousState: previousStateSnap,
       });
-      if (supplier.versionHistory.length > 20) {
-        supplier.versionHistory = supplier.versionHistory.slice(-20);
-      }
 
       // Update fields if provided
       if (name !== undefined) {
