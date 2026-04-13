@@ -39,9 +39,9 @@ describe('Carousel modal CSS regressions', () => {
 
   it('uses wider side-preview offsets to reduce visual crowding with nav buttons', () => {
     expect(carouselCss).toContain('.carousel-side-preview--prev');
-    expect(carouselCss).toContain('left: 92px;');
+    expect(carouselCss).toContain('left: 96px;');
     expect(carouselCss).toContain('.carousel-side-preview--next');
-    expect(carouselCss).toContain('right: 92px;');
+    expect(carouselCss).toContain('right: 96px;');
   });
 
   it('disables nav hover scale in reduced-motion mode', () => {
