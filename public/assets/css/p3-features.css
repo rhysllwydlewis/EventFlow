@@ -1076,7 +1076,6 @@ img {
 
   /* Pull the counter inside the modal, floating above the thumb strip */
   .carousel-counter {
-    bottom: 64px;
     /* safe-area-inset-bottom for iOS home-indicator area */
     bottom: calc(64px + env(safe-area-inset-bottom, 0px));
   }
