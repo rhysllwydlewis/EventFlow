@@ -321,7 +321,7 @@
       const photos =
         review.photos && review.photos.length > 0
           ? `<div class="review-photos">
-             ${review.photos.map(photo => `<div class="review-photo"><img src="${this.escapeHtml(photo)}" alt="Review photo" /></div>`).join('')}
+             ${review.photos.map((photo, i) => `<div class="review-photo"><img src="${this.escapeHtml(photo)}" alt="Review photo ${i + 1}" /></div>`).join('')}
            </div>`
           : '';
 

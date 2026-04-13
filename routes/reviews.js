@@ -9,6 +9,7 @@ const express = require('express');
 const logger = require('../utils/logger');
 const mongoDb = require('../db');
 const NotificationService = require('../services/notification.service');
+const { writeLimiter } = require('../middleware/rateLimits');
 const router = express.Router();
 
 // These will be injected by server.js during route mounting
@@ -709,61 +710,67 @@ router.delete('/reviews/:reviewId', applyAuthRequired, applyCsrfProtection, asyn
  * PUT /api/reviews/:reviewId
  * Body: { rating, title, comment, recommend, eventType }
  */
-router.put('/reviews/:reviewId', applyAuthRequired, applyCsrfProtection, async (req, res) => {
-  try {
-    const { reviewId } = req.params;
-    const { rating, title, comment, recommend, eventType } = req.body;
+router.put(
+  '/reviews/:reviewId',
+  writeLimiter,
+  applyAuthRequired,
+  applyCsrfProtection,
+  async (req, res) => {
+    try {
+      const { reviewId } = req.params;
+      const { rating, title, comment, recommend, eventType } = req.body;
 
-    if (!comment || comment.length < 20) {
-      return res.status(400).json({ error: 'Review comment must be at least 20 characters' });
-    }
-    if (rating !== undefined && (Number(rating) < 1 || Number(rating) > 5)) {
-      return res.status(400).json({ error: 'Rating must be between 1 and 5' });
-    }
+      if (!comment || comment.length < 20) {
+        return res.status(400).json({ error: 'Review comment must be at least 20 characters' });
+      }
+      if (rating !== undefined && (Number(rating) < 1 || Number(rating) > 5)) {
+        return res.status(400).json({ error: 'Rating must be between 1 and 5' });
+      }
 
-    const reviews = await dbUnified.read('reviews');
-    const review = reviews.find(r => r.id === reviewId);
+      const reviews = await dbUnified.read('reviews');
+      const review = reviews.find(r => r.id === reviewId);
 
-    if (!review) {
-      return res.status(404).json({ error: 'Review not found' });
-    }
+      if (!review) {
+        return res.status(404).json({ error: 'Review not found' });
+      }
 
-    if (review.userId !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'You can only edit your own reviews' });
-    }
+      if (review.userId !== req.user.id && req.user.role !== 'admin') {
+        return res.status(403).json({ error: 'You can only edit your own reviews' });
+      }
 
-    const updates = {
-      editedAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    if (rating !== undefined) {
-      updates.rating = parseInt(rating, 10);
-    }
-    if (title !== undefined) {
-      updates.title = title;
-    }
-    if (comment !== undefined) {
-      updates.comment = comment;
-    }
-    if (recommend !== undefined) {
-      updates.recommend = recommend === true || recommend === 'true';
-    }
-    if (eventType !== undefined) {
-      updates.eventType = eventType;
-    }
+      const updates = {
+        editedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      if (rating !== undefined) {
+        updates.rating = parseInt(rating, 10);
+      }
+      if (title !== undefined) {
+        updates.title = title;
+      }
+      if (comment !== undefined) {
+        updates.comment = comment;
+      }
+      if (recommend !== undefined) {
+        updates.recommend = recommend === true || recommend === 'true';
+      }
+      if (eventType !== undefined) {
+        updates.eventType = eventType;
+      }
 
-    await dbUnified.updateOne('reviews', { id: reviewId }, { $set: updates });
+      await dbUnified.updateOne('reviews', { id: reviewId }, { $set: updates });
 
-    res.json({
-      success: true,
-      message: 'Review updated successfully',
-      review: { ...review, ...updates },
-    });
-  } catch (error) {
-    logger.error('Edit review error:', error);
-    res.status(500).json({ error: error.message });
+      res.json({
+        success: true,
+        message: 'Review updated successfully',
+        review: { ...review, ...updates },
+      });
+    } catch (error) {
+      logger.error('Edit review error:', error);
+      res.status(500).json({ error: error.message });
+    }
   }
-});
+);
 
 /**
  * Report a review
@@ -772,6 +779,7 @@ router.put('/reviews/:reviewId', applyAuthRequired, applyCsrfProtection, async (
  */
 router.post(
   '/reviews/:reviewId/report',
+  writeLimiter,
   applyAuthRequired,
   applyCsrfProtection,
   async (req, res) => {
