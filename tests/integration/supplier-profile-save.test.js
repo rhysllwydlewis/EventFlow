@@ -155,7 +155,7 @@ describe('Supplier Profile Save Fixes', () => {
 
     it('should clean up payload for non-Venues categories', () => {
       const supplierFormMatch = appJsContent.match(
-        /getElementById\('supplier-form'\)[\s\S]{0,1500}delete\s+payload\.venuePostcode/
+        /getElementById\('supplier-form'\)[\s\S]{0,2500}delete\s+payload\.venuePostcode/
       );
       expect(supplierFormMatch).toBeTruthy();
     });
@@ -289,7 +289,7 @@ describe('Supplier Profile Save Fixes', () => {
 
     it('should show saving state', () => {
       const supplierFormMatch = appJsContent.match(
-        /getElementById\('supplier-form'\)[\s\S]{0,1500}statusEl\.textContent\s*=\s*['"]Saving\.\.\.['"]/
+        /getElementById\('supplier-form'\)[\s\S]{0,3000}statusEl\.textContent\s*=\s*['"]Saving\.\.\.['"]/
       );
       expect(supplierFormMatch).toBeTruthy();
     });

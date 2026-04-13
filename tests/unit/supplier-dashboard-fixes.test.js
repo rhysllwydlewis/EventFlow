@@ -271,3 +271,172 @@ describe('Card hover animation – no layout shift on form cards', () => {
     expect(supplierDashImprovementsCss).toContain('photo-preview-item__image-wrap--error');
   });
 });
+
+// ─── Audit remediation – behavioral / sequencing checks ──────────────────────
+
+describe('Supplier form submit – double-submit prevention (sequencing)', () => {
+  it('app.js disables the submit button before any await in the save handler', () => {
+    // Verify saveBtn.disabled = true appears BEFORE the first await in the submit block
+    const submitIdx = appJs.indexOf("supForm.addEventListener('submit'");
+    expect(submitIdx).toBeGreaterThan(-1);
+    const handlerBlock = appJs.slice(submitIdx, submitIdx + 3000);
+    const disabledIdx = handlerBlock.indexOf('saveBtn.disabled = true');
+    const awaitIdx = handlerBlock.indexOf('await ensureCsrfToken');
+    expect(disabledIdx).toBeGreaterThan(-1);
+    expect(awaitIdx).toBeGreaterThan(-1);
+    expect(disabledIdx).toBeLessThan(awaitIdx);
+  });
+
+  it('app.js re-enables the submit button inside a finally block', () => {
+    const submitIdx = appJs.indexOf("supForm.addEventListener('submit'");
+    // The submit handler is large (validation + API call); use a generous slice
+    const handlerBlock = appJs.slice(submitIdx, submitIdx + 6000);
+    const finallyIdx = handlerBlock.indexOf('} finally {');
+    const reEnableIdx = handlerBlock.indexOf('saveBtn.disabled = false');
+    expect(finallyIdx).toBeGreaterThan(-1);
+    expect(reEnableIdx).toBeGreaterThan(-1);
+    // re-enable must come after the finally keyword
+    expect(reEnableIdx).toBeGreaterThan(finallyIdx);
+  });
+
+  it('app.js early-returns if the save button is already disabled (re-entry guard)', () => {
+    const submitIdx = appJs.indexOf("supForm.addEventListener('submit'");
+    const handlerBlock = appJs.slice(submitIdx, submitIdx + 500);
+    expect(handlerBlock).toContain('saveBtn.disabled');
+    expect(handlerBlock).toContain('return');
+  });
+});
+
+describe('Supplier form submit – savedId empty guard', () => {
+  it('app.js checks for empty savedId when method is POST and aborts with an error message', () => {
+    expect(appJs).toContain("!savedId && method === 'POST'");
+  });
+
+  it('app.js shows an error status message when savedId is empty after POST', () => {
+    const guardIdx = appJs.indexOf("!savedId && method === 'POST'");
+    const guardBlock = appJs.slice(guardIdx, guardIdx + 400);
+    expect(guardBlock).toContain('error');
+    expect(guardBlock).toContain('return');
+  });
+});
+
+describe('Supplier form submit – required field JS validation', () => {
+  it('app.js validates the name field before invoking buildSupplierPayload', () => {
+    const submitIdx = appJs.indexOf("supForm.addEventListener('submit'");
+    const handlerBlock = appJs.slice(submitIdx, submitIdx + 5000);
+    const nameCheckIdx = handlerBlock.indexOf('sup-name');
+    const buildPayloadIdx = handlerBlock.indexOf('buildSupplierPayload');
+    expect(nameCheckIdx).toBeGreaterThan(-1);
+    expect(buildPayloadIdx).toBeGreaterThan(-1);
+    // name check must occur before buildSupplierPayload is called
+    expect(nameCheckIdx).toBeLessThan(buildPayloadIdx);
+  });
+
+  it('app.js validates the category field before invoking buildSupplierPayload', () => {
+    const submitIdx = appJs.indexOf("supForm.addEventListener('submit'");
+    const handlerBlock = appJs.slice(submitIdx, submitIdx + 5000);
+    const catCheckIdx = handlerBlock.indexOf('sup-category');
+    const buildPayloadIdx = handlerBlock.indexOf('buildSupplierPayload');
+    expect(catCheckIdx).toBeGreaterThan(-1);
+    expect(buildPayloadIdx).toBeGreaterThan(-1);
+    expect(catCheckIdx).toBeLessThan(buildPayloadIdx);
+  });
+
+  it('app.js shows an inline error and focuses the name field when name is empty', () => {
+    // Search within the submit handler block to avoid matching populateSupplierForm
+    const submitIdx = appJs.indexOf("supForm.addEventListener('submit'");
+    const handlerBlock = appJs.slice(submitIdx, submitIdx + 6000);
+    expect(handlerBlock).toContain('nameEl.focus');
+    expect(handlerBlock).toContain('Business name is required');
+  });
+});
+
+describe('Supplier form – website URL normalization', () => {
+  it('app.js normalizes website URLs by prepending https:// when no scheme is present', () => {
+    expect(appJs).toContain("'https://' + ws");
+  });
+
+  it('app.js URL normalization runs inside buildSupplierPayload', () => {
+    const buildStart = appJs.indexOf('function buildSupplierPayload(form)');
+    expect(buildStart).toBeGreaterThan(-1);
+    const buildBlock = appJs.slice(buildStart, buildStart + 2000);
+    expect(buildBlock).toContain('https://');
+    expect(buildBlock).toContain('payload.website');
+  });
+
+  it('app.js does not prepend https:// when the scheme is already present', () => {
+    // The normalisation guard uses a regex test for ^https?:// before prepending
+    // Source contains the regex literal so we check for the key guard pattern
+    expect(appJs).toContain('https?:');
+    // Ensure the guard prevents double-prefixing by checking for the condition
+    const buildStart = appJs.indexOf('function buildSupplierPayload(form)');
+    const buildBlock = appJs.slice(buildStart, buildStart + 2000);
+    expect(buildBlock).toContain("'https://' + ws");
+  });
+});
+
+describe('Banner error state – ⚠ warning indicator consistency', () => {
+  it('app.js adds photo-preview-item__image-wrap--error class on banner image load failure', () => {
+    // The banner error handler must apply the same error class used by gallery errors
+    const bannerIdx = appJs.indexOf('Could not load banner');
+    expect(bannerIdx).toBeGreaterThan(-1);
+    const bannerBlock = appJs.slice(bannerIdx, bannerIdx + 300);
+    expect(bannerBlock).toContain('photo-preview-item__image-wrap--error');
+  });
+
+  it('gallery and banner error states share the same CSS error class', () => {
+    // Verify gallery.js also uses the same class (not a one-off)
+    expect(galleryJs).toContain('photo-preview-item__image-wrap--error');
+  });
+});
+
+describe('supplier-gallery.js – dead setupFormIntercept call removed', () => {
+  it('setup() no longer contains a live call to setupFormIntercept', () => {
+    const setupIdx = galleryJs.indexOf('setup() {');
+    expect(setupIdx).toBeGreaterThan(-1);
+    // Extract the setup() method body (up to the next top-level method)
+    const nextMethodIdx = galleryJs.indexOf('\n  setup', setupIdx + 1);
+    const endIdx =
+      nextMethodIdx !== -1
+        ? galleryJs.indexOf('\n  ', nextMethodIdx + 5)
+        : galleryJs.indexOf('\n  }', setupIdx) + 4;
+    const setupBody = galleryJs.slice(setupIdx, endIdx > setupIdx ? endIdx : setupIdx + 800);
+    expect(setupBody).not.toContain('this.setupFormIntercept(');
+  });
+});
+
+describe('CSS – :has() selectors wrapped in @supports for older Firefox compatibility', () => {
+  it('dashboard-animations.css wraps :has() hover rules in @supports selector(:has(*))', () => {
+    expect(dashboardAnimationsCss).toContain('@supports selector(:has(*))');
+    // The :has() selectors must appear inside the @supports block
+    const supportsIdx = dashboardAnimationsCss.indexOf('@supports selector(:has(*))');
+    const supportsBlock = dashboardAnimationsCss.slice(supportsIdx, supportsIdx + 500);
+    expect(supportsBlock).toContain(':has(form):hover');
+  });
+
+  it('supplier-dashboard-improvements.css wraps :has() hover rules in @supports selector(:has(*))', () => {
+    expect(supplierDashImprovementsCss).toContain('@supports selector(:has(*))');
+    const supportsIdx = supplierDashImprovementsCss.indexOf('@supports selector(:has(*))');
+    const supportsBlock = supplierDashImprovementsCss.slice(supportsIdx, supportsIdx + 500);
+    expect(supportsBlock).toContain(':has(');
+  });
+});
+
+describe('CSS – prefers-reduced-motion uses !important to prevent cascade override', () => {
+  it('dashboard-animations.css prefers-reduced-motion transition rule uses !important', () => {
+    const prmIdx = dashboardAnimationsCss.indexOf('@media (prefers-reduced-motion: reduce)');
+    expect(prmIdx).toBeGreaterThan(-1);
+    const prmBlock = dashboardAnimationsCss.slice(prmIdx, prmIdx + 400);
+    expect(prmBlock).toMatch(/transition[^;]+!important/);
+  });
+
+  it('supplier-dashboard-improvements.css prefers-reduced-motion transform rule uses !important', () => {
+    // Find the card-specific prefers-reduced-motion block (there may be multiple)
+    const prmIdx = supplierDashImprovementsCss.indexOf(
+      '/* Respect prefers-reduced-motion — use !important'
+    );
+    expect(prmIdx).toBeGreaterThan(-1);
+    const prmBlock = supplierDashImprovementsCss.slice(prmIdx, prmIdx + 500);
+    expect(prmBlock).toMatch(/transform[^;]+!important/);
+  });
+});

@@ -2812,6 +2812,9 @@ async function initDashSupplier() {
             'The uploaded image is too large. Please use an image smaller than 5 MB.'
           );
         }
+        // 404 Not Found: the requested resource does not exist (e.g. a stale URL after a data
+        // migration). The thrown Error propagates to the caller's catch block, which shows a
+        // user-visible message via the status element — so 404s never fail silently.
         const errorData = await r.json().catch(() => ({ error: 'Request failed' }));
         throw new Error(errorData.error || `HTTP ${r.status}`);
       }
@@ -3205,6 +3208,8 @@ async function initDashSupplier() {
             img.title = 'Could not load banner — upload a new one to replace it';
             imgDiv.style.background = '#f3f4f6';
             img.style.display = 'none';
+            // Add ⚠ warning indicator — consistent with gallery error state
+            imgDiv.classList.add('photo-preview-item__image-wrap--error');
           },
           { once: true }
         );
@@ -3575,6 +3580,15 @@ async function initDashSupplier() {
     if (tc && tc.value) {
       payload.themeColor = tc.value;
     }
+    // Normalize website URL: prepend https:// if a scheme is missing
+    if (payload.website) {
+      const ws = payload.website.trim();
+      if (ws && !/^https?:\/\//i.test(ws)) {
+        payload.website = `https://${ws}`;
+      } else {
+        payload.website = ws;
+      }
+    }
     return payload;
   }
 
@@ -3615,7 +3629,37 @@ async function initDashSupplier() {
         }
       }
 
+      // JS validation for required fields (novalidate disables browser validation)
       const statusEl = document.getElementById('sup-status');
+      const nameEl = supForm.querySelector('#sup-name');
+      const categoryEl = supForm.querySelector('#sup-category');
+      if (!nameEl || !nameEl.value.trim()) {
+        if (statusEl) {
+          clearSupplierStatusTimer();
+          statusEl.setAttribute('data-tone', 'error');
+          statusEl.textContent = 'Business name is required.';
+          statusEl.style.color = '#ef4444';
+          scheduleSupplierStatusClear(statusEl, 5000);
+        }
+        if (nameEl) {
+          nameEl.focus();
+        }
+        return;
+      }
+      if (!categoryEl || !categoryEl.value) {
+        if (statusEl) {
+          clearSupplierStatusTimer();
+          statusEl.setAttribute('data-tone', 'error');
+          statusEl.textContent = 'Please select a category.';
+          statusEl.style.color = '#ef4444';
+          scheduleSupplierStatusClear(statusEl, 5000);
+        }
+        if (categoryEl) {
+          categoryEl.focus();
+        }
+        return;
+      }
+
       if (saveBtn) {
         saveBtn.disabled = true;
         saveBtn.setAttribute('aria-disabled', 'true');
@@ -3655,6 +3699,19 @@ async function initDashSupplier() {
         // Determine the saved supplier ID (use server response for new profiles)
         const savedId =
           response && response.supplier && response.supplier.id ? response.supplier.id : id;
+
+        // Guard: for new profiles (POST), the server must return a valid ID.
+        // If it doesn't, we cannot proceed reliably — show an error and abort.
+        if (!savedId && method === 'POST') {
+          if (statusEl) {
+            clearSupplierStatusTimer();
+            statusEl.setAttribute('data-tone', 'error');
+            statusEl.textContent = 'Error: Server did not return a supplier ID. Please try again.';
+            statusEl.style.color = '#ef4444';
+            scheduleSupplierStatusClear(statusEl, 8000);
+          }
+          return;
+        }
 
         // Update currently editing supplier ID with the saved/created ID
         if (savedId) {

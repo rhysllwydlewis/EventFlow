@@ -2194,11 +2194,19 @@ details[open] .faq-question::after {
  * inputs and buttons inside the card, and causes forced reflows.
  * We keep the subtle box-shadow enhancement but cancel the translateY.
  */
-.sd-card:hover,
-.card:has(form):hover,
-.card:has(input):hover,
-.card:has(textarea):hover {
+.sd-card:hover {
   transform: none;
+}
+
+/* Progressively-enhanced :has() rules — only applied in browsers that support it.
+ * Fallback: .sd-card:hover above already cancels transforms for the main form card.
+ * Pre-Firefox-121 and other browsers without :has() support will rely on the fallback. */
+@supports selector(:has(*)) {
+  .card:has(form):hover,
+  .card:has(input):hover,
+  .card:has(textarea):hover {
+    transform: none;
+  }
 }
 
 /* Dashboard-specific card hover */
@@ -2212,24 +2220,27 @@ details[open] .faq-question::after {
 }
 
 /* Form-containing supplier dashboard cards should also not shift */
-.supplier-dashboard-card:has(form):hover,
-.supplier-dashboard-card:has(input):hover,
-.supplier-dashboard-card:has(textarea):hover {
-  transform: none;
+@supports selector(:has(*)) {
+  .supplier-dashboard-card:has(form):hover,
+  .supplier-dashboard-card:has(input):hover,
+  .supplier-dashboard-card:has(textarea):hover {
+    transform: none;
+  }
 }
 
-/* Respect prefers-reduced-motion — disable all card hover transforms */
+/* Respect prefers-reduced-motion — use !important so later rules in the cascade
+ * cannot re-enable motion for users who have requested it be reduced. */
 @media (prefers-reduced-motion: reduce) {
   .card,
   .supplier-dashboard-card,
   .dashboard-card {
-    transition: box-shadow 0.15s ease;
+    transition: box-shadow 0.15s ease !important;
   }
 
   .card:hover,
   .supplier-dashboard-card:hover,
   .dashboard-card:hover {
-    transform: none;
+    transform: none !important;
   }
 }
 
