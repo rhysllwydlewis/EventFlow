@@ -33,8 +33,9 @@ router.get('/', async (req, res) => {
     const users = await dbUnified.read('users');
 
     const enriched = await Promise.all(
-      partners.map(async p => {
+      partners.map(async partner => {
         // Repair missing id: generate one and persist it so action buttons work
+        let p = partner;
         if (!p.id) {
           const newId = uid('prt');
           await dbUnified.updateOne(
