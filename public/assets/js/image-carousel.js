@@ -13,6 +13,7 @@
   let images = [];
   let carousel = null;
   let lastFocused = null;
+  let imageLoadToken = 0;
 
   /**
    * Initialize image carousel on gallery images
@@ -76,6 +77,7 @@
     modal.setAttribute('aria-label', 'Image carousel');
     modal.setAttribute('aria-modal', 'true');
     modal.setAttribute('tabindex', '-1');
+    modal.setAttribute('aria-hidden', 'true');
     modal.style.display = 'none';
 
     modal.innerHTML = `
@@ -189,11 +191,44 @@
       nextPreviewEl.addEventListener('click', nextImage);
     }
 
+    modal.addEventListener('keydown', trapFocusInModal);
+
     // Keyboard navigation
     document.addEventListener('keydown', handleKeyboard);
 
     // Touch swipe navigation (mobile)
     addSwipeListeners(modal);
+  }
+
+  function trapFocusInModal(e) {
+    if (!carousel || carousel.style.display === 'none' || e.key !== 'Tab') {
+      return;
+    }
+
+    const focusable = Array.from(
+      carousel.querySelectorAll(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      )
+    ).filter(el => el.offsetParent !== null);
+
+    if (!focusable.length) {
+      e.preventDefault();
+      return;
+    }
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+      return;
+    }
+
+    if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
   }
 
   /**
@@ -278,11 +313,33 @@
     }
 
     const image = images[currentIndex];
+    const loadToken = ++imageLoadToken;
 
     // Fade out
     img.style.opacity = '0';
+    img.classList.add('is-loading');
 
     setTimeout(() => {
+      if (loadToken !== imageLoadToken) {
+        return;
+      }
+
+      img.onload = () => {
+        if (loadToken !== imageLoadToken) {
+          return;
+        }
+        img.classList.remove('is-loading');
+        img.style.opacity = '1';
+      };
+
+      img.onerror = () => {
+        if (loadToken !== imageLoadToken) {
+          return;
+        }
+        img.classList.remove('is-loading');
+        img.style.opacity = '1';
+      };
+
       img.src = image.src;
       img.alt = image.alt;
 
@@ -325,9 +382,6 @@
           activeThumb.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
         }
       }
-
-      // Fade in
-      img.style.opacity = '1';
     }, 150);
 
     // Update prev/next thumbnail previews immediately (no fade delay needed)

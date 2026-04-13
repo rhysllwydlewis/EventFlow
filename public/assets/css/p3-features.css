@@ -261,11 +261,7 @@
   position: relative;
   width: 94%;
   max-width: 1400px;
-  /* 84vh: leaves (100vh − 84vh) / 2 = 8vh below on a centred modal, giving
-     ≥ 9 px of clearance at 768 px viewport height (common laptop) so the
-     counter pill (bottom: −52 px) is always fully visible without clipping.
-     Formula: clearance = (100vh − 84vh)/2 − 52px = 8vh − 52px.
-       768px: 8%×768 − 52 = 9.4 px ✓   800px: 12 px ✓   1080px: 34 px ✓ */
+  /* Keep the lightbox large while preserving a small breathing margin. */
   height: 84vh;
   display: flex;
   align-items: center;
@@ -406,6 +402,7 @@
   justify-content: center;
   max-width: 100%;
   max-height: 100%;
+  overflow: hidden;
 }
 
 .carousel-image {
@@ -418,6 +415,10 @@
   object-fit: contain;
   border-radius: 8px;
   transition: opacity 0.15s ease-in-out;
+}
+
+.carousel-image.is-loading {
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .carousel-caption {
@@ -433,7 +434,7 @@
 
 .carousel-counter {
   position: absolute;
-  bottom: -52px;
+  bottom: 12px;
   left: 50%;
   transform: translateX(-50%);
   color: rgba(255, 255, 255, 0.85);
@@ -535,11 +536,11 @@
 }
 
 .carousel-side-preview--prev {
-  left: 80px;
+  left: 92px;
 }
 
 .carousel-side-preview--next {
-  right: 80px;
+  right: 92px;
 }
 
 .carousel-side-preview__img {
@@ -1121,7 +1122,7 @@ img {
 
   .carousel-nav:hover {
     animation: none;
-    transform: translateY(-50%) scale(1.06);
+    transform: translateY(-50%);
   }
 
   .carousel-side-preview.visible:hover {
@@ -1171,15 +1172,21 @@ img {
   /* Shrink the main image to avoid overlapping the strip and counter.
      Derivation: the parent .carousel-content container is 84vh tall. For the
      vertically-centred image not to overlap the counter (bottom: 74px, height
-     ~32px), the ideal maximum is: 84vh − 212px.
-     Using 80vh − 164px gives values slightly above that ideal:
-       800px: 476px vs ideal 460px (+16px) — counter z-index:3 renders on top
-       667px: 370px vs ideal 348px (+22px) — counter z-index:3 renders on top
-     In practice landscape images on narrow mobile are width-constrained
-     (≤338px wide → ≤226px tall for 3:2), so max-height is rarely reached
-     and visible overlap does not occur. */
+     ~32px), the ideal upper bound is ~84vh − 212px.
+     We use 84vh − 220px for an 8px safety buffer across short mobile viewports. */
   .carousel-image {
-    max-height: calc(80vh - 164px);
+    max-height: calc(84vh - 220px);
+  }
+}
+
+/* Improve very short landscape viewport usability on phones/tablets. */
+@media (max-height: 500px) and (orientation: landscape) {
+  .carousel-content {
+    height: 92vh;
+  }
+
+  .carousel-image {
+    max-height: calc(100vh - 140px);
   }
 }
 
