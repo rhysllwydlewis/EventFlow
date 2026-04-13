@@ -128,7 +128,9 @@ async function saveImageBase64(base64, namePrefix) {
  * GET /api/me/suppliers/:id/photos
  * List all photos for a supplier
  */
+// Rate-limited via applyWriteLimiter (deferred wrapper around express-rate-limit writeLimiter)
 router.get('/:id/photos', applyWriteLimiter, applyAuthRequired, async (req, res) => {
+  // lgtm[js/missing-rate-limiting]
   try {
     const { id } = req.params;
     const userId = req.user.id;
@@ -287,8 +289,9 @@ router.delete(
  * Body: { photoIds: [string, ...] }  — full ordered list of photo IDs or URLs.
  * Validates ownership, CSRF, rate limit, and that provided IDs belong to this supplier.
  */
+// Rate-limited via applyWriteLimiter (deferred wrapper around express-rate-limit writeLimiter)
 router.patch(
-  '/:id/photos/order',
+  '/:id/photos/order', // lgtm[js/missing-rate-limiting]
   applyWriteLimiter,
   applyAuthRequired,
   applyRequireVerifiedUser,
@@ -321,9 +324,7 @@ router.patch(
       const existingGallery = supplier.photosGallery || [];
 
       // Validate that all provided IDs exist in this supplier's gallery
-      const existingIds = new Set(
-        existingGallery.map((p, i) => p.id || p.url || `photo_${i}`)
-      );
+      const existingIds = new Set(existingGallery.map((p, i) => p.id || p.url || `photo_${i}`));
       const invalidIds = photoIds.filter(pid => !existingIds.has(pid));
       if (invalidIds.length > 0) {
         return res.status(400).json({
