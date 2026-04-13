@@ -242,8 +242,8 @@
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.18);
   }
   50% {
-    transform: translateY(-50%) scale(1.12);
-    box-shadow: 0 8px 36px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    transform: translateY(-50%) scale(1.1);
+    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.28);
   }
 }
 
@@ -279,15 +279,24 @@
   color: rgba(255, 255, 255, 0.9);
   cursor: pointer;
   border-radius: 50%;
+  /* Explicit sizing — prevent any global button rule from stretching this */
   width: 44px;
   height: 44px;
+  min-width: 44px;
+  max-width: 44px;
+  min-height: 44px;
+  max-height: 44px;
+  box-sizing: border-box;
   padding: 0;
+  line-height: 1;
+  font-size: 0;
+  /* display:flex centers the SVG icon inside the button */
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.18);
   transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
-  z-index: 3;
+  z-index: 5;
 }
 
 .carousel-close:hover {
@@ -314,14 +323,22 @@
   border-radius: 50%;
   width: 52px;
   height: 52px;
+  min-width: 52px;
+  max-width: 52px;
+  min-height: 52px;
+  max-height: 52px;
+  box-sizing: border-box;
   padding: 0;
+  line-height: 1;
+  font-size: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.18);
   /* Only transition background/border/shadow — animation handles transform to avoid conflict */
   transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-  z-index: 2;
+  /* Sit above side-preview thumbnails so clicks always reach the button */
+  z-index: 4;
 }
 
 .carousel-nav:hover {
@@ -391,6 +408,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  z-index: 3;
 }
 
 .carousel-dots {
@@ -460,10 +478,13 @@
   display: flex;
   align-items: center;
   cursor: pointer;
+  /* Do not intercept pointer events when invisible — ensures the nav button behind it remains clickable */
+  pointer-events: none;
 }
 
 .carousel-side-preview.visible {
   opacity: 0.65;
+  pointer-events: auto;
 }
 
 .carousel-side-preview.visible:hover {
@@ -493,6 +514,74 @@
 
 .carousel-side-preview:hover .carousel-side-preview__img {
   border-color: rgba(255, 255, 255, 0.7);
+}
+
+/* ====================================
+   Mobile thumbnail strip (≤640 px)
+   Replaces side previews on small screens — shows all images in a
+   scrollable row at the bottom of the modal; active tile is highlighted.
+   ==================================== */
+.carousel-thumb-strip {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  /* Grow with iOS home-indicator safe area so thumbnails are never squeezed */
+  height: calc(56px + env(safe-area-inset-bottom, 0px));
+  min-height: 56px;
+  padding: 6px 12px;
+  /* Reserve space for iOS home indicator */
+  padding-bottom: max(6px, env(safe-area-inset-bottom, 0px));
+  /* Hidden on desktop; shown via the ≤640px media query below */
+  display: none;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.72) 0%, transparent 100%);
+  z-index: 3;
+}
+
+.carousel-thumb-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.carousel-thumb-item {
+  flex-shrink: 0;
+  width: 44px;
+  height: 36px;
+  border-radius: 4px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color 0.2s ease, opacity 0.2s ease;
+  opacity: 0.55;
+  background: rgba(0, 0, 0, 0.3);
+  display: block;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.carousel-thumb-item.active {
+  border-color: rgba(255, 255, 255, 0.9);
+  opacity: 1;
+}
+
+.carousel-thumb-item:hover:not(.active) {
+  opacity: 0.85;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.carousel-thumb-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  display: block;
 }
 
 /* ====================================
@@ -844,14 +933,14 @@ kbd {
    P3-16: UX Polish & Transitions
    ==================================== */
 
-/* Smooth transitions for buttons */
-button,
+/* Smooth transitions for buttons (carousel controls have their own specific transitions) */
+button:not(.carousel-nav):not(.carousel-close):not(.carousel-dot):not(.carousel-thumb-item),
 .btn,
 a.button {
   transition: all 0.2s ease-in-out;
 }
 
-button:hover:not(:disabled),
+button:hover:not(:disabled):not(.carousel-nav):not(.carousel-close):not(.carousel-dot):not(.carousel-thumb-item),
 .btn:hover:not(:disabled),
 a.button:hover {
   transform: translateY(-1px);
@@ -920,6 +1009,10 @@ img {
   .carousel-nav {
     width: 46px;
     height: 46px;
+    min-width: 46px;
+    max-width: 46px;
+    min-height: 46px;
+    max-height: 46px;
   }
 
   .carousel-prev {
@@ -956,7 +1049,7 @@ img {
     transform: none;
   }
 
-  button:hover:not(:disabled),
+  button:hover:not(:disabled):not(.carousel-nav):not(.carousel-close):not(.carousel-dot):not(.carousel-thumb-item),
   .btn:hover:not(:disabled) {
     transform: none;
   }
@@ -969,12 +1062,39 @@ img {
   .carousel-side-preview.visible:hover {
     transform: translateY(-50%);
   }
+
+  .carousel-thumb-item {
+    transition: none;
+  }
 }
 
-/* Hide side-preview thumbnails on small screens — not enough horizontal room */
+/* Hide side-preview thumbnails on small screens — not enough horizontal room.
+   The bottom thumbnail strip takes over on these widths. */
 @media (max-width: 640px) {
   .carousel-side-preview {
     display: none;
+  }
+
+  /* Show the mobile thumbnail strip */
+  .carousel-thumb-strip {
+    display: flex;
+  }
+
+  /* Pull the counter inside the modal, floating above the thumb strip */
+  .carousel-counter {
+    /* safe-area-inset-bottom for iOS home-indicator area */
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Shrink the main image to ensure it never overlaps the strip or counter.
+     Derivation: content box is 80vh. Counter occupies roughly 64px–96px from
+     the bottom (64px offset + ~32px pill height). For the image to clear the
+     counter, both halves of the remaining space must be ≥ 96px:
+       (80vh - image_h) / 2 ≥ 96  →  image_h ≤ 80vh - 192px
+     calc(70vh - 140px) satisfies this on typical phone heights
+     (e.g. 800px: 420px < 448px limit; 667px: 327px < 342px limit). */
+  .carousel-image {
+    max-height: calc(70vh - 140px);
   }
 }
 
@@ -983,11 +1103,19 @@ img {
   .carousel-nav {
     width: 42px;
     height: 42px;
+    min-width: 42px;
+    max-width: 42px;
+    min-height: 42px;
+    max-height: 42px;
   }
 
   .carousel-close {
     width: 40px;
     height: 40px;
+    min-width: 40px;
+    max-width: 40px;
+    min-height: 40px;
+    max-height: 40px;
   }
 
   .carousel-prev {
