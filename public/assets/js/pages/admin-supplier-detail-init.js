@@ -670,19 +670,19 @@
       }
     }
 
-    // Client-side validation for required fields — store trimmed value and use it in the API call
+    // Client-side validation for required fields — derive a clean value to send
+    let finalValue = valueResult.value;
     if (matched.key === 'name') {
-      const trimmed = valueResult.value.trim();
-      if (!trimmed) {
+      finalValue = valueResult.value.trim();
+      if (!finalValue) {
         AdminShared.showToast('Business name cannot be empty', 'error');
         return;
       }
-      valueResult.value = trimmed;
     }
 
     try {
       await AdminShared.api(`/api/admin/suppliers/${supplierId}`, 'PUT', {
-        [matched.key]: valueResult.value,
+        [matched.key]: finalValue,
       });
       AdminShared.showToast(`${matched.label} updated successfully`, 'success');
       loadSupplier();

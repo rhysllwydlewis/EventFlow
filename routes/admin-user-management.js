@@ -1608,7 +1608,7 @@ router.put(
       }
       // Trim BEFORE adding so the array never temporarily exceeds the cap
       if (supplier.versionHistory.length >= 20) {
-        supplier.versionHistory = supplier.versionHistory.slice(-(20 - 1));
+        supplier.versionHistory = supplier.versionHistory.slice(-19);
       }
       const previousStateSnap = { ...supplier };
       delete previousStateSnap.versionHistory;
