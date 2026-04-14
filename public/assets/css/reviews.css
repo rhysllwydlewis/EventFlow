@@ -404,31 +404,12 @@
   margin-top: 0.25rem;
 }
 
+/* Badge styles for review cards — display/layout only; colours deferred to badges.css */
 .badge-verified,
-.badge-email-verified {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.2rem 0.5rem;
-  background: #10b981;
-  color: #ffffff;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-.badge-email-verified {
-  background: #3b82f6;
-}
-
+.badge-email-verified,
 .badge-supplier {
   display: inline-flex;
   align-items: center;
-  padding: 0.2rem 0.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: #ffffff;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 500;
 }
 
 .review-meta {
