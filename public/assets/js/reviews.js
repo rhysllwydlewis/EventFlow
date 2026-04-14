@@ -914,11 +914,21 @@
           description.textContent = selectedRating > 0 ? descriptions[selectedRating] : '';
         });
 
-        star.addEventListener('click', () => {
+        const selectStar = () => {
           selectedRating = parseInt(star.dataset.rating);
           ratingInput.value = selectedRating;
           this.highlightStars(stars, selectedRating);
           description.textContent = descriptions[selectedRating];
+        };
+
+        star.addEventListener('click', selectStar);
+
+        // Keyboard support: Enter or Space activates the star (role="button")
+        star.addEventListener('keydown', e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            selectStar();
+          }
         });
       });
     },
@@ -1129,13 +1139,24 @@
         star.addEventListener('mouseleave', () => {
           this.highlightStars(stars, selectedRating);
         });
-        star.addEventListener('click', () => {
+
+        const selectEditStar = () => {
           selectedRating = parseInt(star.dataset.rating);
           ratingInput.value = selectedRating;
           this.highlightStars(stars, selectedRating);
           const desc = document.getElementById('edit-rating-description');
           if (desc) {
             desc.textContent = descriptions[selectedRating];
+          }
+        };
+
+        star.addEventListener('click', selectEditStar);
+
+        // Keyboard support: Enter or Space activates the star (role="button")
+        star.addEventListener('keydown', e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            selectEditStar();
           }
         });
       });
