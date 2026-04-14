@@ -1664,6 +1664,22 @@
   }
 }
 
+
+/* ============================================
+   Supplier profile — Key Details rating row
+   ============================================ */
+
+/* Amber star in the Rating row of the Key Details sidebar */
+.sp-detail-row__star {
+  color: #f59e0b;
+}
+
+/* Review count suffix in the Rating row — lighter weight */
+.sp-detail-row__count {
+  font-weight: 400;
+  opacity: 0.7;
+}
+
 /* ============================================
    Animation utilities
    ============================================ */

@@ -591,8 +591,7 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     return !!(
       supplier.completedEvents ||
       supplier.createdAt ||
-      supplier.avgResponseTime ||
-      supplier.reviewCount
+      supplier.avgResponseTime
     );
   }
 
@@ -615,12 +614,6 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     if (supplier.avgResponseTime) {
       items.push(
         `<div class="sp-stat"><div class="sp-stat__value">${Math.round(supplier.avgResponseTime)}h</div><div class="sp-stat__label">Response</div></div>`
-      );
-    }
-
-    if (supplier.reviewCount) {
-      items.push(
-        `<div class="sp-stat"><div class="sp-stat__value">${escapeHtml(String(supplier.reviewCount))}</div><div class="sp-stat__label">Reviews</div></div>`
       );
     }
 
@@ -1118,6 +1111,16 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
         ? `${escapeHtml(supplier.location)}, ${escapeHtml(supplier.postcode)}`
         : escapeHtml(supplier.location);
       rows.push({ icon: '📍', label: 'Location', value: loc });
+    }
+
+    if (supplier.rating && supplier.reviewCount) {
+      const ratingVal = Number(supplier.rating).toFixed(1);
+      const reviewCount = Number(supplier.reviewCount);
+      rows.push({
+        icon: '⭐',
+        label: 'Rating',
+        value: `<span class="sp-detail-row__star">★</span> ${ratingVal} <span class="sp-detail-row__count">(${reviewCount} review${reviewCount !== 1 ? 's' : ''})</span>`,
+      });
     }
 
     if (supplier.priceRange) {

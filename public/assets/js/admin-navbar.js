@@ -88,6 +88,14 @@
       desc: 'Media asset management',
     },
     {
+      href: '/admin-reviews',
+      icon: '⭐',
+      label: 'Reviews',
+      group: 'moderation',
+      desc: 'Review approvals & moderation',
+      badgeId: 'navBadgeReviews',
+    },
+    {
       href: '/admin-tickets',
       icon: '🎫',
       label: 'Tickets',

@@ -167,7 +167,7 @@
     const fragment = document.createDocumentFragment();
 
     reviews.forEach(review => {
-      const id = review._id || review.id || '';
+      const id = review.id || review._id || '';
       const card = document.createElement('div');
       card.className = 'card card-mt';
       card.dataset.reviewId = id;
@@ -182,7 +182,10 @@
       const createdAt = review.createdAt ? formatDate(review.createdAt) : '—';
       const moderationState = (review.moderation && review.moderation.state) || review.status || 'pending';
       const moderationReason = (review.moderation && review.moderation.reason) || '';
-      const flagged = review.flagged ? ' <span class="badge badge-warning">Flagged</span>' : '';
+      const flagged = review.flagged ? ' <span class="badge badge-warning">Reported</span>' : '';
+      const reportInfo = Array.isArray(review.reports) && review.reports.length > 0
+        ? `<p class="small review-report-warning">🚩 ${review.reports.length} report${review.reports.length !== 1 ? 's' : ''} received — review this content and take action below.</p>`
+        : '';
 
       card.innerHTML =
         `<div style="display:flex;align-items:flex-start;gap:12px;">` +
@@ -201,9 +204,10 @@
         `<strong>Submitted:</strong> ${escapeHtml(createdAt)}` +
         `</p>` +
         (moderationReason ? `<p class="small" style="color:#9ca3af;margin:0 0 10px;"><em>${escapeHtml(moderationReason)}</em></p>` : '') +
-        `<div style="display:flex;gap:8px;">` +
-        `<button class="btn btn-sm btn-success" data-action="approve" data-id="${escapeHtml(id)}">✓ Approve</button>` +
-        `<button class="btn btn-sm btn-danger" data-action="reject" data-id="${escapeHtml(id)}">✗ Reject</button>` +
+        reportInfo +
+        `<div class="review-action-btns">` +
+        `<button class="btn btn-sm btn-danger" data-action="approve" data-id="${escapeHtml(id)}" title="The report is valid — remove this review from the platform">🗑️ Remove Review</button>` +
+        `<button class="btn btn-sm btn-success" data-action="reject" data-id="${escapeHtml(id)}" title="The report is not valid — keep the review published">✓ Dismiss Report</button>` +
         `</div>` +
         `</div>` +
         `</div>`;
@@ -213,7 +217,10 @@
 
     queueEl.innerHTML = '';
     queueEl.appendChild(fragment);
+  }
 
+  // ── Event delegation (set up once after DOM is ready) ──────────────────────
+  if (queueEl) {
     // Checkbox delegation
     queueEl.addEventListener('change', e => {
       const cb = e.target.closest('.review-checkbox');
@@ -233,53 +240,62 @@
       if (!btn) return;
       const action = btn.dataset.action;
       const reviewId = btn.dataset.id;
-      if (action === 'approve') approveReview(reviewId);
-      else if (action === 'reject') promptRejectReview(reviewId);
+      if (action === 'approve') promptRemoveReview(reviewId);
+      else if (action === 'reject') promptDismissReport(reviewId);
     });
   }
 
-  // ── Approve / Reject ──────────────────────────────────────────────────────
-  async function approveReview(reviewId) {
+  // ── Remove Review / Dismiss Report ────────────────────────────────────────
+  async function removeReview(reviewId) {
     try {
       await AdminShared.adminFetch(`/api/v2/admin/reviews/${encodeURIComponent(reviewId)}/approve`, {
         method: 'POST',
         body: {},
       });
-      showToast('Review approved', 'success');
-      reviews = reviews.filter(r => (r._id || r.id) !== reviewId);
+      showToast('Review removed from the platform', 'success');
+      reviews = reviews.filter(r => (r.id || r._id) !== reviewId);
       selectedIds.delete(reviewId);
       updateBatchBar();
       renderReviews();
     } catch (err) {
-      console.error('Failed to approve review:', err);
-      showToast('Failed to approve review', 'error');
+      console.error('Failed to remove review:', err);
+      showToast('Failed to remove review', 'error');
     }
   }
 
-  async function rejectReview(reviewId, reason) {
+  async function dismissReport(reviewId, reason) {
     try {
       await AdminShared.adminFetch(`/api/v2/admin/reviews/${encodeURIComponent(reviewId)}/reject`, {
         method: 'POST',
-        body: { reason: reason || '' },
+        body: { reason: reason || 'Report dismissed — review kept published' },
       });
-      showToast('Review rejected', 'success');
-      reviews = reviews.filter(r => (r._id || r.id) !== reviewId);
+      showToast('Report dismissed — review remains published', 'success');
+      reviews = reviews.filter(r => (r.id || r._id) !== reviewId);
       selectedIds.delete(reviewId);
       updateBatchBar();
       renderReviews();
     } catch (err) {
-      console.error('Failed to reject review:', err);
-      showToast('Failed to reject review', 'error');
+      console.error('Failed to dismiss report:', err);
+      showToast('Failed to dismiss report', 'error');
     }
   }
 
-  async function promptRejectReview(reviewId) {
+  async function promptRemoveReview(reviewId) {
     const result = await AdminShared.showConfirmModal({
-      title: 'Reject Review',
-      message: 'Are you sure you want to reject this review?',
+      title: 'Remove Review',
+      message: 'The report is valid — this review will be permanently removed from the platform. Continue?',
     });
     if (!result || !result.confirmed) return;
-    await rejectReview(reviewId, '');
+    await removeReview(reviewId);
+  }
+
+  async function promptDismissReport(reviewId) {
+    const result = await AdminShared.showConfirmModal({
+      title: 'Dismiss Report',
+      message: 'The report is not valid — the review will remain published. Continue?',
+    });
+    if (!result || !result.confirmed) return;
+    await dismissReport(reviewId, '');
   }
 
   // ── Batch actions ─────────────────────────────────────────────────────────
@@ -287,9 +303,14 @@
     batchApproveBtn.addEventListener('click', async () => {
       const ids = Array.from(selectedIds);
       if (ids.length === 0) return;
+      const result = await AdminShared.showConfirmModal({
+        title: 'Remove Selected Reviews',
+        message: `Remove ${ids.length} selected review(s) from the platform?`,
+      });
+      if (!result || !result.confirmed) return;
       batchApproveBtn.disabled = true;
       for (const id of ids) {
-        await approveReview(id);
+        await removeReview(id);
       }
       batchApproveBtn.disabled = false;
     });
@@ -300,13 +321,13 @@
       const ids = Array.from(selectedIds);
       if (ids.length === 0) return;
       const result = await AdminShared.showConfirmModal({
-        title: 'Bulk Reject Reviews',
-        message: `Reject ${ids.length} selected review(s)?`,
+        title: 'Dismiss Selected Reports',
+        message: `Dismiss reports for ${ids.length} selected review(s) and keep them published?`,
       });
       if (!result || !result.confirmed) return;
       batchRejectBtn.disabled = true;
       for (const id of ids) {
-        await rejectReview(id, '');
+        await dismissReport(id, '');
       }
       batchRejectBtn.disabled = false;
     });

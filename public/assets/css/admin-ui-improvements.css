@@ -275,3 +275,19 @@ tbody tr:hover .checkbox-cell .user-checkbox {
     padding: 0.5rem 0.25rem !important;
   }
 }
+
+/* ── Admin Review Moderation ───────────────────────────────────────────────── */
+
+/* Report warning banner on individual review cards */
+.review-report-warning {
+  color: #b45309;
+  margin: 0 0 8px;
+  font-size: 0.875rem;
+}
+
+/* Row of action buttons on review cards */
+.review-action-btns {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}

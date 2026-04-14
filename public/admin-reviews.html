@@ -38,8 +38,8 @@
 <script src="/assets/js/admin-shared.js?v=18.3.0"></script>
 <main id="main-content" class="section">
   <div class="container">
-    <h1>Pending Reviews</h1>
-    <p class="small">Moderate customer reviews — toggle auto-approve to control whether qualifying reviews are published immediately.</p>
+    <h1>Review Moderation</h1>
+    <p class="small">Manage pending reviews and reported reviews. Use <strong>Remove Review</strong> to uphold a report (the review is removed), or <strong>Dismiss Report</strong> to reject a report (the review stays published).</p>
 
     <!-- Auto-approve toggle card -->
     <div class="card card-mt">
@@ -70,8 +70,8 @@
     <div id="batchActionsBar" class="ap-batch-bar" role="region" aria-label="Batch actions" style="display:none;">
       <span class="ap-batch-bar__count" id="batchCount">0 selected</span>
       <div class="ap-batch-bar__buttons">
-        <button id="batchApproveBtn" class="btn btn-sm btn-success" type="button">Approve selected</button>
-        <button id="batchRejectBtn" class="btn btn-sm btn-danger" type="button">Reject selected</button>
+        <button id="batchApproveBtn" class="btn btn-sm btn-danger" type="button">🗑️ Remove selected</button>
+        <button id="batchRejectBtn" class="btn btn-sm btn-success" type="button">✓ Dismiss selected reports</button>
       </div>
     </div>
 
