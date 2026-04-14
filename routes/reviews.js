@@ -9,7 +9,7 @@ const express = require('express');
 const logger = require('../utils/logger');
 const mongoDb = require('../db');
 const NotificationService = require('../services/notification.service');
-const { writeLimiter } = require('../middleware/rateLimits');
+const { writeLimiter, uploadLimiter } = require('../middleware/rateLimits');
 const { uid } = require('../store');
 const router = express.Router();
 
@@ -21,6 +21,7 @@ let requireVerifiedUser;
 let featureRequired;
 let csrfProtection;
 let reviewsSystem;
+let photoUpload;
 
 /**
  * Initialize dependencies from server.js
@@ -54,6 +55,8 @@ function initializeDependencies(deps) {
   featureRequired = deps.featureRequired;
   csrfProtection = deps.csrfProtection;
   reviewsSystem = deps.reviewsSystem;
+  // Optional: photo upload service (may not be available in all environments)
+  photoUpload = deps.photoUpload || null;
 }
 
 /**
@@ -140,6 +143,88 @@ function sendReviewNotification(req, supplierUserId, customerName, rating) {
       logger.warn('Failed to create NotificationService for review notification:', err.message);
     });
 }
+
+// ---------- Review Photo Upload Route ----------
+
+/**
+ * Upload up to 5 photos for attachment to a review
+ * POST /api/reviews/photos/upload
+ * Body: multipart/form-data with 'photos' field (up to 5 files)
+ * Returns: { success: true, urls: ['/api/photos/...', ...] }
+ */
+router.post(
+  '/reviews/photos/upload',
+  uploadLimiter,
+  applyAuthRequired,
+  applyCsrfProtection,
+  async (req, res) => {
+    if (!photoUpload) {
+      return res
+        .status(503)
+        .json({ error: 'Photo upload service is not available' });
+    }
+
+    // Parse multipart via the shared multer instance (memory storage, max 5 files × 10 MB)
+    const multerMiddleware = photoUpload.upload.fields([{ name: 'photos', maxCount: 5 }]);
+
+    multerMiddleware(req, res, async multerErr => {
+      if (multerErr) {
+        logger.warn('Review photo upload multer error:', multerErr.message);
+        return res.status(400).json({ error: multerErr.message });
+      }
+
+      const files = (req.files && req.files.photos) || [];
+      if (!files.length) {
+        return res.status(400).json({ error: 'No photos provided' });
+      }
+
+      if (files.length > 5) {
+        return res.status(400).json({ error: 'Maximum 5 photos per review' });
+      }
+
+      const urls = [];
+      const errors = [];
+
+      for (const file of files) {
+        try {
+          const images = await photoUpload.processAndSaveImage(
+            file.buffer,
+            file.originalname,
+            'supplier'
+          );
+          // Use the optimized (medium) size as the display URL
+          urls.push(images.optimized);
+        } catch (err) {
+          logger.warn('Review photo processing failed:', {
+            filename: file.originalname,
+            error: err.message,
+          });
+          errors.push({ filename: file.originalname, error: err.message });
+        }
+      }
+
+      if (!urls.length) {
+        return res.status(422).json({
+          error: 'All photo uploads failed',
+          details: errors,
+        });
+      }
+
+      logger.info('Review photos uploaded', {
+        userId: req.user.id,
+        count: urls.length,
+        failedCount: errors.length,
+      });
+
+      return res.json({
+        success: true,
+        urls,
+        errors: errors.length ? errors : undefined,
+        message: `${urls.length} photo${urls.length !== 1 ? 's' : ''} uploaded successfully`,
+      });
+    });
+  }
+);
 
 // ---------- Review Submission Routes ----------
 

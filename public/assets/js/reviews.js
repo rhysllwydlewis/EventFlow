@@ -292,6 +292,9 @@
 
       // Setup edit, delete, and report buttons
       this.setupReviewActionButtons();
+
+      // Setup lightbox for review photos
+      this.setupPhotoLightbox();
     },
 
     /**
@@ -321,7 +324,15 @@
       const photos =
         review.photos && review.photos.length > 0
           ? `<div class="review-photos">
-             ${review.photos.map((photo, i) => `<div class="review-photo"><img src="${this.escapeHtml(photo)}" alt="Photo ${i + 1} from ${this.escapeHtml(review.userName)}'s review" /></div>`).join('')}
+             ${review.photos
+               .map(
+                 (photo, i) =>
+                   `<div class="review-photo" role="button" tabindex="0" data-lightbox-src="${this.escapeHtml(photo)}" data-lightbox-index="${i}" data-lightbox-total="${review.photos.length}" aria-label="View photo ${i + 1} of ${review.photos.length}">
+                     <img src="${this.escapeHtml(photo)}" alt="Photo ${i + 1} from ${this.escapeHtml(review.userName)}'s review" loading="lazy" />
+                     <div class="review-photo-overlay" aria-hidden="true">🔍</div>
+                   </div>`
+               )
+               .join('')}
            </div>`
           : '';
 
@@ -846,6 +857,23 @@
                   <option value="Other">Other</option>
                 </select>
               </div>
+
+              <!-- Photos -->
+              <div class="review-form-group">
+                <label class="review-form-label">Photos <span class="review-form-label-hint">(optional, up to 5)</span></label>
+                <div class="photo-upload-area" id="review-photo-upload-area" role="button" tabindex="0" aria-label="Click or drag photos to upload">
+                  <div class="photo-upload-icon">📷</div>
+                  <div class="photo-upload-text">
+                    <strong>Add photos to your review</strong><br>
+                    <span>Click to browse or drag &amp; drop • JPEG, PNG, WebP • Max 5MB each</span>
+                  </div>
+                  <input type="file" id="review-photo-input" accept="image/jpeg,image/png,image/webp,image/gif" multiple style="display:none" aria-hidden="true" />
+                </div>
+                <div class="photo-previews" id="review-photo-previews"></div>
+                <div class="photo-upload-count" id="review-photo-count" style="display:none">
+                  <span id="review-photo-count-text">0 / 5 photos selected</span>
+                </div>
+              </div>
             </form>
 
             <div class="review-modal-footer">
@@ -882,6 +910,130 @@
         }
       };
       document.addEventListener('keydown', this._writeModalEscHandler);
+
+      // Setup photo upload
+      this.setupPhotoUpload();
+    },
+
+    /**
+     * Setup the photo upload area (drag-drop + click-to-browse)
+     */
+    setupPhotoUpload() {
+      const uploadArea = document.getElementById('review-photo-upload-area');
+      const fileInput = document.getElementById('review-photo-input');
+      if (!uploadArea || !fileInput) return;
+
+      // Stored files for upload on submit
+      this._pendingPhotoFiles = [];
+
+      const openPicker = () => fileInput.click();
+      uploadArea.addEventListener('click', openPicker);
+      uploadArea.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openPicker();
+        }
+      });
+
+      fileInput.addEventListener('change', () => {
+        this.addPhotoFiles(Array.from(fileInput.files));
+        // Reset so re-selecting same file fires change again
+        fileInput.value = '';
+      });
+
+      // Drag & drop support
+      uploadArea.addEventListener('dragover', e => {
+        e.preventDefault();
+        uploadArea.classList.add('drag-over');
+      });
+      uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('drag-over');
+      });
+      uploadArea.addEventListener('drop', e => {
+        e.preventDefault();
+        uploadArea.classList.remove('drag-over');
+        const files = Array.from(e.dataTransfer.files).filter(f =>
+          f.type.startsWith('image/')
+        );
+        this.addPhotoFiles(files);
+      });
+    },
+
+    /**
+     * Add photo files to the pending list and render previews
+     */
+    addPhotoFiles(files) {
+      const MAX_PHOTOS = 5;
+      const MAX_SIZE_MB = 5;
+
+      for (const file of files) {
+        if (this._pendingPhotoFiles.length >= MAX_PHOTOS) {
+          this.showToast(`Maximum ${MAX_PHOTOS} photos per review`, 'error');
+          break;
+        }
+        if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+          this.showToast(`${file.name} is too large (max ${MAX_SIZE_MB}MB)`, 'error');
+          continue;
+        }
+        if (!file.type.startsWith('image/')) {
+          this.showToast(`${file.name} is not an image`, 'error');
+          continue;
+        }
+        this._pendingPhotoFiles.push(file);
+      }
+      this.renderPhotoPreviews();
+    },
+
+    /**
+     * Render photo preview thumbnails with remove buttons
+     */
+    renderPhotoPreviews() {
+      const container = document.getElementById('review-photo-previews');
+      const countEl = document.getElementById('review-photo-count');
+      const countText = document.getElementById('review-photo-count-text');
+      const uploadArea = document.getElementById('review-photo-upload-area');
+      if (!container) return;
+
+      container.innerHTML = '';
+
+      const files = this._pendingPhotoFiles || [];
+
+      files.forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = ev => {
+          const previewDiv = document.createElement('div');
+          previewDiv.className = 'photo-preview';
+          previewDiv.innerHTML = `
+            <img src="${ev.target.result}" alt="Photo ${index + 1} preview" />
+            <button type="button" class="photo-preview-remove" data-index="${index}" aria-label="Remove photo ${index + 1}">×</button>
+          `;
+          previewDiv.querySelector('.photo-preview-remove').addEventListener('click', () => {
+            this._pendingPhotoFiles.splice(index, 1);
+            this.renderPhotoPreviews();
+          });
+          container.appendChild(previewDiv);
+        };
+        reader.readAsDataURL(file);
+      });
+
+      // Show/hide count badge
+      if (files.length > 0) {
+        countText.textContent = `${files.length} / 5 photo${files.length !== 1 ? 's' : ''} selected`;
+        countEl.style.display = 'block';
+        uploadArea.classList.add('has-photos');
+      } else {
+        countEl.style.display = 'none';
+        uploadArea.classList.remove('has-photos');
+      }
+
+      // Disable upload area when at limit
+      if (files.length >= 5) {
+        uploadArea.setAttribute('aria-disabled', 'true');
+        uploadArea.classList.add('upload-limit-reached');
+      } else {
+        uploadArea.removeAttribute('aria-disabled');
+        uploadArea.classList.remove('upload-limit-reached');
+      }
     },
 
     /**
@@ -983,11 +1135,10 @@
     },
 
     /**
-     * Submit review
+     * Submit review (uploads photos first if any, then submits review JSON)
      */
     async submitReview() {
       const submitBtn = document.getElementById('btn-submit-review');
-      const form = document.getElementById('review-form');
 
       // Validate
       const rating = document.getElementById('review-rating').value;
@@ -1005,9 +1156,46 @@
 
       // Disable submit button
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Submitting...';
 
       try {
+        // Step 1: Upload any pending photos
+        let photoUrls = [];
+        const pendingFiles = this._pendingPhotoFiles || [];
+
+        if (pendingFiles.length > 0) {
+          submitBtn.textContent = `Uploading ${pendingFiles.length} photo${pendingFiles.length !== 1 ? 's' : ''}…`;
+
+          const formData = new FormData();
+          pendingFiles.forEach(file => formData.append('photos', file));
+
+          try {
+            const csrfToken = this.getCSRFToken();
+            const uploadRes = await fetch('/api/reviews/photos/upload', {
+              method: 'POST',
+              headers: csrfToken ? { 'x-csrf-token': csrfToken } : {},
+              credentials: 'include',
+              body: formData,
+            });
+
+            const uploadData = await uploadRes.json();
+
+            if (uploadRes.ok && uploadData.urls) {
+              photoUrls = uploadData.urls;
+            } else if (!uploadRes.ok) {
+              this.showToast(uploadData.error || 'Photo upload failed', 'error');
+              return;
+            }
+          } catch (uploadErr) {
+            console.error('Photo upload error:', uploadErr);
+            this.showToast('Photo upload failed. Submitting without photos.', 'error');
+            photoUrls = [];
+          }
+        }
+
+        // Step 2: Submit review with photo URLs
+        submitBtn.textContent = 'Submitting…';
+
+        const form = document.getElementById('review-form');
         const formData = new FormData(form);
         const data = {
           rating: parseInt(rating),
@@ -1015,6 +1203,7 @@
           comment: formData.get('comment'),
           recommend: document.getElementById('review-recommend').checked,
           eventType: formData.get('eventType'),
+          photos: photoUrls,
         };
 
         const { response, data: result } = await this.fetchWithCSRF(
@@ -1031,7 +1220,6 @@
           // Reload reviews
           this.loadReviews();
           this.loadRatingDistribution();
-          // Issue 7: Handle notification data from API if present
           if (result.notification) {
             this.handleReviewNotification(result.notification);
           }
@@ -1060,6 +1248,110 @@
         document.removeEventListener('keydown', this._writeModalEscHandler);
         this._writeModalEscHandler = null;
       }
+      // Clear pending photo files
+      this._pendingPhotoFiles = [];
+    },
+
+    // -------------------------------------------------------------------------
+    // Photo Lightbox
+    // -------------------------------------------------------------------------
+
+    /**
+     * Attach click / keyboard handlers to review photo thumbnails to open lightbox
+     */
+    setupPhotoLightbox() {
+      document.querySelectorAll('.review-photo[data-lightbox-src]').forEach(el => {
+        const open = () => {
+          const src = el.dataset.lightboxSrc;
+          const index = parseInt(el.dataset.lightboxIndex, 10);
+          // Collect all photos in the same review card
+          const card = el.closest('.review-card');
+          const allPhotos = card
+            ? Array.from(card.querySelectorAll('.review-photo[data-lightbox-src]')).map(
+                p => p.dataset.lightboxSrc
+              )
+            : [src];
+          this.openLightbox(allPhotos, index);
+        };
+        el.addEventListener('click', open);
+        el.addEventListener('keydown', e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            open();
+          }
+        });
+      });
+    },
+
+    /**
+     * Open the photo lightbox showing the given array of image URLs, starting at index
+     */
+    openLightbox(photos, startIndex = 0) {
+      // Remove any stale lightbox
+      const stale = document.getElementById('review-lightbox');
+      if (stale) stale.remove();
+
+      let currentIndex = startIndex;
+      const total = photos.length;
+
+      const lightboxHTML = `
+        <div id="review-lightbox" class="review-lightbox-overlay" role="dialog" aria-modal="true" aria-label="Photo viewer">
+          <button class="review-lightbox-close" id="lightbox-close" aria-label="Close photo viewer">×</button>
+          ${total > 1 ? `<button class="review-lightbox-prev" id="lightbox-prev" aria-label="Previous photo">‹</button>` : ''}
+          <div class="review-lightbox-content">
+            <img class="review-lightbox-img" id="lightbox-img" src="${this.escapeHtml(photos[currentIndex])}" alt="Review photo ${currentIndex + 1} of ${total}" />
+          </div>
+          ${total > 1 ? `<button class="review-lightbox-next" id="lightbox-next" aria-label="Next photo">›</button>` : ''}
+          ${total > 1 ? `<div class="review-lightbox-counter" id="lightbox-counter">${currentIndex + 1} / ${total}</div>` : ''}
+        </div>
+      `;
+
+      document.body.insertAdjacentHTML('beforeend', lightboxHTML);
+
+      const lightbox = document.getElementById('review-lightbox');
+      const img = document.getElementById('lightbox-img');
+      const counter = document.getElementById('lightbox-counter');
+
+      const updateImage = () => {
+        img.src = this.escapeHtml(photos[currentIndex]);
+        img.alt = `Review photo ${currentIndex + 1} of ${total}`;
+        if (counter) counter.textContent = `${currentIndex + 1} / ${total}`;
+      };
+
+      const close = () => {
+        lightbox.remove();
+        document.removeEventListener('keydown', keyHandler);
+      };
+
+      const prev = () => {
+        currentIndex = (currentIndex - 1 + total) % total;
+        updateImage();
+      };
+
+      const next = () => {
+        currentIndex = (currentIndex + 1) % total;
+        updateImage();
+      };
+
+      const keyHandler = e => {
+        if (e.key === 'Escape') close();
+        else if (e.key === 'ArrowLeft') prev();
+        else if (e.key === 'ArrowRight') next();
+      };
+
+      document.addEventListener('keydown', keyHandler);
+      document.getElementById('lightbox-close').addEventListener('click', close);
+      lightbox.addEventListener('click', e => {
+        if (e.target === lightbox) close();
+      });
+
+      const prevBtn = document.getElementById('lightbox-prev');
+      const nextBtn = document.getElementById('lightbox-next');
+      if (prevBtn) prevBtn.addEventListener('click', prev);
+      if (nextBtn) nextBtn.addEventListener('click', next);
+
+      // Focus close button for accessibility
+      document.getElementById('lightbox-close').focus();
     },
 
     /**
