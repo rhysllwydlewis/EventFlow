@@ -147,6 +147,7 @@ const AdminShared = (function () {
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
+        timeZone: 'Europe/London',
       });
     } catch (e) {
       return dateStr;
@@ -167,7 +168,7 @@ const AdminShared = (function () {
     const days = Math.floor(hours / 24);
 
     if (days > 7) {
-      return date.toLocaleDateString('en-GB');
+      return date.toLocaleDateString('en-GB', { timeZone: 'Europe/London' });
     } else if (days > 0) {
       return `${days} day${days !== 1 ? 's' : ''} ago`;
     } else if (hours > 0) {

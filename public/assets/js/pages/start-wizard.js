@@ -636,6 +636,7 @@
       day: 'numeric',
       month: 'long',
       year: 'numeric',
+      timeZone: 'Europe/London',
     });
   }
 

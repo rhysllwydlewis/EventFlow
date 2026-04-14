@@ -9,7 +9,7 @@
     <div class="review-summary">
       <div class="review-summary-score">
         <div class="review-average-rating">New</div>
-        <div class="review-stars-large" style="opacity: 0.3;">☆☆☆☆☆</div>
+        <div class="review-stars-large" role="img" aria-label="No reviews yet" style="opacity: 0.3;">☆☆☆☆☆</div>
         <div class="review-count">No reviews yet</div>
       </div>
       
@@ -37,8 +37,8 @@
     
     <div class="review-controls">
       <div class="review-filter-group">
-        <label class="review-filter-label" for="filter-min-rating">Minimum Rating:</label>
-        <select id="filter-min-rating" class="review-filter-select">
+        <label class="review-filter-label" for="filter-min-rating">Rating:</label>
+        <select id="filter-min-rating" class="review-filter-select" aria-label="Filter by minimum rating">
           <option value="">All Ratings</option>
           <option value="5">5 Stars</option>
           <option value="4">4+ Stars</option>
@@ -64,7 +64,7 @@
     <div id="reviews-list" class="reviews-list">
       <div class="reviews-loading">
         <div class="loading-spinner"></div>
-        <p style="margin-top: 1rem; color: #6b7280;">Loading reviews...</p>
+        <p class="reviews-loading__message">Loading reviews...</p>
       </div>
     </div>
     

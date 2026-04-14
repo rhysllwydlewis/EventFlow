@@ -104,7 +104,7 @@
       <div class="supplier-meta-item">
         <strong>Verified:</strong> ${
           supplierData.verified
-            ? `<span style="color: #10b981;">Yes</span> ${supplierData.verifiedAt ? `(${new Date(supplierData.verifiedAt).toLocaleDateString()})` : ''}`
+            ? `<span style="color: #10b981;">Yes</span> ${supplierData.verifiedAt ? `(${new Date(supplierData.verifiedAt).toLocaleDateString('en-GB', { timeZone: 'Europe/London' })})` : ''}`
             : '<span style="color: #ef4444;">No</span>'
         }
       </div>
@@ -420,7 +420,7 @@
           <div class="flex-between-start">
             <div>
               <strong>${AdminShared.escapeHtml(review.userName || 'Anonymous')}</strong>
-              <span class="small"> • ${new Date(review.createdAt).toLocaleDateString()}</span>
+              <span class="small"> • ${new Date(review.createdAt).toLocaleDateString('en-GB', { timeZone: 'Europe/London' })}</span>
             </div>
             <div class="stars-gold" aria-label="${rating} out of 5 stars">${starsHtml}</div>
           </div>

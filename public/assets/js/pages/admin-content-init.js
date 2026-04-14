@@ -276,9 +276,9 @@
         .map(a => {
           const escapedId = AdminShared.escapeHtml(a.id);
           const escapedType = AdminShared.escapeHtml(a.type || 'info');
-          const createdAt = a.createdAt ? new Date(a.createdAt).toLocaleDateString() : '';
+          const createdAt = a.createdAt ? new Date(a.createdAt).toLocaleDateString('en-GB', { timeZone: 'Europe/London' }) : '';
           const lastNotified = a.lastNotifiedAt
-            ? `Last sent: ${new Date(a.lastNotifiedAt).toLocaleDateString()}`
+            ? `Last sent: ${new Date(a.lastNotifiedAt).toLocaleDateString('en-GB', { timeZone: 'Europe/London' })}`
             : '';
           const notifiedBadge = a.notifiedCount
             ? `<span style="background:#ede9fe;color:#5b21b6;padding:0.1rem 0.45rem;border-radius:9999px;font-size:0.7rem;font-weight:600;">📢 ×${a.notifiedCount}</span>`

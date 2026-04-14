@@ -10,7 +10,7 @@
     if (Number.isNaN(date.getTime())) {
       return 'Unknown date';
     }
-    return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    return `${date.toLocaleDateString('en-GB', { timeZone: 'Europe/London' })} ${date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/London' })}`;
   }
 
   function normalizeListing(listing = {}) {
