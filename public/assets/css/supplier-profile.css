@@ -1680,6 +1680,11 @@
   opacity: 0.7;
 }
 
+/* ============================================
+   Animation utilities
+   ============================================ */
+
+@keyframes fadeInUp {
   from {
     opacity: 0;
     transform: translateY(12px);
