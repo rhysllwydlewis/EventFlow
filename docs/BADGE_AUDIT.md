@@ -246,6 +246,9 @@ curl -X PUT https://yourapp.com/api/admin/suppliers/{id}/completed-events \
 - [x] **`verification-badges.js` priority comment** — "Priority 3: Featured Badge" corrected to "Priority 2"
 - [x] **Badge scheduler** — `server.js` now runs `evaluateAllSupplierBadges()` on a configurable interval (default 24 h, `BADGE_EVAL_INTERVAL_HOURS` env var)
 - [x] **`completedEvents` write path** — `PUT /api/admin/suppliers/:id/completed-events` endpoint added to `supplier-admin.js`
+- [x] **Earned badge visual polish** — `box-shadow` + hover effects added to `.badge-fast-responder`, `.badge-top-rated`, `.badge-expert`, `.badge-custom` in `badges.css` (matching tier badge quality)
+- [x] **`ui-ux-fixes.css` blank line cleanup** — extra blank line after badge block removal resolved
+- [x] **`REVIEWS_SYSTEM.md` cross-reference** — badge section updated with note clarifying analytics-only badges vs. supplier-facing badges, linking to `BADGE_AUDIT.md`
 - [x] **All 4,954 tests pass** (231 skipped, 0 failed)
 - [x] **CodeQL security scan** — 0 alerts
 - [x] **Code review** — no issues

@@ -25,7 +25,7 @@
   transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-/* Hover lift for tier badges only — keep verification badges static */
+/* Hover lift for tier badges — keep verification badges static */
 .badge-pro:hover,
 .badge-pro-plus:hover,
 .badge-founding:hover,
@@ -49,6 +49,30 @@
   box-shadow: 0 4px 8px rgba(139, 92, 246, 0.4);
 }
 
+/* Hover lift for earned/auto-awarded badges */
+.badge-fast-responder:hover,
+.badge-top-rated:hover,
+.badge-expert:hover,
+.badge-custom:hover {
+  transform: translateY(-1px);
+}
+
+.badge-fast-responder:hover {
+  box-shadow: 0 4px 8px rgba(245, 158, 11, 0.35);
+}
+
+.badge-top-rated:hover {
+  box-shadow: 0 4px 8px rgba(234, 179, 8, 0.35);
+}
+
+.badge-expert:hover {
+  box-shadow: 0 4px 8px rgba(139, 92, 246, 0.35);
+}
+
+.badge-custom:hover {
+  box-shadow: 0 4px 8px rgba(34, 197, 94, 0.3);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .badge {
     transition: none;
@@ -60,6 +84,7 @@
   background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
   color: #78350f;
   border: 1px solid #f59e0b;
+  box-shadow: 0 2px 4px rgba(251, 191, 36, 0.25);
 }
 
 .badge-founding::before {
@@ -263,6 +288,7 @@
   color: #92400e;
   border: 1px solid #f59e0b;
   font-weight: 700;
+  box-shadow: 0 1px 3px rgba(245, 158, 11, 0.2);
 }
 
 .badge-fast-responder::before {
@@ -276,6 +302,7 @@
   color: #713f12;
   border: 1px solid #eab308;
   font-weight: 700;
+  box-shadow: 0 1px 3px rgba(234, 179, 8, 0.2);
 }
 
 .badge-top-rated::before {
@@ -289,6 +316,7 @@
   color: #4c1d95;
   border: 1px solid #8b5cf6;
   font-weight: 700;
+  box-shadow: 0 1px 3px rgba(139, 92, 246, 0.2);
 }
 
 .badge-expert::before {
@@ -302,6 +330,7 @@
   color: #14532d;
   border: 1px solid #22c55e;
   font-weight: 700;
+  box-shadow: 0 1px 3px rgba(34, 197, 94, 0.15);
 }
 
 /* ===== PROFILE BADGES SECTION — enhanced layout ===== */
