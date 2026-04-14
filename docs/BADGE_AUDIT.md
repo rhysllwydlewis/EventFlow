@@ -216,7 +216,11 @@ curl -X PUT https://yourapp.com/api/admin/suppliers/{id}/completed-events \
 | `public/assets/js/utils/lead-quality-helper.js`  | Lead inbox                 | Starter, Pro, Pro Plus, Founding, Featured, Email/Phone/Business Verified                  |
 | `public/supplier/js/feature-access.js`           | Supplier dashboard         | Starter, Pro, Pro Plus                                                                     |
 | `public/assets/js/pages/admin-suppliers-init.js` | Admin suppliers table      | Starter, Pro, Pro Plus                                                                     |
-| `public/assets/js/pages/admin-users-init.js`     | Admin users table          | Starter, Pro, Pro Plus                                                                     |
+| `public/assets/js/pages/admin-users-init.js`     | Admin users table          | **Admin** (for role=admin users), Starter, Pro, Pro Plus (for non-admin users)             |
+| `public/assets/js/pages/admin-init.js`           | Admin legacy user list     | **Admin** (for role=admin/owner users)                                                     |
+| `public/assets/js/supplier-tickets.js`           | Ticket replies (supplier)  | **Admin** (shown next to admin reply author name)                                          |
+| `public/assets/js/customer-tickets.js`           | Ticket replies (customer)  | **Admin** (shown next to admin reply author name)                                          |
+| `public/assets/js/pages/admin-tickets-init.js`   | Ticket replies (admin)     | **Admin** (shown next to admin reply author name)                                          |
 | `public/assets/js/utils/p3-features.js`          | Supplier cards (browse)    | New Supplier (`.new-badge`, auto for suppliers created ≤ 14 days ago)                      |
 | `public/assets/js/suppliers-enhancements.js`     | Supplier cards (browse)    | Applies `p3-features.js` new-badge logic to supplier card elements                         |
 | `reviews.js` (`calculateSupplierAnalytics()`)    | Analytics (internal only)  | top-rated, responsive, highly-reviewed, customer-favorite (not rendered as visible badges) |
@@ -245,13 +249,20 @@ curl -X PUT https://yourapp.com/api/admin/suppliers/{id}/completed-events \
 - [x] **`seed.js` updated** — `seedBadges()` now imports and iterates `BADGE_DEFINITIONS` from `badgeManagement.js`; stale hardcoded data removed
 - [x] **`verification-badges.js` icon** — Founding Supplier `👑` → `⭐` in `renderVerificationSection`
 - [x] **`badgeManagement.js` Expert icon** — `👨‍🎓` → `🎓` to match `badges.css` and cheatsheet
-- [x] **`verification-badges.js` priority comment** — "Priority 3: Featured Badge" corrected to "Priority 2"
+- [x] **`verification-badges.js` priority comments** — corrected throughout (3a Featured, 3b Earned, 4 Verification)
 - [x] **Badge scheduler** — `server.js` now runs `evaluateAllSupplierBadges()` on a configurable interval (default 24 h, `BADGE_EVAL_INTERVAL_HOURS` env var)
 - [x] **`completedEvents` write path** — `PUT /api/admin/suppliers/:id/completed-events` endpoint added to `supplier-admin.js`
 - [x] **Earned badge visual polish** — `box-shadow` + hover effects added to `.badge-fast-responder`, `.badge-top-rated`, `.badge-expert`, `.badge-custom` in `badges.css` (matching tier badge quality)
 - [x] **`ui-ux-fixes.css` blank line cleanup** — extra blank line after badge block removal resolved
 - [x] **`REVIEWS_SYSTEM.md` cross-reference** — badge section updated with note clarifying analytics-only badges vs. supplier-facing badges, linking to `BADGE_AUDIT.md`
-- [x] **All 4,954 tests pass** (231 skipped, 0 failed)
+- [x] **`admin-enhanced.css` `.badge-starter` fix** — admin pages were rendering unstyled Starter badges; `.badge-starter` added alongside `.badge-free` so all admin tables show correct styling
+- [x] **`reviews.css` stale badge overrides removed** — conflicting colour definitions for `.badge-verified`, `.badge-email-verified`, `.badge-supplier` removed; `badges.css` is sole colour source
+- [x] **`styles.css` `.card-badge` legacy colours updated** — `.card-badge.badge-pro/featured/verified` updated from `#FFD700`/`#13B6A2`/`#28a745` to canonical values matching `badges.css`
+- [x] **Admin badge `.badge-admin`** — new class in `badges.css` and `admin-enhanced.css`: red gradient (`#dc2626→#991b1b`), `🛡️` icon, bold white text, `box-shadow`, hover lift, `prefers-reduced-motion` respected
+- [x] **Admin badge — `admin-users-init.js`** — admin-role users display `🛡️ Admin` badge instead of a tier badge; `_updateTableSubscriptionBadge` guards against overwriting it on subscription changes
+- [x] **Admin badge — `admin-init.js`** — role column uses `.badge-admin` for admin and owner users (owner also gets a small `OWNER` pill)
+- [x] **Admin badge — ticket views** — `supplier-tickets.js`, `customer-tickets.js`, `admin-tickets-init.js`: replaced incorrect `badge-in_progress` (a ticket-status class) with `badge-admin` for admin reply attribution
+- [x] **All 4,954 tests pass** (231 skipped, 0 failed) — confirmed after all badge and admin badge changes
 - [x] **CodeQL security scan** — 0 alerts
 - [x] **Code review** — no issues
 
