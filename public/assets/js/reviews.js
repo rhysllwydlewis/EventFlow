@@ -354,14 +354,15 @@
       const isAuthor = currentUserId && review.userId && currentUserId === review.userId;
       const isAdmin = this.currentUser?.role === 'admin';
 
-      const ownerActions = (isAuthor || isAdmin)
-        ? `<button class="review-action-btn review-edit-btn" data-review-id="${review.id}" aria-label="Edit review">
+      const ownerActions =
+        isAuthor || isAdmin
+          ? `<button class="review-action-btn review-edit-btn" data-review-id="${review.id}" aria-label="Edit review">
              ✏️ <span>Edit</span>
            </button>
            <button class="review-action-btn review-delete-btn" data-review-id="${review.id}" aria-label="Delete review">
              🗑️ <span>Delete</span>
            </button>`
-        : '';
+          : '';
 
       // Issue 6: Report button for non-authors (logged-in users only)
       const reportBtn =
@@ -398,8 +399,8 @@
               </div>
             </div>
             <div class="review-card-rating">
-              <div class="review-stars">${stars}</div>
-              <span class="review-rating-number">${Number(review.rating).toFixed(1)}</span>
+              <div class="review-stars" role="img" aria-label="${Number(review.rating).toFixed(1)} out of 5 stars">${stars}</div>
+              <span class="review-rating-number" aria-hidden="true">${Number(review.rating).toFixed(1)}</span>
             </div>
           </div>
           
@@ -431,7 +432,9 @@
     },
 
     /**
-     * Render star rating with support for fractional/partial stars
+     * Render star rating with support for fractional/partial stars.
+     * Full stars: gold ★. Partial star: gold ★ overlaid on grey ☆ via absolute positioning.
+     * Empty stars: grey ☆. All spans are aria-hidden (container should carry the label).
      */
     renderStars(rating) {
       const fullStars = Math.floor(rating);
@@ -439,19 +442,20 @@
       const stars = [];
 
       for (let i = 0; i < fullStars; i++) {
-        stars.push('<span class="star-full">★</span>');
+        stars.push('<span class="star-full" aria-hidden="true">★</span>');
       }
 
       if (fraction > 0 && fullStars < 5) {
         const pct = Math.round(fraction * 100);
+        // Overlay gold ★ (clipped to pct% width) on top of grey ☆
         stars.push(
-          `<span class="star-partial" style="--fill-width:${pct}%" aria-hidden="true">★</span><span class="star-empty" aria-hidden="true">☆</span>`
+          `<span class="star-partial-wrapper" aria-hidden="true"><span class="star-bg">☆</span><span class="star-fg" style="--fill-width:${pct}%">★</span></span>`
         );
       }
 
       const emptiesStart = fraction > 0 ? fullStars + 1 : fullStars;
       for (let i = emptiesStart; i < 5; i++) {
-        stars.push('<span class="star-empty">☆</span>');
+        stars.push('<span class="star-empty" aria-hidden="true">☆</span>');
       }
 
       return stars.join('');
@@ -711,9 +715,14 @@
         if (total === 0) {
           starsElement.innerHTML = this.renderStars(0);
           starsElement.style.opacity = '0.3';
+          starsElement.setAttribute('aria-label', 'No reviews yet');
         } else {
           starsElement.innerHTML = this.renderStars(data.average || 0);
           starsElement.style.opacity = '1';
+          starsElement.setAttribute(
+            'aria-label',
+            `Average rating: ${(data.average || 0).toFixed(1)} out of 5 stars`
+          );
         }
       }
     },
