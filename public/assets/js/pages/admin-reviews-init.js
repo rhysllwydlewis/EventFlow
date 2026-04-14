@@ -183,9 +183,8 @@
       const moderationState = (review.moderation && review.moderation.state) || review.status || 'pending';
       const moderationReason = (review.moderation && review.moderation.reason) || '';
       const flagged = review.flagged ? ' <span class="badge badge-warning">Reported</span>' : '';
-      const reportCount = Array.isArray(review.reports) ? review.reports.length : 0;
-      const reportInfo = reportCount > 0
-        ? `<p class="small review-report-warning">🚩 ${reportCount} report${reportCount !== 1 ? 's' : ''} received — review this content and take action below.</p>`
+      const reportInfo = Array.isArray(review.reports) && review.reports.length > 0
+        ? `<p class="small review-report-warning">🚩 ${review.reports.length} report${review.reports.length !== 1 ? 's' : ''} received — review this content and take action below.</p>`
         : '';
 
       card.innerHTML =

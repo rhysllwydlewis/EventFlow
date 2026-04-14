@@ -16,6 +16,10 @@ const store = require('./store');
 let dbType = null;
 let mongodb = null;
 
+// Singleton promise to prevent concurrent initializations from each racing
+// to connect to MongoDB in parallel (causes N×10s timeouts in test environments).
+let _initPromise = null;
+
 // Database initialization state tracking for health checks
 let initializationState = 'not_started';
 let initializationError = null;
@@ -49,11 +53,26 @@ async function initializeDatabase() {
     return dbType;
   }
 
+  // Serialize concurrent callers: all latecomers await the same promise.
+  if (_initPromise) {
+    return _initPromise;
+  }
+
+  _initPromise = _doInitialize();
+  return _initPromise;
+}
+
+// Connection timeout used when probing MongoDB.
+// Must be comfortably below Jest's testTimeout (10 s) so that beforeAll/afterAll
+// hooks can fall back to local storage without hitting the hook deadline.
+const MONGO_CONNECT_TIMEOUT_MS = process.env.NODE_ENV === 'test' ? 3000 : 10000;
+
+async function _doInitialize() {
   initializationState = 'in_progress';
 
   try {
     if (db.isMongoAvailable()) {
-      mongodb = await withTimeout(db.connect(), 10000, 'MongoDB connection');
+      mongodb = await withTimeout(db.connect(), MONGO_CONNECT_TIMEOUT_MS, 'MongoDB connection');
       dbType = 'mongodb';
       initializationState = 'completed';
       initializationError = null;

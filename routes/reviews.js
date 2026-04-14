@@ -957,7 +957,7 @@ router.post(
                   priority: 'high',
                   icon: '🚩',
                   metadata: { reviewId, reason, reportedBy: req.user.id },
-                }).catch(err => logger.warn('Failed to notify admin of review report:', err.message))
+                }).catch(err => logger.warn(`Failed to notify admin ${admin.id} of review report:`, err.message))
               )
             );
           }
