@@ -10,6 +10,7 @@ const logger = require('../utils/logger');
 const mongoDb = require('../db');
 const NotificationService = require('../services/notification.service');
 const { writeLimiter } = require('../middleware/rateLimits');
+const { uid } = require('../store');
 const router = express.Router();
 
 // These will be injected by server.js during route mounting
@@ -833,7 +834,7 @@ router.post(
       // Create a support ticket so admins can review it
       try {
         const ticketData = {
-          id: require('../store').uid('tkt'),
+          id: uid('tkt'),
           type: 'review_report',
           status: 'open',
           reportedBy: req.user.id,

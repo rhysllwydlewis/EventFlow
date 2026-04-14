@@ -321,7 +321,7 @@
       const photos =
         review.photos && review.photos.length > 0
           ? `<div class="review-photos">
-             ${review.photos.map((photo, i) => `<div class="review-photo"><img src="${this.escapeHtml(photo)}" alt="Review photo ${i + 1}" /></div>`).join('')}
+             ${review.photos.map((photo, i) => `<div class="review-photo"><img src="${this.escapeHtml(photo)}" alt="Photo ${i + 1} from ${this.escapeHtml(review.userName)}'s review" /></div>`).join('')}
            </div>`
           : '';
 
@@ -1064,7 +1064,7 @@
         existing.remove();
       }
 
-      this.createEditModal(review);
+      this.createEditModal();
 
       const modal = document.getElementById('review-edit-modal');
       modal.style.display = 'flex';
