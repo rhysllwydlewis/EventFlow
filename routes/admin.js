@@ -2399,7 +2399,7 @@ router.get('/badge-counts', authRequired, roleRequired('admin'), async (req, res
     ] = await Promise.all([
       dbUnified.count('suppliers', { approved: false }),
       dbUnified.count('packages', { approved: false }),
-      dbUnified.count('reviews', { status: 'pending' }),
+      dbUnified.count('reviews', { $or: [{ status: 'pending' }, { flagged: true }] }),
       dbUnified.count('reports', { status: 'pending' }),
       dbUnified.count('suppliers'),
       dbUnified.count('packages'),

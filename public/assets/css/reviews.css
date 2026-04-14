@@ -912,7 +912,12 @@
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 0.75rem;
-  padding: 2px 0;
+  padding: 2px 6px 6px;
+}
+
+/* Ensure remove button is never clipped on review photo tiles */
+.review-photo-previews .photo-preview-item {
+  overflow: visible;
 }
 
 /* Modal Footer */

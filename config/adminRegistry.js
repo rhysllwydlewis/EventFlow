@@ -144,6 +144,7 @@ const REGISTRY = [
     category: 'moderation',
     inNav: true,
     desc: 'Review approvals & moderation',
+    badgeId: 'navBadgeReviews',
   },
   {
     route: '/admin-tickets',

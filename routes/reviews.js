@@ -938,6 +938,34 @@ router.post(
         );
       }
 
+      // Notify all admin users so they can action the report
+      try {
+        const allUsers = await dbUnified.read('users');
+        const adminUsers = allUsers.filter(u => u.role === 'admin' && u.id);
+        if (adminUsers.length > 0) {
+          const notifSvc = await getNotificationService(req);
+          if (notifSvc) {
+            await Promise.all(
+              adminUsers.map(admin =>
+                notifSvc.create({
+                  userId: admin.id,
+                  type: 'review_report',
+                  title: '⚑ Review Reported',
+                  message: `A review has been reported (reason: ${reason}). Please review and take action.`,
+                  actionUrl: '/admin-reviews',
+                  actionText: 'View Reports',
+                  priority: 'high',
+                  icon: '⚑',
+                  metadata: { reviewId, reason, reportedBy: req.user.id },
+                }).catch(err => logger.warn('Failed to notify admin of review report:', err.message))
+              )
+            );
+          }
+        }
+      } catch (notifErr) {
+        logger.warn('Failed to send admin notifications for review report (non-blocking):', notifErr.message);
+      }
+
       res.json({
         success: true,
         message: 'Report submitted. Our team will review it shortly.',
