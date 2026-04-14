@@ -398,7 +398,6 @@
 .badge-email-verified {
   display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
   padding: 0.2rem 0.5rem;
   background: #10b981;
   color: #ffffff;
@@ -509,7 +508,9 @@
 /* Review Actions */
 .review-card-actions {
   display: flex;
-  gap: 1rem;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
   margin-top: 1rem;
   padding-top: 1rem;
   border-top: 1px solid #e5e7eb;
@@ -518,15 +519,16 @@
 .review-action-btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
+  gap: 0.4rem;
+  padding: 0.4rem 0.85rem;
   background: #f3f4f6;
   border: none;
   border-radius: 6px;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   color: #374151;
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .review-action-btn:hover {
@@ -540,6 +542,15 @@
 
 .review-action-btn .vote-count {
   font-weight: 600;
+}
+
+/* Divider between vote buttons and owner/report buttons */
+.review-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+  flex-wrap: wrap;
 }
 
 /* ========================================
@@ -1294,11 +1305,174 @@ select:focus-visible {
   border-width: 0;
 }
 
-/* Reduced Motion */
-@media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+.review-author-name--link {
+  font-weight: 600;
+  color: #4f46e5;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.review-author-name--link:hover {
+  color: #3730a3;
+  text-decoration: underline;
+}
+
+/* ========================================
+   Edit / Delete / Report Action Buttons
+   ======================================== */
+
+.review-edit-btn {
+  color: #4b5563;
+  background: #f3f4f6;
+  font-size: 0.8rem;
+}
+
+.review-edit-btn:hover {
+  background: #e0e7ff;
+  color: #3730a3;
+}
+
+.review-delete-btn {
+  color: #4b5563;
+  background: #f3f4f6;
+  font-size: 0.8rem;
+}
+
+.review-delete-btn:hover {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.review-report-btn {
+  color: #9ca3af;
+  background: transparent;
+  font-size: 0.8rem;
+  padding: 0.4rem 0.65rem;
+}
+
+.review-report-btn:hover {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+/* ========================================
+   Edited Timestamp Note
+   ======================================== */
+
+.review-edited-note {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  color: #9ca3af;
+  font-style: italic;
+  margin-top: 0.75rem;
+  padding: 0.4rem 0.6rem;
+  background: #f9fafb;
+  border-radius: 4px;
+  border-left: 2px solid #e5e7eb;
+}
+
+.review-edited-note::before {
+  content: '✏️';
+  font-style: normal;
+  font-size: 0.7rem;
+}
+
+/* ========================================
+   Delete Confirmation Dialog
+   ======================================== */
+
+.review-confirm-dialog {
+  background: #ffffff;
+  border-radius: 16px;
+  max-width: 420px;
+  width: 100%;
+  padding: 2.5rem 2rem 2rem;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.review-confirm-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  animation: confirmIconBounce 0.4s ease;
+}
+
+@keyframes confirmIconBounce {
+  0% { transform: scale(0.5); opacity: 0; }
+  60% { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+.review-confirm-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 0.75rem;
+}
+
+.review-confirm-message {
+  font-size: 0.95rem;
+  color: #6b7280;
+  line-height: 1.6;
+  margin-bottom: 1.75rem;
+}
+
+.review-confirm-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.btn-danger {
+  padding: 0.75rem 1.5rem;
+  background: #ef4444;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.25);
+}
+
+.btn-danger:hover {
+  background: #dc2626;
+  box-shadow: 0 4px 8px rgba(220, 38, 38, 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-danger:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+/* ========================================
+   Small Modal Variant (report)
+   ======================================== */
+
+.review-modal--sm {
+  max-width: 460px;
+}
+
+/* ========================================
+   Author name link in review cards
+   ======================================== */
+
+/* Responsive adjustments for new buttons */
+@media (max-width: 480px) {
+  .review-card-actions {
+    gap: 0.4rem;
+  }
+
+  .review-action-btn {
+    padding: 0.4rem 0.65rem;
+    font-size: 0.8rem;
+  }
+
+  .review-report-btn {
+    width: 100%;
+    justify-content: center;
   }
 }

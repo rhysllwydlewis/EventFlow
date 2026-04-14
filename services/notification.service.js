@@ -362,14 +362,19 @@ class NotificationService {
    * Create notification for new review
    */
   async notifyNewReview(supplierUserId, customerName, rating) {
+    // Clamp rating to valid range (1–5) to prevent resource exhaustion
+    const safeRating = Math.min(5, Math.max(1, Math.floor(Number(rating) || 1)));
+    const stars = '★'.repeat(safeRating) + '☆'.repeat(5 - safeRating);
     return await this.create({
       userId: supplierUserId,
       type: 'review',
-      title: 'New Review',
-      message: `${customerName} left a ${rating}-star review`,
-      actionUrl: '/reviews',
-      actionText: 'View Review',
+      title: '🌟 New Review!',
+      message: `${customerName} left a ${safeRating}-star review on your profile. ${stars}`,
+      actionUrl: '/supplier-dashboard#reviews',
+      actionText: 'View Reviews',
       priority: 'normal',
+      icon: '🌟',
+      metadata: { customerName, rating: safeRating },
     });
   }
 

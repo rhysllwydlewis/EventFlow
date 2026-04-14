@@ -330,8 +330,19 @@ async function getSupplierReviews(supplierId, options = {}) {
   const end = start + perPage;
   const paginatedReviews = filtered.slice(start, end);
 
+  // Enrich reviews with author supplier info (Issues 1 & 2)
+  const suppliers = await dbUnified.read('suppliers');
+  const enriched = paginatedReviews.map(review => {
+    const authorSupplier = suppliers.find(s => s.ownerUserId === review.userId);
+    return {
+      ...review,
+      isSupplier: !!authorSupplier,
+      authorSupplierId: authorSupplier ? authorSupplier.id : null,
+    };
+  });
+
   return {
-    reviews: paginatedReviews,
+    reviews: enriched,
     pagination: {
       page,
       perPage,
