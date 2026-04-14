@@ -725,11 +725,15 @@ a:hover {
    Multi-column design with brand colors
    ======================================== */
 
-.ef-footer-modern {
-  background: var(--ink, #0B8073);
+.ef-section--supplier-cta {
+  border-top: 3px solid var(--ef-primary, #0B8073);
+}
+
+footer.ef-footer-modern {
+  background: var(--ef-footer-bg, #094d45) !important;
   color: white;
-  padding: var(--ef-space-8, 64px) 0 var(--ef-space-5, 24px);
-  margin-top: var(--ef-space-8, 64px);
+  padding: var(--ef-space-8, 64px) 0 var(--ef-space-5, 24px) !important;
+  margin-top: 0 !important;
 }
 
 .ef-footer-grid {
