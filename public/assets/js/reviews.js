@@ -27,6 +27,10 @@
     currentUser: null,
     csrfToken: null,
 
+    // Photo upload limits (single source of truth used by addPhotoFiles / renderPhotoPreviews)
+    REVIEW_MAX_PHOTOS: 5,
+    REVIEW_MAX_PHOTO_MB: 5,
+
     /**
      * Build the sign-in URL that redirects back to the current page after auth
      */
@@ -963,16 +967,16 @@
      * Add photo files to the pending list and render previews
      */
     addPhotoFiles(files) {
-      const MAX_PHOTOS = 5;
-      const MAX_SIZE_MB = 5;
+      const limit = this.REVIEW_MAX_PHOTOS;
+      const maxSizeBytes = this.REVIEW_MAX_PHOTO_MB * 1024 * 1024;
 
       for (const file of files) {
-        if (this._pendingPhotoFiles.length >= MAX_PHOTOS) {
-          this.showToast(`Maximum ${MAX_PHOTOS} photos per review`, 'error');
+        if (this._pendingPhotoFiles.length >= limit) {
+          this.showToast(`Maximum ${limit} photos per review`, 'error');
           break;
         }
-        if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-          this.showToast(`${file.name} is too large (max ${MAX_SIZE_MB}MB)`, 'error');
+        if (file.size > maxSizeBytes) {
+          this.showToast(`${file.name} is too large (max ${this.REVIEW_MAX_PHOTO_MB}MB)`, 'error');
           continue;
         }
         if (!file.type.startsWith('image/')) {
@@ -1007,8 +1011,10 @@
             <img src="${ev.target.result}" alt="Photo ${index + 1} preview" />
             <button type="button" class="photo-preview-remove" data-index="${index}" aria-label="Remove photo ${index + 1}">×</button>
           `;
-          previewDiv.querySelector('.photo-preview-remove').addEventListener('click', () => {
-            this._pendingPhotoFiles.splice(index, 1);
+          previewDiv.querySelector('.photo-preview-remove').addEventListener('click', e => {
+            // Read index from the DOM at click time to avoid stale closure
+            const idx = parseInt(e.currentTarget.dataset.index, 10);
+            this._pendingPhotoFiles.splice(idx, 1);
             this.renderPhotoPreviews();
           });
           container.appendChild(previewDiv);
@@ -1016,9 +1022,11 @@
         reader.readAsDataURL(file);
       });
 
+      const limit = this.REVIEW_MAX_PHOTOS;
+
       // Show/hide count badge
       if (files.length > 0) {
-        countText.textContent = `${files.length} / 5 photo${files.length !== 1 ? 's' : ''} selected`;
+        countText.textContent = `${files.length} / ${limit} photo${files.length !== 1 ? 's' : ''} selected`;
         countEl.style.display = 'block';
         uploadArea.classList.add('has-photos');
       } else {
@@ -1027,7 +1035,7 @@
       }
 
       // Disable upload area when at limit
-      if (files.length >= 5) {
+      if (files.length >= limit) {
         uploadArea.setAttribute('aria-disabled', 'true');
         uploadArea.classList.add('upload-limit-reached');
       } else {
@@ -1313,7 +1321,8 @@
       const counter = document.getElementById('lightbox-counter');
 
       const updateImage = () => {
-        img.src = this.escapeHtml(photos[currentIndex]);
+        // Set via DOM property — no HTML escaping needed; the src is a trusted server URL
+        img.src = photos[currentIndex];
         img.alt = `Review photo ${currentIndex + 1} of ${total}`;
         if (counter) counter.textContent = `${currentIndex + 1} / ${total}`;
       };
