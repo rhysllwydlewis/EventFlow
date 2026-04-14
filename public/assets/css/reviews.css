@@ -279,6 +279,7 @@
   font-size: 0.9rem;
   font-weight: 500;
   color: #6b7280;
+  white-space: nowrap;
 }
 
 .review-filter-select {
@@ -299,6 +300,11 @@
   outline: none;
   border-color: #667eea;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Inside modals the event-type select should span full width */
+.review-modal-body .review-filter-select {
+  width: 100%;
 }
 
 .review-verified-filter {
@@ -412,6 +418,17 @@
 
 .badge-email-verified {
   background: #3b82f6;
+}
+
+.badge-supplier {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.5rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #ffffff;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
 }
 
 .review-meta {
@@ -1254,6 +1271,12 @@
   
   .review-card-actions {
     flex-direction: column;
+  }
+  
+  /* In column flex context margin-left:auto has no effect; use align-self instead */
+  .review-actions-right {
+    margin-left: 0;
+    align-self: flex-end;
   }
   
   .review-action-btn {

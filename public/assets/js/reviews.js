@@ -771,10 +771,10 @@
      */
     createReviewModal() {
       const modalHTML = `
-        <div id="review-modal" class="review-modal-overlay">
+        <div id="review-modal" class="review-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="write-modal-title">
           <div class="review-modal">
             <div class="review-modal-header">
-              <h2 class="review-modal-title">Write a Review</h2>
+              <h2 class="review-modal-title" id="write-modal-title">Write a Review</h2>
               <p class="review-modal-subtitle">Share your experience with this supplier</p>
             </div>
             
@@ -782,12 +782,12 @@
               <!-- Rating -->
               <div class="review-form-group">
                 <label class="review-form-label required">Overall Rating</label>
-                <div class="star-rating-input" id="star-rating-input">
-                  <span class="star" data-rating="1">★</span>
-                  <span class="star" data-rating="2">★</span>
-                  <span class="star" data-rating="3">★</span>
-                  <span class="star" data-rating="4">★</span>
-                  <span class="star" data-rating="5">★</span>
+                <div class="star-rating-input" id="star-rating-input" aria-label="Rating">
+                  <span class="star" data-rating="1" role="button" tabindex="0" aria-label="1 star">★</span>
+                  <span class="star" data-rating="2" role="button" tabindex="0" aria-label="2 stars">★</span>
+                  <span class="star" data-rating="3" role="button" tabindex="0" aria-label="3 stars">★</span>
+                  <span class="star" data-rating="4" role="button" tabindex="0" aria-label="4 stars">★</span>
+                  <span class="star" data-rating="5" role="button" tabindex="0" aria-label="5 stars">★</span>
                 </div>
                 <div class="rating-description" id="rating-description"></div>
                 <input type="hidden" id="review-rating" name="rating" required />
@@ -848,7 +848,7 @@
             </form>
 
             <div class="review-modal-footer">
-              <button type="button" class="btn-cancel" onclick="reviewsManager.closeReviewModal()">
+              <button type="button" class="btn-cancel" id="btn-write-cancel">
                 Cancel
               </button>
               <button type="submit" form="review-form" class="btn-submit-review" id="btn-submit-review">
@@ -861,13 +861,26 @@
 
       document.body.insertAdjacentHTML('beforeend', modalHTML);
 
-      // Close modal on overlay click
       const modal = document.getElementById('review-modal');
+
+      // Close on overlay click
       modal.addEventListener('click', e => {
         if (e.target === modal) {
           this.closeReviewModal();
         }
       });
+
+      // Close on Escape
+      document.getElementById('btn-write-cancel').addEventListener('click', () => {
+        this.closeReviewModal();
+      });
+
+      this._writeModalEscHandler = e => {
+        if (e.key === 'Escape') {
+          this.closeReviewModal();
+        }
+      };
+      document.addEventListener('keydown', this._writeModalEscHandler);
     },
 
     /**
@@ -1035,6 +1048,11 @@
         if (form) {
           form.reset();
         }
+      }
+      // Remove Escape listener
+      if (this._writeModalEscHandler) {
+        document.removeEventListener('keydown', this._writeModalEscHandler);
+        this._writeModalEscHandler = null;
       }
     },
 
@@ -1265,6 +1283,13 @@
       document.getElementById('btn-edit-cancel').addEventListener('click', () => {
         this.closeEditModal();
       });
+
+      this._editModalEscHandler = e => {
+        if (e.key === 'Escape') {
+          this.closeEditModal();
+        }
+      };
+      document.addEventListener('keydown', this._editModalEscHandler);
     },
 
     /**
@@ -1322,6 +1347,10 @@
       if (modal) {
         modal.remove();
       }
+      if (this._editModalEscHandler) {
+        document.removeEventListener('keydown', this._editModalEscHandler);
+        this._editModalEscHandler = null;
+      }
     },
 
     // -------------------------------------------------------------------------
@@ -1354,19 +1383,25 @@
       document.body.insertAdjacentHTML('beforeend', widgetHTML);
 
       const overlay = document.getElementById('review-delete-confirm');
+
+      const closeDelete = () => {
+        overlay.remove();
+        document.removeEventListener('keydown', escHandler);
+      };
+      const escHandler = e => {
+        if (e.key === 'Escape') closeDelete();
+      };
+      document.addEventListener('keydown', escHandler);
+
       overlay.addEventListener('click', e => {
-        if (e.target === overlay) {
-          overlay.remove();
-        }
+        if (e.target === overlay) closeDelete();
       });
 
-      document.getElementById('btn-delete-cancel').addEventListener('click', () => {
-        overlay.remove();
-      });
+      document.getElementById('btn-delete-cancel').addEventListener('click', closeDelete);
 
       document.getElementById('btn-delete-confirm').addEventListener('click', () => {
         this.deleteReview(reviewId);
-        overlay.remove();
+        closeDelete();
       });
     },
 
@@ -1450,15 +1485,20 @@
       const detailGroup = document.getElementById('report-detail-group');
       const submitBtn = document.getElementById('btn-report-submit');
 
+      const closeReport = () => {
+        overlay.remove();
+        document.removeEventListener('keydown', escHandler);
+      };
+      const escHandler = e => {
+        if (e.key === 'Escape') closeReport();
+      };
+      document.addEventListener('keydown', escHandler);
+
       overlay.addEventListener('click', e => {
-        if (e.target === overlay) {
-          overlay.remove();
-        }
+        if (e.target === overlay) closeReport();
       });
 
-      document.getElementById('btn-report-cancel').addEventListener('click', () => {
-        overlay.remove();
-      });
+      document.getElementById('btn-report-cancel').addEventListener('click', closeReport);
 
       reasonSelect.addEventListener('change', () => {
         const hasReason = reasonSelect.value !== '';
@@ -1474,7 +1514,7 @@
           return;
         }
         this.submitReport(reviewId, reason, detail);
-        overlay.remove();
+        closeReport();
       });
     },
 
