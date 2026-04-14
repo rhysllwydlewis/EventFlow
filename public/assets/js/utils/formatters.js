@@ -11,7 +11,7 @@ const Formatters = {
    * @param {Object} options - Intl.DateTimeFormat options
    * @returns {string} - Formatted date
    */
-  date(date, locale = 'en-US', options = {}) {
+  date(date, locale = 'en-GB', options = {}) {
     try {
       const dateObj = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
 
@@ -23,6 +23,7 @@ const Formatters = {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
+        timeZone: 'Europe/London',
       };
 
       return new Intl.DateTimeFormat(locale, { ...defaultOptions, ...options }).format(dateObj);
@@ -83,7 +84,7 @@ const Formatters = {
    * @param {string} locale - Locale string (default: 'en-US')
    * @returns {string} - Formatted currency
    */
-  currency(amount, currency = 'USD', locale = 'en-US') {
+  currency(amount, currency = 'GBP', locale = 'en-GB') {
     try {
       return new Intl.NumberFormat(locale, {
         style: 'currency',
@@ -101,7 +102,7 @@ const Formatters = {
    * @param {string} locale - Locale string (default: 'en-US')
    * @returns {string} - Formatted number
    */
-  number(number, locale = 'en-US') {
+  number(number, locale = 'en-GB') {
     try {
       return new Intl.NumberFormat(locale).format(number);
     } catch (error) {

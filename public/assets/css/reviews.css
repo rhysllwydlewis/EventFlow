@@ -441,6 +441,38 @@
   gap: 0.1rem;
 }
 
+.review-stars .star-full {
+  color: #fbbf24;
+}
+
+.review-stars .star-empty {
+  color: #d1d5db;
+}
+
+.review-stars .star-partial {
+  display: inline-block;
+  overflow: hidden;
+  position: relative;
+  color: #fbbf24;
+  vertical-align: top;
+}
+
+.review-stars-large .star-full {
+  color: #fbbf24;
+}
+
+.review-stars-large .star-empty {
+  color: #d1d5db;
+}
+
+.review-stars-large .star-partial {
+  display: inline-block;
+  overflow: hidden;
+  position: relative;
+  color: #fbbf24;
+  vertical-align: top;
+}
+
 .review-rating-number {
   font-weight: 600;
   color: #1f2937;

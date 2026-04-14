@@ -603,6 +603,7 @@
         day: 'numeric',
         month: 'short',
         year: 'numeric',
+        timeZone: 'Europe/London',
       });
     } catch (_) {
       return dateStr;

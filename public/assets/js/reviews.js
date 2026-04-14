@@ -347,17 +347,18 @@
       const helpfulCount = review.helpfulCount || 0;
       const unhelpfulCount = review.unhelpfulCount || 0;
 
-      // Issue 4 & 5: Edit/Delete buttons for the review author.
+      // Issue 4 & 5: Edit/Delete buttons for the review author or admin.
       // Check multiple possible user ID properties because the auth system may return
       // the user object with 'id', 'uid', or '_id' depending on the auth provider.
       const currentUserId = this.currentUser?.id || this.currentUser?.uid || this.currentUser?._id;
       const isAuthor = currentUserId && review.userId && currentUserId === review.userId;
+      const isAdmin = this.currentUser?.role === 'admin';
 
-      const ownerActions = isAuthor
-        ? `<button class="review-action-btn review-edit-btn" data-review-id="${review.id}" aria-label="Edit your review">
+      const ownerActions = (isAuthor || isAdmin)
+        ? `<button class="review-action-btn review-edit-btn" data-review-id="${review.id}" aria-label="Edit review">
              ✏️ <span>Edit</span>
            </button>
-           <button class="review-action-btn review-delete-btn" data-review-id="${review.id}" aria-label="Delete your review">
+           <button class="review-action-btn review-delete-btn" data-review-id="${review.id}" aria-label="Delete review">
              🗑️ <span>Delete</span>
            </button>`
         : '';
@@ -398,7 +399,7 @@
             </div>
             <div class="review-card-rating">
               <div class="review-stars">${stars}</div>
-              <span class="review-rating-number">${review.rating}.0</span>
+              <span class="review-rating-number">${Number(review.rating).toFixed(1)}</span>
             </div>
           </div>
           
@@ -430,18 +431,27 @@
     },
 
     /**
-     * Render star rating
+     * Render star rating with support for fractional/partial stars
      */
     renderStars(rating) {
       const fullStars = Math.floor(rating);
+      const fraction = rating - fullStars;
       const stars = [];
 
       for (let i = 0; i < fullStars; i++) {
-        stars.push('★');
+        stars.push('<span class="star-full">★</span>');
       }
 
-      for (let i = fullStars; i < 5; i++) {
-        stars.push('☆');
+      if (fraction > 0 && fullStars < 5) {
+        const pct = Math.round(fraction * 100);
+        stars.push(
+          `<span class="star-partial" style="width:${pct}%"><span aria-hidden="true">★</span></span><span class="star-empty" aria-hidden="true">☆</span>`
+        );
+      }
+
+      const emptiesStart = fraction > 0 ? fullStars + 1 : fullStars;
+      for (let i = emptiesStart; i < 5; i++) {
+        stars.push('<span class="star-empty">☆</span>');
       }
 
       return stars.join('');
@@ -486,7 +496,7 @@
       if (days < 365) {
         return `${Math.floor(days / 30)} months ago`;
       }
-      return date.toLocaleDateString();
+      return date.toLocaleDateString('en-GB', { timeZone: 'Europe/London' });
     },
 
     /**
@@ -494,12 +504,13 @@
      */
     formatDateTime(dateString) {
       const date = new Date(dateString);
-      return date.toLocaleDateString(undefined, {
+      return date.toLocaleDateString('en-GB', {
         year: 'numeric',
         month: 'short',
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
+        timeZone: 'Europe/London',
       });
     },
 
@@ -696,10 +707,14 @@
 
       // Update stars display
       const starsElement = document.querySelector('.review-stars-large');
-      if (starsElement && total === 0) {
-        starsElement.style.opacity = '0.3';
-      } else if (starsElement) {
-        starsElement.style.opacity = '1';
+      if (starsElement) {
+        if (total === 0) {
+          starsElement.innerHTML = this.renderStars(0);
+          starsElement.style.opacity = '0.3';
+        } else {
+          starsElement.innerHTML = this.renderStars(data.average || 0);
+          starsElement.style.opacity = '1';
+        }
       }
     },
 

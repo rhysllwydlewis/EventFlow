@@ -210,7 +210,7 @@ function formatVerificationDate(dateString) {
     return '';
   }
   try {
-    return new Date(dateString).toLocaleDateString('en-GB');
+    return new Date(dateString).toLocaleDateString('en-GB', { timeZone: 'Europe/London' });
   } catch (e) {
     return '';
   }

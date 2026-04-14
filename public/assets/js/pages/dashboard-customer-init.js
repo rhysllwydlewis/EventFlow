@@ -82,7 +82,7 @@ function formatPlanDate(dateString) {
     return '';
   }
   try {
-    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/London' });
   } catch (_) {
     return '';
   }
