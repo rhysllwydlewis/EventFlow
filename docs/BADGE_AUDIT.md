@@ -28,6 +28,9 @@
 
 | Badge Name                           | Visual / Rendered HTML | CSS Class                                 | Colours                                                                                    | Pages Used                                                                                                                                                     | Status |
 | ------------------------------------ | ---------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| **Customer** _(account type)_        | `🎉 Customer`          | `.badge-customer`                         | Blue gradient `#dbeafe → #bfdbfe` · text `#1e40af` · border `#3b82f6`                     | Admin users table, admin-users list, admin-user-detail, admin search results, messenger contact picker                                                         | ✅ |
+| **Supplier** _(account type)_        | `🏪 Supplier`          | `.badge-supplier-account`                 | Green gradient `#d1fae5 → #a7f3d0` · text `#065f46` · border `#10b981`                    | Admin users table, admin-users list, admin-user-detail, admin search results, messenger contact picker                                                         | ✅ |
+| **Partner** _(account type)_         | `🤝 Partner`           | `.badge-partner`                          | Purple gradient `#ede9fe → #c4b5fd` · text `#4c1d95` · border `#8b5cf6`                   | Admin users table, admin-users list, admin-user-detail, admin search results, messenger contact picker                                                         | ✅ |
 | **Admin** _(platform administrator)_ | `🛡️ Admin`             | `.badge-admin`                            | Red gradient `#dc2626 → #991b1b` · text `#ffffff` · border `#7f1d1d`                       | Admin users table, admin-init user list, all ticket views (supplier/customer/admin tickets), shown **instead of** tier badge                                   | ✅ |
 | **Starter** _(free tier)_            | `◆ Starter`            | `.badge-starter`                          | Gradient `#f1f5f9 → #e2e8f0` · text `#475569` · border `#cbd5e1` · subtle shadow           | Supplier profile, search results, suppliers browse, supplier cards, package listings, supplier dashboard, admin suppliers, admin users _(non-admin role only)_ | ✅ |
 | **Pro**                              | `⭐ Pro`               | `.badge-pro`                              | Gold gradient `#f59e0b → #d97706` · text `#78350f`                                         | Supplier profile, search results, suppliers browse, supplier cards, package listings, supplier dashboard, admin suppliers, admin users                         | ✅ |
@@ -295,9 +298,18 @@ curl -X PUT https://yourapp.com/api/admin/suppliers/{id}/completed-events \
 - [x] **Admin badge — `admin-users-init.js`** — admin-role users display `🛡️ Admin` badge instead of a tier badge; `_updateTableSubscriptionBadge` guards against overwriting it on subscription changes
 - [x] **Admin badge — `admin-init.js`** — role column uses `.badge-admin` for admin and owner users (owner also gets a small `OWNER` pill)
 - [x] **Admin badge — ticket views** — `supplier-tickets.js`, `customer-tickets.js`, `admin-tickets-init.js`: replaced incorrect `badge-in_progress` (a ticket-status class) with `badge-admin` for admin reply attribution
-- [x] **All 4,954 tests pass** (231 skipped, 0 failed) — confirmed after all badge and admin badge changes
+- [x] **Account type role badges** — new `.badge-customer` (blue), `.badge-supplier-account` (green), `.badge-partner` (purple) classes added to `badges.css` and `admin-enhanced.css` (loaded on all 27 admin pages)
+- [x] **Role badges in `admin-init.js`** — all roles (customer/supplier/partner/admin) now show a styled badge; previously only admin users got a badge
+- [x] **Role badges in `admin-users-init.js`** — Role column now renders role badge via `AdminShared.getRoleBadge()`; admin users show `—` in subscription column instead of admin badge to reduce duplication
+- [x] **Role badges in `admin-user-detail-init.js`** — removed `badge-${user.role}` dynamic class (had no CSS); replaced with `getRoleBadge()` helper delegating to `AdminShared.getRoleBadge()`
+- [x] **Role badges in `admin-search-init.js`** — user search results now include a role badge alongside the email
+- [x] **`AdminShared.getRoleBadge(role)`** — new shared utility method in `admin-shared.js` for consistent role badge rendering across all admin pages
+- [x] **Messenger role badges** — `.messenger-v4__role-badge--*` upgraded from flat 4px-corner boxes to pill-shaped (`border-radius: 12px`) gradient badges matching the gold standard; `.badge-partner` variant added
+- [x] **Double-tick bug fixed** — inline `✓` removed from JS badge text in `suppliers-init.js`, `supplier-profile.js`, `package-list.js`; CSS `::before` handles the icon
+- [x] **`reviews.css` overrides scoped** — `.badge-verified/.badge-email-verified/.badge-supplier` overrides now scoped to `.review-badges-inline` context
+- [x] **`components.css` `.badge` base** — upgraded from `display:inline-block / border-radius:4px / font-weight:500` to `display:inline-flex / border-radius:12px / font-weight:600`
+- [x] **All 18 badge integration tests pass** — confirmed after all changes (0 failures)
 - [x] **CodeQL security scan** — 0 alerts
-- [x] **Code review** — no issues
 
 ---
 

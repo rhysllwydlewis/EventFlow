@@ -311,27 +311,38 @@
 }
 
 .messenger-v4__role-badge {
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 11px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: 12px;
+  font-size: 0.7rem;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
 }
 
 .messenger-v4__role-badge--customer {
-  background: rgba(59, 130, 246, 0.1);
-  color: #3b82f6;
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  color: #1e40af;
+  border: 1px solid #3b82f6;
 }
 
 .messenger-v4__role-badge--supplier {
-  background: rgba(16, 185, 129, 0.1);
-  color: #10b981;
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  color: #065f46;
+  border: 1px solid #10b981;
+}
+
+.messenger-v4__role-badge--partner {
+  background: linear-gradient(135deg, #ede9fe 0%, #c4b5fd 100%);
+  color: #4c1d95;
+  border: 1px solid #8b5cf6;
 }
 
 .messenger-v4__role-badge--admin {
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
+  background: linear-gradient(135deg, #fee2e2 0%, #fca5a5 100%);
+  color: #991b1b;
+  border: 1px solid #ef4444;
 }
 
 .messenger-v4__message-preview {

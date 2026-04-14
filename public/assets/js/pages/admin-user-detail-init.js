@@ -19,6 +19,15 @@
     }
   }
 
+  function getRoleBadge(role) {
+    return AdminShared.getRoleBadge ? AdminShared.getRoleBadge(role) : (
+      role === 'admin' ? '<span class="badge badge-admin">🛡️ Admin</span>' :
+      role === 'supplier' ? '<span class="badge badge-supplier-account">🏪 Supplier</span>' :
+      role === 'partner' ? '<span class="badge badge-partner">🤝 Partner</span>' :
+      '<span class="badge badge-customer">🎉 Customer</span>'
+    );
+  }
+
   function renderUserDetails(user) {
     const container = document.getElementById('userDetailsContainer');
 
@@ -28,7 +37,7 @@
           <div>
             <h2 class="h2-mb">${AdminShared.escapeHtml(user.name || 'Unnamed User')}</h2>
             <div class="flex-gap" style="flex-wrap:wrap;">
-              <span class="badge badge-${user.role}">${AdminShared.escapeHtml(user.role || 'customer')}</span>
+              ${getRoleBadge(user.role)}
               <span class="badge badge-${user.verified ? 'yes' : 'no'}">${user.verified ? '✓ Verified' : '✗ Unverified'}</span>
               ${user.suspended ? '<span class="badge badge-danger">Suspended</span>' : ''}
             </div>

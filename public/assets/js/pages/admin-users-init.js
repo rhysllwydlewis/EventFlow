@@ -139,11 +139,14 @@
 
     tbody.innerHTML = filtered
       .map(u => {
+        // Build role badge using shared helper
+        const roleBadge = AdminShared.getRoleBadge(u.role);
+
         // Admin users get an Admin badge — they have full privileges, not a subscription tier
         const isAdminUser = u.role === 'admin';
         let subscriptionBadge = '';
         if (isAdminUser) {
-          subscriptionBadge = '<span class="badge badge-admin">🛡️ Admin</span>';
+          subscriptionBadge = '—';
         } else {
           const subscription = u.subscription || { tier: 'free', status: 'active' };
           if (subscription.tier === 'pro') {
@@ -172,7 +175,7 @@
           `<td class="checkbox-cell"><input type="checkbox" class="user-checkbox table-checkbox" data-user-id="${userId}" ${isChecked ? 'checked' : ''}></td>` +
           `<td><a href="/admin-user-detail?id=${userId}" style="color:#3b82f6;text-decoration:none;">${escapeHtml(u.name || '')}</a></td>` +
           `<td><a href="/admin-user-detail?id=${userId}" style="color:#3b82f6;text-decoration:none;">${escapeHtml(u.email || '')}</a></td>` +
-          `<td>${escapeHtml(u.role || '')}</td>` +
+          `<td>${roleBadge}</td>` +
           `<td>${subscriptionBadge}</td>` +
           `<td>${u.verified ? '✓ Yes' : '✗ No'}</td>` +
           `<td>${u.marketingOptIn ? 'Yes' : 'No'}</td>` +
