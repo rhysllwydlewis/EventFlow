@@ -13,6 +13,11 @@ const db = require('./db');
 const logger = require('./utils/logger');
 const store = require('./store');
 
+// Connection timeout used when probing MongoDB.
+// Must be comfortably below Jest's testTimeout (10 s) so that beforeAll/afterAll
+// hooks can fall back to local storage without hitting the hook deadline.
+const MONGO_CONNECT_TIMEOUT_MS = process.env.NODE_ENV === 'test' ? 3000 : 10000;
+
 let dbType = null;
 let mongodb = null;
 
@@ -65,7 +70,6 @@ async function initializeDatabase() {
 // Connection timeout used when probing MongoDB.
 // Must be comfortably below Jest's testTimeout (10 s) so that beforeAll/afterAll
 // hooks can fall back to local storage without hitting the hook deadline.
-const MONGO_CONNECT_TIMEOUT_MS = process.env.NODE_ENV === 'test' ? 3000 : 10000;
 
 async function _doInitialize() {
   initializationState = 'in_progress';
