@@ -11,33 +11,46 @@
 
 ---
 
+# EventFlow Badge Reference
+
+> **Canonical source of truth** for every badge in the EventFlow platform.
+> Post-consolidation state — all inconsistencies resolved April 2026.
+
+---
+
+## Badge Visual Preview
+
+![EventFlow Badge Preview](https://github.com/user-attachments/assets/87f3aa8e-2301-4f41-b6d8-d6c387d56e2a)
+
+---
+
 ## Badge Reference Table
 
-| Badge Name                           | Visual / Rendered HTML | CSS Class                                 | Colours                                                                 | Pages Used                                                                                                                                                     |
-| ------------------------------------ | ---------------------- | ----------------------------------------- | ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Admin** _(platform administrator)_ | `🛡️ Admin`             | `.badge-admin`                            | Red gradient `#dc2626 → #991b1b` · text `#ffffff` · border `#7f1d1d`    | Admin users table, admin-init user list, all ticket views (supplier/customer/admin tickets), shown **instead of** tier badge                                   |
-| **Starter** _(free tier)_            | `◆ Starter`            | `.badge-starter`                          | Background `#f1f5f9` · text `#475569` · border `#cbd5e1`                | Supplier profile, search results, suppliers browse, supplier cards, package listings, supplier dashboard, admin suppliers, admin users _(non-admin role only)_ |
-| **Pro**                              | `⭐ Pro`               | `.badge-pro`                              | Gold gradient `#f59e0b → #d97706` · text `#78350f`                      | Supplier profile, search results, suppliers browse, supplier cards, package listings, supplier dashboard, admin suppliers, admin users                         |
-| **Pro Plus**                         | `💎 Pro Plus`          | `.badge-pro-plus`                         | Purple gradient `#7c3aed → #5b21b6` · text `#ffffff`                    | Supplier profile, search results, suppliers browse, supplier cards, package listings, supplier dashboard, admin suppliers, admin users                         |
-| **Founding Supplier**                | `⭐ Founding Supplier` | `.badge-founding`                         | Gold gradient `#fbbf24 → #f59e0b` · text `#78350f` · border `#f59e0b`   | Supplier profile, search results, suppliers browse, supplier cards, package listings, supplier dashboard                                                       |
-| **Featured**                         | `★ Featured`           | `.badge-featured`                         | Purple gradient `#a78bfa → #8b5cf6` · text `#ffffff` · border `#7c3aed` | Supplier profile, search results, suppliers browse, supplier cards, package listings                                                                           |
-| **Email Verified**                   | `✓ Email Verified`     | `.badge-email-verified`                   | Background `#dbeafe` · text `#1e40af` · border `#3b82f6`                | Supplier profile, search results, suppliers browse, supplier cards, package listings                                                                           |
-| **Phone Verified**                   | `✓ Phone Verified`     | `.badge-phone-verified`                   | Background `#d1fae5` · text `#065f46` · border `#10b981`                | Supplier profile, search results, suppliers browse, supplier cards, package listings                                                                           |
-| **Business Verified**                | `✓ Business Verified`  | `.badge-business-verified`                | Background `#e0e7ff` · text `#3730a3` · border `#6366f1`                | Supplier profile, search results, suppliers browse, supplier cards, package listings                                                                           |
-| **Verified Customer**                | `✓ Verified Customer`  | `.badge-verified`                         | Background `#d1fae5` · text `#065f46` · border `#10b981`                | Review cards (verified customer reviewer), legacy verified fallback                                                                                            |
-| **Supplier** _(reviewer)_            | `🏢 Supplier`          | `.badge-supplier`                         | Indigo gradient `#6366f1 → #4f46e5` · text `#ffffff`                    | Review cards when reviewer is a supplier                                                                                                                       |
-| **Fast Responder** _(auto-awarded)_  | `⚡ Fast Responder`    | `.badge-fast-responder`                   | Amber `#fef3c7 → #fde68a` · text `#92400e`                              | Supplier profile badges panel only                                                                                                                             |
-| **Top Rated** _(auto-awarded)_       | `🌟 Top Rated`         | `.badge-top-rated`                        | Yellow `#fef9c3 → #fde047` · text `#713f12`                             | Supplier profile badges panel only                                                                                                                             |
-| **Expert** _(auto-awarded)_          | `🎓 Expert`            | `.badge-expert`                           | Purple `#ede9fe → #c4b5fd` · text `#4c1d95`                             | Supplier profile badges panel only                                                                                                                             |
-| **Custom** _(generic earned)_        | _(badge name)_         | `.badge-custom`                           | Green gradient `#f0fdf4 → #bbf7d0` · text `#14532d` · border `#22c55e`  | Supplier profile badges panel (fallback for unrecognised earned badges)                                                                                        |
-| **New Supplier** _(auto, ≤14 days)_  | `🆕 New`               | `.new-badge`                              | Teal gradient `#13b6a2 → #0b8073` · text `#ffffff` (pulse animation)    | Supplier cards on browse/marketplace pages                                                                                                                     |
-| **Test Data**                        | `🧪 Test data`         | `.badge-test-data`                        | Background `#fef3c7` · text `#92400e` · border `#f59e0b`                | Supplier cards and package cards when `isTest = true`                                                                                                          |
-| **Distance**                         | `0.5 mi` _(dynamic)_   | `.badge-distance` (`.sp-badge--distance`) | Background `#e0f2fe` · text `#0369a1`                                   | Suppliers browse page when geo-distance data is available                                                                                                      |
-| **Tier Icon — Pro**                  | `⭐` _(inline)_        | `.tier-icon.tier-icon-pro`                | Color `#d97706`                                                         | Inline beside supplier name in messages, cards, breadcrumbs                                                                                                    |
-| **Tier Icon — Pro Plus**             | `💎` _(inline)_        | `.tier-icon.tier-icon-pro-plus`           | Color `#7c3aed`                                                         | Inline beside supplier name in messages, cards, breadcrumbs                                                                                                    |
-| **Admin Tier — Free**                | `Free`                 | `.tier-badge.tier-badge--free`            | Grey gradient `#6b7280 → #9ca3af`                                       | Admin support-tickets view only                                                                                                                                |
-| **Admin Tier — Pro**                 | `Pro`                  | `.tier-badge.tier-badge--pro`             | Blue gradient `#2563eb → #3b82f6`                                       | Admin support-tickets view only                                                                                                                                |
-| **Admin Tier — Pro Plus**            | `Pro Plus`             | `.tier-badge.tier-badge--pro_plus`        | Purple gradient `#7c3aed → #a855f7`                                     | Admin support-tickets view only                                                                                                                                |
+| Badge Name                           | Visual / Rendered HTML | CSS Class                                 | Colours                                                                                    | Pages Used                                                                                                                                                     | Status |
+| ------------------------------------ | ---------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| **Admin** _(platform administrator)_ | `🛡️ Admin`             | `.badge-admin`                            | Red gradient `#dc2626 → #991b1b` · text `#ffffff` · border `#7f1d1d`                       | Admin users table, admin-init user list, all ticket views (supplier/customer/admin tickets), shown **instead of** tier badge                                   | ✅ |
+| **Starter** _(free tier)_            | `◆ Starter`            | `.badge-starter`                          | Gradient `#f1f5f9 → #e2e8f0` · text `#475569` · border `#cbd5e1` · subtle shadow           | Supplier profile, search results, suppliers browse, supplier cards, package listings, supplier dashboard, admin suppliers, admin users _(non-admin role only)_ | ✅ |
+| **Pro**                              | `⭐ Pro`               | `.badge-pro`                              | Gold gradient `#f59e0b → #d97706` · text `#78350f`                                         | Supplier profile, search results, suppliers browse, supplier cards, package listings, supplier dashboard, admin suppliers, admin users                         | ✅ |
+| **Pro Plus**                         | `💎 Pro Plus`          | `.badge-pro-plus`                         | Purple gradient `#7c3aed → #5b21b6` · text `#ffffff`                                       | Supplier profile, search results, suppliers browse, supplier cards, package listings, supplier dashboard, admin suppliers, admin users                         | ✅ |
+| **Founding Supplier**                | `⭐ Founding Supplier` | `.badge-founding`                         | Gold gradient `#fbbf24 → #f59e0b` · text `#78350f` · border `#f59e0b`                     | Supplier profile, search results, suppliers browse, supplier cards, package listings, supplier dashboard                                                       | ✅ |
+| **Featured**                         | `★ Featured`           | `.badge-featured`                         | Purple gradient `#a78bfa → #8b5cf6` · text `#ffffff` · border `#7c3aed`                   | Supplier profile, search results, suppliers browse, supplier cards, package listings                                                                           | ✅ |
+| **Email Verified**                   | `✓ Email Verified`     | `.badge-email-verified`                   | Blue gradient `#dbeafe → #bfdbfe` · text `#1e40af` · border `#3b82f6` · subtle shadow     | Supplier profile, search results, suppliers browse, supplier cards, package listings                                                                           | ✅ |
+| **Phone Verified**                   | `✓ Phone Verified`     | `.badge-phone-verified`                   | Green gradient `#dcfce7 → #bbf7d0` · text `#14532d` · border `#22c55e` · subtle shadow    | Supplier profile, search results, suppliers browse, supplier cards, package listings                                                                           | ✅ |
+| **Business Verified**                | `✓ Business Verified`  | `.badge-business-verified`                | Indigo gradient `#e0e7ff → #c7d2fe` · text `#3730a3` · border `#6366f1` · subtle shadow   | Supplier profile, search results, suppliers browse, supplier cards, package listings                                                                           | ✅ |
+| **Verified Customer**                | `✓ Verified Customer`  | `.badge-verified`                         | Green gradient `#d1fae5 → #a7f3d0` · text `#065f46` · border `#10b981` · subtle shadow    | Review cards (verified customer reviewer), legacy verified fallback                                                                                            | ✅ |
+| **Supplier** _(reviewer)_            | `🏢 Supplier`          | `.badge-supplier`                         | Indigo gradient `#6366f1 → #4f46e5` · text `#ffffff` · `border-radius: 12px`              | Review cards when reviewer is a supplier                                                                                                                       | ✅ |
+| **Fast Responder** _(auto-awarded)_  | `⚡ Fast Responder`    | `.badge-fast-responder`                   | Amber `#fef3c7 → #fde68a` · text `#92400e`                                                | Supplier profile badges panel only                                                                                                                             | ✅ |
+| **Top Rated** _(auto-awarded)_       | `🌟 Top Rated`         | `.badge-top-rated`                        | Yellow `#fef9c3 → #fde047` · text `#713f12`                                               | Supplier profile badges panel only                                                                                                                             | ✅ |
+| **Expert** _(auto-awarded)_          | `🎓 Expert`            | `.badge-expert`                           | Purple `#ede9fe → #c4b5fd` · text `#4c1d95`                                               | Supplier profile badges panel only                                                                                                                             | ✅ |
+| **Custom** _(generic earned)_        | _(badge name)_         | `.badge-custom`                           | Green gradient `#f0fdf4 → #bbf7d0` · text `#14532d` · border `#22c55e`                    | Supplier profile badges panel (fallback for unrecognised earned badges)                                                                                        | ✅ |
+| **New Supplier** _(auto, ≤14 days)_  | `🆕 New`               | `.new-badge`                              | Teal gradient `#13b6a2 → #0b8073` · text `#ffffff` (pulse animation)                      | Supplier cards on browse/marketplace pages                                                                                                                     | ✅ |
+| **Test Data**                        | `🧪 Test data`         | `.badge-test-data`                        | Background `#fef3c7` · text `#92400e` · border `#f59e0b`                                  | Supplier cards and package cards when `isTest = true`                                                                                                          | ✅ |
+| **Distance**                         | `0.5 mi` _(dynamic)_   | `.badge-distance` (`.sp-badge--distance`) | Background `#e0f2fe` · text `#0369a1`                                                     | Suppliers browse page when geo-distance data is available                                                                                                      | ✅ |
+| **Tier Icon — Pro**                  | `⭐` _(inline)_        | `.tier-icon.tier-icon-pro`                | Color `#d97706`                                                                            | Inline beside supplier name in messages, cards, breadcrumbs                                                                                                    | ✅ |
+| **Tier Icon — Pro Plus**             | `💎` _(inline)_        | `.tier-icon.tier-icon-pro-plus`           | Color `#7c3aed`                                                                            | Inline beside supplier name in messages, cards, breadcrumbs                                                                                                    | ✅ |
+| **Admin Tier — Free**                | `Free`                 | `.tier-badge.tier-badge--free`            | Grey gradient `#6b7280 → #9ca3af`                                                         | Admin support-tickets view only                                                                                                                                | ✅ |
+| **Admin Tier — Pro**                 | `Pro`                  | `.tier-badge.tier-badge--pro`             | Blue gradient `#2563eb → #3b82f6`                                                         | Admin support-tickets view only                                                                                                                                | ✅ |
+| **Admin Tier — Pro Plus**            | `Pro Plus`             | `.tier-badge.tier-badge--pro_plus`        | Purple gradient `#7c3aed → #a855f7`                                                       | Admin support-tickets view only                                                                                                                                | ✅ |
 
 ---
 
@@ -62,6 +75,26 @@
 | Custom            | _(none)_          | `#f0fdf4` green  |
 | New Supplier      | `🆕`              | `#13b6a2` teal   |
 | Test Data         | `🧪`              | `#fef3c7` amber  |
+
+---
+
+## Quality Standards
+
+All badges must meet the following minimum standards:
+
+| Property | Requirement |
+| --- | --- |
+| `border-radius` | ≥ `12px` (pill-shaped) |
+| `padding` | `0.25rem 0.75rem` minimum |
+| `font-weight` | `600` minimum |
+| `font-size` | `0.75rem` to `0.8125rem` |
+| `box-shadow` | Subtle shadow for depth (tier and verification badges) |
+| Background | Gradient preferred over flat colour for visual richness |
+| Icon | CSS `::before` only — **never** inject icon characters inline in JS |
+| `white-space` | `nowrap` to prevent wrapping |
+| `transition` | Smooth hover transition |
+
+**Critical rule:** The CSS `::before` pseudo-element provides the icon for verification badges (`✓`). JavaScript renderers must **not** also include the icon character in the badge text content — that causes the double-icon bug (`✓ ✓ Verified`).
 
 ---
 

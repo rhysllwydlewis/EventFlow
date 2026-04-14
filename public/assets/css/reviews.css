@@ -404,10 +404,10 @@
   margin-top: 0.25rem;
 }
 
-/* Badge styles for review cards — display/layout only; colours deferred to badges.css */
-.badge-verified,
-.badge-email-verified,
-.badge-supplier {
+/* Badge layout within review cards — scoped to avoid overriding badges.css globally */
+.review-badges-inline .badge-verified,
+.review-badges-inline .badge-email-verified,
+.review-badges-inline .badge-supplier {
   display: inline-flex;
   align-items: center;
 }

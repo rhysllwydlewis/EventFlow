@@ -359,7 +359,7 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
       (supplier.emailVerified || supplier.verifications?.email?.verified || supplier.verified)
     ) {
       badges.push(
-        '<span class="badge badge-email-verified" aria-label="Verified">✓ Verified</span>'
+        '<span class="badge badge-email-verified" aria-label="Verified">Verified</span>'
       );
     }
 

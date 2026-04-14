@@ -513,17 +513,17 @@ class PackageList {
       // Verification badges
       if (supplier.verifications?.email?.verified) {
         supplierBadges.push(
-          '<span class="badge badge-email-verified" style="font-size: 0.65rem; padding: 2px 6px;">✓ Email</span>'
+          '<span class="badge badge-email-verified" style="font-size: 0.65rem; padding: 2px 6px;">Email</span>'
         );
       }
       if (supplier.verifications?.phone?.verified) {
         supplierBadges.push(
-          '<span class="badge badge-phone-verified" style="font-size: 0.65rem; padding: 2px 6px;">✓ Phone</span>'
+          '<span class="badge badge-phone-verified" style="font-size: 0.65rem; padding: 2px 6px;">Phone</span>'
         );
       }
       if (supplier.verifications?.business?.verified) {
         supplierBadges.push(
-          '<span class="badge badge-business-verified" style="font-size: 0.65rem; padding: 2px 6px;">✓ Business</span>'
+          '<span class="badge badge-business-verified" style="font-size: 0.65rem; padding: 2px 6px;">Business</span>'
         );
       }
 

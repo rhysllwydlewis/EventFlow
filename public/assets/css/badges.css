@@ -94,9 +94,10 @@
 
 /* Email Verified Badge */
 .badge-email-verified {
-  background: #dbeafe;
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
   color: #1e40af;
   border: 1px solid #3b82f6;
+  box-shadow: 0 1px 3px rgba(59, 130, 246, 0.2);
 }
 
 .badge-email-verified::before {
@@ -107,9 +108,10 @@
 
 /* Verified Customer Badge (review cards & legacy supplier verified) */
 .badge-verified {
-  background: #d1fae5;
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
   color: #065f46;
   border: 1px solid #10b981;
+  box-shadow: 0 1px 3px rgba(16, 185, 129, 0.2);
 }
 
 .badge-verified::before {
@@ -120,17 +122,11 @@
 
 /* Supplier Reviewer Badge */
 .badge-supplier {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.2rem 0.5rem;
   background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
   color: #ffffff;
   border: 1px solid #4338ca;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  line-height: 1.4;
-  white-space: nowrap;
+  font-weight: 700;
+  box-shadow: 0 2px 4px rgba(99, 102, 241, 0.3);
 }
 
 .badge-supplier::before {
@@ -141,9 +137,10 @@
 
 /* Phone Verified Badge */
 .badge-phone-verified {
-  background: #d1fae5;
-  color: #065f46;
-  border: 1px solid #10b981;
+  background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+  color: #14532d;
+  border: 1px solid #22c55e;
+  box-shadow: 0 1px 3px rgba(34, 197, 94, 0.2);
 }
 
 .badge-phone-verified::before {
@@ -154,9 +151,10 @@
 
 /* Business Verified Badge */
 .badge-business-verified {
-  background: #e0e7ff;
+  background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
   color: #3730a3;
   border: 1px solid #6366f1;
+  box-shadow: 0 1px 3px rgba(99, 102, 241, 0.2);
 }
 
 .badge-business-verified::before {
@@ -209,10 +207,11 @@
 
 /* Starter Badge — for free-tier suppliers */
 .badge-starter {
-  background: #f1f5f9;
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
   color: #475569;
   border: 1px solid #cbd5e1;
   font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
 .badge-starter::before {

@@ -93,7 +93,7 @@ function createSupplierCard(supplier, position) {
     );
   }
   if (supplier.verified || supplier.approved) {
-    badges.push('<span class="sp-badge sp-badge--verified badge-verified">✓ Verified</span>');
+    badges.push('<span class="sp-badge sp-badge--verified badge-verified">Verified</span>');
   }
   if (tier === 'pro_plus') {
     badges.push('<span class="sp-badge sp-badge--pro-plus">Pro Plus</span>');
@@ -108,14 +108,14 @@ function createSupplierCard(supplier, position) {
   // Verification badges from verifications object
   if (supplier.verifications) {
     if (supplier.verifications.email && supplier.verifications.email.verified) {
-      badges.push('<span class="sp-badge sp-badge--email badge-email-verified">✓ Email</span>');
+      badges.push('<span class="sp-badge sp-badge--email badge-email-verified">Email</span>');
     }
     if (supplier.verifications.phone && supplier.verifications.phone.verified) {
-      badges.push('<span class="sp-badge sp-badge--phone badge-phone-verified">✓ Phone</span>');
+      badges.push('<span class="sp-badge sp-badge--phone badge-phone-verified">Phone</span>');
     }
     if (supplier.verifications.business && supplier.verifications.business.verified) {
       badges.push(
-        '<span class="sp-badge sp-badge--business badge-business-verified">✓ Business</span>'
+        '<span class="sp-badge sp-badge--business badge-business-verified">Business</span>'
       );
     }
   }
