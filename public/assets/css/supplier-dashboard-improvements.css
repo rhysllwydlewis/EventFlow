@@ -7704,28 +7704,32 @@ label .required {
 .photo-preview-item--existing .photo-delete-btn,
 .photo-preview-item--pending .photo-remove-btn {
   position: absolute;
-  top: -4px;
-  right: -4px;
-  width: 16px;
-  height: 16px;
+  top: -6px;
+  right: -6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  min-height: 20px;
   padding: 0;
-  background: rgba(239, 68, 68, 0.7);
+  background: #ef4444;
   color: #fff;
-  border: 1.5px solid #fff;
+  border: 2px solid #fff;
   border-radius: 50%;
-  font-size: 8px;
-  line-height: 13px;
-  text-align: center;
+  font-size: 11px;
+  line-height: 1;
   cursor: pointer;
-  z-index: 4;
+  z-index: 10;
   transition: background 0.15s, transform 0.1s;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
 }
 
 .photo-preview-item--existing .photo-delete-btn:hover,
 .photo-preview-item--pending .photo-remove-btn:hover {
-  background: rgba(220, 38, 38, 1);
-  transform: scale(1.05);
+  background: #dc2626;
+  transform: scale(1.1);
 }
 
 /* ── Pending upload tiles — match existing-photo tile size & shape ─────────── */

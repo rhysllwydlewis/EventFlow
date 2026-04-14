@@ -218,7 +218,10 @@
 
     queueEl.innerHTML = '';
     queueEl.appendChild(fragment);
+  }
 
+  // ── Event delegation (set up once after DOM is ready) ──────────────────────
+  if (queueEl) {
     // Checkbox delegation
     queueEl.addEventListener('change', e => {
       const cb = e.target.closest('.review-checkbox');

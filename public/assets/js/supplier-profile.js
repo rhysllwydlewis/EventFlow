@@ -1119,7 +1119,7 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
       rows.push({
         icon: '⭐',
         label: 'Rating',
-        value: `★ ${ratingVal} (${reviewCount} review${reviewCount !== 1 ? 's' : ''})`,
+        value: `<span style="color:#f59e0b">★</span> ${ratingVal} <span style="font-weight:400;opacity:0.7">(${reviewCount} review${reviewCount !== 1 ? 's' : ''})</span>`,
       });
     }
 
