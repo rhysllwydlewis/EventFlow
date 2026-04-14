@@ -56,8 +56,13 @@ export function renderVerificationBadges(supplier, options = {}) {
   const badges = [];
 
   // Priority 1: Founding Supplier Badge
-  if (supplier.isFoundingSupplier || supplier.isFounding || supplier.founding ||
-      (supplier.badges && (supplier.badges.includes('founding') || supplier.badges.includes('founder')))) {
+  if (
+    supplier.isFoundingSupplier ||
+    supplier.isFounding ||
+    supplier.founding ||
+    (supplier.badges &&
+      (supplier.badges.includes('founding') || supplier.badges.includes('founder')))
+  ) {
     badges.push({
       html: `<span class="badge badge-founding ${size === 'small' ? 'badge-sm' : ''}" 
                    title="Founding Supplier - One of our first partners" 
@@ -104,7 +109,7 @@ export function renderVerificationBadges(supplier, options = {}) {
     });
   }
 
-  // Priority 3: Featured Badge
+  // Priority 2: Featured Badge
   if (supplier.featured || supplier.featuredSupplier) {
     badges.push({
       html: `<span class="badge badge-featured ${size === 'small' ? 'badge-sm' : ''}" 
@@ -243,7 +248,7 @@ export function renderVerificationSection(supplier) {
   // Founding Supplier
   if (supplier.isFoundingSupplier || supplier.isFounding || supplier.founding) {
     verifications.push({
-      icon: '👑',
+      icon: '⭐',
       title: 'Founding Supplier',
       description: 'Original member of the EventFlow platform since 2024',
       verified: true,

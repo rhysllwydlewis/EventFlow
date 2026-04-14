@@ -28,6 +28,8 @@
 | **Fast Responder** _(auto-awarded)_ | `⚡ Fast Responder`    | `.badge-fast-responder`                   | Amber `#fef3c7 → #fde68a` · text `#92400e`                              | Supplier profile badges panel only                                                                                                     |
 | **Top Rated** _(auto-awarded)_      | `🌟 Top Rated`         | `.badge-top-rated`                        | Yellow `#fef9c3 → #fde047` · text `#713f12`                             | Supplier profile badges panel only                                                                                                     |
 | **Expert** _(auto-awarded)_         | `🎓 Expert`            | `.badge-expert`                           | Purple `#ede9fe → #c4b5fd` · text `#4c1d95`                             | Supplier profile badges panel only                                                                                                     |
+| **Custom** _(generic earned)_       | _(badge name)_         | `.badge-custom`                           | Green gradient `#f0fdf4 → #bbf7d0` · text `#14532d` · border `#22c55e`  | Supplier profile badges panel (fallback for unrecognised earned badges)                                                                |
+| **New Supplier** _(auto, ≤14 days)_ | `🆕 New`               | `.new-badge`                              | Teal gradient `#13b6a2 → #0b8073` · text `#ffffff` (pulse animation)    | Supplier cards on browse/marketplace pages                                                                                             |
 | **Test Data**                       | `🧪 Test data`         | `.badge-test-data`                        | Background `#fef3c7` · text `#92400e` · border `#f59e0b`                | Supplier cards and package cards when `isTest = true`                                                                                  |
 | **Distance**                        | `0.5 mi` _(dynamic)_   | `.badge-distance` (`.sp-badge--distance`) | Background `#e0f2fe` · text `#0369a1`                                   | Suppliers browse page when geo-distance data is available                                                                              |
 | **Tier Icon — Pro**                 | `⭐` _(inline)_        | `.tier-icon.tier-icon-pro`                | Color `#d97706`                                                         | Inline beside supplier name in messages, cards, breadcrumbs                                                                            |
@@ -55,6 +57,8 @@
 | Fast Responder    | `⚡`              | `#fef3c7` amber  |
 | Top Rated         | `🌟`              | `#fef9c3` yellow |
 | Expert            | `🎓`              | `#ede9fe` purple |
+| Custom            | _(none)_          | `#f0fdf4` green  |
+| New Supplier      | `🆕`              | `#13b6a2` teal   |
 | Test Data         | `🧪`              | `#fef3c7` amber  |
 
 ---
@@ -66,6 +70,19 @@ All badge base styles live in **`public/assets/css/badges.css`**. Do not redefin
 The only permitted overrides are in `supplier-profile.css` under `.hero-badges .badge-*` — these apply backdrop alpha when badges sit over the profile banner image.
 
 The `admin.css` `.tier-badge--*` classes are intentionally different (blue/grey) to distinguish the admin context from supplier-facing badges.
+
+**Admin CSS naming convention:** The `admin.css` `.tier-badge--*` classes use underscores in the Pro Plus modifier (`tier-badge--pro_plus`) to match the database `pro_plus` enum value. This differs from the supplier-facing hyphenated `badge-pro-plus` convention. Both are intentional.
+
+**Suppliers browse page (`.sp-badge--*`):** `public/assets/css/suppliers-page.css` defines a separate `.sp-badge--*` namespace with a compact/muted colour palette optimised for the dense card grid layout. These intentionally differ from the canonical `badges.css` colours:
+
+| Badge    | `badges.css` (canonical)             | `.sp-badge--*` in `suppliers-page.css` (browse grid) |
+| -------- | ------------------------------------ | ---------------------------------------------------- |
+| Pro      | Gold gradient `#f59e0b → #d97706`    | Amber `#fef3c7 / #92400e`                            |
+| Founding | Gold gradient `#fbbf24 → #f59e0b`    | Amber `#fef3c7 / #92400e`                            |
+| Featured | Purple gradient `#a78bfa → #8b5cf6`  | Orange `#fff7ed / #c2410c`                           |
+| Distance | Blue `#e0f2fe / #0369a1` (canonical) | Grey `#f3f4f6 / #6b7280`                             |
+
+Do **not** remove these differences — they are intentional to avoid visual noise in the dense card grid.
 
 ---
 
@@ -82,20 +99,125 @@ All JS renderers resolve subscription tier in this priority order:
 
 ---
 
+## Tier Assignment (Server)
+
+Subscription tier is written to the supplier record by two paths:
+
+1. **Stripe webhook** (`webhooks/stripeWebhookHandler.js` → `handleInvoicePaymentSucceeded()`): sets `subscriptionTier` on the supplier document when `invoice.amount_paid > 0`. This is the primary automated write path for tier upgrades and renewals. See `docs/PARTNER_PORTAL.md` for the full Stripe webhook lifecycle.
+2. **Admin endpoint** (`POST /api/admin/suppliers/:id/pro`): allows an admin to manually set or override the subscription tier for a supplier.
+
+---
+
+## Dual Badge Systems
+
+The platform has two independent badge evaluation systems. Both are legitimate but serve different purposes:
+
+### 1. `utils/badgeManagement.js` — Supplier-facing earned badges (authoritative for rendering)
+
+These are the badges stored in the `badges` collection and awarded to suppliers. They are rendered as visible badges on supplier profiles.
+
+| Badge             | Auto-award Criteria                               |
+| ----------------- | ------------------------------------------------- |
+| Fast Responder    | Average response time < 24 h **and** ≥ 5 messages |
+| Top Rated         | Average rating ≥ 4.5 **and** ≥ 3 reviews          |
+| Expert            | `completedEvents` > 50 (set via admin endpoint)   |
+| Verified          | Manual admin award (`autoAssign: false`)          |
+| Founding Supplier | Manual admin award (`autoAssign: false`)          |
+| Featured          | Manual admin award (`autoAssign: false`)          |
+
+### 2. `reviews.js` `calculateSupplierAnalytics()` — Analytics-only badges
+
+These are computed when review analytics are calculated and stored in the `supplierAnalytics` collection under the `badges` array. They are **not** currently rendered as visible supplier-facing badges — they exist for internal analytics and potential future use.
+
+| Badge             | Criteria                                                |
+| ----------------- | ------------------------------------------------------- |
+| top-rated         | Average rating ≥ 4.8 **and** ≥ 10 reviews               |
+| responsive        | Average response time < 2 h **and** response rate > 80% |
+| highly-reviewed   | ≥ 50 reviews                                            |
+| customer-favorite | Average rating ≥ 4.7 **and** ≥ 100 reviews              |
+
+**Rule:** Use `badgeManagement.js` as the source of truth for all badge rendering. The analytics badges in `reviews.js` are metadata only.
+
+---
+
+## Scheduled Evaluation
+
+Badge evaluation runs automatically on a configurable interval (default: every 24 hours). The scheduler is registered in `server.js` during startup and calls `evaluateAllSupplierBadges()` from `utils/badgeManagement.js`.
+
+Configure the interval via environment variable:
+
+```
+BADGE_EVAL_INTERVAL_HOURS=24   # default; set to 1 for hourly, 6 for every 6 hours, etc.
+```
+
+Badge evaluation also runs:
+
+- When a new review is submitted (via `services/reviewService.js`)
+- On demand via `POST /api/admin/badges/evaluate`
+- On demand by the supplier via `POST /api/me/suppliers/:id/badges/evaluate`
+
+---
+
+## Manual Badge Assignment
+
+### Founding Supplier badge
+
+Awarded by an admin to early-access partners. There is no automated criteria.
+
+```bash
+# Find the founding badge ID from the badges collection, then award:
+curl -X POST https://yourapp.com/api/admin/suppliers/{supplierId}/badges/{foundingBadgeId} \
+  -H "Cookie: <admin session>" \
+  -H "X-CSRF-Token: <token>"
+```
+
+### Featured badge
+
+Awarded by an admin to highlight a supplier. Same endpoint as above, using the featured badge ID.
+
+```bash
+curl -X POST https://yourapp.com/api/admin/suppliers/{supplierId}/badges/{featuredBadgeId} \
+  -H "Cookie: <admin session>" \
+  -H "X-CSRF-Token: <token>"
+```
+
+Both badges can also be awarded through the Admin → Suppliers → [Supplier] → Badges UI.
+
+---
+
+## Expert Badge — `completedEvents` Write Path
+
+The Expert badge requires `completedEvents > 50`. Since EventFlow does not yet have a formal event-completion workflow that auto-increments this field, admins can set it manually:
+
+```bash
+curl -X PUT https://yourapp.com/api/admin/suppliers/{id}/completed-events \
+  -H "Cookie: <admin session>" \
+  -H "X-CSRF-Token: <token>" \
+  -H "Content-Type: application/json" \
+  -d '{"count": 55}'
+```
+
+**Future work:** A formal event-lifecycle feature should auto-increment `completedEvents` when an event booked through the platform is marked as completed.
+
+---
+
 ## Renderers Inventory
 
-| File                                             | Context                    | Badge Types Rendered                                                                    |
-| ------------------------------------------------ | -------------------------- | --------------------------------------------------------------------------------------- |
-| `public/assets/js/utils/verification-badges.js`  | Shared utility             | All (Starter, Pro, Pro Plus, Founding, Featured, Email/Phone/Business Verified, Earned) |
-| `public/assets/js/supplier-profile.js`           | Supplier public profile    | Hero: Starter, Pro, Pro Plus, Founding, Featured; Panel: all                            |
-| `public/assets/js/components/supplier-card.js`   | Inline supplier card       | Starter, Pro, Pro Plus, Founding, Featured, Email/Phone/Business Verified               |
-| `public/assets/js/app.js`                        | Search results + dashboard | Starter, Pro, Pro Plus, Founding, Featured, Email/Phone/Business Verified               |
-| `public/assets/js/pages/suppliers-init.js`       | Suppliers browse page      | Starter (sp-badge), Pro, Pro Plus, Founding, Featured, Verified, Email/Phone/Business   |
-| `public/assets/js/components/package-list.js`    | Package listings           | Starter, Pro, Pro Plus, Founding, Email/Phone/Business Verified                         |
-| `public/assets/js/utils/lead-quality-helper.js`  | Lead inbox                 | Starter, Pro, Pro Plus, Founding, Featured, Email/Phone/Business Verified               |
-| `public/supplier/js/feature-access.js`           | Supplier dashboard         | Starter, Pro, Pro Plus                                                                  |
-| `public/assets/js/pages/admin-suppliers-init.js` | Admin suppliers table      | Starter, Pro, Pro Plus                                                                  |
-| `public/assets/js/pages/admin-users-init.js`     | Admin users table          | Starter, Pro, Pro Plus                                                                  |
+| File                                             | Context                    | Badge Types Rendered                                                                       |
+| ------------------------------------------------ | -------------------------- | ------------------------------------------------------------------------------------------ |
+| `public/assets/js/utils/verification-badges.js`  | Shared utility             | All (Starter, Pro, Pro Plus, Founding, Featured, Email/Phone/Business Verified, Earned)    |
+| `public/assets/js/supplier-profile.js`           | Supplier public profile    | Hero: Starter, Pro, Pro Plus, Founding, Featured; Panel: all                               |
+| `public/assets/js/components/supplier-card.js`   | Inline supplier card       | Starter, Pro, Pro Plus, Founding, Featured, Email/Phone/Business Verified                  |
+| `public/assets/js/app.js`                        | Search results + dashboard | Starter, Pro, Pro Plus, Founding, Featured, Email/Phone/Business Verified                  |
+| `public/assets/js/pages/suppliers-init.js`       | Suppliers browse page      | Starter (sp-badge), Pro, Pro Plus, Founding, Featured, Verified, Email/Phone/Business      |
+| `public/assets/js/components/package-list.js`    | Package listings           | Starter, Pro, Pro Plus, Founding, Email/Phone/Business Verified                            |
+| `public/assets/js/utils/lead-quality-helper.js`  | Lead inbox                 | Starter, Pro, Pro Plus, Founding, Featured, Email/Phone/Business Verified                  |
+| `public/supplier/js/feature-access.js`           | Supplier dashboard         | Starter, Pro, Pro Plus                                                                     |
+| `public/assets/js/pages/admin-suppliers-init.js` | Admin suppliers table      | Starter, Pro, Pro Plus                                                                     |
+| `public/assets/js/pages/admin-users-init.js`     | Admin users table          | Starter, Pro, Pro Plus                                                                     |
+| `public/assets/js/utils/p3-features.js`          | Supplier cards (browse)    | New Supplier (`.new-badge`, auto for suppliers created ≤ 14 days ago)                      |
+| `public/assets/js/suppliers-enhancements.js`     | Supplier cards (browse)    | Applies `p3-features.js` new-badge logic to supplier card elements                         |
+| `reviews.js` (`calculateSupplierAnalytics()`)    | Analytics (internal only)  | top-rated, responsive, highly-reviewed, customer-favorite (not rendered as visible badges) |
 
 ---
 
@@ -117,6 +239,13 @@ All JS renderers resolve subscription tier in this priority order:
 - [x] **`admin-suppliers-init.js`** — `subscription-badge badge-free/pro/pro-plus` → `badge badge-starter/pro/pro-plus`, "FREE"/"PRO"/"PRO+" → "Starter"/"Pro"/"Pro Plus"
 - [x] **Test updated** — `admin-regression.test.js` assertion updated from "PRO+" to "Pro Plus"
 - [x] **Hover animations** — subtle `translateY(-1px)` + glow box-shadow on tier/recognition badges; `prefers-reduced-motion` respected
+- [x] **`ui-ux-fixes.css` badge overrides removed** — `.badge-verified`, `.badge-fast-responder`, `.badge-top-rated`, `.badge-expert` block deleted; single source of truth in `badges.css` restored
+- [x] **`seed.js` updated** — `seedBadges()` now imports and iterates `BADGE_DEFINITIONS` from `badgeManagement.js`; stale hardcoded data removed
+- [x] **`verification-badges.js` icon** — Founding Supplier `👑` → `⭐` in `renderVerificationSection`
+- [x] **`badgeManagement.js` Expert icon** — `👨‍🎓` → `🎓` to match `badges.css` and cheatsheet
+- [x] **`verification-badges.js` priority comment** — "Priority 3: Featured Badge" corrected to "Priority 2"
+- [x] **Badge scheduler** — `server.js` now runs `evaluateAllSupplierBadges()` on a configurable interval (default 24 h, `BADGE_EVAL_INTERVAL_HOURS` env var)
+- [x] **`completedEvents` write path** — `PUT /api/admin/suppliers/:id/completed-events` endpoint added to `supplier-admin.js`
 - [x] **All 4,954 tests pass** (231 skipped, 0 failed)
 - [x] **CodeQL security scan** — 0 alerts
 - [x] **Code review** — no issues

@@ -1624,6 +1624,22 @@ async function startServer() {
           const badgeManagement = require('./utils/badgeManagement');
           await badgeManagement.initializeDefaultBadges();
           logger.info('   ✅ Badge definitions initialized');
+
+          // 4a-3. Schedule periodic badge evaluation
+          const BADGE_EVAL_INTERVAL =
+            (parseInt(process.env.BADGE_EVAL_INTERVAL_HOURS, 10) || 24) * 60 * 60 * 1000;
+          setInterval(async () => {
+            try {
+              const bm = require('./utils/badgeManagement');
+              const results = await bm.evaluateAllSupplierBadges();
+              logger.info('Scheduled badge evaluation complete:', results);
+            } catch (evalErr) {
+              logger.error('Scheduled badge evaluation failed:', evalErr);
+            }
+          }, BADGE_EVAL_INTERVAL);
+          logger.info(
+            `   ✅ Badge evaluation scheduled every ${process.env.BADGE_EVAL_INTERVAL_HOURS || 24}h`
+          );
         } catch (badgeInitError) {
           logger.warn('   ⚠️  Badge initialization failed:', badgeInitError.message);
         }

@@ -731,6 +731,53 @@ router.put(
 );
 
 /**
+ * PUT /api/admin/suppliers/:id/completed-events
+ * Set the completedEvents count for a supplier (required for Expert badge)
+ * Body: { count: number }
+ */
+router.put(
+  '/suppliers/:id/completed-events',
+  writeLimiter,
+  applyAuthRequired,
+  applyRoleRequired('admin'),
+  applyCsrfProtection,
+  async (req, res) => {
+    try {
+      const count = parseInt(req.body.count, 10);
+      if (isNaN(count) || count < 0) {
+        return res.status(400).json({ error: 'Invalid count' });
+      }
+
+      const all = await dbUnified.read('suppliers');
+      const supplier = all.find(s => s.id === req.params.id);
+      if (!supplier) {
+        return res.status(404).json({ error: 'Supplier not found' });
+      }
+
+      await dbUnified.updateOne(
+        'suppliers',
+        { id: req.params.id },
+        { $set: { completedEvents: count, updatedAt: new Date().toISOString() } }
+      );
+
+      await auditLog({
+        adminId: req.user.id,
+        adminEmail: req.user.email,
+        action: AUDIT_ACTIONS.SUPPLIER_UPDATED,
+        targetType: 'supplier',
+        targetId: req.params.id,
+        details: { field: 'completedEvents', value: count },
+      });
+
+      res.json({ success: true, completedEvents: count });
+    } catch (error) {
+      logger.error('Error updating completedEvents:', error);
+      res.status(500).json({ error: 'Failed to update' });
+    }
+  }
+);
+
+/**
  * POST /api/admin/suppliers/:supplierId/badges/:badgeId
  * Award a badge to a supplier
  */
