@@ -865,15 +865,13 @@
               <!-- Photos -->
               <div class="review-form-group">
                 <label class="review-form-label">Photos <span class="review-form-label-hint">(optional, up to 5)</span></label>
-                <div class="photo-upload-area" id="review-photo-upload-area" role="button" tabindex="0" aria-label="Click or drag photos to upload">
-                  <div class="photo-upload-icon">📷</div>
-                  <div class="photo-upload-text">
-                    <strong>Add photos to your review</strong><br>
-                    <span>Click to browse or drag &amp; drop • JPEG, PNG, WebP • Max 5MB each</span>
-                  </div>
+                <div class="photo-drop-zone review-photo-drop-zone" id="review-photo-upload-area" role="button" tabindex="0" aria-label="Click or drag photos to upload">
+                  <div class="review-drop-icon" aria-hidden="true">📷</div>
+                  <div class="upload-text">Add photos to your review</div>
+                  <p class="review-drop-hint">Click to browse or drag &amp; drop &bull; JPEG, PNG, WebP &bull; Max 5MB each</p>
                   <input type="file" id="review-photo-input" accept="image/jpeg,image/png,image/webp,image/gif" multiple style="display:none" aria-hidden="true" />
                 </div>
-                <div class="photo-previews" id="review-photo-previews"></div>
+                <div class="review-photo-previews" id="review-photo-previews"></div>
                 <div class="photo-upload-count" id="review-photo-count" style="display:none">
                   <span id="review-photo-count-text">0 / 5 photos selected</span>
                 </div>
@@ -948,14 +946,14 @@
       // Drag & drop support
       uploadArea.addEventListener('dragover', e => {
         e.preventDefault();
-        uploadArea.classList.add('drag-over');
+        uploadArea.classList.add('dragover');
       });
       uploadArea.addEventListener('dragleave', () => {
-        uploadArea.classList.remove('drag-over');
+        uploadArea.classList.remove('dragover');
       });
       uploadArea.addEventListener('drop', e => {
         e.preventDefault();
-        uploadArea.classList.remove('drag-over');
+        uploadArea.classList.remove('dragover');
         const files = Array.from(e.dataTransfer.files).filter(f =>
           f.type.startsWith('image/')
         );
@@ -1005,34 +1003,46 @@
       files.forEach((file, index) => {
         const reader = new FileReader();
         reader.onload = ev => {
-          const previewDiv = document.createElement('div');
-          previewDiv.className = 'photo-preview';
-          previewDiv.innerHTML = `
-            <img src="${ev.target.result}" alt="Photo ${index + 1} preview" />
-            <button type="button" class="photo-preview-remove" data-index="${index}" aria-label="Remove photo ${index + 1}">×</button>
-          `;
-          previewDiv.querySelector('.photo-preview-remove').addEventListener('click', e => {
-            // Read index from the DOM at click time to avoid stale closure
+          // Use supplier dashboard tile pattern: photo-preview-item--pending
+          const tile = document.createElement('div');
+          tile.className = 'photo-preview-item photo-preview-item--pending';
+
+          const imgWrap = document.createElement('div');
+          imgWrap.className = 'photo-preview-item__image-wrap';
+
+          const img = document.createElement('img');
+          img.src = ev.target.result;
+          img.alt = `Photo ${index + 1} preview`;
+          imgWrap.appendChild(img);
+          tile.appendChild(imgWrap);
+
+          const removeBtn = document.createElement('button');
+          removeBtn.type = 'button';
+          removeBtn.className = 'photo-remove-btn';
+          removeBtn.setAttribute('data-index', String(index));
+          removeBtn.setAttribute('aria-label', `Remove photo ${index + 1}`);
+          removeBtn.textContent = '✕';
+          removeBtn.addEventListener('click', e => {
             const idx = parseInt(e.currentTarget.dataset.index, 10);
             if (isNaN(idx)) return;
             this._pendingPhotoFiles.splice(idx, 1);
             this.renderPhotoPreviews();
           });
-          container.appendChild(previewDiv);
+          tile.appendChild(removeBtn);
+
+          container.appendChild(tile);
         };
         reader.readAsDataURL(file);
       });
 
       const limit = this.REVIEW_MAX_PHOTOS;
 
-      // Show/hide count badge
+      // Show/hide count
       if (files.length > 0) {
         countText.textContent = `${files.length} / ${limit} photo${files.length !== 1 ? 's' : ''} selected`;
         countEl.style.display = 'block';
-        uploadArea.classList.add('has-photos');
       } else {
         countEl.style.display = 'none';
-        uploadArea.classList.remove('has-photos');
       }
 
       // Disable upload area when at limit
@@ -1293,9 +1303,43 @@
     },
 
     /**
-     * Open the photo lightbox showing the given array of image URLs, starting at index
+     * Inject Lightbox.js-compatible styles once (idempotent via id guard).
+     * Uses the same id='lightbox-styles' and class names as components/Lightbox.js
+     * so styles are shared if that component is ever loaded on the same page.
+     */
+    injectLightboxStyles() {
+      if (document.getElementById('lightbox-styles')) return;
+      const style = document.createElement('style');
+      style.id = 'lightbox-styles';
+      style.textContent = `
+        .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:10000;display:none;align-items:center;justify-content:center;opacity:0;transition:opacity .3s ease}
+        .lightbox.is-open{display:flex;opacity:1}
+        .lightbox-content{position:relative;max-width:90vw;max-height:90vh;display:flex;align-items:center;justify-content:center}
+        .lightbox-image{max-width:100%;max-height:90vh;object-fit:contain;transform:scale(.95);transition:transform .3s ease;border-radius:4px}
+        .lightbox.is-open .lightbox-image{transform:scale(1)}
+        .lightbox-close{position:fixed;top:20px;right:20px;width:44px;height:44px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:50%;color:#fff;font-size:24px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s;z-index:10001}
+        .lightbox-close:hover{background:rgba(255,255,255,.2)}
+        .lightbox-nav{position:fixed;top:50%;transform:translateY(-50%);width:44px;height:44px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:50%;color:#fff;font-size:24px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s;z-index:10001}
+        .lightbox-nav:hover{background:rgba(255,255,255,.2)}
+        .lightbox-nav:disabled{opacity:.3;cursor:not-allowed}
+        .lightbox-nav.lightbox-prev{left:20px}
+        .lightbox-nav.lightbox-next{right:20px}
+        .lightbox-counter{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);color:#fff;background:rgba(0,0,0,.5);padding:8px 16px;border-radius:20px;font-size:14px;z-index:10001;white-space:nowrap}
+        .lightbox-loader{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:40px;height:40px;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:lightbox-spin .8s linear infinite;display:none}
+        @keyframes lightbox-spin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+        @media(max-width:640px){.lightbox-nav,.lightbox-close{width:40px;height:40px;font-size:20px}.lightbox-nav.lightbox-prev{left:10px}.lightbox-nav.lightbox-next{right:10px}}
+        @media(prefers-reduced-motion:reduce){.lightbox,.lightbox-image{transition:none}.lightbox-loader{animation:none}}
+      `;
+      document.head.appendChild(style);
+    },
+
+    /**
+     * Open the photo lightbox showing the given array of image URLs, starting at index.
+     * Uses Lightbox.js-compatible class names and patterns for visual consistency.
      */
     openLightbox(photos, startIndex = 0) {
+      this.injectLightboxStyles();
+
       // Remove any stale lightbox
       const stale = document.getElementById('review-lightbox');
       if (stale) stale.remove();
@@ -1303,48 +1347,67 @@
       let currentIndex = startIndex;
       const total = photos.length;
 
-      const lightboxHTML = `
-        <div id="review-lightbox" class="review-lightbox-overlay" role="dialog" aria-modal="true" aria-label="Photo viewer">
-          <button class="review-lightbox-close" id="lightbox-close" aria-label="Close photo viewer">×</button>
-          ${total > 1 ? `<button class="review-lightbox-prev" id="lightbox-prev" aria-label="Previous photo">‹</button>` : ''}
-          <div class="review-lightbox-content">
-            <img class="review-lightbox-img" id="lightbox-img" src="${this.escapeHtml(photos[currentIndex])}" alt="Review photo ${currentIndex + 1} of ${total}" />
-          </div>
-          ${total > 1 ? `<button class="review-lightbox-next" id="lightbox-next" aria-label="Next photo">›</button>` : ''}
-          ${total > 1 ? `<div class="review-lightbox-counter" id="lightbox-counter">${currentIndex + 1} / ${total}</div>` : ''}
+      const lightboxEl = document.createElement('div');
+      lightboxEl.id = 'review-lightbox';
+      lightboxEl.className = 'lightbox';
+      lightboxEl.setAttribute('role', 'dialog');
+      lightboxEl.setAttribute('aria-modal', 'true');
+      lightboxEl.setAttribute('aria-label', 'Photo viewer');
+      lightboxEl.innerHTML = `
+        <button class="lightbox-close" aria-label="Close photo viewer">×</button>
+        <div class="lightbox-content">
+          <div class="lightbox-loader"></div>
+          <img class="lightbox-image" src="" alt="" style="display:none" />
         </div>
+        ${total > 1 ? `<button class="lightbox-nav lightbox-prev" aria-label="Previous photo">‹</button>` : ''}
+        ${total > 1 ? `<button class="lightbox-nav lightbox-next" aria-label="Next photo">›</button>` : ''}
+        ${total > 1 ? `<div class="lightbox-counter">${currentIndex + 1} / ${total}</div>` : ''}
       `;
 
-      document.body.insertAdjacentHTML('beforeend', lightboxHTML);
+      document.body.appendChild(lightboxEl);
+      document.body.style.overflow = 'hidden';
 
-      const lightbox = document.getElementById('review-lightbox');
-      const img = document.getElementById('lightbox-img');
-      const counter = document.getElementById('lightbox-counter');
+      const img = lightboxEl.querySelector('.lightbox-image');
+      const loader = lightboxEl.querySelector('.lightbox-loader');
+      const counter = lightboxEl.querySelector('.lightbox-counter');
+      const prevBtn = lightboxEl.querySelector('.lightbox-prev');
+      const nextBtn = lightboxEl.querySelector('.lightbox-next');
 
-      const updateImage = () => {
-        // Validate that the URL is a trusted server path before assigning to src
-        const url = photos[currentIndex];
+      const loadImage = idx => {
+        const url = photos[idx];
         const isTrusted =
           typeof url === 'string' &&
           (url.startsWith('/api/photos/') || url.startsWith('/uploads/'));
+        loader.style.display = 'block';
+        img.style.display = 'none';
         img.src = isTrusted ? url : '';
-        img.alt = `Review photo ${currentIndex + 1} of ${total}`;
-        if (counter) counter.textContent = `${currentIndex + 1} / ${total}`;
+        img.alt = `Review photo ${idx + 1} of ${total}`;
+        if (counter) counter.textContent = `${idx + 1} / ${total}`;
+        if (prevBtn) prevBtn.disabled = idx === 0;
+        if (nextBtn) nextBtn.disabled = idx === total - 1;
       };
 
+      img.addEventListener('load', () => {
+        loader.style.display = 'none';
+        img.style.display = 'block';
+      });
+      img.addEventListener('error', () => {
+        loader.style.display = 'none';
+      });
+
       const close = () => {
-        lightbox.remove();
+        lightboxEl.classList.remove('is-open');
+        document.body.style.overflow = '';
         document.removeEventListener('keydown', keyHandler);
+        setTimeout(() => lightboxEl.remove(), 300);
       };
 
       const prev = () => {
-        currentIndex = (currentIndex - 1 + total) % total;
-        updateImage();
+        if (currentIndex > 0) { currentIndex--; loadImage(currentIndex); }
       };
 
       const next = () => {
-        currentIndex = (currentIndex + 1) % total;
-        updateImage();
+        if (currentIndex < total - 1) { currentIndex++; loadImage(currentIndex); }
       };
 
       const keyHandler = e => {
@@ -1354,18 +1417,17 @@
       };
 
       document.addEventListener('keydown', keyHandler);
-      document.getElementById('lightbox-close').addEventListener('click', close);
-      lightbox.addEventListener('click', e => {
-        if (e.target === lightbox) close();
-      });
-
-      const prevBtn = document.getElementById('lightbox-prev');
-      const nextBtn = document.getElementById('lightbox-next');
+      lightboxEl.querySelector('.lightbox-close').addEventListener('click', close);
+      lightboxEl.addEventListener('click', e => { if (e.target === lightboxEl) close(); });
       if (prevBtn) prevBtn.addEventListener('click', prev);
       if (nextBtn) nextBtn.addEventListener('click', next);
 
-      // Focus close button for accessibility
-      document.getElementById('lightbox-close').focus();
+      // Trigger open animation on next frame
+      requestAnimationFrame(() => lightboxEl.classList.add('is-open'));
+
+      // Load initial image
+      loadImage(currentIndex);
+      lightboxEl.querySelector('.lightbox-close').focus();
     },
 
     /**

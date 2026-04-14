@@ -542,17 +542,18 @@
   position: relative;
   width: 100px;
   height: 100px;
-  border-radius: 8px;
+  border-radius: 10px;
   overflow: hidden;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
   outline: none;
+  background: #f0f0f0;
 }
 
 .review-photo:hover,
 .review-photo:focus-visible {
-  transform: scale(1.05);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
 }
 
 .review-photo img {
@@ -855,65 +856,47 @@
   margin-top: 0.5rem;
 }
 
-/* Photo Upload */
-.photo-upload-area {
-  border: 2px dashed #d1d5db;
-  border-radius: 8px;
-  padding: 1.5rem 2rem;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  outline: none;
+/* Photo Upload — aligns with .photo-drop-zone from supplier-dashboard-improvements.css
+   which is loaded on supplier.html. These rules provide compact sizing + text styles
+   appropriate for a modal form field. */
+
+/* Tighten default 32px padding to suit the modal layout */
+.review-photo-drop-zone {
+  padding: 1.25rem 1.5rem;
 }
 
-.photo-upload-area:hover,
-.photo-upload-area:focus-visible {
-  border-color: #667eea;
-  background: #f5f3ff;
-}
-
-.photo-upload-area.drag-over {
-  border-color: #667eea;
-  background: #ede9fe;
-  transform: scale(1.01);
-}
-
-.photo-upload-area.has-photos {
-  padding: 1rem 2rem;
-}
-
-.photo-upload-area.upload-limit-reached {
+/* Disabled state when the 5-photo limit is reached */
+.review-photo-drop-zone.upload-limit-reached {
   opacity: 0.55;
   cursor: not-allowed;
+  pointer-events: none;
 }
 
-.photo-upload-area.upload-limit-reached:hover {
-  border-color: #d1d5db;
-  background: transparent;
-  transform: none;
+/* Camera icon above the headline */
+.review-drop-icon {
+  font-size: 2rem;
+  margin-bottom: 0.4rem;
 }
 
-.photo-upload-icon {
-  font-size: 2.5rem;
-  margin-bottom: 0.75rem;
+/* Override the 20px .upload-text size from supplier-dashboard to match modal scale */
+.review-photo-drop-zone .upload-text {
+  font-size: 0.95rem;
+  margin-bottom: 0.25rem;
 }
 
-.photo-upload-text {
-  font-size: 0.9rem;
-  color: #6b7280;
-  line-height: 1.5;
-}
-
-.photo-upload-text strong {
-  display: block;
-  color: #374151;
-  margin-bottom: 0.2rem;
-}
-
-.photo-upload-count {
-  margin-top: 0.5rem;
+/* Hint text below the headline */
+.review-drop-hint {
+  margin: 0;
   font-size: 0.8rem;
-  color: #6b7280;
+  color: var(--ef-text-muted, #6b7280);
+  line-height: 1.4;
+}
+
+/* Photo count counter below the preview strip */
+.photo-upload-count {
+  margin-top: 0.4rem;
+  font-size: 0.8rem;
+  color: var(--ef-text-muted, #6b7280);
   text-align: right;
 }
 
@@ -923,53 +906,13 @@
   font-size: 0.8em;
 }
 
-.photo-previews {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-  gap: 0.75rem;
-  margin-top: 0.75rem;
-}
-
-.photo-preview {
-  position: relative;
-  width: 100%;
-  padding-bottom: 100%;
-  border-radius: 8px;
-  overflow: hidden;
-  background: #f3f4f6;
-}
-
-.photo-preview img {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.photo-preview-remove {
-  position: absolute;
-  top: 0.35rem;
-  right: 0.35rem;
-  width: 22px;
-  height: 22px;
-  background: rgba(0, 0, 0, 0.65);
-  color: #ffffff;
-  border: none;
-  border-radius: 50%;
-  cursor: pointer;
+/* Preview tile strip — flex-wrap row matching #sup-photo-preview layout */
+.review-photo-previews {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.9rem;
-  line-height: 1;
-  transition: background-color 0.2s ease;
-  padding: 0;
-}
-
-.photo-preview-remove:hover {
-  background: rgba(220, 38, 38, 0.9);
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 0.75rem;
+  padding: 2px 0;
 }
 
 /* Modal Footer */
@@ -1409,10 +1352,6 @@
     width: 80px;
     height: 80px;
   }
-  
-  .photo-previews {
-    grid-template-columns: repeat(3, 1fr);
-  }
 }
 
 /* ========================================
@@ -1617,118 +1556,6 @@ select:focus-visible {
    Photo Lightbox
    ======================================== */
 
-.review-lightbox-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  background: rgba(0, 0, 0, 0.92);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  animation: lightboxFadeIn 0.2s ease;
-}
-
-@keyframes lightboxFadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-
-.review-lightbox-content {
-  max-width: 90vw;
-  max-height: 85vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.review-lightbox-img {
-  max-width: 90vw;
-  max-height: 85vh;
-  object-fit: contain;
-  border-radius: 8px;
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
-  animation: lightboxImgIn 0.2s ease;
-}
-
-@keyframes lightboxImgIn {
-  from { transform: scale(0.92); opacity: 0; }
-  to   { transform: scale(1);    opacity: 1; }
-}
-
-.review-lightbox-close {
-  position: fixed;
-  top: 1.25rem;
-  right: 1.25rem;
-  width: 44px;
-  height: 44px;
-  background: rgba(255, 255, 255, 0.15);
-  color: #ffffff;
-  border: none;
-  border-radius: 50%;
-  font-size: 1.5rem;
-  line-height: 1;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.2s ease;
-  z-index: 1;
-}
-
-.review-lightbox-close:hover {
-  background: rgba(255, 255, 255, 0.3);
-}
-
-.review-lightbox-prev,
-.review-lightbox-next {
-  position: fixed;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 48px;
-  height: 48px;
-  background: rgba(255, 255, 255, 0.15);
-  color: #ffffff;
-  border: none;
-  border-radius: 50%;
-  font-size: 1.75rem;
-  line-height: 1;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.2s ease;
-  z-index: 1;
-}
-
-.review-lightbox-prev {
-  left: 1.25rem;
-}
-
-.review-lightbox-next {
-  right: 1.25rem;
-}
-
-.review-lightbox-prev:hover,
-.review-lightbox-next:hover {
-  background: rgba(255, 255, 255, 0.3);
-}
-
-.review-lightbox-counter {
-  position: fixed;
-  bottom: 1.5rem;
-  left: 50%;
-  transform: translateX(-50%);
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 0.9rem;
-  background: rgba(0, 0, 0, 0.5);
-  padding: 0.3rem 0.9rem;
-  border-radius: 20px;
-  white-space: nowrap;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .review-lightbox-overlay,
-  .review-lightbox-img {
-    animation: none;
-  }
-}
+/* Lightbox styles are injected at runtime by ReviewsManager.injectLightboxStyles()
+   using class names that match components/Lightbox.js (.lightbox, .lightbox-nav etc.)
+   so they are shared if that component is ever loaded on the same page. */
