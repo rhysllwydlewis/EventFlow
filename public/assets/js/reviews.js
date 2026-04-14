@@ -445,7 +445,7 @@
       if (fraction > 0 && fullStars < 5) {
         const pct = Math.round(fraction * 100);
         stars.push(
-          `<span class="star-partial" style="width:${pct}%"><span aria-hidden="true">★</span></span><span class="star-empty" aria-hidden="true">☆</span>`
+          `<span class="star-partial" style="--fill-width:${pct}%" aria-hidden="true">★</span><span class="star-empty" aria-hidden="true">☆</span>`
         );
       }
 

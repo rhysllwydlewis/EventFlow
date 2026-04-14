@@ -452,6 +452,7 @@
 .review-stars .star-partial {
   display: inline-block;
   overflow: hidden;
+  width: var(--fill-width, 50%);
   position: relative;
   color: #fbbf24;
   vertical-align: top;
@@ -468,6 +469,7 @@
 .review-stars-large .star-partial {
   display: inline-block;
   overflow: hidden;
+  width: var(--fill-width, 50%);
   position: relative;
   color: #fbbf24;
   vertical-align: top;
