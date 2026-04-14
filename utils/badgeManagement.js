@@ -48,7 +48,7 @@ const BADGE_DEFINITIONS = {
     slug: 'expert',
     type: 'custom',
     description: 'Has successfully completed over 50 events',
-    icon: '👨‍🎓',
+    icon: '🎓',
     color: '#8B5CF6',
     autoAssign: true,
     autoAssignCriteria: {

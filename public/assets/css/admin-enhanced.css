@@ -1397,7 +1397,9 @@ tbody tr.selected td {
   letter-spacing: 0.5px;
 }
 
-.badge-free {
+/* .badge-free kept for legacy compatibility; .badge-starter is the canonical name */
+.badge-free,
+.badge-starter {
   background: #f1f5f9;
   color: #475569;
   border: 1px solid #cbd5e1;
@@ -1411,6 +1413,16 @@ tbody tr.selected td {
 .badge-pro-plus {
   background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
   color: white;
+}
+
+/* Admin identity badge — shown in place of tier badge for admin accounts */
+.badge-admin {
+  background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+  color: #ffffff;
+  border: 1px solid #7f1d1d;
+  font-weight: 700;
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.35);
+  letter-spacing: 0.04em;
 }
 
 .badge-success {

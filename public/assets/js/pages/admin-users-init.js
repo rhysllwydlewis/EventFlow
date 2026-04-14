@@ -139,15 +139,20 @@
 
     tbody.innerHTML = filtered
       .map(u => {
-        // Get subscription badge
-        const subscription = u.subscription || { tier: 'free', status: 'active' };
+        // Admin users get an Admin badge — they have full privileges, not a subscription tier
+        const isAdminUser = u.role === 'admin';
         let subscriptionBadge = '';
-        if (subscription.tier === 'pro') {
-          subscriptionBadge = '<span class="badge badge-pro">Pro</span>';
-        } else if (subscription.tier === 'pro_plus') {
-          subscriptionBadge = '<span class="badge badge-pro-plus">Pro Plus</span>';
+        if (isAdminUser) {
+          subscriptionBadge = '<span class="badge badge-admin">🛡️ Admin</span>';
         } else {
-          subscriptionBadge = '<span class="badge badge-starter">Starter</span>';
+          const subscription = u.subscription || { tier: 'free', status: 'active' };
+          if (subscription.tier === 'pro') {
+            subscriptionBadge = '<span class="badge badge-pro">Pro</span>';
+          } else if (subscription.tier === 'pro_plus') {
+            subscriptionBadge = '<span class="badge badge-pro-plus">Pro Plus</span>';
+          } else {
+            subscriptionBadge = '<span class="badge badge-starter">Starter</span>';
+          }
         }
 
         const userId = escapeHtml(u.id || u._id || '');
@@ -1042,8 +1047,14 @@
   /**
    * Updates the subscription badge for a specific user row in the table without
    * performing a full reload. This gives the admin instant visual feedback.
+   * Admin-role users always show the Admin badge regardless of subscription tier.
    */
   function _updateTableSubscriptionBadge(userId, subscription) {
+    const cachedUser = allUsers.find(u => (u.id || u._id) === userId);
+    // Admin users always show Admin badge — don't overwrite with a tier badge
+    if (cachedUser && cachedUser.role === 'admin') {
+      return;
+    }
     const tier = subscription?.tier || 'free';
     let badgeHtml = '';
     if (tier === 'pro') {
@@ -1065,7 +1076,6 @@
       }
     }
     // Also update allUsers cache
-    const cachedUser = allUsers.find(u => (u.id || u._id) === userId);
     if (cachedUser) {
       cachedUser.subscription = subscription;
     }

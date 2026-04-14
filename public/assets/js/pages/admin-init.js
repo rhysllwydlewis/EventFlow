@@ -170,11 +170,14 @@
 
       actions += '</div>';
 
-      // Enhanced role display with owner badge
-      let roleDisplay = u.role || '';
+      // Enhanced role display — admin badge for admin/owner accounts
+      let roleDisplay = escapeHtml(u.role || '');
       if (isOwner) {
-        roleDisplay +=
-          ' <span class="badge" style="background:#9f1239;color:#fff;font-weight:600;" title="Protected account - cannot be deleted or demoted">👑 OWNER</span>';
+        roleDisplay =
+          '<span class="badge badge-admin" title="Protected owner account — cannot be deleted or demoted">🛡️ Admin</span>' +
+          ' <span class="badge" style="background:#9f1239;color:#fff;font-weight:600;font-size:0.7rem;">OWNER</span>';
+      } else if (isAdmin) {
+        roleDisplay = '<span class="badge badge-admin">🛡️ Admin</span>';
       }
 
       rows +=
@@ -331,13 +334,19 @@
         const partnerData = await AdminShared.api('/api/admin/partners');
         const partners = partnerData.items || [];
         const totalPartnersEl = document.getElementById('totalPartnersCountCard');
-        if (totalPartnersEl) totalPartnersEl.textContent = partners.length;
+        if (totalPartnersEl) {
+          totalPartnersEl.textContent = partners.length;
+        }
         const activePartnersEl = document.getElementById('activePartnersCount');
-        if (activePartnersEl) activePartnersEl.textContent = partners.filter(p => p.status === 'active').length;
+        if (activePartnersEl) {
+          activePartnersEl.textContent = partners.filter(p => p.status === 'active').length;
+        }
 
         const payoutData = await AdminShared.api('/api/admin/partners/payout-requests?status=open');
         const openPayoutsEl = document.getElementById('openPayoutRequestsCount');
-        if (openPayoutsEl) openPayoutsEl.textContent = (payoutData.items || []).length;
+        if (openPayoutsEl) {
+          openPayoutsEl.textContent = (payoutData.items || []).length;
+        }
       } catch (_) {
         // Non-blocking — card shows — if API fails stats stay at —
       }
@@ -710,7 +719,9 @@
         modal.show();
       } else {
         // Minimal fallback — confirm action and use a default rejection note
-        const confirmed = await _adminConfirm('Reject this supplier? A default rejection note will be used.');
+        const confirmed = await _adminConfirm(
+          'Reject this supplier? A default rejection note will be used.'
+        );
         if (!confirmed) {
           return;
         }

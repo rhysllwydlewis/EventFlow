@@ -56,8 +56,13 @@ export function renderVerificationBadges(supplier, options = {}) {
   const badges = [];
 
   // Priority 1: Founding Supplier Badge
-  if (supplier.isFoundingSupplier || supplier.isFounding || supplier.founding ||
-      (supplier.badges && (supplier.badges.includes('founding') || supplier.badges.includes('founder')))) {
+  if (
+    supplier.isFoundingSupplier ||
+    supplier.isFounding ||
+    supplier.founding ||
+    (supplier.badges &&
+      (supplier.badges.includes('founding') || supplier.badges.includes('founder')))
+  ) {
     badges.push({
       html: `<span class="badge badge-founding ${size === 'small' ? 'badge-sm' : ''}" 
                    title="Founding Supplier - One of our first partners" 
@@ -69,7 +74,7 @@ export function renderVerificationBadges(supplier, options = {}) {
     });
   }
 
-  // Priority 2: Subscription Tier Badges — always at top (priority 1 reserved for Founding)
+  // Priority 2: Subscription Tier Badge (Founding is priority 1; tier is priority 2)
   const tier = resolveSupplierTier(supplier);
   if (tier === 'pro_plus') {
     badges.push({
@@ -104,7 +109,7 @@ export function renderVerificationBadges(supplier, options = {}) {
     });
   }
 
-  // Priority 3: Featured Badge
+  // Priority 3a: Featured Badge (priority: 2 — rendered after tier)
   if (supplier.featured || supplier.featuredSupplier) {
     badges.push({
       html: `<span class="badge badge-featured ${size === 'small' ? 'badge-sm' : ''}" 
@@ -117,8 +122,7 @@ export function renderVerificationBadges(supplier, options = {}) {
     });
   }
 
-  // Priority 3b: Earned / auto-awarded badges from the badgeDetails array
-  // (populated by the server from the badges collection when enriching the supplier response)
+  // Priority 3b: Earned / auto-awarded badges (priority: 2 — rendered after Featured)
   const EARNED_TYPE_CLASS = {
     'fast-responder': 'badge-fast-responder',
     'top-rated': 'badge-top-rated',
@@ -149,7 +153,7 @@ export function renderVerificationBadges(supplier, options = {}) {
     });
   }
 
-  // Priority 4: Verification Badges
+  // Priority 4: Verification Badges (priority: 3 — shown last)
   // Email Verified
   if (supplier.emailVerified || supplier.verifications?.email?.verified || supplier.verified) {
     if (showAll) {
@@ -243,7 +247,7 @@ export function renderVerificationSection(supplier) {
   // Founding Supplier
   if (supplier.isFoundingSupplier || supplier.isFounding || supplier.founding) {
     verifications.push({
-      icon: '👑',
+      icon: '⭐',
       title: 'Founding Supplier',
       description: 'Original member of the EventFlow platform since 2024',
       verified: true,

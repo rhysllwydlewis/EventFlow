@@ -378,7 +378,9 @@ trustScore =
 
 ## Badge System
 
-Badges are automatically awarded based on analytics:
+> **Note:** There are two badge systems in EventFlow. The table below describes the **analytics-only badges** stored in `supplierAnalytics.badges` by `calculateSupplierAnalytics()` — these are **not** rendered as visible supplier-facing badges. They exist for internal metrics and potential future use. For the authoritative supplier-facing badge system (the one rendered on profiles), see [`docs/BADGE_AUDIT.md`](../BADGE_AUDIT.md#dual-badge-systems).
+
+Analytics badges computed and stored in `supplierAnalytics`:
 
 | Badge                 | Criteria                                         |
 | --------------------- | ------------------------------------------------ |

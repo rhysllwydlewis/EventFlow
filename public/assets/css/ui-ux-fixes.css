@@ -870,59 +870,6 @@ body.admin {
   }
 }
 
-/* Enhanced Supplier Profile Badges */
-.badge-verified {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  color: white;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2);
-}
-
-.badge-fast-responder {
-  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  color: white;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.2);
-}
-
-.badge-top-rated {
-  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
-  color: white;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  box-shadow: 0 2px 6px rgba(139, 92, 246, 0.2);
-}
-
-.badge-expert {
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  color: white;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.2);
-}
-
 /* Supplier Profile Animations */
 @keyframes fadeInScale {
   from {

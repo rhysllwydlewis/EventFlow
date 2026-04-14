@@ -634,84 +634,15 @@ async function seedBadges() {
     return;
   }
 
+  const { BADGE_DEFINITIONS } = require('./utils/badgeManagement');
   const now = new Date().toISOString();
-  const defaultBadges = [
-    {
-      id: uid('bdg'),
-      name: 'Founder',
-      slug: 'founder',
-      type: 'founder',
-      description: 'Founding member of EventFlow',
-      icon: '🌟',
-      color: '#FFD700',
-      autoAssign: false,
-      autoAssignCriteria: null,
-      displayOrder: 1,
-      active: true,
-      createdAt: now,
-      updatedAt: now,
-    },
-    {
-      id: uid('bdg'),
-      name: 'Pro',
-      slug: 'pro',
-      type: 'pro',
-      description: 'Professional tier member',
-      icon: '💎',
-      color: '#667eea',
-      autoAssign: true,
-      autoAssignCriteria: { isPro: true },
-      displayOrder: 2,
-      active: true,
-      createdAt: now,
-      updatedAt: now,
-    },
-    {
-      id: uid('bdg'),
-      name: 'Pro Plus',
-      slug: 'pro-plus',
-      type: 'pro-plus',
-      description: 'Premium tier member',
-      icon: '👑',
-      color: '#764ba2',
-      autoAssign: false,
-      autoAssignCriteria: null,
-      displayOrder: 3,
-      active: true,
-      createdAt: now,
-      updatedAt: now,
-    },
-    {
-      id: uid('bdg'),
-      name: 'Verified',
-      slug: 'verified',
-      type: 'verified',
-      description: 'Verified supplier',
-      icon: '✓',
-      color: '#13B6A2',
-      autoAssign: false,
-      autoAssignCriteria: null,
-      displayOrder: 4,
-      active: true,
-      createdAt: now,
-      updatedAt: now,
-    },
-    {
-      id: uid('bdg'),
-      name: 'Featured',
-      slug: 'featured',
-      type: 'featured',
-      description: 'Featured on EventFlow',
-      icon: '⭐',
-      color: '#F59E0B',
-      autoAssign: false,
-      autoAssignCriteria: null,
-      displayOrder: 5,
-      active: true,
-      createdAt: now,
-      updatedAt: now,
-    },
-  ];
+  const defaultBadges = Object.values(BADGE_DEFINITIONS).map(def => ({
+    ...def,
+    id: uid('bdg'),
+    active: true,
+    createdAt: now,
+    updatedAt: now,
+  }));
 
   await dbUnified.write('badges', defaultBadges);
   logger.info(`Seeded ${defaultBadges.length} default badges`);
