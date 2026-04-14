@@ -210,7 +210,7 @@
       container.innerHTML = `
         <div class="reviews-loading">
           <div class="loading-spinner"></div>
-          <p style="margin-top: 1rem; color: #6b7280;">Loading reviews...</p>
+          <p class="reviews-loading__message">Loading reviews...</p>
         </div>
       `;
 
@@ -752,12 +752,13 @@
         return;
       }
 
-      const modal = document.getElementById('review-modal');
-      if (!modal) {
-        this.createReviewModal();
-      } else {
-        modal.style.display = 'flex';
+      // Always remove stale modal before creating fresh, to prevent duplicate listeners
+      const stale = document.getElementById('review-modal');
+      if (stale) {
+        stale.remove();
       }
+
+      this.createReviewModal();
 
       // Setup star rating
       this.setupStarRating();
@@ -1042,12 +1043,7 @@
     closeReviewModal() {
       const modal = document.getElementById('review-modal');
       if (modal) {
-        modal.style.display = 'none';
-        // Reset form
-        const form = document.getElementById('review-form');
-        if (form) {
-          form.reset();
-        }
+        modal.remove();
       }
       // Remove Escape listener
       if (this._writeModalEscHandler) {
@@ -1450,7 +1446,7 @@
             <div class="review-modal-body">
               <div class="review-form-group">
                 <label class="review-form-label required" for="report-reason-select">Reason for reporting</label>
-                <select id="report-reason-select" class="review-filter-select" style="width:100%" aria-required="true">
+                <select id="report-reason-select" class="review-filter-select" aria-required="true">
                   <option value="">Select a reason...</option>
                   <option value="inappropriate">Inappropriate content</option>
                   <option value="spam">Spam or advertising</option>

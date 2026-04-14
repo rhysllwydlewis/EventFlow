@@ -1002,6 +1002,11 @@
   text-align: center;
 }
 
+.reviews-loading__message {
+  margin-top: 1rem;
+  color: #6b7280;
+}
+
 .loading-spinner {
   display: inline-block;
   width: 40px;
