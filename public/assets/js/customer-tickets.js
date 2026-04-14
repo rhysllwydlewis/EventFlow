@@ -286,7 +286,7 @@ function viewTicket(ticketId) {
         html += `
           <div class="ticket-response ticket-response--${isAdmin ? 'admin' : 'user'}">
             <div class="ticket-response__header">
-              <strong>${escapeHtml(displayName)} ${isAdmin ? '<span class="badge badge-in_progress">Admin</span>' : ''}</strong>
+              <strong>${escapeHtml(displayName)} ${isAdmin ? '<span class="badge badge-admin">🛡️ Admin</span>' : ''}</strong>
               <span class="small ticket-response__timestamp">${respTimestamp}</span>
             </div>
             <p class="ticket-response__body">${escapeHtml(response.message)}</p>

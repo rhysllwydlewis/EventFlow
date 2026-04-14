@@ -222,6 +222,33 @@
   color: #94a3b8;
 }
 
+/* Admin Badge — identifies platform administrators */
+.badge-admin {
+  background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+  color: #ffffff;
+  border: 1px solid #7f1d1d;
+  font-weight: 700;
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.35);
+  letter-spacing: 0.04em;
+}
+
+.badge-admin::before {
+  content: '🛡️';
+  margin-right: 0.375rem;
+  font-size: 0.9em;
+}
+
+.badge-admin:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(220, 38, 38, 0.45);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .badge-admin {
+    transition: none;
+  }
+}
+
 /* ===== INLINE TIER ICON (next to name in cards, messages, etc.) ===== */
 
 /* Small inline symbol shown beside supplier/business name */

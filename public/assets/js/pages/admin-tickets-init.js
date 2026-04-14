@@ -315,7 +315,7 @@
         return `
           <div class="ticket-response ticket-response--${isAdmin ? 'admin' : 'user'}">
             <div class="ticket-response__header">
-              <strong>${escapeHtml(author)} ${isAdmin ? '<span class="badge badge-in_progress">Admin</span>' : ''}</strong>
+              <strong>${escapeHtml(author)} ${isAdmin ? '<span class="badge badge-admin">🛡️ Admin</span>' : ''}</strong>
               <span class="small">${formatDate(response.createdAt || response.timestamp)}</span>
             </div>
             <p class="ticket-response__body">${escapeHtml(response.message || '')}</p>
