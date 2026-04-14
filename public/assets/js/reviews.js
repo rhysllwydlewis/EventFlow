@@ -423,9 +423,7 @@
               <span>Not Helpful</span>
               <span class="vote-count">(${unhelpfulCount})</span>
             </button>
-            ${ownerActions || reportBtn ? '<span class="review-actions-divider" aria-hidden="true"></span>' : ''}
-            ${ownerActions}
-            ${reportBtn}
+            ${ownerActions || reportBtn ? `<div class="review-actions-right">${ownerActions}${reportBtn}</div>` : ''}
           </div>
         </div>
       `;
@@ -1566,7 +1564,18 @@
       toast.className = `review-toast review-toast--${type}`;
       toast.setAttribute('role', 'alert');
       toast.setAttribute('aria-live', 'polite');
-      toast.innerHTML = `<span class="review-toast__icon" aria-hidden="true">${icons[type] || icons.info}</span><span>${this.escapeHtml(message)}</span>`;
+
+      // Build icon + message using DOM methods to avoid innerHTML XSS risk
+      const iconSpan = document.createElement('span');
+      iconSpan.className = 'review-toast__icon';
+      iconSpan.setAttribute('aria-hidden', 'true');
+      iconSpan.textContent = icons[type] || icons.info;
+
+      const msgSpan = document.createElement('span');
+      msgSpan.textContent = message;
+
+      toast.appendChild(iconSpan);
+      toast.appendChild(msgSpan);
 
       container.appendChild(toast);
 

@@ -545,8 +545,12 @@
 }
 
 /* Divider between vote buttons and owner/report buttons */
-.review-card-actions .review-actions-divider {
-  flex: 1;
+.review-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-left: auto;
+  flex-wrap: wrap;
 }
 
 /* ========================================
