@@ -185,7 +185,7 @@
       const flagged = review.flagged ? ' <span class="badge badge-warning">Reported</span>' : '';
       const reportCount = Array.isArray(review.reports) ? review.reports.length : 0;
       const reportInfo = reportCount > 0
-        ? `<p class="small" style="color:#b45309;margin:0 0 8px;">🚩 ${reportCount} report${reportCount !== 1 ? 's' : ''} received — review this content and take action below.</p>`
+        ? `<p class="small review-report-warning">🚩 ${reportCount} report${reportCount !== 1 ? 's' : ''} received — review this content and take action below.</p>`
         : '';
 
       card.innerHTML =
@@ -206,7 +206,7 @@
         `</p>` +
         (moderationReason ? `<p class="small" style="color:#9ca3af;margin:0 0 10px;"><em>${escapeHtml(moderationReason)}</em></p>` : '') +
         reportInfo +
-        `<div style="display:flex;gap:8px;flex-wrap:wrap;">` +
+        `<div class="review-action-btns">` +
         `<button class="btn btn-sm btn-danger" data-action="approve" data-id="${escapeHtml(id)}" title="The report is valid — remove this review from the platform">🗑️ Remove Review</button>` +
         `<button class="btn btn-sm btn-success" data-action="reject" data-id="${escapeHtml(id)}" title="The report is not valid — keep the review published">✓ Dismiss Report</button>` +
         `</div>` +
