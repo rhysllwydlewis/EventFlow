@@ -96,9 +96,11 @@ function createSupplierCard(supplier, position) {
     badges.push('<span class="sp-badge sp-badge--verified badge-verified">✓ Verified</span>');
   }
   if (tier === 'pro_plus') {
-    badges.push('<span class="sp-badge sp-badge--pro-plus">✦ Pro Plus</span>');
+    badges.push('<span class="sp-badge sp-badge--pro-plus">Pro Plus</span>');
   } else if (tier === 'pro') {
     badges.push('<span class="sp-badge sp-badge--pro">Pro</span>');
+  } else if (!supplier.featuredSupplier) {
+    badges.push('<span class="sp-badge sp-badge--starter">Starter</span>');
   }
   if (supplier.featuredSupplier) {
     badges.push('<span class="sp-badge sp-badge--featured">Featured</span>');

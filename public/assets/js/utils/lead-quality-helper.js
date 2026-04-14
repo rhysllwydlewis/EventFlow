@@ -124,22 +124,23 @@ export function getSupplierBadges(supplier) {
   const badges = [];
 
   // Founding supplier badge
-  if (supplier.isFounding) {
+  if (supplier.isFounding || supplier.founding ||
+      (supplier.badges && (supplier.badges.includes('founding') || supplier.badges.includes('founder')))) {
     badges.push(
       '<span class="badge badge-founding" data-tooltip="Founding Supplier - One of our first partners">Founding Supplier</span>'
     );
   }
 
-  // Pro/Featured tier badges
-  if (supplier.subscription) {
-    if (supplier.subscription.tier === 'featured') {
-      badges.push('<span class="badge badge-featured">Featured</span>');
-    } else if (supplier.subscription.tier === 'pro') {
-      badges.push('<span class="badge badge-pro">Pro</span>');
-    }
-  } else if (supplier.isPro) {
-    // Legacy pro flag
+  // Subscription tier badge
+  const tier = supplier.subscriptionTier || supplier.subscription?.tier || (supplier.isPro ? 'pro' : null);
+  if (tier === 'featured') {
+    badges.push('<span class="badge badge-featured">Featured</span>');
+  } else if (tier === 'pro_plus') {
+    badges.push('<span class="badge badge-pro-plus">Pro Plus</span>');
+  } else if (tier === 'pro') {
     badges.push('<span class="badge badge-pro">Pro</span>');
+  } else {
+    badges.push('<span class="badge badge-starter">Starter</span>');
   }
 
   // Verification badges

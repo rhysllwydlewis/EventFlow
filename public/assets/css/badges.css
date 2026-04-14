@@ -48,7 +48,13 @@
   font-weight: 700;
 }
 
-/* Verified Customer Badge (review cards) — tick via CSS ::before */
+/* Verified Customer Badge (review cards & legacy supplier verified) */
+.badge-verified {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #10b981;
+}
+
 .badge-verified::before {
   content: '✓';
   margin-right: 0.25rem;
@@ -142,6 +148,21 @@
   content: '💎';
   margin-right: 0.375rem;
   font-size: 0.9em;
+}
+
+/* Starter Badge — for free-tier suppliers */
+.badge-starter {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  font-weight: 600;
+}
+
+.badge-starter::before {
+  content: '◆';
+  margin-right: 0.35rem;
+  font-size: 0.75em;
+  color: #94a3b8;
 }
 
 /* ===== INLINE TIER ICON (next to name in cards, messages, etc.) ===== */

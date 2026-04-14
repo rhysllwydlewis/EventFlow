@@ -227,7 +227,7 @@
 }
 
 .hero-badges .badge-pro-plus {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.95) 0%, rgba(139, 92, 246, 0.95) 100%);
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.95) 0%, rgba(91, 33, 182, 0.95) 100%);
   color: #ffffff;
 }
 
@@ -239,6 +239,11 @@
 .hero-badges .badge-featured {
   background: rgba(139, 92, 246, 0.92);
   color: #ffffff;
+}
+
+.hero-badges .badge-starter {
+  background: rgba(241, 245, 249, 0.92);
+  color: #475569;
 }
 
 /* ============================================
