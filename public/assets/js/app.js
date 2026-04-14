@@ -572,7 +572,7 @@ function supplierCard(s, user) {
   if (s.isFounding || (s.badges && s.badges.includes('founding'))) {
     const yearLabel = s.foundingYear ? ` (${escapeHtml(String(s.foundingYear))})` : '';
     supplierBadges.push(
-      `<span class="badge badge-founding" title="Founding Supplier - Original member since 2024">⭐ Founding${yearLabel}</span>`
+      `<span class="badge badge-founding" title="Founding Supplier - Original member since 2024">⭐ Founding Supplier${yearLabel}</span>`
     );
   }
 

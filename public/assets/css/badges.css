@@ -21,6 +21,38 @@
   font-weight: 600;
   line-height: 1.5;
   white-space: nowrap;
+  letter-spacing: 0.01em;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+/* Hover lift for tier badges only — keep verification badges static */
+.badge-pro:hover,
+.badge-pro-plus:hover,
+.badge-founding:hover,
+.badge-featured:hover {
+  transform: translateY(-1px);
+}
+
+.badge-pro:hover {
+  box-shadow: 0 4px 8px rgba(245, 158, 11, 0.4);
+}
+
+.badge-pro-plus:hover {
+  box-shadow: 0 4px 8px rgba(124, 58, 237, 0.45);
+}
+
+.badge-founding:hover {
+  box-shadow: 0 4px 8px rgba(251, 191, 36, 0.4);
+}
+
+.badge-featured:hover {
+  box-shadow: 0 4px 8px rgba(139, 92, 246, 0.4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .badge {
+    transition: none;
+  }
 }
 
 /* Founding Supplier Badge */

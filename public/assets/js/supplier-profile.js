@@ -332,15 +332,17 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     // Tier — highest priority
     const tier = supplier.subscription?.tier || (supplier.isPro ? 'pro' : 'free');
     if (tier === 'pro_plus') {
-      badges.push('<span class="badge badge-pro-plus" aria-label="Pro Plus">Pro+</span>');
+      badges.push('<span class="badge badge-pro-plus" aria-label="Pro Plus">Pro Plus</span>');
     } else if (tier === 'pro') {
       badges.push('<span class="badge badge-pro" aria-label="Pro supplier">Pro</span>');
+    } else {
+      badges.push('<span class="badge badge-starter" aria-label="Starter plan">Starter</span>');
     }
 
     // Founding
     if (supplier.isFoundingSupplier || supplier.isFounding || supplier.founding) {
       badges.push(
-        '<span class="badge badge-founding" aria-label="Founding supplier">Founding</span>'
+        '<span class="badge badge-founding" aria-label="Founding supplier">Founding Supplier</span>'
       );
     }
 
@@ -1181,6 +1183,8 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
       tierBadges.push('<span class="badge badge-pro-plus" aria-label="Pro Plus">Pro Plus</span>');
     } else if (tier === 'pro') {
       tierBadges.push('<span class="badge badge-pro" aria-label="Pro">Pro</span>');
+    } else {
+      tierBadges.push('<span class="badge badge-starter" aria-label="Starter plan">Starter</span>');
     }
     if (tierBadges.length > 0) {
       sections.push(
@@ -1189,7 +1193,7 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     }
 
     // Earned badges (from badgeDetails, excluding tier/verif/founder)
-    const SKIP_TYPES = new Set(['pro', 'pro-plus', 'founder', 'verified', 'featured']);
+    const SKIP_TYPES = new Set(['pro', 'pro-plus', 'founder', 'founding', 'verified', 'featured']);
     const earned = Array.isArray(supplier.badgeDetails)
       ? supplier.badgeDetails.filter(b => !SKIP_TYPES.has(b.type))
       : [];
@@ -1215,7 +1219,7 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     const honorBadges = [];
     if (supplier.isFoundingSupplier || supplier.isFounding || supplier.founding) {
       honorBadges.push(
-        '<span class="badge badge-founding" aria-label="Founding supplier">Founding</span>'
+        '<span class="badge badge-founding" aria-label="Founding supplier">Founding Supplier</span>'
       );
     }
     if (supplier.featured || supplier.featuredSupplier) {

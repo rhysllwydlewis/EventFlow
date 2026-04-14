@@ -89,7 +89,7 @@ function createSupplierCard(supplier, position) {
       ? ` (${escapeHtml(String(supplier.foundingYear))})`
       : '';
     badges.push(
-      `<span class="sp-badge sp-badge--founding badge-founding" title="Founding Supplier - Original member since 2024">⭐ Founding${yearLabel}</span>`
+      `<span class="sp-badge sp-badge--founding badge-founding" title="Founding Supplier - Original member since 2024">⭐ Founding Supplier${yearLabel}</span>`
     );
   }
   if (supplier.verified || supplier.approved) {
