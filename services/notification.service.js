@@ -362,14 +362,17 @@ class NotificationService {
    * Create notification for new review
    */
   async notifyNewReview(supplierUserId, customerName, rating) {
+    const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
     return await this.create({
       userId: supplierUserId,
       type: 'review',
-      title: 'New Review',
-      message: `${customerName} left a ${rating}-star review`,
-      actionUrl: '/reviews',
-      actionText: 'View Review',
+      title: '🌟 New Review!',
+      message: `${customerName} left a ${rating}-star review on your profile. ${stars}`,
+      actionUrl: '/supplier-dashboard#reviews',
+      actionText: 'View Reviews',
       priority: 'normal',
+      icon: '🌟',
+      metadata: { customerName, rating },
     });
   }
 

@@ -413,16 +413,17 @@
           ${editedNote}
           
           <div class="review-card-actions">
-            <button class="review-action-btn vote-btn" data-review-id="${review.id}" data-vote-type="helpful">
-              <span>👍</span>
+            <button class="review-action-btn vote-btn" data-review-id="${review.id}" data-vote-type="helpful" aria-label="Mark review as helpful">
+              <span aria-hidden="true">👍</span>
               <span>Helpful</span>
               <span class="vote-count">(${helpfulCount})</span>
             </button>
-            <button class="review-action-btn vote-btn" data-review-id="${review.id}" data-vote-type="unhelpful">
-              <span>👎</span>
+            <button class="review-action-btn vote-btn" data-review-id="${review.id}" data-vote-type="unhelpful" aria-label="Mark review as not helpful">
+              <span aria-hidden="true">👎</span>
               <span>Not Helpful</span>
               <span class="vote-count">(${unhelpfulCount})</span>
             </button>
+            ${ownerActions || reportBtn ? '<span class="review-actions-divider" aria-hidden="true"></span>' : ''}
             ${ownerActions}
             ${reportBtn}
           </div>
@@ -1023,8 +1024,6 @@
       document.querySelectorAll('.review-edit-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           const reviewId = btn.dataset.reviewId;
-          const card = document.querySelector(`.review-card[data-review-id="${reviewId}"]`);
-          // Reconstruct a lightweight review object from the card data to pre-fill the modal
           const review = this._reviewCache ? this._reviewCache[reviewId] : null;
           if (review) {
             this.openEditModal(review);
@@ -1148,7 +1147,7 @@
     /**
      * Create the edit modal HTML
      */
-    createEditModal(review) {
+    createEditModal() {
       const modalHTML = `
         <div id="review-edit-modal" class="review-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="edit-modal-title">
           <div class="review-modal">
@@ -1515,39 +1514,69 @@
      * Show toast notification
      */
     showToast(message, type = 'info') {
-      // Check if toast container exists
+      // Ensure global styles for toast animations exist
+      if (!document.getElementById('review-toast-styles')) {
+        const style = document.createElement('style');
+        style.id = 'review-toast-styles';
+        style.textContent = `
+          @keyframes reviewToastIn {
+            from { opacity: 0; transform: translateX(100%); }
+            to   { opacity: 1; transform: translateX(0); }
+          }
+          @keyframes reviewToastOut {
+            from { opacity: 1; transform: translateX(0); }
+            to   { opacity: 0; transform: translateX(100%); }
+          }
+          .review-toast {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            min-width: 240px;
+            max-width: 360px;
+            padding: 0.85rem 1.25rem;
+            border-radius: 10px;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.18);
+            font-size: 0.92rem;
+            font-weight: 500;
+            line-height: 1.4;
+            animation: reviewToastIn 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
+            cursor: pointer;
+          }
+          .review-toast--out { animation: reviewToastOut 0.25s ease forwards; }
+          .review-toast--success { background: #10b981; color: #fff; }
+          .review-toast--error   { background: #ef4444; color: #fff; }
+          .review-toast--info    { background: #3b82f6; color: #fff; }
+          .review-toast__icon    { font-size: 1.1rem; flex-shrink: 0; }
+        `;
+        document.head.appendChild(style);
+      }
+
       let container = document.getElementById('toast-container');
       if (!container) {
         container = document.createElement('div');
         container.id = 'toast-container';
-        container.style.cssText = `
-          position: fixed;
-          top: 20px;
-          right: 20px;
-          z-index: 10000;
-        `;
+        container.style.cssText =
+          'position:fixed;top:20px;right:20px;z-index:10000;display:flex;flex-direction:column;align-items:flex-end;';
         document.body.appendChild(container);
       }
 
+      const icons = { success: '✅', error: '❌', info: 'ℹ️' };
       const toast = document.createElement('div');
-      toast.style.cssText = `
-        background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
-        color: white;
-        padding: 1rem 1.5rem;
-        border-radius: 8px;
-        margin-bottom: 0.5rem;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        animation: slideIn 0.3s ease;
-      `;
-      toast.textContent = message;
+      toast.className = `review-toast review-toast--${type}`;
+      toast.setAttribute('role', 'alert');
+      toast.setAttribute('aria-live', 'polite');
+      toast.innerHTML = `<span class="review-toast__icon" aria-hidden="true">${icons[type] || icons.info}</span><span>${this.escapeHtml(message)}</span>`;
 
       container.appendChild(toast);
 
-      // Remove after 3 seconds
-      setTimeout(() => {
-        toast.style.animation = 'slideOut 0.3s ease';
-        setTimeout(() => toast.remove(), 300);
-      }, 3000);
+      const dismiss = () => {
+        toast.classList.add('review-toast--out');
+        setTimeout(() => toast.remove(), 280);
+      };
+
+      toast.addEventListener('click', dismiss);
+      setTimeout(dismiss, 4000);
     },
   };
 
