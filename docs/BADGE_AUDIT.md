@@ -1,225 +1,192 @@
-# EventFlow Badge Audit
+# EventFlow Badge Reference
 
-> **Purpose:** Catalog every supplier-related badge used across the EventFlow website, identify where each badge appears, how it is styled, and flag any inconsistencies in naming, styling, icons, or rendering logic.
+> **Purpose:** Canonical reference for every supplier badge in the EventFlow platform, documenting the post-consolidation state: one set of CSS classes, one colour per badge, and consistent text labels across all renderers.
 >
-> **Date:** April 2026  
-> **Scope:** All visual indicators (labels/tags/badges) displayed on supplier profiles, supplier cards, search results, dashboards, admin pages, and review cards.
+> **Last updated:** April 2026
 
 ---
 
 ## Table of Contents
 
-1. [Badge Inventory Table](#1-badge-inventory-table)
-2. [Inconsistencies Summary](#2-inconsistencies-summary)
-3. [Recommendations](#3-recommendations)
+1. [Badge Reference Table](#1-badge-reference-table)
+2. [Changes Made](#2-changes-made)
+3. [Implementation Notes](#3-implementation-notes)
 
 ---
 
-## 1. Badge Inventory Table
+## 1. Badge Reference Table
 
-> **Column guide**
-> - **CSS Class(es)** — all classes that produce this badge's visual output (modern + legacy)
-> - **Visual / Icon** — the icon/emoji prepended, either via CSS `::before` or inline in HTML
-> - **Defined Colors** — background color(s) across every CSS file where the class appears
-> - **Pages Used On** — HTML pages / routes where the badge is rendered
-> - **Rendering Source File(s)** — JS files that emit the badge HTML
-> - **Notes / Inconsistencies** — cross-file discrepancies
+> **Icon column** shows the visual as rendered in a browser (emoji / CSS `::before` content).  
+> **CSS Class** is the single canonical class to use everywhere.  
+> **Pages Used** lists every page / context where the badge is rendered.
 
-| Badge Name | Visual / Icon | CSS Class(es) | Defined Colors (per CSS file) | Pages Used On | Rendering Source File(s) | Notes / Inconsistencies |
-|---|---|---|---|---|---|---|
-| **Founding Supplier** | Varies (see notes) | `.badge-founding` (modern)<br>`.sp-badge.sp-badge--founding` (suppliers page) | `badges.css`: gold gradient `#fbbf24→#f59e0b`, text `#78350f`<br>`supplier-profile.css` hero: `rgba(245,158,11,0.92)`<br>`suppliers-page.css (.sp-badge--founding)`: flat `#fef3c7 / #92400e` | Supplier profile (`supplier.html`), search/browse results (`index.html` via `app.js`), suppliers browse page (`suppliers.html` via `suppliers-init.js`), supplier cards (`supplier-card.js`), package listings (`package-list.js`), supplier dashboard hero | `verification-badges.js`, `app.js`, `suppliers-init.js`, `supplier-card.js`, `package-list.js` | ⚠️ **Icon inconsistency**: `verification-badges.js` uses `<i class="fas fa-crown">` (Font Awesome crown); `app.js` and `suppliers-init.js` use `⭐` emoji; `supplier-card.js` and `package-list.js` use no icon (plain text only). Server-side `badgeManagement.js` defines icon as `🏆` (trophy) and color `#DC2626` (red) — neither matches any front-end renderer. Auth service adds badge ID `'founder'` (note different spelling: `founding` vs `founder`). |
-| **Pro (Subscription Tier)** | `⭐` (CSS `::before` in `badges.css` / `styles.css`) | `.badge-pro` (modern primary)<br>`.supplier-badge.pro` (legacy profile/dashboard)<br>`.pro-badge` (legacy dashboard ribbon)<br>`.tier-badge--pro` (admin tickets)<br>`.sp-badge.sp-badge--pro` (suppliers browse page) | `badges.css (.badge-pro)`: gold gradient `#f59e0b→#d97706`, text `#78350f`<br>`components.css (.badge-pro)`: flat blue `#e3f2fd / #1565c0` ← **conflicts with badges.css**<br>`styles.css (.supplier-badge.pro)`: green gradient `#0B8073→#13B6A2`<br>`styles.css (.pro-badge)`: flat green `#00c896`<br>`subscription.css (.supplier-badge.pro)`: purple gradient `#667eea→#764ba2`<br>`subscription.css (.subscription-badge.pro)`: purple gradient `#667eea→#764ba2`<br>`admin.css (.tier-badge--pro)`: blue gradient `#2563eb→#3b82f6`<br>`supplier-profile.css (.hero-badges .badge-pro)`: gold `rgba(245,158,11,0.95)`<br>`suppliers-page.css (.sp-badge--pro)`: flat blue `#dbeafe / #1d4ed8` | All supplier-facing pages (profile, search, cards), admin support-tickets, subscription management page, supplier dashboard | `verification-badges.js` (renders text `"Pro"`), `app.js` (renders text `"Professional"`), `suppliers-init.js` (renders text `"Pro"`), `supplier-card.js` (renders text `"Professional"`), `package-list.js` (renders text `"Pro"`), `feature-access.js` (renders `"Pro"` via legacy `.supplier-badge.pro`), `admin-tickets-init.js` (via `getTierBadgeHtml()`) | ⚠️ **Color inconsistency**: 4+ different color schemes — gold (badges.css), blue (components.css), green (styles.css), purple (subscription.css). ⚠️ **Naming inconsistency**: text label varies between `"Pro"`, `"Professional"` across renderers. ⚠️ **CSS load-order conflict**: `.badge-pro` in `components.css` is blue flat; in `badges.css` is gold gradient — which wins depends on `<link>` order. |
-| **Pro Plus (Subscription Tier)** | `💎` (CSS `::before` in `badges.css`)<br>`👑` (CSS `::before` in `styles.css` / `subscription.css`) | `.badge-pro-plus` (modern primary)<br>`.supplier-badge.pro_plus` (legacy profile/dashboard)<br>`.pro-plus-badge` (legacy dashboard ribbon)<br>`.tier-badge--pro_plus` (admin tickets)<br>`.sp-badge.sp-badge--pro-plus` (suppliers browse page) | `badges.css (.badge-pro-plus)`: purple gradient `#7c3aed→#5b21b6`, text `#fff`<br>`styles.css (.supplier-badge.pro_plus)`: pink gradient `#f093fb→#f5576c`<br>`styles.css (.pro-plus-badge)`: pink gradient `#f093fb→#f5576c`<br>`subscription.css (.supplier-badge.pro_plus)`: pink gradient `#f093fb→#f5576c`<br>`subscription.css (.subscription-badge.pro_plus)`: pink gradient `#f093fb→#f5576c`<br>`admin.css (.tier-badge--pro_plus)`: purple gradient `#7c3aed→#a855f7`<br>`supplier-profile.css (.hero-badges .badge-pro-plus)`: indigo `rgba(99,102,241,0.95)`<br>`suppliers-page.css (.sp-badge--pro-plus)`: flat purple `#f3e8ff / #7c3aed` | All supplier-facing pages (profile, search, cards), admin support-tickets, subscription management page, supplier dashboard | `verification-badges.js` (renders `"Pro Plus"`), `app.js` (renders `"Professional Plus"`), `suppliers-init.js` (renders `"✦ Pro Plus"`), `supplier-card.js` (renders `"Professional Plus"`), `package-list.js` (renders `"Pro Plus"`), `feature-access.js` (renders `"Pro+"` via legacy `.supplier-badge.pro_plus`) | ⚠️ **Naming inconsistency**: `"Pro Plus"`, `"Professional Plus"`, `"Pro+"`, `"✦ Pro Plus"` used interchangeably across renderers. ⚠️ **Icon inconsistency**: `💎` in modern CSS vs `👑` in legacy CSS. ⚠️ **Color inconsistency**: purple (badges.css/admin.css) vs pink gradient (styles.css/subscription.css). ⚠️ **Missing from `lead-quality-helper.js`**: `getSupplierBadges()` handles `pro` and `featured` tiers but has no `pro_plus` branch. |
-| **Featured** | `★` (CSS `::before` in `badges.css`)<br>`⭐` inline text in `supplier-card.js` | `.badge-featured` (modern primary)<br>`.sp-badge.sp-badge--featured` (suppliers browse page) | `badges.css (.badge-featured)`: purple gradient `#a78bfa→#8b5cf6`, text `#fff`<br>`components.css (.badge-featured)`: flat orange `#fff3e0 / #e65100` ← **conflicts with badges.css**<br>`supplier-profile.css (.hero-badges .badge-featured)`: `rgba(139,92,246,0.92)`<br>`suppliers-page.css (.sp-badge--featured)`: flat orange `#fff7ed / #c2410c` | Supplier profile, search results, supplier cards, package listings, admin | `verification-badges.js` (renders text `"Featured"`), `app.js` (renders `"Featured"` when `tier === 'featured'`), `supplier-card.js` (renders `"⭐ Featured"` as separate badge), `package-list.js` (renders `"Featured"`), `lead-quality-helper.js` (renders `"Featured"`) | ⚠️ **Color inconsistency**: purple in `badges.css` vs flat orange in `components.css`. ⚠️ **Duplicate rendering**: `supplier-card.js` renders Featured BOTH as a tier badge (`if tier === 'featured'`) AND as a separate boolean badge (`if supplier.featured`), potentially producing two Featured badges for the same supplier. ⚠️ **Semantic mismatch**: some code treats `'featured'` as a `subscriptionTier` value; `verification-badges.js` treats it as a separate `featured` boolean field. |
-| **Email Verified** | `✓` (CSS `::before`)<br>`<i class="fas fa-envelope-circle-check">` (in `verification-badges.js`) | `.badge-email-verified` (modern primary)<br>`.sp-badge.sp-badge--email` (suppliers browse page) | `badges.css (.badge-email-verified)`: blue `#dbeafe / #1e40af`, border `#3b82f6`<br>`suppliers-page.css (.sp-badge--email)`: light blue `#e0f2fe / #0369a1` | Supplier profile, search results, supplier cards, package listings | `verification-badges.js` (text `"Email"` with FA icon), `app.js` (text `"Email Verified"`), `supplier-card.js` (text `"Email Verified"`), `suppliers-init.js` (text `"✓ Email"`), `package-list.js` (text `"✓ Email"`) | ⚠️ **Text inconsistency**: `"Email Verified"` vs `"Email"` vs `"✓ Email"` across renderers. In `app.js` this class is also used as a **legacy fallback** with text `"Verified"` when only `supplier.verified` is set (no granular verification data). |
-| **Phone Verified** | `✓` (CSS `::before`)<br>`<i class="fas fa-phone-check">` (in `verification-badges.js`) | `.badge-phone-verified` (modern primary)<br>`.sp-badge.sp-badge--phone` (suppliers browse page) | `badges.css (.badge-phone-verified)`: green `#d1fae5 / #065f46`, border `#10b981`<br>`suppliers-page.css (.sp-badge--phone)`: green `#f0fdf4 / #166534` | Supplier profile, search results, supplier cards, package listings | `verification-badges.js` (text `"Phone"` with FA icon), `app.js` (text `"Phone Verified"`), `supplier-card.js` (text `"Phone Verified"`), `suppliers-init.js` (text `"✓ Phone"`), `package-list.js` (text `"✓ Phone"`) | ⚠️ **Text inconsistency**: `"Phone Verified"` vs `"Phone"` vs `"✓ Phone"` across renderers. |
-| **Business Verified** | `✓` (CSS `::before`)<br>`<i class="fas fa-building-circle-check">` (in `verification-badges.js`) | `.badge-business-verified` (modern primary)<br>`.sp-badge.sp-badge--business` (suppliers browse page) | `badges.css (.badge-business-verified)`: indigo `#e0e7ff / #3730a3`, border `#6366f1`<br>`suppliers-page.css (.sp-badge--business)`: violet `#f5f3ff / #6d28d9` | Supplier profile, search results, supplier cards, package listings | `verification-badges.js` (text `"Business"` with FA icon), `app.js` (text `"Business Verified"`), `supplier-card.js` (text `"Business Verified"`), `suppliers-init.js` (text `"✓ Business"`), `package-list.js` (text `"✓ Business"`) | ⚠️ **Text inconsistency**: `"Business Verified"` vs `"Business"` vs `"✓ Business"` across renderers. |
-| **Verified (Generic / Review)** | `✓` (CSS `::before`) | `.badge-verified` (used on review cards and as legacy supplier badge)<br>`.sp-badge.sp-badge--verified` (suppliers browse page) | `badges.css (.badge-verified)`: inherits `.badge` base; only `::before` defined (no background override)<br>`components.css (.badge-verified)`: green `#e8f5e9 / #2e7d32`<br>`supplier-profile.css (.hero-badges .badge-verified)`: green `rgba(16,185,129,0.92)`, text `#fff`<br>`suppliers-page.css (.sp-badge--verified)`: green `#dcfce7 / #15803d` | Supplier profile hero banner (legacy verified state), supplier search results (`suppliers-init.js` legacy `supplier.verified`), review cards (`reviews.js`) | `reviews.js` (text `"Verified Customer"` when `review.verified`; text `"Email Verified"` as fallback), `suppliers-init.js` (text `"✓ Verified"` when `supplier.verified`) | ⚠️ **Dual usage**: badge is applied both to review cards (customer verification) and as a legacy supplier verification badge. ⚠️ **Incomplete base styles**: `badges.css` only defines the `::before` pseudo-element for `.badge-verified`; the actual background/color come from `components.css` or `supplier-profile.css` depending on page context. |
-| **Supplier (Review Cards)** | `🏢` (CSS `::before`) | `.badge-supplier` | `badges.css (.badge-supplier)`: indigo gradient `#6366f1→#4f46e5`, text `#fff`, border `#4338ca` | Supplier review cards (when the reviewer is themselves a supplier) | `reviews.js` (text `"Supplier"` when `review.reviewerIsSupplier`) | Used only on review cards. No conflict with other badge systems. |
-| **Fast Responder** (auto-awarded) | `⚡` (CSS `::before`) | `.badge-fast-responder` | `badges.css (.badge-fast-responder)`: amber gradient `#fef3c7→#fde68a`, text `#92400e`, border `#f59e0b` | Supplier profile badge section | `verification-badges.js` (rendered from `supplier.badgeDetails` array when `badge.id === 'fast-responder'`) | Auto-awarded server-side (`badgeManagement.js`) when avg response time < 24 h AND ≥ 5 messages. Badge definition: icon `⚡`, color `#F59E0B`. No CSS/definition conflict. |
-| **Top Rated** (auto-awarded) | `🌟` (CSS `::before`) | `.badge-top-rated` | `badges.css (.badge-top-rated)`: yellow gradient `#fef9c3→#fde047`, text `#713f12`, border `#eab308` | Supplier profile badge section | `verification-badges.js` (rendered from `supplier.badgeDetails` when `badge.id === 'top-rated'`) | Auto-awarded when avg rating ≥ 4.5 AND ≥ 3 reviews. Badge definition: icon `🌟`, color `#EAB308`. No conflict. |
-| **Expert** (auto-awarded) | `🎓` (CSS `::before`) | `.badge-expert` | `badges.css (.badge-expert)`: purple gradient `#ede9fe→#c4b5fd`, text `#4c1d95`, border `#8b5cf6` | Supplier profile badge section | `verification-badges.js` (rendered from `supplier.badgeDetails` when `badge.id === 'expert'`) | Auto-awarded when > 50 completed events. Badge definition: icon `👨‍🎓` (different from CSS `🎓`). Server icon `👨‍🎓` is only used for custom-type badges that include `badge.icon` in text; standard types rely on CSS `::before`. |
-| **Test Data** | `🧪` (CSS `::before` in `badges.css`)<br>No icon in `package-list.js` package-level badge | `.badge-test-data` (supplier badge)<br>`.package-card-badge-test` (package-level, inline CSS in `package-list.js`) | `badges.css (.badge-test-data)`: amber `#fef3c7 / #92400e`, border `#f59e0b`<br>`package-list.js` inline: `.package-card-badge-test { background:#fef3c7; color:#b45309; … }` | Supplier cards (when `supplier.isTest`), package cards (when `package.isTest`), search results | `supplier-card.js` (text `"Test data"`), `app.js` (text `"Test data"`), `suppliers-init.js` (text `"⭐ Founding"` — **see note**), `package-list.js` (text `"🧪 Test data"` in package header; `"Test data"` in supplier mini-badge) | The supplier-level test badge is consistently rendered. The package-level `package-card-badge-test` uses inline CSS rather than the shared `badges.css` class. |
-| **Distance** | None (text only) | `.badge-distance`<br>`.sp-badge.sp-badge--distance` (suppliers browse) | `badges.css (.badge-distance)`: blue `#e0f2fe / #0369a1`, pill shape (`border-radius:9999px`)<br>`suppliers-page.css (.sp-badge--distance)`: grey `#f3f4f6 / #6b7280` | Supplier search results when geo-distance data is available | `suppliers-init.js` | ⚠️ **Color inconsistency**: `badges.css` uses a blue color scheme while `suppliers-page.css` renders this as a neutral grey. The two classes target the same semantic badge. |
-| **Tier Icon (Inline)** | `⭐` for Pro (HTML emoji)<br>`💎` for Pro Plus (HTML emoji) | `.tier-icon` (base)<br>`.tier-icon-pro` (Pro)<br>`.tier-icon-pro-plus` (Pro Plus) | `badges.css (.tier-icon-pro)`: `color: #d97706`<br>`badges.css (.tier-icon-pro-plus)`: `color: #7c3aed` | Anywhere a supplier name is displayed inline (messages, cards, package list breadcrumbs) | `verification-badges.js` (`renderTierIcon()`) — also referenced as `EFTierIcon` helper in `suppliers-init.js` and `package-list.js` | Renders as a single inline `<span>` next to the supplier name, not a full badge pill. Consistent styling; no known conflicts. |
-| **Admin Tier Badge (Pro)** | None (text only) | `.tier-badge.tier-badge--pro` | `admin.css`: blue gradient `#2563eb→#3b82f6`, text `#fff` | Admin support-tickets page | `admin-tickets-init.js` (`getTierBadgeHtml()`) | Admin-only. Intentionally blue (different from supplier-facing gold) to distinguish admin context. |
-| **Admin Tier Badge (Pro Plus)** | None (text only) | `.tier-badge.tier-badge--pro_plus` | `admin.css`: purple gradient `#7c3aed→#a855f7`, text `#fff` | Admin support-tickets page | `admin-tickets-init.js` (`getTierBadgeHtml()`) | Admin-only. Purple aligns with `badges.css` modern Pro Plus color, but has no `::before` icon. |
-| **Admin Tier Badge (Free)** | None (text only) | `.tier-badge.tier-badge--free` | `admin.css`: grey gradient `#6b7280→#9ca3af`, text `#fff` | Admin support-tickets page | `admin-tickets-init.js` (`getTierBadgeHtml()`) | Admin-only. No equivalent supplier-facing "Free" badge exists. |
-| **Legacy Pro Ribbon Badge** | `⭐` (CSS `::before` in `subscription.css`) | `.supplier-badge.pro` (subscription/profile context)<br>`.subscription-badge.pro` (subscription page header) | `subscription.css (.supplier-badge.pro)`: purple gradient `#667eea→#764ba2`<br>`subscription.css (.subscription-badge.pro)`: purple gradient `#667eea→#764ba2`<br>`styles.css (.supplier-badge.pro)`: green gradient `#0B8073→#13B6A2` | Supplier dashboard subscription card, subscription management page | `feature-access.js` (`getSupplierBadgeHtml()` returns `"Pro"`) | ⚠️ **Legacy class still active**: `BADGE_LIFECYCLE.md` references these classes as the canonical implementation, but the modern system uses `.badge-pro`. Both exist simultaneously with different colors. |
-| **Legacy Pro Plus Ribbon Badge** | `👑` (CSS `::before`) | `.supplier-badge.pro_plus` (subscription/profile context)<br>`.subscription-badge.pro_plus` (subscription page header)<br>`.pro-plus-badge` (old dashboard) | `subscription.css (.supplier-badge.pro_plus)`: pink gradient `#f093fb→#f5576c`<br>`subscription.css (.subscription-badge.pro_plus)`: pink gradient `#f093fb→#f5576c`<br>`styles.css (.supplier-badge.pro_plus)`: pink gradient `#f093fb→#f5576c`<br>`styles.css (.pro-plus-badge)`: pink gradient `#f093fb→#f5576c` | Supplier dashboard subscription card, subscription management page | `feature-access.js` (`getSupplierBadgeHtml()` returns `"Pro+"`) | ⚠️ **Legacy class still active**: renders `"Pro+"` text (not `"Pro Plus"` or `"Professional Plus"`). Pink color conflicts with modern purple in `badges.css`. |
+| Badge Name                          | Visual / Icon             | CSS Class                          | Colours                                                  | Pages Used On                                                                                                                                                |
+| ----------------------------------- | ------------------------- | ---------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Starter** _(free tier)_           | `◆ Starter`               | `.badge-starter`                   | Background `#f1f5f9` · text `#475569` · border `#cbd5e1` | Supplier profile (`supplier.html`), search results (`index.html`), suppliers browse (`suppliers.html`), supplier cards, package listings, supplier dashboard |
+| **Pro**                             | `⭐ Pro`                  | `.badge-pro`                       | Gold gradient `#f59e0b → #d97706` · text `#78350f`       | Supplier profile, search results, suppliers browse, supplier cards, package listings, supplier dashboard, admin support tickets                              |
+| **Pro Plus**                        | `💎 Pro Plus`             | `.badge-pro-plus`                  | Purple gradient `#7c3aed → #5b21b6` · text `#ffffff`     | Supplier profile, search results, suppliers browse, supplier cards, package listings, supplier dashboard, admin support tickets                              |
+| **Founding Supplier**               | `⭐ Founding Supplier`    | `.badge-founding`                  | Gold gradient `#fbbf24 → #f59e0b` · text `#78350f`       | Supplier profile, search results, suppliers browse, supplier cards, package listings, supplier dashboard                                                     |
+| **Featured**                        | `★ Featured`              | `.badge-featured`                  | Purple gradient `#a78bfa → #8b5cf6` · text `#ffffff`     | Supplier profile, search results, suppliers browse, supplier cards, package listings                                                                         |
+| **Email Verified**                  | `✓ Email Verified`        | `.badge-email-verified`            | Background `#dbeafe` · text `#1e40af` · border `#3b82f6` | Supplier profile, search results, suppliers browse, supplier cards, package listings                                                                         |
+| **Phone Verified**                  | `✓ Phone Verified`        | `.badge-phone-verified`            | Background `#d1fae5` · text `#065f46` · border `#10b981` | Supplier profile, search results, suppliers browse, supplier cards, package listings                                                                         |
+| **Business Verified**               | `✓ Business Verified`     | `.badge-business-verified`         | Background `#e0e7ff` · text `#3730a3` · border `#6366f1` | Supplier profile, search results, suppliers browse, supplier cards, package listings                                                                         |
+| **Verified** _(review / legacy)_    | `✓ Verified Customer`     | `.badge-verified`                  | Background `#d1fae5` · text `#065f46` · border `#10b981` | Review cards (verified customer), legacy supplier verified fallback                                                                                          |
+| **Supplier** _(review card)_        | `🏢 Supplier`             | `.badge-supplier`                  | Indigo gradient `#6366f1 → #4f46e5` · text `#ffffff`     | Review cards when the reviewer is a supplier                                                                                                                 |
+| **Fast Responder** _(auto-awarded)_ | `⚡ Fast Responder`       | `.badge-fast-responder`            | Amber gradient `#fef3c7 → #fde68a` · text `#92400e`      | Supplier profile badges section                                                                                                                              |
+| **Top Rated** _(auto-awarded)_      | `🌟 Top Rated`            | `.badge-top-rated`                 | Yellow gradient `#fef9c3 → #fde047` · text `#713f12`     | Supplier profile badges section                                                                                                                              |
+| **Expert** _(auto-awarded)_         | `🎓 Expert`               | `.badge-expert`                    | Purple gradient `#ede9fe → #c4b5fd` · text `#4c1d95`     | Supplier profile badges section                                                                                                                              |
+| **Test Data**                       | `🧪 Test data`            | `.badge-test-data`                 | Background `#fef3c7` · text `#92400e` · border `#f59e0b` | Supplier cards and package cards when `isTest = true`                                                                                                        |
+| **Distance**                        | `0.5 mi` _(dynamic text)_ | `.badge-distance`                  | Background `#e0f2fe` · text `#0369a1` (pill shape)       | Supplier search results when geo-distance API data is returned                                                                                               |
+| **Tier Icon — Pro**                 | `⭐` _(inline span)_      | `.tier-icon.tier-icon-pro`         | Color `#d97706`                                          | Inline beside supplier name in messages, cards, package breadcrumbs                                                                                          |
+| **Tier Icon — Pro Plus**            | `💎` _(inline span)_      | `.tier-icon.tier-icon-pro-plus`    | Color `#7c3aed`                                          | Inline beside supplier name in messages, cards, package breadcrumbs                                                                                          |
+| **Admin Tier — Free**               | `Free`                    | `.tier-badge.tier-badge--free`     | Grey gradient `#6b7280 → #9ca3af` · text `#fff`          | Admin support-tickets page only                                                                                                                              |
+| **Admin Tier — Pro**                | `Pro Plus`                | `.tier-badge.tier-badge--pro`      | Blue gradient `#2563eb → #3b82f6` · text `#fff`          | Admin support-tickets page only                                                                                                                              |
+| **Admin Tier — Pro Plus**           | `Pro Plus`                | `.tier-badge.tier-badge--pro_plus` | Purple gradient `#7c3aed → #a855f7` · text `#fff`        | Admin support-tickets page only                                                                                                                              |
 
 ---
 
-## 2. Inconsistencies Summary
+### Badge Visual Previews
 
-### 2.1 Color Inconsistencies
+The table below shows representative HTML + inline style previews for the primary supplier-facing badges. Screenshots can be generated by opening the `/supplier` profile page locally with appropriate test data.
 
-| Badge | File A | Color A | File B | Color B |
-|---|---|---|---|---|
-| **Pro** | `badges.css` | Gold gradient `#f59e0b→#d97706` | `components.css` | Flat blue `#e3f2fd / #1565c0` |
-| **Pro** | `badges.css` | Gold gradient | `styles.css (.supplier-badge.pro)` | Green gradient `#0B8073→#13B6A2` |
-| **Pro** | `badges.css` | Gold gradient | `subscription.css (.supplier-badge.pro)` | Purple gradient `#667eea→#764ba2` |
-| **Pro Plus** | `badges.css` | Purple gradient `#7c3aed→#5b21b6` | `styles.css / subscription.css` | Pink gradient `#f093fb→#f5576c` |
-| **Featured** | `badges.css` | Purple gradient `#a78bfa→#8b5cf6` | `components.css` | Flat orange `#fff3e0 / #e65100` |
-| **Distance** | `badges.css` | Blue `#e0f2fe / #0369a1` | `suppliers-page.css (.sp-badge--distance)` | Grey `#f3f4f6 / #6b7280` |
-| **Verified** | `components.css` | Green `#e8f5e9 / #2e7d32` | `supplier-profile.css` hero | `rgba(16,185,129,0.92)` white text |
-
-### 2.2 Naming / Text Inconsistencies
-
-| Badge | Renderer | Text Shown |
-|---|---|---|
-| **Pro** | `verification-badges.js` | `"Pro"` |
-| **Pro** | `app.js`, `supplier-card.js` | `"Professional"` |
-| **Pro** | `suppliers-init.js`, `package-list.js` | `"Pro"` |
-| **Pro** | `feature-access.js` (legacy) | `"Pro"` |
-| **Pro Plus** | `verification-badges.js`, `package-list.js` | `"Pro Plus"` |
-| **Pro Plus** | `app.js`, `supplier-card.js` | `"Professional Plus"` |
-| **Pro Plus** | `suppliers-init.js` | `"✦ Pro Plus"` |
-| **Pro Plus** | `feature-access.js` (legacy) | `"Pro+"` |
-| **Email Verified** | `app.js`, `supplier-card.js` | `"Email Verified"` |
-| **Email Verified** | `verification-badges.js` | `"Email"` (with FA icon) |
-| **Email Verified** | `suppliers-init.js`, `package-list.js` | `"✓ Email"` |
-| **Email Verified** | `app.js` (legacy fallback) | `"Verified"` (wrong class context) |
-| **Phone Verified** | `app.js`, `supplier-card.js` | `"Phone Verified"` |
-| **Phone Verified** | `verification-badges.js` | `"Phone"` (with FA icon) |
-| **Phone Verified** | `suppliers-init.js`, `package-list.js` | `"✓ Phone"` |
-| **Business Verified** | `app.js`, `supplier-card.js` | `"Business Verified"` |
-| **Business Verified** | `verification-badges.js` | `"Business"` (with FA icon) |
-| **Business Verified** | `suppliers-init.js`, `package-list.js` | `"✓ Business"` |
-
-### 2.3 Icon Inconsistencies
-
-| Badge | Source | Icon Used |
-|---|---|---|
-| **Founding Supplier** | `badges.css` (`::before`) | `⭐` |
-| **Founding Supplier** | `verification-badges.js` (HTML) | `<i class="fas fa-crown">` (Font Awesome crown) |
-| **Founding Supplier** | `app.js` (inline HTML) | `⭐` emoji in text |
-| **Founding Supplier** | `suppliers-init.js` (inline HTML) | `⭐` emoji in text |
-| **Founding Supplier** | `supplier-card.js` | None (plain text `"Founding Supplier"`) |
-| **Founding Supplier** | `package-list.js` | None (plain text `"Founding"`) |
-| **Founding Supplier** | `badgeManagement.js` (server definition) | `🏆` (trophy emoji, color `#DC2626`) |
-| **Pro Plus** | `badges.css` (`::before`) | `💎` |
-| **Pro Plus** | `styles.css` / `subscription.css` (`::before`) | `👑` |
-| **Expert** | `badges.css` (`::before`) | `🎓` |
-| **Expert** | `badgeManagement.js` (server definition) | `👨‍🎓` |
-
-### 2.4 Duplicate / Conflicting Rendering Logic
-
-1. **Featured badge in `supplier-card.js`**: The `renderBadges()` method pushes a Featured badge when `tier === 'featured'` **and also** when `supplier.featured === true` (a separate boolean field). If a supplier has both `subscription.tier = 'featured'` and `featured = true`, two Featured badges render simultaneously.
-
-2. **Featured as tier vs boolean**: `lead-quality-helper.js` and `app.js` treat `featured` as a `subscriptionTier` string value. `verification-badges.js` treats it as a separate `supplier.featured` / `supplier.featuredSupplier` boolean, independent of tier. This leads to inconsistent behavior depending on which renderer handles the supplier object.
-
-3. **`app.js` duplicate badge area**: `app.js` has two separate badge-rendering code paths — one in `supplierCard()` (the main search result card, lines ~563–605) and another in a secondary listing builder (around line ~2931–2995). Both emit slightly different badge HTML for the same badge types.
-
-### 2.5 Legacy vs Modern CSS Classes
-
-| Modern Class | Legacy Class(es) | Where Legacy Is Still Used |
-|---|---|---|
-| `.badge-pro` | `.supplier-badge.pro`, `.pro-badge` | `feature-access.js` (`getSupplierBadgeHtml()`), `styles.css` profile area |
-| `.badge-pro-plus` | `.supplier-badge.pro_plus`, `.pro-plus-badge` | `feature-access.js` (`getSupplierBadgeHtml()`), `styles.css` profile area |
-| `.badge-pro`, `.badge-pro-plus` | `.subscription-badge.pro`, `.subscription-badge.pro_plus` | `subscription.css` subscription management page |
-
-`docs/history/BADGE_LIFECYCLE.md` explicitly documents `.supplier-badge.pro` / `.supplier-badge.pro_plus` as the canonical badge CSS classes, but the codebase has since migrated the primary rendering to `.badge-pro` / `.badge-pro-plus` (in `badges.css`). The lifecycle document is **out of date**.
-
-### 2.6 Missing Pro Plus Handling
-
-`getSupplierBadges()` in `public/assets/js/utils/lead-quality-helper.js` has the following branch:
-
-```js
-if (supplier.subscription.tier === 'featured') { … }
-else if (supplier.subscription.tier === 'pro') { … }
-// ← no 'pro_plus' branch
-```
-
-Pro Plus suppliers receive no subscription-tier badge from this function. The gap affects any page that uses `lead-quality-helper` to build supplier badge HTML.
-
-### 2.7 CSS Specificity / Load-order Conflict
-
-`.badge-pro` is defined in both `badges.css` (gold gradient) and `components.css` (flat blue). The winner depends entirely on which `<link>` element appears last in the HTML `<head>`. No `!important` rule resolves the conflict, making the final appearance non-deterministic across pages that load both files.
-
-The same applies to `.badge-featured` (`badges.css` purple vs `components.css` flat orange).
-
-### 2.8 Badge ID Spelling Mismatch
-
-The server-side `auth.service.js` awards badge ID `'founder'` (no trailing `ing`). The rest of the codebase checks for `supplier.badges.includes('founding')` (with `ing`). A supplier registered via the auth flow will receive badge ID `'founder'` but most front-end renderers test for `'founding'`, so the founding badge may silently fail to render for newly-registered founding suppliers.
+| Badge             | Preview HTML                                                             |
+| ----------------- | ------------------------------------------------------------------------ |
+| Starter           | `<span class="badge badge-starter">◆ Starter</span>`                     |
+| Pro               | `<span class="badge badge-pro">⭐ Pro</span>`                            |
+| Pro Plus          | `<span class="badge badge-pro-plus">💎 Pro Plus</span>`                  |
+| Founding Supplier | `<span class="badge badge-founding">⭐ Founding Supplier</span>`         |
+| Featured          | `<span class="badge badge-featured">★ Featured</span>`                   |
+| Email Verified    | `<span class="badge badge-email-verified">✓ Email Verified</span>`       |
+| Phone Verified    | `<span class="badge badge-phone-verified">✓ Phone Verified</span>`       |
+| Business Verified | `<span class="badge badge-business-verified">✓ Business Verified</span>` |
+| Verified          | `<span class="badge badge-verified">✓ Verified Customer</span>`          |
+| Supplier          | `<span class="badge badge-supplier">🏢 Supplier</span>`                  |
+| Fast Responder    | `<span class="badge badge-fast-responder">⚡ Fast Responder</span>`      |
+| Top Rated         | `<span class="badge badge-top-rated">🌟 Top Rated</span>`                |
+| Expert            | `<span class="badge badge-expert">🎓 Expert</span>`                      |
+| Test Data         | `<span class="badge badge-test-data">🧪 Test data</span>`                |
+| Distance          | `<span class="badge badge-distance">0.5 mi</span>`                       |
 
 ---
 
-## 3. Recommendations
+## 2. Changes Made
 
-### 3.1 Consolidate Badge CSS into a Single Source of Truth
+This document replaces `docs/history/BADGE_LIFECYCLE.md` as the canonical badge reference. The following inconsistencies were resolved in April 2026:
 
-Remove or alias badge style overrides from `components.css` (`.badge-pro`, `.badge-featured`, `.badge-verified`) and `styles.css` (`.supplier-badge.*`, `.pro-badge`, `.pro-plus-badge`). Route all badge rendering through the modern classes in `badges.css`. Keep the legacy selectors as aliases (same declaration block) until all render sites are updated, then remove them.
+### 2.1 New Badge: Starter
 
-### 3.2 Standardise Badge Text Labels
+Added `.badge-starter` for free-tier suppliers. All pages that previously showed no tier badge for free suppliers now show "Starter". This covers:
 
-Pick one canonical text per badge and apply it everywhere:
+- `verification-badges.js` → `renderVerificationBadges()`
+- `supplier-card.js` → `renderBadges()`
+- `app.js` → `supplierCard()` and the dashboard supplier listing
+- `suppliers-init.js` → `createSupplierCard()`
+- `package-list.js` → supplier mini-badge
+- `lead-quality-helper.js` → `getSupplierBadges()`
+- `feature-access.js` → `getSupplierBadgeHtml()`
 
-| Badge | Recommended Text |
-|---|---|
-| Pro | `Pro` |
-| Pro Plus | `Pro Plus` |
-| Founding Supplier | `Founding Supplier` |
-| Email Verified | `Email Verified` |
-| Phone Verified | `Phone Verified` |
-| Business Verified | `Business Verified` |
+### 2.2 Colour Consolidation
 
-Update `app.js`, `supplier-card.js`, and any other renderer that currently outputs `"Professional"` or `"Professional Plus"`.
+| Badge                  | Old (inconsistent)                                    | New (canonical)                                               |
+| ---------------------- | ----------------------------------------------------- | ------------------------------------------------------------- |
+| **Pro**                | 4 different schemes: gold / blue / green / purple     | Gold gradient `#f59e0b → #d97706` everywhere                  |
+| **Pro Plus**           | 2 different schemes: pink / purple                    | Purple gradient `#7c3aed → #5b21b6` everywhere                |
+| **Featured**           | Purple (badges.css) vs orange (components.css)        | Purple gradient `#a78bfa → #8b5cf6` everywhere                |
+| **Verified**           | Green (components.css) vs teal (supplier-profile.css) | Green `#d1fae5 / #065f46` as base; hero override remains teal |
+| **Distance**           | Grey (suppliers-page.css)                             | Blue `#e0f2fe / #0369a1` matching badges.css                  |
+| **sp-badge--pro**      | Blue `#dbeafe / #1d4ed8`                              | Warm gold `#fef3c7 / #92400e` to match Pro identity           |
+| **sp-badge--pro-plus** | Light purple                                          | Deep purple `#ede9fe / #5b21b6` to match Pro Plus identity    |
 
-### 3.3 Standardise Founding Supplier Icon
+### 2.3 Text Label Standardisation
 
-Choose one icon (the current `badges.css` `::before: ⭐` is the least disruptive since it applies automatically) and remove the inline crown `<i>` in `verification-badges.js` and the inline `⭐` in `app.js` / `suppliers-init.js`. Update the server-side badge definition (`badgeManagement.js`) to reflect the chosen icon.
+All renderers now use:
 
-### 3.4 Fix the `'founder'` vs `'founding'` ID Mismatch
+| Badge             | Canonical text                                                     |
+| ----------------- | ------------------------------------------------------------------ |
+| Starter           | `Starter`                                                          |
+| Pro               | `Pro`                                                              |
+| Pro Plus          | `Pro Plus`                                                         |
+| Founding Supplier | `Founding Supplier`                                                |
+| Featured          | `Featured`                                                         |
+| Email Verified    | `Email Verified` (full badge) / `✓ Email` (sp-badge compact)       |
+| Phone Verified    | `Phone Verified` (full badge) / `✓ Phone` (sp-badge compact)       |
+| Business Verified | `Business Verified` (full badge) / `✓ Business` (sp-badge compact) |
 
-Change `auth.service.js` to push `'founding'` into the badges array (matching every front-end check), or add a normalisation step in the API layer that maps `'founder'` → `'founding'` before the supplier object reaches the client.
+Previously: "Professional", "Professional Plus", "Pro+", "✦ Pro Plus" were all in use simultaneously.
 
-### 3.5 Fix the Featured Duplicate Render in `supplier-card.js`
+### 2.4 Icon Standardisation
 
-In `renderBadges()`, collapse the two Featured checks into one:
+**Founding Supplier badge:**
 
-```js
-// Before (buggy):
-if (tier === 'featured') { badges.push(…Featured…); }
-if (supplier.featured || supplier.featuredSupplier) { badges.push(…⭐ Featured…); }
+| Before                     | File                                  |
+| -------------------------- | ------------------------------------- |
+| `<i class="fas fa-crown">` | `verification-badges.js`              |
+| `⭐` inline text           | `app.js`, `suppliers-init.js`         |
+| _(no icon)_                | `supplier-card.js`, `package-list.js` |
+| `🏆` (server definition)   | `badgeManagement.js`                  |
 
-// After:
-const isFeatured = tier === 'featured' || supplier.featured || supplier.featuredSupplier;
-if (isFeatured) { badges.push('<span class="badge badge-featured">Featured</span>'); }
-```
+**After:** CSS `::before { content: '⭐' }` from `badges.css` handles the icon consistently for all renderers. No renderer inlines a competing icon.
 
-### 3.6 Add Pro Plus to `lead-quality-helper.js`
+**Pro Plus icon:**
 
-```js
-} else if (supplier.subscription.tier === 'pro_plus') {
-  badges.push('<span class="badge badge-pro-plus">Pro Plus</span>');
-}
-```
+| Before          | File                                              |
+| --------------- | ------------------------------------------------- |
+| `👑` `::before` | `styles.css`, `subscription.css` (legacy classes) |
+| `💎` `::before` | `badges.css` (modern class)                       |
 
-### 3.7 Migrate `feature-access.js` to Modern CSS Classes
+**After:** All legacy `.supplier-badge.pro_plus` now use `💎` `::before` to match `.badge-pro-plus`.
 
-Replace the two legacy selectors in `getSupplierBadgeHtml()`:
+### 2.5 Duplicate Featured Badge Fixed
 
-```js
-// Old:
-return '<span class="supplier-badge pro">Pro</span>';
-return '<span class="supplier-badge pro_plus">Pro+</span>';
+`supplier-card.js` previously pushed a Featured badge twice — once from the tier check (`tier === 'featured'`) and once from the boolean check (`supplier.featured`). Both paths are now merged into a single `isFeatured` check.
 
-// New:
-return '<span class="badge badge-pro">Pro</span>';
-return '<span class="badge badge-pro-plus">Pro Plus</span>';
-```
+### 2.6 Missing Pro Plus Fixed
 
-Then remove `.supplier-badge.pro` and `.supplier-badge.pro_plus` from `styles.css` and `subscription.css` once confirmed unused.
+`lead-quality-helper.js → getSupplierBadges()` previously had no `pro_plus` branch, silently omitting the tier badge. Fixed with a proper `pro_plus` check using the same tier-resolution pattern as other renderers.
 
-### 3.8 Update `docs/history/BADGE_LIFECYCLE.md`
+### 2.7 Badge ID Mismatch Fixed
 
-The document references `.supplier-badge.pro` / `.supplier-badge.pro_plus` as the canonical classes and omits all the earned badges, verification badges, and the `badgeDetails` server model. Either update it to reflect the current system or archive it and link to this audit.
+`auth.service.js → _checkFounderBadge()` was pushing `'founder'` into the badges array. All front-end renderers check for `'founding'`. Fixed: now pushes `'founding'`, and all renderers also accept both IDs as a safety net.
 
-### 3.9 Distance Badge — Align Color Across CSS Files
+### 2.8 Legacy Classes Aligned
 
-Decide on a single color scheme for `.badge-distance` / `.sp-badge--distance` and apply it consistently in both `badges.css` and `suppliers-page.css`.
+The legacy classes (`.supplier-badge.pro`, `.supplier-badge.pro_plus`, `.pro-badge`, `.pro-plus-badge`, `.subscription-badge.pro`, `.subscription-badge.pro_plus`) in `styles.css` and `subscription.css` now use the same canonical colours as the modern `.badge-pro` / `.badge-pro-plus` classes.
 
-### 3.10 Centralise Badge Rendering
+### 2.9 CSS Conflict in `components.css` Removed
 
-Consider routing all badge rendering through `verification-badges.js` (`renderVerificationBadges()`) by having `app.js`, `supplier-card.js`, `suppliers-init.js`, and `package-list.js` import and call it rather than each maintaining their own badge-building logic. This ensures text, icons, and classes stay consistent automatically.
+`.badge-pro` (blue), `.badge-featured` (orange), and `.badge-verified` (different green) were redefined in `components.css`, causing load-order conflicts with `badges.css`. These conflicting overrides have been removed; `badges.css` is now the sole source of truth for badge colours.
+
+---
+
+## 3. Implementation Notes
+
+### CSS Source of Truth
+
+All badge base styles live in `public/assets/css/badges.css`. Do **not** redefine badge colours elsewhere.
+
+The only permitted overrides are in `supplier-profile.css` under `.hero-badges .badge-*` — these apply backdrop-blur and alpha transparency when badges sit on top of the profile banner image.
+
+### JS Source of Truth
+
+All multi-page badge rendering should go through `public/assets/js/utils/verification-badges.js` (`renderVerificationBadges()`). Page-specific renderers (`app.js`, `supplier-card.js`, `suppliers-init.js`, `package-list.js`) maintain their own badge-building for performance reasons but must be kept in sync.
+
+### Tier Resolution
+
+All JS files resolve the subscription tier using this priority order:
+
+1. `supplier.subscriptionTier` (new field)
+2. `supplier.subscription.tier` (nested object)
+3. `supplier.isPro === true` → `'pro'` (legacy boolean)
+4. Fall through → `'free'` (renders Starter badge)
+
+### Earned Badges (Fast Responder, Top Rated, Expert)
+
+These are auto-awarded server-side by `utils/badgeManagement.js` based on performance criteria. They appear in `supplier.badgeDetails[]` and are rendered by `verification-badges.js`. They do not appear in compact card/search contexts — only on the full supplier profile page.
+
+### Admin Tier Badges
+
+`.tier-badge--pro`, `.tier-badge--pro_plus`, `.tier-badge--free` in `admin.css` are intentionally different (blue for Pro, grey for Free) to visually distinguish the admin view from supplier-facing badges. These are rendered only in `admin-tickets-init.js`.
+
+### Suppliers Browse Page (`.sp-badge`)
+
+The suppliers browse page (`suppliers.html`) uses the compact `.sp-badge` system from `suppliers-page.css`. These are smaller pills (10px font, 4px radius) rendered inside `.sp-card-badges`. They carry both their own `sp-badge--*` class and the corresponding `badge-*` class so `badges.css` icon pseudo-elements apply.
