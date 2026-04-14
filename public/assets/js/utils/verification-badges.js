@@ -56,13 +56,14 @@ export function renderVerificationBadges(supplier, options = {}) {
   const badges = [];
 
   // Priority 1: Founding Supplier Badge
-  if (supplier.isFoundingSupplier || supplier.isFounding || supplier.founding) {
+  if (supplier.isFoundingSupplier || supplier.isFounding || supplier.founding ||
+      (supplier.badges && (supplier.badges.includes('founding') || supplier.badges.includes('founder')))) {
     badges.push({
       html: `<span class="badge badge-founding ${size === 'small' ? 'badge-sm' : ''}" 
                    title="Founding Supplier - One of our first partners" 
                    role="status"
                    aria-label="Founding supplier">
-               <i class="fas fa-crown" aria-hidden="true"></i> Founding
+               Founding Supplier
              </span>`,
       priority: 1,
     });
@@ -73,7 +74,7 @@ export function renderVerificationBadges(supplier, options = {}) {
   if (tier === 'pro_plus') {
     badges.push({
       html: `<span class="badge badge-pro-plus ${size === 'small' ? 'badge-sm' : ''}" 
-                   title="Professional Plus — Premium subscription" 
+                   title="Pro Plus — Premium subscription" 
                    role="status"
                    aria-label="Pro Plus subscriber">
                Pro Plus
@@ -83,10 +84,21 @@ export function renderVerificationBadges(supplier, options = {}) {
   } else if (tier === 'pro') {
     badges.push({
       html: `<span class="badge badge-pro ${size === 'small' ? 'badge-sm' : ''}" 
-                   title="Professional — Enhanced subscription" 
+                   title="Pro — Enhanced subscription" 
                    role="status"
                    aria-label="Pro subscriber">
                Pro
+             </span>`,
+      priority: 2,
+    });
+  } else {
+    // Free tier — show Starter badge
+    badges.push({
+      html: `<span class="badge badge-starter ${size === 'small' ? 'badge-sm' : ''}" 
+                   title="Starter — Free plan" 
+                   role="status"
+                   aria-label="Starter plan">
+               Starter
              </span>`,
       priority: 2,
     });
@@ -116,7 +128,7 @@ export function renderVerificationBadges(supplier, options = {}) {
   if (Array.isArray(supplier.badgeDetails) && supplier.badgeDetails.length > 0) {
     supplier.badgeDetails.forEach(badge => {
       // Skip tier / founder / featured / verification badges — rendered elsewhere
-      const skipTypes = ['pro', 'pro-plus', 'founder', 'verified', 'featured'];
+      const skipTypes = ['pro', 'pro-plus', 'founder', 'founding', 'verified', 'featured'];
       if (skipTypes.includes(badge.type)) {
         return;
       }

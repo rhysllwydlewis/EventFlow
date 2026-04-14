@@ -384,8 +384,8 @@ class AuthService {
     const now = new Date();
     const badges = [];
     if (now <= founderEndDate) {
-      badges.push('founder');
-      logger.info(`Founder badge awarded to ${email}`);
+      badges.push('founding');
+      logger.info(`Founding badge awarded to ${email}`);
     }
     return badges;
   }

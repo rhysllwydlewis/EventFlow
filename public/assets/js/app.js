@@ -572,7 +572,7 @@ function supplierCard(s, user) {
   if (s.isFounding || (s.badges && s.badges.includes('founding'))) {
     const yearLabel = s.foundingYear ? ` (${escapeHtml(String(s.foundingYear))})` : '';
     supplierBadges.push(
-      `<span class="badge badge-founding" title="Founding Supplier - Original member since 2024">⭐ Founding${yearLabel}</span>`
+      `<span class="badge badge-founding" title="Founding Supplier - Original member since 2024">⭐ Founding Supplier${yearLabel}</span>`
     );
   }
 
@@ -585,9 +585,11 @@ function supplierCard(s, user) {
   if (tier === 'featured') {
     supplierBadges.push('<span class="badge badge-featured">Featured</span>');
   } else if (tier === 'pro_plus') {
-    supplierBadges.push('<span class="badge badge-pro-plus">Professional Plus</span>');
+    supplierBadges.push('<span class="badge badge-pro-plus">Pro Plus</span>');
   } else if (tier === 'pro') {
-    supplierBadges.push('<span class="badge badge-pro">Professional</span>');
+    supplierBadges.push('<span class="badge badge-pro">Pro</span>');
+  } else {
+    supplierBadges.push('<span class="badge badge-starter">Starter</span>');
   }
 
   // Verification badges
@@ -2937,9 +2939,11 @@ async function initDashSupplier() {
             (s.isPro || s.pro ? 'pro' : null);
 
           if (tier === 'pro_plus') {
-            proBadge = '<span class="badge badge-pro-plus">Professional Plus</span>';
+            proBadge = '<span class="badge badge-pro-plus">Pro Plus</span>';
           } else if (tier === 'pro') {
-            proBadge = '<span class="badge badge-pro">Professional</span>';
+            proBadge = '<span class="badge badge-pro">Pro</span>';
+          } else {
+            proBadge = '<span class="badge badge-starter">Starter</span>';
           }
 
           // Calculate profile completeness checklist with safe property access

@@ -497,9 +497,9 @@
   // Get subscription badge HTML
   function getSubscriptionBadge(tier) {
     const badges = {
-      free: '<span class="subscription-badge badge-free">FREE</span>',
-      pro: '<span class="subscription-badge badge-pro">PRO</span>',
-      pro_plus: '<span class="subscription-badge badge-pro-plus">PRO+</span>',
+      free: '<span class="badge badge-starter">Starter</span>',
+      pro: '<span class="badge badge-pro">Pro</span>',
+      pro_plus: '<span class="badge badge-pro-plus">Pro Plus</span>',
     };
     return badges[tier] || badges.free;
   }

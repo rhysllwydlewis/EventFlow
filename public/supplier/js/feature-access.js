@@ -406,19 +406,16 @@ export function displayPackageLimitNotice(container, currentCount) {
 export function getSupplierBadgeHtml(tier = null) {
   const t = tier || currentSupplierTier;
 
-  if (t === 'free') {
-    return '';
+  if (t === 'pro_plus') {
+    return '<span class="badge badge-pro-plus">Pro Plus</span>';
   }
 
   if (t === 'pro') {
-    return '<span class="supplier-badge pro">Pro</span>';
+    return '<span class="badge badge-pro">Pro</span>';
   }
 
-  if (t === 'pro_plus') {
-    return '<span class="supplier-badge pro_plus">Pro+</span>';
-  }
-
-  return '';
+  // Free / Starter tier
+  return '<span class="badge badge-starter">Starter</span>';
 }
 
 /**

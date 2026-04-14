@@ -2782,20 +2782,8 @@
   font-weight: 500;
 }
 
-.badge-verified {
-  background: #e8f5e9;
-  color: #2e7d32;
-}
-
-.badge-pro {
-  background: #e3f2fd;
-  color: #1565c0;
-}
-
-.badge-featured {
-  background: #fff3e0;
-  color: #e65100;
-}
+/* Badge overrides — defer to badges.css canonical definitions */
+/* .badge-verified, .badge-pro, .badge-featured are fully defined in badges.css */
 
 .supplier-card-price {
   font-size: 16px;

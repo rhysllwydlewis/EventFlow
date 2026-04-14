@@ -504,6 +504,10 @@ class PackageList {
         supplierBadges.push(
           '<span class="badge badge-pro" style="font-size: 0.65rem; padding: 2px 6px;">Pro</span>'
         );
+      } else {
+        supplierBadges.push(
+          '<span class="badge badge-starter" style="font-size: 0.65rem; padding: 2px 6px;">Starter</span>'
+        );
       }
 
       // Verification badges

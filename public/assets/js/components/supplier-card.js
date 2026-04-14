@@ -241,7 +241,8 @@ class SupplierCard {
     }
 
     // Founding supplier badge (check both founding and isFounding properties)
-    if (this.supplier.isFounding || this.supplier.founding) {
+    if (this.supplier.isFounding || this.supplier.founding ||
+        (this.supplier.badges && (this.supplier.badges.includes('founding') || this.supplier.badges.includes('founder')))) {
       badges.push('<span class="badge badge-founding">Founding Supplier</span>');
     }
 
@@ -252,17 +253,16 @@ class SupplierCard {
       this.supplier.subscription?.tier ||
       (this.supplier.isPro ? 'pro' : null);
 
-    if (tier === 'featured') {
+    const isFeatured = tier === 'featured' || this.supplier.featured || this.supplier.featuredSupplier;
+
+    if (isFeatured) {
       badges.push('<span class="badge badge-featured">Featured</span>');
     } else if (tier === 'pro_plus') {
-      badges.push('<span class="badge badge-pro-plus">Professional Plus</span>');
+      badges.push('<span class="badge badge-pro-plus">Pro Plus</span>');
     } else if (tier === 'pro') {
-      badges.push('<span class="badge badge-pro">Professional</span>');
-    }
-
-    // Featured supplier badge (check both featured boolean and featuredSupplier properties)
-    if (this.supplier.featured || this.supplier.featuredSupplier) {
-      badges.push('<span class="badge badge-featured">⭐ Featured</span>');
+      badges.push('<span class="badge badge-pro">Pro</span>');
+    } else {
+      badges.push('<span class="badge badge-starter">Starter</span>');
     }
 
     // Verification badges

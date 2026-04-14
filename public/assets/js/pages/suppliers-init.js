@@ -89,16 +89,18 @@ function createSupplierCard(supplier, position) {
       ? ` (${escapeHtml(String(supplier.foundingYear))})`
       : '';
     badges.push(
-      `<span class="sp-badge sp-badge--founding badge-founding" title="Founding Supplier - Original member since 2024">⭐ Founding${yearLabel}</span>`
+      `<span class="sp-badge sp-badge--founding badge-founding" title="Founding Supplier - Original member since 2024">⭐ Founding Supplier${yearLabel}</span>`
     );
   }
   if (supplier.verified || supplier.approved) {
     badges.push('<span class="sp-badge sp-badge--verified badge-verified">✓ Verified</span>');
   }
   if (tier === 'pro_plus') {
-    badges.push('<span class="sp-badge sp-badge--pro-plus">✦ Pro Plus</span>');
+    badges.push('<span class="sp-badge sp-badge--pro-plus">Pro Plus</span>');
   } else if (tier === 'pro') {
     badges.push('<span class="sp-badge sp-badge--pro">Pro</span>');
+  } else if (!supplier.featuredSupplier) {
+    badges.push('<span class="sp-badge sp-badge--starter">Starter</span>');
   }
   if (supplier.featuredSupplier) {
     badges.push('<span class="sp-badge sp-badge--featured">Featured</span>');

@@ -692,15 +692,21 @@
 }
 
 .sp-badge--pro {
-  background: #dbeafe;
-  color: #1d4ed8;
-  border-color: #bfdbfe;
+  background: #fef3c7;
+  color: #92400e;
+  border-color: #fde68a;
 }
 
 .sp-badge--pro-plus {
-  background: #f3e8ff;
-  color: #7c3aed;
-  border-color: #e9d5ff;
+  background: #ede9fe;
+  color: #5b21b6;
+  border-color: #c4b5fd;
+}
+
+.sp-badge--starter {
+  background: #f1f5f9;
+  color: #475569;
+  border-color: #cbd5e1;
 }
 
 .sp-badge--founding {
@@ -710,15 +716,15 @@
 }
 
 .sp-badge--featured {
-  background: #fff7ed;
-  color: #c2410c;
-  border-color: #fed7aa;
+  background: #ede9fe;
+  color: #6d28d9;
+  border-color: #c4b5fd;
 }
 
 .sp-badge--distance {
-  background: #f3f4f6;
-  color: #6b7280;
-  border-color: #e5e7eb;
+  background: #e0f2fe;
+  color: #0369a1;
+  border-color: #bae6fd;
 }
 
 .sp-badge--email {

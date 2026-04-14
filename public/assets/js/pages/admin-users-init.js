@@ -145,9 +145,9 @@
         if (subscription.tier === 'pro') {
           subscriptionBadge = '<span class="badge badge-pro">Pro</span>';
         } else if (subscription.tier === 'pro_plus') {
-          subscriptionBadge = '<span class="badge badge-pro-plus">Pro+</span>';
+          subscriptionBadge = '<span class="badge badge-pro-plus">Pro Plus</span>';
         } else {
-          subscriptionBadge = '<span class="badge badge-free">Free</span>';
+          subscriptionBadge = '<span class="badge badge-starter">Starter</span>';
         }
 
         const userId = escapeHtml(u.id || u._id || '');
@@ -694,12 +694,12 @@
    */
   function tierLabel(tier) {
     if (tier === 'pro_plus') {
-      return 'Pro+';
+      return 'Pro Plus';
     }
     if (tier === 'pro') {
       return 'Pro';
     }
-    return 'Free';
+    return 'Starter';
   }
 
   function openSubscriptionModal(userId) {
@@ -803,7 +803,7 @@
         <div class="${cardClass}">
           <div class="sub-status-top-row">
             <div class="sub-tier-info">
-              <span class="sub-tier-icon">${tier === 'pro_plus' ? '⭐' : tier === 'pro' ? '✦' : '○'}</span>
+              <span class="sub-tier-icon">${tier === 'pro_plus' ? '💎' : tier === 'pro' ? '⭐' : '◆'}</span>
               <span class="sub-tier-name">${escapeHtml(tLabel)}</span>
             </div>
             <span class="badge ${statusBadgeClass}">${escapeHtml(statusText)}</span>
@@ -1049,9 +1049,9 @@
     if (tier === 'pro') {
       badgeHtml = '<span class="badge badge-pro">Pro</span>';
     } else if (tier === 'pro_plus') {
-      badgeHtml = '<span class="badge badge-pro-plus">Pro+</span>';
+      badgeHtml = '<span class="badge badge-pro-plus">Pro Plus</span>';
     } else {
-      badgeHtml = '<span class="badge badge-free">Free</span>';
+      badgeHtml = '<span class="badge badge-starter">Starter</span>';
     }
     // Find the table row for this user and update the subscription cell (column index 4)
     const btn = document.querySelector(`[data-manage-subscription="${CSS.escape(userId)}"]`);

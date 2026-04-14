@@ -264,9 +264,9 @@ describe('Admin Regression — Subscription endpoint alignment (admin-suppliers-
     expect(suppliersInitContent).not.toContain('supplier.subscription?.tier === subscription');
   });
 
-  it('getSubscriptionBadge renders PRO+ badge with correct class', () => {
+  it('getSubscriptionBadge renders Pro Plus badge with correct class', () => {
     expect(suppliersInitContent).toContain('badge-pro-plus');
-    expect(suppliersInitContent).toContain('PRO+');
+    expect(suppliersInitContent).toContain('Pro Plus');
   });
 });
 
