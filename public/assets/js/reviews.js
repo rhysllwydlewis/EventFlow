@@ -1014,6 +1014,7 @@
           previewDiv.querySelector('.photo-preview-remove').addEventListener('click', e => {
             // Read index from the DOM at click time to avoid stale closure
             const idx = parseInt(e.currentTarget.dataset.index, 10);
+            if (isNaN(idx)) return;
             this._pendingPhotoFiles.splice(idx, 1);
             this.renderPhotoPreviews();
           });
@@ -1321,8 +1322,12 @@
       const counter = document.getElementById('lightbox-counter');
 
       const updateImage = () => {
-        // Set via DOM property — no HTML escaping needed; the src is a trusted server URL
-        img.src = photos[currentIndex];
+        // Validate that the URL is a trusted server path before assigning to src
+        const url = photos[currentIndex];
+        const isTrusted =
+          typeof url === 'string' &&
+          (url.startsWith('/api/photos/') || url.startsWith('/uploads/'));
+        img.src = isTrusted ? url : '';
         img.alt = `Review photo ${currentIndex + 1} of ${total}`;
         if (counter) counter.textContent = `${currentIndex + 1} / ${total}`;
       };
