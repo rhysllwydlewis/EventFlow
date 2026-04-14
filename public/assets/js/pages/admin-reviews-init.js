@@ -185,7 +185,7 @@
       const flagged = review.flagged ? ' <span class="badge badge-warning">Reported</span>' : '';
       const reportCount = Array.isArray(review.reports) ? review.reports.length : 0;
       const reportInfo = reportCount > 0
-        ? `<p class="small" style="color:#b45309;margin:0 0 8px;">⚑ ${reportCount} report${reportCount !== 1 ? 's' : ''} received — review this content and take action below.</p>`
+        ? `<p class="small" style="color:#b45309;margin:0 0 8px;">🚩 ${reportCount} report${reportCount !== 1 ? 's' : ''} received — review this content and take action below.</p>`
         : '';
 
       card.innerHTML =

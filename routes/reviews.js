@@ -950,12 +950,12 @@ router.post(
                 notifSvc.create({
                   userId: admin.id,
                   type: 'review_report',
-                  title: '⚑ Review Reported',
+                  title: '🚩 Review Reported',
                   message: `A review has been reported (reason: ${reason}). Please review and take action.`,
                   actionUrl: '/admin-reviews',
                   actionText: 'View Reports',
                   priority: 'high',
-                  icon: '⚑',
+                  icon: '🚩',
                   metadata: { reviewId, reason, reportedBy: req.user.id },
                 }).catch(err => logger.warn('Failed to notify admin of review report:', err.message))
               )
