@@ -1425,7 +1425,14 @@ tbody tr.selected td {
   letter-spacing: 0.04em;
 }
 
-/* Account type / role badges — customer, supplier, partner */
+/* Account type / role badges — customer, supplier, partner
+ * NOTE: These definitions also appear in badges.css (for public pages).
+ * They are intentionally duplicated here because admin pages do not load
+ * badges.css — they load admin-enhanced.css instead. Keeping both ensures
+ * the role badges render on all admin pages without adding a new <link> to
+ * every admin HTML file. If badges.css ever becomes a global stylesheet,
+ * remove these definitions and rely on badges.css alone.
+ */
 .badge-customer {
   background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
   color: #1e40af;
