@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="108" height="32" role="img" aria-label="Test Data">
+  <title>Test Data</title>
+  <rect width="108" height="32" rx="12" fill="#fef3c7" stroke="#f59e0b" stroke-width="1"/>
+  <text x="54" y="17" font-family="-apple-system,BlinkMacSystemFont,&#39;Segoe UI&#39;,Roboto,sans-serif" font-size="12" font-weight="600" fill="#92400e" text-anchor="middle" dominant-baseline="middle">🧪 Test data</text>
+</svg>

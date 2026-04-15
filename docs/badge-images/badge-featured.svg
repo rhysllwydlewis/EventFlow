@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="32" role="img" aria-label="Featured">
+  <title>Featured</title>
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#8b5cf6"/>
+    </linearGradient>
+  </defs>
+  <rect width="100" height="32" rx="12" fill="url(#g)" stroke="#7c3aed" stroke-width="1"/>
+  <text x="50" y="17" font-family="-apple-system,BlinkMacSystemFont,&#39;Segoe UI&#39;,Roboto,sans-serif" font-size="12" font-weight="700" fill="#ffffff" text-anchor="middle" dominant-baseline="middle">★ Featured</text>
+</svg>

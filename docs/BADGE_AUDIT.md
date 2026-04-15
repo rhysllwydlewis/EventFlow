@@ -7,9 +7,11 @@
 
 ## Badge Visual Preview
 
-> Rendered badge gallery: **[docs/badges.html](badges.html)**
+> **Rendered inline on GitHub:** **[docs/BADGES.md](BADGES.md)** — every badge as an SVG image, visible directly in GitHub without downloading anything.
 >
-> GitHub strips inline styles from Markdown, so the gallery lives in a standalone HTML file.
+> **Full HTML gallery:** **[docs/badges.html](badges.html)** — open in your browser for the live CSS-rendered version.
+>
+> GitHub strips inline styles from Markdown, so the HTML gallery lives in a standalone file.
 > Open `docs/badges.html` directly in your browser, or view it via GitHub's file viewer.
 
 ---
