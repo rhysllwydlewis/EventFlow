@@ -8,6 +8,28 @@ A production-ready, feature-rich platform connecting event service suppliers (ph
 
 ---
 
+## 📋 Table of Contents
+
+- [Features](#-features)
+- [Quick Start](#-quick-start)
+  - [Local Development](#local-development)
+  - [Production Deployment](#production-deployment)
+- [Tech Stack](#️-tech-stack)
+- [Environment Variables](#-environment-variables)
+- [API Endpoints](#-api-endpoints)
+- [User Flows & Pages](#-user-flows--pages)
+- [Project Structure](#-project-structure)
+- [Database Schema](#️-database-schema)
+- [Deployment](#-deployment)
+- [Testing & Quality Assurance](#-testing--quality-assurance)
+- [MongoDB Atlas Webhooks](#-mongodb-atlas-webhooks)
+- [Documentation](#-documentation)
+- [Contributing](#-contributing)
+- [License](#-license)
+- [Support](#-support)
+
+---
+
 ## 🌟 Features
 
 ### Core Platform
@@ -183,8 +205,6 @@ ADMIN_DOMAINS=your-company.com
 - **Admin Access** - Admins can view all conversations for support purposes
 - **Real-time Updates** - Auto-refresh to show new messages
 
----
-
 ### 🔒 Security
 
 EventFlow implements industry-standard security practices:
@@ -229,8 +249,6 @@ EventFlow implements industry-standard security practices:
 - CSP violation reporting endpoint at `/api/csp-report`
 - Sentry integration for error tracking
 - Audit logging for admin actions
-
----
 
 ### ⚡ Performance
 
@@ -329,7 +347,7 @@ See `docs/CLOUDFLARE_SETUP.md` for setup instructions (coming soon).
 ```bash
 # Clone repository
 git clone https://github.com/rhysllwydlewis/EventFlow.git
-cd eventflow
+cd EventFlow
 
 # Install dependencies
 npm install
@@ -558,7 +576,7 @@ EventFlow uses **Postmark exclusively** for all transactional emails:
 5. Add to `.env`:
    ```bash
    POSTMARK_API_KEY=your-server-token
-   POSTMARK_FROM=admin@event-flow.co.uk
+   POSTMARK_FROM=admin@yourdomain.com
    EMAIL_ENABLED=true
    ```
 
@@ -573,7 +591,7 @@ During development without Postmark configured, emails are saved to `/outbox` fo
 - ✅ Sender domain/email verified in Postmark
 - ✅ Message streams configured (outbound, password-reset, broadcasts)
 - ✅ `POSTMARK_API_KEY` environment variable set
-- ✅ `POSTMARK_FROM` set to verified sender address (admin@event-flow.co.uk)
+- ✅ `POSTMARK_FROM` set to verified sender address (e.g. `admin@yourdomain.com`)
 - ✅ Webhooks configured for delivery tracking (optional but recommended)
 - ✅ Never commit API keys to git - use environment variables only
 
@@ -1095,42 +1113,38 @@ Navigate to **Admin → Debug → Webhooks** tab and click **Test All Webhooks**
 
 ## 📚 Documentation
 
-### Getting Started
+### Quick Links
 
-- **[Quick Start](#-quick-start)** - Deploy in 15 minutes
+- **[Quick Start](#-quick-start)** - Get running in minutes
 - **[MongoDB Setup (Simple Guide)](.github/docs/MONGODB_SETUP_SIMPLE.md)** - For non-technical users
 - **[Troubleshooting 502 Errors](#troubleshooting-502-errors)** - Common deployment issues
+- **[Interactive API Docs](http://localhost:3000/api-docs)** - Swagger UI (when running locally)
 
 ### Complete Guides
 
-- **[API Documentation](API_DOCUMENTATION.md)** - Complete API reference with examples
-- **[Deployment Guide](DEPLOYMENT_GUIDE.md)** - Production deployment instructions
-- **[MongoDB Setup (Technical)](.github/docs/MONGODB_SETUP.md)** - Database configuration guide
-- **[MongoDB Migration Plan](docs/mongodb-migration.md)** - Complete MongoDB migration guide with architecture
-- **[Performance Testing Guide](docs/PERFORMANCE_TESTING.md)** - Performance verification and QA procedures
-- **[Docker Guide](DOCKER_GUIDE.md)** - Docker Compose usage
-- **[Stripe Introductory Pricing Setup](STRIPE_INTRO_PRICING_SETUP.md)** - Configure intro pricing for Professional plan
-- **[Stripe Integration Guide](STRIPE_INTEGRATION_GUIDE.md)** - General Stripe setup
-- **[Interactive API Docs](http://localhost:3000/api-docs)** - Swagger UI (when running)
-
-### Full Index
-
-- **[README.md](README.md)** - Overview and quick start
-- **[API_DOCUMENTATION.md](API_DOCUMENTATION.md)** - Complete API reference
-- **[ADMIN_GUIDE.md](ADMIN_GUIDE.md)** - Admin dashboard user guide
-- **[ADMIN_API.md](ADMIN_API.md)** - Admin API endpoint documentation
-- **[GDPR_COMPLIANCE.md](GDPR_COMPLIANCE.md)** - Data protection and privacy
-- **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** - Production deployment
-- **[MONGODB_SETUP.md](.github/docs/MONGODB_SETUP.md)** - Database configuration
-- **[MongoDB Migration Plan](docs/mongodb-migration.md)** - Complete MongoDB migration guide
-- **[Performance Testing Guide](docs/PERFORMANCE_TESTING.md)** - Performance verification and testing
-- **[AWS_SES_SETUP.md](AWS_SES_SETUP.md)** - Email service setup
-- **[2FA_IMPLEMENTATION.md](2FA_IMPLEMENTATION.md)** - Two-factor auth (planned)
-- **[PWA Icons Guide](docs/PWA_ICONS.md)** - PWA icon assets, locations, and regeneration steps
+| Document                                                                     | Description                                |
+| ---------------------------------------------------------------------------- | ------------------------------------------ |
+| [API_DOCUMENTATION.md](API_DOCUMENTATION.md)                                 | Complete API reference with examples       |
+| [ADMIN_GUIDE.md](ADMIN_GUIDE.md)                                             | Admin dashboard user guide                 |
+| [ADMIN_API.md](ADMIN_API.md)                                                 | Admin API endpoint documentation           |
+| [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)                                   | Production deployment instructions         |
+| [GDPR_COMPLIANCE.md](GDPR_COMPLIANCE.md)                                     | Data protection and privacy                |
+| [DOCKER_GUIDE.md](DOCKER_GUIDE.md)                                           | Docker Compose usage                       |
+| [POSTMARK_SETUP.md](POSTMARK_SETUP.md)                                       | Transactional email configuration          |
+| [STRIPE_INTEGRATION_GUIDE.md](STRIPE_INTEGRATION_GUIDE.md)                   | Payment setup                              |
+| [STRIPE_INTRO_PRICING_SETUP.md](STRIPE_INTRO_PRICING_SETUP.md)               | Introductory pricing for Professional plan |
+| [AWS_SES_SETUP.md](AWS_SES_SETUP.md)                                         | AWS SES email service setup                |
+| [docs/PERFORMANCE_TESTING.md](docs/PERFORMANCE_TESTING.md)                   | Performance verification and QA procedures |
+| [docs/PWA_ICONS.md](docs/PWA_ICONS.md)                                       | PWA icon assets and regeneration steps     |
+| [docs/mongodb-migration.md](docs/mongodb-migration.md)                       | MongoDB migration guide with architecture  |
+| [.github/docs/MONGODB_SETUP.md](.github/docs/MONGODB_SETUP.md)               | MongoDB technical configuration guide      |
+| [.github/docs/MONGODB_SETUP_SIMPLE.md](.github/docs/MONGODB_SETUP_SIMPLE.md) | MongoDB setup for non-technical users      |
 
 ---
 
-**Version:** v16.3.9 | **Status:** Production Ready ✅
+**Version:** v18.1.0 | **Status:** Production Ready ✅
+
+---
 
 ## 🤝 Contributing
 
