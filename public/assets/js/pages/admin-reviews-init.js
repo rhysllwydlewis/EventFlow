@@ -4,6 +4,7 @@
     if (window.AdminShared) {
       return true;
     }
+    const POLL_INTERVAL_MS = 50;
     return new Promise(resolve => {
       const deadline = Date.now() + timeoutMs;
       const poll = () => {
@@ -12,10 +13,10 @@
         } else if (Date.now() >= deadline) {
           resolve(false);
         } else {
-          setTimeout(poll, 50);
+          setTimeout(poll, POLL_INTERVAL_MS);
         }
       };
-      setTimeout(poll, 50);
+      setTimeout(poll, POLL_INTERVAL_MS);
     });
   }
 
