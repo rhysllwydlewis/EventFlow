@@ -13,7 +13,6 @@ const { PresenceService } = require('./services/presenceService');
 // eslint-disable-next-line node/no-unpublished-require, node/no-missing-require
 const jwt = require('jsonwebtoken');
 // eslint-disable-next-line node/no-unpublished-require, node/no-missing-require
-// eslint-disable-next-line node/no-unpublished-require, node/no-missing-require
 const { userIdFromCookie } = require('./utils/wsAuth');
 
 // Shared symbol for preventing duplicate Socket.IO servers across v1 and v2

@@ -104,6 +104,9 @@
         return;
       }
 
+      // Reset retry counter for this connection attempt
+      state.wsRetryCount = 0;
+
       const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
       const socketUrl = `${protocol}//${window.location.host}`;
       const maxReconnectionAttempts = 5;
