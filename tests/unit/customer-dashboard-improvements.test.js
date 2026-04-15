@@ -429,14 +429,32 @@ describe('Customer onboarding overlay implementation in app.js', () => {
     const appJsPath = path.resolve(__dirname, '../../public/assets/js/app.js');
     const source = fs.readFileSync(appJsPath, 'utf8');
     const start = source.indexOf("if (page === 'dash_customer') {");
-    const end = source.indexOf('// For other pages (admin), create the onboarding card as before');
-    return source.slice(start, end);
+    if (start === -1) {
+      throw new Error('Could not locate dash_customer onboarding branch');
+    }
+    const branchStart = source.indexOf('{', start);
+    if (branchStart === -1) {
+      throw new Error('Could not locate opening brace for dash_customer onboarding branch');
+    }
+    let depth = 0;
+    for (let i = branchStart; i < source.length; i += 1) {
+      const char = source[i];
+      if (char === '{') {
+        depth += 1;
+      } else if (char === '}') {
+        depth -= 1;
+        if (depth === 0) {
+          return source.slice(start, i + 1);
+        }
+      }
+    }
+    throw new Error('Could not locate closing brace for dash_customer onboarding branch');
   }
 
   it('uses no-collapse class and does not create a customer X close button', () => {
     const customerBranch = getCustomerOnboardingBranch();
 
-    expect(customerBranch).toContain("box.className = 'card no-collapse';");
+    expect(customerBranch).toMatch(/box\.className\s*=\s*['"]card no-collapse['"]/);
     expect(customerBranch).not.toContain('const xCloseBtn = document.createElement');
     expect(customerBranch).not.toContain('box.appendChild(xCloseBtn)');
   });
@@ -444,9 +462,15 @@ describe('Customer onboarding overlay implementation in app.js', () => {
   it("keeps Let's go button as dismiss path and persists both dismiss keys", () => {
     const customerBranch = getCustomerOnboardingBranch();
 
-    expect(customerBranch).toContain('id="ef-onboarding-dismiss"');
-    expect(customerBranch).toContain("btn.addEventListener('click', doOverlayDismiss);");
-    expect(customerBranch).toContain("localStorage.setItem('ef_onboarding_dismissed', '1');");
-    expect(customerBranch).toContain("localStorage.setItem('ef_customer_welcome_dismissed', '1');");
+    expect(customerBranch).toMatch(/id=["']ef-onboarding-dismiss["']/);
+    expect(customerBranch).toMatch(
+      /btn\.addEventListener\(\s*['"]click['"]\s*,\s*doOverlayDismiss\s*\)/
+    );
+    expect(customerBranch).toMatch(
+      /localStorage\.setItem\(\s*['"]ef_onboarding_dismissed['"]\s*,\s*['"]1['"]\s*\);/
+    );
+    expect(customerBranch).toMatch(
+      /localStorage\.setItem\(\s*['"]ef_customer_welcome_dismissed['"]\s*,\s*['"]1['"]\s*\);/
+    );
   });
 });
