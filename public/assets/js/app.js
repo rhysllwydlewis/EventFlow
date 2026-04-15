@@ -2525,6 +2525,57 @@ async function renderThreads(targetEl) {
   }
 }
 
+// Shared CSS for the onboarding overlay used by both supplier and customer dashboards.
+// Uses ID selector + !important to override the global .card { border:none!important;
+// background:#fff!important } rules that would otherwise break the gradient border.
+const EF_OB_SHARED_CSS = `
+  #ef-onboarding-box {
+    border: 2px solid transparent !important;
+    background-image: linear-gradient(#fff, #fff),
+      linear-gradient(to bottom, #0d9488, #a7f3d0) !important;
+    background-origin: padding-box, border-box !important;
+    background-clip: padding-box, border-box !important;
+    box-shadow: 0 4px 32px rgba(13, 148, 136, 0.13),
+      0 1px 4px rgba(0, 0, 0, 0.06) !important;
+    padding: 1rem 1.5rem 1.125rem !important;
+    border-radius: 16px !important;
+  }
+  #ef-ob-inner {
+    display: flex; align-items: center; gap: 1.25rem;
+    flex-wrap: wrap; padding-top: 0.125rem;
+  }
+  #ef-ob-title { flex: 1; min-width: 200px; text-align: left; }
+  #ef-ob-right {
+    display: flex; align-items: center; gap: 0.5rem;
+    flex-wrap: wrap; justify-content: flex-end;
+  }
+  #ef-onboarding-dismiss {
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #22c55e, #16a34a) !important;
+    color: #fff !important;
+    font-weight: 700;
+    padding: 0.5625rem 1.25rem !important;
+    border-radius: 10px !important;
+    border: none !important;
+    cursor: pointer;
+    font-size: 0.875rem !important;
+    box-shadow: 0 3px 12px rgba(22, 163, 74, 0.3);
+    white-space: nowrap;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    width: auto !important;
+    margin-top: 0 !important;
+  }
+  .ef-ob-xclose:focus-visible {
+    outline: none !important;
+    box-shadow: 0 0 0 2px #fff, 0 0 0 4px #0d9488 !important;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #ef-onboarding-box, .ef-ob-pill, #ef-onboarding-dismiss {
+      transition: none !important;
+    }
+  }
+`;
+
 function efMaybeShowOnboarding(page) {
   // Check if onboarding has been permanently dismissed (either key suffices)
   try {
@@ -2582,18 +2633,30 @@ function efMaybeShowOnboarding(page) {
 
     box.innerHTML = `
       <style>
-        /* Override .card !important rules that would break the gradient border */
-        #ef-onboarding-box{border:2px solid transparent!important;background-image:linear-gradient(#fff,#fff),linear-gradient(to bottom,#0d9488,#a7f3d0)!important;background-origin:padding-box,border-box!important;background-clip:padding-box,border-box!important;box-shadow:0 4px 32px rgba(13,148,136,0.13),0 1px 4px rgba(0,0,0,0.06)!important;padding:1rem 1.5rem 1.125rem!important;border-radius:16px!important;}
-        #ef-ob-inner{display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap;padding-top:0.125rem;}
-        #ef-ob-title{flex:1;min-width:200px;text-align:left;}
-        #ef-ob-right{display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;justify-content:flex-end;}
-        #ef-onboarding-dismiss{flex-shrink:0;background:linear-gradient(135deg,#22c55e,#16a34a)!important;color:#fff!important;font-weight:700;padding:0.5625rem 1.25rem!important;border-radius:10px!important;border:none!important;cursor:pointer;font-size:0.875rem!important;box-shadow:0 3px 12px rgba(22,163,74,0.3);white-space:nowrap;transition:all 0.2s cubic-bezier(0.4,0,0.2,1);width:auto!important;margin-top:0!important;}
-        .ef-ob-pill{flex:0 0 148px;display:flex;align-items:center;gap:0.375rem;padding:0.375rem 0.75rem;background:#f0fdfa;border:1px solid #99f6e4;border-radius:8px;}
-        .ef-ob-pill span:last-child{color:#134e4a;font-weight:500;font-size:0.8125rem;white-space:nowrap;}
-        .ef-ob-xclose:focus-visible{outline:none!important;box-shadow:0 0 0 2px #fff,0 0 0 4px #0d9488!important;}
-        @media(max-width:540px){#ef-onboarding-box{padding:0.875rem 1rem 1rem!important;}#ef-ob-inner{gap:0.75rem;}#ef-ob-right{display:grid;grid-template-columns:1fr 1fr;width:100%;gap:0.5rem;}#ef-onboarding-dismiss{grid-column:1/-1;text-align:center;}.ef-ob-pill{flex:unset;width:auto;}}
-        @media(max-width:400px){#ef-ob-right{grid-template-columns:1fr;}}
-        @media(prefers-reduced-motion:reduce){#ef-onboarding-box,.ef-ob-pill,#ef-onboarding-dismiss{transition:none!important;}}
+        ${EF_OB_SHARED_CSS}
+        /* Supplier-specific pill sizing */
+        .ef-ob-pill {
+          flex: 0 0 148px; display: flex; align-items: center;
+          gap: 0.375rem; padding: 0.375rem 0.75rem;
+          background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 8px;
+        }
+        .ef-ob-pill span:last-child {
+          color: #134e4a; font-weight: 500;
+          font-size: 0.8125rem; white-space: nowrap;
+        }
+        @media (max-width: 540px) {
+          #ef-onboarding-box { padding: 0.875rem 1rem 1rem !important; }
+          #ef-ob-inner { gap: 0.75rem; }
+          #ef-ob-right {
+            display: grid; grid-template-columns: 1fr 1fr;
+            width: 100%; gap: 0.5rem;
+          }
+          #ef-onboarding-dismiss { grid-column: 1 / -1; text-align: center; }
+          .ef-ob-pill { flex: unset; width: auto; }
+        }
+        @media (max-width: 400px) {
+          #ef-ob-right { grid-template-columns: 1fr; }
+        }
       </style>
       <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#0d9488,#5eead4);border-radius:16px 16px 0 0;"></div>
       <div id="ef-ob-inner">
@@ -2698,30 +2761,41 @@ function efMaybeShowOnboarding(page) {
 
     box.innerHTML = `
       <style>
-        /* Override .card !important rules that would break the gradient border */
-        #ef-onboarding-box{border:2px solid transparent!important;background-image:linear-gradient(#fff,#fff),linear-gradient(to bottom,#0d9488,#a7f3d0)!important;background-origin:padding-box,border-box!important;background-clip:padding-box,border-box!important;box-shadow:0 4px 32px rgba(13,148,136,0.13),0 1px 4px rgba(0,0,0,0.06)!important;padding:1rem 1.5rem 1.125rem!important;border-radius:16px!important;}
-        #ef-ob-inner{display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap;padding-top:0.125rem;}
-        #ef-ob-title{flex:1;min-width:200px;text-align:left;}
-        #ef-ob-right{display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;justify-content:flex-end;}
-        #ef-onboarding-dismiss{flex-shrink:0;background:linear-gradient(135deg,#22c55e,#16a34a)!important;color:#fff!important;font-weight:700;padding:0.5625rem 1.25rem!important;border-radius:10px!important;border:none!important;cursor:pointer;font-size:0.875rem!important;box-shadow:0 3px 12px rgba(22,163,74,0.3);white-space:nowrap;transition:all 0.2s cubic-bezier(0.4,0,0.2,1);width:auto!important;margin-top:0!important;}
-        .ef-ob-pill{flex:0 0 auto;display:flex;align-items:center;gap:0.375rem;padding:0.375rem 0.75rem;background:#f0fdfa;border:1px solid #99f6e4;border-radius:8px;text-decoration:none;transition:background 0.15s,border-color 0.15s,box-shadow 0.15s;}
-        .ef-ob-pill:hover,.ef-ob-pill:focus-visible{background:#ccfbf1;border-color:#5eead4;box-shadow:0 2px 8px rgba(13,148,136,0.15);outline:none;}
-        .ef-ob-pill:focus-visible{outline:2px solid #0d9488;outline-offset:2px;}
-        .ef-ob-pill span:last-child{color:#134e4a;font-weight:500;font-size:0.8125rem;white-space:nowrap;}
-        .ef-ob-xclose:focus-visible{outline:none!important;box-shadow:0 0 0 2px #fff,0 0 0 4px #0d9488!important;}
-        @media(max-width:768px){#ef-ob-right{gap:0.5rem;}}
-        @media(max-width:540px){
-          #ef-onboarding-box{padding:0.875rem 1rem 1rem!important;}
-          #ef-ob-inner{gap:0.75rem;}
-          #ef-ob-right{display:grid;grid-template-columns:1fr 1fr;width:100%;gap:0.5rem;}
-          #ef-onboarding-dismiss{grid-column:1/-1;text-align:center;}
-          .ef-ob-pill{flex:unset;width:auto;overflow:hidden;}
-          .ef-ob-pill span:last-child{overflow:hidden;text-overflow:ellipsis;min-width:0;}
+        ${EF_OB_SHARED_CSS}
+        /* Customer-specific pill styling (links with hover/focus states) */
+        .ef-ob-pill {
+          flex: 0 0 auto; display: flex; align-items: center;
+          gap: 0.375rem; padding: 0.375rem 0.75rem;
+          background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 8px;
+          text-decoration: none;
+          transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
         }
-        @media(max-width:400px){
-          #ef-ob-right{grid-template-columns:1fr;}
+        .ef-ob-pill:hover, .ef-ob-pill:focus-visible {
+          background: #ccfbf1; border-color: #5eead4;
+          box-shadow: 0 2px 8px rgba(13, 148, 136, 0.15); outline: none;
         }
-        @media(prefers-reduced-motion:reduce){#ef-onboarding-box,.ef-ob-pill,#ef-onboarding-dismiss{transition:none!important;}}
+        .ef-ob-pill:focus-visible {
+          outline: 2px solid #0d9488; outline-offset: 2px;
+        }
+        .ef-ob-pill span:last-child {
+          color: #134e4a; font-weight: 500;
+          font-size: 0.8125rem; white-space: nowrap;
+        }
+        @media (max-width: 768px) { #ef-ob-right { gap: 0.5rem; } }
+        @media (max-width: 540px) {
+          #ef-onboarding-box { padding: 0.875rem 1rem 1rem !important; }
+          #ef-ob-inner { gap: 0.75rem; }
+          #ef-ob-right {
+            display: grid; grid-template-columns: 1fr 1fr;
+            width: 100%; gap: 0.5rem;
+          }
+          #ef-onboarding-dismiss { grid-column: 1 / -1; text-align: center; }
+          .ef-ob-pill { flex: unset; width: auto; overflow: hidden; }
+          .ef-ob-pill span:last-child { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+        }
+        @media (max-width: 400px) {
+          #ef-ob-right { grid-template-columns: 1fr; }
+        }
       </style>
       <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#0d9488,#5eead4);border-radius:16px 16px 0 0;"></div>
       <div id="ef-ob-inner">
