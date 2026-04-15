@@ -27,6 +27,7 @@
     notifications: [],
     unreadCount: 0,
     socket: null,
+    wsRetryCount: 0,
     isConnected: false,
     hasDesktopPermission: false,
     isInitialized: false,
@@ -69,9 +70,15 @@
 
   function initWebSocket() {
     try {
+      // If Socket.IO is already loaded (e.g. by websocket-client.js), use it directly
+      if (window.io) {
+        connectWebSocket();
+        return;
+      }
+
       // Load Socket.IO from CDN
       const script = document.createElement('script');
-      script.src = 'https://cdn.socket.io/4.5.4/socket.io.min.js';
+      script.src = 'https://cdn.socket.io/4.8.1/socket.io.min.js';
       script.onload = () => {
         connectWebSocket();
       };
@@ -97,16 +104,22 @@
         return;
       }
 
+      const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+      const socketUrl = `${protocol}//${window.location.host}`;
+      const maxReconnectionAttempts = 5;
+
       // Connect to WebSocket server
-      state.socket = window.io({
+      state.socket = window.io(socketUrl, {
+        path: '/socket.io',
         transports: ['websocket', 'polling'],
         reconnection: true,
         reconnectionDelay: 1000,
-        reconnectionAttempts: 10,
+        reconnectionAttempts: maxReconnectionAttempts,
       });
 
       state.socket.on('connect', () => {
         state.isConnected = true;
+        state.wsRetryCount = 0;
         if (isDevelopment) {
           console.log('WebSocket connected');
         }
@@ -128,7 +141,10 @@
 
       state.socket.on('connect_error', error => {
         console.error('WebSocket connection error:', error);
-        showWebSocketError('Connection to notification server failed. Retrying...');
+        state.wsRetryCount += 1;
+        if (state.wsRetryCount >= maxReconnectionAttempts) {
+          showWebSocketError('Connection to notification server failed. Retrying...');
+        }
       });
 
       state.socket.on('auth:success', data => {

@@ -13,7 +13,6 @@ const { PresenceService } = require('./services/presenceService');
 // eslint-disable-next-line node/no-unpublished-require, node/no-missing-require
 const jwt = require('jsonwebtoken');
 // eslint-disable-next-line node/no-unpublished-require, node/no-missing-require
-const { getBaseUrl } = require('./utils/config');
 // eslint-disable-next-line node/no-unpublished-require, node/no-missing-require
 const { userIdFromCookie } = require('./utils/wsAuth');
 
@@ -55,7 +54,18 @@ class WebSocketServerV2 {
 
     this.io = new Server(httpServer, {
       cors: {
-        origin: getBaseUrl(),
+        origin: [
+          process.env.APP_BASE_URL,
+          process.env.BASE_URL,
+          ...(process.env.ALLOWED_ORIGINS
+            ? process.env.ALLOWED_ORIGINS.split(',')
+                .map(origin => origin.trim())
+                .filter(Boolean)
+            : []),
+          ...(process.env.NODE_ENV !== 'production'
+            ? ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000']
+            : []),
+        ].filter(Boolean),
         methods: ['GET', 'POST'],
         credentials: true,
       },

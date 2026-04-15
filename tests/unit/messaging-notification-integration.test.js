@@ -191,6 +191,20 @@ describe('Messaging-Notification Integration', () => {
       expect(notificationsJs).toContain("state.socket.on('notification:received'");
     });
 
+    it('uses guarded Socket.IO loading and aligned client config', () => {
+      expect(notificationsJs).toContain('if (window.io)');
+      expect(notificationsJs).toContain('https://cdn.socket.io/4.8.1/socket.io.min.js');
+      expect(notificationsJs).toContain('const socketUrl = `${protocol}//${window.location.host}`');
+      expect(notificationsJs).toContain("path: '/socket.io'");
+    });
+
+    it('only shows websocket error after retry attempts are exhausted', () => {
+      expect(notificationsJs).toContain('wsRetryCount: 0');
+      expect(notificationsJs).toContain('state.wsRetryCount += 1');
+      expect(notificationsJs).toContain('state.wsRetryCount >= maxReconnectionAttempts');
+      expect(notificationsJs).toContain('state.wsRetryCount = 0');
+    });
+
     it('handles both threadId and conversationId in mark-as-read', () => {
       const markedReadListener = notificationsJs.substring(
         notificationsJs.indexOf("addEventListener('messaging:marked-read'"),
