@@ -7,63 +7,10 @@
 
 ## Badge Visual Preview
 
-> Inline preview of every badge. Colours and icons match `public/assets/css/badges.css` exactly.
-
-**Account Type / Role**
-
-<p>
-<span style="display:inline-flex;align-items:center;padding:0.25rem 0.75rem;border-radius:12px;font-size:0.8125rem;font-weight:600;line-height:1.5;white-space:nowrap;letter-spacing:0.01em;background:linear-gradient(135deg,#dbeafe,#bfdbfe);color:#1e40af;border:1px solid #3b82f6;margin:0.25rem">🎉 Customer</span>
-<span style="display:inline-flex;align-items:center;padding:0.25rem 0.75rem;border-radius:12px;font-size:0.8125rem;font-weight:600;line-height:1.5;white-space:nowrap;letter-spacing:0.01em;background:linear-gradient(135deg,#d1fae5,#a7f3d0);color:#065f46;border:1px solid #10b981;margin:0.25rem">🏪 Supplier</span>
-<span style="display:inline-flex;align-items:center;padding:0.25rem 0.75rem;border-radius:12px;font-size:0.8125rem;font-weight:600;line-height:1.5;white-space:nowrap;letter-spacing:0.01em;background:linear-gradient(135deg,#ede9fe,#c4b5fd);color:#4c1d95;border:1px solid #8b5cf6;margin:0.25rem">🤝 Partner</span>
-<span style="display:inline-flex;align-items:center;padding:0.25rem 0.75rem;border-radius:12px;font-size:0.8125rem;font-weight:600;line-height:1.5;white-space:nowrap;letter-spacing:0.01em;background:linear-gradient(135deg,#dc2626,#991b1b);color:#ffffff;border:1px solid #7f1d1d;margin:0.25rem">🛡️ Admin</span>
-</p>
-
-**Subscription Tier**
-
-<p>
-<span style="display:inline-flex;align-items:center;padding:0.25rem 0.75rem;border-radius:12px;font-size:0.8125rem;font-weight:600;line-height:1.5;white-space:nowrap;letter-spacing:0.01em;background:linear-gradient(135deg,#f1f5f9,#e2e8f0);color:#475569;border:1px solid #cbd5e1;margin:0.25rem">◆ Starter</span>
-<span style="display:inline-flex;align-items:center;padding:0.25rem 0.75rem;border-radius:12px;font-size:0.8125rem;font-weight:600;line-height:1.5;white-space:nowrap;letter-spacing:0.01em;background:linear-gradient(135deg,#f59e0b,#d97706);color:#78350f;border:1px solid #d97706;margin:0.25rem">⭐ Pro</span>
-<span style="display:inline-flex;align-items:center;padding:0.25rem 0.75rem;border-radius:12px;font-size:0.8125rem;font-weight:600;line-height:1.5;white-space:nowrap;letter-spacing:0.01em;background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#ffffff;border:1px solid #4c1d95;margin:0.25rem">💎 Pro Plus</span>
-<span style="display:inline-flex;align-items:center;padding:0.25rem 0.75rem;border-radius:12px;font-size:0.8125rem;font-weight:600;line-height:1.5;white-space:nowrap;letter-spacing:0.01em;background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#78350f;border:1px solid #f59e0b;margin:0.25rem">⭐ Founding Supplier</span>
-<span style="display:inline-flex;align-items:center;padding:0.25rem 0.75rem;border-radius:12px;font-size:0.8125rem;font-weight:600;line-height:1.5;white-space:nowrap;letter-spacing:0.01em;background:linear-gradient(135deg,#a78bfa,#8b5cf6);color:#ffffff;border:1px solid #7c3aed;margin:0.25rem">★ Featured</span>
-</p>
-
-**Verification**
-
-<p>
-<span style="display:inline-flex;align-items:center;padding:0.25rem 0.75rem;border-radius:12px;font-size:0.8125rem;font-weight:600;line-height:1.5;white-space:nowrap;letter-spacing:0.01em;background:linear-gradient(135deg,#dbeafe,#bfdbfe);color:#1e40af;border:1px solid #3b82f6;margin:0.25rem">✓ Email Verified</span>
-<span style="display:inline-flex;align-items:center;padding:0.25rem 0.75rem;border-radius:12px;font-size:0.8125rem;font-weight:600;line-height:1.5;white-space:nowrap;letter-spacing:0.01em;background:linear-gradient(135deg,#dcfce7,#bbf7d0);color:#14532d;border:1px solid #22c55e;margin:0.25rem">✓ Phone Verified</span>
-<span style="display:inline-flex;align-items:center;padding:0.25rem 0.75rem;border-radius:12px;font-size:0.8125rem;font-weight:600;line-height:1.5;white-space:nowrap;letter-spacing:0.01em;background:linear-gradient(135deg,#e0e7ff,#c7d2fe);color:#3730a3;border:1px solid #6366f1;margin:0.25rem">✓ Business Verified</span>
-<span style="display:inline-flex;align-items:center;padding:0.25rem 0.75rem;border-radius:12px;font-size:0.8125rem;font-weight:600;line-height:1.5;white-space:nowrap;letter-spacing:0.01em;background:linear-gradient(135deg,#d1fae5,#a7f3d0);color:#065f46;border:1px solid #10b981;margin:0.25rem">✓ Verified Customer</span>
-<span style="display:inline-flex;align-items:center;padding:0.25rem 0.75rem;border-radius:12px;font-size:0.8125rem;font-weight:600;line-height:1.5;white-space:nowrap;letter-spacing:0.01em;background:linear-gradient(135deg,#6366f1,#4f46e5);color:#ffffff;border:1px solid #4338ca;margin:0.25rem">🏢 Supplier (reviewer)</span>
-</p>
-
-**Earned / Auto-Awarded**
-
-<p>
-<span style="display:inline-flex;align-items:center;padding:0.25rem 0.75rem;border-radius:12px;font-size:0.8125rem;font-weight:600;line-height:1.5;white-space:nowrap;letter-spacing:0.01em;background:linear-gradient(135deg,#fef3c7,#fde68a);color:#92400e;border:1px solid #f59e0b;margin:0.25rem">⚡ Fast Responder</span>
-<span style="display:inline-flex;align-items:center;padding:0.25rem 0.75rem;border-radius:12px;font-size:0.8125rem;font-weight:600;line-height:1.5;white-space:nowrap;letter-spacing:0.01em;background:linear-gradient(135deg,#fef9c3,#fde047);color:#713f12;border:1px solid #eab308;margin:0.25rem">🌟 Top Rated</span>
-<span style="display:inline-flex;align-items:center;padding:0.25rem 0.75rem;border-radius:12px;font-size:0.8125rem;font-weight:600;line-height:1.5;white-space:nowrap;letter-spacing:0.01em;background:linear-gradient(135deg,#ede9fe,#c4b5fd);color:#4c1d95;border:1px solid #8b5cf6;margin:0.25rem">🎓 Expert</span>
-<span style="display:inline-flex;align-items:center;padding:0.25rem 0.75rem;border-radius:12px;font-size:0.8125rem;font-weight:600;line-height:1.5;white-space:nowrap;letter-spacing:0.01em;background:linear-gradient(135deg,#f0fdf4,#bbf7d0);color:#14532d;border:1px solid #22c55e;margin:0.25rem">Custom</span>
-<span style="display:inline-flex;align-items:center;padding:0.25rem 0.75rem;border-radius:12px;font-size:0.8125rem;font-weight:600;line-height:1.5;white-space:nowrap;letter-spacing:0.01em;background:linear-gradient(135deg,#13b6a2,#0b8073);color:#ffffff;margin:0.25rem">🆕 New Supplier</span>
-<span style="display:inline-flex;align-items:center;padding:0.25rem 0.75rem;border-radius:12px;font-size:0.8125rem;font-weight:600;line-height:1.5;white-space:nowrap;letter-spacing:0.01em;background:#fef3c7;color:#92400e;border:1px solid #f59e0b;margin:0.25rem">🧪 Test Data</span>
-</p>
-
-**Utility / Context**
-
-<p>
-<span style="display:inline-flex;align-items:center;padding:0.25rem 0.75rem;border-radius:12px;font-size:0.8125rem;font-weight:600;line-height:1.5;white-space:nowrap;letter-spacing:0.01em;background:#e0f2fe;color:#0369a1;margin:0.25rem">0.5 mi</span>
-<span style="display:inline-flex;align-items:center;font-size:0.8125rem;font-weight:600;line-height:1.5;white-space:nowrap;letter-spacing:0.01em;background:transparent;color:#d97706;margin:0.25rem" title="Tier Icon — Pro">⭐ <em style="font-style:normal;font-size:0.75rem;color:#6b7280;margin-left:0.25rem">(Tier Icon Pro)</em></span>
-<span style="display:inline-flex;align-items:center;font-size:0.8125rem;font-weight:600;line-height:1.5;white-space:nowrap;letter-spacing:0.01em;background:transparent;color:#7c3aed;margin:0.25rem" title="Tier Icon — Pro Plus">💎 <em style="font-style:normal;font-size:0.75rem;color:#6b7280;margin-left:0.25rem">(Tier Icon Pro Plus)</em></span>
-</p>
-
-**Admin Tier**
-
-<p>
-<span style="display:inline-flex;align-items:center;padding:0.25rem 0.75rem;border-radius:12px;font-size:0.8125rem;font-weight:600;line-height:1.5;white-space:nowrap;letter-spacing:0.01em;background:linear-gradient(135deg,#6b7280,#9ca3af);color:#ffffff;margin:0.25rem">Free</span>
-<span style="display:inline-flex;align-items:center;padding:0.25rem 0.75rem;border-radius:12px;font-size:0.8125rem;font-weight:600;line-height:1.5;white-space:nowrap;letter-spacing:0.01em;background:linear-gradient(135deg,#2563eb,#3b82f6);color:#ffffff;margin:0.25rem">Pro</span>
-<span style="display:inline-flex;align-items:center;padding:0.25rem 0.75rem;border-radius:12px;font-size:0.8125rem;font-weight:600;line-height:1.5;white-space:nowrap;letter-spacing:0.01em;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#ffffff;margin:0.25rem">Pro Plus</span>
-</p>
+> Rendered badge gallery: **[docs/badges.html](badges.html)**
+>
+> GitHub strips inline styles from Markdown, so the gallery lives in a standalone HTML file.
+> Open `docs/badges.html` directly in your browser, or view it via GitHub's file viewer.
 
 ---
 

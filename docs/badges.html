@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EventFlow — Badge Gallery</title>
+  <style>
+    /* ── Page chrome ─────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f8fafc;
+      color: #111827;
+      padding: 2.5rem 1.5rem 4rem;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: #111827;
+      margin-bottom: 0.375rem;
+    }
+
+    .subtitle {
+      font-size: 0.9375rem;
+      color: #6b7280;
+      margin-bottom: 2.5rem;
+    }
+
+    h2 {
+      font-size: 1.125rem;
+      font-weight: 700;
+      color: #374151;
+      margin: 2.25rem 0 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid #e5e7eb;
+    }
+
+    .badge-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 1rem;
+    }
+
+    .badge-card {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 1rem 1rem 0.875rem;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+
+    .badge-card__name {
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: #374151;
+    }
+
+    .badge-card__class {
+      font-size: 0.72rem;
+      color: #9ca3af;
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      word-break: break-all;
+    }
+
+    /* Inline-icon demo row */
+    .tier-icon-demo {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9375rem;
+      color: #374151;
+    }
+
+    /* ── Badge CSS (copied verbatim from badges.css) ──────── */
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.75rem;
+      border-radius: 12px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      line-height: 1.5;
+      white-space: nowrap;
+      letter-spacing: 0.01em;
+    }
+
+    /* Account Type / Role */
+    .badge-customer {
+      background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+      color: #1e40af;
+      border: 1px solid #3b82f6;
+      box-shadow: 0 1px 3px rgba(59,130,246,.2);
+      font-weight: 600;
+    }
+    .badge-customer::before { content: '🎉'; margin-right: 0.3rem; font-size: 0.85em; }
+
+    .badge-supplier-account {
+      background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+      color: #065f46;
+      border: 1px solid #10b981;
+      box-shadow: 0 1px 3px rgba(16,185,129,.2);
+      font-weight: 600;
+    }
+    .badge-supplier-account::before { content: '🏪'; margin-right: 0.3rem; font-size: 0.85em; }
+
+    .badge-partner {
+      background: linear-gradient(135deg, #ede9fe 0%, #c4b5fd 100%);
+      color: #4c1d95;
+      border: 1px solid #8b5cf6;
+      box-shadow: 0 1px 3px rgba(139,92,246,.2);
+      font-weight: 600;
+    }
+    .badge-partner::before { content: '🤝'; margin-right: 0.3rem; font-size: 0.85em; }
+
+    .badge-admin {
+      background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+      color: #ffffff;
+      border: 1px solid #7f1d1d;
+      font-weight: 700;
+      box-shadow: 0 2px 4px rgba(220,38,38,.35);
+      letter-spacing: 0.04em;
+    }
+    .badge-admin::before { content: '🛡️'; margin-right: 0.375rem; font-size: 0.9em; }
+
+    /* Subscription Tier */
+    .badge-starter {
+      background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+      color: #475569;
+      border: 1px solid #cbd5e1;
+      font-weight: 600;
+      box-shadow: 0 1px 2px rgba(0,0,0,.06);
+    }
+    .badge-starter::before { content: '◆'; margin-right: 0.35rem; font-size: 0.75em; color: #94a3b8; }
+
+    .badge-pro {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: #78350f;
+      border: 1px solid #d97706;
+      font-weight: 700;
+      box-shadow: 0 2px 4px rgba(245,158,11,.3);
+    }
+    .badge-pro::before { content: '⭐'; margin-right: 0.375rem; }
+
+    .badge-pro-plus {
+      background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+      color: #ffffff;
+      border: 1px solid #4c1d95;
+      font-weight: 700;
+      box-shadow: 0 2px 4px rgba(124,58,237,.35);
+    }
+    .badge-pro-plus::before { content: '💎'; margin-right: 0.375rem; font-size: 0.9em; }
+
+    .badge-founding {
+      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+      color: #78350f;
+      border: 1px solid #f59e0b;
+      box-shadow: 0 2px 4px rgba(251,191,36,.25);
+    }
+    .badge-founding::before { content: '⭐'; margin-right: 0.375rem; }
+
+    /* Verification */
+    .badge-email-verified {
+      background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+      color: #1e40af;
+      border: 1px solid #3b82f6;
+      box-shadow: 0 1px 3px rgba(59,130,246,.2);
+    }
+    .badge-email-verified::before { content: '✓'; margin-right: 0.25rem; font-weight: 700; }
+
+    .badge-phone-verified {
+      background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+      color: #14532d;
+      border: 1px solid #22c55e;
+      box-shadow: 0 1px 3px rgba(34,197,94,.2);
+    }
+    .badge-phone-verified::before { content: '✓'; margin-right: 0.25rem; font-weight: 700; }
+
+    .badge-business-verified {
+      background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%);
+      color: #3730a3;
+      border: 1px solid #6366f1;
+      box-shadow: 0 1px 3px rgba(99,102,241,.2);
+    }
+    .badge-business-verified::before { content: '✓'; margin-right: 0.25rem; font-weight: 700; }
+
+    .badge-verified {
+      background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+      color: #065f46;
+      border: 1px solid #10b981;
+      box-shadow: 0 1px 3px rgba(16,185,129,.2);
+    }
+    .badge-verified::before { content: '✓'; margin-right: 0.25rem; font-weight: 700; }
+
+    .badge-supplier {
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+      color: #ffffff;
+      border: 1px solid #4338ca;
+      font-weight: 700;
+      box-shadow: 0 2px 4px rgba(99,102,241,.3);
+    }
+    .badge-supplier::before { content: '🏢'; margin-right: 0.25rem; font-size: 0.85em; }
+
+    .badge-featured {
+      background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%);
+      color: #ffffff;
+      border: 1px solid #7c3aed;
+      font-weight: 700;
+    }
+    .badge-featured::before { content: '★'; margin-right: 0.375rem; }
+
+    /* Earned / Auto-Awarded */
+    .badge-fast-responder {
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+      color: #92400e;
+      border: 1px solid #f59e0b;
+      font-weight: 700;
+      box-shadow: 0 1px 3px rgba(245,158,11,.2);
+    }
+    .badge-fast-responder::before { content: '⚡'; margin-right: 0.375rem; }
+
+    .badge-top-rated {
+      background: linear-gradient(135deg, #fef9c3 0%, #fde047 100%);
+      color: #713f12;
+      border: 1px solid #eab308;
+      font-weight: 700;
+      box-shadow: 0 1px 3px rgba(234,179,8,.2);
+    }
+    .badge-top-rated::before { content: '🌟'; margin-right: 0.375rem; }
+
+    .badge-expert {
+      background: linear-gradient(135deg, #ede9fe 0%, #c4b5fd 100%);
+      color: #4c1d95;
+      border: 1px solid #8b5cf6;
+      font-weight: 700;
+      box-shadow: 0 1px 3px rgba(139,92,246,.2);
+    }
+    .badge-expert::before { content: '🎓'; margin-right: 0.375rem; }
+
+    .badge-custom {
+      background: linear-gradient(135deg, #f0fdf4 0%, #bbf7d0 100%);
+      color: #14532d;
+      border: 1px solid #22c55e;
+      font-weight: 700;
+      box-shadow: 0 1px 3px rgba(34,197,94,.15);
+    }
+
+    /* Utility / Context */
+    .new-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.25rem 0.5rem;
+      background: linear-gradient(135deg, #13b6a2 0%, #0b8073 100%);
+      color: white;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border-radius: 4px;
+      animation: badge-pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes badge-pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.8; }
+    }
+
+    .badge-test-data {
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #f59e0b;
+      font-weight: 600;
+    }
+    .badge-test-data::before { content: '🧪'; margin-right: 0.375rem; }
+
+    .badge-distance {
+      background: #e0f2fe;
+      color: #0369a1;
+      font-size: 0.72rem;
+      padding: 0.2rem 0.55rem;
+      border-radius: 9999px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+
+    /* Lead Quality */
+    .lead-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.375rem 0.875rem;
+      border-radius: 14px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      line-height: 1.4;
+      white-space: nowrap;
+      box-shadow: 0 1px 3px rgba(0,0,0,.1);
+    }
+
+    .lead-badge-high {
+      background: #d1fae5;
+      color: #065f46;
+      border: 1px solid #10b981;
+    }
+    .lead-badge-high::before { content: '⭐'; margin-right: 0.5rem; font-size: 1rem; }
+
+    .lead-badge-medium {
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #f59e0b;
+    }
+    .lead-badge-medium::before { content: '●'; margin-right: 0.5rem; font-size: 0.875rem; }
+
+    .lead-badge-low {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #ef4444;
+    }
+    .lead-badge-low::before { content: '⚠'; margin-right: 0.5rem; font-size: 1rem; }
+
+    /* Admin Tier (from admin.css) */
+    .tier-badge {
+      display: inline-block;
+      padding: 0.2em 0.55em;
+      border-radius: 999px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      color: #fff;
+      vertical-align: middle;
+      letter-spacing: 0.03em;
+    }
+
+    .tier-badge--free {
+      background: linear-gradient(135deg, #6b7280 0%, #9ca3af 100%);
+    }
+
+    .tier-badge--pro {
+      background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+      box-shadow: 0 2px 6px rgba(37,99,235,.3);
+    }
+
+    .tier-badge--pro_plus {
+      background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
+      box-shadow: 0 2px 6px rgba(124,58,237,.3);
+    }
+
+    /* Inline Tier Icons */
+    .tier-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.875rem;
+      line-height: 1;
+      vertical-align: middle;
+      cursor: default;
+    }
+
+    .tier-icon-pro      { color: #d97706; font-size: 0.9rem; }
+    .tier-icon-pro-plus { color: #7c3aed; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+
+  <h1>EventFlow — Badge Gallery</h1>
+  <p class="subtitle">
+    Every badge used across the platform, rendered exactly as they appear in the app.
+    Source styles from <code>public/assets/css/badges.css</code>, <code>public/assets/css/p3-features.css</code>
+    and <code>public/assets/css/admin.css</code>.
+  </p>
+
+  <!-- ── Section 1: Account Type / Role ───────────────────── -->
+  <h2>1 — Account Type / Role</h2>
+  <div class="badge-grid">
+
+    <div class="badge-card">
+      <span class="badge badge-customer">Customer</span>
+      <span class="badge-card__name">Customer</span>
+      <span class="badge-card__class">.badge-customer</span>
+    </div>
+
+    <div class="badge-card">
+      <span class="badge badge-supplier-account">Supplier</span>
+      <span class="badge-card__name">Supplier (account)</span>
+      <span class="badge-card__class">.badge-supplier-account</span>
+    </div>
+
+    <div class="badge-card">
+      <span class="badge badge-partner">Partner</span>
+      <span class="badge-card__name">Partner</span>
+      <span class="badge-card__class">.badge-partner</span>
+    </div>
+
+    <div class="badge-card">
+      <span class="badge badge-admin">Admin</span>
+      <span class="badge-card__name">Admin</span>
+      <span class="badge-card__class">.badge-admin</span>
+    </div>
+
+  </div>
+
+  <!-- ── Section 2: Subscription Tier ─────────────────────── -->
+  <h2>2 — Subscription Tier</h2>
+  <div class="badge-grid">
+
+    <div class="badge-card">
+      <span class="badge badge-starter">Starter</span>
+      <span class="badge-card__name">Starter</span>
+      <span class="badge-card__class">.badge-starter</span>
+    </div>
+
+    <div class="badge-card">
+      <span class="badge badge-pro">Pro</span>
+      <span class="badge-card__name">Pro</span>
+      <span class="badge-card__class">.badge-pro</span>
+    </div>
+
+    <div class="badge-card">
+      <span class="badge badge-pro-plus">Pro Plus</span>
+      <span class="badge-card__name">Pro Plus</span>
+      <span class="badge-card__class">.badge-pro-plus</span>
+    </div>
+
+    <div class="badge-card">
+      <span class="badge badge-founding">Founding Supplier</span>
+      <span class="badge-card__name">Founding Supplier</span>
+      <span class="badge-card__class">.badge-founding</span>
+    </div>
+
+  </div>
+
+  <!-- ── Section 3: Verification ──────────────────────────── -->
+  <h2>3 — Verification</h2>
+  <div class="badge-grid">
+
+    <div class="badge-card">
+      <span class="badge badge-email-verified">Email Verified</span>
+      <span class="badge-card__name">Email Verified</span>
+      <span class="badge-card__class">.badge-email-verified</span>
+    </div>
+
+    <div class="badge-card">
+      <span class="badge badge-phone-verified">Phone Verified</span>
+      <span class="badge-card__name">Phone Verified</span>
+      <span class="badge-card__class">.badge-phone-verified</span>
+    </div>
+
+    <div class="badge-card">
+      <span class="badge badge-business-verified">Business Verified</span>
+      <span class="badge-card__name">Business Verified</span>
+      <span class="badge-card__class">.badge-business-verified</span>
+    </div>
+
+    <div class="badge-card">
+      <span class="badge badge-verified">Verified Customer</span>
+      <span class="badge-card__name">Verified Customer</span>
+      <span class="badge-card__class">.badge-verified</span>
+    </div>
+
+    <div class="badge-card">
+      <span class="badge badge-supplier">Supplier</span>
+      <span class="badge-card__name">Supplier (reviewer)</span>
+      <span class="badge-card__class">.badge-supplier</span>
+    </div>
+
+    <div class="badge-card">
+      <span class="badge badge-featured">Featured</span>
+      <span class="badge-card__name">Featured</span>
+      <span class="badge-card__class">.badge-featured</span>
+    </div>
+
+  </div>
+
+  <!-- ── Section 4: Earned / Auto-Awarded ─────────────────── -->
+  <h2>4 — Earned / Auto-Awarded</h2>
+  <div class="badge-grid">
+
+    <div class="badge-card">
+      <span class="badge badge-fast-responder">Fast Responder</span>
+      <span class="badge-card__name">Fast Responder</span>
+      <span class="badge-card__class">.badge-fast-responder</span>
+    </div>
+
+    <div class="badge-card">
+      <span class="badge badge-top-rated">Top Rated</span>
+      <span class="badge-card__name">Top Rated</span>
+      <span class="badge-card__class">.badge-top-rated</span>
+    </div>
+
+    <div class="badge-card">
+      <span class="badge badge-expert">Expert</span>
+      <span class="badge-card__name">Expert</span>
+      <span class="badge-card__class">.badge-expert</span>
+    </div>
+
+    <div class="badge-card">
+      <span class="badge badge-custom">Custom</span>
+      <span class="badge-card__name">Custom</span>
+      <span class="badge-card__class">.badge-custom</span>
+    </div>
+
+  </div>
+
+  <!-- ── Section 5: Utility / Context ─────────────────────── -->
+  <h2>5 — Utility / Context</h2>
+  <div class="badge-grid">
+
+    <div class="badge-card">
+      <span class="new-badge">🆕 New</span>
+      <span class="badge-card__name">New Supplier</span>
+      <span class="badge-card__class">.new-badge</span>
+    </div>
+
+    <div class="badge-card">
+      <span class="badge badge-test-data">Test data</span>
+      <span class="badge-card__name">Test Data</span>
+      <span class="badge-card__class">.badge-test-data</span>
+    </div>
+
+    <div class="badge-card">
+      <span class="badge-distance">0.5 mi</span>
+      <span class="badge-card__name">Distance</span>
+      <span class="badge-card__class">.badge-distance</span>
+    </div>
+
+  </div>
+
+  <!-- ── Section 6: Lead Quality ──────────────────────────── -->
+  <h2>6 — Lead Quality</h2>
+  <div class="badge-grid">
+
+    <div class="badge-card">
+      <span class="lead-badge lead-badge-high">High Quality Lead</span>
+      <span class="badge-card__name">High Quality Lead</span>
+      <span class="badge-card__class">.lead-badge.lead-badge-high</span>
+    </div>
+
+    <div class="badge-card">
+      <span class="lead-badge lead-badge-medium">Medium Quality Lead</span>
+      <span class="badge-card__name">Medium Quality Lead</span>
+      <span class="badge-card__class">.lead-badge.lead-badge-medium</span>
+    </div>
+
+    <div class="badge-card">
+      <span class="lead-badge lead-badge-low">Low Quality Lead</span>
+      <span class="badge-card__name">Low Quality Lead</span>
+      <span class="badge-card__class">.lead-badge.lead-badge-low</span>
+    </div>
+
+  </div>
+
+  <!-- ── Section 7: Admin Tier ────────────────────────────── -->
+  <h2>7 — Admin Tier <small style="font-weight:400;color:#9ca3af">(admin dashboard only)</small></h2>
+  <div class="badge-grid">
+
+    <div class="badge-card">
+      <span class="tier-badge tier-badge--free">Free</span>
+      <span class="badge-card__name">Free (admin)</span>
+      <span class="badge-card__class">.tier-badge.tier-badge--free</span>
+    </div>
+
+    <div class="badge-card">
+      <span class="tier-badge tier-badge--pro">Pro</span>
+      <span class="badge-card__name">Pro (admin)</span>
+      <span class="badge-card__class">.tier-badge.tier-badge--pro</span>
+    </div>
+
+    <div class="badge-card">
+      <span class="tier-badge tier-badge--pro_plus">Pro Plus</span>
+      <span class="badge-card__name">Pro Plus (admin)</span>
+      <span class="badge-card__class">.tier-badge.tier-badge--pro_plus</span>
+    </div>
+
+  </div>
+
+  <!-- ── Section 8: Inline Tier Icons ─────────────────────── -->
+  <h2>8 — Inline Tier Icons</h2>
+  <div class="badge-grid">
+
+    <div class="badge-card">
+      <span class="tier-icon-demo">
+        Supplier <span class="tier-icon tier-icon-pro">⭐</span>
+      </span>
+      <span class="badge-card__name">Tier Icon — Pro</span>
+      <span class="badge-card__class">.tier-icon.tier-icon-pro</span>
+    </div>
+
+    <div class="badge-card">
+      <span class="tier-icon-demo">
+        Supplier <span class="tier-icon tier-icon-pro-plus">💎</span>
+      </span>
+      <span class="badge-card__name">Tier Icon — Pro Plus</span>
+      <span class="badge-card__class">.tier-icon.tier-icon-pro-plus</span>
+    </div>
+
+  </div>
+
+</body>
+</html>
