@@ -2702,10 +2702,10 @@ function efMaybeShowOnboarding(page) {
           <p style="color:#6b7280;font-size:0.8125rem;line-height:1.5;margin:0;">Plan your perfect event with our curated suppliers.</p>
         </div>
         <div id="ef-ob-right">
-          <a href="/start" class="ef-ob-pill"><span style="font-size:1rem;line-height:1;" aria-hidden="true">📋</span><span>Create an event plan</span></a>
-          <a href="/suppliers" class="ef-ob-pill"><span style="font-size:1rem;line-height:1;" aria-hidden="true">🔍</span><span>Browse & save suppliers</span></a>
-          <a href="/budget" class="ef-ob-pill"><span style="font-size:1rem;line-height:1;" aria-hidden="true">💰</span><span>Track your budget</span></a>
-          <button type="button" class="cta" id="ef-onboarding-dismiss" aria-label="Dismiss onboarding and start using customer dashboard">Let's go! →</button>
+          <a href="/start" class="ef-ob-pill" aria-label="Create an event plan - opens event creation page"><span style="font-size:1rem;line-height:1;" aria-hidden="true">📋</span><span>Create an event plan</span></a>
+          <a href="/suppliers" class="ef-ob-pill" aria-label="Browse and save suppliers - opens suppliers directory"><span style="font-size:1rem;line-height:1;" aria-hidden="true">🔍</span><span>Browse & save suppliers</span></a>
+          <a href="/budget" class="ef-ob-pill" aria-label="Track your budget - opens budget page"><span style="font-size:1rem;line-height:1;" aria-hidden="true">💰</span><span>Track your budget</span></a>
+          <button type="button" class="cta" id="ef-onboarding-dismiss" aria-label="Dismiss welcome message">Let's go! →</button>
         </div>
       </div>
     `;
