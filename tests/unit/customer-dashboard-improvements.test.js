@@ -6,12 +6,14 @@
 
 describe('Welcome card dismissal persistence', () => {
   const DISMISS_KEY = 'ef_welcome_dismissed';
+  const CUSTOMER_DISMISS_KEY = 'ef_customer_welcome_dismissed';
 
   // Simulate the dismissal logic extracted from dashboard-customer-init.js
   function applyDismissalLogic(storage, welcomeEl, dismissBtn) {
     let dismissed = false;
     try {
-      dismissed = storage.getItem(DISMISS_KEY) === '1';
+      dismissed =
+        storage.getItem(DISMISS_KEY) === '1' || storage.getItem(CUSTOMER_DISMISS_KEY) === '1';
     } catch (_) {
       /* ignore */
     }
@@ -30,10 +32,24 @@ describe('Welcome card dismissal persistence', () => {
     }
   }
 
+  function makeOverlayDismissHandler(storage, overlayEl) {
+    return function dismissCustomerWelcomeOverlay() {
+      try {
+        storage.setItem(CUSTOMER_DISMISS_KEY, '1');
+        storage.setItem('ef_onboarding_dismissed', '1');
+      } catch (_) {
+        /* ignore */
+      }
+      overlayEl.removed = true;
+    };
+  }
+
   it('hides the welcome section when dismiss key is already set', () => {
     const storage = { store: { [DISMISS_KEY]: '1' } };
     storage.getItem = key => storage.store[key] || null;
-    storage.setItem = (key, val) => { storage.store[key] = val; };
+    storage.setItem = (key, val) => {
+      storage.store[key] = val;
+    };
 
     const welcomeEl = { hidden: false };
     const dismissBtn = null;
@@ -46,12 +62,16 @@ describe('Welcome card dismissal persistence', () => {
   it('does not hide the welcome section when dismiss key is absent', () => {
     const storage = { store: {} };
     storage.getItem = key => storage.store[key] || null;
-    storage.setItem = (key, val) => { storage.store[key] = val; };
+    storage.setItem = (key, val) => {
+      storage.store[key] = val;
+    };
 
     const welcomeEl = { hidden: false };
     const listeners = {};
     const dismissBtn = {
-      addEventListener: (evt, fn) => { listeners[evt] = fn; },
+      addEventListener: (evt, fn) => {
+        listeners[evt] = fn;
+      },
     };
 
     applyDismissalLogic(storage, welcomeEl, dismissBtn);
@@ -60,15 +80,33 @@ describe('Welcome card dismissal persistence', () => {
     expect(typeof listeners.click).toBe('function');
   });
 
+  it('hides the welcome section when customer overlay dismiss key is already set', () => {
+    const storage = { store: { [CUSTOMER_DISMISS_KEY]: '1' } };
+    storage.getItem = key => storage.store[key] || null;
+    storage.setItem = (key, val) => {
+      storage.store[key] = val;
+    };
+
+    const welcomeEl = { hidden: false };
+
+    applyDismissalLogic(storage, welcomeEl, null);
+
+    expect(welcomeEl.hidden).toBe(true);
+  });
+
   it('hides the welcome section and persists dismissal when dismiss button is clicked', () => {
     const storage = { store: {} };
     storage.getItem = key => storage.store[key] || null;
-    storage.setItem = (key, val) => { storage.store[key] = val; };
+    storage.setItem = (key, val) => {
+      storage.store[key] = val;
+    };
 
     const welcomeEl = { hidden: false };
     const listeners = {};
     const dismissBtn = {
-      addEventListener: (evt, fn) => { listeners[evt] = fn; },
+      addEventListener: (evt, fn) => {
+        listeners[evt] = fn;
+      },
     };
 
     applyDismissalLogic(storage, welcomeEl, dismissBtn);
@@ -80,16 +118,37 @@ describe('Welcome card dismissal persistence', () => {
     expect(storage.store[DISMISS_KEY]).toBe('1');
   });
 
+  it('sets overlay dismiss keys and removes onboarding overlay when overlay dismiss is called', () => {
+    const storage = { store: {} };
+    storage.getItem = key => storage.store[key] || null;
+    storage.setItem = (key, val) => {
+      storage.store[key] = val;
+    };
+
+    const overlayEl = { removed: false };
+    const dismiss = makeOverlayDismissHandler(storage, overlayEl);
+
+    dismiss();
+
+    expect(overlayEl.removed).toBe(true);
+    expect(storage.store[CUSTOMER_DISMISS_KEY]).toBe('1');
+    expect(storage.store['ef_onboarding_dismissed']).toBe('1');
+  });
+
   it('persists the dismissal so subsequent loads also hide the card', () => {
     const storage = { store: {} };
     storage.getItem = key => storage.store[key] || null;
-    storage.setItem = (key, val) => { storage.store[key] = val; };
+    storage.setItem = (key, val) => {
+      storage.store[key] = val;
+    };
 
     // First "page load" — click dismiss
     const welcomeEl1 = { hidden: false };
     const listeners = {};
     const dismissBtn = {
-      addEventListener: (evt, fn) => { listeners[evt] = fn; },
+      addEventListener: (evt, fn) => {
+        listeners[evt] = fn;
+      },
     };
     applyDismissalLogic(storage, welcomeEl1, dismissBtn);
     listeners.click();
@@ -103,13 +162,19 @@ describe('Welcome card dismissal persistence', () => {
 
   it('handles a storage error gracefully (does not throw)', () => {
     const storage = {
-      getItem: () => { throw new Error('QuotaExceededError'); },
-      setItem: () => { throw new Error('QuotaExceededError'); },
+      getItem: () => {
+        throw new Error('QuotaExceededError');
+      },
+      setItem: () => {
+        throw new Error('QuotaExceededError');
+      },
     };
     const welcomeEl = { hidden: false };
     const listeners = {};
     const dismissBtn = {
-      addEventListener: (evt, fn) => { listeners[evt] = fn; },
+      addEventListener: (evt, fn) => {
+        listeners[evt] = fn;
+      },
     };
 
     expect(() => applyDismissalLogic(storage, welcomeEl, dismissBtn)).not.toThrow();
@@ -259,9 +324,7 @@ describe('Calendar entry creation — API route (unit)', () => {
           .json({ error: `Type must be one of: ${VALID_ENTRY_TYPES.join(', ')}` });
       }
       if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-        return res
-          .status(400)
-          .json({ error: 'Date is required and must be in YYYY-MM-DD format' });
+        return res.status(400).json({ error: 'Date is required and must be in YYYY-MM-DD format' });
       }
       if (
         description &&
@@ -288,8 +351,14 @@ describe('Calendar entry creation — API route (unit)', () => {
 
   function mockRes() {
     const r = { _status: 200, _body: null };
-    r.status = code => { r._status = code; return r; };
-    r.json = body => { r._body = body; return r; };
+    r.status = code => {
+      r._status = code;
+      return r;
+    };
+    r.json = body => {
+      r._body = body;
+      return r;
+    };
     return r;
   }
 

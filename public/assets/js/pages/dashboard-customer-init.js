@@ -7,6 +7,29 @@ function dbg(...args) {
   }
 }
 
+// --- Customer welcome overlay dismiss logic ---
+(function initCustomerWelcomeOverlayDismiss() {
+  const DISMISS_KEY = 'ef_customer_welcome_dismissed';
+
+  function dismissCustomerWelcomeOverlay() {
+    try {
+      localStorage.setItem(DISMISS_KEY, '1');
+      localStorage.setItem('ef_onboarding_dismissed', '1');
+    } catch (_) {
+      /* Ignore localStorage errors */
+    }
+
+    const overlay = document.getElementById('ef-onboarding-box');
+    if (overlay) {
+      overlay.style.transition = 'opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+      overlay.style.opacity = '0';
+      setTimeout(() => overlay.remove(), 300);
+    }
+  }
+
+  window.dismissCustomerWelcome = dismissCustomerWelcomeOverlay;
+})();
+
 // Load customer plans
 async function loadCustomerPlans(preloadedPlans) {
   const container = document.getElementById('customer-plans-list');
@@ -82,7 +105,12 @@ function formatPlanDate(dateString) {
     return '';
   }
   try {
-    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/London' });
+    return date.toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      timeZone: 'Europe/London',
+    });
   } catch (_) {
     return '';
   }
@@ -152,7 +180,9 @@ async function initDashboard() {
   if (welcomeSection) {
     let dismissed = false;
     try {
-      dismissed = localStorage.getItem(WELCOME_DISMISS_KEY) === '1';
+      dismissed =
+        localStorage.getItem(WELCOME_DISMISS_KEY) === '1' ||
+        localStorage.getItem('ef_customer_welcome_dismissed') === '1';
     } catch (_) {
       /* ignore storage errors */
     }
