@@ -404,14 +404,6 @@
   margin-top: 0.25rem;
 }
 
-/* Badge layout within review cards — scoped to avoid overriding badges.css globally */
-.review-badges-inline .badge-verified,
-.review-badges-inline .badge-email-verified,
-.review-badges-inline .badge-supplier {
-  display: inline-flex;
-  align-items: center;
-}
-
 .review-meta {
   display: flex;
   align-items: center;

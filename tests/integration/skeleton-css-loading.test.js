@@ -131,6 +131,40 @@ describe('supplier-profile.js skeleton and error-state usage', () => {
   });
 });
 
+describe('reviews.js badge base class — regression guard', () => {
+  // Regression: all badge <span> elements in renderReviewCard() must carry the
+  // base `.badge` class alongside their modifier. Without it, all structural
+  // styles (padding, border-radius, display: inline-flex, etc.) are absent and
+  // the badges render as unstyled inline text.
+  let reviewsJsContent;
+
+  beforeAll(() => {
+    reviewsJsContent = fs.readFileSync(path.join(publicDir, 'assets/js/reviews.js'), 'utf8');
+  });
+
+  it('renders Verified Customer badge with both badge and badge-verified classes', () => {
+    expect(reviewsJsContent).toContain('"badge badge-verified"');
+    // Regression guard: modifier class must not appear without the base class
+    expect(reviewsJsContent).not.toContain('"badge-verified"');
+  });
+
+  it('renders Email Verified badge with both badge and badge-email-verified classes', () => {
+    expect(reviewsJsContent).toContain('"badge badge-email-verified"');
+    // Regression guard: modifier class must not appear without the base class
+    expect(reviewsJsContent).not.toContain('"badge-email-verified"');
+  });
+
+  it('renders Verified Supplier badge with both badge and badge-supplier classes', () => {
+    expect(reviewsJsContent).toContain('"badge badge-supplier"');
+    // Regression guard: modifier class must not appear without the base class
+    expect(reviewsJsContent).not.toContain('"badge-supplier"');
+  });
+
+  it('renders Verified Supplier badge with the correct label text', () => {
+    expect(reviewsJsContent).toContain('Verified Supplier');
+  });
+});
+
 describe('reviews.css completeness', () => {
   let reviewsCssContent;
 

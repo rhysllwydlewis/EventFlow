@@ -309,10 +309,10 @@
 
       // Issue 3 fix: ticks come from CSS ::before — no inline ✓ in text
       const verified = review.verified
-        ? '<span class="badge-verified">Verified Customer</span>'
+        ? '<span class="badge badge-verified">Verified Customer</span>'
         : '';
       const emailVerified = review.emailVerified
-        ? '<span class="badge-email-verified">Email Verified</span>'
+        ? '<span class="badge badge-email-verified">Email Verified</span>'
         : '';
 
       // Supplier reviewer badge — shown when the reviewer is a verified supplier account.
@@ -321,7 +321,7 @@
       // The label "Verified Supplier" signals this is a trust indicator, not a role assignment.
       const supplierBadge =
         review.isSupplier || review.authorSupplierId
-          ? '<span class="badge-supplier">Verified Supplier</span>'
+          ? '<span class="badge badge-supplier">Verified Supplier</span>'
           : '';
 
       const recommend = review.recommend
