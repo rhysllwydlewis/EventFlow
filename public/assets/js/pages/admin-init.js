@@ -170,14 +170,22 @@
 
       actions += '</div>';
 
-      // Enhanced role display — admin badge for admin/owner accounts
-      let roleDisplay = escapeHtml(u.role || '');
+      // Enhanced role display — show a styled badge for every account type
+      let roleDisplay;
       if (isOwner) {
         roleDisplay =
           '<span class="badge badge-admin" title="Protected owner account — cannot be deleted or demoted">🛡️ Admin</span>' +
           ' <span class="badge" style="background:#9f1239;color:#fff;font-weight:600;font-size:0.7rem;">OWNER</span>';
+      } else if (window.AdminShared && window.AdminShared.getRoleBadge) {
+        roleDisplay = window.AdminShared.getRoleBadge(u.role);
       } else if (isAdmin) {
         roleDisplay = '<span class="badge badge-admin">🛡️ Admin</span>';
+      } else if (u.role === 'supplier') {
+        roleDisplay = '<span class="badge badge-supplier-account">🏪 Supplier</span>';
+      } else if (u.role === 'partner') {
+        roleDisplay = '<span class="badge badge-partner">🤝 Partner</span>';
+      } else {
+        roleDisplay = '<span class="badge badge-customer">🎉 Customer</span>';
       }
 
       rows +=

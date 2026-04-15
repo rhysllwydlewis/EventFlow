@@ -1812,6 +1812,18 @@ const AdminShared = (function () {
     }
   }
 
+  /**
+   * Returns a polished HTML badge for a user role.
+   * @param {string} role - 'admin' | 'supplier' | 'partner' | 'customer'
+   * @returns {string} HTML string
+   */
+  function getRoleBadge(role) {
+    if (role === 'admin') return '<span class="badge badge-admin">🛡️ Admin</span>';
+    if (role === 'supplier') return '<span class="badge badge-supplier-account">🏪 Supplier</span>';
+    if (role === 'partner') return '<span class="badge badge-partner">🤝 Partner</span>';
+    return '<span class="badge badge-customer">🎉 Customer</span>';
+  }
+
   // Public API
   return {
     // Debug utilities
@@ -1856,6 +1868,7 @@ const AdminShared = (function () {
     generateId,
     debounce,
     animateCounter,
+    getRoleBadge,
     // Keyboard shortcuts
     initKeyboardShortcuts,
     openCommandPalette,

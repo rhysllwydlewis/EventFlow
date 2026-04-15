@@ -56,7 +56,7 @@
             <div class="search-result-item">
               <div>
                 <div class="search-result-primary">${AdminShared.escapeHtml(u.name || 'Unknown')}</div>
-                <div class="search-result-secondary">${AdminShared.escapeHtml(u.email)} · ${AdminShared.escapeHtml(u.role || 'user')}</div>
+                <div class="search-result-secondary" style="display:flex;align-items:center;gap:0.4rem;">${AdminShared.escapeHtml(u.email)} ${AdminShared.getRoleBadge(u.role)}</div>
               </div>
               <div class="search-result-meta">
                 <a href="/admin-user-detail?id=${encodeURIComponent(u.id)}" class="btn-sm btn-secondary">View</a>
