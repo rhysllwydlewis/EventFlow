@@ -137,6 +137,7 @@
 
   async function saveAutoApproveFlag(newValue) {
     try {
+      await ensureCSRFToken();
       await AdminShared.adminFetch('/api/admin/settings/features', {
         method: 'PUT',
         body: { autoApproveReviews: newValue },
@@ -167,10 +168,10 @@
       return;
     }
     if (selectedIds.size > 0) {
-      batchBar.style.display = '';
+      batchBar.classList.add('active');
       batchCount.textContent = `${selectedIds.size} selected`;
     } else {
-      batchBar.style.display = 'none';
+      batchBar.classList.remove('active');
     }
   }
 
@@ -380,6 +381,10 @@
       if (ids.length === 0) {
         return;
       }
+      if (typeof AdminShared.showConfirmModal !== 'function') {
+        showToast('Admin utilities not available. Please reload the page.', 'error');
+        return;
+      }
       const result = await AdminShared.showConfirmModal({
         title: 'Remove Selected Reviews',
         message: `Remove ${ids.length} selected review(s) from the platform?`,
@@ -399,6 +404,10 @@
     batchRejectBtn.addEventListener('click', async () => {
       const ids = Array.from(selectedIds);
       if (ids.length === 0) {
+        return;
+      }
+      if (typeof AdminShared.showConfirmModal !== 'function') {
+        showToast('Admin utilities not available. Please reload the page.', 'error');
         return;
       }
       const result = await AdminShared.showConfirmModal({
