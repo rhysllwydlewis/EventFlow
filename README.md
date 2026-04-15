@@ -8,55 +8,25 @@ A production-ready, feature-rich platform connecting event service suppliers (ph
 
 ---
 
-## 🚀 Quick Start - Production Deployment
+## 📋 Table of Contents
 
-**Deploying to production (Railway, Heroku, etc.)?** Follow these steps to avoid 502 errors:
-
-### Prerequisites
-
-- ✅ Node.js 20 LTS (v20.x) — **Node 22+ is not supported** (sharp may crash with "Bus error")
-- ✅ **MongoDB Atlas account (free tier available)** ← Most important!
-- ✅ Deployment platform account (Railway, Heroku, etc.)
-
-### Essential Steps (15 minutes)
-
-1. **Set up MongoDB Atlas** (Required - app won't start without this!)
-   - 📚 **[Follow our simple step-by-step guide →](.github/docs/MONGODB_SETUP_SIMPLE.md)** (no technical knowledge needed)
-   - 📚 Or see [MONGODB_SETUP.md](.github/docs/MONGODB_SETUP.md) for technical details
-   - Get your connection string from MongoDB Atlas
-
-2. **Configure Environment Variables** on your deployment platform:
-
-   ```bash
-   # Required
-   MONGODB_URI=mongodb+srv://your-actual-connection-string
-   JWT_SECRET=your-random-secret-min-32-chars
-   NODE_ENV=production
-   BASE_URL=https://event-flow.co.uk
-
-   # Recommended (optional)
-   EMAIL_ENABLED=true
-   POSTMARK_API_KEY=your-server-token
-   POSTMARK_FROM=admin@yourdomain.com
-   ```
-
-3. **Deploy your app** - Push to your platform (Railway, Heroku, etc.)
-
-4. **Verify it works** - Visit `https://event-flow.co.uk/api/health`
-   - Should show `"databaseStatus": "connected"`
-
-### Troubleshooting 502 Errors
-
-Getting "502 Bad Gateway" or "connection refused" errors? This usually means MongoDB isn't configured:
-
-| Error Message                                   | Solution                                                                                                                                                 |
-| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| "Invalid scheme, expected connection string..." | You're using the placeholder from `.env.example`. Get your real connection string from MongoDB Atlas - [see guide](.github/docs/MONGODB_SETUP_SIMPLE.md) |
-| "Authentication failed" or "bad auth"           | Wrong password in connection string. Reset it in MongoDB Atlas → Database Access                                                                         |
-| "Connection timeout" or "ENOTFOUND"             | IP not whitelisted. Add `0.0.0.0/0` in MongoDB Atlas → Network Access                                                                                    |
-| "No cloud database configured"                  | `MONGODB_URI` environment variable not set on your deployment platform                                                                                   |
-
-**📚 Detailed troubleshooting:** See [MONGODB_SETUP_SIMPLE.md](.github/docs/MONGODB_SETUP_SIMPLE.md#common-problems-and-solutions)
+- [Features](#-features)
+- [Quick Start](#-quick-start)
+  - [Local Development](#local-development)
+  - [Production Deployment](#production-deployment)
+- [Tech Stack](#️-tech-stack)
+- [Environment Variables](#-environment-variables)
+- [API Endpoints](#-api-endpoints)
+- [User Flows & Pages](#-user-flows--pages)
+- [Project Structure](#-project-structure)
+- [Database Schema](#️-database-schema)
+- [Deployment](#-deployment)
+- [Testing & Quality Assurance](#-testing--quality-assurance)
+- [MongoDB Atlas Webhooks](#-mongodb-atlas-webhooks)
+- [Documentation](#-documentation)
+- [Contributing](#-contributing)
+- [License](#-license)
+- [Support](#-support)
 
 ---
 
@@ -235,19 +205,17 @@ ADMIN_DOMAINS=your-company.com
 - **Admin Access** - Admins can view all conversations for support purposes
 - **Real-time Updates** - Auto-refresh to show new messages
 
----
-
-## 🔒 Security
+### 🔒 Security
 
 EventFlow implements industry-standard security practices:
 
-### HTTPS & Transport Security
+#### HTTPS & Transport Security
 
 - **HTTPS Enforcement**: All HTTP requests are redirected to HTTPS in production
 - **HSTS**: HTTP Strict Transport Security enabled with 1-year max-age
 - **Secure Cookies**: Authentication cookies use `httpOnly`, `secure` (production), and `sameSite` flags
 
-### Security & Performance
+#### Security & Performance
 
 - ✅ **Rate Limiting** - Protects against abuse with endpoint-specific limits
   - Authentication: 10 requests / 15 minutes
@@ -261,32 +229,32 @@ EventFlow implements industry-standard security practices:
 - ✅ **CSRF Protection** - Token-based protection for all state-changing operations
 - ✅ **MongoDB Sanitization** - Prevents NoSQL injection attacks
 - ✅ **Password Hashing** - Bcrypt with salt rounds
-- 📚 **[Full Security Documentation →](docs/SECURITY_FEATURES.md)** Headers (via Helmet)
+- 📚 **[Full Security Documentation →](docs/SECURITY_FEATURES.md)**
+
+#### Security Headers (via Helmet)
 
 - **Content Security Policy (CSP)**: Restricts resource loading to trusted domains
 - **X-Frame-Options**: Prevents clickjacking with `DENY`
 - **X-Content-Type-Options**: Prevents MIME-sniffing with `nosniff`
 - **Referrer-Policy**: Set to `strict-origin-when-cross-origin`
 
-### Input Validation & Sanitization
+#### Input Validation & Sanitization
 
 - MongoDB query sanitization via `express-mongo-sanitize`
 - Input validation using `validator` library
 - Rate limiting on authentication and write endpoints
 
-### Monitoring
+#### Monitoring
 
 - CSP violation reporting endpoint at `/api/csp-report`
 - Sentry integration for error tracking
 - Audit logging for admin actions
 
----
-
-## ⚡ Performance
+### ⚡ Performance
 
 EventFlow implements comprehensive performance optimizations for production deployments:
 
-### Compression Strategy
+#### Compression Strategy
 
 - **Brotli Compression**: Primary compression method (15-20% better than gzip)
 - **Gzip Fallback**: Automatic fallback for older clients
@@ -302,7 +270,7 @@ curl -H "Accept-Encoding: br" -I https://yourdomain.com/
 # Should return: Content-Encoding: br
 ```
 
-### Caching Strategy
+#### Caching Strategy
 
 EventFlow uses a multi-tier caching strategy for optimal performance:
 
@@ -318,14 +286,14 @@ curl -I https://yourdomain.com/assets/css/styles.css
 # Should return: Cache-Control: public, max-age=604800, must-revalidate
 ```
 
-### Asset Optimization
+#### Asset Optimization
 
 - **Minified Assets**: CSS (~292KB) and JS (~1.2MB) are production-ready
 - **Optimized Favicon**: 245 bytes SVG (extremely small)
 - **Deferred Loading**: JavaScript loads with `defer` attribute
 - **Lazy Loading**: Images load on-demand as they enter viewport
 
-### Performance Verification
+#### Performance Verification
 
 EventFlow includes a built-in performance verification endpoint:
 
@@ -343,14 +311,14 @@ curl http://localhost:3000/api/performance
 
 **Full Testing Guide:** See [docs/PERFORMANCE_TESTING.md](docs/PERFORMANCE_TESTING.md)
 
-### Image Optimization
+#### Image Optimization
 
 - **Sharp** library for server-side image processing
 - WebP format generation for modern browsers
 - Responsive image sizes (thumbnail, large, optimized)
 - Automatic thumbnail generation on upload
 
-### CDN Recommendation
+#### CDN Recommendation
 
 For production deployments, we recommend adding Cloudflare in front of Railway for:
 
@@ -365,19 +333,21 @@ See `docs/CLOUDFLARE_SETUP.md` for setup instructions (coming soon).
 
 ## 🚀 Quick Start
 
-### Prerequisites
+### Local Development
+
+#### Prerequisites
 
 - Node.js 20 LTS (v20.x) and npm — Node 22+ is not supported due to sharp compatibility
 - **Optional:** MongoDB 6.0+ (local or Atlas) for production deployments
 
 **Note:** EventFlow uses file-based JSON storage by default for zero-configuration setup. MongoDB is available for production use - see [MONGODB_SETUP.md](.github/docs/MONGODB_SETUP.md).
 
-### Installation
+#### Installation
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/eventflow.git
-cd eventflow
+git clone https://github.com/rhysllwydlewis/EventFlow.git
+cd EventFlow
 
 # Install dependencies
 npm install
@@ -395,7 +365,7 @@ npm start
 
 Visit http://localhost:3000
 
-### Docker Quick Start
+#### Docker Quick Start
 
 ```bash
 # Start all services (app + MongoDB + Mongo Express)
@@ -416,25 +386,57 @@ docker-compose down
 
 See [DOCKER_GUIDE.md](DOCKER_GUIDE.md) for details.
 
-## 📚 Documentation
+### Production Deployment
 
-### Getting Started
+**Deploying to production (Railway, Heroku, etc.)?** Follow these steps to avoid 502 errors:
 
-- **[Production Deployment Quick Start](#-quick-start---production-deployment)** - Deploy in 15 minutes
-- **[MongoDB Setup (Simple Guide)](.github/docs/MONGODB_SETUP_SIMPLE.md)** - For non-technical users
-- **[Troubleshooting 502 Errors](#troubleshooting-502-errors)** - Common deployment issues
+#### Prerequisites
 
-### Complete Guides
+- ✅ Node.js 20 LTS (v20.x) — **Node 22+ is not supported** (sharp may crash with "Bus error")
+- ✅ **MongoDB Atlas account (free tier available)** ← Most important!
+- ✅ Deployment platform account (Railway, Heroku, etc.)
 
-- **[API Documentation](API_DOCUMENTATION.md)** - Complete API reference with examples
-- **[Deployment Guide](DEPLOYMENT_GUIDE.md)** - Production deployment instructions
-- **[MongoDB Setup (Technical)](.github/docs/MONGODB_SETUP.md)** - Database configuration guide
-- **[MongoDB Migration Plan](docs/mongodb-migration.md)** - Complete MongoDB migration guide with architecture
-- **[Performance Testing Guide](docs/PERFORMANCE_TESTING.md)** - Performance verification and QA procedures
-- **[Docker Guide](DOCKER_GUIDE.md)** - Docker Compose usage
-- **[Stripe Introductory Pricing Setup](STRIPE_INTRO_PRICING_SETUP.md)** - Configure intro pricing for Professional plan
-- **[Stripe Integration Guide](STRIPE_INTEGRATION_GUIDE.md)** - General Stripe setup
-- **[Interactive API Docs](http://localhost:3000/api-docs)** - Swagger UI (when running)
+#### Essential Steps (15 minutes)
+
+1. **Set up MongoDB Atlas** (Required - app won't start without this!)
+   - 📚 **[Follow our simple step-by-step guide →](.github/docs/MONGODB_SETUP_SIMPLE.md)** (no technical knowledge needed)
+   - 📚 Or see [MONGODB_SETUP.md](.github/docs/MONGODB_SETUP.md) for technical details
+   - Get your connection string from MongoDB Atlas
+
+2. **Configure Environment Variables** on your deployment platform:
+
+   ```bash
+   # Required
+   MONGODB_URI=mongodb+srv://your-actual-connection-string
+   JWT_SECRET=your-random-secret-min-32-chars
+   NODE_ENV=production
+   BASE_URL=https://yourdomain.com
+
+   # Recommended (optional)
+   EMAIL_ENABLED=true
+   POSTMARK_API_KEY=your-server-token
+   POSTMARK_FROM=admin@yourdomain.com
+   ```
+
+3. **Deploy your app** - Push to your platform (Railway, Heroku, etc.)
+
+4. **Verify it works** - Visit `https://yourdomain.com/api/health`
+   - Should show `"databaseStatus": "connected"`
+
+#### Troubleshooting 502 Errors
+
+Getting "502 Bad Gateway" or "connection refused" errors? This usually means MongoDB isn't configured:
+
+| Error Message                                   | Solution                                                                                                                                                 |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "Invalid scheme, expected connection string..." | You're using the placeholder from `.env.example`. Get your real connection string from MongoDB Atlas - [see guide](.github/docs/MONGODB_SETUP_SIMPLE.md) |
+| "Authentication failed" or "bad auth"           | Wrong password in connection string. Reset it in MongoDB Atlas → Database Access                                                                         |
+| "Connection timeout" or "ENOTFOUND"             | IP not whitelisted. Add `0.0.0.0/0` in MongoDB Atlas → Network Access                                                                                    |
+| "No cloud database configured"                  | `MONGODB_URI` environment variable not set on your deployment platform                                                                                   |
+
+**📚 Detailed troubleshooting:** See [MONGODB_SETUP_SIMPLE.md](.github/docs/MONGODB_SETUP_SIMPLE.md#common-problems-and-solutions)
+
+---
 
 ## 🛠️ Tech Stack
 
@@ -468,191 +470,6 @@ See [DOCKER_GUIDE.md](DOCKER_GUIDE.md) for details.
 
 - Stripe (payments)
 - OpenAI (AI features)
-
-## 📖 API Endpoints
-
-### Authentication
-
-```
-POST   /api/auth/register        - Register new user
-POST   /api/auth/login           - Login
-POST   /api/auth/logout          - Logout
-GET    /api/auth/me              - Get current user
-GET    /api/auth/verify          - Verify email with token
-POST   /api/auth/resend-verification - Resend verification email
-POST   /api/auth/forgot          - Request password reset
-```
-
-### Search & Discovery
-
-```
-GET    /api/search/suppliers     - Advanced supplier search
-GET    /api/search/categories    - Get all categories
-GET    /api/search/amenities     - Get all amenities
-GET    /api/discovery/trending   - Trending suppliers
-GET    /api/discovery/new        - New suppliers
-GET    /api/discovery/recommendations - Personalized recommendations
-```
-
-### Reviews & Ratings
-
-```
-POST   /api/reviews              - Create review
-GET    /api/reviews/supplier/:id - Get supplier reviews
-GET    /api/reviews/supplier/:id/distribution - Rating distribution
-POST   /api/reviews/:id/helpful  - Mark review helpful
-DELETE /api/reviews/:id          - Delete review
-```
-
-### Packages
-
-```
-GET    /api/packages/featured    - Get featured packages
-GET    /api/packages/search      - Search packages
-GET    /api/packages/:slug       - Get package details by slug
-```
-
-### Photo Management
-
-```
-POST   /api/photos/upload        - Upload single photo
-POST   /api/photos/upload/batch  - Upload multiple photos
-DELETE /api/photos/delete        - Delete photo
-POST   /api/photos/crop          - Crop image
-GET    /api/photos/pending       - Get pending photos (admin)
-POST   /api/photos/approve       - Approve/reject photo (admin)
-```
-
-### Admin Endpoints
-
-```
-GET    /api/admin/users          - List all users
-PUT    /api/admin/users/:id      - Edit user profile
-DELETE /api/admin/users/:id      - Delete user
-POST   /api/admin/users/:id/verify           - Manually verify user email
-POST   /api/admin/users/:id/grant-admin      - Grant admin privileges
-POST   /api/admin/users/:id/revoke-admin     - Revoke admin privileges
-GET    /api/admin/suppliers      - List all suppliers
-PUT    /api/admin/suppliers/:id  - Edit supplier
-DELETE /api/admin/suppliers/:id  - Delete supplier
-POST   /api/admin/suppliers/:id/verify       - Manually verify supplier identity
-POST   /api/admin/suppliers/smart-tags       - Generate smart tags for suppliers
-GET    /api/admin/packages       - List all packages
-PUT    /api/admin/packages/:id   - Edit package
-DELETE /api/admin/packages/:id   - Delete package
-GET    /api/admin/metrics        - Get dashboard metrics
-GET    /api/admin/users-export   - Export users (CSV)
-GET    /api/admin/export/all     - Export all data (JSON)
-```
-
-### Messaging Endpoints
-
-```
-GET    /api/messages/threads                      - List conversation threads
-POST   /api/messages/threads                      - Create new conversation
-GET    /api/messages/threads/:id                  - Get thread details
-GET    /api/messages/threads/:id/messages         - Get messages in thread
-POST   /api/messages/threads/:id/messages         - Send message in thread
-POST   /api/messages/threads/:id/mark-read        - Mark thread as read
-GET    /api/messages/drafts                       - Get draft messages
-PUT    /api/messages/:id                          - Update draft message
-DELETE /api/messages/:id                          - Delete draft message
-```
-
-See [API_DOCUMENTATION.md](API_DOCUMENTATION.md) for complete reference.
-See [ADMIN_API.md](ADMIN_API.md) for detailed admin endpoint documentation.
-
-## 📱 User Flows & Pages
-
-### Email Verification Flow
-
-EventFlow implements a secure email verification system for new user accounts:
-
-**User Journey:**
-
-1. User registers for an account at `/auth.html`
-2. System sends verification email with a unique 24-hour token via Postmark
-3. User clicks verification link in email → redirects to `/verify.html?token=<token>`
-4. Page automatically calls `/api/auth/verify` API with the token
-5. System displays branded verification status:
-   - ✅ **Success**: "Email Verified!" with auto-redirect to appropriate dashboard
-   - ❌ **Expired**: Shows expiration message with resend form
-   - ❌ **Invalid**: Shows invalid token message with resend form
-   - ⚠️ **No Token**: Shows instructions with resend form
-6. After successful verification, user is redirected to:
-   - Admin users → `/admin.html`
-   - Supplier users → `/dashboard-supplier.html`
-   - Customer users → `/dashboard-customer.html`
-
-**Features:**
-
-- Token-based verification with 24-hour expiration for security
-- Branded UI with appropriate icons and messages for all states
-- Resend verification email functionality
-- Auto-redirect after successful verification
-- Manual navigation buttons (Go to Dashboard, Go to Home)
-- Email validation and error handling
-
-**Screenshot:**
-![Email Verification Page](https://github.com/user-attachments/assets/ca0d5df7-24cd-45f9-8c80-ed7c4f38a0c1)
-
-### Package Detail Page Flow
-
-Users can browse and view detailed information about service packages:
-
-**User Journey:**
-
-1. User discovers packages on homepage featured carousel or category pages
-2. Clicks on package card → navigates to `/package.html?slug=<package-slug>`
-3. Page loads full package details via `/api/packages/:slug` API
-4. User views comprehensive package information and supplier details
-5. User can:
-   - Browse package photo gallery
-   - Read full description and pricing
-   - View tags and categories
-   - See supplier profile information
-   - Message the supplier (requires authentication)
-   - Navigate to supplier's other packages
-
-**Package Detail Features:**
-
-- **Image Gallery**: Multiple photos with thumbnail navigation and full-screen view
-- **Package Information**:
-  - Title, description, and detailed information
-  - Pricing (or "Contact for price")
-  - Location with map icon
-  - Categories and tags
-  - Featured badge (if applicable)
-- **Supplier Card**:
-  - Supplier logo and name
-  - Business description
-  - Contact information (email, phone)
-  - Location
-  - Link to view all supplier packages
-- **Message Panel**: Auth-gated messaging system to contact supplier
-- **Breadcrumb Navigation**: Home → Category → Package
-- **Responsive Design**: Mobile-friendly layout
-
-**Linking from Homepage:**
-
-- Package cards on the homepage automatically link to detail pages
-- Implemented via `PackageList` component: `window.location.href = '/package.html?slug=${pkg.slug}'`
-- Featured packages carousel also links to detail pages
-- All package cards are clickable with hover effects
-
-**Screenshot:**
-![Package Detail Page](https://github.com/user-attachments/assets/5a312a8d-0f34-4c54-9e27-895ed06b9c91)
-
-**Technical Implementation:**
-
-- URL Pattern: `/package.html?slug=<package-slug>`
-- API Endpoint: `GET /api/packages/:slug`
-- JavaScript Handler: `/assets/js/pages/package-init.js` (inline in package.html)
-- Components Used:
-  - `PackageGallery` - Image gallery component
-  - `SupplierCard` - Supplier information display
-  - `MessageSupplierPanel` - Messaging interface
-- Authentication: Required only for messaging functionality
 
 ## 🔧 Environment Variables
 
@@ -759,7 +576,7 @@ EventFlow uses **Postmark exclusively** for all transactional emails:
 5. Add to `.env`:
    ```bash
    POSTMARK_API_KEY=your-server-token
-   POSTMARK_FROM=admin@event-flow.co.uk
+   POSTMARK_FROM=admin@yourdomain.com
    EMAIL_ENABLED=true
    ```
 
@@ -774,67 +591,200 @@ During development without Postmark configured, emails are saved to `/outbox` fo
 - ✅ Sender domain/email verified in Postmark
 - ✅ Message streams configured (outbound, password-reset, broadcasts)
 - ✅ `POSTMARK_API_KEY` environment variable set
-- ✅ `POSTMARK_FROM` set to verified sender address (admin@event-flow.co.uk)
+- ✅ `POSTMARK_FROM` set to verified sender address (e.g. `admin@yourdomain.com`)
 - ✅ Webhooks configured for delivery tracking (optional but recommended)
 - ✅ Never commit API keys to git - use environment variables only
 
-**Webhook URL (optional):** `https://your-domain.com/api/webhooks/postmark`
+**Webhook URL (optional):** `https://yourdomain.com/api/webhooks/postmark`
 
-## 🍃 MongoDB Atlas Webhooks
+## 📖 API Endpoints
 
-EventFlow supports receiving real-time change events from MongoDB Atlas via **Database Triggers** or **App Services HTTP Endpoints**.
+### Authentication
 
-### Endpoint
-
-```
-POST /api/webhooks/mongodb
-```
-
-### How It Works
-
-When a document in your Atlas cluster changes (insert, update, delete, etc.), Atlas can call this endpoint with a [change event](https://www.mongodb.com/docs/manual/reference/change-events/) payload. EventFlow verifies the payload signature, logs the event, and runs any registered handlers.
-
-### Configuration
-
-| Environment variable      | Description                                                                                           |
-| ------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `MONGODB_WEBHOOK_SECRET`  | **Required in production.** Shared HMAC-SHA256 secret. Set in both `.env` and Atlas Trigger settings. |
-| `MONGODB_WEBHOOK_ENABLED` | Set to `false` to disable the endpoint entirely (default: `true`).                                    |
-
-Generate a strong secret:
-
-```bash
-openssl rand -hex 32
+```text
+POST   /api/auth/register        - Register new user
+POST   /api/auth/login           - Login
+POST   /api/auth/logout          - Logout
+GET    /api/auth/me              - Get current user
+GET    /api/auth/verify          - Verify email with token
+POST   /api/auth/resend-verification - Resend verification email
+POST   /api/auth/forgot          - Request password reset
 ```
 
-### Setting Up in MongoDB Atlas
+### Search & Discovery
 
-1. Open **Atlas App Services** → **Triggers** → **Add Trigger** (choose _Database_ trigger).
-2. Configure the trigger for the collection(s) you want to watch.
-3. In **Event Type**, tick the operations you care about (Insert, Update, Delete, etc.).
-4. Under **Function / HTTP Endpoint**, choose _Send an HTTP request_ and set the URL to:
-   ```
-   https://your-domain.com/api/webhooks/mongodb
-   ```
-5. Add a custom header:
-   - **Name:** `X-MongoDB-Webhook-Signature`
-   - **Value:** `sha256=${HMAC-SHA256(body, MONGODB_WEBHOOK_SECRET)}`
-     > Atlas supports custom headers and secrets via the _Secrets_ feature in App Services.
-6. Save the trigger. EventFlow will verify every incoming request against the secret.
+```text
+GET    /api/search/suppliers     - Advanced supplier search
+GET    /api/search/categories    - Get all categories
+GET    /api/search/amenities     - Get all amenities
+GET    /api/discovery/trending   - Trending suppliers
+GET    /api/discovery/new        - New suppliers
+GET    /api/discovery/recommendations - Personalized recommendations
+```
 
-> **In development** (when `MONGODB_WEBHOOK_SECRET` is not set) requests are processed with a warning — verification is not enforced outside of production.
+### Reviews & Ratings
 
-### Idempotency
+```text
+POST   /api/reviews              - Create review
+GET    /api/reviews/supplier/:id - Get supplier reviews
+GET    /api/reviews/supplier/:id/distribution - Rating distribution
+POST   /api/reviews/:id/helpful  - Mark review helpful
+DELETE /api/reviews/:id          - Delete review
+```
 
-The handler records processed event IDs in the `mongodb_webhook_events` collection (TTL 7 days). Retried deliveries from Atlas are automatically deduplicated.
+### Packages
 
-### Testing from Admin Debug
+```text
+GET    /api/packages/featured    - Get featured packages
+GET    /api/packages/search      - Search packages
+GET    /api/packages/:slug       - Get package details by slug
+```
 
-Navigate to **Admin → Debug → Webhooks** tab and click **Test All Webhooks**. This sends a signed probe request to the MongoDB (and all other configured) webhook endpoints and surfaces pass/fail results in the UI.
+### Photo Management
+
+```text
+POST   /api/photos/upload        - Upload single photo
+POST   /api/photos/upload/batch  - Upload multiple photos
+DELETE /api/photos/delete        - Delete photo
+POST   /api/photos/crop          - Crop image
+GET    /api/photos/pending       - Get pending photos (admin)
+POST   /api/photos/approve       - Approve/reject photo (admin)
+```
+
+### Admin Endpoints
+
+```text
+GET    /api/admin/users          - List all users
+PUT    /api/admin/users/:id      - Edit user profile
+DELETE /api/admin/users/:id      - Delete user
+POST   /api/admin/users/:id/verify           - Manually verify user email
+POST   /api/admin/users/:id/grant-admin      - Grant admin privileges
+POST   /api/admin/users/:id/revoke-admin     - Revoke admin privileges
+GET    /api/admin/suppliers      - List all suppliers
+PUT    /api/admin/suppliers/:id  - Edit supplier
+DELETE /api/admin/suppliers/:id  - Delete supplier
+POST   /api/admin/suppliers/:id/verify       - Manually verify supplier identity
+POST   /api/admin/suppliers/smart-tags       - Generate smart tags for suppliers
+GET    /api/admin/packages       - List all packages
+PUT    /api/admin/packages/:id   - Edit package
+DELETE /api/admin/packages/:id   - Delete package
+GET    /api/admin/metrics        - Get dashboard metrics
+GET    /api/admin/users-export   - Export users (CSV)
+GET    /api/admin/export/all     - Export all data (JSON)
+```
+
+### Messaging Endpoints
+
+```text
+GET    /api/messages/threads                      - List conversation threads
+POST   /api/messages/threads                      - Create new conversation
+GET    /api/messages/threads/:id                  - Get thread details
+GET    /api/messages/threads/:id/messages         - Get messages in thread
+POST   /api/messages/threads/:id/messages         - Send message in thread
+POST   /api/messages/threads/:id/mark-read        - Mark thread as read
+GET    /api/messages/drafts                       - Get draft messages
+PUT    /api/messages/:id                          - Update draft message
+DELETE /api/messages/:id                          - Delete draft message
+```
+
+See [API_DOCUMENTATION.md](API_DOCUMENTATION.md) for complete reference.
+See [ADMIN_API.md](ADMIN_API.md) for detailed admin endpoint documentation.
+
+## 📱 User Flows & Pages
+
+### Email Verification Flow
+
+EventFlow implements a secure email verification system for new user accounts:
+
+**User Journey:**
+
+1. User registers for an account at `/auth.html`
+2. System sends verification email with a unique 24-hour token via Postmark
+3. User clicks verification link in email → redirects to `/verify.html?token=<token>`
+4. Page automatically calls `/api/auth/verify` API with the token
+5. System displays branded verification status:
+   - ✅ **Success**: "Email Verified!" with auto-redirect to appropriate dashboard
+   - ❌ **Expired**: Shows expiration message with resend form
+   - ❌ **Invalid**: Shows invalid token message with resend form
+   - ⚠️ **No Token**: Shows instructions with resend form
+6. After successful verification, user is redirected to:
+   - Admin users → `/admin.html`
+   - Supplier users → `/dashboard-supplier.html`
+   - Customer users → `/dashboard-customer.html`
+
+**Features:**
+
+- Token-based verification with 24-hour expiration for security
+- Branded UI with appropriate icons and messages for all states
+- Resend verification email functionality
+- Auto-redirect after successful verification
+- Manual navigation buttons (Go to Dashboard, Go to Home)
+- Email validation and error handling
+
+**Screenshot:**
+![Email Verification Page](https://github.com/user-attachments/assets/ca0d5df7-24cd-45f9-8c80-ed7c4f38a0c1)
+
+### Package Detail Page Flow
+
+Users can browse and view detailed information about service packages:
+
+**User Journey:**
+
+1. User discovers packages on homepage featured carousel or category pages
+2. Clicks on package card → navigates to `/package.html?slug=<package-slug>`
+3. Page loads full package details via `/api/packages/:slug` API
+4. User views comprehensive package information and supplier details
+5. User can:
+   - Browse package photo gallery
+   - Read full description and pricing
+   - View tags and categories
+   - See supplier profile information
+   - Message the supplier (requires authentication)
+   - Navigate to supplier's other packages
+
+**Package Detail Features:**
+
+- **Image Gallery**: Multiple photos with thumbnail navigation and full-screen view
+- **Package Information**:
+  - Title, description, and detailed information
+  - Pricing (or "Contact for price")
+  - Location with map icon
+  - Categories and tags
+  - Featured badge (if applicable)
+- **Supplier Card**:
+  - Supplier logo and name
+  - Business description
+  - Contact information (email, phone)
+  - Location
+  - Link to view all supplier packages
+- **Message Panel**: Auth-gated messaging system to contact supplier
+- **Breadcrumb Navigation**: Home → Category → Package
+- **Responsive Design**: Mobile-friendly layout
+
+**Linking from Homepage:**
+
+- Package cards on the homepage automatically link to detail pages
+- Implemented via `PackageList` component: `window.location.href = '/package.html?slug=${pkg.slug}'`
+- Featured packages carousel also links to detail pages
+- All package cards are clickable with hover effects
+
+**Screenshot:**
+![Package Detail Page](https://github.com/user-attachments/assets/5a312a8d-0f34-4c54-9e27-895ed06b9c91)
+
+**Technical Implementation:**
+
+- URL Pattern: `/package.html?slug=<package-slug>`
+- API Endpoint: `GET /api/packages/:slug`
+- JavaScript Handler: `/assets/js/pages/package-init.js` (inline in package.html)
+- Components Used:
+  - `PackageGallery` - Image gallery component
+  - `SupplierCard` - Supplier information display
+  - `MessageSupplierPanel` - Messaging interface
+- Authentication: Required only for messaging functionality
 
 ## 📁 Project Structure
 
-```
+```text
 eventflow/
 ├── src/                # Source modules (npm imports)
 │   ├── config/        # Configuration files
@@ -896,7 +846,7 @@ All collections have:
 
 ## 🚢 Deployment
 
-**⚠️ First-time deploying?** See the [Production Quick Start](#-quick-start---production-deployment) section at the top!
+**⚠️ First-time deploying?** See [Quick Start → Production Deployment](#production-deployment).
 
 ### Railway
 
@@ -959,7 +909,7 @@ npm run test:e2e
 
 ### Test Structure
 
-```
+```text
 tests/
 ├── fixtures/           # Test data (users, packages, suppliers)
 ├── utils/              # Test helpers and mock data generators
@@ -1016,9 +966,9 @@ npm run load-test:report
 - Sustained: 120s @ 50 req/s
 - Spike: 60s @ 100 req/s
 
-## 📊 Monitoring & Logging
+### 📊 Monitoring & Logging
 
-### Winston Logger
+#### Winston Logger
 
 Structured logging with multiple transports:
 
@@ -1038,7 +988,7 @@ logger.error('An error occurred', { error: err });
 - Environment-aware logging levels
 - Automatic error stack traces
 
-### Morgan HTTP Logging
+#### Morgan HTTP Logging
 
 HTTP request/response logging middleware:
 
@@ -1058,9 +1008,9 @@ GET /api/packages 200 45.123 ms
 - ISO timestamps in production
 - Custom tokens for extended info
 
-### Log Files
+#### Log Files
 
-```
+```text
 logs/
 ├── error.log      # Error-level logs only
 └── combined.log   # All logs (info, warn, error)
@@ -1073,7 +1023,7 @@ logs/
 - Keep 5 recent files
 - Excluded from git (.gitignore)
 
-### Health Monitoring
+#### Health Monitoring
 
 ```bash
 # Check API health
@@ -1087,7 +1037,7 @@ curl https://yourdomain.com/api/health
 # - Environment
 ```
 
-## 📖 API Documentation
+### 📖 API Documentation
 
 Interactive API documentation powered by Swagger/OpenAPI 3.0:
 
@@ -1099,7 +1049,7 @@ Interactive API documentation powered by Swagger/OpenAPI 3.0:
   - Authentication flows
   - Schema definitions
 
-**Documented Endpoints:**
+#### Documented Endpoints
 
 - Authentication (registration, login, password reset)
 - Discovery (trending, new arrivals, popular)
@@ -1108,6 +1058,93 @@ Interactive API documentation powered by Swagger/OpenAPI 3.0:
 - Reviews & Ratings
 - AI-powered features
 - Admin operations
+
+## 🍃 MongoDB Atlas Webhooks
+
+EventFlow supports receiving real-time change events from MongoDB Atlas via **Database Triggers** or **App Services HTTP Endpoints**.
+
+### Endpoint
+
+```text
+POST /api/webhooks/mongodb
+```
+
+### How It Works
+
+When a document in your Atlas cluster changes (insert, update, delete, etc.), Atlas can call this endpoint with a [change event](https://www.mongodb.com/docs/manual/reference/change-events/) payload. EventFlow verifies the payload signature, logs the event, and runs any registered handlers.
+
+### Configuration
+
+| Environment variable      | Description                                                                                           |
+| ------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `MONGODB_WEBHOOK_SECRET`  | **Required in production.** Shared HMAC-SHA256 secret. Set in both `.env` and Atlas Trigger settings. |
+| `MONGODB_WEBHOOK_ENABLED` | Set to `false` to disable the endpoint entirely (default: `true`).                                    |
+
+Generate a strong secret:
+
+```bash
+openssl rand -hex 32
+```
+
+### Setting Up in MongoDB Atlas
+
+1. Open **Atlas App Services** → **Triggers** → **Add Trigger** (choose _Database_ trigger).
+2. Configure the trigger for the collection(s) you want to watch.
+3. In **Event Type**, tick the operations you care about (Insert, Update, Delete, etc.).
+4. Under **Function / HTTP Endpoint**, choose _Send an HTTP request_ and set the URL to:
+   ```text
+   https://yourdomain.com/api/webhooks/mongodb
+   ```
+5. Add a custom header:
+   - **Name:** `X-MongoDB-Webhook-Signature`
+   - **Value:** `sha256=${HMAC-SHA256(body, MONGODB_WEBHOOK_SECRET)}`
+     > Atlas supports custom headers and secrets via the _Secrets_ feature in App Services.
+6. Save the trigger. EventFlow will verify every incoming request against the secret.
+
+> **In development** (when `MONGODB_WEBHOOK_SECRET` is not set) requests are processed with a warning — verification is not enforced outside of production.
+
+### Idempotency
+
+The handler records processed event IDs in the `mongodb_webhook_events` collection (TTL 7 days). Retried deliveries from Atlas are automatically deduplicated.
+
+### Testing from Admin Debug
+
+Navigate to **Admin → Debug → Webhooks** tab and click **Test All Webhooks**. This sends a signed probe request to the MongoDB (and all other configured) webhook endpoints and surfaces pass/fail results in the UI.
+
+## 📚 Documentation
+
+### Quick Links
+
+- **[Quick Start](#-quick-start)** - Get running in minutes
+- **[MongoDB Setup (Simple Guide)](.github/docs/MONGODB_SETUP_SIMPLE.md)** - For non-technical users
+- **[Troubleshooting 502 Errors](#troubleshooting-502-errors)** - Common deployment issues
+- **[Interactive API Docs](http://localhost:3000/api-docs)** - Swagger UI (when running locally)
+
+### Complete Guides
+
+| Document                                                                     | Description                                |
+| ---------------------------------------------------------------------------- | ------------------------------------------ |
+| [API_DOCUMENTATION.md](API_DOCUMENTATION.md)                                 | Complete API reference with examples       |
+| [ADMIN_GUIDE.md](ADMIN_GUIDE.md)                                             | Admin dashboard user guide                 |
+| [ADMIN_API.md](ADMIN_API.md)                                                 | Admin API endpoint documentation           |
+| [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)                                   | Production deployment instructions         |
+| [GDPR_COMPLIANCE.md](GDPR_COMPLIANCE.md)                                     | Data protection and privacy                |
+| [DOCKER_GUIDE.md](DOCKER_GUIDE.md)                                           | Docker Compose usage                       |
+| [POSTMARK_SETUP.md](POSTMARK_SETUP.md)                                       | Transactional email configuration          |
+| [STRIPE_INTEGRATION_GUIDE.md](STRIPE_INTEGRATION_GUIDE.md)                   | Payment setup                              |
+| [STRIPE_INTRO_PRICING_SETUP.md](STRIPE_INTRO_PRICING_SETUP.md)               | Introductory pricing for Professional plan |
+| [AWS_SES_SETUP.md](AWS_SES_SETUP.md)                                         | AWS SES email service setup                |
+| [docs/PERFORMANCE_TESTING.md](docs/PERFORMANCE_TESTING.md)                   | Performance verification and QA procedures |
+| [docs/PWA_ICONS.md](docs/PWA_ICONS.md)                                       | PWA icon assets and regeneration steps     |
+| [docs/mongodb-migration.md](docs/mongodb-migration.md)                       | MongoDB migration guide with architecture  |
+| [.github/docs/MONGODB_SETUP.md](.github/docs/MONGODB_SETUP.md)               | MongoDB technical configuration guide      |
+| [.github/docs/MONGODB_SETUP_SIMPLE.md](.github/docs/MONGODB_SETUP_SIMPLE.md) | MongoDB setup for non-technical users      |
+
+---
+
+**Version:** v18.1.0 | **Status:** Production Ready ✅
+
+---
 
 ## 🤝 Contributing
 
@@ -1131,24 +1168,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Support
 
 - 📧 Email: support@eventflow.com
-- 🐛 Issues: [GitHub Issues](https://github.com/yourusername/eventflow/issues)
+- 🐛 Issues: [GitHub Issues](https://github.com/rhysllwydlewis/EventFlow/issues)
 - 📖 Docs: [Documentation](API_DOCUMENTATION.md)
-
-## 📚 Documentation
-
-- **[README.md](README.md)** - Overview and quick start
-- **[API_DOCUMENTATION.md](API_DOCUMENTATION.md)** - Complete API reference
-- **[ADMIN_GUIDE.md](ADMIN_GUIDE.md)** - Admin dashboard user guide
-- **[ADMIN_API.md](ADMIN_API.md)** - Admin API endpoint documentation
-- **[GDPR_COMPLIANCE.md](GDPR_COMPLIANCE.md)** - Data protection and privacy
-- **[DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)** - Production deployment
-- **[MONGODB_SETUP.md](.github/docs/MONGODB_SETUP.md)** - Database configuration
-- **[MongoDB Migration Plan](docs/mongodb-migration.md)** - Complete MongoDB migration guide
-- **[Performance Testing Guide](docs/PERFORMANCE_TESTING.md)** - Performance verification and testing
-- **[AWS_SES_SETUP.md](AWS_SES_SETUP.md)** - Email service setup
-- **[2FA_IMPLEMENTATION.md](2FA_IMPLEMENTATION.md)** - Two-factor auth (planned)
-- **[PWA Icons Guide](docs/PWA_ICONS.md)** - PWA icon assets, locations, and regeneration steps
-
----
-
-**Version:** v16.3.9 | **Status:** Production Ready ✅
