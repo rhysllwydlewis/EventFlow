@@ -2684,6 +2684,11 @@ function efMaybeShowOnboarding(page) {
       'linear-gradient(#ffffff, #ffffff), linear-gradient(to bottom, #0d9488, #a7f3d0)';
     box.style.backgroundOrigin = 'padding-box, border-box';
     box.style.backgroundClip = 'padding-box, border-box';
+    // Entry animation — start invisible/shifted, animate to visible
+    box.style.opacity = '0';
+    box.style.transform = 'translateY(-8px)';
+    box.style.transition =
+      'opacity 0.35s cubic-bezier(0.4,0,0.2,1), transform 0.35s cubic-bezier(0.4,0,0.2,1)';
 
     box.innerHTML = `
       <style>
@@ -2691,20 +2696,34 @@ function efMaybeShowOnboarding(page) {
         #ef-ob-title{flex:1;min-width:200px;text-align:left;}
         #ef-ob-right{display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;justify-content:flex-end;}
         #ef-onboarding-dismiss{flex-shrink:0;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;font-weight:700;padding:0.5625rem 1.25rem;border-radius:10px;border:none;cursor:pointer;font-size:0.875rem;box-shadow:0 3px 12px rgba(22,163,74,0.3);white-space:nowrap;transition:all 0.2s cubic-bezier(0.4,0,0.2,1);}
-        .ef-ob-pill{flex:0 0 auto;display:flex;align-items:center;gap:0.375rem;padding:0.375rem 0.75rem;background:#f0fdfa;border:1px solid #99f6e4;border-radius:8px;text-decoration:none;}
+        .ef-ob-pill{flex:0 0 auto;display:flex;align-items:center;gap:0.375rem;padding:0.375rem 0.75rem;background:#f0fdfa;border:1px solid #99f6e4;border-radius:8px;text-decoration:none;transition:background 0.15s,border-color 0.15s,box-shadow 0.15s;}
+        .ef-ob-pill:hover,.ef-ob-pill:focus-visible{background:#ccfbf1;border-color:#5eead4;box-shadow:0 2px 8px rgba(13,148,136,0.15);outline:none;}
+        .ef-ob-pill:focus-visible{outline:2px solid #0d9488;outline-offset:2px;}
         .ef-ob-pill span:last-child{color:#134e4a;font-weight:500;font-size:0.8125rem;white-space:nowrap;}
-        @media(max-width:540px){#ef-ob-inner{gap:0.75rem;}#ef-ob-right{display:grid;grid-template-columns:1fr 1fr;width:100%;gap:0.5rem;}#ef-onboarding-dismiss{grid-column:1/-1;text-align:center;}.ef-ob-pill{width:auto;}}
+        @media(max-width:768px){#ef-ob-right{gap:0.5rem;}}
+        @media(max-width:540px){
+          #ef-onboarding-box{padding:0.875rem 1rem 1rem;}
+          #ef-ob-inner{gap:0.75rem;}
+          #ef-ob-right{display:grid;grid-template-columns:1fr 1fr;width:100%;gap:0.5rem;}
+          #ef-onboarding-dismiss{grid-column:1/-1;text-align:center;}
+          .ef-ob-pill{flex:unset;width:auto;overflow:hidden;}
+          .ef-ob-pill span:last-child{overflow:hidden;text-overflow:ellipsis;min-width:0;}
+        }
+        @media(max-width:400px){
+          #ef-ob-right{grid-template-columns:1fr;}
+        }
+        @media(prefers-reduced-motion:reduce){#ef-onboarding-box,.ef-ob-pill,#ef-onboarding-dismiss{transition:none!important;}}
       </style>
       <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#0d9488,#5eead4);"></div>
       <div id="ef-ob-inner">
         <div id="ef-ob-title">
-          <h2 style="color:#1e3a5f;font-size:1.25rem;font-weight:800;letter-spacing:-0.02em;line-height:1.2;margin-bottom:0.25rem;">Welcome to EventFlow!</h2>
-          <p style="color:#6b7280;font-size:0.8125rem;line-height:1.5;margin:0;">Plan your perfect event with our curated suppliers.</p>
+          <h2 style="color:#1e3a5f;font-size:1.25rem;font-weight:800;letter-spacing:-0.02em;line-height:1.2;margin-bottom:0.25rem;">Welcome to EventFlow! 👋</h2>
+          <p style="color:#6b7280;font-size:0.8125rem;line-height:1.5;margin:0;">Plan your perfect event with our curated suppliers — everything you need is below.</p>
         </div>
         <div id="ef-ob-right">
-          <a href="/start" class="ef-ob-pill" aria-label="Create an event plan - opens event creation page"><span style="font-size:1rem;line-height:1;" aria-hidden="true">📋</span><span>Create an event plan</span></a>
-          <a href="/suppliers" class="ef-ob-pill" aria-label="Browse and save suppliers - opens suppliers directory"><span style="font-size:1rem;line-height:1;" aria-hidden="true">🔍</span><span>Browse & save suppliers</span></a>
-          <a href="/budget" class="ef-ob-pill" aria-label="Track your budget - opens budget page"><span style="font-size:1rem;line-height:1;" aria-hidden="true">💰</span><span>Track your budget</span></a>
+          <a href="/start" class="ef-ob-pill" aria-label="Create an event plan"><span style="font-size:1rem;line-height:1;flex-shrink:0;" aria-hidden="true">📋</span><span>Create an event plan</span></a>
+          <a href="/suppliers" class="ef-ob-pill" aria-label="Browse and save suppliers"><span style="font-size:1rem;line-height:1;flex-shrink:0;" aria-hidden="true">🔍</span><span>Browse &amp; save suppliers</span></a>
+          <a href="/budget" class="ef-ob-pill" aria-label="Track your budget"><span style="font-size:1rem;line-height:1;flex-shrink:0;" aria-hidden="true">💰</span><span>Track your budget</span></a>
           <button type="button" class="cta" id="ef-onboarding-dismiss" aria-label="Dismiss welcome message">Let's go! →</button>
         </div>
       </div>
@@ -2716,6 +2735,14 @@ function efMaybeShowOnboarding(page) {
     } else {
       container.insertBefore(box, container.firstChild);
     }
+
+    // Trigger entry animation on next frame
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        box.style.opacity = '1';
+        box.style.transform = 'translateY(0)';
+      });
+    });
 
     const doOverlayDismiss = function () {
       if (typeof window.dismissCustomerWelcome === 'function') {
@@ -2729,10 +2756,25 @@ function efMaybeShowOnboarding(page) {
         /* Ignore localStorage errors */
       }
       const easing = 'cubic-bezier(0.4, 0, 0.2, 1)';
-      box.style.transition = `opacity 0.3s ${easing}`;
+      box.style.transition = `opacity 0.3s ${easing}, transform 0.3s ${easing}`;
       box.style.opacity = '0';
+      box.style.transform = 'scale(0.97)';
       setTimeout(() => box.remove(), 300);
     };
+
+    // Add X close button to the overlay card (matches supplier pattern)
+    const xCloseBtn = document.createElement('button');
+    xCloseBtn.type = 'button';
+    xCloseBtn.setAttribute('aria-label', 'Dismiss welcome onboarding');
+    xCloseBtn.style.cssText =
+      'position:absolute;top:14px;right:14px;width:30px;height:30px;min-width:30px;min-height:30px;' +
+      'padding:0;background:rgba(0,0,0,0.06);border:1px solid rgba(0,0,0,0.08);border-radius:50%;' +
+      'cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;' +
+      'transition:background 0.15s;color:#6b7280;';
+    xCloseBtn.innerHTML =
+      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    xCloseBtn.addEventListener('click', doOverlayDismiss);
+    box.appendChild(xCloseBtn);
 
     const btn = box.querySelector('#ef-onboarding-dismiss');
     if (btn) {

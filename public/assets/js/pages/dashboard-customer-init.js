@@ -21,8 +21,10 @@ function dbg(...args) {
 
     const overlay = document.getElementById('ef-onboarding-box');
     if (overlay) {
-      overlay.style.transition = 'opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+      const ease = 'cubic-bezier(0.4, 0, 0.2, 1)';
+      overlay.style.transition = `opacity 0.3s ${ease}, transform 0.3s ${ease}`;
       overlay.style.opacity = '0';
+      overlay.style.transform = 'scale(0.97)';
       setTimeout(() => overlay.remove(), 300);
     }
   }
