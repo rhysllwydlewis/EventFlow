@@ -69,6 +69,21 @@
       word-break: break-all;
     }
 
+    .badge-note {
+      font-size: 0.72rem;
+      color: #6b7280;
+      margin-top: 0.25rem;
+      line-height: 1.4;
+    }
+
+    .badge-note code {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 0.7rem;
+      background: #f3f4f6;
+      padding: 0.1em 0.3em;
+      border-radius: 3px;
+    }
+
     /* Inline-icon demo row */
     .tier-icon-demo {
       display: flex;
@@ -192,10 +207,10 @@
     .badge-business-verified::before { content: '✓'; margin-right: 0.25rem; font-weight: 700; }
 
     .badge-verified {
-      background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-      color: #065f46;
-      border: 1px solid #10b981;
-      box-shadow: 0 1px 3px rgba(16,185,129,.2);
+      background: linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%);
+      color: #134e4a;
+      border: 1px solid #14b8a6;
+      box-shadow: 0 1px 3px rgba(20,184,166,.2);
     }
     .badge-verified::before { content: '✓'; margin-right: 0.25rem; font-weight: 700; }
 
@@ -431,6 +446,12 @@
       <span class="badge-card__class">.badge-founding</span>
     </div>
 
+    <div class="badge-card">
+      <span class="badge badge-featured">Featured</span>
+      <span class="badge-card__name">Featured</span>
+      <span class="badge-card__class">.badge-featured</span>
+    </div>
+
   </div>
 
   <!-- ── Section 3: Verification ──────────────────────────── -->
@@ -462,15 +483,10 @@
     </div>
 
     <div class="badge-card">
-      <span class="badge badge-supplier">Supplier</span>
+      <span class="badge badge-supplier">Verified Supplier</span>
       <span class="badge-card__name">Supplier (reviewer)</span>
       <span class="badge-card__class">.badge-supplier</span>
-    </div>
-
-    <div class="badge-card">
-      <span class="badge badge-featured">Featured</span>
-      <span class="badge-card__name">Featured</span>
-      <span class="badge-card__class">.badge-featured</span>
+      <p class="badge-note">Shown on review cards when the reviewer is a supplier. Intentionally distinct from the green <code>.badge-supplier-account</code> profile badge.</p>
     </div>
 
   </div>
