@@ -1154,5 +1154,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Support
 
 - 📧 Email: support@eventflow.com
-- 🐛 Issues: [GitHub Issues](https://github.com/yourusername/eventflow/issues)
+- 🐛 Issues: [GitHub Issues](https://github.com/rhysllwydlewis/EventFlow/issues)
 - 📖 Docs: [Documentation](API_DOCUMENTATION.md)
