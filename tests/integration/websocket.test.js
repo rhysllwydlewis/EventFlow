@@ -26,7 +26,15 @@ describe('WebSocket Server v2 Integration', () => {
 
     it('should configure CORS properly', () => {
       expect(websocketContent).toContain('cors');
-      expect(websocketContent).toMatch(/origin.*BASE_URL|getBaseUrl/);
+      expect(websocketContent).toMatch(/origin.*APP_BASE_URL|origin.*BASE_URL|ALLOWED_ORIGINS/);
+    });
+
+    it('should support multiple configured Socket.IO CORS origins', () => {
+      expect(websocketContent).toContain('process.env.APP_BASE_URL');
+      expect(websocketContent).toContain('process.env.BASE_URL');
+      expect(websocketContent).toContain('process.env.ALLOWED_ORIGINS');
+      expect(websocketContent).toContain('http://127.0.0.1:3000');
+      expect(websocketContent).toContain('.filter(Boolean)');
     });
 
     it('should configure connection timeouts', () => {
