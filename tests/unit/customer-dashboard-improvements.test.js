@@ -4,6 +4,9 @@
  *   - Calendar entry creation flow (validation & API interaction)
  */
 
+const fs = require('node:fs');
+const path = require('node:path');
+
 describe('Welcome card dismissal persistence', () => {
   const DISMISS_KEY = 'ef_welcome_dismissed';
   const CUSTOMER_DISMISS_KEY = 'ef_customer_welcome_dismissed';
@@ -418,5 +421,32 @@ describe('Calendar entry creation — API route (unit)', () => {
     const res = mockRes();
     await handle(req, res);
     expect(res._body.entry.userId).toBe('usr_42');
+  });
+});
+
+describe('Customer onboarding overlay implementation in app.js', () => {
+  function getCustomerOnboardingBranch() {
+    const appJsPath = path.resolve(__dirname, '../../public/assets/js/app.js');
+    const source = fs.readFileSync(appJsPath, 'utf8');
+    const start = source.indexOf("if (page === 'dash_customer') {");
+    const end = source.indexOf('// For other pages (admin), create the onboarding card as before');
+    return source.slice(start, end);
+  }
+
+  it('uses no-collapse class and does not create a customer X close button', () => {
+    const customerBranch = getCustomerOnboardingBranch();
+
+    expect(customerBranch).toContain("box.className = 'card no-collapse';");
+    expect(customerBranch).not.toContain('const xCloseBtn = document.createElement');
+    expect(customerBranch).not.toContain('box.appendChild(xCloseBtn)');
+  });
+
+  it("keeps Let's go button as dismiss path and persists both dismiss keys", () => {
+    const customerBranch = getCustomerOnboardingBranch();
+
+    expect(customerBranch).toContain('id="ef-onboarding-dismiss"');
+    expect(customerBranch).toContain("btn.addEventListener('click', doOverlayDismiss);");
+    expect(customerBranch).toContain("localStorage.setItem('ef_onboarding_dismissed', '1');");
+    expect(customerBranch).toContain("localStorage.setItem('ef_customer_welcome_dismissed', '1');");
   });
 });
