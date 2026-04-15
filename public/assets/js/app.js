@@ -2565,7 +2565,7 @@ const EF_OB_SHARED_CSS = `
     width: auto !important;
     margin-top: 0 !important;
   }
-  .ef-ob-xclose:focus-visible {
+  .ef-ob-close:focus-visible {
     outline: none !important;
     box-shadow: 0 0 0 2px #fff, 0 0 0 4px #0d9488 !important;
   }
@@ -2704,7 +2704,7 @@ function efMaybeShowOnboarding(page) {
     // Add X close button to the overlay card
     const xCloseBtn = document.createElement('button');
     xCloseBtn.type = 'button';
-    xCloseBtn.className = 'ef-ob-xclose';
+    xCloseBtn.className = 'ef-ob-close';
     xCloseBtn.setAttribute('aria-label', 'Dismiss welcome onboarding');
     xCloseBtn.style.cssText =
       'position:absolute;top:14px;right:14px;width:30px;height:30px;min-width:30px;min-height:30px;' +
@@ -2854,7 +2854,7 @@ function efMaybeShowOnboarding(page) {
     // Add X close button to the overlay card (matches supplier pattern)
     const xCloseBtn = document.createElement('button');
     xCloseBtn.type = 'button';
-    xCloseBtn.className = 'ef-ob-xclose';
+    xCloseBtn.className = 'ef-ob-close';
     xCloseBtn.setAttribute('aria-label', 'Dismiss welcome onboarding');
     xCloseBtn.style.cssText =
       'position:absolute;top:14px;right:14px;width:30px;height:30px;min-width:30px;min-height:30px;' +
