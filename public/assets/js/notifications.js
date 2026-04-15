@@ -143,7 +143,7 @@
         console.error('WebSocket connection error:', error);
         state.wsRetryCount += 1;
         if (state.wsRetryCount >= maxReconnectionAttempts) {
-          showWebSocketError('Connection to notification server failed. Retrying...');
+          showWebSocketError('Connection to notification server failed after multiple attempts.');
         }
       });
 
