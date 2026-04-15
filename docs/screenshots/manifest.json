@@ -1,0 +1,629 @@
+[
+  {
+    "slug": "public--homepage",
+    "path": "/",
+    "section": "Public",
+    "file": "public--homepage.png",
+    "ok": true,
+    "bytes": 2258312
+  },
+  {
+    "slug": "public--auth",
+    "path": "/auth.html",
+    "section": "Public",
+    "file": "public--auth.png",
+    "ok": true,
+    "bytes": 534156
+  },
+  {
+    "slug": "public--forgot-password",
+    "path": "/forgot-password.html",
+    "section": "Public",
+    "file": "public--forgot-password.png",
+    "ok": true,
+    "bytes": 184389
+  },
+  {
+    "slug": "public--reset-password",
+    "path": "/reset-password.html",
+    "section": "Public",
+    "file": "public--reset-password.png",
+    "ok": true,
+    "bytes": 204408
+  },
+  {
+    "slug": "public--verify",
+    "path": "/verify.html",
+    "section": "Public",
+    "file": "public--verify.png",
+    "ok": true,
+    "bytes": 198263
+  },
+  {
+    "slug": "public--suppliers",
+    "path": "/suppliers.html",
+    "section": "Public",
+    "file": "public--suppliers.png",
+    "ok": true,
+    "bytes": 446457,
+    "skipped": true
+  },
+  {
+    "slug": "public--supplier-profile",
+    "path": "/supplier.html",
+    "section": "Public",
+    "file": "public--supplier-profile.png",
+    "ok": true,
+    "bytes": 446320,
+    "skipped": true
+  },
+  {
+    "slug": "public--marketplace",
+    "path": "/marketplace.html",
+    "section": "Public",
+    "file": "public--marketplace.png",
+    "ok": true,
+    "bytes": 879519
+  },
+  {
+    "slug": "public--category",
+    "path": "/category.html",
+    "section": "Public",
+    "file": "public--category.png",
+    "ok": true,
+    "bytes": 446457,
+    "skipped": true
+  },
+  {
+    "slug": "public--for-suppliers",
+    "path": "/for-suppliers.html",
+    "section": "Public",
+    "file": "public--for-suppliers.png",
+    "ok": true,
+    "bytes": 1114505
+  },
+  {
+    "slug": "public--pricing",
+    "path": "/pricing.html",
+    "section": "Public",
+    "file": "public--pricing.png",
+    "ok": true,
+    "bytes": 1080743,
+    "skipped": true
+  },
+  {
+    "slug": "public--start",
+    "path": "/start.html",
+    "section": "Public",
+    "file": "public--start.png",
+    "ok": true,
+    "bytes": 423004
+  },
+  {
+    "slug": "public--contact",
+    "path": "/contact.html",
+    "section": "Public",
+    "file": "public--contact.png",
+    "ok": true,
+    "bytes": 317559,
+    "skipped": true
+  },
+  {
+    "slug": "public--faq",
+    "path": "/faq.html",
+    "section": "Public",
+    "file": "public--faq.png",
+    "ok": true,
+    "bytes": 546726,
+    "skipped": true
+  },
+  {
+    "slug": "public--guides",
+    "path": "/guides.html",
+    "section": "Public",
+    "file": "public--guides.png",
+    "ok": true,
+    "bytes": 2466644
+  },
+  {
+    "slug": "public--public-calendar",
+    "path": "/public-calendar.html",
+    "section": "Public",
+    "file": "public--public-calendar.png",
+    "ok": true,
+    "bytes": 454246,
+    "skipped": true
+  },
+  {
+    "slug": "public--compare",
+    "path": "/compare.html",
+    "section": "Public",
+    "file": "public--compare.png",
+    "ok": true,
+    "bytes": 321980
+  },
+  {
+    "slug": "public--package",
+    "path": "/package.html",
+    "section": "Public",
+    "file": "public--package.png",
+    "ok": true,
+    "bytes": 446394,
+    "skipped": true
+  },
+  {
+    "slug": "public--gallery",
+    "path": "/gallery.html",
+    "section": "Public",
+    "file": "public--gallery.png",
+    "ok": true,
+    "bytes": 248129,
+    "skipped": true
+  },
+  {
+    "slug": "public--legal",
+    "path": "/legal.html",
+    "section": "Public",
+    "file": "public--legal.png",
+    "ok": true,
+    "bytes": 6488747
+  },
+  {
+    "slug": "public--privacy",
+    "path": "/privacy.html",
+    "section": "Public",
+    "file": "public--privacy.png",
+    "ok": true,
+    "bytes": 3158035
+  },
+  {
+    "slug": "public--terms",
+    "path": "/terms.html",
+    "section": "Public",
+    "file": "public--terms.png",
+    "ok": true,
+    "bytes": 3101882
+  },
+  {
+    "slug": "public--credits",
+    "path": "/credits.html",
+    "section": "Public",
+    "file": "public--credits.png",
+    "ok": true,
+    "bytes": 279721
+  },
+  {
+    "slug": "public--data-rights",
+    "path": "/data-rights.html",
+    "section": "Public",
+    "file": "public--data-rights.png",
+    "ok": true,
+    "bytes": 952683
+  },
+  {
+    "slug": "public--plan",
+    "path": "/plan.html",
+    "section": "Public",
+    "file": "public--plan.png",
+    "ok": true,
+    "bytes": 534281
+  },
+  {
+    "slug": "public--offline",
+    "path": "/offline.html",
+    "section": "Public",
+    "file": "public--offline.png",
+    "ok": true,
+    "bytes": 538949,
+    "skipped": true
+  },
+  {
+    "slug": "public--maintenance",
+    "path": "/maintenance.html",
+    "section": "Public",
+    "file": "public--maintenance.png",
+    "ok": true,
+    "bytes": 803706,
+    "skipped": true
+  },
+  {
+    "slug": "customer--dashboard",
+    "path": "/dashboard-customer.html",
+    "section": "Customer",
+    "file": "customer--dashboard.png",
+    "ok": true,
+    "bytes": 534011
+  },
+  {
+    "slug": "customer--dashboard-legacy",
+    "path": "/dashboard.html",
+    "section": "Customer",
+    "file": "customer--dashboard-legacy.png",
+    "ok": true,
+    "bytes": 534142
+  },
+  {
+    "slug": "customer--guests",
+    "path": "/guests.html",
+    "section": "Customer",
+    "file": "customer--guests.png",
+    "ok": true,
+    "bytes": 534083
+  },
+  {
+    "slug": "customer--budget",
+    "path": "/budget.html",
+    "section": "Customer",
+    "file": "customer--budget.png",
+    "ok": true,
+    "bytes": 534238
+  },
+  {
+    "slug": "customer--timeline",
+    "path": "/timeline.html",
+    "section": "Customer",
+    "file": "customer--timeline.png",
+    "ok": true,
+    "bytes": 534199
+  },
+  {
+    "slug": "customer--notifications",
+    "path": "/notifications.html",
+    "section": "Customer",
+    "file": "customer--notifications.png",
+    "ok": true,
+    "bytes": 534268
+  },
+  {
+    "slug": "customer--settings",
+    "path": "/settings.html",
+    "section": "Customer",
+    "file": "customer--settings.png",
+    "ok": true,
+    "bytes": 534367
+  },
+  {
+    "slug": "customer--messages",
+    "path": "/messages.html",
+    "section": "Customer",
+    "file": "customer--messages.png",
+    "ok": true,
+    "bytes": 534172
+  },
+  {
+    "slug": "customer--conversation",
+    "path": "/conversation.html",
+    "section": "Customer",
+    "file": "customer--conversation.png",
+    "ok": true,
+    "bytes": 534365
+  },
+  {
+    "slug": "customer--checkout",
+    "path": "/checkout.html",
+    "section": "Customer",
+    "file": "customer--checkout.png",
+    "ok": true,
+    "bytes": 533869
+  },
+  {
+    "slug": "customer--payment-success",
+    "path": "/payment-success.html",
+    "section": "Customer",
+    "file": "customer--payment-success.png",
+    "ok": true,
+    "bytes": 325198
+  },
+  {
+    "slug": "customer--payment-cancel",
+    "path": "/payment-cancel.html",
+    "section": "Customer",
+    "file": "customer--payment-cancel.png",
+    "ok": true,
+    "bytes": 427863
+  },
+  {
+    "slug": "supplier--dashboard",
+    "path": "/dashboard-supplier.html",
+    "section": "Supplier",
+    "file": "supplier--dashboard.png",
+    "ok": true,
+    "bytes": 534265
+  },
+  {
+    "slug": "supplier--subscription",
+    "path": "/supplier/subscription.html",
+    "section": "Supplier",
+    "file": "supplier--subscription.png",
+    "ok": true,
+    "bytes": 532894
+  },
+  {
+    "slug": "supplier--marketplace-listing",
+    "path": "/supplier/marketplace-new-listing.html",
+    "section": "Supplier",
+    "file": "supplier--marketplace-listing.png",
+    "ok": true,
+    "bytes": 533861
+  },
+  {
+    "slug": "supplier--profile-customization",
+    "path": "/supplier/profile-customization.html",
+    "section": "Supplier",
+    "file": "supplier--profile-customization.png",
+    "ok": true,
+    "bytes": 534187
+  },
+  {
+    "slug": "supplier--my-listings",
+    "path": "/my-marketplace-listings.html",
+    "section": "Supplier",
+    "file": "supplier--my-listings.png",
+    "ok": true,
+    "bytes": 534011
+  },
+  {
+    "slug": "supplier--card-showcase",
+    "path": "/supplier-card-showcase.html",
+    "section": "Supplier",
+    "file": "supplier--card-showcase.png",
+    "ok": true,
+    "bytes": 148691
+  },
+  {
+    "slug": "partner--index",
+    "path": "/partner/index.html",
+    "section": "Partner",
+    "file": "partner--index.png",
+    "ok": true,
+    "bytes": 567588
+  },
+  {
+    "slug": "partner--dashboard",
+    "path": "/partner/dashboard.html",
+    "section": "Partner",
+    "file": "partner--dashboard.png",
+    "ok": true,
+    "bytes": 568304
+  },
+  {
+    "slug": "admin--dashboard",
+    "path": "/admin.html",
+    "section": "Admin",
+    "file": "admin--dashboard.png",
+    "ok": true,
+    "bytes": 534220
+  },
+  {
+    "slug": "admin--homepage",
+    "path": "/admin-homepage.html",
+    "section": "Admin",
+    "file": "admin--homepage.png",
+    "ok": true,
+    "bytes": 534046
+  },
+  {
+    "slug": "admin--suppliers",
+    "path": "/admin-suppliers.html",
+    "section": "Admin",
+    "file": "admin--suppliers.png",
+    "ok": true,
+    "bytes": 534210
+  },
+  {
+    "slug": "admin--supplier-detail",
+    "path": "/admin-supplier-detail.html",
+    "section": "Admin",
+    "file": "admin--supplier-detail.png",
+    "ok": true,
+    "bytes": 534015
+  },
+  {
+    "slug": "admin--users",
+    "path": "/admin-users.html",
+    "section": "Admin",
+    "file": "admin--users.png",
+    "ok": true,
+    "bytes": 534266
+  },
+  {
+    "slug": "admin--user-detail",
+    "path": "/admin-user-detail.html",
+    "section": "Admin",
+    "file": "admin--user-detail.png",
+    "ok": true,
+    "bytes": 549126
+  },
+  {
+    "slug": "admin--analytics",
+    "path": "/admin-analytics.html",
+    "section": "Admin",
+    "file": "admin--analytics.png",
+    "ok": true,
+    "bytes": 332546
+  },
+  {
+    "slug": "admin--reports",
+    "path": "/admin-reports.html",
+    "section": "Admin",
+    "file": "admin--reports.png",
+    "ok": true,
+    "bytes": 534272
+  },
+  {
+    "slug": "admin--packages",
+    "path": "/admin-packages.html",
+    "section": "Admin",
+    "file": "admin--packages.png",
+    "ok": true,
+    "bytes": 534196
+  },
+  {
+    "slug": "admin--marketplace",
+    "path": "/admin-marketplace.html",
+    "section": "Admin",
+    "file": "admin--marketplace.png",
+    "ok": true,
+    "bytes": 534199
+  },
+  {
+    "slug": "admin--reviews",
+    "path": "/admin-reviews.html",
+    "section": "Admin",
+    "file": "admin--reviews.png",
+    "ok": true,
+    "bytes": 534074
+  },
+  {
+    "slug": "admin--media",
+    "path": "/admin-media.html",
+    "section": "Admin",
+    "file": "admin--media.png",
+    "ok": true,
+    "bytes": 534119
+  },
+  {
+    "slug": "admin--pexels",
+    "path": "/admin-pexels.html",
+    "section": "Admin",
+    "file": "admin--pexels.png",
+    "ok": true,
+    "bytes": 534266
+  },
+  {
+    "slug": "admin--photos",
+    "path": "/admin-photos.html",
+    "section": "Admin",
+    "file": "admin--photos.png",
+    "ok": true,
+    "bytes": 549165
+  },
+  {
+    "slug": "admin--content",
+    "path": "/admin-content.html",
+    "section": "Admin",
+    "file": "admin--content.png",
+    "ok": true,
+    "bytes": 534130
+  },
+  {
+    "slug": "admin--content-dates",
+    "path": "/admin-content-dates.html",
+    "section": "Admin",
+    "file": "admin--content-dates.png",
+    "ok": true,
+    "bytes": 534258
+  },
+  {
+    "slug": "admin--payments",
+    "path": "/admin-payments.html",
+    "section": "Admin",
+    "file": "admin--payments.png",
+    "ok": true,
+    "bytes": 534087
+  },
+  {
+    "slug": "admin--cashout-requests",
+    "path": "/admin-cashout-requests.html",
+    "section": "Admin",
+    "file": "admin--cashout-requests.png",
+    "ok": true,
+    "bytes": 214065
+  },
+  {
+    "slug": "admin--tickets",
+    "path": "/admin-tickets.html",
+    "section": "Admin",
+    "file": "admin--tickets.png",
+    "ok": true,
+    "bytes": 534013
+  },
+  {
+    "slug": "admin--campaigns",
+    "path": "/admin-campaigns.html",
+    "section": "Admin",
+    "file": "admin--campaigns.png",
+    "ok": true,
+    "bytes": 266990
+  },
+  {
+    "slug": "admin--partners",
+    "path": "/admin-partners.html",
+    "section": "Admin",
+    "file": "admin--partners.png",
+    "ok": true,
+    "bytes": 405016
+  },
+  {
+    "slug": "admin--search",
+    "path": "/admin-search.html",
+    "section": "Admin",
+    "file": "admin--search.png",
+    "ok": true,
+    "bytes": 534283
+  },
+  {
+    "slug": "admin--settings",
+    "path": "/admin-settings.html",
+    "section": "Admin",
+    "file": "admin--settings.png",
+    "ok": true,
+    "bytes": 534265
+  },
+  {
+    "slug": "admin--exports",
+    "path": "/admin-exports.html",
+    "section": "Admin",
+    "file": "admin--exports.png",
+    "ok": true,
+    "bytes": 232783
+  },
+  {
+    "slug": "admin--audit",
+    "path": "/admin-audit.html",
+    "section": "Admin",
+    "file": "admin--audit.png",
+    "ok": true,
+    "bytes": 534251
+  },
+  {
+    "slug": "admin--messenger",
+    "path": "/admin-messenger.html",
+    "section": "Admin",
+    "file": "admin--messenger.png",
+    "ok": true,
+    "bytes": 534008
+  },
+  {
+    "slug": "admin--debug",
+    "path": "/admin-debug.html",
+    "section": "Admin",
+    "file": "admin--debug.png",
+    "ok": true,
+    "bytes": 534091
+  },
+  {
+    "slug": "messenger--main",
+    "path": "/messenger/index.html",
+    "section": "Messenger",
+    "file": "messenger--main.png",
+    "ok": true,
+    "bytes": 534245
+  },
+  {
+    "slug": "newsletter--confirmed",
+    "path": "/newsletter/confirmed.html",
+    "section": "Newsletter",
+    "file": "newsletter--confirmed.png",
+    "ok": true,
+    "bytes": 263176
+  },
+  {
+    "slug": "newsletter--expired",
+    "path": "/newsletter/expired.html",
+    "section": "Newsletter",
+    "file": "newsletter--expired.png",
+    "ok": true,
+    "bytes": 261279
+  }
+]
