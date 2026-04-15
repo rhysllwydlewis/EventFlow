@@ -726,7 +726,8 @@ a:hover {
    ======================================== */
 
 .ef-section--supplier-cta {
-  border-top: 3px solid var(--ef-primary, #0B8073);
+  background: linear-gradient(180deg, #ffffff 0%, #f0faf9 100%);
+  border-top: 1px solid rgba(11, 128, 115, 0.12);
 }
 
 footer.ef-footer-modern {
