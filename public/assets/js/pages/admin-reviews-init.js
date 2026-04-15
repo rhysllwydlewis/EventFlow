@@ -267,13 +267,10 @@
   // ── Remove Review / Dismiss Report ────────────────────────────────────────
   async function removeReview(reviewId) {
     try {
-      await AdminShared.adminFetch(
-        `/api/v2/admin/reviews/${encodeURIComponent(reviewId)}/approve`,
-        {
-          method: 'POST',
-          body: {},
-        }
-      );
+      await AdminShared.adminFetch(`/api/v2/admin/reviews/${encodeURIComponent(reviewId)}/reject`, {
+        method: 'POST',
+        body: { reason: 'Review removed following valid report' },
+      });
       showToast('Review removed from the platform', 'success');
       reviews = reviews.filter(r => (r.id || r._id) !== reviewId);
       selectedIds.delete(reviewId);
@@ -285,12 +282,14 @@
     }
   }
 
-  async function dismissReport(reviewId, reason) {
+  async function dismissReport(reviewId) {
     try {
-      await AdminShared.adminFetch(`/api/v2/admin/reviews/${encodeURIComponent(reviewId)}/reject`, {
-        method: 'POST',
-        body: { reason: reason || 'Report dismissed — review kept published' },
-      });
+      await AdminShared.adminFetch(
+        `/api/v2/admin/reviews/${encodeURIComponent(reviewId)}/approve`,
+        {
+          method: 'POST',
+        }
+      );
       showToast('Report dismissed — review remains published', 'success');
       reviews = reviews.filter(r => (r.id || r._id) !== reviewId);
       selectedIds.delete(reviewId);
@@ -322,7 +321,7 @@
     if (!result || !result.confirmed) {
       return;
     }
-    await dismissReport(reviewId, '');
+    await dismissReport(reviewId);
   }
 
   // ── Batch actions ─────────────────────────────────────────────────────────
@@ -362,7 +361,7 @@
       }
       batchRejectBtn.disabled = true;
       for (const id of ids) {
-        await dismissReport(id, '');
+        await dismissReport(id);
       }
       batchRejectBtn.disabled = false;
     });
