@@ -577,7 +577,7 @@ During development without Postmark configured, emails are saved to `/outbox` fo
 - ✅ Webhooks configured for delivery tracking (optional but recommended)
 - ✅ Never commit API keys to git - use environment variables only
 
-**Webhook URL (optional):** `https://your-domain.com/api/webhooks/postmark`
+**Webhook URL (optional):** `https://yourdomain.com/api/webhooks/postmark`
 
 ## 📖 API Endpoints
 
@@ -1075,7 +1075,7 @@ openssl rand -hex 32
 3. In **Event Type**, tick the operations you care about (Insert, Update, Delete, etc.).
 4. Under **Function / HTTP Endpoint**, choose _Send an HTTP request_ and set the URL to:
    ```text
-   https://your-domain.com/api/webhooks/mongodb
+   https://yourdomain.com/api/webhooks/mongodb
    ```
 5. Add a custom header:
    - **Name:** `X-MongoDB-Webhook-Signature`
