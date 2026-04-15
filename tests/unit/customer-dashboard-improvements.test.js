@@ -4,6 +4,9 @@
  *   - Calendar entry creation flow (validation & API interaction)
  */
 
+const fs = require('node:fs');
+const path = require('node:path');
+
 describe('Welcome card dismissal persistence', () => {
   const DISMISS_KEY = 'ef_welcome_dismissed';
   const CUSTOMER_DISMISS_KEY = 'ef_customer_welcome_dismissed';
@@ -418,5 +421,56 @@ describe('Calendar entry creation — API route (unit)', () => {
     const res = mockRes();
     await handle(req, res);
     expect(res._body.entry.userId).toBe('usr_42');
+  });
+});
+
+describe('Customer onboarding overlay implementation in app.js', () => {
+  function getCustomerOnboardingBranch() {
+    const appJsPath = path.resolve(__dirname, '../../public/assets/js/app.js');
+    const source = fs.readFileSync(appJsPath, 'utf8');
+    const start = source.indexOf("if (page === 'dash_customer') {");
+    if (start === -1) {
+      throw new Error('Could not locate dash_customer onboarding branch');
+    }
+    const branchStart = source.indexOf('{', start);
+    if (branchStart === -1) {
+      throw new Error('Could not locate opening brace for dash_customer onboarding branch');
+    }
+    let depth = 0;
+    for (let i = branchStart; i < source.length; i += 1) {
+      const char = source[i];
+      if (char === '{') {
+        depth += 1;
+      } else if (char === '}') {
+        depth -= 1;
+        if (depth === 0) {
+          return source.slice(start, i + 1);
+        }
+      }
+    }
+    throw new Error('Could not locate closing brace for dash_customer onboarding branch');
+  }
+
+  it('uses no-collapse class and does not create a customer X close button', () => {
+    const customerBranch = getCustomerOnboardingBranch();
+
+    expect(customerBranch).toMatch(/box\.className\s*=\s*['"]card no-collapse['"]/);
+    expect(customerBranch).not.toContain('const xCloseBtn = document.createElement');
+    expect(customerBranch).not.toContain('box.appendChild(xCloseBtn)');
+  });
+
+  it("keeps Let's go button as dismiss path and persists both dismiss keys", () => {
+    const customerBranch = getCustomerOnboardingBranch();
+
+    expect(customerBranch).toMatch(/id=["']ef-onboarding-dismiss["']/);
+    expect(customerBranch).toMatch(
+      /btn\.addEventListener\(\s*['"]click['"]\s*,\s*doOverlayDismiss\s*\)/
+    );
+    expect(customerBranch).toMatch(
+      /localStorage\.setItem\(\s*['"]ef_onboarding_dismissed['"]\s*,\s*['"]1['"]\s*\);/
+    );
+    expect(customerBranch).toMatch(
+      /localStorage\.setItem\(\s*['"]ef_customer_welcome_dismissed['"]\s*,\s*['"]1['"]\s*\);/
+    );
   });
 });
