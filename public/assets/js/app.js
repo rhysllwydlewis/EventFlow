@@ -2781,7 +2781,19 @@ function efMaybeShowOnboarding(page) {
           color: #134e4a; font-weight: 500;
           font-size: 0.8125rem; white-space: nowrap;
         }
-        @media (max-width: 768px) { #ef-ob-right { gap: 0.5rem; } }
+        /* Pulse the CTA button 3× after the card enters to draw attention */
+        @keyframes ef-ob-btn-glow {
+          0%, 100% { box-shadow: 0 3px 12px rgba(22, 163, 74, 0.3); }
+          50% { box-shadow: 0 4px 20px rgba(22, 163, 74, 0.55), 0 0 0 3px rgba(34, 197, 94, 0.15); }
+        }
+        #ef-onboarding-dismiss {
+          animation: ef-ob-btn-glow 1.8s ease-in-out 0.6s 3;
+        }
+        /* At tablet widths the button wraps to its own row — make it span full width */
+        @media (max-width: 768px) {
+          #ef-ob-right { gap: 0.5rem; }
+          #ef-onboarding-dismiss { width: 100% !important; flex-basis: 100%; }
+        }
         @media (max-width: 540px) {
           #ef-onboarding-box { padding: 0.875rem 1rem 1rem !important; }
           #ef-ob-inner { gap: 0.75rem; }
@@ -2795,6 +2807,9 @@ function efMaybeShowOnboarding(page) {
         }
         @media (max-width: 400px) {
           #ef-ob-right { grid-template-columns: 1fr; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          #ef-onboarding-dismiss { animation: none !important; }
         }
       </style>
       <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#0d9488,#5eead4);border-radius:16px 16px 0 0;"></div>
