@@ -2525,6 +2525,57 @@ async function renderThreads(targetEl) {
   }
 }
 
+// Shared CSS for the onboarding overlay used by both supplier and customer dashboards.
+// Uses ID selector + !important to override the global .card { border:none!important;
+// background:#fff!important } rules that would otherwise break the gradient border.
+const EF_OB_SHARED_CSS = `
+  #ef-onboarding-box {
+    border: 2px solid transparent !important;
+    background-image: linear-gradient(#fff, #fff),
+      linear-gradient(to bottom, #0d9488, #a7f3d0) !important;
+    background-origin: padding-box, border-box !important;
+    background-clip: padding-box, border-box !important;
+    box-shadow: 0 4px 32px rgba(13, 148, 136, 0.13),
+      0 1px 4px rgba(0, 0, 0, 0.06) !important;
+    padding: 1rem 1.5rem 1.125rem !important;
+    border-radius: 16px !important;
+  }
+  #ef-ob-inner {
+    display: flex; align-items: center; gap: 1.25rem;
+    flex-wrap: wrap; padding-top: 0.125rem;
+  }
+  #ef-ob-title { flex: 1; min-width: 200px; text-align: left; }
+  #ef-ob-right {
+    display: flex; align-items: center; gap: 0.5rem;
+    flex-wrap: wrap; justify-content: flex-end;
+  }
+  #ef-onboarding-dismiss {
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #22c55e, #16a34a) !important;
+    color: #fff !important;
+    font-weight: 700;
+    padding: 0.5625rem 1.25rem !important;
+    border-radius: 10px !important;
+    border: none !important;
+    cursor: pointer;
+    font-size: 0.875rem !important;
+    box-shadow: 0 3px 12px rgba(22, 163, 74, 0.3);
+    white-space: nowrap;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    width: auto !important;
+    margin-top: 0 !important;
+  }
+  .ef-ob-close:focus-visible {
+    outline: none !important;
+    box-shadow: 0 0 0 2px #fff, 0 0 0 4px #0d9488 !important;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #ef-onboarding-box, .ef-ob-pill, #ef-onboarding-dismiss {
+      transition: none !important;
+    }
+  }
+`;
+
 function efMaybeShowOnboarding(page) {
   // Check if onboarding has been permanently dismissed (either key suffices)
   try {
@@ -2533,6 +2584,9 @@ function efMaybeShowOnboarding(page) {
       return;
     }
     if (page === 'dash_supplier' && localStorage.getItem('ef_supplier_welcome_dismissed') === '1') {
+      return;
+    }
+    if (page === 'dash_customer' && localStorage.getItem('ef_customer_welcome_dismissed') === '1') {
       return;
     }
   } catch (_) {
@@ -2579,15 +2633,32 @@ function efMaybeShowOnboarding(page) {
 
     box.innerHTML = `
       <style>
-        #ef-ob-inner{display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap;padding-top:0.125rem;}
-        #ef-ob-title{flex:1;min-width:200px;text-align:left;}
-        #ef-ob-right{display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;justify-content:flex-end;}
-        #ef-onboarding-dismiss{flex-shrink:0;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;font-weight:700;padding:0.5625rem 1.25rem;border-radius:10px;border:none;cursor:pointer;font-size:0.875rem;box-shadow:0 3px 12px rgba(22,163,74,0.3);white-space:nowrap;transition:all 0.2s cubic-bezier(0.4,0,0.2,1);}
-        .ef-ob-pill{flex:0 0 148px;display:flex;align-items:center;gap:0.375rem;padding:0.375rem 0.75rem;background:#f0fdfa;border:1px solid #99f6e4;border-radius:8px;}
-        .ef-ob-pill span:last-child{color:#134e4a;font-weight:500;font-size:0.8125rem;white-space:nowrap;}
-        @media(max-width:540px){#ef-ob-inner{gap:0.75rem;}#ef-ob-right{display:grid;grid-template-columns:1fr 1fr;width:100%;gap:0.5rem;}#ef-onboarding-dismiss{grid-column:1/-1;text-align:center;}.ef-ob-pill{flex:unset;width:auto;}}
+        ${EF_OB_SHARED_CSS}
+        /* Supplier-specific pill sizing */
+        .ef-ob-pill {
+          flex: 0 0 148px; display: flex; align-items: center;
+          gap: 0.375rem; padding: 0.375rem 0.75rem;
+          background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 8px;
+        }
+        .ef-ob-pill span:last-child {
+          color: #134e4a; font-weight: 500;
+          font-size: 0.8125rem; white-space: nowrap;
+        }
+        @media (max-width: 540px) {
+          #ef-onboarding-box { padding: 0.875rem 1rem 1rem !important; }
+          #ef-ob-inner { gap: 0.75rem; }
+          #ef-ob-right {
+            display: grid; grid-template-columns: 1fr 1fr;
+            width: 100%; gap: 0.5rem;
+          }
+          #ef-onboarding-dismiss { grid-column: 1 / -1; text-align: center; }
+          .ef-ob-pill { flex: unset; width: auto; }
+        }
+        @media (max-width: 400px) {
+          #ef-ob-right { grid-template-columns: 1fr; }
+        }
       </style>
-      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#0d9488,#5eead4);"></div>
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#0d9488,#5eead4);border-radius:16px 16px 0 0;"></div>
       <div id="ef-ob-inner">
         <div id="ef-ob-title">
           <h2 style="color:#1e3a5f;font-size:1.25rem;font-weight:800;letter-spacing:-0.02em;line-height:1.2;margin-bottom:0.25rem;">Welcome to your Supplier Dashboard! 👋</h2>
@@ -2633,12 +2704,13 @@ function efMaybeShowOnboarding(page) {
     // Add X close button to the overlay card
     const xCloseBtn = document.createElement('button');
     xCloseBtn.type = 'button';
+    xCloseBtn.className = 'ef-ob-close';
     xCloseBtn.setAttribute('aria-label', 'Dismiss welcome onboarding');
     xCloseBtn.style.cssText =
       'position:absolute;top:14px;right:14px;width:30px;height:30px;min-width:30px;min-height:30px;' +
-      'padding:0;background:rgba(0,0,0,0.06);border:1px solid rgba(0,0,0,0.08);border-radius:50%;' +
+      'padding:0!important;background:rgba(0,0,0,0.06);border:1px solid rgba(0,0,0,0.08)!important;border-radius:50%!important;' +
       'cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;' +
-      'transition:background 0.15s;color:#6b7280;';
+      'transition:background 0.15s;color:#6b7280;box-shadow:none!important;';
     xCloseBtn.innerHTML =
       '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
     xCloseBtn.addEventListener('click', doOverlayDismiss);
@@ -2661,7 +2733,155 @@ function efMaybeShowOnboarding(page) {
     return;
   }
 
-  // For other pages (customer, admin), create the onboarding card as before
+  if (page === 'dash_customer') {
+    const container = document.querySelector('main .container');
+    if (!container) {
+      return;
+    }
+
+    const box = document.createElement('div');
+    box.id = 'ef-onboarding-box';
+    box.className = 'card';
+    box.style.color = '#1f2937';
+    box.style.padding = '1rem 1.5rem 1.125rem';
+    box.style.borderRadius = '16px';
+    box.style.position = 'relative';
+    box.style.overflow = 'hidden';
+    box.style.boxShadow = '0 4px 32px rgba(13, 148, 136, 0.13), 0 1px 4px rgba(0, 0, 0, 0.06)';
+    box.style.border = '2px solid transparent';
+    box.style.backgroundImage =
+      'linear-gradient(#ffffff, #ffffff), linear-gradient(to bottom, #0d9488, #a7f3d0)';
+    box.style.backgroundOrigin = 'padding-box, border-box';
+    box.style.backgroundClip = 'padding-box, border-box';
+    // Entry animation — start invisible/shifted, animate to visible
+    box.style.opacity = '0';
+    box.style.transform = 'translateY(-8px)';
+    box.style.transition =
+      'opacity 0.35s cubic-bezier(0.4,0,0.2,1), transform 0.35s cubic-bezier(0.4,0,0.2,1)';
+
+    box.innerHTML = `
+      <style>
+        ${EF_OB_SHARED_CSS}
+        /* Customer-specific pill styling (links with hover/focus states) */
+        .ef-ob-pill {
+          flex: 0 0 auto; display: flex; align-items: center;
+          gap: 0.375rem; padding: 0.375rem 0.75rem;
+          background: #f0fdfa; border: 1px solid #99f6e4; border-radius: 8px;
+          text-decoration: none;
+          transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+        }
+        .ef-ob-pill:hover, .ef-ob-pill:focus-visible {
+          background: #ccfbf1; border-color: #5eead4;
+          box-shadow: 0 2px 8px rgba(13, 148, 136, 0.15); outline: none;
+        }
+        .ef-ob-pill:focus-visible {
+          outline: 2px solid #0d9488; outline-offset: 2px;
+        }
+        .ef-ob-pill span:last-child {
+          color: #134e4a; font-weight: 500;
+          font-size: 0.8125rem; white-space: nowrap;
+        }
+        @media (max-width: 768px) { #ef-ob-right { gap: 0.5rem; } }
+        @media (max-width: 540px) {
+          #ef-onboarding-box { padding: 0.875rem 1rem 1rem !important; }
+          #ef-ob-inner { gap: 0.75rem; }
+          #ef-ob-right {
+            display: grid; grid-template-columns: 1fr 1fr;
+            width: 100%; gap: 0.5rem;
+          }
+          #ef-onboarding-dismiss { grid-column: 1 / -1; text-align: center; }
+          .ef-ob-pill { flex: unset; width: auto; overflow: hidden; }
+          .ef-ob-pill span:last-child { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+        }
+        @media (max-width: 400px) {
+          #ef-ob-right { grid-template-columns: 1fr; }
+        }
+      </style>
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#0d9488,#5eead4);border-radius:16px 16px 0 0;"></div>
+      <div id="ef-ob-inner">
+        <div id="ef-ob-title">
+          <h2 style="color:#1e3a5f;font-size:1.25rem;font-weight:800;letter-spacing:-0.02em;line-height:1.2;margin-bottom:0.25rem;">Welcome to EventFlow! 👋</h2>
+          <p style="color:#6b7280;font-size:0.8125rem;line-height:1.5;margin:0;">Plan your perfect event with our curated suppliers — everything you need is below.</p>
+        </div>
+        <div id="ef-ob-right">
+          <a href="/start" class="ef-ob-pill" aria-label="Create an event plan"><span style="font-size:1rem;line-height:1;flex-shrink:0;" aria-hidden="true">📋</span><span>Create an event plan</span></a>
+          <a href="/suppliers" class="ef-ob-pill" aria-label="Browse and save suppliers"><span style="font-size:1rem;line-height:1;flex-shrink:0;" aria-hidden="true">🔍</span><span>Browse &amp; save suppliers</span></a>
+          <a href="/budget" class="ef-ob-pill" aria-label="Track your budget"><span style="font-size:1rem;line-height:1;flex-shrink:0;" aria-hidden="true">💰</span><span>Track your budget</span></a>
+          <button type="button" class="cta" id="ef-onboarding-dismiss" aria-label="Dismiss welcome message">Let's go! →</button>
+        </div>
+      </div>
+    `;
+
+    const hero = container.querySelector('#customer-hero');
+    if (hero && hero.parentNode === container) {
+      container.insertBefore(box, hero);
+    } else {
+      container.insertBefore(box, container.firstChild);
+    }
+
+    // Hide the static #welcome-section to prevent two welcome messages on first visit
+    const welcomeSection = container.querySelector('#welcome-section');
+    if (welcomeSection) {
+      welcomeSection.style.display = 'none';
+    }
+
+    // Trigger entry animation on next frame
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        box.style.opacity = '1';
+        box.style.transform = 'translateY(0)';
+      });
+    });
+
+    const doOverlayDismiss = function () {
+      if (typeof window.dismissCustomerWelcome === 'function') {
+        window.dismissCustomerWelcome();
+        return;
+      }
+      try {
+        localStorage.setItem('ef_onboarding_dismissed', '1');
+        localStorage.setItem('ef_customer_welcome_dismissed', '1');
+      } catch (_) {
+        /* Ignore localStorage errors */
+      }
+      const easing = 'cubic-bezier(0.4, 0, 0.2, 1)';
+      box.style.transition = `opacity 0.3s ${easing}, transform 0.3s ${easing}`;
+      box.style.opacity = '0';
+      box.style.transform = 'scale(0.97)';
+      setTimeout(() => box.remove(), 300);
+    };
+
+    // Add X close button to the overlay card (matches supplier pattern)
+    const xCloseBtn = document.createElement('button');
+    xCloseBtn.type = 'button';
+    xCloseBtn.className = 'ef-ob-close';
+    xCloseBtn.setAttribute('aria-label', 'Dismiss welcome onboarding');
+    xCloseBtn.style.cssText =
+      'position:absolute;top:14px;right:14px;width:30px;height:30px;min-width:30px;min-height:30px;' +
+      'padding:0!important;background:rgba(0,0,0,0.06);border:1px solid rgba(0,0,0,0.08)!important;border-radius:50%!important;' +
+      'cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;' +
+      'transition:background 0.15s;color:#6b7280;box-shadow:none!important;';
+    xCloseBtn.innerHTML =
+      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    xCloseBtn.addEventListener('click', doOverlayDismiss);
+    box.appendChild(xCloseBtn);
+
+    const btn = box.querySelector('#ef-onboarding-dismiss');
+    if (btn) {
+      btn.addEventListener('mouseenter', () => {
+        btn.style.transform = 'scale(1.05) translateY(-2px)';
+        btn.style.boxShadow = '0 8px 20px rgba(34, 197, 94, 0.4)';
+      });
+      btn.addEventListener('mouseleave', () => {
+        btn.style.transform = 'scale(1) translateY(0)';
+        btn.style.boxShadow = '0 3px 12px rgba(22, 163, 74, 0.3)';
+      });
+      btn.addEventListener('click', doOverlayDismiss);
+    }
+    return;
+  }
+
+  // For other pages (admin), create the onboarding card as before
   const container = document.querySelector('main .container');
   if (!container) {
     return;
@@ -2670,13 +2890,7 @@ function efMaybeShowOnboarding(page) {
   const box = document.createElement('div');
   box.className = 'card';
   let body = '';
-  if (page === 'dash_customer') {
-    body =
-      '<p class="small">Here\'s what to do next:</p>' +
-      '<ol class="small"><li>Start an event from <strong>Plan an Event</strong>.</li>' +
-      '<li>Add a few suppliers to <strong>My Plan</strong>.</li>' +
-      '<li>Use <strong>Conversations</strong> to keep messages in one place.</li></ol>';
-  } else if (page === 'admin') {
+  if (page === 'admin') {
     body =
       '<p class="small">Quick overview:</p>' +
       '<ol class="small"><li>Check <strong>Metrics</strong> to see demo usage.</li>' +
@@ -5143,6 +5357,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initPlan && initPlan();
   }
   if (page === 'dash_customer') {
+    efMaybeShowOnboarding('dash_customer');
     renderThreads && renderThreads('threads-cust');
   }
   if (page === 'dash_supplier') {
