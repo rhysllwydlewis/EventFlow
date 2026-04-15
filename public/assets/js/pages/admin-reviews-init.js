@@ -1,4 +1,42 @@
 (async function () {
+  // ── Wait for AdminShared ──────────────────────────────────────────────────
+  async function waitForAdminShared(timeoutMs = 5000) {
+    if (window.AdminShared) {
+      return true;
+    }
+    return new Promise(resolve => {
+      const deadline = Date.now() + timeoutMs;
+      const poll = () => {
+        if (window.AdminShared) {
+          resolve(true);
+        } else if (Date.now() >= deadline) {
+          resolve(false);
+        } else {
+          setTimeout(poll, 50);
+        }
+      };
+      setTimeout(poll, 50);
+    });
+  }
+
+  const adminSharedReady = await waitForAdminShared();
+  if (!adminSharedReady) {
+    console.error('[admin-reviews] AdminShared not available — page cannot initialise');
+    const q = document.getElementById('reviewQueue');
+    if (q) {
+      q.innerHTML =
+        '<div class="card card-mt"><p class="text-danger">Admin utilities failed to load. Please reload the page.</p></div>';
+    }
+    return;
+  }
+
+  // ── Ensure CSRF token ──────────────────────────────────────────────────────
+  async function ensureCSRFToken() {
+    if (!window.__CSRF_TOKEN__) {
+      await AdminShared.fetchCSRFToken();
+    }
+  }
+
   // ── Auth ──────────────────────────────────────────────────────────────────
   async function checkAuth() {
     const endpoints = ['/api/v1/auth/me', '/api/auth/me'];
@@ -267,6 +305,7 @@
   // ── Remove Review / Dismiss Report ────────────────────────────────────────
   async function removeReview(reviewId) {
     try {
+      await ensureCSRFToken();
       await AdminShared.adminFetch(`/api/v2/admin/reviews/${encodeURIComponent(reviewId)}/reject`, {
         method: 'POST',
         body: { reason: 'Review removed following valid report' },
@@ -284,6 +323,7 @@
 
   async function dismissReport(reviewId) {
     try {
+      await ensureCSRFToken();
       await AdminShared.adminFetch(
         `/api/v2/admin/reviews/${encodeURIComponent(reviewId)}/approve`,
         {
@@ -302,23 +342,31 @@
   }
 
   async function promptRemoveReview(reviewId) {
+    if (typeof AdminShared.showConfirmModal !== 'function') {
+      showToast('Admin utilities not available. Please reload the page.', 'error');
+      return;
+    }
     const result = await AdminShared.showConfirmModal({
       title: 'Remove Review',
       message:
         'The report is valid — this review will be permanently removed from the platform. Continue?',
     });
-    if (!result || !result.confirmed) {
+    if (!result) {
       return;
     }
     await removeReview(reviewId);
   }
 
   async function promptDismissReport(reviewId) {
+    if (typeof AdminShared.showConfirmModal !== 'function') {
+      showToast('Admin utilities not available. Please reload the page.', 'error');
+      return;
+    }
     const result = await AdminShared.showConfirmModal({
       title: 'Dismiss Report',
       message: 'The report is not valid — the review will remain published. Continue?',
     });
-    if (!result || !result.confirmed) {
+    if (!result) {
       return;
     }
     await dismissReport(reviewId);
@@ -335,7 +383,7 @@
         title: 'Remove Selected Reviews',
         message: `Remove ${ids.length} selected review(s) from the platform?`,
       });
-      if (!result || !result.confirmed) {
+      if (!result) {
         return;
       }
       batchApproveBtn.disabled = true;
@@ -356,7 +404,7 @@
         title: 'Dismiss Selected Reports',
         message: `Dismiss reports for ${ids.length} selected review(s) and keep them published?`,
       });
-      if (!result || !result.confirmed) {
+      if (!result) {
         return;
       }
       batchRejectBtn.disabled = true;
