@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="142" height="32" role="img" aria-label="Fast Responder">
+  <title>Fast Responder</title>
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef3c7"/>
+      <stop offset="100%" stop-color="#fde68a"/>
+    </linearGradient>
+  </defs>
+  <rect width="142" height="32" rx="12" fill="url(#g)" stroke="#f59e0b" stroke-width="1"/>
+  <text x="71" y="17" font-family="-apple-system,BlinkMacSystemFont,&#39;Segoe UI&#39;,Roboto,sans-serif" font-size="12" font-weight="700" fill="#92400e" text-anchor="middle" dominant-baseline="middle">⚡ Fast Responder</text>
+</svg>

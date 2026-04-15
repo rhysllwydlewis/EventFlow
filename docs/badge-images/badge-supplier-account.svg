@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="32" role="img" aria-label="Supplier (account)">
+  <title>Supplier (account)</title>
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#d1fae5"/>
+      <stop offset="100%" stop-color="#a7f3d0"/>
+    </linearGradient>
+  </defs>
+  <rect width="100" height="32" rx="12" fill="url(#g)" stroke="#10b981" stroke-width="1"/>
+  <text x="50" y="17" font-family="-apple-system,BlinkMacSystemFont,&#39;Segoe UI&#39;,Roboto,sans-serif" font-size="12" font-weight="600" fill="#065f46" text-anchor="middle" dominant-baseline="middle">🏪 Supplier</text>
+</svg>
