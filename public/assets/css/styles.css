@@ -2693,8 +2693,8 @@ textarea:focus:not(:focus-visible) {
 }
 
 .card-badge.badge-verified {
-  background: #d1fae5;
-  color: #065f46;
+  background: #ccfbf1;
+  color: #134e4a;
 }
 
 /* Grid layout for cards */

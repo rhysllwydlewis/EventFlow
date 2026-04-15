@@ -69,6 +69,21 @@
       word-break: break-all;
     }
 
+    .badge-note {
+      font-size: 0.72rem;
+      color: #6b7280;
+      margin-top: 0.25rem;
+      line-height: 1.4;
+    }
+
+    .badge-note code {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 0.7rem;
+      background: #f3f4f6;
+      padding: 0.1em 0.3em;
+      border-radius: 3px;
+    }
+
     /* Inline-icon demo row */
     .tier-icon-demo {
       display: flex;
@@ -471,7 +486,7 @@
       <span class="badge badge-supplier">Verified Supplier</span>
       <span class="badge-card__name">Supplier (reviewer)</span>
       <span class="badge-card__class">.badge-supplier</span>
-      <p style="font-size:0.72rem;color:#6b7280;margin-top:0.25rem;">Shown on review cards when the reviewer is a supplier. Intentionally distinct from the green <code>.badge-supplier-account</code> profile badge.</p>
+      <p class="badge-note">Shown on review cards when the reviewer is a supplier. Intentionally distinct from the green <code>.badge-supplier-account</code> profile badge.</p>
     </div>
 
   </div>
