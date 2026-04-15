@@ -315,10 +315,13 @@
         ? '<span class="badge-email-verified">Email Verified</span>'
         : '';
 
-      // Issue 2: Supplier badge for supplier reviewers
+      // Supplier reviewer badge — shown when the reviewer is a verified supplier account.
+      // Uses .badge-supplier (indigo, 🏢) which is intentionally different from
+      // .badge-supplier-account (green, 🏪) shown on a supplier's own profile/account page.
+      // The label "Verified Supplier" signals this is a trust indicator, not a role assignment.
       const supplierBadge =
         review.isSupplier || review.authorSupplierId
-          ? '<span class="badge-supplier">Supplier</span>'
+          ? '<span class="badge-supplier">Verified Supplier</span>'
           : '';
 
       const recommend = review.recommend
@@ -923,7 +926,9 @@
     setupPhotoUpload() {
       const uploadArea = document.getElementById('review-photo-upload-area');
       const fileInput = document.getElementById('review-photo-input');
-      if (!uploadArea || !fileInput) return;
+      if (!uploadArea || !fileInput) {
+        return;
+      }
 
       // Stored files for upload on submit
       this._pendingPhotoFiles = [];
@@ -954,9 +959,7 @@
       uploadArea.addEventListener('drop', e => {
         e.preventDefault();
         uploadArea.classList.remove('dragover');
-        const files = Array.from(e.dataTransfer.files).filter(f =>
-          f.type.startsWith('image/')
-        );
+        const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
         this.addPhotoFiles(files);
       });
     },
@@ -994,7 +997,9 @@
       const countEl = document.getElementById('review-photo-count');
       const countText = document.getElementById('review-photo-count-text');
       const uploadArea = document.getElementById('review-photo-upload-area');
-      if (!container) return;
+      if (!container) {
+        return;
+      }
 
       container.innerHTML = '';
 
@@ -1024,7 +1029,9 @@
           removeBtn.textContent = '✕';
           removeBtn.addEventListener('click', e => {
             const idx = parseInt(e.currentTarget.dataset.index, 10);
-            if (isNaN(idx)) return;
+            if (isNaN(idx)) {
+              return;
+            }
             this._pendingPhotoFiles.splice(idx, 1);
             this.renderPhotoPreviews();
           });
@@ -1308,7 +1315,9 @@
      * so styles are shared if that component is ever loaded on the same page.
      */
     injectLightboxStyles() {
-      if (document.getElementById('lightbox-styles')) return;
+      if (document.getElementById('lightbox-styles')) {
+        return;
+      }
       const style = document.createElement('style');
       style.id = 'lightbox-styles';
       style.textContent = `
@@ -1342,7 +1351,9 @@
 
       // Remove any stale lightbox
       const stale = document.getElementById('review-lightbox');
-      if (stale) stale.remove();
+      if (stale) {
+        stale.remove();
+      }
 
       let currentIndex = startIndex;
       const total = photos.length;
@@ -1382,9 +1393,15 @@
         img.style.display = 'none';
         img.src = isTrusted ? url : '';
         img.alt = `Review photo ${idx + 1} of ${total}`;
-        if (counter) counter.textContent = `${idx + 1} / ${total}`;
-        if (prevBtn) prevBtn.disabled = idx === 0;
-        if (nextBtn) nextBtn.disabled = idx === total - 1;
+        if (counter) {
+          counter.textContent = `${idx + 1} / ${total}`;
+        }
+        if (prevBtn) {
+          prevBtn.disabled = idx === 0;
+        }
+        if (nextBtn) {
+          nextBtn.disabled = idx === total - 1;
+        }
       };
 
       img.addEventListener('load', () => {
@@ -1403,24 +1420,42 @@
       };
 
       const prev = () => {
-        if (currentIndex > 0) { currentIndex--; loadImage(currentIndex); }
+        if (currentIndex > 0) {
+          currentIndex--;
+          loadImage(currentIndex);
+        }
       };
 
       const next = () => {
-        if (currentIndex < total - 1) { currentIndex++; loadImage(currentIndex); }
+        if (currentIndex < total - 1) {
+          currentIndex++;
+          loadImage(currentIndex);
+        }
       };
 
       const keyHandler = e => {
-        if (e.key === 'Escape') close();
-        else if (e.key === 'ArrowLeft') prev();
-        else if (e.key === 'ArrowRight') next();
+        if (e.key === 'Escape') {
+          close();
+        } else if (e.key === 'ArrowLeft') {
+          prev();
+        } else if (e.key === 'ArrowRight') {
+          next();
+        }
       };
 
       document.addEventListener('keydown', keyHandler);
       lightboxEl.querySelector('.lightbox-close').addEventListener('click', close);
-      lightboxEl.addEventListener('click', e => { if (e.target === lightboxEl) close(); });
-      if (prevBtn) prevBtn.addEventListener('click', prev);
-      if (nextBtn) nextBtn.addEventListener('click', next);
+      lightboxEl.addEventListener('click', e => {
+        if (e.target === lightboxEl) {
+          close();
+        }
+      });
+      if (prevBtn) {
+        prevBtn.addEventListener('click', prev);
+      }
+      if (nextBtn) {
+        nextBtn.addEventListener('click', next);
+      }
 
       // Trigger open animation on next frame
       requestAnimationFrame(() => lightboxEl.classList.add('is-open'));
@@ -1774,12 +1809,16 @@
         document.removeEventListener('keydown', escHandler);
       };
       const escHandler = e => {
-        if (e.key === 'Escape') closeDelete();
+        if (e.key === 'Escape') {
+          closeDelete();
+        }
       };
       document.addEventListener('keydown', escHandler);
 
       overlay.addEventListener('click', e => {
-        if (e.target === overlay) closeDelete();
+        if (e.target === overlay) {
+          closeDelete();
+        }
       });
 
       document.getElementById('btn-delete-cancel').addEventListener('click', closeDelete);
@@ -1875,12 +1914,16 @@
         document.removeEventListener('keydown', escHandler);
       };
       const escHandler = e => {
-        if (e.key === 'Escape') closeReport();
+        if (e.key === 'Escape') {
+          closeReport();
+        }
       };
       document.addEventListener('keydown', escHandler);
 
       overlay.addEventListener('click', e => {
-        if (e.target === overlay) closeReport();
+        if (e.target === overlay) {
+          closeReport();
+        }
       });
 
       document.getElementById('btn-report-cancel').addEventListener('click', closeReport);

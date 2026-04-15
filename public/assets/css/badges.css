@@ -106,12 +106,13 @@
   font-weight: 700;
 }
 
-/* Verified Customer Badge (review cards & legacy supplier verified) */
+/* Verified Customer Badge (review cards & legacy supplier verified)
+   — uses teal to distinguish from .badge-supplier-account (green) */
 .badge-verified {
-  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-  color: #065f46;
-  border: 1px solid #10b981;
-  box-shadow: 0 1px 3px rgba(16, 185, 129, 0.2);
+  background: linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%);
+  color: #134e4a;
+  border: 1px solid #14b8a6;
+  box-shadow: 0 1px 3px rgba(20, 184, 166, 0.2);
 }
 
 .badge-verified::before {
