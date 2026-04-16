@@ -342,21 +342,21 @@ router.patch(
       }
     }
 
-    const fields = [
-      'name',
-      'category',
-      'location',
-      'price_display',
-      'website',
-      'license',
-      'description_short',
-      'description_long',
-      'bannerUrl',
-      'tagline',
-    ];
-    for (const k of fields) {
+    const PATCH_FIELD_MAX_LENGTHS = {
+      name: 120,
+      category: 80,
+      location: 200,
+      price_display: 60,
+      website: 200,
+      license: 120,
+      description_short: 300,
+      description_long: 5000,
+      bannerUrl: 500,
+      tagline: 200,
+    };
+    for (const [k, maxLen] of Object.entries(PATCH_FIELD_MAX_LENGTHS)) {
       if (typeof b[k] === 'string') {
-        supplierPatch[k] = b[k];
+        supplierPatch[k] = b[k].trim().substring(0, maxLen);
       }
     }
 

@@ -692,6 +692,13 @@ router.post(
         });
       }
 
+      // Validate email format
+      const emailValue = req.body.email !== undefined ? req.body.email : supplier.email;
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+      if (!emailRegex.test(String(emailValue).trim())) {
+        return res.status(400).json({ error: 'Invalid email format' });
+      }
+
       const now = new Date().toISOString();
       const updates = {
         verificationStatus: VERIFICATION_STATES.PENDING_REVIEW,
