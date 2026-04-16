@@ -66,25 +66,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     container: '#timeline-builder',
     events: events,
     editable: true,
-    onEventAdd: () => {
+    onEventAdd: (_event) => {
       saveTimeline();
       if (typeof showToast === 'function') {
         showToast('Event added to timeline', 'success');
       }
     },
-    onEventUpdate: () => {
+    onEventUpdate: (_event) => {
       saveTimeline();
       if (typeof showToast === 'function') {
         showToast('Event updated', 'success');
       }
     },
-    onEventDelete: () => {
+    onEventDelete: (_eventId) => {
       saveTimeline();
       if (typeof showToast === 'function') {
         showToast('Event removed from timeline', 'success');
       }
     },
-    onEventMove: () => {
+    onEventMove: (_events) => {
       saveTimeline();
     },
   });

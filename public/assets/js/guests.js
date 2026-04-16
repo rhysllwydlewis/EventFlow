@@ -715,7 +715,7 @@ class GuestManager {
     }
 
     const html = `
-      <div style="overflow-x:auto;">
+      <div role="region" aria-label="Scrollable guest list" tabindex="0" style="overflow-x:auto;">
       <table aria-label="Guest list" style="width: 100%; border-collapse: collapse; min-width:600px;">
         <thead>
           <tr style="border-bottom: 2px solid var(--border);">

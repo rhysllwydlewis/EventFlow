@@ -509,7 +509,7 @@ loadNotificationSettings();
       { pct: '80%',  color: '#22c55e', text: 'Strong' },
       { pct: '100%', color: '#10b981', text: 'Very strong' },
     ];
-    const lvl = levels[Math.min(score, levels.length) - 1] || levels[0];
+    const lvl = levels[Math.min(Math.max(score - 1, 0), levels.length - 1)];
     strengthFill.style.width = lvl.pct;
     strengthFill.style.background = lvl.color;
     strengthLabel.textContent = lvl.text;

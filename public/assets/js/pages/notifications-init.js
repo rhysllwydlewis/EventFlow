@@ -91,9 +91,13 @@
    */
   function showConfirmDialog(message) {
     return new Promise(resolve => {
-      // Remove any existing confirm dialog
+      // Remove any existing confirm dialog and its Escape handler
       const existing = document.getElementById('_ef_confirm_dialog');
       if (existing) existing.remove();
+      if (window.__efConfirmEscHandler) {
+        document.removeEventListener('keydown', window.__efConfirmEscHandler);
+        window.__efConfirmEscHandler = null;
+      }
 
       const overlay = document.createElement('div');
       overlay.id = '_ef_confirm_dialog';
@@ -120,9 +124,11 @@
       const cleanup = val => {
         overlay.remove();
         document.removeEventListener('keydown', handleEsc);
+        window.__efConfirmEscHandler = null;
         resolve(val);
       };
       function handleEsc(e) { if (e.key === 'Escape') cleanup(false); }
+      window.__efConfirmEscHandler = handleEsc;
       document.addEventListener('keydown', handleEsc);
       overlay.querySelector('#_ef_confirm_cancel').addEventListener('click', () => cleanup(false));
       overlay.querySelector('#_ef_confirm_ok').addEventListener('click', () => cleanup(true));
