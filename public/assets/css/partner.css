@@ -466,6 +466,18 @@
   background-clip: text;
 }
 
+/* Webkit uses -webkit-text-fill-color for gradient text on the name span; this
+   override restores solid text colour for the greeting word ("Good morning" etc.)
+   and adds a plain `color` fallback for non-webkit browsers. */
+#partner-greeting-time {
+  background: none;
+  -webkit-background-clip: unset;
+  -webkit-text-fill-color: rgba(255, 255, 255, 0.7);
+  background-clip: unset;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+}
+
 .partner-sub-heading {
   color: rgba(255,255,255,0.55);
   font-size: 0.95rem;
@@ -1788,11 +1800,296 @@ select.partner-modal-input option {
   color: transparent;
 }
 
+/* ─── CSS spinner (replaces emoji loading placeholders) ─────────────────── */
+
+.partner-spinner {
+  display: block;
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(255, 255, 255, 0.12);
+  border-top-color: rgba(16, 185, 129, 0.75);
+  border-radius: 50%;
+  animation: partnerSpin 0.8s linear infinite;
+  margin: 0 auto 0.6rem;
+}
+
+@keyframes partnerSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* ─── Modal entrance animation ──────────────────────────────────────────── */
+
+@keyframes partner-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.partner-modal {
+  animation: partner-modal-in 0.22s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* ─── Ticket detail modal ────────────────────────────────────────────────── */
+
+.partner-ticket-detail-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 1100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.partner-ticket-detail {
+  background: rgba(15, 28, 35, 0.97);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 20px;
+  padding: 1.75rem;
+  width: 100%;
+  max-width: 560px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+  animation: partner-modal-in 0.22s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.partner-ticket-detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.partner-ticket-detail-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.partner-ticket-detail-close {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+  padding: 0.3rem 0.6rem;
+  font-size: 1rem;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.partner-ticket-detail-close:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+}
+
+.partner-ticket-detail-close:focus-visible {
+  outline: 2px solid rgba(16, 185, 129, 0.6);
+  outline-offset: 2px;
+}
+
+.partner-ticket-detail-body {
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.partner-ticket-message-box {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin-bottom: 1rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.partner-reply-thread {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.partner-reply-item {
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  font-size: 0.85rem;
+}
+
+.partner-reply-item--staff {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.partner-reply-item--user {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.partner-reply-meta {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.4);
+  margin-bottom: 0.35rem;
+}
+
+.partner-reply-form {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.partner-reply-textarea {
+  width: 100%;
+  min-height: 80px;
+  resize: vertical;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 0.88rem;
+  padding: 0.65rem 0.85rem;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.partner-reply-textarea:focus {
+  outline: none;
+  border-color: rgba(16, 185, 129, 0.5);
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.15);
+}
+
+.partner-reply-submit {
+  align-self: flex-start;
+  padding: 0.5rem 1.1rem;
+  background: linear-gradient(135deg, #0b8073, #10b981);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.partner-reply-submit:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.partner-reply-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ─── Ticket rows — hover lift effect ───────────────────────────────────── */
+
+.partner-ticket-row {
+  padding: 0.85rem 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.15s, transform 0.15s, border-color 0.15s;
+}
+
+.partner-ticket-row:hover {
+  background: rgba(16, 185, 129, 0.06);
+  transform: translateY(-1px);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.partner-ticket-row:focus-visible {
+  outline: 2px solid rgba(16, 185, 129, 0.6);
+  outline-offset: 2px;
+}
+
+.partner-ticket-row:last-child {
+  border-bottom: none;
+}
+
+/* ─── Reply form label ───────────────────────────────────────────────────── */
+
+.partner-reply-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.55);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.2rem;
+}
+
+/* ─── Confirm dialog button hover states ────────────────────────────────── */
+
+.partner-confirm-cancel {
+  padding: 0.45rem 1rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.65);
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background 0.15s, color 0.15s;
+}
+
+.partner-confirm-cancel:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.partner-confirm-ok {
+  padding: 0.45rem 1rem;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(135deg, #0b8073, #10b981);
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: opacity 0.15s, box-shadow 0.15s;
+}
+
+.partner-confirm-ok:hover {
+  opacity: 0.9;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+}
+
 /* ─── Prefers reduced motion ─────────────────────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {
   .partner-stats-grid[data-loading='true'] .partner-stat-value,
-  .partner-stats-grid[data-loading='true'] .partner-stat-sub {
+  .partner-stats-grid[data-loading='true'] .partner-stat-sub,
+  .partner-spinner,
+  .partner-modal,
+  .partner-ticket-detail {
     animation: none;
+  }
+
+  .partner-ticket-row:hover {
+    transform: none;
   }
 }

@@ -345,10 +345,10 @@
 
     <!-- Account Details -->
     <p class="settings-section-label">Account Details</p>
-    <div class="form-row field-readonly">
+    <div class="form-row">
       <label for="profile-email">Email Address</label>
-      <input type="email" id="profile-email" name="email" placeholder="john@example.com" readonly tabindex="-1" autocomplete="email">
-      <p class="small" style="margin-top:0.25rem;color:#9ca3af;">To change your email address, please <a href="/contact" style="color:#0B8073;">contact support</a>.</p>
+      <input type="email" id="profile-email" name="email" placeholder="john@example.com" autocomplete="email">
+      <p class="small" id="email-change-hint" role="status" aria-live="polite" style="margin-top:0.35rem;color:#0B8073;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:5px;padding:0.4rem 0.625rem;display:none;">📧 A verification email will be sent to your new address after saving.</p>
     </div>
 
     <div class="form-row">
@@ -520,6 +520,34 @@
     </div>
     <button class="cta secondary" id="restart-tour" style="flex-shrink:0;">Restart Tour</button>
   </div>
+</div>
+
+<!-- Change Password Card -->
+<div class="card" style="margin-top:1.5rem;">
+  <div style="display:flex;align-items:center;gap:0.625rem;margin-bottom:1.25rem;">
+    <svg width="18" height="18" fill="none" stroke="#0B8073" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    <h2 style="margin:0;font-size:1.1rem;font-weight:700;">Change Password</h2>
+  </div>
+  <form id="change-password-form" novalidate>
+    <div class="form-row">
+      <label for="cp-current">Current Password</label>
+      <input type="password" id="cp-current" name="currentPassword" autocomplete="current-password" placeholder="Enter your current password">
+    </div>
+    <div class="form-row">
+      <label for="cp-new">New Password</label>
+      <input type="password" id="cp-new" name="newPassword" autocomplete="new-password" placeholder="At least 8 characters">
+      <div id="cp-strength-bar" style="height:4px;border-radius:2px;background:#e5e7eb;margin-top:6px;overflow:hidden;display:none;"><div id="cp-strength-fill" style="height:100%;width:0;border-radius:2px;transition:width 0.3s,background 0.3s;"></div></div>
+      <p id="cp-strength-label" style="font-size:0.78rem;color:#9ca3af;margin:4px 0 0;display:none;"></p>
+    </div>
+    <div class="form-row">
+      <label for="cp-confirm">Confirm New Password</label>
+      <input type="password" id="cp-confirm" name="confirmPassword" autocomplete="new-password" placeholder="Repeat your new password">
+    </div>
+    <div class="form-actions" style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid #f3f4f6;">
+      <button class="cta" type="submit" id="cp-save-btn">Update Password</button>
+      <span id="cp-status" style="font-size:0.875rem;" role="status" aria-live="polite"></span>
+    </div>
+  </form>
 </div>
 
 <!-- Danger Zone Card -->

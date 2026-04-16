@@ -1605,6 +1605,55 @@ router.put('/profile', authRequired, csrfProtection, async (req, res) => {
   });
 });
 
+/**
+ * POST /api/auth/change-password
+ * Change the authenticated user's password (requires current password verification).
+ */
+router.post('/change-password', authRequired, csrfProtection, authLimiter, async (req, res) => {
+  const { currentPassword, newPassword } = req.body || {};
+
+  if (!currentPassword || !newPassword) {
+    return res.status(400).json({ error: 'Current password and new password are required' });
+  }
+
+  if (!passwordOk(newPassword)) {
+    return res
+      .status(400)
+      .json({ error: 'New password must be at least 8 characters with a letter and number' });
+  }
+
+  try {
+    const users = await dbUnified.read('users');
+    const user = users.find(u => u.id === req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const passwordMatch = await bcrypt.compare(currentPassword, user.passwordHash || '');
+    if (!passwordMatch) {
+      return res.status(400).json({ error: 'Current password is incorrect' });
+    }
+
+    const newHash = await bcrypt.hash(newPassword, 10);
+    await dbUnified.updateOne(
+      'users',
+      { id: user.id },
+      {
+        $set: {
+          passwordHash: newHash,
+          passwordChangedAt: new Date().toISOString(),
+        },
+      }
+    );
+
+    res.json({ ok: true, message: 'Password updated successfully' });
+  } catch (err) {
+    logger.error('change-password error:', err);
+    res.status(500).json({ error: 'Failed to update password' });
+  }
+});
+
 module.exports = router;
 module.exports.setSendMailFunction = setSendMailFunction;
 module.exports.initializeDependencies = initializeDependencies;

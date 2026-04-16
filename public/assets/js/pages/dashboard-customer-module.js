@@ -282,13 +282,29 @@ async function initCustomerDashboardWidgets(preloadedPlans) {
       }
     } // end else (no preloadedPlans)
 
-    // Count saved suppliers (from localStorage or API)
+    // Count saved suppliers — prefer server shortlist, fall back to localStorage
     let savedSuppliers = [];
     try {
-      savedSuppliers = JSON.parse(localStorage.getItem('eventflow_saved_suppliers') || '[]');
+      const slRes = await fetch('/api/v1/shortlist', { credentials: 'include' });
+      if (slRes.ok) {
+        const slData = await slRes.json();
+        const items = (slData.data && slData.data.items) || [];
+        savedSuppliers = items.filter(item => item.itemType === 'supplier' || !item.itemType);
+        // Keep legacy localStorage key in sync
+        try {
+          localStorage.setItem(
+            'eventflow_saved_suppliers',
+            JSON.stringify(savedSuppliers.map(i => i.supplierId || i.id || i.itemId).filter(Boolean))
+          );
+        } catch (_) { /* ignore */ }
+      } else {
+        savedSuppliers = JSON.parse(localStorage.getItem('eventflow_saved_suppliers') || '[]');
+      }
     } catch (err) {
-      console.error('Error reading saved suppliers from localStorage:', err);
-      // Continue with empty array
+      console.error('Error reading saved suppliers:', err);
+      try {
+        savedSuppliers = JSON.parse(localStorage.getItem('eventflow_saved_suppliers') || '[]');
+      } catch (_) { /* ignore */ }
     }
 
     // Count messages/conversations — start at 0; the stats widget will be updated

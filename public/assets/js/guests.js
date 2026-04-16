@@ -1,21 +1,170 @@
 /**
  * EventFlow Guest List Manager
  * Manages event guests, RSVPs, dietary requirements, and table assignments
+ * Data is persisted server-side via /api/me/plans/:planId/guests
  */
 
 // Guest Manager
 class GuestManager {
   constructor() {
-    this.storageKey = 'ef_guests';
     this.guests = [];
+    this.planId = null;
     this.chart = null;
-    this.loadFromStorage();
     this.init();
   }
 
-  init() {
+  async init() {
+    // Resolve planId before doing anything else
+    const resolved = await this.resolvePlanId();
+    if (!resolved) {
+      return;
+    }
+    await this.loadFromServer();
     this.setupEventListeners();
     this.render();
+  }
+
+  async getCsrfToken() {
+    if (window.__CSRF_TOKEN__) {
+      return window.__CSRF_TOKEN__;
+    }
+    try {
+      const r = await fetch('/api/csrf-token', { credentials: 'include' });
+      if (r.ok) {
+        const d = await r.json();
+        const t = d.csrfToken || d.token || '';
+        if (t) {
+          window.__CSRF_TOKEN__ = t;
+        }
+        return t;
+      }
+    } catch (_) { /* ignore */ }
+    const m = document.cookie.match(/(?:^|;\s*)(?:csrf|csrfToken)=([^;]+)/);
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+
+  async resolvePlanId() {
+    const container = document.getElementById('guests-list');
+    try {
+      const r = await fetch('/api/me/plans', { credentials: 'include' });
+      if (!r.ok) {
+        if (container) {
+          container.innerHTML =
+            '<div style="text-align:center;padding:3rem;color:#9ca3af;">Please <a href="/auth">sign in</a> to manage guests.</div>';
+        }
+        return false;
+      }
+      const d = await r.json();
+      const plans = d.plans || [];
+      if (plans.length === 0) {
+        if (container) {
+          container.innerHTML =
+            '<div style="text-align:center;padding:3rem;color:#9ca3af;">No event plans found. <a href="/start">Create a plan</a> first.</div>';
+        }
+        return false;
+      }
+      if (plans.length === 1) {
+        this.planId = plans[0].id;
+        this.showPlanLabel(plans[0]);
+        return true;
+      }
+      // Multiple plans — show selector
+      this.planId = await this.showPlanSelector(plans);
+      return !!this.planId;
+    } catch (err) {
+      console.error('Failed to resolve planId:', err);
+      if (container) {
+        container.innerHTML =
+          '<div style="text-align:center;padding:3rem;color:#9ca3af;">Unable to load plans. Please refresh.</div>';
+      }
+      return false;
+    }
+  }
+
+  showPlanLabel(plan) {
+    const label = document.getElementById('active-plan-label');
+    if (label) {
+      label.textContent = `Showing guests for: ${plan.name || plan.eventType || 'Your Plan'}`;
+      label.style.display = 'block';
+    }
+  }
+
+  showPlanSelector(plans) {
+    return new Promise(resolve => {
+      const container = document.getElementById('guests-list');
+      const wrapper = document.createElement('div');
+      wrapper.style.cssText = 'text-align:center;padding:3rem 1rem;';
+      wrapper.innerHTML = `
+        <p style="margin-bottom:1rem;font-weight:600;">Select a plan to manage guests for:</p>
+        <select id="plan-selector" class="focus-ring" style="padding:0.5rem 1rem;border-radius:6px;border:1px solid #e5e7eb;margin-bottom:1rem;">
+          <option value="">— Choose a plan —</option>
+          ${plans.map(p => `<option value="${this.escapeHtml(p.id)}">${this.escapeHtml(p.name || p.eventType || 'Untitled Plan')}</option>`).join('')}
+        </select><br>
+        <button id="confirm-plan-btn" class="cta" style="margin-top:0.5rem;">Continue</button>
+      `;
+      if (container) {
+        container.innerHTML = '';
+        container.appendChild(wrapper);
+      }
+      document.getElementById('confirm-plan-btn').addEventListener('click', () => {
+        const sel = document.getElementById('plan-selector');
+        const selectedId = sel ? sel.value : '';
+        if (!selectedId) {
+          return;
+        }
+        const plan = plans.find(p => p.id === selectedId);
+        this.planId = selectedId;
+        if (plan) {
+          this.showPlanLabel(plan);
+        }
+        if (container) {
+          container.innerHTML = '';
+        }
+        resolve(selectedId);
+      });
+    });
+  }
+
+  async loadFromServer() {
+    if (!this.planId) {
+      return;
+    }
+    try {
+      const r = await fetch(`/api/me/plans/${encodeURIComponent(this.planId)}/guests`, {
+        credentials: 'include',
+      });
+      if (!r.ok) {
+        console.error('Failed to load guests from server');
+        return;
+      }
+      const d = await r.json();
+      this.guests = (d.guests || []).map(g => this.normalizeGuest(g));
+    } catch (err) {
+      console.error('Error loading guests:', err);
+    }
+  }
+
+  /**
+   * Normalise a server guest record into the shape the UI expects:
+   * firstName/lastName split from name, rsvp from rsvpStatus, plusOne as string.
+   */
+  normalizeGuest(g) {
+    const parts = (g.name || '').trim().split(/\s+/);
+    const firstName = parts[0] || '';
+    const lastName = parts.slice(1).join(' ') || '';
+    return {
+      id: g.id,
+      firstName,
+      lastName,
+      email: g.email || '',
+      phone: g.phone || '',
+      rsvp: g.rsvpStatus || 'pending',
+      plusOne: g.plusOne ? 'yes' : 'no',
+      dietary: g.dietary || '',
+      table: g.table || '',
+      notes: g.notes || '',
+      createdAt: g.createdAt,
+    };
   }
 
   setupEventListeners() {
@@ -108,7 +257,7 @@ class GuestManager {
       title: isEdit ? 'Edit Guest' : 'Add Guest',
       content: content,
       confirmText: isEdit ? 'Update' : 'Add Guest',
-      onConfirm: () => {
+      onConfirm: async () => {
         const firstName = document.getElementById('guest-firstname').value.trim();
         const lastName = document.getElementById('guest-lastname').value.trim();
         const email = document.getElementById('guest-email').value.trim();
@@ -124,38 +273,62 @@ class GuestManager {
           return;
         }
 
-        if (isEdit) {
-          Object.assign(guest, {
-            firstName,
-            lastName,
-            email,
-            phone,
-            rsvp,
-            plusOne,
-            dietary,
-            table,
-            notes,
-          });
-          window.EventFlowNotifications.success('Guest updated');
-        } else {
-          this.guests.push({
-            id: this.generateId(),
-            firstName,
-            lastName,
-            email,
-            phone,
-            rsvp,
-            plusOne,
-            dietary,
-            table,
-            notes,
-            createdAt: Date.now(),
-          });
-          window.EventFlowNotifications.success('Guest added');
-        }
+        const payload = {
+          name: `${firstName} ${lastName}`,
+          email: email || null,
+          phone: phone || null,
+          rsvpStatus: rsvp,
+          plusOne: plusOne === 'yes' ? 1 : 0,
+          dietary: dietary || null,
+          table: table || null,
+          notes: notes || null,
+        };
 
-        this.saveToStorage();
-        this.render();
+        try {
+          const csrfToken = await this.getCsrfToken();
+          if (isEdit) {
+            const r = await fetch(
+              `/api/me/plans/${encodeURIComponent(this.planId)}/guests/${encodeURIComponent(guest.id)}`,
+              {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+                credentials: 'include',
+                body: JSON.stringify(payload),
+              }
+            );
+            if (!r.ok) {
+              const d = await r.json().catch(() => ({}));
+              throw new Error(d.error || 'Failed to update guest');
+            }
+            const d = await r.json();
+            const idx = this.guests.findIndex(g => g.id === guest.id);
+            if (idx !== -1) {
+              this.guests[idx] = this.normalizeGuest(d.guest);
+            }
+            window.EventFlowNotifications.success('Guest updated');
+          } else {
+            const r = await fetch(
+              `/api/me/plans/${encodeURIComponent(this.planId)}/guests`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+                credentials: 'include',
+                body: JSON.stringify(payload),
+              }
+            );
+            if (!r.ok) {
+              const d = await r.json().catch(() => ({}));
+              throw new Error(d.error || 'Failed to add guest');
+            }
+            const d = await r.json();
+            this.guests.push(this.normalizeGuest(d.guest));
+            window.EventFlowNotifications.success('Guest added');
+          }
+          this.render();
+        } catch (err) {
+          console.error('Guest save error:', err);
+          window.EventFlowNotifications.error(err.message || 'Failed to save guest');
+        }
       },
     });
 
@@ -163,7 +336,7 @@ class GuestManager {
     setTimeout(() => document.getElementById('guest-firstname').focus(), 100);
   }
 
-  deleteGuest(id) {
+  async deleteGuest(id) {
     const guest = this.guests.find(g => g.id === id);
     if (!guest) {
       return;
@@ -173,11 +346,28 @@ class GuestManager {
       title: 'Delete Guest',
       content: `<p>Are you sure you want to remove ${this.escapeHtml(guest.firstName)} ${this.escapeHtml(guest.lastName)} from the guest list?</p>`,
       confirmText: 'Delete',
-      onConfirm: () => {
-        this.guests = this.guests.filter(g => g.id !== id);
-        this.saveToStorage();
-        this.render();
-        window.EventFlowNotifications.success('Guest removed');
+      onConfirm: async () => {
+        try {
+          const csrfToken = await this.getCsrfToken();
+          const r = await fetch(
+            `/api/me/plans/${encodeURIComponent(this.planId)}/guests/${encodeURIComponent(id)}`,
+            {
+              method: 'DELETE',
+              headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+              credentials: 'include',
+            }
+          );
+          if (!r.ok) {
+            const d = await r.json().catch(() => ({}));
+            throw new Error(d.error || 'Failed to delete guest');
+          }
+          this.guests = this.guests.filter(g => g.id !== id);
+          this.render();
+          window.EventFlowNotifications.success('Guest removed');
+        } catch (err) {
+          console.error('Guest delete error:', err);
+          window.EventFlowNotifications.error(err.message || 'Failed to remove guest');
+        }
       },
     });
 
@@ -212,14 +402,41 @@ class GuestManager {
         }
 
         const reader = new FileReader();
-        reader.addEventListener('load', e => {
+        reader.addEventListener('load', async e => {
           try {
             const csv = e.target.result;
-            const imported = this.parseCSV(csv);
-            this.guests.push(...imported);
-            this.saveToStorage();
+            const parsed = this.parseCSV(csv);
+            let added = 0;
+            const csrfToken = await this.getCsrfToken();
+            for (const g of parsed) {
+              try {
+                const r = await fetch(
+                  `/api/me/plans/${encodeURIComponent(this.planId)}/guests`,
+                  {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                      name: `${g.firstName} ${g.lastName}`,
+                      email: g.email || null,
+                      phone: g.phone || null,
+                      rsvpStatus: g.rsvp || 'pending',
+                      plusOne: g.plusOne === 'yes' ? 1 : 0,
+                      dietary: g.dietary || null,
+                      table: g.table || null,
+                      notes: g.notes || null,
+                    }),
+                  }
+                );
+                if (r.ok) {
+                  const d = await r.json();
+                  this.guests.push(this.normalizeGuest(d.guest));
+                  added++;
+                }
+              } catch (_) { /* skip failed row */ }
+            }
             this.render();
-            window.EventFlowNotifications.success(`Imported ${imported.length} guests`);
+            window.EventFlowNotifications.success(`Imported ${added} guests`);
           } catch (error) {
             window.EventFlowNotifications.error('Failed to parse CSV file');
             console.error(error);
@@ -239,7 +456,6 @@ class GuestManager {
     for (let i = 1; i < lines.length; i++) {
       const values = lines[i].split(',').map(v => v.trim().replace(/^"|"$/g, ''));
       const guest = {
-        id: this.generateId(),
         firstName: values[0] || '',
         lastName: values[1] || '',
         email: values[2] || '',
@@ -249,7 +465,6 @@ class GuestManager {
         dietary: values[6] || '',
         table: values[7] || '',
         notes: values[8] || '',
-        createdAt: Date.now(),
       };
 
       if (guest.firstName && guest.lastName) {
@@ -500,7 +715,8 @@ class GuestManager {
     }
 
     const html = `
-      <table style="width: 100%; border-collapse: collapse;">
+      <div role="region" aria-label="Scrollable guest list" tabindex="0" style="overflow-x:auto;">
+      <table aria-label="Guest list" style="width: 100%; border-collapse: collapse; min-width:600px;">
         <thead>
           <tr style="border-bottom: 2px solid var(--border);">
             <th style="text-align: left; padding: 0.75rem; font-weight: 600;">Name</th>
@@ -560,32 +776,10 @@ class GuestManager {
             .join('')}
         </tbody>
       </table>
+      </div>
     `;
 
     document.getElementById('guests-list').innerHTML = html;
-  }
-
-  generateId() {
-    return `guest_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  }
-
-  saveToStorage() {
-    try {
-      localStorage.setItem(this.storageKey, JSON.stringify(this.guests));
-    } catch (e) {
-      console.error('Failed to save guests:', e);
-    }
-  }
-
-  loadFromStorage() {
-    try {
-      const data = localStorage.getItem(this.storageKey);
-      if (data) {
-        this.guests = JSON.parse(data);
-      }
-    } catch (e) {
-      console.error('Failed to load guests:', e);
-    }
   }
 
   escapeHtml(unsafe) {
@@ -608,3 +802,4 @@ let guestManager;
 document.addEventListener('DOMContentLoaded', () => {
   guestManager = new GuestManager();
 });
+

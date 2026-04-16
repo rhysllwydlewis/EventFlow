@@ -648,10 +648,25 @@ const protectedHtmlPages = [
   'timeline',
   'my-marketplace-listings',
   'budget',
+  'support',
 ];
 
 protectedHtmlPages.forEach(page => {
   app.get(`/${page}`, apiLimiter, unauthRedirect);
+});
+
+// Customer-only HTML pages — must be authenticated AND have role 'customer'
+// These are a subset of protectedHtmlPages; the unauthRedirect above runs first,
+// then the role check below adds the customer gate.
+const customerOnlyHtmlPages = ['guests', 'plan', 'timeline', 'budget'];
+customerOnlyHtmlPages.forEach(page => {
+  app.get(`/${page}`, apiLimiter, (req, res, next) => {
+    const user = getUserFromCookie(req);
+    if (user && user.role !== 'customer') {
+      return res.redirect(302, '/auth?reason=forbidden&required=customer');
+    }
+    return next();
+  });
 });
 
 // ---------- Protected SPA Routes ----------
