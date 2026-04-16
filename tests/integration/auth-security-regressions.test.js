@@ -340,15 +340,25 @@ describe('misc.js routes – all async handlers have try/catch', () => {
   });
 
   it('GET /me/settings route has a try/catch block', () => {
-    const routeStart = content.indexOf("router.get('/me/settings'");
-    const routeBody = extractRouteBody(content, routeStart);
+    const settingsContent = fs.readFileSync(
+      path.join(__dirname, '../../routes/settings.js'),
+      'utf8'
+    );
+    const routeStart = settingsContent.indexOf("router.get('/'");
+    const routeEnd = settingsContent.indexOf('\n});', routeStart) + 4;
+    const routeBody = settingsContent.slice(routeStart, routeEnd);
     expect(routeBody).toContain('try {');
     expect(routeBody).toContain('} catch (error) {');
   });
 
   it('POST /me/settings route has a try/catch block', () => {
-    const routeStart = content.indexOf("router.post('/me/settings'");
-    const routeBody = extractRouteBody(content, routeStart);
+    const settingsContent = fs.readFileSync(
+      path.join(__dirname, '../../routes/settings.js'),
+      'utf8'
+    );
+    const routeStart = settingsContent.indexOf("router.post('/'");
+    const routeEnd = settingsContent.indexOf('\n});', routeStart) + 4;
+    const routeBody = settingsContent.slice(routeStart, routeEnd);
     expect(routeBody).toContain('try {');
     expect(routeBody).toContain('} catch (error) {');
   });

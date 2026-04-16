@@ -256,7 +256,7 @@ describe('Admin Enhancements', () => {
   describe('AUDIT_ACTIONS Constants', () => {
     it('should include bulk operation audit actions', () => {
       const auditContent = fs.readFileSync(
-        path.join(__dirname, '../../middleware/audit.js'),
+        path.join(__dirname, '../../middleware/audit-actions.js'),
         'utf8'
       );
 
