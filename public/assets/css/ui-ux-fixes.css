@@ -600,10 +600,11 @@ code {
 /* Ensure touch targets meet WCAG 2.1 AA (44x44px minimum).
    .card-collapse-btn is excluded here because it already provides a
    44×44px touch target via its ::before pseudo-element; including it
-   in this rule would inflate the 24×24px visual button. */
+   in this rule would inflate the 24×24px visual button.
+   .ef-testimonial-dot is excluded to preserve compact testimonial pagination dots. */
 @media (pointer: coarse) {
   a,
-  button:not(.card-collapse-btn),
+  button:not(.card-collapse-btn):not(.ef-testimonial-dot),
   input[type="submit"],
   input[type="button"],
   .clickable {

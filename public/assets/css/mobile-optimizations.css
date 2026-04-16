@@ -1445,6 +1445,13 @@ h4 {
     margin-top: 8px !important;
     gap: 6px !important;
   }
+
+  .ef-testimonial-dot {
+    width: 8px !important;
+    height: 8px !important;
+    min-width: 8px !important;
+    min-height: 8px !important;
+  }
 }
 
 /* Guides - Compact Cards with Truncation */

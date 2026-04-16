@@ -499,8 +499,10 @@ a:hover {
 }
 
 .ef-testimonial-dot {
-  width: 12px;
-  height: 12px;
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  min-height: 8px;
   border-radius: 50%;
   background: #d1d5db;
   border: none;
@@ -730,6 +732,10 @@ a:hover {
   border-top: 1px solid rgba(11, 128, 115, 0.12);
 }
 
+.ef-section--gradient.ef-section--newsletter {
+  background: linear-gradient(135deg, #0B8073 0%, #13B6A2 55%, #0EA592 100%) !important;
+}
+
 footer.ef-footer-modern {
   background: var(--ef-footer-bg, #094d45) !important;
   color: white;
@@ -849,6 +855,18 @@ footer.ef-footer-modern {
   color: rgba(255, 255, 255, 0.85);
   margin-bottom: var(--ef-space-4, 16px);
   font-size: 0.95rem;
+}
+
+.ef-footer-modern .vexi-link {
+  color: #6EE7B7;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.ef-footer-modern .vexi-link:hover,
+.ef-footer-modern .vexi-link:focus-visible {
+  color: #86EFAC;
+  text-decoration: underline;
 }
 
 .ef-footer-copyright {
