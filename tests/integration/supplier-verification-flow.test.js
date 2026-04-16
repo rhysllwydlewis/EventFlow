@@ -448,7 +448,9 @@ describe('Supplier Verification Flow Simulation', () => {
 
 describe('Audit Action Constants', () => {
   it('should define all required supplier verification audit actions', () => {
-    const { AUDIT_ACTIONS } = require('../../middleware/audit');
+    // Import from the side-effect-free constants file so the test does not
+    // require the full DB / logger chain (audit.js re-exports the same object).
+    const { AUDIT_ACTIONS } = require('../../middleware/audit-actions');
 
     expect(AUDIT_ACTIONS.SUPPLIER_APPROVED).toBe('supplier_approved');
     expect(AUDIT_ACTIONS.SUPPLIER_REJECTED).toBe('supplier_rejected');
