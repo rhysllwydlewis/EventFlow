@@ -494,7 +494,7 @@ a:hover {
 .ef-testimonials-dots {
   display: flex;
   justify-content: center;
-  gap: 0.75rem;
+  gap: 2rem;  /* 32px — leaves enough room so 44×44 tap areas don't overlap */
   margin-top: 2rem;
 }
 
@@ -512,16 +512,13 @@ a:hover {
   padding: 0;
 }
 
-/* Invisible tap area: expands hit target to 44px vertically for WCAG 2.1 AA.
-   Horizontal inset is kept tight (-6px each side) so adjacent dot tap areas
-   don't overlap across the 0.75rem gap between dots. */
+/* Invisible tap area: full 44×44px for WCAG 2.1 AA.
+   The 2rem gap between dots ensures adjacent tap areas overlap by no more
+   than 4px, so the browser always activates the correct dot. */
 .ef-testimonial-dot::before {
   content: '';
   position: absolute;
-  top: -18px;
-  bottom: -18px;
-  left: -6px;
-  right: -6px;
+  inset: -18px;
 }
 
 .ef-testimonial-dot.active,
