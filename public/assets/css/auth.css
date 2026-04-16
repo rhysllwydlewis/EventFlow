@@ -1663,3 +1663,44 @@ body.auth-page .auth-card .checkbox-label-right {
 .verify-resend-box .cta {
   white-space: nowrap;
 }
+
+/* ─────────────────────────────────────────────────────────────
+   23. FEATURE-FLAG DISABLED STATES
+───────────────────────────────────────────────────────────────*/
+
+/* Small note appended inside a disabled supplier role button */
+.auth-role-disabled-note {
+  display: block;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: #b91c1c;
+  margin-top: 3px;
+  pointer-events: none;
+}
+
+/* Disabled role option */
+.role-pill[data-disabled="true"],
+.auth-role-option[data-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Warning status banner (e.g. registration disabled) */
+.auth-status--warning {
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  color: #92400e;
+  font-size: 0.9rem;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+/* Disabled "Create account" tab */
+#tab-create[aria-disabled="true"],
+#tab-create:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}

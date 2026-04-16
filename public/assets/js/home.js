@@ -27,15 +27,17 @@
       // Check if video has a valid source
       const src = videoSource.getAttribute('src');
       if (!src || src.trim() === '') {
-        // No source provided, hide the video container
-        videoContainer.style.display = 'none';
-        // Only log in development to avoid cluttering production console
+        // Source is empty on initial load — home-init.js will populate it asynchronously
+        // once it fetches from the Pexels API. Do NOT hide the container here; instead mark
+        // it with a data attribute so home-init.js can detect a double-init scenario.
+        videoContainer.dataset.awaitingSource = 'true';
         if (IS_DEVELOPMENT) {
-          console.info('Hero video hidden: No source provided');
+          console.info('Hero video: source not yet available, waiting for home-init.js');
         }
       } else {
-        // Valid source exists, ensure video is visible
+        // Valid source already present (e.g. SSR or cached src), ensure container is visible
         videoContainer.style.display = 'block';
+        delete videoContainer.dataset.awaitingSource;
       }
     }
   }

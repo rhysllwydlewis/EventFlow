@@ -22,6 +22,12 @@
     opacity: 1 !important;
     transform: none !important;
   }
+
+  /* Ensure scroll-reveal elements are immediately visible */
+  [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }
 
 /* Keyframe Animations */

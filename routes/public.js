@@ -115,6 +115,28 @@ let statsCache = null;
 let statsCacheTime = 0;
 const STATS_CACHE_DURATION = 5 * 60 * 1000;
 
+/**
+ * GET /api/v1/public/features
+ * Returns the subset of feature flags that are safe to expose publicly.
+ * Used by the auth page to pre-check registration availability before submit,
+ * and to hide the Supplier role option when supplierApplications is disabled.
+ */
+router.get('/features', async (req, res) => {
+  try {
+    res.set('Cache-Control', 'no-store, private');
+    const settings = (await dbUnified.read('settings')) || {};
+    const features = settings.features || {};
+    res.json({
+      registration: features.registration !== false,
+      supplierApplications: features.supplierApplications !== false,
+    });
+  } catch (error) {
+    logger.error('[ERROR] Failed to read feature flags:', error.message);
+    // Default to enabled so a DB hiccup doesn't silently block sign-ups
+    res.status(500).json({ registration: true, supplierApplications: true });
+  }
+});
+
 router.get('/stats', async (req, res) => {
   try {
     const now = Date.now();
@@ -220,12 +242,10 @@ router.post('/faq/vote', writeLimiter, csrfProtection, async (req, res) => {
     res.json({ success: true, message: 'Thank you for your feedback!' });
   } catch (error) {
     logger.error('Error recording FAQ vote:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to record vote',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to record vote',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 
@@ -307,12 +327,10 @@ router.get('/recommendations', async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching recommendations:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to fetch recommendations',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to fetch recommendations',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 

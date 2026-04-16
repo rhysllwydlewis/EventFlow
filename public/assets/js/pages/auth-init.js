@@ -6,9 +6,12 @@
  *   2. Dynamic heading text sync with active tab
  *   3. URL hash / query-param routing (?tab=create or #create on page load)
  *   4. Role-picker active-class management (auth-role-option--active)
+ *   5. Feature-flag pre-checks: hide Supplier option / disable registration tab
+ *      when the corresponding flag is off, giving users a clear message before
+ *      they attempt to submit.
  *
  * Form submission, password toggle, and password-strength meter are handled
- * by app.js (which already has all CSRF / hCaptcha / API logic).
+ * by app.js (which already has all CSRF / ALTCHA / API logic).
  */
 (function () {
   'use strict';
@@ -31,10 +34,17 @@
       activeTab.focus();
     }
 
-    // Sync page heading with the active tab
+    // Sync page heading and subtitle with the active tab
     const heading = document.querySelector('.auth-heading');
     if (heading) {
       heading.textContent = activeTab.id === 'tab-create' ? 'Create your account' : 'Welcome back';
+    }
+    const subtitle = document.querySelector('.auth-subtitle');
+    if (subtitle) {
+      subtitle.textContent =
+        activeTab.id === 'tab-create'
+          ? 'Join thousands of event planners and suppliers on EventFlow — it\u2019s free.'
+          : 'Sign in to your EventFlow account to continue planning.';
     }
   }
 
@@ -83,6 +93,11 @@
         return;
       }
 
+      // Ignore clicks on a disabled supplier option
+      if (btn.dataset.role === 'supplier' && btn.dataset.disabled === 'true') {
+        return;
+      }
+
       // Update active state and aria-checked
       rolePicker.querySelectorAll('.role-pill, .auth-role-option').forEach(b => {
         b.classList.remove('is-active', 'auth-role-option--active');
@@ -92,4 +107,74 @@
       btn.setAttribute('aria-checked', 'true');
     });
   }
+
+  // ── Feature-flag pre-checks ────────────────────────────────────
+  // Fetch the public feature flags once on page load, then adjust the UI
+  // so users get clear feedback before attempting to submit forms.
+  (async function applyFeatureFlags() {
+    try {
+      const resp = await fetch('/api/v1/public/features', {
+        credentials: 'same-origin',
+        headers: { Accept: 'application/json' },
+      });
+      if (!resp.ok) {
+        return; // Silently skip — default (enabled) state is safe
+      }
+      const flags = await resp.json();
+
+      // ── supplier applications disabled ──────────────────────
+      if (flags.supplierApplications === false) {
+        const supplierBtn = rolePicker ? rolePicker.querySelector('[data-role="supplier"]') : null;
+        if (supplierBtn) {
+          supplierBtn.disabled = true;
+          supplierBtn.dataset.disabled = 'true';
+          supplierBtn.setAttribute('aria-disabled', 'true');
+          supplierBtn.title = 'Supplier applications are currently closed';
+          // Add a small visual note beneath the button
+          const note = document.createElement('span');
+          note.className = 'auth-role-disabled-note';
+          note.textContent = 'Applications closed';
+          note.setAttribute('aria-hidden', 'true');
+          supplierBtn.appendChild(note);
+        }
+      }
+
+      // ── registration entirely disabled ──────────────────────
+      if (flags.registration === false) {
+        // Store flag for app.js to pick up on submit
+        window.__registrationDisabled = true;
+
+        if (tabCreate) {
+          tabCreate.disabled = true;
+          tabCreate.setAttribute('aria-disabled', 'true');
+          tabCreate.title = 'New registrations are temporarily unavailable';
+        }
+
+        // If the user is already on the create tab, show a banner and switch
+        // them to sign-in so the disabled form isn't the landing state.
+        const isOnCreateTab =
+          window.location.hash === '#create' || window.location.search.includes('tab=create');
+
+        if (tabSign && panelSign && tabCreate && panelCreate) {
+          if (isOnCreateTab) {
+            activateTab(tabSign, panelSign, tabCreate, panelCreate, false);
+          }
+        }
+
+        // Insert a visible banner at the top of the create panel
+        if (panelCreate) {
+          const banner = document.createElement('p');
+          banner.id = 'reg-disabled-banner';
+          banner.className = 'auth-status auth-status--warning';
+          banner.setAttribute('role', 'status');
+          banner.setAttribute('aria-live', 'polite');
+          banner.textContent =
+            'New account registrations are temporarily unavailable. Please check back later.';
+          panelCreate.insertAdjacentElement('afterbegin', banner);
+        }
+      }
+    } catch (_) {
+      // Network error — silently leave the UI in its default (enabled) state
+    }
+  })();
 })();
