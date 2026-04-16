@@ -24,6 +24,7 @@ const stripe = stripeSecretKey
 const TRIAL_DURATION_DAYS = 14;
 const DEFAULT_ANALYTICS_WINDOW_DAYS = 30;
 const MAX_ANALYTICS_WINDOW_DAYS = 90;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 /**
  * POST /api/supplier/trial/activate
@@ -693,9 +694,8 @@ router.post(
       }
 
       // Validate email format
-      const emailValue = req.body.email !== undefined ? req.body.email : supplier.email;
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-      if (!emailRegex.test(String(emailValue).trim())) {
+      const emailValue = (req.body.email != null ? String(req.body.email).trim() : null) || String(supplier.email || '').trim();
+      if (!EMAIL_REGEX.test(emailValue)) {
         return res.status(400).json({ error: 'Invalid email format' });
       }
 
