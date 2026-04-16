@@ -234,7 +234,11 @@ window.__EF_PAGE__ = 'support';
       document.getElementById('create-ticket-form').reset();
       await loadTickets();
     } catch (err) {
-      alert('Failed to submit ticket: ' + err.message);
+      const submitStatusEl = document.getElementById('_ticket_submit_status');
+      if (submitStatusEl) {
+        submitStatusEl.textContent = '✗ Failed to submit: ' + escHtml(err.message);
+        submitStatusEl.style.display = 'block';
+      }
     } finally {
       btn.disabled = false;
       btn.textContent = 'Submit Ticket';

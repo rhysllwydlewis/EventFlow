@@ -716,7 +716,7 @@ class GuestManager {
 
     const html = `
       <div style="overflow-x:auto;">
-      <table style="width: 100%; border-collapse: collapse; min-width:600px;">
+      <table role="table" aria-label="Guest list" style="width: 100%; border-collapse: collapse; min-width:600px;">
         <thead>
           <tr style="border-bottom: 2px solid var(--border);">
             <th style="text-align: left; padding: 0.75rem; font-weight: 600;">Name</th>
