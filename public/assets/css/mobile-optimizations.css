@@ -1529,6 +1529,13 @@ h4 {
   }
 }
 
+/* Footer gradient bridge — compact on mobile */
+@media (max-width: 768px) {
+  .ef-footer-gradient-bridge {
+    height: 64px !important;
+  }
+}
+
 /* ============================================
    SEO INTRO TEXT — Hidden on mobile
    These paragraphs improve crawlability but
