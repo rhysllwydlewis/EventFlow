@@ -314,18 +314,20 @@
 /* Close Button */
 .ef-notification__close {
   flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  padding: 0;
+  width: 28px !important;
+  height: 28px !important;
+  padding: 0 !important;
   display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(255, 255, 255, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.4) !important;
+  border-radius: 8px !important;
   cursor: pointer;
   transition: all 0.2s ease;
   color: #6b7280;
+  font-size: 0 !important;
+  box-shadow: none !important;
 }
 
 .ef-notification__close:hover {
