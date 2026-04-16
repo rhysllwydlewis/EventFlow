@@ -544,9 +544,7 @@ function renderPackageFallback(container, items) {
       const truncDesc =
         description.length > 100 ? `${description.substring(0, 100)}...` : description;
       const rawPrice = formatPrice(item.price_display || item.price);
-      const price = rawPrice
-        ? _esc(rawPrice)
-        : '<span class="price-not-set">Price not set</span>';
+      const price = rawPrice ? _esc(rawPrice) : '<span class="price-not-set">Price not set</span>';
       // Resolve the best available image via the shared utility when loaded,
       // otherwise fall back to the same inline strategy for resilience.
       const resolvedImage =
@@ -3669,7 +3667,7 @@ function initCollageErrorHandlers() {
  * Initialize parallax effect on collage
  */
 function initParallaxCollage() {
-  const collage = document.querySelector('.collage');
+  const collage = document.querySelector('.hero-collage');
   if (!collage) {
     return;
   }

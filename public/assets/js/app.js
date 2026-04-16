@@ -6045,6 +6045,15 @@ document.addEventListener('DOMContentLoaded', () => {
           regStatus.style.cssText = '';
         }
 
+        // Pre-check: registration feature flag (set by auth-init.js)
+        if (window.__registrationDisabled) {
+          if (regStatus) {
+            regStatus.textContent =
+              'New account registrations are temporarily unavailable. Please try again later.';
+          }
+          return;
+        }
+
         // Validate password requirements
         const password = regPassword.value;
         const regPasswordConfirm = document.getElementById('reg-password-confirm');

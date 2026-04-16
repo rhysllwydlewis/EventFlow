@@ -857,6 +857,36 @@ footer.ef-footer-modern {
   margin-top: auto;
 }
 
+/* Social icon row in the footer brand column */
+.ef-footer-socials {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: var(--ef-space-4, 16px);
+}
+
+.ef-footer-social-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.ef-footer-social-link:hover,
+.ef-footer-social-link:focus-visible {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  transform: translateY(-2px);
+  outline: 2px solid rgba(255, 255, 255, 0.4);
+  outline-offset: 2px;
+}
+
 .ef-footer-heading {
   font-size: 0.875rem;
   font-weight: 700;
