@@ -68,6 +68,7 @@ async function loadCustomerPlans(preloadedPlans) {
       .map(plan => {
         const packageCount = (plan.packages || []).length;
         const displayName = plan.name || plan.eventName || plan.eventType || 'Untitled Event';
+        const eventDate = plan.eventDate || plan.date;
         return `
         <div class="customer-plan-item" data-plan-id="${escapeHtml(plan.id)}">
           <div class="customer-plan-item__header">
@@ -78,7 +79,7 @@ async function loadCustomerPlans(preloadedPlans) {
             <span class="small customer-plan-item__count">${packageCount} packages</span>
           </div>
           ${plan.location ? `<p class="small customer-plan-item__detail">📍 ${escapeHtml(plan.location)}</p>` : ''}
-          ${(plan.eventDate || plan.date) ? `<p class="small customer-plan-item__detail">📅 ${escapeHtml(formatPlanDate(plan.eventDate || plan.date) || (plan.eventDate || plan.date))}</p>` : ''}
+          ${eventDate ? `<p class="small customer-plan-item__detail">📅 ${escapeHtml(formatPlanDate(eventDate) || eventDate)}</p>` : ''}
           <div class="customer-plan-item__actions" style="margin-top:0.5rem;display:flex;gap:0.5rem;">
             <button class="cta secondary plan-edit-btn" data-plan-id="${escapeHtml(plan.id)}" style="padding:0.3rem 0.75rem;font-size:0.8rem;" aria-label="Edit ${escapeHtml(displayName)}">✏️ Edit</button>
             <button class="cta ghost plan-delete-btn" data-plan-id="${escapeHtml(plan.id)}" style="padding:0.3rem 0.75rem;font-size:0.8rem;color:#ef4444;" aria-label="Delete ${escapeHtml(displayName)}">🗑 Delete</button>
