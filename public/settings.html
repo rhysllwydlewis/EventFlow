@@ -345,10 +345,10 @@
 
     <!-- Account Details -->
     <p class="settings-section-label">Account Details</p>
-    <div class="form-row field-readonly">
+    <div class="form-row">
       <label for="profile-email">Email Address</label>
-      <input type="email" id="profile-email" name="email" placeholder="john@example.com" readonly tabindex="-1" autocomplete="email">
-      <p class="small" style="margin-top:0.25rem;color:#9ca3af;">To change your email address, please <a href="/contact" style="color:#0B8073;">contact support</a>.</p>
+      <input type="email" id="profile-email" name="email" placeholder="john@example.com" autocomplete="email">
+      <p class="small" id="email-change-hint" style="margin-top:0.25rem;color:#9ca3af;display:none;">You will receive a verification email at your new address.</p>
     </div>
 
     <div class="form-row">
@@ -520,6 +520,29 @@
     </div>
     <button class="cta secondary" id="restart-tour" style="flex-shrink:0;">Restart Tour</button>
   </div>
+</div>
+
+<!-- Change Password Card -->
+<div class="card" style="margin-top:1.5rem;">
+  <h2 style="margin:0 0 1.25rem 0;font-size:1.25rem;font-weight:600;">Change Password</h2>
+  <form id="change-password-form" novalidate>
+    <div class="form-row">
+      <label for="cp-current">Current Password</label>
+      <input type="password" id="cp-current" name="currentPassword" autocomplete="current-password" placeholder="Enter your current password">
+    </div>
+    <div class="form-row">
+      <label for="cp-new">New Password</label>
+      <input type="password" id="cp-new" name="newPassword" autocomplete="new-password" placeholder="At least 8 characters with a letter and number">
+    </div>
+    <div class="form-row">
+      <label for="cp-confirm">Confirm New Password</label>
+      <input type="password" id="cp-confirm" name="confirmPassword" autocomplete="new-password" placeholder="Repeat your new password">
+    </div>
+    <div class="form-actions" style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid #f3f4f6;">
+      <button class="cta" type="submit" id="cp-save-btn">Update Password</button>
+      <span id="cp-status" style="font-size:0.875rem;" role="status" aria-live="polite"></span>
+    </div>
+  </form>
 </div>
 
 <!-- Danger Zone Card -->

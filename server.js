@@ -642,16 +642,28 @@ function unauthRedirect(req, res, next) {
 const protectedHtmlPages = [
   'notifications',
   'messages',
-  'guests',
   'settings',
-  'plan',
-  'timeline',
   'my-marketplace-listings',
-  'budget',
+  'support',
 ];
 
 protectedHtmlPages.forEach(page => {
   app.get(`/${page}`, apiLimiter, unauthRedirect);
+});
+
+// Customer-only HTML pages — must be authenticated AND have role 'customer'
+const customerOnlyHtmlPages = ['guests', 'plan', 'timeline', 'budget'];
+customerOnlyHtmlPages.forEach(page => {
+  app.get(`/${page}`, apiLimiter, (req, res, next) => {
+    const user = getUserFromCookie(req);
+    if (!user) {
+      return res.redirect(302, `/auth?redirect=${encodeURIComponent(req.originalUrl)}`);
+    }
+    if (user.role !== 'customer') {
+      return res.redirect(302, '/auth?reason=forbidden&required=customer');
+    }
+    return next();
+  });
 });
 
 // ---------- Protected SPA Routes ----------

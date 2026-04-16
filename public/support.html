@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes">
+  <meta name="theme-color" content="#0B8073">
+  <title>Support — EventFlow</title>
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/navbar.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/components.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/animations.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.3.0">
+  <link rel="icon" href="/favicon.svg">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <style>
+    .support-page { max-width: 900px; margin: 0 auto; padding: 2rem 1rem; }
+    .support-header { margin-bottom: 2rem; }
+    .support-header h1 { margin: 0 0 0.5rem; font-size: 2rem; color: var(--ef-text-dark); }
+    .support-subtitle { color: var(--ef-text-gray); font-size: 0.95rem; }
+    .support-toolbar {
+      display: flex; flex-wrap: wrap; gap: 1rem; align-items: center;
+      justify-content: space-between; padding: 1rem;
+      background: var(--ef-bg-gray); border-radius: var(--ef-radius); margin-bottom: 1.5rem;
+    }
+    .ticket-card {
+      background: #fff; border: 1px solid var(--ef-border); border-radius: 10px;
+      padding: 1.25rem 1.5rem; margin-bottom: 1rem; cursor: pointer;
+      transition: box-shadow 0.15s, border-color 0.15s;
+    }
+    .ticket-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.07); border-color: #0B8073; }
+    .ticket-card:focus { outline: 2px solid #0B8073; }
+    .ticket-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+    .ticket-subject { font-weight: 600; font-size: 1rem; color: #111827; flex: 1; }
+    .ticket-badge {
+      font-size: 0.75rem; font-weight: 600; padding: 0.2rem 0.6rem;
+      border-radius: 99px; white-space: nowrap; flex-shrink: 0;
+    }
+    .badge-open    { background: #D1FAE5; color: #065F46; }
+    .badge-pending { background: #FEF3C7; color: #92400E; }
+    .badge-resolved,
+    .badge-closed  { background: #F3F4F6; color: #6B7280; }
+    .ticket-meta { font-size: 0.82rem; color: #9ca3af; margin-top: 0.4rem; }
+    .ticket-preview {
+      font-size: 0.875rem; color: #6B7280; margin-top: 0.5rem;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .support-empty { text-align: center; padding: 4rem 1rem; color: #9ca3af; }
+    .support-empty-icon { font-size: 3rem; margin-bottom: 1rem; }
+    .support-loading { text-align: center; padding: 3rem 1rem; color: #9ca3af; }
+
+    /* Modal overlay reuse */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; z-index: 9000;
+      background: rgba(0,0,0,0.5); align-items: center; justify-content: center; padding: 1rem;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal-dialog {
+      background: #fff; border-radius: 12px; width: 100%; max-width: 600px;
+      max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+    .modal-header {
+      padding: 1.25rem 1.5rem; border-bottom: 1px solid #f3f4f6;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .modal-header h3 { margin: 0; font-size: 1.1rem; font-weight: 700; }
+    .modal-close {
+      background: none; border: none; cursor: pointer; color: #9ca3af;
+      font-size: 1.4rem; line-height: 1; padding: 0.25rem;
+    }
+    .modal-body { padding: 1.5rem; }
+    .form-row { margin-bottom: 1rem; }
+    .form-row label { display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 0.35rem; }
+    .form-row input,
+    .form-row select,
+    .form-row textarea {
+      width: 100%; box-sizing: border-box; padding: 0.625rem 0.75rem;
+      border: 1.5px solid #e5e7eb; border-radius: 6px; font-size: 0.9rem;
+      font-family: inherit; outline: none; transition: border-color 0.15s;
+    }
+    .form-row input:focus,
+    .form-row select:focus,
+    .form-row textarea:focus { border-color: #0B8073; }
+    .modal-footer {
+      padding: 1rem 1.5rem; border-top: 1px solid #f3f4f6;
+      display: flex; justify-content: flex-end; gap: 0.75rem;
+    }
+    .reply-thread { margin-top: 1rem; }
+    .reply-item {
+      padding: 0.875rem 1rem; border-radius: 8px; margin-bottom: 0.75rem; font-size: 0.9rem;
+    }
+    .reply-user { background: #f0fdf4; border: 1px solid #bbf7d0; }
+    .reply-staff { background: #f8faff; border: 1px solid #dbeafe; }
+    .reply-meta { font-size: 0.78rem; color: #9ca3af; margin-bottom: 0.35rem; }
+    .reply-form { margin-top: 1.25rem; border-top: 1px solid #f3f4f6; padding-top: 1.25rem; }
+  </style>
+</head>
+<body>
+
+<!-- TOP NAVBAR -->
+<header class="ef-header" role="banner">
+  <div class="ef-container">
+    <div class="ef-header-content">
+      <a href="/" class="ef-brand" aria-label="EventFlow - Return to homepage">
+        <div class="ef-logo" aria-hidden="true"><div class="ef-logo-inner"></div></div>
+        <span class="ef-brand-text">EventFlow</span>
+      </a>
+      <nav class="ef-nav-desktop" aria-label="Main navigation">
+        <a href="/start" class="ef-nav-link">Plan</a>
+        <a href="/suppliers" class="ef-nav-link">Suppliers</a>
+        <a href="/marketplace" class="ef-nav-link">Marketplace</a>
+        <a href="/guides" class="ef-nav-link">Guides</a>
+        <a href="/pricing" class="ef-nav-link">Pricing</a>
+      </nav>
+      <div class="ef-header-actions">
+        <button id="ef-notification-btn" class="ef-icon-btn" type="button" aria-label="View notifications" style="display:none">
+          <svg class="ef-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+          <span id="ef-notification-badge" class="ef-badge" style="display:none"></span>
+        </button>
+        <a href="/auth" id="ef-auth-link" class="ef-btn ef-btn-primary">Log in</a>
+        <a href="#" id="ef-dashboard-link" class="ef-nav-link" style="display:none">Dashboard</a>
+        <button id="ef-mobile-toggle" class="ef-mobile-toggle" type="button" aria-label="Toggle menu" aria-expanded="false" aria-controls="ef-mobile-menu">
+          <span class="ef-toggle-line"></span><span class="ef-toggle-line"></span><span class="ef-toggle-line"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+  <div id="ef-mobile-menu" class="ef-mobile-menu" aria-hidden="true">
+    <nav class="ef-mobile-nav" aria-label="Mobile navigation">
+      <a href="/start" class="ef-mobile-link">Plan</a>
+      <a href="/suppliers" class="ef-mobile-link">Suppliers</a>
+      <a href="/marketplace" class="ef-mobile-link">Marketplace</a>
+      <a href="/guides" class="ef-mobile-link">Guides</a>
+      <a href="/pricing" class="ef-mobile-link">Pricing</a>
+    </nav>
+    <div id="ef-mobile-auth" class="ef-mobile-auth">
+      <a href="/auth" class="ef-btn ef-btn-primary" style="width:100%;text-align:center;">Log in</a>
+    </div>
+  </div>
+  <div id="ef-notification-dropdown" style="display:none"></div>
+</header>
+
+<main>
+  <div class="support-page">
+    <div class="support-header">
+      <h1>Support</h1>
+      <p class="support-subtitle">Track and manage your support requests. Our team typically responds within 24 hours.</p>
+    </div>
+
+    <div class="support-toolbar">
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+        <button class="cta secondary filter-status-btn active" data-status="">All Tickets</button>
+        <button class="cta secondary filter-status-btn" data-status="open">Open</button>
+        <button class="cta secondary filter-status-btn" data-status="pending">Pending</button>
+        <button class="cta secondary filter-status-btn" data-status="resolved">Resolved</button>
+      </div>
+      <button id="new-ticket-btn" class="cta">+ New Ticket</button>
+    </div>
+
+    <div id="tickets-loading" class="support-loading">
+      <div style="font-size:2rem;margin-bottom:0.5rem;">⏳</div>
+      Loading your tickets…
+    </div>
+
+    <div id="tickets-container" style="display:none"></div>
+
+    <div id="tickets-empty" class="support-empty" style="display:none">
+      <div class="support-empty-icon">🎟️</div>
+      <h3 style="margin:0 0 0.5rem;color:#374151;">No support tickets</h3>
+      <p style="margin:0 0 1.5rem;">Haven't raised an issue yet? Click <strong>New Ticket</strong> above to get started.</p>
+    </div>
+
+    <div id="tickets-error" style="display:none;text-align:center;padding:3rem 1rem;color:#ef4444;">
+      <div style="font-size:2rem;margin-bottom:0.5rem;">⚠️</div>
+      <p id="tickets-error-msg">Failed to load tickets.</p>
+      <button id="tickets-retry" class="cta secondary" style="margin-top:1rem;">Retry</button>
+    </div>
+  </div>
+</main>
+
+<!-- Create Ticket Modal -->
+<div id="create-ticket-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="create-ticket-title">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h3 id="create-ticket-title">New Support Ticket</h3>
+      <button class="modal-close" type="button" aria-label="Close" id="create-ticket-close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <form id="create-ticket-form" novalidate>
+        <div class="form-row">
+          <label for="ticket-subject">Subject *</label>
+          <input type="text" id="ticket-subject" maxlength="200" placeholder="Brief description of your issue" required>
+          <p id="ticket-subject-error" style="color:#ef4444;font-size:0.82rem;margin:0.25rem 0 0;display:none">Subject is required.</p>
+        </div>
+        <div class="form-row">
+          <label for="ticket-category">Category</label>
+          <select id="ticket-category">
+            <option value="general">General Enquiry</option>
+            <option value="billing">Billing / Payment</option>
+            <option value="technical">Technical Issue</option>
+            <option value="account">Account</option>
+            <option value="supplier">Supplier Related</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="ticket-priority">Priority</label>
+          <select id="ticket-priority">
+            <option value="low">Low</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label for="ticket-message">Message *</label>
+          <textarea id="ticket-message" rows="5" maxlength="5000" placeholder="Describe your issue in detail…" required></textarea>
+          <p id="ticket-message-error" style="color:#ef4444;font-size:0.82rem;margin:0.25rem 0 0;display:none">Message is required.</p>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="cta secondary" id="create-ticket-cancel">Cancel</button>
+      <button type="button" class="cta" id="create-ticket-submit">Submit Ticket</button>
+    </div>
+  </div>
+</div>
+
+<!-- View Ticket Modal -->
+<div id="view-ticket-modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="view-ticket-title">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h3 id="view-ticket-title">Support Ticket</h3>
+      <button class="modal-close" type="button" aria-label="Close" id="view-ticket-close">&times;</button>
+    </div>
+    <div id="view-ticket-body" class="modal-body"></div>
+  </div>
+</div>
+
+<!-- Notification dropdown container -->
+<div id="notification-dropdown-container"></div>
+
+<script src="/assets/js/app.js?v=18.3.0"></script>
+<script>
+window.__EF_PAGE__ = 'support';
+
+(function () {
+  'use strict';
+
+  let allTickets = [];
+  let activeFilter = '';
+
+  function escHtml(s) {
+    if (!s || typeof s !== 'string') return '';
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return '';
+    try {
+      return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+    } catch (_) { return iso; }
+  }
+
+  function badgeClass(status) {
+    const map = { open: 'badge-open', pending: 'badge-pending', resolved: 'badge-resolved', closed: 'badge-closed' };
+    return map[status] || 'badge-open';
+  }
+
+  async function getCsrf() {
+    if (window.__CSRF_TOKEN__) return window.__CSRF_TOKEN__;
+    try {
+      const r = await fetch('/api/csrf-token', { credentials: 'include' });
+      if (r.ok) { const d = await r.json(); const t = d.csrfToken || d.token || ''; if (t) window.__CSRF_TOKEN__ = t; return t; }
+    } catch (_) {}
+    const m = document.cookie.match(/(?:^|;\s*)(?:csrf|csrfToken)=([^;]+)/);
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+
+  async function loadTickets() {
+    const loading = document.getElementById('tickets-loading');
+    const container = document.getElementById('tickets-container');
+    const empty = document.getElementById('tickets-empty');
+    const error = document.getElementById('tickets-error');
+
+    loading.style.display = 'block';
+    container.style.display = 'none';
+    empty.style.display = 'none';
+    error.style.display = 'none';
+
+    try {
+      const r = await fetch('/api/v1/tickets', { credentials: 'include' });
+      if (!r.ok) {
+        if (r.status === 401) {
+          window.location.href = '/auth?redirect=' + encodeURIComponent(window.location.pathname);
+          return;
+        }
+        throw new Error('HTTP ' + r.status);
+      }
+      const d = await r.json();
+      allTickets = d.tickets || d.data || [];
+      loading.style.display = 'none';
+      renderTickets();
+    } catch (err) {
+      loading.style.display = 'none';
+      document.getElementById('tickets-error-msg').textContent = 'Failed to load tickets: ' + err.message;
+      error.style.display = 'block';
+    }
+  }
+
+  function renderTickets() {
+    const container = document.getElementById('tickets-container');
+    const empty = document.getElementById('tickets-empty');
+
+    const filtered = activeFilter
+      ? allTickets.filter(t => (t.status || 'open') === activeFilter)
+      : allTickets;
+
+    if (filtered.length === 0) {
+      container.style.display = 'none';
+      empty.style.display = 'block';
+      return;
+    }
+
+    empty.style.display = 'none';
+    container.style.display = 'block';
+    container.innerHTML = filtered.map(ticket => {
+      const id = ticket._id || ticket.id;
+      const status = ticket.status || 'open';
+      return `
+        <div class="ticket-card" tabindex="0" role="button" data-ticket-id="${escHtml(id)}" aria-label="View ticket: ${escHtml(ticket.subject)}">
+          <div class="ticket-card-header">
+            <div class="ticket-subject">${escHtml(ticket.subject)}</div>
+            <span class="ticket-badge ${badgeClass(status)}">${escHtml(status)}</span>
+          </div>
+          <div class="ticket-meta">
+            #${escHtml(String(id).slice(-8).toUpperCase())} &nbsp;·&nbsp; ${escHtml(ticket.category || 'general')} &nbsp;·&nbsp; Created ${fmtDate(ticket.createdAt)}
+          </div>
+          ${ticket.message ? `<div class="ticket-preview">${escHtml(ticket.message)}</div>` : ''}
+        </div>
+      `;
+    }).join('');
+
+    container.querySelectorAll('.ticket-card').forEach(card => {
+      const open = () => viewTicket(card.dataset.ticketId);
+      card.addEventListener('click', open);
+      card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+    });
+  }
+
+  async function viewTicket(ticketId) {
+    const modal = document.getElementById('view-ticket-modal');
+    const body = document.getElementById('view-ticket-body');
+    body.innerHTML = '<div style="text-align:center;padding:2rem;color:#9ca3af;">Loading…</div>';
+    modal.classList.add('active');
+
+    try {
+      const r = await fetch('/api/v1/tickets/' + encodeURIComponent(ticketId), { credentials: 'include' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const d = await r.json();
+      const ticket = d.ticket || d;
+      const replies = ticket.replies || [];
+
+      body.innerHTML = `
+        <div style="margin-bottom:1rem;">
+          <h4 style="margin:0 0 0.35rem;">${escHtml(ticket.subject)}</h4>
+          <div style="font-size:0.82rem;color:#9ca3af;margin-bottom:0.75rem;">
+            Status: <strong>${escHtml(ticket.status || 'open')}</strong> &nbsp;·&nbsp; Priority: <strong>${escHtml(ticket.priority || 'medium')}</strong> &nbsp;·&nbsp; ${fmtDate(ticket.createdAt)}
+          </div>
+          <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:1rem;font-size:0.9rem;color:#374151;white-space:pre-wrap;">${escHtml(ticket.message)}</div>
+        </div>
+        <div class="reply-thread">
+          ${replies.map(reply => `
+            <div class="reply-item ${reply.isStaff || reply.authorRole === 'admin' ? 'reply-staff' : 'reply-user'}">
+              <div class="reply-meta">${reply.isStaff || reply.authorRole === 'admin' ? '🛡 EventFlow Support' : '👤 You'} &nbsp;·&nbsp; ${fmtDate(reply.createdAt)}</div>
+              <div style="white-space:pre-wrap;">${escHtml(reply.message || reply.content || '')}</div>
+            </div>
+          `).join('')}
+        </div>
+        ${ticket.status !== 'closed' ? `
+        <div class="reply-form">
+          <div class="form-row">
+            <label for="reply-message">Reply</label>
+            <textarea id="reply-message" rows="3" placeholder="Type your reply…" maxlength="5000"></textarea>
+          </div>
+          <button type="button" class="cta" id="send-reply-btn" data-ticket-id="${escHtml(String(ticket._id || ticket.id))}">Send Reply</button>
+          <span id="reply-status" style="font-size:0.875rem;margin-left:0.75rem;" role="status" aria-live="polite"></span>
+        </div>
+        ` : '<p style="color:#9ca3af;font-size:0.875rem;margin-top:1rem;">This ticket is closed.</p>'}
+      `;
+
+      const sendBtn = body.querySelector('#send-reply-btn');
+      if (sendBtn) {
+        sendBtn.addEventListener('click', async () => {
+          const replyMsg = body.querySelector('#reply-message').value.trim();
+          const replyStatus = body.querySelector('#reply-status');
+          if (!replyMsg) { replyStatus.textContent = 'Please enter a reply.'; replyStatus.style.color = '#ef4444'; return; }
+          sendBtn.disabled = true;
+          sendBtn.textContent = 'Sending…';
+          replyStatus.textContent = '';
+          try {
+            const csrf = await getCsrf();
+            const rr = await fetch('/api/v1/tickets/' + encodeURIComponent(sendBtn.dataset.ticketId) + '/replies', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+              credentials: 'include',
+              body: JSON.stringify({ message: replyMsg }),
+            });
+            if (!rr.ok) throw new Error('HTTP ' + rr.status);
+            replyStatus.textContent = '✓ Reply sent';
+            replyStatus.style.color = '#10b981';
+            body.querySelector('#reply-message').value = '';
+            setTimeout(() => viewTicket(sendBtn.dataset.ticketId), 800);
+          } catch (err) {
+            replyStatus.textContent = '✗ Failed to send: ' + err.message;
+            replyStatus.style.color = '#ef4444';
+          } finally {
+            sendBtn.disabled = false;
+            sendBtn.textContent = 'Send Reply';
+          }
+        });
+      }
+    } catch (err) {
+      body.innerHTML = '<div style="color:#ef4444;padding:1rem;">Failed to load ticket: ' + escHtml(err.message) + '</div>';
+    }
+  }
+
+  // Filter buttons
+  document.querySelectorAll('.filter-status-btn').forEach(btn => {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('.filter-status-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      activeFilter = this.dataset.status;
+      renderTickets();
+    });
+  });
+
+  // New ticket modal
+  const createModal = document.getElementById('create-ticket-modal');
+  document.getElementById('new-ticket-btn').addEventListener('click', () => { createModal.classList.add('active'); });
+  document.getElementById('create-ticket-close').addEventListener('click', () => { createModal.classList.remove('active'); });
+  document.getElementById('create-ticket-cancel').addEventListener('click', () => { createModal.classList.remove('active'); });
+
+  document.getElementById('create-ticket-submit').addEventListener('click', async () => {
+    const subject = document.getElementById('ticket-subject').value.trim();
+    const message = document.getElementById('ticket-message').value.trim();
+    const category = document.getElementById('ticket-category').value;
+    const priority = document.getElementById('ticket-priority').value;
+    const subjectErr = document.getElementById('ticket-subject-error');
+    const messageErr = document.getElementById('ticket-message-error');
+    let valid = true;
+
+    subjectErr.style.display = 'none';
+    messageErr.style.display = 'none';
+    if (!subject) { subjectErr.style.display = 'block'; valid = false; }
+    if (!message) { messageErr.style.display = 'block'; valid = false; }
+    if (!valid) return;
+
+    const btn = document.getElementById('create-ticket-submit');
+    btn.disabled = true;
+    btn.textContent = 'Submitting…';
+
+    try {
+      const csrf = await getCsrf();
+      const r = await fetch('/api/v1/tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+        credentials: 'include',
+        body: JSON.stringify({ subject, message, category, priority }),
+      });
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        throw new Error(d.error || 'HTTP ' + r.status);
+      }
+      createModal.classList.remove('active');
+      document.getElementById('create-ticket-form').reset();
+      await loadTickets();
+    } catch (err) {
+      alert('Failed to submit ticket: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Submit Ticket';
+    }
+  });
+
+  // View ticket modal close
+  document.getElementById('view-ticket-close').addEventListener('click', () => {
+    document.getElementById('view-ticket-modal').classList.remove('active');
+  });
+
+  // Click-outside closes modals
+  [createModal, document.getElementById('view-ticket-modal')].forEach(m => {
+    m.addEventListener('click', e => { if (e.target === m) m.classList.remove('active'); });
+  });
+
+  // Retry button
+  document.getElementById('tickets-retry').addEventListener('click', loadTickets);
+
+  // Initial load
+  loadTickets();
+})();
+</script>
+</body>
+</html>

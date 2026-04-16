@@ -49,6 +49,82 @@
     return div.innerHTML;
   }
 
+  /**
+   * Show an inline toast message (top-right) — replaces bare alert() calls.
+   * Uses EventFlowNotifications if available; falls back to a simple DOM toast.
+   */
+  function showToastError(message) {
+    if (window.EventFlowNotifications && typeof window.EventFlowNotifications.error === 'function') {
+      window.EventFlowNotifications.error(message);
+    } else {
+      _showSimpleToast(message, '#ef4444');
+    }
+  }
+
+  function showToastInfo(message) {
+    if (window.EventFlowNotifications && typeof window.EventFlowNotifications.info === 'function') {
+      window.EventFlowNotifications.info(message);
+    } else {
+      _showSimpleToast(message, '#0B8073');
+    }
+  }
+
+  function _showSimpleToast(message, color) {
+    const toast = document.createElement('div');
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
+    toast.style.cssText = [
+      'position:fixed;top:1.25rem;right:1.25rem;z-index:99999',
+      'background:' + (color || '#374151'),
+      'color:#fff;padding:0.75rem 1.25rem;border-radius:8px',
+      'font-size:0.875rem;max-width:320px;box-shadow:0 4px 12px rgba(0,0,0,0.15)',
+      'animation:ef-toast-in 0.2s ease',
+    ].join(';');
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.3s'; setTimeout(() => toast.remove(), 350); }, 3500);
+  }
+
+  /**
+   * Promise-based confirm dialog using a lightweight in-page modal.
+   * Replaces bare confirm() calls so the UI doesn't block the main thread.
+   */
+  function showConfirmDialog(message) {
+    return new Promise(resolve => {
+      // Remove any existing confirm dialog
+      const existing = document.getElementById('_ef_confirm_dialog');
+      if (existing) existing.remove();
+
+      const overlay = document.createElement('div');
+      overlay.id = '_ef_confirm_dialog';
+      overlay.setAttribute('role', 'dialog');
+      overlay.setAttribute('aria-modal', 'true');
+      overlay.setAttribute('aria-label', 'Confirm action');
+      overlay.style.cssText = [
+        'position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,0.45)',
+        'display:flex;align-items:center;justify-content:center;padding:1rem',
+      ].join(';');
+
+      overlay.innerHTML = `
+        <div style="background:#fff;border-radius:10px;max-width:400px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,0.2);padding:1.5rem;font-family:inherit;">
+          <p style="margin:0 0 1.25rem;font-size:0.95rem;color:#111827;">${escapeHtml(message)}</p>
+          <div style="display:flex;justify-content:flex-end;gap:0.75rem;">
+            <button id="_ef_confirm_cancel" style="padding:0.5rem 1.25rem;border-radius:6px;border:1px solid #e5e7eb;background:#fff;color:#374151;cursor:pointer;font-size:0.875rem;">Cancel</button>
+            <button id="_ef_confirm_ok" style="padding:0.5rem 1.25rem;border-radius:6px;border:none;background:#0B8073;color:#fff;cursor:pointer;font-size:0.875rem;font-weight:600;">Confirm</button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(overlay);
+
+      const cleanup = val => { overlay.remove(); resolve(val); };
+      overlay.querySelector('#_ef_confirm_cancel').addEventListener('click', () => cleanup(false));
+      overlay.querySelector('#_ef_confirm_ok').addEventListener('click', () => cleanup(true));
+      overlay.addEventListener('click', e => { if (e.target === overlay) cleanup(false); });
+      overlay.querySelector('#_ef_confirm_ok').focus();
+    });
+  }
+
   function formatTimeAgo(dateString) {
     const date = new Date(dateString);
     const now = new Date();
@@ -176,17 +252,18 @@
       }
     } catch (error) {
       console.error('Error marking notification as read:', error);
-      alert('Failed to mark notification as read. Please try again.');
+      showToastError('Failed to mark notification as read. Please try again.');
     }
   }
 
   async function markAllAsRead() {
     if (state.unreadCount === 0) {
-      alert('All notifications are already read.');
+      showToastInfo('All notifications are already read.');
       return;
     }
 
-    if (!confirm('Mark all notifications as read?')) {
+    const confirmed = await showConfirmDialog('Mark all notifications as read?');
+    if (!confirmed) {
       return;
     }
 
@@ -212,12 +289,13 @@
       renderNotifications();
     } catch (error) {
       console.error('Error marking all as read:', error);
-      alert('Failed to mark all as read. Please try again.');
+      showToastError('Failed to mark all as read. Please try again.');
     }
   }
 
   async function deleteNotification(notificationId) {
-    if (!confirm('Delete this notification?')) {
+    const confirmed = await showConfirmDialog('Delete this notification?');
+    if (!confirmed) {
       return;
     }
 
@@ -249,17 +327,18 @@
       renderNotifications();
     } catch (error) {
       console.error('Error deleting notification:', error);
-      alert('Failed to delete notification. Please try again.');
+      showToastError('Failed to delete notification. Please try again.');
     }
   }
 
   async function deleteAllNotifications() {
     if (state.notifications.length === 0) {
-      alert('No notifications to delete.');
+      showToastInfo('No notifications to delete.');
       return;
     }
 
-    if (!confirm('Delete all notifications? This action cannot be undone.')) {
+    const confirmed = await showConfirmDialog('Delete all notifications? This action cannot be undone.');
+    if (!confirmed) {
       return;
     }
 
@@ -285,7 +364,7 @@
       renderNotifications();
     } catch (error) {
       console.error('Error deleting all notifications:', error);
-      alert('Failed to delete all notifications. Please try again.');
+      showToastError('Failed to delete all notifications. Please try again.');
     }
   }
 

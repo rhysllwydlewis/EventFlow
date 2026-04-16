@@ -141,6 +141,11 @@ document.getElementById('profile-form').addEventListener('submit', async e => {
       postcode: document.getElementById('profile-postcode').value.trim(),
     };
 
+    const newEmail = document.getElementById('profile-email').value.trim();
+    if (newEmail && newEmail !== _userEmail) {
+      formData.email = newEmail;
+    }
+
     const response = await fetch('/api/profile', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.__CSRF_TOKEN__ || '' },
@@ -153,7 +158,12 @@ document.getElementById('profile-form').addEventListener('submit', async e => {
       throw new Error(data.error || 'Failed to update account');
     }
 
-    status.textContent = '✓ Changes saved';
+    const emailChanged = !!formData.email;
+    if (emailChanged) {
+      status.textContent = '✓ Changes saved — please check your new email to verify it';
+    } else {
+      status.textContent = '✓ Changes saved';
+    }
     status.style.color = '#10b981';
     setTimeout(() => {
       loadProfile();
@@ -270,6 +280,18 @@ document.getElementById('profile-form').addEventListener('submit', async e => {
 
 // Load profile on page load
 loadProfile();
+
+// Show email-change hint when the user modifies the email field
+(function () {
+  const emailInput = document.getElementById('profile-email');
+  const emailHint = document.getElementById('email-change-hint');
+  if (emailInput && emailHint) {
+    emailInput.addEventListener('input', () => {
+      const changed = emailInput.value.trim().toLowerCase() !== _userEmail.toLowerCase();
+      emailHint.style.display = changed ? 'block' : 'none';
+    });
+  }
+})();
 
 // ===== ACTION PROMPT PREFS (loaded after profile to know the role) =====
 function updateApSubPrefsVisibility() {
@@ -448,6 +470,73 @@ document.getElementById('save-settings').addEventListener('click', async () => {
 });
 
 loadNotificationSettings();
+
+// ===== CHANGE PASSWORD FORM =====
+(function () {
+  const form = document.getElementById('change-password-form');
+  if (!form) return;
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const status = document.getElementById('cp-status');
+    const saveBtn = document.getElementById('cp-save-btn');
+    const currentPassword = document.getElementById('cp-current').value;
+    const newPassword = document.getElementById('cp-new').value;
+    const confirmPassword = document.getElementById('cp-confirm').value;
+
+    status.textContent = '';
+    status.style.color = '';
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      status.textContent = '✗ All fields are required';
+      status.style.color = '#ef4444';
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      status.textContent = '✗ New passwords do not match';
+      status.style.color = '#ef4444';
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      status.textContent = '✗ Password must be at least 8 characters';
+      status.style.color = '#ef4444';
+      return;
+    }
+
+    try {
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Updating…';
+
+      const response = await fetch('/api/v1/auth/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': window.__CSRF_TOKEN__ || '',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update password');
+      }
+
+      form.reset();
+      status.textContent = '✓ Password updated';
+      status.style.color = '#10b981';
+      setTimeout(() => { status.textContent = ''; }, 4000);
+    } catch (err) {
+      status.textContent = `✗ ${err.message}`;
+      status.style.color = '#ef4444';
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Update Password';
+    }
+  });
+})();
 
 // ===== ACCOUNT DELETION MODAL =====
 (function () {

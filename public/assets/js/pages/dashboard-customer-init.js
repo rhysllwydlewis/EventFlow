@@ -69,7 +69,7 @@ async function loadCustomerPlans(preloadedPlans) {
         const packageCount = (plan.packages || []).length;
         const displayName = plan.name || plan.eventName || plan.eventType || 'Untitled Event';
         return `
-        <div class="customer-plan-item">
+        <div class="customer-plan-item" data-plan-id="${escapeHtml(plan.id)}">
           <div class="customer-plan-item__header">
             <div>
               <strong class="customer-plan-item__name">${escapeHtml(displayName)}</strong>
@@ -78,15 +78,194 @@ async function loadCustomerPlans(preloadedPlans) {
             <span class="small customer-plan-item__count">${packageCount} packages</span>
           </div>
           ${plan.location ? `<p class="small customer-plan-item__detail">📍 ${escapeHtml(plan.location)}</p>` : ''}
-          ${plan.date ? `<p class="small customer-plan-item__detail">📅 ${escapeHtml(formatPlanDate(plan.date) || plan.date)}</p>` : ''}
+          ${(plan.eventDate || plan.date) ? `<p class="small customer-plan-item__detail">📅 ${escapeHtml(formatPlanDate(plan.eventDate || plan.date) || (plan.eventDate || plan.date))}</p>` : ''}
+          <div class="customer-plan-item__actions" style="margin-top:0.5rem;display:flex;gap:0.5rem;">
+            <button class="cta secondary plan-edit-btn" data-plan-id="${escapeHtml(plan.id)}" style="padding:0.3rem 0.75rem;font-size:0.8rem;" aria-label="Edit ${escapeHtml(displayName)}">✏️ Edit</button>
+            <button class="cta ghost plan-delete-btn" data-plan-id="${escapeHtml(plan.id)}" style="padding:0.3rem 0.75rem;font-size:0.8rem;color:#ef4444;" aria-label="Delete ${escapeHtml(displayName)}">🗑 Delete</button>
+          </div>
         </div>
       `;
       })
       .join('');
+
+    // Attach event listeners for edit/delete
+    container.querySelectorAll('.plan-edit-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const planId = btn.dataset.planId;
+        const plan = plans.find(p => p.id === planId);
+        if (plan) {
+          showEditPlanModal(plan, () => loadCustomerPlans(null));
+        }
+      });
+    });
+
+    container.querySelectorAll('.plan-delete-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const planId = btn.dataset.planId;
+        const plan = plans.find(p => p.id === planId);
+        if (plan) {
+          confirmDeletePlan(plan, () => loadCustomerPlans(null));
+        }
+      });
+    });
   } catch (err) {
     console.error('Error loading plans:', err);
     container.innerHTML = '<p class="small" style="color:#667085;">Error loading plans.</p>';
   }
+}
+
+async function getCsrfToken() {
+  if (window.__CSRF_TOKEN__) return window.__CSRF_TOKEN__;
+  try {
+    const r = await fetch('/api/csrf-token', { credentials: 'include' });
+    if (r.ok) {
+      const d = await r.json();
+      const t = d.csrfToken || d.token || '';
+      if (t) window.__CSRF_TOKEN__ = t;
+      return t;
+    }
+  } catch (_) {}
+  const m = document.cookie.match(/(?:^|;\s*)(?:csrf|csrfToken)=([^;]+)/);
+  return m ? decodeURIComponent(m[1]) : '';
+}
+
+function showEditPlanModal(plan, onSaved) {
+  const titleId = '_dash_plan_edit_title';
+  const existing = document.getElementById('_dash_plan_edit_modal');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = '_dash_plan_edit_modal';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-labelledby', titleId);
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;padding:1rem;';
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:12px;max-width:480px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,0.2);max-height:90vh;overflow-y:auto;">
+      <div style="padding:1.25rem 1.5rem;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between;">
+        <h3 id="${titleId}" style="margin:0;font-size:1.1rem;font-weight:700;">Edit Plan</h3>
+        <button id="_dash_plan_edit_close" type="button" aria-label="Close" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1.4rem;line-height:1;padding:0.25rem;">&times;</button>
+      </div>
+      <div style="padding:1.5rem;">
+        <div style="margin-bottom:1rem;">
+          <label style="display:block;font-size:0.875rem;font-weight:600;margin-bottom:0.35rem;">Plan Name</label>
+          <input type="text" id="_pf_name" value="${escapeHtml(plan.name || plan.eventType || '')}" style="width:100%;box-sizing:border-box;padding:0.625rem 0.75rem;border:1.5px solid #e5e7eb;border-radius:6px;font-size:0.9rem;font-family:inherit;" maxlength="200" placeholder="e.g. Our Wedding 2025">
+        </div>
+        <div style="margin-bottom:1rem;">
+          <label style="display:block;font-size:0.875rem;font-weight:600;margin-bottom:0.35rem;">Event Date</label>
+          <input type="date" id="_pf_date" value="${escapeHtml((plan.eventDate || plan.date || '').split('T')[0])}" style="width:100%;box-sizing:border-box;padding:0.625rem 0.75rem;border:1.5px solid #e5e7eb;border-radius:6px;font-size:0.9rem;font-family:inherit;">
+        </div>
+        <div style="margin-bottom:1rem;">
+          <label style="display:block;font-size:0.875rem;font-weight:600;margin-bottom:0.35rem;">Location</label>
+          <input type="text" id="_pf_location" value="${escapeHtml(plan.location || '')}" style="width:100%;box-sizing:border-box;padding:0.625rem 0.75rem;border:1.5px solid #e5e7eb;border-radius:6px;font-size:0.9rem;font-family:inherit;" maxlength="200" placeholder="e.g. London">
+        </div>
+        <div>
+          <label style="display:block;font-size:0.875rem;font-weight:600;margin-bottom:0.35rem;">Notes</label>
+          <textarea id="_pf_notes" rows="3" style="width:100%;box-sizing:border-box;padding:0.625rem 0.75rem;border:1.5px solid #e5e7eb;border-radius:6px;font-size:0.9rem;font-family:inherit;" maxlength="2000" placeholder="Any additional notes…">${escapeHtml(plan.notes || '')}</textarea>
+        </div>
+        <p id="_pf_status" style="font-size:0.875rem;margin:0.75rem 0 0;" role="status" aria-live="polite"></p>
+      </div>
+      <div style="padding:1rem 1.5rem;border-top:1px solid #f3f4f6;display:flex;justify-content:flex-end;gap:0.75rem;">
+        <button id="_pf_cancel" type="button" class="cta secondary">Cancel</button>
+        <button id="_pf_save" type="button" class="cta">Save Changes</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  const close = () => overlay.remove();
+  overlay.querySelector('#_dash_plan_edit_close').addEventListener('click', close);
+  overlay.querySelector('#_pf_cancel').addEventListener('click', close);
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+
+  overlay.querySelector('#_pf_save').addEventListener('click', async () => {
+    const saveBtn = overlay.querySelector('#_pf_save');
+    const statusEl = overlay.querySelector('#_pf_status');
+    const name = overlay.querySelector('#_pf_name').value.trim();
+    if (!name) { statusEl.textContent = '✗ Plan name is required'; statusEl.style.color = '#ef4444'; return; }
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving…';
+    statusEl.textContent = '';
+    try {
+      const csrf = await getCsrfToken();
+      const r = await fetch(`/api/me/plans/${encodeURIComponent(plan.id)}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+        credentials: 'include',
+        body: JSON.stringify({
+          name,
+          eventDate: overlay.querySelector('#_pf_date').value || null,
+          location: overlay.querySelector('#_pf_location').value.trim() || null,
+          notes: overlay.querySelector('#_pf_notes').value.trim() || null,
+        }),
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Failed to save');
+      close();
+      if (typeof onSaved === 'function') onSaved();
+    } catch (err) {
+      statusEl.textContent = `✗ ${err.message}`;
+      statusEl.style.color = '#ef4444';
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save Changes';
+    }
+  });
+}
+
+function confirmDeletePlan(plan, onDeleted) {
+  const displayName = escapeHtml(plan.name || plan.eventType || 'this plan');
+  const existing = document.getElementById('_dash_plan_delete_modal');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = '_dash_plan_delete_modal';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;padding:1rem;';
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:12px;max-width:400px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,0.2);padding:1.5rem;">
+      <h3 style="margin:0 0 0.75rem;font-size:1.1rem;font-weight:700;">Delete Plan</h3>
+      <p style="margin:0 0 1.5rem;font-size:0.9rem;color:#374151;">Are you sure you want to delete <strong>${displayName}</strong>? This cannot be undone.</p>
+      <p id="_del_status" style="font-size:0.875rem;margin:0 0 0.75rem;color:#ef4444;" role="status" aria-live="polite"></p>
+      <div style="display:flex;justify-content:flex-end;gap:0.75rem;">
+        <button id="_del_cancel" type="button" class="cta secondary">Cancel</button>
+        <button id="_del_confirm" type="button" class="cta" style="background:#ef4444;border-color:#ef4444;">Delete</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  const close = () => overlay.remove();
+  overlay.querySelector('#_del_cancel').addEventListener('click', close);
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+
+  overlay.querySelector('#_del_confirm').addEventListener('click', async () => {
+    const delBtn = overlay.querySelector('#_del_confirm');
+    const statusEl = overlay.querySelector('#_del_status');
+    delBtn.disabled = true;
+    delBtn.textContent = 'Deleting…';
+    try {
+      const csrf = await getCsrfToken();
+      const r = await fetch(`/api/me/plans/${encodeURIComponent(plan.id)}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+        credentials: 'include',
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Failed to delete');
+      close();
+      if (typeof onDeleted === 'function') onDeleted();
+    } catch (err) {
+      statusEl.textContent = `✗ ${err.message}`;
+      delBtn.disabled = false;
+      delBtn.textContent = 'Delete';
+    }
+  });
 }
 
 function escapeHtml(unsafe) {
@@ -253,23 +432,44 @@ async function initDashboard() {
 }
 
 /**
- * Populate the hero section stats from loaded data
+ * Populate the hero section stats from loaded data.
+ * Saved supplier count is fetched from the server shortlist API and also
+ * written back to localStorage so other parts of the UI stay in sync.
  */
-function populateHeroStats(plans) {
+async function populateHeroStats(plans) {
   // Plans count
   const heroPlans = document.getElementById('hero-stat-plans');
   if (heroPlans) {
     heroPlans.textContent = plans.length;
   }
 
-  // Saved suppliers (from localStorage with server-plan cross-reference)
+  // Saved suppliers — authoritative source is /api/v1/shortlist
   let savedCount = 0;
+  let savedSupplierIds = [];
   try {
-    const lsSaved = JSON.parse(localStorage.getItem('eventflow_saved_suppliers') || '[]');
-    savedCount = lsSaved.length;
+    const r = await fetch('/api/v1/shortlist', { credentials: 'include' });
+    if (r.ok) {
+      const d = await r.json();
+      const items = (d.data && d.data.items) || [];
+      // Count only supplier-type items
+      savedSupplierIds = items
+        .filter(item => item.itemType === 'supplier' || !item.itemType)
+        .map(item => item.supplierId || item.id || item.itemId)
+        .filter(Boolean);
+      savedCount = savedSupplierIds.length;
+      // Keep legacy localStorage key in sync so redirect logic still works
+      try {
+        localStorage.setItem('eventflow_saved_suppliers', JSON.stringify(savedSupplierIds));
+      } catch (_) { /* ignore */ }
+    }
   } catch (_) {
-    /* ignore */
+    // Fallback to localStorage on network error
+    try {
+      savedSupplierIds = JSON.parse(localStorage.getItem('eventflow_saved_suppliers') || '[]');
+      savedCount = savedSupplierIds.length;
+    } catch (__) { /* ignore */ }
   }
+
   const heroSuppliers = document.getElementById('hero-stat-suppliers');
   if (heroSuppliers) {
     heroSuppliers.textContent = savedCount;

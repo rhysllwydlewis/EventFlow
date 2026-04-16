@@ -20,6 +20,8 @@ const MAX_GUEST_NAME_LENGTH = 200;
 const MAX_EMAIL_LENGTH = 200;
 const MAX_DIETARY_LENGTH = 500;
 const MAX_NOTES_LENGTH = 1000;
+const MAX_PHONE_LENGTH = 30;
+const MAX_TABLE_LENGTH = 100;
 
 /**
  * Middleware to verify plan ownership
@@ -82,7 +84,7 @@ router.post(
   async (req, res) => {
     try {
       const { planId } = req.params;
-      const { name, email, plusOne, dietary, rsvpStatus, notes } = req.body;
+      const { name, email, plusOne, dietary, rsvpStatus, notes, phone, table } = req.body;
 
       if (!name) {
         return res.status(400).json({ error: 'Guest name is required' });
@@ -93,8 +95,10 @@ router.post(
         id: uid('guest'),
         name: String(name).trim().slice(0, MAX_GUEST_NAME_LENGTH),
         email: email ? String(email).trim().slice(0, MAX_EMAIL_LENGTH) : null,
+        phone: phone ? String(phone).trim().slice(0, MAX_PHONE_LENGTH) : null,
         plusOne: plusOne ? parseInt(plusOne, 10) || 0 : 0,
         dietary: dietary ? String(dietary).trim().slice(0, MAX_DIETARY_LENGTH) : null,
+        table: table ? String(table).trim().slice(0, MAX_TABLE_LENGTH) : null,
         rsvpStatus: rsvpStatus || 'pending',
         notes: notes ? String(notes).trim().slice(0, MAX_NOTES_LENGTH) : null,
         createdAt: now,
@@ -148,7 +152,7 @@ router.patch(
   async (req, res) => {
     try {
       const { planId, id } = req.params;
-      const { name, email, plusOne, dietary, rsvpStatus, notes } = req.body;
+      const { name, email, plusOne, dietary, rsvpStatus, notes, phone, table } = req.body;
 
       const plans = await dbUnified.read('plans');
       const plan = plans.find(p => p.id === planId);
@@ -175,11 +179,17 @@ router.patch(
       if (email !== undefined) {
         guest.email = email ? String(email).trim().slice(0, MAX_EMAIL_LENGTH) : null;
       }
+      if (phone !== undefined) {
+        guest.phone = phone ? String(phone).trim().slice(0, MAX_PHONE_LENGTH) : null;
+      }
       if (plusOne !== undefined) {
         guest.plusOne = plusOne ? parseInt(plusOne, 10) || 0 : 0;
       }
       if (dietary !== undefined) {
         guest.dietary = dietary ? String(dietary).trim().slice(0, MAX_DIETARY_LENGTH) : null;
+      }
+      if (table !== undefined) {
+        guest.table = table ? String(table).trim().slice(0, MAX_TABLE_LENGTH) : null;
       }
       if (rsvpStatus !== undefined) {
         guest.rsvpStatus = rsvpStatus;
