@@ -65,7 +65,10 @@ describe('Schema enum constants — drift guards', () => {
      * Extracts every string literal used as a `type:` key in object literals
      * inside notification.service.js. This is a heuristic but sufficient to
      * catch the class of bugs we care about (hard-coded type strings that
-     * drift from the schema).
+     * drift from the schema). The `[^']+` class is deliberately permissive so
+     * future enum values containing digits, uppercase, or punctuation are
+     * still picked up — the test will then flag them as missing from the
+     * shared constant.
      */
     function extractHardcodedTypes(src) {
       const types = new Set();

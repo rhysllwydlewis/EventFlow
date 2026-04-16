@@ -311,7 +311,17 @@
   word-wrap: break-word;
 }
 
-/* Close Button */
+/* Close Button
+ *
+ * The `!important` declarations below are required because the global CTA rule
+ * in `styles.css` (`button:not(...)`, ~20 exclusions) already uses `!important`
+ * on padding / font-size / border-radius. Higher selector specificity alone
+ * cannot beat an `!important` rule, so we have to match specificity-level.
+ *
+ * The principled fix is Effort 2 in the large-effort plan: invert the global
+ * rule to be opt-in (`.ef-cta`) instead of opt-out. Once that lands, these
+ * `!important`s can be dropped.
+ */
 .ef-notification__close {
   flex-shrink: 0;
   width: 28px !important;
