@@ -107,10 +107,9 @@ window.__EF_PAGE__ = 'support';
   }
 
   async function viewTicket(ticketId) {
-    const modal = document.getElementById('view-ticket-modal');
     const body = document.getElementById('view-ticket-body');
     body.innerHTML = '<div style="text-align:center;padding:2rem;color:#9ca3af;">Loading…</div>';
-    modal.classList.add('active');
+    openViewModal();
 
     try {
       const r = await fetch('/api/v1/tickets/' + encodeURIComponent(ticketId), { credentials: 'include' });
@@ -195,12 +194,38 @@ window.__EF_PAGE__ = 'support';
 
   // New ticket modal
   const createModal = document.getElementById('create-ticket-modal');
-  document.getElementById('new-ticket-btn').addEventListener('click', () => { createModal.classList.add('active'); });
-  document.getElementById('create-ticket-close').addEventListener('click', () => { createModal.classList.remove('active'); });
-  document.getElementById('create-ticket-cancel').addEventListener('click', () => { createModal.classList.remove('active'); });
+  const viewModal = document.getElementById('view-ticket-modal');
+
+  function openCreateModal() {
+    createModal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeCreateModal() {
+    createModal.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+  function openViewModal() {
+    viewModal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeViewModal() {
+    viewModal.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  document.getElementById('new-ticket-btn').addEventListener('click', openCreateModal);
+  document.getElementById('create-ticket-close').addEventListener('click', closeCreateModal);
+  document.getElementById('create-ticket-cancel').addEventListener('click', closeCreateModal);
 
   // "Create first ticket" shortcut in empty state
-  document.getElementById('create-first-ticket-btn')?.addEventListener('click', () => { createModal.classList.add('active'); });
+  document.getElementById('create-first-ticket-btn')?.addEventListener('click', openCreateModal);
+
+  // Escape key closes whichever modal is active
+  document.addEventListener('keydown', e => {
+    if (e.key !== 'Escape') return;
+    if (viewModal.classList.contains('active')) { closeViewModal(); return; }
+    if (createModal.classList.contains('active')) { closeCreateModal(); }
+  });
 
   document.getElementById('create-ticket-submit').addEventListener('click', async () => {
     const subject = document.getElementById('ticket-subject').value.trim();
@@ -249,14 +274,11 @@ window.__EF_PAGE__ = 'support';
   });
 
   // View ticket modal close
-  document.getElementById('view-ticket-close').addEventListener('click', () => {
-    document.getElementById('view-ticket-modal').classList.remove('active');
-  });
+  document.getElementById('view-ticket-close').addEventListener('click', closeViewModal);
 
   // Click-outside closes modals
-  [createModal, document.getElementById('view-ticket-modal')].forEach(m => {
-    m.addEventListener('click', e => { if (e.target === m) m.classList.remove('active'); });
-  });
+  createModal.addEventListener('click', e => { if (e.target === createModal) closeCreateModal(); });
+  viewModal.addEventListener('click', e => { if (e.target === viewModal) closeViewModal(); });
 
   // Retry button
   document.getElementById('tickets-retry').addEventListener('click', loadTickets);

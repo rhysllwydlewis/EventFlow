@@ -80,9 +80,9 @@ async function loadCustomerPlans(preloadedPlans) {
           </div>
           ${plan.location ? `<p class="small customer-plan-item__detail">📍 ${escapeHtml(plan.location)}</p>` : ''}
           ${eventDate ? `<p class="small customer-plan-item__detail">📅 ${escapeHtml(formatPlanDate(eventDate) || eventDate)}</p>` : ''}
-          <div class="customer-plan-item__actions" style="margin-top:0.75rem;display:flex;gap:0.5rem;padding-top:0.625rem;border-top:1px solid #f9fafb;">
+          <div class="customer-plan-item__actions" style="margin-top:0.75rem;display:flex;gap:0.5rem;padding-top:0.625rem;border-top:1px solid #f3f4f6;">
             <button class="cta secondary plan-edit-btn" data-plan-id="${escapeHtml(plan.id)}" style="padding:0.3rem 0.875rem;font-size:0.8rem;border-radius:6px;" aria-label="Edit ${escapeHtml(displayName)}">✏️ Edit</button>
-            <button class="plan-delete-btn" data-plan-id="${escapeHtml(plan.id)}" style="padding:0.3rem 0.875rem;font-size:0.8rem;border-radius:6px;background:none;border:1px solid #fecaca;color:#dc2626;cursor:pointer;font-family:inherit;transition:background 0.15s,border-color 0.15s;" aria-label="Delete ${escapeHtml(displayName)}">🗑 Delete</button>
+            <button class="plan-delete-btn" data-plan-id="${escapeHtml(plan.id)}" style="padding:0.3rem 0.875rem;font-size:0.8rem;border-radius:6px;background:none;border:1px solid #fecaca;color:#dc2626;cursor:pointer;font-family:inherit;font-weight:600;font-size:0.8rem;transition:background 0.15s,border-color 0.15s;" aria-label="Delete ${escapeHtml(displayName)}">🗑 Delete</button>
           </div>
         </div>
       `;
@@ -133,6 +133,14 @@ async function getCsrfToken() {
 }
 
 function showEditPlanModal(plan, onSaved) {
+  // Inject animation keyframes once
+  if (!document.getElementById('_dash_modal_styles')) {
+    const s = document.createElement('style');
+    s.id = '_dash_modal_styles';
+    s.textContent = '@keyframes ef-modal-in{from{opacity:0;transform:translateY(10px) scale(0.98)}to{opacity:1;transform:none}}';
+    document.head.appendChild(s);
+  }
+
   const titleId = '_dash_plan_edit_title';
   const existing = document.getElementById('_dash_plan_edit_modal');
   if (existing) existing.remove();
@@ -144,7 +152,7 @@ function showEditPlanModal(plan, onSaved) {
   overlay.setAttribute('aria-labelledby', titleId);
   overlay.style.cssText = 'position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;padding:1rem;';
   overlay.innerHTML = `
-    <div style="background:#fff;border-radius:12px;max-width:480px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,0.2);max-height:90vh;overflow-y:auto;">
+    <div style="background:#fff;border-radius:12px;max-width:480px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,0.2);max-height:90vh;overflow-y:auto;animation:ef-modal-in 0.2s ease both;">
       <div style="padding:1.25rem 1.5rem;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between;">
         <h3 id="${titleId}" style="margin:0;font-size:1.1rem;font-weight:700;">Edit Plan</h3>
         <button id="_dash_plan_edit_close" type="button" aria-label="Close" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1.4rem;line-height:1;padding:0.25rem;">&times;</button>
@@ -177,7 +185,14 @@ function showEditPlanModal(plan, onSaved) {
 
   document.body.appendChild(overlay);
 
-  const close = () => overlay.remove();
+  const close = () => {
+    overlay.remove();
+    document.body.style.overflow = '';
+    document.removeEventListener('keydown', handleEscEdit);
+  };
+  function handleEscEdit(e) { if (e.key === 'Escape') close(); }
+  document.body.style.overflow = 'hidden';
+  document.addEventListener('keydown', handleEscEdit);
   overlay.querySelector('#_dash_plan_edit_close').addEventListener('click', close);
   overlay.querySelector('#_pf_cancel').addEventListener('click', close);
   overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
@@ -228,7 +243,7 @@ function confirmDeletePlan(plan, onDeleted) {
   overlay.setAttribute('aria-modal', 'true');
   overlay.style.cssText = 'position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;padding:1rem;';
   overlay.innerHTML = `
-    <div style="background:#fff;border-radius:12px;max-width:400px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,0.2);padding:1.5rem;">
+    <div style="background:#fff;border-radius:12px;max-width:400px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,0.2);padding:1.5rem;animation:ef-modal-in 0.2s ease both;">
       <h3 style="margin:0 0 0.75rem;font-size:1.1rem;font-weight:700;">Delete Plan</h3>
       <p style="margin:0 0 1.5rem;font-size:0.9rem;color:#374151;">Are you sure you want to delete <strong>${displayName}</strong>? This cannot be undone.</p>
       <p id="_del_status" style="font-size:0.875rem;margin:0 0 0.75rem;color:#ef4444;" role="status" aria-live="polite"></p>
@@ -241,7 +256,14 @@ function confirmDeletePlan(plan, onDeleted) {
 
   document.body.appendChild(overlay);
 
-  const close = () => overlay.remove();
+  const close = () => {
+    overlay.remove();
+    document.body.style.overflow = '';
+    document.removeEventListener('keydown', handleEscDel);
+  };
+  function handleEscDel(e) { if (e.key === 'Escape') close(); }
+  document.body.style.overflow = 'hidden';
+  document.addEventListener('keydown', handleEscDel);
   overlay.querySelector('#_del_cancel').addEventListener('click', close);
   overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
 
