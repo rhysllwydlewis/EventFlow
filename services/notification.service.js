@@ -370,7 +370,7 @@ class NotificationService {
       type: 'review',
       title: '🌟 New Review!',
       message: `${customerName} left a ${safeRating}-star review on your profile. ${stars}`,
-      actionUrl: '/supplier-dashboard#reviews',
+      actionUrl: '/dashboard/supplier#reviews',
       actionText: 'View Reviews',
       priority: 'normal',
       icon: '🌟',

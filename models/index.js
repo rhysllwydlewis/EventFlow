@@ -658,6 +658,8 @@ const notificationSchema = {
             'reminder',
             'approval',
             'update',
+            'ticket',
+            'announcement',
           ],
           description: 'Notification type/category',
         },

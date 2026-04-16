@@ -351,36 +351,6 @@ router.post('/contact-supplier', applyWriteLimiter, async (req, res) => {
   }
 });
 
-// ---------- Settings ----------
-
-router.get('/me/settings', applyAuthRequired, async (req, res) => {
-  try {
-    const users = await dbUnified.read('users');
-    const i = users.findIndex(u => u.id === req.user.id);
-    if (i < 0) {
-      return res.status(404).json({ error: 'Not found' });
-    }
-    res.json({ notify: users[i].notify !== false });
-  } catch (error) {
-    logger.error('Error reading user settings:', error);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-router.post('/me/settings', applyAuthRequired, applyCsrfProtection, async (req, res) => {
-  try {
-    const notify = !!(req.body && req.body.notify);
-    const updated = await dbUnified.updateOne('users', { id: req.user.id }, { $set: { notify } });
-    if (!updated) {
-      return res.status(404).json({ error: 'Not found' });
-    }
-    res.json({ ok: true, notify });
-  } catch (error) {
-    logger.error('Error updating user settings:', error);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
 // ---------- Maintenance ----------
 
 router.get('/maintenance/message', async (req, res) => {
