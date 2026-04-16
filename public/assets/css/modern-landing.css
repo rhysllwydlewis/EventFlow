@@ -548,7 +548,7 @@ html {
    ======================================== */
 
 /* Stats section with simplified teal gradient */
-.ef-section--gradient {
+.ef-section--gradient:not(.ef-section--newsletter) {
   background: linear-gradient(135deg,
     var(--modern-primary) 0%,
     var(--modern-primary-light) 100%

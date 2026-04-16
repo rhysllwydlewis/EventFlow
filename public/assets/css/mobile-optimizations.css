@@ -1445,6 +1445,13 @@ h4 {
     margin-top: 8px !important;
     gap: 6px !important;
   }
+
+  .ef-testimonial-dot {
+    width: 8px;
+    height: 8px;
+    min-width: 8px;
+    min-height: 8px;
+  }
 }
 
 /* Guides - Compact Cards with Truncation */
@@ -1519,6 +1526,13 @@ h4 {
   
   .ef-skeleton-image {
     height: 120px !important;
+  }
+}
+
+/* Footer gradient bridge — compact on mobile */
+@media (max-width: 768px) {
+  .ef-footer-gradient-bridge {
+    height: 64px !important;
   }
 }
 
