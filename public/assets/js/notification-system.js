@@ -37,7 +37,13 @@
       this.container.className = 'ef-notification-container';
       this.container.setAttribute('role', 'region');
       this.container.setAttribute('aria-label', 'Notifications');
-      this.container.setAttribute('aria-live', 'polite');
+      // NOTE: we deliberately do NOT set `aria-live` on the container.
+      // Each notification sets its own role (`alert` → assertive, `status` →
+      // polite). Some older screen readers (notably JAWS) honour the nearest
+      // ancestor's `aria-live` value over a descendant's implicit value, so a
+      // container-level `aria-live="polite"` would silently downgrade error
+      // toasts from assertive to polite — users would miss critical errors.
+      // The child role alone is sufficient for modern ATs.
       document.body.appendChild(this.container);
 
       // Keyboard a11y: Esc dismisses the top (most recent) toast, matching
@@ -113,8 +119,9 @@
       notification.id = id;
       notification.className = `ef-notification ef-notification--${type}`;
       // `role="alert"` implies aria-live="assertive"; `role="status"` implies
-      // aria-live="polite". The container has aria-live="polite" so setting
-      // the role alone gives errors the "assertive" semantics they need.
+      // aria-live="polite". This is the single source of truth for each
+      // toast's announcement priority — the container intentionally has no
+      // `aria-live` attribute so it can't downgrade errors (see init()).
       notification.setAttribute('role', type === 'error' ? 'alert' : 'status');
       notification.setAttribute('aria-atomic', 'true');
 

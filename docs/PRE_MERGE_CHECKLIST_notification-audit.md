@@ -27,6 +27,8 @@ This document is the final go/no-go gate for merging PR branch `copilot/audit-no
 - [x] `public/assets/js/notification-system.js`: `Esc` dismisses the top toast. Verified live that 4 toasts → 3 after `Escape`.
 - [x] Esc handler **yields** to native handlers when an `<input>`, `<textarea>`, `<select>`, or contentEditable is focused. Verified live (3 toasts before & after Esc while textarea focused).
 - [x] No `addEventListener('keydown', …)` leak — the listener is registered once per `NotificationSystem` instance via `init()`, which is itself guarded by `if (this.container) return;`.
+- [x] **Reviewer-raised a11y fix**: removed `aria-live="polite"` from the `.ef-notification-container`. Each toast already sets its own `role` (`alert` or `status`), and older screen readers (notably JAWS) honour the nearest ancestor's `aria-live` over a descendant's implicit value — which would have silently downgraded error toasts from assertive to polite. Container keeps `role="region"` + `aria-label="Notifications"` for landmark semantics. Inline comments explain the rationale.
+- [x] **Reviewer-raised URL check**: `services/notification.service.js` uses `/dashboard/supplier#reviews` (not the old `/supplier-dashboard`). Verified consistent — `services/actionPromptService.js` also uses `/dashboard/supplier`, and `server.js` issues a 301 from the old path. All remaining `supplier-dashboard` matches in the repo are CSS/JS filenames, not URL paths.
 
 ## 🟢 Accessibility / Visual polish (this session)
 
