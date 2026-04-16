@@ -512,12 +512,16 @@ a:hover {
   padding: 0;
 }
 
-/* Invisible tap area: expands hit target to 44×44px for WCAG 2.1 AA
-   without changing the visual 8px dot size */
+/* Invisible tap area: expands hit target to 44px vertically for WCAG 2.1 AA.
+   Horizontal inset is kept tight (-6px each side) so adjacent dot tap areas
+   don't overlap across the 0.75rem gap between dots. */
 .ef-testimonial-dot::before {
   content: '';
   position: absolute;
-  inset: -18px;
+  top: -18px;
+  bottom: -18px;
+  left: -6px;
+  right: -6px;
 }
 
 .ef-testimonial-dot.active,
@@ -881,6 +885,10 @@ footer.ef-footer-modern {
   color: rgba(255, 255, 255, 0.85);
   margin-bottom: var(--ef-space-4, 16px);
   font-size: 0.95rem;
+}
+
+.ef-footer-tagline--sm {
+  font-size: 0.8rem;
 }
 
 .ef-footer-modern .vexi-link {
