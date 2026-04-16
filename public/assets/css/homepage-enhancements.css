@@ -733,7 +733,7 @@ a:hover {
 }
 
 .ef-section--gradient.ef-section--newsletter {
-  background: linear-gradient(135deg, #0B8073 0%, #13B6A2 55%, #0EA592 100%) !important;
+  background: linear-gradient(135deg, #0B8073 0%, #13B6A2 55%, #0EA592 100%);
 }
 
 footer.ef-footer-modern {
