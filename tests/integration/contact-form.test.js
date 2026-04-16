@@ -12,7 +12,8 @@ describe('Contact Form Endpoint', () => {
   let miscContent;
 
   beforeAll(() => {
-    miscContent = fs.readFileSync(path.join(__dirname, '../../routes/misc.js'), 'utf8');
+    // Contact-form handler now lives in routes/contact.js (Effort 3.1 split).
+    miscContent = fs.readFileSync(path.join(__dirname, '../../routes/contact.js'), 'utf8');
   });
 
   describe('Route definition', () => {
