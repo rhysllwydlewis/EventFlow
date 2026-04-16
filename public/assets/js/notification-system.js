@@ -86,11 +86,10 @@
       const notification = document.createElement('div');
       notification.id = id;
       notification.className = `ef-notification ef-notification--${type}`;
+      // `role="alert"` implies aria-live="assertive"; `role="status"` implies
+      // aria-live="polite". The container has aria-live="polite" so setting
+      // the role alone gives errors the "assertive" semantics they need.
       notification.setAttribute('role', type === 'error' ? 'alert' : 'status');
-      // Errors interrupt screen-reader output; other types wait politely.
-      // Container-level aria-live is 'polite' — override per-notification
-      // for errors so they're announced immediately.
-      notification.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
       notification.setAttribute('aria-atomic', 'true');
 
       // Icon bubble with glass effect

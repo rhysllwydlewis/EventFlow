@@ -69,7 +69,7 @@ describe('Schema enum constants — drift guards', () => {
      */
     function extractHardcodedTypes(src) {
       const types = new Set();
-      const re = /type:\s*'([a-z_-]+)'/gi;
+      const re = /type:\s*'([^']+)'/gi;
       let m;
       while ((m = re.exec(src)) !== null) {
         types.add(m[1]);
@@ -79,7 +79,7 @@ describe('Schema enum constants — drift guards', () => {
 
     function extractHardcodedPriorities(src) {
       const priorities = new Set();
-      const re = /priority:\s*'([a-z_-]+)'/gi;
+      const re = /priority:\s*'([^']+)'/gi;
       let m;
       while ((m = re.exec(src)) !== null) {
         priorities.add(m[1]);

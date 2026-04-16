@@ -19,7 +19,7 @@ const VALID_PRIORITIES = new Set(NOTIFICATION_PRIORITIES);
  * Validate notification payload against shared schema enums.
  * Throws a descriptive Error if `type` or `priority` would be rejected by the
  * Mongo `$jsonSchema` validator — surfaces drift as a JS-level error at call
- * time instead of a opaque Mongo insert failure.
+ * time instead of an opaque Mongo insert failure.
  *
  * @param {Object} data
  * @private
