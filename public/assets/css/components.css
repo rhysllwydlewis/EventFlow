@@ -72,7 +72,10 @@
   padding: 0.3rem 0.55rem;
   line-height: 1;
   border-radius: 8px;
-  transition: background 0.2s, color 0.2s, transform 0.2s;
+  transition:
+    background 0.2s,
+    color 0.2s,
+    transform 0.2s;
 }
 
 .modal-close:hover {
@@ -350,8 +353,52 @@
   transform: scale(0.95);
 }
 
+/* Keyboard-only focus ring: visible outline when tabbed to, invisible on mouse
+ * click. Paired with the Esc-dismisses-top-toast keyboard shortcut in
+ * notification-system.js — without this ring, keyboard users can't see which
+ * close button they're about to activate. The `!important` matches the rest
+ * of this block's specificity (see the comment above `.ef-notification__close`). */
+.ef-notification__close:focus-visible {
+  outline: 2px solid #3b82f6 !important;
+  outline-offset: 2px !important;
+  background: rgba(59, 130, 246, 0.15) !important;
+  color: #1e40af !important;
+}
+
 .ef-notification__close svg {
   display: block;
+}
+
+/* ==================================================================
+   REDUCED-MOTION FALLBACK
+   ==================================================================
+   WCAG 2.3.3 — respect the user's `prefers-reduced-motion` system setting.
+   Users with vestibular disorders (~1% of the population) can experience
+   nausea from large animated transforms. We keep the opacity fade (it's
+   informational, not decorative) but drop the slide-in, shake, and
+   transform-based hover/active feedback. */
+@media (prefers-reduced-motion: reduce) {
+  .ef-notification {
+    transform: none;
+    transition: opacity 0.15s ease;
+  }
+
+  .ef-notification--visible {
+    transform: none;
+  }
+
+  .ef-notification--hiding {
+    transform: none;
+  }
+
+  .ef-notification--shake {
+    animation: none;
+  }
+
+  .ef-notification__close:hover,
+  .ef-notification__close:active {
+    transform: none;
+  }
 }
 
 /* Mobile Responsive */
@@ -2139,7 +2186,10 @@
   align-items: center;
   justify-content: center;
   z-index: 999;
-  transition: transform 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease,
+    background-color 0.3s ease;
   padding: 0 !important;
   margin: 0 !important;
   min-height: unset !important;
@@ -4003,7 +4053,9 @@ body > .ef-loading-overlay {
   line-height: 1;
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
-  transition: color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    background 0.15s;
 }
 
 .cookie-prefs-close:hover {

@@ -108,6 +108,28 @@
     .info-card li {
       margin: 5px 0;
     }
+
+    /* Keyboard chip used in the "What to Look For" list */
+    .info-card kbd {
+      display: inline-block;
+      padding: 1px 6px;
+      font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.4;
+      color: #1f2937;
+      background: #f3f4f6;
+      border: 1px solid #d1d5db;
+      border-bottom-width: 2px;
+      border-radius: 4px;
+    }
+
+    .info-card code {
+      font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+      font-size: 12.5px;
+      background: #f3f4f6;
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
     
     .status-indicator {
       display: inline-block;
@@ -194,6 +216,9 @@
         <li><strong>Max Limit:</strong> Only 5 notifications visible at once</li>
         <li><strong>No Dark Mode:</strong> Should only show light theme</li>
         <li><strong>Mobile Responsive:</strong> Full width on small screens</li>
+        <li><strong>Keyboard (a11y):</strong> Press <kbd>Esc</kbd> to dismiss the top toast (skipped when an input is focused)</li>
+        <li><strong>Focus ring:</strong> Tab to a close button and you should see a blue outline</li>
+        <li><strong>Reduced motion:</strong> Slide-in/shake are suppressed when your OS sets <code>prefers-reduced-motion</code></li>
       </ul>
     </div>
     
