@@ -858,16 +858,17 @@ describe('routes/supplier.js — email validation on POST /verification/submit',
   });
 
   it('EMAIL_REGEX rejects addresses without an @ symbol', () => {
-    // Sanity-check the regex pattern that is embedded in the source
-    const match = content.match(/const EMAIL_REGEX\s*=\s*(\/[^/]+\/[gimsuy]*)/);
-    expect(match).toBeTruthy();
-    // eslint-disable-next-line no-eval
-    const regex = eval(match[1]);
-    expect(regex.test('notanemail')).toBe(false);
-    expect(regex.test('user@example.com')).toBe(true);
-    expect(regex.test('user@sub.domain.io')).toBe(true);
-    expect(regex.test('@missinglocal.com')).toBe(false);
-    expect(regex.test('missing@')).toBe(false);
+    // Duplicate the regex here as a stable fixture rather than eval-ing it from source.
+    // If the source regex changes this test will still fail (the source check above
+    // ensures the constant exists at module level).
+    const EMAIL_REGEX_FIXTURE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    expect(EMAIL_REGEX_FIXTURE.test('notanemail')).toBe(false);
+    expect(EMAIL_REGEX_FIXTURE.test('user@example.com')).toBe(true);
+    expect(EMAIL_REGEX_FIXTURE.test('user@sub.domain.io')).toBe(true);
+    expect(EMAIL_REGEX_FIXTURE.test('@missinglocal.com')).toBe(false);
+    expect(EMAIL_REGEX_FIXTURE.test('missing@')).toBe(false);
+    // Also verify the source embeds the same pattern
+    expect(content).toContain(String(EMAIL_REGEX_FIXTURE));
   });
 
   it('validates email format and returns 400 on invalid input', () => {
@@ -906,9 +907,11 @@ describe('routes/supplier-management.js — PATCH field max-length enforcement',
 
   it('defines PATCH_FIELD_MAX_LENGTHS as a module-level constant', () => {
     const mapDecl = content.indexOf('const PATCH_FIELD_MAX_LENGTHS');
-    const patchRouteDecl = content.indexOf("PATCH /api/me/suppliers/:id");
+    // router.patch is the first route method for the PATCH handler — the constant
+    // must be declared before any route handler so it is evaluated at module load.
+    const patchRouteDecl = content.indexOf("router.patch(");
     expect(mapDecl).not.toBe(-1);
-    // Must be defined before the route JSDoc comment
+    expect(patchRouteDecl).not.toBe(-1);
     expect(mapDecl).toBeLessThan(patchRouteDecl);
   });
 

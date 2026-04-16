@@ -697,7 +697,7 @@ router.post(
       // Prefer an updated email from the request body; fall back to the stored value.
       // Using `|| ''` guards against null/undefined on both sides before the regex test.
       // This is a practical format check; full RFC 5322 compliance is intentionally out of scope.
-      const rawBodyEmail = req.body.email != null ? String(req.body.email).trim() : '';
+      const rawBodyEmail = req.body.email?.trim() || '';
       const emailValue = rawBodyEmail || String(supplier.email || '').trim();
       if (!EMAIL_REGEX.test(emailValue)) {
         return res.status(400).json({ error: 'Invalid email format' });
