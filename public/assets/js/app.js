@@ -5761,6 +5761,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (rolePills && rolePills.length) {
       rolePills.forEach(btn => {
         btn.addEventListener('click', () => {
+          // Ignore clicks on buttons disabled by feature-flag (CSS pointer-events backup)
+          if (btn.dataset.disabled === 'true' || btn.getAttribute('aria-disabled') === 'true') {
+            return;
+          }
           rolePills.forEach(b => b.classList.remove('is-active'));
           btn.classList.add('is-active');
           if (roleHidden) {

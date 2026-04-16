@@ -161,12 +161,15 @@ class CategoryGrid {
       this.render();
     } catch (error) {
       console.error('Error loading categories:', error);
+      this.container.removeAttribute('aria-busy');
       this.container.innerHTML =
         '<div class="category-empty-state">Unable to load categories. Please try again later.</div>';
     }
   }
 
   render() {
+    this.container.removeAttribute('aria-busy');
+    this.container.removeAttribute('aria-label');
     if (this.categories.length === 0) {
       this.container.innerHTML =
         '<div class="category-empty-state">No categories available at the moment.</div>';

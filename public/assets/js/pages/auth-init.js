@@ -34,10 +34,17 @@
       activeTab.focus();
     }
 
-    // Sync page heading with the active tab
+    // Sync page heading and subtitle with the active tab
     const heading = document.querySelector('.auth-heading');
     if (heading) {
       heading.textContent = activeTab.id === 'tab-create' ? 'Create your account' : 'Welcome back';
+    }
+    const subtitle = document.querySelector('.auth-subtitle');
+    if (subtitle) {
+      subtitle.textContent =
+        activeTab.id === 'tab-create'
+          ? 'Join thousands of event planners and suppliers on EventFlow — it\u2019s free.'
+          : 'Sign in to your EventFlow account to continue planning.';
     }
   }
 
