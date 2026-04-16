@@ -45,6 +45,44 @@
     setTimeout(() => toast.classList.remove('show'), 3000);
   }
 
+  // ── In-page confirmation dialog ───────────────────────────────────────────────
+
+  function showConfirmDialog(message) {
+    return new Promise(resolve => {
+      const existing = document.getElementById('_partner_confirm_dialog');
+      if (existing) existing.remove();
+
+      const overlay = document.createElement('div');
+      overlay.id = '_partner_confirm_dialog';
+      overlay.setAttribute('role', 'dialog');
+      overlay.setAttribute('aria-modal', 'true');
+      overlay.setAttribute('aria-label', 'Confirm action');
+      overlay.style.cssText = [
+        'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.55)',
+        'backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)',
+        'display:flex;align-items:center;justify-content:center;padding:1rem',
+      ].join(';');
+
+      overlay.innerHTML = `
+        <div style="background:rgba(15,28,35,0.97);border:1px solid rgba(255,255,255,0.14);border-radius:16px;max-width:400px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.5);padding:1.5rem;">
+          <p style="margin:0 0 1.25rem;font-size:0.92rem;color:rgba(255,255,255,0.85);line-height:1.55;">${escHtml(message)}</p>
+          <div style="display:flex;justify-content:flex-end;gap:0.75rem;">
+            <button id="_partner_confirm_cancel" style="padding:0.45rem 1rem;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.65);cursor:pointer;font-size:0.875rem;">Cancel</button>
+            <button id="_partner_confirm_ok" style="padding:0.45rem 1rem;border-radius:8px;border:none;background:linear-gradient(135deg,#0b8073,#10b981);color:#fff;cursor:pointer;font-size:0.875rem;font-weight:600;">Confirm</button>
+          </div>
+        </div>
+      `;
+
+      document.body.appendChild(overlay);
+
+      const cleanup = val => { overlay.remove(); resolve(val); };
+      overlay.querySelector('#_partner_confirm_cancel').addEventListener('click', () => cleanup(false));
+      overlay.querySelector('#_partner_confirm_ok').addEventListener('click', () => cleanup(true));
+      overlay.addEventListener('click', e => { if (e.target === overlay) cleanup(false); });
+      overlay.querySelector('#_partner_confirm_ok').focus();
+    });
+  }
+
   // ── Auth guard ────────────────────────────────────────────────────────────────
 
   async function ensureAuth() {
@@ -442,11 +480,10 @@
     }
 
     btn.addEventListener('click', async () => {
-      if (
-        !confirm(
-          'Are you sure you want to generate a new partner code?\n\nYour old code will still work — this just creates a new one.'
-        )
-      ) {
+      const confirmed = await showConfirmDialog(
+        'Are you sure you want to generate a new partner code?\n\nYour old code will still work — this just creates a new one.'
+      );
+      if (!confirmed) {
         return;
       }
 
@@ -634,15 +671,28 @@
         container.innerHTML = `
           <div class="partner-empty">
             <div class="partner-empty-icon" aria-hidden="true">🎫</div>
-            <p class="partner-empty-text">No support tickets yet. Use the button above to raise one.</p>
+            <p class="partner-empty-text">No support tickets yet.</p>
+            <button
+              type="button"
+              id="partner-empty-ticket-btn"
+              style="margin-top:0.75rem;padding:0.45rem 1.1rem;background:linear-gradient(135deg,rgba(11,128,115,0.3),rgba(16,185,129,0.2));border:1px solid rgba(16,185,129,0.35);border-radius:8px;color:#6ee7b7;cursor:pointer;font-size:0.85rem;font-weight:600;"
+              aria-label="Raise a support ticket"
+            >✉️ Raise a support ticket</button>
           </div>`;
+        const emptyBtn = document.getElementById('partner-empty-ticket-btn');
+        if (emptyBtn) {
+          emptyBtn.addEventListener('click', () => {
+            const openBtn = document.getElementById('partner-support-btn');
+            if (openBtn) openBtn.click();
+          });
+        }
         return;
       }
 
       const rows = items
         .map(
           t => `
-        <div style="padding:0.85rem 0;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+        <div class="partner-ticket-row" tabindex="0" role="button" data-ticket-id="${escHtml(String(t._id || t.id || ''))}" aria-label="View ticket: ${escHtml(t.subject)}">
           <div style="flex:1;min-width:0;">
             <div style="font-size:0.9rem;font-weight:600;color:#fff;margin-bottom:0.2rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(t.subject)}</div>
             <div style="font-size:0.78rem;color:rgba(255,255,255,0.38);">Opened ${fmtDate(t.createdAt)}${t.responseCount ? ` · ${t.responseCount} response${t.responseCount !== 1 ? 's' : ''}` : ''}</div>
@@ -653,12 +703,138 @@
         .join('');
 
       container.innerHTML = `<div style="padding:0 0.25rem;">${rows}</div>`;
+
+      container.querySelectorAll('.partner-ticket-row').forEach(row => {
+        const open = () => viewTicket(row.dataset.ticketId);
+        row.addEventListener('click', open);
+        row.addEventListener('keydown', e => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
+        });
+      });
     } catch (err) {
       container.innerHTML = `
         <div class="partner-empty">
           <div class="partner-empty-icon" aria-hidden="true">⚠️</div>
           <p class="partner-empty-text">Failed to load tickets. Please refresh.</p>
         </div>`;
+    }
+  }
+
+  async function viewTicket(ticketId) {
+    const overlay = document.getElementById('partner-ticket-detail-overlay');
+    const body = document.getElementById('partner-ticket-detail-body');
+    const titleEl = document.getElementById('partner-ticket-detail-title');
+    if (!overlay || !body) return;
+
+    body.innerHTML = `
+      <div class="partner-empty">
+        <span class="partner-spinner" aria-hidden="true"></span>
+        <p class="partner-empty-text">Loading ticket…</p>
+      </div>`;
+    overlay.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+
+    function closeDetail() {
+      overlay.style.display = 'none';
+      document.body.style.overflow = '';
+    }
+
+    const closeBtn = document.getElementById('partner-ticket-detail-close');
+    if (closeBtn) {
+      closeBtn.onclick = closeDetail;
+    }
+    overlay.onclick = e => { if (e.target === overlay) closeDetail(); };
+
+    const handleEsc = e => {
+      if (e.key === 'Escape') { closeDetail(); document.removeEventListener('keydown', handleEsc); }
+    };
+    document.addEventListener('keydown', handleEsc);
+
+    try {
+      const r = await fetch('/api/v1/tickets/' + encodeURIComponent(ticketId), { credentials: 'include' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const d = await r.json();
+      const ticket = d.ticket || d;
+      const replies = ticket.replies || [];
+
+      if (titleEl) titleEl.textContent = ticket.subject || 'Support Ticket';
+
+      const replyItems = replies.map(reply => {
+        const isStaff = reply.isStaff || reply.authorRole === 'admin';
+        return `
+          <div class="partner-reply-item ${isStaff ? 'partner-reply-item--staff' : 'partner-reply-item--user'}">
+            <div class="partner-reply-meta">${isStaff ? '🛡 EventFlow Support' : '👤 You'} &nbsp;·&nbsp; ${fmtDate(reply.createdAt)}</div>
+            <div style="white-space:pre-wrap;color:rgba(255,255,255,0.8);">${escHtml(reply.message || reply.content || '')}</div>
+          </div>`;
+      }).join('');
+
+      const replyForm = ticket.status !== 'closed' ? `
+        <div class="partner-reply-form">
+          <textarea
+            id="partner-reply-message"
+            class="partner-reply-textarea"
+            rows="3"
+            placeholder="Type your reply…"
+            maxlength="5000"
+            aria-label="Your reply"
+          ></textarea>
+          <button
+            type="button"
+            class="partner-reply-submit"
+            id="partner-reply-submit"
+            data-ticket-id="${escHtml(String(ticket._id || ticket.id))}"
+          >Send Reply</button>
+          <span id="partner-reply-status" role="status" aria-live="polite" style="font-size:0.8rem;margin-top:0.25rem;"></span>
+        </div>` : '<p style="color:rgba(255,255,255,0.35);font-size:0.875rem;margin-top:1rem;">This ticket is closed.</p>';
+
+      body.innerHTML = `
+        <div style="font-size:0.78rem;color:rgba(255,255,255,0.4);margin-bottom:0.75rem;">
+          Status: <strong style="color:#fff;">${escHtml(ticket.status || 'open')}</strong>
+          &nbsp;·&nbsp; Opened ${fmtDate(ticket.createdAt)}
+        </div>
+        <div class="partner-ticket-message-box">${escHtml(ticket.message || '')}</div>
+        ${replies.length ? `<div class="partner-reply-thread">${replyItems}</div>` : ''}
+        ${replyForm}
+      `;
+
+      const sendBtn = body.querySelector('#partner-reply-submit');
+      if (sendBtn) {
+        sendBtn.addEventListener('click', async () => {
+          const textarea = body.querySelector('#partner-reply-message');
+          const statusEl = body.querySelector('#partner-reply-status');
+          const msg = textarea ? textarea.value.trim() : '';
+          if (!msg) {
+            if (statusEl) { statusEl.textContent = 'Please enter a reply.'; statusEl.style.color = '#ef4444'; }
+            return;
+          }
+          sendBtn.disabled = true;
+          sendBtn.textContent = 'Sending…';
+          if (statusEl) statusEl.textContent = '';
+          try {
+            const csrfToken = await getCsrfToken();
+            const rr = await fetch(
+              '/api/v1/tickets/' + encodeURIComponent(sendBtn.dataset.ticketId) + '/reply',
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+                credentials: 'include',
+                body: JSON.stringify({ message: msg }),
+              }
+            );
+            if (!rr.ok) throw new Error('HTTP ' + rr.status);
+            if (statusEl) { statusEl.textContent = '✓ Reply sent'; statusEl.style.color = '#10b981'; }
+            if (textarea) textarea.value = '';
+            setTimeout(() => viewTicket(sendBtn.dataset.ticketId), 800);
+          } catch (err) {
+            if (statusEl) { statusEl.textContent = '✗ Failed: ' + err.message; statusEl.style.color = '#ef4444'; }
+          } finally {
+            sendBtn.disabled = false;
+            sendBtn.textContent = 'Send Reply';
+          }
+        });
+      }
+    } catch (err) {
+      body.innerHTML = `<div style="color:#ef4444;padding:1rem;">Failed to load ticket: ${escHtml(err.message)}</div>`;
     }
   }
 
@@ -955,9 +1131,15 @@
       const transactions = txnsData.items || [];
       const codeHistory = codeHistoryData.items || [];
 
-      // Update heading
+      // Update heading with time-based greeting
       if (nameHeading) {
         nameHeading.textContent = user.firstName || (user.name || '').split(' ')[0] || 'Partner';
+      }
+      const greetingTimeEl = document.getElementById('partner-greeting-time');
+      if (greetingTimeEl) {
+        const hour = new Date().getHours();
+        greetingTimeEl.textContent =
+          hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
       }
 
       // Update status line

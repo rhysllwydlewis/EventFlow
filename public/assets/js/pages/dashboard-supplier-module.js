@@ -603,7 +603,7 @@ window.addEventListener('load', () => {
   if (typeof WebSocketClient !== 'undefined') {
     try {
       wsClientInstance = new WebSocketClient({
-        onConnect: () => console.log('🟢 Live Dashboard Connected'),
+        onConnect: () => {},
         onNotification: data => handleRealtimeNotification(data),
       });
     } catch (error) {
