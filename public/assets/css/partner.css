@@ -471,6 +471,7 @@
   -webkit-background-clip: unset;
   -webkit-text-fill-color: rgba(255, 255, 255, 0.7);
   background-clip: unset;
+  color: rgba(255, 255, 255, 0.7);
   font-weight: 500;
 }
 
@@ -1865,7 +1866,9 @@ select.partner-modal-input option {
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
+  padding-bottom: 1rem;
   margin-bottom: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .partner-ticket-detail-title {
@@ -1893,6 +1896,11 @@ select.partner-modal-input option {
 .partner-ticket-detail-close:hover {
   background: rgba(255, 255, 255, 0.14);
   color: #fff;
+}
+
+.partner-ticket-detail-close:focus-visible {
+  outline: 2px solid rgba(16, 185, 129, 0.6);
+  outline-offset: 2px;
 }
 
 .partner-ticket-detail-body {
@@ -1992,7 +2000,7 @@ select.partner-modal-input option {
 /* ─── Ticket rows — hover lift effect ───────────────────────────────────── */
 
 .partner-ticket-row {
-  padding: 0.85rem 0;
+  padding: 0.85rem 0.5rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
   align-items: flex-start;
@@ -2010,8 +2018,59 @@ select.partner-modal-input option {
   border-color: rgba(16, 185, 129, 0.3);
 }
 
+.partner-ticket-row:focus-visible {
+  outline: 2px solid rgba(16, 185, 129, 0.6);
+  outline-offset: 2px;
+}
+
 .partner-ticket-row:last-child {
   border-bottom: none;
+}
+
+/* ─── Reply form label ───────────────────────────────────────────────────── */
+
+.partner-reply-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.45);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.2rem;
+}
+
+/* ─── Confirm dialog button hover states ────────────────────────────────── */
+
+.partner-confirm-cancel {
+  padding: 0.45rem 1rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.65);
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background 0.15s, color 0.15s;
+}
+
+.partner-confirm-cancel:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.partner-confirm-ok {
+  padding: 0.45rem 1rem;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(135deg, #0b8073, #10b981);
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: opacity 0.15s, box-shadow 0.15s;
+}
+
+.partner-confirm-ok:hover {
+  opacity: 0.9;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
 }
 
 /* ─── Prefers reduced motion ─────────────────────────────────────────────── */

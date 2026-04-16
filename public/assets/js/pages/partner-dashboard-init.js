@@ -65,10 +65,10 @@
 
       overlay.innerHTML = `
         <div style="background:rgba(15,28,35,0.97);border:1px solid rgba(255,255,255,0.14);border-radius:16px;max-width:400px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.5);padding:1.5rem;">
-          <p style="margin:0 0 1.25rem;font-size:0.92rem;color:rgba(255,255,255,0.85);line-height:1.55;">${escHtml(message)}</p>
+          <p style="margin:0 0 1.25rem;font-size:0.92rem;color:rgba(255,255,255,0.85);line-height:1.55;white-space:pre-line;">${escHtml(message)}</p>
           <div style="display:flex;justify-content:flex-end;gap:0.75rem;">
-            <button id="_partner_confirm_cancel" style="padding:0.45rem 1rem;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.65);cursor:pointer;font-size:0.875rem;">Cancel</button>
-            <button id="_partner_confirm_ok" style="padding:0.45rem 1rem;border-radius:8px;border:none;background:linear-gradient(135deg,#0b8073,#10b981);color:#fff;cursor:pointer;font-size:0.875rem;font-weight:600;">Confirm</button>
+            <button id="_partner_confirm_cancel" class="partner-confirm-cancel">Cancel</button>
+            <button id="_partner_confirm_ok" class="partner-confirm-ok">Confirm</button>
           </div>
         </div>
       `;
@@ -737,6 +737,11 @@
     function closeDetail() {
       overlay.style.display = 'none';
       document.body.style.overflow = '';
+      document.removeEventListener('keydown', handleEsc);
+    }
+
+    function handleEsc(e) {
+      if (e.key === 'Escape') closeDetail();
     }
 
     const closeBtn = document.getElementById('partner-ticket-detail-close');
@@ -745,9 +750,6 @@
     }
     overlay.onclick = e => { if (e.target === overlay) closeDetail(); };
 
-    const handleEsc = e => {
-      if (e.key === 'Escape') { closeDetail(); document.removeEventListener('keydown', handleEsc); }
-    };
     document.addEventListener('keydown', handleEsc);
 
     try {
@@ -770,6 +772,7 @@
 
       const replyForm = ticket.status !== 'closed' ? `
         <div class="partner-reply-form">
+          <p class="partner-reply-label">Add a reply</p>
           <textarea
             id="partner-reply-message"
             class="partner-reply-textarea"
