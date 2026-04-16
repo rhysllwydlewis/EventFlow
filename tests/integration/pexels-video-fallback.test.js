@@ -33,29 +33,25 @@ describe('Pexels Video Fallback Integration', () => {
     // Mount admin router at /api to match actual server setup
     app.use('/api/admin', adminRouter);
 
-    // Enable Pexels collage feature flag with videos enabled
-    const settings = await dbUnified.read('settings');
-    if (!settings || typeof settings !== 'object') {
-      await dbUnified.write('settings', {
-        collageWidget: {
-          enabled: true,
-          source: 'pexels',
-          mediaTypes: {
-            photos: true,
-            videos: true,
-          },
+    // Write a COMPLETE fresh settings doc each test rather than merging with
+    // whatever the previous suite/test left behind. Mutating the existing
+    // document (the previous approach) was brittle because a prior test — in
+    // this suite or elsewhere in the full jest run — could delete
+    // `collageWidget` or populate `features.pexelsCollage` in a way the
+    // per-test assertion didn't anticipate, causing the "passes in isolation,
+    // fails in the full suite" flake (Effort 5.1).
+    await dbUnified.write('settings', {
+      collageWidget: {
+        enabled: true,
+        source: 'pexels',
+        mediaTypes: {
+          photos: true,
+          videos: true,
         },
-      });
-    } else {
-      settings.collageWidget = settings.collageWidget || {};
-      settings.collageWidget.enabled = true;
-      settings.collageWidget.source = 'pexels';
-      settings.collageWidget.mediaTypes = {
-        photos: true,
-        videos: true,
-      };
-      await dbUnified.write('settings', settings);
-    }
+      },
+      // Note: deliberately NO `features.pexelsCollage` here so tests that
+      // rely on the legacy-flag path must opt in explicitly.
+    });
   });
 
   describe('GET /api/admin/public/pexels-video', () => {

@@ -39,6 +39,32 @@
       this.container.setAttribute('aria-label', 'Notifications');
       this.container.setAttribute('aria-live', 'polite');
       document.body.appendChild(this.container);
+
+      // Keyboard a11y: Esc dismisses the top (most recent) toast, matching
+      // the behaviour screen-reader and keyboard-only users expect from
+      // interrupting regions. Only fires when there's at least one toast,
+      // and yields to native handlers on inputs/textareas/contentEditable
+      // so it doesn't hijack form-editing.
+      document.addEventListener('keydown', event => {
+        if (event.key !== 'Escape' && event.key !== 'Esc') {
+          return;
+        }
+        if (this.notifications.length === 0) {
+          return;
+        }
+        const active = document.activeElement;
+        if (
+          active &&
+          (active.tagName === 'INPUT' ||
+            active.tagName === 'TEXTAREA' ||
+            active.tagName === 'SELECT' ||
+            active.isContentEditable)
+        ) {
+          return;
+        }
+        const top = this.notifications[this.notifications.length - 1];
+        this.dismiss(top);
+      });
     }
 
     /**
