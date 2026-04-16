@@ -1447,10 +1447,10 @@ h4 {
   }
 
   .ef-testimonial-dot {
-    width: 8px !important;
-    height: 8px !important;
-    min-width: 8px !important;
-    min-height: 8px !important;
+    width: 8px;
+    height: 8px;
+    min-width: 8px;
+    min-height: 8px;
   }
 }
 
