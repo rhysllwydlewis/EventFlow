@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const r = await fetch(`/api/me/plans/${encodeURIComponent(planId)}`, { credentials: 'include' });
       if (r.ok) {
         const d = await r.json();
-        if (Array.isArray(d.plan && d.plan.timeline)) {
+        if (d.plan && Array.isArray(d.plan.timeline)) {
           events = d.plan.timeline;
         }
       }
@@ -66,22 +66,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     container: '#timeline-builder',
     events: events,
     editable: true,
-    onEventAdd: event => {
-      console.log('Event added:', event);
+    onEventAdd: () => {
       saveTimeline();
       if (typeof showToast === 'function') {
         showToast('Event added to timeline', 'success');
       }
     },
-    onEventUpdate: event => {
-      console.log('Event updated:', event);
+    onEventUpdate: () => {
       saveTimeline();
       if (typeof showToast === 'function') {
         showToast('Event updated', 'success');
       }
     },
-    onEventDelete: eventId => {
-      console.log('Event deleted:', eventId);
+    onEventDelete: () => {
       saveTimeline();
       if (typeof showToast === 'function') {
         showToast('Event removed from timeline', 'success');

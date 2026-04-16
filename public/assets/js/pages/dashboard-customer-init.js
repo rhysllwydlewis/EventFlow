@@ -80,9 +80,9 @@ async function loadCustomerPlans(preloadedPlans) {
           </div>
           ${plan.location ? `<p class="small customer-plan-item__detail">📍 ${escapeHtml(plan.location)}</p>` : ''}
           ${eventDate ? `<p class="small customer-plan-item__detail">📅 ${escapeHtml(formatPlanDate(eventDate) || eventDate)}</p>` : ''}
-          <div class="customer-plan-item__actions" style="margin-top:0.5rem;display:flex;gap:0.5rem;">
-            <button class="cta secondary plan-edit-btn" data-plan-id="${escapeHtml(plan.id)}" style="padding:0.3rem 0.75rem;font-size:0.8rem;" aria-label="Edit ${escapeHtml(displayName)}">✏️ Edit</button>
-            <button class="cta ghost plan-delete-btn" data-plan-id="${escapeHtml(plan.id)}" style="padding:0.3rem 0.75rem;font-size:0.8rem;color:#ef4444;" aria-label="Delete ${escapeHtml(displayName)}">🗑 Delete</button>
+          <div class="customer-plan-item__actions" style="margin-top:0.75rem;display:flex;gap:0.5rem;padding-top:0.625rem;border-top:1px solid #f9fafb;">
+            <button class="cta secondary plan-edit-btn" data-plan-id="${escapeHtml(plan.id)}" style="padding:0.3rem 0.875rem;font-size:0.8rem;border-radius:6px;" aria-label="Edit ${escapeHtml(displayName)}">✏️ Edit</button>
+            <button class="plan-delete-btn" data-plan-id="${escapeHtml(plan.id)}" style="padding:0.3rem 0.875rem;font-size:0.8rem;border-radius:6px;background:none;border:1px solid #fecaca;color:#dc2626;cursor:pointer;font-family:inherit;transition:background 0.15s,border-color 0.15s;" aria-label="Delete ${escapeHtml(displayName)}">🗑 Delete</button>
           </div>
         </div>
       `;

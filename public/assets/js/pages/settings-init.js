@@ -476,6 +476,46 @@ loadNotificationSettings();
   const form = document.getElementById('change-password-form');
   if (!form) return;
 
+  // Password strength indicator
+  const newPwInput = document.getElementById('cp-new');
+  const strengthBar = document.getElementById('cp-strength-bar');
+  const strengthFill = document.getElementById('cp-strength-fill');
+  const strengthLabel = document.getElementById('cp-strength-label');
+
+  function calcStrength(pw) {
+    let score = 0;
+    if (pw.length >= 8) score++;
+    if (pw.length >= 12) score++;
+    if (/[A-Z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw)) score++;
+    if (/[^A-Za-z0-9]/.test(pw)) score++;
+    return score;
+  }
+
+  newPwInput && newPwInput.addEventListener('input', () => {
+    const pw = newPwInput.value;
+    if (!pw) {
+      strengthBar.style.display = 'none';
+      strengthLabel.style.display = 'none';
+      return;
+    }
+    strengthBar.style.display = 'block';
+    strengthLabel.style.display = 'block';
+    const score = calcStrength(pw);
+    const levels = [
+      { pct: '20%',  color: '#ef4444', text: 'Very weak' },
+      { pct: '40%',  color: '#f97316', text: 'Weak' },
+      { pct: '60%',  color: '#eab308', text: 'Fair' },
+      { pct: '80%',  color: '#22c55e', text: 'Strong' },
+      { pct: '100%', color: '#10b981', text: 'Very strong' },
+    ];
+    const lvl = levels[Math.min(score, levels.length) - 1] || levels[0];
+    strengthFill.style.width = lvl.pct;
+    strengthFill.style.background = lvl.color;
+    strengthLabel.textContent = lvl.text;
+    strengthLabel.style.color = lvl.color;
+  });
+
   form.addEventListener('submit', async e => {
     e.preventDefault();
     const status = document.getElementById('cp-status');

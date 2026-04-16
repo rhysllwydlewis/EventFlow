@@ -158,7 +158,7 @@ window.__EF_PAGE__ = 'support';
           replyStatus.textContent = '';
           try {
             const csrf = await getCsrf();
-            const rr = await fetch('/api/v1/tickets/' + encodeURIComponent(sendBtn.dataset.ticketId) + '/replies', {
+            const rr = await fetch('/api/v1/tickets/' + encodeURIComponent(sendBtn.dataset.ticketId) + '/reply', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
               credentials: 'include',
@@ -198,6 +198,9 @@ window.__EF_PAGE__ = 'support';
   document.getElementById('new-ticket-btn').addEventListener('click', () => { createModal.classList.add('active'); });
   document.getElementById('create-ticket-close').addEventListener('click', () => { createModal.classList.remove('active'); });
   document.getElementById('create-ticket-cancel').addEventListener('click', () => { createModal.classList.remove('active'); });
+
+  // "Create first ticket" shortcut in empty state
+  document.getElementById('create-first-ticket-btn')?.addEventListener('click', () => { createModal.classList.add('active'); });
 
   document.getElementById('create-ticket-submit').addEventListener('click', async () => {
     const subject = document.getElementById('ticket-subject').value.trim();
