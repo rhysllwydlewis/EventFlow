@@ -67,8 +67,8 @@
         <div style="background:rgba(15,28,35,0.97);border:1px solid rgba(255,255,255,0.14);border-radius:16px;max-width:400px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.5);padding:1.5rem;">
           <p style="margin:0 0 1.25rem;font-size:0.92rem;color:rgba(255,255,255,0.85);line-height:1.55;white-space:pre-line;">${escHtml(message)}</p>
           <div style="display:flex;justify-content:flex-end;gap:0.75rem;">
-            <button id="_partner_confirm_cancel" class="partner-confirm-cancel">Cancel</button>
-            <button id="_partner_confirm_ok" class="partner-confirm-ok">Confirm</button>
+            <button type="button" id="_partner_confirm_cancel" class="partner-confirm-cancel">Cancel</button>
+            <button type="button" id="_partner_confirm_ok" class="partner-confirm-ok">Confirm</button>
           </div>
         </div>
       `;
