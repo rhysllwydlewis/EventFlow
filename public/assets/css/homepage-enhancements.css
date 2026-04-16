@@ -499,6 +499,7 @@ a:hover {
 }
 
 .ef-testimonial-dot {
+  position: relative;
   width: 8px;
   height: 8px;
   min-width: 8px;
@@ -507,8 +508,16 @@ a:hover {
   background: #d1d5db;
   border: none;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: background 0.3s ease, transform 0.3s ease;
   padding: 0;
+}
+
+/* Invisible tap area: expands hit target to 44×44px for WCAG 2.1 AA
+   without changing the visual 8px dot size */
+.ef-testimonial-dot::before {
+  content: '';
+  position: absolute;
+  inset: -18px;
 }
 
 .ef-testimonial-dot.active,
