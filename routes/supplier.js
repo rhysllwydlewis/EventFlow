@@ -24,6 +24,7 @@ const stripe = stripeSecretKey
 const TRIAL_DURATION_DAYS = 14;
 const DEFAULT_ANALYTICS_WINDOW_DAYS = 30;
 const MAX_ANALYTICS_WINDOW_DAYS = 90;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 /**
  * POST /api/supplier/trial/activate
@@ -690,6 +691,16 @@ router.post(
           error: 'Required fields are missing',
           missingFields,
         });
+      }
+
+      // Validate email format
+      // Prefer an updated email from the request body; fall back to the stored value.
+      // Using `|| ''` guards against null/undefined on both sides before the regex test.
+      // This is a practical format check; full RFC 5322 compliance is intentionally out of scope.
+      const rawBodyEmail = req.body.email?.trim() || '';
+      const emailValue = rawBodyEmail || String(supplier.email || '').trim();
+      if (!EMAIL_REGEX.test(emailValue)) {
+        return res.status(400).json({ error: 'Invalid email format' });
       }
 
       const now = new Date().toISOString();

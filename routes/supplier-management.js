@@ -10,6 +10,24 @@ const logger = require('../utils/logger');
 const catalogCache = require('../services/catalogCache');
 const router = express.Router();
 
+/**
+ * Maximum character lengths enforced when a supplier PATCHes their profile.
+ * Values are intentionally more generous than the CREATE limits to allow
+ * suppliers to enrich their profile over time.
+ */
+const PATCH_FIELD_MAX_LENGTHS = {
+  name: 120,
+  category: 80,
+  location: 200,
+  price_display: 60,
+  website: 200,
+  license: 120,
+  description_short: 300,
+  description_long: 5000,
+  bannerUrl: 500,
+  tagline: 200,
+};
+
 // Dependencies injected by server.js
 let dbUnified;
 let authRequired;
@@ -342,21 +360,9 @@ router.patch(
       }
     }
 
-    const fields = [
-      'name',
-      'category',
-      'location',
-      'price_display',
-      'website',
-      'license',
-      'description_short',
-      'description_long',
-      'bannerUrl',
-      'tagline',
-    ];
-    for (const k of fields) {
+    for (const [k, maxLen] of Object.entries(PATCH_FIELD_MAX_LENGTHS)) {
       if (typeof b[k] === 'string') {
-        supplierPatch[k] = b[k];
+        supplierPatch[k] = b[k].trim().substring(0, maxLen);
       }
     }
 

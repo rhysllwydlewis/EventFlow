@@ -837,3 +837,111 @@ describe('dashboard-supplier-verification.js — rejection and blocked state han
     expect(content).toContain('⏳');
   });
 });
+
+// ─── G) Email validation on verification submit ─────────────────────────────
+
+describe('routes/supplier.js — email validation on POST /verification/submit', () => {
+  const SUPPLIER_ROUTE = path.join(__dirname, '../../routes/supplier.js');
+  let content;
+
+  beforeAll(() => {
+    content = fs.readFileSync(SUPPLIER_ROUTE, 'utf8');
+  });
+
+  it('defines EMAIL_REGEX as a module-level constant', () => {
+    // Must be declared before any route handler so it is evaluated once at
+    // module load time, not inside a hot request path.
+    const regexDecl = content.indexOf('const EMAIL_REGEX');
+    const firstRouteDecl = content.indexOf('router.');
+    expect(regexDecl).not.toBe(-1);
+    expect(regexDecl).toBeLessThan(firstRouteDecl);
+  });
+
+  it('EMAIL_REGEX rejects addresses without an @ symbol', () => {
+    // Duplicate the regex here as a stable fixture rather than eval-ing it from source.
+    // If the source regex changes this test will still fail (the source check above
+    // ensures the constant exists at module level).
+    const EMAIL_REGEX_FIXTURE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    expect(EMAIL_REGEX_FIXTURE.test('notanemail')).toBe(false);
+    expect(EMAIL_REGEX_FIXTURE.test('user@example.com')).toBe(true);
+    expect(EMAIL_REGEX_FIXTURE.test('user@sub.domain.io')).toBe(true);
+    expect(EMAIL_REGEX_FIXTURE.test('@missinglocal.com')).toBe(false);
+    expect(EMAIL_REGEX_FIXTURE.test('missing@')).toBe(false);
+    // Also verify the source embeds the same pattern
+    expect(content).toContain(String(EMAIL_REGEX_FIXTURE));
+  });
+
+  it('validates email format and returns 400 on invalid input', () => {
+    const submitSection = content.slice(content.indexOf("'/verification/submit'"));
+    expect(submitSection.slice(0, 4000)).toContain('EMAIL_REGEX');
+    expect(submitSection.slice(0, 4000)).toContain('Invalid email format');
+    expect(submitSection.slice(0, 4000)).toContain('status(400)');
+  });
+
+  it('prefers updated email from request body, falls back to stored supplier email', () => {
+    const submitSection = content.slice(content.indexOf("'/verification/submit'"));
+    // Both rawBodyEmail and supplier.email paths must be present
+    expect(submitSection.slice(0, 4000)).toContain('rawBodyEmail');
+    expect(submitSection.slice(0, 4000)).toContain('supplier.email');
+  });
+
+  it('email validation runs AFTER the required-fields presence check', () => {
+    const submitSection = content.slice(content.indexOf("'/verification/submit'"));
+    // missingFields guard must appear before EMAIL_REGEX test
+    const missingFieldsPos = submitSection.indexOf('missingFields');
+    const emailRegexPos = submitSection.indexOf('EMAIL_REGEX');
+    expect(missingFieldsPos).not.toBe(-1);
+    expect(emailRegexPos).not.toBe(-1);
+    expect(missingFieldsPos).toBeLessThan(emailRegexPos);
+  });
+});
+
+// ─── H) PATCH field length enforcement ──────────────────────────────────────
+
+describe('routes/supplier-management.js — PATCH field max-length enforcement', () => {
+  let content;
+
+  beforeAll(() => {
+    content = fs.readFileSync(SUPPLIER_MANAGEMENT, 'utf8');
+  });
+
+  it('defines PATCH_FIELD_MAX_LENGTHS as a module-level constant', () => {
+    const mapDecl = content.indexOf('const PATCH_FIELD_MAX_LENGTHS');
+    // router.patch is the first route method for the PATCH handler — the constant
+    // must be declared before any route handler so it is evaluated at module load.
+    const patchRouteDecl = content.indexOf("router.patch(");
+    expect(mapDecl).not.toBe(-1);
+    expect(patchRouteDecl).not.toBe(-1);
+    expect(mapDecl).toBeLessThan(patchRouteDecl);
+  });
+
+  it('PATCH_FIELD_MAX_LENGTHS covers all expected string fields', () => {
+    const mapMatch = content.match(/const PATCH_FIELD_MAX_LENGTHS\s*=\s*\{([^}]+)\}/);
+    expect(mapMatch).toBeTruthy();
+    const mapBody = mapMatch[1];
+    for (const field of [
+      'name',
+      'category',
+      'location',
+      'price_display',
+      'website',
+      'license',
+      'description_short',
+      'description_long',
+      'bannerUrl',
+      'tagline',
+    ]) {
+      expect(mapBody).toContain(field);
+    }
+  });
+
+  it('applies .trim() and .substring() to each field in the PATCH loop', () => {
+    const patchSection = content.slice(content.indexOf("PATCH /api/me/suppliers/:id"));
+    expect(patchSection.slice(0, 2000)).toContain('.trim()');
+    expect(patchSection.slice(0, 2000)).toContain('.substring(0, maxLen)');
+  });
+
+  it('comment explains PATCH must never revoke approval', () => {
+    expect(content).toContain('must never revoke approval');
+  });
+});
