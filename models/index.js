@@ -14,6 +14,44 @@ const { marketplaceImageSchema } = require('./MarketplaceImage');
 // Schema definitions don't need direct collection access
 
 /**
+ * Shared enum constants — single source of truth for both the Mongo `$jsonSchema`
+ * validator and the runtime code (services, routes) that constructs documents.
+ *
+ * Adding a new value here is the ONLY place it needs to change; see
+ * `tests/integration/schema-enum-drift.test.js` for the guard that prevents
+ * schema/service drift.
+ */
+const USER_ROLES = Object.freeze(['customer', 'supplier', 'admin']);
+
+const NOTIFICATION_TYPES = Object.freeze([
+  'message',
+  'booking',
+  'payment',
+  'review',
+  'system',
+  'marketing',
+  'reminder',
+  'approval',
+  'update',
+  'ticket',
+  'announcement',
+]);
+
+const NOTIFICATION_PRIORITIES = Object.freeze(['low', 'normal', 'high', 'urgent']);
+
+const PAYMENT_STATUSES = Object.freeze(['pending', 'succeeded', 'failed', 'cancelled', 'refunded']);
+
+const PAYMENT_TYPES = Object.freeze(['one_time', 'subscription']);
+
+const BILLING_INTERVALS = Object.freeze(['month', 'year']);
+
+const BADGE_TYPES = Object.freeze(['founder', 'pro', 'pro-plus', 'verified', 'featured', 'custom']);
+
+const REVIEW_VOTE_TYPES = Object.freeze(['helpful', 'unhelpful']);
+
+const REVIEW_MODERATION_ACTIONS = Object.freeze(['approve', 'reject', 'flag', 'unflag']);
+
+/**
  * User Schema
  * Stores user accounts for customers, suppliers, and admins
  */
@@ -28,7 +66,7 @@ const userSchema = {
         firstName: { bsonType: 'string', description: 'User first name' },
         lastName: { bsonType: 'string', description: 'User last name' },
         email: { bsonType: 'string', description: 'User email address' },
-        role: { enum: ['customer', 'supplier', 'admin'], description: 'User role' },
+        role: { enum: [...USER_ROLES], description: 'User role' },
         passwordHash: { bsonType: 'string', description: 'Hashed password' },
         location: { bsonType: 'string', description: 'User location (UK county)' },
         postcode: { bsonType: 'string', description: 'User postcode (optional)' },
@@ -377,7 +415,7 @@ const badgeSchema = {
         name: { bsonType: 'string', description: 'Badge name' },
         slug: { bsonType: 'string', description: 'URL-friendly badge slug' },
         type: {
-          enum: ['founder', 'pro', 'pro-plus', 'verified', 'featured', 'custom'],
+          enum: [...BADGE_TYPES],
           description: 'Badge type',
         },
         description: { bsonType: 'string', description: 'Badge description' },
@@ -418,11 +456,11 @@ const paymentSchema = {
         amount: { bsonType: 'number', description: 'Payment amount' },
         currency: { bsonType: 'string', description: 'Payment currency (e.g., GBP, USD)' },
         status: {
-          enum: ['pending', 'succeeded', 'failed', 'cancelled', 'refunded'],
+          enum: [...PAYMENT_STATUSES],
           description: 'Payment status',
         },
         type: {
-          enum: ['one_time', 'subscription'],
+          enum: [...PAYMENT_TYPES],
           description: 'Payment type',
         },
         subscriptionDetails: {
@@ -432,7 +470,7 @@ const paymentSchema = {
             planId: { bsonType: 'string', description: 'Subscription plan ID' },
             planName: { bsonType: 'string', description: 'Subscription plan name' },
             interval: {
-              enum: ['month', 'year'],
+              enum: [...BILLING_INTERVALS],
               description: 'Billing interval',
             },
             currentPeriodStart: {
@@ -543,7 +581,7 @@ const reviewVoteSchema = {
         reviewId: { bsonType: 'string', description: 'Reviewed review ID' },
         userId: { bsonType: 'string', description: 'Voter user ID (optional for anonymous)' },
         voteType: {
-          enum: ['helpful', 'unhelpful'],
+          enum: [...REVIEW_VOTE_TYPES],
           description: 'Type of vote',
         },
         ipAddress: { bsonType: 'string', description: 'Voter IP address (hashed)' },
@@ -620,7 +658,7 @@ const reviewModerationSchema = {
         reviewId: { bsonType: 'string', description: 'Moderated review ID' },
         moderatorId: { bsonType: 'string', description: 'Moderator user ID' },
         action: {
-          enum: ['approve', 'reject', 'flag', 'unflag'],
+          enum: [...REVIEW_MODERATION_ACTIONS],
           description: 'Moderation action taken',
         },
         reason: { bsonType: 'string', description: 'Reason for action' },
@@ -648,19 +686,7 @@ const notificationSchema = {
         id: { bsonType: 'string', description: 'Unique notification identifier' },
         userId: { bsonType: 'string', description: 'Recipient user ID' },
         type: {
-          enum: [
-            'message',
-            'booking',
-            'payment',
-            'review',
-            'system',
-            'marketing',
-            'reminder',
-            'approval',
-            'update',
-            'ticket',
-            'announcement',
-          ],
+          enum: [...NOTIFICATION_TYPES],
           description: 'Notification type/category',
         },
         title: { bsonType: 'string', description: 'Notification title' },
@@ -669,7 +695,7 @@ const notificationSchema = {
         actionText: { bsonType: 'string', description: 'Text for action button' },
         icon: { bsonType: 'string', description: 'Icon identifier or emoji' },
         priority: {
-          enum: ['low', 'normal', 'high', 'urgent'],
+          enum: [...NOTIFICATION_PRIORITIES],
           description: 'Notification priority level',
         },
         category: { bsonType: 'string', description: 'Custom category tag' },
@@ -910,4 +936,14 @@ async function createIndexes(db) {
 module.exports = {
   initializeCollections,
   createIndexes,
+  // Enum constants — single source of truth shared with services/routes
+  USER_ROLES,
+  NOTIFICATION_TYPES,
+  NOTIFICATION_PRIORITIES,
+  PAYMENT_STATUSES,
+  PAYMENT_TYPES,
+  BILLING_INTERVALS,
+  BADGE_TYPES,
+  REVIEW_VOTE_TYPES,
+  REVIEW_MODERATION_ACTIONS,
 };

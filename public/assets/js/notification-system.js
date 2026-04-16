@@ -86,7 +86,11 @@
       const notification = document.createElement('div');
       notification.id = id;
       notification.className = `ef-notification ef-notification--${type}`;
-      notification.setAttribute('role', 'alert');
+      notification.setAttribute('role', type === 'error' ? 'alert' : 'status');
+      // Errors interrupt screen-reader output; other types wait politely.
+      // Container-level aria-live is 'polite' — override per-notification
+      // for errors so they're announced immediately.
+      notification.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
       notification.setAttribute('aria-atomic', 'true');
 
       // Icon bubble with glass effect
