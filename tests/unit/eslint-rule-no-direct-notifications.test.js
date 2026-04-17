@@ -43,6 +43,15 @@ tester.run('no-direct-notifications', rule, {
       code: 'typeof EventFlowNotifications !== "undefined";',
       filename: 'public/assets/js/pages/example.js',
     },
+    // Unrelated identifiers with the same method names must not trigger the rule.
+    {
+      code: 'someOther.success("ok");',
+      filename: 'public/assets/js/pages/example.js',
+    },
+    {
+      code: 'window.someOther.clearAll();',
+      filename: 'public/assets/js/pages/example.js',
+    },
   ],
   invalid: FORBIDDEN_METHODS.flatMap(method => [
     {
@@ -52,6 +61,17 @@ tester.run('no-direct-notifications', rule, {
     },
     {
       code: `window.EventFlowNotifications.${method}("boom");`,
+      filename: 'public/assets/js/pages/example.js',
+      errors: [{ messageId: 'noDirect' }],
+    },
+    // Optional-chain variants (common defensive pattern) must also be caught.
+    {
+      code: `EventFlowNotifications?.${method}("boom");`,
+      filename: 'public/assets/js/pages/example.js',
+      errors: [{ messageId: 'noDirect' }],
+    },
+    {
+      code: `window.EventFlowNotifications?.${method}("boom");`,
       filename: 'public/assets/js/pages/example.js',
       errors: [{ messageId: 'noDirect' }],
     },
