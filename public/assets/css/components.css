@@ -316,31 +316,30 @@
 
 /* Close Button
  *
- * The `!important` declarations below are required because the global CTA rule
- * in `styles.css` (`button:not(...)`, ~20 exclusions) already uses `!important`
- * on padding / font-size / border-radius. Higher selector specificity alone
- * cannot beat an `!important` rule, so we have to match specificity-level.
- *
- * The principled fix is Effort 2 in the large-effort plan: invert the global
- * rule to be opt-in (`.ef-cta`) instead of opt-out. Once that lands, these
- * `!important`s can be dropped.
+ * Historical note: the `!important` declarations here were added in a prior
+ * PR to beat the global opt-out CTA rule in `styles.css`. That concern is
+ * now moot — `.ef-notification__close` is in the opt-out rule's exclusion
+ * list, and the forthcoming `.ef-cta` opt-in rule (see B2) does not match
+ * this class either. The remaining `!important` declarations are kept only
+ * where a future stylesheet ordering change could reintroduce a specificity
+ * battle; removing them entirely is tracked in docs/BUTTON_STYLING.md.
  */
 .ef-notification__close {
   flex-shrink: 0;
-  width: 28px !important;
-  height: 28px !important;
-  padding: 0 !important;
+  width: 28px;
+  height: 28px;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(255, 255, 255, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.4) !important;
-  border-radius: 8px !important;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
   color: #6b7280;
-  font-size: 0 !important;
-  box-shadow: none !important;
+  font-size: 0;
+  box-shadow: none;
 }
 
 .ef-notification__close:hover {
@@ -356,13 +355,12 @@
 /* Keyboard-only focus ring: visible outline when tabbed to, invisible on mouse
  * click. Paired with the Esc-dismisses-top-toast keyboard shortcut in
  * notification-system.js — without this ring, keyboard users can't see which
- * close button they're about to activate. The `!important` matches the rest
- * of this block's specificity (see the comment above `.ef-notification__close`). */
+ * close button they're about to activate. */
 .ef-notification__close:focus-visible {
-  outline: 2px solid #3b82f6 !important;
-  outline-offset: 2px !important;
-  background: rgba(59, 130, 246, 0.15) !important;
-  color: #1e40af !important;
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+  background: rgba(59, 130, 246, 0.15);
+  color: #1e40af;
 }
 
 .ef-notification__close svg {
