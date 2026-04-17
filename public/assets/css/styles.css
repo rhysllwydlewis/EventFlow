@@ -15,7 +15,7 @@ img{max-width:100%;display:block;border-radius:12px}
 .nav{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.nav a{padding:10px 14px;border-radius:10px;color:#354052}.nav a[aria-current="page"]{background:#F2FBF9;color:var(--ink)}
 .cta{display:inline-flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#16c3ad,#0ea896);color:#fff;border:none;padding:12px 16px;border-radius:12px;font-weight:700;box-shadow:var(--shadow);cursor:pointer;transition:transform 140ms ease-out, box-shadow 160ms ease-out}
 .cta:hover{transform:translateY(-2px);box-shadow:0 16px 40px rgba(15,23,42,.18);text-decoration:none}
-.cta:focus-visible{outline:2px solid var(--ink, #0B8073);outline-offset:2px}
+.cta:focus-visible,.ef-cta:focus-visible{outline:2px solid var(--ink, #0B8073);outline-offset:2px}
 .cta.secondary{background:#F6FAF9;color:var(--ink);border:1px solid #CFEDEA;box-shadow:none}
 .cta.secondary:hover{background:#EDF7F5;transform:translateY(-1px);box-shadow:0 8px 20px rgba(11,128,115,.12)}
 .cta.ghost{background:#fff;border:1px solid var(--border);color:#0B1220;box-shadow:none}
