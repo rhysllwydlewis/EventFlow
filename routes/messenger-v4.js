@@ -16,6 +16,7 @@ const MessengerV4Service = require('../services/messenger-v4.service');
 const { CONVERSATION_V4_TYPES, CONVERSATION_CONTEXT_TYPES } = require('../models/ConversationV4');
 const NotificationService = require('../services/notification.service');
 const messengerMetrics = require('../services/messengerMetrics');
+const { setQueueContext } = require('../services/queue');
 
 // Returns true if a string looks like an email address — used to prevent
 // email addresses from being stored as participant display names.
@@ -176,6 +177,9 @@ function initialize(dependencies) {
       : () => dependencies.wsServer || null;
   postmark = dependencies.postmark;
   logger = dependencies.logger;
+  getDbInstance().then(dbInstance => {
+    setQueueContext({ db: dbInstance, logger, postmark });
+  });
 
   // Service will be initialized lazily on first request
   _messengerServicePromise = null;
@@ -563,7 +567,7 @@ router.post(
       if (!isValidObjectId(conversationId)) {
         return res.status(400).json({ error: 'Invalid conversation ID' });
       }
-      const { content, type = 'text', replyTo, clientMessageId } = req.body;
+      const { content, type = 'text', replyTo, replyToMessageId, clientMessageId } = req.body;
 
       // Validate message type against allowed values
       const ALLOWED_MESSAGE_TYPES = ['text', 'image', 'file', 'system'];
@@ -669,6 +673,7 @@ router.post(
         type,
         attachments,
         replyTo: parsedReplyTo,
+        replyToMessageId: replyToMessageId || parsedReplyTo?._id || null,
         clientMessageId: normalisedClientMessageId,
       };
 
@@ -684,56 +689,6 @@ router.post(
         conversationId,
         message,
       });
-
-      // Notify all non-muted recipients: in-app notification + email for offline users.
-      // Both are intentionally fire-and-forget (non-blocking) so that a notification
-      // failure never delays the HTTP response. Each call has a .catch() handler to
-      // prevent unhandled promise rejections.
-      try {
-        const recipientIds = conversation.participants
-          .filter(p => p.userId !== userId && !p.isMuted)
-          .map(p => p.userId);
-
-        // Create in-app notifications via the canonical NotificationService
-        const notifSvc = await getNotificationService();
-        const messagePreview = (content || '').substring(0, 100) || null;
-
-        // Hoist per-request constants out of the loop — identical for every recipient
-        const dbInstance = await getDbInstance();
-        // Strip CR/LF to prevent email header injection (computed once, reused below)
-        const safeUserName = userName.replace(/[\r\n]/g, ' ').trim();
-        const safeTitle = (conversation.context?.referenceTitle || '')
-          .replace(/[\r\n]/g, ' ')
-          .trim();
-        const contextInfo = safeTitle ? ` (Re: ${safeTitle})` : '';
-
-        for (const recipientId of recipientIds) {
-          // In-app notification (stored in DB + real-time WebSocket push) — non-blocking
-          notifSvc
-            .notifyNewMessage(recipientId, userName, conversationId, messagePreview)
-            .catch(notifError => {
-              logger.error('Failed to create in-app notification:', notifError);
-            });
-
-          // Email notification for offline users — non-blocking
-          const recipient = await dbInstance.collection('users').findOne({ id: recipientId });
-          if (recipient && recipient.email && postmark && typeof postmark.sendMail === 'function') {
-            postmark
-              .sendMail({
-                to: recipient.email,
-                subject: `New message from ${safeUserName}${contextInfo}`,
-                text: `${safeUserName} sent you a message:\n\n"${(content || '').substring(0, 200)}${(content || '').length > 200 ? '...' : ''}"\n\nView conversation: ${process.env.BASE_URL || 'https://event-flow.co.uk'}/messenger/?conversation=${conversationId}`,
-                from: postmark.FROM_NOREPLY,
-              })
-              .catch(emailError => {
-                logger.error('Failed to send email notification:', emailError);
-              });
-          }
-        }
-      } catch (notificationError) {
-        logger.error('Error sending notifications:', notificationError);
-        // Don't fail the request if notifications fail
-      }
 
       messengerMetrics.increment('messenger_v4_messages_sent_total');
       logger.info('messenger_v4 message_sent', {

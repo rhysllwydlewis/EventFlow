@@ -42,22 +42,38 @@ class MessageBubbleV4 {
    * @param {string} currentUserId - Logged-in user's ID
    * @returns {string} HTML string
    */
-  static render(message, currentUserId) {
+  static render(message, currentUserId, options = {}) {
     const isSent = message.senderId === currentUserId;
     const side = isSent ? 'sent' : 'received';
     const time = MessageBubbleV4._formatTime(message.createdAt || message.timestamp);
+    const isSystem = message.type === 'system';
+    if (isSystem) {
+      return `
+      <div class="messenger-v4__system-message" data-id="${MessageBubbleV4.escape(message._id)}" role="status">
+        ${MessageBubbleV4.escape(message.content || 'System update')}
+      </div>`;
+    }
     const editedLabel = message.isEdited
       ? '<span class="messenger-v4__edited-label" aria-label="Edited">(edited)</span>'
       : '';
     const canEdit = isSent && MessageBubbleV4._withinEditWindow(message.createdAt);
+    const showSenderMeta = options.showSenderMeta !== false;
+    const participantCount = Number(options.participantCount || 0);
+    const groupTotal = Math.max(0, participantCount - 1);
+    const readCount = Math.max(
+      0,
+      (Array.isArray(message.readBy) ? message.readBy : []).filter(r => r.userId !== currentUserId)
+        .length
+    );
+    const showReadByHint = isSent && participantCount > 2;
 
     return `
       <div class="messenger-v4__message messenger-v4__message--${MessageBubbleV4.escape(side)}"
            data-id="${MessageBubbleV4.escape(message._id)}"
-           data-sender="${MessageBubbleV4.escape(message.senderId)}">
-        ${!isSent ? `<div class="messenger-v4__message-avatar" aria-hidden="true">${MessageBubbleV4.escape((message.senderName || 'U').charAt(0).toUpperCase())}</div>` : ''}
+            data-sender="${MessageBubbleV4.escape(message.senderId)}">
+        ${!isSent && showSenderMeta ? `<div class="messenger-v4__message-avatar" aria-hidden="true">${MessageBubbleV4.escape((message.senderName || 'U').charAt(0).toUpperCase())}</div>` : ''}
         <div class="messenger-v4__message-content">
-          ${!isSent && message.senderName ? `<span class="messenger-v4__message-sender">${MessageBubbleV4.escape(message.senderName)}</span>` : ''}
+          ${!isSent && showSenderMeta && message.senderName ? `<span class="messenger-v4__message-sender">${MessageBubbleV4.escape(message.senderName)}</span>` : ''}
           ${message.replyTo ? MessageBubbleV4.renderReplyTo(message.replyTo) : ''}
           <div class="messenger-v4__message-bubble" role="article">
             ${message.attachments?.length ? message.attachments.map(a => MessageBubbleV4.renderAttachment(a)).join('') : ''}
@@ -68,6 +84,7 @@ class MessageBubbleV4 {
             <time class="messenger-v4__message-time" datetime="${MessageBubbleV4.escape(message.createdAt || '')}">${MessageBubbleV4.escape(time)}</time>
             ${isSent ? MessageBubbleV4.renderReadReceipt(message.viewerStatus || message.status) : ''}
           </div>
+          ${showReadByHint ? `<button class="ef-cta messenger-v4__readby-hint" data-action="readby" data-message-id="${MessageBubbleV4.escape(message._id)}" aria-label="Read by ${readCount} of ${groupTotal} participants">Read by ${readCount}/${groupTotal}</button>` : ''}
           ${message.reactions?.length ? MessageBubbleV4.renderReactions(message.reactions, message._id) : ''}
         </div>
         <button class="ef-cta messenger-v4__context-menu-btn"
@@ -161,24 +178,27 @@ class MessageBubbleV4 {
 
   /**
    * Render the quoted reply-to preview shown above the bubble.
-   * @param {Object} replyTo - { senderName, content, attachments }
+   * @param {Object} replyTo - { id, senderName, snippet }
    * @returns {string}
    */
   static renderReplyTo(replyTo) {
     if (!replyTo) {
       return '';
     }
-    const preview = replyTo.content
-      ? MessageBubbleV4.escape(replyTo.content.substring(0, 80))
-      : replyTo.attachments?.length
-        ? '📎 Attachment'
-        : '';
+    const preview = replyTo.snippet
+      ? MessageBubbleV4.escape(String(replyTo.snippet).substring(0, 80))
+      : replyTo.content
+        ? MessageBubbleV4.escape(String(replyTo.content).substring(0, 80))
+        : replyTo.attachments?.length
+          ? '📎 Attachment'
+          : '';
+    const refId = replyTo.id || replyTo.messageId || replyTo._id || '';
 
     return `
-      <div class="messenger-v4__reply-preview" aria-label="Reply to ${MessageBubbleV4.escape(replyTo.senderName || 'message')}">
+      <button class="ef-cta messenger-v4__reply-preview" data-reply-target-id="${MessageBubbleV4.escape(refId)}" aria-label="Reply to ${MessageBubbleV4.escape(replyTo.senderName || 'message')}">
         <span class="messenger-v4__reply-preview-sender">${MessageBubbleV4.escape(replyTo.senderName || 'Unknown')}</span>
-        <span class="messenger-v4__reply-preview-text">${preview}</span>
-      </div>`;
+        <span class="messenger-v4__reply-preview-snippet">${preview}</span>
+      </button>`;
   }
 
   /**

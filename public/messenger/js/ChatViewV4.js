@@ -34,6 +34,9 @@ class ChatViewV4 {
     this.isLoadingOlder = false;
     this.hasMoreMessages = true;
     this.oldestCursor = null; // cursor (message ID) for pagination
+    this.virtualList = window.VirtualList ? new window.VirtualList(80) : null;
+    this.readByModal = window.ReadByModal ? new window.ReadByModal() : null;
+    this.connectionState = 'IDLE';
 
     // Bound handlers
     this._onNewMessage = this._onNewMessage.bind(this);
@@ -73,7 +76,11 @@ class ChatViewV4 {
             <span class="messenger-v4__chat-header-status" id="v4ChatHeaderStatus"></span>
           </div>
         </a>
+        <span class="messenger-v4__reconnect-pill" id="v4ReconnectPill" aria-live="polite" style="display:none">Reconnecting…</span>
         <div class="messenger-v4__chat-actions">
+          <button class="ef-cta messenger-v4__action-button" id="v4ParticipantsBtn" aria-label="Participants" title="Participants">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6"/><path d="M23 11h-6"/></svg>
+          </button>
           <button class="ef-cta messenger-v4__action-button" id="v4PinBtn" aria-label="Pin conversation" title="Pin">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17H19V13L14 3H10L5 13V17Z"/></svg>
           </button>
@@ -107,6 +114,13 @@ class ChatViewV4 {
         </button>
         <img class="messenger-v4__lightbox-img" id="v4LightboxImg" alt="Full size attachment" />
       </div>
+      <aside class="messenger-v4__participants-drawer" id="v4ParticipantsDrawer" aria-label="Participants" hidden>
+        <div class="messenger-v4__participants-drawer-header">
+          <h3>Participants</h3>
+          <button class="ef-cta messenger-v4__action-button" id="v4ParticipantsClose" aria-label="Close participants">×</button>
+        </div>
+        <ul class="messenger-v4__participants-list" id="v4ParticipantsList"></ul>
+      </aside>
     `;
 
     this.messagesEl = this.container.querySelector('#v4Messages');
@@ -114,6 +128,8 @@ class ChatViewV4 {
     this.scrollBtn = this.container.querySelector('#v4ScrollToBottom');
     this.lightbox = this.container.querySelector('#v4Lightbox');
     this.lightboxImg = this.container.querySelector('#v4LightboxImg');
+    this.reconnectPill = this.container.querySelector('#v4ReconnectPill');
+    this.participantsDrawer = this.container.querySelector('#v4ParticipantsDrawer');
   }
 
   attachEventListeners() {
@@ -182,6 +198,12 @@ class ChatViewV4 {
     this.container.querySelector('#v4BackBtn').addEventListener('click', () => {
       window.dispatchEvent(new CustomEvent('messenger:mobile-back'));
     });
+    this.container.querySelector('#v4ParticipantsBtn').addEventListener('click', () => {
+      this._toggleParticipantsDrawer(true);
+    });
+    this.container.querySelector('#v4ParticipantsClose').addEventListener('click', () => {
+      this._toggleParticipantsDrawer(false);
+    });
 
     // Delegated click: image lightbox + context menu + context menu items + reaction pills
     this.messagesEl.addEventListener('click', e => {
@@ -219,6 +241,24 @@ class ChatViewV4 {
             detail: { messageId: reactionBtn.dataset.messageId, emoji: reactionBtn.dataset.emoji },
           })
         );
+        return;
+      }
+
+      const readByBtn = e.target.closest('.messenger-v4__readby-hint[data-message-id]');
+      if (readByBtn) {
+        const msgId = readByBtn.dataset.messageId;
+        const conv = this.state.conversations.find(c => c._id === this.conversationId) || {};
+        const msgs = this.state ? this.state.getMessages(this.conversationId) : [];
+        const msg = msgs.find(m => String(m._id) === String(msgId));
+        if (msg && conv.participants?.length > 2 && this.readByModal) {
+          this.readByModal.open({ message: msg, participants: conv.participants || [] });
+        }
+        return;
+      }
+
+      const replyPreview = e.target.closest('.messenger-v4__reply-preview[data-reply-target-id]');
+      if (replyPreview) {
+        this._scrollToMessage(replyPreview.dataset.replyTargetId);
         return;
       }
 
@@ -341,8 +381,17 @@ class ChatViewV4 {
       this.messagesEl.insertAdjacentHTML('beforeend', dateSep);
     }
 
+    const conv = this.state.conversations.find(c => c._id === this.conversationId) || {};
+    const prevIsGrouped =
+      prevMsg &&
+      prevMsg.senderId === msg.senderId &&
+      new Date(msg.createdAt || 0).getTime() - new Date(prevMsg.createdAt || 0).getTime() <=
+        5 * 60 * 1000;
     const html = MessageBubbleV4
-      ? MessageBubbleV4.render(msg, currentUser?.id || currentUser?._id)
+      ? MessageBubbleV4.render(msg, currentUser?.id || currentUser?._id, {
+          showSenderMeta: !prevIsGrouped,
+          participantCount: Array.isArray(conv.participants) ? conv.participants.length : 0,
+        })
       : this._buildMessageHTML(msg, currentUser);
 
     const wrapper = document.createElement('div');
@@ -351,6 +400,7 @@ class ChatViewV4 {
     if (el) {
       el.classList.add('messenger-v4__message--fade-in');
       this.messagesEl.appendChild(el);
+      this._emitMessageRendered(msg);
     }
 
     if (wasAtBottom) {
@@ -373,15 +423,26 @@ class ChatViewV4 {
     const uid = currentUser?.id || currentUser?._id;
 
     let html = '';
+    const conv = this.state.conversations.find(c => c._id === this.conversationId) || {};
+    const participantCount = Array.isArray(conv.participants) ? conv.participants.length : 0;
     for (let i = 0; i < msgs.length; i++) {
       const prev = i === 0 ? null : msgs[i - 1];
+      const grouped =
+        prev &&
+        prev.senderId === msgs[i].senderId &&
+        new Date(msgs[i].createdAt || 0).getTime() - new Date(prev.createdAt || 0).getTime() <=
+          5 * 60 * 1000;
       html += this._maybeDateSeparator(prev, msgs[i]) || '';
       html += MessageBubbleV4
-        ? MessageBubbleV4.render(msgs[i], uid)
+        ? MessageBubbleV4.render(msgs[i], uid, {
+            showSenderMeta: !grouped,
+            participantCount,
+          })
         : this._buildMessageHTML(msgs[i], currentUser);
     }
 
     this.messagesEl.insertAdjacentHTML('afterbegin', html);
+    msgs.forEach(m => this._emitMessageRendered(m));
 
     // Restore scroll position so user doesn't jump
     this.messagesEl.scrollTop = this.messagesEl.scrollHeight - prevHeight;
@@ -433,6 +494,7 @@ class ChatViewV4 {
   /** Clean up all listeners. */
   destroy() {
     this._onLightboxClose(); // restore body overflow if lightbox was open
+    this.readByModal?.close?.();
     if (this._onKeyDown) {
       document.removeEventListener('keydown', this._onKeyDown);
       this._onKeyDown = null;
@@ -465,6 +527,7 @@ class ChatViewV4 {
   _renderHeader(conv) {
     const currentUser = this.state.currentUser;
     const uid = currentUser?.id || currentUser?._id;
+    const isGroup = (conv.participants || []).length > 2;
     const other = conv.participants?.find(p => p.userId !== uid) || {};
     const isOnline = this.state.getPresence(other.userId)?.state === 'online';
 
@@ -474,10 +537,14 @@ class ChatViewV4 {
     )
       .charAt(0)
       .toUpperCase();
-    this.container.querySelector('#v4ChatHeaderName').textContent = _cv4SafeName(other.displayName);
-    this.container.querySelector('#v4ChatHeaderStatus').textContent = isOnline
-      ? 'Online'
-      : 'Offline';
+    this.container.querySelector('#v4ChatHeaderName').textContent = isGroup
+      ? conv.metadata?.title || `${(conv.participants || []).length} participants`
+      : _cv4SafeName(other.displayName);
+    this.container.querySelector('#v4ChatHeaderStatus').textContent = isGroup
+      ? 'Group conversation'
+      : isOnline
+        ? 'Online'
+        : 'Offline';
 
     const dot = this.container.querySelector('#v4HeaderPresenceDot');
     dot.classList.toggle('messenger-v4__presence-dot--online', isOnline);
@@ -498,6 +565,7 @@ class ChatViewV4 {
     const me = conv.participants?.find(p => p.userId === uid);
     const isUnread = me ? (me.unreadCount || 0) > 0 : false;
     this._updateMarkUnreadBtn(isUnread);
+    this._renderParticipants(conv);
 
     // Show back button on mobile
     if (window.innerWidth <= 767) {
@@ -534,17 +602,29 @@ class ChatViewV4 {
 
     const currentUser = this.state.currentUser;
     const uid = currentUser?.id || currentUser?._id;
+    const conv = this.state.conversations.find(c => c._id === this.conversationId) || {};
+    const participantCount = Array.isArray(conv.participants) ? conv.participants.length : 0;
+    const source = this.virtualList ? this.virtualList.setItems(messages).items : messages;
     let html = '';
 
-    for (let i = 0; i < messages.length; i++) {
-      const prev = i === 0 ? null : messages[i - 1];
-      html += this._maybeDateSeparator(prev, messages[i]) || '';
+    for (let i = 0; i < source.length; i++) {
+      const prev = i === 0 ? null : source[i - 1];
+      const grouped =
+        prev &&
+        prev.senderId === source[i].senderId &&
+        new Date(source[i].createdAt || 0).getTime() - new Date(prev.createdAt || 0).getTime() <=
+          5 * 60 * 1000;
+      html += this._maybeDateSeparator(prev, source[i]) || '';
       html += MessageBubbleV4
-        ? MessageBubbleV4.render(messages[i], uid)
-        : this._buildMessageHTML(messages[i], currentUser);
+        ? MessageBubbleV4.render(source[i], uid, {
+            showSenderMeta: !grouped,
+            participantCount,
+          })
+        : this._buildMessageHTML(source[i], currentUser);
     }
 
     this.messagesEl.innerHTML = html;
+    source.forEach(m => this._emitMessageRendered(m));
   }
 
   /**
@@ -852,6 +932,70 @@ class ChatViewV4 {
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
+  }
+
+  setConnectionState(state) {
+    this.connectionState = state;
+    if (!this.reconnectPill) {
+      return;
+    }
+    this.reconnectPill.style.display = state === 'LIVE' ? 'none' : 'inline-flex';
+    this.reconnectPill.textContent = state === 'LIVE' ? '' : 'Reconnecting…';
+  }
+
+  _emitMessageRendered(msg) {
+    if (!msg || !this.conversationId) {
+      return;
+    }
+    window.dispatchEvent(
+      new CustomEvent('messenger:message-rendered', {
+        detail: { conversationId: this.conversationId, message: msg },
+      })
+    );
+  }
+
+  _scrollToMessage(messageId) {
+    if (!messageId || !this.messagesEl) {
+      return;
+    }
+    const target = this.messagesEl.querySelector(`[data-id="${CSS.escape(String(messageId))}"]`);
+    if (!target) {
+      return;
+    }
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    target.classList.add('messenger-v4__message--highlight');
+    setTimeout(() => target.classList.remove('messenger-v4__message--highlight'), 1500);
+  }
+
+  _renderParticipants(conv) {
+    const list = this.container.querySelector('#v4ParticipantsList');
+    if (!list) {
+      return;
+    }
+    list.innerHTML = (conv.participants || [])
+      .map(p => {
+        const online = this.state.getPresence(p.userId)?.state === 'online';
+        const statusCls = online
+          ? 'messenger-v4__participants-status messenger-v4__participants-status--online'
+          : 'messenger-v4__participants-status';
+        return `<li class="messenger-v4__participants-row">
+          <span class="messenger-v4__participants-avatar">${this.escape((p.displayName || 'U').charAt(0).toUpperCase())}</span>
+          <span class="messenger-v4__participants-name">${this.escape(p.displayName || p.userId)}</span>
+          <span class="${statusCls}">${online ? 'Online' : 'Active'}</span>
+        </li>`;
+      })
+      .join('');
+  }
+
+  _toggleParticipantsDrawer(open) {
+    if (!this.participantsDrawer) {
+      return;
+    }
+    if (open) {
+      this.participantsDrawer.hidden = false;
+    } else {
+      this.participantsDrawer.hidden = true;
+    }
   }
 }
 

@@ -10,6 +10,7 @@ const { validateConversation, validateMessage } = require('../models/Conversatio
 const contentSanitizer = require('./contentSanitizer');
 const spamDetection = require('./spamDetection');
 const { getMessagingLimitsForTier } = require('../config/messagingLimits');
+const { enqueueNotificationJob } = require('./queue');
 
 class MessengerV4Service {
   constructor(db, logger) {
@@ -21,6 +22,14 @@ class MessengerV4Service {
     // power gap-detection / reconciliation on the client.  One document per
     // conversation: { _id: <conversationId>, seq: <int> }.
     this.countersCollection = db.collection('conversation_counters');
+    this.transactionsEnabled = process.env.MONGO_REPLICA_SET === 'true';
+    this.mongoClient = db.client || db.s?.client || null;
+    if (!this.transactionsEnabled && !MessengerV4Service._txnWarningLogged) {
+      this.logger.warn(
+        '[messenger-v4] Mongo transactions disabled (set MONGO_REPLICA_SET=true after replica-set migration)'
+      );
+      MessengerV4Service._txnWarningLogged = true;
+    }
   }
 
   /**
@@ -29,7 +38,8 @@ class MessengerV4Service {
    * @param {ObjectId|string} conversationId
    * @returns {Promise<number>} The newly-allocated sequence number (>=1).
    */
-  async _nextSeq(conversationId) {
+  async _nextSeq(conversationId, options = {}) {
+    const session = options.session || null;
     const _id = conversationId instanceof ObjectId ? conversationId : new ObjectId(conversationId);
     // findOneAndUpdate with upsert+returnDocument:'after' gives us an atomic increment.
     // Fall back to a read-then-write when the driver helper isn't available (in-memory
@@ -38,7 +48,7 @@ class MessengerV4Service {
       const res = await this.countersCollection.findOneAndUpdate(
         { _id },
         { $inc: { seq: 1 } },
-        { upsert: true, returnDocument: 'after' }
+        { upsert: true, returnDocument: 'after', ...(session ? { session } : {}) }
       );
       // Drivers vary: result may be the doc directly or { value: doc }.
       const doc = res && res.value !== undefined ? res.value : res;
@@ -47,14 +57,46 @@ class MessengerV4Service {
       }
     }
     // Fallback path (test in-memory db).  Not atomic, but tests are single-threaded.
-    const existing = await this.countersCollection.findOne({ _id });
+    const existing = await this.countersCollection.findOne({ _id }, session ? { session } : {});
     const next = existing && typeof existing.seq === 'number' ? existing.seq + 1 : 1;
     if (existing) {
-      await this.countersCollection.updateOne({ _id }, { $set: { seq: next } });
+      await this.countersCollection.updateOne(
+        { _id },
+        { $set: { seq: next } },
+        session ? { session } : {}
+      );
     } else {
-      await this.countersCollection.insertOne({ _id, seq: next });
+      await this.countersCollection.insertOne({ _id, seq: next }, session ? { session } : {});
     }
     return next;
+  }
+
+  async _runRetryableTransaction(operation, maxRetries = 3) {
+    if (!this.mongoClient || !this.transactionsEnabled) {
+      return operation(null);
+    }
+    let lastError;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      const session = this.mongoClient.startSession();
+      try {
+        let result;
+        await session.withTransaction(async () => {
+          result = await operation(session);
+        });
+        await session.endSession();
+        return result;
+      } catch (err) {
+        lastError = err;
+        const retryable =
+          err?.errorLabels?.includes('TransientTransactionError') ||
+          err?.errorLabels?.includes('UnknownTransactionCommitResult');
+        await session.endSession();
+        if (!retryable || attempt === maxRetries) {
+          throw err;
+        }
+      }
+    }
+    throw lastError;
   }
 
   /**
@@ -533,12 +575,26 @@ class MessengerV4Service {
       throw new Error(`Rate limit exceeded. ${rateLimitCheck.message}`);
     }
 
-    // Allocate the monotonic seq BEFORE insert so consumers can rely on
-    // `seq` being present on every v4 message going forward.
-    const seq = await this._nextSeq(conversationId);
-
     // Create message
     const now = new Date();
+    const replyToRawId = messageData.replyToMessageId || messageData.replyTo?._id || null;
+    let replyToMessageId = null;
+    let replyTo = null;
+    if (replyToRawId && ObjectId.isValid(replyToRawId)) {
+      replyToMessageId = new ObjectId(replyToRawId);
+      const parent = await this.messagesCollection.findOne({
+        _id: replyToMessageId,
+        conversationId: new ObjectId(conversationId),
+      });
+      if (parent) {
+        replyTo = {
+          id: parent._id.toString(),
+          snippet: (parent.content || '').substring(0, 120),
+          senderId: parent.senderId,
+          senderName: parent.senderName,
+        };
+      }
+    }
     const message = {
       conversationId: new ObjectId(conversationId),
       senderId: messageData.senderId,
@@ -547,7 +603,8 @@ class MessengerV4Service {
       content: sanitizedContent,
       type: messageData.type || 'text',
       attachments: messageData.attachments || [],
-      replyTo: messageData.replyTo || null,
+      replyToMessageId,
+      replyTo,
       reactions: [],
       readBy: [
         {
@@ -564,7 +621,8 @@ class MessengerV4Service {
       ],
       // Monotonic per-conversation sequence; drives client reconciliation
       // (sinceSeq catch-up, gap detection, ordered buffer flush).
-      seq,
+      // Assigned immediately before insert in the write path.
+      seq: null,
       // Optional client-supplied dedupe key.  Null when absent so the unique
       // partial index only enforces uniqueness on present values.
       clientMessageId: clientMessageId,
@@ -573,70 +631,96 @@ class MessengerV4Service {
       createdAt: now,
     };
 
-    let result;
-    try {
-      result = await this.messagesCollection.insertOne(message);
-    } catch (err) {
-      // The unique partial index on (conversationId, senderId, clientMessageId)
-      // can reject a racing double-insert.  In that case, resolve to the
-      // existing row so the caller still sees a successful, idempotent result.
-      if (clientMessageId && err && (err.code === 11000 || /duplicate key/i.test(err.message))) {
-        const existing = await this.messagesCollection.findOne({
-          conversationId: new ObjectId(conversationId),
-          senderId: messageData.senderId,
-          clientMessageId,
-        });
-        if (existing) {
-          return existing;
+    const writeMessageAndConversation = async session => {
+      message.seq = await this._nextSeq(conversationId, { session });
+      let result;
+      try {
+        result = await this.messagesCollection.insertOne(message, session ? { session } : {});
+      } catch (err) {
+        if (clientMessageId && err && (err.code === 11000 || /duplicate key/i.test(err.message))) {
+          const existing = await this.messagesCollection.findOne({
+            conversationId: new ObjectId(conversationId),
+            senderId: messageData.senderId,
+            clientMessageId,
+          });
+          if (existing) {
+            return existing;
+          }
         }
+        throw err;
       }
-      throw err;
-    }
-    message._id = result.insertedId;
 
-    // Update conversation's lastMessage and increment message count
-    const updateOps = {
-      lastMessage: {
-        content: sanitizedContent.substring(0, 100),
-        senderId: messageData.senderId,
-        senderName: messageData.senderName,
-        sentAt: now,
-        type: message.type,
-      },
-      updatedAt: now,
+      if (messageData.__simulateFailureAfterInsert) {
+        throw new Error('Simulated failure after insert');
+      }
+
+      message._id = result.insertedId;
+      const updateOps = {
+        lastMessage: {
+          content: sanitizedContent.substring(0, 100),
+          senderId: messageData.senderId,
+          senderName: messageData.senderName,
+          sentAt: now,
+          type: message.type,
+        },
+        updatedAt: now,
+      };
+
+      const bulkOps = conversation.participants
+        .map((participant, index) => {
+          if (participant.userId !== messageData.senderId) {
+            return {
+              updateOne: {
+                filter: { _id: new ObjectId(conversationId) },
+                update: { $inc: { [`participants.${index}.unreadCount`]: 1 } },
+              },
+            };
+          }
+          return null;
+        })
+        .filter(Boolean);
+
+      await this.conversationsCollection.updateOne(
+        { _id: new ObjectId(conversationId) },
+        {
+          $set: updateOps,
+          $inc: { messageCount: 1 },
+        },
+        session ? { session } : {}
+      );
+
+      if (bulkOps.length > 0) {
+        await this.conversationsCollection.bulkWrite(bulkOps, session ? { session } : {});
+      }
+      return message;
     };
 
-    // Increment unread count for all participants except sender
-    const bulkOps = conversation.participants
-      .map((participant, index) => {
-        if (participant.userId !== messageData.senderId) {
-          return {
-            updateOne: {
-              filter: { _id: new ObjectId(conversationId) },
-              update: { $inc: { [`participants.${index}.unreadCount`]: 1 } },
-            },
-          };
-        }
-        return null;
-      })
-      .filter(Boolean);
-
-    await this.conversationsCollection.updateOne(
-      { _id: new ObjectId(conversationId) },
-      {
-        $set: updateOps,
-        $inc: { messageCount: 1 },
-      }
-    );
-
-    if (bulkOps.length > 0) {
-      await this.conversationsCollection.bulkWrite(bulkOps);
+    const inserted = await this._runRetryableTransaction(writeMessageAndConversation);
+    if (inserted && inserted !== message) {
+      return inserted;
     }
 
     this.logger.info('Message sent', {
       messageId: message._id,
       conversationId,
       senderId: messageData.senderId,
+    });
+
+    const recipients = conversation.participants
+      .filter(p => p.userId !== messageData.senderId && !p.isMuted)
+      .map(p => p.userId);
+    enqueueNotificationJob({
+      messageId: String(message._id),
+      conversationId: String(conversationId),
+      recipients,
+      senderName: messageData.senderName,
+      preview: (sanitizedContent || '').substring(0, 200),
+      contextTitle: conversation.context?.referenceTitle || '',
+    }).catch(error => {
+      this.logger.error('[messenger-v4] Failed to enqueue notification job', {
+        error: error.message,
+        messageId: String(message._id),
+      });
     });
 
     return message;

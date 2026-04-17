@@ -54,29 +54,27 @@ describe('Notification service consolidation', () => {
     expect(routerSrc).toContain('getNotificationService');
   });
 
-  it('messenger-v4 calls notifyNewMessage after sending a message', () => {
-    expect(routerSrc).toContain('notifyNewMessage');
+  it('messenger-v4 service enqueues notification jobs after send', () => {
+    const messengerSvcSrc = read('services/messenger-v4.service.js');
+    expect(messengerSvcSrc).toContain('enqueueNotificationJob');
+    expect(messengerSvcSrc).toContain('messageId: String(message._id)');
   });
 
-  it('email notification strips CR/LF from sender name to prevent header injection', () => {
-    expect(routerSrc).toContain("userName.replace(/[\\r\\n]/g, ' ')");
+  it('email worker strips CR/LF from sender name to prevent header injection', () => {
+    const emailWorkerSrc = read('services/queue/workers/email.worker.js');
+    expect(emailWorkerSrc).toContain("replace(/[\\r\\n]/g, ' ')");
   });
 
-  it('email notification strips CR/LF from referenceTitle to prevent header injection', () => {
-    // referenceTitle is used in the Subject line; must be sanitised
-    expect(routerSrc).toContain('referenceTitle');
-    expect(routerSrc).toContain(".replace(/[\\r\\n]/g, ' ')");
+  it('email worker strips CR/LF from context title to prevent header injection', () => {
+    const emailWorkerSrc = read('services/queue/workers/email.worker.js');
+    expect(emailWorkerSrc).toContain('contextTitle');
+    expect(emailWorkerSrc).toContain("replace(/[\\r\\n]/g, ' ')");
   });
 
-  it('getDbInstance is not called inside the per-recipient loop (hoisted for efficiency)', () => {
-    // The loop body should access the already-resolved dbInstance, not call getDbInstance() again
-    const loopStart = routerSrc.indexOf('for (const recipientId of recipientIds)');
-    expect(loopStart).toBeGreaterThan(-1); // confirm the loop exists in the source
-    const afterLoop = routerSrc.slice(loopStart);
-    const loopEnd = afterLoop.indexOf('\n        }');
-    expect(loopEnd).toBeGreaterThan(-1); // confirm we found the closing brace
-    const loopBody = afterLoop.slice(0, loopEnd);
-    expect(loopBody).not.toContain('getDbInstance()');
+  it('queue jobs use messageId-based idempotent job IDs', () => {
+    const queueSrc = read('services/queue/index.js');
+    expect(queueSrc).toContain('jobId: `message:${job.messageId}`');
+    expect(queueSrc).toContain('jobId: `message:${job.messageId}:recipient:${job.recipientId}`');
   });
 
   it('notifyNewMessage actionUrl points to /messenger/ (not legacy /messages.html)', () => {

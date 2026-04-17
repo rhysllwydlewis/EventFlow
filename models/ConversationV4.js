@@ -175,6 +175,11 @@ async function createChatMessagesV4Indexes(db) {
       name: 'reply_to',
       sparse: true,
     },
+    {
+      key: { replyToMessageId: 1 },
+      name: 'reply_to_message_id',
+      sparse: true,
+    },
     // Deleted messages filter
     {
       key: { conversationId: 1, isDeleted: 1, createdAt: -1 },
