@@ -296,6 +296,26 @@ class MessengerAppV4 {
       }
     });
 
+    // Server denied a v4 room join (not a participant, invalid id, or not
+    // authenticated).  Without this handler the user silently stops receiving
+    // realtime updates for the selected conversation; surface a friendly
+    // toast when the global helper is available so they know to reload.
+    window.addEventListener('messenger:join-error', e => {
+      const { error } = e.detail || {};
+      if (typeof window.showToast !== 'function') {
+        return;
+      }
+      if (error === 'forbidden') {
+        window.showToast('You are not a participant in that conversation.', 'error');
+      } else if (error === 'unauthenticated') {
+        window.showToast('Please sign in again to receive live messages.', 'error');
+      } else if (error === 'invalid_conversation_id') {
+        window.showToast('That conversation link looks malformed.', 'error');
+      } else {
+        window.showToast('Could not subscribe to live updates for this conversation.', 'error');
+      }
+    });
+
     // Pin/archive from list or chat header
     window.addEventListener('messenger:pin-conversation', async e => {
       const { id } = e.detail || {};
