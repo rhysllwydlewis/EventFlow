@@ -108,6 +108,28 @@
     .info-card li {
       margin: 5px 0;
     }
+
+    /* Keyboard chip used in the "What to Look For" list */
+    .info-card kbd {
+      display: inline-block;
+      padding: 1px 6px;
+      font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.4;
+      color: #1f2937;
+      background: #f3f4f6;
+      border: 1px solid #d1d5db;
+      border-bottom-width: 2px;
+      border-radius: 4px;
+    }
+
+    .info-card code {
+      font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+      font-size: 12.5px;
+      background: #f3f4f6;
+      padding: 1px 4px;
+      border-radius: 3px;
+    }
     
     .status-indicator {
       display: inline-block;
@@ -138,17 +160,17 @@
     <div class="test-section">
       <h2>📢 Basic Notifications</h2>
       <div class="test-grid">
-        <button class="test-btn btn-success">
-          ✓ Success
+        <button class="test-btn btn-success" data-test-action="success">
+          Success
         </button>
-        <button class="test-btn btn-error">
-          ✗ Error
+        <button class="test-btn btn-error" data-test-action="error">
+          Error
         </button>
-        <button class="test-btn btn-warning">
-          ⚠ Warning
+        <button class="test-btn btn-warning" data-test-action="warning">
+          Warning
         </button>
-        <button class="test-btn btn-info">
-          ℹ Info
+        <button class="test-btn btn-info" data-test-action="info">
+          Info
         </button>
       </div>
     </div>
@@ -156,13 +178,13 @@
     <div class="test-section">
       <h2>🔥 Stress Tests</h2>
       <div class="test-grid">
-        <button class="test-btn btn-purple">
-          Spam Test (10)
+        <button class="test-btn btn-purple" data-test-action="spam">
+          Spam Test (10 notifications)
         </button>
-        <button class="test-btn btn-purple">
+        <button class="test-btn btn-purple" data-test-action="long-message">
           Long Message
         </button>
-        <button class="test-btn btn-gray">
+        <button class="test-btn btn-gray" data-test-action="clear-all">
           Clear All
         </button>
       </div>
@@ -171,14 +193,14 @@
     <div class="test-section">
       <h2>⏱️ Duration Tests</h2>
       <div class="test-grid">
-        <button class="test-btn btn-info">
-          2 Seconds
+        <button class="test-btn btn-info" data-test-action="short">
+          Short Duration (2s)
         </button>
-        <button class="test-btn btn-info">
-          10 Seconds
+        <button class="test-btn btn-info" data-test-action="long">
+          Long Duration (10s)
         </button>
-        <button class="test-btn btn-info">
-          Persistent (No auto-close)
+        <button class="test-btn btn-info" data-test-action="persistent">
+          Persistent
         </button>
       </div>
     </div>
@@ -194,6 +216,9 @@
         <li><strong>Max Limit:</strong> Only 5 notifications visible at once</li>
         <li><strong>No Dark Mode:</strong> Should only show light theme</li>
         <li><strong>Mobile Responsive:</strong> Full width on small screens</li>
+        <li><strong>Keyboard (a11y):</strong> Press <kbd>Esc</kbd> to dismiss the top toast (skipped when an input is focused)</li>
+        <li><strong>Focus ring:</strong> Tab to a close button and you should see a blue outline</li>
+        <li><strong>Reduced motion:</strong> Slide-in/shake are suppressed when your OS sets <code>prefers-reduced-motion</code></li>
       </ul>
     </div>
     

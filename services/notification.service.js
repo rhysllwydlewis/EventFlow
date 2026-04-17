@@ -7,9 +7,39 @@
 'use strict';
 
 const crypto = require('crypto');
+const { NOTIFICATION_TYPES, NOTIFICATION_PRIORITIES } = require('../models/index');
 
 // Use crypto.randomUUID() instead of uuid package
 const uuidv4 = () => crypto.randomUUID();
+
+const VALID_TYPES = new Set(NOTIFICATION_TYPES);
+const VALID_PRIORITIES = new Set(NOTIFICATION_PRIORITIES);
+
+/**
+ * Validate notification payload against shared schema enums.
+ * Throws a descriptive Error if `type` or `priority` would be rejected by the
+ * Mongo `$jsonSchema` validator — surfaces drift as a JS-level error at call
+ * time instead of an opaque Mongo insert failure.
+ *
+ * @param {Object} data
+ * @private
+ */
+function _assertValidEnums(data) {
+  if (data.type !== undefined && data.type !== null && !VALID_TYPES.has(data.type)) {
+    throw new Error(
+      `NotificationService: invalid type "${data.type}". Must be one of: ${NOTIFICATION_TYPES.join(', ')}`
+    );
+  }
+  if (
+    data.priority !== undefined &&
+    data.priority !== null &&
+    !VALID_PRIORITIES.has(data.priority)
+  ) {
+    throw new Error(
+      `NotificationService: invalid priority "${data.priority}". Must be one of: ${NOTIFICATION_PRIORITIES.join(', ')}`
+    );
+  }
+}
 
 class NotificationService {
   constructor(db, websocketServer) {
@@ -24,6 +54,7 @@ class NotificationService {
    * @returns {Promise<Object>} Created notification
    */
   async create(data) {
+    _assertValidEnums(data);
     const notification = {
       id: uuidv4(),
       userId: data.userId,
@@ -64,6 +95,7 @@ class NotificationService {
    * @returns {Promise<Array>} Created notifications
    */
   async createBatch(notifications) {
+    notifications.forEach(_assertValidEnums);
     const notificationsToInsert = notifications.map(data => ({
       id: uuidv4(),
       userId: data.userId,
@@ -370,7 +402,7 @@ class NotificationService {
       type: 'review',
       title: '🌟 New Review!',
       message: `${customerName} left a ${safeRating}-star review on your profile. ${stars}`,
-      actionUrl: '/supplier-dashboard#reviews',
+      actionUrl: '/dashboard/supplier#reviews',
       actionText: 'View Reviews',
       priority: 'normal',
       icon: '🌟',

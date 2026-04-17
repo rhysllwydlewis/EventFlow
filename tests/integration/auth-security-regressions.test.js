@@ -310,10 +310,14 @@ describe('verify-init.js – no ungated debug logs leaking token/role data', () 
 });
 
 describe('misc.js routes – all async handlers have try/catch', () => {
-  let content;
+  // After Effort 3.1, `misc.js` only holds /venues/near. Captcha & contact
+  // handlers moved to `routes/captcha.js` and `routes/contact.js` respectively.
+  let captchaContent;
+  let contactContent;
 
   beforeAll(() => {
-    content = fs.readFileSync(path.join(__dirname, '../../routes/misc.js'), 'utf8');
+    captchaContent = fs.readFileSync(path.join(__dirname, '../../routes/captcha.js'), 'utf8');
+    contactContent = fs.readFileSync(path.join(__dirname, '../../routes/contact.js'), 'utf8');
   });
 
   /**
@@ -326,29 +330,39 @@ describe('misc.js routes – all async handlers have try/catch', () => {
   }
 
   it('verify-captcha route has a try/catch block', () => {
-    const routeStart = content.indexOf("router.post('/verify-captcha'");
-    const routeBody = extractRouteBody(content, routeStart);
+    const routeStart = captchaContent.indexOf("router.post('/verify-captcha'");
+    const routeBody = extractRouteBody(captchaContent, routeStart);
     expect(routeBody).toContain('try {');
     expect(routeBody).toContain('} catch (error) {');
   });
 
   it('contact route has a try/catch block', () => {
-    const routeStart = content.indexOf("router.post('/contact'");
-    const routeBody = extractRouteBody(content, routeStart);
+    const routeStart = contactContent.indexOf("router.post('/contact'");
+    const routeBody = extractRouteBody(contactContent, routeStart);
     expect(routeBody).toContain('try {');
     expect(routeBody).toContain('} catch (error) {');
   });
 
   it('GET /me/settings route has a try/catch block', () => {
-    const routeStart = content.indexOf("router.get('/me/settings'");
-    const routeBody = extractRouteBody(content, routeStart);
+    const settingsContent = fs.readFileSync(
+      path.join(__dirname, '../../routes/settings.js'),
+      'utf8'
+    );
+    const routeStart = settingsContent.indexOf("router.get('/'");
+    const routeEnd = settingsContent.indexOf('\n});', routeStart) + 4;
+    const routeBody = settingsContent.slice(routeStart, routeEnd);
     expect(routeBody).toContain('try {');
     expect(routeBody).toContain('} catch (error) {');
   });
 
   it('POST /me/settings route has a try/catch block', () => {
-    const routeStart = content.indexOf("router.post('/me/settings'");
-    const routeBody = extractRouteBody(content, routeStart);
+    const settingsContent = fs.readFileSync(
+      path.join(__dirname, '../../routes/settings.js'),
+      'utf8'
+    );
+    const routeStart = settingsContent.indexOf("router.post('/'");
+    const routeEnd = settingsContent.indexOf('\n});', routeStart) + 4;
+    const routeBody = settingsContent.slice(routeStart, routeEnd);
     expect(routeBody).toContain('try {');
     expect(routeBody).toContain('} catch (error) {');
   });

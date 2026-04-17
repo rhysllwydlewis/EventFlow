@@ -430,6 +430,12 @@
       });
 
       if (response.ok) {
+        // Decrement unread count if the dismissed notification was unread
+        const notification = state.notifications.find(n => n.id === notificationId);
+        if (notification && !notification.isRead) {
+          state.unreadCount = Math.max(0, state.unreadCount - 1);
+        }
+
         // Remove from local state
         state.notifications = state.notifications.filter(n => n.id !== notificationId);
         updateUI();

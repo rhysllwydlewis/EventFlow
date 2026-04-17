@@ -49,46 +49,31 @@ function clearAll() {
   EventFlowNotifications.clearAll();
 }
 
+// Map of `data-test-action` values → handler. Adding a new test button is a
+// single-line change in the HTML + one entry here.
+const TEST_ACTIONS = {
+  success: testSuccess,
+  error: testError,
+  warning: testWarning,
+  info: testInfo,
+  spam: testSpam,
+  'long-message': testLongMessage,
+  'clear-all': clearAll,
+  short: testShort,
+  long: testLong,
+  persistent: testPersistent,
+};
+
 // Bind button click handlers
 document.addEventListener('DOMContentLoaded', () => {
-  const buttonMap = {
-    'btn-success': testSuccess,
-    'btn-error': testError,
-    'btn-warning': testWarning,
-    'btn-info': testInfo,
-  };
-
-  document.querySelectorAll('.test-btn').forEach(btn => {
-    for (const [cls, fn] of Object.entries(buttonMap)) {
-      if (btn.classList.contains(cls)) {
-        // Skip if it already has a more specific function name set by data attribute
-      }
-    }
-  });
-
-  // Bind by button text content
-  document.querySelectorAll('.test-btn').forEach(btn => {
-    const text = btn.textContent.trim();
-    if (text === 'Success') {
-      btn.addEventListener('click', testSuccess);
-    } else if (text === 'Error') {
-      btn.addEventListener('click', testError);
-    } else if (text === 'Warning') {
-      btn.addEventListener('click', testWarning);
-    } else if (text === 'Info') {
-      btn.addEventListener('click', testInfo);
-    } else if (text === 'Spam Test (10 notifications)') {
-      btn.addEventListener('click', testSpam);
-    } else if (text === 'Long Message') {
-      btn.addEventListener('click', testLongMessage);
-    } else if (text === 'Clear All') {
-      btn.addEventListener('click', clearAll);
-    } else if (text === 'Short Duration (2s)') {
-      btn.addEventListener('click', testShort);
-    } else if (text === 'Long Duration (10s)') {
-      btn.addEventListener('click', testLong);
-    } else if (text === 'Persistent') {
-      btn.addEventListener('click', testPersistent);
+  // Bind by data-test-action attribute — robust against label copy changes
+  document.querySelectorAll('[data-test-action]').forEach(btn => {
+    const action = btn.getAttribute('data-test-action');
+    const handler = TEST_ACTIONS[action];
+    if (typeof handler === 'function') {
+      btn.addEventListener('click', handler);
+    } else if (typeof console !== 'undefined' && console.warn) {
+      console.warn(`test-notifications: no handler registered for data-test-action="${action}"`);
     }
   });
 

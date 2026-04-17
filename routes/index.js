@@ -49,6 +49,11 @@ const photosRoutes = require('./photos');
 const metricsRoutes = require('./metrics');
 const cacheRoutes = require('./cache');
 const miscRoutes = require('./misc');
+const captchaRoutes = require('./captcha');
+const contactRoutes = require('./contact');
+const maintenanceRoutes = require('./maintenance');
+const cspRoutes = require('./csp');
+const { legacyApiDeprecation } = require('../middleware/legacyApiDeprecation');
 const notificationsRoutes = require('./notifications');
 const adminConfigRoutes = require('./admin-config');
 const twoFactorRoutes = require('./twoFactor');
@@ -383,12 +388,40 @@ function mountRoutes(app, deps) {
   app.use('/api/v1/admin', cacheRoutes); // For /database/metrics route
   app.use('/api/admin', cacheRoutes); // For /database/metrics route - Backward compatibility
 
-  // Miscellaneous routes (Phase 7)
+  // Miscellaneous routes (Phase 7) — venues/near
   if (deps && miscRoutes.initializeDependencies) {
     miscRoutes.initializeDependencies(deps);
   }
   app.use('/api/v1', miscRoutes);
-  app.use('/api', miscRoutes); // Backward compatibility
+  app.use('/api', legacyApiDeprecation('/api', '/api/v1'), miscRoutes); // Backward compatibility
+
+  // Captcha / ALTCHA (Effort 3.1 — split from misc.js)
+  if (deps && captchaRoutes.initializeDependencies) {
+    captchaRoutes.initializeDependencies(deps);
+  }
+  app.use('/api/v1', captchaRoutes);
+  app.use('/api', legacyApiDeprecation('/api', '/api/v1'), captchaRoutes); // Backward compatibility
+
+  // Contact forms (Effort 3.1 — split from misc.js)
+  if (deps && contactRoutes.initializeDependencies) {
+    contactRoutes.initializeDependencies(deps);
+  }
+  app.use('/api/v1', contactRoutes);
+  app.use('/api', legacyApiDeprecation('/api', '/api/v1'), contactRoutes); // Backward compatibility
+
+  // Maintenance message (Effort 3.1 — split from misc.js)
+  if (deps && maintenanceRoutes.initializeDependencies) {
+    maintenanceRoutes.initializeDependencies(deps);
+  }
+  app.use('/api/v1', maintenanceRoutes);
+  app.use('/api', legacyApiDeprecation('/api', '/api/v1'), maintenanceRoutes); // Backward compatibility
+
+  // CSP reporting (Effort 3.1 — split from misc.js)
+  if (deps && cspRoutes.initializeDependencies) {
+    cspRoutes.initializeDependencies(deps);
+  }
+  app.use('/api/v1', cspRoutes);
+  app.use('/api', legacyApiDeprecation('/api', '/api/v1'), cspRoutes); // Backward compatibility
 
   // Notifications routes (Step 4 - Server.js refactoring)
   if (deps && notificationsRoutes.initializeDependencies) {
