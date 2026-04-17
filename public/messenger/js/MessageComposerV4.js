@@ -289,7 +289,15 @@ class MessageComposerV4 {
     this.container.querySelector('#v4ReplyPreview').textContent = '';
   }
 
-  /** Send the current message (validates, dispatches event, resets). */
+  /**
+   * Send the current message.
+   *
+   * The composer is intentionally "dumb": it hands the payload off to the
+   * host app (via `options.onSend`) and only resets its input once the
+   * host acknowledges the send succeeded.  If `onSend` throws (or rejects),
+   * the textarea, attachments, and replyTo context are preserved so the
+   * user can retry without re-typing.
+   */
   async send() {
     const content = this.textarea.value.trim();
     if ((!content && !this.attachedFiles.length) || this.isSending) {
@@ -312,21 +320,29 @@ class MessageComposerV4 {
       conversationId: this.options.conversationId,
     };
 
+    let sendSucceeded = false;
     try {
-      // Fire the custom event; MessengerAppV4 handles the API call
-      window.dispatchEvent(new CustomEvent('composer:send', { detail: payload }));
-
       if (typeof this.options.onSend === 'function') {
+        // onSend must throw/reject if the send failed so we skip reset().
         await this.options.onSend(payload);
+      } else {
+        // Legacy path: dispatch a fire-and-forget event for listeners that
+        // still wire the send pipeline via the global event bus.  There is
+        // no success signal here, so we optimistically treat dispatch as OK.
+        window.dispatchEvent(new CustomEvent('composer:send', { detail: payload }));
       }
-
-      this.reset();
+      sendSucceeded = true;
     } catch (err) {
       console.error('[MessageComposerV4] Send failed:', err);
+      // Keep textarea / attachments / replyTo intact so the user can retry.
     } finally {
       this.isSending = false;
       this.sendBtn.classList.remove('messenger-v4__send-button--loading');
-      this._updateSendButton();
+      if (sendSucceeded) {
+        this.reset();
+      } else {
+        this._updateSendButton();
+      }
     }
   }
 

@@ -144,6 +144,10 @@ class MessengerAppV4 {
     if (composerContainer && window.MessageComposerV4) {
       this.composer = new MessageComposerV4(composerContainer, {
         onTyping: isTyping => this._broadcastTyping(isTyping),
+        // Using onSend (awaited + throws on failure) instead of the legacy
+        // 'composer:send' event lets the composer keep the user's typed
+        // content when the send fails so it can be retried.
+        onSend: payload => this._sendMessage(payload),
         maxLength: 5000,
       });
     }
@@ -242,15 +246,31 @@ class MessengerAppV4 {
       }
     });
 
-    // Composer send
+    // Composer send (legacy event-bus path).
+    // The composer now prefers the direct `onSend` callback wired in
+    // `_initializeComponents()` — when that callback is present the composer
+    // does not dispatch 'composer:send'.  This listener remains only as a
+    // compatibility shim for any older composer instances that still emit
+    // the event, and intentionally does not re-throw to avoid double-sends.
     window.addEventListener('composer:send', async e => {
       const { message, files, replyTo, conversationId } = e.detail || {};
-      await this._sendMessage({
-        message,
-        files,
-        replyTo,
-        conversationId: conversationId || this._activeConversationId,
-      });
+      try {
+        await this._sendMessage({
+          message,
+          files,
+          replyTo,
+          conversationId: conversationId || this._activeConversationId,
+        });
+      } catch (err) {
+        // The new `onSend` callback path already preserves composer state and
+        // surfaces the error.  For the legacy event-bus path we can't recover
+        // input (composer already reset optimistically), so at least notify
+        // the user that the send failed.
+        console.error('[MessengerAppV4] composer:send (legacy) failed:', err);
+        if (typeof window.showToast === 'function') {
+          window.showToast('Failed to send message. Please try again.', 'error');
+        }
+      }
     });
 
     // Contact picker selected → create conversation
@@ -279,6 +299,26 @@ class MessengerAppV4 {
       } else {
         this.typingIndicator?.hide();
         this.chatView?.hideTyping();
+      }
+    });
+
+    // Server denied a v4 room join (not a participant, invalid id, or not
+    // authenticated).  Without this handler the user silently stops receiving
+    // realtime updates for the selected conversation; surface a friendly
+    // toast when the global helper is available so they know to reload.
+    window.addEventListener('messenger:join-error', e => {
+      const { error } = e.detail || {};
+      if (typeof window.showToast !== 'function') {
+        return;
+      }
+      if (error === 'forbidden') {
+        window.showToast('You are not a participant in that conversation.', 'error');
+      } else if (error === 'unauthenticated') {
+        window.showToast('Please sign in again to receive live messages.', 'error');
+      } else if (error === 'invalid_conversation_id') {
+        window.showToast('That conversation link looks malformed.', 'error');
+      } else {
+        window.showToast('Could not subscribe to live updates for this conversation.', 'error');
       }
     });
 
@@ -907,6 +947,8 @@ class MessengerAppV4 {
 
   async _sendMessage({ message, files, replyTo, conversationId }) {
     if (!conversationId) {
+      // Not an error condition worth surfacing to the composer — nothing to
+      // send when no conversation is active.  Resolve quietly.
       return;
     }
     try {
@@ -938,6 +980,9 @@ class MessengerAppV4 {
       }
     } catch (err) {
       console.error('[MessengerAppV4] Failed to send message:', err);
+      // Re-throw so the composer keeps the user's typed content / attachments
+      // instead of silently clearing them after a failed send.
+      throw err;
     }
   }
 

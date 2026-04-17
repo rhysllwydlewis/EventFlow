@@ -563,12 +563,27 @@ router.post(
       if (!isValidObjectId(conversationId)) {
         return res.status(400).json({ error: 'Invalid conversation ID' });
       }
-      const { content, type = 'text', replyTo } = req.body;
+      const { content, type = 'text', replyTo, clientMessageId } = req.body;
 
       // Validate message type against allowed values
       const ALLOWED_MESSAGE_TYPES = ['text', 'image', 'file', 'system'];
       if (!ALLOWED_MESSAGE_TYPES.includes(type)) {
         return res.status(400).json({ error: 'Invalid message type' });
+      }
+
+      // clientMessageId: optional; string, max 64 chars, constrained alphabet
+      // (UUIDs/ulids/nanoids).  Reject anything else up-front so the service
+      // layer only ever sees sanitised values.
+      let normalisedClientMessageId = null;
+      if (clientMessageId !== undefined && clientMessageId !== null && clientMessageId !== '') {
+        if (
+          typeof clientMessageId !== 'string' ||
+          clientMessageId.length > 64 ||
+          !/^[A-Za-z0-9._:-]+$/.test(clientMessageId)
+        ) {
+          return res.status(400).json({ error: 'Invalid clientMessageId' });
+        }
+        normalisedClientMessageId = clientMessageId;
       }
 
       const userId = req.user.id;
@@ -654,6 +669,7 @@ router.post(
         type,
         attachments,
         replyTo: parsedReplyTo,
+        clientMessageId: normalisedClientMessageId,
       };
 
       const message = await (await getMessengerService()).sendMessage(conversationId, messageData);
@@ -766,11 +782,22 @@ router.get('/conversations/:id/messages', applyAuthRequired, async (req, res) =>
       return res.status(400).json({ error: 'Invalid conversation ID' });
     }
     const userId = req.user.id;
-    const { cursor, limit = 50 } = req.query;
+    const { cursor, limit = 50, sinceSeq } = req.query;
 
     // Validate cursor format before it reaches service-level new ObjectId()
     if (cursor && !isValidObjectId(cursor)) {
       return res.status(400).json({ error: 'Invalid cursor' });
+    }
+
+    // sinceSeq: non-negative integer string.  When present, the service
+    // returns forward-in-time messages for gap reconciliation.
+    let parsedSinceSeq = null;
+    if (sinceSeq !== undefined) {
+      const n = Number(sinceSeq);
+      if (!Number.isFinite(n) || n < 0 || !Number.isInteger(n)) {
+        return res.status(400).json({ error: 'Invalid sinceSeq' });
+      }
+      parsedSinceSeq = n;
     }
 
     const result = await (
@@ -778,6 +805,7 @@ router.get('/conversations/:id/messages', applyAuthRequired, async (req, res) =>
     ).getMessages(conversationId, userId, {
       cursor,
       limit: Math.min(Math.max(parseInt(limit, 10) || 50, 1), 100),
+      sinceSeq: parsedSinceSeq,
     });
 
     res.json({
@@ -1016,14 +1044,17 @@ router.get('/contacts', applyAuthRequired, async (req, res) => {
 
 /**
  * GET /api/v4/messenger/search
- * Full-text search across all user messages
+ * Full-text search across all user messages.
+ * Optional `conversationId` query param scopes the search to a single
+ * conversation (the caller must be a participant; otherwise the conversation
+ * is silently excluded by the service layer's participant filter).
  */
 router.get('/search', applyAuthRequired, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { q: query, limit = 50 } = req.query;
+    const { q: query, limit = 50, conversationId } = req.query;
 
-    if (!query || query.trim().length === 0) {
+    if (!query || typeof query !== 'string' || query.trim().length === 0) {
       return res.status(400).json({
         error: 'Search query is required',
       });
@@ -1035,9 +1066,24 @@ router.get('/search', applyAuthRequired, async (req, res) => {
       });
     }
 
+    // Validate optional conversationId scoping — reject clearly-malformed ids
+    // up-front rather than silently ignoring them.  Also reject array-shaped
+    // values (e.g. `?conversationId=a&conversationId=b`) which Express would
+    // otherwise pass through to the downstream ObjectId constructor.
+    if (conversationId !== undefined) {
+      if (typeof conversationId !== 'string' || !isValidObjectId(conversationId)) {
+        return res.status(400).json({ error: 'Invalid conversation ID' });
+      }
+    }
+
     const results = await (
       await getMessengerService()
-    ).searchMessages(userId, query, Math.min(Math.max(parseInt(limit, 10) || 50, 1), 100));
+    ).searchMessages(
+      userId,
+      query,
+      Math.min(Math.max(parseInt(limit, 10) || 50, 1), 100),
+      conversationId || null
+    );
 
     res.json({
       success: true,
@@ -1122,7 +1168,20 @@ router.post(
       }
       const userId = req.user.id;
 
-      await (await getMessengerService()).markAsRead(conversationId, userId);
+      // Optional upToSeq — bounds the read receipt so only messages up to and
+      // including the supplied seq are marked.  Non-negative integer only.
+      let upToSeq = null;
+      if (req.body && req.body.upToSeq !== undefined && req.body.upToSeq !== null) {
+        const n = Number(req.body.upToSeq);
+        if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0) {
+          return res.status(400).json({ error: 'Invalid upToSeq' });
+        }
+        upToSeq = n;
+      }
+
+      const readResult = await (
+        await getMessengerService()
+      ).markAsRead(conversationId, userId, { upToSeq });
 
       // Emit read receipt to other participants
       const conversation = await (
@@ -1133,19 +1192,87 @@ router.post(
           emitToUser(participant.userId, 'messenger:v4:read', {
             conversationId,
             userId,
-            readAt: new Date(),
+            readAt: readResult?.readAt || new Date(),
+            upToSeq: readResult?.upToSeq ?? null,
           });
         }
       });
 
       res.json({
         success: true,
+        readAt: readResult?.readAt,
+        upToSeq: readResult?.upToSeq ?? null,
+        modifiedCount: readResult?.modifiedCount || 0,
       });
     } catch (error) {
       logger.error('Error marking as read:', error);
       const msg = error.message || '';
       res.status(messengerErrorStatus(msg)).json({
         error: msg || 'Failed to mark as read',
+      });
+    }
+  }
+);
+
+/**
+ * POST /api/v4/messenger/conversations/:id/delivered
+ * Record a delivery receipt for one or more messages.
+ * Body: { messageIds: string[] }
+ */
+router.post(
+  '/conversations/:id/delivered',
+  applyAuthRequired,
+  applyCsrfProtection,
+  writeLimiter,
+  async (req, res) => {
+    try {
+      const { id: conversationId } = req.params;
+      if (!isValidObjectId(conversationId)) {
+        return res.status(400).json({ error: 'Invalid conversation ID' });
+      }
+      const userId = req.user.id;
+      const { messageIds } = req.body || {};
+
+      if (!Array.isArray(messageIds) || messageIds.length === 0) {
+        return res.status(400).json({ error: 'messageIds array is required' });
+      }
+      if (messageIds.length > 200) {
+        return res.status(400).json({ error: 'Too many messageIds (max 200)' });
+      }
+      const filtered = messageIds.filter(id => typeof id === 'string' && isValidObjectId(id));
+      if (filtered.length === 0) {
+        return res.status(400).json({ error: 'No valid messageIds provided' });
+      }
+
+      const result = await (
+        await getMessengerService()
+      ).markAsDelivered(conversationId, userId, filtered);
+
+      // Re-broadcast delivery receipt to the conversation so sender's clients
+      // can flip ✓ → ✓✓ without an extra round-trip.  Sender may be offline,
+      // which is fine — they'll pick it up on next reconnect via sinceSeq.
+      if (result.modifiedCount > 0) {
+        const conversation = await (
+          await getMessengerService()
+        ).getConversation(conversationId, userId);
+        emitToConversation(conversation, 'messenger:v4:message-delivered', {
+          conversationId,
+          userId,
+          messageIds: result.messageIds,
+          deliveredAt: result.deliveredAt,
+        });
+      }
+
+      res.json({
+        success: true,
+        modifiedCount: result.modifiedCount,
+        deliveredAt: result.deliveredAt,
+      });
+    } catch (error) {
+      logger.error('Error recording delivery:', error);
+      const msg = error.message || '';
+      res.status(messengerErrorStatus(msg)).json({
+        error: msg || 'Failed to record delivery',
       });
     }
   }

@@ -1258,6 +1258,10 @@ function initializeWebSocketV2(db) {
       // serving all v4 real-time events (join-conversation, typing, etc.)
       wsServerV2 = new WebSocketServerV2(server, null, null);
 
+      // Attach the MongoDB handle so the WS server can authorize
+      // conversation:v4 room joins (participant check on join).
+      wsServerV2.db = db;
+
       // Create notification service with v2 WebSocket server
       const notificationService = new NotificationService(db, wsServerV2);
 
@@ -1531,7 +1535,24 @@ async function startServer() {
           logger.warn('   Server will continue running, but queries may be slower');
         }
 
-        // Messaging indexes (v1/v2 Message model removed; v4 uses ConversationV4 indexes set up separately)
+        // Messenger v4 indexes (conversations_v4, chat_messages_v4).
+        // These collections are not part of the legacy `addDatabaseIndexes`
+        // sweep and would otherwise go un-indexed until a deployment happens
+        // to touch them manually — causing collection scans for every
+        // messenger query in a fresh environment.
+        try {
+          const db = await mongoDb.getDb();
+          const {
+            createConversationV4Indexes,
+            createChatMessagesV4Indexes,
+          } = require('./models/ConversationV4');
+          await createConversationV4Indexes(db);
+          await createChatMessagesV4Indexes(db);
+          logger.info('   ✅ Messenger v4 indexes created');
+        } catch (v4IndexError) {
+          logger.warn('   ⚠️  Could not create Messenger v4 indexes:', v4IndexError.message);
+          logger.warn('   Messenger queries may be slower until this is resolved');
+        }
 
         // Auto-migrate v1 threads and messages to MongoDB (if needed)
         // DEPRECATED: This migration is from the v1→MongoDB transition.

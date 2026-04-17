@@ -190,20 +190,54 @@ class MessengerAPI {
 
   /**
    * Send a message
+   *
+   * Accepts either the legacy positional signature
+   *   sendMessage(conversationId, content, attachments, replyToId)
+   * or an options object:
+   *   sendMessage(conversationId, { content, attachments, replyToId, clientMessageId })
+   *
+   * `clientMessageId` is a short stable string (UUID/ulid/nanoid) that makes
+   * the send idempotent across retries — the server will return the existing
+   * message rather than creating a duplicate.  When omitted, one is generated.
    */
-  async sendMessage(conversationId, content, attachments = [], replyToId = null) {
+  async sendMessage(conversationId, contentOrOptions, attachments = [], replyToId = null) {
+    // Normalise either signature into local variables.
+    let content;
+    let atts = attachments || [];
+    let reply = replyToId;
+    let clientMessageId;
+    if (
+      contentOrOptions &&
+      typeof contentOrOptions === 'object' &&
+      !Array.isArray(contentOrOptions)
+    ) {
+      content = contentOrOptions.content;
+      atts = contentOrOptions.attachments || [];
+      reply = contentOrOptions.replyToId || null;
+      clientMessageId = contentOrOptions.clientMessageId;
+    } else {
+      content = contentOrOptions;
+    }
+
+    // Auto-generate a clientMessageId when not supplied.  This keeps the
+    // pipeline idempotent for every caller without requiring opt-in.
+    if (!clientMessageId) {
+      clientMessageId = this._generateClientMessageId();
+    }
+
     // If we have attachments, use FormData
-    if (attachments.length > 0) {
+    if (atts.length > 0) {
       const formData = new FormData();
       // Backend expects field named 'content' (not 'message')
       formData.append('content', content || '');
       // Backend expects 'replyTo' as a JSON string (parsed by multer/body-parser)
-      if (replyToId) {
-        formData.append('replyTo', JSON.stringify({ _id: replyToId }));
+      if (reply) {
+        formData.append('replyTo', JSON.stringify({ _id: reply }));
       }
+      formData.append('clientMessageId', clientMessageId);
 
       // Multer is configured as upload.array('attachments', 10)
-      attachments.forEach(file => {
+      atts.forEach(file => {
         formData.append('attachments', file);
       });
 
@@ -243,23 +277,49 @@ class MessengerAPI {
       method: 'POST',
       body: JSON.stringify({
         content,
-        replyTo: replyToId ? { _id: replyToId } : undefined,
+        replyTo: reply ? { _id: reply } : undefined,
+        clientMessageId,
       }),
     });
   }
 
   /**
+   * Generate a short opaque idempotency key.  Prefers crypto.randomUUID(),
+   * falls back to Math.random so the client still works in older browsers /
+   * jsdom test environments.  Value is constrained to the server's accepted
+   * alphabet: [A-Za-z0-9._:-], max 64 chars.
+   */
+  _generateClientMessageId() {
+    try {
+      if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+      }
+    } catch {
+      // fall through
+    }
+    const rand = Math.random().toString(36).slice(2);
+    return `c-${Date.now().toString(36)}-${rand}`;
+  }
+
+  /**
    * Get messages for a conversation
    * Accepts either positional args (conversationId, before, limit)
-   * or an options object as the second argument (conversationId, {before, limit})
-   * to match both call patterns in the codebase.
+   * or an options object as the second argument:
+   *   (conversationId, { before, limit, sinceSeq })
+   *
+   * When `sinceSeq` is provided, the server returns messages forward in time
+   * from that sequence — used for reconnection catch-up and gap fills.
    */
   async getMessages(conversationId, beforeOrOptions = null, limit = 50) {
     let before = beforeOrOptions;
     let resolvedLimit = limit;
+    let sinceSeq = null;
     if (beforeOrOptions !== null && typeof beforeOrOptions === 'object') {
       before = beforeOrOptions.before || null;
       resolvedLimit = beforeOrOptions.limit || limit;
+      if (beforeOrOptions.sinceSeq !== undefined && beforeOrOptions.sinceSeq !== null) {
+        sinceSeq = beforeOrOptions.sinceSeq;
+      }
     }
 
     const params = new URLSearchParams();
@@ -269,6 +329,9 @@ class MessengerAPI {
     }
     if (resolvedLimit) {
       params.append('limit', resolvedLimit);
+    }
+    if (sinceSeq !== null) {
+      params.append('sinceSeq', String(sinceSeq));
     }
 
     const queryString = params.toString();
@@ -300,10 +363,36 @@ class MessengerAPI {
 
   /**
    * Mark conversation as read
+   * @param {Object} [options]
+   * @param {number} [options.upToSeq] - Upper bound on `seq` to mark (for
+   *   cursor-based per-message read receipts).
    */
-  async markAsRead(conversationId) {
+  async markAsRead(conversationId, options = {}) {
+    const body =
+      options &&
+      typeof options === 'object' &&
+      options.upToSeq !== undefined &&
+      options.upToSeq !== null
+        ? JSON.stringify({ upToSeq: options.upToSeq })
+        : undefined;
     return this.request(`/conversations/${conversationId}/read`, {
       method: 'POST',
+      ...(body ? { body } : {}),
+    });
+  }
+
+  /**
+   * Record delivery receipts for one or more incoming messages.  Silent
+   * failure is fine — delivery receipts are a best-effort UX signal and the
+   * server will re-reconcile on the next `sinceSeq` fetch.
+   */
+  async markDelivered(conversationId, messageIds) {
+    if (!Array.isArray(messageIds) || messageIds.length === 0) {
+      return { success: true, modifiedCount: 0 };
+    }
+    return this.request(`/conversations/${conversationId}/delivered`, {
+      method: 'POST',
+      body: JSON.stringify({ messageIds }),
     });
   }
 

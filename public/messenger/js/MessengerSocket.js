@@ -102,6 +102,13 @@ class MessengerSocket {
       window.dispatchEvent(new CustomEvent('messenger:conversation-read', { detail: data }));
     });
 
+    // Server-side participant guard for v4 joins — surface denial so the UI
+    // can log / reset activeConversationId instead of silently missing events.
+    this.socket.on('messenger:v4:join-error', data => {
+      console.warn('[MessengerSocket] v4 join denied:', data);
+      window.dispatchEvent(new CustomEvent('messenger:join-error', { detail: data }));
+    });
+
     this.socket.on('presence:changed', data => {
       this.state.setPresence(data.userId, data.state);
       window.dispatchEvent(new CustomEvent('messenger:presence', { detail: data }));

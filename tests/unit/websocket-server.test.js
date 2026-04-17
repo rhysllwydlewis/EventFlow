@@ -154,4 +154,62 @@ describe('WebSocket Server Initialization', () => {
       process.env.WEBSOCKET_PATH = originalPath;
     });
   });
+
+  describe('isConversationParticipant (v4 join guard)', () => {
+    const WebSocketServerV2 = require('../../websocket-server-v2');
+    const { ObjectId } = require('mongodb');
+
+    it('returns false when db is not attached', async () => {
+      const ws = new WebSocketServerV2(server, null, null);
+      // explicitly no db attached
+      const result = await ws.isConversationParticipant(new ObjectId().toHexString(), 'user-1');
+      expect(result).toBe(false);
+    });
+
+    it('returns false when userId is missing', async () => {
+      const ws = new WebSocketServerV2(server, null, null);
+      const result = await ws.isConversationParticipant(new ObjectId().toHexString(), null);
+      expect(result).toBe(false);
+    });
+
+    it('returns true when a matching participant is found', async () => {
+      const ws = new WebSocketServerV2(server, null, null);
+      const findOne = jest.fn().mockResolvedValue({ _id: new ObjectId() });
+      ws.db = {
+        collection: jest.fn(() => ({ findOne })),
+      };
+
+      const convId = new ObjectId().toHexString();
+      const result = await ws.isConversationParticipant(convId, 'user-1');
+
+      expect(result).toBe(true);
+      expect(ws.db.collection).toHaveBeenCalledWith('conversations_v4');
+      expect(findOne).toHaveBeenCalledWith(
+        expect.objectContaining({ 'participants.userId': 'user-1' }),
+        expect.objectContaining({ projection: { _id: 1 } })
+      );
+    });
+
+    it('returns false when no matching participant is found', async () => {
+      const ws = new WebSocketServerV2(server, null, null);
+      ws.db = {
+        collection: jest.fn(() => ({ findOne: jest.fn().mockResolvedValue(null) })),
+      };
+
+      const result = await ws.isConversationParticipant(new ObjectId().toHexString(), 'user-1');
+      expect(result).toBe(false);
+    });
+
+    it('fails closed when the Mongo lookup throws', async () => {
+      const ws = new WebSocketServerV2(server, null, null);
+      ws.db = {
+        collection: jest.fn(() => ({
+          findOne: jest.fn().mockRejectedValue(new Error('db down')),
+        })),
+      };
+
+      const result = await ws.isConversationParticipant(new ObjectId().toHexString(), 'user-1');
+      expect(result).toBe(false);
+    });
+  });
 });

@@ -14,6 +14,12 @@ const { PresenceService } = require('./services/presenceService');
 const jwt = require('jsonwebtoken');
 // eslint-disable-next-line node/no-unpublished-require, node/no-missing-require
 const { userIdFromCookie } = require('./utils/wsAuth');
+// eslint-disable-next-line node/no-unpublished-require, node/no-missing-require
+const { ObjectId } = require('mongodb');
+
+// Only 24-hex-char strings are valid conversation ObjectIds — rejects
+// anything else up-front to avoid throwing inside the Mongo driver.
+const OBJECT_ID_RE = /^[0-9a-f]{24}$/i;
 
 // Shared symbol for preventing duplicate Socket.IO servers across v1 and v2
 // This prevents the "server.handleUpgrade() was called more than once" error
@@ -165,12 +171,66 @@ class WebSocketServerV2 {
       });
 
       // Messenger v4 event handlers
-      socket.on('messenger:v4:join-conversation', data => {
-        if (data && data.conversationId) {
-          socket.join(`conversation:v4:${data.conversationId}`);
+      socket.on('messenger:v4:join-conversation', async data => {
+        const conversationId = data && data.conversationId;
+        if (!conversationId) {
+          return;
+        }
+
+        // Require an authenticated socket before allowing room membership —
+        // joining an arbitrary conversation:v4 room would otherwise let a
+        // user receive another user's realtime messages (IDOR on realtime).
+        if (!socket.userId) {
+          socket.emit('messenger:v4:join-error', {
+            conversationId,
+            error: 'unauthenticated',
+          });
+          logger.warn('v4 join denied: unauthenticated socket', {
+            socketId: socket.id,
+            conversationId,
+          });
+          return;
+        }
+
+        // Validate the conversation id format before any DB call.
+        if (typeof conversationId !== 'string' || !OBJECT_ID_RE.test(conversationId)) {
+          socket.emit('messenger:v4:join-error', {
+            conversationId,
+            error: 'invalid_conversation_id',
+          });
+          return;
+        }
+
+        try {
+          const isParticipant = await this.isConversationParticipant(conversationId, socket.userId);
+          if (!isParticipant) {
+            socket.emit('messenger:v4:join-error', {
+              conversationId,
+              error: 'forbidden',
+            });
+            logger.warn('v4 join denied: not a participant', {
+              socketId: socket.id,
+              userId: socket.userId,
+              conversationId,
+            });
+            return;
+          }
+
+          socket.join(`conversation:v4:${conversationId}`);
           logger.debug('Joined v4 conversation', {
             socketId: socket.id,
-            conversationId: data.conversationId,
+            userId: socket.userId,
+            conversationId,
+          });
+        } catch (error) {
+          logger.error('v4 join failed', {
+            socketId: socket.id,
+            conversationId,
+            error: error.message,
+          });
+          socket.emit('messenger:v4:join-error', {
+            conversationId,
+            error: 'server_error',
           });
         }
       });
@@ -778,6 +838,46 @@ class WebSocketServerV2 {
       logger.debug('WebSocket cleanup completed');
     } catch (error) {
       logger.error('Cleanup error', { error: error.message });
+    }
+  }
+
+  /**
+   * Check whether the given user is a participant in the conversation.
+   * Used to authorize socket joins of `conversation:v4:<id>` rooms.
+   * Returns `false` (and logs a warning) when the MongoDB connection
+   * is not attached to the WebSocket server — fail-closed by default
+   * so an unconfigured setup never opens an IDOR hole.
+   *
+   * @param {string} conversationId - 24-hex-char conversation id
+   * @param {string} userId - Authenticated socket userId
+   * @returns {Promise<boolean>} true if the user is a participant
+   */
+  async isConversationParticipant(conversationId, userId) {
+    if (!conversationId || !userId) {
+      return false;
+    }
+    if (!this.db) {
+      logger.warn('isConversationParticipant: db not attached to wsServerV2', {
+        conversationId,
+      });
+      return false;
+    }
+    try {
+      const match = await this.db.collection('conversations_v4').findOne(
+        {
+          _id: new ObjectId(conversationId),
+          'participants.userId': userId,
+        },
+        { projection: { _id: 1 } }
+      );
+      return Boolean(match);
+    } catch (error) {
+      logger.error('isConversationParticipant: lookup failed', {
+        conversationId,
+        userId,
+        error: error.message,
+      });
+      return false;
     }
   }
 

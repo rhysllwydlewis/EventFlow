@@ -623,4 +623,97 @@ describe('Messenger client-side fixes', () => {
       expect(widgetSrc).not.toContain('TODO: Get current user ID');
     });
   }
+
+  // ── Messaging audit quick wins ──────────────────────────────────────────────
+
+  describe('Messaging audit quick wins', () => {
+    it('websocket-server-v2 guards v4 join with participant check', () => {
+      const src = fs.readFileSync(
+        path.resolve(__dirname, '..', '..', 'websocket-server-v2.js'),
+        'utf8'
+      );
+      // The join handler must be async and check participant status
+      expect(src).toMatch(/socket\.on\(\s*['"]messenger:v4:join-conversation['"]\s*,\s*async/);
+      expect(src).toContain('isConversationParticipant');
+      expect(src).toContain("'messenger:v4:join-error'");
+      expect(src).toContain("error: 'forbidden'");
+      expect(src).toContain("error: 'unauthenticated'");
+    });
+
+    it('MessengerSocket forwards join-error as messenger:join-error event', () => {
+      const src = fs.readFileSync(path.resolve(MESSENGER_DIR, 'js', 'MessengerSocket.js'), 'utf8');
+      expect(src).toContain("'messenger:v4:join-error'");
+      expect(src).toContain("'messenger:join-error'");
+    });
+
+    it('MessengerAppV4 listens for messenger:join-error and surfaces a toast', () => {
+      expect(messengerAppSrc).toContain("'messenger:join-error'");
+      // Should route the forbidden case to a user-visible message
+      expect(messengerAppSrc).toMatch(/forbidden[\s\S]{0,200}showToast/);
+    });
+
+    it('MessengerWidgetV4 polls unconditionally (never gated on wsConnected)', () => {
+      const src = fs.readFileSync(
+        path.resolve(MESSENGER_DIR, 'js', 'MessengerWidgetV4.js'),
+        'utf8'
+      );
+      // Extract the _setupPolling method body (indent-agnostic) and assert
+      // there's no `!this.wsConnected` guard inside it.  The polling call
+      // must live at the top of the setInterval callback.
+      const pollingMatch = src.match(/_setupPolling\s*\([^)]*\)\s*\{([\s\S]*?)\n\s*\}\s*\n/);
+      expect(pollingMatch).toBeTruthy();
+      expect(pollingMatch[1]).not.toContain('!this.wsConnected');
+      expect(pollingMatch[1]).toMatch(/setInterval\s*\([\s\S]*?_fetchConversations\(\)/);
+    });
+
+    it('MessageComposerV4 preserves input when send fails (reset only on success)', () => {
+      const src = fs.readFileSync(
+        path.resolve(MESSENGER_DIR, 'js', 'MessageComposerV4.js'),
+        'utf8'
+      );
+      // The send method tracks success explicitly and only resets on success
+      expect(src).toMatch(/sendSucceeded\s*=\s*true/);
+      expect(src).toMatch(/if\s*\(\s*sendSucceeded\s*\)\s*\{\s*this\.reset\(\)/);
+    });
+
+    it('MessengerAppV4 wires onSend to _sendMessage so failures surface to composer', () => {
+      expect(messengerAppSrc).toMatch(/onSend:\s*payload\s*=>\s*this\._sendMessage\(payload\)/);
+      // _sendMessage must re-throw so the composer can keep input
+      expect(messengerAppSrc).toMatch(/_sendMessage[\s\S]{0,2000}throw err/);
+    });
+
+    it('/api/v4/messenger/search honors optional conversationId query param', () => {
+      const routeSrc = fs.readFileSync(
+        path.resolve(__dirname, '..', '..', 'routes', 'messenger-v4.js'),
+        'utf8'
+      );
+      expect(routeSrc).toMatch(/q:\s*query[\s\S]{0,80}conversationId/);
+      expect(routeSrc).toContain('Invalid conversation ID');
+      // 4th arg passed through to the service (call spans multiple lines).
+      expect(routeSrc).toMatch(/searchMessages\([\s\S]*?conversationId[\s\S]*?\)/);
+    });
+
+    it('searchMessages service signature accepts conversationId and scopes the filter', () => {
+      expect(serviceSrc).toMatch(
+        /searchMessages\s*\(\s*userId[\s\S]*?query[\s\S]*?limit[\s\S]*?conversationId[\s\S]*?\)/
+      );
+      // Scoping must be applied inside the participant filter (so non-participants
+      // always get zero results) — the filter object must gain `_id`.
+      expect(serviceSrc).toMatch(/userConversationFilter\._id\s*=\s*new ObjectId/);
+    });
+
+    it('server.js initializes v4 collection indexes during startup', () => {
+      const src = fs.readFileSync(path.resolve(__dirname, '..', '..', 'server.js'), 'utf8');
+      expect(src).toContain('createConversationV4Indexes');
+      expect(src).toContain('createChatMessagesV4Indexes');
+      // Should be invoked inside an async startup block, not just required
+      expect(src).toMatch(/await\s+createConversationV4Indexes\s*\(\s*db\s*\)/);
+      expect(src).toMatch(/await\s+createChatMessagesV4Indexes\s*\(\s*db\s*\)/);
+    });
+
+    it('wsServerV2 is given a db handle so the participant guard can run', () => {
+      const src = fs.readFileSync(path.resolve(__dirname, '..', '..', 'server.js'), 'utf8');
+      expect(src).toMatch(/wsServerV2\.db\s*=\s*db/);
+    });
+  });
 });

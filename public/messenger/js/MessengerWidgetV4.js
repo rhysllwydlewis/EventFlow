@@ -352,6 +352,11 @@
         try {
           this._socket = window.io();
           const refresh = () => this._fetchConversations();
+          // NOTE: the widget does NOT join per-conversation rooms (it has no
+          // active conversation selected), so the server will never deliver
+          // `messenger:v4:message` events here.  These listeners remain as a
+          // best-effort refresh trigger if future work broadcasts widget-scoped
+          // events, but polling is the source of truth — see `_setupPolling`.
           this._socket.on('messenger:v4:message', refresh);
           this._socket.on('messenger:v4:conversation-updated', refresh);
           this._socket.on('messenger:v4:read', refresh);
@@ -361,20 +366,21 @@
           this._socket.on('disconnect', () => {
             this.wsConnected = false;
           });
-          this.wsConnected = true;
         } catch (e) {
-          // Socket.IO unavailable – fall back to polling
+          // Socket.IO unavailable – polling below is unaffected
           this.wsConnected = false;
         }
       }
     }
 
     _setupPolling() {
-      // Poll only when WebSocket is not connected
+      // Always poll — the widget never joins conversation rooms, so room-scoped
+      // WebSocket events (messenger:v4:message, ...) never reach this socket.
+      // Gating polling on `wsConnected` would silently stall the inbox preview
+      // whenever a socket happens to connect.  Polling is cheap (single
+      // `/conversations?limit=N` call) and the only reliable refresh source.
       this.refreshTimer = setInterval(() => {
-        if (!this.wsConnected) {
-          this._fetchConversations();
-        }
+        this._fetchConversations();
       }, this.options.refreshIntervalMs);
     }
 

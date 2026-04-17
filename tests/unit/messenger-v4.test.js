@@ -114,6 +114,15 @@ function createInMemoryDb() {
           continue;
         }
         if ('$ne' in value) {
+          // Handle dotted paths that projected into an array (e.g. 'readBy.userId'
+          // against [{userId: 'u1'}, {userId: 'u2'}]).  Mongo semantics: the doc
+          // is excluded if ANY element matches the $ne target.
+          if (Array.isArray(docVal)) {
+            if (docVal.some(v => String(v) === String(value.$ne))) {
+              return false;
+            }
+            continue;
+          }
           if (String(docVal) === String(value.$ne)) {
             return false;
           }
@@ -1197,6 +1206,392 @@ describe('MessengerV4Service', () => {
       const unreadAfter = after.participants.map(p => p.unreadCount);
 
       expect(unreadAfter).toEqual(unreadBefore);
+    });
+  });
+
+  // =========================================================================
+  // Reliability foundation: idempotent send, monotonic seq, per-message
+  // delivery/read status, sinceSeq reconciliation.
+  // =========================================================================
+  describe('reliability foundation', () => {
+    let conversation;
+
+    beforeEach(async () => {
+      conversation = await service.createConversation({
+        type: 'direct',
+        participants: [
+          { userId: 'user1', displayName: 'Alice', role: 'customer' },
+          { userId: 'user2', displayName: 'Bob', role: 'supplier' },
+        ],
+      });
+    });
+
+    describe('monotonic seq', () => {
+      it('assigns strictly increasing seq values to each new message', async () => {
+        const m1 = await service.sendMessage(conversation._id.toString(), {
+          senderId: 'user1',
+          senderName: 'Alice',
+          content: 'one',
+        });
+        const m2 = await service.sendMessage(conversation._id.toString(), {
+          senderId: 'user1',
+          senderName: 'Alice',
+          content: 'two',
+        });
+        const m3 = await service.sendMessage(conversation._id.toString(), {
+          senderId: 'user2',
+          senderName: 'Bob',
+          content: 'three',
+        });
+
+        expect(m1.seq).toBe(1);
+        expect(m2.seq).toBe(2);
+        expect(m3.seq).toBe(3);
+      });
+
+      it('uses independent counters per conversation', async () => {
+        const other = await service.createConversation({
+          type: 'direct',
+          participants: [
+            { userId: 'user1', displayName: 'Alice', role: 'customer' },
+            { userId: 'user3', displayName: 'Charlie', role: 'customer' },
+          ],
+        });
+
+        const a = await service.sendMessage(conversation._id.toString(), {
+          senderId: 'user1',
+          senderName: 'Alice',
+          content: 'in first',
+        });
+        const b = await service.sendMessage(other._id.toString(), {
+          senderId: 'user1',
+          senderName: 'Alice',
+          content: 'in second',
+        });
+
+        expect(a.seq).toBe(1);
+        expect(b.seq).toBe(1);
+      });
+    });
+
+    describe('clientMessageId idempotency', () => {
+      it('returns the existing message when the same clientMessageId is resent', async () => {
+        const cmid = 'cm-abc-123';
+        const first = await service.sendMessage(conversation._id.toString(), {
+          senderId: 'user1',
+          senderName: 'Alice',
+          content: 'hello',
+          clientMessageId: cmid,
+        });
+        const second = await service.sendMessage(conversation._id.toString(), {
+          senderId: 'user1',
+          senderName: 'Alice',
+          content: 'hello',
+          clientMessageId: cmid,
+        });
+
+        expect(String(first._id)).toBe(String(second._id));
+        expect(first.seq).toBe(second.seq);
+
+        // Only one row was inserted
+        const count = await service.messagesCollection.countDocuments({
+          conversationId: conversation._id,
+        });
+        expect(count).toBe(1);
+      });
+
+      it('treats different senders as independent (same clientMessageId allowed)', async () => {
+        const cmid = 'shared';
+        const a = await service.sendMessage(conversation._id.toString(), {
+          senderId: 'user1',
+          senderName: 'Alice',
+          content: 'from alice',
+          clientMessageId: cmid,
+        });
+        const b = await service.sendMessage(conversation._id.toString(), {
+          senderId: 'user2',
+          senderName: 'Bob',
+          content: 'from bob',
+          clientMessageId: cmid,
+        });
+        expect(String(a._id)).not.toBe(String(b._id));
+      });
+
+      it('omitted clientMessageId never dedupes (each send inserts a row)', async () => {
+        await service.sendMessage(conversation._id.toString(), {
+          senderId: 'user1',
+          senderName: 'Alice',
+          content: 'a',
+        });
+        await service.sendMessage(conversation._id.toString(), {
+          senderId: 'user1',
+          senderName: 'Alice',
+          content: 'a',
+        });
+        const count = await service.messagesCollection.countDocuments({
+          conversationId: conversation._id,
+        });
+        expect(count).toBe(2);
+      });
+    });
+
+    describe('deliveredTo + markAsDelivered', () => {
+      it('populates deliveredTo with the sender on send', async () => {
+        const m = await service.sendMessage(conversation._id.toString(), {
+          senderId: 'user1',
+          senderName: 'Alice',
+          content: 'hi',
+        });
+        expect(Array.isArray(m.deliveredTo)).toBe(true);
+        expect(m.deliveredTo.some(d => d.userId === 'user1')).toBe(true);
+      });
+
+      it('markAsDelivered adds a receipt for the recipient (but not the sender)', async () => {
+        const m = await service.sendMessage(conversation._id.toString(), {
+          senderId: 'user1',
+          senderName: 'Alice',
+          content: 'hi',
+        });
+        const res = await service.markAsDelivered(conversation._id.toString(), 'user2', [
+          m._id.toString(),
+        ]);
+        expect(res.modifiedCount).toBe(1);
+
+        const after = await service.messagesCollection.findOne({ _id: m._id });
+        expect(after.deliveredTo.some(d => d.userId === 'user2')).toBe(true);
+      });
+
+      it('markAsDelivered is idempotent (second call does not re-push)', async () => {
+        const m = await service.sendMessage(conversation._id.toString(), {
+          senderId: 'user1',
+          senderName: 'Alice',
+          content: 'hi',
+        });
+        await service.markAsDelivered(conversation._id.toString(), 'user2', [m._id.toString()]);
+        const second = await service.markAsDelivered(conversation._id.toString(), 'user2', [
+          m._id.toString(),
+        ]);
+        expect(second.modifiedCount).toBe(0);
+
+        const after = await service.messagesCollection.findOne({ _id: m._id });
+        const receipts = after.deliveredTo.filter(d => d.userId === 'user2');
+        expect(receipts).toHaveLength(1);
+      });
+
+      it('markAsDelivered never records the sender against their own message', async () => {
+        const m = await service.sendMessage(conversation._id.toString(), {
+          senderId: 'user1',
+          senderName: 'Alice',
+          content: 'hi',
+        });
+        const res = await service.markAsDelivered(conversation._id.toString(), 'user1', [
+          m._id.toString(),
+        ]);
+        expect(res.modifiedCount).toBe(0);
+      });
+
+      it('markAsDelivered denies non-participants', async () => {
+        const m = await service.sendMessage(conversation._id.toString(), {
+          senderId: 'user1',
+          senderName: 'Alice',
+          content: 'hi',
+        });
+        await expect(
+          service.markAsDelivered(conversation._id.toString(), 'user3', [m._id.toString()])
+        ).rejects.toThrow(/not found|access denied/);
+      });
+    });
+
+    describe('viewerStatus', () => {
+      it('is "read" for the sender viewing their own message (self-read at send time)', async () => {
+        const m = await service.sendMessage(conversation._id.toString(), {
+          senderId: 'user1',
+          senderName: 'Alice',
+          content: 'hi',
+        });
+        // Sender's own message: status reflects recipient progress.
+        // No recipient has delivered yet → 'sent'.
+        const status = MessengerV4Service.computeViewerStatus(
+          m,
+          'user1',
+          conversation.participants
+        );
+        expect(status).toBe('sent');
+      });
+
+      it("progresses sent → delivered → read from the sender's perspective", async () => {
+        const m = await service.sendMessage(conversation._id.toString(), {
+          senderId: 'user1',
+          senderName: 'Alice',
+          content: 'hi',
+        });
+        expect(MessengerV4Service.computeViewerStatus(m, 'user1', conversation.participants)).toBe(
+          'sent'
+        );
+
+        await service.markAsDelivered(conversation._id.toString(), 'user2', [m._id.toString()]);
+        const afterDelivery = await service.messagesCollection.findOne({ _id: m._id });
+        expect(
+          MessengerV4Service.computeViewerStatus(afterDelivery, 'user1', conversation.participants)
+        ).toBe('delivered');
+
+        await service.markAsRead(conversation._id.toString(), 'user2');
+        const afterRead = await service.messagesCollection.findOne({ _id: m._id });
+        expect(
+          MessengerV4Service.computeViewerStatus(afterRead, 'user1', conversation.participants)
+        ).toBe('read');
+      });
+
+      it('reports "read" for the sender only when ALL recipients have read (group semantics)', async () => {
+        // 'supplier_network' permits N participants and is not subject to the
+        // direct-conversation 2-participant dedupe path.  True `group` type
+        // ships in PR 3.
+        const group = await service.createConversation({
+          type: 'supplier_network',
+          participants: [
+            { userId: 'user1', displayName: 'Alice', role: 'customer' },
+            { userId: 'user2', displayName: 'Bob', role: 'supplier' },
+            { userId: 'user3', displayName: 'Charlie', role: 'customer' },
+          ],
+        });
+
+        const m = await service.sendMessage(group._id.toString(), {
+          senderId: 'user1',
+          senderName: 'Alice',
+          content: 'group hi',
+        });
+
+        // Only Bob read
+        await service.markAsRead(group._id.toString(), 'user2');
+        const mAfterPartialRead = await service.messagesCollection.findOne({ _id: m._id });
+        expect(
+          MessengerV4Service.computeViewerStatus(mAfterPartialRead, 'user1', group.participants)
+        ).toBe('delivered');
+
+        // Now Charlie also reads
+        await service.markAsRead(group._id.toString(), 'user3');
+        const mAllRead = await service.messagesCollection.findOne({ _id: m._id });
+        expect(MessengerV4Service.computeViewerStatus(mAllRead, 'user1', group.participants)).toBe(
+          'read'
+        );
+      });
+
+      it('getMessages decorates each returned message with viewerStatus', async () => {
+        const m = await service.sendMessage(conversation._id.toString(), {
+          senderId: 'user1',
+          senderName: 'Alice',
+          content: 'hi',
+        });
+        const res = await service.getMessages(conversation._id.toString(), 'user2');
+        const returned = res.messages.find(x => String(x._id) === String(m._id));
+        expect(returned).toBeDefined();
+        // As user2 has not read it yet, status is 'sent' (incoming, undelivered)
+        expect(returned.viewerStatus).toBe('sent');
+      });
+    });
+
+    describe('markAsRead with upToSeq', () => {
+      it('only marks messages with seq <= upToSeq as read', async () => {
+        const m1 = await service.sendMessage(conversation._id.toString(), {
+          senderId: 'user1',
+          senderName: 'Alice',
+          content: 'one',
+        });
+        const m2 = await service.sendMessage(conversation._id.toString(), {
+          senderId: 'user1',
+          senderName: 'Alice',
+          content: 'two',
+        });
+        const m3 = await service.sendMessage(conversation._id.toString(), {
+          senderId: 'user1',
+          senderName: 'Alice',
+          content: 'three',
+        });
+
+        await service.markAsRead(conversation._id.toString(), 'user2', { upToSeq: m2.seq });
+
+        const after1 = await service.messagesCollection.findOne({ _id: m1._id });
+        const after2 = await service.messagesCollection.findOne({ _id: m2._id });
+        const after3 = await service.messagesCollection.findOne({ _id: m3._id });
+        expect(after1.readBy.some(r => r.userId === 'user2')).toBe(true);
+        expect(after2.readBy.some(r => r.userId === 'user2')).toBe(true);
+        expect(after3.readBy.some(r => r.userId === 'user2')).toBe(false);
+      });
+
+      it('bulk markAsRead (no upToSeq) still resets unreadCount to zero (backward compat)', async () => {
+        await service.sendMessage(conversation._id.toString(), {
+          senderId: 'user1',
+          senderName: 'Alice',
+          content: 'a',
+        });
+        await service.sendMessage(conversation._id.toString(), {
+          senderId: 'user1',
+          senderName: 'Alice',
+          content: 'b',
+        });
+        await service.markAsRead(conversation._id.toString(), 'user2');
+        const c = await service.getConversation(conversation._id.toString(), 'user2');
+        const me = c.participants.find(p => p.userId === 'user2');
+        expect(me.unreadCount).toBe(0);
+      });
+    });
+
+    describe('sinceSeq catch-up', () => {
+      it('returns messages forward in time with seq > sinceSeq', async () => {
+        const m1 = await service.sendMessage(conversation._id.toString(), {
+          senderId: 'user1',
+          senderName: 'Alice',
+          content: 'one',
+        });
+        const m2 = await service.sendMessage(conversation._id.toString(), {
+          senderId: 'user1',
+          senderName: 'Alice',
+          content: 'two',
+        });
+        const m3 = await service.sendMessage(conversation._id.toString(), {
+          senderId: 'user1',
+          senderName: 'Alice',
+          content: 'three',
+        });
+
+        const res = await service.getMessages(conversation._id.toString(), 'user2', {
+          sinceSeq: m1.seq,
+        });
+
+        const ids = res.messages.map(x => String(x._id));
+        expect(ids).toEqual([String(m2._id), String(m3._id)]);
+        expect(res.nextSinceSeq).toBe(m3.seq);
+        expect(res.hasMore).toBe(false);
+      });
+
+      it('with sinceSeq=0 returns all messages in ascending order', async () => {
+        await service.sendMessage(conversation._id.toString(), {
+          senderId: 'user1',
+          senderName: 'Alice',
+          content: 'one',
+        });
+        await service.sendMessage(conversation._id.toString(), {
+          senderId: 'user1',
+          senderName: 'Alice',
+          content: 'two',
+        });
+        const res = await service.getMessages(conversation._id.toString(), 'user2', {
+          sinceSeq: 0,
+        });
+        const seqs = res.messages.map(x => x.seq);
+        expect(seqs).toEqual([1, 2]);
+      });
+
+      it('denies non-participants', async () => {
+        await service.sendMessage(conversation._id.toString(), {
+          senderId: 'user1',
+          senderName: 'Alice',
+          content: 'secret',
+        });
+        await expect(
+          service.getMessages(conversation._id.toString(), 'user3', { sinceSeq: 0 })
+        ).rejects.toThrow(/not found|access denied/);
+      });
     });
   });
 });
