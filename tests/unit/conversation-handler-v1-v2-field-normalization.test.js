@@ -14,6 +14,9 @@ const conversationHandlerJs = conversationHandlerExists
 (conversationHandlerExists ? describe : describe.skip)(
   'Conversation handler v1/v2 field normalization',
   () => {
+    // SKIP (L): legacy v1 field normalization path has been removed from
+    // conversation-handler.js. Kept here as documentation of prior behaviour
+    // until the block is deleted; tracked in docs/SKIPPED_TESTS_AUDIT.md.
     describe.skip('loadMessages v1 field normalization (legacy behavior removed)', () => {
       const loadMessagesFn = (
         conversationHandlerJs.split('async function loadMessages()')[1] || ''
@@ -50,6 +53,8 @@ const conversationHandlerJs = conversationHandlerExists
       });
     });
 
+    // SKIP (L): v2→v1 fallback for legacy thread IDs has been removed.
+    // Retained temporarily; tracked in docs/SKIPPED_TESTS_AUDIT.md.
     describe.skip('v2 to v1 fallback for empty messages with legacy thread IDs (legacy behavior removed)', () => {
       const loadMessagesFn = (
         conversationHandlerJs.split('async function loadMessages()')[1] || ''

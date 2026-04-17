@@ -23,6 +23,9 @@
     "load-test": "artillery run tests/load/load-test.yml",
     "load-test:report": "artillery run tests/load/load-test.yml --output report.json && artillery report report.json",
     "test:e2e": "playwright test",
+    "test:visual": "playwright test --config=playwright-visual.config.js",
+    "test:visual:update": "playwright test --config=playwright-visual.config.js --update-snapshots",
+    "test:a11y": "playwright test --config=playwright-visual.config.js --grep \"axe-core\"",
     "test:e2e:static": "playwright test --grep-invert @backend",
     "test:e2e:full": "E2E_MODE=full playwright test",
     "test:e2e:ui": "playwright test --ui",
@@ -94,6 +97,7 @@
     }
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.1",
     "@playwright/test": "^1.59.1",
     "@sentry/browser": "^8.0.0",
     "@types/jest": "^29.5.14",

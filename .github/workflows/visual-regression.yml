@@ -1,0 +1,64 @@
+name: Visual Regression & a11y (soft-fail)
+
+# Part B4 + B6 of the notification-audit follow-up.
+#
+# Runs Playwright visual regression + axe-core against the static preview
+# server on every PR. Failures upload a diff artefact but are non-blocking
+# while baselines stabilise. Once stable (target: 2 weeks after merge),
+# flip `continue-on-error` to `false` or delete this file and roll the
+# job into the main CI workflow.
+#
+# Labels:
+#   - `visual-regression-soft` — applied when baselines legitimately drift
+#     and a reviewer has acknowledged the diff artefact.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  visual:
+    name: Visual + a11y (Chromium desktop + mobile)
+    runs-on: ubuntu-latest
+    # Soft-fail: baselines are still stabilising. Remove this after the
+    # 2-week observation period (see docs/VISUAL_REGRESSION.md).
+    continue-on-error: true
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Install Playwright browsers (chromium only)
+        run: npx playwright install --with-deps chromium
+
+      - name: Run visual regression + axe-core
+        env:
+          CI: 'true'
+        run: npm run test:visual
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-report
+          path: |
+            visual-report
+            test-results
+          retention-days: 14
+
+      - name: Upload screenshot diffs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-diffs
+          path: tests/visual/__screenshots__
+          retention-days: 14
