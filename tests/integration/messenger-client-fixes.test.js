@@ -657,11 +657,13 @@ describe('Messenger client-side fixes', () => {
         path.resolve(MESSENGER_DIR, 'js', 'MessengerWidgetV4.js'),
         'utf8'
       );
-      // _setupPolling should simply call _fetchConversations inside setInterval
-      // without any !this.wsConnected gate around it.
-      const pollingMatch = src.match(/_setupPolling\s*\([^)]*\)\s*\{[\s\S]*?\n\s{4}\}/);
+      // Extract the _setupPolling method body (indent-agnostic) and assert
+      // there's no `!this.wsConnected` guard inside it.  The polling call
+      // must live at the top of the setInterval callback.
+      const pollingMatch = src.match(/_setupPolling\s*\([^)]*\)\s*\{([\s\S]*?)\n\s*\}\s*\n/);
       expect(pollingMatch).toBeTruthy();
-      expect(pollingMatch[0]).not.toContain('!this.wsConnected');
+      expect(pollingMatch[1]).not.toContain('!this.wsConnected');
+      expect(pollingMatch[1]).toMatch(/setInterval\s*\([\s\S]*?_fetchConversations\(\)/);
     });
 
     it('MessageComposerV4 preserves input when send fails (reset only on success)', () => {

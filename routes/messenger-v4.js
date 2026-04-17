@@ -1026,7 +1026,7 @@ router.get('/search', applyAuthRequired, async (req, res) => {
     const userId = req.user.id;
     const { q: query, limit = 50, conversationId } = req.query;
 
-    if (!query || query.trim().length === 0) {
+    if (!query || typeof query !== 'string' || query.trim().length === 0) {
       return res.status(400).json({
         error: 'Search query is required',
       });

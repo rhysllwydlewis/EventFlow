@@ -262,8 +262,14 @@ class MessengerAppV4 {
           conversationId: conversationId || this._activeConversationId,
         });
       } catch (err) {
-        // Swallow — the new onSend path already surfaces errors.
+        // The new `onSend` callback path already preserves composer state and
+        // surfaces the error.  For the legacy event-bus path we can't recover
+        // input (composer already reset optimistically), so at least notify
+        // the user that the send failed.
         console.error('[MessengerAppV4] composer:send (legacy) failed:', err);
+        if (typeof window.showToast === 'function') {
+          window.showToast('Failed to send message. Please try again.', 'error');
+        }
       }
     });
 
