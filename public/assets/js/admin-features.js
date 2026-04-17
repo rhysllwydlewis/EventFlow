@@ -16,42 +16,51 @@
     return div.innerHTML;
   }
 
-  // Notification System - Use Centralized EventFlowNotifications
+  // Notification System - Use centralized NotificationDispatcher
   // This maintains backward compatibility for existing admin panel code
   // that uses window.Notifications
   window.Notifications = {
     show: function (message, type, duration) {
-      // Ensure EventFlowNotifications is loaded
-      if (typeof window.EventFlowNotifications === 'undefined') {
-        console.error('EventFlowNotifications not loaded. Please include notification-system.js');
+      if (!window.NotificationDispatcher) {
+        console.error(
+          'NotificationDispatcher not loaded. Please include notification-dispatcher.js'
+        );
         return null;
       }
-      return window.EventFlowNotifications.show(message, type || 'info', duration);
+      return window.NotificationDispatcher.show(message, type || 'info', duration);
     },
     success: function (message, duration) {
-      if (typeof window.EventFlowNotifications === 'undefined') {
-        console.error('EventFlowNotifications not loaded. Please include notification-system.js');
+      if (!window.NotificationDispatcher) {
+        console.error(
+          'NotificationDispatcher not loaded. Please include notification-dispatcher.js'
+        );
         return null;
       }
       return window.NotificationDispatcher.success(message, duration);
     },
     error: function (message, duration) {
-      if (typeof window.EventFlowNotifications === 'undefined') {
-        console.error('EventFlowNotifications not loaded. Please include notification-system.js');
+      if (!window.NotificationDispatcher) {
+        console.error(
+          'NotificationDispatcher not loaded. Please include notification-dispatcher.js'
+        );
         return null;
       }
       return window.NotificationDispatcher.error(message, duration);
     },
     warning: function (message, duration) {
-      if (typeof window.EventFlowNotifications === 'undefined') {
-        console.error('EventFlowNotifications not loaded. Please include notification-system.js');
+      if (!window.NotificationDispatcher) {
+        console.error(
+          'NotificationDispatcher not loaded. Please include notification-dispatcher.js'
+        );
         return null;
       }
       return window.NotificationDispatcher.warning(message, duration);
     },
     info: function (message, duration) {
-      if (typeof window.EventFlowNotifications === 'undefined') {
-        console.error('EventFlowNotifications not loaded. Please include notification-system.js');
+      if (!window.NotificationDispatcher) {
+        console.error(
+          'NotificationDispatcher not loaded. Please include notification-dispatcher.js'
+        );
         return null;
       }
       return window.NotificationDispatcher.info(message, duration);

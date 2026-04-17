@@ -22,7 +22,7 @@ function testSpam() {
       const messages = ['Task completed', 'Error occurred', 'Warning issued', 'Info provided'];
       const type = types[i % types.length];
       const message = messages[i % messages.length];
-      EventFlowNotifications.show(`${message} #${i}`, type);
+      NotificationDispatcher.show(`${message} #${i}`, type);
     }, i * 150);
   }
 }
@@ -46,7 +46,7 @@ function testPersistent() {
 }
 
 function clearAll() {
-  EventFlowNotifications.clearAll();
+  NotificationDispatcher.clearAll();
 }
 
 // Map of `data-test-action` values → handler. Adding a new test button is a

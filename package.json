@@ -40,7 +40,8 @@
     "test:smoke": "jest --runInBand --coverage=false tests/integration/admin-bulk-user-actions.test.js tests/integration/admin-batch-validation.test.js tests/integration/csrf-protection.test.js tests/integration/plan-api.test.js tests/integration/ai-plan-route.test.js tests/integration/subscription-flow.test.js tests/integration/reviews-v2.test.js tests/integration/lead-scoring.test.js tests/integration/contact-form.test.js tests/integration/sentry-frontend-coverage.test.js tests/integration/auth-security-regressions.test.js",
     "test:full": "jest --coverage",
     "test:ci": "jest --runInBand --detectOpenHandles --coverage=false",
-    "preflight": "node scripts/preflight.mjs"
+    "preflight": "node scripts/preflight.mjs",
+    "check:button-opt-out": "node scripts/check-button-opt-out.mjs"
   },
   "dependencies": {
     "@sentry/node": "^8.0.0",

@@ -51,6 +51,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Notification Audit Mop-up**:
+  - Hardened local ESLint guard to block direct `EventFlowNotifications.show()` and `.clearAll()` calls outside allowlisted fallback files.
+  - Extended `NotificationDispatcher` with `show()` and `clearAll()` passthroughs and migrated remaining direct primitive callers to dispatcher usage.
+  - Added browser/server enum drift guard test for `NOTIFICATION_TYPES`.
+  - Added dated soft-fail expiry gate to `visual-regression.yml` so non-blocking visual/a11y runs cannot silently persist beyond the configured window.
+  - Added `check:button-opt-out` CSS exclusion snapshot guard and wired it into CI.
 - **Messaging API Standardization**: All frontend messaging code now uses `/api/v2/messages` endpoints exclusively
   - Updated `public/assets/js/messaging.js` (6 endpoints migrated from v1 to v2)
   - Updated `public/assets/js/conversation-handler.js` (7 endpoints migrated from v1 to v2)

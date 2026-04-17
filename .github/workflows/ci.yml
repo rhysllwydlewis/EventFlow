@@ -68,6 +68,9 @@ jobs:
       - name: Run ESLint
         run: npm run lint
 
+      - name: Check button opt-out snapshot
+        run: npm run check:button-opt-out
+
       - name: Check formatting
         run: npm run format:check
 

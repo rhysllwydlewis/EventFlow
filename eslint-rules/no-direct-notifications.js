@@ -1,7 +1,8 @@
 /**
  * Local ESLint rule: eventflow-local/no-direct-notifications
  *
- * Forbids direct calls to `EventFlowNotifications.success/error/warning/info`
+ * Forbids direct calls to
+ * `EventFlowNotifications.success/error/warning/info/show/clearAll`
  * (and the `window.EventFlowNotifications.*` variant) from everywhere except
  * the dispatcher facade itself. New call sites must route through
  * `NotificationDispatcher` so we have a single place to add validation,
@@ -20,7 +21,7 @@ const ALLOWED_FILES = [
   'public/assets/js/app.js',
 ];
 
-const FORBIDDEN_METHODS = new Set(['success', 'error', 'warning', 'info']);
+const FORBIDDEN_METHODS = new Set(['success', 'error', 'warning', 'info', 'show', 'clearAll']);
 
 module.exports = {
   meta: {

@@ -439,7 +439,7 @@
           if (!validatePexelsImageUrl(selectedImageUrl)) {
             console.error('Invalid image URL from selector');
             if (
-              window.EventFlowNotifications &&
+              window.NotificationDispatcher &&
               typeof window.NotificationDispatcher.error === 'function'
             ) {
               window.NotificationDispatcher.error(
@@ -460,7 +460,7 @@
 
           // Show success notification if available
           if (
-            window.EventFlowNotifications &&
+            window.NotificationDispatcher &&
             typeof window.NotificationDispatcher.success === 'function'
           ) {
             window.NotificationDispatcher.success('Stock photo selected successfully!');
