@@ -38,26 +38,46 @@ const BASELINE_PAGES = [
   { name: 'notifications-harness', path: '/test-notifications.html' },
 ];
 
+/**
+ * Normalise a declared baseline path into the pathname we expect after the
+ * navigator follows any client-side redirects. Strips query string and `.html`
+ * so `/auth` and `/auth.html?foo=1` both compare as `/auth`.
+ *
+ * @param {string} declaredPath
+ * @returns {string}
+ */
+function expectedPathname(declaredPath) {
+  return declaredPath.split('?')[0].replace(/\.html$/, '');
+}
+
+/**
+ * Shared precondition check for both the visual-snapshot and the axe-core
+ * tests. Skips (rather than fails) when the static-mode server returned a
+ * hard error OR when client-side navigation silently redirected to a
+ * different path — either case would produce a misleading artefact.
+ *
+ * @param {import('@playwright/test').Page} pw
+ * @param {import('@playwright/test').Response | null} response
+ * @param {string} declaredPath
+ */
+function skipIfPageUnavailable(pw, response, declaredPath) {
+  test.skip(
+    !response || response.status() >= 500,
+    `Page ${declaredPath} returned ${response?.status()} in static mode`
+  );
+  const finalPathname = new URL(pw.url()).pathname;
+  const expected = expectedPathname(declaredPath);
+  test.skip(
+    !finalPathname.startsWith(expected) && expected !== '/',
+    `Page ${declaredPath} redirected to ${finalPathname} in static mode`
+  );
+}
+
 for (const page of BASELINE_PAGES) {
   test.describe(`baseline: ${page.name}`, () => {
     test('visual snapshot matches baseline', async ({ page: pw }) => {
       const response = await pw.goto(page.path, { waitUntil: 'domcontentloaded' });
-      // Some routes are login-gated in full mode; in static mode they render
-      // a redirect shell. Skip if the response is a hard error — this keeps
-      // the suite green in static mode while capturing real visual changes
-      // for the pages that render content.
-      test.skip(
-        !response || response.status() >= 500,
-        `Page ${page.path} returned ${response?.status()} in static mode`
-      );
-      // Guard against silent redirects that land on an unrelated page and
-      // would produce a baseline named after the *wrong* route.
-      const finalUrl = new URL(pw.url());
-      const expectedPath = page.path.split('?')[0].replace(/\.html$/, '');
-      test.skip(
-        !finalUrl.pathname.startsWith(expectedPath) && expectedPath !== '/',
-        `Page ${page.path} redirected to ${finalUrl.pathname} in static mode`
-      );
+      skipIfPageUnavailable(pw, response, page.path);
       await pw.waitForLoadState('networkidle').catch(() => {});
       await expect(pw).toHaveScreenshot(`${page.name}.png`, {
         fullPage: true,
@@ -66,16 +86,7 @@ for (const page of BASELINE_PAGES) {
 
     test('axe-core a11y has no WCAG 2.1 AA violations', async ({ page: pw }) => {
       const response = await pw.goto(page.path, { waitUntil: 'domcontentloaded' });
-      test.skip(
-        !response || response.status() >= 500,
-        `Page ${page.path} returned ${response?.status()} in static mode`
-      );
-      const finalUrl = new URL(pw.url());
-      const expectedPath = page.path.split('?')[0].replace(/\.html$/, '');
-      test.skip(
-        !finalUrl.pathname.startsWith(expectedPath) && expectedPath !== '/',
-        `Page ${page.path} redirected to ${finalUrl.pathname} in static mode`
-      );
+      skipIfPageUnavailable(pw, response, page.path);
       await pw.waitForLoadState('networkidle').catch(() => {});
 
       const results = await new AxeBuilder({ page: pw })
