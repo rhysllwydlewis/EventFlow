@@ -73,6 +73,23 @@ class MessengerAppV4 {
 
     // Track selected conversation
     this._activeConversationId = null;
+    this.recon = window.ReconciliationFSM ? new window.ReconciliationFSM() : null;
+    this._queuedLiveEvents = [];
+    this._seenSeqByConv = new Map();
+    this._seenClientMessageIds = new Map();
+    this._deliveredQueue = new Map();
+    this._deliveredFlushTimer = null;
+    this._readUpToSeq = new Map();
+    this._readDebounceTimer = null;
+    this._visibleSeqByConv = new Map();
+    this._readObserver = null;
+    this._reconMetrics = {
+      duplicateSeqDrops: 0,
+      clientMessageIdReconciliations: 0,
+      catchupGapSize: 0,
+      timeToLiveMs: 0,
+    };
+    this._connectStartedAt = 0;
   }
 
   // ---------------------------------------------------------------------------
@@ -99,6 +116,8 @@ class MessengerAppV4 {
       // 3. Connect WebSocket
       if (window.MessengerSocket) {
         this.socket = new MessengerSocket(this.state);
+        this.recon?.transition('CONNECTING');
+        this._connectStartedAt = Date.now();
         this.socket.connect(this._getCurrentUserId());
       }
 
@@ -116,6 +135,7 @@ class MessengerAppV4 {
 
       // 8. Request notification permission (non-blocking)
       this.notificationBridge?.requestPermission();
+      this._setupReadObserver();
     } catch (err) {
       console.error('[MessengerAppV4] init failed:', err);
       this._showGlobalError('Failed to load messenger. Please refresh the page.');
@@ -207,8 +227,19 @@ class MessengerAppV4 {
         return;
       }
 
+      if (this.recon && this.recon.getState() === 'CATCHING_UP') {
+        this._queuedLiveEvents.push({ message, conversationId });
+        return;
+      }
+      if (this._isDuplicateMessage(conversationId, message)) {
+        this._reconMetrics.duplicateSeqDrops++;
+        this._logRecon('duplicate-drop', { conversationId, seq: message.seq });
+        return;
+      }
+
       // Update state
-      this.state.addMessage(conversationId, message);
+      this._upsertMessage(conversationId, message);
+      this._trackLastSeenSeq(conversationId, message.seq);
 
       // Update conversation list (bubble last message to top)
       const conv = this.state.conversations.find(c => c._id === conversationId);
@@ -300,6 +331,34 @@ class MessengerAppV4 {
         this.typingIndicator?.hide();
         this.chatView?.hideTyping();
       }
+    });
+
+    window.addEventListener('messenger:connected', async () => {
+      const prev = this.recon?.getState();
+      if (prev === 'DISCONNECTED') {
+        this.recon?.transition('RECONNECTING');
+      }
+      this.recon?.transition('CATCHING_UP');
+      this._connectStartedAt = Date.now();
+      await this._catchUpAllConversations();
+      this.recon?.transition('LIVE');
+      this._reconMetrics.timeToLiveMs = Date.now() - this._connectStartedAt;
+      this._logRecon('time-to-live', { ms: this._reconMetrics.timeToLiveMs });
+      this.chatView?.setConnectionState?.('LIVE');
+      this._replayQueuedLiveEvents();
+    });
+    window.addEventListener('messenger:disconnected', () => {
+      this.recon?.transition('DISCONNECTED');
+      this.chatView?.setConnectionState?.('DISCONNECTED');
+    });
+
+    window.addEventListener('messenger:message-rendered', e => {
+      const { conversationId, message } = e.detail || {};
+      if (!conversationId || !message) {
+        return;
+      }
+      this._trackLastSeenSeq(conversationId, message.seq);
+      this._enqueueDelivered(conversationId, message);
     });
 
     // Server denied a v4 room join (not a participant, invalid id, or not
@@ -722,6 +781,7 @@ class MessengerAppV4 {
     // Load chat
     if (this.chatView) {
       await this.chatView.loadConversation(id);
+      this.chatView.setConnectionState?.(this.recon?.getState() || 'LIVE');
     }
 
     // Show context banner if applicable
@@ -743,7 +803,7 @@ class MessengerAppV4 {
     // Mark as read via API (non-blocking) and update local state immediately
     const uid = this._getCurrentUserId();
     this.api
-      .request(`/conversations/${encodeURIComponent(id)}/read`, { method: 'POST' })
+      .markAsRead(id)
       .then(() => {
         // Update local participant unreadCount so the badge clears immediately
         if (uid) {
@@ -886,6 +946,7 @@ class MessengerAppV4 {
     this.contactPicker?.destroy();
     this.notificationBridge?.destroy();
     this.socket?.disconnect?.();
+    this._readObserver?.disconnect?.();
     if (this._onKeyDown) {
       document.removeEventListener('keydown', this._onKeyDown);
       this._onKeyDown = null;
@@ -975,8 +1036,9 @@ class MessengerAppV4 {
       }
 
       if (sentMsg) {
-        this.state.addMessage(conversationId, sentMsg);
+        this._upsertMessage(conversationId, sentMsg);
         this.chatView?.appendMessage(sentMsg);
+        this._trackLastSeenSeq(conversationId, sentMsg.seq);
       }
     } catch (err) {
       console.error('[MessengerAppV4] Failed to send message:', err);
@@ -1232,6 +1294,241 @@ class MessengerAppV4 {
     } else {
       console.error('[MessengerAppV4]', msg);
     }
+  }
+
+  _lastSeenSeqKey(conversationId) {
+    return `messenger:v4:lastSeenSeq:${conversationId}`;
+  }
+
+  _getLastSeenSeq(conversationId) {
+    try {
+      return Number(localStorage.getItem(this._lastSeenSeqKey(conversationId)) || 0) || 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  _trackLastSeenSeq(conversationId, seq) {
+    if (!conversationId || !Number.isFinite(Number(seq))) {
+      return;
+    }
+    const next = Number(seq);
+    const prev = this._getLastSeenSeq(conversationId);
+    if (next <= prev) {
+      return;
+    }
+    try {
+      localStorage.setItem(this._lastSeenSeqKey(conversationId), String(next));
+    } catch {
+      // noop
+    }
+  }
+
+  _isDuplicateMessage(conversationId, message) {
+    const seq = Number(message?.seq);
+    if (Number.isFinite(seq)) {
+      const set = this._seenSeqByConv.get(conversationId) || new Set();
+      if (set.has(seq)) {
+        return true;
+      }
+      set.add(seq);
+      this._seenSeqByConv.set(conversationId, set);
+      return false;
+    }
+    const clientId = message?.clientMessageId;
+    if (!clientId) {
+      return false;
+    }
+    const set = this._seenClientMessageIds.get(conversationId) || new Set();
+    if (set.has(clientId)) {
+      return true;
+    }
+    set.add(clientId);
+    this._seenClientMessageIds.set(conversationId, set);
+    return false;
+  }
+
+  _upsertMessage(conversationId, message) {
+    const messages = this.state.getMessages(conversationId) || [];
+    if (window.dedupeMessagesV4) {
+      const merged = window.dedupeMessagesV4(messages, [message]);
+      const before = messages.find(
+        m =>
+          message.clientMessageId &&
+          m.clientMessageId === message.clientMessageId &&
+          String(m._id) !== String(message._id)
+      );
+      if (before) {
+        this._reconMetrics.clientMessageIdReconciliations++;
+      }
+      this.state.setMessages(conversationId, merged);
+      return;
+    }
+    this.state.addMessage(conversationId, message);
+  }
+
+  async _catchUpAllConversations() {
+    const conversations = Array.isArray(this.state.conversations) ? this.state.conversations : [];
+    for (const conv of conversations) {
+      await this._catchUpConversation(conv._id);
+    }
+  }
+
+  async _catchUpConversation(conversationId) {
+    if (!conversationId) {
+      return;
+    }
+    let sinceSeq = this._getLastSeenSeq(conversationId);
+    let fetched = 0;
+    for (let i = 0; i < 20; i++) {
+      const res = await this.api.getMessages(conversationId, { sinceSeq, limit: 100 });
+      const msgs = Array.isArray(res?.messages) ? res.messages : [];
+      if (!msgs.length) {
+        break;
+      }
+      fetched += msgs.length;
+      for (const msg of msgs) {
+        if (!this._isDuplicateMessage(conversationId, msg)) {
+          this._upsertMessage(conversationId, msg);
+          if (conversationId === this._activeConversationId) {
+            this.chatView?.appendMessage(msg);
+          }
+          this._trackLastSeenSeq(conversationId, msg.seq);
+        } else {
+          this._reconMetrics.duplicateSeqDrops++;
+        }
+      }
+      sinceSeq = Number(res?.nextSinceSeq || msgs[msgs.length - 1]?.seq || sinceSeq);
+      if (!res?.hasMore) {
+        break;
+      }
+    }
+    this._reconMetrics.catchupGapSize = fetched;
+    this._logRecon('catchup-gap', { conversationId, fetched });
+  }
+
+  _replayQueuedLiveEvents() {
+    const queued = this._queuedLiveEvents.splice(0);
+    for (const evt of queued) {
+      if (!evt?.message || !evt?.conversationId) {
+        continue;
+      }
+      if (this._isDuplicateMessage(evt.conversationId, evt.message)) {
+        this._reconMetrics.duplicateSeqDrops++;
+        continue;
+      }
+      this._upsertMessage(evt.conversationId, evt.message);
+      if (evt.conversationId === this._activeConversationId) {
+        this.chatView?.appendMessage(evt.message);
+      }
+      this._trackLastSeenSeq(evt.conversationId, evt.message.seq);
+    }
+  }
+
+  _enqueueDelivered(conversationId, message) {
+    const uid = this._getCurrentUserId();
+    if (!uid || !message?._id || message.senderId === uid) {
+      return;
+    }
+    const set = this._deliveredQueue.get(conversationId) || new Set();
+    set.add(String(message._id));
+    this._deliveredQueue.set(conversationId, set);
+    clearTimeout(this._deliveredFlushTimer);
+    this._deliveredFlushTimer = setTimeout(() => this._flushDelivered(), 500);
+    this._scheduleReadAdvance(conversationId, message.seq);
+  }
+
+  async _flushDelivered() {
+    for (const [conversationId, idsSet] of this._deliveredQueue.entries()) {
+      const ids = Array.from(idsSet).slice(0, 50);
+      if (ids.length) {
+        await this.api.markDelivered(conversationId, ids).catch(() => {});
+      }
+      ids.forEach(id => idsSet.delete(id));
+      if (idsSet.size === 0) {
+        this._deliveredQueue.delete(conversationId);
+      }
+    }
+  }
+
+  _setupReadObserver() {
+    if (typeof IntersectionObserver !== 'function') {
+      return;
+    }
+    this._readObserver = new IntersectionObserver(
+      entries => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) {
+            continue;
+          }
+          const seq = Number(entry.target.getAttribute('data-seq'));
+          if (!Number.isFinite(seq) || !this._activeConversationId) {
+            continue;
+          }
+          const prev = this._visibleSeqByConv.get(this._activeConversationId) || 0;
+          if (seq > prev) {
+            this._visibleSeqByConv.set(this._activeConversationId, seq);
+            this._scheduleReadAdvance(this._activeConversationId, seq);
+          }
+        }
+      },
+      { threshold: 0.7 }
+    );
+    const mo = new MutationObserver(() => this._observeMessageNodes());
+    const target = document.querySelector('#v4Messages');
+    if (target) {
+      mo.observe(target, { childList: true, subtree: true });
+    }
+  }
+
+  _observeMessageNodes() {
+    if (!this._readObserver || !this.chatView?.messagesEl) {
+      return;
+    }
+    const msgs = this.state.getMessages(this._activeConversationId) || [];
+    const byId = new Map(msgs.map(m => [String(m._id), m]));
+    this.chatView.messagesEl.querySelectorAll('.messenger-v4__message[data-id]').forEach(el => {
+      const msg = byId.get(String(el.getAttribute('data-id')));
+      if (msg && Number.isFinite(Number(msg.seq))) {
+        el.setAttribute('data-seq', String(msg.seq));
+      }
+      this._readObserver.observe(el);
+    });
+  }
+
+  _scheduleReadAdvance(conversationId, seq) {
+    const prev = this._readUpToSeq.get(conversationId) || 0;
+    if (!Number.isFinite(Number(seq)) || Number(seq) <= prev) {
+      return;
+    }
+    this._readUpToSeq.set(conversationId, Number(seq));
+    clearTimeout(this._readDebounceTimer);
+    this._readDebounceTimer = setTimeout(async () => {
+      if (document.visibilityState !== 'visible' || document.hasFocus() === false) {
+        return;
+      }
+      const upToSeq = this._readUpToSeq.get(conversationId) || 0;
+      const sent = this._visibleSeqByConv.get(conversationId) || 0;
+      const finalSeq = Math.max(upToSeq, sent);
+      const already = this._readUpToSeq.get(`${conversationId}:sent`) || 0;
+      if (finalSeq > already) {
+        await this.api.markAsRead(conversationId, { upToSeq: finalSeq }).catch(() => {});
+        this._readUpToSeq.set(`${conversationId}:sent`, finalSeq);
+      }
+    }, 750);
+  }
+
+  _logRecon(event, payload = {}) {
+    if (!window.__MESSENGER_DEBUG__) {
+      return;
+    }
+    const logger =
+      window.logger && typeof window.logger.debug === 'function' ? window.logger : null;
+    if (logger) {
+      logger.debug('[MessengerRecon]', event, payload, this._reconMetrics);
+      return;
+    }
+    console.debug('[MessengerRecon]', event, payload, this._reconMetrics);
   }
 }
 

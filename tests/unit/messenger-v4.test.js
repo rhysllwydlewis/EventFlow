@@ -421,6 +421,32 @@ function createInMemoryDb() {
     collection(name) {
       return makeCollection(name);
     },
+    client: {
+      startSession() {
+        return {
+          async withTransaction(fn) {
+            const snapshot = JSON.parse(JSON.stringify(store));
+            try {
+              return await fn();
+            } catch (err) {
+              Object.keys(store).forEach(k => delete store[k]);
+              Object.entries(snapshot).forEach(([k, v]) => {
+                store[k] = v.map(item => {
+                  if (item && item._id && ObjectId.isValid(item._id)) {
+                    return { ...item, _id: new ObjectId(item._id) };
+                  }
+                  return item;
+                });
+              });
+              throw err;
+            }
+          },
+          async endSession() {
+            return undefined;
+          },
+        };
+      },
+    },
     // Expose raw store for test inspection
     _store: store,
   };
@@ -1595,3 +1621,34 @@ describe('MessengerV4Service', () => {
     });
   });
 });
+
+(process.env.MONGO_REPLICA_SET === 'true' ? describe : describe.skip)(
+  'transaction rollback (replica-set mode)',
+  () => {
+    it('rolls back message insert when failure occurs after insert', async () => {
+      const db = createInMemoryDb();
+      const service = new MessengerV4Service(db, console);
+      const conversation = await service.createConversation({
+        type: 'direct',
+        participants: [
+          { userId: 'user1', displayName: 'Alice', role: 'customer' },
+          { userId: 'user2', displayName: 'Bob', role: 'supplier' },
+        ],
+      });
+
+      await expect(
+        service.sendMessage(conversation._id.toString(), {
+          senderId: 'user1',
+          senderName: 'Alice',
+          content: 'hello',
+          __simulateFailureAfterInsert: true,
+        })
+      ).rejects.toThrow('Simulated failure after insert');
+
+      const messages = await service.messagesCollection
+        .find({ conversationId: conversation._id })
+        .toArray();
+      expect(messages).toHaveLength(0);
+    });
+  }
+);

@@ -1122,23 +1122,28 @@ Navigate to **Admin → Debug → Webhooks** tab and click **Test All Webhooks**
 
 ### Complete Guides
 
-| Document                                                                     | Description                                |
-| ---------------------------------------------------------------------------- | ------------------------------------------ |
-| [API_DOCUMENTATION.md](API_DOCUMENTATION.md)                                 | Complete API reference with examples       |
-| [ADMIN_GUIDE.md](ADMIN_GUIDE.md)                                             | Admin dashboard user guide                 |
-| [ADMIN_API.md](ADMIN_API.md)                                                 | Admin API endpoint documentation           |
-| [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)                                   | Production deployment instructions         |
-| [GDPR_COMPLIANCE.md](GDPR_COMPLIANCE.md)                                     | Data protection and privacy                |
-| [DOCKER_GUIDE.md](DOCKER_GUIDE.md)                                           | Docker Compose usage                       |
-| [POSTMARK_SETUP.md](POSTMARK_SETUP.md)                                       | Transactional email configuration          |
-| [STRIPE_INTEGRATION_GUIDE.md](STRIPE_INTEGRATION_GUIDE.md)                   | Payment setup                              |
-| [STRIPE_INTRO_PRICING_SETUP.md](STRIPE_INTRO_PRICING_SETUP.md)               | Introductory pricing for Professional plan |
-| [AWS_SES_SETUP.md](AWS_SES_SETUP.md)                                         | AWS SES email service setup                |
-| [docs/PERFORMANCE_TESTING.md](docs/PERFORMANCE_TESTING.md)                   | Performance verification and QA procedures |
-| [docs/PWA_ICONS.md](docs/PWA_ICONS.md)                                       | PWA icon assets and regeneration steps     |
-| [docs/mongodb-migration.md](docs/mongodb-migration.md)                       | MongoDB migration guide with architecture  |
-| [.github/docs/MONGODB_SETUP.md](.github/docs/MONGODB_SETUP.md)               | MongoDB technical configuration guide      |
-| [.github/docs/MONGODB_SETUP_SIMPLE.md](.github/docs/MONGODB_SETUP_SIMPLE.md) | MongoDB setup for non-technical users      |
+| Document                                                                                                     | Description                                |
+| ------------------------------------------------------------------------------------------------------------ | ------------------------------------------ |
+| [API_DOCUMENTATION.md](API_DOCUMENTATION.md)                                                                 | Complete API reference with examples       |
+| [ADMIN_GUIDE.md](ADMIN_GUIDE.md)                                                                             | Admin dashboard user guide                 |
+| [ADMIN_API.md](ADMIN_API.md)                                                                                 | Admin API endpoint documentation           |
+| [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md)                                                                   | Production deployment instructions         |
+| [GDPR_COMPLIANCE.md](GDPR_COMPLIANCE.md)                                                                     | Data protection and privacy                |
+| [DOCKER_GUIDE.md](DOCKER_GUIDE.md)                                                                           | Docker Compose usage                       |
+| [POSTMARK_SETUP.md](POSTMARK_SETUP.md)                                                                       | Transactional email configuration          |
+| [STRIPE_INTEGRATION_GUIDE.md](STRIPE_INTEGRATION_GUIDE.md)                                                   | Payment setup                              |
+| [STRIPE_INTRO_PRICING_SETUP.md](STRIPE_INTRO_PRICING_SETUP.md)                                               | Introductory pricing for Professional plan |
+| [AWS_SES_SETUP.md](AWS_SES_SETUP.md)                                                                         | AWS SES email service setup                |
+| [docs/PERFORMANCE_TESTING.md](docs/PERFORMANCE_TESTING.md)                                                   | Performance verification and QA procedures |
+| [docs/PWA_ICONS.md](docs/PWA_ICONS.md)                                                                       | PWA icon assets and regeneration steps     |
+| [docs/mongodb-migration.md](docs/mongodb-migration.md)                                                       | MongoDB migration guide with architecture  |
+| [docs/messenger/step-1-reconciliation.md](docs/messenger/step-1-reconciliation.md)                           | Messenger reconnection + sinceSeq catch-up |
+| [docs/messenger/step-2-readby-modal.md](docs/messenger/step-2-readby-modal.md)                               | Messenger group read-by UX                 |
+| [docs/messenger/queue.md](docs/messenger/queue.md)                                                           | Messenger BullMQ queue architecture        |
+| [docs/messenger/transactions.md](docs/messenger/transactions.md)                                             | Messenger transaction flag and rollout     |
+| [docs/messenger/step-5-group-thread-virtualization.md](docs/messenger/step-5-group-thread-virtualization.md) | Messenger threads/group UI/virtualization  |
+| [.github/docs/MONGODB_SETUP.md](.github/docs/MONGODB_SETUP.md)                                               | MongoDB technical configuration guide      |
+| [.github/docs/MONGODB_SETUP_SIMPLE.md](.github/docs/MONGODB_SETUP_SIMPLE.md)                                 | MongoDB setup for non-technical users      |
 
 ---
 

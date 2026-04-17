@@ -233,6 +233,7 @@ class MessengerAPI {
       // Backend expects 'replyTo' as a JSON string (parsed by multer/body-parser)
       if (reply) {
         formData.append('replyTo', JSON.stringify({ _id: reply }));
+        formData.append('replyToMessageId', String(reply));
       }
       formData.append('clientMessageId', clientMessageId);
 
@@ -278,6 +279,7 @@ class MessengerAPI {
       body: JSON.stringify({
         content,
         replyTo: reply ? { _id: reply } : undefined,
+        replyToMessageId: reply || undefined,
         clientMessageId,
       }),
     });
