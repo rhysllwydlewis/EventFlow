@@ -55,7 +55,7 @@
    */
   function showToastError(message) {
     if (
-      window.EventFlowNotifications &&
+      window.NotificationDispatcher &&
       typeof window.NotificationDispatcher.error === 'function'
     ) {
       window.NotificationDispatcher.error(message);
@@ -65,7 +65,7 @@
   }
 
   function showToastInfo(message) {
-    if (window.EventFlowNotifications && typeof window.NotificationDispatcher.info === 'function') {
+    if (window.NotificationDispatcher && typeof window.NotificationDispatcher.info === 'function') {
       window.NotificationDispatcher.info(message);
     } else {
       _showSimpleToast(message, '#0B8073');
