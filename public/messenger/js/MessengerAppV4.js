@@ -144,6 +144,10 @@ class MessengerAppV4 {
     if (composerContainer && window.MessageComposerV4) {
       this.composer = new MessageComposerV4(composerContainer, {
         onTyping: isTyping => this._broadcastTyping(isTyping),
+        // Using onSend (awaited + throws on failure) instead of the legacy
+        // 'composer:send' event lets the composer keep the user's typed
+        // content when the send fails so it can be retried.
+        onSend: payload => this._sendMessage(payload),
         maxLength: 5000,
       });
     }
@@ -242,15 +246,25 @@ class MessengerAppV4 {
       }
     });
 
-    // Composer send
+    // Composer send (legacy event-bus path).
+    // The composer now prefers the direct `onSend` callback wired in
+    // `_initializeComponents()` — when that callback is present the composer
+    // does not dispatch 'composer:send'.  This listener remains only as a
+    // compatibility shim for any older composer instances that still emit
+    // the event, and intentionally does not re-throw to avoid double-sends.
     window.addEventListener('composer:send', async e => {
       const { message, files, replyTo, conversationId } = e.detail || {};
-      await this._sendMessage({
-        message,
-        files,
-        replyTo,
-        conversationId: conversationId || this._activeConversationId,
-      });
+      try {
+        await this._sendMessage({
+          message,
+          files,
+          replyTo,
+          conversationId: conversationId || this._activeConversationId,
+        });
+      } catch (err) {
+        // Swallow — the new onSend path already surfaces errors.
+        console.error('[MessengerAppV4] composer:send (legacy) failed:', err);
+      }
     });
 
     // Contact picker selected → create conversation
@@ -907,6 +921,8 @@ class MessengerAppV4 {
 
   async _sendMessage({ message, files, replyTo, conversationId }) {
     if (!conversationId) {
+      // Not an error condition worth surfacing to the composer — nothing to
+      // send when no conversation is active.  Resolve quietly.
       return;
     }
     try {
@@ -938,6 +954,9 @@ class MessengerAppV4 {
       }
     } catch (err) {
       console.error('[MessengerAppV4] Failed to send message:', err);
+      // Re-throw so the composer keeps the user's typed content / attachments
+      // instead of silently clearing them after a failed send.
+      throw err;
     }
   }
 

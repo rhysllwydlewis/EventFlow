@@ -1016,12 +1016,15 @@ router.get('/contacts', applyAuthRequired, async (req, res) => {
 
 /**
  * GET /api/v4/messenger/search
- * Full-text search across all user messages
+ * Full-text search across all user messages.
+ * Optional `conversationId` query param scopes the search to a single
+ * conversation (the caller must be a participant; otherwise the conversation
+ * is silently excluded by the service layer's participant filter).
  */
 router.get('/search', applyAuthRequired, async (req, res) => {
   try {
     const userId = req.user.id;
-    const { q: query, limit = 50 } = req.query;
+    const { q: query, limit = 50, conversationId } = req.query;
 
     if (!query || query.trim().length === 0) {
       return res.status(400).json({
@@ -1035,9 +1038,20 @@ router.get('/search', applyAuthRequired, async (req, res) => {
       });
     }
 
+    // Validate optional conversationId scoping — reject clearly-malformed ids
+    // up-front rather than silently ignoring them.
+    if (conversationId !== undefined && !isValidObjectId(conversationId)) {
+      return res.status(400).json({ error: 'Invalid conversation ID' });
+    }
+
     const results = await (
       await getMessengerService()
-    ).searchMessages(userId, query, Math.min(Math.max(parseInt(limit, 10) || 50, 1), 100));
+    ).searchMessages(
+      userId,
+      query,
+      Math.min(Math.max(parseInt(limit, 10) || 50, 1), 100),
+      conversationId || null
+    );
 
     res.json({
       success: true,

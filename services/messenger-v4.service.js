@@ -853,19 +853,40 @@ class MessengerV4Service {
    * @param {string} userId - User ID
    * @param {string} query - Search query
    * @param {number} limit - Number of results
+   * @param {string|null} [conversationId] - Optional: restrict search to a
+   *   single conversation.  The conversation is still filtered through the
+   *   user's participant list so non-participants cannot probe arbitrary ids.
    * @returns {Array} Array of messages with conversation info
    */
-  async searchMessages(userId, query, limit = 50) {
+  async searchMessages(userId, query, limit = 50, conversationId = null) {
     // Get user's conversation IDs — exclude hard-deleted conversations from search
+    const userConversationFilter = {
+      'participants.userId': userId,
+      status: { $ne: 'deleted' },
+    };
+
+    // Scope to a single conversation when requested.  Adding the id to the
+    // participant filter (rather than trusting the caller's value directly)
+    // means a non-participant who guesses an id gets zero results.
+    if (conversationId) {
+      try {
+        userConversationFilter._id = new ObjectId(conversationId);
+      } catch {
+        // Invalid ObjectId — return empty results rather than throwing.
+        return [];
+      }
+    }
+
     const conversations = await this.conversationsCollection
-      .find({
-        'participants.userId': userId,
-        status: { $ne: 'deleted' },
-      })
+      .find(userConversationFilter)
       .project({ _id: 1 })
       .toArray();
 
     const conversationIds = conversations.map(c => c._id);
+
+    if (conversationIds.length === 0) {
+      return [];
+    }
 
     // Full-text search
     const messages = await this.messagesCollection
