@@ -48,7 +48,7 @@ class MessengerV4Service {
     }
     // Fallback path (test in-memory db).  Not atomic, but tests are single-threaded.
     const existing = await this.countersCollection.findOne({ _id });
-    const next = (existing?.seq || 0) + 1;
+    const next = existing && typeof existing.seq === 'number' ? existing.seq + 1 : 1;
     if (existing) {
       await this.countersCollection.updateOne({ _id }, { $set: { seq: next } });
     } else {
@@ -677,7 +677,7 @@ class MessengerV4Service {
         if (hasMore) {
           forward.pop();
         }
-        const participants = Array.isArray(conversation?.participants)
+        const participants = Array.isArray(conversation.participants)
           ? conversation.participants
           : [];
         return {
@@ -714,7 +714,7 @@ class MessengerV4Service {
       messages.pop();
     }
 
-    const participants = Array.isArray(conversation?.participants) ? conversation.participants : [];
+    const participants = Array.isArray(conversation.participants) ? conversation.participants : [];
     const ordered = messages.reverse(); // chronological
     return {
       messages: ordered.map(m => ({
