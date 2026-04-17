@@ -192,7 +192,7 @@
       <div class="cal-entry-modal" role="document">
         <div class="cal-entry-modal__header">
           <h2 class="cal-entry-modal__title" id="sup-cal-entry-modal-title">Add Calendar Entry</h2>
-          <button type="button" class="cal-entry-modal__close" aria-label="Close dialog">
+          <button type="button" class="ef-cta cal-entry-modal__close" aria-label="Close dialog">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
               <path d="M4 4l12 12M16 4L4 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
             </svg>
@@ -226,8 +226,8 @@
           </div>
           <p class="cal-entry-modal__error" id="sup-cal-entry-error" role="alert" aria-live="assertive" style="display:none;"></p>
           <div class="cal-entry-modal__actions">
-            <button type="button" class="cal-entry-modal__btn cal-entry-modal__btn--cancel" id="sup-cal-entry-cancel">Cancel</button>
-            <button type="submit" class="cal-entry-modal__btn cal-entry-modal__btn--save" id="sup-cal-entry-submit">Save Entry</button>
+            <button type="button" class="ef-cta cal-entry-modal__btn cal-entry-modal__btn--cancel" id="sup-cal-entry-cancel">Cancel</button>
+            <button type="submit" class="ef-cta cal-entry-modal__btn cal-entry-modal__btn--save" id="sup-cal-entry-submit">Save Entry</button>
           </div>
         </form>
       </div>
@@ -381,8 +381,8 @@
       <p style="margin:0 0 0.75rem;font-size:0.875rem;font-weight:500;color:#111827;">Delete this entry?</p>
       <p style="margin:0 0 0.875rem;font-size:0.8rem;color:#6b7280;">${escapeHtml(entryTitle)}</p>
       <div style="display:flex;gap:0.5rem;justify-content:flex-end;">
-        <button type="button" class="cal-delete-popover__btn cal-delete-popover__btn--cancel">Cancel</button>
-        <button type="button" class="cal-delete-popover__btn cal-delete-popover__btn--confirm">Delete</button>
+        <button type="button" class="ef-cta cal-delete-popover__btn cal-delete-popover__btn--cancel">Cancel</button>
+        <button type="button" class="ef-cta cal-delete-popover__btn cal-delete-popover__btn--confirm">Delete</button>
       </div>
     `;
 
@@ -463,16 +463,16 @@
     if (isOwn && isPublisher) {
       actionsHtml = `
         <div style="display:flex;gap:0.5rem;justify-content:flex-end;flex-wrap:wrap;">
-          <button type="button" class="cal-delete-popover__btn cal-delete-popover__btn--cancel" data-action="close">Close</button>
-          <button type="button" class="cal-delete-popover__btn" style="background:#2563eb;color:#fff;border-color:#2563eb;" data-action="edit">Edit</button>
-          <button type="button" class="cal-delete-popover__btn cal-delete-popover__btn--confirm" data-action="delete">Delete</button>
+          <button type="button" class="ef-cta cal-delete-popover__btn cal-delete-popover__btn--cancel" data-action="close">Close</button>
+          <button type="button" class="ef-cta cal-delete-popover__btn" style="background:#2563eb;color:#fff;border-color:#2563eb;" data-action="edit">Edit</button>
+          <button type="button" class="ef-cta cal-delete-popover__btn cal-delete-popover__btn--confirm" data-action="delete">Delete</button>
         </div>
       `;
     } else {
       actionsHtml = `
         <div style="display:flex;gap:0.5rem;justify-content:flex-end;">
-          <button type="button" class="cal-delete-popover__btn cal-delete-popover__btn--cancel" data-action="close">Close</button>
-          <button type="button" class="cal-delete-popover__btn" style="background:#7c3aed;color:#fff;border-color:#7c3aed;" data-action="${isSaved ? 'unsave' : 'save'}">${isSaved ? 'Remove from calendar' : 'Save to calendar'}</button>
+          <button type="button" class="ef-cta cal-delete-popover__btn cal-delete-popover__btn--cancel" data-action="close">Close</button>
+          <button type="button" class="ef-cta cal-delete-popover__btn" style="background:#7c3aed;color:#fff;border-color:#7c3aed;" data-action="${isSaved ? 'unsave' : 'save'}">${isSaved ? 'Remove from calendar' : 'Save to calendar'}</button>
         </div>
       `;
     }
@@ -583,7 +583,7 @@
       <div class="cal-entry-modal" role="document">
         <div class="cal-entry-modal__header">
           <h2 class="cal-entry-modal__title" id="sup-cal-pub-event-modal-title">Add Public Event</h2>
-          <button type="button" class="cal-entry-modal__close" aria-label="Close dialog">
+          <button type="button" class="ef-cta cal-entry-modal__close" aria-label="Close dialog">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
               <path d="M4 4l12 12M16 4L4 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
             </svg>
@@ -613,8 +613,8 @@
           </div>
           <p class="cal-entry-modal__error" id="sup-cal-pub-event-error" role="alert" aria-live="assertive" style="display:none;"></p>
           <div class="cal-entry-modal__actions">
-            <button type="button" class="cal-entry-modal__btn cal-entry-modal__btn--cancel" id="sup-cal-pub-event-cancel">Cancel</button>
-            <button type="submit" class="cal-entry-modal__btn cal-entry-modal__btn--save" id="sup-cal-pub-event-submit">Publish Event</button>
+            <button type="button" class="ef-cta cal-entry-modal__btn cal-entry-modal__btn--cancel" id="sup-cal-pub-event-cancel">Cancel</button>
+            <button type="submit" class="ef-cta cal-entry-modal__btn cal-entry-modal__btn--save" id="sup-cal-pub-event-submit">Publish Event</button>
           </div>
         </form>
       </div>
@@ -816,8 +816,8 @@
         <div style="padding:0 1.25rem 1.25rem;">
           <p style="font-size:0.875rem;color:#374151;margin:0 0 1rem;">"${escapeHtml(ev.title)}" will be removed from the shared calendar permanently.</p>
           <div style="display:flex;gap:0.5rem;justify-content:flex-end;">
-            <button type="button" class="cal-entry-modal__btn cal-entry-modal__btn--cancel" id="sup-del-pub-cancel">Cancel</button>
-            <button type="button" class="cal-entry-modal__btn cal-entry-modal__btn--save" id="sup-del-pub-confirm" style="background:#dc2626;">Delete Event</button>
+            <button type="button" class="ef-cta cal-entry-modal__btn cal-entry-modal__btn--cancel" id="sup-del-pub-cancel">Cancel</button>
+            <button type="button" class="ef-cta cal-entry-modal__btn cal-entry-modal__btn--save" id="sup-del-pub-confirm" style="background:#dc2626;">Delete Event</button>
           </div>
         </div>
       </div>

@@ -61,7 +61,7 @@ class ShortlistDrawer {
       <div class="shortlist-panel">
         <div class="shortlist-header">
           <h2>Shortlist</h2>
-          <button class="shortlist-close-btn" aria-label="Close shortlist">
+          <button class="ef-cta shortlist-close-btn" aria-label="Close shortlist">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -72,7 +72,7 @@ class ShortlistDrawer {
           <!-- Items will be rendered here -->
         </div>
         <div class="shortlist-footer">
-          <button class="btn btn-secondary" id="clear-shortlist-btn">Clear all</button>
+          <button class="ef-cta btn btn-secondary" id="clear-shortlist-btn">Clear all</button>
         </div>
       </div>
     `;
@@ -173,7 +173,7 @@ class ShortlistDrawer {
           <p class="shortlist-item-price">${priceHint} ${rating}</p>
         </div>
         <button
-          class="shortlist-item-remove"
+          class="ef-cta shortlist-item-remove"
           data-type="${item.type}" 
           data-id="${item.id}"
           aria-label="Remove ${item.name} from shortlist"
@@ -223,8 +223,8 @@ class ShortlistDrawer {
           <h3 class="confirm-dialog-title">${title}</h3>
           <p class="confirm-dialog-message">${message}</p>
           <div class="confirm-dialog-actions">
-            <button class="btn btn-secondary confirm-cancel">Cancel</button>
-            <button class="btn btn-primary confirm-ok">Confirm</button>
+            <button class="ef-cta btn btn-secondary confirm-cancel">Cancel</button>
+            <button class="ef-cta btn btn-primary confirm-ok">Confirm</button>
           </div>
         </div>
       `;

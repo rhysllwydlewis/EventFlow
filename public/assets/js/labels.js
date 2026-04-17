@@ -289,7 +289,7 @@
       container.innerHTML = `
         <div class="label-empty">
           <p>No labels yet</p>
-          <button onclick="window.EF_Labels.showCreateLabelModal()" class="btn-primary">
+          <button onclick="window.EF_Labels.showCreateLabelModal()" class="ef-cta btn-primary">
             Create Label
           </button>
         </div>
@@ -300,7 +300,7 @@
     const html = `
       <div class="label-filter-header">
         <h3>Filter by Label</h3>
-        <button onclick="window.EF_Labels.showCreateLabelModal()" class="label-add-btn" title="Add label">
+        <button onclick="window.EF_Labels.showCreateLabelModal()" class="ef-cta label-add-btn" title="Add label">
           +
         </button>
       </div>
@@ -334,7 +334,7 @@
           ${label.icon ? `${label.icon} ` : ''}${escapeHtml(label.name)}
         </span>
         ${label.messageCount > 0 ? `<span class="label-filter-count">${label.messageCount}</span>` : ''}
-        <button class="label-menu-btn" onclick="event.stopPropagation(); window.EF_Labels.showLabelContextMenu(event, '${label._id}')">
+        <button class="ef-cta label-menu-btn" onclick="event.stopPropagation(); window.EF_Labels.showLabelContextMenu(event, '${label._id}')">
           ⋮
         </button>
       </div>
@@ -355,7 +355,7 @@
         ${state.labels.map(label => renderLabelPickerItem(label)).join('')}
       </div>
       <div class="label-picker-footer">
-        <button onclick="window.EF_Labels.showCreateLabelModal(); window.EF_Labels.closeLabelPicker();" class="label-picker-create">
+        <button onclick="window.EF_Labels.showCreateLabelModal(); window.EF_Labels.closeLabelPicker();" class="ef-cta label-picker-create">
           + Create New Label
         </button>
       </div>
@@ -403,7 +403,7 @@
             <span class="message-label" style="background: ${bgColor}; color: ${textColor};">
               ${label.icon ? `${label.icon} ` : ''}${escapeHtml(label.name)}
               <button 
-                class="message-label-remove" 
+                class="ef-cta message-label-remove" 
                 onclick="event.stopPropagation(); window.EF_Labels.removeLabelFromMessage('${labelId}', '${messageId}')"
                 title="Remove label"
               >
@@ -507,8 +507,8 @@
         </div>
         
         <div class="modal-actions">
-          <button type="button" onclick="window.EF_Labels.closeModal()" class="btn-secondary">Cancel</button>
-          <button type="submit" class="btn-primary">Create Label</button>
+          <button type="button" onclick="window.EF_Labels.closeModal()" class="ef-cta btn-secondary">Cancel</button>
+          <button type="submit" class="ef-cta btn-primary">Create Label</button>
         </div>
       </form>
     `
@@ -590,8 +590,8 @@
         </div>
         
         <div class="modal-actions">
-          <button type="button" onclick="window.EF_Labels.closeModal()" class="btn-secondary">Cancel</button>
-          <button type="submit" class="btn-primary">Update Label</button>
+          <button type="button" onclick="window.EF_Labels.closeModal()" class="ef-cta btn-secondary">Cancel</button>
+          <button type="submit" class="ef-cta btn-primary">Update Label</button>
         </div>
       </form>
     `
@@ -648,8 +648,8 @@
         <p class="warning-text">This label will be removed from all messages.</p>
       </div>
       <div class="modal-actions">
-        <button type="button" onclick="window.EF_Labels.closeModal()" class="btn-secondary">Cancel</button>
-        <button type="button" onclick="window.EF_Labels.confirmDelete('${labelId}')" class="btn-danger">Delete Label</button>
+        <button type="button" onclick="window.EF_Labels.closeModal()" class="ef-cta btn-secondary">Cancel</button>
+        <button type="button" onclick="window.EF_Labels.confirmDelete('${labelId}')" class="ef-cta btn-danger">Delete Label</button>
       </div>
     `
     );
@@ -741,7 +741,7 @@
       <div class="modal">
         <div class="modal-header">
           <h3>${escapeHtml(title)}</h3>
-          <button onclick="window.EF_Labels.closeModal()" class="modal-close">&times;</button>
+          <button onclick="window.EF_Labels.closeModal()" class="ef-cta modal-close">&times;</button>
         </div>
         <div class="modal-body">
           ${content}

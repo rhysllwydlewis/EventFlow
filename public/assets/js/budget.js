@@ -459,15 +459,15 @@ class BudgetManager {
       <div class="modal-content">
         <div class="modal-header">
           <h2>Export Budget</h2>
-          <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+          <button class="ef-cta modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
         </div>
         <div class="modal-body">
           <p class="mb-4">Choose export format:</p>
           <div style="display: flex; flex-direction: column; gap: 12px;">
-            <button class="btn btn-primary" id="export-pdf">
+            <button class="ef-cta btn btn-primary" id="export-pdf">
               📄 Export as PDF
             </button>
-            <button class="btn btn-secondary" id="export-csv">
+            <button class="ef-cta btn btn-secondary" id="export-csv">
               📊 Export as CSV
             </button>
           </div>

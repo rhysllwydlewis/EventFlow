@@ -163,7 +163,7 @@
         <div class="auth-connection-error-text">
           Unable to connect. Please check your internet connection.
         </div>
-        <button type="button" class="auth-retry-btn">Retry</button>
+        <button type="button" class="ef-cta auth-retry-btn">Retry</button>
       `;
       container.insertBefore(errorEl, container.firstChild);
 

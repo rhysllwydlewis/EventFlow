@@ -359,7 +359,7 @@
         <p class="small">This helps us show you the most relevant suppliers and packages.</p>
         
         <div class="wizard-options" role="group" aria-label="Event type options">
-          <button class="wizard-option ${state.eventType === 'Wedding' ? 'selected' : ''}" 
+          <button class="ef-cta wizard-option ${state.eventType === 'Wedding' ? 'selected' : ''}" 
                   data-value="Wedding" type="button" id="event-type-wedding"
                   aria-pressed="${state.eventType === 'Wedding' ? 'true' : 'false'}">
             <div class="wizard-option-image-container">
@@ -367,7 +367,7 @@
             </div>
             <span class="wizard-option-label">Wedding</span>
           </button>
-          <button class="wizard-option ${state.eventType === 'Corporate' ? 'selected' : ''}" 
+          <button class="ef-cta wizard-option ${state.eventType === 'Corporate' ? 'selected' : ''}" 
                   data-value="Corporate" type="button" id="event-type-corporate"
                   aria-pressed="${state.eventType === 'Corporate' ? 'true' : 'false'}">
             <div class="wizard-option-image-container">
@@ -375,7 +375,7 @@
             </div>
             <span class="wizard-option-label">Corporate Event</span>
           </button>
-          <button class="wizard-option ${state.eventType === 'Birthday' ? 'selected' : ''}" 
+          <button class="ef-cta wizard-option ${state.eventType === 'Birthday' ? 'selected' : ''}" 
                   data-value="Birthday" type="button" id="event-type-birthday"
                   aria-pressed="${state.eventType === 'Birthday' ? 'true' : 'false'}">
             <div class="wizard-option-image-container">
@@ -383,7 +383,7 @@
             </div>
             <span class="wizard-option-label">Birthday Party</span>
           </button>
-          <button class="wizard-option ${state.eventType === 'Other' ? 'selected' : ''}" 
+          <button class="ef-cta wizard-option ${state.eventType === 'Other' ? 'selected' : ''}" 
                   data-value="Other" type="button" id="event-type-other"
                   aria-pressed="${state.eventType === 'Other' ? 'true' : 'false'}">
             <div class="wizard-option-image-container">
@@ -491,7 +491,7 @@
         <div class="wizard-actions">
           <button class="cta secondary wizard-back" type="button">Back</button>
           <button class="cta wizard-next" type="button">Continue</button>
-          <button class="wizard-skip" type="button">Skip for now</button>
+          <button class="ef-cta wizard-skip" type="button">Skip for now</button>
         </div>
       </div>
     `;
@@ -534,7 +534,7 @@
         <div class="wizard-actions">
           <button class="cta secondary wizard-back" type="button">Back</button>
           <button class="cta wizard-next" type="button">Continue</button>
-          <button class="wizard-skip" type="button">Skip for now</button>
+          <button class="ef-cta wizard-skip" type="button">Skip for now</button>
         </div>
       </div>
     `;
@@ -770,7 +770,7 @@
     const wasExpanded = _mobileSummaryExpanded;
 
     mobileSummary.innerHTML = `
-      <button class="wizard-mobile-summary-bar" type="button"
+      <button class="ef-cta wizard-mobile-summary-bar" type="button"
               aria-expanded="${wasExpanded ? 'true' : 'false'}"
               aria-controls="mobile-summary-details">
         <span class="wizard-mobile-summary-compact">${compactText}</span>

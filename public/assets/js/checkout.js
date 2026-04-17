@@ -236,7 +236,7 @@
               ${plan.features.map(feature => `<li>${escapeHtml(feature)}</li>`).join('')}
             </ul>
             <button 
-              class="btn-checkout" 
+              class="ef-cta btn-checkout" 
               data-plan="${escapeHtml(key)}">
               ${plan.isFree ? 'Get Started Free' : `Choose ${escapeHtml(plan.name)}`}
             </button>

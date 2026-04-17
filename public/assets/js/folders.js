@@ -255,7 +255,7 @@
       container.innerHTML = `
         <div class="folder-empty">
           <p>No folders yet</p>
-          <button onclick="window.EF_Folders.showCreateFolderModal()" class="btn-primary">
+          <button onclick="window.EF_Folders.showCreateFolderModal()" class="ef-cta btn-primary">
             Create Folder
           </button>
         </div>
@@ -274,7 +274,7 @@
         <div class="folder-section">
           <div class="folder-section-header">
             Custom Folders
-            <button onclick="window.EF_Folders.showCreateFolderModal()" class="folder-add-btn" title="Add folder">
+            <button onclick="window.EF_Folders.showCreateFolderModal()" class="ef-cta folder-add-btn" title="Add folder">
               +
             </button>
           </div>
@@ -284,7 +284,7 @@
           : `
         <div class="folder-section">
           <div class="folder-section-header">Custom Folders</div>
-          <button onclick="window.EF_Folders.showCreateFolderModal()" class="folder-create-first">
+          <button onclick="window.EF_Folders.showCreateFolderModal()" class="ef-cta folder-create-first">
             + Create your first folder
           </button>
         </div>
@@ -311,7 +311,7 @@
           ${
             hasChildren
               ? `
-            <button class="folder-expand-btn" onclick="window.EF_Folders.toggleFolder('${folder._id}')">
+            <button class="ef-cta folder-expand-btn" onclick="window.EF_Folders.toggleFolder('${folder._id}')">
               ${isExpanded ? '▼' : '▶'}
             </button>
           `
@@ -328,7 +328,7 @@
             ${folder.unreadCount > 0 ? `<span class="folder-unread">${folder.unreadCount}</span>` : ''}
             ${folder.messageCount > 0 ? `<span class="folder-count">${folder.messageCount}</span>` : ''}
           </div>
-          <button class="folder-menu-btn" onclick="window.EF_Folders.showFolderContextMenu(event, '${folder._id}')">
+          <button class="ef-cta folder-menu-btn" onclick="window.EF_Folders.showFolderContextMenu(event, '${folder._id}')">
             ⋮
           </button>
         </div>
@@ -405,8 +405,8 @@
         </div>
         
         <div class="modal-actions">
-          <button type="button" onclick="window.EF_Folders.closeModal()" class="btn-secondary">Cancel</button>
-          <button type="submit" class="btn-primary">Create Folder</button>
+          <button type="button" onclick="window.EF_Folders.closeModal()" class="ef-cta btn-secondary">Cancel</button>
+          <button type="submit" class="ef-cta btn-primary">Create Folder</button>
         </div>
       </form>
     `
@@ -457,8 +457,8 @@
         </div>
         
         <div class="modal-actions">
-          <button type="button" onclick="window.EF_Folders.closeModal()" class="btn-secondary">Cancel</button>
-          <button type="submit" class="btn-primary">Update Folder</button>
+          <button type="button" onclick="window.EF_Folders.closeModal()" class="ef-cta btn-secondary">Cancel</button>
+          <button type="submit" class="ef-cta btn-primary">Update Folder</button>
         </div>
       </form>
     `
@@ -496,8 +496,8 @@
         <p class="warning-text">Messages in this folder will be moved to Inbox.</p>
       </div>
       <div class="modal-actions">
-        <button type="button" onclick="window.EF_Folders.closeModal()" class="btn-secondary">Cancel</button>
-        <button type="button" onclick="window.EF_Folders.confirmDelete('${folderId}')" class="btn-danger">Delete Folder</button>
+        <button type="button" onclick="window.EF_Folders.closeModal()" class="ef-cta btn-secondary">Cancel</button>
+        <button type="button" onclick="window.EF_Folders.confirmDelete('${folderId}')" class="ef-cta btn-danger">Delete Folder</button>
       </div>
     `
     );
@@ -681,7 +681,7 @@
       <div class="modal">
         <div class="modal-header">
           <h3>${escapeHtml(title)}</h3>
-          <button onclick="window.EF_Folders.closeModal()" class="modal-close">&times;</button>
+          <button onclick="window.EF_Folders.closeModal()" class="ef-cta modal-close">&times;</button>
         </div>
         <div class="modal-body">
           ${content}

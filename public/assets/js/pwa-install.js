@@ -185,8 +185,8 @@
         <strong>Install EventFlow</strong>
         Install on your computer for quick access
       </span>
-      <button class="ef-pwa-install-btn" type="button">Install</button>
-      <button class="ef-pwa-dismiss-btn" type="button" aria-label="Dismiss install prompt">✕</button>
+      <button class="ef-cta ef-pwa-install-btn" type="button">Install</button>
+      <button class="ef-cta ef-pwa-dismiss-btn" type="button" aria-label="Dismiss install prompt">✕</button>
     `;
     banner.querySelector('.ef-pwa-install-btn').addEventListener('click', onInstall);
     banner.querySelector('.ef-pwa-dismiss-btn').addEventListener('click', onDismiss);

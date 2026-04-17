@@ -121,20 +121,20 @@
       }
       html += '</td>';
       html += '<td>';
-      html += `<button class="btn btn-primary btn-small" data-action="editPackage" data-id="${
+      html += `<button class="ef-cta btn btn-primary btn-small" data-action="editPackage" data-id="${
         pkg.id
       }">Edit</button> `;
-      html += `<button class="btn btn-small ${
+      html += `<button class="ef-cta btn btn-small ${
         pkg.approved ? 'btn-secondary' : 'btn-primary'
       }" data-action="toggleApproval" data-id="${pkg.id}" data-param="${!pkg.approved}">${
         pkg.approved ? 'Unapprove' : 'Approve'
       }</button> `;
-      html += `<button class="btn btn-small ${
+      html += `<button class="ef-cta btn btn-small ${
         pkg.featured ? 'btn-secondary' : 'btn-primary'
       }" data-action="toggleFeatured" data-id="${pkg.id}" data-param="${!pkg.featured}">${
         pkg.featured ? 'Unfeature' : 'Feature'
       }</button> `;
-      html += `<button class="btn btn-danger btn-small" data-action="deletePackage" data-id="${
+      html += `<button class="ef-cta btn btn-danger btn-small" data-action="deletePackage" data-id="${
         pkg.id
       }">Delete</button>`;
       html += '</td>';

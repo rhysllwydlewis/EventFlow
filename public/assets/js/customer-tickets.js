@@ -104,7 +104,7 @@ function showCreateTicketModal() {
     <div class="modal ticket-create-modal">
       <div class="modal-header">
         <h3 id="${titleId}">Create Support Ticket</h3>
-        <button class="modal-close" type="button" aria-label="Close">&times;</button>
+        <button class="ef-cta modal-close" type="button" aria-label="Close">&times;</button>
       </div>
       <div class="modal-body">
         <form id="createTicketForm">
@@ -117,8 +117,8 @@ function showCreateTicketModal() {
             <textarea id="ticketMessage" rows="6" required placeholder="Describe your issue in detail"></textarea>
           </div>
           <div class="form-actions">
-            <button type="submit" class="btn btn-primary">Submit Ticket</button>
-            <button type="button" class="btn btn-secondary modal-close-btn">Cancel</button>
+            <button type="submit" class="ef-cta btn btn-primary">Submit Ticket</button>
+            <button type="button" class="ef-cta btn btn-secondary modal-close-btn">Cancel</button>
           </div>
         </form>
       </div>
@@ -209,7 +209,7 @@ function viewTicket(ticketId) {
     <div class="modal ticket-view-modal">
       <div class="modal-header">
         <h3 id="${titleId}">Support Ticket</h3>
-        <button class="modal-close" type="button" aria-label="Close">&times;</button>
+        <button class="ef-cta modal-close" type="button" aria-label="Close">&times;</button>
       </div>
       <div class="modal-body">
         <div id="ticketDetails"><p class="small">Loading...</p></div>
@@ -306,7 +306,7 @@ function viewTicket(ticketId) {
           <label for="ticketReplyMessage" class="small ticket-reply-form__label">Add a reply</label>
           <textarea id="ticketReplyMessage" class="ticket-reply-form__textarea" rows="4" required placeholder="Add more details for support..."></textarea>
           <div class="ticket-reply-form__actions">
-            <button type="submit" class="btn btn-primary">Send Reply</button>
+            <button type="submit" class="ef-cta btn btn-primary">Send Reply</button>
           </div>
         </form>
       `;

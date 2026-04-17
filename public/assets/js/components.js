@@ -70,7 +70,7 @@ class Modal {
     header.className = 'modal-header';
     header.innerHTML = `
       <h2 class="modal-title">${escapeHtml(this.title)}</h2>
-      <button class="modal-close" aria-label="Close">&times;</button>
+      <button class="ef-cta modal-close" aria-label="Close">&times;</button>
     `;
 
     const body = document.createElement('div');
@@ -195,7 +195,7 @@ class Toast {
         ${title ? `<div class="toast-title">${escapeHtml(title)}</div>` : ''}
         <div class="toast-message">${escapeHtml(message)}</div>
       </div>
-      ${dismissible ? '<button class="toast-close" aria-label="Close">&times;</button>' : ''}
+      ${dismissible ? '<button class="ef-cta toast-close" aria-label="Close">&times;</button>' : ''}
     `;
 
     container.appendChild(toast);

@@ -61,7 +61,7 @@ class MessageComposer {
         <div class="message-composer__input-wrapper">
           <button 
             type="button" 
-            class="message-composer__btn message-composer__btn--file" 
+            class="ef-cta message-composer__btn message-composer__btn--file" 
             title="Attach files"
             aria-label="Attach files">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor">
@@ -78,7 +78,7 @@ class MessageComposer {
           
           <button 
             type="button" 
-            class="message-composer__btn message-composer__btn--emoji" 
+            class="ef-cta message-composer__btn message-composer__btn--emoji" 
             title="Add emoji"
             aria-label="Add emoji">
             😊
@@ -86,7 +86,7 @@ class MessageComposer {
           
           <button 
             type="button" 
-            class="message-composer__btn message-composer__btn--send" 
+            class="ef-cta message-composer__btn message-composer__btn--send" 
             title="Send message"
             aria-label="Send message"
             disabled>
@@ -313,7 +313,7 @@ class MessageComposer {
         </div>
         <button 
           type="button" 
-          class="message-composer__attachment-remove" 
+          class="ef-cta message-composer__attachment-remove" 
           data-index="${index}"
           aria-label="Remove ${this.escapeHtml(file.name)}">
           ×
@@ -353,7 +353,7 @@ class MessageComposer {
   showEmojiPicker() {
     const emojis = ['😊', '😂', '❤️', '👍', '👎', '🎉', '🔥', '✨', '💯', '🙏'];
     const emojiHtml = emojis
-      .map(emoji => `<button type="button" class="emoji-picker__emoji">${emoji}</button>`)
+      .map(emoji => `<button type="button" class="ef-cta emoji-picker__emoji">${emoji}</button>`)
       .join('');
 
     // Create or update picker

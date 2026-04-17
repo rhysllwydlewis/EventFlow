@@ -564,7 +564,7 @@
                      <textarea class="listing-inline-composer-input" maxlength="2000" rows="5" placeholder="Type your message...">${escapeHtml(buildInitialMarketplaceMessage(listing.title))}</textarea>
                      <div class="listing-inline-composer-status" aria-live="polite"></div>
                      <div class="listing-inline-composer-actions">
-                       <button class="btn btn-secondary listing-inline-composer-cancel" type="button">Cancel</button>
+                       <button class="ef-cta btn btn-secondary listing-inline-composer-cancel" type="button">Cancel</button>
                        <button class="cta listing-inline-composer-send" type="button">Send Message</button>
                      </div>
                    </div>`
@@ -819,7 +819,7 @@
       <div class="modal-content" style="max-width: 600px;">
         <div class="modal-header">
           <h2>Create new listing</h2>
-          <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+          <button class="ef-cta modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
         </div>
         <div class="modal-body">
           <form id="list-item-form">
@@ -1257,7 +1257,7 @@
       <div class="location-modal">
         <div class="location-modal-header">
           <h3>Change Location</h3>
-          <button class="location-modal-close" aria-label="Close">&times;</button>
+          <button class="ef-cta location-modal-close" aria-label="Close">&times;</button>
         </div>
         <div class="location-modal-body">
           <div class="location-modal-group">

@@ -209,7 +209,7 @@ function createSupplierCard(supplier, position) {
           <div class="sp-pkg-mini-body">
             <p class="sp-pkg-mini-title">${escapeHtml(pkg.title)}</p>
             <p class="sp-pkg-mini-price">${escapeHtml(pkg.price)}</p>
-            <button class="sp-btn sp-btn--plan btn-add-to-plan"
+            <button class="ef-cta sp-btn sp-btn--plan btn-add-to-plan"
                     data-package-id="${escapeHtml(pkg.id || '')}"
                     data-package-title="${escapeHtml(pkg.title)}"
                     data-package-price="${escapeHtml(pkg.price)}"
@@ -226,13 +226,13 @@ function createSupplierCard(supplier, position) {
     const nextDisabled = total <= 2 ? ' disabled' : '';
     packagesHtml = `
       <div class="sp-pkg-carousel">
-        <button class="sp-pkg-arrow sp-pkg-arrow--prev" aria-label="Show previous packages" disabled>&#8249;</button>
+        <button class="ef-cta sp-pkg-arrow sp-pkg-arrow--prev" aria-label="Show previous packages" disabled>&#8249;</button>
         <div class="sp-pkg-carousel-viewport">
           <div class="sp-pkg-carousel-track">
             ${miniCards}
           </div>
         </div>
-        <button class="sp-pkg-arrow sp-pkg-arrow--next" aria-label="Show next packages"${nextDisabled}>&#8250;</button>
+        <button class="ef-cta sp-pkg-arrow sp-pkg-arrow--next" aria-label="Show next packages"${nextDisabled}>&#8250;</button>
       </div>`;
   }
 
@@ -266,7 +266,7 @@ function createSupplierCard(supplier, position) {
 
       <!-- RIGHT: Action buttons -->
       <div class="sp-card-actions">
-        <button class="sp-btn ${shortlistActiveClass} btn-shortlist"
+        <button class="ef-cta sp-btn ${shortlistActiveClass} btn-shortlist"
                 data-supplier-id="${escapeHtml(supplier.id)}"
                 data-supplier-name="${escapeHtml(supplier.name)}"
                 data-supplier-category="${escapeHtml(supplier.category || '')}"
@@ -282,7 +282,7 @@ function createSupplierCard(supplier, position) {
            aria-label="View ${escapeHtml(supplier.name)} profile">
           View Profile
         </a>
-        <button class="sp-btn sp-btn--primary btn-contact-supplier"
+        <button class="ef-cta sp-btn sp-btn--primary btn-contact-supplier"
                 data-quick-compose="true"
                 ${supplier.ownerUserId ? `data-recipient-id="${escapeHtml(supplier.ownerUserId)}"` : ''}
                 data-context-type="supplier_profile"
@@ -343,7 +343,7 @@ function createEmptyState(filters) {
       <h2 class="sp-empty-title">No suppliers found</h2>
       <p class="sp-empty-text">${hasFilters ? 'No suppliers match your current filters. Try adjusting or clearing your search.' : 'No suppliers are available at the moment. Check back soon.'}</p>
       <div class="sp-empty-actions">
-        ${hasFilters ? '<button class="sp-btn sp-btn--secondary" id="clear-filters-btn">Clear filters</button>' : ''}
+        ${hasFilters ? '<button class="ef-cta sp-btn sp-btn--secondary" id="clear-filters-btn">Clear filters</button>' : ''}
         <a href="/start" class="sp-btn sp-btn--primary">Start planning</a>
       </div>
     </div>
@@ -374,7 +374,7 @@ function createFallbackState(filters, fallback) {
         <p class="sp-empty-text">${escapeHtml(message || 'No suppliers matched your search. Here are some alternatives.')}</p>
         ${relaxedNote}
         <div class="sp-empty-actions">
-          ${hasFilters ? '<button class="sp-btn sp-btn--secondary" id="clear-filters-btn">Clear filters</button>' : ''}
+          ${hasFilters ? '<button class="ef-cta sp-btn sp-btn--secondary" id="clear-filters-btn">Clear filters</button>' : ''}
           <a href="/suppliers" class="sp-btn sp-btn--primary">Browse all suppliers</a>
         </div>
       </div>
@@ -621,7 +621,7 @@ async function initSuppliersPage() {
       }
       const chipLabel = label(value);
       activeChips.push(
-        `<button class="sp-filter-chip" data-filter-key="${escapeHtml(key)}" type="button" aria-label="Remove filter: ${escapeHtml(chipLabel)}">
+        `<button class="ef-cta sp-filter-chip" data-filter-key="${escapeHtml(key)}" type="button" aria-label="Remove filter: ${escapeHtml(chipLabel)}">
           ${escapeHtml(chipLabel)} <span aria-hidden="true" style="margin-left:2px;opacity:0.7;">×</span>
         </button>`
       );
@@ -635,7 +635,7 @@ async function initSuppliersPage() {
 
     activeFiltersChipsEl.innerHTML = `${activeChips.join(
       ''
-    )}<button class="sp-filter-chip" style="background:rgba(239,68,68,0.08);border-color:rgba(239,68,68,0.2);color:#dc2626;" type="button" id="chip-clear-all" aria-label="Clear all filters">Clear all ×</button>`;
+    )}<button class="ef-cta sp-filter-chip" style="background:rgba(239,68,68,0.08);border-color:rgba(239,68,68,0.2);color:#dc2626;" type="button" id="chip-clear-all" aria-label="Clear all filters">Clear all ×</button>`;
     activeFiltersChipsEl.hidden = false;
 
     // Wire up individual chip removal
@@ -800,7 +800,7 @@ async function initSuppliersPage() {
           <span class="sp-error-icon" aria-hidden="true">⚠️</span>
           <h2 class="sp-error-title">Unable to load suppliers</h2>
           <p class="sp-error-text">Please check your connection and try again.</p>
-          <button class="sp-btn sp-btn--primary error-state-action" id="retry-suppliers-btn">Try Again</button>
+          <button class="ef-cta sp-btn sp-btn--primary error-state-action" id="retry-suppliers-btn">Try Again</button>
         </div>
       `;
       const retryBtn = resultsContainer.querySelector('#retry-suppliers-btn');
@@ -821,7 +821,7 @@ async function initSuppliersPage() {
 
     const loadMoreHTML = `
       <div class="sp-load-more-wrap">
-        <button id="load-more-btn" class="sp-load-more-btn" aria-label="Load more suppliers (page ${pagination.page} of ${pagination.totalPages})">
+        <button id="load-more-btn" class="ef-cta sp-load-more-btn" aria-label="Load more suppliers (page ${pagination.page} of ${pagination.totalPages})">
           Load more suppliers
           <span style="font-size:12px;color:#9ca3af;">${pagination.page} / ${pagination.totalPages}</span>
         </button>

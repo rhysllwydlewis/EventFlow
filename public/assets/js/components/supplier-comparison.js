@@ -41,7 +41,7 @@ class SupplierComparison {
       <div class="supplier-comparison">
         <div class="comparison-header">
           <h2>Compare Suppliers</h2>
-          <button class="btn btn-secondary" id="add-supplier-btn" ${this.suppliers.length >= this.options.maxSuppliers ? 'disabled' : ''}>
+          <button class="ef-cta btn btn-secondary" id="add-supplier-btn" ${this.suppliers.length >= this.options.maxSuppliers ? 'disabled' : ''}>
             + Add Supplier (${this.suppliers.length}/${this.options.maxSuppliers})
           </button>
         </div>
@@ -61,7 +61,7 @@ class SupplierComparison {
         <div class="empty-icon">📊</div>
         <h3>No suppliers selected</h3>
         <p>Add suppliers to compare their services, pricing, and ratings side by side</p>
-        <button class="btn btn-primary" id="add-first-supplier">Add Your First Supplier</button>
+        <button class="ef-cta btn btn-primary" id="add-first-supplier">Add Your First Supplier</button>
       </div>
     `;
   }
@@ -90,7 +90,7 @@ class SupplierComparison {
                 ${this.renderStars(supplier.rating || 0)}
                 <span class="rating-text">${supplier.rating?.toFixed(1) || 'N/A'}</span>
               </div>
-              <button class="btn-remove" data-action="remove" data-index="${index}">×</button>
+              <button class="ef-cta btn-remove" data-action="remove" data-index="${index}">×</button>
             </div>
           </div>
         `
@@ -247,10 +247,10 @@ class SupplierComparison {
             (supplier, index) => `
           <div class="comparison-cell">
             <div class="comparison-actions">
-              <button class="btn btn-primary btn-sm" onclick="location.href='/supplier?id=${supplier.id}'">
+              <button class="ef-cta btn btn-primary btn-sm" onclick="location.href='/supplier?id=${supplier.id}'">
                 View Details
               </button>
-              <button class="btn btn-secondary btn-sm" data-action="contact" data-index="${index}">
+              <button class="ef-cta btn btn-secondary btn-sm" data-action="contact" data-index="${index}">
                 Contact
               </button>
             </div>
@@ -308,7 +308,7 @@ class SupplierComparison {
       <div class="modal-content">
         <div class="modal-header">
           <h2>Add Supplier to Compare</h2>
-          <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+          <button class="ef-cta modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
         </div>
         <div class="modal-body">
           <div class="search-bar">
@@ -402,7 +402,7 @@ class SupplierComparison {
                   <span>${supplier.location || ''}</span>
                 </div>
               </div>
-              <button class="btn btn-primary btn-sm" data-action="add-to-compare">Add</button>
+              <button class="ef-cta btn btn-primary btn-sm" data-action="add-to-compare">Add</button>
             </div>
           `
             )

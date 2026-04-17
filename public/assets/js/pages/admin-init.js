@@ -147,25 +147,25 @@
 
       // Owner accounts have special protection
       if (isOwner) {
-        actions += `<button disabled style="opacity:0.5;cursor:not-allowed;" title="Owner account is protected">Edit</button>`;
+        actions += `<button class="ef-cta" disabled style="opacity:0.5;cursor:not-allowed;" title="Owner account is protected">Edit</button>`;
         actions += `<span style="color:#888;font-size:0.9em;padding:4px;">Protected Account</span>`;
       } else {
-        actions += `<button data-action="editUser" data-id="${u.id}">Edit</button>`;
+        actions += `<button class="ef-cta" data-action="editUser" data-id="${u.id}">Edit</button>`;
 
         // Manual verification button for unverified users
         if (!u.verified) {
-          actions += `<button data-action="verifyUser" data-id="${u.id}">Verify Email</button>`;
+          actions += `<button class="ef-cta" data-action="verifyUser" data-id="${u.id}">Verify Email</button>`;
         }
 
         // Admin privilege toggle (only for non-owner accounts)
         if (isAdmin) {
-          actions += `<button data-action="revokeAdmin" data-id="${u.id}">Revoke Admin</button>`;
+          actions += `<button class="ef-cta" data-action="revokeAdmin" data-id="${u.id}">Revoke Admin</button>`;
         } else {
-          actions += `<button data-action="grantAdmin" data-id="${u.id}">Grant Admin</button>`;
+          actions += `<button class="ef-cta" data-action="grantAdmin" data-id="${u.id}">Grant Admin</button>`;
         }
 
         // Delete button
-        actions += `<button data-action="deleteUser" data-id="${u.id}">Delete</button>`;
+        actions += `<button class="ef-cta" data-action="deleteUser" data-id="${u.id}">Delete</button>`;
       }
 
       actions += '</div>';
@@ -1932,7 +1932,7 @@
           `<div class="review-modal-container">` +
           `<h2>Pending Reviews (${reviews.length})</h2>` +
           `<div id="review-list"></div>` +
-          `<button data-action="closeReviewModal">Close</button>` +
+          `<button class="ef-cta" data-action="closeReviewModal">Close</button>` +
           `</div>`;
         document.body.appendChild(modal);
 
@@ -1963,10 +1963,10 @@
             `<p class="small"><b>Date:</b> ${escapeHtml(
               new Date(r.createdAt).toLocaleString()
             )}</p>` +
-            `<button data-action="approveReview" data-id="${escapeHtml(
+            `<button class="ef-cta" data-action="approveReview" data-id="${escapeHtml(
               r.id
             )}" data-param="true">Approve</button> ` +
-            `<button data-action="approveReview" data-id="${escapeHtml(
+            `<button class="ef-cta" data-action="approveReview" data-id="${escapeHtml(
               r.id
             )}" data-param="false">Reject</button>`;
           list.appendChild(item);

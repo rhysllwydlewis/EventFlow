@@ -45,7 +45,7 @@
       <div class="faq-vote-buttons">
         <button 
           type="button"
-          class="faq-vote-btn" 
+          class="ef-cta faq-vote-btn" 
           data-vote="yes" 
           data-faq-id="${faqId}"
           aria-label="Yes, this was helpful"
@@ -54,7 +54,7 @@
         </button>
         <button 
           type="button"
-          class="faq-vote-btn" 
+          class="ef-cta faq-vote-btn" 
           data-vote="no" 
           data-faq-id="${faqId}"
           aria-label="No, this was not helpful"

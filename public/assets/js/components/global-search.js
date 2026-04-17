@@ -50,7 +50,7 @@ class GlobalSearch {
                    placeholder="${this.options.placeholder}"
                    autocomplete="off"
                    spellcheck="false">
-            <button class="search-close-btn" id="global-search-close">
+            <button class="ef-cta search-close-btn" id="global-search-close">
               <span>ESC</span>
             </button>
           </div>
@@ -60,7 +60,7 @@ class GlobalSearch {
           ${this.options.categories
             .map(
               cat => `
-            <button class="category-btn ${cat === this.currentCategory ? 'active' : ''}" 
+            <button class="ef-cta category-btn ${cat === this.currentCategory ? 'active' : ''}" 
                     data-category="${cat}">
               ${cat}
             </button>

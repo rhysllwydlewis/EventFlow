@@ -418,7 +418,7 @@
             <span class="gallery-item-type ${escapeHtml(item.type)}">${escapeHtml(item.type)}</span>
             <p class="small" style="margin: 0; color: #6b7280;">${formatFileSize(item.size)}</p>
           </div>
-          <button class="gallery-item-delete" data-filename="${escapeHtml(item.filename)}">🗑️ Delete</button>
+          <button class="ef-cta gallery-item-delete" data-filename="${escapeHtml(item.filename)}">🗑️ Delete</button>
         </div>
       `
       )
@@ -641,7 +641,7 @@
               <div class="small">PNG, JPG, WebP (max 5MB)</div>
             </div>
             <input type="file" id="file-${escapeHtml(category.id)}" accept="image/*" data-category-id="${escapeHtml(category.id)}">
-            ${hasImage ? `<button class="remove-btn" data-category-id="${escapeHtml(category.id)}">Remove Image</button>` : ''}
+            ${hasImage ? `<button class="ef-cta remove-btn" data-category-id="${escapeHtml(category.id)}">Remove Image</button>` : ''}
             <div class="success-message" id="success-${escapeHtml(category.id)}" style="display: none;">Image updated successfully!</div>
             <div class="error-message" id="error-${escapeHtml(category.id)}" style="display: none;">Failed to update image.</div>
             <div class="category-card-visibility" style="display:flex;align-items:center;gap:8px;margin-top:8px;">
@@ -682,7 +682,9 @@
         removeBtn.addEventListener('click', () => removeImage(category.id));
       }
 
-      const heroToggle = document.querySelector(`.hero-visibility-toggle[data-id="${category.id}"]`);
+      const heroToggle = document.querySelector(
+        `.hero-visibility-toggle[data-id="${category.id}"]`
+      );
       if (heroToggle) {
         heroToggle.addEventListener('change', e => {
           toggleCategoryVisibility(category.id, e.target.checked, '.hero-visibility-toggle');
@@ -894,8 +896,8 @@
             <span>${escapeHtml(category.name)}</span>
           </div>
           <div class="admin-category-card-actions">
-            <button class="admin-category-card-btn edit-category-btn" data-id="${category.id}">✏️ Edit</button>
-            <button class="admin-category-card-btn danger delete-category-btn" data-id="${category.id}">🗑️ Delete</button>
+            <button class="ef-cta admin-category-card-btn edit-category-btn" data-id="${category.id}">✏️ Edit</button>
+            <button class="ef-cta admin-category-card-btn danger delete-category-btn" data-id="${category.id}">🗑️ Delete</button>
           </div>
         </div>
         <div class="admin-category-card-body">

@@ -168,7 +168,7 @@
 
     html += `
         </div>
-        <button class="btn btn-secondary" id="skip-template-btn" style="width: 100%;">Skip and start from scratch</button>
+        <button class="ef-cta btn btn-secondary" id="skip-template-btn" style="width: 100%;">Skip and start from scratch</button>
       </div>
     `;
 

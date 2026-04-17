@@ -630,7 +630,7 @@
         <div class="notification-toast-title">${escapeHtml(notification.title)}</div>
         <div class="notification-toast-message">${escapeHtml(notification.message)}</div>
       </div>
-      <button class="notification-toast-close" aria-label="Close">×</button>
+      <button class="ef-cta notification-toast-close" aria-label="Close">×</button>
     `;
 
     // Add close handler

@@ -79,8 +79,8 @@
           <td>
             ${
               report.status === 'pending'
-                ? `<button class="btn-sm btn-success" data-action="resolve" data-id="${report.id}">Resolve</button>
-                 <button class="btn-sm btn-danger" data-action="dismiss" data-id="${report.id}">Dismiss</button>`
+                ? `<button class="ef-cta btn-sm btn-success" data-action="resolve" data-id="${report.id}">Resolve</button>
+                 <button class="ef-cta btn-sm btn-danger" data-action="dismiss" data-id="${report.id}">Dismiss</button>`
                 : '<span class="small">—</span>'
             }
           </td>
@@ -122,8 +122,8 @@
             <textarea id="resolveNotes" rows="3" placeholder="Any additional notes for audit trail..."></textarea>
           </div>
           <div class="action-buttons">
-            <button type="submit" class="btn btn-success">Resolve Report</button>
-            <button type="button" class="btn btn-secondary" id="cancelResolve">Cancel</button>
+            <button type="submit" class="ef-cta btn btn-success">Resolve Report</button>
+            <button type="button" class="ef-cta btn btn-secondary" id="cancelResolve">Cancel</button>
           </div>
         </form>
       </div>`;

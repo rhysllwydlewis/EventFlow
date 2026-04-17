@@ -62,7 +62,7 @@
       <div class="cal-entry-modal" role="document">
         <div class="cal-entry-modal__header">
           <h2 class="cal-entry-modal__title" id="cal-entry-modal-title">Add Calendar Entry</h2>
-          <button type="button" class="cal-entry-modal__close" aria-label="Close dialog">
+          <button type="button" class="ef-cta cal-entry-modal__close" aria-label="Close dialog">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
               <path d="M4 4l12 12M16 4L4 16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
             </svg>
@@ -98,8 +98,8 @@
           </div>
           <div id="cal-entry-error" class="cal-entry-modal__error" role="alert" aria-live="polite" style="display:none;"></div>
           <div class="cal-entry-modal__actions">
-            <button type="button" class="cal-entry-modal__btn cal-entry-modal__btn--cancel">Cancel</button>
-            <button type="submit" class="cal-entry-modal__btn cal-entry-modal__btn--save" id="cal-entry-save-btn">
+            <button type="button" class="ef-cta cal-entry-modal__btn cal-entry-modal__btn--cancel">Cancel</button>
+            <button type="submit" class="ef-cta cal-entry-modal__btn cal-entry-modal__btn--save" id="cal-entry-save-btn">
               <span class="cal-entry-save-label">Add Entry</span>
               <span class="cal-entry-save-spinner" style="display:none;" aria-hidden="true">⏳</span>
             </button>
@@ -410,8 +410,8 @@
     pop.innerHTML = `
       <p class="cal-delete-popover__msg">${escapeHtml(entry.title)}</p>
       <div class="cal-delete-popover__actions">
-        <button type="button" class="cal-delete-popover__btn cal-delete-popover__btn--edit">Edit</button>
-        <button type="button" class="cal-delete-popover__btn cal-delete-popover__btn--delete">Delete</button>
+        <button type="button" class="ef-cta cal-delete-popover__btn cal-delete-popover__btn--edit">Edit</button>
+        <button type="button" class="ef-cta cal-delete-popover__btn cal-delete-popover__btn--delete">Delete</button>
       </div>
     `;
     document.body.appendChild(pop);
@@ -454,8 +454,8 @@
       pop.innerHTML = `
         <p class="cal-delete-popover__msg">Delete <strong>${escapeHtml(entry.title)}</strong>?</p>
         <div class="cal-delete-popover__actions">
-          <button type="button" class="cal-delete-popover__btn cal-delete-popover__btn--cancel">Keep</button>
-          <button type="button" class="cal-delete-popover__btn cal-delete-popover__btn--confirm">Delete</button>
+          <button type="button" class="ef-cta cal-delete-popover__btn cal-delete-popover__btn--cancel">Keep</button>
+          <button type="button" class="ef-cta cal-delete-popover__btn cal-delete-popover__btn--confirm">Delete</button>
         </div>
       `;
 
@@ -554,12 +554,12 @@
         <span class="cal-fallback-item__date">${formatDate(entry.date)}${timeStr}</span>
         <span class="cal-fallback-item__badge cal-entry-badge cal-entry-badge--${escapeHtml(entry.type)}">${escapeHtml(entry.type)}</span>
         <span class="cal-fallback-item__title">${escapeHtml(entry.title)}</span>
-        <button type="button" class="cal-fallback-item__edit" aria-label="Edit ${escapeHtml(entry.title)}" data-id="${escapeHtml(entry.id)}">
+        <button type="button" class="ef-cta cal-fallback-item__edit" aria-label="Edit ${escapeHtml(entry.title)}" data-id="${escapeHtml(entry.id)}">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
             <path d="M10 2l2 2-7 7H3v-2l7-7z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
           </svg>
         </button>
-        <button type="button" class="cal-fallback-item__delete" aria-label="Delete ${escapeHtml(entry.title)}" data-id="${escapeHtml(entry.id)}" data-title="${escapeHtml(entry.title)}">
+        <button type="button" class="ef-cta cal-fallback-item__delete" aria-label="Delete ${escapeHtml(entry.title)}" data-id="${escapeHtml(entry.id)}" data-title="${escapeHtml(entry.title)}">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
             <path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>

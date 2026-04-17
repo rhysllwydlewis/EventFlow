@@ -37,7 +37,7 @@ class MessengerModals {
         <div class="messenger-modal__content messenger-modal__content--small">
           <header class="messenger-modal__header">
             <h2 id="emojiPickerTitle">Choose Reaction</h2>
-            <button class="messenger-modal__close" aria-label="Close">
+            <button class="ef-cta messenger-modal__close" aria-label="Close">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -49,7 +49,7 @@ class MessengerModals {
               ${emojis
                 .map(
                   ({ emoji, label }) => `
-                <button class="messenger-emoji-picker__item" data-emoji="${emoji}" title="${label}" aria-label="${label}">
+                <button class="ef-cta messenger-emoji-picker__item" data-emoji="${emoji}" title="${label}" aria-label="${label}">
                   ${emoji}
                 </button>
               `
@@ -126,7 +126,7 @@ class MessengerModals {
         <div class="messenger-modal__content">
           <header class="messenger-modal__header">
             <h2 id="editMessageTitle">Edit Message</h2>
-            <button class="messenger-modal__close" aria-label="Close">
+            <button class="ef-cta messenger-modal__close" aria-label="Close">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -142,10 +142,10 @@ class MessengerModals {
               aria-label="Message content"
             >${MessengerModals.escapeHtml(currentContent)}</textarea>
             <div class="messenger-modal__actions">
-              <button class="messenger-modal__button messenger-modal__button--secondary" id="cancelEdit">
+              <button class="ef-cta messenger-modal__button messenger-modal__button--secondary" id="cancelEdit">
                 Cancel
               </button>
-              <button class="messenger-modal__button messenger-modal__button--primary" id="saveEdit">
+              <button class="ef-cta messenger-modal__button messenger-modal__button--primary" id="saveEdit">
                 Save Changes
               </button>
             </div>
@@ -228,7 +228,7 @@ class MessengerModals {
         <div class="messenger-modal__content messenger-modal__content--small">
           <header class="messenger-modal__header">
             <h2 id="confirmTitle">${MessengerModals.escapeHtml(title)}</h2>
-            <button class="messenger-modal__close" aria-label="Close">
+            <button class="ef-cta messenger-modal__close" aria-label="Close">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
                 <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -238,10 +238,10 @@ class MessengerModals {
           <div class="messenger-modal__body">
             <p id="confirmMessage" class="messenger-modal__message">${MessengerModals.escapeHtml(message)}</p>
             <div class="messenger-modal__actions">
-              <button class="messenger-modal__button messenger-modal__button--secondary" id="confirmCancel">
+              <button class="ef-cta messenger-modal__button messenger-modal__button--secondary" id="confirmCancel">
                 ${MessengerModals.escapeHtml(cancelText)}
               </button>
-              <button class="messenger-modal__button messenger-modal__button--danger" id="confirmOk">
+              <button class="ef-cta messenger-modal__button messenger-modal__button--danger" id="confirmOk">
                 ${MessengerModals.escapeHtml(confirmText)}
               </button>
             </div>

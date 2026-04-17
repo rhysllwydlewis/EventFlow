@@ -1193,7 +1193,7 @@
                       ${new Date(backup.createdAt).toLocaleString()} • ${(backup.size / 1024).toFixed(2)} KB
                     </div>
                   </div>
-                  <button class="btn btn-sm btn-secondary restore-backup-btn" data-filename="${backup.filename}">
+                  <button class="ef-cta btn btn-sm btn-secondary restore-backup-btn" data-filename="${backup.filename}">
                     Restore
                   </button>
                 </div>

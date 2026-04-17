@@ -49,29 +49,29 @@
           <div id="supplierStatus"></div>
         </div>
         <div class="verification-actions">
-          <button class="btn btn-primary" id="editSupplierBtn">Edit Details</button>
+          <button class="ef-cta btn btn-primary" id="editSupplierBtn">Edit Details</button>
           <div class="verification-actions-divider"></div>
-          <button class="btn btn-success" id="approveBtn">Approve</button>
-          <button class="btn btn-warning" id="requestChangesBtn" title="Ask supplier to update their profile before approval">Request Changes</button>
-          <button class="btn btn-danger" id="rejectBtn">Reject</button>
-          <button class="btn btn-secondary" id="suspendBtn" title="Suspend this approved supplier">Suspend</button>
+          <button class="ef-cta btn btn-success" id="approveBtn">Approve</button>
+          <button class="ef-cta btn btn-warning" id="requestChangesBtn" title="Ask supplier to update their profile before approval">Request Changes</button>
+          <button class="ef-cta btn btn-danger" id="rejectBtn">Reject</button>
+          <button class="ef-cta btn btn-secondary" id="suspendBtn" title="Suspend this approved supplier">Suspend</button>
           <div class="verification-actions-divider"></div>
-          <button class="btn btn-info" id="verifySupplierBtn" title="Manually verify this supplier's identity">Verify Supplier</button>
+          <button class="ef-cta btn btn-info" id="verifySupplierBtn" title="Manually verify this supplier's identity">Verify Supplier</button>
           <div class="verification-actions-divider"></div>
-          <button class="btn btn-danger" id="deleteSupplierBtn" title="Permanently delete this supplier">Delete</button>
+          <button class="ef-cta btn btn-danger" id="deleteSupplierBtn" title="Permanently delete this supplier">Delete</button>
         </div>
       </div>
       <div class="supplier-meta" id="supplierMeta"></div>
     </div>
 
     <div class="supplier-tabs">
-      <button class="tab-btn active" data-tab="overview">Overview</button>
-      <button class="tab-btn" data-tab="packages">Packages</button>
-      <button class="tab-btn" data-tab="photos">Photos</button>
-      <button class="tab-btn" data-tab="reviews">Reviews</button>
-      <button class="tab-btn" data-tab="analytics">Analytics</button>
-      <button class="tab-btn" data-tab="verification">Verification Audit</button>
-      <button class="tab-btn" data-tab="action-prompts">📧 Action Prompts</button>
+      <button class="ef-cta tab-btn active" data-tab="overview">Overview</button>
+      <button class="ef-cta tab-btn" data-tab="packages">Packages</button>
+      <button class="ef-cta tab-btn" data-tab="photos">Photos</button>
+      <button class="ef-cta tab-btn" data-tab="reviews">Reviews</button>
+      <button class="ef-cta tab-btn" data-tab="analytics">Analytics</button>
+      <button class="ef-cta tab-btn" data-tab="verification">Verification Audit</button>
+      <button class="ef-cta tab-btn" data-tab="action-prompts">📧 Action Prompts</button>
     </div>
 
     <div id="overview" class="tab-content active">
@@ -100,7 +100,7 @@
       <div class="info-card">
         <div class="flex-between-mb-1">
           <h3 class="h3-my-0">Packages</h3>
-          <button class="btn btn-primary" id="addPackageBtn">Add New Package</button>
+          <button class="ef-cta btn btn-primary" id="addPackageBtn">Add New Package</button>
         </div>
         <div class="package-list" id="packageList"></div>
       </div>
@@ -110,7 +110,7 @@
       <div class="info-card">
         <div class="flex-between-mb-1">
           <h3 class="h3-my-0">Photo Gallery</h3>
-          <button class="btn btn-primary" id="uploadPhotoBtn">Upload Photo</button>
+          <button class="ef-cta btn btn-primary" id="uploadPhotoBtn">Upload Photo</button>
         </div>
         <div class="photo-grid" id="photoGallery"></div>
       </div>
@@ -152,8 +152,8 @@
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;margin-bottom:1rem;">
           <h3 style="margin:0;">Action Prompt Emails</h3>
           <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
-            <button class="btn btn-secondary" id="apCopyDebugBtn" type="button">📋 Copy Debug Summary</button>
-            <button class="btn btn-secondary" id="apRefreshBtn" type="button">↻ Refresh</button>
+            <button class="ef-cta btn btn-secondary" id="apCopyDebugBtn" type="button">📋 Copy Debug Summary</button>
+            <button class="ef-cta btn btn-secondary" id="apRefreshBtn" type="button">↻ Refresh</button>
           </div>
         </div>
         <div id="apDiagnosticsPanel">
@@ -165,9 +165,9 @@
         <h3>Admin Actions</h3>
         <p class="small" style="color:#6b7280;margin-bottom:1rem;">Use these controls to manage reminder emails for this supplier. All actions are logged.</p>
         <div style="display:flex;gap:0.625rem;flex-wrap:wrap;">
-          <button class="btn btn-secondary" id="apEnableBtn" type="button" title="Re-enable action-prompt reminder emails for this supplier">Enable Reminders</button>
-          <button class="btn btn-secondary" id="apDisableBtn" type="button" style="color:#dc2626;border-color:#dc2626;" title="Disable action-prompt reminder emails for this supplier">Disable Reminders</button>
-          <button class="btn btn-secondary" id="apResetCadenceBtn" type="button" title="Reset the send-cadence counter so the supplier starts the daily→weekly→monthly cycle from scratch">Reset Cadence</button>
+          <button class="ef-cta btn btn-secondary" id="apEnableBtn" type="button" title="Re-enable action-prompt reminder emails for this supplier">Enable Reminders</button>
+          <button class="ef-cta btn btn-secondary" id="apDisableBtn" type="button" style="color:#dc2626;border-color:#dc2626;" title="Disable action-prompt reminder emails for this supplier">Disable Reminders</button>
+          <button class="ef-cta btn btn-secondary" id="apResetCadenceBtn" type="button" title="Reset the send-cadence counter so the supplier starts the daily→weekly→monthly cycle from scratch">Reset Cadence</button>
         </div>
         <div id="apActionStatus" style="margin-top:0.75rem;display:none;"></div>
       </div>

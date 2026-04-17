@@ -210,7 +210,7 @@ export function showErrorState(container, options = {}) {
         <div class="error-state-icon">${icon}</div>
         <div class="error-state-title">${title}</div>
         <div class="error-state-description">${description}</div>
-        ${actionText ? `<button class="error-state-action" id="error-action-btn">${actionText}</button>` : ''}
+        ${actionText ? `<button class="ef-cta error-state-action" id="error-action-btn">${actionText}</button>` : ''}
       </div>
     `;
 

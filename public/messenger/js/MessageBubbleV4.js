@@ -70,7 +70,7 @@ class MessageBubbleV4 {
           </div>
           ${message.reactions?.length ? MessageBubbleV4.renderReactions(message.reactions, message._id) : ''}
         </div>
-        <button class="messenger-v4__context-menu-btn"
+        <button class="ef-cta messenger-v4__context-menu-btn"
                 aria-label="Message options"
                 aria-haspopup="true"
                 data-message-id="${MessageBubbleV4.escape(message._id)}"
@@ -104,7 +104,7 @@ class MessageBubbleV4 {
 
     const items = Object.values(grouped)
       .map(g => {
-        return `<button class="messenger-v4__reaction"
+        return `<button class="ef-cta messenger-v4__reaction"
                       aria-label="React with ${MessageBubbleV4.escape(g.emoji)}, ${g.count} reaction${g.count !== 1 ? 's' : ''}"
                       data-emoji="${MessageBubbleV4.escape(g.emoji)}"
                       data-message-id="${MessageBubbleV4.escape(messageId)}">
@@ -213,25 +213,25 @@ class MessageBubbleV4 {
   static renderContextMenu(message, isOwn, canEdit) {
     const msgId = MessageBubbleV4.escape(message._id);
     let items = `
-      <button class="messenger-v4__context-menu-item" data-action="reply" data-id="${msgId}">
+      <button class="ef-cta messenger-v4__context-menu-item" data-action="reply" data-id="${msgId}">
         ${_ICON_REPLY} Reply
       </button>
-      <button class="messenger-v4__context-menu-item" data-action="react" data-id="${msgId}">
+      <button class="ef-cta messenger-v4__context-menu-item" data-action="react" data-id="${msgId}">
         ${_ICON_REACT} React
       </button>
-      <button class="messenger-v4__context-menu-item" data-action="copy" data-id="${msgId}">
+      <button class="ef-cta messenger-v4__context-menu-item" data-action="copy" data-id="${msgId}">
         ${_ICON_COPY} Copy
       </button>`;
 
     if (isOwn && canEdit) {
       items += `
-      <button class="messenger-v4__context-menu-item" data-action="edit" data-id="${msgId}">
+      <button class="ef-cta messenger-v4__context-menu-item" data-action="edit" data-id="${msgId}">
         ${_ICON_EDIT} Edit
       </button>`;
     }
     if (isOwn) {
       items += `
-      <button class="messenger-v4__context-menu-item messenger-v4__context-menu-item--danger" data-action="delete" data-id="${msgId}">
+      <button class="ef-cta messenger-v4__context-menu-item messenger-v4__context-menu-item--danger" data-action="delete" data-id="${msgId}">
         ${_ICON_TRASH} Delete
       </button>`;
     }

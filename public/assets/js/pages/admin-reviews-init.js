@@ -258,8 +258,8 @@
             ? `<p class="small" style="color:#9ca3af;margin:0 0 10px;"><em>${escapeHtml(moderationReason)}</em></p>`
             : ''
         }${reportInfo}<div class="review-action-btns">` +
-        `<button class="btn btn-sm btn-danger" data-action="approve" data-id="${escapeHtml(id)}" title="The report is valid — remove this review from the platform">🗑️ Remove Review</button>` +
-        `<button class="btn btn-sm btn-success" data-action="reject" data-id="${escapeHtml(id)}" title="The report is not valid — keep the review published">✓ Dismiss Report</button>` +
+        `<button class="ef-cta btn btn-sm btn-danger" data-action="approve" data-id="${escapeHtml(id)}" title="The report is valid — remove this review from the platform">🗑️ Remove Review</button>` +
+        `<button class="ef-cta btn btn-sm btn-success" data-action="reject" data-id="${escapeHtml(id)}" title="The report is not valid — keep the review published">✓ Dismiss Report</button>` +
         `</div>` +
         `</div>` +
         `</div>`;

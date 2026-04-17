@@ -59,7 +59,7 @@ function createListingCard(listing, position) {
              class="btn btn-primary">
             View Details
           </a>
-          <button class="btn btn-secondary btn-shortlist ${shortlistBtnClass}" 
+          <button class="ef-cta btn btn-secondary btn-shortlist ${shortlistBtnClass}" 
                   data-listing-id="${escapeHtml(listing.id)}"
                   data-listing-name="${escapeHtml(listing.title)}"
                   data-listing-category="${escapeHtml(listing.category || '')}"
@@ -97,7 +97,7 @@ function createEmptyState(filters) {
       <h2>No listings found</h2>
       <p>${hasFilters ? 'No listings match your current filters.' : 'No listings available at the moment.'}</p>
       <div class="empty-state-actions">
-        ${hasFilters ? '<button class="btn btn-secondary" id="clear-filters-btn">Clear filters</button>' : ''}
+        ${hasFilters ? '<button class="ef-cta btn btn-secondary" id="clear-filters-btn">Clear filters</button>' : ''}
         <a href="/marketplace" class="btn btn-primary">Browse all</a>
       </div>
     </div>
@@ -261,7 +261,7 @@ async function initMarketplacePage() {
 
     const loadMoreHTML = `
       <div style="text-align: center; margin: 2rem 0;">
-        <button id="marketplace-load-more-btn" class="btn btn-secondary">
+        <button id="marketplace-load-more-btn" class="ef-cta btn btn-secondary">
           Load More (${pagination.page} of ${pagination.totalPages})
         </button>
       </div>

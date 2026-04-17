@@ -66,10 +66,10 @@ class PhotoUploader {
       </div>
       <div class="photo-uploader__previews" id="photoPreviews"></div>
       <div class="photo-uploader__controls" id="photoControls" style="display: none;">
-        <button class="photo-uploader__button photo-uploader__button--primary" id="uploadButton">
+        <button class="ef-cta photo-uploader__button photo-uploader__button--primary" id="uploadButton">
           Upload Photos
         </button>
-        <button class="photo-uploader__button photo-uploader__button--secondary" id="clearButton">
+        <button class="ef-cta photo-uploader__button photo-uploader__button--secondary" id="clearButton">
           Clear All
         </button>
       </div>
@@ -405,7 +405,7 @@ class PhotoUploader {
       preview.dataset.filename = file.name;
       preview.innerHTML = `
         <img src="${e.target.result}" alt="${file.name}">
-        <button class="photo-uploader__preview-remove" title="Remove">×</button>
+        <button class="ef-cta photo-uploader__preview-remove" title="Remove">×</button>
         <div class="photo-uploader__preview-name">${file.name}</div>
       `;
 

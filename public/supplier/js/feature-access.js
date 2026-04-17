@@ -177,7 +177,7 @@ export function showUpgradePrompt(featureName, message = null) {
   modal.innerHTML = `
     <div class="upgrade-modal-overlay"></div>
     <div class="upgrade-modal-content">
-      <button class="upgrade-modal-close" aria-label="Close">&times;</button>
+      <button class="ef-cta upgrade-modal-close" aria-label="Close">&times;</button>
       <div class="upgrade-modal-icon">🔒</div>
       <h3>Premium Feature</h3>
       <p>${displayMessage}</p>
@@ -192,7 +192,7 @@ export function showUpgradePrompt(featureName, message = null) {
       </div>
       <div class="upgrade-modal-actions">
         <a href="/supplier/subscription" class="btn-upgrade">Upgrade Now</a>
-        <button class="btn-cancel">Maybe Later</button>
+        <button class="ef-cta btn-cancel">Maybe Later</button>
       </div>
     </div>
   `;

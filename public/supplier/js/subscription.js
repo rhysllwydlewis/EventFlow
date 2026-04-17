@@ -338,7 +338,7 @@ function renderSubscriptionPlans() {
               ? `<p class="card-renewal-notice">Renews ${periodEndStr}</p>`
               : '';
           manageHtml = `
-            <button class="btn-manage">Manage Subscription</button>
+            <button class="ef-cta btn-manage">Manage Subscription</button>
             ${cancelNotice}
             ${renewalNotice}
           `;
@@ -353,7 +353,7 @@ function renderSubscriptionPlans() {
         // Downgrade to Starter (cancel paid subscription)
         actionHtml = `
           <div class="plan-action">
-            <button class="btn-downgrade"
+            <button class="ef-cta btn-downgrade"
                     data-plan-id="${plan.id}">
               Downgrade to Starter
             </button>
@@ -363,7 +363,7 @@ function renderSubscriptionPlans() {
         const label = currentTier === 'free' ? `Start Free Trial` : `Upgrade to ${plan.name}`;
         actionHtml = `
           <div class="plan-action">
-            <button class="btn-select"
+            <button class="ef-cta btn-select"
                     data-plan-id="${plan.id}">
               ${label}
             </button>
@@ -373,7 +373,7 @@ function renderSubscriptionPlans() {
       } else if (isDowngrade) {
         actionHtml = `
           <div class="plan-action">
-            <button class="btn-downgrade"
+            <button class="ef-cta btn-downgrade"
                     data-plan-id="${plan.id}">
               Downgrade to ${plan.name}
             </button>
@@ -383,7 +383,7 @@ function renderSubscriptionPlans() {
         // Fallback
         actionHtml = `
           <div class="plan-action">
-            <button class="btn-select"
+            <button class="ef-cta btn-select"
                     data-plan-id="${plan.id}">
               Select Plan
             </button>

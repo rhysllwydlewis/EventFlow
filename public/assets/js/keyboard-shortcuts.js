@@ -163,7 +163,7 @@
           <h2 id="shortcuts-title">Keyboard Shortcuts</h2>
           <button 
             type="button" 
-            class="modal-close" 
+            class="ef-cta modal-close" 
             aria-label="Close dialog"
           >
             <span aria-hidden="true">×</span>

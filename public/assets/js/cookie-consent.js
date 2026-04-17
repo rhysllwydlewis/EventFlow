@@ -328,7 +328,7 @@
       '<div class="cookie-prefs-panel" role="document">' +
       '<div class="cookie-prefs-header">' +
       '<h2 id="cookie-prefs-title" class="cookie-prefs-title">Cookie Preferences</h2>' +
-      '<button class="cookie-prefs-close" aria-label="Close cookie preferences">' +
+      '<button class="ef-cta cookie-prefs-close" aria-label="Close cookie preferences">' +
       '<span aria-hidden="true">\u00d7</span>' +
       '</button>' +
       '</div>' +

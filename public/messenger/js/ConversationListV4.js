@@ -72,7 +72,7 @@ class ConversationListV4 {
     this.container.innerHTML = `
       <div class="messenger-v4__sidebar-header">
         <h2 class="messenger-v4__sidebar-title">Messages</h2>
-        <button class="messenger-v4__new-convo-btn" aria-label="New conversation" title="New conversation">
+        <button class="ef-cta messenger-v4__new-convo-btn" aria-label="New conversation" title="New conversation">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
           </svg>
@@ -95,10 +95,10 @@ class ConversationListV4 {
       </div>
 
       <div class="messenger-v4__filter-tabs" role="tablist" aria-label="Conversation filters">
-        <button class="messenger-v4__filter-tab messenger-v4__filter-tab--active" data-tab="all" role="tab" aria-selected="true">All</button>
-        <button class="messenger-v4__filter-tab" data-tab="pinned" role="tab" aria-selected="false">Pinned</button>
-        <button class="messenger-v4__filter-tab" data-tab="unread" role="tab" aria-selected="false">Unread</button>
-        <button class="messenger-v4__filter-tab" data-tab="archived" role="tab" aria-selected="false">Archived</button>
+        <button class="ef-cta messenger-v4__filter-tab messenger-v4__filter-tab--active" data-tab="all" role="tab" aria-selected="true">All</button>
+        <button class="ef-cta messenger-v4__filter-tab" data-tab="pinned" role="tab" aria-selected="false">Pinned</button>
+        <button class="ef-cta messenger-v4__filter-tab" data-tab="unread" role="tab" aria-selected="false">Unread</button>
+        <button class="ef-cta messenger-v4__filter-tab" data-tab="archived" role="tab" aria-selected="false">Archived</button>
       </div>
 
       <div class="messenger-v4__conversation-list" role="list" id="v4ConversationList"></div>
@@ -319,19 +319,19 @@ class ConversationListV4 {
     menu.setAttribute('role', 'menu');
     menu.setAttribute('aria-label', 'Conversation options');
     menu.innerHTML = `
-      <button class="messenger-v4__conv-context-menu-item" data-action="${this.escape(markAction)}" data-id="${this.escape(id)}" role="menuitem">
+      <button class="ef-cta messenger-v4__conv-context-menu-item" data-action="${this.escape(markAction)}" data-id="${this.escape(id)}" role="menuitem">
         <svg class="messenger-v4__menu-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
         ${this.escape(markLabel)}
       </button>
-      <button class="messenger-v4__conv-context-menu-item" data-action="pin" data-id="${this.escape(id)}" role="menuitem">
+      <button class="ef-cta messenger-v4__conv-context-menu-item" data-action="pin" data-id="${this.escape(id)}" role="menuitem">
         <svg class="messenger-v4__menu-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17H19V13L14 3H10L5 13V17Z"/></svg>
         Pin
       </button>
-      <button class="messenger-v4__conv-context-menu-item" data-action="archive" data-id="${this.escape(id)}" role="menuitem">
+      <button class="ef-cta messenger-v4__conv-context-menu-item" data-action="archive" data-id="${this.escape(id)}" role="menuitem">
         <svg class="messenger-v4__menu-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5" rx="1"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
         Archive
       </button>
-      <button class="messenger-v4__conv-context-menu-item messenger-v4__conv-context-menu-item--danger" data-action="delete" data-id="${this.escape(id)}" role="menuitem">
+      <button class="ef-cta messenger-v4__conv-context-menu-item messenger-v4__conv-context-menu-item--danger" data-action="delete" data-id="${this.escape(id)}" role="menuitem">
         <svg class="messenger-v4__menu-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
         Delete
       </button>

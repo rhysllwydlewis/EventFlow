@@ -896,7 +896,7 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
             <div class="reviews-header">
               <h3 class="reviews-title">All Reviews</h3>
               <div class="review-actions">
-                <button id="btn-write-review" class="btn-write-review" aria-label="Write a review for ${supplierName}">✍️ Write a Review</button>
+                <button id="btn-write-review" class="ef-cta btn-write-review" aria-label="Write a review for ${supplierName}">✍️ Write a Review</button>
               </div>
             </div>
 
@@ -1019,7 +1019,7 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
         <div class="sp-cta-card__name">Get in touch with</div>
         <div class="sp-cta-card__title">${supplierName}</div>
         <div class="sp-cta-card__actions">
-          <button class="sp-cta-btn sp-cta-btn--primary" id="sidebar-btn-enquiry" aria-label="Message ${supplierName}">
+          <button class="ef-cta sp-cta-btn sp-cta-btn--primary" id="sidebar-btn-enquiry" aria-label="Message ${supplierName}">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
             Message
           </button>
@@ -1286,7 +1286,7 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
           <div class="sp-error-state__icon">⚠️</div>
           <div class="sp-error-state__title">Unable to load supplier</div>
           <div class="sp-error-state__desc">${escapeHtml(errorMessage || 'An unexpected error occurred.')}</div>
-          <button class="error-state-action sp-error-state__btn" id="retry-supplier-btn">Try Again</button>
+          <button class="ef-cta error-state-action sp-error-state__btn" id="retry-supplier-btn">Try Again</button>
         </div>
       `;
       const retryBtn = aboutSection.querySelector('#retry-supplier-btn');

@@ -387,8 +387,8 @@
       ? ''
       : `
       <div class="photo-queue__actions">
-        <button class="photo-queue__btn photo-queue__btn--approve" onclick="approvePhoto('${safeId}')" type="button">Approve</button>
-        <button class="photo-queue__btn photo-queue__btn--reject" onclick="rejectPhoto('${safeId}')" type="button">Reject</button>
+        <button class="ef-cta photo-queue__btn photo-queue__btn--approve" onclick="approvePhoto('${safeId}')" type="button">Approve</button>
+        <button class="ef-cta photo-queue__btn photo-queue__btn--reject" onclick="rejectPhoto('${safeId}')" type="button">Reject</button>
       </div>`;
 
     const checkboxHtml = autoApprove

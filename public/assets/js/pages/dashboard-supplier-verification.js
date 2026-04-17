@@ -142,8 +142,8 @@
             <textarea id="sv-supplier-note" name="supplierNote" maxlength="500" rows="3"
               class="sv-input" placeholder="Briefly describe the changes you have made…" style="resize:vertical;"></textarea>
           </div>
-          <button type="submit" id="sv-submit-btn">Submit for Verification</button>
-          <button type="button" id="sv-cancel-btn">Cancel</button>
+          <button class="ef-cta" type="submit" id="sv-submit-btn">Submit for Verification</button>
+          <button class="ef-cta" type="button" id="sv-cancel-btn">Cancel</button>
         </form>
       </div>`;
 

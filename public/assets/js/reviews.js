@@ -272,7 +272,7 @@
             <p class="empty-message">This supplier is new to our platform. Be the first to share your experience!</p>
             ${
               this.currentUser
-                ? '<button class="btn-write-review" onclick="reviewsManager.openReviewModal()">Write the First Review</button>'
+                ? '<button class="ef-cta btn-write-review" onclick="reviewsManager.openReviewModal()">Write the First Review</button>'
                 : `<a href="${this.getSignInRedirectUrl()}" class="reviews-empty__signin-cta">Sign in to write a review</a>`
             }
           </div>
@@ -374,10 +374,10 @@
 
       const ownerActions =
         isAuthor || isAdmin
-          ? `<button class="review-action-btn review-edit-btn" data-review-id="${review.id}" aria-label="Edit review">
+          ? `<button class="ef-cta review-action-btn review-edit-btn" data-review-id="${review.id}" aria-label="Edit review">
              ✏️ <span>Edit</span>
            </button>
-           <button class="review-action-btn review-delete-btn" data-review-id="${review.id}" aria-label="Delete review">
+           <button class="ef-cta review-action-btn review-delete-btn" data-review-id="${review.id}" aria-label="Delete review">
              🗑️ <span>Delete</span>
            </button>`
           : '';
@@ -385,7 +385,7 @@
       // Issue 6: Report button for non-authors (logged-in users only)
       const reportBtn =
         this.currentUser && !isAuthor
-          ? `<button class="review-action-btn review-report-btn" data-review-id="${review.id}" aria-label="Report this review">
+          ? `<button class="ef-cta review-action-btn review-report-btn" data-review-id="${review.id}" aria-label="Report this review">
                🚩 <span>Report</span>
              </button>`
           : '';
@@ -433,12 +433,12 @@
           ${editedNote}
           
           <div class="review-card-actions">
-            <button class="review-action-btn vote-btn" data-review-id="${review.id}" data-vote-type="helpful" aria-label="Mark review as helpful">
+            <button class="ef-cta review-action-btn vote-btn" data-review-id="${review.id}" data-vote-type="helpful" aria-label="Mark review as helpful">
               <span aria-hidden="true">👍</span>
               <span>Helpful</span>
               <span class="vote-count">(${helpfulCount})</span>
             </button>
-            <button class="review-action-btn vote-btn" data-review-id="${review.id}" data-vote-type="unhelpful" aria-label="Mark review as not helpful">
+            <button class="ef-cta review-action-btn vote-btn" data-review-id="${review.id}" data-vote-type="unhelpful" aria-label="Mark review as not helpful">
               <span aria-hidden="true">👎</span>
               <span>Not Helpful</span>
               <span class="vote-count">(${unhelpfulCount})</span>
@@ -568,7 +568,7 @@
 
       // Previous button
       pages.push(
-        `<button class="pagination-btn" ${!pagination.hasPrev ? 'disabled' : ''} onclick="reviewsManager.goToPage(${currentPage - 1})">← Previous</button>`
+        `<button class="ef-cta pagination-btn" ${!pagination.hasPrev ? 'disabled' : ''} onclick="reviewsManager.goToPage(${currentPage - 1})">← Previous</button>`
       );
 
       // Page numbers (show max 5)
@@ -585,13 +585,13 @@
 
       for (let i = startPage; i <= endPage; i++) {
         pages.push(
-          `<button class="pagination-btn ${i === currentPage ? 'active' : ''}" onclick="reviewsManager.goToPage(${i})">${i}</button>`
+          `<button class="ef-cta pagination-btn ${i === currentPage ? 'active' : ''}" onclick="reviewsManager.goToPage(${i})">${i}</button>`
         );
       }
 
       // Next button
       pages.push(
-        `<button class="pagination-btn" ${!pagination.hasNext ? 'disabled' : ''} onclick="reviewsManager.goToPage(${currentPage + 1})">Next →</button>`
+        `<button class="ef-cta pagination-btn" ${!pagination.hasNext ? 'disabled' : ''} onclick="reviewsManager.goToPage(${currentPage + 1})">Next →</button>`
       );
 
       container.innerHTML = pages.join('');
@@ -882,10 +882,10 @@
             </form>
 
             <div class="review-modal-footer">
-              <button type="button" class="btn-cancel" id="btn-write-cancel">
+              <button type="button" class="ef-cta btn-cancel" id="btn-write-cancel">
                 Cancel
               </button>
-              <button type="submit" form="review-form" class="btn-submit-review" id="btn-submit-review">
+              <button type="submit" form="review-form" class="ef-cta btn-submit-review" id="btn-submit-review">
                 Submit Review
               </button>
             </div>
@@ -1365,13 +1365,13 @@
       lightboxEl.setAttribute('aria-modal', 'true');
       lightboxEl.setAttribute('aria-label', 'Photo viewer');
       lightboxEl.innerHTML = `
-        <button class="lightbox-close" aria-label="Close photo viewer">×</button>
+        <button class="ef-cta lightbox-close" aria-label="Close photo viewer">×</button>
         <div class="lightbox-content">
           <div class="lightbox-loader"></div>
           <img class="lightbox-image" src="" alt="" style="display:none" />
         </div>
-        ${total > 1 ? `<button class="lightbox-nav lightbox-prev" aria-label="Previous photo">‹</button>` : ''}
-        ${total > 1 ? `<button class="lightbox-nav lightbox-next" aria-label="Next photo">›</button>` : ''}
+        ${total > 1 ? `<button class="ef-cta lightbox-nav lightbox-prev" aria-label="Previous photo">‹</button>` : ''}
+        ${total > 1 ? `<button class="ef-cta lightbox-nav lightbox-next" aria-label="Next photo">›</button>` : ''}
         ${total > 1 ? `<div class="lightbox-counter">${currentIndex + 1} / ${total}</div>` : ''}
       `;
 
@@ -1681,8 +1681,8 @@
             </form>
 
             <div class="review-modal-footer">
-              <button type="button" class="btn-cancel" id="btn-edit-cancel">Cancel</button>
-              <button type="submit" form="edit-review-form" class="btn-submit-review" id="btn-submit-edit">
+              <button type="button" class="ef-cta btn-cancel" id="btn-edit-cancel">Cancel</button>
+              <button type="submit" form="edit-review-form" class="ef-cta btn-submit-review" id="btn-submit-edit">
                 Save Changes
               </button>
             </div>
@@ -1793,8 +1793,8 @@
             <h3 class="review-confirm-title" id="delete-confirm-title">Delete Review</h3>
             <p class="review-confirm-message">Are you sure you want to delete this review? This action cannot be undone.</p>
             <div class="review-confirm-actions">
-              <button class="btn-cancel" id="btn-delete-cancel">Cancel</button>
-              <button class="btn-danger" id="btn-delete-confirm" data-review-id="${reviewId}">Delete Review</button>
+              <button class="ef-cta btn-cancel" id="btn-delete-cancel">Cancel</button>
+              <button class="ef-cta btn-danger" id="btn-delete-confirm" data-review-id="${reviewId}">Delete Review</button>
             </div>
           </div>
         </div>
@@ -1895,8 +1895,8 @@
               </div>
             </div>
             <div class="review-modal-footer">
-              <button type="button" class="btn-cancel" id="btn-report-cancel">Cancel</button>
-              <button type="button" class="btn-submit-review" id="btn-report-submit" disabled>Submit Report</button>
+              <button type="button" class="ef-cta btn-cancel" id="btn-report-cancel">Cancel</button>
+              <button type="button" class="ef-cta btn-submit-review" id="btn-report-submit" disabled>Submit Report</button>
             </div>
           </div>
         </div>

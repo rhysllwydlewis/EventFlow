@@ -107,8 +107,8 @@
             </select>
           </div>
           <div class="action-buttons">
-            <button type="submit" class="btn btn-primary">Send Notification</button>
-            <button type="button" class="btn btn-secondary" id="closeQnModal">Cancel</button>
+            <button type="submit" class="ef-cta btn btn-primary">Send Notification</button>
+            <button type="button" class="ef-cta btn btn-secondary" id="closeQnModal">Cancel</button>
           </div>
         </form>
       </div>
@@ -117,7 +117,11 @@
     document.body.appendChild(modal);
 
     modal.querySelector('#closeQnModal').addEventListener('click', () => modal.remove());
-    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+    modal.addEventListener('click', e => {
+      if (e.target === modal) {
+        modal.remove();
+      }
+    });
 
     modal.querySelector('#quickNotifyForm').addEventListener('submit', async e => {
       e.preventDefault();
@@ -192,8 +196,8 @@
           </div>
           
           <div class="action-buttons">
-            <button type="submit" class="btn btn-primary">${announcement ? 'Update' : 'Create'} Announcement</button>
-            <button type="button" class="btn btn-secondary" id="closeModal">Cancel</button>
+            <button type="submit" class="ef-cta btn btn-primary">${announcement ? 'Update' : 'Create'} Announcement</button>
+            <button type="button" class="ef-cta btn btn-secondary" id="closeModal">Cancel</button>
           </div>
         </form>
       </div>
@@ -229,7 +233,11 @@
       try {
         let savedAnnouncement;
         if (announcement) {
-          const result = await AdminShared.api(`/api/admin/content/announcements/${announcement.id}`, 'PUT', data);
+          const result = await AdminShared.api(
+            `/api/admin/content/announcements/${announcement.id}`,
+            'PUT',
+            data
+          );
           savedAnnouncement = result.announcement;
         } else {
           const result = await AdminShared.api('/api/admin/content/announcements', 'POST', data);
@@ -270,13 +278,21 @@
         return;
       }
 
-      const typeEmoji = { info: 'ℹ️', warning: '⚠️', success: '✅', maintenance: '🔧', urgent: '🚨' };
+      const typeEmoji = {
+        info: 'ℹ️',
+        warning: '⚠️',
+        success: '✅',
+        maintenance: '🔧',
+        urgent: '🚨',
+      };
 
       container.innerHTML = announcements
         .map(a => {
           const escapedId = AdminShared.escapeHtml(a.id);
           const escapedType = AdminShared.escapeHtml(a.type || 'info');
-          const createdAt = a.createdAt ? new Date(a.createdAt).toLocaleDateString('en-GB', { timeZone: 'Europe/London' }) : '';
+          const createdAt = a.createdAt
+            ? new Date(a.createdAt).toLocaleDateString('en-GB', { timeZone: 'Europe/London' })
+            : '';
           const lastNotified = a.lastNotifiedAt
             ? `Last sent: ${new Date(a.lastNotifiedAt).toLocaleDateString('en-GB', { timeZone: 'Europe/London' })}`
             : '';
@@ -290,9 +306,11 @@
               <div class="flex-1">
                 <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.25rem;">
                   <strong>${AdminShared.escapeHtml(a.message)}</strong>
-                  ${a.active
-                    ? '<span style="background:#d1fae5;color:#065f46;padding:0.1rem 0.45rem;border-radius:9999px;font-size:0.7rem;font-weight:600;">● Active</span>'
-                    : '<span style="background:#f3f4f6;color:#6b7280;padding:0.1rem 0.45rem;border-radius:9999px;font-size:0.7rem;font-weight:600;">○ Inactive</span>'}
+                  ${
+                    a.active
+                      ? '<span style="background:#d1fae5;color:#065f46;padding:0.1rem 0.45rem;border-radius:9999px;font-size:0.7rem;font-weight:600;">● Active</span>'
+                      : '<span style="background:#f3f4f6;color:#6b7280;padding:0.1rem 0.45rem;border-radius:9999px;font-size:0.7rem;font-weight:600;">○ Inactive</span>'
+                  }
                   ${notifiedBadge}
                 </div>
                 <div class="small" style="color:#6b7280;display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center;">
@@ -302,9 +320,9 @@
                 </div>
               </div>
               <div class="flex-gap" style="margin-left:0.75rem;flex-shrink:0;">
-                <button class="btn btn-secondary btn-small" data-action="edit" data-id="${escapedId}">Edit</button>
-                <button class="btn btn-primary btn-small" data-action="notify" data-id="${escapedId}">📢 Notify</button>
-                <button class="btn btn-danger btn-small" data-action="delete" data-id="${escapedId}">Delete</button>
+                <button class="ef-cta btn btn-secondary btn-small" data-action="edit" data-id="${escapedId}">Edit</button>
+                <button class="ef-cta btn btn-primary btn-small" data-action="notify" data-id="${escapedId}">📢 Notify</button>
+                <button class="ef-cta btn btn-danger btn-small" data-action="delete" data-id="${escapedId}">Delete</button>
               </div>
             </div>
           </div>
@@ -352,8 +370,8 @@
           </select>
         </div>
         <div class="action-buttons">
-          <button type="button" class="btn btn-primary" id="confirmNotifyBtn">Send Notification</button>
-          <button type="button" class="btn btn-secondary" id="closeNotifyModal">Cancel</button>
+          <button type="button" class="ef-cta btn btn-primary" id="confirmNotifyBtn">Send Notification</button>
+          <button type="button" class="ef-cta btn btn-secondary" id="closeNotifyModal">Cancel</button>
         </div>
       </div>
     `;
@@ -362,7 +380,9 @@
 
     modal.querySelector('#closeNotifyModal').addEventListener('click', () => modal.remove());
     modal.addEventListener('click', e => {
-      if (e.target === modal) modal.remove();
+      if (e.target === modal) {
+        modal.remove();
+      }
     });
 
     modal.querySelector('#confirmNotifyBtn').addEventListener('click', async () => {
@@ -398,7 +418,7 @@
     modal.style.cssText =
       'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;';
 
-    const defaultOrder = faq ? (faq.order || 0) : currentFaqCount + 1;
+    const defaultOrder = faq ? faq.order || 0 : currentFaqCount + 1;
 
     modal.innerHTML = `
       <div class="modal modal-medium">
@@ -425,8 +445,8 @@
           </div>
           
           <div class="action-buttons">
-            <button type="submit" class="btn btn-primary">${faq ? 'Update' : 'Create'} FAQ</button>
-            <button type="button" class="btn btn-secondary" id="closeModal">Cancel</button>
+            <button type="submit" class="ef-cta btn btn-primary">${faq ? 'Update' : 'Create'} FAQ</button>
+            <button type="button" class="ef-cta btn btn-secondary" id="closeModal">Cancel</button>
           </div>
         </form>
       </div>
@@ -445,7 +465,7 @@
       e.preventDefault();
 
       const orderRaw = parseInt(document.getElementById('faqOrder').value, 10);
-      const orderVal = (!isNaN(orderRaw) && orderRaw >= 0) ? orderRaw : 0;
+      const orderVal = !isNaN(orderRaw) && orderRaw >= 0 ? orderRaw : 0;
       const data = {
         question: document.getElementById('faqQuestion').value,
         answer: document.getElementById('faqAnswer').value,
@@ -494,8 +514,8 @@
                 <div class="small" style="margin-top:0.5rem;color:#9ca3af;">Category: ${AdminShared.escapeHtml(f.category || 'General')} • Order: ${f.order || 0}</div>
               </div>
               <div class="flex-gap">
-                <button class="btn btn-secondary btn-small" data-action="edit" data-id="${escapedId}">Edit</button>
-                <button class="btn btn-danger btn-small" data-action="delete" data-id="${escapedId}">Delete</button>
+                <button class="ef-cta btn btn-secondary btn-small" data-action="edit" data-id="${escapedId}">Edit</button>
+                <button class="ef-cta btn btn-danger btn-small" data-action="delete" data-id="${escapedId}">Delete</button>
               </div>
             </div>
           </div>
@@ -539,7 +559,8 @@
       container.innerHTML = packages.items
         .map(p => {
           const escapedId = AdminShared.escapeHtml(p.id);
-          const priceDisplay = p.price !== null && p.price !== undefined ? `£${Number(p.price).toLocaleString()}` : '';
+          const priceDisplay =
+            p.price !== null && p.price !== undefined ? `£${Number(p.price).toLocaleString()}` : '';
           return `
           <div style="padding:1rem;background:#f9fafb;border-radius:4px;margin-bottom:0.5rem;" data-id="${escapedId}">
             <div class="flex-between">
@@ -547,7 +568,7 @@
                 <strong>${AdminShared.escapeHtml(p.title)}</strong>
                 <div class="small">Supplier: ${AdminShared.escapeHtml(p.supplierName || 'Unknown')}${p.category ? ` • ${AdminShared.escapeHtml(p.category)}` : ''}${priceDisplay ? ` • ${AdminShared.escapeHtml(priceDisplay)}` : ''}</div>
               </div>
-              <button class="btn btn-danger btn-small" data-action="unfeature" data-id="${escapedId}">Remove Featured</button>
+              <button class="ef-cta btn btn-danger btn-small" data-action="unfeature" data-id="${escapedId}">Remove Featured</button>
             </div>
           </div>
         `;

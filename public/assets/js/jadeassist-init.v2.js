@@ -491,7 +491,7 @@
       <div class="jade-teaser-content">
         ${avatarHtml}
         <span class="jade-teaser-text">${message}</span>
-        <button class="jade-teaser-close" aria-label="Dismiss message">&#10005;</button>
+        <button class="ef-cta jade-teaser-close" aria-label="Dismiss message">&#10005;</button>
       </div>
     `;
     document.body.appendChild(teaserElement);
@@ -794,14 +794,18 @@
     function findLauncher() {
       for (const sel of LAUNCHER_SELECTORS) {
         const el = document.querySelector(sel);
-        if (el) return el;
+        if (el) {
+          return el;
+        }
       }
       return null;
     }
 
     function insertButton(launcher) {
       // Guard against double-insertion
-      if (launcher.querySelector('[data-jade-dismiss]')) return;
+      if (launcher.querySelector('[data-jade-dismiss]')) {
+        return;
+      }
 
       // Ensure the launcher has position:relative so the button positions correctly
       if (window.getComputedStyle(launcher).position === 'static') {
@@ -830,20 +834,20 @@
         'line-height:22px',
         'text-align:center',
         'display:block',
-        'z-index:' + (Z_INDEX.WIDGET + 1),
+        `z-index:${Z_INDEX.WIDGET + 1}`,
         'box-shadow:0 1px 5px rgba(0,0,0,0.4)',
         'padding:0',
         'transition:background 0.15s ease',
       ].join(';');
 
-      btn.addEventListener('mouseenter', function () {
+      btn.addEventListener('mouseenter', () => {
         btn.style.background = '#374151';
       });
-      btn.addEventListener('mouseleave', function () {
+      btn.addEventListener('mouseleave', () => {
         btn.style.background = '#1f2937';
       });
 
-      btn.addEventListener('click', function (e) {
+      btn.addEventListener('click', e => {
         e.stopPropagation();
         e.preventDefault();
 
@@ -856,12 +860,18 @@
 
         // Close the chat panel cleanly via the API first (triggers close animation)
         if (window.JadeWidget && typeof window.JadeWidget.close === 'function') {
-          try { window.JadeWidget.close(); } catch (_) { /* ignore */ }
+          try {
+            window.JadeWidget.close();
+          } catch (_) {
+            /* ignore */
+          }
         }
 
         // Hide the entire widget root and the launcher element
         const root = findLauncher();
-        if (root) root.style.display = 'none';
+        if (root) {
+          root.style.display = 'none';
+        }
 
         // Hide the teaser bubble if it is still visible
         if (teaserElement) {
@@ -889,7 +899,7 @@
 
     // Widget DOM renders asynchronously: watch for it with a MutationObserver
     let timeoutId;
-    const observer = new MutationObserver(function (mutations, obs) {
+    const observer = new MutationObserver((mutations, obs) => {
       const launcher = findLauncher();
       if (launcher) {
         obs.disconnect();
@@ -900,7 +910,7 @@
     observer.observe(document.body, { childList: true, subtree: true });
 
     // Safety fallback — stop watching after 5 s whether or not we found the element
-    timeoutId = setTimeout(function () {
+    timeoutId = setTimeout(() => {
       observer.disconnect();
       const launcher = findLauncher();
       if (launcher) {
@@ -951,9 +961,13 @@
 
     // Don't show until the user has given cookie consent
     if (window.CookieConsent && !window.CookieConsent.hasConsent()) {
-      window.addEventListener('cookieConsentChanged', function onConsent() {
-        startInitialization();
-      }, { once: true });
+      window.addEventListener(
+        'cookieConsentChanged',
+        () => {
+          startInitialization();
+        },
+        { once: true }
+      );
       return;
     }
 
