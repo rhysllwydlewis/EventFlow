@@ -22,6 +22,8 @@ jobs:
   visual:
     name: Visual + a11y (Chromium desktop + mobile)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     # Soft-fail: baselines are still stabilising. Remove this after the
     # 2-week observation period (see docs/VISUAL_REGRESSION.md).
     continue-on-error: true
