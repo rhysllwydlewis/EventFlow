@@ -406,7 +406,7 @@
           <td>${checks.length - failed}/${checks.length}${warned > 0 ? ` <span class="sc-check-warn">(${warned}⚠)</span>` : ''}</td>
           <td>${triggeredBy}</td>
           <td>
-            <button class="sc-expand-btn" type="button" aria-expanded="false" aria-controls="${escHtml(rowId)}" data-target="${escHtml(rowId)}">
+            <button class="ef-cta sc-expand-btn" type="button" aria-expanded="false" aria-controls="${escHtml(rowId)}" data-target="${escHtml(rowId)}">
               ▼ Details
             </button>
           </td>

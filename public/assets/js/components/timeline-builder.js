@@ -48,7 +48,7 @@ class TimelineBuilder {
           ${
             this.options.editable
               ? `
-            <button class="btn btn-primary" id="add-timeline-event">
+            <button class="ef-cta btn btn-primary" id="add-timeline-event">
               <span>+ Add Event</span>
             </button>
           `
@@ -125,10 +125,10 @@ class TimelineBuilder {
           this.options.editable
             ? `
           <div class="timeline-event-actions">
-            <button class="btn-icon" data-action="edit" data-id="${event.id || index}" title="Edit">
+            <button class="ef-cta btn-icon" data-action="edit" data-id="${event.id || index}" title="Edit">
               ✏️
             </button>
-            <button class="btn-icon" data-action="delete" data-id="${event.id || index}" title="Delete">
+            <button class="ef-cta btn-icon" data-action="delete" data-id="${event.id || index}" title="Delete">
               🗑️
             </button>
           </div>
@@ -247,7 +247,7 @@ class TimelineBuilder {
       <div class="modal-content">
         <div class="modal-header">
           <h2>${isEdit ? 'Edit Event' : 'Add Event'}</h2>
-          <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
+          <button class="ef-cta modal-close" onclick="this.closest('.modal-overlay').remove()">×</button>
         </div>
         <form id="event-form" class="modal-body">
           <div class="form-group">
@@ -283,8 +283,8 @@ class TimelineBuilder {
             <input type="text" id="event-supplier" name="supplier" value="${event ? this.escapeHtml(event.supplier || '') : ''}">
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
-            <button type="submit" class="btn btn-primary">${isEdit ? 'Update' : 'Add'} Event</button>
+            <button type="button" class="ef-cta btn btn-secondary" onclick="this.closest('.modal-overlay').remove()">Cancel</button>
+            <button type="submit" class="ef-cta btn btn-primary">${isEdit ? 'Update' : 'Add'} Event</button>
           </div>
         </form>
       </div>

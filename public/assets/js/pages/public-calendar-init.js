@@ -144,7 +144,7 @@
             <span class="pc-empty__icon">📅</span>
             <p class="pc-empty__title">No events found</p>
             <p class="pc-empty__text">Try adjusting your filters, or check back soon for upcoming events.</p>
-            ${isAdmin || isPublisher ? `<button class="pc-btn pc-btn-primary" id="pc-empty-add-btn" style="margin-top:1rem;" type="button">+ Add the first event</button>` : ''}
+            ${isAdmin || isPublisher ? `<button class="ef-cta pc-btn pc-btn-primary" id="pc-empty-add-btn" style="margin-top:1rem;" type="button">+ Add the first event</button>` : ''}
           </div>
         </div>`;
       document.getElementById('pc-empty-add-btn')?.addEventListener('click', openAddModal);
@@ -175,13 +175,13 @@
 
     const saveBtn = isLoggedIn
       ? ev.savedByMe
-        ? `<button class="pc-btn pc-btn-sm pc-btn-saved" data-action="unsave" data-id="${esc(ev.id)}" title="Remove from my calendar">✓ Saved</button>`
-        : `<button class="pc-btn pc-btn-sm pc-btn-save" data-action="save" data-id="${esc(ev.id)}">+ Save to calendar</button>`
+        ? `<button class="ef-cta pc-btn pc-btn-sm pc-btn-saved" data-action="unsave" data-id="${esc(ev.id)}" title="Remove from my calendar">✓ Saved</button>`
+        : `<button class="ef-cta pc-btn pc-btn-sm pc-btn-save" data-action="save" data-id="${esc(ev.id)}">+ Save to calendar</button>`
       : '';
 
     const editBtns = canEdit
-      ? `<button class="pc-btn pc-btn-sm pc-btn-outline-green" data-action="edit" data-id="${esc(ev.id)}">Edit</button>
-         <button class="pc-btn pc-btn-sm pc-btn-danger" data-action="delete" data-id="${esc(ev.id)}" data-title="${esc(ev.title)}">Delete</button>`
+      ? `<button class="ef-cta pc-btn pc-btn-sm pc-btn-outline-green" data-action="edit" data-id="${esc(ev.id)}">Edit</button>
+         <button class="ef-cta pc-btn pc-btn-sm pc-btn-danger" data-action="delete" data-id="${esc(ev.id)}" data-title="${esc(ev.title)}">Delete</button>`
       : '';
 
     const imgSection = ev.imageUrl
@@ -269,11 +269,11 @@
 
     let html = '';
     if (currentPage > 0) {
-      html += `<button class="pc-btn pc-btn-ghost" id="pc-prev-btn">← Previous</button>`;
+      html += `<button class="ef-cta pc-btn pc-btn-ghost" id="pc-prev-btn">← Previous</button>`;
     }
     html += `<span style="align-self:center;font-size:0.9rem;color:#6b7280;">Page ${currentPage + 1} of ${pages}</span>`;
     if (currentPage < pages - 1) {
-      html += `<button class="pc-btn pc-btn-ghost" id="pc-next-btn">Next →</button>`;
+      html += `<button class="ef-cta pc-btn pc-btn-ghost" id="pc-next-btn">Next →</button>`;
     }
     container.innerHTML = html;
 
@@ -342,7 +342,7 @@
         method: 'POST',
         body: '{}',
       });
-      btn.outerHTML = `<button class="pc-btn pc-btn-sm pc-btn-saved" data-action="unsave" data-id="${esc(eventId)}" title="Remove from my calendar">✓ Saved</button>`;
+      btn.outerHTML = `<button class="ef-cta pc-btn pc-btn-sm pc-btn-saved" data-action="unsave" data-id="${esc(eventId)}" title="Remove from my calendar">✓ Saved</button>`;
       rewireButtons();
     } catch (e) {
       btn.disabled = false;
@@ -357,7 +357,7 @@
         method: 'DELETE',
         body: '{}',
       });
-      btn.outerHTML = `<button class="pc-btn pc-btn-sm pc-btn-save" data-action="save" data-id="${esc(eventId)}">+ Save to calendar</button>`;
+      btn.outerHTML = `<button class="ef-cta pc-btn pc-btn-sm pc-btn-save" data-action="save" data-id="${esc(eventId)}">+ Save to calendar</button>`;
       rewireButtons();
     } catch (e) {
       btn.disabled = false;
@@ -389,8 +389,8 @@
     const originalHTML = actionsEl.innerHTML;
     actionsEl.innerHTML = `
       <span style="font-size:0.82rem;color:#374151;align-self:center;white-space:nowrap;">Delete this event?</span>
-      <button class="pc-btn pc-btn-sm pc-btn-danger" id="_pc-del-confirm">Confirm</button>
-      <button class="pc-btn pc-btn-sm pc-btn-ghost" id="_pc-del-cancel">Cancel</button>
+      <button class="ef-cta pc-btn pc-btn-sm pc-btn-danger" id="_pc-del-confirm">Confirm</button>
+      <button class="ef-cta pc-btn pc-btn-sm pc-btn-ghost" id="_pc-del-cancel">Cancel</button>
     `;
 
     document.getElementById('_pc-del-cancel').onclick = () => {

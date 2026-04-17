@@ -52,8 +52,8 @@
           id="searchInput" 
           placeholder="Search for photos (e.g., 'wedding', 'catering', 'venue')..."
         >
-        <button id="searchBtn">Search</button>
-        <button id="curatedBtn" class="pexels-btn-secondary">Curated</button>
+        <button class="ef-cta" id="searchBtn">Search</button>
+        <button id="curatedBtn" class="ef-cta pexels-btn-secondary">Curated</button>
       </div>
 
       <!-- Category Quick Search -->
@@ -73,9 +73,9 @@
 
       <!-- Pagination -->
       <div class="pagination" id="pagination" style="display: none;">
-        <button id="prevBtn">← Previous</button>
+        <button class="ef-cta" id="prevBtn">← Previous</button>
         <span class="pagination-info" id="pageInfo"></span>
-        <button id="nextBtn">Next →</button>
+        <button class="ef-cta" id="nextBtn">Next →</button>
       </div>
     </div>
   </div>
@@ -84,14 +84,14 @@
 <!-- Photo Detail Modal -->
 <div class="modal" id="photoModal">
   <div class="modal-content">
-    <button class="modal-close" id="modalClose">×</button>
+    <button class="ef-cta modal-close" id="modalClose">×</button>
     <img class="modal-image" id="modalImage" src="" alt="">
     <div class="modal-info">
       <p id="modalPhotographer"></p>
       <p id="modalDimensions"></p>
       <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-        <button class="pexels-btn pexels-btn-primary" id="modalCopyUrl">Copy Image URL</button>
-        <button class="pexels-btn pexels-btn-secondary" id="modalViewPexels">View on Pexels</button>
+        <button class="ef-cta pexels-btn pexels-btn-primary" id="modalCopyUrl">Copy Image URL</button>
+        <button class="ef-cta pexels-btn pexels-btn-secondary" id="modalViewPexels">View on Pexels</button>
       </div>
     </div>
   </div>

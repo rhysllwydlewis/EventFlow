@@ -216,10 +216,10 @@
         state.groupingMethod !== 'none'
           ? `
         <div class="grouping-actions">
-          <button onclick="window.EF_Grouping.expandAll()" class="grouping-action-btn" title="Expand all groups">
+          <button onclick="window.EF_Grouping.expandAll()" class="ef-cta grouping-action-btn" title="Expand all groups">
             ▼ Expand All
           </button>
-          <button onclick="window.EF_Grouping.collapseAll()" class="grouping-action-btn" title="Collapse all groups">
+          <button onclick="window.EF_Grouping.collapseAll()" class="ef-cta grouping-action-btn" title="Collapse all groups">
             ▶ Collapse All
           </button>
         </div>
@@ -271,7 +271,7 @@
         return `
         <div class="message-group" data-group-key="${escapeHtml(groupKey)}">
           <div class="message-group-header" onclick="window.EF_Grouping.toggleGroup('${escapeHtml(groupKey)}')">
-            <button class="group-expand-btn">
+            <button class="ef-cta group-expand-btn">
               ${isExpanded ? '▼' : '▶'}
             </button>
             <div class="group-header-content">
@@ -283,14 +283,14 @@
             </div>
             <div class="group-actions">
               <button 
-                class="group-action-btn" 
+                class="ef-cta group-action-btn" 
                 onclick="event.stopPropagation(); window.EF_Grouping.markGroupAsRead('${escapeHtml(groupKey)}')"
                 title="Mark all as read"
               >
                 ✓
               </button>
               <button 
-                class="group-action-btn" 
+                class="ef-cta group-action-btn" 
                 onclick="event.stopPropagation(); window.EF_Grouping.showGroupActions('${escapeHtml(groupKey)}')"
                 title="More actions"
               >

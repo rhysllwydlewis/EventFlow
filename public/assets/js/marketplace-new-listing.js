@@ -287,7 +287,7 @@
         <img src="${img.preview || img.url}" alt="Preview ${index + 1}">
         <button 
           type="button" 
-          class="image-preview-remove" 
+          class="ef-cta image-preview-remove" 
           onclick="window.NewListing.removeImage(${index})"
           aria-label="Remove image"
         >×</button>

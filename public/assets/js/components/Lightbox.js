@@ -201,7 +201,7 @@ class Lightbox {
     this.lightboxElement.setAttribute('aria-label', 'Image lightbox');
 
     this.lightboxElement.innerHTML = `
-      <button class="lightbox-close" aria-label="Close lightbox">×</button>
+      <button class="ef-cta lightbox-close" aria-label="Close lightbox">×</button>
       <div class="lightbox-content">
         <div class="lightbox-loader"></div>
         <img class="lightbox-image" src="" alt="" style="display:none;">
@@ -209,8 +209,8 @@ class Lightbox {
       ${
         this.options.showNavigation
           ? `
-        <button class="lightbox-nav lightbox-prev" aria-label="Previous image">‹</button>
-        <button class="lightbox-nav lightbox-next" aria-label="Next image">›</button>
+        <button class="ef-cta lightbox-nav lightbox-prev" aria-label="Previous image">‹</button>
+        <button class="ef-cta lightbox-nav lightbox-next" aria-label="Next image">›</button>
       `
           : ''
       }

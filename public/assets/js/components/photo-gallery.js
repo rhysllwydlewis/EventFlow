@@ -462,9 +462,9 @@ class PhotoGallery {
     this.lightboxElement.className = 'photo-gallery__lightbox';
     this.lightboxElement.innerHTML = `
       <div class="photo-gallery__lightbox-content">
-        <button class="photo-gallery__lightbox-close" title="Close (Esc)">×</button>
-        <button class="photo-gallery__lightbox-nav photo-gallery__lightbox-nav--prev" title="Previous (←)">‹</button>
-        <button class="photo-gallery__lightbox-nav photo-gallery__lightbox-nav--next" title="Next (→)">›</button>
+        <button class="ef-cta photo-gallery__lightbox-close" title="Close (Esc)">×</button>
+        <button class="ef-cta photo-gallery__lightbox-nav photo-gallery__lightbox-nav--prev" title="Previous (←)">‹</button>
+        <button class="ef-cta photo-gallery__lightbox-nav photo-gallery__lightbox-nav--next" title="Next (→)">›</button>
         <img class="photo-gallery__lightbox-img" src="" alt="">
         <div class="photo-gallery__lightbox-counter"></div>
         <div class="photo-gallery__lightbox-caption"></div>

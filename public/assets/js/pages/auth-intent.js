@@ -65,7 +65,7 @@
     notice.innerHTML =
       `<strong class="auth-intent-title">${safeTitle}</strong>` +
       `<p class="auth-intent-body">${safeBody}</p>` +
-      `<button class="auth-intent-dismiss" type="button" aria-label="Dismiss this message">` +
+      `<button class="ef-cta auth-intent-dismiss" type="button" aria-label="Dismiss this message">` +
       `<span aria-hidden="true">\u00d7</span></button>`;
 
     // Wire up dismiss button

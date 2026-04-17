@@ -9,7 +9,7 @@
   // Chat widget HTML
   const chatWidgetHTML = `
     <div id="ef-chat-widget" class="ef-chat-widget">
-      <button id="ef-chat-toggle" class="ef-chat-toggle" aria-label="Toggle chat">
+      <button id="ef-chat-toggle" class="ef-cta ef-chat-toggle" aria-label="Toggle chat">
         💬 <span class="ef-chat-toggle-text">Chat with us</span>
       </button>
       <div id="ef-chat-box" class="ef-chat-box" style="display: none;">
@@ -18,7 +18,7 @@
             <h4>Support Chat</h4>
             <div style="font-size: 10px; opacity: 0.8; margin-top: 2px;">Automated replies • Team responds within 24h</div>
           </div>
-          <button id="ef-chat-minimize" class="ef-chat-close" aria-label="Minimize chat">−</button>
+          <button id="ef-chat-minimize" class="ef-cta ef-chat-close" aria-label="Minimize chat">−</button>
         </div>
         <div id="ef-chat-messages" class="ef-chat-messages">
           <div class="ef-chat-message ef-chat-bot-message">
@@ -36,7 +36,7 @@
             placeholder="Type a message..." 
             aria-label="Chat message"
           />
-          <button id="ef-chat-send" class="ef-chat-send" aria-label="Send message">Send</button>
+          <button id="ef-chat-send" class="ef-cta ef-chat-send" aria-label="Send message">Send</button>
         </div>
       </div>
     </div>

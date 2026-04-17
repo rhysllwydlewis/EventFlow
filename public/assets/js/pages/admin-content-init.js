@@ -107,8 +107,8 @@
             </select>
           </div>
           <div class="action-buttons">
-            <button type="submit" class="btn btn-primary">Send Notification</button>
-            <button type="button" class="btn btn-secondary" id="closeQnModal">Cancel</button>
+            <button type="submit" class="ef-cta btn btn-primary">Send Notification</button>
+            <button type="button" class="ef-cta btn btn-secondary" id="closeQnModal">Cancel</button>
           </div>
         </form>
       </div>
@@ -192,8 +192,8 @@
           </div>
           
           <div class="action-buttons">
-            <button type="submit" class="btn btn-primary">${announcement ? 'Update' : 'Create'} Announcement</button>
-            <button type="button" class="btn btn-secondary" id="closeModal">Cancel</button>
+            <button type="submit" class="ef-cta btn btn-primary">${announcement ? 'Update' : 'Create'} Announcement</button>
+            <button type="button" class="ef-cta btn btn-secondary" id="closeModal">Cancel</button>
           </div>
         </form>
       </div>
@@ -302,9 +302,9 @@
                 </div>
               </div>
               <div class="flex-gap" style="margin-left:0.75rem;flex-shrink:0;">
-                <button class="btn btn-secondary btn-small" data-action="edit" data-id="${escapedId}">Edit</button>
-                <button class="btn btn-primary btn-small" data-action="notify" data-id="${escapedId}">📢 Notify</button>
-                <button class="btn btn-danger btn-small" data-action="delete" data-id="${escapedId}">Delete</button>
+                <button class="ef-cta btn btn-secondary btn-small" data-action="edit" data-id="${escapedId}">Edit</button>
+                <button class="ef-cta btn btn-primary btn-small" data-action="notify" data-id="${escapedId}">📢 Notify</button>
+                <button class="ef-cta btn btn-danger btn-small" data-action="delete" data-id="${escapedId}">Delete</button>
               </div>
             </div>
           </div>
@@ -352,8 +352,8 @@
           </select>
         </div>
         <div class="action-buttons">
-          <button type="button" class="btn btn-primary" id="confirmNotifyBtn">Send Notification</button>
-          <button type="button" class="btn btn-secondary" id="closeNotifyModal">Cancel</button>
+          <button type="button" class="ef-cta btn btn-primary" id="confirmNotifyBtn">Send Notification</button>
+          <button type="button" class="ef-cta btn btn-secondary" id="closeNotifyModal">Cancel</button>
         </div>
       </div>
     `;
@@ -425,8 +425,8 @@
           </div>
           
           <div class="action-buttons">
-            <button type="submit" class="btn btn-primary">${faq ? 'Update' : 'Create'} FAQ</button>
-            <button type="button" class="btn btn-secondary" id="closeModal">Cancel</button>
+            <button type="submit" class="ef-cta btn btn-primary">${faq ? 'Update' : 'Create'} FAQ</button>
+            <button type="button" class="ef-cta btn btn-secondary" id="closeModal">Cancel</button>
           </div>
         </form>
       </div>
@@ -494,8 +494,8 @@
                 <div class="small" style="margin-top:0.5rem;color:#9ca3af;">Category: ${AdminShared.escapeHtml(f.category || 'General')} • Order: ${f.order || 0}</div>
               </div>
               <div class="flex-gap">
-                <button class="btn btn-secondary btn-small" data-action="edit" data-id="${escapedId}">Edit</button>
-                <button class="btn btn-danger btn-small" data-action="delete" data-id="${escapedId}">Delete</button>
+                <button class="ef-cta btn btn-secondary btn-small" data-action="edit" data-id="${escapedId}">Edit</button>
+                <button class="ef-cta btn btn-danger btn-small" data-action="delete" data-id="${escapedId}">Delete</button>
               </div>
             </div>
           </div>
@@ -547,7 +547,7 @@
                 <strong>${AdminShared.escapeHtml(p.title)}</strong>
                 <div class="small">Supplier: ${AdminShared.escapeHtml(p.supplierName || 'Unknown')}${p.category ? ` • ${AdminShared.escapeHtml(p.category)}` : ''}${priceDisplay ? ` • ${AdminShared.escapeHtml(priceDisplay)}` : ''}</div>
               </div>
-              <button class="btn btn-danger btn-small" data-action="unfeature" data-id="${escapedId}">Remove Featured</button>
+              <button class="ef-cta btn btn-danger btn-small" data-action="unfeature" data-id="${escapedId}">Remove Featured</button>
             </div>
           </div>
         `;

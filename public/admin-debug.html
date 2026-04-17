@@ -45,15 +45,15 @@
       </div>
       <div class="header-actions">
         <span id="sc-run-status" aria-live="polite" aria-atomic="true"></span>
-        <button id="sc-copy-btn" class="btn btn-secondary btn-sm" type="button" aria-label="Copy latest run as JSON" style="display:none;" title="Copy latest run as JSON">
+        <button id="sc-copy-btn" class="ef-cta btn btn-secondary btn-sm" type="button" aria-label="Copy latest run as JSON" style="display:none;" title="Copy latest run as JSON">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
           Copy JSON
         </button>
-        <button id="sc-rerun-failed-btn" class="btn btn-secondary btn-sm" type="button" aria-label="Re-run failed checks only" style="display:none;" title="Re-run failed checks only">
+        <button id="sc-rerun-failed-btn" class="ef-cta btn btn-secondary btn-sm" type="button" aria-label="Re-run failed checks only" style="display:none;" title="Re-run failed checks only">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 .49-3.5"></path></svg>
           Re-run Failed
         </button>
-        <button id="sc-run-btn" class="sc-run-btn" type="button" aria-label="Run all system checks now">
+        <button id="sc-run-btn" class="ef-cta sc-run-btn" type="button" aria-label="Run all system checks now">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
           Run Now
         </button>
@@ -65,11 +65,11 @@
 
     <!-- Tab Navigation -->
     <nav class="sc-tabs" role="tablist" aria-label="Debug sections">
-      <button class="sc-tab-btn" role="tab" aria-selected="true"  aria-controls="tab-overview"  id="tab-btn-overview"  type="button">Overview</button>
-      <button class="sc-tab-btn" role="tab" aria-selected="false" aria-controls="tab-coverage"  id="tab-btn-coverage"  type="button">Coverage</button>
-      <button class="sc-tab-btn" role="tab" aria-selected="false" aria-controls="tab-history"   id="tab-btn-history"   type="button">History</button>
-      <button class="sc-tab-btn" role="tab" aria-selected="false" aria-controls="tab-webhooks"  id="tab-btn-webhooks"  type="button">Webhooks</button>
-      <button class="sc-tab-btn" role="tab" aria-selected="false" aria-controls="tab-acct-tools" id="tab-btn-acct-tools" type="button">Account Tools</button>
+      <button class="ef-cta sc-tab-btn" role="tab" aria-selected="true"  aria-controls="tab-overview"  id="tab-btn-overview"  type="button">Overview</button>
+      <button class="ef-cta sc-tab-btn" role="tab" aria-selected="false" aria-controls="tab-coverage"  id="tab-btn-coverage"  type="button">Coverage</button>
+      <button class="ef-cta sc-tab-btn" role="tab" aria-selected="false" aria-controls="tab-history"   id="tab-btn-history"   type="button">History</button>
+      <button class="ef-cta sc-tab-btn" role="tab" aria-selected="false" aria-controls="tab-webhooks"  id="tab-btn-webhooks"  type="button">Webhooks</button>
+      <button class="ef-cta sc-tab-btn" role="tab" aria-selected="false" aria-controls="tab-acct-tools" id="tab-btn-acct-tools" type="button">Account Tools</button>
     </nav>
 
     <!-- ── Tab: Overview ──────────────────────────────────────────── -->
@@ -115,12 +115,12 @@
 
       <!-- Filter bar -->
       <div class="sc-filter-bar" role="group" aria-label="Filter checks">
-        <button class="sc-filter-btn" type="button" data-filter="all"           aria-pressed="true">All</button>
-        <button class="sc-filter-btn" type="button" data-filter="page"          aria-pressed="false">Pages</button>
-        <button class="sc-filter-btn" type="button" data-filter="api"           aria-pressed="false">APIs</button>
-        <button class="sc-filter-btn" type="button" data-filter="fail"          aria-pressed="false">Failures only</button>
-        <button class="sc-filter-btn" type="button" data-filter="warn"          aria-pressed="false">Warnings</button>
-        <button class="sc-filter-btn" type="button" data-filter="untested"      aria-pressed="false">Untested</button>
+        <button class="ef-cta sc-filter-btn" type="button" data-filter="all"           aria-pressed="true">All</button>
+        <button class="ef-cta sc-filter-btn" type="button" data-filter="page"          aria-pressed="false">Pages</button>
+        <button class="ef-cta sc-filter-btn" type="button" data-filter="api"           aria-pressed="false">APIs</button>
+        <button class="ef-cta sc-filter-btn" type="button" data-filter="fail"          aria-pressed="false">Failures only</button>
+        <button class="ef-cta sc-filter-btn" type="button" data-filter="warn"          aria-pressed="false">Warnings</button>
+        <button class="ef-cta sc-filter-btn" type="button" data-filter="untested"      aria-pressed="false">Untested</button>
       </div>
 
       <div class="card" id="sc-coverage-list" aria-live="polite">
@@ -181,7 +181,7 @@
       </div>
 
       <div style="margin:1.25rem 0;">
-        <button id="sc-test-webhooks-btn" type="button" class="sc-run-btn" aria-label="Test all webhooks">
+        <button id="sc-test-webhooks-btn" type="button" class="ef-cta sc-run-btn" aria-label="Test all webhooks">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
           Test All Webhooks
         </button>
@@ -211,7 +211,7 @@
             <label for="sc-lookup-email" class="sc-acct-label">Email address</label>
             <div class="sc-acct-row">
               <input id="sc-lookup-email" name="email" type="email" class="sc-acct-input" placeholder="user@example.com" required autocomplete="off">
-              <button type="submit" class="btn btn-primary btn-sm">Look up</button>
+              <button type="submit" class="ef-cta btn btn-primary btn-sm">Look up</button>
             </div>
           </form>
           <div id="sc-lookup-result" aria-live="polite" class="sc-acct-result"></div>
@@ -224,7 +224,7 @@
             <label for="sc-verify-email" class="sc-acct-label">Email address to force-verify</label>
             <div class="sc-acct-row">
               <input id="sc-verify-email" name="email" type="email" class="sc-acct-input" placeholder="user@example.com" required autocomplete="off">
-              <button type="submit" class="btn btn-warning btn-sm">Verify user</button>
+              <button type="submit" class="ef-cta btn btn-warning btn-sm">Verify user</button>
             </div>
           </form>
           <div id="sc-verify-result" aria-live="polite" class="sc-acct-result"></div>
@@ -239,7 +239,7 @@
             <label for="sc-fixpw-password" class="sc-acct-label">New password (min 8 chars)</label>
             <div class="sc-acct-row">
               <input id="sc-fixpw-password" name="newPassword" type="password" class="sc-acct-input" placeholder="New password" minlength="8" required autocomplete="new-password">
-              <button type="submit" class="btn btn-danger btn-sm">Set password</button>
+              <button type="submit" class="ef-cta btn btn-danger btn-sm">Set password</button>
             </div>
           </form>
           <div id="sc-fixpw-result" aria-live="polite" class="sc-acct-result"></div>
@@ -252,7 +252,7 @@
             <label for="sc-email-to" class="sc-acct-label">Send a test verification email to</label>
             <div class="sc-acct-row">
               <input id="sc-email-to" name="email" type="email" class="sc-acct-input" placeholder="user@example.com" required autocomplete="off">
-              <button type="submit" class="btn btn-secondary btn-sm">Send test</button>
+              <button type="submit" class="ef-cta btn btn-secondary btn-sm">Send test</button>
             </div>
           </form>
           <div id="sc-email-result" aria-live="polite" class="sc-acct-result"></div>
@@ -268,7 +268,7 @@
             <label for="sc-login-password" class="sc-acct-label">Password to test</label>
             <div class="sc-acct-row">
               <input id="sc-login-password" name="password" type="password" class="sc-acct-input" placeholder="Password" required autocomplete="current-password">
-              <button type="submit" class="btn btn-secondary btn-sm">Test login</button>
+              <button type="submit" class="ef-cta btn btn-secondary btn-sm">Test login</button>
             </div>
           </form>
           <div id="sc-login-result" aria-live="polite" class="sc-acct-result"></div>
@@ -278,7 +278,7 @@
         <section class="sc-acct-section" aria-labelledby="sc-acct-audit-heading">
           <h2 id="sc-acct-audit-heading" class="section-heading" style="margin-top:1.5rem;">📋 Audit All Users</h2>
           <p class="small" style="color:var(--color-text-muted,#6b7280);margin-bottom:.75rem;">Scans all user records for issues (no password hash, invalid hash, unverified). This action is audit-logged.</p>
-          <button id="sc-audit-users-btn" type="button" class="btn btn-secondary btn-sm">Run User Audit</button>
+          <button id="sc-audit-users-btn" type="button" class="ef-cta btn btn-secondary btn-sm">Run User Audit</button>
           <div id="sc-audit-result" aria-live="polite" class="sc-acct-result"></div>
         </section>
 

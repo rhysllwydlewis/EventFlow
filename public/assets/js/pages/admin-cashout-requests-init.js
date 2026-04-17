@@ -97,7 +97,7 @@
             <td>${statusBadge(r.status)}</td>
             <td style="font-size:0.82rem;white-space:nowrap;">${esc(fmtDate(r.createdAt))}</td>
             <td>
-              <button type="button" class="acr-action-btn acr-open-btn" data-id="${esc(r.id)}" aria-label="View request ${esc(r.id)}">
+              <button type="button" class="ef-cta acr-action-btn acr-open-btn" data-id="${esc(r.id)}" aria-label="View request ${esc(r.id)}">
                 ✏️ Manage
               </button>
             </td>

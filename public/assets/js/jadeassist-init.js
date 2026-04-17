@@ -188,7 +188,7 @@
     teaserElement.innerHTML = `
       <div class="jade-teaser-content">
         <span class="jade-teaser-text">${teaserMessage}</span>
-        <button class="jade-teaser-close" aria-label="Dismiss message">×</button>
+        <button class="ef-cta jade-teaser-close" aria-label="Dismiss message">×</button>
       </div>
     `;
 

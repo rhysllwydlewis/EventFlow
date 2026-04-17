@@ -491,7 +491,7 @@
       <div class="jade-teaser-content">
         ${avatarHtml}
         <span class="jade-teaser-text">${message}</span>
-        <button class="jade-teaser-close" aria-label="Dismiss message">&#10005;</button>
+        <button class="ef-cta jade-teaser-close" aria-label="Dismiss message">&#10005;</button>
       </div>
     `;
     document.body.appendChild(teaserElement);

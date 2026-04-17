@@ -401,13 +401,13 @@ class ConversationView {
         ${
           isSent
             ? `<div class="messenger-v4__message-actions">
-          <button class="messenger-v4__message-action" data-action="react" title="React">
+          <button class="ef-cta messenger-v4__message-action" data-action="react" title="React">
             <span>😊</span>
           </button>
-          <button class="messenger-v4__message-action" data-action="edit" title="Edit" ${message.isDeleted ? 'disabled' : ''}>
+          <button class="ef-cta messenger-v4__message-action" data-action="edit" title="Edit" ${message.isDeleted ? 'disabled' : ''}>
             <span>✏️</span>
           </button>
-          <button class="messenger-v4__message-action" data-action="delete" title="Delete">
+          <button class="ef-cta messenger-v4__message-action" data-action="delete" title="Delete">
             <span>🗑️</span>
           </button>
         </div>`
@@ -517,7 +517,7 @@ class ConversationView {
         ${Object.entries(reactionGroups)
           .map(
             ([emoji, userIds]) => `
-          <button class="messenger-v4__reaction" data-emoji="${emoji}" data-message-id="${messageId}" title="${userIds.length} reaction(s)">
+          <button class="ef-cta messenger-v4__reaction" data-emoji="${emoji}" data-message-id="${messageId}" title="${userIds.length} reaction(s)">
             <span class="messenger-v4__reaction-emoji">${emoji}</span>
             <span class="messenger-v4__reaction-count">${userIds.length}</span>
           </button>

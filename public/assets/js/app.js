@@ -1036,7 +1036,7 @@ async function initSupplier() {
         <div class="reviews-header">
           <h3 class="reviews-title">All Reviews</h3>
           <div class="review-actions">
-            <button id="btn-write-review" class="btn-write-review" aria-label="Write a review for this supplier">✍️ Write a Review</button>
+            <button id="btn-write-review" class="ef-cta btn-write-review" aria-label="Write a review for this supplier">✍️ Write a Review</button>
           </div>
         </div>
         
@@ -1741,10 +1741,10 @@ function openLightbox(photos, startIndex = 0) {
   modal.className = 'lightbox-modal';
   modal.innerHTML = `
     <div class="lightbox-content">
-      <button class="lightbox-close" aria-label="Close lightbox">&times;</button>
-      ${photos.length > 1 ? '<button class="lightbox-nav lightbox-prev" aria-label="Previous photo">&lsaquo;</button>' : ''}
+      <button class="ef-cta lightbox-close" aria-label="Close lightbox">&times;</button>
+      ${photos.length > 1 ? '<button class="ef-cta lightbox-nav lightbox-prev" aria-label="Previous photo">&lsaquo;</button>' : ''}
       <img class="lightbox-image" src="${escapeHtml(photos[currentIndex])}" alt="Gallery photo ${currentIndex + 1}">
-      ${photos.length > 1 ? '<button class="lightbox-nav lightbox-next" aria-label="Next photo">&rsaquo;</button>' : ''}
+      ${photos.length > 1 ? '<button class="ef-cta lightbox-nav lightbox-next" aria-label="Next photo">&rsaquo;</button>' : ''}
     </div>
   `;
 
@@ -2089,7 +2089,7 @@ async function initPlan() {
                   <td>${escapeHtml(row.estimate || '')}</td>
                   <td>${escapeHtml(row.actual || '')}</td>
                   <td>${escapeHtml(row.notes || '')}</td>
-                  <td><button class="link-button" data-remove-budget="${row.id}">Remove</button></td>
+                  <td><button class="ef-cta link-button" data-remove-budget="${row.id}">Remove</button></td>
                 </tr>
               `
                 )
@@ -2167,7 +2167,7 @@ async function initPlan() {
                 <td>${escapeHtml(g.name || '')}</td>
                 <td>${escapeHtml(g.role || '')}</td>
                 <td>${escapeHtml(g.notes || '')}</td>
-                <td><button class="link-button" data-remove-guest="${g.id}">Remove</button></td>
+                <td><button class="ef-cta link-button" data-remove-guest="${g.id}">Remove</button></td>
               </tr>
             `
               )
@@ -2209,7 +2209,7 @@ async function initPlan() {
                 <td><input type="checkbox" data-toggle-task="${t.id}" ${t.done ? 'checked' : ''}></td>
                 <td>${escapeHtml(t.label || '')}</td>
                 <td>${escapeHtml(t.due || '')}</td>
-                <td><button class="link-button" data-remove-task="${t.id}">Remove</button></td>
+                <td><button class="ef-cta link-button" data-remove-task="${t.id}">Remove</button></td>
               </tr>
             `
               )
@@ -2265,7 +2265,7 @@ async function initPlan() {
                 <td>${escapeHtml(t.time || '')}</td>
                 <td>${escapeHtml(t.item || '')}</td>
                 <td>${escapeHtml(t.owner || '')}</td>
-                <td><button class="link-button" data-remove-timeline="${t.id}">Remove</button></td>
+                <td><button class="ef-cta link-button" data-remove-timeline="${t.id}">Remove</button></td>
               </tr>
             `
               )
@@ -2499,7 +2499,7 @@ async function renderThreads(targetEl) {
             const when = t.updatedAt ? new Date(t.updatedAt).toLocaleString() : '';
             const convId = t._id || t.id;
             return `
-            <button class="thread-row" type="button" data-open="${convId}">
+            <button class="ef-cta thread-row" type="button" data-open="${convId}">
               <div class="thread-row-main">
                 <span class="thread-row-title">${escapeHtml(otherName)}</span>
                 <span class="thread-row-snippet">${escapeHtml(last || 'No messages yet.')}</span>
@@ -3227,7 +3227,7 @@ async function initDashSupplier() {
           </div>
         </details>
         <div class="card-actions">
-          <button type="button" class="card-action-btn edit-btn" data-action="edit-profile" data-profile-id="${supplierId}">Edit</button>
+          <button type="button" class="ef-cta card-action-btn edit-btn" data-action="edit-profile" data-profile-id="${supplierId}">Edit</button>
         </div>
       </div>
     </div>`;
@@ -3632,7 +3632,7 @@ async function initDashSupplier() {
             approved && slug
               ? `<a href="/package?slug=${slug}" target="_blank" class="card-action-btn view-btn">View</a>`
               : '';
-          const pauseBtn = `<button type="button" class="card-action-btn ${paused ? 'unpause-btn' : 'pause-btn'}" data-action="${paused ? 'unpause-package' : 'pause-package'}" data-package-id="${packageId}" title="${paused ? 'Unpause' : 'Pause'}" aria-label="${paused ? 'Unpause package' : 'Pause package'}">${paused ? '<svg width="10" height="11" viewBox="0 0 10 11" fill="currentColor" aria-hidden="true"><polygon points="0,0 10,5.5 0,11"/></svg>' : '<svg width="10" height="11" viewBox="0 0 10 11" fill="currentColor" aria-hidden="true"><rect x="0" y="0" width="3.5" height="11" rx="0.75"/><rect x="6.5" y="0" width="3.5" height="11" rx="0.75"/></svg>'}</button>`;
+          const pauseBtn = `<button type="button" class="ef-cta card-action-btn ${paused ? 'unpause-btn' : 'pause-btn'}" data-action="${paused ? 'unpause-package' : 'pause-package'}" data-package-id="${packageId}" title="${paused ? 'Unpause' : 'Pause'}" aria-label="${paused ? 'Unpause package' : 'Pause package'}">${paused ? '<svg width="10" height="11" viewBox="0 0 10 11" fill="currentColor" aria-hidden="true"><polygon points="0,0 10,5.5 0,11"/></svg>' : '<svg width="10" height="11" viewBox="0 0 10 11" fill="currentColor" aria-hidden="true"><rect x="0" y="0" width="3.5" height="11" rx="0.75"/><rect x="6.5" y="0" width="3.5" height="11" rx="0.75"/></svg>'}</button>`;
 
           return `<div class="card package-card${paused ? ' package-card--paused' : ''}" data-package-id="${packageId}">
       <img src="${image}" alt="${title} image" data-fallback-src="/assets/images/package-placeholder.svg">
@@ -3641,10 +3641,10 @@ async function initDashSupplier() {
         <div class="small"><span class="badge">${priceDisplay}</span> ${featured ? '<span class="badge">Featured</span>' : ''} ${approvalBadge} ${pausedBadge}</div>
         <p class="small">${description}</p>
         <div class="card-actions">
-          <button type="button" class="card-action-btn edit-btn" data-action="edit-package" data-package-id="${packageId}">Edit</button>
+          <button type="button" class="ef-cta card-action-btn edit-btn" data-action="edit-package" data-package-id="${packageId}">Edit</button>
           ${viewBtn}
           ${pauseBtn}
-          <button type="button" class="card-action-btn delete-btn" data-action="delete-package" data-package-id="${packageId}">Delete</button>
+          <button type="button" class="ef-cta card-action-btn delete-btn" data-action="delete-package" data-package-id="${packageId}">Delete</button>
         </div>
       </div>
     </div>`;
@@ -4777,7 +4777,7 @@ function renderPkgGallery(container, photos, packageId) {
         <span class="pkg-gallery-drag-handle" title="Drag to reorder" aria-hidden="true">⠿</span>
         ${isFirst ? '<span class="pkg-gallery-first-badge">Cover</span>' : ''}
         <img src="${escapedUrl}" alt="Gallery photo" loading="lazy">
-        <button type="button" class="pkg-gallery-delete" data-url="${escapedUrl}" data-package-id="${packageId}" aria-label="Delete photo" title="Delete photo">✕</button>
+        <button type="button" class="ef-cta pkg-gallery-delete" data-url="${escapedUrl}" data-package-id="${packageId}" aria-label="Delete photo" title="Delete photo">✕</button>
       </div>`;
     })
     .join('');
@@ -6318,7 +6318,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 'display:flex;flex-direction:column;align-items:flex-start;gap:12px;';
               regStatus.innerHTML =
                 '<span style="color:#0B8073;font-weight:500;">\u2713 Account created! Check your email to verify your account, then you can sign in.</span>' +
-                '<button type="button" id="resend-verify-btn" class="ef-btn ef-btn-primary">Resend email</button>';
+                '<button type="button" id="resend-verify-btn" class="ef-cta ef-btn ef-btn-primary">Resend email</button>';
               const resendBtn = document.getElementById('resend-verify-btn');
               if (resendBtn) {
                 resendBtn.addEventListener('click', async () => {
@@ -6420,7 +6420,7 @@ function createResendVerificationForm(containerId, initialEmail = '') {
   const formHtml =
     '<div style="margin-top:16px;">' +
     `<input type="email" id="resend-email-${containerId}" placeholder="Enter your email" value="${initialEmail}" style="padding:8px;border:1px solid #ccc;border-radius:4px;margin-right:8px;">` +
-    `<button type="button" id="resend-verify-btn-${containerId}" class="btn btn-primary">Send new verification email</button>` +
+    `<button type="button" id="resend-verify-btn-${containerId}" class="ef-cta btn btn-primary">Send new verification email</button>` +
     '</div>';
 
   const existingContent = container.innerHTML;
@@ -6479,7 +6479,7 @@ async function initVerify() {
         'No verification token provided. Please check your email for the verification link. ' +
         '<div style="margin-top:16px;">' +
         '<input type="email" id="resend-email" placeholder="Enter your email" style="padding:8px;border:1px solid #ccc;border-radius:4px;margin-right:8px;">' +
-        '<button type="button" id="resend-verify-btn" class="btn btn-primary">Send new verification email</button>' +
+        '<button type="button" id="resend-verify-btn" class="ef-cta btn btn-primary">Send new verification email</button>' +
         '</div>';
 
       // Add resend handler
@@ -6541,7 +6541,7 @@ async function initVerify() {
           `<p class="small">${errorMessage}</p>` +
           `<div style="margin-top:16px;">` +
           `<input type="email" id="resend-email" placeholder="Enter your email" style="padding:8px;border:1px solid #ccc;border-radius:4px;margin-right:8px;">` +
-          `<button type="button" id="resend-verify-btn" class="btn btn-primary">Send new verification email</button>` +
+          `<button type="button" id="resend-verify-btn" class="ef-cta btn btn-primary">Send new verification email</button>` +
           `</div>`;
 
         // Add resend handler

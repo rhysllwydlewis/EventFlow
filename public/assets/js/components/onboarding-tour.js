@@ -110,15 +110,15 @@
           <div class="onboarding-step-indicator">
             <span class="current-step">1</span>/<span class="total-steps">${this.options.steps.length}</span>
           </div>
-          <button class="onboarding-skip" aria-label="Skip tour">Skip Tour</button>
+          <button class="ef-cta onboarding-skip" aria-label="Skip tour">Skip Tour</button>
         </div>
         <div class="onboarding-tooltip-content">
           <h3 class="onboarding-title"></h3>
           <p class="onboarding-description"></p>
         </div>
         <div class="onboarding-tooltip-footer">
-          <button class="btn btn-secondary onboarding-prev" style="display:none;">Previous</button>
-          <button class="btn btn-primary onboarding-next">Next</button>
+          <button class="ef-cta btn btn-secondary onboarding-prev" style="display:none;">Previous</button>
+          <button class="ef-cta btn btn-primary onboarding-next">Next</button>
         </div>
       </div>
     `;

@@ -45,15 +45,15 @@ class ContactPickerV4 {
         <div class="messenger-modal__content">
           <div class="messenger-modal__header">
             <h2 class="messenger-modal__title">New Conversation</h2>
-            <button class="messenger-modal__close" id="v4ContactPickerClose" aria-label="Close contact picker">✕</button>
+            <button class="ef-cta messenger-modal__close" id="v4ContactPickerClose" aria-label="Close contact picker">✕</button>
           </div>
 
           <div class="messenger-modal__body">
             <!-- Context selector -->
             <div class="messenger-v4__context-selector" role="group" aria-label="Conversation context">
-              <button class="messenger-v4__context-option messenger-v4__context-option--active" data-context="direct" aria-pressed="true">💬 Direct</button>
-              <button class="messenger-v4__context-option" data-context="package" aria-pressed="false">📦 Package Enquiry</button>
-              <button class="messenger-v4__context-option" data-context="marketplace" aria-pressed="false">🛒 Marketplace</button>
+              <button class="ef-cta messenger-v4__context-option messenger-v4__context-option--active" data-context="direct" aria-pressed="true">💬 Direct</button>
+              <button class="ef-cta messenger-v4__context-option" data-context="package" aria-pressed="false">📦 Package Enquiry</button>
+              <button class="ef-cta messenger-v4__context-option" data-context="marketplace" aria-pressed="false">🛒 Marketplace</button>
             </div>
 
             <!-- Search input -->

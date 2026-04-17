@@ -263,8 +263,8 @@
           </div>
         </div>
         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-          <button class="btn btn-primary" id="grantProBtn">Grant / Extend</button>
-          ${hasActiveSub ? '<button class="btn btn-secondary" id="cancelProBtn">Remove Subscription</button>' : ''}
+          <button class="ef-cta btn btn-primary" id="grantProBtn">Grant / Extend</button>
+          ${hasActiveSub ? '<button class="ef-cta btn btn-secondary" id="cancelProBtn">Remove Subscription</button>' : ''}
         </div>
       </div>
     `;
@@ -293,9 +293,9 @@
       <div style="margin-top:1rem;border-top:1px solid #e5e7eb;padding-top:1rem;">
         <h4 style="margin-bottom:0.75rem;font-size:0.9rem;font-weight:600;">Set Override</h4>
         <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
-          <button class="btn btn-success btn-small" id="calOverrideTrue">Force ON</button>
-          <button class="btn btn-danger btn-small" id="calOverrideFalse">Force OFF</button>
-          <button class="btn btn-secondary btn-small" id="calOverrideNull">Clear (auto)</button>
+          <button class="ef-cta btn btn-success btn-small" id="calOverrideTrue">Force ON</button>
+          <button class="ef-cta btn btn-danger btn-small" id="calOverrideFalse">Force OFF</button>
+          <button class="ef-cta btn btn-secondary btn-small" id="calOverrideNull">Clear (auto)</button>
         </div>
       </div>
     `;
@@ -349,9 +349,9 @@
             <p>${AdminShared.escapeHtml(pkg.price_display || pkg.price || 'Price not set')} • ${pkg.approved ? 'Approved' : 'Pending'}</p>
           </div>
           <div class="flex-gap">
-            <button class="btn btn-small btn-primary" data-action="viewPackage" data-id="${AdminShared.escapeHtml(pkg.id)}">View</button>
-            <button class="btn btn-small btn-secondary" data-action="editPackage" data-id="${pkg.id}">Edit</button>
-            ${!pkg.approved ? `<button class="btn btn-small btn-success" data-action="approvePackage" data-id="${pkg.id}">Approve</button>` : ''}
+            <button class="ef-cta btn btn-small btn-primary" data-action="viewPackage" data-id="${AdminShared.escapeHtml(pkg.id)}">View</button>
+            <button class="ef-cta btn btn-small btn-secondary" data-action="editPackage" data-id="${pkg.id}">Edit</button>
+            ${!pkg.approved ? `<button class="ef-cta btn btn-small btn-success" data-action="approvePackage" data-id="${pkg.id}">Approve</button>` : ''}
           </div>
         </div>
       `
@@ -385,7 +385,7 @@
         <div class="photo-item">
           ${safeUrl ? `<img src="${safeUrl}" alt="Supplier photo" loading="lazy">` : '<div class="photo-placeholder">No image</div>'}
           <div class="photo-actions">
-            <button class="btn btn-small btn-danger" data-action="deletePhoto" data-id="${AdminShared.escapeHtml(String(photo.id || ''))}">Delete</button>
+            <button class="ef-cta btn btn-small btn-danger" data-action="deletePhoto" data-id="${AdminShared.escapeHtml(String(photo.id || ''))}">Delete</button>
           </div>
         </div>
       `;

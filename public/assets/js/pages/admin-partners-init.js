@@ -80,7 +80,7 @@
       if (tbody) {
         tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:#fca5a5;">
           Error loading partners.
-          <button onclick="loadPartners()" style="margin-left:0.5rem;color:#60a5fa;background:none;border:none;cursor:pointer;text-decoration:underline;">Retry</button>
+          <button class="ef-cta" onclick="loadPartners()" style="margin-left:0.5rem;color:#60a5fa;background:none;border:none;cursor:pointer;text-decoration:underline;">Retry</button>
         </td></tr>`;
       }
     }
@@ -160,7 +160,7 @@
     if (list.length === 0) {
       tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:2.5rem;color:#9ca3af;">
         No partners match your filters.
-        <button type="button" id="ap-clear-filters-btn"
+        <button class="ef-cta" type="button" id="ap-clear-filters-btn"
           style="margin-left:0.5rem;color:#60a5fa;background:none;border:none;cursor:pointer;text-decoration:underline;font-size:inherit;">
           Clear filters
         </button>
@@ -204,13 +204,13 @@
             isDeleted
               ? `<span style="color:#9ca3af;font-size:0.8rem;font-style:italic;">Account deleted</span>`
               : `<div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
-            <button class="ap-action-btn ap-action-btn--view" data-action="view" data-id="${esc(p.id)}" aria-label="View ${esc(p.user?.name || 'partner')}">View</button>
+            <button class="ef-cta ap-action-btn ap-action-btn--view" data-action="view" data-id="${esc(p.id)}" aria-label="View ${esc(p.user?.name || 'partner')}">View</button>
             ${
               p.status === 'active'
-                ? `<button class="ap-action-btn ap-action-btn--disable" data-action="disable" data-id="${esc(p.id)}" aria-label="Disable ${esc(p.user?.name || 'partner')}">Disable</button>`
-                : `<button class="ap-action-btn ap-action-btn--enable" data-action="enable" data-id="${esc(p.id)}" aria-label="Enable ${esc(p.user?.name || 'partner')}">Enable</button>`
+                ? `<button class="ef-cta ap-action-btn ap-action-btn--disable" data-action="disable" data-id="${esc(p.id)}" aria-label="Disable ${esc(p.user?.name || 'partner')}">Disable</button>`
+                : `<button class="ef-cta ap-action-btn ap-action-btn--enable" data-action="enable" data-id="${esc(p.id)}" aria-label="Enable ${esc(p.user?.name || 'partner')}">Enable</button>`
             }
-            <button class="ap-action-btn ap-action-btn--credit" data-action="credit" data-id="${esc(p.id)}" aria-label="Adjust credits for ${esc(p.user?.name || 'partner')}">Credits</button>
+            <button class="ef-cta ap-action-btn ap-action-btn--credit" data-action="credit" data-id="${esc(p.id)}" aria-label="Adjust credits for ${esc(p.user?.name || 'partner')}">Credits</button>
           </div>`
           }
         </td>
@@ -310,7 +310,7 @@
             <div style="color:#6b7280">Company</div><div style="color:#111827">${esc(partner.user?.company || '—')}</div>
           </div>
           <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
-            <button class="ap-action-btn ap-action-btn--credit" onclick="(function(){document.getElementById('partner-detail-panel').classList.remove('open');setTimeout(()=>document.getElementById('partner-detail-panel').setAttribute('hidden',''),320);})();openCreditModalFromPanel('${esc(partnerId)}')" style="font-size:0.78rem;">Adjust Credits</button>
+            <button class="ef-cta ap-action-btn ap-action-btn--credit" onclick="(function(){document.getElementById('partner-detail-panel').classList.remove('open');setTimeout(()=>document.getElementById('partner-detail-panel').setAttribute('hidden',''),320);})();openCreditModalFromPanel('${esc(partnerId)}')" style="font-size:0.78rem;">Adjust Credits</button>
           </div>
         </div>
 
@@ -871,7 +871,7 @@
                ${allowedNext.map(s => `<option value="${s}">${s.charAt(0).toUpperCase() + s.slice(1)}</option>`).join('')}
              </select>`
           : isTerminal
-            ? `<button class="cashout-delete-btn ap-delete-btn" data-req-id="${esc(r.id)}" aria-label="Delete this withdrawal request">🗑️ Delete</button>`
+            ? `<button class="ef-cta cashout-delete-btn ap-delete-btn" data-req-id="${esc(r.id)}" aria-label="Delete this withdrawal request">🗑️ Delete</button>`
             : `<span style="font-size:0.75rem;color:#9ca3af;">—</span>`;
 
         return `<tr>

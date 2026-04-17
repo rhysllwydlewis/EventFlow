@@ -101,11 +101,11 @@
           </div>
           
           <div class="action-buttons">
-            <button type="submit" class="btn btn-primary">Save Changes</button>
-            <button type="button" class="btn btn-secondary" id="resetPasswordBtn">Reset Password</button>
-            ${!user.verified ? '<button type="button" class="btn btn-secondary" id="resendVerificationBtn">Resend Verification Email</button>' : ''}
-            <button type="button" class="btn btn-danger" id="suspendUserBtn">${user.suspended ? 'Unsuspend' : 'Suspend'} User</button>
-            <button type="button" class="btn btn-danger" id="deleteUserBtn">Delete User</button>
+            <button type="submit" class="ef-cta btn btn-primary">Save Changes</button>
+            <button type="button" class="ef-cta btn btn-secondary" id="resetPasswordBtn">Reset Password</button>
+            ${!user.verified ? '<button type="button" class="ef-cta btn btn-secondary" id="resendVerificationBtn">Resend Verification Email</button>' : ''}
+            <button type="button" class="ef-cta btn btn-danger" id="suspendUserBtn">${user.suspended ? 'Unsuspend' : 'Suspend'} User</button>
+            <button type="button" class="ef-cta btn btn-danger" id="deleteUserBtn">Delete User</button>
           </div>
         </form>
       </div>

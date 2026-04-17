@@ -191,7 +191,7 @@
     const html = `
       <div class="search-results-header">
         <h3>Search Results (${totalCount})</h3>
-        <button onclick="window.EF_Search.clearSearch()" class="btn-secondary">Clear</button>
+        <button onclick="window.EF_Search.clearSearch()" class="ef-cta btn-secondary">Clear</button>
       </div>
       <div class="search-results-list">
         ${results.map(result => renderSearchResult(result)).join('')}
@@ -365,7 +365,7 @@
           <div class="saved-search-query">${escapeHtml(saved.query)}</div>
         </div>
         <button 
-          class="saved-search-delete" 
+          class="ef-cta saved-search-delete" 
           onclick="event.stopPropagation(); window.EF_Search.deleteSavedSearch('${saved.id}')"
           title="Delete"
         >
@@ -401,8 +401,8 @@
         </div>
         
         <div class="modal-actions">
-          <button type="button" onclick="window.EF_Search.closeModal()" class="btn-secondary">Cancel</button>
-          <button type="submit" class="btn-primary">Save Search</button>
+          <button type="button" onclick="window.EF_Search.closeModal()" class="ef-cta btn-secondary">Cancel</button>
+          <button type="submit" class="ef-cta btn-primary">Save Search</button>
         </div>
       </form>
     `
@@ -453,7 +453,7 @@
         </div>
         
         <div class="modal-actions">
-          <button onclick="window.EF_Search.closeModal()" class="btn-primary">Got it</button>
+          <button onclick="window.EF_Search.closeModal()" class="ef-cta btn-primary">Got it</button>
         </div>
       </div>
     `
@@ -583,7 +583,7 @@
       <div class="modal">
         <div class="modal-header">
           <h3>${escapeHtml(title)}</h3>
-          <button onclick="window.EF_Search.closeModal()" class="modal-close">&times;</button>
+          <button onclick="window.EF_Search.closeModal()" class="ef-cta modal-close">&times;</button>
         </div>
         <div class="modal-body">
           ${content}

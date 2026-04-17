@@ -276,7 +276,7 @@
           <td class="small">${createdAt}</td>
           <td class="small">${ticket.assignedTo ? escapeHtml(ticket.assignedTo) : '<em>Unassigned</em>'}</td>
           <td>
-            <button class="btn-sm btn-primary" data-action="viewTicket" data-id="${ticket.id}">Manage</button>
+            <button class="ef-cta btn-sm btn-primary" data-action="viewTicket" data-id="${ticket.id}">Manage</button>
           </td>
         </tr>
       `;
@@ -336,7 +336,7 @@
       <div class="modal ticket-modal">
         <div class="modal-header">
           <h3>Manage Ticket</h3>
-          <button class="modal-close" type="button" aria-label="Close">&times;</button>
+          <button class="ef-cta modal-close" type="button" aria-label="Close">&times;</button>
         </div>
         <div class="modal-body">
           <p class="small ticket-modal__sender">From ${escapeHtml(ticket.senderName || ticket.senderEmail || 'Unknown')}</p>
@@ -369,10 +369,10 @@
           <textarea id="ticketReplyMessage" rows="4" placeholder="Write your reply..."></textarea>
         </div>
         <div class="modal-footer ticket-modal__footer">
-          <button type="button" class="btn btn-secondary" id="markResolvedBtn">Mark Resolved</button>
+          <button type="button" class="ef-cta btn btn-secondary" id="markResolvedBtn">Mark Resolved</button>
           <div class="ticket-modal__footer-actions">
-            <button type="button" class="btn btn-secondary" id="saveTicketBtn">Save Changes</button>
-            <button type="button" class="btn btn-primary" id="sendReplyBtn">Send Reply</button>
+            <button type="button" class="ef-cta btn btn-secondary" id="saveTicketBtn">Save Changes</button>
+            <button type="button" class="ef-cta btn btn-primary" id="sendReplyBtn">Send Reply</button>
           </div>
         </div>
       </div>
@@ -692,7 +692,7 @@
                 <td class="small">${relativeTime(e.createdAt)}</td>
                 <td class="small">${Array.isArray(e.responses) ? e.responses.length : 0}</td>
                 <td>
-                  <button class="btn-sm btn-primary" data-contact-manage="${escHtml(e.id)}">Manage</button>
+                  <button class="ef-cta btn-sm btn-primary" data-contact-manage="${escHtml(e.id)}">Manage</button>
                 </td>
               </tr>
             `
@@ -754,7 +754,7 @@
               <span>Received ${relativeTime(enquiry.createdAt)}</span>
             </div>
           </div>
-          <button class="modal-close" id="closeContactModal" aria-label="Close">×</button>
+          <button class="ef-cta modal-close" id="closeContactModal" aria-label="Close">×</button>
         </div>
         <div class="modal-body">
           <p class="ticket-modal__message">${escHtml(enquiry.message)}</p>
@@ -779,10 +779,10 @@
           <textarea id="contactReplyMessage" rows="4" placeholder="Write your reply…"></textarea>
         </div>
         <div class="modal-footer ticket-modal__footer">
-          <button type="button" class="btn btn-secondary" id="saveContactStatusBtn">Save Status</button>
+          <button type="button" class="ef-cta btn btn-secondary" id="saveContactStatusBtn">Save Status</button>
           <div class="ticket-modal__footer-actions">
-            <button type="button" class="btn btn-secondary" id="cancelContactModal">Cancel</button>
-            <button type="button" class="btn btn-primary" id="sendContactReplyBtn">Send Reply</button>
+            <button type="button" class="ef-cta btn btn-secondary" id="cancelContactModal">Cancel</button>
+            <button type="button" class="ef-cta btn btn-primary" id="sendContactReplyBtn">Send Reply</button>
           </div>
         </div>
       </div>

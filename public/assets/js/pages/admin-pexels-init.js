@@ -119,8 +119,8 @@
         <div class="pexels-card-info">
           <p class="pexels-photographer">📸 ${AdminShared.escapeHtml(photo.photographer)}</p>
           <div class="pexels-actions">
-            <button class="pexels-btn pexels-btn-primary" data-action="view" data-photo-id="${photo.id}">View</button>
-            <button class="pexels-btn pexels-btn-secondary" data-action="copy" data-url="${AdminShared.escapeHtml(photo.src.large)}">Copy URL</button>
+            <button class="ef-cta pexels-btn pexels-btn-primary" data-action="view" data-photo-id="${photo.id}">View</button>
+            <button class="ef-cta pexels-btn pexels-btn-secondary" data-action="copy" data-url="${AdminShared.escapeHtml(photo.src.large)}">Copy URL</button>
           </div>
         </div>
       </div>

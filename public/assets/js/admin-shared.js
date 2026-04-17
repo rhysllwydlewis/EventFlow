@@ -1064,9 +1064,9 @@ const AdminShared = (function () {
       <div class="toast-icon">${iconMap[type] || iconMap.info}</div>
       <div class="toast-content">
         <div class="toast-message">${escapeHtml(message)}</div>
-        ${action && actionLabel ? `<button class="toast-action">${escapeHtml(actionLabel)}</button>` : ''}
+        ${action && actionLabel ? `<button class="ef-cta toast-action">${escapeHtml(actionLabel)}</button>` : ''}
       </div>
-      <button class="toast-close">×</button>
+      <button class="ef-cta toast-close">×</button>
     `;
 
     container.appendChild(toast);
@@ -1184,22 +1184,22 @@ const AdminShared = (function () {
         <div class="command-results">
           <div class="command-group">
             <div class="command-group-title">Navigation</div>
-            <button class="command-item" data-action="dashboard">
+            <button class="ef-cta command-item" data-action="dashboard">
               <span class="command-icon">📊</span>
               <span class="command-label">Dashboard</span>
               <span class="command-shortcut">H</span>
             </button>
-            <button class="command-item" data-action="users">
+            <button class="ef-cta command-item" data-action="users">
               <span class="command-icon">👥</span>
               <span class="command-label">Users</span>
               <span class="command-shortcut">U</span>
             </button>
-            <button class="command-item" data-action="packages">
+            <button class="ef-cta command-item" data-action="packages">
               <span class="command-icon">📦</span>
               <span class="command-label">Packages</span>
               <span class="command-shortcut">P</span>
             </button>
-            <button class="command-item" data-action="settings">
+            <button class="ef-cta command-item" data-action="settings">
               <span class="command-icon">⚙️</span>
               <span class="command-label">Settings</span>
               <span class="command-shortcut">S</span>
@@ -1207,7 +1207,7 @@ const AdminShared = (function () {
           </div>
           <div class="command-group">
             <div class="command-group-title">Actions</div>
-            <button class="command-item" data-action="refresh">
+            <button class="ef-cta command-item" data-action="refresh">
               <span class="command-icon">🔄</span>
               <span class="command-label">Refresh Page</span>
               <span class="command-shortcut">R</span>
@@ -1259,7 +1259,7 @@ const AdminShared = (function () {
       <div class="modal-dialog" style="max-width: 500px;">
         <div class="modal-header">
           <h3 class="modal-title">Keyboard Shortcuts</h3>
-          <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
+          <button class="ef-cta modal-close" onclick="this.closest('.modal-overlay').remove()">&times;</button>
         </div>
         <div class="modal-body">
           <div class="shortcuts-list">
@@ -1438,7 +1438,7 @@ const AdminShared = (function () {
     }
 
     const retryButtonHtml = onRetry
-      ? `<button class="btn btn-primary" id="retry-btn" style="margin-top: 12px;">🔄 Retry</button>`
+      ? `<button class="ef-cta btn btn-primary" id="retry-btn" style="margin-top: 12px;">🔄 Retry</button>`
       : '';
 
     element.innerHTML = `
@@ -1499,7 +1499,7 @@ const AdminShared = (function () {
 
     const actionButtonHtml =
       actionLabel && onAction
-        ? `<button class="btn btn-primary" id="empty-action-btn" style="margin-top: 12px;">${escapeHtml(actionLabel)}</button>`
+        ? `<button class="ef-cta btn btn-primary" id="empty-action-btn" style="margin-top: 12px;">${escapeHtml(actionLabel)}</button>`
         : '';
 
     element.innerHTML = `

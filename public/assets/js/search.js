@@ -386,7 +386,7 @@ class GlobalSearch {
           style="width: 100%; font-size: 1.125rem; border: none; background: transparent; padding: 0.5rem 0;"
           autocomplete="off"
         >
-        <button class="modal-close" aria-label="Close">&times;</button>
+        <button class="ef-cta modal-close" aria-label="Close">&times;</button>
       </div>
       <div class="modal-body" style="padding-top: 1rem; max-height: 400px; overflow-y: auto;">
         <div id="search-results"></div>

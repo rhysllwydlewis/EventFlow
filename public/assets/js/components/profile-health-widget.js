@@ -198,7 +198,7 @@
         </ul>
 
         <button 
-          class="health-cta" 
+          class="ef-cta health-cta" 
           data-href="/supplier/profile-customization"
           aria-label="Improve your profile to ${scoreData.percentage}%"
         >

@@ -436,17 +436,17 @@
           <td>
             <div style="display: flex; flex-direction: column; gap: 6px;">
               <div style="display: flex; gap: 8px;">
-                <button data-action="view" data-id="${escapeHtml(supplier.id)}" class="btn-xs" title="View Profile">👁️</button>
-                <button data-action="edit" data-id="${escapeHtml(supplier.id)}" class="btn-xs" title="Edit">✏️</button>
+                <button data-action="view" data-id="${escapeHtml(supplier.id)}" class="ef-cta btn-xs" title="View Profile">👁️</button>
+                <button data-action="edit" data-id="${escapeHtml(supplier.id)}" class="ef-cta btn-xs" title="Edit">✏️</button>
                 ${
                   !supplier.approved
                     ? [
-                        `<button data-action="approve" data-id="${escapeHtml(supplier.id)}" class="btn-xs" style="background: #10b981; color: white;" title="Approve supplier">✓ Approve</button>`,
-                        `<button data-action="reject" data-id="${escapeHtml(supplier.id)}" class="btn-xs" style="background: #ef4444; color: white;" title="Reject supplier">✗ Reject</button>`,
+                        `<button data-action="approve" data-id="${escapeHtml(supplier.id)}" class="ef-cta btn-xs" style="background: #10b981; color: white;" title="Approve supplier">✓ Approve</button>`,
+                        `<button data-action="reject" data-id="${escapeHtml(supplier.id)}" class="ef-cta btn-xs" style="background: #ef4444; color: white;" title="Reject supplier">✗ Reject</button>`,
                       ].join('')
                     : ''
                 }
-                <button data-action="delete" data-id="${escapeHtml(supplier.id)}" class="btn-xs" style="background: #6b7280; color: white;" title="Delete">🗑️</button>
+                <button data-action="delete" data-id="${escapeHtml(supplier.id)}" class="ef-cta btn-xs" style="background: #6b7280; color: white;" title="Delete">🗑️</button>
               </div>
               <div style="display: flex; gap: 4px; align-items: center; flex-wrap: wrap;">
                 <select id="sub-tier-${escapeHtml(supplier.id)}" class="btn-xs" style="padding: 2px 4px; font-size: 11px;" title="Subscription tier">
@@ -459,8 +459,8 @@
                   <option value="90">90 days</option>
                   <option value="365">1 year</option>
                 </select>
-                <button data-action="grantSubscription" data-id="${escapeHtml(supplier.id)}" class="btn-xs" style="background: #667eea; color: white; font-size: 11px;" title="Grant subscription">Grant</button>
-                <button data-action="removeSubscription" data-id="${escapeHtml(supplier.id)}" class="btn-xs" style="background: #6b7280; color: white; font-size: 11px;" title="Remove subscription">Remove</button>
+                <button data-action="grantSubscription" data-id="${escapeHtml(supplier.id)}" class="ef-cta btn-xs" style="background: #667eea; color: white; font-size: 11px;" title="Grant subscription">Grant</button>
+                <button data-action="removeSubscription" data-id="${escapeHtml(supplier.id)}" class="ef-cta btn-xs" style="background: #6b7280; color: white; font-size: 11px;" title="Remove subscription">Remove</button>
               </div>
             </div>
           </td>
