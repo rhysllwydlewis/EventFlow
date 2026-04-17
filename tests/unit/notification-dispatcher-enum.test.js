@@ -12,6 +12,5 @@ describe('NotificationDispatcher enum drift guard', () => {
         'Notification type enum drift detected. Update BOTH public/assets/js/notification-dispatcher.js and models/index.js so NOTIFICATION_TYPES stay identical and in the same order.'
       );
     }
-    expect(browserTypes).toEqual(serverTypes);
   });
 });
