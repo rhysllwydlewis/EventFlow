@@ -1504,7 +1504,7 @@ class MessengerAppV4 {
     this._readUpToSeq.set(conversationId, Number(seq));
     clearTimeout(this._readDebounceTimer);
     this._readDebounceTimer = setTimeout(async () => {
-      if (document.visibilityState !== 'visible' || document.hasFocus() === false) {
+      if (document.visibilityState !== 'visible' || !document.hasFocus()) {
         return;
       }
       const upToSeq = this._readUpToSeq.get(conversationId) || 0;

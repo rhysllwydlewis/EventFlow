@@ -57,22 +57,16 @@ class MessengerV4Service {
       }
     }
     // Fallback path (test in-memory db).  Not atomic, but tests are single-threaded.
-    const existing = await this.countersCollection.findOne(
-      { _id },
-      ...(session ? [{ session }] : [])
-    );
+    const existing = await this.countersCollection.findOne({ _id }, session ? { session } : {});
     const next = existing && typeof existing.seq === 'number' ? existing.seq + 1 : 1;
     if (existing) {
       await this.countersCollection.updateOne(
         { _id },
         { $set: { seq: next } },
-        ...(session ? [{ session }] : [])
+        session ? { session } : {}
       );
     } else {
-      await this.countersCollection.insertOne(
-        { _id, seq: next },
-        ...(session ? [{ session }] : [])
-      );
+      await this.countersCollection.insertOne({ _id, seq: next }, session ? { session } : {});
     }
     return next;
   }
@@ -627,7 +621,8 @@ class MessengerV4Service {
       ],
       // Monotonic per-conversation sequence; drives client reconciliation
       // (sinceSeq catch-up, gap detection, ordered buffer flush).
-      seq: 0,
+      // Assigned immediately before insert in the write path.
+      seq: null,
       // Optional client-supplied dedupe key.  Null when absent so the unique
       // partial index only enforces uniqueness on present values.
       clientMessageId: clientMessageId,
@@ -640,10 +635,7 @@ class MessengerV4Service {
       message.seq = await this._nextSeq(conversationId, { session });
       let result;
       try {
-        result = await this.messagesCollection.insertOne(
-          message,
-          ...(session ? [{ session }] : [])
-        );
+        result = await this.messagesCollection.insertOne(message, session ? { session } : {});
       } catch (err) {
         if (clientMessageId && err && (err.code === 11000 || /duplicate key/i.test(err.message))) {
           const existing = await this.messagesCollection.findOne({
@@ -694,11 +686,11 @@ class MessengerV4Service {
           $set: updateOps,
           $inc: { messageCount: 1 },
         },
-        ...(session ? [{ session }] : [])
+        session ? { session } : {}
       );
 
       if (bulkOps.length > 0) {
-        await this.conversationsCollection.bulkWrite(bulkOps, ...(session ? [{ session }] : []));
+        await this.conversationsCollection.bulkWrite(bulkOps, session ? { session } : {});
       }
       return message;
     };
