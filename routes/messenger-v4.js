@@ -1039,9 +1039,13 @@ router.get('/search', applyAuthRequired, async (req, res) => {
     }
 
     // Validate optional conversationId scoping — reject clearly-malformed ids
-    // up-front rather than silently ignoring them.
-    if (conversationId !== undefined && !isValidObjectId(conversationId)) {
-      return res.status(400).json({ error: 'Invalid conversation ID' });
+    // up-front rather than silently ignoring them.  Also reject array-shaped
+    // values (e.g. `?conversationId=a&conversationId=b`) which Express would
+    // otherwise pass through to the downstream ObjectId constructor.
+    if (conversationId !== undefined) {
+      if (typeof conversationId !== 'string' || !isValidObjectId(conversationId)) {
+        return res.status(400).json({ error: 'Invalid conversation ID' });
+      }
     }
 
     const results = await (
