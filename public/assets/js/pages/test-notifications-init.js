@@ -1,18 +1,18 @@
 // Test functions
 function testSuccess() {
-  EventFlowNotifications.success('✓ Operation completed successfully!');
+  NotificationDispatcher.success('✓ Operation completed successfully!');
 }
 
 function testError() {
-  EventFlowNotifications.error('✗ Something went wrong. Please try again.');
+  NotificationDispatcher.error('✗ Something went wrong. Please try again.');
 }
 
 function testWarning() {
-  EventFlowNotifications.warning('⚠ This action requires your attention.');
+  NotificationDispatcher.warning('⚠ This action requires your attention.');
 }
 
 function testInfo() {
-  EventFlowNotifications.info('ℹ Here is some helpful information for you.');
+  NotificationDispatcher.info('ℹ Here is some helpful information for you.');
 }
 
 function testSpam() {
@@ -28,21 +28,21 @@ function testSpam() {
 }
 
 function testLongMessage() {
-  EventFlowNotifications.info(
+  NotificationDispatcher.info(
     'This is a very long notification message to test how the notification system handles text wrapping and maintains good visual appearance even with extended content that spans multiple lines. The glassmorphism effect should remain beautiful regardless of content length.'
   );
 }
 
 function testShort() {
-  EventFlowNotifications.info('This notification will disappear in 2 seconds', 2000);
+  NotificationDispatcher.info('This notification will disappear in 2 seconds', 2000);
 }
 
 function testLong() {
-  EventFlowNotifications.warning('This notification will stay for 10 seconds', 10000);
+  NotificationDispatcher.warning('This notification will stay for 10 seconds', 10000);
 }
 
 function testPersistent() {
-  EventFlowNotifications.info('This notification will not auto-close. Click × to dismiss.', 0);
+  NotificationDispatcher.info('This notification will not auto-close. Click × to dismiss.', 0);
 }
 
 function clearAll() {
@@ -110,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Show welcome notification
     setTimeout(() => {
-      EventFlowNotifications.success(
+      NotificationDispatcher.success(
         'Welcome! All systems operational. Click buttons above to test.'
       );
     }, 500);

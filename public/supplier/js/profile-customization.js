@@ -37,7 +37,9 @@
    * Returns an error string or null if valid.
    */
   function validateSocialUrl(value) {
-    if (!value || !value.trim()) return null; // optional field
+    if (!value || !value.trim()) {
+      return null;
+    } // optional field
     const trimmed = value.trim();
     try {
       const u = new URL(trimmed);
@@ -397,8 +399,9 @@
         const len = taglineInput.value.length;
         const max = Number(taglineInput.maxLength) || 100;
         taglineCount.textContent = `${len} / ${max}`;
-        taglineCount.className = 'pc-char-count' +
-          (len > max ? ' pc-char-count--over' : len > max * 0.85 ? ' pc-char-count--warn' : '');
+        taglineCount.className = `pc-char-count${
+          len > max ? ' pc-char-count--over' : len > max * 0.85 ? ' pc-char-count--warn' : ''
+        }`;
       };
       taglineInput.addEventListener('input', updateCount);
       updateCount();
@@ -437,9 +440,9 @@
             console.error('Invalid image URL from selector');
             if (
               window.EventFlowNotifications &&
-              typeof window.EventFlowNotifications.error === 'function'
+              typeof window.NotificationDispatcher.error === 'function'
             ) {
-              window.EventFlowNotifications.error(
+              window.NotificationDispatcher.error(
                 'Invalid image URL. Please try selecting another photo.'
               );
             }
@@ -458,9 +461,9 @@
           // Show success notification if available
           if (
             window.EventFlowNotifications &&
-            typeof window.EventFlowNotifications.success === 'function'
+            typeof window.NotificationDispatcher.success === 'function'
           ) {
-            window.EventFlowNotifications.success('Stock photo selected successfully!');
+            window.NotificationDispatcher.success('Stock photo selected successfully!');
           }
         });
       });

@@ -38,7 +38,9 @@ class GuestManager {
         }
         return t;
       }
-    } catch (_) { /* ignore */ }
+    } catch (_) {
+      /* ignore */
+    }
     const m = document.cookie.match(/(?:^|;\s*)(?:csrf|csrfToken)=([^;]+)/);
     return m ? decodeURIComponent(m[1]) : '';
   }
@@ -269,7 +271,7 @@ class GuestManager {
         const notes = document.getElementById('guest-notes').value.trim();
 
         if (!firstName || !lastName) {
-          window.EventFlowNotifications.error('Please enter first and last name');
+          window.NotificationDispatcher.error('Please enter first and last name');
           return;
         }
 
@@ -305,29 +307,26 @@ class GuestManager {
             if (idx !== -1) {
               this.guests[idx] = this.normalizeGuest(d.guest);
             }
-            window.EventFlowNotifications.success('Guest updated');
+            window.NotificationDispatcher.success('Guest updated');
           } else {
-            const r = await fetch(
-              `/api/me/plans/${encodeURIComponent(this.planId)}/guests`,
-              {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
-                credentials: 'include',
-                body: JSON.stringify(payload),
-              }
-            );
+            const r = await fetch(`/api/me/plans/${encodeURIComponent(this.planId)}/guests`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+              credentials: 'include',
+              body: JSON.stringify(payload),
+            });
             if (!r.ok) {
               const d = await r.json().catch(() => ({}));
               throw new Error(d.error || 'Failed to add guest');
             }
             const d = await r.json();
             this.guests.push(this.normalizeGuest(d.guest));
-            window.EventFlowNotifications.success('Guest added');
+            window.NotificationDispatcher.success('Guest added');
           }
           this.render();
         } catch (err) {
           console.error('Guest save error:', err);
-          window.EventFlowNotifications.error(err.message || 'Failed to save guest');
+          window.NotificationDispatcher.error(err.message || 'Failed to save guest');
         }
       },
     });
@@ -363,10 +362,10 @@ class GuestManager {
           }
           this.guests = this.guests.filter(g => g.id !== id);
           this.render();
-          window.EventFlowNotifications.success('Guest removed');
+          window.NotificationDispatcher.success('Guest removed');
         } catch (err) {
           console.error('Guest delete error:', err);
-          window.EventFlowNotifications.error(err.message || 'Failed to remove guest');
+          window.NotificationDispatcher.error(err.message || 'Failed to remove guest');
         }
       },
     });
@@ -397,7 +396,7 @@ class GuestManager {
         const file = fileInput.files[0];
 
         if (!file) {
-          window.EventFlowNotifications.error('Please select a CSV file');
+          window.NotificationDispatcher.error('Please select a CSV file');
           return;
         }
 
@@ -410,35 +409,34 @@ class GuestManager {
             const csrfToken = await this.getCsrfToken();
             for (const g of parsed) {
               try {
-                const r = await fetch(
-                  `/api/me/plans/${encodeURIComponent(this.planId)}/guests`,
-                  {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
-                    credentials: 'include',
-                    body: JSON.stringify({
-                      name: `${g.firstName} ${g.lastName}`,
-                      email: g.email || null,
-                      phone: g.phone || null,
-                      rsvpStatus: g.rsvp || 'pending',
-                      plusOne: g.plusOne === 'yes' ? 1 : 0,
-                      dietary: g.dietary || null,
-                      table: g.table || null,
-                      notes: g.notes || null,
-                    }),
-                  }
-                );
+                const r = await fetch(`/api/me/plans/${encodeURIComponent(this.planId)}/guests`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
+                  credentials: 'include',
+                  body: JSON.stringify({
+                    name: `${g.firstName} ${g.lastName}`,
+                    email: g.email || null,
+                    phone: g.phone || null,
+                    rsvpStatus: g.rsvp || 'pending',
+                    plusOne: g.plusOne === 'yes' ? 1 : 0,
+                    dietary: g.dietary || null,
+                    table: g.table || null,
+                    notes: g.notes || null,
+                  }),
+                });
                 if (r.ok) {
                   const d = await r.json();
                   this.guests.push(this.normalizeGuest(d.guest));
                   added++;
                 }
-              } catch (_) { /* skip failed row */ }
+              } catch (_) {
+                /* skip failed row */
+              }
             }
             this.render();
-            window.EventFlowNotifications.success(`Imported ${added} guests`);
+            window.NotificationDispatcher.success(`Imported ${added} guests`);
           } catch (error) {
-            window.EventFlowNotifications.error('Failed to parse CSV file');
+            window.NotificationDispatcher.error('Failed to parse CSV file');
             console.error(error);
           }
         });
@@ -477,7 +475,7 @@ class GuestManager {
 
   exportGuests() {
     if (this.guests.length === 0) {
-      window.EventFlowNotifications.warning('No guests to export');
+      window.NotificationDispatcher.warning('No guests to export');
       return;
     }
 
@@ -490,7 +488,7 @@ class GuestManager {
     a.click();
     URL.revokeObjectURL(url);
 
-    window.EventFlowNotifications.success('Guest list exported successfully');
+    window.NotificationDispatcher.success('Guest list exported successfully');
   }
 
   generateCSV() {
@@ -802,4 +800,3 @@ let guestManager;
 document.addEventListener('DOMContentLoaded', () => {
   guestManager = new GuestManager();
 });
-

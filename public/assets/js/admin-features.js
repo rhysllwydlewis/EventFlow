@@ -33,28 +33,28 @@
         console.error('EventFlowNotifications not loaded. Please include notification-system.js');
         return null;
       }
-      return window.EventFlowNotifications.success(message, duration);
+      return window.NotificationDispatcher.success(message, duration);
     },
     error: function (message, duration) {
       if (typeof window.EventFlowNotifications === 'undefined') {
         console.error('EventFlowNotifications not loaded. Please include notification-system.js');
         return null;
       }
-      return window.EventFlowNotifications.error(message, duration);
+      return window.NotificationDispatcher.error(message, duration);
     },
     warning: function (message, duration) {
       if (typeof window.EventFlowNotifications === 'undefined') {
         console.error('EventFlowNotifications not loaded. Please include notification-system.js');
         return null;
       }
-      return window.EventFlowNotifications.warning(message, duration);
+      return window.NotificationDispatcher.warning(message, duration);
     },
     info: function (message, duration) {
       if (typeof window.EventFlowNotifications === 'undefined') {
         console.error('EventFlowNotifications not loaded. Please include notification-system.js');
         return null;
       }
-      return window.EventFlowNotifications.info(message, duration);
+      return window.NotificationDispatcher.info(message, duration);
     },
   };
 

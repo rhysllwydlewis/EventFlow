@@ -531,7 +531,7 @@ function handleRealtimeNotification(data) {
       const enquiriesDataset = analyticsChartInstance?.data?.datasets?.[1]; // datasets[1]
 
       if (typeof EventFlowNotifications !== 'undefined') {
-        EventFlowNotifications.info('New enquiry received.');
+        NotificationDispatcher.info('New enquiry received.');
       }
 
       const enquiriesElement = document.getElementById('quick-stat-enquiries');
@@ -608,7 +608,7 @@ window.addEventListener('load', () => {
       wsClientInstance = new WebSocketClient({
         onConnect: ({ isReconnect } = {}) => {
           if (typeof EventFlowNotifications !== 'undefined') {
-            EventFlowNotifications.success(
+            NotificationDispatcher.success(
               isReconnect || hasConnectedOnce
                 ? 'Live Dashboard Reconnected'
                 : 'Live Dashboard Connected',
@@ -625,7 +625,7 @@ window.addEventListener('load', () => {
           lastDisconnectToastAt = now;
           if (typeof EventFlowNotifications !== 'undefined') {
             const detail = reason ? ` (${reason})` : '';
-            EventFlowNotifications.warning(
+            NotificationDispatcher.warning(
               `Live Dashboard Disconnected${detail} — retrying...`,
               4000
             );
