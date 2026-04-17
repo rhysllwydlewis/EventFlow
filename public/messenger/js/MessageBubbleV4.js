@@ -197,7 +197,7 @@ class MessageBubbleV4 {
     return `
       <button class="ef-cta messenger-v4__reply-preview" data-reply-target-id="${MessageBubbleV4.escape(refId)}" aria-label="Reply to ${MessageBubbleV4.escape(replyTo.senderName || 'message')}">
         <span class="messenger-v4__reply-preview-sender">${MessageBubbleV4.escape(replyTo.senderName || 'Unknown')}</span>
-        <span class="messenger-v4__reply-preview-text">${preview}</span>
+        <span class="messenger-v4__reply-preview-snippet">${preview}</span>
       </button>`;
   }
 

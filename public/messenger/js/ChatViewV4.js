@@ -975,10 +975,13 @@ class ChatViewV4 {
     list.innerHTML = (conv.participants || [])
       .map(p => {
         const online = this.state.getPresence(p.userId)?.state === 'online';
+        const statusCls = online
+          ? 'messenger-v4__participants-status messenger-v4__participants-status--online'
+          : 'messenger-v4__participants-status';
         return `<li class="messenger-v4__participants-row">
           <span class="messenger-v4__participants-avatar">${this.escape((p.displayName || 'U').charAt(0).toUpperCase())}</span>
           <span class="messenger-v4__participants-name">${this.escape(p.displayName || p.userId)}</span>
-          <span class="messenger-v4__participants-status">${online ? 'Online' : 'Active'}</span>
+          <span class="${statusCls}">${online ? 'Online' : 'Active'}</span>
         </li>`;
       })
       .join('');
