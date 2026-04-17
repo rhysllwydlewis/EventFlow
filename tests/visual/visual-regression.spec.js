@@ -24,12 +24,16 @@ const axeIgnore = JSON.parse(
   fs.readFileSync(path.join(__dirname, '..', 'a11y', 'axe-ignore.json'), 'utf8')
 );
 
+// Routes here must render the expected page in static mode. Auth-gated pages
+// (e.g. /settings, /dashboard-supplier) silently redirect or fall through to
+// the SPA shell, which would produce misleading baselines, so they are NOT
+// included. When the full backend mode is wired for visual regression we can
+// add them behind an env flag.
 const BASELINE_PAGES = [
   { name: 'homepage', path: '/' },
   { name: 'auth', path: '/auth' },
-  { name: 'supplier-dashboard', path: '/dashboard-supplier' },
-  { name: 'customer-dashboard', path: '/customer-dashboard' },
-  { name: 'settings', path: '/settings' },
+  { name: 'pricing', path: '/pricing' },
+  { name: 'for-suppliers', path: '/for-suppliers' },
   { name: 'marketplace', path: '/marketplace' },
   { name: 'notifications-harness', path: '/test-notifications.html' },
 ];
@@ -46,6 +50,14 @@ for (const page of BASELINE_PAGES) {
         !response || response.status() >= 500,
         `Page ${page.path} returned ${response?.status()} in static mode`
       );
+      // Guard against silent redirects that land on an unrelated page and
+      // would produce a baseline named after the *wrong* route.
+      const finalUrl = new URL(pw.url());
+      const expectedPath = page.path.split('?')[0].replace(/\.html$/, '');
+      test.skip(
+        !finalUrl.pathname.startsWith(expectedPath) && expectedPath !== '/',
+        `Page ${page.path} redirected to ${finalUrl.pathname} in static mode`
+      );
       await pw.waitForLoadState('networkidle').catch(() => {});
       await expect(pw).toHaveScreenshot(`${page.name}.png`, {
         fullPage: true,
@@ -57,6 +69,12 @@ for (const page of BASELINE_PAGES) {
       test.skip(
         !response || response.status() >= 500,
         `Page ${page.path} returned ${response?.status()} in static mode`
+      );
+      const finalUrl = new URL(pw.url());
+      const expectedPath = page.path.split('?')[0].replace(/\.html$/, '');
+      test.skip(
+        !finalUrl.pathname.startsWith(expectedPath) && expectedPath !== '/',
+        `Page ${page.path} redirected to ${finalUrl.pathname} in static mode`
       );
       await pw.waitForLoadState('networkidle').catch(() => {});
 

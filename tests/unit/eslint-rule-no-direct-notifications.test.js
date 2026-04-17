@@ -51,6 +51,17 @@ tester.run('no-direct-notifications', rule, {
       filename: 'public/assets/js/pages/example.js',
       errors: [{ messageId: 'noDirect' }],
     },
+    // Optional-chain variants (common defensive pattern) must also be caught.
+    {
+      code: 'window.EventFlowNotifications?.error("boom");',
+      filename: 'public/assets/js/pages/example.js',
+      errors: [{ messageId: 'noDirect' }],
+    },
+    {
+      code: 'EventFlowNotifications?.success("boom");',
+      filename: 'public/assets/js/pages/example.js',
+      errors: [{ messageId: 'noDirect' }],
+    },
   ],
 });
 
