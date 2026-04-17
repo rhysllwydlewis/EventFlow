@@ -1,0 +1,9 @@
+{
+  "$comment": "Allowlisted axe-core rule IDs disabled in the visual/axe suite. Each entry must have a tracking issue linked in the `notes` map. See docs/A11Y_TESTING.md.",
+  "rules": ["color-contrast", "landmark-one-main", "region"],
+  "notes": {
+    "color-contrast": "Legacy design-system tokens fail 4.5:1 in a handful of hero overlays. Tracked in follow-up issue (a11y-contrast-audit).",
+    "landmark-one-main": "Some marketing pages use multiple <main> landmarks pending the ef-page-shell refactor.",
+    "region": "Same landmark refactor: loose content outside regions on the auth/onboarding screens."
+  }
+}

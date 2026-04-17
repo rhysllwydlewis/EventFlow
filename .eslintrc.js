@@ -66,6 +66,9 @@ module.exports = {
         'node/no-unpublished-require': 'off',
         'no-undef': 'off', // Allow module to be undefined in browser
         'no-prototype-builtins': 'off', // Allow hasOwnProperty
+        // Local rule: every call site must go through NotificationDispatcher.
+        // Registered via `--rulesdir eslint-rules` in the lint script.
+        'no-direct-notifications': 'error',
       },
     },
   ],

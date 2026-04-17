@@ -62,8 +62,14 @@ describe('Dashboard WebSocket Real-time Updates Integration', () => {
     });
 
     it('should configure onConnect handler', () => {
-      expect(dashboardContent).toMatch(/onConnect:\s*\(\)\s*=>/);
+      expect(dashboardContent).toMatch(/onConnect:\s*\(\{\s*isReconnect\s*\}\s*=\s*\{\}\)\s*=>/);
       expect(dashboardContent).toContain('Live Dashboard Connected');
+      expect(dashboardContent).toContain('Live Dashboard Reconnected');
+    });
+
+    it('should configure onDisconnect handler with retrying message', () => {
+      expect(dashboardContent).toMatch(/onDisconnect:\s*reason\s*=>/);
+      expect(dashboardContent).toContain('retrying...');
     });
 
     it('should configure onNotification handler', () => {

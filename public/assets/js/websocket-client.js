@@ -26,6 +26,7 @@
         autoConnect: options.autoConnect !== false,
         onConnect: options.onConnect || null,
         onDisconnect: options.onDisconnect || null,
+        onReconnect: options.onReconnect || null,
         onNotification: options.onNotification || null,
         onMessage: options.onMessage || null,
         onError: options.onError || null,
@@ -107,6 +108,7 @@
         if (isDevelopment) {
           console.log('WebSocket connected');
         }
+        const isReconnect = this.reconnectAttempts > 0;
         this.connected = true;
         this.reconnectAttempts = 0; // Reset on successful connection
         this.userNotified = false; // Reset notification flag on successful connection
@@ -119,7 +121,10 @@
         }
 
         if (this.options.onConnect) {
-          this.options.onConnect();
+          this.options.onConnect({ isReconnect });
+        }
+        if (isReconnect && this.options.onReconnect) {
+          this.options.onReconnect();
         }
       });
 

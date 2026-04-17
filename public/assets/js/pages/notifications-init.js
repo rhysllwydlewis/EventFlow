@@ -54,16 +54,19 @@
    * Uses EventFlowNotifications if available; falls back to a simple DOM toast.
    */
   function showToastError(message) {
-    if (window.EventFlowNotifications && typeof window.EventFlowNotifications.error === 'function') {
-      window.EventFlowNotifications.error(message);
+    if (
+      window.NotificationDispatcher &&
+      typeof window.NotificationDispatcher.error === 'function'
+    ) {
+      window.NotificationDispatcher.error(message);
     } else {
       _showSimpleToast(message, '#ef4444');
     }
   }
 
   function showToastInfo(message) {
-    if (window.EventFlowNotifications && typeof window.EventFlowNotifications.info === 'function') {
-      window.EventFlowNotifications.info(message);
+    if (window.NotificationDispatcher && typeof window.NotificationDispatcher.info === 'function') {
+      window.NotificationDispatcher.info(message);
     } else {
       _showSimpleToast(message, '#0B8073');
     }
@@ -75,14 +78,18 @@
     toast.setAttribute('aria-live', 'polite');
     toast.style.cssText = [
       'position:fixed;top:1.25rem;right:1.25rem;z-index:99999',
-      'background:' + (color || '#374151'),
+      `background:${color || '#374151'}`,
       'color:#fff;padding:0.75rem 1.25rem;border-radius:8px',
       'font-size:0.875rem;max-width:320px;box-shadow:0 4px 12px rgba(0,0,0,0.15)',
       'animation:ef-toast-in 0.2s ease',
     ].join(';');
     toast.textContent = message;
     document.body.appendChild(toast);
-    setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.3s'; setTimeout(() => toast.remove(), 350); }, 3500);
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transition = 'opacity 0.3s';
+      setTimeout(() => toast.remove(), 350);
+    }, 3500);
   }
 
   /**
@@ -93,7 +100,9 @@
     return new Promise(resolve => {
       // Remove any existing confirm dialog and its Escape handler
       const existing = document.getElementById('_ef_confirm_dialog');
-      if (existing) existing.remove();
+      if (existing) {
+        existing.remove();
+      }
       if (window.__efConfirmEscHandler) {
         document.removeEventListener('keydown', window.__efConfirmEscHandler);
         window.__efConfirmEscHandler = null;
@@ -127,12 +136,20 @@
         window.__efConfirmEscHandler = null;
         resolve(val);
       };
-      function handleEsc(e) { if (e.key === 'Escape') cleanup(false); }
+      function handleEsc(e) {
+        if (e.key === 'Escape') {
+          cleanup(false);
+        }
+      }
       window.__efConfirmEscHandler = handleEsc;
       document.addEventListener('keydown', handleEsc);
       overlay.querySelector('#_ef_confirm_cancel').addEventListener('click', () => cleanup(false));
       overlay.querySelector('#_ef_confirm_ok').addEventListener('click', () => cleanup(true));
-      overlay.addEventListener('click', e => { if (e.target === overlay) cleanup(false); });
+      overlay.addEventListener('click', e => {
+        if (e.target === overlay) {
+          cleanup(false);
+        }
+      });
       overlay.querySelector('#_ef_confirm_ok').focus();
     });
   }
@@ -349,7 +366,9 @@
       return;
     }
 
-    const confirmed = await showConfirmDialog('Delete all notifications? This action cannot be undone.');
+    const confirmed = await showConfirmDialog(
+      'Delete all notifications? This action cannot be undone.'
+    );
     if (!confirmed) {
       return;
     }

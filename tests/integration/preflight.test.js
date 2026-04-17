@@ -25,6 +25,18 @@ function runPreflight(env) {
 }
 
 describe('scripts/preflight.mjs', () => {
+  const baseProductionEnv = {
+    NODE_ENV: 'production',
+    JWT_SECRET: 'a'.repeat(40),
+    MONGODB_URI: 'mongodb://localhost/test',
+    BASE_URL: 'https://example.com',
+    REGISTERED_OFFICE: '123 Example Street, London',
+    BUSINESS_PHONE: '+44 20 7946 0000',
+    BUSINESS_ADDRESS_LINE1: '123 Example Street',
+    BUSINESS_CITY: 'London',
+    BUSINESS_POSTCODE: 'SW1A 1AA',
+  };
+
   it('exits 0 in development when config is missing (warns only)', () => {
     const result = runPreflight({ NODE_ENV: 'development' });
     expect(result.status).toBe(0);
@@ -78,20 +90,18 @@ describe('scripts/preflight.mjs', () => {
     expect(result.stderr).toMatch(/forbidden default/);
   });
 
-  it('exits 0 in production when all config is valid', () => {
+  it('exits 1 in production when COMPANY_NUMBER is unset (content-config fallback would be used)', () => {
+    const result = runPreflight(baseProductionEnv);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/config\/content-config\.js/);
+    expect(result.stderr).toMatch(/COMPANY_NUMBER/);
+  });
+
+  it('exits 0 in production when all required content-config env vars are set', () => {
     const result = runPreflight({
-      NODE_ENV: 'production',
-      JWT_SECRET: 'a'.repeat(40),
-      MONGODB_URI: 'mongodb://localhost/test',
-      BASE_URL: 'https://example.com',
+      ...baseProductionEnv,
+      COMPANY_NUMBER: '12345678',
     });
-    // Note: content-config.json in the repo may still contain REPLACE_ME_
-    // placeholders in dev branches, which would cause a failure. Accept
-    // either 0 (clean repo) or 1 with only content-config warning.
-    if (result.status !== 0) {
-      // If it failed, the only expected reason is the content-config file.
-      expect(result.stderr).toMatch(/content-config\.json/);
-      expect(result.stderr).not.toMatch(/JWT_SECRET|MONGODB_URI|BASE_URL/);
-    }
+    expect(result.status).toBe(0);
   });
 });

@@ -14,6 +14,18 @@ const uuidv4 = () => crypto.randomUUID();
 
 const VALID_TYPES = new Set(NOTIFICATION_TYPES);
 const VALID_PRIORITIES = new Set(NOTIFICATION_PRIORITIES);
+const NotificationType = Object.freeze({
+  MESSAGE: 'message',
+  BOOKING: 'booking',
+  PAYMENT: 'payment',
+  REVIEW: 'review',
+  SYSTEM: 'system',
+  TICKET: 'ticket',
+});
+const NotificationPriority = Object.freeze({
+  NORMAL: 'normal',
+  HIGH: 'high',
+});
 
 /**
  * Validate notification payload against shared schema enums.
@@ -58,13 +70,13 @@ class NotificationService {
     const notification = {
       id: uuidv4(),
       userId: data.userId,
-      type: data.type || 'system',
+      type: data.type || NotificationType.SYSTEM,
       title: data.title,
       message: data.message,
       actionUrl: data.actionUrl || null,
       actionText: data.actionText || null,
       icon: data.icon || this._getDefaultIcon(data.type),
-      priority: data.priority || 'normal',
+      priority: data.priority || NotificationPriority.NORMAL,
       category: data.category || null,
       metadata: data.metadata || {},
       isRead: false,
@@ -99,13 +111,13 @@ class NotificationService {
     const notificationsToInsert = notifications.map(data => ({
       id: uuidv4(),
       userId: data.userId,
-      type: data.type || 'system',
+      type: data.type || NotificationType.SYSTEM,
       title: data.title,
       message: data.message,
       actionUrl: data.actionUrl || null,
       actionText: data.actionText || null,
       icon: data.icon || this._getDefaultIcon(data.type),
-      priority: data.priority || 'normal',
+      priority: data.priority || NotificationPriority.NORMAL,
       category: data.category || null,
       metadata: data.metadata || {},
       isRead: false,
@@ -346,12 +358,12 @@ class NotificationService {
 
     return await this.create({
       userId: recipientUserId,
-      type: 'message',
+      type: NotificationType.MESSAGE,
       title: 'New Message',
       message: messageText,
       actionUrl: `/messenger/?conversation=${threadId}`,
       actionText: 'View Message',
-      priority: 'high',
+      priority: NotificationPriority.HIGH,
       metadata: {
         threadId,
         senderName,
@@ -366,12 +378,12 @@ class NotificationService {
   async notifyBookingUpdate(userId, supplierName, status) {
     return await this.create({
       userId,
-      type: 'booking',
+      type: NotificationType.BOOKING,
       title: 'Booking Update',
       message: `${supplierName} has ${status} your booking`,
       actionUrl: '/plan',
       actionText: 'View Details',
-      priority: 'high',
+      priority: NotificationPriority.HIGH,
     });
   }
 
@@ -381,12 +393,12 @@ class NotificationService {
   async notifyPayment(userId, amount, description) {
     return await this.create({
       userId,
-      type: 'payment',
+      type: NotificationType.PAYMENT,
       title: 'Payment Processed',
       message: `Payment of £${amount} for ${description}`,
       actionUrl: '/settings/billing',
       actionText: 'View Receipt',
-      priority: 'normal',
+      priority: NotificationPriority.NORMAL,
     });
   }
 
@@ -399,12 +411,12 @@ class NotificationService {
     const stars = '★'.repeat(safeRating) + '☆'.repeat(5 - safeRating);
     return await this.create({
       userId: supplierUserId,
-      type: 'review',
+      type: NotificationType.REVIEW,
       title: '🌟 New Review!',
       message: `${customerName} left a ${safeRating}-star review on your profile. ${stars}`,
       actionUrl: '/dashboard/supplier#reviews',
       actionText: 'View Reviews',
-      priority: 'normal',
+      priority: NotificationPriority.NORMAL,
       icon: '🌟',
       metadata: { customerName, rating: safeRating },
     });
@@ -416,12 +428,12 @@ class NotificationService {
   async notifySystem(userId, title, message, actionUrl = null) {
     return await this.create({
       userId,
-      type: 'system',
+      type: NotificationType.SYSTEM,
       title,
       message,
       actionUrl,
       actionText: actionUrl ? 'View Details' : null,
-      priority: 'normal',
+      priority: NotificationPriority.NORMAL,
     });
   }
 
@@ -431,12 +443,12 @@ class NotificationService {
   async notifyNewTicket(adminUserId, senderName, ticketId, subject) {
     return await this.create({
       userId: adminUserId,
-      type: 'ticket',
+      type: NotificationType.TICKET,
       title: 'New Support Ticket',
       message: `${senderName} submitted a new ticket: ${subject}`,
       actionUrl: '/admin-tickets',
       actionText: 'View Ticket',
-      priority: 'high',
+      priority: NotificationPriority.HIGH,
       icon: '🎫',
       metadata: { ticketId, senderName, subject },
     });
@@ -448,12 +460,12 @@ class NotificationService {
   async notifyTicketReply(adminUserId, senderName, ticketId, subject) {
     return await this.create({
       userId: adminUserId,
-      type: 'ticket',
+      type: NotificationType.TICKET,
       title: 'New Ticket Reply',
       message: `${senderName} replied to ticket: ${subject}`,
       actionUrl: '/admin-tickets',
       actionText: 'View Ticket',
-      priority: 'normal',
+      priority: NotificationPriority.NORMAL,
       icon: '🎫',
       metadata: { ticketId, senderName, subject },
     });

@@ -358,9 +358,7 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
       badges.length < 3 &&
       (supplier.emailVerified || supplier.verifications?.email?.verified || supplier.verified)
     ) {
-      badges.push(
-        '<span class="badge badge-email-verified" aria-label="Verified">Verified</span>'
-      );
+      badges.push('<span class="badge badge-email-verified" aria-label="Verified">Verified</span>');
     }
 
     return badges;
@@ -375,7 +373,7 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     if (btnEnquiry) {
       btnEnquiry.onclick = () => {
         if (!supplier.ownerUserId) {
-          window.EventFlowNotifications?.info(
+          window.NotificationDispatcher?.info(
             'This supplier cannot receive messages at this time.'
           );
           return;
@@ -437,18 +435,18 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
           });
           const data = await response.json();
           if (response.ok) {
-            window.EventFlowNotifications?.success('Saved to your shortlist!');
+            window.NotificationDispatcher?.success('Saved to your shortlist!');
             btnSave.setAttribute('aria-pressed', 'true');
             btnSave.title = 'Saved to shortlist';
           } else if (response.status === 409) {
-            window.EventFlowNotifications?.info('Already in your shortlist');
+            window.NotificationDispatcher?.info('Already in your shortlist');
           } else if (response.status === 401 || response.status === 403) {
-            window.EventFlowNotifications?.info('Please sign in to save suppliers');
+            window.NotificationDispatcher?.info('Please sign in to save suppliers');
           } else {
-            window.EventFlowNotifications?.error('Could not save — please try again');
+            window.NotificationDispatcher?.error('Could not save — please try again');
           }
         } catch (_) {
-          window.EventFlowNotifications?.error('Could not save — please try again');
+          window.NotificationDispatcher?.error('Could not save — please try again');
         }
       };
     }
@@ -472,7 +470,7 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
           }
         } else {
           await navigator.clipboard.writeText(window.location.href);
-          window.EventFlowNotifications?.success('Link copied to clipboard!');
+          window.NotificationDispatcher?.success('Link copied to clipboard!');
         }
       };
     }
@@ -588,11 +586,7 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
   }
 
   function _hasStats(supplier) {
-    return !!(
-      supplier.completedEvents ||
-      supplier.createdAt ||
-      supplier.avgResponseTime
-    );
+    return !!(supplier.completedEvents || supplier.createdAt || supplier.avgResponseTime);
   }
 
   function _renderStatsStrip(supplier) {

@@ -236,8 +236,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Initialize WebSocket connection for real-time notifications (only when logged in)
       if (user && typeof WebSocketClient !== 'undefined') {
+        // Throttle disconnect toasts: a flappy connection should not spam.
+        // See Part B5 in the notification-audit checklist.
+        let lastDisconnectToastAt = 0;
+        const DISCONNECT_TOAST_THROTTLE_MS = 10 * 1000;
+
         // WebSocket client is initialized here for real-time notification updates
         const _wsClient = new WebSocketClient({
+          onConnect: ({ isReconnect } = {}) => {
+            // Only show a toast on reconnect; the first-connect case is
+            // silent on the homepage (no dedicated "live" UI to announce).
+            if (isReconnect && window.NotificationDispatcher) {
+              window.NotificationDispatcher.success('Live updates reconnected', 2000);
+            }
+          },
+          onDisconnect: reason => {
+            const now = Date.now();
+            if (now - lastDisconnectToastAt < DISCONNECT_TOAST_THROTTLE_MS) {
+              return;
+            }
+            lastDisconnectToastAt = now;
+            if (window.NotificationDispatcher) {
+              window.NotificationDispatcher.warning(
+                `Live updates disconnected (${reason || 'unknown'}) — retrying...`,
+                3000
+              );
+            }
+          },
           onNotification: _notification => {
             // Update notification badge
             const badge = document.querySelector('.notification-badge');
