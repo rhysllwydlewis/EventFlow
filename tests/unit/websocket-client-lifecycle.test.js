@@ -63,6 +63,7 @@ describe('WebSocketClient lifecycle callbacks', () => {
     client.reconnectAttempts = 1;
     handlers.connect();
 
+    expect(client.attemptReconnect).toHaveBeenCalledTimes(1);
     expect(order).toEqual([
       'connect:first',
       'disconnect:transport close',

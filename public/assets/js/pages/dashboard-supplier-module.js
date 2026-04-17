@@ -20,7 +20,7 @@ let analyticsChartInstance = null;
 let wsClientInstance = null;
 let hasConnectedOnce = false;
 let lastDisconnectToastAt = 0;
-const DISCONNECT_TOAST_THROTTLE_MS = 10000;
+const DISCONNECT_TOAST_THROTTLE_MS = 10 * 1000;
 
 // Initialize feature access control (non-blocking)
 initializeFeatureAccess().catch(err => {

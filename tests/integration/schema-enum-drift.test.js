@@ -70,19 +70,24 @@ describe('Schema enum constants — drift guards', () => {
      * still picked up — the test will then flag them as missing from the
      * shared constant.
      */
-    function extractReferencedTypes(src) {
-      const types = new Set();
-      const literalUseRe = /type:\s*'([^']+)'/gi;
+    function extractValuesFromFrozenConstant(src, constantName) {
+      const values = new Set();
       const enumBlockMatch = src.match(
-        /const\s+NotificationType\s*=\s*Object\.freeze\(\{([\s\S]*?)\}\);/
+        new RegExp(`const\\s+${constantName}\\s*=\\s*Object\\.freeze\\(\\{([\\s\\S]*?)\\}\\);`)
       );
       if (enumBlockMatch) {
         const valueRe = /:\s*'([^']+)'/g;
         let valueMatch;
         while ((valueMatch = valueRe.exec(enumBlockMatch[1])) !== null) {
-          types.add(valueMatch[1]);
+          values.add(valueMatch[1]);
         }
       }
+      return values;
+    }
+
+    function extractReferencedTypes(src) {
+      const types = extractValuesFromFrozenConstant(src, 'NotificationType');
+      const literalUseRe = /type:\s*'([^']+)'/gi;
       let m;
       while ((m = literalUseRe.exec(src)) !== null) {
         types.add(m[1]);
@@ -91,18 +96,8 @@ describe('Schema enum constants — drift guards', () => {
     }
 
     function extractReferencedPriorities(src) {
-      const priorities = new Set();
+      const priorities = extractValuesFromFrozenConstant(src, 'NotificationPriority');
       const literalUseRe = /priority:\s*'([^']+)'/gi;
-      const enumBlockMatch = src.match(
-        /const\s+NotificationPriority\s*=\s*Object\.freeze\(\{([\s\S]*?)\}\);/
-      );
-      if (enumBlockMatch) {
-        const valueRe = /:\s*'([^']+)'/g;
-        let valueMatch;
-        while ((valueMatch = valueRe.exec(enumBlockMatch[1])) !== null) {
-          priorities.add(valueMatch[1]);
-        }
-      }
       let m;
       while ((m = literalUseRe.exec(src)) !== null) {
         priorities.add(m[1]);

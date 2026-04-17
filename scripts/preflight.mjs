@@ -110,15 +110,17 @@ if (fs.existsSync(contentConfigPath)) {
 
     // Detect env-backed fallback placeholders in patterns like:
     // process.env.COMPANY_NUMBER || 'REPLACE_ME_COMPANY_NUMBER'
-    const fallbackRegex = /process\.env\.([A-Z0-9_]+)\s*\|\|\s*['"`](REPLACE_ME_[^'"`]+)['"`]/g;
+    const fallbackRegex =
+      /process\.env\.([A-Z0-9_]+)\s*\|\|\s*(?:'(REPLACE_ME_[^']+)'|"(REPLACE_ME_[^"]+)"|`(REPLACE_ME_[^`]+)`)/g;
     const matches = [...raw.matchAll(fallbackRegex)];
     const checkedEnvVars = new Set();
 
-    for (const [, envVar, placeholder] of matches) {
+    for (const [, envVar, singleQuotedPlaceholder, doubleQuotedPlaceholder, templatePlaceholder] of matches) {
       if (checkedEnvVars.has(envVar)) {
         continue;
       }
       checkedEnvVars.add(envVar);
+      const placeholder = singleQuotedPlaceholder || doubleQuotedPlaceholder || templatePlaceholder;
 
       const currentValue = process.env[envVar];
       if (!currentValue || currentValue.trim() === '') {
