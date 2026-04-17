@@ -103,3 +103,90 @@ describe('legacyApiDeprecation middleware', () => {
     expect(res.body).toEqual({ ok: true, via: 'legacy' });
   });
 });
+
+describe('legacy API coverage for server.js-style mounts', () => {
+  let app;
+
+  beforeEach(() => {
+    app = express();
+
+    // Canonical v1 mounts
+    app.use('/api/v1/public', (_req, res) =>
+      res.status(200).json({ ok: true, route: 'public-v1' })
+    );
+    app.use('/api/v1/me/settings', (_req, res) =>
+      res.status(200).json({ ok: true, route: 'settings-v1' })
+    );
+    app.use('/api/v1/admin', (_req, res) => res.status(200).json({ ok: true, route: 'admin-v1' }));
+    app.use('/api/v1/payments', (_req, res) =>
+      res.status(200).json({ ok: true, route: 'payments-v1' })
+    );
+    app.use('/api/v1/tickets', (_req, res) =>
+      res.status(200).json({ ok: true, route: 'tickets-v1' })
+    );
+
+    // Legacy mounts with middleware
+    app.use('/api/public', legacyApiDeprecation('/api/public', '/api/v1/public'), (_req, res) =>
+      res.status(200).json({ ok: true, route: 'public-legacy' })
+    );
+    app.use(
+      '/api/me/settings',
+      legacyApiDeprecation('/api/me/settings', '/api/v1/me/settings'),
+      (_req, res) => res.status(200).json({ ok: true, route: 'settings-legacy' })
+    );
+    app.use('/api/admin', legacyApiDeprecation('/api/admin', '/api/v1/admin'), (_req, res) =>
+      res.status(200).json({ ok: true, route: 'admin-legacy' })
+    );
+    app.use(
+      '/api/payments',
+      legacyApiDeprecation('/api/payments', '/api/v1/payments'),
+      (_req, res) => res.status(200).json({ ok: true, route: 'payments-legacy' })
+    );
+    app.use('/api/tickets', legacyApiDeprecation('/api/tickets', '/api/v1/tickets'), (_req, res) =>
+      res.status(200).json({ ok: true, route: 'tickets-legacy' })
+    );
+
+    app.get('/api/v1/auth/me', (_req, res) => res.status(200).json({ ok: true, route: 'auth-v1' }));
+    app.get('/api/auth/me', legacyApiDeprecation('/api/auth/me', '/api/v1/auth/me'), (_req, res) =>
+      res.status(200).json({ ok: true, route: 'auth-legacy' })
+    );
+
+    // v2 mounts are canonical and should never receive deprecation headers.
+    app.use('/api/v2/subscriptions', (_req, res) =>
+      res.status(200).json({ ok: true, route: 'subs-v2' })
+    );
+    app.use('/api/v2/admin', (_req, res) => res.status(200).json({ ok: true, route: 'admin-v2' }));
+    app.use('/api/v2/reviews', (_req, res) =>
+      res.status(200).json({ ok: true, route: 'reviews-v2' })
+    );
+    app.use('/api', legacyApiDeprecation('/api', '/api/v1'), (_req, res) =>
+      res.status(200).json({ ok: true, route: 'api-root-legacy' })
+    );
+  });
+
+  it.each([
+    ['/api/auth/me', 'auth-legacy'],
+    ['/api/public/example', 'public-legacy'],
+    ['/api/me/settings', 'settings-legacy'],
+    ['/api/admin/audit-logs', 'admin-legacy'],
+    ['/api/payments/config', 'payments-legacy'],
+    ['/api/tickets', 'tickets-legacy'],
+  ])('emits Deprecation headers for legacy endpoint %s', async (url, route) => {
+    const res = await request(app).get(url);
+    expect(res.status).toBe(200);
+    expect(res.body.route).toBe(route);
+    expect(res.headers.deprecation).toBe('true');
+    expect(res.headers.sunset).toBe(SUNSET_DATE.toUTCString());
+  });
+
+  it.each(['/api/v2/subscriptions', '/api/v2/admin', '/api/v2/reviews'])(
+    'does NOT emit Deprecation headers for versioned v2 mount %s',
+    async url => {
+      const res = await request(app).get(url);
+      expect(res.status).toBe(200);
+      expect(res.headers.deprecation).toBeUndefined();
+      expect(res.headers.sunset).toBeUndefined();
+      expect(res.headers.link).toBeUndefined();
+    }
+  );
+});

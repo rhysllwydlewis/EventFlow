@@ -18,6 +18,9 @@ import { initCountUp } from '/assets/js/count-up-animation.js';
 let analyticsChartInstance = null;
 // Store WebSocket client instance for cleanup
 let wsClientInstance = null;
+let hasConnectedOnce = false;
+let lastDisconnectToastAt = 0;
+const DISCONNECT_TOAST_THROTTLE_MS = 10000;
 
 // Initialize feature access control (non-blocking)
 initializeFeatureAccess().catch(err => {
@@ -603,10 +606,31 @@ window.addEventListener('load', () => {
   if (typeof WebSocketClient !== 'undefined') {
     try {
       wsClientInstance = new WebSocketClient({
-        onConnect: () => {
+        onConnect: ({ isReconnect } = {}) => {
           if (typeof EventFlowNotifications !== 'undefined') {
-            EventFlowNotifications.success('Live Dashboard Connected', 2000);
+            EventFlowNotifications.success(
+              isReconnect || hasConnectedOnce
+                ? 'Live Dashboard Reconnected'
+                : 'Live Dashboard Connected',
+              2000
+            );
           }
+          hasConnectedOnce = true;
+        },
+        onDisconnect: reason => {
+          const now = Date.now();
+          if (now - lastDisconnectToastAt < DISCONNECT_TOAST_THROTTLE_MS) {
+            return;
+          }
+          lastDisconnectToastAt = now;
+          if (typeof EventFlowNotifications !== 'undefined') {
+            const detail = reason ? ` (${reason})` : '';
+            EventFlowNotifications.warning(
+              `Live Dashboard Disconnected${detail} — retrying...`,
+              4000
+            );
+          }
+          showUrgentAlert('Live updates disconnected. Retrying…', 'warning');
         },
         onNotification: data => handleRealtimeNotification(data),
       });

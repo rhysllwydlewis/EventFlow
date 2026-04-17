@@ -70,37 +70,57 @@ describe('Schema enum constants — drift guards', () => {
      * still picked up — the test will then flag them as missing from the
      * shared constant.
      */
-    function extractHardcodedTypes(src) {
+    function extractReferencedTypes(src) {
       const types = new Set();
-      const re = /type:\s*'([^']+)'/gi;
+      const literalUseRe = /type:\s*'([^']+)'/gi;
+      const enumBlockMatch = src.match(
+        /const\s+NotificationType\s*=\s*Object\.freeze\(\{([\s\S]*?)\}\);/
+      );
+      if (enumBlockMatch) {
+        const valueRe = /:\s*'([^']+)'/g;
+        let valueMatch;
+        while ((valueMatch = valueRe.exec(enumBlockMatch[1])) !== null) {
+          types.add(valueMatch[1]);
+        }
+      }
       let m;
-      while ((m = re.exec(src)) !== null) {
+      while ((m = literalUseRe.exec(src)) !== null) {
         types.add(m[1]);
       }
       return [...types];
     }
 
-    function extractHardcodedPriorities(src) {
+    function extractReferencedPriorities(src) {
       const priorities = new Set();
-      const re = /priority:\s*'([^']+)'/gi;
+      const literalUseRe = /priority:\s*'([^']+)'/gi;
+      const enumBlockMatch = src.match(
+        /const\s+NotificationPriority\s*=\s*Object\.freeze\(\{([\s\S]*?)\}\);/
+      );
+      if (enumBlockMatch) {
+        const valueRe = /:\s*'([^']+)'/g;
+        let valueMatch;
+        while ((valueMatch = valueRe.exec(enumBlockMatch[1])) !== null) {
+          priorities.add(valueMatch[1]);
+        }
+      }
       let m;
-      while ((m = re.exec(src)) !== null) {
+      while ((m = literalUseRe.exec(src)) !== null) {
         priorities.add(m[1]);
       }
       return [...priorities];
     }
 
-    it('every hard-coded `type` in notification.service.js is in NOTIFICATION_TYPES', () => {
-      const hardcoded = extractHardcodedTypes(serviceSource);
-      expect(hardcoded.length).toBeGreaterThan(0);
-      const missing = hardcoded.filter(t => !NOTIFICATION_TYPES.includes(t));
+    it('every referenced notification `type` in notification.service.js is in NOTIFICATION_TYPES', () => {
+      const referenced = extractReferencedTypes(serviceSource);
+      expect(referenced.length).toBeGreaterThan(0);
+      const missing = referenced.filter(t => !NOTIFICATION_TYPES.includes(t));
       expect(missing).toEqual([]);
     });
 
-    it('every hard-coded `priority` in notification.service.js is in NOTIFICATION_PRIORITIES', () => {
-      const hardcoded = extractHardcodedPriorities(serviceSource);
-      expect(hardcoded.length).toBeGreaterThan(0);
-      const missing = hardcoded.filter(p => !NOTIFICATION_PRIORITIES.includes(p));
+    it('every referenced `priority` in notification.service.js is in NOTIFICATION_PRIORITIES', () => {
+      const referenced = extractReferencedPriorities(serviceSource);
+      expect(referenced.length).toBeGreaterThan(0);
+      const missing = referenced.filter(p => !NOTIFICATION_PRIORITIES.includes(p));
       expect(missing).toEqual([]);
     });
   });

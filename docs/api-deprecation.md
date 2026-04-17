@@ -47,11 +47,13 @@ Scheduled for removal in v20.0.0 (2026-12-31).
 
 ## How it's implemented
 
-The middleware lives in [`middleware/legacyApiDeprecation.js`](../middleware/legacyApiDeprecation.js). It's applied per-mount-path in `routes/index.js`:
+The middleware lives in [`middleware/legacyApiDeprecation.js`](../middleware/legacyApiDeprecation.js). It's applied per-mount-path in both `routes/index.js` and legacy compatibility mounts in `server.js`:
 
 ```js
 app.use('/api/v1', contactRoutes); // canonical
 app.use('/api', legacyApiDeprecation('/api', '/api/v1'), contactRoutes); // deprecated
 ```
 
-Contract tests in `tests/integration/legacy-api-deprecation.test.js` lock down the header format, the once-per-route logging, and the fact that the v1 mount does **not** emit these headers.
+Legacy inline supplier endpoints now have a canonical alias at `/api/v1/me/suppliers` and the old `/api/me/suppliers` alias emits the same deprecation headers.
+
+Contract tests in `tests/integration/legacy-api-deprecation.test.js` lock down the header format, per-prefix coverage for legacy mounts, the once-per-route logging, and the fact that versioned mounts (including `/api/v2/...`) do **not** emit these headers.

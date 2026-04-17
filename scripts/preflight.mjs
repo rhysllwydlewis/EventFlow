@@ -5,7 +5,8 @@
  *
  * Fails hard in `NODE_ENV=production` if:
  *   - Any `REPLACE_ME_…` placeholder remains in environment variables or in
- *     the on-disk content config (`content-config.json`).
+ *     required `config/content-config.js` fallback env vars that would still
+ *     resolve to placeholder values at runtime.
  *   - `JWT_SECRET` is missing, is the dev default, or is shorter than 32 chars.
  *   - Required environment variables are missing.
  *
@@ -83,11 +84,15 @@ for (const key of LENGTH_CHECKED) {
 }
 
 for (const [key, val] of Object.entries(process.env)) {
-  if (typeof val !== 'string') continue;
+  if (typeof val !== 'string') {
+    continue;
+  }
   // Only scan things that look like config (all-uppercase or mixed-case
   // with underscores). Skip PATH, HOME, LANG, etc. that legitimately
   // contain literal strings which happen to match our regex.
-  if (!/^[A-Z][A-Z0-9_]*$/.test(key)) continue;
+  if (!/^[A-Z][A-Z0-9_]*$/.test(key)) {
+    continue;
+  }
   if (PLACEHOLDER_RE.test(val)) {
     (IS_PRODUCTION ? fail : warn)(`Env var ${key} contains a placeholder value: ${val}`);
   }
@@ -96,19 +101,34 @@ for (const [key, val] of Object.entries(process.env)) {
   }
 }
 
-// ---------- content-config.json placeholder scan ----------
+// ---------- config/content-config.js fallback-env scan ----------
 
-const contentConfigPath = path.join(REPO_ROOT, 'content-config.json');
+const contentConfigPath = path.join(REPO_ROOT, 'config', 'content-config.js');
 if (fs.existsSync(contentConfigPath)) {
   try {
     const raw = fs.readFileSync(contentConfigPath, 'utf8');
-    if (PLACEHOLDER_RE.test(raw)) {
-      (IS_PRODUCTION ? fail : warn)(
-        `content-config.json contains placeholder values (REPLACE_ME_ / change_me / etc.)`
-      );
+
+    // Detect env-backed fallback placeholders in patterns like:
+    // process.env.COMPANY_NUMBER || 'REPLACE_ME_COMPANY_NUMBER'
+    const fallbackRegex = /process\.env\.([A-Z0-9_]+)\s*\|\|\s*['"`](REPLACE_ME_[^'"`]+)['"`]/g;
+    const matches = [...raw.matchAll(fallbackRegex)];
+    const checkedEnvVars = new Set();
+
+    for (const [, envVar, placeholder] of matches) {
+      if (checkedEnvVars.has(envVar)) {
+        continue;
+      }
+      checkedEnvVars.add(envVar);
+
+      const currentValue = process.env[envVar];
+      if (!currentValue || currentValue.trim() === '') {
+        (IS_PRODUCTION ? fail : warn)(
+          `${contentConfigPath} uses ${placeholder} when ${envVar} is unset/empty`
+        );
+      }
     }
   } catch (err) {
-    warn(`Could not read content-config.json: ${err.message}`);
+    warn(`Could not read ${contentConfigPath}: ${err.message}`);
   }
 }
 

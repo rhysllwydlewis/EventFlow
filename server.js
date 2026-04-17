@@ -80,6 +80,7 @@ const { apiCacheControlMiddleware, staticCachingMiddleware } = require('./middle
 const { noindexMiddleware } = require('./middleware/seo');
 const { adminPageProtectionMiddleware } = require('./middleware/adminPages');
 const { apiLimiter, apiDocsLimiter } = require('./middleware/rateLimits');
+const { legacyApiDeprecation } = require('./middleware/legacyApiDeprecation');
 
 // Utility modules
 const helpers = require('./utils/helpers');
@@ -764,22 +765,25 @@ app.use(
 // ==================== ROUTE MOUNTING ====================
 // All API routes have been extracted to the routes/ directory
 // Routes are mounted via routes/index.js mountRoutes() function
+const mountDeprecatedApiAlias = (oldPath, newPath, router) =>
+  app.use(oldPath, legacyApiDeprecation(oldPath, newPath), router);
 
 // Public routes (no authentication required)
 const publicRoutes = require('./routes/public');
 app.use('/api/v1/public', publicRoutes);
-app.use('/api/public', publicRoutes); // Backward compatibility
+mountDeprecatedApiAlias('/api/public', '/api/v1/public', publicRoutes); // Backward compatibility
 
 // Settings routes
 const settingsRoutes = require('./routes/settings');
 app.use('/api/v1/me/settings', settingsRoutes);
-app.use('/api/me/settings', settingsRoutes); // Backward compatibility
+mountDeprecatedApiAlias('/api/me/settings', '/api/v1/me/settings', settingsRoutes); // Backward compatibility
 
 // Inline supplier profile routes with venuePostcode validation
 const { isValidUKPostcode } = geocoding;
+const supplierProfileValidationRoutes = express.Router();
 
-app.post(
-  '/api/me/suppliers',
+supplierProfileValidationRoutes.post(
+  '/',
   authRequired,
   roleRequired('supplier'),
   csrfProtection,
@@ -799,8 +803,8 @@ app.post(
   }
 );
 
-app.patch(
-  '/api/me/suppliers/:id',
+supplierProfileValidationRoutes.patch(
+  '/:id',
   authRequired,
   roleRequired('supplier'),
   csrfProtection,
@@ -811,6 +815,12 @@ app.patch(
     }
     return next();
   }
+);
+app.use('/api/v1/me/suppliers', supplierProfileValidationRoutes);
+mountDeprecatedApiAlias(
+  '/api/me/suppliers',
+  '/api/v1/me/suppliers',
+  supplierProfileValidationRoutes
 );
 
 // Dashboard routes (protected HTML routes)
@@ -842,7 +852,7 @@ ensureDirs();
 // The OWNER_EMAIL constant enforces the platform owner admin role.
 const OWNER_EMAIL = process.env.OWNER_EMAIL || 'admin@event-flow.co.uk';
 
-app.get('/api/auth/me', async (req, res) => {
+const getAuthMeHandler = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Vary', 'Cookie');
@@ -888,37 +898,45 @@ app.get('/api/auth/me', async (req, res) => {
     logger.error('GET /api/auth/me error', { error: err.message });
     return res.status(500).json({ error: 'Internal server error' });
   }
-});
+};
+app.get('/api/v1/auth/me', getAuthMeHandler);
+app.get('/api/auth/me', legacyApiDeprecation('/api/auth/me', '/api/v1/auth/me'), getAuthMeHandler);
 
-app.post('/api/auth/login', async (req, res, next) => {
+const authLoginDelegationHandler = async (req, res, next) => {
   // Owner enforcement applied during login:
   // const OWNER_EMAIL = 'admin@event-flow.co.uk'
   // const isOwner = email.toLowerCase() === OWNER_EMAIL.toLowerCase()
   // const userRole = isOwner ? 'admin' : user.role
   // jwt.sign({ id: user.id, email: user.email, role: userRole }, JWT_SECRET, { expiresIn: '24h' })
   return next(); // Delegate to authRoutes for full implementation
-});
+};
+app.post('/api/v1/auth/login', authLoginDelegationHandler);
+app.post(
+  '/api/auth/login',
+  legacyApiDeprecation('/api/auth/login', '/api/v1/auth/login'),
+  authLoginDelegationHandler
+);
 
 // Auth routes
 const authRoutes = require('./routes/auth');
 app.use('/api/v1/auth', authRoutes);
-app.use('/api/auth', authRoutes); // Backward compatibility
+mountDeprecatedApiAlias('/api/auth', '/api/v1/auth', authRoutes); // Backward compatibility
 
 // Webhook routes
 const webhookRoutes = require('./routes/webhooks');
 app.use('/api/v1/webhooks', webhookRoutes);
-app.use('/api/webhooks', webhookRoutes); // Backward compatibility
+mountDeprecatedApiAlias('/api/webhooks', '/api/v1/webhooks', webhookRoutes); // Backward compatibility
 
 // Admin routes
 // Admin audit endpoints moved to routes/admin.js (audit-logs, audit trail)
 const adminRoutes = require('./routes/admin');
 app.use('/api/v1/admin', adminRoutes);
-app.use('/api/admin', adminRoutes); // Backward compatibility
+mountDeprecatedApiAlias('/api/admin', '/api/v1/admin', adminRoutes); // Backward compatibility
 
 // Admin user management routes
 const adminUserManagementRoutes = require('./routes/admin-user-management');
 app.use('/api/v1/admin', adminUserManagementRoutes);
-app.use('/api/admin', adminUserManagementRoutes); // Backward compatibility
+mountDeprecatedApiAlias('/api/admin', '/api/v1/admin', adminUserManagementRoutes); // Backward compatibility
 
 // Admin V2 routes (RBAC with granular permissions)
 const adminV2Routes = require('./routes/admin-v2');
@@ -927,17 +945,17 @@ app.use('/api/v2/admin', adminV2Routes);
 // Reports routes
 const reportsRoutes = require('./routes/reports');
 app.use('/api/v1', reportsRoutes);
-app.use('/api', reportsRoutes); // Backward compatibility
+mountDeprecatedApiAlias('/api', '/api/v1', reportsRoutes); // Backward compatibility
 
 // Tickets routes
 const ticketsRoutes = require('./routes/tickets');
 app.use('/api/v1/tickets', ticketsRoutes);
-app.use('/api/tickets', ticketsRoutes); // Backward compatibility
+mountDeprecatedApiAlias('/api/tickets', '/api/v1/tickets', ticketsRoutes); // Backward compatibility
 
 // Pexels image search routes
 const pexelsRoutes = require('./routes/pexels');
 app.use('/api/v1/pexels', pexelsRoutes);
-app.use('/api/pexels', pexelsRoutes); // Backward compatibility
+mountDeprecatedApiAlias('/api/pexels', '/api/v1/pexels', pexelsRoutes); // Backward compatibility
 
 // AI routes
 const aiRoutes = require('./routes/ai');
@@ -949,22 +967,22 @@ if (aiRoutes.initializeDependencies) {
   });
 }
 app.use('/api/v1/ai', aiRoutes);
-app.use('/api/ai', aiRoutes); // Backward compatibility
+mountDeprecatedApiAlias('/api/ai', '/api/v1/ai', aiRoutes); // Backward compatibility
 
 // Payment routes
 const paymentRoutes = require('./routes/payments');
 app.use('/api/v1/payments', paymentRoutes);
-app.use('/api/payments', paymentRoutes); // Backward compatibility
+mountDeprecatedApiAlias('/api/payments', '/api/v1/payments', paymentRoutes); // Backward compatibility
 
 // Profile routes
 const profileRoutes = require('./routes/profile');
 app.use('/api/v1/profile', profileRoutes);
-app.use('/api/profile', profileRoutes); // Backward compatibility
+mountDeprecatedApiAlias('/api/profile', '/api/v1/profile', profileRoutes); // Backward compatibility
 
 // Supplier routes
 const supplierRoutes = require('./routes/supplier');
 app.use('/api/v1/supplier', supplierRoutes);
-app.use('/api/supplier', supplierRoutes); // Backward compatibility
+mountDeprecatedApiAlias('/api/supplier', '/api/v1/supplier', supplierRoutes); // Backward compatibility
 
 // Audit logging middleware
 const { auditLog } = require('./middleware/audit');
