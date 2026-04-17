@@ -40,8 +40,8 @@ where the feature is not present.
 | `tests/unit/conversation-handler-v1-v2-field-normalization.test.js` | 17   | `describe.skip(...)` — "legacy behavior removed" | v1→v2 field-normalization legacy behavior was removed in a prior PR   | L     |
 | `tests/unit/conversation-handler-v1-v2-field-normalization.test.js` | 53   | `describe.skip(...)` — "legacy behavior removed" | v2→v1 empty-fallback legacy behavior was removed in a prior PR        | L     |
 | `tests/unit/messaging-bulk-operations.test.js`                      | 21   | `_messagingServiceExists ? ...`                  | MessagingService file existence guard                                 | G     |
-| `tests/unit/domain-admin.test.js`                                   | 38   | `it.skip('handle custom owner email...')`        | Requires module reload to pick up env change — jest cache blocks this | E     |
-| `tests/unit/domain-admin.test.js`                                   | 251  | `it.skip('return custom owner email...')`        | Same module-reload limitation as above                                | E     |
+| `tests/unit/domain-admin.test.js`                                   | 38   | ~~`it.skip('handle custom owner email...')`~~    | **Resolved** — replaced with `jest.isolateModules` reload harness     | ~~E~~ |
+| `tests/unit/domain-admin.test.js`                                   | 251  | ~~`it.skip('return custom owner email...')`~~    | **Resolved** — replaced with `jest.isolateModules` reload harness     | ~~E~~ |
 | `tests/unit/messaging-notification-integration.test.js`             | 16   | `fs.existsSync(messagingV2Path) ? ...`           | messaging-v2 deployment guard                                         | G     |
 | `tests/unit/messaging-notification-integration.test.js`             | 135  | `messagingJsExists ? ...`                        | Frontend messaging.js existence guard                                 | G     |
 | `tests/unit/v1-thread-compatibility.test.js`                        | 34   | `_messagingServiceExists ? ...`                  | MessagingService file existence guard                                 | G     |
@@ -66,15 +66,17 @@ where the feature is not present.
 
 - **G (keep, guarded existence)**: 22
 - **L (keep, legacy)**: 2
-- **E (keep, environmental)**: 2
+- **E (keep, environmental)**: 0 _(the two `domain-admin.test.js` sites were unskipped in this PR; see below)_
 - **U (unskip candidate)**: 0
 - **D (delete candidate)**: 0
 
 ## Actions applied in this PR
 
 - The two `it.skip` sites in `tests/unit/domain-admin.test.js` have been
-  annotated with an explicit `// SKIP: <reason>` comment and a linked
-  tracking issue for future resolution (require-time env injection).
+  **unskipped**. They are now driven by `jest.isolateModules(() => require(...))`,
+  which gives each assertion a fresh module registry so the require-time
+  `OWNER_EMAIL = process.env.OWNER_EMAIL || ...` snapshot picks up the
+  test-supplied value. No child-process harness needed.
 - The two `describe.skip` sites in
   `tests/unit/conversation-handler-v1-v2-field-normalization.test.js` are
   now prefixed with `// SKIP (L): legacy v1 normalization removed in
@@ -88,15 +90,11 @@ When Jest sees `describe.skip(name, body)`, it counts **every `it` inside
 the body** towards the skipped-tests total. A single guarded `describe`
 block containing 30 tests contributes 30 to the total. The 22 guarded
 blocks above collectively hold well over 200 tests. The meaningful count
-is the **skip-site count** (27), of which only **4 are non-trivial**
-(the two `it.skip` + two `describe.skip` classed as E/L).
+is the **skip-site count** (27), of which only **2 are non-trivial** —
+the two `describe.skip` sites classed as L (legacy, pending deletion).
 
 ## Follow-ups
 
-- Track a follow-up issue to move the two `domain-admin.test.js` skips to
-  a proper child-process test harness that can reload the module under
-  a modified `process.env`. This would bring the non-trivial skip count
-  from 4 to 2.
 - Track a follow-up issue to delete the two `conversation-handler-v1-v2-
 field-normalization.test.js` `describe.skip` blocks once the handler
   itself is deleted (currently retained for the transition period).

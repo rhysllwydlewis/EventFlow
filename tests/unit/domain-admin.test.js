@@ -33,13 +33,19 @@ describe('Domain-Admin Middleware', () => {
       expect(domainAdmin.isOwnerEmail('Admin@Event-Flow.Co.Uk')).toBe(true);
     });
 
-    // Note: Testing custom OWNER_EMAIL requires module reload
-    // This is by design - owner email is set at startup and not changed dynamically
-    // SKIP: env var is cached at require-time; needs child-process harness to reload.
-    // Tracked in docs/SKIPPED_TESTS_AUDIT.md (domain-admin #E1).
-    it.skip('should handle custom owner email from env (requires module reload)', () => {
-      // This test is skipped because the module caches env vars at load time
-      // In production, OWNER_EMAIL is set before server starts and doesn't change
+    // Testing custom OWNER_EMAIL requires reloading the middleware because
+    // `OWNER_EMAIL` is captured at require-time. `jest.isolateModules` gives
+    // us a clean module registry scoped to this test only.
+    it('should handle custom owner email from env (reload via isolateModules)', () => {
+      process.env.OWNER_EMAIL = 'custom-owner@vexi.example';
+      jest.isolateModules(() => {
+        const reloaded = require('../../middleware/domain-admin');
+        expect(reloaded.isOwnerEmail('custom-owner@vexi.example')).toBe(true);
+        expect(reloaded.isOwnerEmail('CUSTOM-OWNER@vexi.example')).toBe(true);
+        // Default owner no longer matches once overridden
+        expect(reloaded.isOwnerEmail('admin@event-flow.co.uk')).toBe(false);
+      });
+      delete process.env.OWNER_EMAIL;
     });
 
     it('should return false for non-owner emails', () => {
@@ -249,12 +255,15 @@ describe('Domain-Admin Middleware', () => {
       expect(email).toBe('admin@event-flow.co.uk');
     });
 
-    // Note: Testing custom OWNER_EMAIL requires module reload
-    // SKIP: env var is cached at require-time; needs child-process harness to reload.
-    // Tracked in docs/SKIPPED_TESTS_AUDIT.md (domain-admin #E2).
-    it.skip('should return custom owner email from env (requires module reload)', () => {
-      // This test is skipped because the module caches env vars at load time
-      // In production, OWNER_EMAIL is set before server starts
+    // See comment on the isOwnerEmail custom-env test above for the
+    // rationale — `OWNER_EMAIL` is captured at require-time.
+    it('should return custom owner email from env (reload via isolateModules)', () => {
+      process.env.OWNER_EMAIL = 'owner-from-env@vexi.example';
+      jest.isolateModules(() => {
+        const reloaded = require('../../middleware/domain-admin');
+        expect(reloaded.getOwnerEmail()).toBe('owner-from-env@vexi.example');
+      });
+      delete process.env.OWNER_EMAIL;
     });
   });
 
