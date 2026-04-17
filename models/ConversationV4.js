@@ -180,6 +180,33 @@ async function createChatMessagesV4Indexes(db) {
       key: { conversationId: 1, isDeleted: 1, createdAt: -1 },
       name: 'conversation_deleted_created',
     },
+    // Per-conversation monotonic sequence used for realtime reconciliation
+    // (sinceSeq catch-up, gap detection) and deterministic ordering.
+    {
+      key: { conversationId: 1, seq: 1 },
+      name: 'conversation_seq',
+      unique: true,
+      // Sparse so legacy messages without `seq` aren't penalized by the unique
+      // constraint.  New inserts always populate `seq`.
+      partialFilterExpression: { seq: { $exists: true } },
+    },
+    // Idempotency key for sends.  Unique per (conversation, sender, clientMessageId)
+    // but only when clientMessageId is present — so existing messages without one
+    // do not collide.
+    {
+      key: { conversationId: 1, senderId: 1, clientMessageId: 1 },
+      name: 'conversation_sender_client_message_id',
+      unique: true,
+      partialFilterExpression: {
+        clientMessageId: { $exists: true, $type: 'string' },
+      },
+    },
+    // Delivery receipts index (supports aggregation queries for per-viewer status)
+    {
+      key: { 'deliveredTo.userId': 1, 'deliveredTo.deliveredAt': -1 },
+      name: 'delivered_by_user',
+      sparse: true,
+    },
   ]);
 }
 

@@ -17,6 +17,109 @@ class MessengerV4Service {
     this.logger = logger || console;
     this.conversationsCollection = db.collection('conversations_v4');
     this.messagesCollection = db.collection('chat_messages_v4');
+    // Per-conversation monotonic sequence counters used to order messages and
+    // power gap-detection / reconciliation on the client.  One document per
+    // conversation: { _id: <conversationId>, seq: <int> }.
+    this.countersCollection = db.collection('conversation_counters');
+  }
+
+  /**
+   * Allocate the next monotonic `seq` for a conversation.
+   * Uses an atomic $inc upsert so concurrent sends cannot collide.
+   * @param {ObjectId|string} conversationId
+   * @returns {Promise<number>} The newly-allocated sequence number (>=1).
+   */
+  async _nextSeq(conversationId) {
+    const _id = conversationId instanceof ObjectId ? conversationId : new ObjectId(conversationId);
+    // findOneAndUpdate with upsert+returnDocument:'after' gives us an atomic increment.
+    // Fall back to a read-then-write when the driver helper isn't available (in-memory
+    // test doubles) so unit tests keep working.
+    if (typeof this.countersCollection.findOneAndUpdate === 'function') {
+      const res = await this.countersCollection.findOneAndUpdate(
+        { _id },
+        { $inc: { seq: 1 } },
+        { upsert: true, returnDocument: 'after' }
+      );
+      // Drivers vary: result may be the doc directly or { value: doc }.
+      const doc = res && res.value !== undefined ? res.value : res;
+      if (doc && typeof doc.seq === 'number') {
+        return doc.seq;
+      }
+    }
+    // Fallback path (test in-memory db).  Not atomic, but tests are single-threaded.
+    const existing = await this.countersCollection.findOne({ _id });
+    const next = (existing?.seq || 0) + 1;
+    if (existing) {
+      await this.countersCollection.updateOne({ _id }, { $set: { seq: next } });
+    } else {
+      await this.countersCollection.insertOne({ _id, seq: next });
+    }
+    return next;
+  }
+
+  /**
+   * Compute the per-viewer delivery/read status of a message.
+   * Returns 'sent' | 'delivered' | 'read'.  For messages authored by the
+   * viewer, this reflects how far the message has propagated to other
+   * recipients (taking the minimum state across all other participants
+   * when participant info is available, otherwise the max observed).
+   *
+   * @param {Object} message
+   * @param {string} viewerUserId - The requesting user's id.
+   * @param {Array<{userId:string}>} [participants] - Other participants for
+   *   own-message aggregation.  When omitted, own-message status is based
+   *   purely on whether any non-self user has delivered/read it.
+   */
+  static computeViewerStatus(message, viewerUserId, participants = null) {
+    if (!message) {
+      return 'sent';
+    }
+    const deliveredTo = Array.isArray(message.deliveredTo) ? message.deliveredTo : [];
+    const readBy = Array.isArray(message.readBy) ? message.readBy : [];
+    const isOwn = message.senderId === viewerUserId;
+
+    if (isOwn) {
+      // Own message: report the weakest link across the non-sender recipients.
+      // If no recipient list is supplied, fall back to any-recipient heuristics.
+      const others = Array.isArray(participants)
+        ? participants.filter(p => p.userId && p.userId !== viewerUserId).map(p => p.userId)
+        : null;
+
+      if (!others || others.length === 0) {
+        if (readBy.some(r => r.userId !== viewerUserId)) {
+          return 'read';
+        }
+        if (deliveredTo.some(d => d.userId !== viewerUserId)) {
+          return 'delivered';
+        }
+        return 'sent';
+      }
+
+      const readSet = new Set(readBy.map(r => r.userId));
+      const deliveredSet = new Set(deliveredTo.map(d => d.userId));
+      const allRead = others.every(uid => readSet.has(uid));
+      if (allRead) {
+        return 'read';
+      }
+      const allDelivered = others.every(uid => deliveredSet.has(uid) || readSet.has(uid));
+      if (allDelivered) {
+        return 'delivered';
+      }
+      // Anyone read/delivered counts as at least delivered for the sender's tick.
+      if (others.some(uid => readSet.has(uid) || deliveredSet.has(uid))) {
+        return 'delivered';
+      }
+      return 'sent';
+    }
+
+    // Incoming message: status describes the viewer's own state.
+    if (readBy.some(r => r.userId === viewerUserId)) {
+      return 'read';
+    }
+    if (deliveredTo.some(d => d.userId === viewerUserId)) {
+      return 'delivered';
+    }
+    return 'sent';
   }
 
   /**
@@ -377,6 +480,30 @@ class MessengerV4Service {
       throw new Error('Conversation not found or sender is not a participant');
     }
 
+    // Idempotency: if the client supplied a clientMessageId, short-circuit on
+    // a retry so double-submits (network retries, lost ACKs) do not produce
+    // duplicate rows.  Returning the original message makes the handler
+    // idempotent from the caller's perspective.
+    const clientMessageId =
+      typeof messageData.clientMessageId === 'string' && messageData.clientMessageId.trim()
+        ? messageData.clientMessageId.trim().substring(0, 64)
+        : null;
+    if (clientMessageId) {
+      const existing = await this.messagesCollection.findOne({
+        conversationId: new ObjectId(conversationId),
+        senderId: messageData.senderId,
+        clientMessageId,
+      });
+      if (existing) {
+        this.logger.info('Idempotent resend detected — returning existing message', {
+          messageId: existing._id,
+          conversationId,
+          clientMessageId,
+        });
+        return existing;
+      }
+    }
+
     // Validate message
     const validationErrors = validateMessage({
       ...messageData,
@@ -406,6 +533,10 @@ class MessengerV4Service {
       throw new Error(`Rate limit exceeded. ${rateLimitCheck.message}`);
     }
 
+    // Allocate the monotonic seq BEFORE insert so consumers can rely on
+    // `seq` being present on every v4 message going forward.
+    const seq = await this._nextSeq(conversationId);
+
     // Create message
     const now = new Date();
     const message = {
@@ -424,12 +555,43 @@ class MessengerV4Service {
           readAt: now,
         },
       ],
+      // Delivery receipts.  Sender is implicitly delivered at send time.
+      deliveredTo: [
+        {
+          userId: messageData.senderId,
+          deliveredAt: now,
+        },
+      ],
+      // Monotonic per-conversation sequence; drives client reconciliation
+      // (sinceSeq catch-up, gap detection, ordered buffer flush).
+      seq,
+      // Optional client-supplied dedupe key.  Null when absent so the unique
+      // partial index only enforces uniqueness on present values.
+      clientMessageId: clientMessageId,
       editedAt: null,
       isDeleted: false,
       createdAt: now,
     };
 
-    const result = await this.messagesCollection.insertOne(message);
+    let result;
+    try {
+      result = await this.messagesCollection.insertOne(message);
+    } catch (err) {
+      // The unique partial index on (conversationId, senderId, clientMessageId)
+      // can reject a racing double-insert.  In that case, resolve to the
+      // existing row so the caller still sees a successful, idempotent result.
+      if (clientMessageId && err && (err.code === 11000 || /duplicate key/i.test(err.message))) {
+        const existing = await this.messagesCollection.findOne({
+          conversationId: new ObjectId(conversationId),
+          senderId: messageData.senderId,
+          clientMessageId,
+        });
+        if (existing) {
+          return existing;
+        }
+      }
+      throw err;
+    }
     message._id = result.insertedId;
 
     // Update conversation's lastMessage and increment message count
@@ -491,7 +653,7 @@ class MessengerV4Service {
    */
   async getMessages(conversationId, userId, options = {}) {
     // Verify user is a participant
-    await this.getConversation(conversationId, userId);
+    const conversation = await this.getConversation(conversationId, userId);
 
     const limit = Math.min(options.limit || 50, 100);
     const query = {
@@ -499,7 +661,37 @@ class MessengerV4Service {
       isDeleted: false,
     };
 
-    // Cursor-based pagination
+    // sinceSeq: forward-catch-up for realtime reconciliation.  When provided
+    // we return messages in chronological (ascending-seq) order from
+    // (sinceSeq, now], ignoring the cursor-based back-pagination path.
+    if (options.sinceSeq !== undefined && options.sinceSeq !== null) {
+      const sinceSeq = Number(options.sinceSeq);
+      if (Number.isFinite(sinceSeq) && sinceSeq >= 0) {
+        query.seq = { $gt: sinceSeq };
+        const forward = await this.messagesCollection
+          .find(query)
+          .sort({ seq: 1 })
+          .limit(limit + 1)
+          .toArray();
+        const hasMore = forward.length > limit;
+        if (hasMore) {
+          forward.pop();
+        }
+        const participants = Array.isArray(conversation?.participants)
+          ? conversation.participants
+          : [];
+        return {
+          messages: forward.map(m => ({
+            ...m,
+            viewerStatus: MessengerV4Service.computeViewerStatus(m, userId, participants),
+          })),
+          hasMore,
+          nextSinceSeq: forward.length > 0 ? forward[forward.length - 1].seq : sinceSeq,
+        };
+      }
+    }
+
+    // Cursor-based pagination (legacy/default: paginate backwards through history)
     if (options.cursor) {
       const cursorMessage = await this.messagesCollection.findOne({
         _id: new ObjectId(options.cursor),
@@ -522,10 +714,15 @@ class MessengerV4Service {
       messages.pop();
     }
 
+    const participants = Array.isArray(conversation?.participants) ? conversation.participants : [];
+    const ordered = messages.reverse(); // chronological
     return {
-      messages: messages.reverse(), // Return in chronological order
+      messages: ordered.map(m => ({
+        ...m,
+        viewerStatus: MessengerV4Service.computeViewerStatus(m, userId, participants),
+      })),
       hasMore,
-      nextCursor: hasMore && messages.length > 0 ? messages[0]._id.toString() : null,
+      nextCursor: hasMore && ordered.length > 0 ? ordered[0]._id.toString() : null,
     };
   }
 
@@ -719,7 +916,21 @@ class MessengerV4Service {
    * @param {string} userId - User ID
    * @returns {boolean} Success
    */
-  async markAsRead(conversationId, userId) {
+  /**
+   * Mark conversation as read.
+   *
+   * When `options.upToSeq` is supplied, only messages up to and including
+   * that sequence number are marked — enabling per-message-cursor read
+   * receipts for true per-message status.  Omitting it retains the legacy
+   * "mark everything read as of now" semantics.
+   *
+   * @param {string} conversationId
+   * @param {string} userId
+   * @param {Object} [options]
+   * @param {number} [options.upToSeq] - Upper bound on `seq` to mark.
+   * @returns {Promise<{modifiedCount:number, readAt:Date, upToSeq:number|null}>}
+   */
+  async markAsRead(conversationId, userId, options = {}) {
     const conversation = await this.getConversation(conversationId, userId);
     const participantIndex = conversation.participants.findIndex(p => p.userId === userId);
 
@@ -728,31 +939,104 @@ class MessengerV4Service {
     }
 
     const now = new Date();
+    const upToSeq =
+      options && options.upToSeq !== undefined && options.upToSeq !== null
+        ? Number(options.upToSeq)
+        : null;
+
+    // Update per-message read receipts.  Scope by seq when supplied so we
+    // don't re-scan the entire conversation on every scroll-to-read event.
+    const msgQuery = {
+      conversationId: new ObjectId(conversationId),
+      'readBy.userId': { $ne: userId },
+    };
+    if (upToSeq !== null && Number.isFinite(upToSeq)) {
+      msgQuery.seq = { $lte: upToSeq };
+    }
+    const modRes = await this.messagesCollection.updateMany(msgQuery, {
+      $push: {
+        readBy: { userId, readAt: now },
+      },
+    });
+
+    // Recompute unread cache.  When no upToSeq was supplied (bulk read)
+    // the count drops to zero; when scoped, count remaining messages the
+    // user hasn't read yet.
+    let unreadCount = 0;
+    if (upToSeq !== null && Number.isFinite(upToSeq)) {
+      unreadCount = await this.messagesCollection.countDocuments({
+        conversationId: new ObjectId(conversationId),
+        senderId: { $ne: userId },
+        'readBy.userId': { $ne: userId },
+        isDeleted: false,
+      });
+    }
 
     await this.conversationsCollection.updateOne(
       { _id: new ObjectId(conversationId) },
       {
         $set: {
-          [`participants.${participantIndex}.unreadCount`]: 0,
+          [`participants.${participantIndex}.unreadCount`]: unreadCount,
           [`participants.${participantIndex}.lastReadAt`]: now,
         },
       }
     );
 
-    // Update readBy for all unread messages
-    await this.messagesCollection.updateMany(
+    return {
+      modifiedCount: modRes?.modifiedCount || 0,
+      readAt: now,
+      upToSeq: upToSeq !== null && Number.isFinite(upToSeq) ? upToSeq : null,
+    };
+  }
+
+  /**
+   * Record a delivery receipt for one or more messages.
+   *
+   * Messages authored by the same user are skipped (self-delivery is set at
+   * send time).  Messages where the user has already been recorded as
+   * delivered are also skipped so the receipt is idempotent.
+   *
+   * @param {string} conversationId
+   * @param {string} userId
+   * @param {Array<string>|string} messageIds - Message id(s) to mark delivered.
+   * @returns {Promise<{modifiedCount:number, deliveredAt:Date, messageIds:string[]}>}
+   */
+  async markAsDelivered(conversationId, userId, messageIds) {
+    // Verify participant access up-front so a non-participant cannot probe
+    // arbitrary conversation/message ids via delivery receipts.
+    await this.getConversation(conversationId, userId);
+
+    const ids = Array.isArray(messageIds) ? messageIds : [messageIds];
+    const objectIds = [];
+    for (const id of ids) {
+      if (typeof id === 'string' && /^[0-9a-f]{24}$/i.test(id)) {
+        objectIds.push(new ObjectId(id));
+      }
+    }
+    if (objectIds.length === 0) {
+      return { modifiedCount: 0, deliveredAt: new Date(), messageIds: [] };
+    }
+
+    const now = new Date();
+    const res = await this.messagesCollection.updateMany(
       {
+        _id: { $in: objectIds },
         conversationId: new ObjectId(conversationId),
-        'readBy.userId': { $ne: userId },
+        senderId: { $ne: userId },
+        'deliveredTo.userId': { $ne: userId },
       },
       {
         $push: {
-          readBy: { userId, readAt: now },
+          deliveredTo: { userId, deliveredAt: now },
         },
       }
     );
 
-    return true;
+    return {
+      modifiedCount: res?.modifiedCount || 0,
+      deliveredAt: now,
+      messageIds: objectIds.map(id => id.toString()),
+    };
   }
 
   /**
