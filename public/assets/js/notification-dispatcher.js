@@ -147,6 +147,17 @@
     error: (input, duration) => coerce('error', input, duration),
     warning: (input, duration) => coerce('warning', input, duration),
     info: (input, duration) => coerce('info', input, duration),
+    show: (message, kind, duration) => {
+      const safeKind = DISPATCHER_KINDS.indexOf(kind) >= 0 ? kind : 'info';
+      return coerce(safeKind, message, duration);
+    },
+    clearAll: () => {
+      const primitive = lowLevel();
+      if (primitive && typeof primitive.clearAll === 'function') {
+        return primitive.clearAll();
+      }
+      return null;
+    },
     _normalise: normalise,
     NOTIFICATION_TYPES: NOTIFICATION_TYPES.slice(),
   };

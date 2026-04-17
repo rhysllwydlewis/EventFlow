@@ -62,6 +62,15 @@ Each of these was scoped out with rationale in the PR description and does **not
 - **Effort 6** full WebSocket handler audit + onDisconnect/onReconnect toasts — should follow Effort 1.
 - **Effort 9.3** axe-core CI integration — new dependency + Playwright plumbing.
 
+## ✅ Follow-up PR — mop-up
+
+- [x] ESLint hardening (`show` + `clearAll`) and direct-caller cleanup completed ([resolved in follow-up PR](#)).
+- [x] Notification dispatcher surface extended with `show()` + `clearAll()` passthroughs ([resolved in follow-up PR](#)).
+- [x] Browser/server notification type enum drift guard test added for dispatcher parity ([resolved in follow-up PR](#)).
+- [x] Visual-regression soft-fail expiry gate added to prevent indefinite non-blocking state ([resolved in follow-up PR](#)).
+- [x] Button B2 opt-out additions now pinned by snapshot checker in CI (`check:button-opt-out`) ([resolved in follow-up PR](#)).
+- [x] Audit docs/changelog updated to capture the mop-up state and remaining explicit follow-ups ([resolved in follow-up PR](#)).
+
 ## Rollback plan
 
 If the deployed branch misbehaves, the full set of changes reverts cleanly with `git revert <merge-sha> -m 1`. The additions are almost entirely:

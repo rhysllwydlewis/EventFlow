@@ -11,58 +11,51 @@ const tester = new RuleTester({
   parserOptions: { ecmaVersion: 2021, sourceType: 'module' },
 });
 
+const FORBIDDEN_METHODS = ['success', 'error', 'warning', 'info', 'show', 'clearAll'];
+const ALLOWED_FILES = [
+  'public/assets/js/notification-dispatcher.js',
+  'public/assets/js/utils/global-error-handler.js',
+  'public/assets/js/app.js',
+];
+
 tester.run('no-direct-notifications', rule, {
   valid: [
-    {
-      code: 'NotificationDispatcher.success("ok");',
+    ...ALLOWED_FILES.flatMap(filename =>
+      FORBIDDEN_METHODS.flatMap(method => [
+        {
+          code: `EventFlowNotifications.${method}("allowed");`,
+          filename,
+        },
+        {
+          code: `window.EventFlowNotifications.${method}("allowed");`,
+          filename,
+        },
+      ])
+    ),
+    ...FORBIDDEN_METHODS.map(method => ({
+      code:
+        method === 'clearAll'
+          ? 'NotificationDispatcher.clearAll();'
+          : `NotificationDispatcher.${method}("ok");`,
       filename: 'public/assets/js/pages/example.js',
-    },
+    })),
     {
-      code: 'EventFlowNotifications.success("allowed inside dispatcher");',
-      filename: 'public/assets/js/notification-dispatcher.js',
-    },
-    {
-      code: 'EventFlowNotifications.clearAll();',
-      filename: 'public/assets/js/pages/example.js',
-    },
-    {
-      code: 'someOther.success("ok");',
+      code: 'typeof EventFlowNotifications !== "undefined";',
       filename: 'public/assets/js/pages/example.js',
     },
   ],
-  invalid: [
+  invalid: FORBIDDEN_METHODS.flatMap(method => [
     {
-      code: 'EventFlowNotifications.success("boom");',
+      code: `EventFlowNotifications.${method}("boom");`,
       filename: 'public/assets/js/pages/example.js',
       errors: [{ messageId: 'noDirect' }],
     },
     {
-      code: 'EventFlowNotifications.error("boom");',
+      code: `window.EventFlowNotifications.${method}("boom");`,
       filename: 'public/assets/js/pages/example.js',
       errors: [{ messageId: 'noDirect' }],
     },
-    {
-      code: 'window.EventFlowNotifications.warning("w");',
-      filename: 'public/assets/js/pages/example.js',
-      errors: [{ messageId: 'noDirect' }],
-    },
-    {
-      code: 'EventFlowNotifications.info("i");',
-      filename: 'public/assets/js/pages/example.js',
-      errors: [{ messageId: 'noDirect' }],
-    },
-    // Optional-chain variants (common defensive pattern) must also be caught.
-    {
-      code: 'window.EventFlowNotifications?.error("boom");',
-      filename: 'public/assets/js/pages/example.js',
-      errors: [{ messageId: 'noDirect' }],
-    },
-    {
-      code: 'EventFlowNotifications?.success("boom");',
-      filename: 'public/assets/js/pages/example.js',
-      errors: [{ messageId: 'noDirect' }],
-    },
-  ],
+  ]),
 });
 
 // RuleTester's `.run()` already produces describe/it blocks, but jest requires

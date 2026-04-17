@@ -3,10 +3,9 @@ name: Visual Regression & a11y (soft-fail)
 # Part B4 + B6 of the notification-audit follow-up.
 #
 # Runs Playwright visual regression + axe-core against the static preview
-# server on every PR. Failures upload a diff artefact but are non-blocking
-# while baselines stabilise. Once stable (target: 2 weeks after merge),
-# flip `continue-on-error` to `false` or delete this file and roll the
-# job into the main CI workflow.
+# server on every PR. The test step is soft-fail only until the configured
+# expiry date; after that, this workflow fails early until `continue-on-error`
+# is removed or the date is intentionally extended.
 #
 # Labels:
 #   - `visual-regression-soft` — applied when baselines legitimately drift
@@ -22,14 +21,21 @@ jobs:
   visual:
     name: Visual + a11y (Chromium desktop + mobile)
     runs-on: ubuntu-latest
+    env:
+      CONTINUE_ON_ERROR_UNTIL: '2026-05-01'
     permissions:
       contents: read
-    # Soft-fail: baselines are still stabilising. Remove this after the
-    # 2-week observation period (see docs/VISUAL_REGRESSION.md).
-    continue-on-error: true
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+
+      - name: Check soft-fail window
+        run: |
+          if [ "$(date +%Y-%m-%d)" \> "$CONTINUE_ON_ERROR_UNTIL" ]; then
+            echo "Soft-fail window expired on $CONTINUE_ON_ERROR_UNTIL — remove \`continue-on-error\` or extend the date in .github/workflows/visual-regression.yml"
+            exit 1
+          fi
+          echo "Soft-fail window active until $CONTINUE_ON_ERROR_UNTIL. Visual failures remain non-blocking for now."
 
       - uses: actions/setup-node@v4
         with:
@@ -43,6 +49,7 @@ jobs:
         run: npx playwright install --with-deps chromium
 
       - name: Run visual regression + axe-core
+        continue-on-error: true
         env:
           CI: 'true'
         run: npm run test:visual
