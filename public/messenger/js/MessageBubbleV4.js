@@ -66,7 +66,7 @@ class MessageBubbleV4 {
           </div>
           <div class="messenger-v4__message-meta">
             <time class="messenger-v4__message-time" datetime="${MessageBubbleV4.escape(message.createdAt || '')}">${MessageBubbleV4.escape(time)}</time>
-            ${isSent ? MessageBubbleV4.renderReadReceipt(message.status) : ''}
+            ${isSent ? MessageBubbleV4.renderReadReceipt(message.viewerStatus || message.status) : ''}
           </div>
           ${message.reactions?.length ? MessageBubbleV4.renderReactions(message.reactions, message._id) : ''}
         </div>
@@ -183,7 +183,7 @@ class MessageBubbleV4 {
 
   /**
    * Render the read receipt icon.
-   * @param {string} status - 'sent' | 'delivered' | 'read'
+   * @param {string} status - 'sent' | 'delivered' | 'read' (accepts `viewerStatus` from API v4)
    * @returns {string}
    */
   static renderReadReceipt(status) {
@@ -193,6 +193,7 @@ class MessageBubbleV4 {
 
     if (status === 'delivered') {
       label = 'Delivered';
+      cls += ' messenger-v4__read-receipt--delivered';
       icon = _ICON_CHECK_DOUBLE;
     } else if (status === 'read') {
       label = 'Read';

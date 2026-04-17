@@ -690,10 +690,21 @@
 .messenger-v4__read-receipt {
   display: flex;
   gap: 1px;
+  opacity: 0.55;
+  transition:
+    opacity 0.15s ease,
+    color 0.2s ease;
 }
 
+/* Delivered: fully opaque grey — distinct from the faded 'sent' state */
+.messenger-v4__read-receipt--delivered {
+  opacity: 0.85;
+}
+
+/* Read: brand primary colour (e.g. blue) — the canonical "read" tick */
 .messenger-v4__read-receipt--read {
   color: var(--messenger-primary);
+  opacity: 1;
 }
 
 /* Typing indicator */
