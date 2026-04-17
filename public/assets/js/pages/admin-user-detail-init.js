@@ -20,15 +20,12 @@
   }
 
   function getRoleBadge(role) {
-    return AdminShared.getRoleBadge
-      ? AdminShared.getRoleBadge(role)
-      : role === 'admin'
-        ? '<span class="badge badge-admin">🛡️ Admin</span>'
-        : role === 'supplier'
-          ? '<span class="badge badge-supplier-account">🏪 Supplier</span>'
-          : role === 'partner'
-            ? '<span class="badge badge-partner">🤝 Partner</span>'
-            : '<span class="badge badge-customer">🎉 Customer</span>';
+    return AdminShared.getRoleBadge ? AdminShared.getRoleBadge(role) : (
+      role === 'admin' ? '<span class="badge badge-admin">🛡️ Admin</span>' :
+      role === 'supplier' ? '<span class="badge badge-supplier-account">🏪 Supplier</span>' :
+      role === 'partner' ? '<span class="badge badge-partner">🤝 Partner</span>' :
+      '<span class="badge badge-customer">🎉 Customer</span>'
+    );
   }
 
   function renderUserDetails(user) {

@@ -50,9 +50,7 @@
   function showConfirmDialog(message) {
     return new Promise(resolve => {
       const existing = document.getElementById('_partner_confirm_dialog');
-      if (existing) {
-        existing.remove();
-      }
+      if (existing) existing.remove();
 
       const overlay = document.createElement('div');
       overlay.id = '_partner_confirm_dialog';
@@ -77,19 +75,10 @@
 
       document.body.appendChild(overlay);
 
-      const cleanup = val => {
-        overlay.remove();
-        resolve(val);
-      };
-      overlay
-        .querySelector('#_partner_confirm_cancel')
-        .addEventListener('click', () => cleanup(false));
+      const cleanup = val => { overlay.remove(); resolve(val); };
+      overlay.querySelector('#_partner_confirm_cancel').addEventListener('click', () => cleanup(false));
       overlay.querySelector('#_partner_confirm_ok').addEventListener('click', () => cleanup(true));
-      overlay.addEventListener('click', e => {
-        if (e.target === overlay) {
-          cleanup(false);
-        }
-      });
+      overlay.addEventListener('click', e => { if (e.target === overlay) cleanup(false); });
       overlay.querySelector('#_partner_confirm_ok').focus();
     });
   }
@@ -694,9 +683,7 @@
         if (emptyBtn) {
           emptyBtn.addEventListener('click', () => {
             const openBtn = document.getElementById('partner-support-btn');
-            if (openBtn) {
-              openBtn.click();
-            }
+            if (openBtn) openBtn.click();
           });
         }
         return;
@@ -721,10 +708,7 @@
         const open = () => viewTicket(row.dataset.ticketId);
         row.addEventListener('click', open);
         row.addEventListener('keydown', e => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            open();
-          }
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); }
         });
       });
     } catch (err) {
@@ -740,9 +724,7 @@
     const overlay = document.getElementById('partner-ticket-detail-overlay');
     const body = document.getElementById('partner-ticket-detail-body');
     const titleEl = document.getElementById('partner-ticket-detail-title');
-    if (!overlay || !body) {
-      return;
-    }
+    if (!overlay || !body) return;
 
     body.innerHTML = `
       <div class="partner-empty">
@@ -759,52 +741,36 @@
     }
 
     function handleEsc(e) {
-      if (e.key === 'Escape') {
-        closeDetail();
-      }
+      if (e.key === 'Escape') closeDetail();
     }
 
     const closeBtn = document.getElementById('partner-ticket-detail-close');
     if (closeBtn) {
       closeBtn.onclick = closeDetail;
     }
-    overlay.onclick = e => {
-      if (e.target === overlay) {
-        closeDetail();
-      }
-    };
+    overlay.onclick = e => { if (e.target === overlay) closeDetail(); };
 
     document.addEventListener('keydown', handleEsc);
 
     try {
-      const r = await fetch(`/api/v1/tickets/${encodeURIComponent(ticketId)}`, {
-        credentials: 'include',
-      });
-      if (!r.ok) {
-        throw new Error(`HTTP ${r.status}`);
-      }
+      const r = await fetch('/api/v1/tickets/' + encodeURIComponent(ticketId), { credentials: 'include' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
       const d = await r.json();
       const ticket = d.ticket || d;
       const replies = ticket.replies || [];
 
-      if (titleEl) {
-        titleEl.textContent = ticket.subject || 'Support Ticket';
-      }
+      if (titleEl) titleEl.textContent = ticket.subject || 'Support Ticket';
 
-      const replyItems = replies
-        .map(reply => {
-          const isStaff = reply.isStaff || reply.authorRole === 'admin';
-          return `
+      const replyItems = replies.map(reply => {
+        const isStaff = reply.isStaff || reply.authorRole === 'admin';
+        return `
           <div class="partner-reply-item ${isStaff ? 'partner-reply-item--staff' : 'partner-reply-item--user'}">
             <div class="partner-reply-meta">${isStaff ? '🛡 EventFlow Support' : '👤 You'} &nbsp;·&nbsp; ${fmtDate(reply.createdAt)}</div>
             <div style="white-space:pre-wrap;color:rgba(255,255,255,0.8);">${escHtml(reply.message || reply.content || '')}</div>
           </div>`;
-        })
-        .join('');
+      }).join('');
 
-      const replyForm =
-        ticket.status !== 'closed'
-          ? `
+      const replyForm = ticket.status !== 'closed' ? `
         <div class="partner-reply-form">
           <p class="partner-reply-label">Add a reply</p>
           <textarea
@@ -822,8 +788,7 @@
             data-ticket-id="${escHtml(String(ticket._id || ticket.id))}"
           >Send Reply</button>
           <span id="partner-reply-status" role="status" aria-live="polite" style="font-size:0.8rem;margin-top:0.25rem;"></span>
-        </div>`
-          : '<p style="color:rgba(255,255,255,0.35);font-size:0.875rem;margin-top:1rem;">This ticket is closed.</p>';
+        </div>` : '<p style="color:rgba(255,255,255,0.35);font-size:0.875rem;margin-top:1rem;">This ticket is closed.</p>';
 
       body.innerHTML = `
         <div style="font-size:0.78rem;color:rgba(255,255,255,0.4);margin-bottom:0.75rem;">
@@ -842,21 +807,16 @@
           const statusEl = body.querySelector('#partner-reply-status');
           const msg = textarea ? textarea.value.trim() : '';
           if (!msg) {
-            if (statusEl) {
-              statusEl.textContent = 'Please enter a reply.';
-              statusEl.style.color = '#ef4444';
-            }
+            if (statusEl) { statusEl.textContent = 'Please enter a reply.'; statusEl.style.color = '#ef4444'; }
             return;
           }
           sendBtn.disabled = true;
           sendBtn.textContent = 'Sending…';
-          if (statusEl) {
-            statusEl.textContent = '';
-          }
+          if (statusEl) statusEl.textContent = '';
           try {
             const csrfToken = await getCsrfToken();
             const rr = await fetch(
-              `/api/v1/tickets/${encodeURIComponent(sendBtn.dataset.ticketId)}/reply`,
+              '/api/v1/tickets/' + encodeURIComponent(sendBtn.dataset.ticketId) + '/reply',
               {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfToken },
@@ -864,22 +824,12 @@
                 body: JSON.stringify({ message: msg }),
               }
             );
-            if (!rr.ok) {
-              throw new Error(`HTTP ${rr.status}`);
-            }
-            if (statusEl) {
-              statusEl.textContent = '✓ Reply sent';
-              statusEl.style.color = '#10b981';
-            }
-            if (textarea) {
-              textarea.value = '';
-            }
+            if (!rr.ok) throw new Error('HTTP ' + rr.status);
+            if (statusEl) { statusEl.textContent = '✓ Reply sent'; statusEl.style.color = '#10b981'; }
+            if (textarea) textarea.value = '';
             setTimeout(() => viewTicket(sendBtn.dataset.ticketId), 800);
           } catch (err) {
-            if (statusEl) {
-              statusEl.textContent = `✗ Failed: ${err.message}`;
-              statusEl.style.color = '#ef4444';
-            }
+            if (statusEl) { statusEl.textContent = '✗ Failed: ' + err.message; statusEl.style.color = '#ef4444'; }
           } finally {
             sendBtn.disabled = false;
             sendBtn.textContent = 'Send Reply';
@@ -1284,7 +1234,8 @@
 
         if (disabledPanel) {
           if (disabledMsg) {
-            disabledMsg.textContent = err.message || 'Your partner account has been disabled.';
+            disabledMsg.textContent =
+              err.message || 'Your partner account has been disabled.';
           }
           disabledPanel.removeAttribute('hidden');
         }

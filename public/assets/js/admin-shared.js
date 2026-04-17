@@ -343,7 +343,10 @@ const AdminShared = (function () {
     } catch (error) {
       // Only log if not already logged above
       const msg = (error && error.message) || '';
-      if (!msg.includes('Authentication required') && !msg.includes('Forbidden')) {
+      if (
+        !msg.includes('Authentication required') &&
+        !msg.includes('Forbidden')
+      ) {
         debugError(`${method} ${url} - Error:`, msg);
       }
       throw error;
@@ -1815,15 +1818,9 @@ const AdminShared = (function () {
    * @returns {string} HTML string
    */
   function getRoleBadge(role) {
-    if (role === 'admin') {
-      return '<span class="badge badge-admin">🛡️ Admin</span>';
-    }
-    if (role === 'supplier') {
-      return '<span class="badge badge-supplier-account">🏪 Supplier</span>';
-    }
-    if (role === 'partner') {
-      return '<span class="badge badge-partner">🤝 Partner</span>';
-    }
+    if (role === 'admin') return '<span class="badge badge-admin">🛡️ Admin</span>';
+    if (role === 'supplier') return '<span class="badge badge-supplier-account">🏪 Supplier</span>';
+    if (role === 'partner') return '<span class="badge badge-partner">🤝 Partner</span>';
     return '<span class="badge badge-customer">🎉 Customer</span>';
   }
 

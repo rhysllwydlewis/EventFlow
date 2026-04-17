@@ -682,9 +682,7 @@
         removeBtn.addEventListener('click', () => removeImage(category.id));
       }
 
-      const heroToggle = document.querySelector(
-        `.hero-visibility-toggle[data-id="${category.id}"]`
-      );
+      const heroToggle = document.querySelector(`.hero-visibility-toggle[data-id="${category.id}"]`);
       if (heroToggle) {
         heroToggle.addEventListener('change', e => {
           toggleCategoryVisibility(category.id, e.target.checked, '.hero-visibility-toggle');
