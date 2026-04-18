@@ -8,78 +8,69 @@ const path = require('path');
 
 describe('Auth Me Endpoint', () => {
   describe('Response Format', () => {
-    it('should have /api/auth/me endpoint in server.js', () => {
-      const serverContent = fs.readFileSync(path.join(__dirname, '../../server.js'), 'utf8');
+    it('should have /me endpoint in routes/auth.js', () => {
+      const authContent = fs.readFileSync(path.join(__dirname, '../../routes/auth.js'), 'utf8');
 
       // Verify the endpoint exists
-      expect(serverContent).toContain("app.get('/api/auth/me'");
-      expect(serverContent).toContain('getUserFromCookie');
+      expect(authContent).toContain("router.get('/me'");
+      expect(authContent).toContain('getUserFromCookie');
     });
 
     it('should return 200 with { user: null } for unauthenticated users', () => {
-      const serverContent = fs.readFileSync(path.join(__dirname, '../../server.js'), 'utf8');
+      const authContent = fs.readFileSync(path.join(__dirname, '../../routes/auth.js'), 'utf8');
 
       // Verify the endpoint returns 200 with { user: null } for unauthenticated users
-      const authMeEndpoint = serverContent.match(/app\.get\('\/api\/auth\/me'[\s\S]*?^\}\);/m);
+      const authMeEndpoint = authContent.match(/router\.get\('\/me'[\s\S]*?^\}\);/m);
       expect(authMeEndpoint).toBeTruthy();
-      expect(authMeEndpoint[0]).toContain('res.status(200).json({ user: null })');
+      expect(authMeEndpoint[0]).toContain('return res.json({ user: null })');
     });
 
     it('should return wrapped response format with user property', () => {
-      const serverContent = fs.readFileSync(path.join(__dirname, '../../server.js'), 'utf8');
+      const authContent = fs.readFileSync(path.join(__dirname, '../../routes/auth.js'), 'utf8');
 
       // Verify response includes wrapped format
-      const authMeSection = serverContent.match(/app\.get\('\/api\/auth\/me'[\s\S]*?^\}\);/m);
+      const authMeSection = authContent.match(/router\.get\('\/me'[\s\S]*?^\}\);/m);
       expect(authMeSection).toBeTruthy();
-      expect(authMeSection[0]).toContain('user: userData');
+      expect(authMeSection[0]).toContain('res.json({');
+      expect(authMeSection[0]).toContain('user: {');
     });
 
-    it('should enforce owner admin role for admin@event-flow.co.uk', () => {
-      const serverContent = fs.readFileSync(path.join(__dirname, '../../server.js'), 'utf8');
+    it('should include supplierApproved enrichment for supplier users', () => {
+      const authContent = fs.readFileSync(path.join(__dirname, '../../routes/auth.js'), 'utf8');
 
-      // Verify owner enforcement exists - check for OWNER_EMAIL constant usage
-      const authMeEndpoint = serverContent.match(/app\.get\('\/api\/auth\/me'[\s\S]*?^\}\);/m);
+      const authMeEndpoint = authContent.match(/router\.get\('\/me'[\s\S]*?^\}\);/m);
       expect(authMeEndpoint).toBeTruthy();
-      expect(authMeEndpoint[0]).toContain('OWNER_EMAIL');
-      expect(authMeEndpoint[0]).toContain('isOwner');
-
-      // Verify constant is defined
-      expect(serverContent).toContain("const OWNER_EMAIL = 'admin@event-flow.co.uk'");
+      expect(authMeEndpoint[0]).toContain("if (u.role === 'supplier')");
+      expect(authMeEndpoint[0]).toContain('supplierApproved');
     });
 
-    it('should maintain backward compatibility with unwrapped format', () => {
-      const serverContent = fs.readFileSync(path.join(__dirname, '../../server.js'), 'utf8');
+    it('should return wrapped user format only', () => {
+      const authContent = fs.readFileSync(path.join(__dirname, '../../routes/auth.js'), 'utf8');
 
-      // Verify backward compatibility by spreading userData at root
-      const authMeEndpoint = serverContent.match(/app\.get\('\/api\/auth\/me'[\s\S]*?^\}\);/m);
+      const authMeEndpoint = authContent.match(/router\.get\('\/me'[\s\S]*?^\}\);/m);
       expect(authMeEndpoint).toBeTruthy();
-      expect(authMeEndpoint[0]).toContain('...userData');
+      expect(authMeEndpoint[0]).not.toContain('...userData');
     });
   });
 
   describe('Login Endpoint Owner Enforcement', () => {
-    it('should enforce owner admin role during login JWT creation', () => {
-      const serverContent = fs.readFileSync(path.join(__dirname, '../../server.js'), 'utf8');
+    it('should create JWT using persisted user role during login', () => {
+      const authContent = fs.readFileSync(path.join(__dirname, '../../routes/auth.js'), 'utf8');
 
-      // Verify login endpoint enforces owner role - check for OWNER_EMAIL constant usage
-      const loginEndpoint = serverContent.match(/app\.post\('\/api\/auth\/login'[\s\S]*?^\}\);/m);
-      expect(loginEndpoint).toBeTruthy();
-      expect(loginEndpoint[0]).toContain('OWNER_EMAIL');
-      expect(loginEndpoint[0]).toContain('isOwner');
-      expect(loginEndpoint[0]).toContain('userRole');
-
-      // Verify constant is defined
-      expect(serverContent).toContain("const OWNER_EMAIL = 'admin@event-flow.co.uk'");
-    });
-
-    it('should use enforced role in JWT token', () => {
-      const serverContent = fs.readFileSync(path.join(__dirname, '../../server.js'), 'utf8');
-
-      // Verify JWT is signed with enforced role
-      const loginEndpoint = serverContent.match(/app\.post\('\/api\/auth\/login'[\s\S]*?^\}\);/m);
+      const loginEndpoint = authContent.match(/router\.post\('\/login'[\s\S]*?^\}\);/m);
       expect(loginEndpoint).toBeTruthy();
       expect(loginEndpoint[0]).toContain('jwt.sign');
-      expect(loginEndpoint[0]).toContain('role: userRole');
+      expect(loginEndpoint[0]).toContain('role: user.role');
+    });
+
+    it('should use user role in response payload', () => {
+      const authContent = fs.readFileSync(path.join(__dirname, '../../routes/auth.js'), 'utf8');
+
+      const loginEndpoint = authContent.match(/router\.post\('\/login'[\s\S]*?^\}\);/m);
+      expect(loginEndpoint).toBeTruthy();
+      expect(loginEndpoint[0]).toContain(
+        'user: { id: user.id, name: user.name, email: user.email, role: user.role }'
+      );
     });
   });
 

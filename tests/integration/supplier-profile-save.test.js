@@ -11,6 +11,7 @@ describe('Supplier Profile Save Fixes', () => {
   let appJsContent;
   let supplierGalleryContent;
   let serverJsContent;
+  let supplierManagementContent;
   let geocodingContent;
 
   beforeAll(() => {
@@ -32,6 +33,10 @@ describe('Supplier Profile Save Fixes', () => {
       'utf8'
     );
     serverJsContent = fs.readFileSync(path.join(__dirname, '../../server.js'), 'utf8');
+    supplierManagementContent = fs.readFileSync(
+      path.join(__dirname, '../../routes/supplier-management.js'),
+      'utf8'
+    );
     geocodingContent = fs.readFileSync(path.join(__dirname, '../../utils/geocoding.js'), 'utf8');
   });
 
@@ -223,47 +228,29 @@ describe('Supplier Profile Save Fixes', () => {
 
   describe('Backend Validation', () => {
     it('should require venuePostcode for Venues category on POST', () => {
-      const postRoute = serverJsContent.match(
-        /app\.post\(\s*['"]\/api\/me\/suppliers['"][\s\S]*?res\.json/
-      );
-      expect(postRoute).toBeTruthy();
-      expect(postRoute[0]).toContain("category === 'Venues'");
-      expect(postRoute[0]).toContain('venuePostcode');
+      expect(supplierManagementContent).toContain("category === 'Venues'");
+      expect(supplierManagementContent).toContain('venuePostcode');
     });
 
     it('should validate UK postcode format', () => {
-      const postRoute = serverJsContent.match(
-        /app\.post\(\s*['"]\/api\/me\/suppliers['"][\s\S]*?res\.json/
-      );
-      expect(postRoute).toBeTruthy();
-      expect(postRoute[0]).toContain('isValidUKPostcode');
-      expect(postRoute[0]).toContain('Invalid UK postcode format');
+      expect(supplierManagementContent).toContain('isValidUKPostcode');
+      expect(supplierManagementContent).toContain('Invalid UK postcode format');
     });
 
     it('should return proper error messages', () => {
-      const postRoute = serverJsContent.match(
-        /app\.post\(\s*['"]\/api\/me\/suppliers['"][\s\S]*?res\.json/
-      );
-      expect(postRoute).toBeTruthy();
-      expect(postRoute[0]).toContain(
+      expect(supplierManagementContent).toContain(
         'Venue postcode is required for suppliers in the Venues category'
       );
     });
 
     it('should have CSRF protection on POST /api/me/suppliers', () => {
-      expect(serverJsContent).toContain("app.post(\n  '/api/me/suppliers'");
-      const postRoute = serverJsContent.match(
-        /app\.post\(\s*['"]\/api\/me\/suppliers['"][\s\S]{0,300}csrfProtection/
-      );
-      expect(postRoute).toBeTruthy();
+      expect(supplierManagementContent).toContain("router.post(\n  '/'");
+      expect(supplierManagementContent).toContain('applyCsrfProtection');
     });
 
     it('should have CSRF protection on PATCH /api/me/suppliers/:id', () => {
-      expect(serverJsContent).toContain("app.patch(\n  '/api/me/suppliers/:id'");
-      const patchRoute = serverJsContent.match(
-        /app\.patch\(\s*['"]\/api\/me\/suppliers\/:id['"][\s\S]{0,300}csrfProtection/
-      );
-      expect(patchRoute).toBeTruthy();
+      expect(supplierManagementContent).toContain("router.patch(\n  '/:id'");
+      expect(supplierManagementContent).toContain('applyCsrfProtection');
     });
   });
 

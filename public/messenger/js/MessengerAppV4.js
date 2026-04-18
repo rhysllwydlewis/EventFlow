@@ -90,6 +90,8 @@ class MessengerAppV4 {
       timeToLiveMs: 0,
     };
     this._connectStartedAt = 0;
+    this._telemetry = null;
+    this._telemetryVisibilityHandler = null;
   }
 
   // ---------------------------------------------------------------------------
@@ -109,6 +111,7 @@ class MessengerAppV4 {
         return;
       }
       this.state.setCurrentUser(this.currentUser);
+      this._initTelemetry();
 
       // 2. Initialize all components
       this._initComponents();
@@ -233,6 +236,7 @@ class MessengerAppV4 {
       }
       if (this._isDuplicateMessage(conversationId, message)) {
         this._reconMetrics.duplicateSeqDrops++;
+        this._recordTelemetry({ dupSeqDrops: 1 });
         this._logRecon('duplicate-drop', { conversationId, seq: message.seq });
         return;
       }
@@ -343,7 +347,9 @@ class MessengerAppV4 {
       await this._catchUpAllConversations();
       this.recon?.transition('LIVE');
       this._reconMetrics.timeToLiveMs = Date.now() - this._connectStartedAt;
+      this._recordTelemetry({ timeToLiveMs: this._reconMetrics.timeToLiveMs });
       this._logRecon('time-to-live', { ms: this._reconMetrics.timeToLiveMs });
+      this._flushTelemetry('live');
       this.chatView?.setConnectionState?.('LIVE');
       this._replayQueuedLiveEvents();
     });
@@ -956,6 +962,10 @@ class MessengerAppV4 {
       this._responsiveMq = null;
       this._onMqChange = null;
     }
+    if (this._telemetryVisibilityHandler) {
+      document.removeEventListener('visibilitychange', this._telemetryVisibilityHandler);
+      this._telemetryVisibilityHandler = null;
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -1360,6 +1370,7 @@ class MessengerAppV4 {
       );
       if (before) {
         this._reconMetrics.clientMessageIdReconciliations++;
+        this._recordTelemetry({ cmidReconciles: 1 });
       }
       this.state.setMessages(conversationId, merged);
       return;
@@ -1396,6 +1407,7 @@ class MessengerAppV4 {
           this._trackLastSeenSeq(conversationId, msg.seq);
         } else {
           this._reconMetrics.duplicateSeqDrops++;
+          this._recordTelemetry({ dupSeqDrops: 1 });
         }
       }
       sinceSeq = Number(res?.nextSinceSeq || msgs[msgs.length - 1]?.seq || sinceSeq);
@@ -1404,6 +1416,7 @@ class MessengerAppV4 {
       }
     }
     this._reconMetrics.catchupGapSize = fetched;
+    this._recordTelemetry({ maxGapSize: fetched });
     this._logRecon('catchup-gap', { conversationId, fetched });
   }
 
@@ -1415,6 +1428,7 @@ class MessengerAppV4 {
       }
       if (this._isDuplicateMessage(evt.conversationId, evt.message)) {
         this._reconMetrics.duplicateSeqDrops++;
+        this._recordTelemetry({ dupSeqDrops: 1 });
         continue;
       }
       this._upsertMessage(evt.conversationId, evt.message);
@@ -1516,6 +1530,30 @@ class MessengerAppV4 {
         this._readUpToSeq.set(`${conversationId}:sent`, finalSeq);
       }
     }, 750);
+  }
+
+  _initTelemetry() {
+    if (!window.MessengerTelemetryEmitter || this._telemetry) {
+      return;
+    }
+    const userId = this._getCurrentUserId() || 'anon';
+    this._telemetry = new window.MessengerTelemetryEmitter({
+      sessionId: `${userId}:${Date.now().toString(36)}`,
+    });
+    this._telemetryVisibilityHandler = () => {
+      if (document.visibilityState === 'hidden') {
+        this._flushTelemetry('hidden');
+      }
+    };
+    document.addEventListener('visibilitychange', this._telemetryVisibilityHandler);
+  }
+
+  _recordTelemetry(partial) {
+    this._telemetry?.record?.(partial);
+  }
+
+  _flushTelemetry(reason) {
+    this._telemetry?.flush?.(reason).catch?.(() => {});
   }
 
   _logRecon(event, payload = {}) {

@@ -38,6 +38,16 @@ describe('ReconciliationFSM', () => {
     expect(final.map(m => m.seq)).toEqual([1, 2, 3, 4, 5, 6]);
     expect(final.filter(m => m.seq === 5)).toHaveLength(1);
   });
+
+  it('supports DISCONNECTED → RECONNECTING → CATCHING_UP transition path', () => {
+    const fsm = new ReconciliationFSM();
+    expect(fsm.transition(RECON_STATES.CONNECTING)).toBe(true);
+    expect(fsm.transition(RECON_STATES.CATCHING_UP)).toBe(true);
+    expect(fsm.transition(RECON_STATES.LIVE)).toBe(true);
+    expect(fsm.transition(RECON_STATES.DISCONNECTED)).toBe(true);
+    expect(fsm.transition(RECON_STATES.RECONNECTING)).toBe(true);
+    expect(fsm.transition(RECON_STATES.CATCHING_UP)).toBe(true);
+  });
 });
 
 describe('VirtualList windowing', () => {
@@ -48,5 +58,14 @@ describe('VirtualList windowing', () => {
     expect(w.items).toHaveLength(80);
     expect(w.total).toBe(150);
     expect(w.items[0].seq).toBe(71);
+  });
+
+  it('renders all items without window offset for short lists', () => {
+    const v = new VirtualList(80);
+    const items = Array.from({ length: 12 }, (_, i) => ({ seq: i + 1 }));
+    const w = v.setItems(items);
+    expect(w.start).toBe(0);
+    expect(w.end).toBe(12);
+    expect(w.items).toHaveLength(12);
   });
 });

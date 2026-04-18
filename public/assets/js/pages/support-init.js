@@ -7,30 +7,56 @@ window.__EF_PAGE__ = 'support';
   let activeFilter = '';
 
   function escHtml(s) {
-    if (!s || typeof s !== 'string') return '';
+    if (!s || typeof s !== 'string') {
+      return '';
+    }
     const d = document.createElement('div');
     d.textContent = s;
     return d.innerHTML;
   }
 
   function fmtDate(iso) {
-    if (!iso) return '';
+    if (!iso) {
+      return '';
+    }
     try {
-      return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-    } catch (_) { return iso; }
+      return new Date(iso).toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      });
+    } catch (_) {
+      return iso;
+    }
   }
 
   function badgeClass(status) {
-    const map = { open: 'badge-open', pending: 'badge-pending', resolved: 'badge-resolved', closed: 'badge-closed' };
+    const map = {
+      open: 'badge-open',
+      pending: 'badge-pending',
+      resolved: 'badge-resolved',
+      closed: 'badge-closed',
+    };
     return map[status] || 'badge-open';
   }
 
   async function getCsrf() {
-    if (window.__CSRF_TOKEN__) return window.__CSRF_TOKEN__;
+    if (window.__CSRF_TOKEN__) {
+      return window.__CSRF_TOKEN__;
+    }
     try {
       const r = await fetch('/api/csrf-token', { credentials: 'include' });
-      if (r.ok) { const d = await r.json(); const t = d.csrfToken || d.token || ''; if (t) window.__CSRF_TOKEN__ = t; return t; }
-    } catch (_) {}
+      if (r.ok) {
+        const d = await r.json();
+        const t = d.csrfToken || d.token || '';
+        if (t) {
+          window.__CSRF_TOKEN__ = t;
+        }
+        return t;
+      }
+    } catch (_) {
+      return '';
+    }
     const m = document.cookie.match(/(?:^|;\s*)(?:csrf|csrfToken)=([^;]+)/);
     return m ? decodeURIComponent(m[1]) : '';
   }
@@ -50,10 +76,10 @@ window.__EF_PAGE__ = 'support';
       const r = await fetch('/api/v1/tickets', { credentials: 'include' });
       if (!r.ok) {
         if (r.status === 401) {
-          window.location.href = '/auth?redirect=' + encodeURIComponent(window.location.pathname);
+          window.location.href = `/auth?redirect=${encodeURIComponent(window.location.pathname)}`;
           return;
         }
-        throw new Error('HTTP ' + r.status);
+        throw new Error(`HTTP ${r.status}`);
       }
       const d = await r.json();
       allTickets = d.tickets || d.data || [];
@@ -61,7 +87,8 @@ window.__EF_PAGE__ = 'support';
       renderTickets();
     } catch (err) {
       loading.style.display = 'none';
-      document.getElementById('tickets-error-msg').textContent = 'Failed to load tickets: ' + err.message;
+      document.getElementById('tickets-error-msg').textContent =
+        `Failed to load tickets: ${err.message}`;
       error.style.display = 'block';
     }
   }
@@ -82,10 +109,11 @@ window.__EF_PAGE__ = 'support';
 
     empty.style.display = 'none';
     container.style.display = 'block';
-    container.innerHTML = filtered.map(ticket => {
-      const id = ticket._id || ticket.id;
-      const status = ticket.status || 'open';
-      return `
+    container.innerHTML = filtered
+      .map(ticket => {
+        const id = ticket._id || ticket.id;
+        const status = ticket.status || 'open';
+        return `
         <div class="ticket-card" tabindex="0" role="button" data-ticket-id="${escHtml(id)}" aria-label="View ticket: ${escHtml(ticket.subject)}">
           <div class="ticket-card-header">
             <div class="ticket-subject">${escHtml(ticket.subject)}</div>
@@ -97,12 +125,18 @@ window.__EF_PAGE__ = 'support';
           ${ticket.message ? `<div class="ticket-preview">${escHtml(ticket.message)}</div>` : ''}
         </div>
       `;
-    }).join('');
+      })
+      .join('');
 
     container.querySelectorAll('.ticket-card').forEach(card => {
       const open = () => viewTicket(card.dataset.ticketId);
       card.addEventListener('click', open);
-      card.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+      card.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          open();
+        }
+      });
     });
   }
 
@@ -112,8 +146,12 @@ window.__EF_PAGE__ = 'support';
     openViewModal();
 
     try {
-      const r = await fetch('/api/v1/tickets/' + encodeURIComponent(ticketId), { credentials: 'include' });
-      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const r = await fetch(`/api/v1/tickets/${encodeURIComponent(ticketId)}`, {
+        credentials: 'include',
+      });
+      if (!r.ok) {
+        throw new Error(`HTTP ${r.status}`);
+      }
       const d = await r.json();
       const ticket = d.ticket || d;
       const replies = ticket.replies || [];
@@ -127,14 +165,20 @@ window.__EF_PAGE__ = 'support';
           <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:1rem;font-size:0.9rem;color:#374151;white-space:pre-wrap;">${escHtml(ticket.message)}</div>
         </div>
         <div class="reply-thread">
-          ${replies.map(reply => `
+          ${replies
+            .map(
+              reply => `
             <div class="reply-item ${reply.isStaff || reply.authorRole === 'admin' ? 'reply-staff' : 'reply-user'}">
               <div class="reply-meta">${reply.isStaff || reply.authorRole === 'admin' ? '🛡 EventFlow Support' : '👤 You'} &nbsp;·&nbsp; ${fmtDate(reply.createdAt)}</div>
               <div style="white-space:pre-wrap;">${escHtml(reply.message || reply.content || '')}</div>
             </div>
-          `).join('')}
+          `
+            )
+            .join('')}
         </div>
-        ${ticket.status !== 'closed' ? `
+        ${
+          ticket.status !== 'closed'
+            ? `
         <div class="reply-form">
           <div class="form-row">
             <label for="reply-message">Reply</label>
@@ -143,7 +187,9 @@ window.__EF_PAGE__ = 'support';
           <button type="button" class="cta" id="send-reply-btn" data-ticket-id="${escHtml(String(ticket._id || ticket.id))}">Send Reply</button>
           <span id="reply-status" style="font-size:0.875rem;margin-left:0.75rem;" role="status" aria-live="polite"></span>
         </div>
-        ` : '<p style="color:#9ca3af;font-size:0.875rem;margin-top:1rem;">This ticket is closed.</p>'}
+        `
+            : '<p style="color:#9ca3af;font-size:0.875rem;margin-top:1rem;">This ticket is closed.</p>'
+        }
       `;
 
       const sendBtn = body.querySelector('#send-reply-btn');
@@ -151,25 +197,34 @@ window.__EF_PAGE__ = 'support';
         sendBtn.addEventListener('click', async () => {
           const replyMsg = body.querySelector('#reply-message').value.trim();
           const replyStatus = body.querySelector('#reply-status');
-          if (!replyMsg) { replyStatus.textContent = 'Please enter a reply.'; replyStatus.style.color = '#ef4444'; return; }
+          if (!replyMsg) {
+            replyStatus.textContent = 'Please enter a reply.';
+            replyStatus.style.color = '#ef4444';
+            return;
+          }
           sendBtn.disabled = true;
           sendBtn.textContent = 'Sending…';
           replyStatus.textContent = '';
           try {
             const csrf = await getCsrf();
-            const rr = await fetch('/api/v1/tickets/' + encodeURIComponent(sendBtn.dataset.ticketId) + '/reply', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
-              credentials: 'include',
-              body: JSON.stringify({ message: replyMsg }),
-            });
-            if (!rr.ok) throw new Error('HTTP ' + rr.status);
+            const rr = await fetch(
+              `/api/v1/tickets/${encodeURIComponent(sendBtn.dataset.ticketId)}/reply`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+                credentials: 'include',
+                body: JSON.stringify({ message: replyMsg }),
+              }
+            );
+            if (!rr.ok) {
+              throw new Error(`HTTP ${rr.status}`);
+            }
             replyStatus.textContent = '✓ Reply sent';
             replyStatus.style.color = '#10b981';
             body.querySelector('#reply-message').value = '';
             setTimeout(() => viewTicket(sendBtn.dataset.ticketId), 800);
           } catch (err) {
-            replyStatus.textContent = '✗ Failed to send: ' + err.message;
+            replyStatus.textContent = `✗ Failed to send: ${err.message}`;
             replyStatus.style.color = '#ef4444';
           } finally {
             sendBtn.disabled = false;
@@ -178,7 +233,7 @@ window.__EF_PAGE__ = 'support';
         });
       }
     } catch (err) {
-      body.innerHTML = '<div style="color:#ef4444;padding:1rem;">Failed to load ticket: ' + escHtml(err.message) + '</div>';
+      body.innerHTML = `<div style="color:#ef4444;padding:1rem;">Failed to load ticket: ${escHtml(err.message)}</div>`;
     }
   }
 
@@ -222,9 +277,16 @@ window.__EF_PAGE__ = 'support';
 
   // Escape key closes whichever modal is active
   document.addEventListener('keydown', e => {
-    if (e.key !== 'Escape') return;
-    if (viewModal.classList.contains('active')) { closeViewModal(); return; }
-    if (createModal.classList.contains('active')) { closeCreateModal(); }
+    if (e.key !== 'Escape') {
+      return;
+    }
+    if (viewModal.classList.contains('active')) {
+      closeViewModal();
+      return;
+    }
+    if (createModal.classList.contains('active')) {
+      closeCreateModal();
+    }
   });
 
   document.getElementById('create-ticket-submit').addEventListener('click', async () => {
@@ -238,9 +300,17 @@ window.__EF_PAGE__ = 'support';
 
     subjectErr.style.display = 'none';
     messageErr.style.display = 'none';
-    if (!subject) { subjectErr.style.display = 'block'; valid = false; }
-    if (!message) { messageErr.style.display = 'block'; valid = false; }
-    if (!valid) return;
+    if (!subject) {
+      subjectErr.style.display = 'block';
+      valid = false;
+    }
+    if (!message) {
+      messageErr.style.display = 'block';
+      valid = false;
+    }
+    if (!valid) {
+      return;
+    }
 
     const btn = document.getElementById('create-ticket-submit');
     btn.disabled = true;
@@ -256,7 +326,7 @@ window.__EF_PAGE__ = 'support';
       });
       if (!r.ok) {
         const d = await r.json().catch(() => ({}));
-        throw new Error(d.error || 'HTTP ' + r.status);
+        throw new Error(d.error || `HTTP ${r.status}`);
       }
       createModal.classList.remove('active');
       document.getElementById('create-ticket-form').reset();
@@ -264,7 +334,7 @@ window.__EF_PAGE__ = 'support';
     } catch (err) {
       const submitStatusEl = document.getElementById('_ticket_submit_status');
       if (submitStatusEl) {
-        submitStatusEl.textContent = '✗ Failed to submit: ' + err.message;
+        submitStatusEl.textContent = `✗ Failed to submit: ${err.message}`;
         submitStatusEl.style.display = 'block';
       }
     } finally {
@@ -277,8 +347,16 @@ window.__EF_PAGE__ = 'support';
   document.getElementById('view-ticket-close').addEventListener('click', closeViewModal);
 
   // Click-outside closes modals
-  createModal.addEventListener('click', e => { if (e.target === createModal) closeCreateModal(); });
-  viewModal.addEventListener('click', e => { if (e.target === viewModal) closeViewModal(); });
+  createModal.addEventListener('click', e => {
+    if (e.target === createModal) {
+      closeCreateModal();
+    }
+  });
+  viewModal.addEventListener('click', e => {
+    if (e.target === viewModal) {
+      closeViewModal();
+    }
+  });
 
   // Retry button
   document.getElementById('tickets-retry').addEventListener('click', loadTickets);

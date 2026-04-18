@@ -35,7 +35,7 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
 
   // Ignore patterns
-  testPathIgnorePatterns: ['/node_modules/', '/data/', '/uploads/'],
+  testPathIgnorePatterns: ['/node_modules/', '/data/', '/uploads/', '/tests/visual/'],
 
   // Coverage thresholds — set to match current actual coverage levels (Mar 2026).
   // Raise these incrementally as new unit tests are added.

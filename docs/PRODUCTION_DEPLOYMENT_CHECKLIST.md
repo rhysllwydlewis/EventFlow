@@ -8,17 +8,17 @@ The following audit was completed against the live codebase before publicising. 
 
 ### Audit Findings & Resolutions
 
-| # | Finding | Severity | Status |
-|---|---------|----------|--------|
-| 1 | `ALLOW_DEGRADED_STARTUP=true` allowed bypassing all startup checks in production | 🔴 Critical | ✅ Fixed — server now exits with error if this is set in production |
-| 2 | `clearAuthCookie()` had hardcoded `.event-flow.co.uk` domain fallback (could prevent logout clearing cookies) | 🟡 High | ✅ Fixed — no fallback domain; only clears with explicit `COOKIE_DOMAIN` env var |
-| 3 | `setAuthCookie()` did not set `path: '/'` (mismatch with `clearCookie`) | 🟡 High | ✅ Fixed — both set and clear use `path: '/'` |
-| 4 | Login/2FA used `authLimiter` (100/15min) instead of `strictAuthLimiter` | 🟡 High | ✅ Fixed — login & 2FA now use `strictAuthLimiter` (5/15min) |
-| 5 | Forgot/reset-password used `authLimiter` instead of `passwordResetLimiter` | 🟡 High | ✅ Fixed — reset flows now use `passwordResetLimiter` (5/15min) |
-| 6 | `GET /api/auth/logout` logged users out without CSRF (logout CSRF) | 🟡 High | ✅ Fixed — GET logout returns 405; logout is POST-only with CSRF |
-| 7 | CSP `connectSrc` included `ws:` (plaintext WebSocket) in production | 🟠 Medium | ✅ Fixed — `ws:` excluded in production; only `wss:` allowed |
-| 8 | `middleware/rateLimit.js.backup` committed to git (leaked old, looser config) | 🟠 Medium | ✅ Fixed — removed from git, added to `.gitignore` |
-| 9 | No automated go-live audit script in CI | 🟠 Medium | ✅ Fixed — `scripts/go-live-audit.mjs` added; CI job added |
+| #   | Finding                                                                                                       | Severity    | Status                                                                           |
+| --- | ------------------------------------------------------------------------------------------------------------- | ----------- | -------------------------------------------------------------------------------- |
+| 1   | `ALLOW_DEGRADED_STARTUP=true` allowed bypassing all startup checks in production                              | 🔴 Critical | ✅ Fixed — server now exits with error if this is set in production              |
+| 2   | `clearAuthCookie()` had hardcoded `.event-flow.co.uk` domain fallback (could prevent logout clearing cookies) | 🟡 High     | ✅ Fixed — no fallback domain; only clears with explicit `COOKIE_DOMAIN` env var |
+| 3   | `setAuthCookie()` did not set `path: '/'` (mismatch with `clearCookie`)                                       | 🟡 High     | ✅ Fixed — both set and clear use `path: '/'`                                    |
+| 4   | Login/2FA used `authLimiter` (100/15min) instead of `strictAuthLimiter`                                       | 🟡 High     | ✅ Fixed — login & 2FA now use `strictAuthLimiter` (5/15min)                     |
+| 5   | Forgot/reset-password used `authLimiter` instead of `passwordResetLimiter`                                    | 🟡 High     | ✅ Fixed — reset flows now use `passwordResetLimiter` (5/15min)                  |
+| 6   | `GET /api/auth/logout` logged users out without CSRF (logout CSRF)                                            | 🟡 High     | ✅ Fixed — GET logout returns 405; logout is POST-only with CSRF                 |
+| 7   | CSP `connectSrc` included `ws:` (plaintext WebSocket) in production                                           | 🟠 Medium   | ✅ Fixed — `ws:` excluded in production; only `wss:` allowed                     |
+| 8   | `middleware/rateLimit.js.backup` committed to git (leaked old, looser config)                                 | 🟠 Medium   | ✅ Fixed — removed from git, added to `.gitignore`                               |
+| 9   | No automated go-live audit script in CI                                                                       | 🟠 Medium   | ✅ Fixed — `scripts/go-live-audit.mjs` added; CI job added                       |
 
 ### Items Verified as Correct (no changes needed)
 
@@ -58,7 +58,7 @@ npm run test:headers
   - [ ] `JWT_SECRET` (minimum 32 characters, cryptographically secure)
   - [ ] `MONGODB_URI` (production database connection string)
   - [ ] `BASE_URL` (production domain, e.g. `https://event-flow.co.uk`)
-  - [ ] `REDIS_URL` (for WebSocket clustering, if applicable)
+  - [ ] `REDIS_URL` (required for BullMQ messenger queue + worker in production)
   - [ ] `POSTMARK_API_KEY` (for email delivery)
   - [ ] `POSTMARK_FROM` (verified sender email)
   - [ ] `STRIPE_SECRET_KEY` (live mode)

@@ -223,6 +223,11 @@ describe('Auth State Fixes', () => {
       expect(authNavContent).toContain('initAuthNav(null)');
     });
 
+    it('auth-nav.js should clear messenger lastSeenSeq keys on logout', () => {
+      expect(authNavContent).toContain("startsWith('messenger:v4:lastSeenSeq:')");
+      expect(authNavContent).toContain('localStorage.removeItem(key)');
+    });
+
     it('auth-nav.js should implement periodic auth state validation', () => {
       expect(authNavContent).toContain('Periodic auth state validation');
       expect(authNavContent).toContain('setInterval');

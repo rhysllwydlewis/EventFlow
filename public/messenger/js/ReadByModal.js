@@ -5,6 +5,7 @@ class ReadByModal {
     this.el = null;
     this.previouslyFocused = null;
     this._onKeyDown = this._onKeyDown.bind(this);
+    this._onRouteChange = this._onRouteChange.bind(this);
   }
 
   open({ message, participants = [] }) {
@@ -59,6 +60,8 @@ class ReadByModal {
       }
     });
     document.addEventListener('keydown', this._onKeyDown);
+    window.addEventListener('popstate', this._onRouteChange);
+    window.addEventListener('hashchange', this._onRouteChange);
     this.el.querySelector('.messenger-v4__readby-close')?.focus();
   }
 
@@ -68,7 +71,13 @@ class ReadByModal {
       this.el = null;
     }
     document.removeEventListener('keydown', this._onKeyDown);
+    window.removeEventListener('popstate', this._onRouteChange);
+    window.removeEventListener('hashchange', this._onRouteChange);
     this.previouslyFocused?.focus?.();
+  }
+
+  _onRouteChange() {
+    this.close();
   }
 
   _onKeyDown(e) {

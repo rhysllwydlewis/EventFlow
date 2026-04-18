@@ -98,7 +98,7 @@ describe('Dashboard WebSocket Real-time Updates Integration', () => {
 
     it('should show notification toast for enquiry_received', () => {
       const handlerMatch = dashboardContent.match(
-        /data\.type\s*===\s*['"]enquiry_received['"][\s\S]{0,500}EventFlowNotifications\.info/
+        /data\.type\s*===\s*['"]enquiry_received['"][\s\S]{0,1400}(NotificationDispatcher|EventFlowNotifications)\.info/
       );
       expect(handlerMatch).toBeTruthy();
     });

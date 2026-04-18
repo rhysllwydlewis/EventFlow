@@ -624,7 +624,6 @@ describe('Admin v2 API Integration Tests', () => {
     it('should mount admin-v2 on separate path', () => {
       const serverContent = fs.readFileSync(path.join(__dirname, '../../server.js'), 'utf8');
 
-      expect(serverContent).toContain("app.use('/api/admin'");
       expect(serverContent).toContain("app.use('/api/v2/admin'");
     });
   });

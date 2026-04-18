@@ -105,8 +105,8 @@ describe('Messaging-Notification Integration', () => {
         notificationServiceJs.indexOf('async notifyNewTicket('),
         notificationServiceJs.indexOf('async notifyTicketReply(')
       );
-      expect(fn).toContain("type: 'ticket'");
-      expect(fn).toContain("priority: 'high'");
+      expect(fn).toContain('type: NotificationType.TICKET');
+      expect(fn).toContain('priority: NotificationPriority.HIGH');
       expect(fn).toContain('/admin-tickets');
       expect(fn).toContain('ticketId');
       expect(fn).toContain('metadata');
@@ -119,8 +119,8 @@ describe('Messaging-Notification Integration', () => {
     it('notifyTicketReply uses normal priority and ticket type', () => {
       const startIdx = notificationServiceJs.indexOf('async notifyTicketReply(');
       const fn = notificationServiceJs.substring(startIdx, startIdx + 600);
-      expect(fn).toContain("type: 'ticket'");
-      expect(fn).toContain("priority: 'normal'");
+      expect(fn).toContain('type: NotificationType.TICKET');
+      expect(fn).toContain('priority: NotificationPriority.NORMAL');
       expect(fn).toContain('/admin-tickets');
     });
 

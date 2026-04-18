@@ -197,6 +197,12 @@
     try {
       localStorage.removeItem('user');
       localStorage.removeItem('eventflow_onboarding_new');
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('messenger:v4:lastSeenSeq:')) {
+          localStorage.removeItem(key);
+        }
+      }
       // Signal logout to other tabs
       localStorage.setItem('eventflow_logout', Date.now().toString());
     } catch (error) {

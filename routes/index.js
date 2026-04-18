@@ -63,6 +63,7 @@ const catalogRoutes = require('./catalog');
 const publicCalendarRoutes = require('./public-calendar');
 const customerCalendarRoutes = require('./customer-calendar');
 const emailUnsubscribeRoutes = require('./emailUnsubscribe');
+const telemetryRoutes = require('./telemetry');
 
 /**
  * Mount all route modules
@@ -429,6 +430,10 @@ function mountRoutes(app, deps) {
   }
   app.use('/api/v1/notifications', notificationsRoutes);
   app.use('/api/notifications', notificationsRoutes); // Backward compatibility
+
+  // Telemetry routes (messenger client metrics)
+  app.use('/api/v1/telemetry', telemetryRoutes);
+  app.use('/api/telemetry', telemetryRoutes); // Backward compatibility
 
   // Admin Config routes (Step 8 - Badge & Category Management)
   if (deps && adminConfigRoutes.initializeDependencies) {
