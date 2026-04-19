@@ -1415,10 +1415,13 @@
   inset: 0;
   z-index: var(--messenger-z-modal, 400);
   background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 16px;
+  animation: messengerReadByOverlayIn 160ms ease-out;
 }
 
 .messenger-v4__readby-modal {
@@ -1429,6 +1432,34 @@
   box-shadow: var(--messenger-shadow-xl);
   max-height: 85vh;
   overflow: auto;
+  animation: messengerReadByModalIn 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes messengerReadByOverlayIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes messengerReadByModalIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .messenger-v4__readby-overlay,
+  .messenger-v4__readby-modal {
+    animation: none;
+  }
 }
 
 .messenger-v4__readby-header {

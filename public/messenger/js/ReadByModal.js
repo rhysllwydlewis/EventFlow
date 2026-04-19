@@ -54,6 +54,10 @@ class ReadByModal {
     `;
 
     document.body.appendChild(this.el);
+    if (typeof document !== 'undefined' && document.body) {
+      this._prevBodyOverflow = document.body.style.overflow || '';
+      document.body.style.overflow = 'hidden';
+    }
     this.el.addEventListener('click', e => {
       if (e.target === this.el || e.target.closest('.messenger-v4__readby-close')) {
         this.close();
@@ -69,6 +73,10 @@ class ReadByModal {
     if (this.el) {
       this.el.remove();
       this.el = null;
+    }
+    if (typeof document !== 'undefined' && document.body && this._prevBodyOverflow !== undefined) {
+      document.body.style.overflow = this._prevBodyOverflow;
+      this._prevBodyOverflow = undefined;
     }
     document.removeEventListener('keydown', this._onKeyDown);
     window.removeEventListener('popstate', this._onRouteChange);
