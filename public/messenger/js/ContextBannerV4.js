@@ -193,10 +193,16 @@ class ContextBannerV4 {
       return null;
     }
     const id = encodeURIComponent(String(refId));
+    // These URLs must match the live server routes. See server.js:
+    //   • /supplier?id=<id>    (app.get('/supplier', …))
+    //   • /package?id=<id>     (app.get('/package', …))
+    //   • /marketplace?listing=<id>  (public/assets/js/marketplace.js openListingFromQuery)
+    //   • /find-a-supplier?id=<id>
+    // Using path segments (e.g. /marketplace/<id>) 404s.
     const urlMap = {
-      package: `/packages/${id}`,
-      supplier_profile: `/suppliers/${id}`,
-      marketplace_listing: `/marketplace/${id}`,
+      package: `/package?id=${id}`,
+      supplier_profile: `/supplier?id=${id}`,
+      marketplace_listing: `/marketplace?listing=${id}`,
       find_a_supplier: `/find-a-supplier?id=${id}`,
     };
     return urlMap[canonicalType] || null;

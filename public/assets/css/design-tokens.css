@@ -145,6 +145,19 @@
   --ef-z-modal: 1050;
   --ef-z-popover: 1060;
   --ef-z-tooltip: 1070;
+
+  /* ========================================
+     LIQUID GLASS TOKENS
+     ======================================== */
+  --ef-glass-surface: rgba(255, 255, 255, 0.7);
+  --ef-glass-surface-strong: rgba(255, 255, 255, 0.82);
+  --ef-glass-border: rgba(255, 255, 255, 0.56);
+  --ef-glass-highlight: rgba(255, 255, 255, 0.78);
+  --ef-glass-shadow: 0 14px 36px rgba(7, 32, 53, 0.12);
+  --ef-glass-shadow-elevated: 0 20px 48px rgba(7, 32, 53, 0.18);
+  --ef-glass-blur-sm: 10px;
+  --ef-glass-blur-md: 16px;
+  --ef-glass-gradient: linear-gradient(135deg, rgba(11, 128, 115, 0.2), rgba(9, 96, 136, 0.14));
 }
 
 /* ========================================

@@ -2422,3 +2422,70 @@ body:has(.messenger-v4) {
   color: #dc2626;
   border-radius: 8px;
 }
+
+/* ============================================================
+   28. ICON-BUTTON OVERRIDE — neutralize global .ef-cta padding
+   The global `.cta, .ef-cta` rule in styles.css applies
+   `padding: 10px 18px !important; font-size: 15px !important;
+   border-radius: 12px !important; width: 100% on mobile;` which
+   crushes the icon inside our 36–44px round icon buttons and
+   stretches them across the header on narrow viewports. These
+   overrides restore the original icon-button geometry so the
+   SVGs inside are fully visible and buttons stay compact.
+   ============================================================ */
+.messenger-v4__action-button.ef-cta,
+.messenger-v4__composer-button.ef-cta,
+.messenger-v4__send-button.ef-cta,
+.messenger-v4__scroll-to-bottom.ef-cta,
+.messenger-v4__lightbox-close.ef-cta,
+.messenger-v4__reply-bar-close.ef-cta,
+.messenger-v4__file-chip-remove.ef-cta,
+.messenger-v4__readby-hint.ef-cta,
+.messenger-v4__context-menu-btn.ef-cta,
+.messenger-v4__participants-drawer .ef-cta {
+  padding: 0 !important;
+  font-size: inherit !important;
+  border-radius: 50% !important;
+  width: auto;
+  box-shadow: none;
+}
+
+@media (max-width: 600px) {
+  .messenger-v4__action-button.ef-cta,
+  .messenger-v4__composer-button.ef-cta,
+  .messenger-v4__send-button.ef-cta,
+  .messenger-v4__scroll-to-bottom.ef-cta,
+  .messenger-v4__lightbox-close.ef-cta,
+  .messenger-v4__reply-bar-close.ef-cta,
+  .messenger-v4__file-chip-remove.ef-cta,
+  .messenger-v4__readby-hint.ef-cta,
+  .messenger-v4__context-menu-btn.ef-cta,
+  .messenger-v4__participants-drawer .ef-cta {
+    /* override global `.cta, .ef-cta { width: 100%; margin-top: 6px; }` */
+    width: auto !important;
+    margin-top: 0 !important;
+  }
+}
+
+/* Slightly larger SVG icons for clarity inside round icon buttons */
+.messenger-v4__composer-button svg {
+  width: 22px;
+  height: 22px;
+}
+
+.messenger-v4__action-button svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Participants drawer close: use a proper square hit target with a visible X */
+.messenger-v4__participants-drawer-header .messenger-v4__action-button {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  font-size: 22px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}

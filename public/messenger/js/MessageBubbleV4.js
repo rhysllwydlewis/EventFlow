@@ -45,7 +45,9 @@ class MessageBubbleV4 {
   static render(message, currentUserId, options = {}) {
     const isSent = message.senderId === currentUserId;
     const side = isSent ? 'sent' : 'received';
-    const time = MessageBubbleV4._formatTime(message.createdAt || message.timestamp);
+    const messageDate = message.createdAt || message.timestamp;
+    const time = MessageBubbleV4._formatRelativeTime(messageDate);
+    const timeTooltip = MessageBubbleV4._formatTimeTooltip(messageDate);
     const isSystem = message.type === 'system';
     if (isSystem) {
       return `
@@ -81,7 +83,7 @@ class MessageBubbleV4 {
             ${editedLabel}
           </div>
           <div class="messenger-v4__message-meta">
-            <time class="messenger-v4__message-time" datetime="${MessageBubbleV4.escape(message.createdAt || '')}">${MessageBubbleV4.escape(time)}</time>
+            <time class="messenger-v4__message-time" datetime="${MessageBubbleV4.escape(messageDate || '')}" title="${MessageBubbleV4.escape(timeTooltip)}">${MessageBubbleV4.escape(time)}</time>
             ${isSent ? MessageBubbleV4.renderReadReceipt(message.viewerStatus || message.status) : ''}
           </div>
           ${showReadByHint ? `<button class="ef-cta messenger-v4__readby-hint" data-action="readby" data-message-id="${MessageBubbleV4.escape(message._id)}" aria-label="Read by ${readCount} of ${groupTotal} participants">Read by ${readCount}/${groupTotal}</button>` : ''}
@@ -264,7 +266,7 @@ class MessageBubbleV4 {
   // Private helpers
   // ---------------------------------------------------------------------------
 
-  static _formatTime(dateStr) {
+  static _formatRelativeTime(dateStr) {
     if (!dateStr) {
       return '';
     }
@@ -272,7 +274,35 @@ class MessageBubbleV4 {
     if (isNaN(d)) {
       return '';
     }
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const deltaSeconds = Math.floor((Date.now() - d.getTime()) / 1000);
+    if (deltaSeconds < 60) {
+      return 'Just now';
+    }
+    if (deltaSeconds < 3600) {
+      return `${Math.floor(deltaSeconds / 60)}m ago`;
+    }
+    if (deltaSeconds < 86400) {
+      return `${Math.floor(deltaSeconds / 3600)}h ago`;
+    }
+    if (deltaSeconds < 604800) {
+      return `${Math.floor(deltaSeconds / 86400)}d ago`;
+    }
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+  }
+
+  static _formatTimeTooltip(dateStr) {
+    if (!dateStr) {
+      return '';
+    }
+    const d = new Date(dateStr);
+    if (isNaN(d)) {
+      return '';
+    }
+    return d.toLocaleString('en-GB', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+      timeZone: 'Europe/London',
+    });
   }
 
   /** Returns true if message was created within the 15-minute edit window. */

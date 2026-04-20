@@ -117,11 +117,14 @@ describe('Messenger v4 post-PR950 audit fixes', () => {
     });
 
     it('derives "View" URL from referenceId for each canonical type', () => {
-      // _deriveUrl should build relative paths for all four canonical types
+      // _deriveUrl should build relative paths for all four canonical types.
+      // URLs must match real server routes, which are query-string based
+      // (/package?id=, /supplier?id=, /marketplace?listing=). Path-segment
+      // forms (/packages/<id>, /suppliers/<id>, /marketplace/<id>) 404.
       expect(src).toContain('_deriveUrl(');
-      expect(src).toContain('/packages/${id}');
-      expect(src).toContain('/suppliers/${id}');
-      expect(src).toContain('/marketplace/${id}');
+      expect(src).toContain('/package?id=${id}');
+      expect(src).toContain('/supplier?id=${id}');
+      expect(src).toContain('/marketplace?listing=${id}');
     });
 
     it('_safeUrl does NOT call this.escape() (would corrupt query strings)', () => {

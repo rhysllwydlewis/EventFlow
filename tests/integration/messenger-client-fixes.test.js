@@ -716,4 +716,86 @@ describe('Messenger client-side fixes', () => {
       expect(src).toMatch(/wsServerV2\.db\s*=\s*db/);
     });
   });
+
+  // ── Post-launch polish regressions ──────────────────────────────────────────
+
+  describe('Post-launch polish regressions', () => {
+    it('messenger/index.html has no inline <script> blocks (CSP script-src-elem self)', () => {
+      // Strip HTML comments before scanning so a comment that describes the old
+      // inline block ("Extracted from an inline <script>…") doesn't trip us up.
+      // Loop until stable to defeat any interleaved/nested comment sequences
+      // (e.g. "<!--<!---->-->") that a single-pass replace would leave behind.
+      let withoutComments = indexHtml;
+      let prev;
+      do {
+        prev = withoutComments;
+        withoutComments = withoutComments.replace(/<!--[\s\S]*?-->/g, '');
+      } while (withoutComments !== prev);
+      const openTags = withoutComments.match(/<script\b[^>]*>/gi) || [];
+      openTags.forEach(tag => {
+        expect(tag).toMatch(/\bsrc=/);
+      });
+    });
+
+    it('inline new-conversation bootstrap has been extracted to an external file', () => {
+      expect(indexHtml).toContain('/messenger/js/new-conversation-bootstrap.js');
+      const bootstrapSrc = fs.readFileSync(
+        path.join(MESSENGER_DIR, 'js', 'new-conversation-bootstrap.js'),
+        'utf8'
+      );
+      expect(bootstrapSrc).toContain('messenger:open-contact-picker');
+      expect(bootstrapSrc).toContain('data-action="new-conversation"');
+    });
+
+    it('participants drawer closes on Escape (WCAG modal-style close)', () => {
+      expect(chatViewSrc).toMatch(
+        /_onParticipantsKeyDown[\s\S]{0,400}Escape[\s\S]{0,200}_toggleParticipantsDrawer\(false\)/
+      );
+      expect(chatViewSrc).toMatch(
+        /document\.addEventListener\(\s*'keydown'\s*,\s*this\._onParticipantsKeyDown/
+      );
+    });
+
+    it('participants close button uses a real SVG X (visible on all themes)', () => {
+      expect(chatViewSrc).toMatch(
+        /id="v4ParticipantsClose"[\s\S]{0,400}<svg[\s\S]{0,400}<line[\s\S]{0,200}x1="18"[\s\S]{0,80}y1="6"/
+      );
+    });
+
+    it('messenger polish stylesheet neutralizes global .ef-cta padding on icon buttons', () => {
+      const polishCss = fs.readFileSync(
+        path.join(MESSENGER_DIR, 'css', 'messenger-v4-polish.css'),
+        'utf8'
+      );
+      // The icon buttons must override the global .ef-cta padding to avoid
+      // crushing SVGs inside 36–44px round buttons.
+      expect(polishCss).toMatch(
+        /\.messenger-v4__composer-button\.ef-cta[\s\S]{0,400}padding:\s*0\s*!important/
+      );
+      expect(polishCss).toMatch(
+        /\.messenger-v4__action-button\.ef-cta[\s\S]{0,1200}padding:\s*0\s*!important/
+      );
+      // And mobile width: 100% must be reversed for messenger icon buttons
+      expect(polishCss).toMatch(
+        /@media\s*\(\s*max-width:\s*600px\s*\)[\s\S]{0,2000}width:\s*auto\s*!important/
+      );
+    });
+
+    it('ContextBannerV4 derives live View URLs that match real server routes (no 404s)', () => {
+      const bannerSrc = fs.readFileSync(
+        path.join(MESSENGER_DIR, 'js', 'ContextBannerV4.js'),
+        'utf8'
+      );
+      // Must use query-string forms — the app does not expose /packages/:id,
+      // /suppliers/:id, or /marketplace/:id routes, so the old derivations
+      // 404'd from the messenger context banner "View →" link.
+      expect(bannerSrc).toMatch(/package:\s*`\/package\?id=\$\{id\}`/);
+      expect(bannerSrc).toMatch(/supplier_profile:\s*`\/supplier\?id=\$\{id\}`/);
+      expect(bannerSrc).toMatch(/marketplace_listing:\s*`\/marketplace\?listing=\$\{id\}`/);
+      // And the old, incorrect path-segment forms must be gone.
+      expect(bannerSrc).not.toMatch(/`\/packages\/\$\{id\}`/);
+      expect(bannerSrc).not.toMatch(/`\/suppliers\/\$\{id\}`/);
+      expect(bannerSrc).not.toMatch(/`\/marketplace\/\$\{id\}`/);
+    });
+  });
 });

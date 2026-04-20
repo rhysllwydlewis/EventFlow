@@ -117,7 +117,9 @@ class ChatViewV4 {
       <aside class="messenger-v4__participants-drawer" id="v4ParticipantsDrawer" aria-label="Participants" hidden>
         <div class="messenger-v4__participants-drawer-header">
           <h3>Participants</h3>
-          <button class="ef-cta messenger-v4__action-button" id="v4ParticipantsClose" aria-label="Close participants">×</button>
+          <button class="ef-cta messenger-v4__action-button" id="v4ParticipantsClose" aria-label="Close participants" title="Close">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </div>
         <ul class="messenger-v4__participants-list" id="v4ParticipantsList"></ul>
       </aside>
@@ -204,6 +206,18 @@ class ChatViewV4 {
     this.container.querySelector('#v4ParticipantsClose').addEventListener('click', () => {
       this._toggleParticipantsDrawer(false);
     });
+    // Robustness: close the drawer when Escape is pressed while it is open,
+    // matching the modal/lightbox pattern used elsewhere in the app.
+    this._onParticipantsKeyDown = e => {
+      if (
+        e.key === 'Escape' &&
+        this.participantsDrawer &&
+        this.participantsDrawer.hidden === false
+      ) {
+        this._toggleParticipantsDrawer(false);
+      }
+    };
+    document.addEventListener('keydown', this._onParticipantsKeyDown);
 
     // Delegated click: image lightbox + context menu + context menu items + reaction pills
     this.messagesEl.addEventListener('click', e => {

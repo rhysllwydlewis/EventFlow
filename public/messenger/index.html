@@ -221,17 +221,9 @@
   <!-- v4 orchestrator (Phase 4) — boots on DOMContentLoaded -->
   <script src="/messenger/js/MessengerAppV4.js" defer></script>
 
-  <!-- Inline bootstrap: open contact picker via keyboard shortcut hint button in sidebar -->
-  <script>
-    document.addEventListener('DOMContentLoaded', function () {
-      // Any element with data-action="new-conversation" opens the contact picker
-      document.addEventListener('click', function (e) {
-        if (e.target.closest('[data-action="new-conversation"]')) {
-          window.dispatchEvent(new CustomEvent('messenger:open-contact-picker'));
-        }
-      });
-    });
-  </script>
+  <!-- External bootstrap: open contact picker via data-action hook in sidebar.
+       Extracted from an inline <script> to comply with CSP script-src-elem 'self'. -->
+  <script src="/messenger/js/new-conversation-bootstrap.js" defer></script>
 
 </body>
 </html>
