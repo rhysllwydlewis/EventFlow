@@ -411,6 +411,7 @@ See [DOCKER_GUIDE.md](DOCKER_GUIDE.md) for details.
    JWT_SECRET=your-random-secret-min-32-chars
    NODE_ENV=production
    BASE_URL=https://yourdomain.com
+   REDIS_URL=redis://default:password@redis-host:6379
 
    # Recommended (optional)
    EMAIL_ENABLED=true
@@ -420,7 +421,17 @@ See [DOCKER_GUIDE.md](DOCKER_GUIDE.md) for details.
 
 3. **Deploy your app** - Push to your platform (Railway, Heroku, etc.)
 
-4. **Verify it works** - Visit `https://yourdomain.com/api/health`
+4. **Run a dedicated worker process in production** (required for notification/email queue fanout):
+
+   ```bash
+   node scripts/worker.js
+   ```
+
+   - `Procfile` already defines `worker: node scripts/worker.js`
+   - Railway users should deploy a second service with `railway.worker.json`
+   - In production, worker startup fails fast when `REDIS_URL` is missing
+
+5. **Verify it works** - Visit `https://yourdomain.com/api/health`
    - Should show `"databaseStatus": "connected"`
 
 #### Troubleshooting 502 Errors

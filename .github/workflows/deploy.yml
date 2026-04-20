@@ -2,13 +2,11 @@ name: Deploy
 
 on:
   workflow_run:
-    workflows: ["CI"]
-    types:
-      - completed
-    branches: [ main ]
+    workflows: ['CI']
+    types: [completed]
+    branches: [main]
   push:
-    tags:
-      - 'v*'
+    tags: ['v*']
   workflow_dispatch:
     inputs:
       environment:
@@ -16,173 +14,200 @@ on:
         required: true
         default: 'production'
         type: choice
-        options:
-          - production
-          - staging
+        options: [production, staging]
+
+permissions:
+  contents: read
 
 env:
   NODE_VERSION: '20'
 
+concurrency:
+  group: deploy-${{ github.ref_name || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
-  security:
-    name: Security Checks
+  precheck:
+    name: Deployment precheck
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
+    outputs:
+      should_deploy: ${{ steps.result.outputs.should_deploy }}
+      reason: ${{ steps.result.outputs.reason }}
+      target_ref: ${{ steps.result.outputs.target_ref }}
     steps:
-      - name: Checkout code
+      - name: Evaluate trigger and docs-only changes
+        id: evaluate
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          CI_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          WORKFLOW_SHA: ${{ github.event.workflow_run.head_sha }}
+          PUSH_SHA: ${{ github.sha }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+            echo "reason=manual_dispatch" >> "$GITHUB_OUTPUT"
+            echo "target_ref=$PUSH_SHA" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ "$EVENT_NAME" == "push" && "$REF_NAME" == v* ]]; then
+            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+            echo "reason=tag_release" >> "$GITHUB_OUTPUT"
+            echo "target_ref=$PUSH_SHA" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ "$EVENT_NAME" != "workflow_run" ]]; then
+            echo "should_deploy=false" >> "$GITHUB_OUTPUT"
+            echo "reason=unsupported_event" >> "$GITHUB_OUTPUT"
+            echo "target_ref=$PUSH_SHA" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [[ "$CI_CONCLUSION" != "success" ]]; then
+            echo "should_deploy=false" >> "$GITHUB_OUTPUT"
+            echo "reason=ci_not_green" >> "$GITHUB_OUTPUT"
+            echo "target_ref=$WORKFLOW_SHA" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+          echo "reason=ci_green" >> "$GITHUB_OUTPUT"
+          echo "target_ref=$WORKFLOW_SHA" >> "$GITHUB_OUTPUT"
+      - name: Checkout target commit
+        if: steps.evaluate.outputs.should_deploy == 'true'
         uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+        with:
+          ref: ${{ steps.evaluate.outputs.target_ref }}
+          fetch-depth: 2
+      - name: Skip docs-only workflow_run changes
+        if: github.event_name == 'workflow_run' && steps.evaluate.outputs.should_deploy == 'true'
+        id: docs_only
+        shell: bash
+        run: |
+          set -euo pipefail
+          parents="$(git rev-list --parents -n 1 HEAD)"
+          base="$(echo "$parents" | awk '{print $2}')"
+          if [[ -z "$base" ]]; then
+            echo "docs_only=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          changed="$(git diff --name-only "$base" HEAD | tr '\n' ' ')"
+          if [[ -z "$changed" ]]; then
+            echo "docs_only=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          while IFS= read -r file; do
+            [[ -z "$file" ]] && continue
+            case "$file" in
+              docs/*|*.md|.github/*.md|.github/ISSUE_TEMPLATE/*|.github/PULL_REQUEST_TEMPLATE/*)
+                ;;
+              *)
+                echo "docs_only=false" >> "$GITHUB_OUTPUT"
+                exit 0
+                ;;
+            esac
+          done < <(git diff --name-only "$base" HEAD)
+          echo "docs_only=true" >> "$GITHUB_OUTPUT"
+      - name: Finalize precheck result
+        id: result
+        shell: bash
+        run: |
+          echo "target_ref=${{ steps.evaluate.outputs.target_ref }}" >> "$GITHUB_OUTPUT"
+          should_deploy="${{ steps.evaluate.outputs.should_deploy }}"
+          reason="${{ steps.evaluate.outputs.reason }}"
+          if [[ "${{ github.event_name }}" == "workflow_run" && "$should_deploy" == "true" && "${{ steps.docs_only.outputs.docs_only }}" == "true" ]]; then
+            echo "should_deploy=false" >> "$GITHUB_OUTPUT"
+            echo "reason=docs_only_change" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_deploy=${should_deploy}" >> "$GITHUB_OUTPUT"
+            echo "reason=${reason}" >> "$GITHUB_OUTPUT"
+          fi
+
+  security:
+    name: Security checks
+    runs-on: ubuntu-latest
+    needs: [precheck]
+    if: needs.precheck.outputs.should_deploy == 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.precheck.outputs.target_ref }}
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-      
-      - name: Install dependencies
-        run: npm ci
-      
-      - name: Run security audit
-        run: npm audit --production
+          cache: npm
+      - run: npm ci
+      - run: npm audit --production
         continue-on-error: true
-      
-      - name: Check for vulnerable dependencies
-        run: |
-          if npm audit --production --audit-level=high | grep -q "found"; then
-            echo "::warning::High or critical vulnerabilities found"
-          fi
 
   deploy:
     name: Deploy to ${{ github.event.inputs.environment || 'production' }}
     runs-on: ubuntu-latest
-    needs: [security]
+    needs: [precheck, security]
+    if: needs.precheck.outputs.should_deploy == 'true'
     environment:
       name: ${{ github.event.inputs.environment || 'production' }}
-      url: ${{ secrets.APP_URL }}
-    
+    env:
+      APP_URL: ${{ secrets.APP_URL }}
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.precheck.outputs.target_ref }}
+      - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-      
-      - name: Install dependencies
-        run: npm ci --production
-      
-      - name: Create deployment package
+          cache: npm
+      - name: Validate required deployment secrets
+        shell: bash
         run: |
-          tar -czf deployment.tar.gz \
-            --exclude=node_modules \
-            --exclude=.git \
-            --exclude=coverage \
-            --exclude=test-results \
-            --exclude=playwright-report \
-            --exclude=.env \
-            --exclude=data \
-            --exclude=uploads \
-            .
-      
-      - name: Deploy to Railway
-        if: success()
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: |
-          echo "Deploying to Railway..."
-          # Railway CLI deployment would go here
-          # For now, Railway deploys automatically via GitHub integration
-      
-      - name: Smoke Test - Health Check
-        if: success()
-        run: |
-          echo "Running smoke tests..."
-          sleep 30  # Wait for deployment
-          
-          HEALTH_URL="${{ secrets.APP_URL }}/api/health"
-          echo "Checking health endpoint: $HEALTH_URL"
-          
-          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$HEALTH_URL")
-          if [ "$RESPONSE" != "200" ]; then
-            echo "::error::Health check failed with status $RESPONSE"
+          set -euo pipefail
+          missing=0
+          if [[ -z "${APP_URL:-}" ]]; then
+            echo "::error::Missing required secret APP_URL"
+            missing=1
+          fi
+          if [[ -z "${RAILWAY_TOKEN:-}" ]]; then
+            echo "::warning::RAILWAY_TOKEN is unset (GitHub->Railway auto-deploy mode only)"
+          fi
+          if [[ "$missing" -ne 0 ]]; then
             exit 1
           fi
-          
-          echo "✅ Health check passed"
-      
-      - name: Smoke Test - API Endpoints
-        if: success()
+      - run: npm ci
+      - name: Run production preflight
+        run: npm run preflight
+        env:
+          NODE_ENV: production
+      - name: Smoke test deployed service
+        shell: bash
         run: |
-          echo "Testing API endpoints..."
-          
-          # Test config endpoint
-          CONFIG_URL="${{ secrets.APP_URL }}/api/config"
-          CONFIG_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$CONFIG_URL")
-          
-          if [ "$CONFIG_RESPONSE" != "200" ]; then
-            echo "::error::Config endpoint failed with status $CONFIG_RESPONSE"
+          set -euo pipefail
+          health_url="${APP_URL%/}/api/health"
+          config_url="${APP_URL%/}/api/config"
+          root_url="${APP_URL%/}/"
+          for attempt in {1..10}; do
+            code="$(curl -sS -o /dev/null -w "%{http_code}" "$health_url" || true)"
+            if [[ "$code" == "200" ]]; then
+              break
+            fi
+            if [[ "$attempt" == "10" ]]; then
+              echo "::error::Health check failed after retries (status=$code, url=$health_url)"
+              exit 1
+            fi
+            sleep 6
+          done
+          config_code="$(curl -sS -o /dev/null -w "%{http_code}" "$config_url" || true)"
+          if [[ "$config_code" != "200" ]]; then
+            echo "::error::Config endpoint failed (status=$config_code, url=$config_url)"
             exit 1
           fi
-          
-          # Test sitemap
-          SITEMAP_URL="${{ secrets.APP_URL }}/sitemap.xml"
-          SITEMAP_RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$SITEMAP_URL")
-          
-          if [ "$SITEMAP_RESPONSE" != "200" ]; then
-            echo "::warning::Sitemap endpoint failed with status $SITEMAP_RESPONSE"
-          fi
-          
-          echo "✅ Smoke tests passed"
-      
-      - name: Performance Test
-        if: success()
-        run: |
-          echo "Running performance tests..."
-          
-          # Test response time
-          RESPONSE_TIME=$(curl -s -o /dev/null -w "%{time_total}" "${{ secrets.APP_URL }}")
-          echo "Response time: ${RESPONSE_TIME}s"
-          
-          # Check if response time is acceptable (< 3s)
-          if (( $(echo "$RESPONSE_TIME > 3.0" | bc -l) )); then
-            echo "::warning::Response time is slow: ${RESPONSE_TIME}s"
-          else
-            echo "✅ Performance test passed"
-          fi
-      
-      - name: Notify deployment
-        if: always()
-        run: |
-          if [ "${{ job.status }}" == "success" ]; then
-            echo "✅ Deployment successful"
-          else
-            echo "❌ Deployment failed"
-          fi
-      
-      - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
+          response_time="$(curl -sS -o /dev/null -w "%{time_total}" "$root_url" || true)"
+          echo "Homepage response time: ${response_time}s"
 
-  rollback:
-    name: Rollback (if deployment fails)
+  skipped:
+    name: Deployment skipped
     runs-on: ubuntu-latest
-    needs: [deploy]
-    if: failure()
-    
+    needs: [precheck]
+    if: needs.precheck.outputs.should_deploy != 'true'
     steps:
-      - name: Rollback deployment
-        run: |
-          echo "::warning::Deployment failed, rollback procedures should be initiated"
-          echo "Manual rollback may be required via Railway dashboard"
-      
-      - name: Notify failure
-        run: |
-          echo "::error::Deployment failed and rollback initiated"
+      - run: echo "Deploy skipped: ${{ needs.precheck.outputs.reason }}"

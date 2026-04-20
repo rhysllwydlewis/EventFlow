@@ -9,9 +9,22 @@
 
 'use strict';
 
-const { fileTypeFromBuffer } = require('file-type');
 const sharp = require('sharp');
 const logger = require('./logger');
+let fileTypeFromBufferFn = null;
+
+async function resolveFileTypeFromBuffer() {
+  if (typeof fileTypeFromBufferFn === 'function') {
+    return fileTypeFromBufferFn;
+  }
+  const fileTypeModule = await import('file-type');
+  const fn = fileTypeModule.fileTypeFromBuffer || fileTypeModule.default?.fileTypeFromBuffer;
+  if (typeof fn !== 'function') {
+    throw new Error('file-type module does not export fileTypeFromBuffer');
+  }
+  fileTypeFromBufferFn = fn;
+  return fileTypeFromBufferFn;
+}
 
 // Configurable limits from environment variables with safe defaults
 const MAX_FILE_SIZE_MARKETPLACE =
@@ -102,13 +115,19 @@ async function validateFileType(buffer, filename = null) {
 
     let fileType;
     try {
+      const fileTypeFromBuffer = await resolveFileTypeFromBuffer();
       fileType = await fileTypeFromBuffer(buffer);
     } catch (detectionError) {
-      logger.warn('Magic byte detection threw an error, attempting extension fallback', {
-        error: detectionError.message,
-        magicBytes,
-        filename,
-      });
+      const isJestVmImportIssue =
+        typeof detectionError?.message === 'string' &&
+        detectionError.message.includes('without --experimental-vm-modules');
+      if (!isJestVmImportIssue) {
+        logger.warn('Magic byte detection threw an error, attempting extension fallback', {
+          error: detectionError.message,
+          magicBytes,
+          filename,
+        });
+      }
 
       // Fallback to extension-based detection
       if (filename) {

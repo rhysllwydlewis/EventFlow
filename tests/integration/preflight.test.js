@@ -30,6 +30,7 @@ describe('scripts/preflight.mjs', () => {
     JWT_SECRET: 'a'.repeat(40),
     MONGODB_URI: 'mongodb://localhost/test',
     BASE_URL: 'https://example.com',
+    REDIS_URL: 'redis://127.0.0.1:6379',
     REGISTERED_OFFICE: '123 Example Street, London',
     BUSINESS_PHONE: '+44 20 7946 0000',
     BUSINESS_ADDRESS_LINE1: '123 Example Street',
@@ -103,5 +104,15 @@ describe('scripts/preflight.mjs', () => {
       COMPANY_NUMBER: '12345678',
     });
     expect(result.status).toBe(0);
+  });
+
+  it('exits 1 in production when REDIS_URL is missing', () => {
+    const result = runPreflight({
+      ...baseProductionEnv,
+      REDIS_URL: '',
+      COMPANY_NUMBER: '12345678',
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/REDIS_URL/);
   });
 });

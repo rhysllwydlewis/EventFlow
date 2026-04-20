@@ -174,6 +174,15 @@
     return date.toLocaleDateString('en-GB', { timeZone: 'Europe/London' });
   }
 
+  function formatAbsoluteTime(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleString('en-GB', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+      timeZone: 'Europe/London',
+    });
+  }
+
   function getNotificationIcon(type) {
     const icons = {
       message: '💬',
@@ -459,13 +468,14 @@
     const title = escapeHtml(notification.title);
     const message = escapeHtml(notification.message);
     const time = formatTimeAgo(notification.createdAt);
+    const fullTime = formatAbsoluteTime(notification.createdAt);
 
     item.innerHTML = `
       <div class="notification-item-icon">${icon}</div>
       <div class="notification-item-content">
         <div class="notification-item-title">${title}</div>
         <div class="notification-item-message">${message}</div>
-        <div class="notification-item-time">${time}</div>
+        <time class="notification-item-time" datetime="${escapeHtml(notification.createdAt || '')}" title="${escapeHtml(fullTime)}">${time}</time>
       </div>
       <div class="notification-item-actions">
         ${
@@ -540,6 +550,11 @@
   function showError() {
     const error = document.getElementById('notifications-error');
     error.style.display = 'block';
+    const retry = document.getElementById('notifications-retry-btn');
+    if (retry && !retry.dataset.bound) {
+      retry.dataset.bound = '1';
+      retry.addEventListener('click', () => fetchNotifications(false));
+    }
   }
 
   function hideError() {
@@ -581,6 +596,12 @@
     loadMoreBtn.addEventListener('click', () => {
       fetchNotifications(true);
     });
+
+    const retryBtn = document.getElementById('notifications-retry-btn');
+    if (retryBtn) {
+      retryBtn.dataset.bound = '1';
+      retryBtn.addEventListener('click', () => fetchNotifications(false));
+    }
 
     // Listen for real-time notification events
     window.addEventListener('notification:added', e => {
