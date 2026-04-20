@@ -723,7 +723,14 @@ describe('Messenger client-side fixes', () => {
     it('messenger/index.html has no inline <script> blocks (CSP script-src-elem self)', () => {
       // Strip HTML comments before scanning so a comment that describes the old
       // inline block ("Extracted from an inline <script>…") doesn't trip us up.
-      const withoutComments = indexHtml.replace(/<!--[\s\S]*?-->/g, '');
+      // Loop until stable to defeat any interleaved/nested comment sequences
+      // (e.g. "<!--<!---->-->") that a single-pass replace would leave behind.
+      let withoutComments = indexHtml;
+      let prev;
+      do {
+        prev = withoutComments;
+        withoutComments = withoutComments.replace(/<!--[\s\S]*?-->/g, '');
+      } while (withoutComments !== prev);
       const openTags = withoutComments.match(/<script\b[^>]*>/gi) || [];
       openTags.forEach(tag => {
         expect(tag).toMatch(/\bsrc=/);
