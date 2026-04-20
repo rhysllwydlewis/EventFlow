@@ -3,8 +3,10 @@
 const { Queue, Worker } = require('bullmq');
 const IORedis = require('ioredis');
 
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+const HAS_REDIS_URL = Boolean(process.env.REDIS_URL);
 const REDIS_URL = process.env.REDIS_URL || 'redis://127.0.0.1:6379';
-const USE_STUB = !process.env.REDIS_URL && process.env.NODE_ENV !== 'production';
+const USE_STUB = !HAS_REDIS_URL && !IS_PRODUCTION;
 
 let context = { logger: console, db: null, postmark: null };
 const workers = [];
@@ -31,6 +33,11 @@ class InProcessQueue {
 }
 
 function initQueues() {
+  if (IS_PRODUCTION && !HAS_REDIS_URL) {
+    throw new Error(
+      '[queue] REDIS_URL is required when NODE_ENV=production. Refusing to start with in-process queue fallback.'
+    );
+  }
   if (notificationsQueue && emailQueue) {
     return;
   }
@@ -122,6 +129,8 @@ function getQueueContext() {
 }
 
 module.exports = {
+  IS_PRODUCTION,
+  HAS_REDIS_URL,
   REDIS_URL,
   USE_STUB,
   getQueues,

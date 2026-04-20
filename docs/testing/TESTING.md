@@ -57,6 +57,8 @@ Run the complete Jest test suite with coverage:
 npm test
 ```
 
+> Note: Playwright visual specs under `tests/visual/` are intentionally excluded from Jest and run via Playwright (`npm run test:visual`).
+
 ### Run tests in watch mode
 
 Useful during development:

@@ -21,15 +21,15 @@
   ──────────────────────────────────────────────────────── */
 
   /** sessionStorage key for persisting the panel open/closed state */
-  var STORAGE_KEY = 'sp_adv_open';
+  const STORAGE_KEY = 'sp_adv_open';
 
   /** Must match the CSS @media (max-width: 640px) breakpoint in suppliers-page.css
    *  AND the MOBILE_BP constant in public/assets/js/pages/suppliers-init.js.
    *  ⚠ If this value changes, update all three locations. */
-  var MOBILE_BP = 640;
+  const MOBILE_BP = 640;
 
   /** IDs of the inputs that live inside the advanced panel (used for badge count) */
-  var ADVANCED_FILTER_IDS = [
+  const ADVANCED_FILTER_IDS = [
     'filterEventType',
     'filterDistance',
     'filterPrice',
@@ -67,25 +67,29 @@
   ──────────────────────────────────────────────────────── */
 
   function initAdvancedFilterToggle() {
-    var toggle = document.getElementById('sp-adv-toggle');
-    var panel  = document.getElementById('sp-advanced-filters');
-    var badge  = document.getElementById('sp-adv-badge');
+    const toggle = document.getElementById('sp-adv-toggle');
+    const panel = document.getElementById('sp-advanced-filters');
+    const badge = document.getElementById('sp-adv-badge');
 
     if (!toggle || !panel) {
       return; /* panel not in DOM — nothing to do */
     }
 
-    var isOpen = false;
+    let isOpen = false;
 
     /* ── Badge: count active advanced filters ── */
 
     function countActiveAdvanced() {
-      var count = 0;
-      ADVANCED_FILTER_IDS.forEach(function (id) {
-        var el = document.getElementById(id);
-        if (!el) { return; }
+      let count = 0;
+      ADVANCED_FILTER_IDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) {
+          return;
+        }
         if (el.type === 'checkbox') {
-          if (el.checked) { count++; }
+          if (el.checked) {
+            count++;
+          }
         } else if (el.value && el.value !== '' && el.value !== 'relevance') {
           count++;
         }
@@ -94,8 +98,10 @@
     }
 
     function refreshBadge() {
-      if (!badge) { return; }
-      var n = countActiveAdvanced();
+      if (!badge) {
+        return;
+      }
+      const n = countActiveAdvanced();
       if (n > 0) {
         badge.textContent = String(n);
         badge.hidden = false;
@@ -117,7 +123,7 @@
       toggle.setAttribute('aria-label', open ? 'Hide advanced filters' : 'Show advanced filters');
 
       /* Swap the button label text */
-      var labelEl = toggle.querySelector('.sp-adv-toggle-label');
+      const labelEl = toggle.querySelector('.sp-adv-toggle-label');
       if (labelEl) {
         labelEl.textContent = open ? 'Less filters' : 'More filters';
       }
@@ -134,8 +140,8 @@
        * A small delay lets the CSS max-height transition begin first.
        */
       if (open && animate) {
-        setTimeout(function () {
-          var firstControl = panel.querySelector('select, input');
+        setTimeout(() => {
+          const firstControl = panel.querySelector('select, input');
           if (firstControl) {
             firstControl.focus({ preventScroll: true });
           }
@@ -149,7 +155,7 @@
      * is no unstyled-content flash on load) and only when the panel is
      * about to change state for the first time.
      */
-    var animationEnabled = false;
+    let animationEnabled = false;
     function enableAnimation() {
       if (!animationEnabled) {
         panel.classList.add('sp-advanced-filters--animate');
@@ -159,45 +165,51 @@
 
     /* ── Toggle on button click ── */
 
-    toggle.addEventListener('click', function () {
+    toggle.addEventListener('click', () => {
       enableAnimation();
       setOpen(!isOpen, true);
     });
 
     /* ── Badge refresh on every filter change ── */
 
-    ADVANCED_FILTER_IDS.forEach(function (id) {
-      var el = document.getElementById(id);
+    ADVANCED_FILTER_IDS.forEach(id => {
+      const el = document.getElementById(id);
       if (el) {
         el.addEventListener('change', refreshBadge);
-        el.addEventListener('input',  refreshBadge);
+        el.addEventListener('input', refreshBadge);
       }
     });
 
     /* ── Handle viewport resize across the mobile breakpoint ── */
 
-    var wasMobile = isMobile();
+    let wasMobile = isMobile();
 
-    window.addEventListener('resize', function () {
-      var nowMobile = isMobile();
-      if (nowMobile === wasMobile) { return; }
-      wasMobile = nowMobile;
+    window.addEventListener(
+      'resize',
+      () => {
+        const nowMobile = isMobile();
+        if (nowMobile === wasMobile) {
+          return;
+        }
+        wasMobile = nowMobile;
 
-      if (!nowMobile) {
-        /*
-         * Crossed from mobile to desktop: remove any open state so the
-         * display:contents CSS rule can take full effect cleanly.
-         */
-        panel.classList.remove('is-open', 'sp-advanced-filters--animate');
-        toggle.setAttribute('aria-expanded', 'false');
-        isOpen = false;
-        animationEnabled = false;
-      } else {
-        /* Crossed from desktop back to mobile: restore persisted state */
-        var stored = readStorage();
-        setOpen(stored, false);
-      }
-    }, { passive: true });
+        if (!nowMobile) {
+          /*
+           * Crossed from mobile to desktop: remove any open state so the
+           * display:contents CSS rule can take full effect cleanly.
+           */
+          panel.classList.remove('is-open', 'sp-advanced-filters--animate');
+          toggle.setAttribute('aria-expanded', 'false');
+          isOpen = false;
+          animationEnabled = false;
+        } else {
+          /* Crossed from desktop back to mobile: restore persisted state */
+          const stored = readStorage();
+          setOpen(stored, false);
+        }
+      },
+      { passive: true }
+    );
 
     /* ── Initial state on page load ── */
 
@@ -230,48 +242,63 @@
      * existing carousel logic in suppliers-init.js handles the scroll.
      */
 
-    var touchStartX   = 0;
-    var touchStartY   = 0;
-    var activeCarousel = null;
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let activeCarousel = null;
 
     /** Minimum horizontal distance (px) to count as a swipe */
-    var SWIPE_THRESHOLD_X = 40;
+    const SWIPE_THRESHOLD_X = 40;
     /** Maximum vertical drift allowed — prevents conflict with page scroll */
-    var SWIPE_MAX_Y = 60;
+    const SWIPE_MAX_Y = 60;
 
-    document.addEventListener('touchstart', function (e) {
-      var carousel = e.target.closest('.sp-pkg-carousel');
-      if (!carousel) { return; }
-      touchStartX    = e.touches[0].clientX;
-      touchStartY    = e.touches[0].clientY;
-      activeCarousel = carousel;
-    }, { passive: true });
+    document.addEventListener(
+      'touchstart',
+      e => {
+        const carousel = e.target.closest('.sp-pkg-carousel');
+        if (!carousel) {
+          return;
+        }
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        activeCarousel = carousel;
+      },
+      { passive: true }
+    );
 
-    document.addEventListener('touchend', function (e) {
-      if (!activeCarousel) { return; }
+    document.addEventListener(
+      'touchend',
+      e => {
+        if (!activeCarousel) {
+          return;
+        }
 
-      var dx = e.changedTouches[0].clientX - touchStartX;
-      var dy = e.changedTouches[0].clientY - touchStartY;
+        const dx = e.changedTouches[0].clientX - touchStartX;
+        const dy = e.changedTouches[0].clientY - touchStartY;
 
-      /* Reset regardless of whether we act */
-      var carousel = activeCarousel;
-      activeCarousel = null;
+        /* Reset regardless of whether we act */
+        const carousel = activeCarousel;
+        activeCarousel = null;
 
-      /* Ignore mostly-vertical swipes (user is likely scrolling the page) */
-      if (Math.abs(dy) > SWIPE_MAX_Y) { return; }
+        /* Ignore mostly-vertical swipes (user is likely scrolling the page) */
+        if (Math.abs(dy) > SWIPE_MAX_Y) {
+          return;
+        }
 
-      if (Math.abs(dx) < SWIPE_THRESHOLD_X) { return; }
+        if (Math.abs(dx) < SWIPE_THRESHOLD_X) {
+          return;
+        }
 
-      /* Left-swipe → advance to next card; right-swipe → go back */
-      var arrowSelector = dx < 0
-        ? '.sp-pkg-arrow--next:not([disabled])'
-        : '.sp-pkg-arrow--prev:not([disabled])';
+        /* Left-swipe → advance to next card; right-swipe → go back */
+        const arrowSelector =
+          dx < 0 ? '.sp-pkg-arrow--next:not([disabled])' : '.sp-pkg-arrow--prev:not([disabled])';
 
-      var btn = carousel.querySelector(arrowSelector);
-      if (btn) {
-        btn.click();
-      }
-    }, { passive: true });
+        const btn = carousel.querySelector(arrowSelector);
+        if (btn) {
+          btn.click();
+        }
+      },
+      { passive: true }
+    );
   }
 
   /* ────────────────────────────────────────────────────────
@@ -288,5 +315,4 @@
   } else {
     init();
   }
-
 })();

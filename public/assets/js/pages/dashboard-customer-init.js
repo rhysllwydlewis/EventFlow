@@ -117,40 +117,29 @@ async function loadCustomerPlans(preloadedPlans) {
   }
 }
 
-async function getCsrfToken() {
-  if (window.__CSRF_TOKEN__) return window.__CSRF_TOKEN__;
-  try {
-    const r = await fetch('/api/csrf-token', { credentials: 'include' });
-    if (r.ok) {
-      const d = await r.json();
-      const t = d.csrfToken || d.token || '';
-      if (t) window.__CSRF_TOKEN__ = t;
-      return t;
-    }
-  } catch (_) {}
-  const m = document.cookie.match(/(?:^|;\s*)(?:csrf|csrfToken)=([^;]+)/);
-  return m ? decodeURIComponent(m[1]) : '';
-}
-
 function showEditPlanModal(plan, onSaved) {
   // Inject animation keyframes once
   if (!document.getElementById('_dash_modal_styles')) {
     const s = document.createElement('style');
     s.id = '_dash_modal_styles';
-    s.textContent = '@keyframes ef-modal-in{from{opacity:0;transform:translateY(10px) scale(0.98)}to{opacity:1;transform:none}}';
+    s.textContent =
+      '@keyframes ef-modal-in{from{opacity:0;transform:translateY(10px) scale(0.98)}to{opacity:1;transform:none}}';
     document.head.appendChild(s);
   }
 
   const titleId = '_dash_plan_edit_title';
   const existing = document.getElementById('_dash_plan_edit_modal');
-  if (existing) existing.remove();
+  if (existing) {
+    existing.remove();
+  }
 
   const overlay = document.createElement('div');
   overlay.id = '_dash_plan_edit_modal';
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-modal', 'true');
   overlay.setAttribute('aria-labelledby', titleId);
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;padding:1rem;';
+  overlay.style.cssText =
+    'position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;padding:1rem;';
   overlay.innerHTML = `
     <div style="background:#fff;border-radius:12px;max-width:480px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,0.2);max-height:90vh;overflow-y:auto;animation:ef-modal-in 0.2s ease both;">
       <div style="padding:1.25rem 1.5rem;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between;">
@@ -190,18 +179,30 @@ function showEditPlanModal(plan, onSaved) {
     document.body.style.overflow = '';
     document.removeEventListener('keydown', handleEscEdit);
   };
-  function handleEscEdit(e) { if (e.key === 'Escape') close(); }
+  function handleEscEdit(e) {
+    if (e.key === 'Escape') {
+      close();
+    }
+  }
   document.body.style.overflow = 'hidden';
   document.addEventListener('keydown', handleEscEdit);
   overlay.querySelector('#_dash_plan_edit_close').addEventListener('click', close);
   overlay.querySelector('#_pf_cancel').addEventListener('click', close);
-  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) {
+      close();
+    }
+  });
 
   overlay.querySelector('#_pf_save').addEventListener('click', async () => {
     const saveBtn = overlay.querySelector('#_pf_save');
     const statusEl = overlay.querySelector('#_pf_status');
     const name = overlay.querySelector('#_pf_name').value.trim();
-    if (!name) { statusEl.textContent = '✗ Plan name is required'; statusEl.style.color = '#ef4444'; return; }
+    if (!name) {
+      statusEl.textContent = '✗ Plan name is required';
+      statusEl.style.color = '#ef4444';
+      return;
+    }
     saveBtn.disabled = true;
     saveBtn.textContent = 'Saving…';
     statusEl.textContent = '';
@@ -219,9 +220,13 @@ function showEditPlanModal(plan, onSaved) {
         }),
       });
       const d = await r.json();
-      if (!r.ok) throw new Error(d.error || 'Failed to save');
+      if (!r.ok) {
+        throw new Error(d.error || 'Failed to save');
+      }
       close();
-      if (typeof onSaved === 'function') onSaved();
+      if (typeof onSaved === 'function') {
+        onSaved();
+      }
     } catch (err) {
       statusEl.textContent = `✗ ${err.message}`;
       statusEl.style.color = '#ef4444';
@@ -235,13 +240,16 @@ function showEditPlanModal(plan, onSaved) {
 function confirmDeletePlan(plan, onDeleted) {
   const displayName = escapeHtml(plan.name || plan.eventType || 'this plan');
   const existing = document.getElementById('_dash_plan_delete_modal');
-  if (existing) existing.remove();
+  if (existing) {
+    existing.remove();
+  }
 
   const overlay = document.createElement('div');
   overlay.id = '_dash_plan_delete_modal';
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-modal', 'true');
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;padding:1rem;';
+  overlay.style.cssText =
+    'position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;padding:1rem;';
   overlay.innerHTML = `
     <div style="background:#fff;border-radius:12px;max-width:400px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,0.2);padding:1.5rem;animation:ef-modal-in 0.2s ease both;">
       <h3 style="margin:0 0 0.75rem;font-size:1.1rem;font-weight:700;">Delete Plan</h3>
@@ -261,11 +269,19 @@ function confirmDeletePlan(plan, onDeleted) {
     document.body.style.overflow = '';
     document.removeEventListener('keydown', handleEscDel);
   };
-  function handleEscDel(e) { if (e.key === 'Escape') close(); }
+  function handleEscDel(e) {
+    if (e.key === 'Escape') {
+      close();
+    }
+  }
   document.body.style.overflow = 'hidden';
   document.addEventListener('keydown', handleEscDel);
   overlay.querySelector('#_del_cancel').addEventListener('click', close);
-  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) {
+      close();
+    }
+  });
 
   overlay.querySelector('#_del_confirm').addEventListener('click', async () => {
     const delBtn = overlay.querySelector('#_del_confirm');
@@ -280,9 +296,13 @@ function confirmDeletePlan(plan, onDeleted) {
         credentials: 'include',
       });
       const d = await r.json();
-      if (!r.ok) throw new Error(d.error || 'Failed to delete');
+      if (!r.ok) {
+        throw new Error(d.error || 'Failed to delete');
+      }
       close();
-      if (typeof onDeleted === 'function') onDeleted();
+      if (typeof onDeleted === 'function') {
+        onDeleted();
+      }
     } catch (err) {
       statusEl.textContent = `✗ ${err.message}`;
       delBtn.disabled = false;
@@ -483,14 +503,18 @@ async function populateHeroStats(plans) {
       // Keep legacy localStorage key in sync so redirect logic still works
       try {
         localStorage.setItem('eventflow_saved_suppliers', JSON.stringify(savedSupplierIds));
-      } catch (_) { /* ignore */ }
+      } catch (_) {
+        /* ignore */
+      }
     }
   } catch (_) {
     // Fallback to localStorage on network error
     try {
       savedSupplierIds = JSON.parse(localStorage.getItem('eventflow_saved_suppliers') || '[]');
       savedCount = savedSupplierIds.length;
-    } catch (__) { /* ignore */ }
+    } catch (__) {
+      /* ignore */
+    }
   }
 
   const heroSuppliers = document.getElementById('hero-stat-suppliers');

@@ -17,12 +17,21 @@ HTTP send message
 - Queues: `notifications`, `email`
 - Redis URL: `REDIS_URL` (default: `redis://127.0.0.1:6379`)
 - If `REDIS_URL` is unset and `NODE_ENV !== production`, queue uses an in-process synchronous fallback (no external infra required).
+- If `NODE_ENV=production` and `REDIS_URL` is missing, startup fails fast with a clear configuration error.
 
 ## Running workers locally
 
 ```bash
 npm run worker
 ```
+
+## Running the worker in production
+
+- Ensure deploy config runs both process types:
+  - `web: node server.js`
+  - `worker: node scripts/worker.js`
+- Set `REDIS_URL` in production environment variables.
+- Do not rely on the in-process fallback in production; it is development-only.
 
 ## Queue inspection
 

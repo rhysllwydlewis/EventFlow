@@ -18,3 +18,10 @@ mongosh --eval "rs.initiate()"
 ```
 
 > Roll out plan: keep flag OFF until staging/prod replica-set migration is complete.
+
+## CI coverage
+
+- The `Mongo Replica Set Transactions` GitHub Actions job runs the replica-set transaction rollback test with:
+  - `MONGO_REPLICA_SET=true`
+  - `MONGODB_URI=mongodb://127.0.0.1:27017/eventflow?replicaSet=rs0`
+- This job is additive; existing non-replica-set test jobs remain unchanged.

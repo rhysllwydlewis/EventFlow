@@ -543,25 +543,6 @@ describe('routes/auth.js — /api/auth/me includes supplierApproved', () => {
   });
 });
 
-describe('server.js — /api/auth/me includes supplierApproved', () => {
-  const SERVER_JS = path.join(__dirname, '../../server.js');
-  let content;
-
-  beforeAll(() => {
-    content = fs.readFileSync(SERVER_JS, 'utf8');
-  });
-
-  it('includes supplierApproved in /api/auth/me response', () => {
-    const meSection = content.slice(content.indexOf("app.get('/api/auth/me'"));
-    expect(meSection.slice(0, 2000)).toContain('supplierApproved');
-  });
-
-  it('fetches supplier profile only for supplier-role users', () => {
-    const meSection = content.slice(content.indexOf("app.get('/api/auth/me'"));
-    expect(meSection.slice(0, 2000)).toContain("u.role === 'supplier'");
-  });
-});
-
 // ─── E2) dashboard-supplier-verification.js reads data.user correctly ────────
 
 describe('dashboard-supplier-verification.js — banner reads data.user.*', () => {
@@ -909,7 +890,7 @@ describe('routes/supplier-management.js — PATCH field max-length enforcement',
     const mapDecl = content.indexOf('const PATCH_FIELD_MAX_LENGTHS');
     // router.patch is the first route method for the PATCH handler — the constant
     // must be declared before any route handler so it is evaluated at module load.
-    const patchRouteDecl = content.indexOf("router.patch(");
+    const patchRouteDecl = content.indexOf('router.patch(');
     expect(mapDecl).not.toBe(-1);
     expect(patchRouteDecl).not.toBe(-1);
     expect(mapDecl).toBeLessThan(patchRouteDecl);
@@ -936,7 +917,7 @@ describe('routes/supplier-management.js — PATCH field max-length enforcement',
   });
 
   it('applies .trim() and .substring() to each field in the PATCH loop', () => {
-    const patchSection = content.slice(content.indexOf("PATCH /api/me/suppliers/:id"));
+    const patchSection = content.slice(content.indexOf('PATCH /api/me/suppliers/:id'));
     expect(patchSection.slice(0, 2000)).toContain('.trim()');
     expect(patchSection.slice(0, 2000)).toContain('.substring(0, maxLen)');
   });
