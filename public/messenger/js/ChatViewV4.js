@@ -988,14 +988,17 @@ class ChatViewV4 {
     }
     list.innerHTML = (conv.participants || [])
       .map(p => {
-        const online = this.state.getPresence(p.userId)?.state === 'online';
-        const statusCls = online
-          ? 'messenger-v4__participants-status messenger-v4__participants-status--online'
-          : 'messenger-v4__participants-status';
+        // Presence truthfully reflects the user's socket state: 'online', 'away', or
+        // 'offline'. We must NOT fall back to the word "Active" for offline users —
+        // doing so makes offline users appear online, which is misleading.
+        const rawState = this.state.getPresence(p.userId)?.state;
+        const state = rawState === 'online' || rawState === 'away' ? rawState : 'offline';
+        const label = state === 'online' ? 'Online' : state === 'away' ? 'Away' : 'Offline';
+        const statusCls = `messenger-v4__participants-status messenger-v4__participants-status--${state}`;
         return `<li class="messenger-v4__participants-row">
           <span class="messenger-v4__participants-avatar">${this.escape((p.displayName || 'U').charAt(0).toUpperCase())}</span>
           <span class="messenger-v4__participants-name">${this.escape(p.displayName || p.userId)}</span>
-          <span class="${statusCls}">${online ? 'Online' : 'Active'}</span>
+          <span class="${statusCls}" data-presence="${state}">${label}</span>
         </li>`;
       })
       .join('');

@@ -813,12 +813,45 @@
 
 .messenger-v4__send-button {
   margin-left: auto;
-  background: var(--messenger-primary);
+  background: linear-gradient(
+    135deg,
+    var(--messenger-primary, #0b8073) 0%,
+    var(--messenger-primary-dark, #075f55) 100%
+  );
   color: white;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* Liquid-glass highlight: subtle top-inner sheen that gives the button depth */
+.messenger-v4__send-button::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.28) 0%,
+    rgba(255, 255, 255, 0.08) 45%,
+    rgba(255, 255, 255, 0) 70%
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Keep the icon above the gloss layer */
+.messenger-v4__send-button > * {
+  position: relative;
+  z-index: 2;
 }
 
 .messenger-v4__send-button:hover {
-  background: var(--messenger-primary-dark);
+  background: linear-gradient(
+    135deg,
+    var(--messenger-primary-dark, #075f55) 0%,
+    var(--messenger-primary, #0b8073) 100%
+  );
   transform: scale(1.05);
 }
 
@@ -1570,6 +1603,16 @@
   flex-direction: column;
 }
 
+/*
+ * The drawer sets `display: flex` on its class, which defeats the UA default
+ * `[hidden] { display: none }`. Without this override, toggling the `hidden`
+ * attribute in JS (`_toggleParticipantsDrawer`) keeps the panel visible and
+ * the close (X) button appears to do nothing.
+ */
+.messenger-v4__participants-drawer[hidden] {
+  display: none !important;
+}
+
 .messenger-v4__participants-drawer-header {
   display: flex;
   justify-content: space-between;
@@ -1639,10 +1682,33 @@
   opacity: 0.7;
 }
 
+.messenger-v4__participants-status--online {
+  color: var(--messenger-online, #10b981);
+}
+
 .messenger-v4__participants-status--online::before {
   background: var(--messenger-online, #10b981);
   opacity: 1;
   box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18);
+}
+
+.messenger-v4__participants-status--away {
+  color: #d97706;
+}
+
+.messenger-v4__participants-status--away::before {
+  background: #f59e0b;
+  opacity: 1;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18);
+}
+
+.messenger-v4__participants-status--offline {
+  color: var(--ef-text-muted, #6b7280);
+}
+
+.messenger-v4__participants-status--offline::before {
+  background: #94a3b8;
+  opacity: 0.75;
 }
 
 .messenger-v4__system-message {
