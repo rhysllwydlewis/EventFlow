@@ -797,5 +797,70 @@ describe('Messenger client-side fixes', () => {
       expect(bannerSrc).not.toMatch(/`\/suppliers\/\$\{id\}`/);
       expect(bannerSrc).not.toMatch(/`\/marketplace\/\$\{id\}`/);
     });
+
+    // ── Participants drawer close button actually hides the drawer ─────────────
+    it('participants drawer CSS honors the [hidden] attribute so the close (X) button works', () => {
+      const messengerCss = fs.readFileSync(
+        path.resolve(__dirname, '..', '..', 'public', 'assets', 'css', 'messenger-v4.css'),
+        'utf8'
+      );
+      // The base selector sets display:flex, so without an explicit [hidden]
+      // override the UA `[hidden] { display:none }` rule loses and the close
+      // button silently fails.
+      expect(messengerCss).toMatch(
+        /\.messenger-v4__participants-drawer\[hidden\]\s*\{[\s\S]{0,200}display:\s*none/
+      );
+    });
+
+    // ── Participants list shows truthful presence labels ───────────────────────
+    it('participants list labels presence as Online/Away/Offline (never falsely "Active" for offline users)', () => {
+      // Must no longer fall back to the misleading word "Active" for offline users.
+      expect(chatViewSrc).not.toMatch(/online\s*\?\s*'Online'\s*:\s*'Active'/);
+      // Must read the real presence state.
+      expect(chatViewSrc).toMatch(/getPresence\(p\.userId\)\?\.state/);
+      // Must render the three canonical labels.
+      expect(chatViewSrc).toMatch(/'Online'/);
+      expect(chatViewSrc).toMatch(/'Away'/);
+      expect(chatViewSrc).toMatch(/'Offline'/);
+    });
+
+    it('participants-status CSS exposes distinct online / away / offline modifier classes', () => {
+      const messengerCss = fs.readFileSync(
+        path.resolve(__dirname, '..', '..', 'public', 'assets', 'css', 'messenger-v4.css'),
+        'utf8'
+      );
+      expect(messengerCss).toMatch(/\.messenger-v4__participants-status--online\b/);
+      expect(messengerCss).toMatch(/\.messenger-v4__participants-status--away\b/);
+      expect(messengerCss).toMatch(/\.messenger-v4__participants-status--offline\b/);
+    });
+
+    // ── Send button modernisation ──────────────────────────────────────────────
+    it('send button has a modern gradient + glass highlight (no flat Windows-95 look)', () => {
+      const messengerCss = fs.readFileSync(
+        path.resolve(__dirname, '..', '..', 'public', 'assets', 'css', 'messenger-v4.css'),
+        'utf8'
+      );
+      // Background is a gradient, not a flat fill.
+      expect(messengerCss).toMatch(
+        /\.messenger-v4__send-button\s*\{[\s\S]{0,400}background:\s*linear-gradient/
+      );
+      // Top-inner sheen via ::before pseudo-element.
+      expect(messengerCss).toMatch(/\.messenger-v4__send-button::before\s*\{/);
+    });
+
+    it('send button keeps a tasteful depth shadow (polish overrides the generic icon-button strip)', () => {
+      const polishCss = fs.readFileSync(
+        path.join(MESSENGER_DIR, 'css', 'messenger-v4-polish.css'),
+        'utf8'
+      );
+      // The generic icon-button override sets `box-shadow: none;` — the send
+      // button must reinstate a depth shadow so it doesn't look flat.
+      expect(polishCss).toMatch(
+        /\.messenger-v4__send-button\.ef-cta\s*\{[\s\S]{0,400}box-shadow:\s*[^;]*rgba\(11,\s*128,\s*115/
+      );
+      expect(polishCss).toMatch(
+        /\.messenger-v4__send-button\.ef-cta:not\(:disabled\):active\s*\{[\s\S]{0,200}transform:\s*scale\(0\.9\d\)/
+      );
+    });
   });
 });
