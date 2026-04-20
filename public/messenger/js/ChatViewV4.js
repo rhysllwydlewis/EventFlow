@@ -84,10 +84,11 @@ class ChatViewV4 {
           <button class="ef-cta messenger-v4__action-button" id="v4PinBtn" aria-label="Pin conversation" title="Pin">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17H19V13L14 3H10L5 13V17Z"/></svg>
           </button>
-          <button class="ef-cta messenger-v4__action-button" id="v4ArchiveBtn" aria-label="Archive conversation" title="Archive">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5" rx="1"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+          <button class="ef-cta messenger-v4__action-button" id="v4ArchiveBtn" aria-label="Archive conversation" title="Archive" data-archived="false">
+            <svg class="messenger-v4__archive-icon-off" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5" rx="1"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+            <svg class="messenger-v4__archive-icon-on" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="display:none"><polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5" rx="1"/><polyline points="9 14 12 11 15 14"/><line x1="12" y1="11" x2="12" y2="18"/></svg>
           </button>
-          <button class="ef-cta messenger-v4__action-button" id="v4DeleteConvBtn" aria-label="Delete conversation" title="Delete">
+          <button class="ef-cta messenger-v4__action-button" id="v4DeleteConvBtn" aria-label="Delete conversation" title="Delete" data-archived="false">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
           </button>
           <button class="ef-cta messenger-v4__action-button" id="v4MarkUnreadBtn" aria-label="Mark as unread" title="Mark as unread">
@@ -579,6 +580,7 @@ class ChatViewV4 {
     const me = conv.participants?.find(p => p.userId === uid);
     const isUnread = me ? (me.unreadCount || 0) > 0 : false;
     this._updateMarkUnreadBtn(isUnread);
+    this._updateArchiveBtn(!!me?.isArchived);
     this._renderParticipants(conv);
 
     // Show back button on mobile
@@ -604,6 +606,36 @@ class ChatViewV4 {
       btn.setAttribute('aria-label', 'Mark as unread');
       btn.setAttribute('title', 'Mark as unread');
       btn.dataset.unread = 'false';
+    }
+  }
+
+  /**
+   * Swap the Archive action button between Archive ↔ Unarchive based on the
+   * current participant state. Also retitles the Delete button to make it
+   * explicit that deleting an already-archived conversation is permanent.
+   * @param {boolean} isArchived
+   */
+  _updateArchiveBtn(isArchived) {
+    const btn = this.container.querySelector('#v4ArchiveBtn');
+    if (btn) {
+      btn.dataset.archived = isArchived ? 'true' : 'false';
+      btn.setAttribute('aria-label', isArchived ? 'Unarchive conversation' : 'Archive conversation');
+      btn.setAttribute('title', isArchived ? 'Unarchive' : 'Archive');
+      const iconOff = btn.querySelector('.messenger-v4__archive-icon-off');
+      const iconOn = btn.querySelector('.messenger-v4__archive-icon-on');
+      if (iconOff && iconOn) {
+        iconOff.style.display = isArchived ? 'none' : '';
+        iconOn.style.display = isArchived ? '' : 'none';
+      }
+    }
+    const del = this.container.querySelector('#v4DeleteConvBtn');
+    if (del) {
+      del.dataset.archived = isArchived ? 'true' : 'false';
+      del.setAttribute(
+        'aria-label',
+        isArchived ? 'Delete conversation permanently' : 'Delete conversation'
+      );
+      del.setAttribute('title', isArchived ? 'Delete permanently' : 'Delete');
     }
   }
 
