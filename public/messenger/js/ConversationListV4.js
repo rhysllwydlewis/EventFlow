@@ -478,11 +478,14 @@ class ConversationListV4 {
         .getConversations({ archived: true })
         .then(data => {
           const archived = data.conversations || data || [];
-          archived.forEach(conv => this.state.updateConversation(conv));
-          // If nothing was returned, trigger an explicit re-render so the
-          // empty state is shown instead of the lingering skeleton.
           if (archived.length === 0) {
+            // Nothing returned — render the empty state directly since there are
+            // no state updates to trigger _onConversationsChanged.
             this.renderConversations(this.state.conversations || []);
+          } else {
+            // Merging each conversation into state will emit 'conversationsChanged',
+            // which calls _onConversationsChanged → renderConversations automatically.
+            archived.forEach(conv => this.state.updateConversation(conv));
           }
         })
         .catch(err => {

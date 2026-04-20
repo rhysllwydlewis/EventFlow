@@ -726,31 +726,35 @@ class MessengerV4Service {
     // Auto-unarchive any recipients who had previously archived this conversation.
     // A new incoming message should surface the conversation back in their main inbox
     // without requiring them to manually browse the archive.
-    const autoUnarchedUserIds = [];
-    const unarchiveOps = [];
-    conversation.participants.forEach((p, index) => {
+    const autoUnarchivedUserIds = [];
+    const unarchivedUserIdSet = new Set();
+    conversation.participants.forEach(p => {
       if (p.userId !== messageData.senderId && p.isArchived === true) {
-        unarchiveOps.push({
-          updateOne: {
-            filter: { _id: new ObjectId(conversationId) },
-            update: { $set: { [`participants.${index}.isArchived`]: false } },
-          },
-        });
-        autoUnarchedUserIds.push(p.userId);
+        unarchivedUserIdSet.add(p.userId);
+        autoUnarchivedUserIds.push(p.userId);
       }
     });
-    if (unarchiveOps.length > 0) {
-      await this.conversationsCollection.bulkWrite(unarchiveOps).catch(err => {
-        this.logger.error('[messenger-v4] Failed to auto-unarchive recipients', {
-          error: err.message,
-          conversationId: String(conversationId),
+    if (unarchivedUserIdSet.size > 0) {
+      // Use arrayFilters with the positional filtered operator so the update
+      // targets each participant by userId, not by array index, which makes it
+      // safe under concurrent modifications to the participants array.
+      await this.conversationsCollection
+        .updateOne(
+          { _id: new ObjectId(conversationId) },
+          { $set: { 'participants.$[p].isArchived': false } },
+          { arrayFilters: [{ 'p.userId': { $in: Array.from(unarchivedUserIdSet) } }] }
+        )
+        .catch(err => {
+          this.logger.error('[messenger-v4] Failed to auto-unarchive recipients', {
+            error: err.message,
+            conversationId: String(conversationId),
+          });
         });
-      });
     }
 
     // Expose the list of auto-unarchived user IDs to the route layer so it
     // can emit conversation-updated WebSocket events to those users.
-    message._autoUnarchedUserIds = autoUnarchedUserIds;
+    message._autoUnarchivedUserIds = autoUnarchivedUserIds;
 
     return message;
   }

@@ -680,10 +680,10 @@ router.post(
       const message = await (await getMessengerService()).sendMessage(conversationId, messageData);
 
       // Extract and strip the internal auto-unarchive metadata before sending to client
-      const autoUnarchedUserIds = Array.isArray(message._autoUnarchedUserIds)
-        ? message._autoUnarchedUserIds
+      const autoUnarchivedUserIds = Array.isArray(message._autoUnarchivedUserIds)
+        ? message._autoUnarchivedUserIds
         : [];
-      delete message._autoUnarchedUserIds;
+      delete message._autoUnarchivedUserIds;
 
       // Get full conversation for WebSocket emission
       const conversation = await (
@@ -698,7 +698,7 @@ router.post(
 
       // Notify auto-unarchived recipients so their client moves the conversation
       // back to the main inbox without requiring a manual page reload.
-      for (const uid of autoUnarchedUserIds) {
+      for (const uid of autoUnarchivedUserIds) {
         try {
           const recipientConv = await (
             await getMessengerService()
