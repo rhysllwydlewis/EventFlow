@@ -992,8 +992,15 @@ class ChatViewV4 {
         // 'offline'. We must NOT fall back to the word "Active" for offline users —
         // doing so makes offline users appear online, which is misleading.
         const rawState = this.state.getPresence(p.userId)?.state;
-        const state = rawState === 'online' || rawState === 'away' ? rawState : 'offline';
-        const label = state === 'online' ? 'Online' : state === 'away' ? 'Away' : 'Offline';
+        let state = 'offline';
+        let label = 'Offline';
+        if (rawState === 'online') {
+          state = 'online';
+          label = 'Online';
+        } else if (rawState === 'away') {
+          state = 'away';
+          label = 'Away';
+        }
         const statusCls = `messenger-v4__participants-status messenger-v4__participants-status--${state}`;
         return `<li class="messenger-v4__participants-row">
           <span class="messenger-v4__participants-avatar">${this.escape((p.displayName || 'U').charAt(0).toUpperCase())}</span>

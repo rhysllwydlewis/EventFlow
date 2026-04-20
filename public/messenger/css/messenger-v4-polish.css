@@ -2523,7 +2523,6 @@ body:has(.messenger-v4) {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .messenger-v4__send-button,
   .messenger-v4__send-button:not(:disabled):hover,
   .messenger-v4__send-button.ef-cta:not(:disabled):active {
     transform: none;
