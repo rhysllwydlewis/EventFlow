@@ -503,7 +503,10 @@
       // participantIds must only include OTHER participants - the backend adds the current user automatically
       const participantIds = [recipientId];
 
-      // Build context object
+      // Build a canonical context object (type, referenceId, referenceTitle)
+      // to match the server-side schema in CONVERSATION_CONTEXT_TYPES /
+      // conversations_v4. Older field names (`id`, `title`) are intentionally
+      // avoided so search and banner rendering stay consistent.
       const context = {};
       if (opts.contextType) {
         context.type = opts.contextType;
@@ -512,7 +515,7 @@
         context.referenceId = opts.contextId;
       }
       if (opts.contextTitle) {
-        context.title = opts.contextTitle;
+        context.referenceTitle = opts.contextTitle;
       }
 
       // Step 1: Create (or find existing) conversation

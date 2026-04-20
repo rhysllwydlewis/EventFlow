@@ -1263,6 +1263,10 @@ router.get('/admin/conversations', applyAuthRequired, async (req, res) => {
         { 'lastMessage.content': { $regex: escapedSearch, $options: 'i' } },
         { 'participants.displayName': { $regex: escapedSearch, $options: 'i' } },
         { 'participants.businessName': { $regex: escapedSearch, $options: 'i' } },
+        // Canonical schema is `context.referenceTitle`; keep the legacy
+        // `context.title` clause for backward compatibility with any
+        // pre-migration rows still in the collection.
+        { 'context.referenceTitle': { $regex: escapedSearch, $options: 'i' } },
         { 'context.title': { $regex: escapedSearch, $options: 'i' } },
       ];
     }

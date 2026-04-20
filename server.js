@@ -302,7 +302,7 @@ function logIntegrationStartupSummary() {
     },
     {
       name: 'Redis URL',
-      required: 'optional',
+      required: process.env.NODE_ENV === 'production' ? 'required' : 'optional',
       status: process.env.REDIS_URL ? 'configured' : 'disabled',
     },
   ];

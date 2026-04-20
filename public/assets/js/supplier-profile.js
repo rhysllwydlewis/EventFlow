@@ -391,7 +391,7 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
           const params = new URLSearchParams({
             new: 'true',
             recipientId: supplier.ownerUserId,
-            contextType: 'supplier',
+            contextType: 'supplier_profile',
             contextId: supplier.id,
             contextTitle: supplier.name,
             prefill: `Hi ${safeName}! I'd like to enquire about your services.`,

@@ -49,8 +49,15 @@ class ContextBannerV4 {
 
   /**
    * Show the context banner with the given context data.
-   * @param {Object} context - { type, title, subtitle, url, imageUrl }
-   *   type: 'package' | 'supplier' | 'marketplace'
+   *
+   * Accepts either the canonical conversation-context schema:
+   *   { type, referenceId, referenceTitle, referenceImage }
+   * or the legacy shape used by older call sites:
+   *   { type, title, subtitle, url, imageUrl }
+   *
+   * Canonical types ("package", "supplier_profile", "marketplace_listing",
+   * "find_a_supplier") are mapped to icons + human labels here so banners
+   * render correctly regardless of entry point.
    */
   show(context) {
     if (!context) {
@@ -58,12 +65,41 @@ class ContextBannerV4 {
     }
     this._currentContext = context;
 
-    const iconMap = { package: '📦', supplier: '🏢', marketplace: '🛒' };
-    const icon = iconMap[context.type] || '💬';
+    // Accept both canonical and legacy aliases.
+    const rawType = context.type || 'direct';
+    const aliasMap = {
+      supplier: 'supplier_profile',
+      marketplace: 'marketplace_listing',
+    };
+    const canonicalType = aliasMap[rawType] || rawType;
+
+    const iconMap = {
+      package: '📦',
+      supplier_profile: '🏢',
+      marketplace_listing: '🛒',
+      find_a_supplier: '🔎',
+    };
+    const subtitleMap = {
+      package: 'Package enquiry',
+      supplier_profile: 'Supplier profile',
+      marketplace_listing: 'Marketplace listing',
+      find_a_supplier: 'Find a supplier',
+    };
+    const icon = iconMap[canonicalType] || '💬';
+
+    // Title: prefer canonical `referenceTitle`, fall back to legacy `title`.
+    const isPresent = v => v !== null && v !== undefined && v !== '';
+    const title = isPresent(context.referenceTitle) ? context.referenceTitle : context.title || '';
+    const subtitle = isPresent(context.subtitle)
+      ? context.subtitle
+      : subtitleMap[canonicalType] || '';
+    const imageUrl = isPresent(context.referenceImage)
+      ? context.referenceImage
+      : context.imageUrl || null;
 
     this.bannerEl.querySelector('#v4BannerIcon').textContent = icon;
-    this.bannerEl.querySelector('#v4BannerTitle').textContent = context.title || '';
-    this.bannerEl.querySelector('#v4BannerSubtitle').textContent = context.subtitle || '';
+    this.bannerEl.querySelector('#v4BannerTitle').textContent = title;
+    this.bannerEl.querySelector('#v4BannerSubtitle').textContent = subtitle;
 
     // Update the "View" link — sanitise to block javascript: / data: URIs
     const link = this.bannerEl.querySelector('#v4BannerLink');
@@ -81,9 +117,9 @@ class ContextBannerV4 {
 
     // Show thumbnail if provided — only allow relative paths (same-origin)
     const thumb = this.bannerEl.querySelector('#v4BannerThumb');
-    if (context.imageUrl && /^\//.test(context.imageUrl)) {
-      thumb.src = context.imageUrl;
-      thumb.alt = this.escape(context.title || 'Context image');
+    if (imageUrl && /^\//.test(imageUrl)) {
+      thumb.src = imageUrl;
+      thumb.alt = this.escape(title || 'Context image');
       thumb.style.display = 'block';
     } else {
       thumb.style.display = 'none';
@@ -91,11 +127,11 @@ class ContextBannerV4 {
     }
 
     // Apply type modifier class for gradient theming
-    this.bannerEl.className = `messenger-v4__context-banner messenger-v4__context-banner--${this.escape(context.type || 'direct')}`;
+    this.bannerEl.className = `messenger-v4__context-banner messenger-v4__context-banner--${this.escape(canonicalType)}`;
     this.bannerEl.style.display = '';
 
     // Announce to screen readers
-    this.bannerEl.setAttribute('aria-label', `${icon} ${context.title || ''} conversation context`);
+    this.bannerEl.setAttribute('aria-label', `${icon} ${title} conversation context`);
   }
 
   /** Hide the context banner. */

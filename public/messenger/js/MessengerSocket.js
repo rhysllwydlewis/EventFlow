@@ -102,6 +102,12 @@ class MessengerSocket {
       window.dispatchEvent(new CustomEvent('messenger:conversation-read', { detail: data }));
     });
 
+    // Per-message delivery receipts — lets sender's UI flip ✓ → ✓✓ live
+    // instead of waiting for the next sinceSeq reconciliation.
+    this.socket.on('messenger:v4:message-delivered', data => {
+      window.dispatchEvent(new CustomEvent('messenger:message-delivered', { detail: data }));
+    });
+
     // Server-side participant guard for v4 joins — surface denial so the UI
     // can log / reset activeConversationId instead of silently missing events.
     this.socket.on('messenger:v4:join-error', data => {

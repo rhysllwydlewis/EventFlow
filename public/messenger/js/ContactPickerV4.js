@@ -53,7 +53,7 @@ class ContactPickerV4 {
             <div class="messenger-v4__context-selector" role="group" aria-label="Conversation context">
               <button class="ef-cta messenger-v4__context-option messenger-v4__context-option--active" data-context="direct" aria-pressed="true">💬 Direct</button>
               <button class="ef-cta messenger-v4__context-option" data-context="package" aria-pressed="false">📦 Package Enquiry</button>
-              <button class="ef-cta messenger-v4__context-option" data-context="marketplace" aria-pressed="false">🛒 Marketplace</button>
+              <button class="ef-cta messenger-v4__context-option" data-context="marketplace_listing" aria-pressed="false">🛒 Marketplace</button>
             </div>
 
             <!-- Search input -->

@@ -45,6 +45,20 @@ const REQUIRED_IN_PRODUCTION = [
 const MIN_SECRET_LENGTH = 32;
 const LENGTH_CHECKED = ['JWT_SECRET', 'SESSION_SECRET', 'CSRF_SECRET'];
 
+// Env vars that are required in production for specific subsystems.  Missing
+// these won't be caught by the generic REQUIRED_IN_PRODUCTION list above, but
+// still cause hard runtime failures (e.g. `services/queue/index.js` throws on
+// startup without REDIS_URL).  Enumerate them here so misconfigured deploys
+// fail at preflight rather than at first request.
+const REQUIRED_IN_PRODUCTION_SUBSYSTEMS = [
+  {
+    key: 'REDIS_URL',
+    reason:
+      'Messenger v4 BullMQ notification/email workers require a real Redis ' +
+      '— the in-process queue stub refuses to start in production.',
+  },
+];
+
 // Known bad defaults that must never be used in production.
 const FORBIDDEN_SECRETS = new Set([
   'dev-secret-please-change-me',
@@ -71,6 +85,13 @@ for (const key of REQUIRED_IN_PRODUCTION) {
   const val = process.env[key];
   if (!val || val.trim() === '') {
     (IS_PRODUCTION ? fail : warn)(`Required env var ${key} is missing or empty`);
+  }
+}
+
+for (const { key, reason } of REQUIRED_IN_PRODUCTION_SUBSYSTEMS) {
+  const val = process.env[key];
+  if (!val || val.trim() === '') {
+    (IS_PRODUCTION ? fail : warn)(`Required env var ${key} is missing or empty — ${reason}`);
   }
 }
 

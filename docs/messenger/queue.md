@@ -32,6 +32,20 @@ npm run worker
   - `worker: node scripts/worker.js`
 - Set `REDIS_URL` in production environment variables.
 - Do not rely on the in-process fallback in production; it is development-only.
+- Preflight (`npm run preflight` / `scripts/preflight.mjs`) hard-fails if
+  `NODE_ENV=production` and `REDIS_URL` is unset. Wire preflight before
+  `node server.js` in your deploy pipeline so misconfigured deploys never
+  come up.
+
+### Platform-specific hints
+
+- **Heroku-style dyno platforms**: `Procfile` declares both `web` and
+  `worker` processes. Ensure the worker dyno is scaled to at least 1.
+- **Railway**: the web service uses `railway.json`. Deploy the queue
+  worker as a second Railway service pointed at the same repo using
+  `railway.worker.json` (sets `startCommand` to `node scripts/worker.js`).
+- **Docker Compose**: `docker-compose.yml` includes a `redis` service and
+  a dedicated `worker` service running `node scripts/worker.js`.
 
 ## Queue inspection
 
