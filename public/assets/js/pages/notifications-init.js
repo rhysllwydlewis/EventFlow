@@ -550,11 +550,6 @@
   function showError() {
     const error = document.getElementById('notifications-error');
     error.style.display = 'block';
-    const retry = document.getElementById('notifications-retry-btn');
-    if (retry && !retry.dataset.bound) {
-      retry.dataset.bound = '1';
-      retry.addEventListener('click', () => fetchNotifications(false));
-    }
   }
 
   function hideError() {
