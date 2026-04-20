@@ -464,7 +464,7 @@ class SupplierComparison {
     const params = new URLSearchParams({
       new: 'true',
       recipientId: supplier.ownerUserId || '',
-      contextType: 'supplier',
+      contextType: 'supplier_profile',
       contextId: supplier.id,
       contextTitle: supplier.name || 'Supplier',
     });

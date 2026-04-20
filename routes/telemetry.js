@@ -24,6 +24,14 @@ function validateTelemetryPayload(body) {
       return `${key} must be a non-negative number`;
     }
   }
+  // Optional counter — accept if present, else default to 0 on the server
+  // side.  Keeps older clients compatible with the new schema.
+  if (counters.catchupTruncated !== undefined) {
+    const v = Number(counters.catchupTruncated);
+    if (!Number.isFinite(v) || v < 0) {
+      return 'catchupTruncated must be a non-negative number';
+    }
+  }
   return null;
 }
 
@@ -45,6 +53,8 @@ router.post('/messenger', apiLimiter, authRequired, express.json({ limit: '8kb' 
       cmidReconciles: Number(counters.cmidReconciles),
       maxGapSize: Number(counters.maxGapSize),
       timeToLiveMs: Number(counters.timeToLiveMs),
+      catchupTruncated:
+        counters.catchupTruncated !== undefined ? Number(counters.catchupTruncated) : 0,
     },
   });
   return res.status(202).json({ ok: true });

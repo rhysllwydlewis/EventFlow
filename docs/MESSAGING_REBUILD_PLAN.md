@@ -1,8 +1,7 @@
 # EventFlow Messaging System - Complete Rebuild Plan
 
-**Date**: February 19, 2026  
-**Status**: In Progress  
-**Target Completion**: Q1 2026  
+**Date**: February 19, 2026 (last status refresh: April 2026)  
+**Status**: Shipped — production-grade (PR #949, #950, post-audit closure)  
 **Version**: Messenger v4 (Gold Standard)
 
 ---
@@ -35,21 +34,24 @@ Build a **gold-standard, purpose-built messaging & inbox system** that:
 
 ### Current State
 
-- ✅ **Backend**: 100% complete (v4 API, service layer, database, WebSocket)
-- ✅ **Design**: 100% complete (CSS with liquid glass theme)
-- ❌ **Frontend**: 0% complete (no v4 JavaScript components)
-- 🟡 **Integration**: Partial (v3 components exist but need v4 update)
+- ✅ **Backend**: production (v4 API, service layer, `conversations_v4` / `chat_messages_v4`, WebSocket, BullMQ queue, replica-set-gated transactions)
+- ✅ **Design**: production (liquid glass CSS, animations, polish)
+- ✅ **Frontend**: production (orchestrator, reconciliation FSM, read-by modal, context banner, virtual list, quick compose, contact picker)
+- ✅ **Integration**: production (supplier/package/marketplace entry points use canonical context types; admin console; redirects from legacy `/messages`)
+- ✅ **Deployment**: Procfile `web` + `worker`; `railway.json` for the web service and `railway.worker.json` for the queue worker; `docker-compose.yml` includes Redis + worker; preflight rejects production boots without `REDIS_URL`.
 
-### Completion Strategy
+### Post-audit closure (PR #950 follow-ups)
 
-**Focus**: Build missing frontend components to unlock the complete v4 backend
+The cross-cutting audit after PR #950 identified and this workstream closed:
 
-**Timeline**: 4-week sprint
-
-- Week 1: Core components (API, state, conversation list, chat view)
-- Week 2: Advanced features (composer, reactions, typing indicators)
-- Week 3: Integration (dashboards, entry points, redirects)
-- Week 4: Testing, polish, and production deployment
+- Conversation `type` vs `context.type` mapping in `MessengerAppV4.createConversation` + deep links (`MessengerAppV4._resolveTypeAndContext`).
+- Canonical context schema (`referenceId`/`referenceTitle`) everywhere (QuickCompose, admin search, ContextBannerV4).
+- Per-message delivered socket event (`messenger:v4:message-delivered`) wired from server → socket client → orchestrator → UI tick.
+- Delivery-receipt batch drain (queues larger than 50 no longer stranded).
+- Reconciliation catch-up safety (explicit `MAX_CATCHUP_PAGES` with telemetry on hit).
+- Read-observer MutationObserver lifecycle (tracked and disconnected on `destroy`).
+- Deployment topology made explicit (worker in Procfile, Railway worker template, docker-compose Redis + worker service).
+- Preflight now hard-fails on missing `REDIS_URL` in production so misconfigured deploys never serve traffic with a broken async pipeline.
 
 ---
 

@@ -49,8 +49,15 @@ class ContextBannerV4 {
 
   /**
    * Show the context banner with the given context data.
-   * @param {Object} context - { type, title, subtitle, url, imageUrl }
-   *   type: 'package' | 'supplier' | 'marketplace'
+   *
+   * Accepts either the canonical conversation-context schema:
+   *   { type, referenceId, referenceTitle, referenceImage }
+   * or the legacy shape used by older call sites:
+   *   { type, title, subtitle, url, imageUrl }
+   *
+   * Canonical types ("package", "supplier_profile", "marketplace_listing",
+   * "find_a_supplier") are mapped to icons + human labels here so banners
+   * render correctly regardless of entry point.
    */
   show(context) {
     if (!context) {
@@ -58,17 +65,52 @@ class ContextBannerV4 {
     }
     this._currentContext = context;
 
-    const iconMap = { package: '📦', supplier: '🏢', marketplace: '🛒' };
-    const icon = iconMap[context.type] || '💬';
+    // Accept both canonical and legacy aliases.
+    const rawType = context.type || 'direct';
+    const aliasMap = {
+      supplier: 'supplier_profile',
+      marketplace: 'marketplace_listing',
+    };
+    const canonicalType = aliasMap[rawType] || rawType;
+
+    const iconMap = {
+      package: '📦',
+      supplier_profile: '🏢',
+      marketplace_listing: '🛒',
+      find_a_supplier: '🔎',
+    };
+    const subtitleMap = {
+      package: 'Package enquiry',
+      supplier_profile: 'Supplier profile',
+      marketplace_listing: 'Marketplace listing',
+      find_a_supplier: 'Find a supplier',
+    };
+    const icon = iconMap[canonicalType] || '💬';
+
+    // Title: prefer canonical `referenceTitle`, fall back to legacy `title`.
+    const isPresent = v => v !== null && v !== undefined && v !== '';
+    const title = isPresent(context.referenceTitle) ? context.referenceTitle : context.title || '';
+    const subtitle = isPresent(context.subtitle)
+      ? context.subtitle
+      : subtitleMap[canonicalType] || '';
+    const imageUrl = isPresent(context.referenceImage)
+      ? context.referenceImage
+      : context.imageUrl || null;
 
     this.bannerEl.querySelector('#v4BannerIcon').textContent = icon;
-    this.bannerEl.querySelector('#v4BannerTitle').textContent = context.title || '';
-    this.bannerEl.querySelector('#v4BannerSubtitle').textContent = context.subtitle || '';
+    this.bannerEl.querySelector('#v4BannerTitle').textContent = title;
+    this.bannerEl.querySelector('#v4BannerSubtitle').textContent = subtitle;
 
-    // Update the "View" link — sanitise to block javascript: / data: URIs
+    // Update the "View" link.
+    // Priority: (1) explicit context.url, (2) derived from referenceId + type,
+    // (3) hidden.  The _safeUrl helper blocks javascript:/data:/vbscript: —
+    // it must NOT HTML-encode the URL because the value is assigned to .href
+    // (a DOM property), not interpolated into innerHTML.
     const link = this.bannerEl.querySelector('#v4BannerLink');
-    if (context.url) {
-      const safeHref = this._safeUrl(context.url);
+    const derivedUrl = this._deriveUrl(canonicalType, context);
+    const rawUrl = context.url || derivedUrl || null;
+    if (rawUrl) {
+      const safeHref = this._safeUrl(rawUrl);
       if (safeHref !== '#') {
         link.href = safeHref;
         link.style.display = 'inline-flex';
@@ -81,9 +123,9 @@ class ContextBannerV4 {
 
     // Show thumbnail if provided — only allow relative paths (same-origin)
     const thumb = this.bannerEl.querySelector('#v4BannerThumb');
-    if (context.imageUrl && /^\//.test(context.imageUrl)) {
-      thumb.src = context.imageUrl;
-      thumb.alt = this.escape(context.title || 'Context image');
+    if (imageUrl && /^\//.test(imageUrl)) {
+      thumb.src = imageUrl;
+      thumb.alt = this.escape(title || 'Context image');
       thumb.style.display = 'block';
     } else {
       thumb.style.display = 'none';
@@ -91,11 +133,11 @@ class ContextBannerV4 {
     }
 
     // Apply type modifier class for gradient theming
-    this.bannerEl.className = `messenger-v4__context-banner messenger-v4__context-banner--${this.escape(context.type || 'direct')}`;
+    this.bannerEl.className = `messenger-v4__context-banner messenger-v4__context-banner--${this.escape(canonicalType)}`;
     this.bannerEl.style.display = '';
 
     // Announce to screen readers
-    this.bannerEl.setAttribute('aria-label', `${icon} ${context.title || ''} conversation context`);
+    this.bannerEl.setAttribute('aria-label', `${icon} ${title} conversation context`);
   }
 
   /** Hide the context banner. */
@@ -123,7 +165,10 @@ class ContextBannerV4 {
       .replace(/'/g, '&#39;');
   }
 
-  /** Block javascript: / data: / vbscript: href values. Returns '#' for unsafe URLs. */
+  /** Block javascript: / data: / vbscript: href values. Returns '#' for unsafe URLs.
+   *  The returned value is safe to assign to element.href — it is NOT HTML-encoded
+   *  because .href is a DOM property assignment, not an innerHTML insertion.
+   */
   _safeUrl(url) {
     if (!url || typeof url !== 'string') {
       return '#';
@@ -132,7 +177,29 @@ class ContextBannerV4 {
     if (/^(javascript|data|vbscript):/i.test(trimmed)) {
       return '#';
     }
-    return this.escape(trimmed);
+    return trimmed;
+  }
+
+  /**
+   * Derive a relative "View" URL from the canonical context type + referenceId.
+   * Returns null when no useful path can be inferred.
+   * @param {string} canonicalType
+   * @param {Object} context
+   * @returns {string|null}
+   */
+  _deriveUrl(canonicalType, context) {
+    const refId = context.referenceId || context.id || null;
+    if (!refId) {
+      return null;
+    }
+    const id = encodeURIComponent(String(refId));
+    const urlMap = {
+      package: `/packages/${id}`,
+      supplier_profile: `/suppliers/${id}`,
+      marketplace_listing: `/marketplace/${id}`,
+      find_a_supplier: `/find-a-supplier?id=${id}`,
+    };
+    return urlMap[canonicalType] || null;
   }
 }
 

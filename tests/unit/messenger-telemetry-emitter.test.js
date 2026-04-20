@@ -31,7 +31,32 @@ describe('MessengerTelemetryEmitter', () => {
         cmidReconciles: 4,
         maxGapSize: 2,
         timeToLiveMs: 10,
+        catchupTruncated: 0,
       },
     });
+  });
+
+  it('aggregates catchupTruncated as a summed counter and resets on flush', async () => {
+    let now = 1000;
+    const fetchImpl = jest.fn().mockResolvedValue({ ok: true });
+    const emitter = new MessengerTelemetryEmitter({
+      sessionId: 's2',
+      fetchImpl,
+      flushIntervalMs: 1000,
+      now: () => now,
+    });
+
+    emitter.record({ catchupTruncated: 1 });
+    emitter.record({ catchupTruncated: 2 });
+
+    now = 3000;
+    await emitter.flush('live');
+    const body = JSON.parse(fetchImpl.mock.calls[0][1].body);
+    expect(body.counters.catchupTruncated).toBe(3);
+
+    // After flush, counter is zeroed so a second flush without new records is a no-op.
+    const second = await emitter.flush('live');
+    expect(second).toBe(false);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 });

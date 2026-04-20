@@ -1,5 +1,7 @@
 # EventFlow - Docker Compose Configuration
-# Provides MongoDB and application containers for local development
+# Provides MongoDB, Redis, application and worker containers for local development.
+# The worker service processes the BullMQ notification/email queues introduced
+# with the Messenger v4 reliability work; it mirrors the production topology.
 
 version: '3.8'
 
@@ -26,6 +28,25 @@ services:
       timeout: 5s
       retries: 5
 
+  # Redis — required for BullMQ queue workers (Messenger v4 notification fanout,
+  # email jobs). Dev/test can omit this and fall back to the in-process stub,
+  # but production must run a real Redis.
+  redis:
+    image: redis:7-alpine
+    container_name: eventflow-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - eventflow-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
   # EventFlow Application
   app:
     build:
@@ -40,6 +61,7 @@ services:
       MONGODB_LOCAL_URI: mongodb://admin:eventflow_password@mongodb:27017/eventflow?authSource=admin
       BASE_URL: http://localhost:3000
       EMAIL_ENABLED: false
+      REDIS_URL: redis://redis:6379
     ports:
       - "3000:3000"
     volumes:
@@ -49,9 +71,40 @@ services:
     depends_on:
       mongodb:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - eventflow-network
     command: npm run dev
+
+  # Messenger queue worker — processes BullMQ notification + email jobs.
+  # Required in production; included in dev compose so the topology is
+  # exercised locally (you can comment it out if you prefer the in-process
+  # stub by unsetting REDIS_URL on the app service).
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: eventflow-worker
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      JWT_SECRET: dev_secret_change_in_production
+      MONGODB_LOCAL_URI: mongodb://admin:eventflow_password@mongodb:27017/eventflow?authSource=admin
+      BASE_URL: http://localhost:3000
+      EMAIL_ENABLED: false
+      REDIS_URL: redis://redis:6379
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - eventflow-network
+    command: node scripts/worker.js
 
   # MongoDB Express (Web UI for MongoDB)
   mongo-express:
@@ -75,6 +128,8 @@ volumes:
   mongodb_data:
     driver: local
   mongodb_config:
+    driver: local
+  redis_data:
     driver: local
   uploads_data:
     driver: local

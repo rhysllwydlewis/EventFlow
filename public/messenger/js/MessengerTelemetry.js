@@ -16,6 +16,10 @@ class MessengerTelemetryEmitter {
       cmidReconciles: 0,
       maxGapSize: 0,
       timeToLiveMs: 0,
+      // Incremented when catch-up hits MAX_CATCHUP_PAGES and truncates the
+      // backfill.  Rare but actionable: indicates either a runaway gap or a
+      // backend bug producing stuck hasMore=true.
+      catchupTruncated: 0,
     };
     this.lastFlushAt = 0;
     this._pending = false;
@@ -39,6 +43,10 @@ class MessengerTelemetryEmitter {
         this.counters.timeToLiveMs,
         Number(partial.timeToLiveMs)
       );
+      this._pending = true;
+    }
+    if (Number.isFinite(Number(partial.catchupTruncated))) {
+      this.counters.catchupTruncated += Number(partial.catchupTruncated);
       this._pending = true;
     }
   }
@@ -69,7 +77,13 @@ class MessengerTelemetryEmitter {
     }
     this.lastFlushAt = this.now();
     this._pending = false;
-    this.counters = { dupSeqDrops: 0, cmidReconciles: 0, maxGapSize: 0, timeToLiveMs: 0 };
+    this.counters = {
+      dupSeqDrops: 0,
+      cmidReconciles: 0,
+      maxGapSize: 0,
+      timeToLiveMs: 0,
+      catchupTruncated: 0,
+    };
     return true;
   }
 }

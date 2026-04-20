@@ -64,4 +64,67 @@ describe('POST /api/v1/telemetry/messenger', () => {
     expect(res.status).toBe(400);
     expect(mockInfo).not.toHaveBeenCalled();
   });
+
+  it('accepts the optional catchupTruncated counter', async () => {
+    const app = makeApp();
+    const res = await request(app)
+      .post('/api/v1/telemetry/messenger')
+      .send({
+        sessionId: 'sess-2',
+        counters: {
+          dupSeqDrops: 0,
+          cmidReconciles: 0,
+          maxGapSize: 0,
+          timeToLiveMs: 0,
+          catchupTruncated: 3,
+        },
+      });
+    expect(res.status).toBe(202);
+    expect(mockInfo).toHaveBeenCalledWith(
+      'metric.messenger.telemetry',
+      expect.objectContaining({
+        counters: expect.objectContaining({ catchupTruncated: 3 }),
+      })
+    );
+  });
+
+  it('rejects negative catchupTruncated', async () => {
+    const app = makeApp();
+    const res = await request(app)
+      .post('/api/v1/telemetry/messenger')
+      .send({
+        sessionId: 'sess-3',
+        counters: {
+          dupSeqDrops: 0,
+          cmidReconciles: 0,
+          maxGapSize: 0,
+          timeToLiveMs: 0,
+          catchupTruncated: -1,
+        },
+      });
+    expect(res.status).toBe(400);
+    expect(mockInfo).not.toHaveBeenCalled();
+  });
+
+  it('defaults catchupTruncated to 0 when omitted (backward compat)', async () => {
+    const app = makeApp();
+    const res = await request(app)
+      .post('/api/v1/telemetry/messenger')
+      .send({
+        sessionId: 'sess-4',
+        counters: {
+          dupSeqDrops: 0,
+          cmidReconciles: 0,
+          maxGapSize: 0,
+          timeToLiveMs: 0,
+        },
+      });
+    expect(res.status).toBe(202);
+    expect(mockInfo).toHaveBeenCalledWith(
+      'metric.messenger.telemetry',
+      expect.objectContaining({
+        counters: expect.objectContaining({ catchupTruncated: 0 }),
+      })
+    );
+  });
 });

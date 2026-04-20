@@ -1843,6 +1843,45 @@
   border-color: rgba(11, 128, 115, 0.4);
 }
 
+.messenger-v4__context-banner-link:focus-visible {
+  outline: 2px solid var(--messenger-primary, #0b8073);
+  outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------------
+   Per-context gradient theming.  Canonical context types (`package`,
+   `supplier_profile`, `marketplace_listing`, `find_a_supplier`) get a subtle
+   tinted gradient + accent-coloured icon so the banner visually distinguishes
+   "what kind of conversation is this" at a glance.  Colours are low-saturation
+   tints of the brand teal so the banner never competes with message content
+   or the CTA button.
+   ------------------------------------------------------------------------ */
+.messenger-v4__context-banner--package {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(11, 128, 115, 0.07) 100%);
+  border-bottom-color: rgba(245, 158, 11, 0.18);
+}
+.messenger-v4__context-banner--package .messenger-v4__context-banner-icon {
+  filter: drop-shadow(0 1px 0 rgba(245, 158, 11, 0.35));
+}
+
+.messenger-v4__context-banner--supplier_profile {
+  background: linear-gradient(135deg, rgba(11, 128, 115, 0.08) 0%, rgba(59, 130, 246, 0.06) 100%);
+  border-bottom-color: rgba(11, 128, 115, 0.18);
+}
+
+.messenger-v4__context-banner--marketplace_listing {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.07) 0%, rgba(11, 128, 115, 0.07) 100%);
+  border-bottom-color: rgba(139, 92, 246, 0.18);
+}
+.messenger-v4__context-banner--marketplace_listing .messenger-v4__context-banner-title {
+  color: #6d28d9;
+}
+
+.messenger-v4__context-banner--find_a_supplier {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.07) 0%, rgba(11, 128, 115, 0.07) 100%);
+  border-bottom-color: rgba(59, 130, 246, 0.18);
+}
+
 /* ============================================================
    51. DATE DIVIDER (alternative class used in ConversationView)
    ============================================================ */

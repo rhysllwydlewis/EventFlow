@@ -712,6 +712,71 @@ class MessengerAppV4 {
         });
     });
 
+    // Per-message delivery receipt from a recipient — flip the sender's
+    // tick state without waiting for sinceSeq reconciliation.  Receipts for
+    // other conversations still update internal message state so the tick
+    // is correct when the conversation becomes active.
+    window.addEventListener('messenger:message-delivered', e => {
+      const { conversationId, userId, messageIds, deliveredAt } = e.detail || {};
+      if (!conversationId || !Array.isArray(messageIds) || !userId) {
+        return;
+      }
+      const uid = this._getCurrentUserId();
+      if (userId === uid) {
+        return; // our own receipt echo
+      }
+      const at = deliveredAt ? new Date(deliveredAt) : new Date();
+      const convMessages =
+        typeof this.state.getMessages === 'function'
+          ? this.state.getMessages(conversationId) || []
+          : [];
+      const byId = new Map(convMessages.map(m => [String(m._id), m]));
+      for (const id of messageIds) {
+        const existing = byId.get(String(id)) || null;
+        const prevDelivered = Array.isArray(existing?.deliveredTo) ? existing.deliveredTo : [];
+        if (prevDelivered.some(d => d.userId === userId)) {
+          continue;
+        }
+        const nextDelivered = prevDelivered.concat([{ userId, deliveredAt: at }]);
+        this.state.updateMessage?.(conversationId, id, { deliveredTo: nextDelivered });
+      }
+      if (conversationId === this._activeConversationId && this.chatView?.messagesEl) {
+        // Double-tick "delivered" glyph — matches MessageBubbleV4._ICON_CHECK_DOUBLE
+        // so the visual swap here stays in lockstep with the initial render.
+        // Keep this literal in sync with that module; both are static, no user
+        // input is interpolated so innerHTML assignment is safe (no XSS risk).
+        const doubleTickSvg =
+          '<svg width="18" height="10" viewBox="0 0 18 10" fill="none" ' +
+          'stroke="currentColor" stroke-width="2" stroke-linecap="round" ' +
+          'stroke-linejoin="round" aria-hidden="true">' +
+          '<polyline points="1,5 4,9 11,1"/>' +
+          '<polyline points="7,5 10,9 17,1"/></svg>';
+        for (const id of messageIds) {
+          const el = this.chatView.messagesEl.querySelector(
+            `[data-id="${CSS.escape(String(id))}"]`
+          );
+          if (!el) {
+            continue;
+          }
+          // Only flip sender-side receipts — a recipient should never see a
+          // "delivered" tick on their own bubble.
+          if (!el.classList.contains('messenger-v4__message--sent')) {
+            continue;
+          }
+          const receipt = el.querySelector('.messenger-v4__read-receipt');
+          if (!receipt || receipt.classList.contains('messenger-v4__read-receipt--read')) {
+            continue;
+          }
+          if (!receipt.classList.contains('messenger-v4__read-receipt--delivered')) {
+            receipt.classList.add('messenger-v4__read-receipt--delivered');
+            receipt.innerHTML = doubleTickSvg;
+          }
+          receipt.setAttribute('aria-label', 'Delivered');
+          receipt.title = 'Delivered';
+        }
+      }
+    });
+
     // WebSocket connection permanently failed — show UI error
     window.addEventListener('messenger:connection-failed', () => {
       this._showGlobalError(
@@ -842,17 +907,15 @@ class MessengerAppV4 {
   /**
    * Create a new conversation with given participant IDs.
    * @param {string[]} participantIds
-   * @param {string|Object} contextOrType - conversation type string ('direct'|'marketplace'|...)
-   *   or a context object with a .type property. Backend requires `type` to be set.
+   * @param {string|Object} contextOrType - Either:
+   *   - a conversation type string ('direct' | 'marketplace' | 'enquiry' | 'supplier_network' | 'support'),
+   *   - a context type string ('package' | 'supplier_profile' | 'marketplace_listing' | 'find_a_supplier')
+   *     which will be mapped to the corresponding conversation type, or
+   *   - a canonical context object { type, referenceId, referenceTitle, referenceImage }.
    */
   async createConversation(participantIds, contextOrType = 'direct') {
     try {
-      // Normalise: accept either a plain type string or a context object
-      const type =
-        typeof contextOrType === 'string' ? contextOrType : contextOrType?.type || 'direct';
-      const context = typeof contextOrType === 'object' ? contextOrType : null;
-
-      // Use MessengerAPI.createConversation which constructs the correct request body
+      const { type, context } = MessengerAppV4._resolveTypeAndContext(contextOrType);
       const data = await this.api.createConversation({ type, participantIds, context });
       const conv = data.conversation || data;
       if (conv?._id) {
@@ -861,7 +924,100 @@ class MessengerAppV4 {
       }
     } catch (err) {
       console.error('[MessengerAppV4] createConversation failed:', err);
+      if (typeof window.showToast === 'function') {
+        window.showToast(
+          err?.message || 'Failed to start conversation. Please try again.',
+          'error'
+        );
+      }
     }
+  }
+
+  /**
+   * Map a user-supplied type/context argument into:
+   *   - `type`    — a valid conversation type (backend schema)
+   *   - `context` — a normalized canonical context object, or null
+   *
+   * Accepts legacy aliases from older entry points (e.g. 'supplier' → 'supplier_profile',
+   * 'marketplace' context alias → 'marketplace_listing').  Keeps the contract stable
+   * while the audit is closed out.
+   *
+   * @param {string|Object|null} contextOrType
+   * @returns {{ type: string, context: Object|null }}
+   */
+  static _resolveTypeAndContext(contextOrType) {
+    // Context-type → conversation-type mapping.
+    const CTX_TO_CONV_TYPE = {
+      package: 'enquiry',
+      supplier_profile: 'direct',
+      marketplace_listing: 'marketplace',
+      find_a_supplier: 'direct',
+    };
+    // Legacy aliases that entered the codebase before the canonical types existed.
+    const LEGACY_CTX_ALIAS = {
+      supplier: 'supplier_profile',
+      marketplace: 'marketplace_listing',
+    };
+    const CONV_TYPES = new Set(['direct', 'marketplace', 'enquiry', 'supplier_network', 'support']);
+
+    // Plain string: may be a conversation type OR a context-type shorthand.
+    if (typeof contextOrType === 'string') {
+      const s = contextOrType.trim();
+      if (!s || s === 'direct') {
+        return { type: 'direct', context: null };
+      }
+      if (CONV_TYPES.has(s)) {
+        return { type: s, context: null };
+      }
+      const canonical = LEGACY_CTX_ALIAS[s] || s;
+      if (CTX_TO_CONV_TYPE[canonical]) {
+        return { type: CTX_TO_CONV_TYPE[canonical], context: { type: canonical } };
+      }
+      // Unknown token — fall back to direct so we never send an invalid type.
+      return { type: 'direct', context: null };
+    }
+
+    // Object form: normalize field names into the canonical schema.
+    if (contextOrType && typeof contextOrType === 'object') {
+      const rawType = contextOrType.type || null;
+      const canonical = rawType ? LEGACY_CTX_ALIAS[rawType] || rawType : null;
+      const hasField = (obj, key) => obj[key] !== undefined && obj[key] !== null;
+      const referenceId = hasField(contextOrType, 'referenceId')
+        ? contextOrType.referenceId
+        : hasField(contextOrType, 'id')
+          ? contextOrType.id
+          : null;
+      const referenceTitle = hasField(contextOrType, 'referenceTitle')
+        ? contextOrType.referenceTitle
+        : hasField(contextOrType, 'title')
+          ? contextOrType.title
+          : null;
+      const referenceImage = hasField(contextOrType, 'referenceImage')
+        ? contextOrType.referenceImage
+        : hasField(contextOrType, 'imageUrl')
+          ? contextOrType.imageUrl
+          : null;
+
+      if (canonical && CTX_TO_CONV_TYPE[canonical]) {
+        const context = { type: canonical };
+        if (referenceId !== null && referenceId !== undefined) {
+          context.referenceId = String(referenceId);
+        }
+        if (referenceTitle !== null && referenceTitle !== undefined) {
+          context.referenceTitle = String(referenceTitle);
+        }
+        if (referenceImage !== null && referenceImage !== undefined) {
+          context.referenceImage = String(referenceImage);
+        }
+        return { type: CTX_TO_CONV_TYPE[canonical], context };
+      }
+      // Object had no recognised context type — treat as direct with no context.
+      if (canonical && CONV_TYPES.has(canonical)) {
+        return { type: canonical, context: null };
+      }
+    }
+
+    return { type: 'direct', context: null };
   }
 
   /**
@@ -923,9 +1079,16 @@ class MessengerAppV4 {
     const contextId = params.get('contextId');
     const contextTitle = params.get('contextTitle');
 
-    // Build a context object if context params are present
+    // Build a canonical context object when context params are present.
+    // `_resolveTypeAndContext` will normalize legacy aliases (e.g. 'supplier'
+    // → 'supplier_profile') and strip unknown types so we never ship an
+    // invalid context to the backend.
     const context = contextType
-      ? { type: contextType, id: contextId || null, title: contextTitle || null }
+      ? {
+          type: contextType,
+          referenceId: contextId || null,
+          referenceTitle: contextTitle || null,
+        }
       : null;
 
     if (conversationId) {
@@ -953,6 +1116,8 @@ class MessengerAppV4 {
     this.notificationBridge?.destroy();
     this.socket?.disconnect?.();
     this._readObserver?.disconnect?.();
+    this._readMutationObserver?.disconnect?.();
+    this._readMutationObserver = null;
     if (this._onKeyDown) {
       document.removeEventListener('keydown', this._onKeyDown);
       this._onKeyDown = null;
@@ -1391,7 +1556,13 @@ class MessengerAppV4 {
     }
     let sinceSeq = this._getLastSeenSeq(conversationId);
     let fetched = 0;
-    for (let i = 0; i < 20; i++) {
+    // Hard ceiling protects against runaway loops/bad server data.  At
+    // limit=100 this allows up to 200k catch-up messages — more than enough
+    // for any realistic offline gap.  If we hit the cap, log loudly so ops
+    // can investigate rather than silently truncating.
+    const MAX_CATCHUP_PAGES = 2000;
+    let i = 0;
+    for (; i < MAX_CATCHUP_PAGES; i++) {
       const res = await this.api.getMessages(conversationId, { sinceSeq, limit: 100 });
       const msgs = Array.isArray(res?.messages) ? res.messages : [];
       if (!msgs.length) {
@@ -1414,6 +1585,14 @@ class MessengerAppV4 {
       if (!res?.hasMore) {
         break;
       }
+    }
+    if (i >= MAX_CATCHUP_PAGES) {
+      console.warn('[MessengerAppV4] catch-up hit safety cap', {
+        conversationId,
+        fetched,
+        sinceSeq,
+      });
+      this._recordTelemetry({ catchupTruncated: 1 });
     }
     this._reconMetrics.catchupGapSize = fetched;
     this._recordTelemetry({ maxGapSize: fetched });
@@ -1453,12 +1632,24 @@ class MessengerAppV4 {
   }
 
   async _flushDelivered() {
+    // Drain each per-conversation queue in 50-id batches until empty so
+    // backlogs larger than one batch are not stranded waiting for the next
+    // incoming message to retrigger the debounce.
+    const MAX_BATCH = 50;
     for (const [conversationId, idsSet] of this._deliveredQueue.entries()) {
-      const ids = Array.from(idsSet).slice(0, 50);
-      if (ids.length) {
-        await this.api.markDelivered(conversationId, ids).catch(() => {});
+      while (idsSet.size > 0) {
+        const ids = Array.from(idsSet).slice(0, MAX_BATCH);
+        if (!ids.length) {
+          break;
+        }
+        try {
+          await this.api.markDelivered(conversationId, ids);
+        } catch (_err) {
+          // Best-effort: server will re-reconcile on next sinceSeq fetch.
+          // Drop the batch so we don't loop forever on a persistent failure.
+        }
+        ids.forEach(id => idsSet.delete(id));
       }
-      ids.forEach(id => idsSet.delete(id));
       if (idsSet.size === 0) {
         this._deliveredQueue.delete(conversationId);
       }
@@ -1488,10 +1679,12 @@ class MessengerAppV4 {
       },
       { threshold: 0.7 }
     );
-    const mo = new MutationObserver(() => this._observeMessageNodes());
+    // Store the mutation observer so destroy() can disconnect it and avoid
+    // listener leaks on repeated mount/unmount.
+    this._readMutationObserver = new MutationObserver(() => this._observeMessageNodes());
     const target = document.querySelector('#v4Messages');
     if (target) {
-      mo.observe(target, { childList: true, subtree: true });
+      this._readMutationObserver.observe(target, { childList: true, subtree: true });
     }
   }
 
