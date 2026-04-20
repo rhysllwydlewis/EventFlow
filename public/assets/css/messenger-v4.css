@@ -1735,5 +1735,21 @@
     width: 100%;
     border-radius: 16px 16px 0 0;
     max-height: 80vh;
+    animation: messengerReadBySheetIn 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  @keyframes messengerReadBySheetIn {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .messenger-v4__readby-modal {
+      animation: none;
+    }
   }
 }
