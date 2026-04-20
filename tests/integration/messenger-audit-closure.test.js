@@ -115,6 +115,28 @@ describe('Messenger v4 post-PR950 audit fixes', () => {
     it('reads referenceTitle from the context (falls back to legacy title)', () => {
       expect(src).toContain('referenceTitle');
     });
+
+    it('derives "View" URL from referenceId for each canonical type', () => {
+      // _deriveUrl should build relative paths for all four canonical types
+      expect(src).toContain('_deriveUrl(');
+      expect(src).toContain('/packages/${id}');
+      expect(src).toContain('/suppliers/${id}');
+      expect(src).toContain('/marketplace/${id}');
+    });
+
+    it('_safeUrl does NOT call this.escape() (would corrupt query strings)', () => {
+      // The returned value is assigned to element.href (DOM property), not
+      // interpolated into innerHTML, so HTML-encoding must not be applied.
+      // Verify by checking the _safeUrl method doesn't call this.escape()
+      // (it only trims + denies dangerous schemes).
+      const safeFnStart = src.indexOf('_safeUrl(url)');
+      expect(safeFnStart).toBeGreaterThan(-1);
+      // Find the function body up to the next method definition or closing brace
+      const afterFn = src.slice(safeFnStart);
+      const methodEnd = afterFn.indexOf('\n  _deriveUrl(');
+      const body = methodEnd > -1 ? afterFn.slice(0, methodEnd) : afterFn.slice(0, 300);
+      expect(body).not.toContain('this.escape(');
+    });
   });
 
   // -------------------------------------------------------------------------

@@ -101,10 +101,16 @@ class ContextBannerV4 {
     this.bannerEl.querySelector('#v4BannerTitle').textContent = title;
     this.bannerEl.querySelector('#v4BannerSubtitle').textContent = subtitle;
 
-    // Update the "View" link — sanitise to block javascript: / data: URIs
+    // Update the "View" link.
+    // Priority: (1) explicit context.url, (2) derived from referenceId + type,
+    // (3) hidden.  The _safeUrl helper blocks javascript:/data:/vbscript: —
+    // it must NOT HTML-encode the URL because the value is assigned to .href
+    // (a DOM property), not interpolated into innerHTML.
     const link = this.bannerEl.querySelector('#v4BannerLink');
-    if (context.url) {
-      const safeHref = this._safeUrl(context.url);
+    const derivedUrl = this._deriveUrl(canonicalType, context);
+    const rawUrl = context.url || derivedUrl || null;
+    if (rawUrl) {
+      const safeHref = this._safeUrl(rawUrl);
       if (safeHref !== '#') {
         link.href = safeHref;
         link.style.display = 'inline-flex';
@@ -159,7 +165,10 @@ class ContextBannerV4 {
       .replace(/'/g, '&#39;');
   }
 
-  /** Block javascript: / data: / vbscript: href values. Returns '#' for unsafe URLs. */
+  /** Block javascript: / data: / vbscript: href values. Returns '#' for unsafe URLs.
+   *  The returned value is safe to assign to element.href — it is NOT HTML-encoded
+   *  because .href is a DOM property assignment, not an innerHTML insertion.
+   */
   _safeUrl(url) {
     if (!url || typeof url !== 'string') {
       return '#';
@@ -168,7 +177,29 @@ class ContextBannerV4 {
     if (/^(javascript|data|vbscript):/i.test(trimmed)) {
       return '#';
     }
-    return this.escape(trimmed);
+    return trimmed;
+  }
+
+  /**
+   * Derive a relative "View" URL from the canonical context type + referenceId.
+   * Returns null when no useful path can be inferred.
+   * @param {string} canonicalType
+   * @param {Object} context
+   * @returns {string|null}
+   */
+  _deriveUrl(canonicalType, context) {
+    const refId = context.referenceId || context.id || null;
+    if (!refId) {
+      return null;
+    }
+    const id = encodeURIComponent(String(refId));
+    const urlMap = {
+      package: `/packages/${id}`,
+      supplier_profile: `/suppliers/${id}`,
+      marketplace_listing: `/marketplace/${id}`,
+      find_a_supplier: `/find-a-supplier?id=${id}`,
+    };
+    return urlMap[canonicalType] || null;
   }
 }
 
