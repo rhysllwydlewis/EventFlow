@@ -399,9 +399,21 @@ class MessengerAppV4 {
       if (!id) {
         return;
       }
+      // Capture whether the conversation was archived BEFORE toggling so we
+      // can decide whether to navigate back to the list. We only want to
+      // auto-navigate away when archiving (moving out of the inbox); when
+      // un-archiving from inside the archive, the user should stay in the
+      // now-restored conversation.
+      const uidBefore = this._getCurrentUserId();
+      const convBefore = this.state.conversations.find(c => c._id === id);
+      const meBefore = uidBefore
+        ? convBefore?.participants?.find(p => p.userId === uidBefore)
+        : null;
+      const wasArchived = !!meBefore?.isArchived;
       await this._toggleArchive(id);
-      // If the user just archived the currently-open conversation, navigate back to the list
-      if (id === this._activeConversationId) {
+      // If the user just archived (not un-archived) the currently-open
+      // conversation, navigate back to the list.
+      if (!wasArchived && id === this._activeConversationId) {
         this._activeConversationId = null;
         this.state.setActiveConversation(null);
         this.chatView?.reset();
@@ -411,6 +423,13 @@ class MessengerAppV4 {
         this.socket?.leaveConversation(id);
         this.contextBanner?.hide();
         this.handleMobilePanel('sidebar');
+      } else if (wasArchived && id === this._activeConversationId) {
+        // Un-archived while viewing: refresh the header so the Archive button
+        // flips back to its default state without needing a reload.
+        const convAfter = this.state.conversations.find(c => c._id === id);
+        if (convAfter && this.chatView?._renderHeader) {
+          this.chatView._renderHeader(convAfter);
+        }
       }
     });
 
@@ -420,17 +439,28 @@ class MessengerAppV4 {
       if (!id) {
         return;
       }
+      // Detect if this conversation is already archived — deleting from the
+      // archive is a permanent deletion, so mirror that in the confirm copy.
+      const uid = this._getCurrentUserId();
+      const convRef = this.state.conversations.find(c => c._id === id);
+      const meRef = uid ? convRef?.participants?.find(p => p.userId === uid) : null;
+      const isArchived = !!meRef?.isArchived;
+      const confirmTitle = isArchived ? 'Delete Permanently' : 'Delete Conversation';
+      const confirmBody = isArchived
+        ? 'Are you sure you want to permanently delete this conversation? This cannot be undone.'
+        : 'Are you sure you want to delete this conversation? This cannot be undone.';
+      const confirmCta = isArchived ? 'Delete permanently' : 'Delete';
       let confirmed;
       if (window.MessengerModals?.showConfirm) {
         confirmed = await window.MessengerModals.showConfirm(
-          'Delete Conversation',
-          'Are you sure you want to delete this conversation? This cannot be undone.',
-          'Delete',
+          confirmTitle,
+          confirmBody,
+          confirmCta,
           'Cancel'
         );
       } else {
         // eslint-disable-next-line no-alert
-        confirmed = window.confirm('Are you sure you want to delete this conversation?');
+        confirmed = window.confirm(confirmBody);
       }
       if (!confirmed) {
         return;
