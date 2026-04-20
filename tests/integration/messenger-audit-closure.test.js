@@ -45,10 +45,18 @@ describe('Messenger v4 post-PR950 audit fixes', () => {
     it('handleDeepLink builds a canonical context with referenceId / referenceTitle', () => {
       expect(src).toContain('referenceId: contextId || null');
       expect(src).toContain('referenceTitle: contextTitle || null');
-      // Sanity: no more `{ type, id, title }` legacy object in the handler
-      const handler = src.slice(src.indexOf('handleDeepLink()'));
-      const firstBraces = handler.slice(0, 2000);
-      expect(firstBraces).not.toMatch(/\{\s*type:\s*contextType,\s*id:/);
+      // Sanity: no more `{ type, id, title }` legacy object anywhere in the
+      // handleDeepLink handler.  Scope the check to the handler body by
+      // slicing from its signature to the next top-level method definition
+      // so the test stays accurate even if the handler grows.
+      const sigIdx = src.indexOf('handleDeepLink()');
+      expect(sigIdx).toBeGreaterThan(-1);
+      // Next method = next line that looks like `  name(` or `  async name(`
+      // at method-indent (two spaces).  Fall back to end-of-file.
+      const remainder = src.slice(sigIdx + 'handleDeepLink()'.length);
+      const nextMethodMatch = remainder.match(/\n\s{2}(?:async\s+)?[_a-zA-Z][\w]*\s*\(/);
+      const handlerBody = nextMethodMatch ? remainder.slice(0, nextMethodMatch.index) : remainder;
+      expect(handlerBody).not.toMatch(/\{\s*type:\s*contextType,\s*id:/);
     });
   });
 
