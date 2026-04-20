@@ -723,6 +723,35 @@ class MessengerV4Service {
       });
     });
 
+    // Auto-unarchive any recipients who had previously archived this conversation.
+    // A new incoming message should surface the conversation back in their main inbox
+    // without requiring them to manually browse the archive.
+    const autoUnarchedUserIds = [];
+    const unarchiveOps = [];
+    conversation.participants.forEach((p, index) => {
+      if (p.userId !== messageData.senderId && p.isArchived === true) {
+        unarchiveOps.push({
+          updateOne: {
+            filter: { _id: new ObjectId(conversationId) },
+            update: { $set: { [`participants.${index}.isArchived`]: false } },
+          },
+        });
+        autoUnarchedUserIds.push(p.userId);
+      }
+    });
+    if (unarchiveOps.length > 0) {
+      await this.conversationsCollection.bulkWrite(unarchiveOps).catch(err => {
+        this.logger.error('[messenger-v4] Failed to auto-unarchive recipients', {
+          error: err.message,
+          conversationId: String(conversationId),
+        });
+      });
+    }
+
+    // Expose the list of auto-unarchived user IDs to the route layer so it
+    // can emit conversation-updated WebSocket events to those users.
+    message._autoUnarchedUserIds = autoUnarchedUserIds;
+
     return message;
   }
 

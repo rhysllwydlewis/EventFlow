@@ -224,7 +224,7 @@ class MessengerAppV4 {
     });
 
     // New message from socket
-    window.addEventListener('messenger:new-message', e => {
+    window.addEventListener('messenger:new-message', async e => {
       const { message, conversationId } = e.detail || {};
       if (!message) {
         return;
@@ -245,8 +245,23 @@ class MessengerAppV4 {
       this._upsertMessage(conversationId, message);
       this._trackLastSeenSeq(conversationId, message.seq);
 
-      // Update conversation list (bubble last message to top)
-      const conv = this.state.conversations.find(c => c._id === conversationId);
+      // Update conversation list (bubble last message to top).
+      // If the conversation is not in state yet (e.g. it was archived and never
+      // loaded, or it is brand-new), fetch it from the server so the message
+      // appears in the correct inbox rather than being silently dropped.
+      let conv = this.state.conversations.find(c => c._id === conversationId);
+      if (!conv) {
+        try {
+          const data = await this.api.getConversation(conversationId);
+          const fetched = data.conversation || data;
+          if (fetched && fetched._id) {
+            this.state.updateConversation(fetched);
+            conv = this.state.conversations.find(c => c._id === conversationId);
+          }
+        } catch (_err) {
+          // Best-effort — proceed with whatever state we have
+        }
+      }
       if (conv) {
         conv.lastMessage = message;
         conv.updatedAt = message.createdAt || new Date().toISOString();

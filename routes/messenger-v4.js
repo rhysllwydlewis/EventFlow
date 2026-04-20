@@ -679,6 +679,12 @@ router.post(
 
       const message = await (await getMessengerService()).sendMessage(conversationId, messageData);
 
+      // Extract and strip the internal auto-unarchive metadata before sending to client
+      const autoUnarchedUserIds = Array.isArray(message._autoUnarchedUserIds)
+        ? message._autoUnarchedUserIds
+        : [];
+      delete message._autoUnarchedUserIds;
+
       // Get full conversation for WebSocket emission
       const conversation = await (
         await getMessengerService()
@@ -689,6 +695,22 @@ router.post(
         conversationId,
         message,
       });
+
+      // Notify auto-unarchived recipients so their client moves the conversation
+      // back to the main inbox without requiring a manual page reload.
+      for (const uid of autoUnarchedUserIds) {
+        try {
+          const recipientConv = await (
+            await getMessengerService()
+          ).getConversation(conversationId, uid);
+          emitToUser(uid, 'messenger:v4:conversation-updated', {
+            conversationId,
+            conversation: recipientConv,
+          });
+        } catch (_err) {
+          // Best-effort — the recipient will still see the message on next load
+        }
+      }
 
       messengerMetrics.increment('messenger_v4_messages_sent_total');
       logger.info('messenger_v4 message_sent', {

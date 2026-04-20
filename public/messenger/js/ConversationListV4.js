@@ -469,7 +469,29 @@ class ConversationListV4 {
     });
     // Keep MessengerState.filters in sync so arrow-key navigation mirrors the visible list
     this.state.setFilter('active', tab);
-    this.renderConversations(this.state.conversations || []);
+
+    if (tab === 'archived') {
+      // Archived conversations are excluded from the default API response, so we
+      // must fetch them explicitly when the user opens the Archived tab.
+      this.renderSkeleton();
+      this.api
+        .getConversations({ archived: true })
+        .then(data => {
+          const archived = data.conversations || data || [];
+          archived.forEach(conv => this.state.updateConversation(conv));
+          // If nothing was returned, trigger an explicit re-render so the
+          // empty state is shown instead of the lingering skeleton.
+          if (archived.length === 0) {
+            this.renderConversations(this.state.conversations || []);
+          }
+        })
+        .catch(err => {
+          console.error('[ConversationListV4] Failed to load archived conversations:', err);
+          this.renderConversations(this.state.conversations || []);
+        });
+    } else {
+      this.renderConversations(this.state.conversations || []);
+    }
   }
 
   _onConversationsChanged(conversations) {
