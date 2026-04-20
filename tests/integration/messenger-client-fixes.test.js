@@ -773,5 +773,22 @@ describe('Messenger client-side fixes', () => {
         /@media\s*\(\s*max-width:\s*600px\s*\)[\s\S]{0,2000}width:\s*auto\s*!important/
       );
     });
+
+    it('ContextBannerV4 derives live View URLs that match real server routes (no 404s)', () => {
+      const bannerSrc = fs.readFileSync(
+        path.join(MESSENGER_DIR, 'js', 'ContextBannerV4.js'),
+        'utf8'
+      );
+      // Must use query-string forms — the app does not expose /packages/:id,
+      // /suppliers/:id, or /marketplace/:id routes, so the old derivations
+      // 404'd from the messenger context banner "View →" link.
+      expect(bannerSrc).toMatch(/package:\s*`\/package\?id=\$\{id\}`/);
+      expect(bannerSrc).toMatch(/supplier_profile:\s*`\/supplier\?id=\$\{id\}`/);
+      expect(bannerSrc).toMatch(/marketplace_listing:\s*`\/marketplace\?listing=\$\{id\}`/);
+      // And the old, incorrect path-segment forms must be gone.
+      expect(bannerSrc).not.toMatch(/`\/packages\/\$\{id\}`/);
+      expect(bannerSrc).not.toMatch(/`\/suppliers\/\$\{id\}`/);
+      expect(bannerSrc).not.toMatch(/`\/marketplace\/\$\{id\}`/);
+    });
   });
 });
