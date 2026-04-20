@@ -741,18 +741,36 @@ class MessengerAppV4 {
         this.state.updateMessage?.(conversationId, id, { deliveredTo: nextDelivered });
       }
       if (conversationId === this._activeConversationId && this.chatView?.messagesEl) {
+        // Double-tick "delivered" glyph — matches MessageBubbleV4._ICON_CHECK_DOUBLE
+        // so the visual swap here stays in lockstep with the initial render.
+        // Keep this literal in sync with that module; both are static, no user
+        // input is interpolated so innerHTML assignment is safe (no XSS risk).
+        const doubleTickSvg =
+          '<svg width="18" height="10" viewBox="0 0 18 10" fill="none" ' +
+          'stroke="currentColor" stroke-width="2" stroke-linecap="round" ' +
+          'stroke-linejoin="round" aria-hidden="true">' +
+          '<polyline points="1,5 4,9 11,1"/>' +
+          '<polyline points="7,5 10,9 17,1"/></svg>';
         for (const id of messageIds) {
           const el = this.chatView.messagesEl.querySelector(
             `[data-id="${CSS.escape(String(id))}"]`
           );
-          const receipt = el?.querySelector(
-            '.messenger-v4__message--sent .messenger-v4__read-receipt, ' +
-              '.messenger-v4__read-receipt'
-          );
+          if (!el) {
+            continue;
+          }
+          // Only flip sender-side receipts — a recipient should never see a
+          // "delivered" tick on their own bubble.
+          if (!el.classList.contains('messenger-v4__message--sent')) {
+            continue;
+          }
+          const receipt = el.querySelector('.messenger-v4__read-receipt');
           if (!receipt || receipt.classList.contains('messenger-v4__read-receipt--read')) {
             continue;
           }
-          receipt.classList.add('messenger-v4__read-receipt--delivered');
+          if (!receipt.classList.contains('messenger-v4__read-receipt--delivered')) {
+            receipt.classList.add('messenger-v4__read-receipt--delivered');
+            receipt.innerHTML = doubleTickSvg;
+          }
           receipt.setAttribute('aria-label', 'Delivered');
           receipt.title = 'Delivered';
         }
