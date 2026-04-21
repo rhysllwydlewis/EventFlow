@@ -263,16 +263,15 @@ describe('Supplier dashboard/profile UI polish', () => {
     expect(section).not.toContain('<path d="M12 5v14"/>');
   });
 
-  it('supplier profile Remove photo button uses outlined neutral chrome with danger text/icon', () => {
-    expect(appJs).toContain(
+  it('supplier profile Remove button is absent — no remove profile ability', () => {
+    // The Remove button was intentionally removed from the card UI.
+    // There should be no supplier-profile-photo-remove button in the card template.
+    expect(appJs).not.toContain(
       'class="supplier-profile-photo-remove spc-action-btn spc-action-btn--danger"'
     );
-    // Inline styles have been removed; styling is 100% class-based (spc-action-btn--danger in CSS).
-    // Verify the old inline chrome is gone and the new CSS-class-driven approach is in place.
-    expect(appJs).not.toContain('border:1px solid #CFEDEA;background:#F6FAF9;color:#dc2626');
-    expect(appJs).not.toContain('box-sizing:border-box;line-height:inherit;');
-    expect(appJs).not.toContain('border:1px solid #fca5a5;background:#fff5f5;color:#dc2626');
-    expect(appJs).not.toContain('border:1px solid #d1d5db;background:#fff;color:#dc2626');
+    expect(appJs).not.toContain('spc-action-btn--danger');
+    // The photo-remove event binding loop should also be gone
+    expect(appJs).not.toContain("querySelectorAll('.supplier-profile-photo-remove')");
   });
 
   it('settings Remove photo button matches outlined upload-button chrome', () => {
@@ -332,13 +331,17 @@ describe('Supplier dashboard/profile UI polish', () => {
     expect(appJs).toContain('class="supplier-card card glass-card spc-root"');
     expect(appJs).toContain('class="spc-summary"');
     expect(appJs).toContain('class="spc-name-row"');
-    expect(appJs).toContain('class="spc-checklist-link"');
-    // Edit now lives in the 4-button action bar (spc-action-btn--edit), not a separate edit row
+    // Inline checklist link removed — View Checklist button in action bar is sufficient
+    expect(appJs).not.toContain('class="spc-checklist-link"');
+    // 3-button action bar
     expect(appJs).toContain('spc-action-btn--edit');
+    expect(appJs).toContain('spc-action-btn--checklist');
     expect(appJs).not.toContain('class="card-actions spc-edit-row"');
     expect(supplierDashImprovementsCss).toContain('.spc-root {');
     expect(supplierDashImprovementsCss).toContain('.spc-summary {');
     expect(supplierDashImprovementsCss).toContain('.spc-health .listing-health-bar {');
+    // 3-col action bar
+    expect(supplierDashImprovementsCss).toContain('grid-template-columns: repeat(3, 1fr)');
   });
 });
 

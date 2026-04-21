@@ -3181,14 +3181,13 @@ async function initDashSupplier() {
             s.subscriptionTier ||
             (s.subscription && s.subscription.tier) ||
             (s.isPro || s.pro ? 'pro' : null);
-          const TIER_ICON = ' ✦';
 
           if (tier === 'pro_plus') {
-            tierLabel = `Pro Plus${TIER_ICON}`;
+            tierLabel = 'Pro Plus';
           } else if (tier === 'pro') {
-            tierLabel = `Pro${TIER_ICON}`;
+            tierLabel = 'Pro';
           } else {
-            tierLabel = `Starter${TIER_ICON}`;
+            tierLabel = 'Starter';
           }
 
           // Calculate profile completeness checklist with safe property access
@@ -3252,7 +3251,7 @@ async function initDashSupplier() {
             <h3 class="spc-name">${name}</h3>
             <div class="spc-badges">
               <span class="spc-badge spc-badge--tier">
-                <svg class="spc-badge-icon" width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                <svg class="spc-badge-icon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                 ${tierLabel}
               </span>
               ${
@@ -3280,10 +3279,6 @@ async function initDashSupplier() {
             </div>
             <div class="listing-health-label">Listing health: calculating…</div>
           </div>
-          <button type="button" class="spc-checklist-link" data-action="view-checklist" data-profile-id="${supplierId}" title="Checklist progress: ${completedCount}/${checklistItems.length}">
-            <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            Profile Setup Checklist (${completedCount}/${checklistItems.length})
-          </button>
         </div>
         <!-- Health score ring (right column) -->
         <div class="spc-ring" aria-label="Health score">
@@ -3293,12 +3288,12 @@ async function initDashSupplier() {
           </svg>
           <div class="spc-ring-inner">
             <span class="spc-ring-score">—</span>
-            <span class="spc-ring-label">Health</span>
-            <span class="spc-ring-grade">Score</span>
+            <span class="spc-ring-label">Health Score</span>
+            <span class="spc-ring-grade"></span>
           </div>
         </div>
       </div>
-      <!-- Full-width action bar -->
+      <!-- 3-button action bar -->
       <div class="spc-actions">
         <label for="supplier-profile-photo-upload-${supplierId}" class="spc-action-btn spc-upload-btn" style="cursor:pointer;">
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
@@ -3311,10 +3306,6 @@ async function initDashSupplier() {
         <button type="button" class="spc-action-btn spc-action-btn--checklist" data-action="view-checklist" data-profile-id="${supplierId}">
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2h-2"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
           View Checklist
-        </button>
-        <button type="button" class="supplier-profile-photo-remove spc-action-btn spc-action-btn--danger" data-profile-id="${supplierId}" aria-label="Remove profile photo">
-          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-          Remove
         </button>
       </div>
     </div>`;
@@ -3406,39 +3397,6 @@ async function initDashSupplier() {
             }
           } finally {
             e.target.value = '';
-          }
-        });
-      });
-
-      supWrap.querySelectorAll('.supplier-profile-photo-remove').forEach(btn => {
-        if (btn.dataset.bound === 'true') {
-          return;
-        }
-        btn.dataset.bound = 'true';
-        btn.addEventListener('click', async () => {
-          if (!confirm('Remove your profile photo?')) {
-            return;
-          }
-          try {
-            const resp = await fetch('/api/profile/avatar', {
-              method: 'DELETE',
-              credentials: 'include',
-              headers: { 'X-CSRF-Token': window.__CSRF_TOKEN__ || '' },
-            });
-            const result = await resp.json().catch(() => ({}));
-            if (!resp.ok && resp.status !== 404) {
-              throw new Error(result.error || 'Failed to remove profile photo');
-            }
-            // Bust the cached auth state so the next me() call fetches the updated avatarUrl
-            if (window.AuthStateManager?.refresh) {
-              await window.AuthStateManager.refresh();
-            }
-            await loadSuppliers();
-          } catch (err) {
-            console.error('Profile photo removal failed:', err);
-            if (window.announceToSR) {
-              window.announceToSR(err.message || 'Failed to remove profile photo');
-            }
           }
         });
       });
