@@ -1001,6 +1001,7 @@
   letter-spacing: -0.5px;
   user-select: none;
   flex-shrink: 0;
+  overflow: hidden;
 }
 
 /* Smaller avatar used inside message bubbles */
@@ -1017,6 +1018,7 @@
   font-weight: 700;
   font-size: 13px;
   user-select: none;
+  overflow: hidden;
 }
 
 /* Chat header avatar (smaller size, letter centering) */
@@ -1024,6 +1026,7 @@
   width: 40px;
   height: 40px;
   font-size: 16px;
+  overflow: hidden;
 }
 
 /* ============================================================

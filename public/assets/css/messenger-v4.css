@@ -259,6 +259,7 @@
   width: 48px;
   height: 48px;
   border-radius: 50%;
+  overflow: hidden;
   object-fit: cover;
   border: 2px solid rgba(255, 255, 255, 0.8);
 }
@@ -607,6 +608,7 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
+  overflow: hidden;
   object-fit: cover;
   flex-shrink: 0;
   align-self: flex-end;

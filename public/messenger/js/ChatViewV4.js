@@ -23,6 +23,10 @@ function _cv4SafeName(str, fallback) {
   return fallback || 'Unknown';
 }
 
+function _cv4SafeAvatar(url) {
+  return typeof url === 'string' && /^(https?:\/\/|\/[^:])/i.test(url.trim()) ? url.trim() : '';
+}
+
 class ChatViewV4 {
   constructor(container, state, api, options = {}) {
     this.container = typeof container === 'string' ? document.querySelector(container) : container;
@@ -546,15 +550,26 @@ class ChatViewV4 {
     const other = conv.participants?.find(p => p.userId !== uid) || {};
     const isOnline = this.state.getPresence(other.userId)?.state === 'online';
 
-    this.container.querySelector('.messenger-v4__chat-header-avatar').textContent = _cv4SafeName(
-      other.displayName,
-      'U'
-    )
-      .charAt(0)
-      .toUpperCase();
+    const headerAvatarEl = this.container.querySelector('.messenger-v4__chat-header-avatar');
+    const headerName = _cv4SafeName(other.displayName, 'U');
+    const headerAvatarUrl = _cv4SafeAvatar(other.avatar);
+    if (headerAvatarEl) {
+      headerAvatarEl.textContent = headerName.charAt(0).toUpperCase();
+      if (headerAvatarUrl) {
+        headerAvatarEl.style.backgroundImage = `url('${this.escape(headerAvatarUrl)}')`;
+        headerAvatarEl.style.backgroundSize = 'cover';
+        headerAvatarEl.style.backgroundPosition = 'center';
+        headerAvatarEl.style.color = 'transparent';
+      } else {
+        headerAvatarEl.style.backgroundImage = '';
+        headerAvatarEl.style.backgroundSize = '';
+        headerAvatarEl.style.backgroundPosition = '';
+        headerAvatarEl.style.color = '';
+      }
+    }
     this.container.querySelector('#v4ChatHeaderName').textContent = isGroup
       ? conv.metadata?.title || `${(conv.participants || []).length} participants`
-      : _cv4SafeName(other.displayName);
+      : headerName;
     this.container.querySelector('#v4ChatHeaderStatus').textContent = isGroup
       ? 'Group conversation'
       : isOnline
@@ -619,7 +634,10 @@ class ChatViewV4 {
     const btn = this.container.querySelector('#v4ArchiveBtn');
     if (btn) {
       btn.dataset.archived = isArchived ? 'true' : 'false';
-      btn.setAttribute('aria-label', isArchived ? 'Unarchive conversation' : 'Archive conversation');
+      btn.setAttribute(
+        'aria-label',
+        isArchived ? 'Unarchive conversation' : 'Archive conversation'
+      );
       btn.setAttribute('title', isArchived ? 'Unarchive' : 'Archive');
       const iconOff = btn.querySelector('.messenger-v4__archive-icon-off');
       const iconOn = btn.querySelector('.messenger-v4__archive-icon-on');

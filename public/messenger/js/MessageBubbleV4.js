@@ -60,6 +60,9 @@ class MessageBubbleV4 {
       : '';
     const canEdit = isSent && MessageBubbleV4._withinEditWindow(message.createdAt);
     const showSenderMeta = options.showSenderMeta !== false;
+    const senderName = message.senderName || 'Unknown';
+    const senderAvatarUrl = MessageBubbleV4._safeAvatar(message.senderAvatar);
+    const senderInitial = MessageBubbleV4.escape(senderName.charAt(0).toUpperCase());
     const participantCount = Number(options.participantCount || 0);
     const groupTotal = Math.max(0, participantCount - 1);
     const readCount = Math.max(
@@ -73,9 +76,17 @@ class MessageBubbleV4 {
       <div class="messenger-v4__message messenger-v4__message--${MessageBubbleV4.escape(side)}"
            data-id="${MessageBubbleV4.escape(message._id)}"
             data-sender="${MessageBubbleV4.escape(message.senderId)}">
-        ${!isSent && showSenderMeta ? `<div class="messenger-v4__message-avatar" aria-hidden="true">${MessageBubbleV4.escape((message.senderName || 'U').charAt(0).toUpperCase())}</div>` : ''}
+        ${
+          !isSent && showSenderMeta
+            ? `<div class="messenger-v4__message-avatar" aria-hidden="true"${
+                senderAvatarUrl
+                  ? ` style="background-image:url('${MessageBubbleV4.escape(senderAvatarUrl)}');background-size:cover;background-position:center;color:transparent;"`
+                  : ''
+              }>${senderInitial}</div>`
+            : ''
+        }
         <div class="messenger-v4__message-content">
-          ${!isSent && showSenderMeta && message.senderName ? `<span class="messenger-v4__message-sender">${MessageBubbleV4.escape(message.senderName)}</span>` : ''}
+          ${!isSent && showSenderMeta ? `<span class="messenger-v4__message-sender">${MessageBubbleV4.escape(senderName)}</span>` : ''}
           ${message.replyTo ? MessageBubbleV4.renderReplyTo(message.replyTo) : ''}
           <div class="messenger-v4__message-bubble" role="article">
             ${message.attachments?.length ? message.attachments.map(a => MessageBubbleV4.renderAttachment(a)).join('') : ''}
@@ -357,6 +368,10 @@ class MessageBubbleV4 {
       return '#';
     }
     return MessageBubbleV4.escape(trimmed);
+  }
+
+  static _safeAvatar(url) {
+    return typeof url === 'string' && /^(https?:\/\/|\/[^:])/i.test(url.trim()) ? url.trim() : '';
   }
 }
 

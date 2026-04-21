@@ -174,11 +174,24 @@ function renderConversations(conversations, supplierProfile, user) {
       }
 
       const name = escapeHtml(
-        conversation.customerName ||
+        conversation.otherPartyDisplayName ||
+          conversation.displayName ||
+          conversation.customerName ||
           conversation.senderName ||
           conversation.otherPartyName ||
           'Customer'
       );
+      const avatarUrl =
+        conversation.otherPartyAvatar ||
+        conversation.avatarUrl ||
+        conversation.avatar ||
+        conversation.senderAvatar ||
+        '';
+      const safeAvatarUrl =
+        typeof avatarUrl === 'string' && /^(https?:\/\/|\/[^:])/i.test(avatarUrl.trim())
+          ? escapeHtml(avatarUrl.trim())
+          : '';
+      const initial = escapeHtml((name || 'U').charAt(0).toUpperCase());
       const preview = escapeHtml(
         truncate(conversation.lastMessage || conversation.preview || '', 80)
       );
@@ -203,6 +216,11 @@ function renderConversations(conversations, supplierProfile, user) {
         <div class="supplier-conv-item${unread > 0 ? ' supplier-conv-item--unread' : ''}"
              data-conversation-id="${convId}"
              style="padding:0.75rem 1rem;border-bottom:1px solid #f3f4f6;display:flex;align-items:flex-start;gap:0.75rem;">
+          <div aria-hidden="true" style="width:32px;height:32px;flex-shrink:0;border-radius:9999px;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;background:linear-gradient(135deg,#0b8073 0%,#0a6b5f 100%);${
+            safeAvatarUrl
+              ? `background-image:url('${safeAvatarUrl}');background-size:cover;background-position:center;color:transparent;`
+              : ''
+          }">${initial}</div>
           <div style="flex:1;min-width:0;">
             <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
               <span style="font-weight:${unread > 0 ? '700' : '500'};color:#0b1220;">${name}</span>
@@ -242,7 +260,14 @@ function applyFiltersSupplier(conversations, supplierProfile, user) {
     if (!searchQuery) {
       return true;
     }
-    const name = (conv.customerName || conv.senderName || '').toLowerCase();
+    const name = (
+      conv.otherPartyDisplayName ||
+      conv.displayName ||
+      conv.customerName ||
+      conv.senderName ||
+      conv.otherPartyName ||
+      ''
+    ).toLowerCase();
     const msg = (conv.lastMessage || conv.preview || '').toLowerCase();
     return name.includes(searchQuery) || msg.includes(searchQuery);
   });
