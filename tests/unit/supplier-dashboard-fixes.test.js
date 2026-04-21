@@ -172,6 +172,7 @@ const galleryJs = fs.readFileSync(
 );
 
 const appJs = fs.readFileSync(path.join(process.cwd(), 'public/assets/js/app.js'), 'utf8');
+const settingsHtml = fs.readFileSync(path.join(process.cwd(), 'public/settings.html'), 'utf8');
 
 const dashboardAnimationsCss = fs.readFileSync(
   path.join(process.cwd(), 'public/assets/css/dashboard-animations.css'),
@@ -234,6 +235,31 @@ describe('Supplier profile form – website field browser validation disabled', 
       'If no protocol is provided, https:// will be added when you save'
     );
     expect(dashboardHtml).toContain('www.event-flow.co.uk');
+  });
+});
+
+describe('Supplier dashboard/profile UI polish', () => {
+  it('dashboard-supplier toggle profile button uses a pencil edit icon (not plus)', () => {
+    const start = dashboardHtml.indexOf('id="toggle-profile-form"');
+    expect(start).toBeGreaterThan(-1);
+    const section = dashboardHtml.slice(start, start + 1000);
+    expect(section).toContain(
+      '<path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>'
+    );
+    expect(section).not.toContain('<path d="M5 12h14"/>');
+    expect(section).not.toContain('<path d="M12 5v14"/>');
+  });
+
+  it('supplier profile Remove photo button uses outlined neutral chrome with danger text/icon', () => {
+    expect(appJs).toContain('class="supplier-profile-photo-remove"');
+    expect(appJs).toContain('border:1px solid #d1d5db;background:#fff;color:#dc2626');
+    expect(appJs).not.toContain('border:1px solid #fca5a5;background:#fff5f5;color:#dc2626');
+  });
+
+  it('settings Remove photo button matches outlined upload-button chrome', () => {
+    expect(settingsHtml).toContain('id="avatar-delete-btn"');
+    expect(settingsHtml).toContain('border:1px solid #d1d5db;background:#fff;color:#dc2626');
+    expect(settingsHtml).not.toContain('border:1px solid #fca5a5;background:#fff5f5;color:#dc2626');
   });
 });
 
