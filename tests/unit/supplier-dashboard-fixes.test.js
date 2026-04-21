@@ -252,14 +252,18 @@ describe('Supplier dashboard/profile UI polish', () => {
 
   it('supplier profile Remove photo button uses outlined neutral chrome with danger text/icon', () => {
     expect(appJs).toContain('class="supplier-profile-photo-remove"');
-    expect(appJs).toContain('border:1px solid #d1d5db;background:#fff;color:#dc2626');
+    expect(appJs).toContain('border:1px solid #CFEDEA;background:#F6FAF9;color:#dc2626');
+    expect(appJs).toContain('box-sizing:border-box;line-height:inherit;');
     expect(appJs).not.toContain('border:1px solid #fca5a5;background:#fff5f5;color:#dc2626');
+    expect(appJs).not.toContain('border:1px solid #d1d5db;background:#fff;color:#dc2626');
   });
 
   it('settings Remove photo button matches outlined upload-button chrome', () => {
     expect(settingsHtml).toContain('id="avatar-delete-btn"');
-    expect(settingsHtml).toContain('border:1px solid #d1d5db;background:#fff;color:#dc2626');
+    expect(settingsHtml).toContain('border:1px solid #CFEDEA;background:#F6FAF9;color:#dc2626');
+    expect(settingsHtml).toContain('box-sizing:border-box;line-height:inherit;');
     expect(settingsHtml).not.toContain('border:1px solid #fca5a5;background:#fff5f5;color:#dc2626');
+    expect(settingsHtml).not.toContain('border:1px solid #d1d5db;background:#fff;color:#dc2626');
   });
 });
 
