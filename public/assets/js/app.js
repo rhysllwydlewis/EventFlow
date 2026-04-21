@@ -3209,6 +3209,8 @@ async function initDashSupplier() {
             { label: 'Additional Details', complete: hasDescription },
           ];
           const completedCount = checklistItems.filter(item => item.complete).length;
+          // Health score: 0-100 based on checklist completion (each of 5 items = 20 points)
+          const checklistScore = Math.round((completedCount / checklistItems.length) * 100);
 
           // Safe access to all fields with defaults — escape all user-supplied values to prevent XSS
           const supplierId = String(s.id || '').replace(/"/g, '&quot;');
@@ -3275,7 +3277,7 @@ async function initDashSupplier() {
           </div>
         </div>
         <!-- Health score ring (right column) -->
-        <div class="spc-ring" aria-label="Health score" aria-live="polite">
+        <div class="spc-ring" aria-label="Health score" aria-live="polite" data-computed-score="${checklistScore}">
           <div class="spc-ring-circle">
             <svg class="spc-ring-svg" viewBox="0 0 80 80" fill="none" aria-hidden="true">
               <circle class="spc-ring-track" cx="40" cy="40" r="32"/>
@@ -3319,7 +3321,9 @@ async function initDashSupplier() {
           </div>
         </div>
         <div class="spc-checklist-steps" role="list">
-          ${checklistItems.map((item, i) => `
+          ${checklistItems
+            .map(
+              (item, i) => `
             <div class="spc-checklist-step${item.complete ? ' spc-checklist-step--complete' : ''}" role="listitem">
               <div class="spc-checklist-step-circle" aria-hidden="true">${
                 item.complete
@@ -3328,7 +3332,9 @@ async function initDashSupplier() {
               }</div>
               <span class="spc-checklist-step-label">${item.label}</span>
             </div>
-          `).join('')}
+          `
+            )
+            .join('')}
         </div>
       </div>
     </div>`;
@@ -3346,7 +3352,11 @@ async function initDashSupplier() {
         if (!row) {
           return;
         }
-        const score = typeof s.aiScore === 'number' ? s.aiScore : 0;
+
+        // Health score: prefer aiScore if set, otherwise use checklist-based score embedded in DOM
+        const ringEl = row.querySelector('.spc-ring');
+        const checklistScore = ringEl ? parseInt(ringEl.dataset.computedScore || '0', 10) : 0;
+        const score = typeof s.aiScore === 'number' && s.aiScore > 0 ? s.aiScore : checklistScore;
 
         // Populate circular health score ring
         const RING_GOOD_THRESHOLD = 80;
@@ -3354,16 +3364,15 @@ async function initDashSupplier() {
         const ringScore = row.querySelector('.spc-ring-score');
         const ringFill = row.querySelector('.spc-ring-fill');
         const ringGrade = row.querySelector('.spc-ring-grade');
-        const ringEl = row.querySelector('.spc-ring');
         if (ringScore && ringFill) {
           const RING_RADIUS = 32; // must match r="32" in the SVG circle + CSS stroke-dasharray comment
           const circumference = 2 * Math.PI * RING_RADIUS;
-          const displayScore = score || 0;
+          const displayScore = score;
           const offset = circumference * (1 - displayScore / 100);
           ringFill.style.strokeDasharray = `${circumference}`;
           ringFill.style.strokeDashoffset = `${offset}`;
-          ringScore.textContent = displayScore || '—';
-          ringScore.setAttribute('aria-label', displayScore ? `Health score: ${displayScore}` : 'Health score: not yet calculated');
+          ringScore.textContent = String(displayScore);
+          ringScore.setAttribute('aria-label', `Health score: ${displayScore}`);
           if (ringGrade && ringEl) {
             if (displayScore >= RING_GOOD_THRESHOLD) {
               ringGrade.textContent = 'Good';
@@ -3372,8 +3381,8 @@ async function initDashSupplier() {
               ringGrade.textContent = 'Fair';
               ringEl.dataset.grade = 'fair';
             } else {
-              ringGrade.textContent = score ? 'Poor' : 'N/A';
-              ringEl.dataset.grade = score ? 'poor' : 'na';
+              ringGrade.textContent = 'Poor';
+              ringEl.dataset.grade = 'poor';
             }
           }
         }

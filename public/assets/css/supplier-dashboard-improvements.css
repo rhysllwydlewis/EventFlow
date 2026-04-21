@@ -7849,7 +7849,7 @@ label .required {
   display: grid;
   grid-template-columns: 100px 1fr auto;
   gap: 20px;
-  align-items: start;
+  align-items: center;
 }
 
 /* ── Avatar column ─────────────────────────────────────────────────────────── */
@@ -7863,8 +7863,8 @@ label .required {
 .spc-avatar-col {
   border: 3px solid #fff;
   box-shadow:
-    0 0 0 2px rgba(11, 128, 115, 0.22),
-    0 3px 12px rgba(11, 128, 115, 0.14);
+    0 0 0 3px rgba(11, 128, 115, 0.18),
+    0 4px 16px rgba(11, 128, 115, 0.12);
 }
 
 /* Camera upload overlay button — sits below the avatar circle */
