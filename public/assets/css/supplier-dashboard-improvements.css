@@ -6381,34 +6381,42 @@ body:not(.supplier-dashboard-page) .section > .container {
 }
 
 /* ── Remove (✕) button on all preview thumbnails ────────────────────────── */
+/* Liquid-glass chip: half the previous size, frosted white at rest → soft red on hover */
 .photo-preview-remove {
   position: absolute;
-  top: -6px;
-  right: -6px;
-  width: 20px;
-  height: 20px;
+  top: -4px;
+  right: -4px;
+  width: 16px;
+  height: 16px;
   padding: 0;
-  background: #fff;
-  border: 1.5px solid #d1d5db;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(8px) saturate(160%);
+  -webkit-backdrop-filter: blur(8px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.55);
   border-radius: 50%;
   cursor: pointer;
-  font-size: 10px;
-  font-weight: 700;
+  font-size: 8px;
+  font-weight: 800;
   line-height: 1;
-  color: #6b7280;
+  color: #374151;
   z-index: 4;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
-  transition: background 0.12s, border-color 0.12s, color 0.12s, box-shadow 0.12s;
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .photo-preview-remove:hover {
-  background: #dc2626;
-  border-color: #dc2626;
+  background: rgba(220, 38, 38, 0.82);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-color: rgba(220, 38, 38, 0.3);
   color: #fff;
-  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.35);
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transform: scale(1.08);
 }
 
 /* ── "Price not set" muted text style ───────────────────────────────────── */
@@ -7704,32 +7712,42 @@ label .required {
 .photo-preview-item--existing .photo-delete-btn,
 .photo-preview-item--pending .photo-remove-btn {
   position: absolute;
-  top: -6px;
-  right: -6px;
+  top: -4px;
+  right: -4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
-  min-width: 20px;
-  min-height: 20px;
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  min-height: 16px;
   padding: 0;
-  background: #ef4444;
-  color: #fff;
-  border: 2px solid #fff;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(8px) saturate(160%);
+  -webkit-backdrop-filter: blur(8px) saturate(160%);
+  color: #374151;
+  border: 1px solid rgba(255, 255, 255, 0.55);
   border-radius: 50%;
-  font-size: 11px;
+  font-size: 8px;
+  font-weight: 800;
   line-height: 1;
   cursor: pointer;
   z-index: 10;
-  transition: background 0.15s, transform 0.1s;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s;
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 
 .photo-preview-item--existing .photo-delete-btn:hover,
 .photo-preview-item--pending .photo-remove-btn:hover {
-  background: #dc2626;
-  transform: scale(1.1);
+  background: rgba(220, 38, 38, 0.82);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border-color: rgba(220, 38, 38, 0.3);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transform: scale(1.08);
 }
 
 /* ── Pending upload tiles — match existing-photo tile size & shape ─────────── */
