@@ -707,8 +707,14 @@ router.post(
             conversationId,
             conversation: recipientConv,
           });
-        } catch (_err) {
-          // Best-effort — the recipient will still see the message on next load
+        } catch (err) {
+          // Best-effort — the recipient will still see the message on next load.
+          // Log with context so production issues are diagnosable.
+          logger.warn('messenger_v4 auto-unarchive notification failed', {
+            uid,
+            conversationId,
+            error: err.message,
+          });
         }
       }
 

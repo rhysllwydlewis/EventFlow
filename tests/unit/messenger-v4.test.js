@@ -223,7 +223,10 @@ function createInMemoryDb() {
   function applyUpdate(doc, update, arrayFilters = []) {
     if (update.$set) {
       for (const [path, val] of Object.entries(update.$set)) {
-        // Handle MongoDB positional-filtered operator paths like 'arr.$[elem].field'
+        // Handle MongoDB positional-filtered operator: 'arr.$[elem].field'
+        // Regex captures: (arrayPath).$[(placeholder)].(fieldPath)
+        // Supports single-level positional filtering only (no nested $[a].$[b]).
+        // Multiple filtered operators in one path are not needed by this codebase.
         const posFilterMatch = path.match(/^(.+?)\.\$\[([^\]]+)\]\.(.+)$/);
         if (posFilterMatch) {
           const [, arrayPath, placeholder, fieldPath] = posFilterMatch;

@@ -258,8 +258,14 @@ class MessengerAppV4 {
             this.state.updateConversation(fetched);
             conv = this.state.conversations.find(c => c._id === conversationId);
           }
-        } catch (_err) {
-          // Best-effort — proceed with whatever state we have
+        } catch (err) {
+          // Best-effort — proceed with whatever state we have. Log so archived-to-active
+          // transition failures are diagnosable in production.
+          console.warn(
+            '[MessengerAppV4] Failed to fetch missing conversation',
+            conversationId,
+            err.message
+          );
         }
       }
       if (conv) {
