@@ -147,6 +147,12 @@ class SupplierGalleryManager {
     if (isDevelopment) {
       console.log(`Added ${fileArray.length} photos to upload queue`);
     }
+
+    // For existing suppliers, upload immediately so selected photos are added to
+    // the gallery without requiring another profile save.
+    if (this.currentSupplierId) {
+      await this.uploadPendingPhotos(this.currentSupplierId);
+    }
   }
 
   showPreview(file, previewContainer) {

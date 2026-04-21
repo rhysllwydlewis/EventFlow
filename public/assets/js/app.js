@@ -3087,7 +3087,14 @@ async function initDashSupplier() {
         currentUser?.avatarUrl && /^(https?:\/\/|\/[^:])/i.test(currentUser.avatarUrl)
           ? escapeHtml(currentUser.avatarUrl)
           : '';
-      const profileInitial = escapeHtml((profileDisplayName || 'U').charAt(0).toUpperCase());
+      const profileInitial = escapeHtml(
+        (profileDisplayName || '')
+          .split(/\s+/)
+          .filter(Boolean)
+          .slice(0, 2)
+          .map(part => part.charAt(0).toUpperCase())
+          .join('') || 'U'
+      );
       cachedSuppliers = items; // Cache for use within initDashSupplier scope
       window._efCachedSuppliers = items; // Expose globally for editProfile()
       // If this user has at least one Pro supplier, treat them as Pro.
@@ -3217,7 +3224,6 @@ async function initDashSupplier() {
           const name = escapeHtml(String(s.name || 'Unnamed Supplier'));
           const location = escapeHtml(String(s.location || 'Location not set'));
           const category = escapeHtml(String(s.category || 'Uncategorized'));
-          const priceDisplay = s.price_display ? escapeHtml(String(s.price_display)) : '';
           const descriptionRaw = String(s.description_short || '');
           const description = escapeHtml(descriptionRaw);
           const descriptionFallbackText = 'Add a short summary to improve your listing.';
@@ -3230,21 +3236,26 @@ async function initDashSupplier() {
           return `<div class="supplier-card card glass-card spc-root" data-supplier-id="${supplierId}">
       <div class="spc-summary">
         <!-- Avatar column with camera upload overlay -->
-        <div class="spc-avatar-wrap">
-          <div class="supplier-profile-photo-slot spc-avatar-col" aria-hidden="true" style="width:100px;height:100px;flex-shrink:0;border-radius:50%;overflow:hidden;${
-            profilePhotoUrl
-              ? `background:none;`
-              : `background:linear-gradient(135deg,#0b8073 0%,#0a6b5f 100%);display:flex;align-items:center;justify-content:center;color:#fff;font-size:2.4rem;font-weight:700;`
-          }">
+          <div class="spc-avatar-wrap">
+            <div class="supplier-profile-photo-slot spc-avatar-col" aria-hidden="true" style="width:100px;height:100px;flex-shrink:0;border-radius:50%;overflow:hidden;${
+              profilePhotoUrl
+                ? `background:none;`
+                : `background:linear-gradient(135deg,#0b8073 0%,#0a6b5f 100%);display:flex;align-items:center;justify-content:center;color:#fff;font-size:2.4rem;font-weight:700;`
+            }">
             ${
               profilePhotoUrl
                 ? `<img src="${profilePhotoUrl}" alt="Your profile photo" style="width:100%;height:100%;object-fit:cover;display:block;">`
                 : profileInitial
             }
-          </div>
-          <label for="supplier-profile-photo-upload-${supplierId}" class="spc-camera-btn" title="Upload profile photo" aria-label="Upload profile photo">
-            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-          </label>
+            </div>
+            ${
+              profilePhotoUrl
+                ? `<button type="button" class="spc-avatar-delete-btn" data-action="delete-profile-photo" data-profile-id="${supplierId}" title="Delete profile photo" aria-label="Delete profile photo"><span aria-hidden="true">✕</span></button>`
+                : ''
+            }
+            <label for="supplier-profile-photo-upload-${supplierId}" class="spc-camera-btn" title="Upload profile photo" aria-label="Upload profile photo">
+              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            </label>
           <input type="file" id="supplier-profile-photo-upload-${supplierId}" class="supplier-profile-photo-upload" data-profile-id="${supplierId}" accept="image/*" style="display:none;" aria-label="Upload profile photo">
         </div>
         <!-- Body column -->
@@ -3273,7 +3284,6 @@ async function initDashSupplier() {
               <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
               ${category}
             </span>
-            ${priceDisplay ? `<span class="spc-meta-pipe" aria-hidden="true">|</span><span>${priceDisplay}</span>` : ''}
           </div>
         </div>
         <!-- Health score ring (right column) -->
@@ -3293,17 +3303,17 @@ async function initDashSupplier() {
       </div>
       <!-- 3-button action bar -->
       <div class="spc-actions">
-        <label for="supplier-profile-photo-upload-${supplierId}" class="spc-action-btn spc-upload-btn" style="cursor:pointer;">
+        <button type="button" class="spc-action-btn spc-upload-btn" data-action="upload-photo" data-profile-id="${supplierId}">
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           Upload Photo
-        </label>
+        </button>
         <button type="button" class="spc-action-btn spc-action-btn--edit" data-action="edit-profile" data-profile-id="${supplierId}">
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
           Edit Profile
         </button>
-        <button type="button" class="spc-action-btn spc-action-btn--checklist" data-action="view-checklist" data-profile-id="${supplierId}">
+        <button type="button" class="spc-action-btn spc-action-btn--checklist" data-action="view-checklist" data-profile-id="${supplierId}" aria-expanded="true" aria-controls="spc-checklist-${supplierId}">
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2h-2"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
-          View Checklist
+          <span class="spc-checklist-btn-label">Hide Checklist</span>
         </button>
       </div>
       <!-- Profile Setup Checklist -->
@@ -3857,97 +3867,175 @@ async function initDashSupplier() {
   }
 
   // Add event delegation for Edit/Delete buttons on packages and profiles
-  document.addEventListener('click', e => {
+  document.addEventListener('click', async e => {
     const target = e.target;
-
-    // Handle package edit buttons
-    if (target.matches('[data-action="edit-package"]')) {
-      const packageId = target.getAttribute('data-package-id');
-      if (packageId) {
-        editPackage(packageId);
-      }
-    }
-
-    // Handle package delete buttons
-    if (target.matches('[data-action="delete-package"]')) {
-      const packageId = target.getAttribute('data-package-id');
-      if (packageId) {
-        deletePackage(packageId);
-      }
-    }
-
-    // Handle package pause buttons
-    if (target.matches('[data-action="pause-package"]')) {
-      const packageId = target.getAttribute('data-package-id');
-      if (packageId) {
-        togglePackagePause(packageId, true);
-      }
-    }
-
-    // Handle package unpause buttons
-    if (target.matches('[data-action="unpause-package"]')) {
-      const packageId = target.getAttribute('data-package-id');
-      if (packageId) {
-        togglePackagePause(packageId, false);
-      }
-    }
-
-    // Handle profile edit buttons
-    if (target.matches('[data-action="edit-profile"]')) {
-      const profileId = target.getAttribute('data-profile-id');
-      if (profileId) {
-        editProfile(profileId);
-      }
-    }
-
-    // Handle View Checklist button — scrolls to the checklist card for this profile
-    if (target.matches('[data-action="view-checklist"]')) {
-      const profileId = target.getAttribute('data-profile-id');
-      const checklistCard = profileId
-        ? document.getElementById(`spc-checklist-${profileId}`)
-        : null;
-      if (checklistCard) {
-        checklistCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      } else {
-        // Fallback: expand and scroll to profile form section
-        const profileFormSection = document.getElementById('profile-form-section');
-        if (profileFormSection) {
-          if (!profileFormSection.classList.contains('expanded')) {
-            profileFormSection.classList.add('expanded');
-            profileFormSection.removeAttribute('hidden');
-          }
-          profileFormSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const actionEl = target.closest ? target.closest('[data-action]') : null;
+    try {
+      // Handle package edit buttons
+      if (actionEl && actionEl.matches('[data-action="edit-package"]')) {
+        const packageId = actionEl.getAttribute('data-package-id');
+        if (packageId) {
+          editPackage(packageId);
         }
       }
-    }
 
-    // Handle profile delete buttons
-    if (target.matches('[data-action="delete-profile"]')) {
-      const profileId = target.getAttribute('data-profile-id');
-      if (profileId) {
-        deleteProfile(profileId);
+      // Handle package delete buttons
+      if (actionEl && actionEl.matches('[data-action="delete-package"]')) {
+        const packageId = actionEl.getAttribute('data-package-id');
+        if (packageId) {
+          deletePackage(packageId);
+        }
       }
-    }
 
-    // Handle gallery photo delete buttons
-    if (target.matches('.pkg-gallery-delete')) {
-      const photoUrl = target.getAttribute('data-url');
-      const packageId = target.getAttribute('data-package-id');
-      if (photoUrl && packageId) {
-        deletePackagePhoto(packageId, photoUrl, target);
+      // Handle package pause buttons
+      if (actionEl && actionEl.matches('[data-action="pause-package"]')) {
+        const packageId = actionEl.getAttribute('data-package-id');
+        if (packageId) {
+          togglePackagePause(packageId, true);
+        }
       }
-    }
 
-    // Handle gallery save-order button
-    if (target.matches('#pkg-gallery-save-order')) {
-      savePkgGalleryOrder();
-    }
-
-    // Handle supplier gallery save-order button
-    if (target.matches('#sup-gallery-save-order')) {
-      if (typeof window.saveSupplierGalleryOrder === 'function') {
-        window.saveSupplierGalleryOrder();
+      // Handle package unpause buttons
+      if (actionEl && actionEl.matches('[data-action="unpause-package"]')) {
+        const packageId = actionEl.getAttribute('data-package-id');
+        if (packageId) {
+          togglePackagePause(packageId, false);
+        }
       }
+
+      // Handle profile edit buttons
+      if (actionEl && actionEl.matches('[data-action="edit-profile"]')) {
+        const profileId = actionEl.getAttribute('data-profile-id');
+        if (profileId) {
+          editProfile(profileId);
+        }
+      }
+
+      // Handle Upload Photo button — expand form, scroll to uploader, and open file picker
+      if (actionEl && actionEl.matches('[data-action="upload-photo"]')) {
+        const profileId = actionEl.getAttribute('data-profile-id');
+        if (profileId) {
+          try {
+            await editProfile(profileId);
+          } catch (err) {
+            console.error('Failed to prepare profile form for photo upload:', err);
+            return;
+          }
+        }
+        const profileFormSection = document.getElementById('profile-form-section');
+        if (profileFormSection && !profileFormSection.classList.contains('expanded')) {
+          profileFormSection.classList.add('expanded');
+        }
+        const uploader = document.getElementById('sup-photo-drop');
+        if (uploader) {
+          if (!uploader.hasAttribute('tabindex')) {
+            uploader.setAttribute('tabindex', '-1');
+          }
+          uploader.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          if (typeof uploader.focus === 'function') {
+            uploader.focus({ preventScroll: true });
+          }
+          const AUTO_OPEN_PICKER_DELAY_MS = 180; // allow smooth-scroll/focus to complete before opening picker
+          setTimeout(() => {
+            uploader.click();
+          }, AUTO_OPEN_PICKER_DELAY_MS);
+        }
+      }
+
+      // Handle View Checklist button — toggles checklist visibility for this profile
+      if (actionEl && actionEl.matches('[data-action="view-checklist"]')) {
+        const profileId = actionEl.getAttribute('data-profile-id');
+        const checklistCard = profileId
+          ? document.getElementById(`spc-checklist-${profileId}`)
+          : null;
+        if (checklistCard) {
+          const label = actionEl.querySelector('.spc-checklist-btn-label');
+          const isHidden = checklistCard.hasAttribute('hidden');
+          if (isHidden) {
+            checklistCard.removeAttribute('hidden');
+            actionEl.setAttribute('aria-expanded', 'true');
+            if (label) {
+              label.textContent = 'Hide Checklist';
+            }
+            checklistCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          } else {
+            checklistCard.setAttribute('hidden', '');
+            actionEl.setAttribute('aria-expanded', 'false');
+            if (label) {
+              label.textContent = 'View Checklist';
+            }
+          }
+        } else {
+          // Fallback: expand and scroll to profile form section
+          const profileFormSection = document.getElementById('profile-form-section');
+          if (profileFormSection) {
+            if (!profileFormSection.classList.contains('expanded')) {
+              profileFormSection.classList.add('expanded');
+              profileFormSection.removeAttribute('hidden');
+            }
+            profileFormSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }
+      }
+
+      // Handle profile photo delete button
+      if (actionEl && actionEl.matches('[data-action="delete-profile-photo"]')) {
+        if (!confirm('Remove your profile photo?')) {
+          return;
+        }
+        try {
+          const resp = await fetch('/api/profile/avatar', {
+            method: 'DELETE',
+            credentials: 'include',
+            headers: { 'X-CSRF-Token': window.__CSRF_TOKEN__ || '' },
+          });
+          const result = await resp.json().catch(() => ({}));
+          if (!resp.ok) {
+            throw new Error(result.error || 'Failed to delete profile photo');
+          }
+          if (window.AuthStateManager?.refresh) {
+            await window.AuthStateManager.refresh();
+          }
+          await loadSuppliers();
+        } catch (err) {
+          console.error('Profile photo delete failed:', err);
+          if (window.announceToSR) {
+            window.announceToSR(err.message || 'Failed to delete profile photo');
+          }
+        }
+      }
+
+      // Handle profile delete buttons
+      if (actionEl && actionEl.matches('[data-action="delete-profile"]')) {
+        const profileId = actionEl.getAttribute('data-profile-id');
+        if (profileId) {
+          deleteProfile(profileId);
+        }
+      }
+
+      // Handle gallery photo delete buttons
+      const pkgDeleteBtn = target.closest ? target.closest('.pkg-gallery-delete') : null;
+      if (pkgDeleteBtn) {
+        const photoUrl = pkgDeleteBtn.getAttribute('data-url');
+        const packageId = pkgDeleteBtn.getAttribute('data-package-id');
+        if (photoUrl && packageId) {
+          deletePackagePhoto(packageId, photoUrl, pkgDeleteBtn);
+        }
+      }
+
+      // Handle gallery save-order button
+      if (target.matches('#pkg-gallery-save-order')) {
+        savePkgGalleryOrder();
+      }
+
+      // Handle supplier gallery save-order button
+      if (target.matches('#sup-gallery-save-order')) {
+        if (typeof window.saveSupplierGalleryOrder === 'function') {
+          window.saveSupplierGalleryOrder();
+        }
+      }
+    } catch (err) {
+      console.error('Dashboard action handler error:', err);
     }
   });
 
@@ -4967,7 +5055,7 @@ function renderPkgGallery(container, photos, packageId) {
         <span class="pkg-gallery-drag-handle" title="Drag to reorder" aria-hidden="true">⠿</span>
         ${isFirst ? '<span class="pkg-gallery-first-badge">Cover</span>' : ''}
         <img src="${escapedUrl}" alt="Gallery photo" loading="lazy">
-        <button type="button" class="ef-cta pkg-gallery-delete" data-url="${escapedUrl}" data-package-id="${packageId}" aria-label="Delete photo" title="Delete photo">✕</button>
+        <button type="button" class="pkg-gallery-delete" data-url="${escapedUrl}" data-package-id="${packageId}" aria-label="Delete photo" title="Delete photo">✕</button>
       </div>`;
     })
     .join('');
