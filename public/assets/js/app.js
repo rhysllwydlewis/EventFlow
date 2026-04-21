@@ -3181,13 +3181,14 @@ async function initDashSupplier() {
             s.subscriptionTier ||
             (s.subscription && s.subscription.tier) ||
             (s.isPro || s.pro ? 'pro' : null);
+          const TIER_ICON = ' ✦';
 
           if (tier === 'pro_plus') {
-            tierLabel = 'Pro Plus ✦';
+            tierLabel = 'Pro Plus' + TIER_ICON;
           } else if (tier === 'pro') {
-            tierLabel = 'Pro ✦';
+            tierLabel = 'Pro' + TIER_ICON;
           } else {
-            tierLabel = 'Starter ✦';
+            tierLabel = 'Starter' + TIER_ICON;
           }
 
           // Calculate profile completeness checklist with safe property access
