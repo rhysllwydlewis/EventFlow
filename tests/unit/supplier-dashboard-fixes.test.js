@@ -333,15 +333,35 @@ describe('Supplier dashboard/profile UI polish', () => {
     expect(appJs).toContain('class="spc-name-row"');
     // Inline checklist link removed — View Checklist button in action bar is sufficient
     expect(appJs).not.toContain('class="spc-checklist-link"');
+    // Description and health bar removed from card body (ring + checklist card handle these)
+    expect(appJs).not.toContain('class="spc-desc"');
+    expect(appJs).not.toContain('class="listing-health spc-health"');
+    // Category chip
+    expect(appJs).toContain('class="spc-category-chip"');
     // 3-button action bar
     expect(appJs).toContain('spc-action-btn--edit');
     expect(appJs).toContain('spc-action-btn--checklist');
     expect(appJs).not.toContain('class="card-actions spc-edit-row"');
+    // Checklist card always visible
+    expect(appJs).toContain('class="spc-checklist-card"');
+    expect(appJs).toContain('class="spc-checklist-steps"');
+    expect(appJs).toContain('Profile Setup Checklist');
+    // Checklist items match reference labels
+    expect(appJs).toContain("'Business Details'");
+    expect(appJs).toContain("'Categories & Services'");
+    expect(appJs).toContain("'Photos'");
+    expect(appJs).toContain("'Contact Information'");
+    expect(appJs).toContain("'Additional Details'");
     expect(supplierDashImprovementsCss).toContain('.spc-root {');
     expect(supplierDashImprovementsCss).toContain('.spc-summary {');
     expect(supplierDashImprovementsCss).toContain('.spc-health .listing-health-bar {');
     // 3-col action bar
     expect(supplierDashImprovementsCss).toContain('grid-template-columns: repeat(3, 1fr)');
+    // New components
+    expect(supplierDashImprovementsCss).toContain('.spc-category-chip {');
+    expect(supplierDashImprovementsCss).toContain('.spc-checklist-card {');
+    expect(supplierDashImprovementsCss).toContain('.spc-checklist-step {');
+    expect(supplierDashImprovementsCss).toContain('.spc-checklist-step-circle {');
   });
 });
 

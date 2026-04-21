@@ -3202,11 +3202,11 @@ async function initDashSupplier() {
           const hasWebsite = s.website && typeof s.website === 'string' && s.website.length > 0;
 
           const checklistItems = [
-            { label: 'Photos uploaded', complete: hasPhotos },
-            { label: 'Detailed description', complete: hasDescription },
-            { label: 'Category set', complete: hasCategory },
-            { label: 'Location specified', complete: hasLocation },
-            { label: 'Website added', complete: hasWebsite },
+            { label: 'Business Details', complete: !!(s.name && hasLocation) },
+            { label: 'Categories & Services', complete: hasCategory },
+            { label: 'Photos', complete: hasPhotos },
+            { label: 'Contact Information', complete: hasWebsite },
+            { label: 'Additional Details', complete: hasDescription },
           ];
           const completedCount = checklistItems.filter(item => item.complete).length;
 
@@ -3267,17 +3267,11 @@ async function initDashSupplier() {
           <div class="spc-meta">
             <svg class="spc-meta-icon" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
             <span>${location}</span>
-            <span class="spc-meta-pipe" aria-hidden="true">|</span>
-            <svg class="spc-meta-icon" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-            <span>${category}</span>
+            <span class="spc-category-chip">
+              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+              ${category}
+            </span>
             ${priceDisplay ? `<span class="spc-meta-pipe" aria-hidden="true">|</span><span>${priceDisplay}</span>` : ''}
-          </div>
-          <p class="spc-desc" title="${descriptionTitle}">${descriptionFallback}</p>
-          <div class="listing-health spc-health">
-            <div class="listing-health-bar">
-              <div class="listing-health-fill"></div>
-            </div>
-            <div class="listing-health-label">Listing health: calculating…</div>
           </div>
         </div>
         <!-- Health score ring (right column) -->
@@ -3308,11 +3302,38 @@ async function initDashSupplier() {
           View Checklist
         </button>
       </div>
+      <!-- Profile Setup Checklist -->
+      <div class="spc-checklist-card" id="spc-checklist-${supplierId}">
+        <div class="spc-checklist-header">
+          <div class="spc-checklist-big-icon${completedCount === checklistItems.length ? ' spc-checklist-big-icon--complete' : ''}" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="spc-checklist-header-body">
+            <div class="spc-checklist-title-row">
+              <span class="spc-checklist-title">Profile Setup Checklist</span>
+              <span class="spc-checklist-count">${completedCount} / ${checklistItems.length}</span>
+            </div>
+            <p class="spc-checklist-subtitle">Complete all steps to improve your profile visibility</p>
+          </div>
+        </div>
+        <div class="spc-checklist-steps" role="list">
+          ${checklistItems.map((item, i) => `
+            <div class="spc-checklist-step${item.complete ? ' spc-checklist-step--complete' : ''}" role="listitem">
+              <div class="spc-checklist-step-circle" aria-hidden="true">${
+                item.complete
+                  ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>`
+                  : `${i + 1}`
+              }</div>
+              <span class="spc-checklist-step-label">${item.label}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
     </div>`;
         })
         .join('');
 
-      // Listing health based on smart score if present
+      // Populate circular health score ring for each supplier card
       const rows = supWrap.querySelectorAll('.supplier-card');
       items.forEach((s, idx) => {
         if (!s) {
@@ -3323,17 +3344,7 @@ async function initDashSupplier() {
         if (!row) {
           return;
         }
-        const bar = row.querySelector('.listing-health-fill');
-        const label = row.querySelector('.listing-health-label');
         const score = typeof s.aiScore === 'number' ? s.aiScore : 0;
-        if (bar) {
-          bar.style.width = `${score || 10}%`;
-        }
-        if (label) {
-          label.textContent = score
-            ? `Listing health: ${score}%`
-            : 'Listing health: add photos and details to improve this listing.';
-        }
 
         // Populate circular health score ring
         const RING_GOOD_THRESHOLD = 80;
@@ -3877,15 +3888,24 @@ async function initDashSupplier() {
       }
     }
 
-    // Handle View Checklist button — scrolls to and expands the profile edit form
+    // Handle View Checklist button — scrolls to the checklist card for this profile
     if (target.matches('[data-action="view-checklist"]')) {
-      const profileFormSection = document.getElementById('profile-form-section');
-      if (profileFormSection) {
-        if (!profileFormSection.classList.contains('expanded')) {
-          profileFormSection.classList.add('expanded');
-          profileFormSection.removeAttribute('hidden');
+      const profileId = target.getAttribute('data-profile-id');
+      const checklistCard = profileId
+        ? document.getElementById(`spc-checklist-${profileId}`)
+        : null;
+      if (checklistCard) {
+        checklistCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } else {
+        // Fallback: expand and scroll to profile form section
+        const profileFormSection = document.getElementById('profile-form-section');
+        if (profileFormSection) {
+          if (!profileFormSection.classList.contains('expanded')) {
+            profileFormSection.classList.add('expanded');
+            profileFormSection.removeAttribute('hidden');
+          }
+          profileFormSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
-        profileFormSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
 
