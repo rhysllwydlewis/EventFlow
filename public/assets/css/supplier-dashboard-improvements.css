@@ -7861,7 +7861,7 @@ label .required {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
 }
 
 .spc-name-row {
@@ -7922,6 +7922,7 @@ label .required {
   gap: 4px;
   color: #667085;
   font-size: 0.84rem;
+  margin-top: 1px;
 }
 
 .spc-meta-sep {
@@ -7946,12 +7947,17 @@ label .required {
   text-overflow: ellipsis;
 }
 
+.spc-health {
+  margin-top: 2px;
+}
+
 .spc-health .listing-health-bar {
-  height: 4px;
-  margin-bottom: 4px;
+  height: 5px;
+  margin-bottom: 3px;
   border-radius: 999px;
   overflow: hidden;
   max-width: 100%;
+  background: rgba(148, 163, 184, 0.25);
 }
 
 .spc-health .listing-health-fill {
@@ -7979,9 +7985,10 @@ label .required {
   background: transparent;
   padding: 2px 0;
   color: #0b8073;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
+  margin-top: 2px;
 }
 
 .spc-checklist-link:hover {
@@ -7992,36 +7999,54 @@ label .required {
 .spc-actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: flex-start;
   gap: 8px;
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
 /* Override the global .cta/.ef-cta !important sizing so Upload/Remove
-   render as compact, consistent chips inside the summary card. */
+   render as compact, consistent chips inside the summary card.
+   Note: ui-ux-fixes.css sets min-height:44px + padding:12px 20px without !important,
+   and styles.css sets padding:10px 18px + font-size:15px WITH !important.
+   Our selectors here are all more-specific or equal, so !important wins. */
 .spc-actions .spc-action-btn,
-.spc-actions .cta.secondary.spc-action-btn {
-  padding: 8px 14px !important;
+.spc-actions .cta.secondary.spc-action-btn,
+.spc-actions .spc-upload-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important;
+  padding: 7px 14px !important;
   font-size: 13px !important;
   font-weight: 600 !important;
-  min-height: 34px;
+  min-height: 34px !important;
+  height: 34px !important;
+  min-width: 0 !important;
+  width: auto !important;
   border-radius: 8px !important;
   box-shadow: none !important;
   transform: none !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  line-height: 1.2 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  cursor: pointer;
+  overflow: hidden;
 }
 
-.spc-actions .cta.secondary.spc-action-btn {
+.spc-actions .cta.secondary.spc-action-btn,
+.spc-actions .spc-upload-btn {
   background: #fff !important;
   border: 1px solid #cfedea !important;
   color: #0b8073 !important;
 }
 
-.spc-actions .cta.secondary.spc-action-btn:hover {
-  background: #f4faf9 !important;
+.spc-actions .cta.secondary.spc-action-btn:hover,
+.spc-actions .spc-upload-btn:hover {
+  background: #f0faf8 !important;
   border-color: #0b8073 !important;
   transform: translateY(-1px) !important;
+  box-shadow: 0 2px 6px rgba(11, 128, 115, 0.12) !important;
 }
 
 .spc-actions .spc-action-btn--danger {
@@ -8034,6 +8059,7 @@ label .required {
   background: #fff5f5 !important;
   border-color: #fca5a5 !important;
   transform: translateY(-1px) !important;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.12) !important;
 }
 
 .spc-edit-row {

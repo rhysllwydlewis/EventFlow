@@ -3265,12 +3265,12 @@ async function initDashSupplier() {
         </div>
         <button type="button" class="spc-checklist-link" data-action="edit-profile" data-profile-id="${supplierId}" title="Checklist progress: ${completedCount}/${checklistItems.length}">Profile Setup Checklist ›</button>
         <div class="spc-actions">
-          <label for="supplier-profile-photo-upload-${supplierId}" class="cta secondary spc-action-btn" style="cursor:pointer;font-size:0.82rem;padding:0.375rem 0.875rem;display:inline-flex;align-items:center;gap:0.35rem;border-radius:6px;line-height:inherit;">
+          <label for="supplier-profile-photo-upload-${supplierId}" class="cta secondary spc-action-btn spc-upload-btn" style="cursor:pointer;">
             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
             Upload Photo
           </label>
           <input type="file" id="supplier-profile-photo-upload-${supplierId}" class="supplier-profile-photo-upload" data-profile-id="${supplierId}" accept="image/*" style="display:none;" aria-label="Upload profile photo">
-          <button type="button" class="supplier-profile-photo-remove spc-action-btn spc-action-btn--danger" data-profile-id="${supplierId}" style="font-size:0.82rem;padding:0.375rem 0.875rem;border-radius:6px;border:1px solid #CFEDEA;background:#F6FAF9;color:#dc2626;cursor:pointer;display:inline-flex;align-items:center;gap:0.35rem;box-sizing:border-box;line-height:inherit;" aria-label="Remove profile photo">
+          <button type="button" class="supplier-profile-photo-remove spc-action-btn spc-action-btn--danger" data-profile-id="${supplierId}" aria-label="Remove profile photo">
             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
             Remove
           </button>
