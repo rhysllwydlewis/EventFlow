@@ -3280,7 +3280,7 @@ async function initDashSupplier() {
             </div>
             <div class="listing-health-label">Listing health: calculating…</div>
           </div>
-          <button type="button" class="spc-checklist-link" data-action="edit-profile" data-profile-id="${supplierId}" title="Checklist progress: ${completedCount}/${checklistItems.length}">
+          <button type="button" class="spc-checklist-link" data-action="view-checklist" data-profile-id="${supplierId}" title="Checklist progress: ${completedCount}/${checklistItems.length}">
             <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
             Profile Setup Checklist (${completedCount}/${checklistItems.length})
           </button>
