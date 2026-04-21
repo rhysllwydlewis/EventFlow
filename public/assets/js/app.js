@@ -3229,14 +3229,18 @@ async function initDashSupplier() {
           const approved = !!s.approved;
 
           return `<div class="supplier-card card glass-card" style="margin-bottom:10px" data-supplier-id="${supplierId}">
-      <div class="supplier-profile-photo-slot" style="width:100px;height:100px;flex-shrink:0;">
+      <div class="supplier-profile-photo-slot" aria-hidden="true" style="width:80px;height:80px;flex-shrink:0;border-radius:50%;overflow:hidden;${
+        profilePhotoUrl
+          ? `background:none;`
+          : `background:linear-gradient(135deg,#0b8073 0%,#0a6b5f 100%);display:flex;align-items:center;justify-content:center;color:#fff;font-size:2rem;font-weight:700;`
+      }">
         ${
           profilePhotoUrl
-            ? `<img src="${profilePhotoUrl}" alt="Your profile photo" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" data-fallback-src="/assets/images/default-avatar.svg">`
-            : `<div style="width:100%;height:100%;border-radius:12px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0b8073 0%,#0a6b5f 100%);color:#fff;font-size:2rem;font-weight:700;">${profileInitial}</div>`
+            ? `<img src="${profilePhotoUrl}" alt="Your profile photo" style="width:100%;height:100%;object-fit:cover;display:block;">`
+            : profileInitial
         }
       </div>
-      <div>
+      <div style="flex:1;min-width:0;">
         <h3>${name} ${proBadge} ${approved ? '<span class="badge">Approved</span>' : '<span class="badge" style="background:#FFF5E6;color:#8A5A00">Awaiting review</span>'}</h3>
         <div class="small">${location} · <span class="badge">${category}</span>${priceDisplay}</div>
         <p class="small">${description}</p>
@@ -3320,6 +3324,10 @@ async function initDashSupplier() {
             if (!resp.ok) {
               throw new Error(result.error || 'Failed to upload profile photo');
             }
+            // Bust the cached auth state so the next me() call fetches the updated avatarUrl
+            if (window.AuthStateManager?.refresh) {
+              await window.AuthStateManager.refresh();
+            }
             await loadSuppliers();
           } catch (err) {
             console.error('Profile photo upload failed:', err);
@@ -3350,6 +3358,10 @@ async function initDashSupplier() {
             const result = await resp.json().catch(() => ({}));
             if (!resp.ok && resp.status !== 404) {
               throw new Error(result.error || 'Failed to remove profile photo');
+            }
+            // Bust the cached auth state so the next me() call fetches the updated avatarUrl
+            if (window.AuthStateManager?.refresh) {
+              await window.AuthStateManager.refresh();
             }
             await loadSuppliers();
           } catch (err) {

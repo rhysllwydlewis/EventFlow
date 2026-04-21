@@ -999,6 +999,7 @@ body.legacy-nav-open .legacy-nav-menu{
   width: 32px;
   height: 32px;
   border-radius: 50%;
+  overflow: hidden;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1007,6 +1008,8 @@ body.legacy-nav-open .legacy-nav-menu{
   color: #fff;
   background: linear-gradient(135deg, #0b8073 0%, #0a6b5f 100%);
   flex-shrink: 0;
+  background-size: cover;
+  background-position: center;
 }
 .thread-row-title {
   font-size: 0.95rem;
