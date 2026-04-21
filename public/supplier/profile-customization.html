@@ -17,9 +17,734 @@
     <link rel="stylesheet" href="/assets/css/liquid-glass.css?v=18.4.0" />
     <link rel="stylesheet" href="/assets/css/supplier-dashboard-improvements.css?v=18.4.0" />
     <script src="/assets/js/dashboard-guard.js?v=17.0.2"></script>
+
+    <style>
+      /* ═══════════════════════════════════════════════════════════
+         Profile Customization — Polished Layout v18.4
+         ═══════════════════════════════════════════════════════════ */
+
+      /* Page background */
+      body {
+        background: linear-gradient(135deg, #f0fdf9 0%, #f8fafc 60%, #f0f4ff 100%);
+        min-height: 100vh;
+      }
+
+      /* ── Layout wrapper ── */
+      .pc-layout {
+        display: grid;
+        grid-template-columns: 1fr 320px;
+        gap: 1.5rem;
+        align-items: start;
+        margin-top: 1.5rem;
+      }
+
+      @media (max-width: 1024px) {
+        .pc-layout {
+          grid-template-columns: 1fr;
+        }
+        .pc-sidebar {
+          order: -1;
+        }
+      }
+
+      /* ── Step cards (form sections) ── */
+      .pc-step {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(16px) saturate(180%);
+        -webkit-backdrop-filter: blur(16px) saturate(180%);
+        border: 1.5px solid rgba(255, 255, 255, 0.65);
+        border-radius: 18px;
+        padding: 1.75rem 2rem;
+        margin-bottom: 1.25rem;
+        box-shadow:
+          0 4px 20px rgba(0, 0, 0, 0.055),
+          inset 0 1px 0 rgba(255, 255, 255, 0.9);
+        transition: box-shadow 0.2s ease;
+      }
+
+      .pc-step:focus-within {
+        box-shadow:
+          0 6px 28px rgba(11, 128, 115, 0.1),
+          0 0 0 2px rgba(11, 128, 115, 0.12),
+          inset 0 1px 0 rgba(255, 255, 255, 0.9);
+      }
+
+      /* ── Step heading bar ── */
+      .pc-step-header {
+        display: flex;
+        align-items: center;
+        gap: 0.875rem;
+        margin-bottom: 1.25rem;
+        padding-bottom: 0.875rem;
+        border-bottom: 1.5px solid rgba(11, 128, 115, 0.1);
+      }
+
+      .pc-step-num {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #0b8073, #13b6a2);
+        color: #fff;
+        font-size: 0.75rem;
+        font-weight: 700;
+        flex-shrink: 0;
+        box-shadow: 0 2px 8px rgba(11, 128, 115, 0.3);
+      }
+
+      .pc-step-title {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #111827;
+        letter-spacing: -0.01em;
+        flex: 1;
+      }
+
+      .pc-step-emoji {
+        font-size: 1.15rem;
+        line-height: 1;
+      }
+
+      .pc-step-desc {
+        font-size: 0.82rem;
+        color: #6b7280;
+        margin: 0 0 1.25rem;
+        line-height: 1.5;
+      }
+
+      /* ── Banner drop zone improvement ── */
+      .pc-banner-zone {
+        border: 2px dashed rgba(11, 128, 115, 0.3);
+        border-radius: 14px;
+        background: linear-gradient(135deg, rgba(11, 128, 115, 0.03) 0%, rgba(19, 182, 162, 0.02) 100%);
+        text-align: center;
+        padding: 2.5rem 2rem;
+        cursor: pointer;
+        transition: border-color 0.2s ease, background 0.2s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .pc-banner-zone::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 50% 30%, rgba(11, 128, 115, 0.04) 0%, transparent 70%);
+        pointer-events: none;
+      }
+
+      .pc-banner-zone:hover,
+      .pc-banner-zone.dragover {
+        border-color: #0b8073;
+        background: linear-gradient(135deg, rgba(11, 128, 115, 0.06) 0%, rgba(19, 182, 162, 0.04) 100%);
+      }
+
+      .pc-banner-zone__icon {
+        width: 48px;
+        height: 48px;
+        margin: 0 auto 1rem;
+        background: linear-gradient(135deg, rgba(11, 128, 115, 0.12) 0%, rgba(19, 182, 162, 0.08) 100%);
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+      }
+
+      .pc-banner-zone__title {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.25rem;
+      }
+
+      .pc-banner-zone__sub {
+        font-size: 0.78rem;
+        color: #9ca3af;
+      }
+
+      .pc-banner-actions {
+        display: flex;
+        gap: 0.625rem;
+        align-items: center;
+        margin-top: 1rem;
+        flex-wrap: wrap;
+      }
+
+      /* ── Highlights with numbered badges ── */
+      .pc-highlight-row {
+        display: grid;
+        grid-template-columns: 24px 1fr;
+        align-items: center;
+        gap: 0.625rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .pc-highlight-num {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: rgba(11, 128, 115, 0.1);
+        color: #0b8073;
+        font-size: 0.68rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: background 0.2s, color 0.2s;
+      }
+
+      .pc-highlight-row:focus-within .pc-highlight-num {
+        background: #0b8073;
+        color: #fff;
+      }
+
+      /* ── Social links with icons ── */
+      .pc-social-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 0.875rem;
+      }
+
+      .pc-social-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(255, 255, 255, 0.8);
+        border: 1.5px solid rgba(209, 213, 219, 0.6);
+        border-radius: 10px;
+        padding: 0.5rem 0.75rem;
+        transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+      }
+
+      .pc-social-item:focus-within {
+        border-color: #0b8073;
+        box-shadow: 0 0 0 3px rgba(11, 128, 115, 0.1);
+        background: #fff;
+      }
+
+      .pc-social-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 7px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+      }
+
+      .pc-social-label {
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: #9ca3af;
+        white-space: nowrap;
+        flex-shrink: 0;
+        min-width: 56px;
+      }
+
+      .pc-social-input {
+        flex: 1;
+        border: none;
+        outline: none;
+        background: transparent;
+        font-size: 0.84rem;
+        color: #374151;
+        font-family: inherit;
+        min-width: 0;
+      }
+
+      .pc-social-input::placeholder {
+        color: #d1d5db;
+      }
+
+      /* ── Color presets row ── */
+      .pc-color-row {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-bottom: 0.875rem;
+      }
+
+      /* ── Sidebar: Profile Preview Card ── */
+      .pc-sidebar {
+        position: sticky;
+        top: 80px;
+      }
+
+      .pc-preview-card {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(16px) saturate(180%);
+        -webkit-backdrop-filter: blur(16px) saturate(180%);
+        border: 1.5px solid rgba(255, 255, 255, 0.65);
+        border-radius: 18px;
+        overflow: hidden;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+        margin-bottom: 1rem;
+      }
+
+      .pc-preview-banner {
+        height: 90px;
+        background: linear-gradient(135deg, #0b8073, #13b6a2);
+        position: relative;
+        transition: background 0.3s ease;
+        overflow: hidden;
+        display: flex;
+        align-items: flex-end;
+        padding: 0 1rem 0.75rem;
+      }
+
+      .pc-preview-banner img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      /* Avatar + name row overlaid on banner */
+      .pc-preview-name-row {
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        overflow: hidden;
+      }
+
+      .pc-preview-avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.2);
+        border: 2px solid rgba(255, 255, 255, 0.55);
+        flex-shrink: 0;
+        overflow: hidden;
+      }
+
+      .pc-preview-body {
+        padding: 0.75rem 1.1rem 1rem;
+      }
+
+      .pc-preview-name {
+        font-size: 0.88rem;
+        font-weight: 700;
+        color: #fff;
+        line-height: 1.2;
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .pc-preview-tagline {
+        font-size: 0.72rem;
+        color: rgba(255, 255, 255, 0.72);
+        font-style: italic;
+        line-height: 1.4;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .pc-preview-tagline:empty::before {
+        content: 'Your tagline will appear here…';
+        color: rgba(255, 255, 255, 0.38);
+        font-style: italic;
+      }
+
+      .pc-preview-highlights {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .pc-preview-highlight {
+        font-size: 0.72rem;
+        color: #374151;
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+      }
+
+      .pc-preview-highlight::before {
+        content: '✓';
+        color: #0b8073;
+        font-weight: 700;
+        font-size: 0.68rem;
+        flex-shrink: 0;
+      }
+
+      .pc-preview-services {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+        margin-top: 0.625rem;
+      }
+
+      .pc-preview-tag {
+        font-size: 0.68rem;
+        background: rgba(11, 128, 115, 0.1);
+        color: #0b8073;
+        border-radius: 4px;
+        padding: 2px 7px;
+        font-weight: 500;
+        max-width: 100px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .pc-preview-footer {
+        border-top: 1px solid rgba(0,0,0,0.06);
+        padding: 0.625rem 1.1rem;
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+      }
+
+      .pc-preview-social-dot {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: rgba(11, 128, 115, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.6rem;
+      }
+
+      .pc-preview-label {
+        font-size: 0.7rem;
+        color: #9ca3af;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        margin-bottom: 0.5rem;
+      }
+
+      /* ── Completion meter ── */
+      .pc-completion {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1.5px solid rgba(255, 255, 255, 0.65);
+        border-radius: 14px;
+        padding: 1rem 1.1rem;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.055);
+        margin-bottom: 1rem;
+      }
+
+      .pc-completion-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+      }
+
+      .pc-completion-label {
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: #374151;
+      }
+
+      .pc-completion-pct {
+        font-size: 0.82rem;
+        font-weight: 700;
+        color: #0b8073;
+      }
+
+      .pc-progress-track {
+        height: 6px;
+        background: rgba(11, 128, 115, 0.1);
+        border-radius: 99px;
+        overflow: hidden;
+      }
+
+      .pc-progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #0b8073, #13b6a2);
+        border-radius: 99px;
+        transition: width 0.4s ease;
+        width: 0%;
+      }
+
+      .pc-completion-tips {
+        margin-top: 0.75rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+      }
+
+      .pc-tip {
+        font-size: 0.74rem;
+        color: #9ca3af;
+        display: flex;
+        gap: 0.35rem;
+        align-items: flex-start;
+        line-height: 1.4;
+        transition: color 0.2s;
+      }
+
+      .pc-tip.pc-tip--done {
+        color: #0b8073;
+      }
+
+      .pc-tip::before {
+        content: '○';
+        flex-shrink: 0;
+        font-size: 0.65rem;
+        margin-top: 1px;
+      }
+
+      .pc-tip.pc-tip--done::before {
+        content: '✓';
+        font-weight: 700;
+      }
+
+      /* ── Sticky save bar ── */
+      .pc-save-bar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 200;
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(20px) saturate(200%);
+        -webkit-backdrop-filter: blur(20px) saturate(200%);
+        border-top: 1.5px solid rgba(11, 128, 115, 0.14);
+        padding: 0.875rem 1.5rem;
+        padding-bottom: calc(0.875rem + env(safe-area-inset-bottom, 0px));
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.06), 0 -1px 0 rgba(11, 128, 115, 0.08);
+        transform: translateY(100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .pc-save-bar.pc-save-bar--visible {
+        transform: translateY(0);
+      }
+
+      .pc-save-bar__msg {
+        font-size: 0.84rem;
+        color: #6b7280;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .pc-save-bar__dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #f59e0b;
+        flex-shrink: 0;
+        animation: pc-pulse 2s infinite;
+      }
+
+      @keyframes pc-pulse {
+        0%, 100% { opacity: 1; transform: scale(1); }
+        50% { opacity: 0.5; transform: scale(0.8); }
+      }
+
+      .pc-save-bar__actions {
+        display: flex;
+        gap: 0.625rem;
+        flex-shrink: 0;
+      }
+
+      /* Extra bottom padding when save bar is visible */
+      body.pc-has-unsaved {
+        padding-bottom: 72px;
+      }
+
+      /* ── Floating quick-action buttons (top right corner shortcut) ── */
+      .pc-header-actions {
+        display: flex;
+        gap: 0.625rem;
+        align-items: center;
+        flex-shrink: 0;
+      }
+
+      /* ── Form label polishing ── */
+      .pc-form-label {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #374151;
+        margin-bottom: 0.5rem;
+      }
+
+      .pc-label-badge {
+        font-size: 0.68rem;
+        font-weight: 500;
+        color: #9ca3af;
+        background: rgba(0, 0, 0, 0.04);
+        border-radius: 4px;
+        padding: 1px 6px;
+      }
+
+      /* ── Tagline char counter integration ── */
+      .pc-input-wrap {
+        position: relative;
+      }
+
+      /* ── Responsive fixes ── */
+      @media (max-width: 640px) {
+        .pc-step {
+          padding: 1.25rem;
+        }
+
+        .pc-save-bar {
+          padding: 0.75rem 1rem;
+          flex-direction: column;
+          align-items: stretch;
+          gap: 0.5rem;
+        }
+
+        .pc-save-bar__msg {
+          justify-content: center;
+          white-space: normal;
+          text-align: center;
+        }
+
+        .pc-save-bar__actions {
+          justify-content: center;
+        }
+      }
+
+      /* ── Selector card polish ── */
+      .pc-selector-card select {
+        width: 100%;
+        padding: 0.625rem 0.875rem;
+        background: rgba(255, 255, 255, 0.9);
+        border: 1.5px solid rgba(11, 128, 115, 0.2);
+        border-radius: 10px;
+        font-size: 0.9rem;
+        color: #374151;
+        font-family: inherit;
+        cursor: pointer;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        margin-top: 0.5rem;
+      }
+
+      .pc-selector-card select:focus {
+        outline: none;
+        border-color: #0b8073;
+        box-shadow: 0 0 0 3px rgba(11, 128, 115, 0.1);
+      }
+
+      /* ── Header card layout ── */
+      .pc-header-inner {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+
+      .pc-header-text { flex: 1; }
+
+      /* ── Step card hover lift ── */
+      .pc-step {
+        transition: box-shadow 0.22s ease, transform 0.22s ease;
+      }
+      .pc-step:hover {
+        box-shadow:
+          0 8px 32px rgba(0, 0, 0, 0.07),
+          inset 0 1px 0 rgba(255, 255, 255, 0.95);
+        transform: translateY(-1px);
+      }
+      .pc-step:focus-within {
+        transform: translateY(-1px);
+      }
+
+      /* ── Banner zone shimmer animation ── */
+      @keyframes pc-shimmer {
+        0%   { opacity: 0.5; }
+        50%  { opacity: 1;   }
+        100% { opacity: 0.5; }
+      }
+      .pc-banner-zone__icon {
+        animation: pc-shimmer 3s ease-in-out infinite;
+      }
+      .pc-banner-zone:hover .pc-banner-zone__icon,
+      .pc-banner-zone.dragover .pc-banner-zone__icon {
+        animation: none;
+        transform: scale(1.08);
+        transition: transform 0.2s;
+      }
+
+      /* ── Social grid — 1 col on narrow screens ── */
+      @media (max-width: 540px) {
+        .pc-social-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* ── Color preset button polish ── */
+      .color-preset {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        border: 2.5px solid transparent;
+        cursor: pointer;
+        padding: 0;
+        transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+        outline: none;
+        flex-shrink: 0;
+      }
+      .color-preset:hover {
+        transform: scale(1.12);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      }
+      .color-preset.active {
+        border-color: #fff;
+        box-shadow:
+          0 0 0 3px rgba(11, 128, 115, 0.4),
+          0 2px 8px rgba(0, 0, 0, 0.18);
+        transform: scale(1.15);
+      }
+
+      /* ── Preview tips checkmarks ── */
+      .pc-tip--done::before { font-size: 0.7rem; }
+
+      /* ── Completion widget ── */
+      .pc-completion-label { font-size: 0.82rem; font-weight: 600; color: #374151; }
+      .pc-completion-pct   { font-size: 0.82rem; font-weight: 700; color: #0b8073; }
+
+      /* ── Mobile save bar padding ── */
+      @media (max-width: 640px) {
+        .pc-save-bar {
+          padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+        }
+      }
+
+      /* ── Highlight input min-width fix ── */
+      .highlight-input { min-width: 0; width: 100%; }
+
+      /* ── Preview card min-height to avoid layout collapse ── */
+      #pc-live-preview { min-height: 160px; }
+    </style>
   </head>
   <body>
-    
     <!-- TOP NAVBAR -->
     <header class="ef-header" role="banner">
       <div class="ef-container">
@@ -90,7 +815,7 @@
           <a href="/start" class="ef-mobile-link">Plan an Event</a>
           <a href="/suppliers" class="ef-mobile-link">Browse Suppliers</a>
           <a href="/pricing" class="ef-mobile-link">Pricing</a>
-          <a href="/guides" class="ef-mobile-link">Blog & Guides</a>
+          <a href="/guides" class="ef-mobile-link">Blog &amp; Guides</a>
           <a href="/for-suppliers" class="ef-mobile-link">For Suppliers</a>
           <a href="/faq" class="ef-mobile-link">FAQ</a>
           <div class="ef-mobile-divider"></div>
@@ -115,7 +840,6 @@
       </div>
     </div>
 
-
     <!-- Load auth state manager -->
     <script src="/assets/js/utils/auth-state.js" defer></script>
     <script src="/assets/js/burger-menu.js" defer></script>
@@ -124,174 +848,329 @@
     <!-- Main Content -->
     <main id="main-content" class="section">
       <div class="container">
-        <!-- Breadcrumb Navigation -->
+
+        <!-- Breadcrumb -->
         <div class="supplier-breadcrumb">
           <a href="/dashboard/supplier" class="supplier-breadcrumb-link">
             ← Back to Dashboard
           </a>
         </div>
 
-        <!-- Header — liquid glass card -->
-        <div class="card supplier-page-header pc-header-card">
-          <h1 class="supplier-page-title">✨ Profile Customization</h1>
-          <p class="supplier-page-subtitle">
-            Craft a compelling profile that converts visitors into enquiries. Your profile is your marketplace listing — make it count.
-          </p>
+        <!-- Hero Header Card -->
+        <div class="card pc-header-card" style="margin-bottom:1.5rem;">
+          <div class="pc-header-inner">
+            <div class="pc-header-text">
+              <h1 class="supplier-page-title" style="margin-bottom:0.375rem;">✨ Profile Customization</h1>
+              <p class="supplier-page-subtitle" style="margin:0;max-width:54ch;">
+                Craft a compelling profile that turns visitors into enquiries — banners, taglines, highlights &amp; more.
+              </p>
+            </div>
+            <div class="pc-header-actions">
+              <button type="button" id="sup-preview" class="cta secondary" style="white-space:nowrap;display:none;" aria-label="Preview public profile">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                Preview
+              </button>
+            </div>
+          </div>
         </div>
 
-        <!-- Profile Selection -->
-        <div class="card supplier-section-card pc-selector-card">
-          <h2 class="supplier-section-title">Select Profile to Customize</h2>
+        <!-- Profile Selector -->
+        <div class="card pc-selector-card" id="pc-selector-section">
+          <h2 class="supplier-section-title" style="margin-top:0;margin-bottom:0.75rem;font-size:0.95rem;">
+            Select Profile
+          </h2>
           <div id="profile-selector-container">
             <div class="skeleton skeleton-text skeleton-text-long"></div>
           </div>
         </div>
 
-        <!-- Customization Form -->
-        <div class="card pc-form-card">
-          <form id="customization-form" action="#">
-            <input type="hidden" id="sup-id" name="id">
+        <!-- Two-column layout: form + sidebar -->
+        <div class="pc-layout">
 
-            <!-- ── Section: Banner & Identity ─────────────────── -->
-            <h3 class="pc-section-heading">🖼️ Banner &amp; Identity</h3>
-            <p class="pc-section-desc">Your banner is the first thing visitors see. A strong, relevant image dramatically improves first impressions.</p>
+          <!-- ── Left: Form steps ── -->
+          <div class="pc-form-col">
+            <form id="customization-form" action="#">
+              <input type="hidden" id="sup-id" name="id">
 
-            <!-- Banner Image Section -->
-            <div class="form-row">
-              <label>Banner Image <span class="label-optional">(optional)</span></label>
-              <div id="sup-banner-drop" class="photo-drop-zone">
-                Drag &amp; drop a banner image here, or click to choose a file.
+              <!-- Step 1: Banner -->
+              <div class="pc-step">
+                <div class="pc-step-header">
+                  <span class="pc-step-num">1</span>
+                  <span class="pc-step-emoji">🖼️</span>
+                  <span class="pc-step-title">Banner &amp; Identity</span>
+                </div>
+                <p class="pc-step-desc">Your banner is the first thing visitors see. A striking, relevant image dramatically improves first impressions and click-through.</p>
+
+                <!-- Drop zone (replaced by efSetupPhotoDropZone) -->
+                <div id="sup-banner-drop" class="pc-banner-zone photo-drop-zone" role="button" tabindex="0" aria-label="Upload banner image">
+                  <div class="pc-banner-zone__icon">🖼️</div>
+                  <p class="pc-banner-zone__title">Drag &amp; drop a banner image here</p>
+                  <p class="pc-banner-zone__sub">or click to browse — JPG, PNG, WebP · 1200×400px recommended · max 5 MB</p>
+                </div>
+
+                <div class="pc-banner-actions">
+                  <button type="button" id="select-stock-photo-btn" class="cta secondary" style="font-size:0.84rem;padding:0.45rem 1rem;gap:0.35rem;">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    Select Stock Photo
+                  </button>
+                  <span class="form-hint" style="margin:0;font-size:0.78rem;">Free professional photos from Pexels</span>
+                </div>
+
+                <div id="sup-banner-preview" class="photo-preview-grid" style="margin-top:1rem;"></div>
+                <input type="hidden" id="sup-banner" name="bannerUrl">
               </div>
-              <div style="margin-top: 12px; display: flex; gap: 8px; align-items: center;">
-                <button type="button" id="select-stock-photo-btn" class="cta secondary" style="flex: 0 0 auto;">
-                  🖼️ Select Stock Photo
+
+              <!-- Step 2: Tagline -->
+              <div class="pc-step">
+                <div class="pc-step-header">
+                  <span class="pc-step-num">2</span>
+                  <span class="pc-step-emoji">💬</span>
+                  <span class="pc-step-title">Tagline</span>
+                </div>
+                <p class="pc-step-desc">A punchy, memorable one-liner. Be specific: include what you do and what makes you different from the competition.</p>
+
+                <div class="pc-form-label">
+                  Tagline
+                  <span class="pc-label-badge">optional · max 100 chars</span>
+                </div>
+                <div class="pc-input-wrap">
+                  <input
+                    id="sup-tagline"
+                    name="tagline"
+                    placeholder="e.g. Creating magical moments for over 10 years"
+                    maxlength="100"
+                    style="padding-right:4rem;"
+                  >
+                  <div class="pc-char-count" id="tagline-count" aria-live="polite" style="position:absolute;right:0.75rem;top:50%;transform:translateY(-50%);margin:0;">0 / 100</div>
+                </div>
+              </div>
+
+              <!-- Step 3: Highlights & Services -->
+              <div class="pc-step">
+                <div class="pc-step-header">
+                  <span class="pc-step-num">3</span>
+                  <span class="pc-step-emoji">✅</span>
+                  <span class="pc-step-title">Highlights &amp; Services</span>
+                </div>
+                <p class="pc-step-desc">These appear prominently on your public profile. Short, punchy facts that help buyers quickly understand your strengths.</p>
+
+                <div class="pc-form-label" style="margin-bottom:0.75rem;">
+                  Key Highlights
+                  <span class="pc-label-badge">up to 5</span>
+                </div>
+                <div class="highlights-stack" id="highlights-container">
+                  <div class="pc-highlight-row">
+                    <span class="pc-highlight-num">1</span>
+                    <input id="sup-highlight-1" class="highlight-input" placeholder="e.g. Award-winning service since 2018" maxlength="60">
+                  </div>
+                  <div class="pc-highlight-row">
+                    <span class="pc-highlight-num">2</span>
+                    <input id="sup-highlight-2" class="highlight-input" placeholder="e.g. Fully licensed and insured" maxlength="60">
+                  </div>
+                  <div class="pc-highlight-row">
+                    <span class="pc-highlight-num">3</span>
+                    <input id="sup-highlight-3" class="highlight-input" placeholder="e.g. 5-star reviews across 100+ events" maxlength="60">
+                  </div>
+                  <div class="pc-highlight-row">
+                    <span class="pc-highlight-num">4</span>
+                    <input id="sup-highlight-4" class="highlight-input" placeholder="e.g. 10+ years of experience" maxlength="60">
+                  </div>
+                  <div class="pc-highlight-row">
+                    <span class="pc-highlight-num">5</span>
+                    <input id="sup-highlight-5" class="highlight-input" placeholder="e.g. Professional-grade equipment" maxlength="60">
+                  </div>
+                </div>
+
+                <div class="pc-form-label" style="margin-top:1.5rem;margin-bottom:0.5rem;">
+                  Featured Services
+                  <span class="pc-label-badge">optional · one per line · max 10</span>
+                </div>
+                <textarea
+                  id="sup-featured-services"
+                  name="featuredServices"
+                  rows="5"
+                  placeholder="Enter each service on a new line&#10;e.g.:&#10;Wedding Photography&#10;Engagement Shoots&#10;Corporate Events&#10;Photo Albums"
+                ></textarea>
+                <p class="form-hint">These appear as clickable tags on your profile page.</p>
+              </div>
+
+              <!-- Step 4: Brand Color -->
+              <div class="pc-step">
+                <div class="pc-step-header">
+                  <span class="pc-step-num">4</span>
+                  <span class="pc-step-emoji">🎨</span>
+                  <span class="pc-step-title">Brand Theme Color</span>
+                </div>
+                <p class="pc-step-desc">Choose a color that matches your brand — it will accent your profile header, buttons, and highlights.</p>
+
+                <div class="pc-color-row">
+                  <button type="button" class="ef-cta color-preset active" data-color="#0B8073" style="background-color:#0B8073;" aria-label="Teal" title="Teal"></button>
+                  <button type="button" class="ef-cta color-preset" data-color="#3B82F6" style="background-color:#3B82F6;" aria-label="Blue" title="Blue"></button>
+                  <button type="button" class="ef-cta color-preset" data-color="#8B5CF6" style="background-color:#8B5CF6;" aria-label="Purple" title="Purple"></button>
+                  <button type="button" class="ef-cta color-preset" data-color="#F59E0B" style="background-color:#F59E0B;" aria-label="Amber" title="Amber"></button>
+                  <button type="button" class="ef-cta color-preset" data-color="#EF4444" style="background-color:#EF4444;" aria-label="Red" title="Red"></button>
+                  <button type="button" class="ef-cta color-preset" data-color="#10B981" style="background-color:#10B981;" aria-label="Emerald" title="Emerald"></button>
+                  <button type="button" class="ef-cta color-preset" data-color="#EC4899" style="background-color:#EC4899;" aria-label="Pink" title="Pink"></button>
+                  <button type="button" class="ef-cta color-preset" data-color="#1F2937" style="background-color:#1F2937;" aria-label="Dark" title="Dark"></button>
+                </div>
+
+                <div class="color-picker-group">
+                  <input type="color" id="sup-theme-color" name="themeColor" value="#0B8073" class="color-picker-input">
+                  <input type="text" id="sup-theme-color-hex" placeholder="#0B8073" maxlength="7" class="color-hex-input">
+                  <button type="button" id="reset-theme-color" class="cta secondary" style="font-size:0.84rem;padding:0.45rem 0.875rem;">Reset</button>
+                </div>
+
+                <!-- Live Preview -->
+                <div class="color-preview-card">
+                  <div class="color-preview-header" id="color-preview-header" style="background-color:#0B8073;">
+                    <h4>Profile Header Preview</h4>
+                  </div>
+                  <div class="color-preview-body">
+                    <p class="small">Your brand color accents your profile header and call-to-action buttons.</p>
+                    <button type="button" class="ef-cta color-preview-button" id="color-preview-button" style="background-color:#0B8073;">Enquire Now</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Step 5: Social Media -->
+              <div class="pc-step">
+                <div class="pc-step-header">
+                  <span class="pc-step-num">5</span>
+                  <span class="pc-step-emoji">🔗</span>
+                  <span class="pc-step-title">Social Media Links</span>
+                </div>
+                <p class="pc-step-desc">Suppliers with linked social profiles receive more enquiries. Paste full profile URLs — only filled fields appear publicly.</p>
+
+                <div class="pc-social-grid">
+                  <div class="pc-social-item">
+                    <span class="pc-social-icon" style="background:rgba(59,89,152,0.1);">
+                      <svg viewBox="0 0 24 24" fill="#3b5998" width="15" height="15" aria-hidden="true"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+                    </span>
+                    <span class="pc-social-label">Facebook</span>
+                    <input id="sup-social-facebook" class="pc-social-input" placeholder="facebook.com/yourpage" type="text" autocomplete="off" aria-label="Facebook profile URL">
+                  </div>
+                  <div class="pc-social-item">
+                    <span class="pc-social-icon" style="background:rgba(225,48,108,0.1);">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="#e1306c" stroke-width="2" width="15" height="15" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                    </span>
+                    <span class="pc-social-label">Instagram</span>
+                    <input id="sup-social-instagram" class="pc-social-input" placeholder="instagram.com/yourpage" type="text" autocomplete="off" aria-label="Instagram profile URL">
+                  </div>
+                  <div class="pc-social-item">
+                    <span class="pc-social-icon" style="background:rgba(0,0,0,0.05);">
+                      <svg viewBox="0 0 24 24" fill="#000" width="14" height="14" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                    </span>
+                    <span class="pc-social-label">X / Twitter</span>
+                    <input id="sup-social-twitter" class="pc-social-input" placeholder="twitter.com/yourpage" type="text" autocomplete="off" aria-label="X / Twitter profile URL">
+                  </div>
+                  <div class="pc-social-item">
+                    <span class="pc-social-icon" style="background:rgba(10,102,194,0.1);">
+                      <svg viewBox="0 0 24 24" fill="#0a66c2" width="15" height="15" aria-hidden="true"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+                    </span>
+                    <span class="pc-social-label">LinkedIn</span>
+                    <input id="sup-social-linkedin" class="pc-social-input" placeholder="linkedin.com/company/you" type="text" autocomplete="off" aria-label="LinkedIn profile URL">
+                  </div>
+                  <div class="pc-social-item">
+                    <span class="pc-social-icon" style="background:rgba(255,0,0,0.07);">
+                      <svg viewBox="0 0 24 24" fill="none" width="15" height="15" aria-hidden="true"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.95A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z" fill="#ff0000"/><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" fill="#fff"/></svg>
+                    </span>
+                    <span class="pc-social-label">YouTube</span>
+                    <input id="sup-social-youtube" class="pc-social-input" placeholder="youtube.com/@yourpage" type="text" autocomplete="off" aria-label="YouTube channel URL">
+                  </div>
+                  <div class="pc-social-item">
+                    <span class="pc-social-icon" style="background:rgba(0,0,0,0.05);">
+                      <svg viewBox="0 0 24 24" fill="#000" width="14" height="14" aria-hidden="true"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.34 6.34 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34l.04-8.95a8.16 8.16 0 0 0 4.77 1.52V4.43a4.85 4.85 0 0 1-1.04-.74z"/></svg>
+                    </span>
+                    <span class="pc-social-label">TikTok</span>
+                    <input id="sup-social-tiktok" class="pc-social-input" placeholder="tiktok.com/@yourpage" type="text" autocomplete="off" aria-label="TikTok profile URL">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Form Actions (inline — also has sticky bar above) -->
+              <div class="supplier-form-actions" style="padding-bottom:1rem;">
+                <button class="cta" type="submit" id="sup-save-btn">
+                  <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true" style="margin-right:0.25rem;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                  Save Changes
                 </button>
-                <span class="form-hint" style="margin: 0; flex: 1;">
-                  Or choose a professional photo from our free stock library
-                </span>
+                <a href="/dashboard/supplier" class="cta secondary">Cancel</a>
+                <span class="small" id="sup-status" aria-live="polite"></span>
               </div>
-              <div id="sup-banner-preview" class="photo-preview-grid"></div>
-              <input type="hidden" id="sup-banner" name="bannerUrl">
-              <p class="form-hint">Recommended: 1200×400px. A real photo of your work converts better than generic images.</p>
-            </div>
+            </form>
+          </div>
 
-            <!-- Tagline -->
-            <div class="form-row">
-              <label>Tagline <span class="label-optional">(optional)</span></label>
-              <input id="sup-tagline" name="tagline" placeholder="e.g. Creating magical moments for over 10 years" maxlength="100">
-              <div class="pc-char-count" id="tagline-count" aria-live="polite">0 / 100</div>
-              <p class="form-hint">A punchy, memorable one-liner. Keep it specific: include what you do and what makes you different.</p>
-            </div>
+          <!-- ── Right: Sidebar (preview + completion) ── -->
+          <div class="pc-sidebar">
 
-            <!-- ── Section: Highlights & Services ─────────────── -->
-            <h3 class="pc-section-heading pc-section-heading--spaced">✅ Highlights &amp; Services</h3>
-            <p class="pc-section-desc">These appear prominently on your public profile and help buyers quickly understand your strengths.</p>
-
-            <!-- Key Highlights -->
-            <div class="form-row">
-              <label>Key Highlights <span class="label-optional">(up to 5)</span></label>
-              <div id="highlights-container" class="highlights-stack">
-                <input id="sup-highlight-1" class="highlight-input" placeholder="e.g. Award-winning service since 2018" maxlength="60">
-                <input id="sup-highlight-2" class="highlight-input" placeholder="e.g. Fully licensed and insured" maxlength="60">
-                <input id="sup-highlight-3" class="highlight-input" placeholder="e.g. 5-star reviews across 100+ events" maxlength="60">
-                <input id="sup-highlight-4" class="highlight-input" placeholder="e.g. 10+ years of experience" maxlength="60">
-                <input id="sup-highlight-5" class="highlight-input" placeholder="e.g. Professional-grade equipment" maxlength="60">
+            <!-- Completion Meter -->
+            <div class="pc-completion" id="pc-completion-widget">
+              <div class="pc-completion-row">
+                <span class="pc-completion-label">Profile completeness</span>
+                <span class="pc-completion-pct" id="pc-pct-label">0%</span>
               </div>
-              <p class="form-hint">Short, punchy facts. Think: what would make a buyer choose you over a competitor?</p>
+              <div class="pc-progress-track">
+                <div class="pc-progress-fill" id="pc-progress-fill" style="width:0%"></div>
+              </div>
+              <div class="pc-completion-tips" id="pc-tips">
+                <span class="pc-tip" data-tip="banner">Add a banner image</span>
+                <span class="pc-tip" data-tip="tagline">Write a tagline</span>
+                <span class="pc-tip" data-tip="highlights">Add at least 2 highlights</span>
+                <span class="pc-tip" data-tip="services">List your services</span>
+                <span class="pc-tip" data-tip="social">Link a social profile</span>
+              </div>
             </div>
 
-            <!-- Featured Services -->
-            <div class="form-row">
-              <label>Featured Services <span class="label-optional">(optional)</span></label>
-              <textarea id="sup-featured-services" name="featuredServices" rows="5" placeholder="Enter each service on a new line&#10;e.g.:&#10;Wedding Photography&#10;Engagement Shoots&#10;Corporate Events&#10;Photo Albums"></textarea>
-              <p class="form-hint">List your main services, one per line (max 10). These appear as clickable tags on your profile.</p>
+            <!-- Live Profile Preview -->
+            <p class="pc-preview-label">Live Preview</p>
+            <div class="pc-preview-card" id="pc-live-preview">
+              <div class="pc-preview-banner" id="preview-banner">
+                <!-- Banner image or color gradient -->
+              </div>
+              <div class="pc-preview-body">
+                <div class="pc-preview-name-row">
+                  <div class="pc-preview-avatar" id="preview-avatar" aria-hidden="true">
+                    <svg viewBox="0 0 40 40" fill="none" width="100%" height="100%"><circle cx="20" cy="20" r="20" fill="rgba(255,255,255,0.2)"/><circle cx="20" cy="16" r="6" fill="rgba(255,255,255,0.6)"/><path d="M8 34c0-6.627 5.373-12 12-12s12 5.373 12 12" fill="rgba(255,255,255,0.5)"/></svg>
+                  </div>
+                  <div>
+                    <div class="pc-preview-name" id="preview-name">Your Business Name</div>
+                    <div class="pc-preview-tagline" id="preview-tagline"></div>
+                  </div>
+                </div>
+                <div class="pc-preview-highlights" id="preview-highlights"></div>
+                <div class="pc-preview-services" id="preview-services"></div>
+              </div>
+              <div class="pc-preview-footer" id="preview-social-row" style="display:none;">
+                <span style="font-size:0.72rem;color:#9ca3af;margin-right:0.25rem;">Socials:</span>
+                <span id="preview-social-dots"></span>
+              </div>
             </div>
 
-            <!-- Brand Theme Color -->
-            <h3 class="pc-section-heading pc-section-heading--spaced">🎨 Brand Theme Color</h3>
-            <div class="form-row">
-              <label class="form-label">
-                Theme Color 
-                <span class="label-optional">(optional)</span>
-              </label>
-              
-              <!-- Color Presets -->
-              <div class="color-presets">
-                <button type="button" class="ef-cta color-preset active" data-color="#0B8073" style="background-color: #0B8073;" aria-label="Teal" title="Teal"></button>
-                <button type="button" class="ef-cta color-preset" data-color="#3B82F6" style="background-color: #3B82F6;" aria-label="Blue" title="Blue"></button>
-                <button type="button" class="ef-cta color-preset" data-color="#8B5CF6" style="background-color: #8B5CF6;" aria-label="Purple" title="Purple"></button>
-                <button type="button" class="ef-cta color-preset" data-color="#F59E0B" style="background-color: #F59E0B;" aria-label="Amber" title="Amber"></button>
-                <button type="button" class="ef-cta color-preset" data-color="#EF4444" style="background-color: #EF4444;" aria-label="Red" title="Red"></button>
-                <button type="button" class="ef-cta color-preset" data-color="#10B981" style="background-color: #10B981;" aria-label="Emerald" title="Emerald"></button>
-                <button type="button" class="ef-cta color-preset" data-color="#EC4899" style="background-color: #EC4899;" aria-label="Pink" title="Pink"></button>
-                <button type="button" class="ef-cta color-preset" data-color="#1F2937" style="background-color: #1F2937;" aria-label="Dark" title="Dark"></button>
-              </div>
-              
-              <div class="color-picker-group">
-                <input type="color" id="sup-theme-color" name="themeColor" value="#0B8073" class="color-picker-input">
-                <input type="text" id="sup-theme-color-hex" placeholder="#0B8073" maxlength="7" class="color-hex-input">
-                <button type="button" id="reset-theme-color" class="cta secondary">Reset to Default</button>
-              </div>
-              
-              <!-- Live Preview -->
-              <div class="color-preview-card">
-                <div class="color-preview-header" id="color-preview-header" style="background-color: #0B8073;">
-                  <h4>Preview Header</h4>
-                </div>
-                <div class="color-preview-body">
-                  <p class="small">This is how your brand color will appear on your profile.</p>
-                  <button type="button" class="ef-cta color-preview-button" id="color-preview-button" style="background-color: #0B8073;">Sample Button</button>
-                </div>
-              </div>
-              
-              <p class="form-hint">Choose a color that matches your brand</p>
+            <!-- Tips Box -->
+            <div class="pc-step" style="margin-bottom:0;padding:1.1rem 1.25rem;">
+              <p style="font-size:0.78rem;font-weight:700;color:#374151;margin:0 0 0.625rem;">💡 Pro tips</p>
+              <ul style="font-size:0.76rem;color:#6b7280;line-height:1.6;margin:0;padding-left:1.1rem;">
+                <li>Real photos of your work convert <strong>3× better</strong> than stock images</li>
+                <li>Taglines with numbers get more clicks (e.g. "500+ events")</li>
+                <li>Filling in all 5 highlights improves your search ranking</li>
+                <li>Adding social links builds trust with buyers</li>
+              </ul>
             </div>
-
-            <!-- Social Media Links -->
-            <h3 class="pc-section-heading pc-section-heading--spaced">🔗 Social Media Links</h3>
-            <p class="pc-section-desc">Social proof matters. Suppliers with linked profiles receive more enquiries.</p>
-            <div class="form-row">
-              <label>Social Profiles <span class="label-optional">(optional)</span></label>
-              <div class="social-links-grid">
-                <div>
-                  <label class="social-label">📘 Facebook</label>
-                  <input id="sup-social-facebook" class="social-input" placeholder="https://facebook.com/yourpage" type="url">
-                </div>
-                <div>
-                  <label class="social-label">📷 Instagram</label>
-                  <input id="sup-social-instagram" class="social-input" placeholder="https://instagram.com/yourpage" type="url">
-                </div>
-                <div>
-                  <label class="social-label">𝕏 Twitter / X</label>
-                  <input id="sup-social-twitter" class="social-input" placeholder="https://twitter.com/yourpage" type="url">
-                </div>
-                <div>
-                  <label class="social-label">💼 LinkedIn</label>
-                  <input id="sup-social-linkedin" class="social-input" placeholder="https://linkedin.com/company/yourpage" type="url">
-                </div>
-                <div>
-                  <label class="social-label">▶️ YouTube</label>
-                  <input id="sup-social-youtube" class="social-input" placeholder="https://youtube.com/@yourpage" type="url">
-                </div>
-                <div>
-                  <label class="social-label">🎵 TikTok</label>
-                  <input id="sup-social-tiktok" class="social-input" placeholder="https://tiktok.com/@yourpage" type="url">
-                </div>
-              </div>
-              <p class="form-hint">Paste full profile URLs (including https://). Only filled fields appear on your public profile.</p>
-            </div>
-
-            <!-- Form Actions -->
-            <div class="supplier-form-actions">
-              <button class="cta" type="submit" id="sup-save-btn">💾 Save Changes</button>
-              <button type="button" id="sup-preview" class="cta secondary">👁️ Preview Public Profile</button>
-              <a href="/dashboard/supplier" class="cta secondary">Cancel</a>
-              <span class="small" id="sup-status" aria-live="polite"></span>
-            </div>
-          </form>
-        </div>
-      </div>
+          </div>
+        </div><!-- /.pc-layout -->
+      </div><!-- /.container -->
     </main>
+
+    <!-- Sticky Save Bar -->
+    <div class="pc-save-bar" id="pc-save-bar" role="status" aria-live="polite">
+      <div class="pc-save-bar__msg">
+        <span class="pc-save-bar__dot"></span>
+        Unsaved changes
+      </div>
+      <div class="pc-save-bar__actions">
+        <button type="button" id="pc-save-bar-discard" class="cta secondary" style="font-size:0.84rem;padding:0.45rem 0.875rem;">Discard</button>
+        <button type="button" id="pc-save-bar-save" class="cta" style="font-size:0.84rem;padding:0.45rem 1rem;">Save now</button>
+      </div>
+    </div>
 
     <!-- Footer -->
     <footer class="footer" role="contentinfo">
@@ -303,11 +1182,11 @@
           <a href="/credits">Credits</a> · 
           <a href="/contact">Contact</a> · 
           <a href="/legal">Legal Hub</a> ·
-      <button type="button" data-cookie-prefs style="background:none;border:none;color:inherit;text-decoration:underline;cursor:pointer;font-size:inherit;padding:0;">Cookie preferences</button>
+          <button type="button" data-cookie-prefs style="background:none;border:none;color:inherit;text-decoration:underline;cursor:pointer;font-size:inherit;padding:0;">Cookie preferences</button>
         </div>
-        <div class="small" style="width: 100%; margin-top: 8px; text-align: center;">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
+        <div class="small" style="width:100%;margin-top:8px;text-align:center;">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
       </div>
-  </footer>
+    </footer>
 
     <!-- Scripts -->
     <script src="/assets/js/app.js?v=18.3.0"></script>
@@ -316,59 +1195,207 @@
     <script src="js/profile-customization.js"></script>
     <script>window.__EF_PAGE__ = 'profile_customization';</script>
 
-    <!-- Theme color sync script -->
+    <!-- Theme color sync + live preview + completion meter -->
     <script>
       (function() {
         'use strict';
         
-        const colorPicker = document.getElementById('sup-theme-color');
-        const colorHex = document.getElementById('sup-theme-color-hex');
-        const resetBtn = document.getElementById('reset-theme-color');
+        const colorPicker   = document.getElementById('sup-theme-color');
+        const colorHex      = document.getElementById('sup-theme-color-hex');
+        const resetBtn      = document.getElementById('reset-theme-color');
         const previewHeader = document.getElementById('color-preview-header');
         const previewButton = document.getElementById('color-preview-button');
-        const presets = document.querySelectorAll('.color-preset');
-        
-        const defaultColor = '#0B8073';
+        const presets       = document.querySelectorAll('.color-preset');
+        const defaultColor  = '#0B8073';
 
+        // ── Color sync ─────────────────────────────────────────────────────────
         function updateAllElements(color) {
-          if (colorPicker) colorPicker.value = color;
-          if (colorHex) colorHex.value = color;
+          if (colorPicker)   colorPicker.value = color;
+          if (colorHex)      colorHex.value    = color;
           if (previewHeader) previewHeader.style.backgroundColor = color;
           if (previewButton) previewButton.style.backgroundColor = color;
-          
-          // Update preset active state
-          presets.forEach(preset => {
-            preset.classList.toggle('active', preset.dataset.color.toLowerCase() === color.toLowerCase());
+          presets.forEach(p => {
+            p.classList.toggle('active', p.dataset.color.toLowerCase() === color.toLowerCase());
           });
+          // Sync live-preview banner gradient (only when no image is loaded)
+          const pBanner = document.getElementById('preview-banner');
+          if (pBanner && !pBanner.querySelector('img')) {
+            pBanner.style.background = `linear-gradient(135deg, ${color}, ${color}cc)`;
+          }
+          // Sync preview tag color
+          document.querySelectorAll('.pc-preview-tag').forEach(el => {
+            el.style.background = `${color}1a`;
+            el.style.color = color;
+          });
+          document.querySelectorAll('.pc-preview-highlight::before').forEach(() => {});
         }
 
         if (colorPicker && colorHex && resetBtn) {
-          // Color picker input
-          colorPicker.addEventListener('input', function() {
-            updateAllElements(this.value);
-          });
-
-          // Hex input
+          colorPicker.addEventListener('input', function() { updateAllElements(this.value); markDirty(); });
           colorHex.addEventListener('input', function() {
             const hex = this.value.trim();
-            if (/^#[0-9A-F]{6}$/i.test(hex)) {
-              updateAllElements(hex);
-            }
+            if (/^#[0-9A-F]{6}$/i.test(hex)) { updateAllElements(hex); markDirty(); }
           });
-
-          // Reset button
-          resetBtn.addEventListener('click', function() {
-            updateAllElements(defaultColor);
-          });
-          
-          // Color presets
-          presets.forEach(preset => {
-            preset.addEventListener('click', function() {
-              const color = this.dataset.color;
-              updateAllElements(color);
-            });
+          resetBtn.addEventListener('click', function() { updateAllElements(defaultColor); markDirty(); });
+          presets.forEach(p => {
+            p.addEventListener('click', function() { updateAllElements(this.dataset.color); markDirty(); });
           });
         }
+
+        // ── Live preview update ─────────────────────────────────────────────────
+        function updateLivePreview() {
+          const tagline  = document.getElementById('sup-tagline')?.value || '';
+          const pTagline = document.getElementById('preview-tagline');
+          if (pTagline) pTagline.textContent = tagline;
+
+          // Highlights
+          const pHl = document.getElementById('preview-highlights');
+          if (pHl) {
+            pHl.innerHTML = '';
+            for (let i = 1; i <= 5; i++) {
+              const val = document.getElementById('sup-highlight-' + i)?.value?.trim();
+              if (val) {
+                const el = document.createElement('div');
+                el.className = 'pc-preview-highlight';
+                el.textContent = val;
+                pHl.appendChild(el);
+              }
+            }
+          }
+
+          // Services
+          const rawSvc   = document.getElementById('sup-featured-services')?.value || '';
+          const services = rawSvc.split('\n').map(s => s.trim()).filter(Boolean).slice(0, 5);
+          const pSvc     = document.getElementById('preview-services');
+          if (pSvc) {
+            pSvc.innerHTML = '';
+            services.forEach(s => {
+              const tag = document.createElement('span');
+              tag.className = 'pc-preview-tag';
+              tag.textContent = s;
+              pSvc.appendChild(tag);
+            });
+          }
+
+          // Social dots — use small SVG icons for crisp rendering
+          const platforms = ['facebook','instagram','twitter','linkedin','youtube','tiktok'];
+          const socialSvg = {
+            facebook:  '<svg viewBox="0 0 24 24" fill="#3b5998" width="10" height="10"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>',
+            instagram: '<svg viewBox="0 0 24 24" fill="none" stroke="#e1306c" stroke-width="2" width="10" height="10"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>',
+            twitter:   '<svg viewBox="0 0 24 24" fill="#000" width="9" height="9"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>',
+            linkedin:  '<svg viewBox="0 0 24 24" fill="#0a66c2" width="10" height="10"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>',
+            youtube:   '<svg viewBox="0 0 24 24" fill="none" width="10" height="10"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.95A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z" fill="#ff0000"/><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" fill="#fff"/></svg>',
+            tiktok:    '<svg viewBox="0 0 24 24" fill="#000" width="9" height="9"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.34 6.34 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34l.04-8.95a8.16 8.16 0 0 0 4.77 1.52V4.43a4.85 4.85 0 0 1-1.04-.74z"/></svg>',
+          };
+          const activeSocial = platforms.filter(p => document.getElementById('sup-social-' + p)?.value?.trim());
+          const pSocialRow  = document.getElementById('preview-social-row');
+          const pSocialDots = document.getElementById('preview-social-dots');
+          if (pSocialRow && pSocialDots) {
+            pSocialRow.style.display = activeSocial.length > 0 ? 'flex' : 'none';
+            pSocialDots.innerHTML = '';
+            activeSocial.forEach(p => {
+              const dot = document.createElement('span');
+              dot.className = 'pc-preview-social-dot';
+              // SVG strings are static constants — no user data involved, safe to use innerHTML
+              dot.innerHTML = socialSvg[p] || '';
+              dot.title = p.charAt(0).toUpperCase() + p.slice(1);
+              pSocialDots.appendChild(dot);
+            });
+          }
+
+          updateCompletion();
+        }
+
+        // ── Completion meter ────────────────────────────────────────────────────
+        function updateCompletion() {
+          const checks = {
+            banner:     !!(document.getElementById('sup-banner')?.value),
+            tagline:    !!(document.getElementById('sup-tagline')?.value?.trim()),
+            highlights: [1,2,3,4,5].filter(i => document.getElementById('sup-highlight-' + i)?.value?.trim()).length >= 2,
+            services:   !!(document.getElementById('sup-featured-services')?.value?.trim()),
+            social:     ['facebook','instagram','twitter','linkedin','youtube','tiktok'].some(p => document.getElementById('sup-social-' + p)?.value?.trim()),
+          };
+
+          const done  = Object.values(checks).filter(Boolean).length;
+          const total = Object.keys(checks).length;
+          const pct   = Math.round((done / total) * 100);
+
+          const fill  = document.getElementById('pc-progress-fill');
+          const label = document.getElementById('pc-pct-label');
+          if (fill)  fill.style.width  = pct + '%';
+          if (label) label.textContent = pct + '%';
+
+          document.querySelectorAll('.pc-tip[data-tip]').forEach(el => {
+            el.classList.toggle('pc-tip--done', !!checks[el.dataset.tip]);
+          });
+        }
+
+        // ── Unsaved changes (dirty state) ───────────────────────────────────────
+        let _dirty = false;
+        const saveBar = document.getElementById('pc-save-bar');
+
+        function markDirty() {
+          if (_dirty) return;
+          _dirty = true;
+          document.body.classList.add('pc-has-unsaved');
+          if (saveBar) saveBar.classList.add('pc-save-bar--visible');
+        }
+
+        function markClean() {
+          _dirty = false;
+          document.body.classList.remove('pc-has-unsaved');
+          if (saveBar) saveBar.classList.remove('pc-save-bar--visible');
+        }
+
+        // Wire save-bar buttons
+        const saveBarSave    = document.getElementById('pc-save-bar-save');
+        const saveBarDiscard = document.getElementById('pc-save-bar-discard');
+        if (saveBarSave) {
+          saveBarSave.addEventListener('click', () => {
+            document.getElementById('customization-form')?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+          });
+        }
+        if (saveBarDiscard) {
+          saveBarDiscard.addEventListener('click', () => {
+            markClean();
+            // Reload the current supplier to reset
+            if (window._pcReloadCurrentSupplier) window._pcReloadCurrentSupplier();
+          });
+        }
+
+        // Wire dirty detection on all form fields
+        function attachDirty() {
+          document.querySelectorAll('#customization-form input, #customization-form textarea').forEach(el => {
+            el.addEventListener('input', () => { markDirty(); updateLivePreview(); });
+          });
+        }
+
+        // Wire live-preview to form fields (deferred to after JS init populates them)
+        setTimeout(() => {
+          attachDirty();
+          updateLivePreview();
+        }, 800);
+
+        // Listen for banner input changes
+        const bannerHidden = document.getElementById('sup-banner');
+        if (bannerHidden) {
+          new MutationObserver(() => { markDirty(); updateLivePreview(); }).observe(bannerHidden, { attributes: true, attributeFilter: ['value'] });
+        }
+
+        // After form is saved, mark clean
+        document.getElementById('customization-form')?.addEventListener('submit', () => {
+          // Slight delay to allow save handler to run
+          setTimeout(() => {
+            const status = document.getElementById('sup-status')?.textContent || '';
+            if (status.includes('Saved')) markClean();
+          }, 2000);
+        });
+
+        // Expose reload hook for discard
+        window._pcMarkClean = markClean;
+        window._pcMarkDirty = markDirty;
+        window._pcUpdatePreview = updateLivePreview;
+
       })();
     </script>
 

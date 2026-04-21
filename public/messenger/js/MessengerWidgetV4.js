@@ -222,6 +222,7 @@
 
     async _init() {
       this._renderSkeleton();
+      await this._ensureCurrentUserId();
       await this._fetchConversations();
       this._setupWebSocket();
       this._setupPolling();
@@ -252,6 +253,48 @@
       if (this.container.dataset.currentUserId) {
         this._currentUserId = this.container.dataset.currentUserId;
         return this._currentUserId;
+      }
+      return null;
+    }
+
+    async _ensureCurrentUserId() {
+      if (this._resolveCurrentUserId()) {
+        return this._currentUserId;
+      }
+
+      if (
+        window.AuthStateManager &&
+        typeof window.AuthStateManager.init === 'function' &&
+        typeof window.AuthStateManager.getUser === 'function'
+      ) {
+        try {
+          await window.AuthStateManager.init();
+          const user = window.AuthStateManager.getUser();
+          if (user && (user.id || user._id)) {
+            this._currentUserId = String(user.id || user._id);
+            return this._currentUserId;
+          }
+        } catch {
+          // Ignore and continue to API fallback
+        }
+      }
+
+      try {
+        const res = await fetch('/api/v1/auth/me', {
+          credentials: 'include',
+          headers: { Accept: 'application/json' },
+        });
+        if (!res.ok) {
+          return null;
+        }
+        const data = await res.json();
+        const user = data?.user || data;
+        if (user && (user.id || user._id)) {
+          this._currentUserId = String(user.id || user._id);
+          return this._currentUserId;
+        }
+      } catch {
+        // Ignore API fallback errors
       }
       return null;
     }

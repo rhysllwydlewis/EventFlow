@@ -505,6 +505,18 @@ describe('MessengerWidgetV4.js – lead quality badge rendering', () => {
     const fn = widgetJs.split('async _init()')[1].split('_resolveCurrentUserId')[0];
     expect(fn).toContain('_setupExternalControls()');
   });
+
+  it('_init resolves current user before fetching conversations', () => {
+    const fn = widgetJs.split('async _init()')[1].split('_setupWebSocket()')[0];
+    expect(fn).toContain('await this._ensureCurrentUserId()');
+    expect(fn).toContain('await this._fetchConversations()');
+  });
+
+  it('defines _ensureCurrentUserId with AuthStateManager init fallback', () => {
+    const fn = widgetJs.split('async _ensureCurrentUserId()')[1].split('destroy()')[0];
+    expect(fn).toContain('window.AuthStateManager.init');
+    expect(fn).toContain("fetch('/api/v1/auth/me'");
+  });
 });
 
 // ─── dashboard-supplier.html – date range selector + summary stats ────────────

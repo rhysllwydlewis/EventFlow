@@ -81,47 +81,49 @@
         return;
       }
 
+      // Hide the selector card if only one profile (already shown in header)
+      const selectorSection = document.getElementById('pc-selector-section');
+
       if (suppliers.length === 0) {
         container.innerHTML = `
           <p class="small" style="color: #667085;">
-            You don't have any supplier profiles yet. 
+            You don't have any supplier profiles yet.
             <a href="/dashboard/supplier" style="color: #667eea;">Create one on your dashboard</a>.
           </p>
         `;
         return;
       }
 
-      // Create profile selector
       if (suppliers.length === 1) {
-        // Only one profile - auto-select it
+        // Only one profile — show name inline, hide the full selector card
         container.innerHTML = `
-          <p class="small" style="color: #667085;">
-            Customizing profile for: <strong>${escapeHtml(suppliers[0].name)}</strong>
+          <p class="small" style="color: #667085; margin:0;">
+            Editing: <strong>${escapeHtml(suppliers[0].name)}</strong>
           </p>
         `;
+        if (selectorSection) selectorSection.style.display = 'none';
         currentEditingSupplierId = suppliers[0].id;
         populateForm(suppliers[0]);
       } else {
-        // Multiple profiles - show selector
+        // Multiple profiles — show dropdown
         container.innerHTML = `
-          <label for="profile-select">Choose a profile to customize:</label>
-          <select id="profile-select" style="margin-top: 0.5rem;">
+          <label for="profile-select" style="font-size:0.85rem;font-weight:600;color:#374151;margin-bottom:0.375rem;display:block;">Choose a profile to customize:</label>
+          <select id="profile-select">
             ${suppliers.map(s => `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`).join('')}
           </select>
         `;
 
         const select = document.getElementById('profile-select');
         if (select) {
-          // Auto-select first profile
           currentEditingSupplierId = suppliers[0].id;
           populateForm(suppliers[0]);
 
-          // Listen for changes
           select.addEventListener('change', function () {
             const selectedSupplier = suppliers.find(s => s.id === this.value);
             if (selectedSupplier) {
               currentEditingSupplierId = selectedSupplier.id;
               populateForm(selectedSupplier);
+              if (window._pcMarkClean) window._pcMarkClean();
             }
           });
         }
@@ -138,6 +140,14 @@
       }
     }
   }
+
+  // Expose reload hook so the Discard button can call it
+  window._pcReloadCurrentSupplier = function () {
+    if (currentEditingSupplierId) {
+      const sup = suppliers.find(s => s.id === currentEditingSupplierId);
+      if (sup) populateForm(sup);
+    }
+  };
 
   // Populate form with supplier data
   function populateForm(supplier) {
@@ -158,12 +168,13 @@
     }
 
     // Show existing banner image in preview if exists
-    if (supplier.bannerUrl) {
-      const bannerPreview = document.getElementById('sup-banner-preview');
-      if (bannerPreview) {
+    const bannerPreview = document.getElementById('sup-banner-preview');
+    if (bannerPreview) {
+      bannerPreview.innerHTML = '';
+      if (supplier.bannerUrl) {
         const imgDiv = document.createElement('div');
         imgDiv.className = 'photo-preview-item';
-        imgDiv.style.cssText = 'width:100%;height:150px;border-radius:8px;position:relative;';
+        imgDiv.style.cssText = 'width:100%;height:150px;border-radius:8px;position:relative;overflow:hidden;';
 
         const img = document.createElement('img');
         img.src = supplier.bannerUrl;
@@ -178,15 +189,32 @@
         removeBtn.addEventListener('click', () => {
           imgDiv.remove();
           const bannerInput = document.getElementById('sup-banner');
-          if (bannerInput) {
-            bannerInput.value = '';
+          if (bannerInput) bannerInput.value = '';
+          // Update live-preview banner back to color gradient
+          const pBanner = document.getElementById('preview-banner');
+          if (pBanner) {
+            pBanner.innerHTML = '';
+            const color = document.getElementById('sup-theme-color')?.value || '#0B8073';
+            pBanner.style.background = `linear-gradient(135deg, ${color}, ${color}cc)`;
           }
+          if (window._pcMarkDirty) window._pcMarkDirty();
+          if (window._pcUpdatePreview) window._pcUpdatePreview();
         });
 
         imgDiv.appendChild(img);
         imgDiv.appendChild(removeBtn);
-        bannerPreview.innerHTML = '';
         bannerPreview.appendChild(imgDiv);
+
+        // Sync to live preview
+        const pBanner = document.getElementById('preview-banner');
+        if (pBanner) {
+          pBanner.innerHTML = '';
+          pBanner.style.background = 'none';
+          const previewImg = document.createElement('img');
+          previewImg.src = supplier.bannerUrl;
+          previewImg.alt = '';
+          pBanner.appendChild(previewImg);
+        }
       }
     }
 
@@ -196,14 +224,23 @@
       supTagline.value = supplier.tagline || '';
     }
 
-    // Theme Color
+    // Theme Color — update preview, presets, inputs
+    const color = supplier.themeColor || '#0B8073';
     const supThemeColor = document.getElementById('sup-theme-color');
     const supThemeColorHex = document.getElementById('sup-theme-color-hex');
-    if (supThemeColor) {
-      supThemeColor.value = supplier.themeColor || '#0B8073';
-    }
-    if (supThemeColorHex) {
-      supThemeColorHex.value = supplier.themeColor || '#0B8073';
+    if (supThemeColor) supThemeColor.value = color;
+    if (supThemeColorHex) supThemeColorHex.value = color;
+    const previewHeader = document.getElementById('color-preview-header');
+    const previewButton = document.getElementById('color-preview-button');
+    if (previewHeader) previewHeader.style.backgroundColor = color;
+    if (previewButton) previewButton.style.backgroundColor = color;
+    document.querySelectorAll('.color-preset').forEach(p => {
+      p.classList.toggle('active', p.dataset.color.toLowerCase() === color.toLowerCase());
+    });
+    // Sync preview banner color if no banner image
+    const pBannerEl = document.getElementById('preview-banner');
+    if (pBannerEl && !pBannerEl.querySelector('img')) {
+      pBannerEl.style.background = `linear-gradient(135deg, ${color}, ${color}cc)`;
     }
 
     // Populate highlights
@@ -217,7 +254,7 @@
 
     // Populate featured services
     const supFeaturedServices = document.getElementById('sup-featured-services');
-    if (supFeaturedServices && supplier.featuredServices) {
+    if (supFeaturedServices) {
       supFeaturedServices.value = (supplier.featuredServices || []).join('\n');
     }
 
@@ -225,16 +262,25 @@
     const platforms = ['facebook', 'instagram', 'twitter', 'linkedin', 'youtube', 'tiktok'];
     platforms.forEach(platform => {
       const input = document.getElementById(`sup-social-${platform}`);
-      if (input && supplier.socialLinks && supplier.socialLinks[platform]) {
-        input.value = supplier.socialLinks[platform];
+      if (input) {
+        input.value = (supplier.socialLinks && supplier.socialLinks[platform]) || '';
       }
     });
 
-    // Show preview button if supplier has an ID
+    // Update live preview name
+    const previewName = document.getElementById('preview-name');
+    if (previewName) previewName.textContent = supplier.name || 'Your Business Name';
+
+    // Show preview button
     const previewBtn = document.getElementById('sup-preview');
     if (previewBtn && supplier.id) {
-      previewBtn.style.display = 'inline-block';
+      previewBtn.style.display = 'inline-flex';
     }
+
+    // Trigger live preview update (with a brief delay to let field values settle)
+    setTimeout(() => {
+      if (window._pcUpdatePreview) window._pcUpdatePreview();
+    }, 50);
   }
 
   // Handle form submission
@@ -334,6 +380,9 @@
         }, 3000);
       }
 
+      // Mark clean (hide save bar)
+      if (window._pcMarkClean) window._pcMarkClean();
+
       // Reload to get latest data
       await loadSuppliers();
     } catch (err) {
@@ -415,15 +464,30 @@
         'sup-banner-preview',
         dataUrl => {
           const input = document.getElementById('sup-banner');
-          if (input) {
-            input.value = dataUrl;
+          if (input) input.value = dataUrl;
+          // Show in live preview
+          const pBanner = document.getElementById('preview-banner');
+          if (pBanner) {
+            pBanner.innerHTML = '';
+            pBanner.style.background = 'none';
+            const pImg = document.createElement('img');
+            pImg.src = dataUrl;
+            pImg.alt = '';
+            pBanner.appendChild(pImg);
           }
+          if (window._pcMarkDirty) window._pcMarkDirty();
         },
         () => {
           const input = document.getElementById('sup-banner');
-          if (input) {
-            input.value = '';
+          if (input) input.value = '';
+          // Restore gradient in live preview
+          const pBanner = document.getElementById('preview-banner');
+          if (pBanner) {
+            pBanner.innerHTML = '';
+            const color = document.getElementById('sup-theme-color')?.value || '#0B8073';
+            pBanner.style.background = `linear-gradient(135deg, ${color}, ${color}cc)`;
           }
+          if (window._pcMarkDirty) window._pcMarkDirty();
         }
       );
     }
@@ -485,7 +549,7 @@
     // Create preview container
     const container = document.createElement('div');
     container.className = 'photo-preview-item';
-    container.style.cssText = 'width:100%;height:150px;border-radius:8px;position:relative;';
+    container.style.cssText = 'width:100%;height:150px;border-radius:8px;position:relative;overflow:hidden;';
 
     // Create image element using DOM (safer than innerHTML)
     const imgElement = document.createElement('img');
@@ -503,14 +567,33 @@
     removeBtn.addEventListener('click', () => {
       container.remove();
       const bannerInput = document.getElementById('sup-banner');
-      if (bannerInput) {
-        bannerInput.value = '';
+      if (bannerInput) bannerInput.value = '';
+      // Restore live-preview gradient
+      const pBanner = document.getElementById('preview-banner');
+      if (pBanner) {
+        pBanner.innerHTML = '';
+        const color = document.getElementById('sup-theme-color')?.value || '#0B8073';
+        pBanner.style.background = `linear-gradient(135deg, ${color}, ${color}cc)`;
       }
+      if (window._pcMarkDirty) window._pcMarkDirty();
     });
 
     container.appendChild(imgElement);
     container.appendChild(removeBtn);
     bannerPreview.appendChild(container);
+
+    // Update live preview banner
+    const pBanner = document.getElementById('preview-banner');
+    if (pBanner) {
+      pBanner.innerHTML = '';
+      pBanner.style.background = 'none';
+      const pImg = document.createElement('img');
+      pImg.src = imageUrl;
+      pImg.alt = '';
+      pBanner.appendChild(pImg);
+    }
+
+    if (window._pcMarkDirty) window._pcMarkDirty();
   }
 
   // Validate image URL is from Pexels CDN
