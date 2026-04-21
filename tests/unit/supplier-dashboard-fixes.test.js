@@ -400,6 +400,9 @@ describe('Supplier dashboard/profile UI polish', () => {
     expect(supplierDashImprovementsCss).toContain('width: 11px;');
     expect(supplierDashImprovementsCss).toContain('height: 11px;');
     expect(supplierDashImprovementsCss).toContain('font-size: 10px;');
+    // ef-cta must NOT be on the button — it overrides padding/position and breaks the overlay
+    expect(appJs).not.toContain('ef-cta pkg-gallery-delete');
+    expect(appJs).toContain('class="pkg-gallery-delete"');
   });
 });
 

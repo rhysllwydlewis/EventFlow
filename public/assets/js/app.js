@@ -5055,7 +5055,7 @@ function renderPkgGallery(container, photos, packageId) {
         <span class="pkg-gallery-drag-handle" title="Drag to reorder" aria-hidden="true">⠿</span>
         ${isFirst ? '<span class="pkg-gallery-first-badge">Cover</span>' : ''}
         <img src="${escapedUrl}" alt="Gallery photo" loading="lazy">
-        <button type="button" class="ef-cta pkg-gallery-delete" data-url="${escapedUrl}" data-package-id="${packageId}" aria-label="Delete photo" title="Delete photo">✕</button>
+        <button type="button" class="pkg-gallery-delete" data-url="${escapedUrl}" data-package-id="${packageId}" aria-label="Delete photo" title="Delete photo">✕</button>
       </div>`;
     })
     .join('');

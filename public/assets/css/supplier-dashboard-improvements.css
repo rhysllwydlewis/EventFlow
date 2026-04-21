@@ -6185,6 +6185,7 @@ body:not(.supplier-dashboard-page) .section > .container {
   align-items: center;
   justify-content: center;
   transition: background 0.2s;
+  z-index: 4;
 }
 
 .pkg-gallery-delete:hover {
@@ -6307,7 +6308,7 @@ body:not(.supplier-dashboard-page) .section > .container {
   right: 2px;
   width: 11px;
   height: 11px;
-  z-index: 3;
+  z-index: 4;
 }
 
 /* ── Save order toolbar ──────────────────────────────────────────────────── */
