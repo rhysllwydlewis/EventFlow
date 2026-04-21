@@ -7857,6 +7857,7 @@ label .required {
   position: relative;
   width: 100px;
   flex-shrink: 0;
+  padding-bottom: 16px; /* space for camera badge that extends below the circle */
 }
 
 .spc-avatar-col {
@@ -7866,21 +7867,21 @@ label .required {
     0 3px 12px rgba(11, 128, 115, 0.14);
 }
 
-/* Camera upload overlay button — sits at the bottom of the avatar circle */
+/* Camera upload overlay button — sits below the avatar circle */
 .spc-camera-btn {
   position: absolute;
-  bottom: 0;
+  bottom: -12px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: #fff;
   border: 2px solid rgba(11, 128, 115, 0.25);
-  box-shadow: 0 2px 8px rgba(16, 24, 40, 0.12);
+  box-shadow: 0 2px 8px rgba(16, 24, 40, 0.14);
   color: #0b8073;
   cursor: pointer;
   transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
@@ -8024,14 +8025,24 @@ label .required {
 }
 
 /* ── Health score ring (right column) ──────────────────────────────────────── */
+
+/* Outer wrapper: flex column so score circle is on top, label + grade below */
 .spc-ring {
-  position: relative;
-  width: 86px;
-  height: 86px;
-  flex-shrink: 0;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  gap: 6px;
+  flex-shrink: 0;
+  min-width: 110px;
+  text-align: center;
+}
+
+/* Inner circle — the SVG ring + score number overlaid */
+.spc-ring-circle {
+  position: relative;
+  width: 110px;
+  height: 110px;
+  flex-shrink: 0;
 }
 
 .spc-ring-svg {
@@ -8043,7 +8054,7 @@ label .required {
 }
 
 .spc-ring-track {
-  stroke: rgba(148, 163, 184, 0.2);
+  stroke: rgba(148, 163, 184, 0.18);
   stroke-width: 6;
   fill: none;
 }
@@ -8064,40 +8075,38 @@ label .required {
 .spc-ring[data-grade="poor"] .spc-ring-fill { stroke: #dc2626; }
 .spc-ring[data-grade="na"]   .spc-ring-fill { stroke: rgba(148, 163, 184, 0.5); }
 
+/* Score number — centred inside the circle */
 .spc-ring-inner {
-  position: relative;
+  position: absolute;
+  inset: 0;
   z-index: 1;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0;
-  text-align: center;
 }
 
 .spc-ring-score {
-  font-size: 1.45rem;
+  font-size: 1.9rem;
   font-weight: 800;
   color: #101828;
   line-height: 1;
 }
 
+/* "Health Score" label — below the ring circle */
 .spc-ring-label {
-  font-size: 0.62rem;
+  font-size: 0.78rem;
   font-weight: 600;
   color: #667085;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  line-height: 1.4;
-  margin-top: 2px;
+  line-height: 1.3;
 }
 
+/* "Good / Fair / Poor" grade — below the label */
 .spc-ring-grade {
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   font-weight: 700;
   color: #0b8073;
   line-height: 1.2;
-  min-height: 0.85rem;
+  min-height: 1rem;
 }
 
 .spc-ring[data-grade="good"] .spc-ring-grade { color: #0b8073; }

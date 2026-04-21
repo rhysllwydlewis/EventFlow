@@ -3276,15 +3276,17 @@ async function initDashSupplier() {
         </div>
         <!-- Health score ring (right column) -->
         <div class="spc-ring" aria-label="Health score" aria-live="polite">
-          <svg class="spc-ring-svg" viewBox="0 0 80 80" fill="none" aria-hidden="true">
-            <circle class="spc-ring-track" cx="40" cy="40" r="32"/>
-            <circle class="spc-ring-fill" cx="40" cy="40" r="32"/>
-          </svg>
-          <div class="spc-ring-inner">
-            <span class="spc-ring-score" aria-label="Health score">—</span>
-            <span class="spc-ring-label">Health Score</span>
-            <span class="spc-ring-grade"></span>
+          <div class="spc-ring-circle">
+            <svg class="spc-ring-svg" viewBox="0 0 80 80" fill="none" aria-hidden="true">
+              <circle class="spc-ring-track" cx="40" cy="40" r="32"/>
+              <circle class="spc-ring-fill" cx="40" cy="40" r="32"/>
+            </svg>
+            <div class="spc-ring-inner">
+              <span class="spc-ring-score" aria-label="Health score">—</span>
+            </div>
           </div>
+          <span class="spc-ring-label">Health Score</span>
+          <span class="spc-ring-grade"></span>
         </div>
       </div>
       <!-- 3-button action bar -->
