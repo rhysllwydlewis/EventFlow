@@ -264,7 +264,9 @@ describe('Supplier dashboard/profile UI polish', () => {
   });
 
   it('supplier profile Remove photo button uses outlined neutral chrome with danger text/icon', () => {
-    expect(appJs).toContain('class="supplier-profile-photo-remove');
+    expect(appJs).toContain(
+      'class="supplier-profile-photo-remove spc-action-btn spc-action-btn--danger"'
+    );
     expect(appJs).toContain('border:1px solid #CFEDEA;background:#F6FAF9;color:#dc2626');
     expect(appJs).toContain('box-sizing:border-box;line-height:inherit;');
     expect(appJs).not.toContain('border:1px solid #fca5a5;background:#fff5f5;color:#dc2626');

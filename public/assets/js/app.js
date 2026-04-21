@@ -3216,8 +3216,12 @@ async function initDashSupplier() {
           const location = escapeHtml(String(s.location || 'Location not set'));
           const category = escapeHtml(String(s.category || 'Uncategorized'));
           const priceDisplay = s.price_display ? escapeHtml(String(s.price_display)) : '';
-          const description = escapeHtml(String(s.description_short || ''));
+          const descriptionRaw = String(s.description_short || '');
+          const description = escapeHtml(descriptionRaw);
           const descriptionFallback = description || 'Add a short summary to improve your listing.';
+          const descriptionTitle = descriptionRaw
+            ? escapeHtml(descriptionRaw)
+            : 'Add a short summary to improve your listing.';
           const approved = !!s.approved;
 
           return `<div class="supplier-card card glass-card spc-root" data-supplier-id="${supplierId}">
@@ -3251,7 +3255,7 @@ async function initDashSupplier() {
           <span class="spc-meta-pill">${category}</span>
           ${priceDisplay ? `<span class="spc-meta-sep" aria-hidden="true">·</span><span>${priceDisplay}</span>` : ''}
         </div>
-        <p class="spc-desc" title="${descriptionFallback}">${descriptionFallback}</p>
+        <p class="spc-desc" title="${descriptionTitle}">${descriptionFallback}</p>
         <div class="listing-health spc-health">
           <div class="listing-health-bar">
             <div class="listing-health-fill"></div>
