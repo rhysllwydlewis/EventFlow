@@ -110,7 +110,7 @@
       .pc-step-desc {
         font-size: 0.82rem;
         color: #6b7280;
-        margin: -0.5rem 0 1.25rem;
+        margin: 0 0 1.25rem;
         line-height: 1.5;
       }
 
@@ -173,23 +173,33 @@
         flex-wrap: wrap;
       }
 
-      /* ── Highlights with numbered labels ── */
+      /* ── Highlights with numbered badges ── */
       .pc-highlight-row {
         display: grid;
-        grid-template-columns: 20px 1fr;
+        grid-template-columns: 24px 1fr;
         align-items: center;
         gap: 0.625rem;
         margin-bottom: 0.5rem;
       }
 
       .pc-highlight-num {
-        font-size: 0.72rem;
-        font-weight: 700;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: rgba(11, 128, 115, 0.1);
         color: #0b8073;
-        text-align: right;
-        line-height: 1;
-        padding-top: 2px;
-        opacity: 0.7;
+        font-size: 0.68rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: background 0.2s, color 0.2s;
+      }
+
+      .pc-highlight-row:focus-within .pc-highlight-num {
+        background: #0b8073;
+        color: #fff;
       }
 
       /* ── Social links with icons ── */
@@ -203,11 +213,11 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
-        background: rgba(255, 255, 255, 0.75);
-        border: 1.5px solid rgba(209, 213, 219, 0.5);
+        background: rgba(255, 255, 255, 0.8);
+        border: 1.5px solid rgba(209, 213, 219, 0.6);
         border-radius: 10px;
         padding: 0.5rem 0.75rem;
-        transition: border-color 0.2s, box-shadow 0.2s;
+        transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
       }
 
       .pc-social-item:focus-within {
@@ -223,9 +233,16 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 0.9rem;
         flex-shrink: 0;
-        background: rgba(0, 0, 0, 0.04);
+      }
+
+      .pc-social-label {
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: #9ca3af;
+        white-space: nowrap;
+        flex-shrink: 0;
+        min-width: 56px;
       }
 
       .pc-social-input {
@@ -270,44 +287,74 @@
       }
 
       .pc-preview-banner {
-        height: 80px;
+        height: 90px;
         background: linear-gradient(135deg, #0b8073, #13b6a2);
         position: relative;
         transition: background 0.3s ease;
         overflow: hidden;
+        display: flex;
+        align-items: flex-end;
+        padding: 0 1rem 0.75rem;
       }
 
       .pc-preview-banner img {
+        position: absolute;
+        inset: 0;
         width: 100%;
         height: 100%;
         object-fit: cover;
-        border-radius: 0;
         display: block;
       }
 
+      /* Avatar + name row overlaid on banner */
+      .pc-preview-name-row {
+        display: flex;
+        align-items: center;
+        gap: 0.625rem;
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        overflow: hidden;
+      }
+
+      .pc-preview-avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.2);
+        border: 2px solid rgba(255, 255, 255, 0.55);
+        flex-shrink: 0;
+        overflow: hidden;
+      }
+
       .pc-preview-body {
-        padding: 0.875rem 1.1rem 1.1rem;
+        padding: 0.75rem 1.1rem 1rem;
       }
 
       .pc-preview-name {
-        font-size: 0.95rem;
+        font-size: 0.88rem;
         font-weight: 700;
-        color: #111827;
-        margin-bottom: 0.2rem;
+        color: #fff;
+        line-height: 1.2;
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       .pc-preview-tagline {
-        font-size: 0.78rem;
-        color: #6b7280;
+        font-size: 0.72rem;
+        color: rgba(255, 255, 255, 0.72);
         font-style: italic;
-        min-height: 1.1em;
         line-height: 1.4;
-        margin-bottom: 0.625rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       .pc-preview-tagline:empty::before {
         content: 'Your tagline will appear here…';
-        color: #d1d5db;
+        color: rgba(255, 255, 255, 0.38);
         font-style: italic;
       }
 
@@ -315,6 +362,7 @@
         display: flex;
         flex-direction: column;
         gap: 0.25rem;
+        margin-bottom: 0.5rem;
       }
 
       .pc-preview-highlight {
@@ -467,11 +515,12 @@
         left: 0;
         right: 0;
         z-index: 200;
-        background: rgba(255, 255, 255, 0.88);
-        backdrop-filter: blur(16px) saturate(180%);
-        -webkit-backdrop-filter: blur(16px) saturate(180%);
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(20px) saturate(200%);
+        -webkit-backdrop-filter: blur(20px) saturate(200%);
         border-top: 1.5px solid rgba(11, 128, 115, 0.14);
         padding: 0.875rem 1.5rem;
+        padding-bottom: calc(0.875rem + env(safe-area-inset-bottom, 0px));
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -611,6 +660,88 @@
       }
 
       .pc-header-text { flex: 1; }
+
+      /* ── Step card hover lift ── */
+      .pc-step {
+        transition: box-shadow 0.22s ease, transform 0.22s ease;
+      }
+      .pc-step:hover {
+        box-shadow:
+          0 8px 32px rgba(0, 0, 0, 0.07),
+          inset 0 1px 0 rgba(255, 255, 255, 0.95);
+        transform: translateY(-1px);
+      }
+      .pc-step:focus-within {
+        transform: translateY(-1px);
+      }
+
+      /* ── Banner zone shimmer animation ── */
+      @keyframes pc-shimmer {
+        0%   { opacity: 0.5; }
+        50%  { opacity: 1;   }
+        100% { opacity: 0.5; }
+      }
+      .pc-banner-zone__icon {
+        animation: pc-shimmer 3s ease-in-out infinite;
+      }
+      .pc-banner-zone:hover .pc-banner-zone__icon,
+      .pc-banner-zone.dragover .pc-banner-zone__icon {
+        animation: none;
+        transform: scale(1.08);
+        transition: transform 0.2s;
+      }
+
+      /* ── Social grid — 1 col on narrow screens ── */
+      @media (max-width: 540px) {
+        .pc-social-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      /* ── Color preset button polish ── */
+      .color-preset {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        border: 2.5px solid transparent;
+        cursor: pointer;
+        padding: 0;
+        transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+        outline: none;
+        flex-shrink: 0;
+      }
+      .color-preset:hover {
+        transform: scale(1.12);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      }
+      .color-preset.active {
+        border-color: #fff;
+        box-shadow:
+          0 0 0 3px rgba(11, 128, 115, 0.4),
+          0 2px 8px rgba(0, 0, 0, 0.18);
+        transform: scale(1.15);
+      }
+
+      /* ── Preview tips checkmarks ── */
+      .pc-tip--done::before { font-size: 0.7rem; }
+
+      /* ── Completion widget ── */
+      .pc-completion-label { font-size: 0.82rem; font-weight: 600; color: #374151; }
+      .pc-completion-pct   { font-size: 0.82rem; font-weight: 700; color: #0b8073; }
+
+      /* ── Mobile save bar padding ── */
+      @media (max-width: 640px) {
+        .pc-save-bar {
+          padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+        }
+      }
+
+      /* ── Highlight input min-width fix ── */
+      .highlight-input { min-width: 0; width: 100%; }
+
+      /* ── Preview card min-height to avoid layout collapse ── */
+      #pc-live-preview { min-height: 160px; }
     </style>
   </head>
   <body>
@@ -758,7 +889,7 @@
 
           <!-- ── Left: Form steps ── -->
           <div class="pc-form-col">
-            <form id="customization-form" action="#">
+            <form id="customization-form" action="#" novalidate>
               <input type="hidden" id="sup-id" name="id">
 
               <!-- Step 1: Banner -->
@@ -912,28 +1043,46 @@
 
                 <div class="pc-social-grid">
                   <div class="pc-social-item">
-                    <span class="pc-social-icon" style="background:rgba(59,89,152,0.1);color:#3b5998;">📘</span>
-                    <input id="sup-social-facebook" class="pc-social-input" placeholder="facebook.com/yourpage" type="url" autocomplete="off">
+                    <span class="pc-social-icon" style="background:rgba(59,89,152,0.1);">
+                      <svg viewBox="0 0 24 24" fill="#3b5998" width="15" height="15" aria-hidden="true"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+                    </span>
+                    <span class="pc-social-label">Facebook</span>
+                    <input id="sup-social-facebook" class="pc-social-input" placeholder="facebook.com/yourpage" type="text" autocomplete="off" aria-label="Facebook profile URL">
                   </div>
                   <div class="pc-social-item">
-                    <span class="pc-social-icon" style="background:rgba(225,48,108,0.1);color:#e1306c;">📷</span>
-                    <input id="sup-social-instagram" class="pc-social-input" placeholder="instagram.com/yourpage" type="url" autocomplete="off">
+                    <span class="pc-social-icon" style="background:rgba(225,48,108,0.1);">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="#e1306c" stroke-width="2" width="15" height="15" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+                    </span>
+                    <span class="pc-social-label">Instagram</span>
+                    <input id="sup-social-instagram" class="pc-social-input" placeholder="instagram.com/yourpage" type="text" autocomplete="off" aria-label="Instagram profile URL">
                   </div>
                   <div class="pc-social-item">
-                    <span class="pc-social-icon" style="background:rgba(0,0,0,0.06);color:#000;">𝕏</span>
-                    <input id="sup-social-twitter" class="pc-social-input" placeholder="twitter.com/yourpage" type="url" autocomplete="off">
+                    <span class="pc-social-icon" style="background:rgba(0,0,0,0.05);">
+                      <svg viewBox="0 0 24 24" fill="#000" width="14" height="14" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+                    </span>
+                    <span class="pc-social-label">X / Twitter</span>
+                    <input id="sup-social-twitter" class="pc-social-input" placeholder="twitter.com/yourpage" type="text" autocomplete="off" aria-label="X / Twitter profile URL">
                   </div>
                   <div class="pc-social-item">
-                    <span class="pc-social-icon" style="background:rgba(10,102,194,0.1);color:#0a66c2;">💼</span>
-                    <input id="sup-social-linkedin" class="pc-social-input" placeholder="linkedin.com/company/you" type="url" autocomplete="off">
+                    <span class="pc-social-icon" style="background:rgba(10,102,194,0.1);">
+                      <svg viewBox="0 0 24 24" fill="#0a66c2" width="15" height="15" aria-hidden="true"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+                    </span>
+                    <span class="pc-social-label">LinkedIn</span>
+                    <input id="sup-social-linkedin" class="pc-social-input" placeholder="linkedin.com/company/you" type="text" autocomplete="off" aria-label="LinkedIn profile URL">
                   </div>
                   <div class="pc-social-item">
-                    <span class="pc-social-icon" style="background:rgba(255,0,0,0.08);color:#ff0000;">▶️</span>
-                    <input id="sup-social-youtube" class="pc-social-input" placeholder="youtube.com/@yourpage" type="url" autocomplete="off">
+                    <span class="pc-social-icon" style="background:rgba(255,0,0,0.07);">
+                      <svg viewBox="0 0 24 24" fill="none" width="15" height="15" aria-hidden="true"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.95A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z" fill="#ff0000"/><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" fill="#fff"/></svg>
+                    </span>
+                    <span class="pc-social-label">YouTube</span>
+                    <input id="sup-social-youtube" class="pc-social-input" placeholder="youtube.com/@yourpage" type="text" autocomplete="off" aria-label="YouTube channel URL">
                   </div>
                   <div class="pc-social-item">
-                    <span class="pc-social-icon" style="background:rgba(0,0,0,0.06);color:#000;">🎵</span>
-                    <input id="sup-social-tiktok" class="pc-social-input" placeholder="tiktok.com/@yourpage" type="url" autocomplete="off">
+                    <span class="pc-social-icon" style="background:rgba(0,0,0,0.05);">
+                      <svg viewBox="0 0 24 24" fill="#000" width="14" height="14" aria-hidden="true"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.34 6.34 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34l.04-8.95a8.16 8.16 0 0 0 4.77 1.52V4.43a4.85 4.85 0 0 1-1.04-.74z"/></svg>
+                    </span>
+                    <span class="pc-social-label">TikTok</span>
+                    <input id="sup-social-tiktok" class="pc-social-input" placeholder="tiktok.com/@yourpage" type="text" autocomplete="off" aria-label="TikTok profile URL">
                   </div>
                 </div>
               </div>
@@ -978,8 +1127,15 @@
                 <!-- Banner image or color gradient -->
               </div>
               <div class="pc-preview-body">
-                <div class="pc-preview-name" id="preview-name">Your Business Name</div>
-                <div class="pc-preview-tagline" id="preview-tagline"></div>
+                <div class="pc-preview-name-row">
+                  <div class="pc-preview-avatar" id="preview-avatar" aria-hidden="true">
+                    <svg viewBox="0 0 40 40" fill="none" width="100%" height="100%"><circle cx="20" cy="20" r="20" fill="rgba(255,255,255,0.2)"/><circle cx="20" cy="16" r="6" fill="rgba(255,255,255,0.6)"/><path d="M8 34c0-6.627 5.373-12 12-12s12 5.373 12 12" fill="rgba(255,255,255,0.5)"/></svg>
+                  </div>
+                  <div>
+                    <div class="pc-preview-name" id="preview-name">Your Business Name</div>
+                    <div class="pc-preview-tagline" id="preview-tagline"></div>
+                  </div>
+                </div>
                 <div class="pc-preview-highlights" id="preview-highlights"></div>
                 <div class="pc-preview-services" id="preview-services"></div>
               </div>
@@ -1061,11 +1217,17 @@
           presets.forEach(p => {
             p.classList.toggle('active', p.dataset.color.toLowerCase() === color.toLowerCase());
           });
-          // Sync live-preview banner gradient
+          // Sync live-preview banner gradient (only when no image is loaded)
           const pBanner = document.getElementById('preview-banner');
           if (pBanner && !pBanner.querySelector('img')) {
             pBanner.style.background = `linear-gradient(135deg, ${color}, ${color}cc)`;
           }
+          // Sync preview tag color
+          document.querySelectorAll('.pc-preview-tag').forEach(el => {
+            el.style.background = `${color}1a`;
+            el.style.color = color;
+          });
+          document.querySelectorAll('.pc-preview-highlight::before').forEach(() => {});
         }
 
         if (colorPicker && colorHex && resetBtn) {
@@ -1115,9 +1277,16 @@
             });
           }
 
-          // Social dots
+          // Social dots — use small SVG icons for crisp rendering
           const platforms = ['facebook','instagram','twitter','linkedin','youtube','tiktok'];
-          const icons = { facebook:'📘', instagram:'📷', twitter:'𝕏', linkedin:'💼', youtube:'▶️', tiktok:'🎵' };
+          const socialSvg = {
+            facebook:  '<svg viewBox="0 0 24 24" fill="#3b5998" width="10" height="10"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>',
+            instagram: '<svg viewBox="0 0 24 24" fill="none" stroke="#e1306c" stroke-width="2" width="10" height="10"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>',
+            twitter:   '<svg viewBox="0 0 24 24" fill="#000" width="9" height="9"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>',
+            linkedin:  '<svg viewBox="0 0 24 24" fill="#0a66c2" width="10" height="10"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>',
+            youtube:   '<svg viewBox="0 0 24 24" fill="none" width="10" height="10"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58A2.78 2.78 0 0 0 3.41 19.6C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.95A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z" fill="#ff0000"/><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" fill="#fff"/></svg>',
+            tiktok:    '<svg viewBox="0 0 24 24" fill="#000" width="9" height="9"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.5 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.28 0 .54.04.79.1V9.01a6.34 6.34 0 0 0-.79-.05 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34l.04-8.95a8.16 8.16 0 0 0 4.77 1.52V4.43a4.85 4.85 0 0 1-1.04-.74z"/></svg>',
+          };
           const activeSocial = platforms.filter(p => document.getElementById('sup-social-' + p)?.value?.trim());
           const pSocialRow  = document.getElementById('preview-social-row');
           const pSocialDots = document.getElementById('preview-social-dots');
@@ -1127,7 +1296,8 @@
             activeSocial.forEach(p => {
               const dot = document.createElement('span');
               dot.className = 'pc-preview-social-dot';
-              dot.textContent = icons[p] || '🔗';
+              // Use DOMParser-safe innerHTML for static SVG strings (no user data)
+              dot.innerHTML = socialSvg[p] || '';
               dot.title = p.charAt(0).toUpperCase() + p.slice(1);
               pSocialDots.appendChild(dot);
             });
