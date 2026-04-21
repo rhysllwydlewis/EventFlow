@@ -6169,16 +6169,16 @@ body:not(.supplier-dashboard-page) .section > .container {
 
 .pkg-gallery-delete {
   position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 11px;
-  height: 11px;
+  top: -3px;
+  right: -3px;
+  width: 6px;
+  height: 6px;
   padding: 0;
   border: none;
   border-radius: 50%;
   background: rgba(220, 38, 38, 0.85);
   color: #fff;
-  font-size: 10px;
+  font-size: 6px;
   line-height: 1;
   cursor: pointer;
   display: flex;
@@ -7713,15 +7713,15 @@ label .required {
 .photo-preview-item--existing .photo-delete-btn,
 .photo-preview-item--pending .photo-remove-btn {
   position: absolute;
-  top: 2px;
-  right: 2px;
+  top: -4px;
+  right: -4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 8px;
-  height: 8px;
-  min-width: 8px;
-  min-height: 8px;
+  width: 6px;
+  height: 6px;
+  min-width: 6px;
+  min-height: 6px;
   padding: 0;
   background: rgba(255, 255, 255, 0.72);
   backdrop-filter: blur(8px) saturate(160%);
@@ -7729,12 +7729,12 @@ label .required {
   color: #374151;
   border: 1px solid rgba(255, 255, 255, 0.55);
   border-radius: 50%;
-  font-size: 6px;
+  font-size: 5px;
   font-weight: 800;
   line-height: 1;
   cursor: pointer;
   z-index: 10;
-  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
   box-shadow:
     0 1px 4px rgba(0, 0, 0, 0.18),
     inset 0 1px 0 rgba(255, 255, 255, 0.6);
@@ -7748,7 +7748,6 @@ label .required {
   border-color: rgba(220, 38, 38, 0.3);
   color: #fff;
   box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  transform: scale(1.08);
 }
 
 /* ── Pending upload tiles — match existing-photo tile size & shape ─────────── */
@@ -7913,18 +7912,27 @@ label .required {
   color: #fff;
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(16, 24, 40, 0.14);
-  transition: background 0.15s, box-shadow 0.15s;
+  transition: background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  animation: none;
   z-index: 3;
 }
 
 .spc-avatar-delete-btn:hover {
-  background: #dc2626;
-  box-shadow: 0 3px 10px rgba(220, 38, 38, 0.3);
+  background-color: #f05252;
+  border-color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 3px 10px rgba(220, 38, 38, 0.24);
+  transform: translateX(-50%);
+}
+
+.spc-avatar-delete-btn:active {
+  background-color: #dc2626;
+  border-color: rgba(255, 255, 255, 0.95);
+  transform: translateX(-50%);
 }
 
 .spc-avatar-delete-btn span {
   display: block;
-  font-size: 13px;
+  font-size: 11px;
   line-height: 1;
   font-weight: 700;
 }
