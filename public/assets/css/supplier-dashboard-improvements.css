@@ -7855,6 +7855,7 @@ label .required {
 /* ── Avatar column ─────────────────────────────────────────────────────────── */
 .spc-avatar-wrap {
   position: relative;
+  overflow: visible;
   width: 100px;
   flex-shrink: 0;
   padding-top: 16px; /* space for delete badge that extends above the circle */
