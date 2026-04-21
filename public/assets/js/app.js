@@ -3075,6 +3075,7 @@ async function initDashSupplier() {
       try {
         currentUser = await me();
       } catch (_e) {
+        console.warn('Unable to load current user profile for supplier photo controls');
         currentUser = null;
       }
       const profileDisplayName =
@@ -3321,7 +3322,10 @@ async function initDashSupplier() {
             }
             await loadSuppliers();
           } catch (err) {
-            alert(err.message || 'Failed to upload profile photo');
+            console.error('Profile photo upload failed:', err);
+            if (window.announceToSR) {
+              window.announceToSR(err.message || 'Failed to upload profile photo');
+            }
           } finally {
             e.target.value = '';
           }
@@ -3349,7 +3353,10 @@ async function initDashSupplier() {
             }
             await loadSuppliers();
           } catch (err) {
-            alert(err.message || 'Failed to remove profile photo');
+            console.error('Profile photo removal failed:', err);
+            if (window.announceToSR) {
+              window.announceToSR(err.message || 'Failed to remove profile photo');
+            }
           }
         });
       });
