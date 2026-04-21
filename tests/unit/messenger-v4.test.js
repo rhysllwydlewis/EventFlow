@@ -220,9 +220,41 @@ function createInMemoryDb() {
     return expr;
   }
 
-  function applyUpdate(doc, update) {
+  function applyUpdate(doc, update, arrayFilters = []) {
     if (update.$set) {
       for (const [path, val] of Object.entries(update.$set)) {
+        // Handle MongoDB positional-filtered operator paths like 'arr.$[elem].field'
+        const posFilterMatch = path.match(/^(.+?)\.\$\[([^\]]+)\]\.(.+)$/);
+        if (posFilterMatch) {
+          const [, arrayPath, placeholder, fieldPath] = posFilterMatch;
+          const arr = arrayPath.split('.').reduce((o, k) => o?.[k], doc);
+          if (Array.isArray(arr)) {
+            // Find the arrayFilter for this placeholder and convert it to a matchable query
+            const filterDef = arrayFilters.find(f =>
+              Object.keys(f).some(k => k === placeholder || k.startsWith(`${placeholder}.`))
+            );
+            const filterQuery = {};
+            if (filterDef) {
+              for (const [k, v] of Object.entries(filterDef)) {
+                filterQuery[k.replace(new RegExp(`^${placeholder}\\.`), '')] = v;
+              }
+            }
+            arr.forEach(item => {
+              if (!filterDef || matchesQuery(item, filterQuery)) {
+                const parts = fieldPath.split('.');
+                let target = item;
+                for (let i = 0; i < parts.length - 1; i++) {
+                  if (target[parts[i]] === null || target[parts[i]] === undefined) {
+                    target[parts[i]] = {};
+                  }
+                  target = target[parts[i]];
+                }
+                target[parts[parts.length - 1]] = val;
+              }
+            });
+          }
+          continue;
+        }
         if (path.includes('.')) {
           const parts = path.split('.');
           let target = doc;
@@ -356,12 +388,12 @@ function createInMemoryDb() {
         };
         return cursor;
       },
-      async updateOne(filter, update) {
+      async updateOne(filter, update, options = {}) {
         const idx = getCol(name).findIndex(doc => matchesQuery(doc, filter));
         if (idx === -1) {
           return { matchedCount: 0, modifiedCount: 0, acknowledged: true };
         }
-        applyUpdate(getCol(name)[idx], update);
+        applyUpdate(getCol(name)[idx], update, options.arrayFilters || []);
         return { matchedCount: 1, modifiedCount: 1, acknowledged: true };
       },
       async updateMany(filter, update) {
@@ -809,6 +841,58 @@ describe('MessengerV4Service', () => {
       await expect(service.sendMessage(conversation._id.toString(), messageData)).rejects.toThrow(
         'not a participant'
       );
+    });
+
+    it('should auto-unarchive archived recipients when a new message is sent', async () => {
+      // Archive the conversation for user2 (the recipient)
+      await service.updateConversation(conversation._id.toString(), 'user2', {
+        isArchived: true,
+      });
+      const beforeSend = await service.getConversation(conversation._id.toString(), 'user2');
+      const recipientBefore = beforeSend.participants.find(p => p.userId === 'user2');
+      expect(recipientBefore.isArchived).toBe(true);
+
+      // user1 sends a message to user2 (who has archived the conversation)
+      const message = await service.sendMessage(conversation._id.toString(), {
+        senderId: 'user1',
+        senderName: 'Alice',
+        content: 'Hey, still there?',
+      });
+
+      // The returned message should expose the auto-unarchived user IDs
+      expect(message._autoUnarchivedUserIds).toContain('user2');
+
+      // user2's participant record should now have isArchived: false
+      const afterSend = await service.getConversation(conversation._id.toString(), 'user2');
+      const recipientAfter = afterSend.participants.find(p => p.userId === 'user2');
+      expect(recipientAfter.isArchived).toBe(false);
+    });
+
+    it('should NOT auto-unarchive the sender even if they archived the conversation', async () => {
+      // Archive for BOTH participants
+      await service.updateConversation(conversation._id.toString(), 'user1', {
+        isArchived: true,
+      });
+      await service.updateConversation(conversation._id.toString(), 'user2', {
+        isArchived: true,
+      });
+
+      // user1 sends a message (sender — should NOT be unarchived)
+      const message = await service.sendMessage(conversation._id.toString(), {
+        senderId: 'user1',
+        senderName: 'Alice',
+        content: 'Breaking my own archive',
+      });
+
+      // Only user2 (the recipient) should be in the auto-unarchived list
+      expect(message._autoUnarchivedUserIds).toContain('user2');
+      expect(message._autoUnarchivedUserIds).not.toContain('user1');
+
+      // Sender (user1) remains archived; recipient (user2) is unarchived
+      const conv1 = await service.getConversations('user1', { archived: true });
+      expect(conv1.some(c => String(c._id) === String(conversation._id))).toBe(true);
+      const conv2 = await service.getConversations('user2', {});
+      expect(conv2.some(c => String(c._id) === String(conversation._id))).toBe(true);
     });
   });
 

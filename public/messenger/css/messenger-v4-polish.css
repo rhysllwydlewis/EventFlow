@@ -2606,26 +2606,30 @@ body:has(.messenger-v4) {
 
 /* ── Base: frosted-glass surface ──────────────────────────── */
 .messenger-v4__action-button.ef-cta {
-  /* Glass fill: white-to-transparent gradient layered over a tinted base */
+  /* Glass fill: white-to-transparent gradient layered over a tinted base.
+     The teal tint (0.13) is deliberately higher than the previous 0.10 so
+     the buttons have a perceptible teal sheen on white backgrounds. */
   background:
     linear-gradient(
       150deg,
-      rgba(255, 255, 255, 0.72) 0%,
-      rgba(255, 255, 255, 0.28) 60%,
-      rgba(255, 255, 255, 0.10) 100%
+      rgba(255, 255, 255, 0.65) 0%,
+      rgba(255, 255, 255, 0.20) 60%,
+      rgba(255, 255, 255, 0.06) 100%
     ),
-    rgba(11, 128, 115, 0.10);
+    rgba(11, 128, 115, 0.13);
   /* Full frosted-glass blur */
   backdrop-filter: blur(18px) saturate(1.8) brightness(1.05);
   -webkit-backdrop-filter: blur(18px) saturate(1.8) brightness(1.05);
-  /* Crisp white rim gives the "glass edge" effect */
-  border: 1.5px solid rgba(255, 255, 255, 0.75);
-  /* Three-layer shadow: ambient depth + colour glow + inner top highlight */
+  /* Rim: mixed teal+white for a visible glass edge even on white backgrounds */
+  border: 1.5px solid rgba(11, 128, 115, 0.22);
+  outline: 1px solid rgba(255, 255, 255, 0.55);
+  outline-offset: -2px;
+  /* Four-layer shadow: ambient + teal colour glow + inner top highlight + bottom press edge */
   box-shadow:
-    0 2px 4px rgba(15, 23, 42, 0.10),
-    0 4px 14px rgba(11, 128, 115, 0.14),
-    inset 0 1.5px 0 rgba(255, 255, 255, 0.80),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.04);
+    0 1px 3px rgba(15, 23, 42, 0.10),
+    0 3px 12px rgba(11, 128, 115, 0.16),
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.75),
+    inset 0 -1.5px 0 rgba(11, 128, 115, 0.10);
   color: var(--messenger-primary, #0b8073);
   /* Springy transform + smooth colour crossfade */
   transition:
@@ -2648,6 +2652,7 @@ body:has(.messenger-v4) {
   -webkit-backdrop-filter: blur(18px) saturate(2.0) brightness(1.08);
   color: #ffffff;
   border-color: rgba(255, 255, 255, 0.40);
+  outline: none;
   box-shadow:
     0 6px 20px rgba(11, 128, 115, 0.40),
     0 2px 6px rgba(11, 128, 115, 0.22),
@@ -2675,6 +2680,7 @@ body:has(.messenger-v4) {
   );
   color: #ffffff;
   border-color: rgba(255, 255, 255, 0.40);
+  outline: none;
   box-shadow:
     0 4px 16px rgba(11, 128, 115, 0.38),
     0 1px 4px rgba(11, 128, 115, 0.20),
