@@ -6384,8 +6384,8 @@ body:not(.supplier-dashboard-page) .section > .container {
 /* Liquid-glass chip: half the previous size, frosted white at rest → soft red on hover */
 .photo-preview-remove {
   position: absolute;
-  top: -4px;
-  right: -4px;
+  top: 2px;
+  right: 2px;
   width: 8px;
   height: 8px;
   padding: 0;
@@ -7712,15 +7712,15 @@ label .required {
 .photo-preview-item--existing .photo-delete-btn,
 .photo-preview-item--pending .photo-remove-btn {
   position: absolute;
-  top: -4px;
-  right: -4px;
+  top: 2px;
+  right: 2px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
-  min-width: 16px;
-  min-height: 16px;
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  min-height: 8px;
   padding: 0;
   background: rgba(255, 255, 255, 0.72);
   backdrop-filter: blur(8px) saturate(160%);
@@ -7728,7 +7728,7 @@ label .required {
   color: #374151;
   border: 1px solid rgba(255, 255, 255, 0.55);
   border-radius: 50%;
-  font-size: 8px;
+  font-size: 6px;
   font-weight: 800;
   line-height: 1;
   cursor: pointer;
@@ -7817,4 +7817,171 @@ label .required {
   .photo-preview-item--existing.photo-gallery-dragging {
     transform: none;
   }
+}
+
+/* Supplier profile summary card polish (collapsed state) */
+.spc-root {
+  margin-bottom: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(11, 128, 115, 0.12);
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(16, 24, 40, 0.06);
+  padding: 20px 24px;
+}
+
+.spc-summary {
+  display: grid;
+  grid-template-columns: 80px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.spc-avatar-col {
+  border: 2px solid rgba(11, 128, 115, 0.18);
+  box-shadow: 0 2px 10px rgba(11, 128, 115, 0.12);
+}
+
+.spc-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.spc-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.spc-name {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #101828;
+}
+
+.spc-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.spc-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  padding: 2px 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.spc-badge--tier {
+  color: #0b8073;
+  background: rgba(11, 128, 115, 0.12);
+  border-color: rgba(11, 128, 115, 0.2);
+}
+
+.spc-badge--approved {
+  color: #166534;
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(34, 197, 94, 0.24);
+}
+
+.spc-badge--pending {
+  color: #8a5a00;
+  background: #fff5e6;
+  border-color: rgba(180, 83, 9, 0.22);
+}
+
+.spc-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  color: #667085;
+  font-size: 0.84rem;
+}
+
+.spc-meta-sep {
+  color: #98a2b3;
+}
+
+.spc-meta-pill {
+  padding: 1px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(11, 128, 115, 0.18);
+  color: #0b8073;
+  background: rgba(11, 128, 115, 0.08);
+}
+
+.spc-desc {
+  margin: 0;
+  color: #667085;
+  font-size: 0.84rem;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.spc-health .listing-health-bar {
+  height: 4px;
+  margin-bottom: 4px;
+}
+
+.spc-health .listing-health-label {
+  font-size: 0.72rem;
+  color: #98a2b3;
+}
+
+.spc-checklist-link {
+  align-self: flex-start;
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: #0b8073;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.spc-checklist-link:hover {
+  color: #0a6b5f;
+  text-decoration: underline;
+}
+
+.spc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.spc-action-btn {
+  min-height: 30px;
+}
+
+.spc-edit-row {
+  margin-top: 4px;
+  padding-top: 10px;
+}
+
+.spc-edit-btn {
+  margin-left: auto;
+  flex: 0 0 auto;
+  min-width: 120px;
+  border-color: #0b8073;
+  color: #fff;
+  background: linear-gradient(135deg, #0b8073, #0a6b5f);
+}
+
+.spc-edit-btn:hover {
+  border-color: #0a6b5f;
+  background: linear-gradient(135deg, #0a6b5f, #09564d);
 }

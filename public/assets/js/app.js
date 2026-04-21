@@ -3175,7 +3175,7 @@ async function initDashSupplier() {
           }
 
           // Enhanced badge rendering for Pro and Pro+ tiers
-          let proBadge = '';
+          let tierLabel = '';
           // Check subscriptionTier field first (new), then fall back to subscription.tier or isPro
           const tier =
             s.subscriptionTier ||
@@ -3183,11 +3183,11 @@ async function initDashSupplier() {
             (s.isPro || s.pro ? 'pro' : null);
 
           if (tier === 'pro_plus') {
-            proBadge = '<span class="badge badge-pro-plus">Pro Plus</span>';
+            tierLabel = 'Pro Plus ✦';
           } else if (tier === 'pro') {
-            proBadge = '<span class="badge badge-pro">Pro</span>';
+            tierLabel = 'Pro ✦';
           } else {
-            proBadge = '<span class="badge badge-starter">Starter</span>';
+            tierLabel = 'Starter ✦';
           }
 
           // Calculate profile completeness checklist with safe property access
@@ -3209,27 +3209,20 @@ async function initDashSupplier() {
             { label: 'Website added', complete: hasWebsite },
           ];
           const completedCount = checklistItems.filter(item => item.complete).length;
-          const checklistHtml = checklistItems
-            .map(
-              item =>
-                `<div style="display:flex;align-items:center;gap:0.5rem;font-size:0.875rem;color:#667085;">
-            <span style="color:${item.complete ? '#10b981' : '#d1d5db'}">${item.complete ? '✓' : '○'}</span>
-            <span>${item.label}</span>
-          </div>`
-            )
-            .join('');
 
           // Safe access to all fields with defaults — escape all user-supplied values to prevent XSS
           const supplierId = String(s.id || '').replace(/"/g, '&quot;');
           const name = escapeHtml(String(s.name || 'Unnamed Supplier'));
           const location = escapeHtml(String(s.location || 'Location not set'));
           const category = escapeHtml(String(s.category || 'Uncategorized'));
-          const priceDisplay = s.price_display ? ` · ${escapeHtml(String(s.price_display))}` : '';
+          const priceDisplay = s.price_display ? escapeHtml(String(s.price_display)) : '';
           const description = escapeHtml(String(s.description_short || ''));
+          const descriptionFallback = description || 'Add a short summary to improve your listing.';
           const approved = !!s.approved;
 
-          return `<div class="supplier-card card glass-card" style="margin-bottom:10px" data-supplier-id="${supplierId}">
-      <div class="supplier-profile-photo-slot" aria-hidden="true" style="width:80px;height:80px;flex-shrink:0;border-radius:50%;overflow:hidden;${
+          return `<div class="supplier-card card glass-card spc-root" data-supplier-id="${supplierId}">
+      <div class="spc-summary">
+      <div class="supplier-profile-photo-slot spc-avatar-col" aria-hidden="true" style="width:80px;height:80px;flex-shrink:0;border-radius:50%;overflow:hidden;${
         profilePhotoUrl
           ? `background:none;`
           : `background:linear-gradient(135deg,#0b8073 0%,#0a6b5f 100%);display:flex;align-items:center;justify-content:center;color:#fff;font-size:2rem;font-weight:700;`
@@ -3240,38 +3233,47 @@ async function initDashSupplier() {
             : profileInitial
         }
       </div>
-      <div style="flex:1;min-width:0;">
-        <h3>${name} ${proBadge} ${approved ? '<span class="badge">Approved</span>' : '<span class="badge" style="background:#FFF5E6;color:#8A5A00">Awaiting review</span>'}</h3>
-        <div class="small">${location} · <span class="badge">${category}</span>${priceDisplay}</div>
-        <p class="small">${description}</p>
-        <div class="listing-health">
+      <div class="spc-body">
+        <div class="spc-name-row">
+          <h3 class="spc-name">${name}</h3>
+          <div class="spc-badges">
+            <span class="spc-badge spc-badge--tier">${tierLabel}</span>
+            ${
+              approved
+                ? '<span class="spc-badge spc-badge--approved">Approved</span>'
+                : '<span class="spc-badge spc-badge--pending">Awaiting review</span>'
+            }
+          </div>
+        </div>
+        <div class="spc-meta">
+          <span>${location}</span>
+          <span class="spc-meta-sep" aria-hidden="true">·</span>
+          <span class="spc-meta-pill">${category}</span>
+          ${priceDisplay ? `<span class="spc-meta-sep" aria-hidden="true">·</span><span>${priceDisplay}</span>` : ''}
+        </div>
+        <p class="spc-desc" title="${descriptionFallback}">${descriptionFallback}</p>
+        <div class="listing-health spc-health">
           <div class="listing-health-bar">
             <div class="listing-health-fill"></div>
           </div>
           <div class="listing-health-label">Listing health: calculating…</div>
         </div>
-        <details style="margin-top:0.75rem;">
-          <summary style="cursor:pointer;font-size:0.875rem;color:#667eea;font-weight:500;">
-            Profile Setup Checklist (${completedCount}/${checklistItems.length})
-          </summary>
-          <div style="margin-top:0.5rem;display:flex;flex-direction:column;gap:0.25rem;padding-left:0.5rem;">
-            ${checklistHtml}
-          </div>
-        </details>
-        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;margin-top:0.75rem;margin-bottom:0.5rem;">
-          <label for="supplier-profile-photo-upload-${supplierId}" class="cta secondary" style="cursor:pointer;font-size:0.82rem;padding:0.375rem 0.875rem;display:inline-flex;align-items:center;gap:0.35rem;border-radius:6px;line-height:inherit;">
+        <button type="button" class="spc-checklist-link" data-action="edit-profile" data-profile-id="${supplierId}">Profile Setup Checklist (${completedCount}/${checklistItems.length}) ›</button>
+        <div class="spc-actions">
+          <label for="supplier-profile-photo-upload-${supplierId}" class="cta secondary spc-action-btn" style="cursor:pointer;font-size:0.82rem;padding:0.375rem 0.875rem;display:inline-flex;align-items:center;gap:0.35rem;border-radius:6px;line-height:inherit;">
             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
             Upload Photo
           </label>
           <input type="file" id="supplier-profile-photo-upload-${supplierId}" class="supplier-profile-photo-upload" data-profile-id="${supplierId}" accept="image/*" style="display:none;" aria-label="Upload profile photo">
-          <button type="button" class="supplier-profile-photo-remove" data-profile-id="${supplierId}" style="font-size:0.82rem;padding:0.375rem 0.875rem;border-radius:6px;border:1px solid #CFEDEA;background:#F6FAF9;color:#dc2626;cursor:pointer;display:inline-flex;align-items:center;gap:0.35rem;box-sizing:border-box;line-height:inherit;" aria-label="Remove profile photo">
+          <button type="button" class="supplier-profile-photo-remove spc-action-btn spc-action-btn--danger" data-profile-id="${supplierId}" style="font-size:0.82rem;padding:0.375rem 0.875rem;border-radius:6px;border:1px solid #CFEDEA;background:#F6FAF9;color:#dc2626;cursor:pointer;display:inline-flex;align-items:center;gap:0.35rem;box-sizing:border-box;line-height:inherit;" aria-label="Remove profile photo">
             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
             Remove
           </button>
         </div>
-        <div class="card-actions">
-          <button type="button" class="ef-cta card-action-btn edit-btn" data-action="edit-profile" data-profile-id="${supplierId}">Edit</button>
+        <div class="card-actions spc-edit-row">
+          <button type="button" class="ef-cta card-action-btn edit-btn spc-edit-btn" data-action="edit-profile" data-profile-id="${supplierId}">Edit</button>
         </div>
+      </div>
       </div>
     </div>`;
         })

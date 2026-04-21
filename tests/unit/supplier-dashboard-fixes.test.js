@@ -264,7 +264,7 @@ describe('Supplier dashboard/profile UI polish', () => {
   });
 
   it('supplier profile Remove photo button uses outlined neutral chrome with danger text/icon', () => {
-    expect(appJs).toContain('class="supplier-profile-photo-remove"');
+    expect(appJs).toContain('class="supplier-profile-photo-remove');
     expect(appJs).toContain('border:1px solid #CFEDEA;background:#F6FAF9;color:#dc2626');
     expect(appJs).toContain('box-sizing:border-box;line-height:inherit;');
     expect(appJs).not.toContain('border:1px solid #fca5a5;background:#fff5f5;color:#dc2626');
@@ -308,6 +308,31 @@ describe('Supplier dashboard/profile UI polish', () => {
     expect(supplierDashImprovementsCss).toContain('.photo-preview-remove {');
     expect(supplierDashImprovementsCss).toContain('width: 8px;');
     expect(supplierDashImprovementsCss).toContain('height: 8px;');
+  });
+
+  it('supplier gallery tile remove buttons are anchored inside top-right and use 8px chrome', () => {
+    expect(supplierDashImprovementsCss).toContain(
+      '.photo-preview-item--existing .photo-delete-btn,'
+    );
+    expect(supplierDashImprovementsCss).toContain(
+      '.photo-preview-item--pending .photo-remove-btn {'
+    );
+    expect(supplierDashImprovementsCss).toContain('top: 2px;');
+    expect(supplierDashImprovementsCss).toContain('right: 2px;');
+    expect(supplierDashImprovementsCss).toContain('min-width: 8px;');
+    expect(supplierDashImprovementsCss).toContain('min-height: 8px;');
+    expect(supplierDashImprovementsCss).toContain('font-size: 6px;');
+  });
+
+  it('supplier profile summary card uses structured spc-* layout classes', () => {
+    expect(appJs).toContain('class="supplier-card card glass-card spc-root"');
+    expect(appJs).toContain('class="spc-summary"');
+    expect(appJs).toContain('class="spc-name-row"');
+    expect(appJs).toContain('class="spc-checklist-link"');
+    expect(appJs).toContain('class="card-actions spc-edit-row"');
+    expect(supplierDashImprovementsCss).toContain('.spc-root {');
+    expect(supplierDashImprovementsCss).toContain('.spc-summary {');
+    expect(supplierDashImprovementsCss).toContain('.spc-health .listing-health-bar {');
   });
 });
 
