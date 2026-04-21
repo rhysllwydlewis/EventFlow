@@ -3281,13 +3281,13 @@ async function initDashSupplier() {
           </div>
         </div>
         <!-- Health score ring (right column) -->
-        <div class="spc-ring" aria-label="Health score">
+        <div class="spc-ring" aria-label="Health score" aria-live="polite">
           <svg class="spc-ring-svg" viewBox="0 0 80 80" fill="none" aria-hidden="true">
             <circle class="spc-ring-track" cx="40" cy="40" r="32"/>
             <circle class="spc-ring-fill" cx="40" cy="40" r="32"/>
           </svg>
           <div class="spc-ring-inner">
-            <span class="spc-ring-score">—</span>
+            <span class="spc-ring-score" aria-label="Health score">—</span>
             <span class="spc-ring-label">Health Score</span>
             <span class="spc-ring-grade"></span>
           </div>
@@ -3336,6 +3336,8 @@ async function initDashSupplier() {
         }
 
         // Populate circular health score ring
+        const RING_GOOD_THRESHOLD = 80;
+        const RING_FAIR_THRESHOLD = 50;
         const ringScore = row.querySelector('.spc-ring-score');
         const ringFill = row.querySelector('.spc-ring-fill');
         const ringGrade = row.querySelector('.spc-ring-grade');
@@ -3347,11 +3349,12 @@ async function initDashSupplier() {
           ringFill.style.strokeDasharray = `${circumference}`;
           ringFill.style.strokeDashoffset = `${offset}`;
           ringScore.textContent = displayScore || '—';
+          ringScore.setAttribute('aria-label', displayScore ? `Health score: ${displayScore}` : 'Health score: not yet calculated');
           if (ringGrade && ringEl) {
-            if (displayScore >= 80) {
+            if (displayScore >= RING_GOOD_THRESHOLD) {
               ringGrade.textContent = 'Good';
               ringEl.dataset.grade = 'good';
-            } else if (displayScore >= 50) {
+            } else if (displayScore >= RING_FAIR_THRESHOLD) {
               ringGrade.textContent = 'Fair';
               ringEl.dataset.grade = 'fair';
             } else {
