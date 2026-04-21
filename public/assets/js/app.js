@@ -3202,7 +3202,7 @@ async function initDashSupplier() {
           const hasWebsite = s.website && typeof s.website === 'string' && s.website.length > 0;
 
           const checklistItems = [
-            { label: 'Business Details', complete: !!(s.name && hasLocation) },
+            { label: 'Business Details', complete: Boolean(s.name && hasLocation) },
             { label: 'Categories & Services', complete: hasCategory },
             { label: 'Photos', complete: hasPhotos },
             { label: 'Contact Information', complete: hasWebsite },
@@ -3354,7 +3354,8 @@ async function initDashSupplier() {
         const ringGrade = row.querySelector('.spc-ring-grade');
         const ringEl = row.querySelector('.spc-ring');
         if (ringScore && ringFill) {
-          const circumference = 2 * Math.PI * 32; // r=32
+          const RING_RADIUS = 32; // must match r="32" in the SVG circle + CSS stroke-dasharray comment
+          const circumference = 2 * Math.PI * RING_RADIUS;
           const displayScore = score || 0;
           const offset = circumference * (1 - displayScore / 100);
           ringFill.style.strokeDasharray = `${circumference}`;

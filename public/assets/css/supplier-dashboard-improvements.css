@@ -8054,7 +8054,7 @@ label .required {
   fill: none;
   stroke-linecap: round;
   stroke-dasharray: 201.06;
-  stroke-dashoffset: 201.06; /* full circumference = 2 × π × r(32) ≈ 201.06; JS overrides this */
+  stroke-dashoffset: 201.06; /* full circumference = 2 × π × r(32) ≈ 201.06; dynamically set by RING_RADIUS constant in app.js */
   transition: stroke-dashoffset 0.7s ease, stroke 0.3s ease;
 }
 
