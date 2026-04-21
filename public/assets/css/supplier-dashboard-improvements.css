@@ -6171,14 +6171,14 @@ body:not(.supplier-dashboard-page) .section > .container {
   position: absolute;
   top: 2px;
   right: 2px;
-  width: 22px;
-  height: 22px;
+  width: 11px;
+  height: 11px;
   padding: 0;
   border: none;
   border-radius: 50%;
   background: rgba(220, 38, 38, 0.85);
   color: #fff;
-  font-size: 12px;
+  font-size: 10px;
   line-height: 1;
   cursor: pointer;
   display: flex;
@@ -6305,8 +6305,8 @@ body:not(.supplier-dashboard-page) .section > .container {
   position: absolute;
   top: 2px;
   right: 2px;
-  width: 20px;
-  height: 20px;
+  width: 11px;
+  height: 11px;
   z-index: 3;
 }
 
@@ -7857,6 +7857,7 @@ label .required {
   position: relative;
   width: 100px;
   flex-shrink: 0;
+  padding-top: 16px; /* space for delete badge that extends above the circle */
   padding-bottom: 16px; /* space for camera badge that extends below the circle */
 }
 
@@ -7892,6 +7893,38 @@ label .required {
   background: #f0faf8;
   border-color: #0b8073;
   box-shadow: 0 3px 10px rgba(11, 128, 115, 0.2);
+}
+
+.spc-avatar-delete-btn {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.9);
+  background: #ef4444;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(16, 24, 40, 0.14);
+  transition: background 0.15s, box-shadow 0.15s;
+  z-index: 3;
+}
+
+.spc-avatar-delete-btn:hover {
+  background: #dc2626;
+  box-shadow: 0 3px 10px rgba(220, 38, 38, 0.3);
+}
+
+.spc-avatar-delete-btn span {
+  display: block;
+  font-size: 13px;
+  line-height: 1;
+  font-weight: 700;
 }
 
 /* ── Body column ───────────────────────────────────────────────────────────── */
@@ -8157,6 +8190,12 @@ label .required {
   transition: background 0.15s, color 0.15s;
 }
 
+.spc-actions .spc-action-btn svg,
+.spc-actions .spc-upload-btn svg {
+  display: block;
+  flex-shrink: 0;
+}
+
 .spc-actions .spc-action-btn:last-child,
 .spc-actions .spc-upload-btn:last-child {
   border-right: none !important;
@@ -8171,6 +8210,10 @@ label .required {
 .spc-actions .spc-upload-btn { color: #0b8073 !important; }
 .spc-actions .spc-action-btn--edit { color: #0b8073 !important; }
 .spc-actions .spc-action-btn--checklist { color: #0b8073 !important; }
+
+.spc-checklist-card[hidden] {
+  display: none !important;
+}
 
 /* ── Mobile ≤640px ──────────────────────────────────────────────────────────── */
 @media (max-width: 640px) {

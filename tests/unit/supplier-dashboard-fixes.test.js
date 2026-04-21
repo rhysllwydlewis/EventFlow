@@ -339,13 +339,17 @@ describe('Supplier dashboard/profile UI polish', () => {
     // Category chip
     expect(appJs).toContain('class="spc-category-chip"');
     // 3-button action bar
+    expect(appJs).toContain('data-action="upload-photo"');
     expect(appJs).toContain('spc-action-btn--edit');
     expect(appJs).toContain('spc-action-btn--checklist');
     expect(appJs).not.toContain('class="card-actions spc-edit-row"');
-    // Checklist card always visible
+    // Checklist card defaults visible and toggle starts in "Hide" state
     expect(appJs).toContain('class="spc-checklist-card"');
     expect(appJs).toContain('class="spc-checklist-steps"');
     expect(appJs).toContain('Profile Setup Checklist');
+    expect(appJs).toContain('class="spc-checklist-btn-label">Hide Checklist</span>');
+    expect(appJs).toContain("actionEl.setAttribute('aria-expanded', 'false')");
+    expect(appJs).toContain("checklistCard.setAttribute('hidden', '')");
     // Checklist items match reference labels
     expect(appJs).toContain("'Business Details'");
     expect(appJs).toContain("'Categories & Services'");
@@ -362,6 +366,40 @@ describe('Supplier dashboard/profile UI polish', () => {
     expect(supplierDashImprovementsCss).toContain('.spc-checklist-card {');
     expect(supplierDashImprovementsCss).toContain('.spc-checklist-step {');
     expect(supplierDashImprovementsCss).toContain('.spc-checklist-step-circle {');
+  });
+
+  it('removes profile-level price display from summary meta row (no POA/profile price badge)', () => {
+    expect(appJs).not.toContain('${priceDisplay ?');
+    expect(appJs).not.toContain('spc-meta-pipe');
+  });
+
+  it('adds 12 o’clock profile avatar delete button and delete action wiring', () => {
+    expect(appJs).toContain('class="spc-avatar-delete-btn"');
+    expect(appJs).toContain('data-action="delete-profile-photo"');
+    expect(appJs).toContain("fetch('/api/profile/avatar'");
+    expect(appJs).toContain("method: 'DELETE'");
+    expect(supplierDashImprovementsCss).toContain('.spc-avatar-delete-btn {');
+  });
+
+  it('upload-photo action expands form, scrolls/focuses uploader, and opens file picker', () => {
+    expect(appJs).toContain('data-action="upload-photo"');
+    expect(appJs).toContain("const uploader = document.getElementById('sup-photo-drop')");
+    expect(appJs).toContain("uploader.scrollIntoView({ behavior: 'smooth', block: 'center' })");
+    expect(appJs).toContain('uploader.focus({ preventScroll: true })');
+    expect(appJs).toContain('uploader.click()');
+  });
+
+  it('profile initials fallback uses multi-letter initials (e.g. RT)', () => {
+    expect(appJs).toContain('.split(/\\s+/)');
+    expect(appJs).toContain('.slice(0, 2)');
+    expect(appJs).toContain('.map(part => part.charAt(0).toUpperCase())');
+  });
+
+  it('package gallery circular delete buttons are reduced to half-size chrome', () => {
+    expect(supplierDashImprovementsCss).toContain('.pkg-gallery-delete {');
+    expect(supplierDashImprovementsCss).toContain('width: 11px;');
+    expect(supplierDashImprovementsCss).toContain('height: 11px;');
+    expect(supplierDashImprovementsCss).toContain('font-size: 10px;');
   });
 });
 
