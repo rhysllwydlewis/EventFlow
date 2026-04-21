@@ -1069,12 +1069,12 @@ body.legacy-nav-open .legacy-nav-menu{
   color:#fff;
   border:2px solid #fff;
   border-radius:50%;
-  width:20px;
-  height:20px;
-  min-width:20px;
-  min-height:20px;
+  width:10px;
+  height:10px;
+  min-width:10px;
+  min-height:10px;
   cursor:pointer;
-  font-size:11px;
+  font-size:7px;
   line-height:1;
   padding:0;
   z-index:10;
@@ -1083,6 +1083,7 @@ body.legacy-nav-open .legacy-nav-menu{
 }
 .photo-remove-btn:hover{
   background:#dc2626;
+  box-shadow:0 0 0 2px rgba(220,38,38,0.2), 0 1px 4px rgba(0,0,0,0.25);
   transform:scale(1.1);
 }
 

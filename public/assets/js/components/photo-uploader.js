@@ -169,14 +169,14 @@ class PhotoUploader {
         position: absolute;
         top: 0.5rem;
         right: 0.5rem;
-        background: rgba(255, 0, 0, 0.8);
+        background: rgba(239, 68, 68, 0.92);
         color: white;
         border: none;
         border-radius: 50%;
-        width: 28px;
-        height: 28px;
+        width: 14px;
+        height: 14px;
         cursor: pointer;
-        font-size: 1.2rem;
+        font-size: 0.6rem;
         line-height: 1;
         display: flex;
         align-items: center;
@@ -185,7 +185,7 @@ class PhotoUploader {
       }
       
       .photo-uploader__preview-remove:hover {
-        background: rgba(255, 0, 0, 1);
+        background: rgba(220,38,38,1);
       }
       
       .photo-uploader__preview-name {
