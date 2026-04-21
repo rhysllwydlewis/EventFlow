@@ -8213,6 +8213,14 @@ label .required {
 .spc-actions .spc-action-btn--edit { color: #0b8073 !important; }
 .spc-actions .spc-action-btn--checklist { color: #0b8073 !important; }
 
+/* Checklist button — subtle tint when checklist is currently hidden (collapsed) */
+.spc-actions .spc-action-btn--checklist[aria-expanded="false"] {
+  background: rgba(11, 128, 115, 0.06) !important;
+}
+.spc-actions .spc-action-btn--checklist[aria-expanded="false"]:hover {
+  background: rgba(11, 128, 115, 0.13) !important;
+}
+
 .spc-checklist-card[hidden] {
   display: none !important;
 }
