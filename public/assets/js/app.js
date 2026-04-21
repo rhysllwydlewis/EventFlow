@@ -3218,10 +3218,11 @@ async function initDashSupplier() {
           const priceDisplay = s.price_display ? escapeHtml(String(s.price_display)) : '';
           const descriptionRaw = String(s.description_short || '');
           const description = escapeHtml(descriptionRaw);
-          const descriptionFallback = description || 'Add a short summary to improve your listing.';
+          const descriptionFallbackText = 'Add a short summary to improve your listing.';
+          const descriptionFallback = description || descriptionFallbackText;
           const descriptionTitle = descriptionRaw
             ? escapeHtml(descriptionRaw)
-            : 'Add a short summary to improve your listing.';
+            : descriptionFallbackText;
           const approved = !!s.approved;
 
           return `<div class="supplier-card card glass-card spc-root" data-supplier-id="${supplierId}">
@@ -3262,7 +3263,7 @@ async function initDashSupplier() {
           </div>
           <div class="listing-health-label">Listing health: calculating…</div>
         </div>
-        <button type="button" class="spc-checklist-link" data-action="edit-profile" data-profile-id="${supplierId}">Profile Setup Checklist (${completedCount}/${checklistItems.length}) ›</button>
+        <button type="button" class="spc-checklist-link" data-action="edit-profile" data-profile-id="${supplierId}" title="Checklist progress: ${completedCount}/${checklistItems.length}">Profile Setup Checklist ›</button>
         <div class="spc-actions">
           <label for="supplier-profile-photo-upload-${supplierId}" class="cta secondary spc-action-btn" style="cursor:pointer;font-size:0.82rem;padding:0.375rem 0.875rem;display:inline-flex;align-items:center;gap:0.35rem;border-radius:6px;line-height:inherit;">
             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
