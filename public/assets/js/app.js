@@ -2488,9 +2488,17 @@ async function renderThreads(targetEl) {
               p => p.userId !== (user && user.id)
             );
             const otherName =
-              otherParticipant && otherParticipant.name
-                ? otherParticipant.name
-                : t.title || 'Conversation';
+              (otherParticipant && (otherParticipant.displayName || otherParticipant.name)) ||
+              t.title ||
+              'Conversation';
+            const trimmedName = String(otherName).trim();
+            const initial = (trimmedName || 'U').charAt(0).toUpperCase();
+            const avatarUrl =
+              otherParticipant &&
+              otherParticipant.avatar &&
+              /^(https?:\/\/|\/[^:])/i.test(otherParticipant.avatar)
+                ? otherParticipant.avatar
+                : '';
             const last = (
               (t.lastMessage && t.lastMessage.content) ||
               t.lastMessageText ||
@@ -2500,6 +2508,11 @@ async function renderThreads(targetEl) {
             const convId = t._id || t.id;
             return `
             <button class="ef-cta thread-row" type="button" data-open="${convId}">
+              <span class="thread-row-avatar" aria-hidden="true"${
+                avatarUrl
+                  ? ` style="background-image:url('${escapeHtml(avatarUrl)}');background-size:cover;background-position:center;color:transparent;"`
+                  : ''
+              }>${escapeHtml(initial)}</span>
               <div class="thread-row-main">
                 <span class="thread-row-title">${escapeHtml(otherName)}</span>
                 <span class="thread-row-snippet">${escapeHtml(last || 'No messages yet.')}</span>
@@ -3058,6 +3071,22 @@ async function initDashSupplier() {
     try {
       const d = await api('/api/me/suppliers');
       const items = d?.items && Array.isArray(d.items) ? d.items : [];
+      let currentUser = null;
+      try {
+        currentUser = await me();
+      } catch (_e) {
+        currentUser = null;
+      }
+      const profileDisplayName =
+        `${currentUser?.firstName || ''} ${currentUser?.lastName || ''}`.trim() ||
+        [currentUser?.name, currentUser?.firstName, currentUser?.email]
+          .find(v => typeof v === 'string' && v.trim())
+          ?.trim();
+      const profilePhotoUrl =
+        currentUser?.avatarUrl && /^(https?:\/\/|\/[^:])/i.test(currentUser.avatarUrl)
+          ? escapeHtml(currentUser.avatarUrl)
+          : '';
+      const profileInitial = escapeHtml((profileDisplayName || 'U').charAt(0).toUpperCase());
       cachedSuppliers = items; // Cache for use within initDashSupplier scope
       window._efCachedSuppliers = items; // Expose globally for editProfile()
       // If this user has at least one Pro supplier, treat them as Pro.
@@ -3192,14 +3221,6 @@ async function initDashSupplier() {
           // Safe access to all fields with defaults — escape all user-supplied values to prevent XSS
           const supplierId = String(s.id || '').replace(/"/g, '&quot;');
           const name = escapeHtml(String(s.name || 'Unnamed Supplier'));
-          const galleryItems =
-            s.photosGallery && Array.isArray(s.photosGallery) ? s.photosGallery : [];
-          // Validate photoUrl to allow only safe http/https/relative URLs
-          const rawPhotoUrl = (galleryItems[0] && galleryItems[0].url) || '';
-          const photoUrl =
-            rawPhotoUrl && /^(https?:\/\/|\/[^:])/i.test(rawPhotoUrl)
-              ? escapeHtml(rawPhotoUrl)
-              : '/assets/images/collage-venue.svg';
           const location = escapeHtml(String(s.location || 'Location not set'));
           const category = escapeHtml(String(s.category || 'Uncategorized'));
           const priceDisplay = s.price_display ? ` · ${escapeHtml(String(s.price_display))}` : '';
@@ -3207,7 +3228,13 @@ async function initDashSupplier() {
           const approved = !!s.approved;
 
           return `<div class="supplier-card card glass-card" style="margin-bottom:10px" data-supplier-id="${supplierId}">
-      <img src="${photoUrl}" alt="${name} profile photo" data-fallback-src="/assets/images/collage-venue.svg">
+      <div class="supplier-profile-photo-slot" style="width:100px;height:100px;flex-shrink:0;">
+        ${
+          profilePhotoUrl
+            ? `<img src="${profilePhotoUrl}" alt="Your profile photo" style="width:100%;height:100%;object-fit:cover;border-radius:12px;" data-fallback-src="/assets/images/default-avatar.svg">`
+            : `<div style="width:100%;height:100%;border-radius:12px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0b8073 0%,#0a6b5f 100%);color:#fff;font-size:2rem;font-weight:700;">${profileInitial}</div>`
+        }
+      </div>
       <div>
         <h3>${name} ${proBadge} ${approved ? '<span class="badge">Approved</span>' : '<span class="badge" style="background:#FFF5E6;color:#8A5A00">Awaiting review</span>'}</h3>
         <div class="small">${location} · <span class="badge">${category}</span>${priceDisplay}</div>
@@ -3226,6 +3253,17 @@ async function initDashSupplier() {
             ${checklistHtml}
           </div>
         </details>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.75rem;margin-bottom:0.5rem;">
+          <label for="supplier-profile-photo-upload-${supplierId}" class="cta secondary" style="cursor:pointer;font-size:0.82rem;padding:0.375rem 0.875rem;display:inline-flex;align-items:center;gap:0.35rem;border-radius:6px;">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Upload Photo
+          </label>
+          <input type="file" id="supplier-profile-photo-upload-${supplierId}" class="supplier-profile-photo-upload" data-profile-id="${supplierId}" accept="image/*" style="display:none;" aria-label="Upload profile photo">
+          <button type="button" class="supplier-profile-photo-remove" data-profile-id="${supplierId}" style="font-size:0.82rem;padding:0.375rem 0.875rem;border-radius:6px;border:1px solid #fca5a5;background:#fff5f5;color:#dc2626;cursor:pointer;display:inline-flex;align-items:center;gap:0.35rem;" aria-label="Remove profile photo">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            Remove
+          </button>
+        </div>
         <div class="card-actions">
           <button type="button" class="ef-cta card-action-btn edit-btn" data-action="edit-profile" data-profile-id="${supplierId}">Edit</button>
         </div>
@@ -3256,6 +3294,64 @@ async function initDashSupplier() {
             ? `Listing health: ${score}%`
             : 'Listing health: add photos and details to improve this listing.';
         }
+      });
+
+      supWrap.querySelectorAll('.supplier-profile-photo-upload').forEach(input => {
+        if (input.dataset.bound === 'true') {
+          return;
+        }
+        input.dataset.bound = 'true';
+        input.addEventListener('change', async e => {
+          const file = e.target.files && e.target.files[0];
+          if (!file) {
+            return;
+          }
+          const fd = new FormData();
+          fd.append('avatar', file);
+          try {
+            const resp = await fetch('/api/profile/avatar', {
+              method: 'POST',
+              credentials: 'include',
+              headers: { 'X-CSRF-Token': window.__CSRF_TOKEN__ || '' },
+              body: fd,
+            });
+            const result = await resp.json().catch(() => ({}));
+            if (!resp.ok) {
+              throw new Error(result.error || 'Failed to upload profile photo');
+            }
+            await loadSuppliers();
+          } catch (err) {
+            alert(err.message || 'Failed to upload profile photo');
+          } finally {
+            e.target.value = '';
+          }
+        });
+      });
+
+      supWrap.querySelectorAll('.supplier-profile-photo-remove').forEach(btn => {
+        if (btn.dataset.bound === 'true') {
+          return;
+        }
+        btn.dataset.bound = 'true';
+        btn.addEventListener('click', async () => {
+          if (!confirm('Remove your profile photo?')) {
+            return;
+          }
+          try {
+            const resp = await fetch('/api/profile/avatar', {
+              method: 'DELETE',
+              credentials: 'include',
+              headers: { 'X-CSRF-Token': window.__CSRF_TOKEN__ || '' },
+            });
+            const result = await resp.json().catch(() => ({}));
+            if (!resp.ok && resp.status !== 404) {
+              throw new Error(result.error || 'Failed to remove profile photo');
+            }
+            await loadSuppliers();
+          } catch (err) {
+            alert(err.message || 'Failed to remove profile photo');
+          }
+        });
       });
 
       if (select) {

@@ -42,6 +42,22 @@ function safeDisplayName(...candidates) {
   return 'Unknown';
 }
 
+function preferredUserDisplayName(user = {}) {
+  const first = typeof user.firstName === 'string' ? user.firstName.trim() : '';
+  const last = typeof user.lastName === 'string' ? user.lastName.trim() : '';
+  const fullName = `${first} ${last}`.trim();
+  if (fullName) {
+    return fullName;
+  }
+  return safeDisplayName(
+    user.name,
+    user.displayName,
+    user.businessName,
+    user.firstName,
+    user.email
+  );
+}
+
 const router = express.Router();
 
 // Returns true only for 24-hex-char ObjectId strings; guards every :id param
@@ -332,13 +348,8 @@ router.post(
       // the string user IDs that auth middleware provides.
       const participants = participantUsers.map(user => ({
         userId: user.id,
-        displayName: safeDisplayName(
-          user.displayName,
-          user.businessName,
-          user.name,
-          user.firstName
-        ),
-        avatar: user.avatar || null,
+        displayName: preferredUserDisplayName(user),
+        avatar: user.avatarUrl || user.avatar || null,
         role: user.role || 'customer',
       }));
 
@@ -591,12 +602,7 @@ router.post(
       }
 
       const userId = req.user.id;
-      const userName = safeDisplayName(
-        req.user.displayName,
-        req.user.businessName,
-        req.user.name,
-        req.user.firstName
-      );
+      const userName = preferredUserDisplayName(req.user);
       const hasAttachments = req.files && req.files.length > 0;
       if ((!content || content.trim().length === 0) && !hasAttachments) {
         return res.status(400).json({
@@ -668,7 +674,7 @@ router.post(
       const messageData = {
         senderId: userId,
         senderName: userName,
-        senderAvatar: req.user.avatar || null,
+        senderAvatar: req.user.avatarUrl || req.user.avatar || null,
         content,
         type,
         attachments,
@@ -920,12 +926,7 @@ router.post(
         return res.status(400).json({ error: 'Invalid message ID' });
       }
       const userId = req.user.id;
-      const userName = safeDisplayName(
-        req.user.displayName,
-        req.user.businessName,
-        req.user.name,
-        req.user.firstName
-      );
+      const userName = preferredUserDisplayName(req.user);
       const { emoji } = req.body;
 
       if (!emoji || typeof emoji !== 'string') {
@@ -1097,12 +1098,7 @@ router.post(
         return res.status(400).json({ error: 'Invalid conversation ID' });
       }
       const userId = req.user.id;
-      const userName = safeDisplayName(
-        req.user.displayName,
-        req.user.businessName,
-        req.user.name,
-        req.user.firstName
-      );
+      const userName = preferredUserDisplayName(req.user);
       // isTyping defaults to true — clients may send false to indicate they stopped typing
       const isTyping = req.body.isTyping !== false;
 

@@ -505,6 +505,9 @@ describe('MessengerV4Service', () => {
         _id: 'user1',
         id: 'user1',
         displayName: 'Alice Johnson',
+        firstName: 'Alice',
+        lastName: 'Johnson',
+        name: 'Alice Johnson',
         email: 'alice@example.com',
         role: 'customer',
         subscriptionTier: 'premium',
@@ -513,6 +516,10 @@ describe('MessengerV4Service', () => {
         _id: 'user2',
         id: 'user2',
         displayName: 'Bob Smith',
+        firstName: 'Bob',
+        lastName: 'Smith',
+        name: 'Bob Smith',
+        avatarUrl: '/uploads/profile/user2.jpg',
         email: 'bob@example.com',
         role: 'supplier',
         subscriptionTier: 'free',
@@ -521,6 +528,9 @@ describe('MessengerV4Service', () => {
         _id: 'user3',
         id: 'user3',
         displayName: 'Charlie Brown',
+        firstName: 'Charlie',
+        lastName: 'Brown',
+        name: 'Charlie Brown',
         email: 'charlie@example.com',
         role: 'customer',
         subscriptionTier: 'pro',
@@ -733,6 +743,19 @@ describe('MessengerV4Service', () => {
         conversations[1].updatedAt.getTime()
       );
     });
+
+    it('should hydrate participant display name and avatar from users collection', async () => {
+      const conversations = await service.getConversations('user1');
+      const withUser2 = conversations.find(c =>
+        c.participants.some(participant => participant.userId === 'user2')
+      );
+      const user2Participant = withUser2.participants.find(
+        participant => participant.userId === 'user2'
+      );
+
+      expect(user2Participant.displayName).toBe('Bob Smith');
+      expect(user2Participant.avatar).toBe('/uploads/profile/user2.jpg');
+    });
   });
 
   describe('sendMessage', () => {
@@ -820,6 +843,20 @@ describe('MessengerV4Service', () => {
       const message = await service.sendMessage(conversation._id.toString(), messageData);
 
       expect(message.content).not.toContain('<script>');
+    });
+
+    it('should return hydrated sender name and avatar in getMessages', async () => {
+      await service.sendMessage(conversation._id.toString(), {
+        senderId: 'user2',
+        senderName: 'legacy-bob-slug',
+        senderAvatar: '/uploads/legacy-avatar.jpg',
+        content: 'Hydrate me',
+      });
+
+      const result = await service.getMessages(conversation._id.toString(), 'user1');
+      expect(result.messages).toHaveLength(1);
+      expect(result.messages[0].senderName).toBe('Bob Smith');
+      expect(result.messages[0].senderAvatar).toBe('/uploads/profile/user2.jpg');
     });
 
     it('should reject empty message content', async () => {

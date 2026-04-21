@@ -951,6 +951,8 @@ async function displayLeadQualityBreakdown() {
       }
       return {
         customerName: otherParticipant?.displayName || otherParticipant?.name || 'Unknown',
+        otherPartyDisplayName: otherParticipant?.displayName || otherParticipant?.name || 'Unknown',
+        otherPartyAvatar: otherParticipant?.avatar || null,
         lastMessage: conv.lastMessagePreview || conv.lastMessage?.content || 'No messages',
         status: conv.status || 'Open',
         unreadCount: myParticipant?.unreadCount || 0,

@@ -32,6 +32,77 @@ class MessengerV4Service {
     }
   }
 
+  static _displayNameFromUser(user = {}) {
+    const first = typeof user.firstName === 'string' ? user.firstName.trim() : '';
+    const last = typeof user.lastName === 'string' ? user.lastName.trim() : '';
+    const fullName = `${first} ${last}`.trim();
+    if (fullName) {
+      return fullName;
+    }
+    const fallbackName = [user.name, user.displayName, user.businessName]
+      .find(v => typeof v === 'string' && v.trim())
+      ?.trim();
+    if (fallbackName) {
+      return fallbackName;
+    }
+    if (typeof user.email === 'string' && user.email.includes('@')) {
+      return user.email.split('@')[0] || 'Unknown';
+    }
+    return 'Unknown';
+  }
+
+  static _avatarFromUser(user = {}) {
+    return user.avatarUrl || user.avatar || null;
+  }
+
+  async _getUserMapByIds(userIds = []) {
+    const ids = [...new Set((userIds || []).filter(Boolean).map(String))];
+    if (!ids.length) {
+      return new Map();
+    }
+    const usersCollection = this.db.collection('users');
+    const users = await usersCollection
+      .find(
+        { id: { $in: ids } },
+        {
+          projection: {
+            id: 1,
+            firstName: 1,
+            lastName: 1,
+            name: 1,
+            displayName: 1,
+            businessName: 1,
+            email: 1,
+            avatarUrl: 1,
+            avatar: 1,
+          },
+        }
+      )
+      .toArray();
+    return new Map(users.map(user => [String(user.id), user]));
+  }
+
+  async _hydrateConversationParticipants(conversation) {
+    if (!conversation || !Array.isArray(conversation.participants)) {
+      return conversation;
+    }
+    const userMap = await this._getUserMapByIds(conversation.participants.map(p => p.userId));
+    return {
+      ...conversation,
+      participants: conversation.participants.map(participant => {
+        const user = userMap.get(String(participant.userId));
+        if (!user) {
+          return participant;
+        }
+        return {
+          ...participant,
+          displayName: MessengerV4Service._displayNameFromUser(user),
+          avatar: MessengerV4Service._avatarFromUser(user),
+        };
+      }),
+    };
+  }
+
   /**
    * Allocate the next monotonic `seq` for a conversation.
    * Uses an atomic $inc upsert so concurrent sends cannot collide.
@@ -347,7 +418,9 @@ class MessengerV4Service {
       .limit(limit)
       .toArray();
 
-    return conversations;
+    return await Promise.all(
+      conversations.map(conversation => this._hydrateConversationParticipants(conversation))
+    );
   }
 
   /**
@@ -366,7 +439,7 @@ class MessengerV4Service {
       throw new Error('Conversation not found or access denied');
     }
 
-    return conversation;
+    return await this._hydrateConversationParticipants(conversation);
   }
 
   /**
@@ -773,6 +846,12 @@ class MessengerV4Service {
     const conversation = await this.getConversation(conversationId, userId);
 
     const limit = Math.min(options.limit || 50, 100);
+    const participantByUserId = new Map(
+      (Array.isArray(conversation.participants) ? conversation.participants : []).map(p => [
+        String(p.userId),
+        p,
+      ])
+    );
     const query = {
       conversationId: new ObjectId(conversationId),
       isDeleted: false,
@@ -800,6 +879,10 @@ class MessengerV4Service {
         return {
           messages: forward.map(m => ({
             ...m,
+            senderName:
+              participantByUserId.get(String(m.senderId))?.displayName || m.senderName || 'Unknown',
+            senderAvatar:
+              participantByUserId.get(String(m.senderId))?.avatar || m.senderAvatar || null,
             viewerStatus: MessengerV4Service.computeViewerStatus(m, userId, participants),
           })),
           hasMore,
@@ -836,6 +919,9 @@ class MessengerV4Service {
     return {
       messages: ordered.map(m => ({
         ...m,
+        senderName:
+          participantByUserId.get(String(m.senderId))?.displayName || m.senderName || 'Unknown',
+        senderAvatar: participantByUserId.get(String(m.senderId))?.avatar || m.senderAvatar || null,
         viewerStatus: MessengerV4Service.computeViewerStatus(m, userId, participants),
       })),
       hasMore,

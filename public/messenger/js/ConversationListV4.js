@@ -22,6 +22,10 @@ function _clv4SafeName(str, fallback) {
   return fallback || 'Unknown';
 }
 
+function _clv4SafeAvatar(url) {
+  return typeof url === 'string' && /^(https?:\/\/|\/[^:])/i.test(url.trim()) ? url.trim() : '';
+}
+
 // Named time constants for readability
 const _CLV4_MS = {
   MINUTE: 60_000,
@@ -596,10 +600,10 @@ class ConversationListV4 {
     const isActive = this.state.activeConversationId === conv._id;
     const isOnline = this.state.getPresence(other?.userId)?.state === 'online';
 
-    const avatarLetter = this.escape(
-      _clv4SafeName(other?.displayName, 'U').charAt(0).toUpperCase()
-    );
-    const name = this.escape(_clv4SafeName(other?.displayName));
+    const displayName = _clv4SafeName(other?.displayName, 'U');
+    const avatarLetter = this.escape(displayName.charAt(0).toUpperCase());
+    const name = this.escape(displayName);
+    const avatarUrl = _clv4SafeAvatar(other?.avatar);
     const preview = this._buildPreview(conv, currentUser);
     const timestamp = this._formatTime(conv.updatedAt);
     const contextBadge = this._buildContextBadge(conv);
@@ -620,7 +624,11 @@ class ConversationListV4 {
            aria-selected="${isActive}"
            aria-label="Conversation with ${name}${unread > 0 ? `, ${unread} unread` : ''}">
         <div class="messenger-v4__avatar-wrapper">
-          <div class="messenger-v4__avatar" aria-hidden="true">${avatarLetter}</div>
+          <div class="messenger-v4__avatar" aria-hidden="true"${
+            avatarUrl
+              ? ` style="background-image:url('${this.escape(avatarUrl)}');background-size:cover;background-position:center;color:transparent;"`
+              : ''
+          }>${avatarLetter}</div>
           ${isOnline ? '<span class="messenger-v4__presence-dot messenger-v4__presence-dot--online" aria-label="Online"></span>' : ''}
         </div>
         <div class="messenger-v4__conversation-details">
