@@ -889,7 +889,7 @@
 
           <!-- ── Left: Form steps ── -->
           <div class="pc-form-col">
-            <form id="customization-form" action="#" novalidate>
+            <form id="customization-form" action="#">
               <input type="hidden" id="sup-id" name="id">
 
               <!-- Step 1: Banner -->
@@ -1296,7 +1296,7 @@
             activeSocial.forEach(p => {
               const dot = document.createElement('span');
               dot.className = 'pc-preview-social-dot';
-              // Use DOMParser-safe innerHTML for static SVG strings (no user data)
+              // SVG strings are static constants — no user data involved, safe to use innerHTML
               dot.innerHTML = socialSvg[p] || '';
               dot.title = p.charAt(0).toUpperCase() + p.slice(1);
               pSocialDots.appendChild(dot);
