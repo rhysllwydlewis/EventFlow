@@ -7826,13 +7826,14 @@ label .required {
 .supplier-card.spc-root {
   display: block;
   margin-bottom: 12px;
-  border-radius: 14px;
+  border-radius: 16px;
   border: 1px solid rgba(11, 128, 115, 0.14);
   background: #fff;
   box-shadow:
     0 1px 2px rgba(16, 24, 40, 0.04),
     0 8px 24px rgba(16, 24, 40, 0.06);
   padding: 20px 24px;
+  overflow: hidden;
 }
 
 #my-suppliers .supplier-card.spc-root:hover,
@@ -7843,40 +7844,77 @@ label .required {
   transform: translateY(-1px);
 }
 
+/* ── 3-column grid: [avatar] [body] [ring] ─────────────────────────────────── */
 .spc-summary {
   display: grid;
-  grid-template-columns: 80px minmax(0, 1fr);
-  gap: 18px;
+  grid-template-columns: 100px 1fr auto;
+  gap: 20px;
   align-items: start;
 }
 
-.spc-avatar-col {
-  border: 2px solid rgba(11, 128, 115, 0.2);
-  box-shadow:
-    0 0 0 3px rgba(11, 128, 115, 0.06),
-    0 2px 10px rgba(11, 128, 115, 0.12);
+/* ── Avatar column ─────────────────────────────────────────────────────────── */
+.spc-avatar-wrap {
+  position: relative;
+  width: 100px;
+  flex-shrink: 0;
 }
 
+.spc-avatar-col {
+  border: 3px solid #fff;
+  box-shadow:
+    0 0 0 2px rgba(11, 128, 115, 0.22),
+    0 3px 12px rgba(11, 128, 115, 0.14);
+}
+
+/* Camera upload overlay button — sits at the bottom of the avatar circle */
+.spc-camera-btn {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid rgba(11, 128, 115, 0.25);
+  box-shadow: 0 2px 8px rgba(16, 24, 40, 0.12);
+  color: #0b8073;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  z-index: 2;
+}
+
+.spc-camera-btn:hover {
+  background: #f0faf8;
+  border-color: #0b8073;
+  box-shadow: 0 3px 10px rgba(11, 128, 115, 0.2);
+}
+
+/* ── Body column ───────────────────────────────────────────────────────────── */
 .spc-body {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 7px;
+  padding-top: 2px;
 }
 
 .spc-name-row {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 10px;
   flex-wrap: wrap;
 }
 
 .spc-name {
   margin: 0;
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   font-weight: 700;
   color: #101828;
+  line-height: 1.2;
 }
 
 .spc-badges {
@@ -7889,24 +7927,29 @@ label .required {
 .spc-badge {
   display: inline-flex;
   align-items: center;
+  gap: 4px;
   border-radius: 999px;
   border: 1px solid transparent;
-  padding: 2px 8px;
-  font-size: 0.72rem;
+  padding: 3px 10px;
+  font-size: 0.73rem;
   font-weight: 600;
   line-height: 1.2;
 }
 
+.spc-badge-icon {
+  flex-shrink: 0;
+}
+
 .spc-badge--tier {
   color: #0b8073;
-  background: rgba(11, 128, 115, 0.12);
-  border-color: rgba(11, 128, 115, 0.2);
+  background: rgba(11, 128, 115, 0.1);
+  border-color: rgba(11, 128, 115, 0.22);
 }
 
 .spc-badge--approved {
-  color: #166534;
-  background: rgba(34, 197, 94, 0.12);
-  border-color: rgba(34, 197, 94, 0.24);
+  color: #15803d;
+  background: rgba(34, 197, 94, 0.1);
+  border-color: rgba(34, 197, 94, 0.28);
 }
 
 .spc-badge--pending {
@@ -7915,28 +7958,29 @@ label .required {
   border-color: rgba(180, 83, 9, 0.22);
 }
 
+/* Meta row — icons + pipe separators */
 .spc-meta {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 4px;
-  color: #667085;
-  font-size: 0.84rem;
-  margin-top: 1px;
+  gap: 5px;
+  color: #555f6d;
+  font-size: 0.85rem;
 }
 
-.spc-meta-sep {
+.spc-meta-icon {
   color: #98a2b3;
+  flex-shrink: 0;
 }
 
-.spc-meta-pill {
-  padding: 1px 7px;
-  border-radius: 999px;
-  border: 1px solid rgba(11, 128, 115, 0.18);
-  color: #0b8073;
-  background: rgba(11, 128, 115, 0.08);
+.spc-meta-pipe {
+  color: #d0d5dd;
+  font-size: 0.75rem;
+  line-height: 1;
+  padding: 0 1px;
 }
 
+/* Description */
 .spc-desc {
   margin: 0;
   color: #667085;
@@ -7947,23 +7991,21 @@ label .required {
   text-overflow: ellipsis;
 }
 
+/* Health bar */
 .spc-health {
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
 .spc-health .listing-health-bar {
-  height: 5px;
-  margin-bottom: 3px;
+  height: 6px;
+  margin-bottom: 4px;
   border-radius: 999px;
   overflow: hidden;
   max-width: 100%;
-  background: rgba(148, 163, 184, 0.25);
+  background: rgba(148, 163, 184, 0.2);
 }
 
 .spc-health .listing-health-fill {
-  /* Override the base rule's scaleX(0) so the inline width set by JS
-     actually renders; existing rule has position:absolute;inset:0 which
-     makes it invisible without a transform. */
   position: absolute;
   left: 0;
   top: 0;
@@ -7975,20 +8017,24 @@ label .required {
 }
 
 .spc-health .listing-health-label {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   color: #98a2b3;
 }
 
+/* Checklist link — "▶ Profile Setup Checklist (4/5)" */
 .spc-checklist-link {
   align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   border: none;
   background: transparent;
   padding: 2px 0;
   color: #0b8073;
-  font-size: 0.8rem;
+  font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
-  margin-top: 2px;
+  margin-top: 1px;
 }
 
 .spc-checklist-link:hover {
@@ -7996,34 +8042,112 @@ label .required {
   text-decoration: underline;
 }
 
-.spc-actions {
+/* ── Health score ring (right column) ──────────────────────────────────────── */
+.spc-ring {
+  position: relative;
+  width: 86px;
+  height: 86px;
+  flex-shrink: 0;
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 8px;
-  margin-top: 4px;
+  align-items: center;
+  justify-content: center;
 }
 
-/* Override the global .cta/.ef-cta !important sizing so Upload/Remove
-   render as compact, consistent chips inside the summary card.
-   Note: ui-ux-fixes.css sets min-height:44px + padding:12px 20px without !important,
-   and styles.css sets padding:10px 18px + font-size:15px WITH !important.
-   Our selectors here are all more-specific or equal, so !important wins. */
+.spc-ring-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg); /* start arc at top */
+}
+
+.spc-ring-track {
+  stroke: rgba(148, 163, 184, 0.2);
+  stroke-width: 6;
+  fill: none;
+}
+
+.spc-ring-fill {
+  stroke: #0b8073;
+  stroke-width: 6;
+  fill: none;
+  stroke-linecap: round;
+  stroke-dasharray: 201.06;
+  stroke-dashoffset: 201.06; /* JS overrides this */
+  transition: stroke-dashoffset 0.7s ease, stroke 0.3s ease;
+}
+
+/* Grade-based ring colour */
+.spc-ring[data-grade="good"] .spc-ring-fill { stroke: #0b8073; }
+.spc-ring[data-grade="fair"] .spc-ring-fill { stroke: #d97706; }
+.spc-ring[data-grade="poor"] .spc-ring-fill { stroke: #dc2626; }
+.spc-ring[data-grade="na"]   .spc-ring-fill { stroke: rgba(148, 163, 184, 0.5); }
+
+.spc-ring-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  text-align: center;
+}
+
+.spc-ring-score {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #101828;
+  line-height: 1;
+}
+
+.spc-ring-label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: #98a2b3;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1.3;
+}
+
+.spc-ring-grade {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #0b8073;
+  line-height: 1.2;
+}
+
+.spc-ring[data-grade="good"] .spc-ring-grade { color: #0b8073; }
+.spc-ring[data-grade="fair"] .spc-ring-grade { color: #d97706; }
+.spc-ring[data-grade="poor"] .spc-ring-grade { color: #dc2626; }
+.spc-ring[data-grade="na"]   .spc-ring-grade { color: #98a2b3; }
+
+/* ── Full-width 4-button action bar ──────────────────────────────────────────
+   Sits below the 3-column summary; all 4 buttons share equal width.
+   Overrides global .cta / .ef-cta !important sizing. */
+.spc-actions {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(16, 24, 40, 0.07);
+}
+
 .spc-actions .spc-action-btn,
-.spc-actions .cta.secondary.spc-action-btn,
 .spc-actions .spc-upload-btn {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
   gap: 6px !important;
-  padding: 7px 14px !important;
+  padding: 9px 12px !important;
   font-size: 13px !important;
   font-weight: 600 !important;
-  min-height: 34px !important;
-  height: 34px !important;
+  min-height: 40px !important;
+  height: 40px !important;
   min-width: 0 !important;
-  width: auto !important;
-  border-radius: 8px !important;
+  width: 100% !important;
+  border-radius: 10px !important;
   box-shadow: none !important;
   transform: none !important;
   backdrop-filter: none !important;
@@ -8032,80 +8156,85 @@ label .required {
   white-space: nowrap !important;
   cursor: pointer;
   overflow: hidden;
-}
-
-.spc-actions .cta.secondary.spc-action-btn,
-.spc-actions .spc-upload-btn {
+  border: 1px solid #e2e8f0 !important;
   background: #fff !important;
-  border: 1px solid #cfedea !important;
-  color: #0b8073 !important;
+  color: #374151 !important;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s, transform 0.15s;
 }
 
-.spc-actions .cta.secondary.spc-action-btn:hover,
+.spc-actions .spc-action-btn:hover,
+.spc-actions .spc-upload-btn:hover {
+  background: #f8fafc !important;
+  border-color: #d0d5dd !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 2px 6px rgba(16, 24, 40, 0.08) !important;
+}
+
+/* Upload Photo — teal accent */
+.spc-actions .spc-upload-btn {
+  color: #0b8073 !important;
+  border-color: rgba(11, 128, 115, 0.25) !important;
+}
+
 .spc-actions .spc-upload-btn:hover {
   background: #f0faf8 !important;
   border-color: #0b8073 !important;
-  transform: translateY(-1px) !important;
-  box-shadow: 0 2px 6px rgba(11, 128, 115, 0.12) !important;
 }
 
+/* Edit Profile — teal accent */
+.spc-actions .spc-action-btn--edit {
+  color: #0b8073 !important;
+  border-color: rgba(11, 128, 115, 0.25) !important;
+}
+
+.spc-actions .spc-action-btn--edit:hover {
+  background: #f0faf8 !important;
+  border-color: #0b8073 !important;
+}
+
+/* View Checklist — neutral */
+
+/* Remove (danger) */
 .spc-actions .spc-action-btn--danger {
-  background: #fff !important;
-  border: 1px solid #fde2e2 !important;
   color: #dc2626 !important;
+  border-color: rgba(220, 38, 38, 0.2) !important;
+  background: rgba(254, 242, 242, 0.6) !important;
 }
 
 .spc-actions .spc-action-btn--danger:hover {
-  background: #fff5f5 !important;
+  background: #fef2f2 !important;
   border-color: #fca5a5 !important;
-  transform: translateY(-1px) !important;
-  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.12) !important;
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.1) !important;
 }
 
-.spc-edit-row {
-  margin-top: 4px;
-  padding-top: 12px;
-  border-top: 1px solid rgba(16, 24, 40, 0.06);
-  justify-content: flex-end;
-}
-
-.spc-edit-btn.card-action-btn.edit-btn {
-  flex: 0 0 auto;
-  min-width: 140px;
-  padding: 10px 20px !important;
-  font-size: 14px !important;
-  border-color: #0b8073 !important;
-  color: #fff !important;
-  background: linear-gradient(135deg, #0b8073, #0a6b5f) !important;
-  box-shadow: 0 2px 8px rgba(11, 128, 115, 0.25) !important;
-}
-
-.spc-edit-btn.card-action-btn.edit-btn:hover {
-  border-color: #0a6b5f !important;
-  background: linear-gradient(135deg, #0a6b5f, #09564d) !important;
-  box-shadow: 0 4px 12px rgba(11, 128, 115, 0.35) !important;
-  transform: translateY(-1px) !important;
-}
-
+/* ── Mobile ≤640px ──────────────────────────────────────────────────────────── */
 @media (max-width: 640px) {
   #my-suppliers .supplier-card.spc-root,
   .supplier-card.spc-root {
-    padding: 16px 18px;
+    padding: 16px 16px;
   }
   .spc-summary {
-    grid-template-columns: 64px minmax(0, 1fr);
+    grid-template-columns: 76px 1fr;
     gap: 14px;
   }
+  /* Hide ring on mobile — health bar is enough */
+  .spc-ring {
+    display: none;
+  }
+  .spc-avatar-wrap {
+    width: 76px;
+  }
   .spc-avatar-col {
-    width: 64px !important;
-    height: 64px !important;
-    font-size: 1.5rem !important;
+    width: 76px !important;
+    height: 76px !important;
+    font-size: 1.8rem !important;
   }
   .spc-name {
-    font-size: 1.05rem;
+    font-size: 1.1rem;
   }
-  .spc-edit-btn.card-action-btn.edit-btn {
-    width: 100%;
-    min-width: 0;
+  /* 2-column action grid on mobile */
+  .spc-actions {
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
   }
 }

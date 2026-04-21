@@ -333,7 +333,9 @@ describe('Supplier dashboard/profile UI polish', () => {
     expect(appJs).toContain('class="spc-summary"');
     expect(appJs).toContain('class="spc-name-row"');
     expect(appJs).toContain('class="spc-checklist-link"');
-    expect(appJs).toContain('class="card-actions spc-edit-row"');
+    // Edit now lives in the 4-button action bar (spc-action-btn--edit), not a separate edit row
+    expect(appJs).toContain('spc-action-btn--edit');
+    expect(appJs).not.toContain('class="card-actions spc-edit-row"');
     expect(supplierDashImprovementsCss).toContain('.spc-root {');
     expect(supplierDashImprovementsCss).toContain('.spc-summary {');
     expect(supplierDashImprovementsCss).toContain('.spc-health .listing-health-bar {');

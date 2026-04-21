@@ -3184,11 +3184,11 @@ async function initDashSupplier() {
           const TIER_ICON = ' ✦';
 
           if (tier === 'pro_plus') {
-            tierLabel = 'Pro Plus' + TIER_ICON;
+            tierLabel = `Pro Plus${TIER_ICON}`;
           } else if (tier === 'pro') {
-            tierLabel = 'Pro' + TIER_ICON;
+            tierLabel = `Pro${TIER_ICON}`;
           } else {
-            tierLabel = 'Starter' + TIER_ICON;
+            tierLabel = `Starter${TIER_ICON}`;
           }
 
           // Calculate profile completeness checklist with safe property access
@@ -3228,58 +3228,94 @@ async function initDashSupplier() {
 
           return `<div class="supplier-card card glass-card spc-root" data-supplier-id="${supplierId}">
       <div class="spc-summary">
-      <div class="supplier-profile-photo-slot spc-avatar-col" aria-hidden="true" style="width:80px;height:80px;flex-shrink:0;border-radius:50%;overflow:hidden;${
-        profilePhotoUrl
-          ? `background:none;`
-          : `background:linear-gradient(135deg,#0b8073 0%,#0a6b5f 100%);display:flex;align-items:center;justify-content:center;color:#fff;font-size:2rem;font-weight:700;`
-      }">
-        ${
-          profilePhotoUrl
-            ? `<img src="${profilePhotoUrl}" alt="Your profile photo" style="width:100%;height:100%;object-fit:cover;display:block;">`
-            : profileInitial
-        }
-      </div>
-      <div class="spc-body">
-        <div class="spc-name-row">
-          <h3 class="spc-name">${name}</h3>
-          <div class="spc-badges">
-            <span class="spc-badge spc-badge--tier">${tierLabel}</span>
+        <!-- Avatar column with camera upload overlay -->
+        <div class="spc-avatar-wrap">
+          <div class="supplier-profile-photo-slot spc-avatar-col" aria-hidden="true" style="width:100px;height:100px;flex-shrink:0;border-radius:50%;overflow:hidden;${
+            profilePhotoUrl
+              ? `background:none;`
+              : `background:linear-gradient(135deg,#0b8073 0%,#0a6b5f 100%);display:flex;align-items:center;justify-content:center;color:#fff;font-size:2.4rem;font-weight:700;`
+          }">
             ${
-              approved
-                ? '<span class="spc-badge spc-badge--approved">Approved</span>'
-                : '<span class="spc-badge spc-badge--pending">Awaiting review</span>'
+              profilePhotoUrl
+                ? `<img src="${profilePhotoUrl}" alt="Your profile photo" style="width:100%;height:100%;object-fit:cover;display:block;">`
+                : profileInitial
             }
           </div>
-        </div>
-        <div class="spc-meta">
-          <span>${location}</span>
-          <span class="spc-meta-sep" aria-hidden="true">·</span>
-          <span class="spc-meta-pill">${category}</span>
-          ${priceDisplay ? `<span class="spc-meta-sep" aria-hidden="true">·</span><span>${priceDisplay}</span>` : ''}
-        </div>
-        <p class="spc-desc" title="${descriptionTitle}">${descriptionFallback}</p>
-        <div class="listing-health spc-health">
-          <div class="listing-health-bar">
-            <div class="listing-health-fill"></div>
-          </div>
-          <div class="listing-health-label">Listing health: calculating…</div>
-        </div>
-        <button type="button" class="spc-checklist-link" data-action="edit-profile" data-profile-id="${supplierId}" title="Checklist progress: ${completedCount}/${checklistItems.length}">Profile Setup Checklist ›</button>
-        <div class="spc-actions">
-          <label for="supplier-profile-photo-upload-${supplierId}" class="cta secondary spc-action-btn spc-upload-btn" style="cursor:pointer;">
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            Upload Photo
+          <label for="supplier-profile-photo-upload-${supplierId}" class="spc-camera-btn" title="Upload profile photo" aria-label="Upload profile photo">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
           </label>
           <input type="file" id="supplier-profile-photo-upload-${supplierId}" class="supplier-profile-photo-upload" data-profile-id="${supplierId}" accept="image/*" style="display:none;" aria-label="Upload profile photo">
-          <button type="button" class="supplier-profile-photo-remove spc-action-btn spc-action-btn--danger" data-profile-id="${supplierId}" aria-label="Remove profile photo">
-            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-            Remove
+        </div>
+        <!-- Body column -->
+        <div class="spc-body">
+          <div class="spc-name-row">
+            <h3 class="spc-name">${name}</h3>
+            <div class="spc-badges">
+              <span class="spc-badge spc-badge--tier">
+                <svg class="spc-badge-icon" width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                ${tierLabel}
+              </span>
+              ${
+                approved
+                  ? `<span class="spc-badge spc-badge--approved">
+                      <svg class="spc-badge-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                      Approved
+                    </span>`
+                  : '<span class="spc-badge spc-badge--pending">Awaiting review</span>'
+              }
+            </div>
+          </div>
+          <div class="spc-meta">
+            <svg class="spc-meta-icon" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span>${location}</span>
+            <span class="spc-meta-pipe" aria-hidden="true">|</span>
+            <svg class="spc-meta-icon" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+            <span>${category}</span>
+            ${priceDisplay ? `<span class="spc-meta-pipe" aria-hidden="true">|</span><span>${priceDisplay}</span>` : ''}
+          </div>
+          <p class="spc-desc" title="${descriptionTitle}">${descriptionFallback}</p>
+          <div class="listing-health spc-health">
+            <div class="listing-health-bar">
+              <div class="listing-health-fill"></div>
+            </div>
+            <div class="listing-health-label">Listing health: calculating…</div>
+          </div>
+          <button type="button" class="spc-checklist-link" data-action="edit-profile" data-profile-id="${supplierId}" title="Checklist progress: ${completedCount}/${checklistItems.length}">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            Profile Setup Checklist (${completedCount}/${checklistItems.length})
           </button>
         </div>
-        <div class="card-actions spc-edit-row">
-          <button type="button" class="ef-cta card-action-btn edit-btn spc-edit-btn" data-action="edit-profile" data-profile-id="${supplierId}">Edit</button>
+        <!-- Health score ring (right column) -->
+        <div class="spc-ring" aria-label="Health score">
+          <svg class="spc-ring-svg" viewBox="0 0 80 80" fill="none" aria-hidden="true">
+            <circle class="spc-ring-track" cx="40" cy="40" r="32"/>
+            <circle class="spc-ring-fill" cx="40" cy="40" r="32"/>
+          </svg>
+          <div class="spc-ring-inner">
+            <span class="spc-ring-score">—</span>
+            <span class="spc-ring-label">Health</span>
+            <span class="spc-ring-grade">Score</span>
+          </div>
         </div>
       </div>
+      <!-- Full-width action bar -->
+      <div class="spc-actions">
+        <label for="supplier-profile-photo-upload-${supplierId}" class="spc-action-btn spc-upload-btn" style="cursor:pointer;">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Upload Photo
+        </label>
+        <button type="button" class="spc-action-btn spc-action-btn--edit" data-action="edit-profile" data-profile-id="${supplierId}">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          Edit Profile
+        </button>
+        <button type="button" class="spc-action-btn spc-action-btn--checklist" data-action="view-checklist" data-profile-id="${supplierId}">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2h-2"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+          View Checklist
+        </button>
+        <button type="button" class="supplier-profile-photo-remove spc-action-btn spc-action-btn--danger" data-profile-id="${supplierId}" aria-label="Remove profile photo">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+          Remove
+        </button>
       </div>
     </div>`;
         })
@@ -3306,6 +3342,32 @@ async function initDashSupplier() {
           label.textContent = score
             ? `Listing health: ${score}%`
             : 'Listing health: add photos and details to improve this listing.';
+        }
+
+        // Populate circular health score ring
+        const ringScore = row.querySelector('.spc-ring-score');
+        const ringFill = row.querySelector('.spc-ring-fill');
+        const ringGrade = row.querySelector('.spc-ring-grade');
+        const ringEl = row.querySelector('.spc-ring');
+        if (ringScore && ringFill) {
+          const circumference = 2 * Math.PI * 32; // r=32
+          const displayScore = score || 0;
+          const offset = circumference * (1 - displayScore / 100);
+          ringFill.style.strokeDasharray = `${circumference}`;
+          ringFill.style.strokeDashoffset = `${offset}`;
+          ringScore.textContent = displayScore || '—';
+          if (ringGrade && ringEl) {
+            if (displayScore >= 80) {
+              ringGrade.textContent = 'Good';
+              ringEl.dataset.grade = 'good';
+            } else if (displayScore >= 50) {
+              ringGrade.textContent = 'Fair';
+              ringEl.dataset.grade = 'fair';
+            } else {
+              ringGrade.textContent = score ? 'Poor' : 'N/A';
+              ringEl.dataset.grade = score ? 'poor' : 'na';
+            }
+          }
         }
       });
 
@@ -3851,6 +3913,18 @@ async function initDashSupplier() {
       const profileId = target.getAttribute('data-profile-id');
       if (profileId) {
         editProfile(profileId);
+      }
+    }
+
+    // Handle View Checklist button — scrolls to and expands the profile edit form
+    if (target.matches('[data-action="view-checklist"]')) {
+      const profileFormSection = document.getElementById('profile-form-section');
+      if (profileFormSection) {
+        if (!profileFormSection.classList.contains('expanded')) {
+          profileFormSection.classList.add('expanded');
+          profileFormSection.removeAttribute('hidden');
+        }
+        profileFormSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
 
