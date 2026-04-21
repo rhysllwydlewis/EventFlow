@@ -14,6 +14,8 @@ const path = require('path');
 describe('Messenger page CSS consistency', () => {
   let messengerHtml;
   let messengerCss;
+  let legacyMessengerCss;
+  let messagingGlassEnhancementsCss;
 
   beforeAll(() => {
     messengerHtml = fs.readFileSync(
@@ -22,6 +24,22 @@ describe('Messenger page CSS consistency', () => {
     );
     messengerCss = fs.readFileSync(
       path.resolve(__dirname, '..', '..', 'public', 'assets', 'css', 'messenger-v4.css'),
+      'utf8'
+    );
+    legacyMessengerCss = fs.readFileSync(
+      path.resolve(__dirname, '..', '..', 'public', 'messenger', 'css', 'messenger.css'),
+      'utf8'
+    );
+    messagingGlassEnhancementsCss = fs.readFileSync(
+      path.resolve(
+        __dirname,
+        '..',
+        '..',
+        'public',
+        'assets',
+        'css',
+        'messaging-glass-enhancements.css'
+      ),
       'utf8'
     );
   });
@@ -66,5 +84,16 @@ describe('Messenger page CSS consistency', () => {
 
   it('loads messenger-v4-polish.css which contains attachment CSS classes', () => {
     expect(messengerHtml).toContain('messenger-v4-polish.css');
+  });
+
+  it('uses reduced 12px dimensions for attachment remove chips in messenger preview CSS', () => {
+    expect(legacyMessengerCss).toContain('.attachment-remove {');
+    expect(legacyMessengerCss).toContain('top: 4px;');
+    expect(legacyMessengerCss).toContain('right: 4px;');
+    expect(legacyMessengerCss).toContain('width: 12px;');
+    expect(legacyMessengerCss).toContain('height: 12px;');
+    expect(messagingGlassEnhancementsCss).toContain('.attachment-remove {');
+    expect(messagingGlassEnhancementsCss).toContain('width: 12px;');
+    expect(messagingGlassEnhancementsCss).toContain('height: 12px;');
   });
 });

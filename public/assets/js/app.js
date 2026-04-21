@@ -3175,7 +3175,7 @@ async function initDashSupplier() {
           }
 
           // Enhanced badge rendering for Pro and Pro+ tiers
-          let proBadge = '';
+          let tierLabel = '';
           // Check subscriptionTier field first (new), then fall back to subscription.tier or isPro
           const tier =
             s.subscriptionTier ||
@@ -3183,11 +3183,11 @@ async function initDashSupplier() {
             (s.isPro || s.pro ? 'pro' : null);
 
           if (tier === 'pro_plus') {
-            proBadge = '<span class="badge badge-pro-plus">Pro Plus</span>';
+            tierLabel = 'Pro Plus';
           } else if (tier === 'pro') {
-            proBadge = '<span class="badge badge-pro">Pro</span>';
+            tierLabel = 'Pro';
           } else {
-            proBadge = '<span class="badge badge-starter">Starter</span>';
+            tierLabel = 'Starter';
           }
 
           // Calculate profile completeness checklist with safe property access
@@ -3202,82 +3202,146 @@ async function initDashSupplier() {
           const hasWebsite = s.website && typeof s.website === 'string' && s.website.length > 0;
 
           const checklistItems = [
-            { label: 'Photos uploaded', complete: hasPhotos },
-            { label: 'Detailed description', complete: hasDescription },
-            { label: 'Category set', complete: hasCategory },
-            { label: 'Location specified', complete: hasLocation },
-            { label: 'Website added', complete: hasWebsite },
+            { label: 'Business Details', complete: Boolean(s.name && hasLocation) },
+            { label: 'Categories & Services', complete: hasCategory },
+            { label: 'Photos', complete: hasPhotos },
+            { label: 'Contact Information', complete: hasWebsite },
+            { label: 'Additional Details', complete: hasDescription },
           ];
           const completedCount = checklistItems.filter(item => item.complete).length;
-          const checklistHtml = checklistItems
-            .map(
-              item =>
-                `<div style="display:flex;align-items:center;gap:0.5rem;font-size:0.875rem;color:#667085;">
-            <span style="color:${item.complete ? '#10b981' : '#d1d5db'}">${item.complete ? '✓' : '○'}</span>
-            <span>${item.label}</span>
-          </div>`
-            )
-            .join('');
+          // Health score: 0-100 based on checklist completion (each of 5 items = 20 points)
+          const checklistScore = Math.round((completedCount / checklistItems.length) * 100);
 
           // Safe access to all fields with defaults — escape all user-supplied values to prevent XSS
           const supplierId = String(s.id || '').replace(/"/g, '&quot;');
           const name = escapeHtml(String(s.name || 'Unnamed Supplier'));
           const location = escapeHtml(String(s.location || 'Location not set'));
           const category = escapeHtml(String(s.category || 'Uncategorized'));
-          const priceDisplay = s.price_display ? ` · ${escapeHtml(String(s.price_display))}` : '';
-          const description = escapeHtml(String(s.description_short || ''));
+          const priceDisplay = s.price_display ? escapeHtml(String(s.price_display)) : '';
+          const descriptionRaw = String(s.description_short || '');
+          const description = escapeHtml(descriptionRaw);
+          const descriptionFallbackText = 'Add a short summary to improve your listing.';
+          const descriptionFallback = description || descriptionFallbackText;
+          const descriptionTitle = descriptionRaw
+            ? escapeHtml(descriptionRaw)
+            : descriptionFallbackText;
           const approved = !!s.approved;
 
-          return `<div class="supplier-card card glass-card" style="margin-bottom:10px" data-supplier-id="${supplierId}">
-      <div class="supplier-profile-photo-slot" aria-hidden="true" style="width:80px;height:80px;flex-shrink:0;border-radius:50%;overflow:hidden;${
-        profilePhotoUrl
-          ? `background:none;`
-          : `background:linear-gradient(135deg,#0b8073 0%,#0a6b5f 100%);display:flex;align-items:center;justify-content:center;color:#fff;font-size:2rem;font-weight:700;`
-      }">
-        ${
-          profilePhotoUrl
-            ? `<img src="${profilePhotoUrl}" alt="Your profile photo" style="width:100%;height:100%;object-fit:cover;display:block;">`
-            : profileInitial
-        }
-      </div>
-      <div style="flex:1;min-width:0;">
-        <h3>${name} ${proBadge} ${approved ? '<span class="badge">Approved</span>' : '<span class="badge" style="background:#FFF5E6;color:#8A5A00">Awaiting review</span>'}</h3>
-        <div class="small">${location} · <span class="badge">${category}</span>${priceDisplay}</div>
-        <p class="small">${description}</p>
-        <div class="listing-health">
-          <div class="listing-health-bar">
-            <div class="listing-health-fill"></div>
+          return `<div class="supplier-card card glass-card spc-root" data-supplier-id="${supplierId}">
+      <div class="spc-summary">
+        <!-- Avatar column with camera upload overlay -->
+        <div class="spc-avatar-wrap">
+          <div class="supplier-profile-photo-slot spc-avatar-col" aria-hidden="true" style="width:100px;height:100px;flex-shrink:0;border-radius:50%;overflow:hidden;${
+            profilePhotoUrl
+              ? `background:none;`
+              : `background:linear-gradient(135deg,#0b8073 0%,#0a6b5f 100%);display:flex;align-items:center;justify-content:center;color:#fff;font-size:2.4rem;font-weight:700;`
+          }">
+            ${
+              profilePhotoUrl
+                ? `<img src="${profilePhotoUrl}" alt="Your profile photo" style="width:100%;height:100%;object-fit:cover;display:block;">`
+                : profileInitial
+            }
           </div>
-          <div class="listing-health-label">Listing health: calculating…</div>
-        </div>
-        <details style="margin-top:0.75rem;">
-          <summary style="cursor:pointer;font-size:0.875rem;color:#667eea;font-weight:500;">
-            Profile Setup Checklist (${completedCount}/${checklistItems.length})
-          </summary>
-          <div style="margin-top:0.5rem;display:flex;flex-direction:column;gap:0.25rem;padding-left:0.5rem;">
-            ${checklistHtml}
-          </div>
-        </details>
-        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;margin-top:0.75rem;margin-bottom:0.5rem;">
-          <label for="supplier-profile-photo-upload-${supplierId}" class="cta secondary" style="cursor:pointer;font-size:0.82rem;padding:0.375rem 0.875rem;display:inline-flex;align-items:center;gap:0.35rem;border-radius:6px;line-height:inherit;">
-            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            Upload Photo
+          <label for="supplier-profile-photo-upload-${supplierId}" class="spc-camera-btn" title="Upload profile photo" aria-label="Upload profile photo">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
           </label>
           <input type="file" id="supplier-profile-photo-upload-${supplierId}" class="supplier-profile-photo-upload" data-profile-id="${supplierId}" accept="image/*" style="display:none;" aria-label="Upload profile photo">
-          <button type="button" class="supplier-profile-photo-remove" data-profile-id="${supplierId}" style="font-size:0.82rem;padding:0.375rem 0.875rem;border-radius:6px;border:1px solid #CFEDEA;background:#F6FAF9;color:#dc2626;cursor:pointer;display:inline-flex;align-items:center;gap:0.35rem;box-sizing:border-box;line-height:inherit;" aria-label="Remove profile photo">
-            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-            Remove
-          </button>
         </div>
-        <div class="card-actions">
-          <button type="button" class="ef-cta card-action-btn edit-btn" data-action="edit-profile" data-profile-id="${supplierId}">Edit</button>
+        <!-- Body column -->
+        <div class="spc-body">
+          <div class="spc-name-row">
+            <h3 class="spc-name">${name}</h3>
+            <div class="spc-badges">
+              <span class="spc-badge spc-badge--tier">
+                <svg class="spc-badge-icon" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                ${tierLabel}
+              </span>
+              ${
+                approved
+                  ? `<span class="spc-badge spc-badge--approved">
+                      <svg class="spc-badge-icon" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                      Approved
+                    </span>`
+                  : '<span class="spc-badge spc-badge--pending">Awaiting review</span>'
+              }
+            </div>
+          </div>
+          <div class="spc-meta">
+            <svg class="spc-meta-icon" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            <span>${location}</span>
+            <span class="spc-category-chip">
+              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+              ${category}
+            </span>
+            ${priceDisplay ? `<span class="spc-meta-pipe" aria-hidden="true">|</span><span>${priceDisplay}</span>` : ''}
+          </div>
+        </div>
+        <!-- Health score ring (right column) -->
+        <div class="spc-ring" aria-label="Health score" aria-live="polite" data-computed-score="${checklistScore}">
+          <div class="spc-ring-circle">
+            <svg class="spc-ring-svg" viewBox="0 0 80 80" fill="none" aria-hidden="true">
+              <circle class="spc-ring-track" cx="40" cy="40" r="32"/>
+              <circle class="spc-ring-fill" cx="40" cy="40" r="32"/>
+            </svg>
+            <div class="spc-ring-inner">
+              <span class="spc-ring-score" aria-label="Health score">—</span>
+            </div>
+          </div>
+          <span class="spc-ring-label">Health Score</span>
+          <span class="spc-ring-grade"></span>
+        </div>
+      </div>
+      <!-- 3-button action bar -->
+      <div class="spc-actions">
+        <label for="supplier-profile-photo-upload-${supplierId}" class="spc-action-btn spc-upload-btn" style="cursor:pointer;">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Upload Photo
+        </label>
+        <button type="button" class="spc-action-btn spc-action-btn--edit" data-action="edit-profile" data-profile-id="${supplierId}">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          Edit Profile
+        </button>
+        <button type="button" class="spc-action-btn spc-action-btn--checklist" data-action="view-checklist" data-profile-id="${supplierId}">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="4" rx="1"/><path d="M9 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2h-2"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+          View Checklist
+        </button>
+      </div>
+      <!-- Profile Setup Checklist -->
+      <div class="spc-checklist-card" id="spc-checklist-${supplierId}">
+        <div class="spc-checklist-header">
+          <div class="spc-checklist-big-icon${completedCount === checklistItems.length ? ' spc-checklist-big-icon--complete' : ''}" aria-hidden="true">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <div class="spc-checklist-header-body">
+            <div class="spc-checklist-title-row">
+              <span class="spc-checklist-title">Profile Setup Checklist</span>
+              <span class="spc-checklist-count">${completedCount} / ${checklistItems.length}</span>
+            </div>
+            <p class="spc-checklist-subtitle">Complete all steps to improve your profile visibility</p>
+          </div>
+        </div>
+        <div class="spc-checklist-steps" role="list">
+          ${checklistItems
+            .map(
+              (item, i) => `
+            <div class="spc-checklist-step${item.complete ? ' spc-checklist-step--complete' : ''}" role="listitem">
+              <div class="spc-checklist-step-circle" aria-hidden="true">${
+                item.complete
+                  ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>`
+                  : `${i + 1}`
+              }</div>
+              <span class="spc-checklist-step-label">${item.label}</span>
+            </div>
+          `
+            )
+            .join('')}
         </div>
       </div>
     </div>`;
         })
         .join('');
 
-      // Listing health based on smart score if present
+      // Populate circular health score ring for each supplier card
       const rows = supWrap.querySelectorAll('.supplier-card');
       items.forEach((s, idx) => {
         if (!s) {
@@ -3288,16 +3352,39 @@ async function initDashSupplier() {
         if (!row) {
           return;
         }
-        const bar = row.querySelector('.listing-health-fill');
-        const label = row.querySelector('.listing-health-label');
-        const score = typeof s.aiScore === 'number' ? s.aiScore : 0;
-        if (bar) {
-          bar.style.width = `${score || 10}%`;
-        }
-        if (label) {
-          label.textContent = score
-            ? `Listing health: ${score}%`
-            : 'Listing health: add photos and details to improve this listing.';
+
+        // Health score: prefer aiScore if set, otherwise use checklist-based score embedded in DOM
+        const ringEl = row.querySelector('.spc-ring');
+        const checklistScore = ringEl ? parseInt(ringEl.dataset.computedScore || '0', 10) : 0;
+        const score = typeof s.aiScore === 'number' && s.aiScore > 0 ? s.aiScore : checklistScore;
+
+        // Populate circular health score ring
+        const RING_GOOD_THRESHOLD = 80;
+        const RING_FAIR_THRESHOLD = 50;
+        const ringScore = row.querySelector('.spc-ring-score');
+        const ringFill = row.querySelector('.spc-ring-fill');
+        const ringGrade = row.querySelector('.spc-ring-grade');
+        if (ringScore && ringFill) {
+          const RING_RADIUS = 32; // must match r="32" in the SVG circle + CSS stroke-dasharray comment
+          const circumference = 2 * Math.PI * RING_RADIUS;
+          const displayScore = score;
+          const offset = circumference * (1 - displayScore / 100);
+          ringFill.style.strokeDasharray = `${circumference}`;
+          ringFill.style.strokeDashoffset = `${offset}`;
+          ringScore.textContent = String(displayScore);
+          ringScore.setAttribute('aria-label', `Health score: ${displayScore}`);
+          if (ringGrade && ringEl) {
+            if (displayScore >= RING_GOOD_THRESHOLD) {
+              ringGrade.textContent = 'Good';
+              ringEl.dataset.grade = 'good';
+            } else if (displayScore >= RING_FAIR_THRESHOLD) {
+              ringGrade.textContent = 'Fair';
+              ringEl.dataset.grade = 'fair';
+            } else {
+              ringGrade.textContent = 'Poor';
+              ringEl.dataset.grade = 'poor';
+            }
+          }
         }
       });
 
@@ -3336,39 +3423,6 @@ async function initDashSupplier() {
             }
           } finally {
             e.target.value = '';
-          }
-        });
-      });
-
-      supWrap.querySelectorAll('.supplier-profile-photo-remove').forEach(btn => {
-        if (btn.dataset.bound === 'true') {
-          return;
-        }
-        btn.dataset.bound = 'true';
-        btn.addEventListener('click', async () => {
-          if (!confirm('Remove your profile photo?')) {
-            return;
-          }
-          try {
-            const resp = await fetch('/api/profile/avatar', {
-              method: 'DELETE',
-              credentials: 'include',
-              headers: { 'X-CSRF-Token': window.__CSRF_TOKEN__ || '' },
-            });
-            const result = await resp.json().catch(() => ({}));
-            if (!resp.ok && resp.status !== 404) {
-              throw new Error(result.error || 'Failed to remove profile photo');
-            }
-            // Bust the cached auth state so the next me() call fetches the updated avatarUrl
-            if (window.AuthStateManager?.refresh) {
-              await window.AuthStateManager.refresh();
-            }
-            await loadSuppliers();
-          } catch (err) {
-            console.error('Profile photo removal failed:', err);
-            if (window.announceToSR) {
-              window.announceToSR(err.message || 'Failed to remove profile photo');
-            }
           }
         });
       });
@@ -3843,6 +3897,27 @@ async function initDashSupplier() {
       const profileId = target.getAttribute('data-profile-id');
       if (profileId) {
         editProfile(profileId);
+      }
+    }
+
+    // Handle View Checklist button — scrolls to the checklist card for this profile
+    if (target.matches('[data-action="view-checklist"]')) {
+      const profileId = target.getAttribute('data-profile-id');
+      const checklistCard = profileId
+        ? document.getElementById(`spc-checklist-${profileId}`)
+        : null;
+      if (checklistCard) {
+        checklistCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } else {
+        // Fallback: expand and scroll to profile form section
+        const profileFormSection = document.getElementById('profile-form-section');
+        if (profileFormSection) {
+          if (!profileFormSection.classList.contains('expanded')) {
+            profileFormSection.classList.add('expanded');
+            profileFormSection.removeAttribute('hidden');
+          }
+          profileFormSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
       }
     }
 

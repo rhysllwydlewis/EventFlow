@@ -263,12 +263,15 @@ describe('Supplier dashboard/profile UI polish', () => {
     expect(section).not.toContain('<path d="M12 5v14"/>');
   });
 
-  it('supplier profile Remove photo button uses outlined neutral chrome with danger text/icon', () => {
-    expect(appJs).toContain('class="supplier-profile-photo-remove"');
-    expect(appJs).toContain('border:1px solid #CFEDEA;background:#F6FAF9;color:#dc2626');
-    expect(appJs).toContain('box-sizing:border-box;line-height:inherit;');
-    expect(appJs).not.toContain('border:1px solid #fca5a5;background:#fff5f5;color:#dc2626');
-    expect(appJs).not.toContain('border:1px solid #d1d5db;background:#fff;color:#dc2626');
+  it('supplier profile Remove button is absent — no remove profile ability', () => {
+    // The Remove button was intentionally removed from the card UI.
+    // There should be no supplier-profile-photo-remove button in the card template.
+    expect(appJs).not.toContain(
+      'class="supplier-profile-photo-remove spc-action-btn spc-action-btn--danger"'
+    );
+    expect(appJs).not.toContain('spc-action-btn--danger');
+    // The photo-remove event binding loop should also be gone
+    expect(appJs).not.toContain("querySelectorAll('.supplier-profile-photo-remove')");
   });
 
   it('settings Remove photo button matches outlined upload-button chrome', () => {
@@ -308,6 +311,57 @@ describe('Supplier dashboard/profile UI polish', () => {
     expect(supplierDashImprovementsCss).toContain('.photo-preview-remove {');
     expect(supplierDashImprovementsCss).toContain('width: 8px;');
     expect(supplierDashImprovementsCss).toContain('height: 8px;');
+  });
+
+  it('supplier gallery tile remove buttons are anchored inside top-right and use 8px chrome', () => {
+    expect(supplierDashImprovementsCss).toContain(
+      '.photo-preview-item--existing .photo-delete-btn,'
+    );
+    expect(supplierDashImprovementsCss).toContain(
+      '.photo-preview-item--pending .photo-remove-btn {'
+    );
+    expect(supplierDashImprovementsCss).toContain('top: 2px;');
+    expect(supplierDashImprovementsCss).toContain('right: 2px;');
+    expect(supplierDashImprovementsCss).toContain('min-width: 8px;');
+    expect(supplierDashImprovementsCss).toContain('min-height: 8px;');
+    expect(supplierDashImprovementsCss).toContain('font-size: 6px;');
+  });
+
+  it('supplier profile summary card uses structured spc-* layout classes', () => {
+    expect(appJs).toContain('class="supplier-card card glass-card spc-root"');
+    expect(appJs).toContain('class="spc-summary"');
+    expect(appJs).toContain('class="spc-name-row"');
+    // Inline checklist link removed — View Checklist button in action bar is sufficient
+    expect(appJs).not.toContain('class="spc-checklist-link"');
+    // Description and health bar removed from card body (ring + checklist card handle these)
+    expect(appJs).not.toContain('class="spc-desc"');
+    expect(appJs).not.toContain('class="listing-health spc-health"');
+    // Category chip
+    expect(appJs).toContain('class="spc-category-chip"');
+    // 3-button action bar
+    expect(appJs).toContain('spc-action-btn--edit');
+    expect(appJs).toContain('spc-action-btn--checklist');
+    expect(appJs).not.toContain('class="card-actions spc-edit-row"');
+    // Checklist card always visible
+    expect(appJs).toContain('class="spc-checklist-card"');
+    expect(appJs).toContain('class="spc-checklist-steps"');
+    expect(appJs).toContain('Profile Setup Checklist');
+    // Checklist items match reference labels
+    expect(appJs).toContain("'Business Details'");
+    expect(appJs).toContain("'Categories & Services'");
+    expect(appJs).toContain("'Photos'");
+    expect(appJs).toContain("'Contact Information'");
+    expect(appJs).toContain("'Additional Details'");
+    expect(supplierDashImprovementsCss).toContain('.spc-root {');
+    expect(supplierDashImprovementsCss).toContain('.spc-summary {');
+    expect(supplierDashImprovementsCss).toContain('.spc-health .listing-health-bar {');
+    // 3-col action bar
+    expect(supplierDashImprovementsCss).toContain('grid-template-columns: repeat(3, 1fr)');
+    // New components
+    expect(supplierDashImprovementsCss).toContain('.spc-category-chip {');
+    expect(supplierDashImprovementsCss).toContain('.spc-checklist-card {');
+    expect(supplierDashImprovementsCss).toContain('.spc-checklist-step {');
+    expect(supplierDashImprovementsCss).toContain('.spc-checklist-step-circle {');
   });
 });
 

@@ -6384,8 +6384,8 @@ body:not(.supplier-dashboard-page) .section > .container {
 /* Liquid-glass chip: half the previous size, frosted white at rest → soft red on hover */
 .photo-preview-remove {
   position: absolute;
-  top: -4px;
-  right: -4px;
+  top: 2px;
+  right: 2px;
   width: 8px;
   height: 8px;
   padding: 0;
@@ -7712,15 +7712,15 @@ label .required {
 .photo-preview-item--existing .photo-delete-btn,
 .photo-preview-item--pending .photo-remove-btn {
   position: absolute;
-  top: -4px;
-  right: -4px;
+  top: 2px;
+  right: 2px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
-  min-width: 16px;
-  min-height: 16px;
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  min-height: 8px;
   padding: 0;
   background: rgba(255, 255, 255, 0.72);
   backdrop-filter: blur(8px) saturate(160%);
@@ -7728,7 +7728,7 @@ label .required {
   color: #374151;
   border: 1px solid rgba(255, 255, 255, 0.55);
   border-radius: 50%;
-  font-size: 8px;
+  font-size: 6px;
   font-weight: 800;
   line-height: 1;
   cursor: pointer;
@@ -7817,4 +7817,552 @@ label .required {
   .photo-preview-item--existing.photo-gallery-dragging {
     transform: none;
   }
+}
+
+/* Supplier profile summary card polish (collapsed state).
+   Specificity bumped via #my-suppliers so it wins over the base
+   .supplier-card grid + .supplier-dashboard-page liquid-glass rules. */
+#my-suppliers .supplier-card.spc-root,
+.supplier-card.spc-root {
+  display: block;
+  margin-bottom: 12px;
+  border-radius: 16px;
+  border: 1px solid rgba(11, 128, 115, 0.14);
+  background: #fff;
+  box-shadow:
+    0 1px 2px rgba(16, 24, 40, 0.04),
+    0 8px 24px rgba(16, 24, 40, 0.06);
+  padding: 20px 24px;
+  overflow: hidden;
+}
+
+#my-suppliers .supplier-card.spc-root:hover,
+.supplier-card.spc-root:hover {
+  box-shadow:
+    0 1px 2px rgba(16, 24, 40, 0.04),
+    0 12px 32px rgba(11, 128, 115, 0.12);
+  transform: translateY(-1px);
+}
+
+/* ── 3-column grid: [avatar] [body] [ring] ─────────────────────────────────── */
+.spc-summary {
+  display: grid;
+  grid-template-columns: 100px 1fr auto;
+  gap: 20px;
+  align-items: center;
+}
+
+/* ── Avatar column ─────────────────────────────────────────────────────────── */
+.spc-avatar-wrap {
+  position: relative;
+  width: 100px;
+  flex-shrink: 0;
+  padding-bottom: 16px; /* space for camera badge that extends below the circle */
+}
+
+.spc-avatar-col {
+  border: 3px solid #fff;
+  box-shadow:
+    0 0 0 3px rgba(11, 128, 115, 0.18),
+    0 4px 16px rgba(11, 128, 115, 0.12);
+}
+
+/* Camera upload overlay button — sits below the avatar circle */
+.spc-camera-btn {
+  position: absolute;
+  bottom: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid rgba(11, 128, 115, 0.25);
+  box-shadow: 0 2px 8px rgba(16, 24, 40, 0.14);
+  color: #0b8073;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  z-index: 2;
+}
+
+.spc-camera-btn:hover {
+  background: #f0faf8;
+  border-color: #0b8073;
+  box-shadow: 0 3px 10px rgba(11, 128, 115, 0.2);
+}
+
+/* ── Body column ───────────────────────────────────────────────────────────── */
+.spc-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding-top: 2px;
+}
+
+.spc-name-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.spc-name {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #101828;
+  line-height: 1.2;
+}
+
+.spc-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.spc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  padding: 4px 11px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+}
+
+.spc-badge-icon {
+  flex-shrink: 0;
+  display: block;
+}
+
+.spc-badge--tier {
+  color: #0b8073;
+  background: rgba(11, 128, 115, 0.1);
+  border-color: rgba(11, 128, 115, 0.22);
+}
+
+.spc-badge--approved {
+  color: #15803d;
+  background: rgba(34, 197, 94, 0.1);
+  border-color: rgba(34, 197, 94, 0.28);
+}
+
+.spc-badge--pending {
+  color: #8a5a00;
+  background: #fff5e6;
+  border-color: rgba(180, 83, 9, 0.22);
+}
+
+/* Meta row — icons + pipe separators */
+.spc-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  color: #555f6d;
+  font-size: 0.85rem;
+}
+
+.spc-meta-icon {
+  color: #98a2b3;
+  flex-shrink: 0;
+}
+
+.spc-meta-pipe {
+  color: #d0d5dd;
+  font-size: 0.75rem;
+  line-height: 1;
+  padding: 0 1px;
+}
+
+/* Description */
+.spc-desc {
+  margin: 0;
+  color: #667085;
+  font-size: 0.84rem;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Health bar */
+.spc-health {
+  margin-top: 1px;
+}
+
+.spc-health .listing-health-bar {
+  height: 6px;
+  margin-bottom: 4px;
+  border-radius: 999px;
+  overflow: hidden;
+  max-width: 100%;
+  background: rgba(148, 163, 184, 0.2);
+}
+
+.spc-health .listing-health-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  right: auto;
+  transform: none;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #0b8073, #13b6a2);
+}
+
+.spc-health .listing-health-label {
+  font-size: 0.75rem;
+  color: #98a2b3;
+}
+
+/* ── Health score ring (right column) ──────────────────────────────────────── */
+
+/* Outer wrapper: flex column so score circle is on top, label + grade below */
+.spc-ring {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  min-width: 110px;
+  text-align: center;
+}
+
+/* Inner circle — the SVG ring + score number overlaid */
+.spc-ring-circle {
+  position: relative;
+  width: 110px;
+  height: 110px;
+  flex-shrink: 0;
+}
+
+.spc-ring-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg); /* start arc at top */
+}
+
+.spc-ring-track {
+  stroke: rgba(148, 163, 184, 0.18);
+  stroke-width: 6;
+  fill: none;
+}
+
+.spc-ring-fill {
+  stroke: #0b8073;
+  stroke-width: 6;
+  fill: none;
+  stroke-linecap: round;
+  stroke-dasharray: 201.06;
+  stroke-dashoffset: 201.06; /* full circumference = 2 × π × r(32) ≈ 201.06; dynamically set by RING_RADIUS constant in app.js */
+  transition: stroke-dashoffset 0.7s ease, stroke 0.3s ease;
+}
+
+/* Grade-based ring colour */
+.spc-ring[data-grade="good"] .spc-ring-fill { stroke: #0b8073; }
+.spc-ring[data-grade="fair"] .spc-ring-fill { stroke: #d97706; }
+.spc-ring[data-grade="poor"] .spc-ring-fill { stroke: #dc2626; }
+.spc-ring[data-grade="na"]   .spc-ring-fill { stroke: rgba(148, 163, 184, 0.5); }
+
+/* Score number — centred inside the circle */
+.spc-ring-inner {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spc-ring-score {
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: #101828;
+  line-height: 1;
+}
+
+/* "Health Score" label — below the ring circle */
+.spc-ring-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #667085;
+  line-height: 1.3;
+}
+
+/* "Good / Fair / Poor" grade — below the label */
+.spc-ring-grade {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #0b8073;
+  line-height: 1.2;
+  min-height: 1rem;
+}
+
+.spc-ring[data-grade="good"] .spc-ring-grade { color: #0b8073; }
+.spc-ring[data-grade="fair"] .spc-ring-grade { color: #d97706; }
+.spc-ring[data-grade="poor"] .spc-ring-grade { color: #dc2626; }
+.spc-ring[data-grade="na"]   .spc-ring-grade { color: #98a2b3; }
+
+/* ── 3-button action bar ─────────────────────────────────────────────────────
+   Sits below the 3-column summary. Buttons share a single contained row
+   separated by thin dividers — matching the reference design.
+   Overrides global .cta / .ef-cta !important sizing. */
+.spc-actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  margin-top: 16px;
+  border: 1px solid rgba(16, 24, 40, 0.09);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.spc-actions .spc-action-btn,
+.spc-actions .spc-upload-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 7px !important;
+  padding: 11px 8px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  min-height: 44px !important;
+  height: 44px !important;
+  min-width: 0 !important;
+  width: 100% !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  transform: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  cursor: pointer;
+  overflow: hidden;
+  border: none !important;
+  border-right: 1px solid rgba(16, 24, 40, 0.09) !important;
+  background: #fff !important;
+  color: #0b8073 !important;
+  transition: background 0.15s, color 0.15s;
+}
+
+.spc-actions .spc-action-btn:last-child,
+.spc-actions .spc-upload-btn:last-child {
+  border-right: none !important;
+}
+
+.spc-actions .spc-action-btn:hover,
+.spc-actions .spc-upload-btn:hover {
+  background: #f0faf8 !important;
+}
+
+/* Upload Photo, Edit Profile, View Checklist — all inherit teal from base */
+.spc-actions .spc-upload-btn { color: #0b8073 !important; }
+.spc-actions .spc-action-btn--edit { color: #0b8073 !important; }
+.spc-actions .spc-action-btn--checklist { color: #0b8073 !important; }
+
+/* ── Mobile ≤640px ──────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  #my-suppliers .supplier-card.spc-root,
+  .supplier-card.spc-root {
+    padding: 16px 16px;
+  }
+  .spc-summary {
+    grid-template-columns: 76px 1fr;
+    gap: 14px;
+  }
+  /* Hide ring on mobile — health bar is enough */
+  .spc-ring {
+    display: none;
+  }
+  .spc-avatar-wrap {
+    width: 76px;
+  }
+  .spc-avatar-col {
+    width: 76px !important;
+    height: 76px !important;
+    font-size: 1.8rem !important;
+  }
+  .spc-name {
+    font-size: 1.1rem;
+  }
+  /* 3-button bar: single column on very small screens for readability */
+  .spc-actions {
+    grid-template-columns: 1fr;
+  }
+  /* Re-add dividers between stacked buttons */
+  .spc-actions .spc-action-btn,
+  .spc-actions .spc-upload-btn {
+    border-right: none !important;
+    border-bottom: 1px solid rgba(16, 24, 40, 0.09) !important;
+  }
+  .spc-actions .spc-action-btn:last-child {
+    border-bottom: none !important;
+  }
+  /* Checklist steps: 2 columns on small screens */
+  .spc-checklist-steps {
+    flex-wrap: wrap;
+  }
+  .spc-checklist-step {
+    min-width: 80px;
+    max-width: calc(50% - 6px);
+  }
+}
+
+/* ── Category chip ───────────────────────────────────────────────────────────
+   Teal pill used in the meta row to surface the supplier category.            */
+.spc-category-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(11, 128, 115, 0.08);
+  color: #0b8073;
+  border: 1px solid rgba(11, 128, 115, 0.2);
+  border-radius: 999px;
+  padding: 3px 10px 3px 7px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.spc-category-chip svg {
+  flex-shrink: 0;
+  color: #0b8073;
+}
+
+/* ── Profile Setup Checklist card ───────────────────────────────────────────
+   Always-visible section below the action bar.                              */
+.spc-checklist-card {
+  margin-top: 16px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(16, 24, 40, 0.07);
+}
+
+/* Header: big icon + title/subtitle side by side */
+.spc-checklist-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+/* Big circular icon */
+.spc-checklist-big-icon {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(11, 128, 115, 0.08);
+  color: #0b8073;
+  border: 2px solid rgba(11, 128, 115, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spc-checklist-big-icon--complete {
+  background: rgba(11, 128, 115, 0.14);
+  border-color: rgba(11, 128, 115, 0.3);
+}
+
+.spc-checklist-header-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.spc-checklist-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.spc-checklist-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #101828;
+  line-height: 1.2;
+}
+
+.spc-checklist-count {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(11, 128, 115, 0.08);
+  color: #0b8073;
+  border: 1px solid rgba(11, 128, 115, 0.2);
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.spc-checklist-subtitle {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #667085;
+  line-height: 1.4;
+}
+
+/* Steps row */
+.spc-checklist-steps {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.spc-checklist-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 60px;
+}
+
+.spc-checklist-step-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: rgba(148, 163, 184, 0.12);
+  color: #98a2b3;
+  border: 1.5px solid rgba(148, 163, 184, 0.28);
+  flex-shrink: 0;
+}
+
+.spc-checklist-step--complete .spc-checklist-step-circle {
+  background: rgba(11, 128, 115, 0.1);
+  color: #0b8073;
+  border-color: rgba(11, 128, 115, 0.25);
+}
+
+.spc-checklist-step-label {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #98a2b3;
+  text-align: center;
+  line-height: 1.3;
+}
+
+.spc-checklist-step--complete .spc-checklist-step-label {
+  color: #374151;
+  font-weight: 600;
 }
