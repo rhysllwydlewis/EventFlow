@@ -3258,8 +3258,8 @@ async function initDashSupplier() {
             ${checklistHtml}
           </div>
         </details>
-        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-top:0.75rem;margin-bottom:0.5rem;">
-          <label for="supplier-profile-photo-upload-${supplierId}" class="cta secondary" style="cursor:pointer;font-size:0.82rem;padding:0.375rem 0.875rem;display:inline-flex;align-items:center;gap:0.35rem;border-radius:6px;">
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;margin-top:0.75rem;margin-bottom:0.5rem;">
+          <label for="supplier-profile-photo-upload-${supplierId}" class="cta secondary" style="cursor:pointer;font-size:0.82rem;padding:0.375rem 0.875rem;display:inline-flex;align-items:center;gap:0.35rem;border-radius:6px;line-height:inherit;">
             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
             Upload Photo
           </label>

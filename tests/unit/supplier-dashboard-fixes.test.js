@@ -173,6 +173,19 @@ const galleryJs = fs.readFileSync(
 
 const appJs = fs.readFileSync(path.join(process.cwd(), 'public/assets/js/app.js'), 'utf8');
 const settingsHtml = fs.readFileSync(path.join(process.cwd(), 'public/settings.html'), 'utf8');
+const messengerWidgetJs = fs.readFileSync(
+  path.join(process.cwd(), 'public/messenger/js/MessengerWidgetV4.js'),
+  'utf8'
+);
+const stylesCss = fs.readFileSync(path.join(process.cwd(), 'public/assets/css/styles.css'), 'utf8');
+const photoUploaderJs = fs.readFileSync(
+  path.join(process.cwd(), 'public/assets/js/components/photo-uploader.js'),
+  'utf8'
+);
+const supplierMessagesJs = fs.readFileSync(
+  path.join(process.cwd(), 'public/assets/js/supplier-messages.js'),
+  'utf8'
+);
 
 const dashboardAnimationsCss = fs.readFileSync(
   path.join(process.cwd(), 'public/assets/css/dashboard-animations.css'),
@@ -262,8 +275,39 @@ describe('Supplier dashboard/profile UI polish', () => {
     expect(settingsHtml).toContain('id="avatar-delete-btn"');
     expect(settingsHtml).toContain('border:1px solid #CFEDEA;background:#F6FAF9;color:#dc2626');
     expect(settingsHtml).toContain('box-sizing:border-box;line-height:inherit;');
+    expect(settingsHtml).toContain(
+      'for="avatar-upload-input" class="cta secondary" style="cursor:pointer;font-size:0.82rem;padding:0.375rem 0.875rem;display:inline-flex;align-items:center;gap:0.35rem;border-radius:6px;box-sizing:border-box;line-height:inherit;"'
+    );
     expect(settingsHtml).not.toContain('border:1px solid #fca5a5;background:#fff5f5;color:#dc2626');
     expect(settingsHtml).not.toContain('border:1px solid #d1d5db;background:#fff;color:#dc2626');
+  });
+
+  it('dashboard and messenger avatar URLs allow safe https CDN and rooted relative forms', () => {
+    expect(messengerWidgetJs).toContain('/^(https?:\\/\\/|\\/[^:])/i.test(avatarUrl)');
+    expect(appJs).toContain('/^(https?:\\/\\/|\\/[^:])/i.test(otherParticipant.avatar)');
+    expect(supplierMessagesJs).toContain('/^(https?:\\/\\/|\\/[^:])/i.test(avatarUrl.trim())');
+    expect(supplierMessagesJs).toContain(
+      "const initial = escapeHtml((name || 'U').charAt(0).toUpperCase())"
+    );
+  });
+
+  it('gallery remove buttons use the reduced half-size dimensions and red hover hue', () => {
+    expect(stylesCss).toContain('.photo-remove-btn{');
+    expect(stylesCss).toContain('width:10px;');
+    expect(stylesCss).toContain('height:10px;');
+    expect(stylesCss).toContain('font-size:7px;');
+    expect(stylesCss).toContain('.photo-remove-btn:hover{');
+    expect(stylesCss).toContain('background:#dc2626;');
+
+    expect(photoUploaderJs).toContain('.photo-uploader__preview-remove {');
+    expect(photoUploaderJs).toContain('width: 14px;');
+    expect(photoUploaderJs).toContain('height: 14px;');
+    expect(photoUploaderJs).toContain('font-size: 0.6rem;');
+    expect(photoUploaderJs).toContain('background: rgba(220,38,38,1);');
+
+    expect(supplierDashImprovementsCss).toContain('.photo-preview-remove {');
+    expect(supplierDashImprovementsCss).toContain('width: 8px;');
+    expect(supplierDashImprovementsCss).toContain('height: 8px;');
   });
 });
 

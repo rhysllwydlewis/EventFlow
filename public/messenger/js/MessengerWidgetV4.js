@@ -633,8 +633,8 @@
       const name = escapeHtml(rawName);
       const initial = rawName.charAt(0).toUpperCase() || '?';
       const avatarColor = getAvatarColor(rawName);
-      // Only allow same-origin avatar URLs (relative paths starting with /) to prevent tracking pixels
-      const safeAvatarUrl = other.avatar && /^\//.test(other.avatar) ? other.avatar : null;
+      const avatarUrl = typeof other.avatar === 'string' ? other.avatar.trim() : '';
+      const safeAvatarUrl = /^(https?:\/\/|\/[^:])/i.test(avatarUrl) ? avatarUrl : null;
       const avatarImg = safeAvatarUrl
         ? `<img src="${escapeHtml(safeAvatarUrl)}" alt="${name}" class="mwv4__avatar-img" loading="lazy" data-fallback-hide>`
         : `<span class="mwv4__avatar-initial">${escapeHtml(initial)}</span>`;
