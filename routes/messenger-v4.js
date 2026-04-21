@@ -679,6 +679,12 @@ router.post(
 
       const message = await (await getMessengerService()).sendMessage(conversationId, messageData);
 
+      // Extract and strip the internal auto-unarchive metadata before sending to client
+      const autoUnarchivedUserIds = Array.isArray(message._autoUnarchivedUserIds)
+        ? message._autoUnarchivedUserIds
+        : [];
+      delete message._autoUnarchivedUserIds;
+
       // Get full conversation for WebSocket emission
       const conversation = await (
         await getMessengerService()
@@ -689,6 +695,28 @@ router.post(
         conversationId,
         message,
       });
+
+      // Notify auto-unarchived recipients so their client moves the conversation
+      // back to the main inbox without requiring a manual page reload.
+      for (const uid of autoUnarchivedUserIds) {
+        try {
+          const recipientConv = await (
+            await getMessengerService()
+          ).getConversation(conversationId, uid);
+          emitToUser(uid, 'messenger:v4:conversation-updated', {
+            conversationId,
+            conversation: recipientConv,
+          });
+        } catch (err) {
+          // Best-effort — the recipient will still see the message on next load.
+          // Log with context so production issues are diagnosable.
+          logger.warn('messenger_v4 auto-unarchive notification failed', {
+            uid,
+            conversationId,
+            error: err.message,
+          });
+        }
+      }
 
       messengerMetrics.increment('messenger_v4_messages_sent_total');
       logger.info('messenger_v4 message_sent', {
