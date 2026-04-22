@@ -3916,28 +3916,37 @@ async function initDashSupplier() {
         const profileId = actionEl.getAttribute('data-profile-id');
         if (profileId) {
           try {
-            await editProfile(profileId);
+            await editProfile(profileId, { skipFormScroll: true });
           } catch (err) {
             console.error('Failed to prepare profile form for photo upload:', err);
             return;
           }
         }
         const profileFormSection = document.getElementById('profile-form-section');
-        if (profileFormSection && !profileFormSection.classList.contains('expanded')) {
-          profileFormSection.classList.add('expanded');
+        if (profileFormSection) {
+          if (!profileFormSection.classList.contains('expanded')) {
+            profileFormSection.classList.add('expanded');
+          }
+          profileFormSection.removeAttribute('hidden');
         }
         const uploader = document.getElementById('sup-photo-drop');
         if (uploader) {
+          const galleryRow = uploader.closest('.form-row') || uploader;
           if (!uploader.hasAttribute('tabindex')) {
             uploader.setAttribute('tabindex', '-1');
           }
-          uploader.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          galleryRow.scrollIntoView({ behavior: 'smooth', block: 'start' });
           if (typeof uploader.focus === 'function') {
             uploader.focus({ preventScroll: true });
           }
-          const AUTO_OPEN_PICKER_DELAY_MS = 180; // allow smooth-scroll/focus to complete before opening picker
+          if (uploader.dataset.pickerOpening === 'true') {
+            return;
+          }
+          uploader.dataset.pickerOpening = 'true';
+          const AUTO_OPEN_PICKER_DELAY_MS = 320; // allow smooth-scroll/focus to complete before opening picker
           setTimeout(() => {
             uploader.click();
+            delete uploader.dataset.pickerOpening;
           }, AUTO_OPEN_PICKER_DELAY_MS);
         }
       }
@@ -4502,38 +4511,6 @@ async function initDashSupplier() {
       }
     });
   }
-
-  // Drag & drop photo uploads
-  efSetupPhotoDropZone(
-    'sup-photo-drop',
-    'sup-photo-preview',
-    dataUrl => {
-      const area = document.getElementById('sup-photos');
-      if (!area) {
-        return;
-      }
-      const current = (area.value || '')
-        .split(/\r?\n/)
-        .map(x => {
-          return x.trim();
-        })
-        .filter(Boolean);
-      current.push(dataUrl);
-      area.value = current.join('\n');
-    },
-    dataUrl => {
-      // Remove this specific data URL from the multiline textarea
-      const area = document.getElementById('sup-photos');
-      if (!area || !dataUrl) {
-        return;
-      }
-      const updated = (area.value || '')
-        .split(/\r?\n/)
-        .map(x => x.trim())
-        .filter(x => x && x !== dataUrl);
-      area.value = updated.join('\n');
-    }
-  );
 
   // Banner image upload
   efSetupPhotoDropZone(
@@ -5289,7 +5266,8 @@ function toggleProfileForm() {
   }
 }
 
-async function editProfile(supplierId) {
+async function editProfile(supplierId, options = {}) {
+  const skipFormScroll = !!options.skipFormScroll;
   // Expand the form section
   const formSection = document.getElementById('profile-form-section');
   const toggleBtn = document.getElementById('toggle-profile-form');
@@ -5377,12 +5355,14 @@ async function editProfile(supplierId) {
     // Store the editing supplier ID for later use
     window.currentEditingSupplierId = supplierId;
 
-    // Scroll to form
-    setTimeout(() => {
-      if (formSection) {
-        formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 100);
+    // Scroll to form unless caller wants to control scroll target
+    if (!skipFormScroll) {
+      setTimeout(() => {
+        if (formSection) {
+          formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    }
   } catch (e) {
     console.error('Error loading supplier for edit:', e);
     alert('Failed to load supplier profile. Please try again.');

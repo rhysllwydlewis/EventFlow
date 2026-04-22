@@ -294,13 +294,17 @@ describe('Supplier dashboard/profile UI polish', () => {
     );
   });
 
-  it('gallery remove buttons use the reduced half-size dimensions and red hover hue', () => {
+  it('gallery remove buttons use reduced dimensions with hue-only hover (no scale)', () => {
     expect(stylesCss).toContain('.photo-remove-btn{');
     expect(stylesCss).toContain('width:10px;');
     expect(stylesCss).toContain('height:10px;');
     expect(stylesCss).toContain('font-size:7px;');
     expect(stylesCss).toContain('.photo-remove-btn:hover{');
     expect(stylesCss).toContain('background:#dc2626;');
+    // .photo-remove-btn:hover must NOT use a scale transform — hue change only
+    const hoverStart = stylesCss.indexOf('.photo-remove-btn:hover{');
+    const hoverBlock = stylesCss.slice(hoverStart, stylesCss.indexOf('}', hoverStart) + 1);
+    expect(hoverBlock).not.toContain('transform:scale');
 
     expect(photoUploaderJs).toContain('.photo-uploader__preview-remove {');
     expect(photoUploaderJs).toContain('width: 14px;');
@@ -309,22 +313,27 @@ describe('Supplier dashboard/profile UI polish', () => {
     expect(photoUploaderJs).toContain('background: rgba(220,38,38,1);');
 
     expect(supplierDashImprovementsCss).toContain('.photo-preview-remove {');
-    expect(supplierDashImprovementsCss).toContain('width: 8px;');
-    expect(supplierDashImprovementsCss).toContain('height: 8px;');
+    expect(supplierDashImprovementsCss).toContain('width: 14px;');
+    expect(supplierDashImprovementsCss).toContain('height: 14px;');
+    // No scale on .photo-preview-remove:hover either
+    const previewHoverStart = supplierDashImprovementsCss.indexOf('.photo-preview-remove:hover {');
+    const previewHoverBlock = supplierDashImprovementsCss.slice(previewHoverStart, supplierDashImprovementsCss.indexOf('}', previewHoverStart) + 1);
+    expect(previewHoverBlock).not.toContain('transform: scale');
   });
 
-  it('supplier gallery tile remove buttons are anchored inside top-right and use 8px chrome', () => {
+  it('supplier gallery tile remove buttons are reduced and anchored at the corner edge', () => {
     expect(supplierDashImprovementsCss).toContain(
       '.photo-preview-item--existing .photo-delete-btn,'
     );
     expect(supplierDashImprovementsCss).toContain(
       '.photo-preview-item--pending .photo-remove-btn {'
     );
-    expect(supplierDashImprovementsCss).toContain('top: 2px;');
-    expect(supplierDashImprovementsCss).toContain('right: 2px;');
-    expect(supplierDashImprovementsCss).toContain('min-width: 8px;');
-    expect(supplierDashImprovementsCss).toContain('min-height: 8px;');
-    expect(supplierDashImprovementsCss).toContain('font-size: 6px;');
+    expect(supplierDashImprovementsCss).toContain('top: -6px;');
+    expect(supplierDashImprovementsCss).toContain('right: -6px;');
+    // min-width/min-height must be 0 to override the 44px WCAG touch-target rule
+    expect(supplierDashImprovementsCss).toContain('min-width: 0;');
+    expect(supplierDashImprovementsCss).toContain('min-height: 0;');
+    expect(supplierDashImprovementsCss).toContain('font-size: 9px;');
   });
 
   it('supplier profile summary card uses structured spc-* layout classes', () => {
@@ -379,14 +388,19 @@ describe('Supplier dashboard/profile UI polish', () => {
     expect(appJs).toContain("fetch('/api/profile/avatar'");
     expect(appJs).toContain("method: 'DELETE'");
     expect(supplierDashImprovementsCss).toContain('.spc-avatar-delete-btn {');
+    expect(supplierDashImprovementsCss).toContain('.spc-avatar-delete-btn:active {');
+    expect(supplierDashImprovementsCss).toContain('transform: translateX(-50%);');
   });
 
-  it('upload-photo action expands form, scrolls/focuses uploader, and opens file picker', () => {
+  it('upload-photo action targets gallery upload row and opens a single picker path', () => {
     expect(appJs).toContain('data-action="upload-photo"');
     expect(appJs).toContain("const uploader = document.getElementById('sup-photo-drop')");
-    expect(appJs).toContain("uploader.scrollIntoView({ behavior: 'smooth', block: 'center' })");
+    expect(appJs).toContain('await editProfile(profileId, { skipFormScroll: true })');
+    expect(appJs).toContain("const galleryRow = uploader.closest('.form-row') || uploader");
+    expect(appJs).toContain("galleryRow.scrollIntoView({ behavior: 'smooth', block: 'start' })");
     expect(appJs).toContain('uploader.focus({ preventScroll: true })');
     expect(appJs).toContain('uploader.click()');
+    expect(appJs).not.toContain("efSetupPhotoDropZone(\n    'sup-photo-drop'");
   });
 
   it('profile initials fallback uses multi-letter initials (e.g. RT)', () => {
@@ -397,9 +411,11 @@ describe('Supplier dashboard/profile UI polish', () => {
 
   it('package gallery circular delete buttons are reduced to half-size chrome', () => {
     expect(supplierDashImprovementsCss).toContain('.pkg-gallery-delete {');
-    expect(supplierDashImprovementsCss).toContain('width: 11px;');
-    expect(supplierDashImprovementsCss).toContain('height: 11px;');
-    expect(supplierDashImprovementsCss).toContain('font-size: 10px;');
+    expect(supplierDashImprovementsCss).toContain('top: -6px;');
+    expect(supplierDashImprovementsCss).toContain('right: -6px;');
+    expect(supplierDashImprovementsCss).toContain('width: 16px;');
+    expect(supplierDashImprovementsCss).toContain('height: 16px;');
+    expect(supplierDashImprovementsCss).toContain('font-size: 9px;');
     // ef-cta must NOT be on the button — it overrides padding/position and breaks the overlay
     expect(appJs).not.toContain('ef-cta pkg-gallery-delete');
     expect(appJs).toContain('class="pkg-gallery-delete"');
