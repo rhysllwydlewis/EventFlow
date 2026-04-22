@@ -1079,12 +1079,11 @@ body.legacy-nav-open .legacy-nav-menu{
   padding:0;
   z-index:10;
   box-shadow:0 1px 4px rgba(0,0,0,0.25);
-  transition:background 0.15s ease, transform 0.1s ease;
+  transition:background 0.15s ease;
 }
 .photo-remove-btn:hover{
   background:#dc2626;
   box-shadow:0 0 0 2px rgba(220,38,38,0.2), 0 1px 4px rgba(0,0,0,0.25);
-  transform:scale(1.1);
 }
 
 

@@ -294,13 +294,15 @@ describe('Supplier dashboard/profile UI polish', () => {
     );
   });
 
-  it('gallery remove buttons use the reduced half-size dimensions and red hover hue', () => {
+  it('gallery remove buttons use reduced dimensions with hue-only hover (no scale)', () => {
     expect(stylesCss).toContain('.photo-remove-btn{');
     expect(stylesCss).toContain('width:10px;');
     expect(stylesCss).toContain('height:10px;');
     expect(stylesCss).toContain('font-size:7px;');
     expect(stylesCss).toContain('.photo-remove-btn:hover{');
     expect(stylesCss).toContain('background:#dc2626;');
+    // No scale transform on hover — gentle hue only
+    expect(stylesCss).not.toContain('transform:scale');
 
     expect(photoUploaderJs).toContain('.photo-uploader__preview-remove {');
     expect(photoUploaderJs).toContain('width: 14px;');
@@ -320,11 +322,11 @@ describe('Supplier dashboard/profile UI polish', () => {
     expect(supplierDashImprovementsCss).toContain(
       '.photo-preview-item--pending .photo-remove-btn {'
     );
-    expect(supplierDashImprovementsCss).toContain('top: -4px;');
-    expect(supplierDashImprovementsCss).toContain('right: -4px;');
-    expect(supplierDashImprovementsCss).toContain('min-width: 6px;');
-    expect(supplierDashImprovementsCss).toContain('min-height: 6px;');
-    expect(supplierDashImprovementsCss).toContain('font-size: 5px;');
+    expect(supplierDashImprovementsCss).toContain('top: -6px;');
+    expect(supplierDashImprovementsCss).toContain('right: -6px;');
+    expect(supplierDashImprovementsCss).toContain('min-width: 16px;');
+    expect(supplierDashImprovementsCss).toContain('min-height: 16px;');
+    expect(supplierDashImprovementsCss).toContain('font-size: 9px;');
   });
 
   it('supplier profile summary card uses structured spc-* layout classes', () => {
@@ -402,11 +404,11 @@ describe('Supplier dashboard/profile UI polish', () => {
 
   it('package gallery circular delete buttons are reduced to half-size chrome', () => {
     expect(supplierDashImprovementsCss).toContain('.pkg-gallery-delete {');
-    expect(supplierDashImprovementsCss).toContain('top: -3px;');
-    expect(supplierDashImprovementsCss).toContain('right: -3px;');
-    expect(supplierDashImprovementsCss).toContain('width: 6px;');
-    expect(supplierDashImprovementsCss).toContain('height: 6px;');
-    expect(supplierDashImprovementsCss).toContain('font-size: 6px;');
+    expect(supplierDashImprovementsCss).toContain('top: -6px;');
+    expect(supplierDashImprovementsCss).toContain('right: -6px;');
+    expect(supplierDashImprovementsCss).toContain('width: 16px;');
+    expect(supplierDashImprovementsCss).toContain('height: 16px;');
+    expect(supplierDashImprovementsCss).toContain('font-size: 9px;');
     // ef-cta must NOT be on the button — it overrides padding/position and breaks the overlay
     expect(appJs).not.toContain('ef-cta pkg-gallery-delete');
     expect(appJs).toContain('class="pkg-gallery-delete"');
