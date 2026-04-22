@@ -6173,6 +6173,8 @@ body:not(.supplier-dashboard-page) .section > .container {
   right: -6px;
   width: 16px;
   height: 16px;
+  min-width: 0;
+  min-height: 0;
   padding: 0;
   border: 1.5px solid rgba(255, 255, 255, 0.9);
   border-radius: 50%;
@@ -6303,13 +6305,15 @@ body:not(.supplier-dashboard-page) .section > .container {
   pointer-events: none;
 }
 
-/* ── Delete button (override legacy styles) ──────────────────────────────── */
+/* ── Delete button: reinforce correct size/position over legacy overrides ── */
 .pkg-gallery-item .pkg-gallery-delete {
   position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 11px;
-  height: 11px;
+  top: -6px;
+  right: -6px;
+  width: 16px;
+  height: 16px;
+  min-width: 0;
+  min-height: 0;
   z-index: 4;
 }
 
@@ -6384,21 +6388,23 @@ body:not(.supplier-dashboard-page) .section > .container {
 }
 
 /* ── Remove (✕) button on all preview thumbnails ────────────────────────── */
-/* Liquid-glass chip: half the previous size, frosted white at rest → soft red on hover */
+/* Small frosted-glass corner badge: white at rest → soft red on hover. No scale. */
 .photo-preview-remove {
   position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 8px;
-  height: 8px;
+  top: -5px;
+  right: -5px;
+  width: 14px;
+  height: 14px;
+  min-width: 0;
+  min-height: 0;
   padding: 0;
-  background: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(8px) saturate(160%);
   -webkit-backdrop-filter: blur(8px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.55);
+  border: 1.5px solid rgba(255, 255, 255, 0.8);
   border-radius: 50%;
   cursor: pointer;
-  font-size: 5px;
+  font-size: 8px;
   font-weight: 800;
   line-height: 1;
   color: #374151;
@@ -6406,7 +6412,7 @@ body:not(.supplier-dashboard-page) .section > .container {
   box-shadow:
     0 1px 4px rgba(0, 0, 0, 0.18),
     inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.15s;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -6419,7 +6425,6 @@ body:not(.supplier-dashboard-page) .section > .container {
   border-color: rgba(220, 38, 38, 0.3);
   color: #fff;
   box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.2), 0 2px 8px rgba(220, 38, 38, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-  transform: scale(1.08);
 }
 
 /* ── "Price not set" muted text style ───────────────────────────────────── */
@@ -7722,8 +7727,8 @@ label .required {
   justify-content: center;
   width: 16px;
   height: 16px;
-  min-width: 16px;
-  min-height: 16px;
+  min-width: 0;
+  min-height: 0;
   padding: 0;
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(8px) saturate(160%);
@@ -7908,6 +7913,8 @@ label .required {
   justify-content: center;
   width: 28px;
   height: 28px;
+  min-width: 0;
+  min-height: 0;
   border-radius: 50%;
   border: 2px solid rgba(255, 255, 255, 0.9);
   background: #ef4444;

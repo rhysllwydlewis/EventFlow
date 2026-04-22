@@ -243,11 +243,14 @@ button:focus {
 }
 
 /* Touch-Friendly Button Sizes (min 44x44px for WCAG) */
+/* Small overlay/icon buttons (.photo-delete-btn, .photo-remove-btn, .photo-preview-remove,
+   .pkg-gallery-delete, .spc-avatar-delete-btn, .spc-camera-btn) are intentionally exempt
+   — they are corner-badge controls that must stay compact. */
 .cta,
 .nav-toggle,
 .icon-button,
 button[type="submit"]:not(.ef-search-bar__button),
-button[type="button"]:not(.ef-search-bar__button):not(.back-to-top):not(.carousel-prev):not(.carousel-next):not(.package-gallery-nav):not(.ef-testimonial-dot) {
+button[type="button"]:not(.ef-search-bar__button):not(.back-to-top):not(.carousel-prev):not(.carousel-next):not(.package-gallery-nav):not(.ef-testimonial-dot):not(.photo-delete-btn):not(.photo-remove-btn):not(.photo-preview-remove):not(.pkg-gallery-delete):not(.spc-avatar-delete-btn):not(.spc-camera-btn) {
   min-height: 44px;
   min-width: 44px;
 }

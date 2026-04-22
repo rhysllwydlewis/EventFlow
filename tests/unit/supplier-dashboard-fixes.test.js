@@ -301,8 +301,10 @@ describe('Supplier dashboard/profile UI polish', () => {
     expect(stylesCss).toContain('font-size:7px;');
     expect(stylesCss).toContain('.photo-remove-btn:hover{');
     expect(stylesCss).toContain('background:#dc2626;');
-    // No scale transform on hover — gentle hue only
-    expect(stylesCss).not.toContain('transform:scale');
+    // .photo-remove-btn:hover must NOT use a scale transform — hue change only
+    const hoverStart = stylesCss.indexOf('.photo-remove-btn:hover{');
+    const hoverBlock = stylesCss.slice(hoverStart, stylesCss.indexOf('}', hoverStart) + 1);
+    expect(hoverBlock).not.toContain('transform:scale');
 
     expect(photoUploaderJs).toContain('.photo-uploader__preview-remove {');
     expect(photoUploaderJs).toContain('width: 14px;');
@@ -311,8 +313,12 @@ describe('Supplier dashboard/profile UI polish', () => {
     expect(photoUploaderJs).toContain('background: rgba(220,38,38,1);');
 
     expect(supplierDashImprovementsCss).toContain('.photo-preview-remove {');
-    expect(supplierDashImprovementsCss).toContain('width: 8px;');
-    expect(supplierDashImprovementsCss).toContain('height: 8px;');
+    expect(supplierDashImprovementsCss).toContain('width: 14px;');
+    expect(supplierDashImprovementsCss).toContain('height: 14px;');
+    // No scale on .photo-preview-remove:hover either
+    const previewHoverStart = supplierDashImprovementsCss.indexOf('.photo-preview-remove:hover {');
+    const previewHoverBlock = supplierDashImprovementsCss.slice(previewHoverStart, supplierDashImprovementsCss.indexOf('}', previewHoverStart) + 1);
+    expect(previewHoverBlock).not.toContain('transform: scale');
   });
 
   it('supplier gallery tile remove buttons are reduced and anchored at the corner edge', () => {
@@ -324,8 +330,9 @@ describe('Supplier dashboard/profile UI polish', () => {
     );
     expect(supplierDashImprovementsCss).toContain('top: -6px;');
     expect(supplierDashImprovementsCss).toContain('right: -6px;');
-    expect(supplierDashImprovementsCss).toContain('min-width: 16px;');
-    expect(supplierDashImprovementsCss).toContain('min-height: 16px;');
+    // min-width/min-height must be 0 to override the 44px WCAG touch-target rule
+    expect(supplierDashImprovementsCss).toContain('min-width: 0;');
+    expect(supplierDashImprovementsCss).toContain('min-height: 0;');
     expect(supplierDashImprovementsCss).toContain('font-size: 9px;');
   });
 
