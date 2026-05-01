@@ -7907,7 +7907,7 @@ label .required {
   position: absolute;
   top: -12px;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate3d(-50%, 0, 0);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -7923,6 +7923,9 @@ label .required {
   box-shadow: 0 2px 8px rgba(16, 24, 40, 0.14);
   transition: background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
   z-index: 3;
+  animation: spcAvatarDeleteThrob 1.8s ease-in-out infinite;
+  animation-play-state: paused;
+  will-change: box-shadow, background-color;
 }
 
 .spc-avatar-delete-btn:hover {
@@ -7941,6 +7944,22 @@ label .required {
   font-size: 11px;
   line-height: 1;
   font-weight: 700;
+}
+
+@keyframes spcAvatarDeleteThrob {
+  0%,
+  100% {
+    box-shadow: 0 2px 8px rgba(16, 24, 40, 0.14);
+  }
+  50% {
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.28);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spc-avatar-delete-btn {
+    animation: none;
+  }
 }
 
 /* ── Body column ───────────────────────────────────────────────────────────── */
