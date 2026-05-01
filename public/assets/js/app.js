@@ -3932,10 +3932,11 @@ async function initDashSupplier() {
         const uploader = document.getElementById('sup-photo-drop');
         if (uploader) {
           const galleryRow = uploader.closest('.form-row') || uploader;
+          galleryRow.style.scrollMarginTop = '96px';
           if (!uploader.hasAttribute('tabindex')) {
             uploader.setAttribute('tabindex', '-1');
           }
-          galleryRow.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          galleryRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
           if (typeof uploader.focus === 'function') {
             uploader.focus({ preventScroll: true });
           }
@@ -3945,7 +3946,11 @@ async function initDashSupplier() {
           uploader.dataset.pickerOpening = 'true';
           const AUTO_OPEN_PICKER_DELAY_MS = 320; // allow smooth-scroll/focus to complete before opening picker
           setTimeout(() => {
-            uploader.click();
+            if (typeof window.openSupplierGalleryPicker === 'function') {
+              window.openSupplierGalleryPicker();
+            } else {
+              uploader.click();
+            }
             delete uploader.dataset.pickerOpening;
           }, AUTO_OPEN_PICKER_DELAY_MS);
         }
