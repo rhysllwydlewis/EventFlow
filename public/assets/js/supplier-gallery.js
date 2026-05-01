@@ -105,9 +105,6 @@ class SupplierGalleryManager {
   }
 
   openFilePicker(previewContainer) {
-    const resolvePreviewContainer = () =>
-      previewContainer || document.getElementById('sup-photo-preview');
-
     if (!this._filePickerInput) {
       const input = document.createElement('input');
       input.type = 'file';
@@ -115,13 +112,7 @@ class SupplierGalleryManager {
       input.multiple = true;
       input.style.display = 'none';
       input.addEventListener('change', () => {
-        const activePreviewContainer = resolvePreviewContainer();
-        if (!activePreviewContainer) {
-          console.warn('Photo preview container not found; skipping file handling.');
-          input.value = '';
-          return;
-        }
-        this.handleFiles(input.files, activePreviewContainer);
+        this.handleFiles(input.files, previewContainer);
         // Reset value so re-selecting the same file still triggers change
         input.value = '';
       });

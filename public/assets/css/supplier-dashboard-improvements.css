@@ -7907,7 +7907,7 @@ label .required {
   position: absolute;
   top: -12px;
   left: 50%;
-  margin-left: -14px; /* keep exact centering without transform-based hover drift */
+  transform: translate3d(-50%, 0, 0);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -7923,7 +7923,8 @@ label .required {
   box-shadow: 0 2px 8px rgba(16, 24, 40, 0.14);
   transition: background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
   z-index: 3;
-  animation: spcAvatarDeleteThrob 2.2s ease-in-out infinite;
+  animation: spcAvatarDeleteThrob 1.8s ease-in-out infinite;
+  animation-play-state: paused;
   will-change: box-shadow, background-color;
 }
 
@@ -7931,18 +7932,11 @@ label .required {
   background-color: #f87171;
   border-color: rgba(255, 255, 255, 0.95);
   box-shadow: 0 3px 10px rgba(220, 38, 38, 0.24);
-  margin-left: -14px;
 }
 
 .spc-avatar-delete-btn:active {
   background-color: #dc2626;
   border-color: rgba(255, 255, 255, 0.95);
-  margin-left: -14px;
-}
-
-.spc-avatar-delete-btn:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.98);
-  outline-offset: 2px;
 }
 
 .spc-avatar-delete-btn span {
