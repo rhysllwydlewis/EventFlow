@@ -7932,15 +7932,11 @@ label .required {
   background-color: #f87171;
   border-color: rgba(255, 255, 255, 0.95);
   box-shadow: 0 3px 10px rgba(220, 38, 38, 0.24);
-  transform: translate3d(-50%, 0, 0);
-  animation-play-state: running;
 }
 
 .spc-avatar-delete-btn:active {
   background-color: #dc2626;
   border-color: rgba(255, 255, 255, 0.95);
-  transform: translate3d(-50%, 0, 0);
-  animation-play-state: running;
 }
 
 .spc-avatar-delete-btn span {
