@@ -6169,10 +6169,10 @@ body:not(.supplier-dashboard-page) .section > .container {
 
 .pkg-gallery-delete {
   position: absolute;
-  top: -6px;
-  right: -6px;
-  width: 16px;
-  height: 16px;
+  top: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
   min-width: 0;
   min-height: 0;
   padding: 0;
@@ -6180,7 +6180,7 @@ body:not(.supplier-dashboard-page) .section > .container {
   border-radius: 50%;
   background: rgba(220, 38, 38, 0.88);
   color: #fff;
-  font-size: 9px;
+  font-size: 8px;
   line-height: 1;
   cursor: pointer;
   display: flex;
@@ -6308,10 +6308,10 @@ body:not(.supplier-dashboard-page) .section > .container {
 /* ── Delete button: reinforce correct size/position over legacy overrides ── */
 .pkg-gallery-item .pkg-gallery-delete {
   position: absolute;
-  top: -6px;
-  right: -6px;
-  width: 16px;
-  height: 16px;
+  top: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
   min-width: 0;
   min-height: 0;
   z-index: 4;
@@ -6401,7 +6401,7 @@ body:not(.supplier-dashboard-page) .section > .container {
   background: rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(8px) saturate(160%);
   -webkit-backdrop-filter: blur(8px) saturate(160%);
-  border: 1.5px solid rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.8);
   border-radius: 50%;
   cursor: pointer;
   font-size: 8px;
@@ -7720,13 +7720,13 @@ label .required {
 .photo-preview-item--existing .photo-delete-btn,
 .photo-preview-item--pending .photo-remove-btn {
   position: absolute;
-  top: -6px;
-  right: -6px;
+  top: 0;
+  right: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 12px;
+  height: 12px;
   min-width: 0;
   min-height: 0;
   padding: 0;
@@ -7734,9 +7734,9 @@ label .required {
   backdrop-filter: blur(8px) saturate(160%);
   -webkit-backdrop-filter: blur(8px) saturate(160%);
   color: #374151;
-  border: 1.5px solid rgba(255, 255, 255, 0.8);
+  border: 1.25px solid rgba(255, 255, 255, 0.8);
   border-radius: 50%;
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 800;
   line-height: 1;
   cursor: pointer;
@@ -7907,7 +7907,7 @@ label .required {
   position: absolute;
   top: -12px;
   left: 50%;
-  transform: translateX(-50%);
+  transform: translate3d(-50%, 0, 0);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -7923,19 +7923,24 @@ label .required {
   box-shadow: 0 2px 8px rgba(16, 24, 40, 0.14);
   transition: background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
   z-index: 3;
+  animation: spcAvatarDeleteThrob 1.8s ease-in-out infinite;
+  animation-play-state: paused;
+  will-change: box-shadow, background-color;
 }
 
 .spc-avatar-delete-btn:hover {
-  background-color: #f05252;
+  background-color: #f87171;
   border-color: rgba(255, 255, 255, 0.95);
   box-shadow: 0 3px 10px rgba(220, 38, 38, 0.24);
-  transform: translateX(-50%);
+  transform: translate3d(-50%, 0, 0);
+  animation-play-state: running;
 }
 
 .spc-avatar-delete-btn:active {
   background-color: #dc2626;
   border-color: rgba(255, 255, 255, 0.95);
-  transform: translateX(-50%);
+  transform: translate3d(-50%, 0, 0);
+  animation-play-state: running;
 }
 
 .spc-avatar-delete-btn span {
@@ -7943,6 +7948,22 @@ label .required {
   font-size: 11px;
   line-height: 1;
   font-weight: 700;
+}
+
+@keyframes spcAvatarDeleteThrob {
+  0%,
+  100% {
+    box-shadow: 0 2px 8px rgba(16, 24, 40, 0.14);
+  }
+  50% {
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.28);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spc-avatar-delete-btn {
+    animation: none;
+  }
 }
 
 /* ── Body column ───────────────────────────────────────────────────────────── */
