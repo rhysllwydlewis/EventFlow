@@ -3911,7 +3911,7 @@ async function initDashSupplier() {
         }
       }
 
-      // Handle Upload Photo button — expand form, scroll to uploader, and open file picker
+      // Handle Upload Photo button — expand form, scroll to gallery section, and open file picker
       if (actionEl && actionEl.matches('[data-action="upload-photo"]')) {
         const profileId = actionEl.getAttribute('data-profile-id');
         if (profileId) {
@@ -3930,13 +3930,18 @@ async function initDashSupplier() {
           profileFormSection.removeAttribute('hidden');
         }
         const uploader = document.getElementById('sup-photo-drop');
-        if (uploader) {
-          const galleryRow = uploader.closest('.form-row') || uploader;
-          galleryRow.style.scrollMarginTop = '96px';
+        const galleryPreview = document.getElementById('sup-photo-preview');
+        const galleryTarget =
+          (galleryPreview && galleryPreview.closest('.form-row')) ||
+          (uploader && uploader.closest('.form-row')) ||
+          galleryPreview ||
+          uploader;
+        if (uploader && galleryTarget) {
+          galleryTarget.style.scrollMarginTop = '96px';
           if (!uploader.hasAttribute('tabindex')) {
             uploader.setAttribute('tabindex', '-1');
           }
-          galleryRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          galleryTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
           if (typeof uploader.focus === 'function') {
             uploader.focus({ preventScroll: true });
           }
@@ -3948,8 +3953,6 @@ async function initDashSupplier() {
           setTimeout(() => {
             if (typeof window.openSupplierGalleryPicker === 'function') {
               window.openSupplierGalleryPicker();
-            } else {
-              uploader.click();
             }
             delete uploader.dataset.pickerOpening;
           }, AUTO_OPEN_PICKER_DELAY_MS);
