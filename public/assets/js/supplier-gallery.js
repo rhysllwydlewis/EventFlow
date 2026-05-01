@@ -14,6 +14,7 @@ class SupplierGalleryManager {
     this.uploadedPhotos = [];
     this.pendingUploads = [];
     this._dragSrc = null;
+    this._filePickerInput = null;
     this.init();
   }
 
@@ -57,7 +58,7 @@ class SupplierGalleryManager {
       console.log('Setting up supplier gallery manager');
     }
 
-    // Set up drag and drop
+    // Set up drag and drop (idempotent)
     this.setupDragAndDrop(dropZone, previewContainer);
 
     // Load existing photos if editing a supplier
@@ -65,6 +66,11 @@ class SupplierGalleryManager {
   }
 
   setupDragAndDrop(dropZone, previewContainer) {
+    if (dropZone.dataset.galleryBound === 'true') {
+      return;
+    }
+    dropZone.dataset.galleryBound = 'true';
+
     // Prevent default drag behaviors
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
       dropZone.addEventListener(eventName, e => {
@@ -94,15 +100,26 @@ class SupplierGalleryManager {
 
     // Handle click to upload
     dropZone.addEventListener('click', () => {
+      this.openFilePicker(previewContainer);
+    });
+  }
+
+  openFilePicker(previewContainer) {
+    if (!this._filePickerInput) {
       const input = document.createElement('input');
       input.type = 'file';
       input.accept = 'image/*';
       input.multiple = true;
+      input.style.display = 'none';
       input.addEventListener('change', () => {
         this.handleFiles(input.files, previewContainer);
+        // Reset value so re-selecting the same file still triggers change
+        input.value = '';
       });
-      input.click();
-    });
+      document.body.appendChild(input);
+      this._filePickerInput = input;
+    }
+    this._filePickerInput.click();
   }
 
   async handleFiles(files, previewContainer) {
@@ -731,5 +748,9 @@ window.loadSupplierGalleryPhotos = supplierId => galleryManager.loadPhotosForSup
 // supplier profile has been successfully saved and a supplier ID is known.
 window.uploadPendingGalleryPhotos = supplierId =>
   galleryManager.uploadPendingGalleryPhotos(supplierId);
+
+// Expose gallery picker opener so external actions can invoke the same single flow.
+window.openSupplierGalleryPicker = () =>
+  galleryManager.openFilePicker(document.getElementById('sup-photo-preview'));
 
 export default galleryManager;
