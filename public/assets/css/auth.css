@@ -1494,7 +1494,7 @@ body.auth-page .auth-card .form-row input.has-toggle {
 /* Checkbox label rows */
 body.auth-page .auth-card .checkbox-label-right {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 8px;
   cursor: pointer;
   font-size: 0.875rem;
