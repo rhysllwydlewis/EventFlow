@@ -16,6 +16,41 @@ const {
   RANKING_CONFIG,
 } = require('../utils/searchWeighting');
 const { geocodeLocation, calculateDistance } = require('../utils/geocoding');
+const { supplierIsProActive } = require('../utils/helpers');
+
+/**
+ * Resolve effective Pro status for suppliers using canonical subscription logic.
+ * Uses per-owner memoization so multiple supplier records owned by the same user
+ * do not trigger duplicate subscription lookups during one request.
+ *
+ * @param {Array<Object>} suppliers
+ * @returns {Promise<Array<Object>>}
+ */
+async function hydrateSuppliersWithActivePro(suppliers) {
+  const proByOwner = new Map();
+
+  return Promise.all(
+    (suppliers || []).map(async supplier => {
+      const ownerUserId = supplier?.ownerUserId || null;
+
+      if (!ownerUserId) {
+        return {
+          ...supplier,
+          isPro: await supplierIsProActive(supplier),
+        };
+      }
+
+      if (!proByOwner.has(ownerUserId)) {
+        proByOwner.set(ownerUserId, await supplierIsProActive(supplier));
+      }
+
+      return {
+        ...supplier,
+        isPro: proByOwner.get(ownerUserId),
+      };
+    })
+  );
+}
 
 // Valid sort values exported so routes can share the same constants
 const VALID_SUPPLIER_SORT_VALUES = [
@@ -235,7 +270,8 @@ async function searchSuppliers(query) {
   // Normalize query to ensure consistent, safe values throughout
   const normalizedQuery = normalizeSupplierQuery(query);
   const startTime = Date.now();
-  const suppliers = await dbUnified.read('suppliers');
+  const suppliersRaw = await dbUnified.read('suppliers');
+  const suppliers = await hydrateSuppliersWithActivePro(suppliersRaw);
 
   // Pre-load packages to embed top 3 per supplier (for carousel in search results)
   const allPackages = await dbUnified.read('packages');
@@ -377,7 +413,8 @@ async function searchPackages(query) {
   const normalizedQuery = normalizePackageQuery(query);
   const startTime = Date.now();
   const packages = await dbUnified.read('packages');
-  const suppliers = await dbUnified.read('suppliers');
+  const suppliersRaw = await dbUnified.read('suppliers');
+  const suppliers = await hydrateSuppliersWithActivePro(suppliersRaw);
 
   // Create a supplier lookup map
   const supplierMap = {};
@@ -1058,7 +1095,8 @@ function calculateFacets(allSuppliers) {
  * @returns {Promise<Array>} Array of projected public supplier objects
  */
 async function getSimilarSuppliers(supplierId, limit = 6) {
-  const suppliers = await dbUnified.read('suppliers');
+  const suppliersRaw = await dbUnified.read('suppliers');
+  const suppliers = await hydrateSuppliersWithActivePro(suppliersRaw);
 
   // Find the reference supplier (approved or not — we just need its attributes)
   const reference = suppliers.find(s => s.id === supplierId || s._id === supplierId);
@@ -1161,7 +1199,8 @@ async function getDiscoveryFeed({
   topRatedLimit = 6,
   newArrivalsLimit = 6,
 } = {}) {
-  const suppliers = await dbUnified.read('suppliers');
+  const suppliersRaw = await dbUnified.read('suppliers');
+  const suppliers = await hydrateSuppliersWithActivePro(suppliersRaw);
   const approved = suppliers.filter(s => s.approved);
 
   // Featured bucket — suppliers explicitly marked as featured, ranked by quality
@@ -1311,7 +1350,8 @@ async function getPersonalizedFeed(userId, context = {}, options = {}) {
   const { limit = 12, historyDays = 30 } = options;
   const { eventType, location, budget } = context;
 
-  const suppliers = await dbUnified.read('suppliers');
+  const suppliersRaw = await dbUnified.read('suppliers');
+  const suppliers = await hydrateSuppliersWithActivePro(suppliersRaw);
   const approved = suppliers.filter(s => s.approved);
 
   // Build personalization signals from user search history when userId is known
@@ -1447,7 +1487,8 @@ async function getPersonalizedFeed(userId, context = {}, options = {}) {
  * @returns {Promise<Array>} Array of projected public supplier objects
  */
 async function getPeopleAlsoViewed(supplierId, limit = 6) {
-  const suppliers = await dbUnified.read('suppliers');
+  const suppliersRaw = await dbUnified.read('suppliers');
+  const suppliers = await hydrateSuppliersWithActivePro(suppliersRaw);
 
   const reference = suppliers.find(s => s.id === supplierId || s._id === supplierId);
   if (!reference) {

@@ -6,9 +6,13 @@
 
 const searchService = require('../../services/searchService');
 const dbUnified = require('../../db-unified');
+const { supplierIsProActive } = require('../../utils/helpers');
 
 // Mock dbUnified
 jest.mock('../../db-unified');
+jest.mock('../../utils/helpers', () => ({
+  supplierIsProActive: jest.fn(),
+}));
 
 describe('Search Service', () => {
   const mockSuppliers = [
@@ -105,6 +109,7 @@ describe('Search Service', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    supplierIsProActive.mockImplementation(async supplier => !!supplier?.isPro);
     dbUnified.read.mockImplementation(collection => {
       if (collection === 'suppliers') {
         return Promise.resolve([...mockSuppliers]);
@@ -156,6 +161,16 @@ describe('Search Service', () => {
       const result = await searchService.searchSuppliers({ proOnly: 'true' });
 
       expect(result.results.every(s => s.isPro)).toBe(true);
+    });
+
+    it('should remove stale Pro badge when subscription is not active', async () => {
+      supplierIsProActive.mockImplementation(async supplier =>
+        supplier.id === 'sup1' ? false : !!supplier?.isPro
+      );
+
+      const result = await searchService.searchSuppliers({ proOnly: 'true' });
+
+      expect(result.results).toHaveLength(0);
     });
 
     it('should filter by featured only', async () => {
