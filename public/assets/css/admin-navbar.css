@@ -157,6 +157,7 @@
   align-items: center;
   gap: 12px;
   flex-shrink: 0;
+  min-width: 0;
 }
 
 /* Database Status Indicator */
@@ -208,6 +209,8 @@
   width: 40px;
   height: 40px;
   display: flex;
+  min-width: 40px;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
   border: 1.5px solid rgba(229, 231, 235, 0.9);
@@ -225,6 +228,9 @@
   fill: none;
   width: 24px;
   height: 24px;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
 }
 
 .navbar-icon-btn:hover {
@@ -509,9 +515,55 @@ body.admin {
   }
 
   .navbar-icon-btn svg {
-    width: 22px;
-    height: 22px;
-    stroke-width: 2.4;
+    width: 26px;
+    height: 26px;
+    stroke-width: 2.6;
+  }
+
+  .admin-user-btn {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 12px;
+  }
+
+  .admin-user-btn > span,
+  .admin-user-btn > svg {
+    display: none;
+  }
+
+  .admin-user-avatar {
+    width: 30px;
+    height: 30px;
+  }
+}
+
+
+@media (max-width: 390px) {
+  .admin-top-navbar {
+    padding: 0 10px;
+  }
+
+  .admin-navbar-content {
+    gap: 8px;
+  }
+
+  .admin-navbar-logo {
+    font-size: 20px;
+  }
+
+  .admin-navbar-actions {
+    gap: 6px;
+  }
+
+  .navbar-icon-btn,
+  .admin-user-btn,
+  .admin-qnav-btn {
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
   }
 }
 
@@ -786,8 +838,9 @@ body.admin {
 }
 
 .admin-qnav-close {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -813,9 +866,11 @@ body.admin {
 }
 
 .admin-qnav-close svg {
-  width: 22px;
-  height: 22px;
-  stroke-width: 2.75;
+  width: 26px;
+  height: 26px;
+  stroke-width: 3;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
 }
 
 /* ─── Search bar ────────────────────────────────────────────────────────── */
