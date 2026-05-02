@@ -1072,13 +1072,24 @@ displaySubscriptionStatus();
       /* Ignore localStorage errors */
     }
 
-    const sectionDivider = document.querySelector('.sd-section-divider');
     const profileToggle = document.getElementById('toggle-profile-form');
+    const profileCard = profileToggle ? profileToggle.closest('.sd-card') : null;
+    const sectionDivider =
+      profileCard && profileCard.previousElementSibling?.classList.contains('sd-section-divider')
+        ? profileCard.previousElementSibling
+        : document.querySelector('.sd-section-divider');
+
     if (!sectionDivider || !profileToggle) {
       return;
     }
 
-    sectionDivider.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const scrollTarget = profileCard || sectionDivider;
+    const headerOffset = 96;
+    const absoluteTop = window.scrollY + scrollTarget.getBoundingClientRect().top - headerOffset;
+    window.scrollTo({
+      top: Math.max(absoluteTop, 0),
+      behavior: 'smooth',
+    });
     sectionDivider.classList.add('ef-profile-onboarding-hint');
     profileToggle.classList.add('ef-profile-onboarding-cta');
     profileToggle.setAttribute('aria-describedby', 'ef-profile-onboarding-breadcrumb');
@@ -1134,8 +1145,11 @@ displaySubscriptionStatus();
       overlay.style.transition = `opacity 0.3s ${easing}`;
       overlay.style.opacity = '0';
       setTimeout(() => overlay.remove(), 300);
+      // Wait until the overlay is removed before scrolling, otherwise
+      // removing the card shifts the viewport and can overshoot sections.
+      setTimeout(() => nudgeProfileManagement(), 320);
+      return;
     }
-
     nudgeProfileManagement();
   }
 
