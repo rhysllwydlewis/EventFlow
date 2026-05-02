@@ -42,7 +42,9 @@
     "test:ci": "jest --runInBand --detectOpenHandles --coverage=false",
     "preflight": "node scripts/preflight.mjs",
     "worker": "node scripts/worker.js",
-    "build": "node -e \"console.log('No build step required for EventFlow')\""
+    "build": "node -e \"console.log('No build step required for EventFlow')\"",
+    "test:visual:setup": "playwright install --with-deps chromium",
+    "test:visual:local": "npm run test:visual:setup && npm run test:visual"
   },
   "dependencies": {
     "@sentry/node": "^8.0.0",
