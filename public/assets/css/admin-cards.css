@@ -429,8 +429,10 @@
 }
 
 .btn-icon svg {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
+  stroke-width: 2.6;
+  vector-effect: non-scaling-stroke;
 }
 
 .btn-icon:hover {
@@ -509,13 +511,46 @@
     height: 48px;
     font-size: 24px;
   }
-  
+
   .stat-card-value {
     font-size: 24px;
   }
-  
+
   .table-card {
     overflow-x: auto;
+  }
+
+  .header-content {
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: nowrap;
+  }
+
+  .status-badge {
+    max-width: calc(100% - 58px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 12px;
+  }
+
+  .btn-icon {
+    width: 46px;
+    height: 46px;
+    min-width: 46px;
+    border-radius: 12px;
+  }
+
+  .btn-icon svg {
+    width: 30px;
+    height: 30px;
+    stroke-width: 2.8;
   }
 }
 
