@@ -1035,29 +1035,52 @@ body.auth-page .auth-pw-wrap .password-toggle {
     align-items: center;
     min-height: 44px;
     margin-top: 0;
+    margin-left: auto;
+    padding-left: 0.65rem;
     white-space: nowrap;
     flex: 0 0 auto;
+    font-size: 0.875rem;
+    line-height: 1.1;
   }
 
-  /* Spread checkbox and forgot-password link to opposite ends of the row */
-  .auth-field--inline {
-    display: flex;
+  /* Keep checkbox and forgot-password link on one line with clear spacing */
+  body.auth-page .auth-field--inline {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 0.8rem;
+    row-gap: 0;
+  }
+
+  .auth-field--inline .auth-checkbox-label.checkbox-label-right {
+    display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    justify-content: space-between;
-    flex-wrap: nowrap;
-  }
-
-  .auth-checkbox-label.checkbox-label-right {
     margin-bottom: 0;
     min-width: 0;
     flex: 1 1 auto;
+    white-space: nowrap;
   }
 
-  .auth-checkbox-label.checkbox-label-right > span:last-child {
+  .auth-field--inline .auth-checkbox-label.checkbox-label-right > span:last-child {
     white-space: nowrap;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
     line-height: 1.2;
+  }
+
+  @media (max-width: 390px) {
+    body.auth-page .auth-field--inline {
+      column-gap: 0.55rem;
+    }
+
+    .auth-field--inline .auth-checkbox-label.checkbox-label-right > span:last-child {
+      font-size: 0.84rem;
+    }
+
+    .auth-forgot-link--below {
+      font-size: 0.81rem;
+      padding-left: 0.35rem;
+    }
   }
 }
 

@@ -41,7 +41,6 @@
    B) HEADER — more compact on mobile
    ============================================================ */
 @media (max-width: 768px) {
-
   /* Smaller icon buttons */
   .ef-icon-btn {
     width: 36px;
@@ -727,13 +726,14 @@
 }
 
 @media (max-width: 480px) {
-
   /* ── Hero card: clean white card on mobile ── */
   .dashboard-hero {
     background: #ffffff !important;
     border-radius: 20px;
     margin-bottom: 10px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.06);
+    box-shadow:
+      0 2px 12px rgba(0, 0, 0, 0.08),
+      0 0 0 1px rgba(0, 0, 0, 0.06);
     /* Override any animated bg blobs */
     isolation: isolate;
   }
@@ -938,7 +938,11 @@
 
   /* Primary chip: keep accent colour */
   .dashboard-action-chip--primary {
-    background: linear-gradient(135deg, var(--dashboard-primary, #10b981), var(--dashboard-primary-dark, #059669));
+    background: linear-gradient(
+      135deg,
+      var(--dashboard-primary, #10b981),
+      var(--dashboard-primary-dark, #059669)
+    );
     border-color: transparent;
     color: white;
   }
@@ -949,7 +953,6 @@
     padding: 8px 12px;
     font-size: 0.75rem;
   }
-
 }
 
 /* ============================================================
@@ -1000,14 +1003,25 @@
       0 2px 12px rgba(245, 158, 11, 0.14),
       inset 0 1px 0 rgba(255, 255, 255, 0.8);
     color: #78350f;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .pro-ribbon.pro-ribbon--starter::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 12% 80%, rgba(255, 255, 255, 0.5) 0, transparent 34%);
+    pointer-events: none;
   }
 
   .pro-ribbon.pro-ribbon--starter strong {
     display: block;
-    font-size: 0.875rem;
+    font-size: 0.98rem;
     font-weight: 800;
-    color: #92400e;
+    color: #78350f;
     margin-bottom: 2px;
+    line-height: 1.25;
   }
 
   /* Show description text */
@@ -1021,8 +1035,10 @@
   }
 
   .pro-ribbon__inner {
-    gap: 10px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
     align-items: center;
+    gap: 10px;
   }
 
   /* Icon: just the emoji, no box — like reference image.
@@ -1054,6 +1070,8 @@
   .pro-ribbon__text-group {
     flex: 1;
     min-width: 0;
+    position: relative;
+    z-index: 1;
   }
 
   /* CTA button: orange/amber pill matching reference */
@@ -1063,24 +1081,29 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    padding: 10px 16px;
+    padding: 8px 13px;
     height: auto;
-    min-height: 40px;
+    min-height: 34px;
     background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
     color: #fff !important;
     border-radius: 999px;
-    font-size: 0.8rem;
+    font-size: 0.82rem;
     font-weight: 800;
     text-decoration: none !important;
     white-space: nowrap;
     box-shadow:
       0 3px 10px rgba(249, 115, 22, 0.35),
       0 1px 3px rgba(0, 0, 0, 0.1);
-    transition: opacity 0.15s, transform 0.15s;
+    transition:
+      opacity 0.15s,
+      transform 0.15s,
+      box-shadow 0.15s;
     margin-left: 0;
     vertical-align: unset;
     border: none;
-    letter-spacing: 0.01em;
+    letter-spacing: 0;
+    position: relative;
+    z-index: 1;
   }
 
   .pro-ribbon.pro-ribbon--starter .pro-ribbon__cta:hover,
@@ -1096,18 +1119,44 @@
     transform: translateY(0);
     opacity: 1;
   }
+
+  .pro-ribbon.pro-ribbon--starter .pro-ribbon__cta:focus-visible,
+  .pro-ribbon.pro-ribbon--starter a.pro-ribbon__cta:focus-visible {
+    outline: 2px solid #9a3412;
+    outline-offset: 2px;
+    box-shadow:
+      0 0 0 3px rgba(255, 237, 213, 0.9),
+      0 3px 10px rgba(249, 115, 22, 0.35);
+  }
 }
 
 /* Very small phones: keep description but make CTA slightly smaller */
 @media (max-width: 390px) {
-  .pro-ribbon.pro-ribbon--starter .pro-ribbon__cta,
-  .pro-ribbon.pro-ribbon--starter a.pro-ribbon__cta {
-    padding: 8px 12px;
-    font-size: 0.75rem;
-    min-height: 36px;
+  .pro-ribbon__inner {
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      'icon text'
+      'icon cta';
+    align-items: start;
+    row-gap: 8px;
+  }
+
+  .pro-ribbon__icon {
+    grid-area: icon;
+    margin-top: 2px;
   }
 
   .pro-ribbon__text-group {
+    grid-area: text;
     font-size: 0.775rem;
+  }
+
+  .pro-ribbon.pro-ribbon--starter .pro-ribbon__cta,
+  .pro-ribbon.pro-ribbon--starter a.pro-ribbon__cta {
+    grid-area: cta;
+    justify-self: start;
+    padding: 7px 10px;
+    font-size: 0.78rem;
+    min-height: 32px;
   }
 }
