@@ -1046,7 +1046,7 @@ body.auth-page .auth-pw-wrap .password-toggle {
   /* Keep checkbox and forgot-password link on one line with clear spacing */
   body.auth-page .auth-field--inline {
     display: flex;
-    justify-content: flex-start;
+    justify-content: space-between;
     align-items: center;
     column-gap: 0.6rem;
     row-gap: 0;
@@ -1069,6 +1069,14 @@ body.auth-page .auth-pw-wrap .password-toggle {
     line-height: 1.2;
   }
 
+
+  .auth-field--inline .auth-checkbox {
+    margin-top: 0;
+  }
+
+  #login-form .auth-submit--full {
+    margin-top: 0.5rem;
+  }
   @media (max-width: 390px) {
     body.auth-page .auth-field--inline {
       gap: 0.35rem;
