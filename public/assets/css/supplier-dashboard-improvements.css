@@ -7921,20 +7921,65 @@ label .required {
   color: #fff;
   cursor: pointer;
   box-shadow: 0 2px 8px rgba(16, 24, 40, 0.14);
-  transition: background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.2s ease;
   z-index: 3;
-  will-change: background-color;
+  will-change: background-color, transform;
 }
 
 .spc-avatar-delete-btn:hover {
   background-color: #f26363;
   border-color: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 2px 8px rgba(16, 24, 40, 0.14);
+  box-shadow:
+    0 6px 16px rgba(220, 38, 38, 0.32),
+    0 2px 8px rgba(16, 24, 40, 0.14);
+  animation: spcDeletePulse 1.1s ease-in-out infinite;
+}
+
+.spc-avatar-delete-btn[aria-disabled='true'] {
+  cursor: wait;
+  opacity: 0.82;
+  animation: none;
 }
 
 .spc-avatar-delete-btn:active {
   background-color: #dc2626;
   border-color: rgba(255, 255, 255, 0.95);
+  animation: none;
+  transform: translate3d(-50%, 0, 0) scale(0.92);
+}
+
+.spc-avatar-delete-btn:focus-visible,
+.spc-camera-btn:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.92),
+    0 0 0 5px rgba(11, 128, 115, 0.5),
+    0 3px 10px rgba(11, 128, 115, 0.26);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spc-avatar-delete-btn,
+  .spc-avatar-delete-btn:hover {
+    animation: none !important;
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@keyframes spcDeletePulse {
+  0%,
+  100% {
+    transform: translate3d(-50%, 0, 0) scale(1);
+  }
+  35% {
+    transform: translate3d(-50%, 0, 0) scale(1.12);
+  }
+  70% {
+    transform: translate3d(-50%, 0, 0) scale(1.03);
+  }
 }
 
 .spc-avatar-delete-btn span {
@@ -7942,6 +7987,7 @@ label .required {
   font-size: 11px;
   line-height: 1;
   font-weight: 700;
+  transform: translateY(-0.5px);
 }
 
 /* ── Body column ───────────────────────────────────────────────────────────── */
