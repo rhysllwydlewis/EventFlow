@@ -2631,7 +2631,7 @@ function efMaybeShowOnboarding(page) {
 
     const box = document.createElement('div');
     box.id = 'ef-onboarding-box';
-    box.className = 'card';
+    box.className = 'card no-collapse';
     box.style.color = '#1f2937';
     box.style.padding = '1rem 1.5rem 1.125rem';
     box.style.borderRadius = '16px';

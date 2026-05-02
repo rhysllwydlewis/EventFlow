@@ -1061,6 +1061,63 @@ displaySubscriptionStatus();
 // localStorage keys are set to prevent the overlay from reappearing.
 (function initWelcomeOverlayDismiss() {
   const DISMISS_KEY = 'ef_supplier_welcome_dismissed';
+  const PROFILE_HINT_KEY = 'ef_supplier_profile_hint_seen';
+
+  function nudgeProfileManagement() {
+    try {
+      if (localStorage.getItem(PROFILE_HINT_KEY) === '1') {
+        return;
+      }
+    } catch (_) {
+      /* Ignore localStorage errors */
+    }
+
+    const sectionDivider = document.querySelector('.sd-section-divider');
+    const profileToggle = document.getElementById('toggle-profile-form');
+    if (!sectionDivider || !profileToggle) {
+      return;
+    }
+
+    sectionDivider.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    sectionDivider.classList.add('ef-profile-onboarding-hint');
+    profileToggle.classList.add('ef-profile-onboarding-cta');
+    profileToggle.setAttribute('aria-describedby', 'ef-profile-onboarding-breadcrumb');
+
+    let breadcrumb = document.getElementById('ef-profile-onboarding-breadcrumb');
+    if (!breadcrumb) {
+      breadcrumb = document.createElement('p');
+      breadcrumb.id = 'ef-profile-onboarding-breadcrumb';
+      breadcrumb.className = 'ef-profile-onboarding-breadcrumb';
+      breadcrumb.setAttribute('role', 'status');
+      breadcrumb.setAttribute('aria-live', 'polite');
+      breadcrumb.textContent =
+        'Next step: expand “Your Supplier Profile” to start building your listing.';
+      sectionDivider.insertAdjacentElement('afterend', breadcrumb);
+    } else {
+      breadcrumb.classList.remove('is-visible');
+    }
+
+    requestAnimationFrame(() => breadcrumb.classList.add('is-visible'));
+
+    const clearNudgeState = () => {
+      sectionDivider.classList.remove('ef-profile-onboarding-hint');
+      profileToggle.classList.remove('ef-profile-onboarding-cta');
+      profileToggle.removeAttribute('aria-describedby');
+      profileToggle.removeEventListener('click', clearNudgeState);
+    };
+
+    profileToggle.addEventListener('click', clearNudgeState, { once: true });
+
+    window.setTimeout(() => {
+      clearNudgeState();
+    }, 5200);
+
+    try {
+      localStorage.setItem(PROFILE_HINT_KEY, '1');
+    } catch (_) {
+      /* Ignore localStorage errors */
+    }
+  }
 
   function dismissWelcomeOverlay() {
     try {
@@ -1078,6 +1135,8 @@ displaySubscriptionStatus();
       overlay.style.opacity = '0';
       setTimeout(() => overlay.remove(), 300);
     }
+
+    nudgeProfileManagement();
   }
 
   // Export so that the onboarding overlay card in app.js can call this too

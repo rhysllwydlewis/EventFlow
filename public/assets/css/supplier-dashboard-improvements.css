@@ -4887,6 +4887,59 @@ html {
   white-space: nowrap;
 }
 
+@keyframes ef-profile-onboarding-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+  }
+  40% {
+    box-shadow: 0 0 0 7px rgba(16, 185, 129, 0.18);
+  }
+}
+
+.ef-profile-onboarding-hint .sd-section-divider__label {
+  color: #047857;
+  font-weight: 700;
+}
+
+.ef-profile-onboarding-hint {
+  scroll-margin-top: 84px;
+}
+
+.ef-profile-onboarding-cta {
+  animation: ef-profile-onboarding-pulse 1.1s ease-in-out 3;
+}
+
+.ef-profile-onboarding-breadcrumb {
+  margin: 0.35rem 0 0.9rem;
+  color: #065f46;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.45;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.ef-profile-onboarding-breadcrumb.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.ef-profile-onboarding-breadcrumb::before {
+  content: '👉 ';
+  font-size: 0.875rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ef-profile-onboarding-cta {
+    animation: none;
+  }
+  .ef-profile-onboarding-breadcrumb {
+    transition: none;
+  }
+}
+
 /* ------------------------------------------
    SD ROI SECTION — compact analytics header/grid
    Replaces inline-styled ROI widget wrapper
