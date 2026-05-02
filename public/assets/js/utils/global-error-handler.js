@@ -14,6 +14,11 @@
   const recentErrors = new Set();
   const ERROR_COOLDOWN = 5000; // 5 seconds
 
+  function isAbortLikeError(error) {
+    const message = typeof error?.message === 'string' ? error.message.toLowerCase() : '';
+    return error?.name === 'AbortError' || message.includes('aborted');
+  }
+
   /**
    * Log error to console and external service
    */
@@ -174,6 +179,15 @@
         // Return original response so calling code can still handle it
         return response;
       } catch (error) {
+        // Ignore aborted fetches caused by page navigation/cancellation.
+        // These are expected when users click nav links and should not show error toasts.
+        if (isAbortLikeError(error)) {
+          if (isDevelopment) {
+            console.debug('Ignoring aborted fetch request:', args[0]);
+          }
+          throw error;
+        }
+
         // Handle network errors
         logError(error, {
           type: 'network_error',
@@ -200,7 +214,7 @@
     const errorMessage = error.message || 'Unknown error';
 
     // Ignore benign errors
-    if (isBenignError(errorMessage)) {
+    if (isBenignError(errorMessage) || isAbortLikeError(error)) {
       return;
     }
 
@@ -229,7 +243,7 @@
     const errorMessage = error.message || 'Unknown error';
 
     // Ignore benign errors
-    if (isBenignError(errorMessage)) {
+    if (isBenignError(errorMessage) || isAbortLikeError(error)) {
       return;
     }
 
