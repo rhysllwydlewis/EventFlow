@@ -2714,21 +2714,6 @@ function efMaybeShowOnboarding(page) {
       setTimeout(() => box.remove(), 300);
     };
 
-    // Add X close button to the overlay card
-    const xCloseBtn = document.createElement('button');
-    xCloseBtn.type = 'button';
-    xCloseBtn.className = 'ef-ob-close';
-    xCloseBtn.setAttribute('aria-label', 'Dismiss welcome onboarding');
-    xCloseBtn.style.cssText =
-      'position:absolute;top:14px;right:14px;width:30px;height:30px;min-width:30px;min-height:30px;' +
-      'padding:0!important;background:rgba(0,0,0,0.06);border:1px solid rgba(0,0,0,0.08)!important;border-radius:50%!important;' +
-      'cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:10;' +
-      'transition:background 0.15s;color:#6b7280;box-shadow:none!important;';
-    xCloseBtn.innerHTML =
-      '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-    xCloseBtn.addEventListener('click', doOverlayDismiss);
-    box.appendChild(xCloseBtn);
-
     const btn = box.querySelector('#ef-onboarding-dismiss');
     if (btn) {
       // Add hover effect with green theme glow
