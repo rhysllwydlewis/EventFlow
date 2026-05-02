@@ -3997,9 +3997,16 @@ async function initDashSupplier() {
 
         // Handle profile photo delete button
         if (actionEl && actionEl.matches('[data-action="delete-profile-photo"]')) {
+          if (actionEl.dataset.busy === 'true') {
+            return;
+          }
           if (!confirm('Remove your profile photo?')) {
             return;
           }
+          actionEl.dataset.busy = 'true';
+          actionEl.setAttribute('aria-disabled', 'true');
+          actionEl.disabled = true;
+          actionEl.title = 'Removing profile photo…';
           try {
             const resp = await fetch('/api/profile/avatar', {
               method: 'DELETE',
@@ -4014,10 +4021,20 @@ async function initDashSupplier() {
               await window.AuthStateManager.refresh();
             }
             await loadSuppliers();
+            if (window.announceToSR) {
+              window.announceToSR('Profile photo removed');
+            }
           } catch (err) {
             console.error('Profile photo delete failed:', err);
             if (window.announceToSR) {
               window.announceToSR(err.message || 'Failed to delete profile photo');
+            }
+          } finally {
+            delete actionEl.dataset.busy;
+            if (actionEl.isConnected) {
+              actionEl.removeAttribute('aria-disabled');
+              actionEl.disabled = false;
+              actionEl.title = 'Delete profile photo';
             }
           }
         }
