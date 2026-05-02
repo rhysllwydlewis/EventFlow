@@ -1221,28 +1221,43 @@ body.legacy-nav-open .legacy-nav-menu{
 
 /* Starter plan variant — neutral amber-tinged upgrade prompt */
 .pro-ribbon--starter {
-  background: linear-gradient(135deg, #fff8f0 0%, #fef3e2 100%);
-  color: #92400e;
-  border: 1px solid #fcd34d;
+  background: linear-gradient(135deg, #fffce8 0%, #fef9c3 44%, #fef3c7 100%);
+  color: #78350f;
+  border: 1px solid rgba(251, 191, 36, 0.55);
+  border-radius: 14px;
+  box-shadow: 0 6px 16px rgba(245, 158, 11, 0.14);
+}
+
+.pro-ribbon--starter .pro-ribbon__text-group strong {
+  color: #3f1d0c;
+}
+
+.pro-ribbon--starter .pro-ribbon__desc {
+  color: #4b2f17;
 }
 
 .pro-ribbon--starter a.pro-ribbon__cta {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   margin-left: 0.75rem;
-  padding: 0.25rem 0.85rem;
-  background: linear-gradient(135deg, #0B8073 0%, #13B6A2 100%);
+  min-height: 38px;
+  padding: 0.35rem 1rem;
+  background: linear-gradient(135deg, #ff8a00 0%, #ff5f00 100%);
   color: white;
   border-radius: 999px;
-  font-size: 0.8rem;
-  font-weight: 700;
+  font-size: 0.9rem;
+  font-weight: 800;
   text-decoration: none;
   vertical-align: middle;
   white-space: nowrap;
-  transition: opacity 0.15s;
+  box-shadow: 0 6px 14px rgba(255, 115, 0, 0.3);
+  transition: opacity 0.15s, transform 0.15s;
 }
 
 .pro-ribbon--starter a.pro-ribbon__cta:hover {
-  opacity: 0.85;
+  opacity: 0.95;
+  transform: translateY(-1px);
   text-decoration: none;
 }
 
