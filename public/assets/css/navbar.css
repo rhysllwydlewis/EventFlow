@@ -484,6 +484,13 @@
   height: 24px;
 }
 
+/* Keep bell icon weight visually aligned with neighboring text buttons */
+#ef-notification-btn .ef-icon {
+  width: 20px;
+  height: 20px;
+  stroke-width: 1.75;
+}
+
 /* Badge - Enhanced with pulse animation
    Scoped to nav badge containers to avoid impacting generic page badges. */
 .ef-icon-btn .ef-badge,
