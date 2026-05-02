@@ -19,6 +19,57 @@
     return error?.name === 'AbortError' || message.includes('aborted');
   }
 
+  const NAVIGATION_FLAG_KEY = '__EF_NAVIGATING_AWAY__';
+  const NAVIGATION_SUPPRESSION_WINDOW_MS = 3000;
+  let navigationSuppressionUntil = 0;
+
+  function isNavigationInProgress() {
+    const now = Date.now();
+    return Boolean(window[NAVIGATION_FLAG_KEY]) || now < navigationSuppressionUntil;
+  }
+
+  function markNavigationSuppressionWindow() {
+    navigationSuppressionUntil = Date.now() + NAVIGATION_SUPPRESSION_WINDOW_MS;
+    window[NAVIGATION_FLAG_KEY] = true;
+    window.setTimeout(() => {
+      if (Date.now() >= navigationSuppressionUntil) {
+        window[NAVIGATION_FLAG_KEY] = false;
+      }
+    }, NAVIGATION_SUPPRESSION_WINDOW_MS + 50);
+  }
+
+  function setupNavigationTracking() {
+    const mark = () => {
+      markNavigationSuppressionWindow();
+    };
+
+    window.addEventListener('beforeunload', mark);
+    document.addEventListener(
+      'click',
+      event => {
+        const link = event.target instanceof Element ? event.target.closest('a[href]') : null;
+        if (!link) {
+          return;
+        }
+
+        const href = link.getAttribute('href') || '';
+        if (!href || href === '#' || href.startsWith('javascript:')) {
+          return;
+        }
+
+        if (link.target && link.target !== '_self') {
+          return;
+        }
+
+        mark();
+      },
+      true
+    );
+
+    window.addEventListener('popstate', mark);
+    window.addEventListener('hashchange', mark);
+  }
+
   /**
    * Log error to console and external service
    */
