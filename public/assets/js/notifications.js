@@ -786,6 +786,14 @@
 
     dropdown.classList.toggle('notification-dropdown--open', isOpen);
 
+    const bell =
+      document.getElementById('ef-notification-btn') ||
+      document.getElementById('notification-bell');
+    if (bell) {
+      bell.setAttribute('aria-expanded', String(isOpen));
+      bell.classList.toggle('is-open', isOpen);
+    }
+
     // Some pages render inline style="display:none" and may not include
     // the CSS rule with !important. Keep inline display in sync while still
     // allowing CSS to control preferred layout mode (block/flex).
@@ -823,6 +831,11 @@
 
     // Mark initialized only after we have a bell element to bind to.
     window.__notificationBellInitialized = true;
+
+    // Keep accessibility state explicit from first render.
+    bell.setAttribute('aria-haspopup', 'true');
+    bell.setAttribute('aria-expanded', 'false');
+    bell.classList.remove('is-open');
 
     // Position dropdown below bell with viewport boundary detection
     const positionDropdown = dropdown => {
@@ -975,6 +988,23 @@
           setDropdownOpen(dropdown, false);
         }
       });
+
+      // Keep popover state stable on viewport/layout changes.
+      window.addEventListener('resize', () => {
+        if (dropdown.classList.contains('notification-dropdown--open')) {
+          positionDropdown(dropdown);
+        }
+      });
+
+      window.addEventListener(
+        'scroll',
+        () => {
+          if (dropdown.classList.contains('notification-dropdown--open')) {
+            positionDropdown(dropdown);
+          }
+        },
+        { passive: true }
+      );
 
       // Mark all as read handler
       const markAllBtn = dropdown.querySelector('#notification-mark-all-read');
