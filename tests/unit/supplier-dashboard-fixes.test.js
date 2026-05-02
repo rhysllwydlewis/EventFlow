@@ -317,7 +317,10 @@ describe('Supplier dashboard/profile UI polish', () => {
     expect(supplierDashImprovementsCss).toContain('height: 14px;');
     // No scale on .photo-preview-remove:hover either
     const previewHoverStart = supplierDashImprovementsCss.indexOf('.photo-preview-remove:hover {');
-    const previewHoverBlock = supplierDashImprovementsCss.slice(previewHoverStart, supplierDashImprovementsCss.indexOf('}', previewHoverStart) + 1);
+    const previewHoverBlock = supplierDashImprovementsCss.slice(
+      previewHoverStart,
+      supplierDashImprovementsCss.indexOf('}', previewHoverStart) + 1
+    );
     expect(previewHoverBlock).not.toContain('transform: scale');
   });
 
@@ -364,7 +367,7 @@ describe('Supplier dashboard/profile UI polish', () => {
     expect(appJs).toContain("'Categories & Services'");
     expect(appJs).toContain("'Photos'");
     expect(appJs).toContain("'Contact Information'");
-    expect(appJs).toContain("'Additional Details'");
+    expect(appJs).toContain("'Business Description'");
     expect(supplierDashImprovementsCss).toContain('.spc-root {');
     expect(supplierDashImprovementsCss).toContain('.spc-summary {');
     expect(supplierDashImprovementsCss).toContain('.spc-health .listing-health-bar {');
