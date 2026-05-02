@@ -132,6 +132,10 @@
   // AUTH STATE MANAGEMENT
   // ==========================================
 
+  function markNavigationInProgress() {
+    window.__EF_NAVIGATING_AWAY__ = true;
+  }
+
   function getAuthState() {
     return window.__authState || window.AuthStateManager;
   }
@@ -420,11 +424,25 @@
   // ==========================================
 
   function initNotificationSync() {
+    const registerDashboardNav = element => {
+      if (!element) {
+        return;
+      }
+
+      element.addEventListener('click', () => {
+        markNavigationInProgress();
+      });
+    };
+
+    registerDashboardNav(elements.dashboardLink);
+    registerDashboardNav(elements.mobileDashboard);
+
     // Sync click handler for bottom dashboard button
     if (elements.bottomDashboard) {
       elements.bottomDashboard.addEventListener('click', e => {
         if (state.user) {
           e.preventDefault();
+          markNavigationInProgress();
           const dashboardUrl =
             state.user.role === 'admin'
               ? '/admin'

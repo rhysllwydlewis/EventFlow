@@ -14,6 +14,51 @@
   const recentErrors = new Set();
   const ERROR_COOLDOWN = 5000; // 5 seconds
 
+  function isAbortLikeError(error) {
+    const message = typeof error?.message === 'string' ? error.message.toLowerCase() : '';
+    return error?.name === 'AbortError' || message.includes('aborted');
+  }
+
+  function isNavigationInProgress() {
+    return window.__EF_NAVIGATING_AWAY__ === true;
+  }
+
+  function markNavigationInProgress() {
+    window.__EF_NAVIGATING_AWAY__ = true;
+  }
+
+  function setupNavigationTracking() {
+    document.addEventListener(
+      'click',
+      event => {
+        const target = event.target;
+        if (!target || !(target instanceof Element)) {
+          return;
+        }
+
+        const link = target.closest('a[href]');
+        if (!link) {
+          return;
+        }
+
+        const href = (link.getAttribute('href') || '').trim();
+        if (!href || href === '#' || href.toLowerCase().startsWith('javascript:')) {
+          return;
+        }
+
+        const isInternalPath = href.startsWith('/') && !href.startsWith('//');
+        const isDashboardPath = /^\/dashboard(\/|$)/.test(href) || href === '/admin';
+        if (isInternalPath && isDashboardPath) {
+          markNavigationInProgress();
+        }
+      },
+      { capture: true }
+    );
+
+    window.addEventListener('beforeunload', markNavigationInProgress);
+    window.addEventListener('pagehide', markNavigationInProgress);
+  }
+
   /**
    * Log error to console and external service
    */
@@ -167,13 +212,22 @@
         // Suppress user notification for expected 401/403 (unauthenticated/forbidden).
         // These are expected on public pages and should not surface as error toasts.
         const isExpectedAuthError = response.status === 401 || response.status === 403;
-        if (!isBenign404 && !isExpectedAuthError) {
+        if (!isBenign404 && !isExpectedAuthError && !isNavigationInProgress()) {
           notifyError(errorMessage);
         }
 
         // Return original response so calling code can still handle it
         return response;
       } catch (error) {
+        // Ignore aborted fetches caused by page navigation/cancellation.
+        // These are expected when users click nav links and should not show error toasts.
+        if (isAbortLikeError(error) || isNavigationInProgress()) {
+          if (isDevelopment) {
+            console.debug('Ignoring aborted fetch request:', args[0]);
+          }
+          throw error;
+        }
+
         // Handle network errors
         logError(error, {
           type: 'network_error',
@@ -200,7 +254,7 @@
     const errorMessage = error.message || 'Unknown error';
 
     // Ignore benign errors
-    if (isBenignError(errorMessage)) {
+    if (isBenignError(errorMessage) || isAbortLikeError(error) || isNavigationInProgress()) {
       return;
     }
 
@@ -229,7 +283,7 @@
     const errorMessage = error.message || 'Unknown error';
 
     // Ignore benign errors
-    if (isBenignError(errorMessage)) {
+    if (isBenignError(errorMessage) || isAbortLikeError(error) || isNavigationInProgress()) {
       return;
     }
 
@@ -254,6 +308,8 @@
   window.reportError = function (error, context) {
     logError(error, { ...context, type: 'manual_report' });
   };
+
+  setupNavigationTracking();
 
   // Initialize fetch interceptor
   setupFetchInterceptor();
