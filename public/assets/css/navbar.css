@@ -423,6 +423,13 @@
   gap: 10px;
 }
 
+.ef-header-actions > .ef-icon-btn,
+.ef-header-actions > .ef-btn,
+.ef-header-actions > .ef-nav-link,
+.ef-header-actions > .ef-mobile-toggle {
+  min-height: 44px;
+}
+
 /* Icon Button - Enhanced styling */
 .ef-icon-btn {
   position: relative;
@@ -431,22 +438,31 @@
   justify-content: center;
   width: 44px;
   height: 44px;
-  border: none;
-  background: rgba(11, 128, 115, 0.08);
+  border: 1px solid rgba(11, 128, 115, 0.34);
+  background: #fff;
   border-radius: var(--ef-radius);
   color: var(--ef-primary);
   cursor: pointer;
-  transition: var(--ef-transition);
+  box-shadow: 0 1px 2px rgba(11, 128, 115, 0.1);
+  transition:
+    background-color 0.22s ease,
+    border-color 0.22s ease,
+    box-shadow 0.22s ease,
+    transform 0.16s ease;
 }
 
 .ef-icon-btn:hover {
-  background: rgba(11, 128, 115, 0.15);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(11, 128, 115, 0.2);
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(11, 128, 115, 0.44);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(11, 128, 115, 0.18);
 }
 
 .ef-icon-btn:active {
-  transform: translateY(0);
+  background: rgba(11, 128, 115, 0.14);
+  border-color: rgba(11, 128, 115, 0.5);
+  box-shadow: 0 4px 12px rgba(11, 128, 115, 0.2);
+  transform: translateY(0) scale(0.98);
 }
 
 .ef-icon-btn:focus-visible {
@@ -617,21 +633,30 @@
   gap: 4px;
   width: 44px;
   height: 44px;
-  border: none;
-  background: rgba(11, 128, 115, 0.08);
+  border: 1px solid rgba(11, 128, 115, 0.34);
+  background: #fff;
   border-radius: var(--ef-radius);
   cursor: pointer;
-  transition: var(--ef-transition);
+  transition:
+    background-color 0.22s ease,
+    border-color 0.22s ease,
+    box-shadow 0.22s ease,
+    transform 0.16s ease;
   padding: 0;
 }
 
 .ef-mobile-toggle:hover {
-  background: rgba(11, 128, 115, 0.15);
-  transform: scale(1.05);
+  background: rgba(255, 255, 255, 0.96);
+  border-color: rgba(11, 128, 115, 0.44);
+  box-shadow: 0 4px 12px rgba(11, 128, 115, 0.18);
+  transform: translateY(-1px);
 }
 
 .ef-mobile-toggle:active {
-  transform: scale(0.95);
+  background: rgba(11, 128, 115, 0.14);
+  border-color: rgba(11, 128, 115, 0.5);
+  box-shadow: 0 4px 12px rgba(11, 128, 115, 0.2);
+  transform: translateY(0) scale(0.98);
 }
 
 .ef-mobile-toggle:focus-visible {
@@ -648,7 +673,19 @@
 }
 
 .ef-mobile-toggle[aria-expanded='true'] {
-  background: rgba(11, 128, 115, 0.2);
+  background: rgba(11, 128, 115, 0.14);
+  border-color: rgba(11, 128, 115, 0.5);
+  box-shadow: 0 4px 12px rgba(11, 128, 115, 0.2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ef-icon-btn,
+  .ef-header #ef-dashboard-link,
+  .ef-header .ef-btn-secondary,
+  .ef-mobile-toggle {
+    transition: none;
+    transform: none !important;
+  }
 }
 
 .ef-mobile-toggle[aria-expanded='true'] .ef-toggle-line:nth-child(1) {
