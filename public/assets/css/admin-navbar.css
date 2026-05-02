@@ -239,6 +239,11 @@
   transform: scale(0.98) rotate(180deg);
 }
 
+.navbar-icon-btn:focus-visible {
+  outline: 2px solid #0B8073;
+  outline-offset: 2px;
+}
+
 @keyframes navbar-spin {
   from { transform: rotate(0deg); }
   to   { transform: rotate(360deg); }
@@ -499,8 +504,14 @@ body.admin {
   }
   
   .navbar-icon-btn {
-    width: 36px;
-    height: 36px;
+    width: 40px;
+    height: 40px;
+  }
+
+  .navbar-icon-btn svg {
+    width: 22px;
+    height: 22px;
+    stroke-width: 2.4;
   }
 }
 
@@ -578,6 +589,8 @@ body.admin {
   flex-shrink: 0;
   letter-spacing: -0.1px;
   box-shadow: 0 2px 8px rgba(11, 128, 115, 0.1);
+  width: auto;
+  margin-top: 0;
 }
 
 .admin-qnav-btn:hover {
@@ -591,6 +604,11 @@ body.admin {
   transform: translateY(0) scale(0.97);
   box-shadow: none;
   background: rgba(11, 128, 115, 0.14);
+}
+
+.admin-qnav-btn:focus-visible {
+  outline: 2px solid #0B8073;
+  outline-offset: 2px;
 }
 
 .admin-qnav-btn[aria-expanded="true"] {
@@ -623,9 +641,28 @@ body.admin {
   flex-shrink: 0;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 768px) {
+  .admin-navbar-actions .navbar-icon-btn,
+  .admin-qnav-btn {
+    flex: 0 0 auto;
+    margin-top: 0;
+  }
+
+  .admin-qnav-btn {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 12px;
+  }
+
   .admin-qnav-btn-label {
     display: none;
+  }
+
+  .admin-qnav-btn .admin-qnav-btn-icon {
+    width: 22px;
+    height: 22px;
   }
 }
 
@@ -773,6 +810,12 @@ body.admin {
 .admin-qnav-close:focus-visible {
   outline: 2px solid #0B8073;
   outline-offset: 2px;
+}
+
+.admin-qnav-close svg {
+  width: 22px;
+  height: 22px;
+  stroke-width: 2.75;
 }
 
 /* ─── Search bar ────────────────────────────────────────────────────────── */
@@ -1131,4 +1174,3 @@ body.admin {
     animation: none;
   }
 }
-
