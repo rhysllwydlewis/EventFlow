@@ -3933,18 +3933,13 @@ async function initDashSupplier() {
             profileFormSection.removeAttribute('hidden');
           }
           const uploader = document.getElementById('sup-photo-drop');
-          const galleryPreview = document.getElementById('sup-photo-preview');
-          const galleryTarget =
-            (galleryPreview && galleryPreview.closest('.form-row')) ||
-            (uploader && uploader.closest('.form-row')) ||
-            galleryPreview ||
-            uploader;
-          if (uploader && galleryTarget) {
-            galleryTarget.style.scrollMarginTop = '96px';
+          if (uploader) {
+            const galleryRow = uploader.closest('.form-row') || uploader;
+            galleryRow.style.scrollMarginTop = '96px';
             if (!uploader.hasAttribute('tabindex')) {
               uploader.setAttribute('tabindex', '-1');
             }
-            galleryTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            galleryRow.scrollIntoView({ behavior: 'smooth', block: 'start' });
             if (typeof uploader.focus === 'function') {
               uploader.focus({ preventScroll: true });
             }
@@ -3956,6 +3951,8 @@ async function initDashSupplier() {
             setTimeout(() => {
               if (typeof window.openSupplierGalleryPicker === 'function') {
                 window.openSupplierGalleryPicker();
+              } else {
+                uploader.click();
               }
               delete uploader.dataset.pickerOpening;
             }, AUTO_OPEN_PICKER_DELAY_MS);

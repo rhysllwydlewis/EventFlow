@@ -41,7 +41,8 @@
     "test:full": "jest --coverage",
     "test:ci": "jest --runInBand --detectOpenHandles --coverage=false",
     "preflight": "node scripts/preflight.mjs",
-    "worker": "node scripts/worker.js"
+    "worker": "node scripts/worker.js",
+    "build": "node -e \"console.log('No build step required for EventFlow')\""
   },
   "dependencies": {
     "@sentry/node": "^8.0.0",
