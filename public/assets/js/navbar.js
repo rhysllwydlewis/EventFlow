@@ -400,6 +400,19 @@
     applyCurrentPage('.ef-nav-link');
     applyCurrentPage('.ef-mobile-link');
     applyCurrentPage('.ef-bottom-link');
+
+    // Notification icon button uses button semantics, so set current state manually
+    if (elements.notificationBtn) {
+      const isNotificationsPage =
+        currentPath === '/notifications' || currentPath === '/notifications.html';
+      if (isNotificationsPage) {
+        elements.notificationBtn.setAttribute('aria-current', 'page');
+        elements.notificationBtn.setAttribute('aria-pressed', 'true');
+      } else {
+        elements.notificationBtn.removeAttribute('aria-current');
+        elements.notificationBtn.removeAttribute('aria-pressed');
+      }
+    }
   }
 
   // ==========================================
@@ -436,6 +449,18 @@
 
     registerDashboardNav(elements.dashboardLink);
     registerDashboardNav(elements.mobileDashboard);
+
+    if (elements.notificationBtn) {
+      elements.notificationBtn.addEventListener('click', () => {
+        const normalizedPath =
+          window.location.pathname.replace(/index\.html?$/i, '').replace(/\/$/, '') || '/';
+        const isNotificationsPage =
+          normalizedPath === '/notifications' || normalizedPath === '/notifications.html';
+        if (!isNotificationsPage) {
+          elements.notificationBtn.setAttribute('aria-pressed', 'true');
+        }
+      });
+    }
 
     // Sync click handler for bottom dashboard button
     if (elements.bottomDashboard) {
