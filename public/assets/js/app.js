@@ -3174,6 +3174,22 @@ async function initDashSupplier() {
         quickStatProfiles.setAttribute('data-target', String(items.length));
         quickStatProfiles.textContent = String(items.length);
       }
+      // Fetch packages once so checklist milestones can include "create your first package".
+      let packagesBySupplierId = new Map();
+      try {
+        const pkgRes = await api('/api/me/packages');
+        const pkgItems = Array.isArray(pkgRes?.items) ? pkgRes.items : [];
+        packagesBySupplierId = pkgItems.reduce((map, pkg) => {
+          const supplierId = String(pkg?.supplierId || pkg?.supplier || '');
+          if (!supplierId) {
+            return map;
+          }
+          map.set(supplierId, (map.get(supplierId) || 0) + 1);
+          return map;
+        }, new Map());
+      } catch (_pkgErr) {
+        // Non-fatal: supplier cards should still render if packages fail to load.
+      }
       supWrap.innerHTML = items
         .map(s => {
           // Safe access to supplier properties
@@ -3208,15 +3224,25 @@ async function initDashSupplier() {
           const hasLocation = s.location && typeof s.location === 'string' && s.location.length > 0;
           const hasWebsite = s.website && typeof s.website === 'string' && s.website.length > 0;
 
+          const packageCountForSupplier = packagesBySupplierId.get(String(s.id || '')) || 0;
           const checklistItems = [
             { label: 'Business Details', complete: Boolean(s.name && hasLocation) },
             { label: 'Categories & Services', complete: hasCategory },
             { label: 'Photos', complete: hasPhotos },
             { label: 'Contact Information', complete: hasWebsite },
+            {
+              label: 'Create your first package',
+              complete: packageCountForSupplier > 0,
+              detail:
+                packageCountForSupplier > 0
+                  ? `${packageCountForSupplier} package${packageCountForSupplier === 1 ? '' : 's'} live`
+                  : 'Add a package with pricing to start getting enquiries',
+              highlight: true,
+            },
             { label: 'Additional Details', complete: hasDescription },
           ];
           const completedCount = checklistItems.filter(item => item.complete).length;
-          // Health score: 0-100 based on checklist completion (each of 5 items = 20 points)
+          // Health score: 0-100 based on checklist completion across all checklist items.
           const checklistScore = Math.round((completedCount / checklistItems.length) * 100);
 
           // Safe access to all fields with defaults — escape all user-supplied values to prevent XSS
@@ -3334,13 +3360,16 @@ async function initDashSupplier() {
           ${checklistItems
             .map(
               (item, i) => `
-            <div class="spc-checklist-step${item.complete ? ' spc-checklist-step--complete' : ''}" role="listitem">
+            <div class="spc-checklist-step${item.complete ? ' spc-checklist-step--complete' : ''}${item.highlight ? ' spc-checklist-step--milestone' : ''}" role="listitem">
               <div class="spc-checklist-step-circle" aria-hidden="true">${
                 item.complete
                   ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>`
                   : `${i + 1}`
               }</div>
-              <span class="spc-checklist-step-label">${item.label}</span>
+              <div class="spc-checklist-step-copy">
+                <span class="spc-checklist-step-label">${item.label}</span>
+                ${item.detail ? `<span class="spc-checklist-step-detail">${item.detail}</span>` : ''}
+              </div>
             </div>
           `
             )
@@ -3522,7 +3551,6 @@ async function initDashSupplier() {
     const supName = document.getElementById('sup-name');
     const supCategory = document.getElementById('sup-category');
     const supLocation = document.getElementById('sup-location');
-    const supPrice = document.getElementById('sup-price');
     const supShort = document.getElementById('sup-short');
     const supLong = document.getElementById('sup-long');
     const supWebsite = document.getElementById('sup-website');
@@ -3542,9 +3570,6 @@ async function initDashSupplier() {
     }
     if (supLocation) {
       supLocation.value = supplier.location || '';
-    }
-    if (supPrice) {
-      supPrice.value = supplier.price_display || '';
     }
     if (supShort) {
       supShort.value = supplier.description_short || '';
@@ -5351,7 +5376,6 @@ async function editProfile(supplierId, options = {}) {
       setVal('sup-name', supplier.name);
       setVal('sup-category', supplier.category);
       setVal('sup-location', supplier.location);
-      setVal('sup-price', supplier.price_display);
       setVal('sup-short', supplier.description_short);
       setVal('sup-long', supplier.description_long);
       setVal('sup-website', supplier.website);

@@ -8476,7 +8476,36 @@ label .required {
   line-height: 1.3;
 }
 
+.spc-checklist-step-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.spc-checklist-step-detail {
+  font-size: 0.68rem;
+  color: #94a3b8;
+  text-align: center;
+  line-height: 1.25;
+  max-width: 150px;
+}
+
 .spc-checklist-step--complete .spc-checklist-step-label {
   color: #374151;
   font-weight: 600;
+}
+
+.spc-checklist-step--milestone {
+  padding: 4px 2px;
+  border-radius: 10px;
+  background: rgba(11, 128, 115, 0.04);
+}
+
+.spc-checklist-step--complete.spc-checklist-step--milestone {
+  background: rgba(11, 128, 115, 0.09);
+}
+
+.spc-checklist-step--complete .spc-checklist-step-detail {
+  color: #0f766e;
 }

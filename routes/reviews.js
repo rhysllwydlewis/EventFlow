@@ -11,6 +11,7 @@ const mongoDb = require('../db');
 const NotificationService = require('../services/notification.service');
 const { writeLimiter, uploadLimiter } = require('../middleware/rateLimits');
 const { uid } = require('../store');
+const { getUserDisplayName } = require('../utils/user-display-name');
 const router = express.Router();
 
 // These will be injected by server.js during route mounting
@@ -159,9 +160,7 @@ router.post(
   applyCsrfProtection,
   async (req, res) => {
     if (!photoUpload) {
-      return res
-        .status(503)
-        .json({ error: 'Photo upload service is not available' });
+      return res.status(503).json({ error: 'Photo upload service is not available' });
     }
 
     // Parse multipart via the shared multer instance (memory storage, max 5 files × 10 MB)
@@ -260,7 +259,7 @@ router.post(
         {
           supplierId,
           userId: req.user.id,
-          userName: user?.name || user?.firstName || 'Anonymous',
+          userName: getUserDisplayName(user, 'Anonymous'),
           rating: Number(rating),
           title: title || '',
           comment: comment || '',
@@ -296,7 +295,7 @@ router.post(
 
       // Notify the supplier about the new review (fire-and-forget)
       if (supplier.ownerUserId) {
-        const customerName = user?.name || user?.firstName || 'A customer';
+        const customerName = getUserDisplayName(user, 'A customer');
         sendReviewNotification(req, supplier.ownerUserId, customerName, Number(rating));
       }
 
@@ -348,7 +347,7 @@ router.post(
         {
           supplierId,
           userId: req.user.id,
-          userName: user?.name || user?.firstName || 'Anonymous',
+          userName: getUserDisplayName(user, 'Anonymous'),
           rating: Number(rating),
           comment: comment || '',
           eventType: eventType || '',
@@ -362,7 +361,7 @@ router.post(
 
       // Notify the supplier about the new review (fire-and-forget)
       if (supplier.ownerUserId) {
-        const customerName = user?.name || user?.firstName || 'A customer';
+        const customerName = getUserDisplayName(user, 'A customer');
         sendReviewNotification(req, supplier.ownerUserId, customerName, Number(rating));
       }
 
@@ -947,23 +946,30 @@ router.post(
           if (notifSvc) {
             await Promise.all(
               adminUsers.map(admin =>
-                notifSvc.create({
-                  userId: admin.id,
-                  type: 'review_report',
-                  title: '🚩 Review Reported',
-                  message: `A review has been reported (reason: ${reason}). Please review and take action.`,
-                  actionUrl: '/admin-reviews',
-                  actionText: 'View Reports',
-                  priority: 'high',
-                  icon: '🚩',
-                  metadata: { reviewId, reason, reportedBy: req.user.id },
-                }).catch(err => logger.warn(`Failed to notify admin ${admin.id} of review report:`, err.message))
+                notifSvc
+                  .create({
+                    userId: admin.id,
+                    type: 'review_report',
+                    title: '🚩 Review Reported',
+                    message: `A review has been reported (reason: ${reason}). Please review and take action.`,
+                    actionUrl: '/admin-reviews',
+                    actionText: 'View Reports',
+                    priority: 'high',
+                    icon: '🚩',
+                    metadata: { reviewId, reason, reportedBy: req.user.id },
+                  })
+                  .catch(err =>
+                    logger.warn(`Failed to notify admin ${admin.id} of review report:`, err.message)
+                  )
               )
             );
           }
         }
       } catch (notifErr) {
-        logger.warn('Failed to send admin notifications for review report (non-blocking):', notifErr.message);
+        logger.warn(
+          'Failed to send admin notifications for review report (non-blocking):',
+          notifErr.message
+        );
       }
 
       res.json({
