@@ -368,36 +368,34 @@
       return false;
     };
 
-    // Desktop nav
-    const desktopLinks = document.querySelectorAll('.ef-nav-link');
-    desktopLinks.forEach(link => {
-      const linkPath = normalizePath(new URL(link.href).pathname);
-      if (pathMatches(linkPath, link)) {
-        link.setAttribute('aria-current', 'page');
+    const shouldEvaluateLink = link => {
+      const href = (link.getAttribute('href') || '').trim();
+      if (!href || href === '#' || href.toLowerCase().startsWith('javascript:')) {
+        return false;
       }
-    });
+      return true;
+    };
 
-    // Mobile nav
-    const mobileLinks = document.querySelectorAll('.ef-mobile-link');
-    mobileLinks.forEach(link => {
-      if (link.href) {
+    const applyCurrentPage = selector => {
+      const links = document.querySelectorAll(selector);
+      links.forEach(link => {
+        link.removeAttribute('aria-current');
+
+        if (!shouldEvaluateLink(link)) {
+          return;
+        }
+
         const linkPath = normalizePath(new URL(link.href).pathname);
         if (pathMatches(linkPath, link)) {
           link.setAttribute('aria-current', 'page');
         }
-      }
-    });
+      });
+    };
 
-    // Bottom nav
-    const bottomLinks = document.querySelectorAll('.ef-bottom-link');
-    bottomLinks.forEach(link => {
-      if (link.href) {
-        const linkPath = normalizePath(new URL(link.href).pathname);
-        if (pathMatches(linkPath, link)) {
-          link.setAttribute('aria-current', 'page');
-        }
-      }
-    });
+    // Desktop, mobile, and bottom nav
+    applyCurrentPage('.ef-nav-link');
+    applyCurrentPage('.ef-mobile-link');
+    applyCurrentPage('.ef-bottom-link');
   }
 
   // ==========================================
@@ -433,7 +431,7 @@
               : state.user.role === 'supplier'
                 ? '/dashboard/supplier'
                 : '/dashboard/customer';
-          window.location.href = `${dashboardUrl}#notifications`;
+          window.location.href = dashboardUrl;
         }
       });
     }
