@@ -172,7 +172,7 @@
         // Suppress user notification for expected 401/403 (unauthenticated/forbidden).
         // These are expected on public pages and should not surface as error toasts.
         const isExpectedAuthError = response.status === 401 || response.status === 403;
-        if (!isBenign404 && !isExpectedAuthError) {
+        if (!isBenign404 && !isExpectedAuthError && !isNavigationInProgress()) {
           notifyError(errorMessage);
         }
 
@@ -268,6 +268,8 @@
   window.reportError = function (error, context) {
     logError(error, { ...context, type: 'manual_report' });
   };
+
+  setupNavigationTracking();
 
   // Initialize fetch interceptor
   setupFetchInterceptor();
