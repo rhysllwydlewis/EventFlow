@@ -3135,6 +3135,26 @@ async function initDashSupplier() {
         }
       }
 
+      // Final fallback: auth/me is often the most up-to-date source for account tier.
+      // This catches users with paid plans whose supplier records are stale.
+      if (!currentIsPro) {
+        try {
+          const authMe = await window._efFetchOnceJSON('/api/v1/auth/me', {
+            credentials: 'include',
+          });
+          const authTier = normalizeSubscriptionTier(
+            authMe?.user?.subscriptionTier,
+            authMe?.user?.subscription?.tier,
+            authMe?.user?.proPlan
+          );
+          if (authTier === 'pro' || authTier === 'pro_plus' || authMe?.user?.isPro) {
+            currentIsPro = true;
+          }
+        } catch (_) {
+          // Ignore — keep currentIsPro as computed from supplier/subscription endpoints.
+        }
+      }
+
       if (proRibbon) {
         if (currentIsPro) {
           proRibbon.classList.remove('pro-ribbon--starter');

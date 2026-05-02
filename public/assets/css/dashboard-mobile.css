@@ -987,10 +987,10 @@
 /* ── Mobile-specific overrides ── */
 @media (max-width: 480px) {
   .pro-ribbon {
-    padding: 14px 14px;
+    padding: 16px 16px;
     border-radius: 16px;
     margin-bottom: 10px;
-    font-size: 0.8125rem;
+    font-size: 0.9rem;
     line-height: 1.4;
     text-align: left;
   }
@@ -1017,28 +1017,28 @@
 
   .pro-ribbon.pro-ribbon--starter strong {
     display: block;
-    font-size: 0.98rem;
+    font-size: 1.12rem;
     font-weight: 800;
     color: #78350f;
-    margin-bottom: 2px;
-    line-height: 1.25;
+    margin-bottom: 4px;
+    line-height: 1.2;
   }
 
   /* Show description text */
   .pro-ribbon.pro-ribbon--starter .pro-ribbon__desc {
     display: block;
-    font-size: 0.775rem;
+    font-size: 0.88rem;
     color: #92400e;
-    opacity: 0.85;
-    line-height: 1.4;
-    margin-top: 1px;
+    opacity: 0.92;
+    line-height: 1.35;
+    margin-top: 0;
   }
 
   .pro-ribbon__inner {
     display: grid;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
   }
 
   /* Icon: just the emoji, no box — like reference image.
@@ -1081,13 +1081,13 @@
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    padding: 8px 13px;
+    padding: 10px 18px;
     height: auto;
-    min-height: 34px;
+    min-height: 40px;
     background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
     color: #fff !important;
     border-radius: 999px;
-    font-size: 0.82rem;
+    font-size: 1rem;
     font-weight: 800;
     text-decoration: none !important;
     white-space: nowrap;
@@ -1104,6 +1104,10 @@
     letter-spacing: 0;
     position: relative;
     z-index: 1;
+  }
+
+  .pro-ribbon.pro-ribbon--starter .pro-ribbon__cta {
+    min-width: 112px;
   }
 
   .pro-ribbon.pro-ribbon--starter .pro-ribbon__cta:hover,
@@ -1148,15 +1152,15 @@
 
   .pro-ribbon__text-group {
     grid-area: text;
-    font-size: 0.775rem;
+    font-size: 0.84rem;
   }
 
   .pro-ribbon.pro-ribbon--starter .pro-ribbon__cta,
   .pro-ribbon.pro-ribbon--starter a.pro-ribbon__cta {
     grid-area: cta;
     justify-self: start;
-    padding: 7px 10px;
-    font-size: 0.78rem;
-    min-height: 32px;
+    padding: 9px 14px;
+    font-size: 0.9rem;
+    min-height: 36px;
   }
 }
