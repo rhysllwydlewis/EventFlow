@@ -269,6 +269,13 @@
       return;
     }
 
+    if (isNavigationInProgress()) {
+      if (isDevelopment) {
+        console.debug('Suppressed global error during navigation:', errorMessage);
+      }
+      return;
+    }
+
     logError(error, {
       type: 'global_error',
       filename: event.filename,
@@ -295,6 +302,13 @@
 
     // Ignore benign errors
     if (isBenignError(errorMessage) || isAbortLikeError(error)) {
+      return;
+    }
+
+    if (isNavigationInProgress()) {
+      if (isDevelopment) {
+        console.debug('Suppressed promise rejection during navigation:', errorMessage);
+      }
       return;
     }
 
