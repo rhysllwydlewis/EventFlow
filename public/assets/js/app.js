@@ -3177,7 +3177,7 @@ async function initDashSupplier() {
                 <strong>Level up your plan</strong>
                 <span class="pro-ribbon__desc">Unlock priority visibility, more packages, and dedicated support.</span>
               </div>
-              <a href="/pricing" class="pro-ribbon__cta">Upgrade</a>
+              <a href="/pricing" class="pro-ribbon__cta">Click here to upgrade today</a>
             </div>`;
         }
       }
