@@ -2510,7 +2510,13 @@ textarea:focus {
 }
 
 .supplier-field-hint {
+  align-self: start;
   margin: 0;
+  /*
+   * Align the tip panel with the business-name input control (not the label),
+   * while avoiding row-wide alignment side effects.
+   */
+  margin-top: 38px;
   padding: 10px 12px;
   border-radius: 10px;
   border: 1px solid rgba(11, 128, 115, 0.24);
@@ -2533,6 +2539,10 @@ textarea:focus {
   #supplier-form .supplier-form-grid--business,
   #supplier-form .supplier-form-grid--two-col {
     grid-template-columns: 1fr;
+  }
+
+  .supplier-field-hint {
+    margin-top: 8px;
   }
 }
 
@@ -7749,41 +7759,53 @@ label .required {
 .photo-preview-item--existing .photo-delete-btn,
 .photo-preview-item--pending .photo-remove-btn {
   position: absolute;
-  top: -2px;
-  right: -2px;
+  top: -8px;
+  right: -8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 10px;
-  height: 10px;
+  width: 20px;
+  height: 20px;
   min-width: 0;
   min-height: 0;
   padding: 0;
-  background: rgba(255, 255, 255, 0.85);
+  background: #ef4444;
   backdrop-filter: blur(8px) saturate(160%);
   -webkit-backdrop-filter: blur(8px) saturate(160%);
-  color: #374151;
-  border: 1.25px solid rgba(255, 255, 255, 0.8);
+  color: #fff;
+  border: 1.25px solid rgba(255, 255, 255, 0.9);
   border-radius: 50%;
-  font-size: 6px;
+  font-size: 12px;
   font-weight: 800;
   line-height: 1;
   cursor: pointer;
   z-index: 10;
   transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
   box-shadow:
-    0 1px 4px rgba(0, 0, 0, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+    0 3px 10px rgba(16, 24, 40, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45);
 }
 
 .photo-preview-item--existing .photo-delete-btn:hover,
 .photo-preview-item--pending .photo-remove-btn:hover {
-  background: rgba(220, 38, 38, 0.82);
+  background: #f26363;
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
-  border-color: rgba(220, 38, 38, 0.3);
+  border-color: rgba(255, 255, 255, 0.95);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  box-shadow:
+    0 6px 16px rgba(220, 38, 38, 0.34),
+    0 2px 8px rgba(16, 24, 40, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.photo-preview-item--existing .photo-delete-btn:focus-visible,
+.photo-preview-item--pending .photo-remove-btn:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.95),
+    0 0 0 5px rgba(220, 38, 38, 0.45),
+    0 6px 16px rgba(220, 38, 38, 0.34);
 }
 
 /* ── Pending upload tiles — match existing-photo tile size & shape ─────────── */
