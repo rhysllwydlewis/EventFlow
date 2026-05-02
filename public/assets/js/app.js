@@ -630,6 +630,25 @@ function supplierCard(s, user) {
   </div>`;
 }
 
+function normalizeSubscriptionTier(...tierCandidates) {
+  for (const candidate of tierCandidates) {
+    if (!candidate) {
+      continue;
+    }
+    const normalized = String(candidate).toLowerCase().trim();
+    if (normalized === 'pro' || normalized === 'pro_plus' || normalized === 'featured') {
+      return normalized;
+    }
+    if (normalized === 'pro+' || normalized === 'pro plus') {
+      return 'pro_plus';
+    }
+    if (normalized === 'free' || normalized === 'starter') {
+      return 'free';
+    }
+  }
+  return null;
+}
+
 // initHome() removed - now handled by home-init.js to avoid conflicts
 
 async function initResults() {
@@ -3084,14 +3103,14 @@ async function initDashSupplier() {
       window._efCachedSuppliers = items; // Expose globally for editProfile()
       // If this user has at least one Pro supplier, treat them as Pro.
       // Check subscriptionTier (new field) first, then subscription.tier, then legacy isPro boolean.
-      currentIsPro = items.some(
-        s =>
-          !!s.isPro ||
-          s.subscriptionTier === 'pro' ||
-          s.subscriptionTier === 'pro_plus' ||
-          s.subscription?.tier === 'pro' ||
-          s.subscription?.tier === 'pro_plus'
-      );
+      currentIsPro = items.some(s => {
+        const supplierTier = normalizeSubscriptionTier(
+          s.subscriptionTier,
+          s.subscription?.tier,
+          s.proPlan
+        );
+        return !!s.isPro || supplierTier === 'pro' || supplierTier === 'pro_plus';
+      });
 
       // Fallback: if no supplier object indicates Pro, check the user's subscription directly.
       // Use the shared dedup helper so this call and the concurrent
@@ -3102,7 +3121,13 @@ async function initDashSupplier() {
           const subData = await window._efFetchOnceJSON('/api/v2/subscriptions/me', {
             credentials: 'include',
           });
-          if (subData && (subData.plan === 'pro' || subData.plan === 'pro_plus')) {
+          const userTier = normalizeSubscriptionTier(
+            subData?.plan,
+            subData?.tier,
+            subData?.subscription?.tier,
+            subData?.subscription?.plan
+          );
+          if (userTier === 'pro' || userTier === 'pro_plus') {
             currentIsPro = true;
           }
         } catch (_) {
