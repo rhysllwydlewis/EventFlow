@@ -1048,8 +1048,8 @@ body.auth-page .auth-pw-wrap .password-toggle {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 0.45rem;
-    flex-wrap: nowrap;
+    column-gap: 0.6rem;
+    row-gap: 0;
   }
 
   .auth-field--inline .auth-checkbox-label.checkbox-label-right {
