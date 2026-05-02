@@ -324,9 +324,9 @@
         elements.bottomSettings.style.display = 'none';
       }
 
-      // Show bottom alerts button when logged out
+      // Hide bottom alerts button when logged out (matches top navbar behavior)
       if (elements.bottomAlerts) {
-        elements.bottomAlerts.style.display = 'flex';
+        elements.bottomAlerts.style.display = 'none';
       }
 
       // Hide notification bell

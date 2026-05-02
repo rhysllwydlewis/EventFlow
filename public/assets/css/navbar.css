@@ -909,6 +909,11 @@ body.ef-menu-open {
   flex-shrink: 1;
 }
 
+/* Alerts tab should never appear in bottom nav; notifications are available only when authenticated */
+#ef-bottom-alerts {
+  display: none;
+}
+
 /* Logged-in state adjustments for bottom nav */
 .ef-bottom-nav.logged-in {
   padding: 8px 4px 10px;
