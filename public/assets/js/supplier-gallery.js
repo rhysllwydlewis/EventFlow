@@ -105,6 +105,11 @@ class SupplierGalleryManager {
   }
 
   openFilePicker(previewContainer) {
+    const now = Date.now();
+    if (this._pickerOpeningUntil && now < this._pickerOpeningUntil) {
+      return;
+    }
+    this._pickerOpeningUntil = now + 600;
     if (!this._filePickerInput) {
       const input = document.createElement('input');
       input.type = 'file';
@@ -120,6 +125,9 @@ class SupplierGalleryManager {
       this._filePickerInput = input;
     }
     this._filePickerInput.click();
+    setTimeout(() => {
+      this._pickerOpeningUntil = 0;
+    }, 650);
   }
 
   async handleFiles(files, previewContainer) {

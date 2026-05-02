@@ -6391,8 +6391,8 @@ body:not(.supplier-dashboard-page) .section > .container {
 /* Small frosted-glass corner badge: white at rest → soft red on hover. No scale. */
 .photo-preview-remove {
   position: absolute;
-  top: -5px;
-  right: -5px;
+  top: -2px;
+  right: -2px;
   width: 14px;
   height: 14px;
   min-width: 0;
@@ -7720,8 +7720,8 @@ label .required {
 .photo-preview-item--existing .photo-delete-btn,
 .photo-preview-item--pending .photo-remove-btn {
   position: absolute;
-  top: -5px;
-  right: -5px;
+  top: -2px;
+  right: -2px;
   display: flex;
   align-items: center;
   justify-content: center;

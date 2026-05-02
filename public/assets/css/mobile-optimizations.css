@@ -14,7 +14,7 @@
   /* Ensure interactive elements in main content areas meet minimum size */
   /* Excludes navigation, header, and specific UI components */
   main a:not(.ef-nav-link):not(.ef-mobile-link):not(.ef-bottom-link):not([class*="ef-btn"]):not(.auth-tab):not(.auth-forgot-link):not(.auth-link),
-  main button:not(.ef-icon-btn):not(.ef-mobile-toggle):not(.ef-btn):not(.ef-search-bar__button):not(.back-to-top):not(.carousel-prev):not(.carousel-next):not(.package-gallery-nav):not(.guides-chip):not(.ef-testimonial-dot),
+  main button:not(.ef-icon-btn):not(.ef-mobile-toggle):not(.ef-btn):not(.ef-search-bar__button):not(.back-to-top):not(.carousel-prev):not(.carousel-next):not(.package-gallery-nav):not(.guides-chip):not(.ef-testimonial-dot):not(.spc-avatar-delete-btn):not(.spc-camera-btn):not(.photo-delete-btn):not(.photo-remove-btn):not(.pkg-gallery-delete),
   .form-row input[type="submit"],
   .form-row input[type="button"],
   .form-row input[type="checkbox"],
