@@ -1038,13 +1038,13 @@ kbd {
    ==================================== */
 
 /* Smooth transitions for buttons (carousel controls have their own specific transitions) */
-button:not(.carousel-nav):not(.carousel-close):not(.carousel-dot):not(.carousel-thumb-item),
+button:not(.carousel-nav):not(.carousel-close):not(.carousel-dot):not(.carousel-thumb-item):not(.spc-avatar-delete-btn):not(.spc-camera-btn),
 .btn,
 a.button {
   transition: all 0.2s ease-in-out;
 }
 
-button:hover:not(:disabled):not(.carousel-nav):not(.carousel-close):not(.carousel-dot):not(.carousel-thumb-item),
+button:hover:not(:disabled):not(.carousel-nav):not(.carousel-close):not(.carousel-dot):not(.carousel-thumb-item):not(.spc-avatar-delete-btn):not(.spc-camera-btn),
 .btn:hover:not(:disabled),
 a.button:hover {
   transform: translateY(-1px);

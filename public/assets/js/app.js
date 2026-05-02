@@ -3867,194 +3867,195 @@ async function initDashSupplier() {
   }
 
   // Add event delegation for Edit/Delete buttons on packages and profiles
-  document.addEventListener('click', async e => {
-    const target = e.target;
-    const actionEl = target.closest ? target.closest('[data-action]') : null;
-    try {
-      // Handle package edit buttons
-      if (actionEl && actionEl.matches('[data-action="edit-package"]')) {
-        const packageId = actionEl.getAttribute('data-package-id');
-        if (packageId) {
-          editPackage(packageId);
-        }
-      }
-
-      // Handle package delete buttons
-      if (actionEl && actionEl.matches('[data-action="delete-package"]')) {
-        const packageId = actionEl.getAttribute('data-package-id');
-        if (packageId) {
-          deletePackage(packageId);
-        }
-      }
-
-      // Handle package pause buttons
-      if (actionEl && actionEl.matches('[data-action="pause-package"]')) {
-        const packageId = actionEl.getAttribute('data-package-id');
-        if (packageId) {
-          togglePackagePause(packageId, true);
-        }
-      }
-
-      // Handle package unpause buttons
-      if (actionEl && actionEl.matches('[data-action="unpause-package"]')) {
-        const packageId = actionEl.getAttribute('data-package-id');
-        if (packageId) {
-          togglePackagePause(packageId, false);
-        }
-      }
-
-      // Handle profile edit buttons
-      if (actionEl && actionEl.matches('[data-action="edit-profile"]')) {
-        const profileId = actionEl.getAttribute('data-profile-id');
-        if (profileId) {
-          editProfile(profileId);
-        }
-      }
-
-      // Handle Upload Photo button — expand form, scroll to gallery section, and open file picker
-      if (actionEl && actionEl.matches('[data-action="upload-photo"]')) {
-        const profileId = actionEl.getAttribute('data-profile-id');
-        if (profileId) {
-          try {
-            await editProfile(profileId, { skipFormScroll: true });
-          } catch (err) {
-            console.error('Failed to prepare profile form for photo upload:', err);
-            return;
+  // Guard against duplicate bindings if supplier dashboard init runs more than once.
+  if (!window.__efSupplierDashboardActionsBound) {
+    window.__efSupplierDashboardActionsBound = true;
+    document.addEventListener('click', async e => {
+      const target = e.target;
+      const actionEl = target.closest ? target.closest('[data-action]') : null;
+      try {
+        // Handle package edit buttons
+        if (actionEl && actionEl.matches('[data-action="edit-package"]')) {
+          const packageId = actionEl.getAttribute('data-package-id');
+          if (packageId) {
+            editPackage(packageId);
           }
         }
-        const profileFormSection = document.getElementById('profile-form-section');
-        if (profileFormSection) {
-          if (!profileFormSection.classList.contains('expanded')) {
-            profileFormSection.classList.add('expanded');
-          }
-          profileFormSection.removeAttribute('hidden');
-        }
-        const uploader = document.getElementById('sup-photo-drop');
-        const galleryPreview = document.getElementById('sup-photo-preview');
-        const galleryTarget =
-          (galleryPreview && galleryPreview.closest('.form-row')) ||
-          (uploader && uploader.closest('.form-row')) ||
-          galleryPreview ||
-          uploader;
-        if (uploader && galleryTarget) {
-          galleryTarget.style.scrollMarginTop = '96px';
-          if (!uploader.hasAttribute('tabindex')) {
-            uploader.setAttribute('tabindex', '-1');
-          }
-          galleryTarget.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          if (typeof uploader.focus === 'function') {
-            uploader.focus({ preventScroll: true });
-          }
-          if (uploader.dataset.pickerOpening === 'true') {
-            return;
-          }
-          uploader.dataset.pickerOpening = 'true';
-          const AUTO_OPEN_PICKER_DELAY_MS = 320; // allow smooth-scroll/focus to complete before opening picker
-          setTimeout(() => {
-            if (typeof window.openSupplierGalleryPicker === 'function') {
-              window.openSupplierGalleryPicker();
-            }
-            delete uploader.dataset.pickerOpening;
-          }, AUTO_OPEN_PICKER_DELAY_MS);
-        }
-      }
 
-      // Handle View Checklist button — toggles checklist visibility for this profile
-      if (actionEl && actionEl.matches('[data-action="view-checklist"]')) {
-        const profileId = actionEl.getAttribute('data-profile-id');
-        const checklistCard = profileId
-          ? document.getElementById(`spc-checklist-${profileId}`)
-          : null;
-        if (checklistCard) {
-          const label = actionEl.querySelector('.spc-checklist-btn-label');
-          const isHidden = checklistCard.hasAttribute('hidden');
-          if (isHidden) {
-            checklistCard.removeAttribute('hidden');
-            actionEl.setAttribute('aria-expanded', 'true');
-            if (label) {
-              label.textContent = 'Hide Checklist';
-            }
-            checklistCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-          } else {
-            checklistCard.setAttribute('hidden', '');
-            actionEl.setAttribute('aria-expanded', 'false');
-            if (label) {
-              label.textContent = 'View Checklist';
+        // Handle package delete buttons
+        if (actionEl && actionEl.matches('[data-action="delete-package"]')) {
+          const packageId = actionEl.getAttribute('data-package-id');
+          if (packageId) {
+            deletePackage(packageId);
+          }
+        }
+
+        // Handle package pause buttons
+        if (actionEl && actionEl.matches('[data-action="pause-package"]')) {
+          const packageId = actionEl.getAttribute('data-package-id');
+          if (packageId) {
+            togglePackagePause(packageId, true);
+          }
+        }
+
+        // Handle package unpause buttons
+        if (actionEl && actionEl.matches('[data-action="unpause-package"]')) {
+          const packageId = actionEl.getAttribute('data-package-id');
+          if (packageId) {
+            togglePackagePause(packageId, false);
+          }
+        }
+
+        // Handle profile edit buttons
+        if (actionEl && actionEl.matches('[data-action="edit-profile"]')) {
+          const profileId = actionEl.getAttribute('data-profile-id');
+          if (profileId) {
+            editProfile(profileId);
+          }
+        }
+
+        // Handle Upload Photo button — expand form, scroll to gallery section, and open file picker
+        if (actionEl && actionEl.matches('[data-action="upload-photo"]')) {
+          const profileId = actionEl.getAttribute('data-profile-id');
+          if (profileId) {
+            try {
+              await editProfile(profileId, { skipFormScroll: true });
+            } catch (err) {
+              console.error('Failed to prepare profile form for photo upload:', err);
+              return;
             }
           }
-        } else {
-          // Fallback: expand and scroll to profile form section
           const profileFormSection = document.getElementById('profile-form-section');
           if (profileFormSection) {
             if (!profileFormSection.classList.contains('expanded')) {
               profileFormSection.classList.add('expanded');
-              profileFormSection.removeAttribute('hidden');
             }
-            profileFormSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            profileFormSection.removeAttribute('hidden');
+          }
+          const uploader = document.getElementById('sup-photo-drop');
+          if (uploader) {
+            const galleryRow = uploader.closest('.form-row') || uploader;
+            galleryRow.style.scrollMarginTop = '96px';
+            if (!uploader.hasAttribute('tabindex')) {
+              uploader.setAttribute('tabindex', '-1');
+            }
+            galleryRow.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            if (typeof uploader.focus === 'function') {
+              uploader.focus({ preventScroll: true });
+            }
+            if (uploader.dataset.pickerOpening === 'true') {
+              return;
+            }
+            uploader.dataset.pickerOpening = 'true';
+            const AUTO_OPEN_PICKER_DELAY_MS = 320; // allow smooth-scroll/focus to complete before opening picker
+            setTimeout(() => {
+              if (typeof window.openSupplierGalleryPicker === 'function') {
+                window.openSupplierGalleryPicker();
+              } else {
+                uploader.click();
+              }
+              delete uploader.dataset.pickerOpening;
+            }, AUTO_OPEN_PICKER_DELAY_MS);
           }
         }
-      }
 
-      // Handle profile photo delete button
-      if (actionEl && actionEl.matches('[data-action="delete-profile-photo"]')) {
-        if (!confirm('Remove your profile photo?')) {
-          return;
-        }
-        try {
-          const resp = await fetch('/api/profile/avatar', {
-            method: 'DELETE',
-            credentials: 'include',
-            headers: { 'X-CSRF-Token': window.__CSRF_TOKEN__ || '' },
-          });
-          const result = await resp.json().catch(() => ({}));
-          if (!resp.ok) {
-            throw new Error(result.error || 'Failed to delete profile photo');
+        // Handle View Checklist button — toggles checklist visibility for this profile
+        if (actionEl && actionEl.matches('[data-action="view-checklist"]')) {
+          const profileId = actionEl.getAttribute('data-profile-id');
+          const checklistCard = profileId
+            ? document.getElementById(`spc-checklist-${profileId}`)
+            : null;
+          if (checklistCard) {
+            const label = actionEl.querySelector('.spc-checklist-btn-label');
+            const isHidden = checklistCard.hasAttribute('hidden');
+            if (isHidden) {
+              checklistCard.removeAttribute('hidden');
+              actionEl.setAttribute('aria-expanded', 'true');
+              if (label) {
+                label.textContent = 'Hide Checklist';
+              }
+              checklistCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            } else {
+              checklistCard.setAttribute('hidden', '');
+              actionEl.setAttribute('aria-expanded', 'false');
+              if (label) {
+                label.textContent = 'View Checklist';
+              }
+            }
+          } else {
+            // Fallback: expand and scroll to profile form section
+            const profileFormSection = document.getElementById('profile-form-section');
+            if (profileFormSection) {
+              if (!profileFormSection.classList.contains('expanded')) {
+                profileFormSection.classList.add('expanded');
+                profileFormSection.removeAttribute('hidden');
+              }
+              profileFormSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
           }
-          if (window.AuthStateManager?.refresh) {
-            await window.AuthStateManager.refresh();
+        }
+
+        // Handle profile photo delete button
+        if (actionEl && actionEl.matches('[data-action="delete-profile-photo"]')) {
+          if (!confirm('Remove your profile photo?')) {
+            return;
           }
-          await loadSuppliers();
-        } catch (err) {
-          console.error('Profile photo delete failed:', err);
-          if (window.announceToSR) {
-            window.announceToSR(err.message || 'Failed to delete profile photo');
+          try {
+            const resp = await fetch('/api/profile/avatar', {
+              method: 'DELETE',
+              credentials: 'include',
+              headers: { 'X-CSRF-Token': window.__CSRF_TOKEN__ || '' },
+            });
+            const result = await resp.json().catch(() => ({}));
+            if (!resp.ok) {
+              throw new Error(result.error || 'Failed to delete profile photo');
+            }
+            if (window.AuthStateManager?.refresh) {
+              await window.AuthStateManager.refresh();
+            }
+            await loadSuppliers();
+          } catch (err) {
+            console.error('Profile photo delete failed:', err);
+            if (window.announceToSR) {
+              window.announceToSR(err.message || 'Failed to delete profile photo');
+            }
           }
         }
-      }
 
-      // Handle profile delete buttons
-      if (actionEl && actionEl.matches('[data-action="delete-profile"]')) {
-        const profileId = actionEl.getAttribute('data-profile-id');
-        if (profileId) {
-          deleteProfile(profileId);
+        // Handle profile delete buttons
+        if (actionEl && actionEl.matches('[data-action="delete-profile"]')) {
+          const profileId = actionEl.getAttribute('data-profile-id');
+          if (profileId) {
+            deleteProfile(profileId);
+          }
         }
-      }
 
-      // Handle gallery photo delete buttons
-      const pkgDeleteBtn = target.closest ? target.closest('.pkg-gallery-delete') : null;
-      if (pkgDeleteBtn) {
-        const photoUrl = pkgDeleteBtn.getAttribute('data-url');
-        const packageId = pkgDeleteBtn.getAttribute('data-package-id');
-        if (photoUrl && packageId) {
-          deletePackagePhoto(packageId, photoUrl, pkgDeleteBtn);
+        // Handle gallery photo delete buttons
+        const pkgDeleteBtn = target.closest ? target.closest('.pkg-gallery-delete') : null;
+        if (pkgDeleteBtn) {
+          const photoUrl = pkgDeleteBtn.getAttribute('data-url');
+          const packageId = pkgDeleteBtn.getAttribute('data-package-id');
+          if (photoUrl && packageId) {
+            deletePackagePhoto(packageId, photoUrl, pkgDeleteBtn);
+          }
         }
-      }
 
-      // Handle gallery save-order button
-      if (target.matches('#pkg-gallery-save-order')) {
-        savePkgGalleryOrder();
-      }
-
-      // Handle supplier gallery save-order button
-      if (target.matches('#sup-gallery-save-order')) {
-        if (typeof window.saveSupplierGalleryOrder === 'function') {
-          window.saveSupplierGalleryOrder();
+        // Handle gallery save-order button
+        if (target.matches('#pkg-gallery-save-order')) {
+          savePkgGalleryOrder();
         }
+
+        // Handle supplier gallery save-order button
+        if (target.matches('#sup-gallery-save-order')) {
+          if (typeof window.saveSupplierGalleryOrder === 'function') {
+            window.saveSupplierGalleryOrder();
+          }
+        }
+      } catch (err) {
+        console.error('Dashboard action handler error:', err);
       }
-    } catch (err) {
-      console.error('Dashboard action handler error:', err);
-    }
-  });
+    });
+  }
 
   function buildSupplierPayload(form) {
     const fd = new FormData(form);

@@ -441,21 +441,24 @@ async function sendPasswordResetEmail(user, resetToken) {
  * @throws {Error} If email sending fails
  */
 async function sendWelcomeEmail(user) {
+  const from = FROM_HELLO;
+  const welcomeTemplateConfig = { template: 'welcome' };
+  const template = welcomeTemplateConfig.template;
   const normalizedRole = typeof user.role === 'string' ? user.role.trim().toLowerCase() : '';
-  const template = normalizedRole === 'supplier' ? 'welcome-supplier' : 'welcome-customer';
+  const roleTemplate = normalizedRole === 'supplier' ? 'welcome-supplier' : 'welcome-customer';
 
   logger.info(`📧 Sending welcome email to ${user.email}`);
   logger.info(`   Role: ${normalizedRole || 'missing (defaulting to customer)'}`);
-  logger.info(`   Selected welcome template: ${template}`);
+  logger.info(`   Selected welcome template: ${roleTemplate}`);
 
   return sendMail({
     to: user.email,
     subject: 'Welcome to EventFlow!',
-    template,
+    template: roleTemplate || template,
     templateData: {
       name: user.name || 'there',
     },
-    from: FROM_HELLO,
+    from,
     tags: ['welcome', normalizedRole || 'customer', 'transactional'],
     messageStream: 'outbound',
   });
