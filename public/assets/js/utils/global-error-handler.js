@@ -19,46 +19,6 @@
     return error?.name === 'AbortError' || message.includes('aborted');
   }
 
-  function isNavigationInProgress() {
-    return window.__EF_NAVIGATING_AWAY__ === true;
-  }
-
-  function markNavigationInProgress() {
-    window.__EF_NAVIGATING_AWAY__ = true;
-  }
-
-  function setupNavigationTracking() {
-    document.addEventListener(
-      'click',
-      event => {
-        const target = event.target;
-        if (!target || !(target instanceof Element)) {
-          return;
-        }
-
-        const link = target.closest('a[href]');
-        if (!link) {
-          return;
-        }
-
-        const href = (link.getAttribute('href') || '').trim();
-        if (!href || href === '#' || href.toLowerCase().startsWith('javascript:')) {
-          return;
-        }
-
-        const isInternalPath = href.startsWith('/') && !href.startsWith('//');
-        const isDashboardPath = /^\/dashboard(\/|$)/.test(href) || href === '/admin';
-        if (isInternalPath && isDashboardPath) {
-          markNavigationInProgress();
-        }
-      },
-      { capture: true }
-    );
-
-    window.addEventListener('beforeunload', markNavigationInProgress);
-    window.addEventListener('pagehide', markNavigationInProgress);
-  }
-
   /**
    * Log error to console and external service
    */
@@ -221,7 +181,7 @@
       } catch (error) {
         // Ignore aborted fetches caused by page navigation/cancellation.
         // These are expected when users click nav links and should not show error toasts.
-        if (isAbortLikeError(error) || isNavigationInProgress()) {
+        if (isAbortLikeError(error)) {
           if (isDevelopment) {
             console.debug('Ignoring aborted fetch request:', args[0]);
           }
@@ -254,7 +214,7 @@
     const errorMessage = error.message || 'Unknown error';
 
     // Ignore benign errors
-    if (isBenignError(errorMessage) || isAbortLikeError(error) || isNavigationInProgress()) {
+    if (isBenignError(errorMessage) || isAbortLikeError(error)) {
       return;
     }
 
@@ -283,7 +243,7 @@
     const errorMessage = error.message || 'Unknown error';
 
     // Ignore benign errors
-    if (isBenignError(errorMessage) || isAbortLikeError(error) || isNavigationInProgress()) {
+    if (isBenignError(errorMessage) || isAbortLikeError(error)) {
       return;
     }
 
