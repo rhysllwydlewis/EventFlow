@@ -21,6 +21,8 @@ let wsClientInstance = null;
 let hasConnectedOnce = false;
 let lastDisconnectToastAt = 0;
 const DISCONNECT_TOAST_THROTTLE_MS = 10 * 1000;
+const DISCONNECT_TOAST_DELAY_MS = 3 * 1000;
+let pendingDisconnectNoticeTimer = null;
 let actionPromptChecklistPromise = null;
 
 // Initialize feature access control (non-blocking)
@@ -658,6 +660,10 @@ window.addEventListener('load', () => {
     try {
       wsClientInstance = new WebSocketClient({
         onConnect: ({ isReconnect } = {}) => {
+          if (pendingDisconnectNoticeTimer) {
+            clearTimeout(pendingDisconnectNoticeTimer);
+            pendingDisconnectNoticeTimer = null;
+          }
           if (typeof EventFlowNotifications !== 'undefined') {
             NotificationDispatcher.success(
               isReconnect || hasConnectedOnce
@@ -673,15 +679,17 @@ window.addEventListener('load', () => {
           if (now - lastDisconnectToastAt < DISCONNECT_TOAST_THROTTLE_MS) {
             return;
           }
-          lastDisconnectToastAt = now;
-          if (typeof EventFlowNotifications !== 'undefined') {
-            const detail = reason ? ` (${reason})` : '';
-            NotificationDispatcher.warning(
-              `Live Dashboard Disconnected${detail} — retrying...`,
-              4000
-            );
+          if (pendingDisconnectNoticeTimer) {
+            clearTimeout(pendingDisconnectNoticeTimer);
           }
-          showUrgentAlert('Live updates disconnected. Retrying…', 'warning');
+          pendingDisconnectNoticeTimer = setTimeout(() => {
+            lastDisconnectToastAt = Date.now();
+            if (typeof EventFlowNotifications !== 'undefined') {
+              NotificationDispatcher.warning('Live dashboard disconnected\nReconnecting…', 4000);
+            }
+            showUrgentAlert('Live updates disconnected. Retrying…', 'warning');
+            pendingDisconnectNoticeTimer = null;
+          }, DISCONNECT_TOAST_DELAY_MS);
         },
         onNotification: data => handleRealtimeNotification(data),
       });
@@ -693,6 +701,10 @@ window.addEventListener('load', () => {
 
 // Cleanup WebSocket on page unload
 window.addEventListener('beforeunload', () => {
+  if (pendingDisconnectNoticeTimer) {
+    clearTimeout(pendingDisconnectNoticeTimer);
+    pendingDisconnectNoticeTimer = null;
+  }
   if (wsClientInstance && typeof wsClientInstance.disconnect === 'function') {
     wsClientInstance.disconnect();
   }
