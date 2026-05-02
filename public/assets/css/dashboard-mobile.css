@@ -1075,8 +1075,7 @@
   }
 
   /* CTA as text link with enlarged tap target */
-  .pro-ribbon.pro-ribbon--starter .pro-ribbon__cta,
-  .pro-ribbon.pro-ribbon--starter a.pro-ribbon__cta {
+  .pro-ribbon.pro-ribbon--starter .pro-ribbon__text-link {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1091,7 +1090,9 @@
     text-decoration: underline !important;
     text-underline-offset: 2px;
     white-space: nowrap;
-    transition: opacity 0.15s, transform 0.15s;
+    transition:
+      opacity 0.15s,
+      transform 0.15s;
     margin-left: 0;
     border: 0;
     letter-spacing: 0;
@@ -1099,25 +1100,18 @@
     z-index: 1;
   }
 
-  .pro-ribbon.pro-ribbon--starter .pro-ribbon__cta {
-    min-width: 160px;
-  }
-
-  .pro-ribbon.pro-ribbon--starter .pro-ribbon__cta:hover,
-  .pro-ribbon.pro-ribbon--starter a.pro-ribbon__cta:hover {
+  .pro-ribbon.pro-ribbon--starter .pro-ribbon__text-link:hover {
     opacity: 0.92;
     transform: translateY(-1px);
     text-decoration: underline !important;
   }
 
-  .pro-ribbon.pro-ribbon--starter .pro-ribbon__cta:active,
-  .pro-ribbon.pro-ribbon--starter a.pro-ribbon__cta:active {
+  .pro-ribbon.pro-ribbon--starter .pro-ribbon__text-link:active {
     transform: none;
     opacity: 0.85;
   }
 
-  .pro-ribbon.pro-ribbon--starter .pro-ribbon__cta:focus-visible,
-  .pro-ribbon.pro-ribbon--starter a.pro-ribbon__cta:focus-visible {
+  .pro-ribbon.pro-ribbon--starter .pro-ribbon__text-link:focus-visible {
     outline: 2px solid #9a3412;
     outline-offset: 2px;
     box-shadow:
@@ -1147,8 +1141,7 @@
     font-size: 0.84rem;
   }
 
-  .pro-ribbon.pro-ribbon--starter .pro-ribbon__cta,
-  .pro-ribbon.pro-ribbon--starter a.pro-ribbon__cta {
+  .pro-ribbon.pro-ribbon--starter .pro-ribbon__text-link {
     grid-area: cta;
     justify-self: start;
     padding: 7px 9px;
