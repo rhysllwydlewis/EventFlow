@@ -21,6 +21,7 @@ let wsClientInstance = null;
 let hasConnectedOnce = false;
 let lastDisconnectToastAt = 0;
 const DISCONNECT_TOAST_THROTTLE_MS = 10 * 1000;
+let actionPromptChecklistPromise = null;
 
 // Initialize feature access control (non-blocking)
 initializeFeatureAccess().catch(err => {
@@ -177,6 +178,67 @@ function updateWelcomeHeading(name) {
   }
 }
 
+/**
+ * Select the most relevant hero tip message using live supplier state.
+ * Prioritizes outstanding action-prompt items so the hero tip aligns with
+ * the same "Next Steps" logic shown elsewhere in the dashboard.
+ *
+ * @param {Object|null} summaryData - Dashboard summary payload
+ * @param {Object|null} checklistData - /api/me/action-prompt-checklist payload
+ * @returns {string}
+ */
+function getDynamicHeroTip(summaryData, checklistData) {
+  const unread = summaryData?.messages?.unread || 0;
+  if (unread > 0) {
+    return `💬 You have ${unread} unread message${unread !== 1 ? 's' : ''} — reply within 24 hours to boost your ranking`;
+  }
+
+  const outstanding = Array.isArray(checklistData?.outstanding) ? checklistData.outstanding : [];
+  const missingPackages = outstanding.find(action => action?.key === 'missingPackages');
+  if (missingPackages) {
+    return '📦 Add your first package to start receiving more relevant customer enquiries';
+  }
+
+  const incompleteProfile = outstanding.find(action => action?.key === 'incompleteProfile');
+  if (incompleteProfile) {
+    return '✨ Complete your profile to appear in more search results and attract more enquiries';
+  }
+
+  const missingPhotos = outstanding.find(action => action?.key === 'missingPhotos');
+  if (missingPhotos) {
+    return '📸 Add quality photos to increase profile views and improve trust with planners';
+  }
+
+  const totalReviewCount = summaryData?.reviews?.total || 0;
+  if (totalReviewCount === 0) {
+    return '⭐ Ask your first customer for a review — social proof triples enquiry conversion';
+  }
+
+  return '🚀 Fast responses within 2 hours increase booking rates by up to 40%';
+}
+
+/**
+ * Load action-prompt checklist data once and share it between dashboard widgets
+ * (hero tip + next steps card) to avoid duplicate network requests.
+ *
+ * @returns {Promise<Object|null>}
+ */
+async function loadActionPromptChecklist() {
+  if (!actionPromptChecklistPromise) {
+    actionPromptChecklistPromise = fetch('/api/me/action-prompt-checklist', {
+      credentials: 'include',
+    })
+      .then(async response => {
+        if (!response.ok) {
+          return null;
+        }
+        return response.json();
+      })
+      .catch(() => null);
+  }
+  return actionPromptChecklistPromise;
+}
+
 // Initialize supplier dashboard widgets
 async function initSupplierDashboardWidgets() {
   try {
@@ -315,24 +377,13 @@ async function initSupplierDashboardWidgets() {
       updateWelcomeHeading(summaryData.profile.topProfileName);
     }
 
-    // Update pro-tip text with context-aware tip based on data
+    // Load checklist actions (same source as Next Steps card) to make hero tip actionable.
+    const checklistData = await loadActionPromptChecklist();
+
+    // Update pro-tip text with context-aware tip based on live data
     const proTipEl = document.getElementById('pro-tip-text');
-    if (proTipEl && summaryData) {
-      const healthScore = summaryData.profile?.healthScore || 0;
-      const unread = summaryData.messages?.unread || 0;
-      const totalReviewCount = summaryData.reviews?.total || 0;
-      if (unread > 0) {
-        proTipEl.textContent = `💬 You have ${unread} unread message${unread !== 1 ? 's' : ''} — reply within 24 hours to boost your ranking`;
-      } else if (healthScore < 60) {
-        proTipEl.textContent =
-          '✨ Complete your profile to appear in more search results and attract more enquiries';
-      } else if (totalReviewCount === 0) {
-        proTipEl.textContent =
-          '⭐ Ask your first customer for a review — social proof triples enquiry conversion';
-      } else {
-        proTipEl.textContent =
-          '🚀 Fast responses within 2 hours increase booking rates by up to 40%';
-      }
+    if (proTipEl) {
+      proTipEl.textContent = getDynamicHeroTip(summaryData, checklistData);
     }
 
     // Create statistics widgets with real data
@@ -1271,11 +1322,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function loadNextSteps() {
     try {
-      const res = await fetch('/api/me/action-prompt-checklist', { credentials: 'include' });
-      if (!res.ok) {
+      const data = await loadActionPromptChecklist();
+      if (!data) {
         return;
       }
-      const data = await res.json();
       renderNextSteps(data);
     } catch {
       // Non-critical — silently skip if endpoint is unavailable
