@@ -331,10 +331,11 @@
 /* Hide EventFlow text on mobile to save space */
 @media (max-width: 767px) {
   .ef-brand-text {
+    display: none;
     max-width: 0;
     opacity: 0;
     margin-left: 0;
-    animation: text-disappear 0.4s ease-out forwards;
+    animation: none;
   }
 }
 
@@ -485,6 +486,48 @@
 }
 
 /* Keep bell icon weight visually aligned with neighboring text buttons */
+
+#ef-notification-btn {
+  overflow: visible;
+}
+
+#ef-notification-btn::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 5px;
+  width: 18px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--ef-primary) 0%, var(--ef-primary-light) 100%);
+  transform: translateX(-50%) scaleX(0);
+  opacity: 0;
+  transition:
+    transform 0.24s var(--ef-ease-bounce),
+    opacity 0.2s ease;
+}
+
+#ef-notification-btn[aria-expanded='true'],
+#ef-notification-btn.is-open {
+  background: rgba(11, 128, 115, 0.14);
+  border-color: rgba(11, 128, 115, 0.5);
+  box-shadow: 0 4px 12px rgba(11, 128, 115, 0.2);
+}
+
+#ef-notification-btn[aria-expanded='true']::after,
+#ef-notification-btn.is-open::after {
+  transform: translateX(-50%) scaleX(1);
+  opacity: 1;
+}
+
+#ef-notification-btn .ef-icon {
+  transition: transform 0.24s var(--ef-ease-bounce);
+}
+
+#ef-notification-btn[aria-expanded='true'] .ef-icon,
+#ef-notification-btn.is-open .ef-icon {
+  transform: translateY(-1px) scale(1.06);
+}
 #ef-notification-btn .ef-icon {
   width: 20px;
   height: 20px;
@@ -911,10 +954,10 @@ body.ef-menu-open {
   display: flex;
   align-items: center;
   justify-content: space-evenly;
-  background: rgba(255, 255, 255, 0.80);
+  background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(16px) saturate(180%);
   -webkit-backdrop-filter: blur(16px) saturate(180%);
-  border-top: 1px solid rgba(255, 255, 255, 0.40);
+  border-top: 1px solid rgba(255, 255, 255, 0.4);
   padding: 10px 4px 12px;
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.07);
   gap: 4px;
@@ -1554,9 +1597,9 @@ body {
 
 /* Define shared navbar font size variables */
 :root {
-  --ef-nav-font-size: 0.875rem;        /* 14px — matches the auth page appearance */
-  --ef-nav-font-size-tablet: 0.8rem;   /* Tablet (768px–1023px) */
-  --ef-nav-font-size-mobile: 0.78rem;  /* Ultra-small (≤320px) */
+  --ef-nav-font-size: 0.875rem; /* 14px — matches the auth page appearance */
+  --ef-nav-font-size-tablet: 0.8rem; /* Tablet (768px–1023px) */
+  --ef-nav-font-size-mobile: 0.78rem; /* Ultra-small (≤320px) */
 }
 
 /* All nav links in the header should use the same size */
