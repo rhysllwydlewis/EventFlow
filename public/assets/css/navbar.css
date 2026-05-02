@@ -465,6 +465,15 @@
   transform: translateY(0) scale(0.98);
 }
 
+.ef-icon-btn[aria-current='page'],
+.ef-icon-btn[aria-pressed='true'],
+.ef-icon-btn[aria-expanded='true'],
+.ef-icon-btn.is-active {
+  background: rgba(11, 128, 115, 0.14);
+  border-color: rgba(11, 128, 115, 0.5);
+  box-shadow: 0 4px 12px rgba(11, 128, 115, 0.2);
+}
+
 .ef-icon-btn:focus-visible {
   outline: 2px solid var(--ef-primary);
   outline-offset: 2px;
@@ -1556,6 +1565,7 @@ body {
 /* Dashboard link should match exactly */
 .ef-header #ef-dashboard-link {
   font-size: var(--ef-nav-font-size) !important;
+  color: var(--ef-primary) !important;
   font-weight: 500 !important;
   padding: 8px 14px !important;
 }
