@@ -666,10 +666,9 @@
             <h3 class="supplier-section-header">Create / Edit profile</h3>
             <form id="supplier-form" action="#" novalidate>
               <input type="hidden" id="sup-id" name="id" />
-              <div class="form-row supplier-form-grid">
-                <div>
+              <div class="form-row supplier-form-grid supplier-form-grid--business">
+                <div class="supplier-field supplier-field--business-name">
                   <label for="sup-name">Business name</label>
-                  <p class="small" style="margin:0.25rem 0 0.5rem;color:#6b7280;">This is your public supplier listing name and can be different from your personal account name in Settings.</p>
                   <input
                     id="sup-name"
                     name="name"
@@ -679,6 +678,12 @@
                   />
                   <p class="small form-error-text" id="sup-name-error" role="alert" aria-live="polite"></p>
                 </div>
+                <aside class="supplier-field-hint" role="note" aria-label="Business name help">
+                  <strong>Tip:</strong> this is your public listing name. It can be different from your personal account name in <em>Settings</em>.
+                </aside>
+              </div>
+
+              <div class="form-row supplier-form-grid supplier-form-grid--two-col">
                 <div>
                   <label for="sup-category">Category</label>
                   <select id="sup-category" name="category" required aria-describedby="sup-category-error">

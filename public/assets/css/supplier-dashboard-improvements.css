@@ -2500,9 +2500,38 @@ textarea:focus {
   gap: var(--ef-space-4, 16px);
 }
 
+#supplier-form .supplier-form-grid--business {
+  grid-template-columns: minmax(260px, 1fr) minmax(280px, 1fr);
+  align-items: start;
+}
+
+#supplier-form .supplier-form-grid--two-col {
+  grid-template-columns: repeat(2, minmax(240px, 1fr));
+}
+
+.supplier-field-hint {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(11, 128, 115, 0.24);
+  background: rgba(11, 128, 115, 0.06);
+  color: #3f4f63;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.supplier-field-hint strong {
+  color: #0b8073;
+}
+
 @media (max-width: 640px) {
   .supplier-form-grid,
   .supplier-form-grid-2col {
+    grid-template-columns: 1fr;
+  }
+
+  #supplier-form .supplier-form-grid--business,
+  #supplier-form .supplier-form-grid--two-col {
     grid-template-columns: 1fr;
   }
 }
@@ -8439,12 +8468,33 @@ label .required {
 }
 
 .spc-checklist-step {
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 12px;
+  padding: 8px 6px;
+  transition:
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    transform 0.16s ease;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
   flex: 1;
   min-width: 60px;
+}
+
+.spc-checklist-step:hover {
+  background: rgba(11, 128, 115, 0.05);
+  border-color: rgba(11, 128, 115, 0.18);
+}
+
+.spc-checklist-step:focus-visible {
+  outline: none;
+  border-color: rgba(11, 128, 115, 0.45);
+  box-shadow: 0 0 0 3px rgba(11, 128, 115, 0.16);
 }
 
 .spc-checklist-step-circle {

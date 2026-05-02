@@ -3226,10 +3226,14 @@ async function initDashSupplier() {
 
           const packageCountForSupplier = packagesBySupplierId.get(String(s.id || '')) || 0;
           const checklistItems = [
-            { label: 'Business Details', complete: Boolean(s.name && hasLocation) },
-            { label: 'Categories & Services', complete: hasCategory },
-            { label: 'Photos', complete: hasPhotos },
-            { label: 'Contact Information', complete: hasWebsite },
+            {
+              label: 'Business Details',
+              complete: Boolean(s.name && hasLocation),
+              targetField: 'sup-name',
+            },
+            { label: 'Categories & Services', complete: hasCategory, targetField: 'sup-category' },
+            { label: 'Photos', complete: hasPhotos, targetField: 'sup-photo-drop' },
+            { label: 'Contact Information', complete: hasWebsite, targetField: 'sup-website' },
             {
               label: 'Create your first package',
               complete: packageCountForSupplier > 0,
@@ -3238,8 +3242,9 @@ async function initDashSupplier() {
                   ? `${packageCountForSupplier} package${packageCountForSupplier === 1 ? '' : 's'} live`
                   : 'Add a package with pricing to start getting enquiries',
               highlight: true,
+              targetField: 'package-form',
             },
-            { label: 'Additional Details', complete: hasDescription },
+            { label: 'Business Description', complete: hasDescription, targetField: 'sup-long' },
           ];
           const completedCount = checklistItems.filter(item => item.complete).length;
           // Health score: 0-100 based on checklist completion across all checklist items.
@@ -3360,7 +3365,7 @@ async function initDashSupplier() {
           ${checklistItems
             .map(
               (item, i) => `
-            <div class="spc-checklist-step${item.complete ? ' spc-checklist-step--complete' : ''}${item.highlight ? ' spc-checklist-step--milestone' : ''}" role="listitem">
+            <button type="button" class="spc-checklist-step${item.complete ? ' spc-checklist-step--complete' : ''}${item.highlight ? ' spc-checklist-step--milestone' : ''}" role="listitem" data-checklist-target="${item.targetField || ''}" data-profile-id="${supplierId}" aria-label="Go to ${item.label}">
               <div class="spc-checklist-step-circle" aria-hidden="true">${
                 item.complete
                   ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>`
@@ -3370,7 +3375,7 @@ async function initDashSupplier() {
                 <span class="spc-checklist-step-label">${item.label}</span>
                 ${item.detail ? `<span class="spc-checklist-step-detail">${item.detail}</span>` : ''}
               </div>
-            </div>
+            </button>
           `
             )
             .join('')}
@@ -3897,7 +3902,9 @@ async function initDashSupplier() {
     window.__efSupplierDashboardActionsBound = true;
     document.addEventListener('click', async e => {
       const target = e.target;
-      const actionEl = target.closest ? target.closest('[data-action]') : null;
+      const actionEl = target.closest
+        ? target.closest('[data-action], .spc-checklist-step[data-checklist-target]')
+        : null;
       try {
         // Handle package edit buttons
         if (actionEl && actionEl.matches('[data-action="edit-package"]')) {
@@ -4020,6 +4027,34 @@ async function initDashSupplier() {
           }
         }
 
+        // Handle checklist step click — jump directly to the relevant profile field/section
+        if (actionEl && actionEl.matches('.spc-checklist-step[data-checklist-target]')) {
+          const profileId = actionEl.getAttribute('data-profile-id');
+          const checklistTargetId = actionEl.getAttribute('data-checklist-target');
+          if (profileId) {
+            await editProfile(profileId, { skipFormScroll: true });
+          }
+          const profileFormSection = document.getElementById('profile-form-section');
+          if (profileFormSection) {
+            profileFormSection.classList.add('expanded');
+            profileFormSection.removeAttribute('hidden');
+          }
+          const targetField = checklistTargetId ? document.getElementById(checklistTargetId) : null;
+          const fallbackTarget = document.getElementById('supplier-form');
+          const scrollTarget = targetField || fallbackTarget;
+          if (scrollTarget) {
+            scrollTarget.style.scrollMarginTop = '96px';
+            scrollTarget.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            if (
+              typeof scrollTarget.focus === 'function' &&
+              checklistTargetId &&
+              checklistTargetId !== 'package-form'
+            ) {
+              scrollTarget.focus({ preventScroll: true });
+            }
+          }
+        }
+
         // Handle profile photo delete button
         if (actionEl && actionEl.matches('[data-action="delete-profile-photo"]')) {
           if (actionEl.dataset.busy === 'true') {
@@ -4096,6 +4131,20 @@ async function initDashSupplier() {
       } catch (err) {
         console.error('Dashboard action handler error:', err);
       }
+    });
+    document.addEventListener('keydown', e => {
+      const target = e.target;
+      const checklistStep = target?.closest
+        ? target.closest('.spc-checklist-step[data-checklist-target]')
+        : null;
+      if (!checklistStep) {
+        return;
+      }
+      if (e.key !== 'Enter' && e.key !== ' ') {
+        return;
+      }
+      e.preventDefault();
+      checklistStep.click();
     });
   }
 
