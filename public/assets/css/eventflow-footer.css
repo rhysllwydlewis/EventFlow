@@ -1,9 +1,13 @@
-/* EventFlow premium footer + newsletter cleanup */
+/* EventFlow premium footer + newsletter
+   Auto-rendered by /assets/js/components/eventflow-footer.js
+*/
+
 :root {
   --ef-accent: #14b89a;
   --ef-accent-dark: #0d9e83;
+  --ef-footer-bg: #053d31;
   --ef-footer-deep: #032920;
-  --ef-white: #fff;
+  --ef-white: #ffffff;
   --ef-white-80: rgba(255, 255, 255, 0.8);
   --ef-white-50: rgba(255, 255, 255, 0.5);
   --ef-white-20: rgba(255, 255, 255, 0.2);
@@ -24,22 +28,11 @@
   clip: rect(0, 0, 0, 0);
 }
 
-.ef-newsletter-band {
-  display: none !important;
-}
-
-.ef-footer-premium {
-  font-family: var(--ef-font);
-  background: linear-gradient(170deg, #0a4a3b 0%, #063329 45%, var(--ef-footer-deep) 100%);
-  color: var(--ef-white);
-  padding: 0;
-  position: relative;
-  overflow: hidden;
-}
+/* Newsletter banner */
 
 .ef-nl-wrap {
   background: var(--ef-newsletter-bg);
-  padding: 2rem 1.5rem 1.75rem;
+  padding: 2rem 1.5rem;
 }
 
 .ef-nl-card {
@@ -72,7 +65,6 @@
   justify-content: center;
   flex-shrink: 0;
   position: relative;
-  box-shadow: 0 14px 28px rgba(20, 184, 154, 0.22);
 }
 
 .ef-nl-icon::after {
@@ -94,6 +86,7 @@
 }
 
 .ef-nl-copy h2 {
+  font-family: var(--ef-font);
   font-size: 1.65rem;
   font-weight: 700;
   color: #0d2e28;
@@ -102,6 +95,7 @@
 }
 
 .ef-nl-copy p {
+  font-family: var(--ef-font);
   font-size: 0.92rem;
   color: #4a7a70;
   margin: 0;
@@ -123,7 +117,6 @@
 
 .ef-nl-row {
   display: flex;
-  align-items: center;
   gap: 0.65rem;
 }
 
@@ -137,8 +130,9 @@
   padding: 0 0.9rem;
   background: #f9fffe;
   height: 50px;
-  min-width: 0;
-  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
 .ef-nl-input-wrap:focus-within {
@@ -154,9 +148,9 @@
 }
 
 .ef-nl-input-wrap input {
-  border: 0;
+  border: none;
   background: transparent;
-  font: inherit;
+  font-family: var(--ef-font);
   font-size: 0.93rem;
   color: #0d2e28;
   width: 100%;
@@ -170,27 +164,25 @@
 
 .ef-nl-btn {
   height: 50px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   padding: 0 1.4rem;
   background: var(--ef-accent);
   color: #fff;
-  font: inherit;
+  font-family: var(--ef-font);
   font-size: 0.97rem;
   font-weight: 600;
-  border: 0;
+  border: none;
   border-radius: 10px;
   cursor: pointer;
   white-space: nowrap;
   letter-spacing: -0.01em;
-  line-height: 1;
-  transition: background 0.18s ease, transform 0.1s ease, opacity 0.18s ease, box-shadow 0.18s ease;
+  transition:
+    background 0.18s ease,
+    transform 0.1s ease,
+    opacity 0.18s ease;
 }
 
 .ef-nl-btn:hover {
   background: var(--ef-accent-dark);
-  box-shadow: 0 10px 20px rgba(20, 184, 154, 0.22);
 }
 
 .ef-nl-btn:active {
@@ -203,6 +195,7 @@
 }
 
 .ef-nl-note {
+  font-family: var(--ef-font);
   font-size: 0.8rem;
   color: #85b5ae;
   margin: 0;
@@ -210,6 +203,7 @@
 
 .ef-nl-feedback {
   min-height: 1.15rem;
+  font-family: var(--ef-font);
   font-size: 0.82rem;
   margin: 0;
   color: #0d9e83;
@@ -221,6 +215,17 @@
 
 .ef-nl-feedback.is-success {
   color: #0d7a66;
+}
+
+/* Main footer */
+
+.ef-footer-premium {
+  font-family: var(--ef-font);
+  background: linear-gradient(170deg, #0a4a3b 0%, #063329 45%, var(--ef-footer-deep) 100%);
+  color: var(--ef-white);
+  padding: 3.25rem 0 0;
+  position: relative;
+  overflow: hidden;
 }
 
 .ef-footer-waves {
@@ -236,7 +241,7 @@
 .ef-footer-inner {
   max-width: 1180px;
   margin: 0 auto;
-  padding: 3.25rem 1.5rem 0;
+  padding: 0 1.5rem;
   display: grid;
   grid-template-columns: 240px 1fr 1fr 1fr;
   gap: 1.5rem 3rem;
@@ -245,10 +250,17 @@
 }
 
 .ef-brand-logo {
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  gap: 0.5rem;
   text-decoration: none;
   margin-bottom: 1rem;
+}
+
+.ef-brand-logo-icon {
+  width: 32px;
+  height: 32px;
+  color: var(--ef-accent);
 }
 
 .ef-brand-logo-name {
@@ -295,14 +307,16 @@
   justify-content: center;
   color: var(--ef-white-80);
   text-decoration: none;
-  transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+  transition:
+    border-color 0.18s ease,
+    color 0.18s ease,
+    background 0.18s ease;
 }
 
 .ef-social-link:hover {
   border-color: var(--ef-accent);
   color: var(--ef-accent);
   background: rgba(20, 184, 154, 0.1);
-  transform: translateY(-2px);
 }
 
 .ef-social-link svg {
@@ -359,7 +373,7 @@
   font-size: 0.9rem;
   color: var(--ef-white-80);
   text-decoration: none;
-  transition: color 0.15s ease, transform 0.15s ease;
+  transition: color 0.15s ease;
 }
 
 .ef-cookie-link {
@@ -374,7 +388,6 @@
 .ef-nav-list a:hover,
 .ef-cookie-link:hover {
   color: var(--ef-white);
-  transform: translateX(2px);
 }
 
 .ef-nl-btn:focus-visible,
@@ -403,22 +416,6 @@
   font-size: 0.78rem;
   color: var(--ef-white-50);
   margin: 0;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ef-nl-btn,
-  .ef-social-link,
-  .ef-nav-list a,
-  .ef-cookie-link {
-    transition: none;
-  }
-
-  .ef-nl-btn:active,
-  .ef-social-link:hover,
-  .ef-nav-list a:hover,
-  .ef-cookie-link:hover {
-    transform: none;
-  }
 }
 
 @media (max-width: 960px) {
@@ -453,7 +450,6 @@
 
   .ef-nl-row {
     flex-direction: column;
-    align-items: stretch;
   }
 
   .ef-nl-btn {
