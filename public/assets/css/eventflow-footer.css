@@ -13,7 +13,19 @@
   --ef-white-20: rgba(255, 255, 255, 0.2);
   --ef-white-12: rgba(255, 255, 255, 0.12);
   --ef-newsletter-bg: #f0faf7;
+  --ef-newsletter-card: #ffffff;
+  --ef-newsletter-heading: #0d2e28;
+  --ef-newsletter-copy: #4a7a70;
+  --ef-newsletter-input: #f9fffe;
   --ef-font: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+[data-theme="dark"] {
+  --ef-newsletter-bg: #062f28;
+  --ef-newsletter-card: #083b32;
+  --ef-newsletter-heading: #ecfffb;
+  --ef-newsletter-copy: rgba(236, 255, 251, 0.78);
+  --ef-newsletter-input: rgba(255, 255, 255, 0.08);
 }
 
 .ef-footer-sr-only {
@@ -36,7 +48,7 @@
 .ef-nl-card {
   max-width: 1180px;
   margin: 0 auto;
-  background: #fff;
+  background: var(--ef-newsletter-card);
   border-radius: 18px;
   border: 1px solid rgba(20, 184, 154, 0.15);
   box-shadow: 0 2px 20px rgba(20, 184, 154, 0.07);
@@ -87,7 +99,7 @@
   font-family: var(--ef-font);
   font-size: 1.65rem;
   font-weight: 700;
-  color: #0d2e28;
+  color: var(--ef-newsletter-heading);
   margin: 0 0 0.3rem;
   letter-spacing: -0.02em;
 }
@@ -95,7 +107,7 @@
 .ef-nl-copy p {
   font-family: var(--ef-font);
   font-size: 0.92rem;
-  color: #4a7a70;
+  color: var(--ef-newsletter-copy);
   margin: 0;
   line-height: 1.55;
 }
@@ -126,7 +138,7 @@
   border: 1.5px solid #d4e8e3;
   border-radius: 10px;
   padding: 0 0.9rem;
-  background: #f9fffe;
+  background: var(--ef-newsletter-input);
   height: 50px;
   transition: border-color 0.18s ease, box-shadow 0.18s ease;
 }
@@ -148,7 +160,7 @@
   background: transparent;
   font-family: var(--ef-font);
   font-size: 0.93rem;
-  color: #0d2e28;
+  color: var(--ef-newsletter-heading);
   width: 100%;
   min-width: 0;
   outline: none;
@@ -171,11 +183,12 @@
   cursor: pointer;
   white-space: nowrap;
   letter-spacing: -0.01em;
-  transition: background 0.18s ease, transform 0.1s ease, opacity 0.18s ease;
+  transition: background 0.18s ease, transform 0.16s ease, opacity 0.18s ease, box-shadow 0.18s ease;
 }
 
 .ef-nl-btn:hover {
   background: var(--ef-accent-dark);
+  box-shadow: 0 8px 20px rgba(20, 184, 154, 0.24);
 }
 
 .ef-nl-btn:active {
@@ -217,6 +230,7 @@
   padding: 3.25rem 0 0;
   position: relative;
   overflow: hidden;
+  contain: layout paint;
 }
 
 .ef-footer-waves {
@@ -298,13 +312,14 @@
   justify-content: center;
   color: var(--ef-white-80);
   text-decoration: none;
-  transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease;
+  transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease, transform 0.18s ease;
 }
 
 .ef-social-link:hover {
   border-color: var(--ef-accent);
   color: var(--ef-accent);
   background: rgba(20, 184, 154, 0.1);
+  transform: translateY(-2px);
 }
 
 .ef-social-link svg {
@@ -361,7 +376,7 @@
   font-size: 0.9rem;
   color: var(--ef-white-80);
   text-decoration: none;
-  transition: color 0.15s ease;
+  transition: color 0.15s ease, transform 0.15s ease;
 }
 
 .ef-cookie-link {
@@ -376,6 +391,7 @@
 .ef-nav-list a:hover,
 .ef-cookie-link:hover {
   color: var(--ef-white);
+  transform: translateX(2px);
 }
 
 .ef-nl-btn:focus-visible,
@@ -404,6 +420,22 @@
   font-size: 0.78rem;
   color: var(--ef-white-50);
   margin: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ef-nl-btn,
+  .ef-social-link,
+  .ef-nav-list a,
+  .ef-cookie-link {
+    transition: none;
+  }
+
+  .ef-nl-btn:active,
+  .ef-social-link:hover,
+  .ef-nav-list a:hover,
+  .ef-cookie-link:hover {
+    transform: none;
+  }
 }
 
 @media (max-width: 960px) {
