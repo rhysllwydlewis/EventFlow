@@ -30,15 +30,6 @@
     }
 
     const year = new Date().getFullYear();
-    const existingBand = document.querySelector('.ef-newsletter-band, .ef-section--newsletter');
-    if (existingBand) {
-      existingBand.remove();
-    }
-    const bridge = document.querySelector('.ef-footer-gradient-bridge');
-    if (bridge) {
-      bridge.remove();
-    }
-
     const newsletter = document.createElement('section');
     newsletter.className = 'ef-newsletter-band';
     newsletter.setAttribute('aria-label', 'Stay Updated newsletter signup');
