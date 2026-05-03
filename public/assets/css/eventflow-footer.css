@@ -28,6 +28,14 @@
   clip: rect(0, 0, 0, 0);
 }
 
+/* Hide legacy duplicate newsletter and old gradient band above the enhanced footer. */
+body > .ef-nl-wrap,
+main .ef-nl-wrap,
+.ef-newsletter-band,
+.ef-footer-premium > .ef-section--gradient {
+  display: none !important;
+}
+
 .ef-footer-premium {
   font-family: var(--ef-font);
   background: linear-gradient(170deg, #0a4a3b 0%, #063329 45%, var(--ef-footer-deep) 100%);
