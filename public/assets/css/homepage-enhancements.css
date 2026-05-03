@@ -746,21 +746,47 @@ a:hover {
   background: linear-gradient(180deg, #0B8073 0%, #0EA592 100%);
 }
 
-/* Gradient bridge between the newsletter and the dark footer:
-   creates a smooth white → light mint → teal → dark-green waterfall */
+/* Gradient bridge between newsletter and footer.
+   Starts where the newsletter ends and eases into the footer tone
+   to avoid visible banding or abrupt color breaks. */
 .ef-footer-gradient-bridge {
-  height: 110px;
-  background: linear-gradient(
-    180deg,
-    #ffffff   0%,
-    #c8ede8  28%,
-    #0B8073  62%,
-    #094d45 100%
-  );
+  position: relative;
+  isolation: isolate;
+  height: clamp(88px, 10vw, 124px);
+  background-color: #0b8073;
+  background-image:
+    radial-gradient(130% 64px at 50% 0%, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0) 72%),
+    linear-gradient(
+      180deg,
+      #0ea592 0%,
+      #109f91 14%,
+      #0d9488 32%,
+      #0b877a 50%,
+      #0a776b 68%,
+      #096358 84%,
+      #094d45 100%
+    );
   margin: 0;
   padding: 0;
   line-height: 0;
   font-size: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.ef-footer-gradient-bridge::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.016) 0px,
+    rgba(255, 255, 255, 0.016) 1px,
+    rgba(255, 255, 255, 0) 2px,
+    rgba(255, 255, 255, 0) 4px
+  );
+  mix-blend-mode: soft-light;
+  opacity: 0.45;
 }
 
 footer.ef-footer-modern {
