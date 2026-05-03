@@ -977,30 +977,31 @@
       <!-- Newsletter Signup Section -->
       <section class="ef-section ef-section--gradient ef-section--newsletter" aria-label="Newsletter signup">
         <div class="container" style="max-width: 700px;">
-          <div class="ef-section__header ef-section__header--center">
-            <h2 class="ef-section__title">Stay Updated</h2>
-            <p class="ef-section__subtitle">
-              Get the latest event planning tips, supplier spotlights, and special offers delivered to your inbox.
-            </p>
+          <div class="ef-newsletter-panel">
+            <div class="ef-newsletter-panel__left">
+              <div class="ef-newsletter-panel__icon" aria-hidden="true">✉</div>
+              <div class="ef-section__header ef-section__header--center">
+                <h2 class="ef-section__title">Stay Updated</h2>
+                <p class="ef-section__subtitle">Get the latest event planning tips, supplier spotlights, and special offers delivered to your inbox.</p>
+              </div>
+            </div>
+            <div class="ef-newsletter-panel__right">
+              <form id="newsletter-form" class="ef-newsletter-form">
+                <input 
+                  type="email" 
+                  id="newsletter-email" 
+                  name="email" 
+                  class="ef-input ef-newsletter-form__input"
+                  placeholder="Enter your email address" 
+                  required
+                  aria-label="Email address"
+                >
+                <button type="submit" class="ef-cta ef-btn ef-newsletter-form__btn">Subscribe</button>
+              </form>
+              <div id="newsletter-feedback" class="ef-form-feedback" aria-live="polite"></div>
+              <p class="ef-newsletter-form__note">We respect your privacy. Unsubscribe at any time.</p>
+            </div>
           </div>
-          <form id="newsletter-form" class="ef-newsletter-form">
-            <input 
-              type="email" 
-              id="newsletter-email" 
-              name="email" 
-              class="ef-input ef-newsletter-form__input"
-              placeholder="Enter your email address" 
-              required
-              aria-label="Email address"
-            >
-            <button type="submit" class="ef-cta ef-btn ef-newsletter-form__btn">
-              Subscribe
-            </button>
-          </form>
-          <div id="newsletter-feedback" class="ef-form-feedback" aria-live="polite"></div>
-          <p class="ef-newsletter-form__note">
-            We respect your privacy. Unsubscribe at any time.
-          </p>
         </div>
       </section>
     </main>
