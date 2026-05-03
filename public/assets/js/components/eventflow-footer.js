@@ -30,34 +30,16 @@
     }
 
     const year = new Date().getFullYear();
-    const removableSelectors = [
-      '.ef-newsletter-band',
-      '.ef-section--newsletter',
-      '.ef-footer-gradient-bridge',
-      '[data-footer-newsletter]',
-    ];
-    removableSelectors.forEach(selector => {
-      document.querySelectorAll(selector).forEach(node => node.remove());
-    });
-
-    const legacyForm = document.querySelector('#newsletter-form');
-    if (legacyForm && !legacyForm.closest('.ef-newsletter-band')) {
-      const legacySection = legacyForm.closest('section');
-      if (legacySection && legacySection !== footer) {
-        legacySection.remove();
-      }
-    }
-
     const newsletter = document.createElement('section');
     newsletter.className = 'ef-newsletter-band';
     newsletter.setAttribute('aria-label', 'Stay Updated newsletter signup');
     newsletter.innerHTML =
-      '<div class="container" data-footer-newsletter="true"><div class="ef-newsletter-copy"><div class="ef-newsletter-icon" aria-hidden="true">✉</div><div><h2>Stay Updated</h2><p>Get the latest event planning tips, supplier spotlights, and special offers delivered to your inbox.</p></div></div><form class="ef-newsletter-form" novalidate><div class="ef-newsletter-form__row"><label for="ef-newsletter-email" class="sr-only">Email address</label><input id="ef-newsletter-email" name="email" type="email" required placeholder="Enter your email address" autocomplete="email"/><button type="submit">Subscribe</button></div><p class="ef-newsletter-note">We respect your privacy. Unsubscribe at any time.</p><div class="ef-newsletter-feedback" aria-live="polite"></div></form></div>';
+      '<div class="container"><div class="ef-newsletter-copy"><h2>Stay Updated</h2><p>Get EventFlow updates, supplier insights, and planning tips.</p></div><form class="ef-newsletter-form" novalidate><label for="ef-newsletter-email" class="sr-only">Email address</label><input id="ef-newsletter-email" name="email" type="email" required placeholder="Enter your email" autocomplete="email"/><button type="submit">Subscribe</button><div class="ef-newsletter-feedback" aria-live="polite"></div></form></div>';
     footer.before(newsletter);
 
     footer.className = 'footer ef-footer-modern';
     footer.dataset.efFooterEnhanced = 'true';
-    footer.innerHTML = `<div class="container"><div class="ef-footer-grid"><section class="ef-footer-column ef-footer-brand" aria-label="EventFlow brand"><h3>EventFlow</h3><p>Event planning made simple.</p><p>Operated by <a class="ef-vexi-link" href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></p><div class="ef-footer-socials" aria-label="Social links"><a class="ef-footer-social-link" href="https://www.instagram.com/eventflowuk" aria-label="EventFlow on Instagram" target="_blank" rel="noopener noreferrer">${socialIcon('instagram')}</a><a class="ef-footer-social-link" href="https://www.facebook.com/eventflowuk" aria-label="EventFlow on Facebook" target="_blank" rel="noopener noreferrer">${socialIcon('facebook')}</a><a class="ef-footer-social-link" href="https://www.linkedin.com/company/eventflowuk" aria-label="EventFlow on LinkedIn" target="_blank" rel="noopener noreferrer">${socialIcon('linkedin')}</a></div></section><nav class="ef-footer-column" aria-label="Platform"><h4 class="ef-footer-heading">Platform</h4><ul class="ef-footer-links"><li><a href="/start">Plan an Event</a></li><li><a href="/suppliers">Browse Suppliers</a></li><li><a href="/marketplace">Marketplace</a></li><li><a href="/pricing">Pricing</a></li></ul></nav><nav class="ef-footer-column" aria-label="Resources"><h4 class="ef-footer-heading">Resources</h4><ul class="ef-footer-links"><li><a href="/guides">Guides</a></li><li><a href="/faq">FAQ</a></li><li><a href="/for-suppliers">For Suppliers</a></li></ul></nav><nav class="ef-footer-column" aria-label="Legal"><h4 class="ef-footer-heading">Legal</h4><ul class="ef-footer-links"><li><a href="/legal">Legal Hub</a></li><li><a href="/privacy">Privacy Policy</a></li><li><a href="/terms">Terms of Service</a></li><li><a href="/contact">Contact</a></li><li><button type="button" class="ef-cookie-link">Cookie preferences</button></li></ul></nav></div><div class="ef-footer-bottom"><span>© ${year} EventFlow. All rights reserved.</span><span><a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></span></div></div>`;
+    footer.innerHTML = `<div class="container"><div class="ef-footer-grid"><section class="ef-footer-column ef-footer-brand" aria-label="EventFlow brand"><h3>EventFlow</h3><p>Event planning made simple.</p><p>Operated by <a class="ef-vexi-link" href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></p><div class="ef-footer-socials" aria-label="Social links"><a class="ef-footer-social-link" href="https://www.instagram.com/eventflowuk" aria-label="EventFlow on Instagram" target="_blank" rel="noopener noreferrer">${socialIcon('instagram')}</a><a class="ef-footer-social-link" href="https://www.facebook.com/eventflowuk" aria-label="EventFlow on Facebook" target="_blank" rel="noopener noreferrer">${socialIcon('facebook')}</a><a class="ef-footer-social-link" href="https://www.linkedin.com/company/eventflowuk" aria-label="EventFlow on LinkedIn" target="_blank" rel="noopener noreferrer">${socialIcon('linkedin')}</a></div></section><nav class="ef-footer-column" aria-label="Platform"><h4>Platform</h4><ul class="ef-footer-links"><li><a href="/">Home</a></li><li><a href="/suppliers">Suppliers</a></li><li><a href="/marketplace">Marketplace</a></li><li><a href="/pricing">Pricing</a></li></ul></nav><nav class="ef-footer-column" aria-label="Resources"><h4>Resources</h4><ul class="ef-footer-links"><li><a href="/guides">Guides</a></li><li><a href="/for-suppliers">For Suppliers</a></li><li><a href="/contact">Contact</a></li></ul></nav><nav class="ef-footer-column" aria-label="Legal"><h4>Legal</h4><ul class="ef-footer-links"><li><a href="/legal">Legal Hub</a></li><li><a href="/privacy">Privacy</a></li><li><a href="/terms">Terms</a></li></ul></nav></div><div class="ef-footer-bottom"><span>© ${year} EventFlow. All rights reserved.</span><span><a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <button type="button" class="ef-cookie-link">Cookie preferences</button></span></div></div>`;
 
     const cookieButton = footer.querySelector('.ef-cookie-link');
     if (cookieButton) {
