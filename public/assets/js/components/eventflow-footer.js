@@ -1,86 +1,146 @@
 (function () {
   'use strict';
 
-  function toast(msg, type) {
+  function toast(message, type) {
     if (window.Toast && typeof window.Toast.show === 'function') {
-      window.Toast.show(msg, { type: type || 'info' });
+      window.Toast.show(message, { type: type || 'info' });
       return;
     }
+
     if (typeof window.showNotification === 'function') {
-      window.showNotification(msg, type || 'info');
+      window.showNotification(message, type || 'info');
     }
   }
 
-  function socialIcon(name) {
+  function mailIcon(size) {
+    return (
+      '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ' +
+      `width="${size || 24}" height="${size || 24}">` +
+      '<rect x="2" y="4" width="20" height="16" rx="3"></rect>' +
+      '<path d="M2 8l10 6 10-6"></path>' +
+      '</svg>'
+    );
+  }
+
+  function navIcon(type) {
     const icons = {
-      instagram:
-        '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.75 2h8.5A5.75 5.75 0 0 1 22 7.75v8.5A5.75 5.75 0 0 1 16.25 22h-8.5A5.75 5.75 0 0 1 2 16.25v-8.5A5.75 5.75 0 0 1 7.75 2zm0 1.8A3.95 3.95 0 0 0 3.8 7.75v8.5a3.95 3.95 0 0 0 3.95 3.95h8.5a3.95 3.95 0 0 0 3.95-3.95v-8.5a3.95 3.95 0 0 0-3.95-3.95h-8.5zm8.9 1.35a1.15 1.15 0 1 1 0 2.3 1.15 1.15 0 0 1 0-2.3zM12 6.3a5.7 5.7 0 1 1 0 11.4 5.7 5.7 0 0 1 0-11.4zm0 1.8a3.9 3.9 0 1 0 0 7.8 3.9 3.9 0 0 0 0-7.8z"/></svg>',
-      facebook:
-        '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 22v-8.1h2.74l.43-3.18H13.5V8.69c0-.92.26-1.54 1.58-1.54h1.68V4.32c-.29-.04-1.28-.12-2.44-.12-2.41 0-4.06 1.47-4.06 4.17v2.34H7.5v3.18h2.76V22h3.24z"/></svg>',
-      linkedin:
-        '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.1 8.7H2.9V21h3.2V8.7zM4.5 3A1.85 1.85 0 1 0 4.5 6.7 1.85 1.85 0 0 0 4.5 3zM21 13.95c0-3.3-1.76-5.45-4.92-5.45-2.26 0-3.27 1.24-3.84 2.11V8.7H9.04V21h3.2v-6.08c0-1.6.3-3.15 2.28-3.15 1.95 0 1.98 1.83 1.98 3.26V21H21v-7.05z"/></svg>',
+      platform: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>',
+      resources: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>',
+      legal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>',
     };
-    return icons[name] || '';
+    return icons[type] || '';
   }
 
-  function init() {
-    const footer = document.querySelector('footer[role="contentinfo"]');
-    if (!footer || footer.dataset.efFooterEnhanced === 'true') {
-      return;
-    }
+  function socialIcon(type) {
+    const icons = {
+      instagram: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5"></rect><circle cx="12" cy="12" r="4"></circle><circle cx="17.5" cy="6.5" r=".5" fill="currentColor"></circle></svg>',
+      facebook: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>',
+      linkedin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"></path><rect x="2" y="9" width="4" height="12"></rect><circle cx="4" cy="4" r="2"></circle></svg>',
+    };
+    return icons[type] || '';
+  }
 
-    const year = new Date().getFullYear();
-    const newsletter = document.createElement('section');
-    newsletter.className = 'ef-newsletter-band';
-    newsletter.setAttribute('aria-label', 'Stay Updated newsletter signup');
-    newsletter.innerHTML =
-      '<div class="container"><div class="ef-newsletter-copy"><h2>Stay Updated</h2><p>Get EventFlow updates, supplier insights, and planning tips.</p></div><form class="ef-newsletter-form" novalidate><label for="ef-newsletter-email" class="sr-only">Email address</label><input id="ef-newsletter-email" name="email" type="email" required placeholder="Enter your email" autocomplete="email"/><button type="submit">Subscribe</button><div class="ef-newsletter-feedback" aria-live="polite"></div></form></div>';
-    footer.before(newsletter);
+  function footerWaves() {
+    return '<svg class="ef-footer-waves" viewBox="0 0 440 260" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M440 180 Q340 130 230 175 T30 160 T-40 180" stroke="rgba(255,255,255,0.07)" stroke-width="1.5" fill="none"></path><path d="M440 210 Q320 165 210 210 T10 195 T-40 210" stroke="rgba(255,255,255,0.05)" stroke-width="1.5" fill="none"></path><path d="M440 238 Q300 200 195 238 T-5 228 T-40 240" stroke="rgba(255,255,255,0.04)" stroke-width="1.5" fill="none"></path></svg>';
+  }
 
-    footer.className = 'footer ef-footer-modern';
-    footer.dataset.efFooterEnhanced = 'true';
-    footer.innerHTML = `<div class="container"><div class="ef-footer-grid"><section class="ef-footer-column ef-footer-brand" aria-label="EventFlow brand"><h3>EventFlow</h3><p>Event planning made simple.</p><p>Operated by <a class="ef-vexi-link" href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></p><div class="ef-footer-socials" aria-label="Social links"><a class="ef-footer-social-link" href="https://www.instagram.com/eventflowuk" aria-label="EventFlow on Instagram" target="_blank" rel="noopener noreferrer">${socialIcon('instagram')}</a><a class="ef-footer-social-link" href="https://www.facebook.com/eventflowuk" aria-label="EventFlow on Facebook" target="_blank" rel="noopener noreferrer">${socialIcon('facebook')}</a><a class="ef-footer-social-link" href="https://www.linkedin.com/company/eventflowuk" aria-label="EventFlow on LinkedIn" target="_blank" rel="noopener noreferrer">${socialIcon('linkedin')}</a></div></section><nav class="ef-footer-column" aria-label="Platform"><h4>Platform</h4><ul class="ef-footer-links"><li><a href="/">Home</a></li><li><a href="/suppliers">Suppliers</a></li><li><a href="/marketplace">Marketplace</a></li><li><a href="/pricing">Pricing</a></li></ul></nav><nav class="ef-footer-column" aria-label="Resources"><h4>Resources</h4><ul class="ef-footer-links"><li><a href="/guides">Guides</a></li><li><a href="/for-suppliers">For Suppliers</a></li><li><a href="/contact">Contact</a></li></ul></nav><nav class="ef-footer-column" aria-label="Legal"><h4>Legal</h4><ul class="ef-footer-links"><li><a href="/legal">Legal Hub</a></li><li><a href="/privacy">Privacy</a></li><li><a href="/terms">Terms</a></li></ul></nav></div><div class="ef-footer-bottom"><span>© ${year} EventFlow. All rights reserved.</span><span><a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <button type="button" class="ef-cookie-link">Cookie preferences</button></span></div></div>`;
+  function removeLegacyNewsletterBlocks(footer) {
+    document.querySelectorAll('.ef-newsletter-band, body > .ef-nl-wrap').forEach(function (block) {
+      if (!footer.contains(block)) {
+        block.remove();
+      }
+    });
+  }
 
-    const cookieButton = footer.querySelector('.ef-cookie-link');
-    if (cookieButton) {
-      cookieButton.addEventListener('click', () => {
-        if (window.CookieConsent && typeof window.CookieConsent.openPreferences === 'function') {
-          window.CookieConsent.openPreferences();
-        } else {
-          window.location.href = '/legal#cookies';
-        }
-      });
-    }
+  function renderNewsletter() {
+    return (
+      '<section class="ef-nl-wrap" aria-label="Stay Updated newsletter signup">' +
+      '<div class="ef-nl-card">' +
+      '<div class="ef-nl-left"><div class="ef-nl-icon">' + mailIcon(28) + '</div>' +
+      '<div class="ef-nl-copy"><h2>Stay Updated</h2><p>Get the latest event planning tips, supplier spotlights, and special offers delivered to your inbox.</p></div></div>' +
+      '<div class="ef-nl-divider" aria-hidden="true"></div>' +
+      '<div class="ef-nl-right"><form class="ef-nl-row" novalidate>' +
+      '<label class="ef-nl-input-wrap" for="ef-footer-email">' + mailIcon(18) + '<span class="ef-footer-sr-only">Email address</span><input id="ef-footer-email" name="email" type="email" placeholder="Enter your email address" autocomplete="email" required></label>' +
+      '<button class="ef-nl-btn" type="submit">Subscribe</button></form>' +
+      '<p class="ef-nl-note">We respect your privacy. Unsubscribe at any time.</p><p class="ef-nl-feedback" aria-live="polite"></p></div>' +
+      '</div></section>'
+    );
+  }
 
-    const form = newsletter.querySelector('form');
-    form.addEventListener('submit', async e => {
-      e.preventDefault();
-      const input = form.querySelector('input[name="email"]');
-      const feedback = form.querySelector('.ef-newsletter-feedback');
+  function renderFooterHtml(year) {
+    return (
+      footerWaves() + renderNewsletter() +
+      '<div class="ef-footer-inner">' +
+      '<div class="ef-footer-brand"><a href="/" class="ef-brand-logo" aria-label="EventFlow home"><span class="ef-brand-logo-name">EventFlow</span></a><p class="ef-brand-tagline">Event planning made simple.</p><p class="ef-brand-operated">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></p>' +
+      '<div class="ef-socials"><a href="https://www.instagram.com/eventflowuk" class="ef-social-link" aria-label="EventFlow on Instagram" target="_blank" rel="noopener noreferrer">' + socialIcon('instagram') + '</a><a href="https://www.facebook.com/eventflowuk" class="ef-social-link" aria-label="EventFlow on Facebook" target="_blank" rel="noopener noreferrer">' + socialIcon('facebook') + '</a><a href="https://www.linkedin.com/company/eventflowuk" class="ef-social-link" aria-label="EventFlow on LinkedIn" target="_blank" rel="noopener noreferrer">' + socialIcon('linkedin') + '</a></div></div>' +
+      '<nav class="ef-footer-nav" aria-label="Platform links"><div class="ef-nav-head"><div class="ef-nav-head-icon">' + navIcon('platform') + '</div><span class="ef-nav-head-label">Platform</span></div><ul class="ef-nav-list"><li><a href="/start">Plan an Event</a></li><li><a href="/suppliers">Browse Suppliers</a></li><li><a href="/marketplace">Marketplace</a></li><li><a href="/pricing">Pricing</a></li></ul></nav>' +
+      '<nav class="ef-footer-nav" aria-label="Resources links"><div class="ef-nav-head"><div class="ef-nav-head-icon">' + navIcon('resources') + '</div><span class="ef-nav-head-label">Resources</span></div><ul class="ef-nav-list"><li><a href="/guides">Guides</a></li><li><a href="/faq">FAQ</a></li><li><a href="/for-suppliers">For Suppliers</a></li><li><a href="/contact">Contact</a></li></ul></nav>' +
+      '<nav class="ef-footer-nav" aria-label="Legal links"><div class="ef-nav-head"><div class="ef-nav-head-icon">' + navIcon('legal') + '</div><span class="ef-nav-head-label">Legal</span></div><ul class="ef-nav-list"><li><a href="/legal">Legal Hub</a></li><li><a href="/privacy">Privacy Policy</a></li><li><a href="/terms">Terms of Service</a></li><li><button type="button" class="ef-cookie-link" data-cookie-prefs>Cookie preferences</button></li></ul></nav>' +
+      '</div><div class="ef-footer-bar"><div class="ef-footer-bar-inner"><p>© 2025–' + year + ' EventFlow. All rights reserved.</p></div></div>'
+    );
+  }
+
+  function bindNewsletter(footer) {
+    const form = footer.querySelector('.ef-nl-row');
+    const input = footer.querySelector('input[name="email"]');
+    const button = footer.querySelector('.ef-nl-btn');
+    const feedback = footer.querySelector('.ef-nl-feedback');
+    if (!form || !input || !button || !feedback) return;
+    form.addEventListener('submit', async function (event) {
+      event.preventDefault();
       const email = (input.value || '').trim();
+      feedback.className = 'ef-nl-feedback';
+      feedback.textContent = '';
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        feedback.classList.add('is-error');
         feedback.textContent = 'Please enter a valid email address.';
         input.focus();
         return;
       }
-      feedback.textContent = 'Subscribing…';
+      button.disabled = true;
+      button.textContent = 'Subscribing…';
+      feedback.textContent = 'Sending confirmation email…';
       try {
-        const response = await fetch('/api/newsletter/subscribe', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: email }),
-        });
-        if (!response.ok) {
-          throw new Error('subscribe failed');
-        }
-        feedback.textContent = 'Thanks for subscribing!';
+        const response = await fetch('/api/newsletter/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email, source: 'footer' }) });
+        const data = await response.json().catch(function () { return {}; });
+        if (!response.ok) throw new Error(data.error || data.message || 'Subscription failed');
         form.reset();
-        toast('Subscribed successfully', 'success');
+        feedback.classList.add('is-success');
+        feedback.textContent = data.message || 'Please check your email to confirm your subscription.';
+        toast('Please check your email to confirm your subscription.', 'success');
       } catch (error) {
-        feedback.textContent = 'Could not subscribe right now. Please try again.';
+        feedback.classList.add('is-error');
+        feedback.textContent = error && error.message ? error.message : 'Could not subscribe right now. Please try again.';
         toast('Subscription failed', 'error');
+      } finally {
+        button.disabled = false;
+        button.textContent = 'Subscribe';
       }
     });
+  }
+
+  function bindCookiePreferences(footer) {
+    footer.querySelectorAll('[data-cookie-prefs]').forEach(function (button) {
+      button.addEventListener('click', function (event) {
+        event.preventDefault();
+        if (window.CookieConsent && typeof window.CookieConsent.openPreferences === 'function') {
+          window.CookieConsent.openPreferences(event);
+          return;
+        }
+        window.location.href = '/legal#cookies';
+      });
+    });
+  }
+
+  function init() {
+    const footer = document.querySelector('footer[role="contentinfo"]');
+    if (!footer || footer.dataset.efFooterEnhanced === 'true') return;
+    removeLegacyNewsletterBlocks(footer);
+    footer.className = 'ef-footer-premium';
+    footer.dataset.efFooterEnhanced = 'true';
+    footer.innerHTML = renderFooterHtml(new Date().getFullYear());
+    bindNewsletter(footer);
+    bindCookiePreferences(footer);
   }
 
   if (document.readyState === 'loading') {
