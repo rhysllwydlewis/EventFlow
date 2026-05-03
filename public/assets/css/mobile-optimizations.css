@@ -1532,7 +1532,7 @@ h4 {
 /* Footer gradient bridge — compact on mobile */
 @media (max-width: 768px) {
   .ef-footer-gradient-bridge {
-    height: 64px !important;
+    height: 72px !important;
   }
 }
 
