@@ -1,6 +1,20 @@
 (function () {
   'use strict';
 
+  function toast(message, type) {
+    if (window.Toast && typeof window.Toast.show === 'function') {
+      window.Toast.show(message, { type: type || 'info' });
+      return;
+    }
+    if (typeof window.showNotification === 'function') {
+      window.showNotification(message, type || 'info');
+    }
+  }
+
+  function mailIcon(size) {
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="' + (size || 24) + '" height="' + (size || 24) + '"><rect x="2" y="4" width="20" height="16" rx="3"></rect><path d="M2 8l10 6 10-6"></path></svg>';
+  }
+
   function navIcon(type) {
     const icons = {
       platform: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect></svg>',
@@ -23,16 +37,61 @@
     return '<svg class="ef-footer-waves" viewBox="0 0 440 260" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M440 180 Q340 130 230 175 T30 160 T-40 180" stroke="rgba(255,255,255,0.07)" stroke-width="1.5" fill="none"></path><path d="M440 210 Q320 165 210 210 T10 195 T-40 210" stroke="rgba(255,255,255,0.05)" stroke-width="1.5" fill="none"></path><path d="M440 238 Q300 200 195 238 T-5 228 T-40 240" stroke="rgba(255,255,255,0.04)" stroke-width="1.5" fill="none"></path></svg>';
   }
 
-  function removeNewsletterBlocksOutsideFooter(footer) {
-    document.querySelectorAll('.ef-newsletter-band, .ef-nl-wrap').forEach(function (block) {
-      if (!footer.contains(block)) {
-        block.remove();
-      }
+  function removeLegacyNewsletterBlocks(footer) {
+    document.querySelectorAll('.ef-newsletter-band, body > .ef-nl-wrap').forEach(function (block) {
+      if (!footer.contains(block)) block.remove();
     });
   }
 
+  function renderNewsletter() {
+    return '<section class="ef-nl-wrap" aria-label="Stay Updated newsletter signup"><div class="ef-nl-card"><div class="ef-nl-left"><div class="ef-nl-icon">' + mailIcon(28) + '</div><div class="ef-nl-copy"><h2>Stay Updated</h2><p>Get the latest event planning tips, supplier spotlights, and special offers delivered to your inbox.</p></div></div><div class="ef-nl-divider" aria-hidden="true"></div><div class="ef-nl-right"><form class="ef-nl-row" novalidate><label class="ef-nl-input-wrap" for="ef-footer-email">' + mailIcon(18) + '<span class="ef-footer-sr-only">Email address</span><input id="ef-footer-email" name="email" type="email" placeholder="Enter your email address" autocomplete="email" required></label><button class="ef-nl-btn" type="submit">Subscribe</button></form><p class="ef-nl-note">We respect your privacy. Unsubscribe at any time.</p><p class="ef-nl-feedback" aria-live="polite"></p></div></div></section>';
+  }
+
   function renderFooterHtml(year) {
-    return footerWaves() + '<div class="ef-footer-inner"><div class="ef-footer-brand"><a href="/" class="ef-brand-logo" aria-label="EventFlow home"><span class="ef-brand-logo-name">EventFlow</span></a><p class="ef-brand-tagline">Event planning made simple.</p><p class="ef-brand-operated">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></p><div class="ef-socials"><a href="https://www.instagram.com/eventflowuk" class="ef-social-link" aria-label="EventFlow on Instagram" target="_blank" rel="noopener noreferrer">' + socialIcon('instagram') + '</a><a href="https://www.facebook.com/eventflowuk" class="ef-social-link" aria-label="EventFlow on Facebook" target="_blank" rel="noopener noreferrer">' + socialIcon('facebook') + '</a><a href="https://www.linkedin.com/company/eventflowuk" class="ef-social-link" aria-label="EventFlow on LinkedIn" target="_blank" rel="noopener noreferrer">' + socialIcon('linkedin') + '</a></div></div><nav class="ef-footer-nav" aria-label="Platform links"><div class="ef-nav-head"><div class="ef-nav-head-icon">' + navIcon('platform') + '</div><span class="ef-nav-head-label">Platform</span></div><ul class="ef-nav-list"><li><a href="/start">Plan an Event</a></li><li><a href="/suppliers">Browse Suppliers</a></li><li><a href="/marketplace">Marketplace</a></li><li><a href="/pricing">Pricing</a></li></ul></nav><nav class="ef-footer-nav" aria-label="Resources links"><div class="ef-nav-head"><div class="ef-nav-head-icon">' + navIcon('resources') + '</div><span class="ef-nav-head-label">Resources</span></div><ul class="ef-nav-list"><li><a href="/guides">Guides</a></li><li><a href="/faq">FAQ</a></li><li><a href="/for-suppliers">For Suppliers</a></li><li><a href="/contact">Contact</a></li></ul></nav><nav class="ef-footer-nav" aria-label="Legal links"><div class="ef-nav-head"><div class="ef-nav-head-icon">' + navIcon('legal') + '</div><span class="ef-nav-head-label">Legal</span></div><ul class="ef-nav-list"><li><a href="/legal">Legal Hub</a></li><li><a href="/privacy">Privacy Policy</a></li><li><a href="/terms">Terms of Service</a></li><li><button type="button" class="ef-cookie-link" data-cookie-prefs>Cookie preferences</button></li></ul></nav></div><div class="ef-footer-bar"><div class="ef-footer-bar-inner"><p>© 2025–' + year + ' EventFlow. All rights reserved.</p></div></div>';
+    return footerWaves() + renderNewsletter() + '<div class="ef-footer-inner"><div class="ef-footer-brand"><a href="/" class="ef-brand-logo" aria-label="EventFlow home"><span class="ef-brand-logo-name">EventFlow</span></a><p class="ef-brand-tagline">Event planning made simple.</p><p class="ef-brand-operated">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></p><div class="ef-socials"><a href="https://www.instagram.com/eventflowuk" class="ef-social-link" aria-label="EventFlow on Instagram" target="_blank" rel="noopener noreferrer">' + socialIcon('instagram') + '</a><a href="https://www.facebook.com/eventflowuk" class="ef-social-link" aria-label="EventFlow on Facebook" target="_blank" rel="noopener noreferrer">' + socialIcon('facebook') + '</a><a href="https://www.linkedin.com/company/eventflowuk" class="ef-social-link" aria-label="EventFlow on LinkedIn" target="_blank" rel="noopener noreferrer">' + socialIcon('linkedin') + '</a></div></div><nav class="ef-footer-nav" aria-label="Platform links"><div class="ef-nav-head"><div class="ef-nav-head-icon">' + navIcon('platform') + '</div><span class="ef-nav-head-label">Platform</span></div><ul class="ef-nav-list"><li><a href="/start">Plan an Event</a></li><li><a href="/suppliers">Browse Suppliers</a></li><li><a href="/marketplace">Marketplace</a></li><li><a href="/pricing">Pricing</a></li></ul></nav><nav class="ef-footer-nav" aria-label="Resources links"><div class="ef-nav-head"><div class="ef-nav-head-icon">' + navIcon('resources') + '</div><span class="ef-nav-head-label">Resources</span></div><ul class="ef-nav-list"><li><a href="/guides">Guides</a></li><li><a href="/faq">FAQ</a></li><li><a href="/for-suppliers">For Suppliers</a></li><li><a href="/contact">Contact</a></li></ul></nav><nav class="ef-footer-nav" aria-label="Legal links"><div class="ef-nav-head"><div class="ef-nav-head-icon">' + navIcon('legal') + '</div><span class="ef-nav-head-label">Legal</span></div><ul class="ef-nav-list"><li><a href="/legal">Legal Hub</a></li><li><a href="/privacy">Privacy Policy</a></li><li><a href="/terms">Terms of Service</a></li><li><button type="button" class="ef-cookie-link" data-cookie-prefs>Cookie preferences</button></li></ul></nav></div><div class="ef-footer-bar"><div class="ef-footer-bar-inner"><p>© 2025–' + year + ' EventFlow. All rights reserved.</p></div></div>';
+  }
+
+  function bindNewsletter(footer) {
+    const form = footer.querySelector('.ef-nl-row');
+    const input = footer.querySelector('input[name="email"]');
+    const button = footer.querySelector('.ef-nl-btn');
+    const feedback = footer.querySelector('.ef-nl-feedback');
+    if (!form || !input || !button || !feedback) return;
+    form.addEventListener('submit', async function (event) {
+      event.preventDefault();
+      const email = (input.value || '').trim();
+      feedback.className = 'ef-nl-feedback';
+      feedback.textContent = '';
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        feedback.classList.add('is-error');
+        feedback.textContent = 'Please enter a valid email address.';
+        input.focus();
+        return;
+      }
+      button.disabled = true;
+      button.textContent = 'Subscribing…';
+      feedback.textContent = 'Sending confirmation email…';
+      try {
+        const response = await fetch('/api/newsletter/subscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email, source: 'footer' }),
+        });
+        const data = await response.json().catch(function () { return {}; });
+        if (!response.ok) throw new Error(data.error || data.message || 'Subscription failed');
+        form.reset();
+        feedback.classList.add('is-success');
+        feedback.textContent = data.message || 'Please check your email to confirm your subscription.';
+        toast('Please check your email to confirm your subscription.', 'success');
+      } catch (error) {
+        feedback.classList.add('is-error');
+        feedback.textContent = error && error.message ? error.message : 'Could not subscribe right now. Please try again.';
+        toast('Subscription failed', 'error');
+      } finally {
+        button.disabled = false;
+        button.textContent = 'Subscribe';
+      }
+    });
   }
 
   function bindCookiePreferences(footer) {
@@ -51,10 +110,11 @@
   function init() {
     const footer = document.querySelector('footer[role="contentinfo"]');
     if (!footer || footer.dataset.efFooterEnhanced === 'true') return;
-    removeNewsletterBlocksOutsideFooter(footer);
+    removeLegacyNewsletterBlocks(footer);
     footer.className = 'ef-footer-premium';
     footer.dataset.efFooterEnhanced = 'true';
     footer.innerHTML = renderFooterHtml(new Date().getFullYear());
+    bindNewsletter(footer);
     bindCookiePreferences(footer);
   }
 
