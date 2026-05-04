@@ -33,6 +33,8 @@ body > .ef-nl-wrap,
 main .ef-nl-wrap,
 .ef-newsletter-band,
 main > .ef-section--gradient:last-child,
+main > .ef-footer-gradient-bridge:last-child,
+.ef-footer-gradient-bridge,
 .ef-footer-premium > .ef-section--gradient {
   display: none !important;
 }
