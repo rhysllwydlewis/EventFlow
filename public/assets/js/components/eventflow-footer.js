@@ -37,9 +37,24 @@
     return '<svg class="ef-footer-waves" viewBox="0 0 440 260" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M440 180 Q340 130 230 175 T30 160 T-40 180" stroke="rgba(255,255,255,0.07)" stroke-width="1.5" fill="none"></path><path d="M440 210 Q320 165 210 210 T10 195 T-40 210" stroke="rgba(255,255,255,0.05)" stroke-width="1.5" fill="none"></path><path d="M440 238 Q300 200 195 238 T-5 228 T-40 240" stroke="rgba(255,255,255,0.04)" stroke-width="1.5" fill="none"></path></svg>';
   }
 
+  function isLegacyNewsletterBlock(block, footer) {
+    if (!block || footer.contains(block)) return false;
+    return /Stay Updated/.test(block.textContent || '') && /latest event planning tips/.test(block.textContent || '');
+  }
+
   function removeLegacyNewsletterBlocks(footer) {
-    document.querySelectorAll('.ef-newsletter-band, body > .ef-nl-wrap').forEach(function (block) {
-      if (!footer.contains(block)) block.remove();
+    document.querySelectorAll('.ef-newsletter-band, body > .ef-nl-wrap, main .ef-nl-wrap').forEach(function (block) {
+      if (isLegacyNewsletterBlock(block, footer) || block.classList.contains('ef-newsletter-band')) {
+        block.remove();
+      }
+    });
+
+    document.querySelectorAll('main section, main div').forEach(function (block) {
+      if (isLegacyNewsletterBlock(block, footer)) {
+        const next = block.nextElementSibling;
+        block.remove();
+        if (next && next.classList.contains('ef-section--gradient')) next.remove();
+      }
     });
   }
 
