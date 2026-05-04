@@ -32,6 +32,7 @@
 body > .ef-nl-wrap,
 main .ef-nl-wrap,
 .ef-newsletter-band,
+main > .ef-section--gradient:last-child,
 .ef-footer-premium > .ef-section--gradient {
   display: none !important;
 }
