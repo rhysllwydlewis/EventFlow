@@ -507,6 +507,14 @@ POSTMARK_API_KEY=your-server-token
 POSTMARK_FROM=admin@yourdomain.com
 ```
 
+**Optional - Google sign-in:**
+
+```env
+GOOGLE_CLIENT_ID=your-google-web-client-id.apps.googleusercontent.com
+# Optional: comma-separated list of additional client IDs accepted by the backend.
+# GOOGLE_CLIENT_IDS=web-client-id,ios-client-id
+```
+
 **Optional - AWS S3:**
 
 ```env

@@ -33,6 +33,7 @@ const postmark = require('../utils/postmark');
 const tokenUtils = require('../utils/token');
 const { validateToken } = require('../middleware/token');
 const domainAdmin = require('../middleware/domain-admin');
+const googleAuthService = require('../services/googleAuth.service');
 
 const router = express.Router();
 
@@ -553,6 +554,236 @@ router.post('/login', strictAuthLimiter, async (req, res) => {
     ok: true,
     user: { id: user.id, name: user.name, email: user.email, role: user.role },
   });
+});
+
+async function recordSupplierPartnerReferral(refCode, user) {
+  if (!refCode) {
+    return;
+  }
+
+  try {
+    const partnerService = require('../services/partnerService');
+    const partner = await partnerService.getPartnerByRefCode(String(refCode).trim());
+    if (partner && partner.status === 'active') {
+      await partnerService.recordReferral({
+        partnerId: partner.id,
+        supplierUserId: user.id,
+        supplierCreatedAt: user.createdAt,
+      });
+      partnerService.awardReferralSignupBonus(user.id).catch(bonusErr => {
+        logger.warn('Partner referral signup bonus failed (non-blocking):', bonusErr.message);
+      });
+    }
+  } catch (_refErr) {
+    logger.warn('Partner referral recording failed (non-blocking):', _refErr.message);
+  }
+}
+
+function buildGoogleUser({
+  googleProfile,
+  roleFinal,
+  location,
+  postcode,
+  company,
+  jobTitle,
+  nowIso,
+}) {
+  const email = String(googleProfile.email || '').toLowerCase();
+  const googleSub = String(googleProfile.sub || '');
+  const givenName = String(googleProfile.given_name || '')
+    .trim()
+    .slice(0, 40);
+  const familyName = String(googleProfile.family_name || '')
+    .trim()
+    .slice(0, 40);
+  const profileName = String(googleProfile.name || '').trim();
+  const fallbackName = email.split('@')[0] || 'Google user';
+  const fullName = (profileName || `${givenName} ${familyName}`.trim() || fallbackName).slice(
+    0,
+    80
+  );
+  const [derivedFirstName, ...derivedLastParts] = fullName.split(/\s+/);
+
+  const founderLaunchTs = process.env.FOUNDER_LAUNCH_TS || '2026-01-01T00:00:00Z';
+  const founderLaunchDate = new Date(founderLaunchTs);
+  const founderEndDate = new Date(founderLaunchDate);
+  founderEndDate.setMonth(founderEndDate.getMonth() + 6);
+  const badges = new Date() <= founderEndDate ? ['founder'] : [];
+
+  const isOwner = domainAdmin.isOwnerEmail(email);
+  const roleDecision = domainAdmin.determineRole(email, roleFinal, true);
+
+  return {
+    id: uid('usr'),
+    name: fullName,
+    firstName: givenName || derivedFirstName || 'Google',
+    lastName: familyName || derivedLastParts.join(' ') || 'User',
+    email,
+    role: isOwner ? 'admin' : roleDecision.role,
+    location: location ? String(location).trim().slice(0, 100) : 'Not specified',
+    postcode: postcode ? String(postcode).trim().slice(0, 10) : undefined,
+    company: company ? String(company).trim().slice(0, 100) : undefined,
+    jobTitle: jobTitle ? String(jobTitle).trim().slice(0, 100) : undefined,
+    badges,
+    notify: true,
+    notify_account: true,
+    notify_marketing: false,
+    marketingOptIn: false,
+    verified: true,
+    isOwner,
+    authProvider: 'google',
+    authProviderIds: { google: googleSub },
+    googleSub,
+    googleLinkedAt: nowIso,
+    avatarUrl: googleProfile.picture || undefined,
+    createdAt: nowIso,
+  };
+}
+
+/**
+ * POST /api/auth/google
+ * Sign in or create an account using a Google Identity Services ID token.
+ */
+router.post('/google', strictAuthLimiter, csrfProtection, async (req, res) => {
+  const {
+    credential,
+    role,
+    location,
+    postcode,
+    company,
+    jobTitle,
+    remember,
+    ref: refCode,
+  } = req.body || {};
+
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.setHeader('Pragma', 'no-cache');
+
+  try {
+    const googleProfile = await googleAuthService.verifyGoogleCredential(credential);
+    const users = await dbUnified.read('users');
+    const email = String(googleProfile.email || '').toLowerCase();
+    const googleSub = String(googleProfile.sub || '');
+    const nowIso = new Date().toISOString();
+    let user = users.find(
+      u => u.googleSub === googleSub || u.authProviderIds?.google === googleSub
+    );
+    const existingByEmail = users.find(u => (u.email || '').toLowerCase() === email);
+
+    if (user && user.email && (user.email || '').toLowerCase() !== email) {
+      logger.warn('Google subject matched a user with a different email', { userId: user.id });
+      return res.status(409).json({ error: 'Google account is linked to another user.' });
+    }
+
+    if (!user && existingByEmail) {
+      if (!googleProfile.emailAuthoritative) {
+        return res.status(409).json({
+          error:
+            'An account already exists for this email. Please log in with your password first, then contact support to link Google.',
+        });
+      }
+
+      user = existingByEmail;
+      await dbUnified.updateOne(
+        'users',
+        { id: user.id },
+        {
+          $set: {
+            googleSub,
+            authProvider: user.authProvider || 'local',
+            authProviderIds: { ...(user.authProviderIds || {}), google: googleSub },
+            googleLinkedAt: user.googleLinkedAt || nowIso,
+            verified: user.verified === false ? true : user.verified,
+            avatarUrl: user.avatarUrl || googleProfile.picture || undefined,
+          },
+        }
+      );
+      user = { ...user, googleSub, verified: user.verified === false ? true : user.verified };
+    }
+
+    if (!user) {
+      const roleFinal = role === 'supplier' || role === 'customer' ? role : 'customer';
+      const features = await getFeatureFlags();
+
+      if (!features.registration) {
+        return res.status(503).json({
+          error: 'Feature temporarily unavailable',
+          message: 'New account registrations are temporarily unavailable. Please try again later.',
+          feature: 'registration',
+        });
+      }
+
+      if (roleFinal === 'supplier') {
+        if (!features.supplierApplications) {
+          return res.status(503).json({
+            error: 'Feature temporarily unavailable',
+            message: 'Supplier applications are currently disabled. Please try again later.',
+            feature: 'supplierApplications',
+          });
+        }
+        if (!location) {
+          return res.status(400).json({ error: 'Location is required for supplier sign up' });
+        }
+        if (!company) {
+          return res.status(400).json({ error: 'Company name is required for suppliers' });
+        }
+      }
+
+      user = buildGoogleUser({
+        googleProfile,
+        roleFinal,
+        location,
+        postcode,
+        company,
+        jobTitle,
+        nowIso,
+      });
+
+      await dbUnified.insertOne('users', user);
+
+      if (roleFinal === 'supplier') {
+        await recordSupplierPartnerReferral(refCode, user);
+      }
+    }
+
+    if (user.verified === false) {
+      await dbUnified.updateOne('users', { id: user.id }, { $set: { verified: true } });
+      user = { ...user, verified: true };
+    }
+
+    if (user.twoFactorEnabled) {
+      logger.info('[GOOGLE LOGIN] 2FA required');
+      const tempToken = jwt.sign(
+        { id: user.id, email: user.email, role: user.role, requires2FA: true },
+        JWT_SECRET,
+        { expiresIn: '2m' }
+      );
+      return res.json({
+        ok: false,
+        requires2FA: true,
+        tempToken,
+        message: 'Please enter your 2FA code',
+      });
+    }
+
+    await updateLastLogin(user.id);
+
+    const tokenExpiry = remember ? '7d' : '24h';
+    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, {
+      expiresIn: tokenExpiry,
+    });
+
+    setAuthCookie(res, token, { remember: !!remember });
+    return res.json({
+      ok: true,
+      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+    });
+  } catch (error) {
+    logger.error('[GOOGLE LOGIN] Failed', { message: error.message });
+    const status = error.statusCode || 500;
+    const message = error.expose ? error.message : 'Google sign-in failed. Please try again.';
+    return res.status(status).json({ error: message });
+  }
 });
 
 /**
