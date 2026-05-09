@@ -2,6 +2,7 @@
   'use strict';
 
   const GIS_SRC = 'https://accounts.google.com/gsi/client';
+  const GOOGLE_CANCEL_MESSAGE = 'Google sign-in was cancelled. Please try again or use email login.';
 
   function readCookie(name) {
     return document.cookie
@@ -58,6 +59,18 @@
     if (message) {
       status.classList.add('is-visible', `is-${statusType}`);
     }
+  }
+
+  function setGoogleButtonsBusy(isBusy) {
+    document.querySelectorAll('.auth-google-button').forEach(el => {
+      if (isBusy) {
+        el.classList.add('is-loading');
+        el.setAttribute('aria-busy', 'true');
+      } else {
+        el.classList.remove('is-loading');
+        el.removeAttribute('aria-busy');
+      }
+    });
   }
 
   function defaultDestinationForRole(role) {
@@ -225,10 +238,12 @@
 
   async function submitGoogleCredential(response, context) {
     if (!response || !response.credential) {
-      setStatus('Google did not return a sign-in credential. Please try again.', 'error');
+      setGoogleButtonsBusy(false);
+      setStatus(GOOGLE_CANCEL_MESSAGE, 'warning');
       return;
     }
 
+    setGoogleButtonsBusy(true);
     setStatus('Signing in with Google…', 'info');
 
     const payload = {
@@ -261,6 +276,8 @@
     } catch (error) {
       console.error('Google sign-in error', error);
       setStatus('Network error while signing in with Google. Please try again.', 'error');
+    } finally {
+      setGoogleButtonsBusy(false);
     }
   }
 
@@ -312,25 +329,20 @@
       return;
     }
 
-    document.querySelectorAll('.auth-google-button').forEach(el => {
-      el.classList.add('is-loading');
-      el.setAttribute('aria-busy', 'true');
-    });
+    setGoogleButtonsBusy(true);
 
     let config = {};
     try {
       const res = await fetch('/api/v1/config', { credentials: 'include' });
       config = await res.json();
     } catch (_) {
-      document.querySelectorAll('.auth-google-button').forEach(el => {
-        el.classList.remove('is-loading');
-        el.removeAttribute('aria-busy');
-      });
+      setGoogleButtonsBusy(false);
       setStatus('Google sign-in configuration could not be loaded.', 'error');
       return;
     }
 
     if (!config.googleClientId) {
+      setGoogleButtonsBusy(false);
       document.querySelectorAll('.auth-google').forEach(el => {
         el.hidden = true;
       });
@@ -340,33 +352,25 @@
     try {
       await loadGoogleScript();
     } catch (_) {
-      document.querySelectorAll('.auth-google-button').forEach(el => {
-        el.classList.remove('is-loading');
-        el.removeAttribute('aria-busy');
-      });
+      setGoogleButtonsBusy(false);
       setStatus('Google sign-in could not be loaded. Please refresh and try again.', 'error');
       return;
     }
 
     if (!window.google || !window.google.accounts || !window.google.accounts.id) {
-      document.querySelectorAll('.auth-google-button').forEach(el => {
-        el.classList.remove('is-loading');
-        el.removeAttribute('aria-busy');
-      });
+      setGoogleButtonsBusy(false);
       setStatus('Google sign-in is unavailable in this browser.', 'error');
       return;
     }
 
     window.google.accounts.id.initialize({
       client_id: config.googleClientId,
-      // Google Identity Services owns the sign-in button iframe. Pointer/click
-      // events do not always bubble from that iframe, so resolve the auth
-      // context from the active tab at callback time instead of relying only on
-      // the last button event. The archived google-api-javascript-client repo
-      // is still useful for API calls via gapi.client, but its auth2 flow is
-      // deprecated; keep sign-in on GIS.
+      // Keep EventFlow on the Google Identity Services button flow. The app
+      // receives an ID token in this callback and then POSTs it to
+      // /api/v1/auth/google; it should not rely on /api/auth/callback/google.
       callback: response => submitGoogleCredential(response, getGoogleAuthContext()),
-      use_fedcm_for_prompt: true,
+      ux_mode: 'popup',
+      use_fedcm_for_prompt: false,
     });
 
     const renderOptions = {
@@ -386,9 +390,7 @@
         ...renderOptions,
         text: 'signin_with',
       });
-      signInContainer.classList.remove('is-loading');
       signInContainer.classList.add('is-ready');
-      signInContainer.removeAttribute('aria-busy');
     }
 
     if (signUpContainer) {
@@ -401,10 +403,10 @@
         ...renderOptions,
         text: 'signup_with',
       });
-      signUpContainer.classList.remove('is-loading');
       signUpContainer.classList.add('is-ready');
-      signUpContainer.removeAttribute('aria-busy');
     }
+
+    setGoogleButtonsBusy(false);
   }
 
   if (document.readyState === 'loading') {
