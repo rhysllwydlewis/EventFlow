@@ -13,6 +13,20 @@ const googleAuthService = require('../services/googleAuth.service');
 
 const router = express.Router();
 const parseGoogleFormPost = express.urlencoded({ extended: false, limit: '32kb' });
+const GOOGLE_LOGIN_PATH = '/api/auth/callback/google';
+const PRODUCTION_ORIGIN = 'https://event-flow.co.uk';
+
+function getPublicBaseUrl() {
+  const configured = String(process.env.BASE_URL || '').trim().replace(/\/$/, '');
+  if (configured && !configured.includes('localhost')) {
+    return configured;
+  }
+  return PRODUCTION_ORIGIN;
+}
+
+function getGoogleLoginUri() {
+  return `${getPublicBaseUrl()}${GOOGLE_LOGIN_PATH}`;
+}
 
 function redirectWithError(res, reason) {
   const safeReason = encodeURIComponent(reason || 'google_failed');
@@ -182,6 +196,22 @@ async function findOrCreateGoogleUser(googleProfile) {
 
   return user;
 }
+
+router.get('/google/diagnostics', (_req, res) => {
+  const clientIds = googleAuthService.getGoogleClientIds();
+  res.setHeader('Cache-Control', 'no-store, private');
+  res.json({
+    ok: true,
+    googleConfigured: clientIds.length > 0,
+    googleClientId: googleAuthService.getGoogleClientId(),
+    googleClientIdsCount: clientIds.length,
+    googleLoginUri: getGoogleLoginUri(),
+    expectedAuthorizedJavaScriptOrigin: PRODUCTION_ORIGIN,
+    expectedAuthorizedRedirectUri: `${PRODUCTION_ORIGIN}${GOOGLE_LOGIN_PATH}`,
+    baseUrlConfigured: Boolean(process.env.BASE_URL),
+    baseUrlHost: getPublicBaseUrl(),
+  });
+});
 
 router.get('/callback/google', (_req, res) => {
   return res.redirect(303, '/auth?google=callback_requires_post');
