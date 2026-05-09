@@ -6,7 +6,8 @@
   const PRODUCTION_ORIGIN = 'https://event-flow.co.uk';
 
   function getGoogleLoginUri() {
-    const origin = window.location.hostname === 'event-flow.co.uk' ? window.location.origin : PRODUCTION_ORIGIN;
+    const origin =
+      window.location.hostname === 'event-flow.co.uk' ? window.location.origin : PRODUCTION_ORIGIN;
     return `${origin}${GOOGLE_LOGIN_PATH}`;
   }
 
@@ -44,6 +45,18 @@
         el.removeAttribute('aria-busy');
       }
     });
+  }
+
+  function showGoogleUnavailable(message) {
+    setGoogleButtonsBusy(false);
+    const fallback = message || 'Google sign-in not configured. Please use email login for now.';
+    document.querySelectorAll('.auth-google-button').forEach(el => {
+      el.classList.add('auth-google-button--unavailable');
+      el.setAttribute('role', 'status');
+      el.setAttribute('aria-live', 'polite');
+      el.textContent = fallback;
+    });
+    setStatus(fallback, 'warning');
   }
 
   function getGoogleAuthContext() {
@@ -91,7 +104,12 @@
   function getSafeReturnPath() {
     const params = new URLSearchParams(window.location.search);
     const redirect = params.get('redirect') || params.get('return') || '';
-    if (redirect && redirect.startsWith('/') && !redirect.startsWith('//') && !redirect.includes('\\')) {
+    if (
+      redirect &&
+      redirect.startsWith('/') &&
+      !redirect.startsWith('//') &&
+      !redirect.includes('\\')
+    ) {
       return redirect;
     }
     return '';
@@ -110,13 +128,22 @@
   function showGoogleRedirectErrorFromQuery() {
     const params = new URLSearchParams(window.location.search);
     if (params.get('google') === 'error') {
-      setStatus('Google sign-in could not be completed. Please try again or use email login.', 'error');
+      setStatus(
+        'Google sign-in could not be completed. Please try again or use email login.',
+        'error'
+      );
     }
     if (params.get('google') === 'callback_requires_post') {
-      setStatus('Google sign-in callback must be opened by Google. Please use the sign-in button.', 'warning');
+      setStatus(
+        'Google sign-in callback must be opened by Google. Please use the sign-in button.',
+        'warning'
+      );
     }
     if (params.get('google') === '2fa_required') {
-      setStatus('This Google-linked account requires two-factor login. Please use email login to complete 2FA.', 'warning');
+      setStatus(
+        'This Google-linked account requires two-factor login. Please use email login to complete 2FA.',
+        'warning'
+      );
     }
   }
 
@@ -174,7 +201,10 @@
 
     let config = {};
     try {
-      const res = await fetch('/api/v1/config', { credentials: 'include' });
+      const res = await fetch('/api/v1/config?googleAuth=1', {
+        credentials: 'include',
+        cache: 'no-store',
+      });
       config = await res.json();
     } catch (_) {
       setGoogleButtonsBusy(false);
@@ -183,10 +213,7 @@
     }
 
     if (!config.googleClientId) {
-      setGoogleButtonsBusy(false);
-      document.querySelectorAll('.auth-google').forEach(el => {
-        el.hidden = true;
-      });
+      showGoogleUnavailable('Google sign-in not configured. Please use email login for now.');
       return;
     }
 

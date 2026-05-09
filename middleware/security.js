@@ -12,6 +12,43 @@ const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const logger = require('../utils/logger');
 
+const PRODUCTION_APP_ORIGINS = ['https://event-flow.co.uk', 'https://www.event-flow.co.uk'];
+
+function normalizeCorsOrigin(value) {
+  const raw = String(value || '').trim();
+  if (!raw) {
+    return '';
+  }
+
+  try {
+    const parsed = new URL(raw);
+    return parsed.origin;
+  } catch (_) {
+    return raw.replace(/\/+$/, '');
+  }
+}
+
+function addAllowedOrigin(allowedOrigins, origin) {
+  const normalized = normalizeCorsOrigin(origin);
+  if (normalized) {
+    allowedOrigins.add(normalized);
+  }
+}
+
+function addWwwVariant(allowedOrigins, origin) {
+  const normalized = normalizeCorsOrigin(origin);
+  if (!normalized || !normalized.includes('://')) {
+    return;
+  }
+
+  const [protocol, domain] = normalized.split('://');
+  if (domain.startsWith('www.')) {
+    addAllowedOrigin(allowedOrigins, `${protocol}://${domain.slice(4)}`);
+  } else {
+    addAllowedOrigin(allowedOrigins, `${protocol}://www.${domain}`);
+  }
+}
+
 /**
  * Configure Helmet with Content Security Policy
  *
@@ -177,47 +214,52 @@ function configureCORS(isProduction = false) {
         return callback(null, true);
       }
 
-      // Get allowed origins from BASE_URL environment variable
+      const requestOrigin = normalizeCorsOrigin(origin);
+
+      // Get allowed origins from BASE_URL environment variable. Normalize every
+      // configured value to URL.origin so a trailing slash or accidental path in
+      // Railway/env config cannot make the real browser Origin header fail.
       const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
-      const allowedOrigins = [baseUrl];
+      const allowedOrigins = new Set();
+      addAllowedOrigin(allowedOrigins, baseUrl);
+      addWwwVariant(allowedOrigins, baseUrl);
+
+      // The public production domain must remain valid even when deployment
+      // configuration points BASE_URL at a preview/internal URL.
+      if (isProduction) {
+        PRODUCTION_APP_ORIGINS.forEach(appOrigin => addAllowedOrigin(allowedOrigins, appOrigin));
+      }
 
       // Support additional origins via comma-separated ALLOWED_ORIGINS env var
       const additionalOrigins = process.env.ALLOWED_ORIGINS;
       if (additionalOrigins) {
         additionalOrigins.split(',').forEach(o => {
-          const trimmed = o.trim();
-          if (trimmed) {
-            allowedOrigins.push(trimmed);
-          }
+          addAllowedOrigin(allowedOrigins, o);
+          addWwwVariant(allowedOrigins, o);
         });
-      }
-
-      // If BASE_URL contains www, also allow non-www version and vice versa
-      if (baseUrl.includes('www.')) {
-        allowedOrigins.push(baseUrl.replace('www.', ''));
-      } else if (baseUrl.includes('://')) {
-        const [protocol, domain] = baseUrl.split('://');
-        allowedOrigins.push(`${protocol}://www.${domain}`);
       }
 
       // Support Railway preview URLs in non-production
       // Railway preview URLs follow pattern: https://projectname-pr-123.railway.app
-      if (!isProduction && origin.endsWith('.railway.app')) {
-        allowedOrigins.push(origin);
+      if (!isProduction && requestOrigin.endsWith('.railway.app')) {
+        addAllowedOrigin(allowedOrigins, requestOrigin);
       }
 
       // For development, allow localhost on any port
       if (!isProduction) {
-        allowedOrigins.push('http://localhost:3000');
-        allowedOrigins.push('http://localhost:3001');
-        allowedOrigins.push('http://127.0.0.1:3000');
+        addAllowedOrigin(allowedOrigins, 'http://localhost:3000');
+        addAllowedOrigin(allowedOrigins, 'http://localhost:3001');
+        addAllowedOrigin(allowedOrigins, 'http://127.0.0.1:3000');
         // Also allow any localhost port for flexibility in development
-        if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
-          allowedOrigins.push(origin);
+        if (
+          requestOrigin.startsWith('http://localhost:') ||
+          requestOrigin.startsWith('http://127.0.0.1:')
+        ) {
+          addAllowedOrigin(allowedOrigins, requestOrigin);
         }
       }
 
-      if (allowedOrigins.includes(origin)) {
+      if (allowedOrigins.has(requestOrigin)) {
         callback(null, true);
       } else {
         // In production, reject disallowed origins with detailed error
