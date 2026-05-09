@@ -45,6 +45,8 @@ document.addEventListener('DOMContentLoaded', () => {
   let activeFilter = '';
   let searchQuery = '';
   let sortOrder = 'newest';
+  let showAllGuides = false;
+  const INITIAL_GUIDE_LIMIT = 24;
 
   const searchInput = document.getElementById('guides-search-input');
   const searchClear = document.getElementById('guides-search-clear');
@@ -209,6 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
           b.classList.toggle('active', b === btn);
           b.setAttribute('aria-checked', b === btn ? 'true' : 'false');
         });
+        showAllGuides = false;
         updateClearBtn();
         renderGrid();
       });
@@ -222,6 +225,7 @@ document.addEventListener('DOMContentLoaded', () => {
     searchQuery = searchInput.value.trim().toLowerCase();
     searchClear.classList.toggle('visible', searchQuery.length > 0);
     updateClearBtn();
+    showAllGuides = false;
     renderGrid();
   }
 
@@ -264,6 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
     searchQuery = '';
     searchClear.classList.remove('visible');
     updateClearBtn();
+    showAllGuides = false;
     renderGrid();
   }
 
@@ -273,6 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (sortSelect) {
     sortSelect.addEventListener('change', () => {
       sortOrder = sortSelect.value;
+      showAllGuides = false;
       renderGrid();
     });
   }
@@ -284,6 +290,7 @@ document.addEventListener('DOMContentLoaded', () => {
     activeFilter = '';
     searchQuery = '';
     sortOrder = 'newest';
+    showAllGuides = false;
     if (searchInput) {
       searchInput.value = '';
     }
@@ -371,7 +378,10 @@ document.addEventListener('DOMContentLoaded', () => {
       resultsCount.innerHTML = `Showing <strong>${escHtml(totalLabel)}</strong>${filterLabel}${searchLabel}`;
     }
 
-    list.forEach((article, i) => {
+    const shouldCollapse = list.length > INITIAL_GUIDE_LIMIT && !showAllGuides;
+    const visibleList = shouldCollapse ? list.slice(0, INITIAL_GUIDE_LIMIT) : list;
+
+    visibleList.forEach((article, i) => {
       const card = document.createElement('article');
       card.className = 'guide-card animate-in';
       card.style.animationDelay = `${Math.min(i * 0.05, 0.3)}s`;
@@ -406,6 +416,33 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
       guidesGrid.appendChild(card);
     });
+
+    if (shouldCollapse) {
+      const remainingCount = list.length - INITIAL_GUIDE_LIMIT;
+      const moreCard = document.createElement('article');
+      moreCard.className = 'guide-card guide-card--more animate-in';
+      moreCard.style.animationDelay = '0.3s';
+      moreCard.innerHTML = `
+        <div class="guide-card--more__inner">
+          <span class="guide-card--more__eyebrow">More guides</span>
+          <h3 class="guide-card--more__title">${remainingCount} more ${remainingCount === 1 ? 'guide' : 'guides'} ready for you</h3>
+          <p class="guide-card--more__text">Keep browsing the full EventFlow guide library without the fallback link list clutter.</p>
+          <button class="guide-card--more__button" type="button">View all ${list.length} guides</button>
+        </div>
+      `;
+      const moreButton = moreCard.querySelector('button');
+      moreButton.addEventListener('click', () => {
+        showAllGuides = true;
+        renderGrid();
+        requestAnimationFrame(() => {
+          const firstRevealedCard = guidesGrid.children[INITIAL_GUIDE_LIMIT];
+          if (firstRevealedCard) {
+            firstRevealedCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        });
+      });
+      guidesGrid.appendChild(moreCard);
+    }
   }
 
   // ──────────────────────────────────────────────
