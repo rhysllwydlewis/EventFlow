@@ -30,6 +30,7 @@ function configureHelmet(isProduction = false) {
           'https://cdn.tidycal.net',
           'https://estatic.com',
           'https://*.estatic.com',
+          'https://accounts.google.com',
           'https://maps.googleapis.com',
           'https://*.googleapis.com',
           'https://maps.gstatic.com',
@@ -47,6 +48,7 @@ function configureHelmet(isProduction = false) {
           'https://cdn.tidycal.net',
           'https://estatic.com',
           'https://*.estatic.com',
+          'https://accounts.google.com',
           'https://maps.googleapis.com',
           'https://*.googleapis.com',
           'https://maps.gstatic.com',
@@ -100,6 +102,7 @@ function configureHelmet(isProduction = false) {
         ],
         frameSrc: [
           "'self'",
+          'https://accounts.google.com',
           'https://www.google.com',
           'https://maps.google.com',
           'https://tidycal.com',
