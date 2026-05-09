@@ -42,9 +42,18 @@ describe('auth-google-init context handling', () => {
 
   it('applies visible status classes and loading states for a polished front-end fallback', () => {
     expect(source).toContain("status.classList.add('is-visible', `is-${statusType}`)");
+    expect(source).toContain('function setGoogleButtonsBusy(isBusy)');
     expect(source).toContain("el.classList.add('is-loading')");
     expect(source).toContain("el.setAttribute('aria-busy', 'true')");
     expect(source).toContain("signInContainer.classList.add('is-ready')");
     expect(source).toContain("signUpContainer.classList.add('is-ready')");
+  });
+
+  it('uses popup-only GIS credential flow and does not rely on OAuth redirect callbacks', () => {
+    expect(source).toContain("ux_mode: 'popup'");
+    expect(source).toContain('use_fedcm_for_prompt: false');
+    expect(source).toContain("/api/v1/auth/google");
+    expect(source).toContain('Google sign-in was cancelled. Please try again or use email login.');
+    expect(source).not.toContain('/api/auth/callback/google');
   });
 });
