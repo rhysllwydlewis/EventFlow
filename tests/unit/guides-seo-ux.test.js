@@ -51,6 +51,24 @@ describe('guides SEO and UX assets', () => {
     expect(init).toContain('if (searchClear)');
   });
 
+  test('guide cards and article finales share the standard visual template', () => {
+    const css = fs.readFileSync(path.join(repoRoot, 'public/assets/css/guides.css'), 'utf8');
+    const guidesHtml = readPublic('guides.html');
+    const articleHtml = readPublic('articles/event-planning-checklist-guide.html');
+
+    expect(css).toContain('--guide-card-template-bg');
+    expect(css).toContain('--guide-finale-panel-bg');
+    expect(css).toContain('--guide-action-panel-bg');
+    expect(css).toContain('.featured-card {');
+    expect(css).toContain('.guide-card {');
+    expect(css).toContain('article .article-related-card {');
+    expect(css).toContain('article .card .article-cta-card h2');
+    expect(css).toContain('article .card .article-cta-card a');
+    expect(css).not.toContain('PR1023 follow-up');
+    expect(guidesHtml).toContain('/assets/css/guides.css?v=19.8.0');
+    expect(articleHtml).toContain('/assets/css/guides.css?v=19.8.0');
+  });
+
   test('sample article includes schema, feedback, prefilled report link and copy button', () => {
     const guide = guides.find(item => item.href === '/articles/event-planning-checklist-guide');
     const html = readPublic('articles/event-planning-checklist-guide.html');
