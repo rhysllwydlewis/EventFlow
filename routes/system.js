@@ -176,6 +176,13 @@ router.get('/config', apiLimiter, async (req, res) => {
 
   res.json({
     googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || '',
+    googleClientId:
+      process.env.GOOGLE_CLIENT_ID ||
+      process.env.GOOGLE_OAUTH_CLIENT_ID ||
+      String(process.env.GOOGLE_CLIENT_IDS || '')
+        .split(',')[0]
+        .trim() ||
+      '',
     version: APP_VERSION,
     sentryDsn: process.env.SENTRY_DSN_FRONTEND || '',
     altchaChallengeUrl: '/api/v1/altcha/challenge',

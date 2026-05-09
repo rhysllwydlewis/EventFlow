@@ -1069,7 +1069,6 @@ body.auth-page .auth-pw-wrap .password-toggle {
     line-height: 1.2;
   }
 
-
   .auth-field--inline .auth-checkbox {
     margin-top: 0;
   }
@@ -1856,4 +1855,55 @@ body.auth-page .auth-card .checkbox-label-right {
   opacity: 0.45;
   cursor: not-allowed;
   pointer-events: none;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   24. GOOGLE IDENTITY SIGN-IN
+───────────────────────────────────────────────────────────────*/
+.auth-google {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.auth-google-button {
+  display: flex;
+  justify-content: center;
+  min-height: 44px;
+}
+
+.auth-google-note {
+  color: #6b7280;
+  margin: -4px 0 0;
+  text-align: center;
+}
+
+.auth-divider {
+  align-items: center;
+  color: #6b7280;
+  display: flex;
+  font-size: 0.82rem;
+  gap: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  background: rgba(107, 114, 128, 0.25);
+  content: '';
+  flex: 1;
+  height: 1px;
+}
+
+.auth-google-2fa-submit {
+  align-self: flex-start;
+  margin-top: 10px;
+}
+
+.auth-google-2fa-message {
+  display: block;
+  margin-top: 8px;
 }
