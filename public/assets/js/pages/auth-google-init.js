@@ -69,6 +69,37 @@
     }
   }
 
+  function encodeState(payload) {
+    try {
+      const json = JSON.stringify(payload || {});
+      return btoa(unescape(encodeURIComponent(json)))
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=+$/g, '');
+    } catch (_) {
+      return '';
+    }
+  }
+
+  function getSafeReturnPath() {
+    const params = new URLSearchParams(window.location.search);
+    const redirect = params.get('redirect') || params.get('return') || '';
+    if (redirect && redirect.startsWith('/') && !redirect.startsWith('//') && !redirect.includes('\\')) {
+      return redirect;
+    }
+    return '';
+  }
+
+  function getGoogleButtonState(context) {
+    const params = new URLSearchParams(window.location.search);
+    const state = {
+      context: context === 'signup' ? 'signup' : 'signin',
+      returnTo: getSafeReturnPath(),
+      plan: params.get('plan') || '',
+    };
+    return encodeState(state);
+  }
+
   function showGoogleRedirectErrorFromQuery() {
     const params = new URLSearchParams(window.location.search);
     if (params.get('google') === 'error') {
@@ -190,6 +221,7 @@
       window.google.accounts.id.renderButton(signInContainer, {
         ...renderOptions,
         text: 'signin_with',
+        state: getGoogleButtonState('signin'),
       });
       signInContainer.classList.add('is-ready');
     }
@@ -203,6 +235,7 @@
       window.google.accounts.id.renderButton(signUpContainer, {
         ...renderOptions,
         text: 'signup_with',
+        state: getGoogleButtonState('signup'),
       });
       signUpContainer.classList.add('is-ready');
     }
