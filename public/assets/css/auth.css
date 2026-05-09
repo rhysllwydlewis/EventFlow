@@ -1069,7 +1069,6 @@ body.auth-page .auth-pw-wrap .password-toggle {
     line-height: 1.2;
   }
 
-
   .auth-field--inline .auth-checkbox {
     margin-top: 0;
   }
@@ -1856,4 +1855,84 @@ body.auth-page .auth-card .checkbox-label-right {
   opacity: 0.45;
   cursor: not-allowed;
   pointer-events: none;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   24. GOOGLE IDENTITY SIGN-IN
+───────────────────────────────────────────────────────────────*/
+.auth-google {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.auth-google-button {
+  display: flex;
+  justify-content: center;
+  min-height: 44px;
+}
+
+.auth-google-note {
+  color: #6b7280;
+  margin: -4px 0 0;
+  text-align: center;
+}
+
+.auth-divider {
+  align-items: center;
+  color: #6b7280;
+  display: flex;
+  font-size: 0.82rem;
+  gap: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  background: rgba(107, 114, 128, 0.25);
+  content: '';
+  flex: 1;
+  height: 1px;
+}
+
+.auth-google-2fa-submit {
+  align-self: flex-start;
+  margin-top: 10px;
+}
+
+.auth-google-2fa-message {
+  display: block;
+  margin-top: 8px;
+}
+
+.auth-google-placeholder {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #dadce0;
+  border-radius: 999px;
+  color: #3c4043;
+  display: inline-flex;
+  font-family: Roboto, Arial, sans-serif;
+  font-size: 0.95rem;
+  font-weight: 500;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 18px;
+  width: min(100%, 360px);
+}
+
+.auth-google-placeholder::before {
+  background: conic-gradient(from -45deg, #4285f4 0 25%, #34a853 0 50%, #fbbc05 0 75%, #ea4335 0);
+  border-radius: 50%;
+  content: '';
+  height: 18px;
+  margin-right: 10px;
+  width: 18px;
+}
+
+.auth-google-placeholder--unavailable {
+  opacity: 0.72;
 }

@@ -265,6 +265,11 @@
                   <div class="auth-spinner"></div>
                 </div>
 
+                <div class="auth-google">
+                  <div id="google-signin-button" class="auth-google-button" aria-label="Sign in with Google"><button type="button" class="auth-google-placeholder" disabled>Continue with Google</button></div>
+                  <div class="auth-divider"><span>or use email</span></div>
+                </div>
+
                 <div class="auth-field form-row">
                   <label class="auth-label" for="login-email">Email address</label>
                   <input
@@ -345,6 +350,12 @@
               <form id="register-form" class="auth-card" action="#" novalidate autocomplete="on">
                 <div class="auth-loading-overlay" aria-hidden="true">
                   <div class="auth-spinner"></div>
+                </div>
+
+                <div class="auth-google">
+                  <div id="google-signup-button" class="auth-google-button" aria-label="Sign up with Google"><button type="button" class="auth-google-placeholder" disabled>Continue with Google</button></div>
+                  <p class="auth-google-note small">For supplier accounts, choose Supplier and fill in the business fields before using Google.</p>
+                  <div class="auth-divider"><span>or use email</span></div>
                 </div>
 
                 <div class="auth-field-row">
@@ -643,6 +654,9 @@
 
         <!-- Fetch CSRF token on page load using api-client -->
         <script src="/assets/js/pages/auth-api-init.js" defer></script>
+
+        <!-- Google Identity Services sign-in/sign-up -->
+        <script src="/assets/js/pages/auth-google-init.js" defer></script>
 
         <!-- Initialize form validation -->
         <script src="/assets/js/pages/auth-form-init.js" defer></script>

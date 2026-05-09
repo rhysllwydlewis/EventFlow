@@ -5829,6 +5829,17 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   if (page === 'auth') {
+    // Ensure Google auth initialisation is present even if an older cached auth.html omits it.
+    if (
+      !window.__eventflowGoogleAuthInitStarted &&
+      !document.querySelector('script[src^="/assets/js/pages/auth-google-init.js"]')
+    ) {
+      const googleAuthInitScript = document.createElement('script');
+      googleAuthInitScript.src = '/assets/js/pages/auth-google-init.js';
+      googleAuthInitScript.defer = true;
+      document.head.appendChild(googleAuthInitScript);
+    }
+
     // auth form handlers
     const loginForm = document.getElementById('login-form');
     const loginStatus = document.getElementById('login-status');

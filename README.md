@@ -507,6 +507,20 @@ POSTMARK_API_KEY=your-server-token
 POSTMARK_FROM=admin@yourdomain.com
 ```
 
+**Optional - Google sign-in:**
+
+```env
+GOOGLE_CLIENT_ID=your-google-web-client-id.apps.googleusercontent.com
+# Optional: comma-separated list of additional client IDs accepted by the backend.
+# GOOGLE_CLIENT_IDS=web-client-id,ios-client-id
+```
+
+Google Cloud Console setup for the current production domain:
+
+- Authorized JavaScript origin: `https://event-flow.co.uk`
+- Authorized redirect URI: not required for the current GIS popup/button flow. EventFlow starts from `/auth`, receives the Google ID token in the browser, and POSTs it to `/api/v1/auth/google`. If `/api/auth/callback/google` is already configured in Google Cloud, it is harmless but not used by this flow.
+- Railway must expose `GOOGLE_CLIENT_ID` (or `GOOGLE_OAUTH_CLIENT_ID`) plus the standard production auth settings such as `JWT_SECRET` and `BASE_URL`. `GOOGLE_CLIENT_SECRET` is not required unless a future authorization-code redirect flow is added.
+
 **Optional - AWS S3:**
 
 ```env

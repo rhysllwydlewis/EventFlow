@@ -23,7 +23,7 @@ describe('auth.html – security regressions', () => {
     )}\n${fs.readFileSync(path.join(pagesDir, 'auth-altcha-init.js'), 'utf8')}\n${fs.readFileSync(
       path.join(pagesDir, 'auth-api-init.js'),
       'utf8'
-    )}\n${fs.readFileSync(path.join(pagesDir, 'auth-form-init.js'), 'utf8')}`;
+    )}\n${fs.readFileSync(path.join(pagesDir, 'auth-form-init.js'), 'utf8')}\n${fs.readFileSync(path.join(pagesDir, 'auth-google-init.js'), 'utf8')}`;
   });
 
   describe('No sensitive data in console output', () => {
@@ -107,6 +107,31 @@ describe('auth.html – security regressions', () => {
       expect(queryPos).toBeGreaterThan(-1);
       expect(innerHtmlPos).toBeGreaterThan(-1);
       expect(queryPos).toBeLessThan(innerHtmlPos);
+    });
+  });
+
+  describe('Google sign-in visibility', () => {
+    it('loads the Google auth init script from auth.html', () => {
+      expect(content).toContain('auth-google-init.js" defer');
+    });
+
+    it('keeps a visible fallback instead of silently hiding Google sign-in when config is missing', () => {
+      expect(content).toContain('Google sign-in not configured');
+      expect(content).not.toContain("el.style.display = 'none'");
+    });
+
+    it('fetches config without cache so newly-set production Google env vars are seen promptly', () => {
+      expect(content).toContain("cache: 'no-store'");
+      expect(content).toContain('googleAuth=1');
+    });
+
+    it('app.js bootstraps Google auth init if cached HTML is missing the script tag', () => {
+      const appContent = fs.readFileSync(
+        path.join(__dirname, '../../public/assets/js/app.js'),
+        'utf8'
+      );
+      expect(appContent).toContain('auth-google-init.js');
+      expect(appContent).toContain('__eventflowGoogleAuthInitStarted');
     });
   });
 
