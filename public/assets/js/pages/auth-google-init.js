@@ -2,8 +2,10 @@
   'use strict';
 
   const GIS_SRC = 'https://accounts.google.com/gsi/client';
+  const ROLE_POLISH_CSS = '/assets/css/auth-google-signup.css?v=18.3.0';
   const GOOGLE_LOGIN_PATH = '/api/auth/callback/google';
   const PRODUCTION_ORIGIN = 'https://event-flow.co.uk';
+  const GOOGLE_SIGNUP_RERENDER_DELAY = 160;
 
   function getGoogleLoginUri() {
     const origin =
@@ -59,30 +61,6 @@
     setStatus(fallback, 'warning');
   }
 
-  function getGoogleAuthContext() {
-    const explicitContext = window.__eventflowGoogleAuthContext;
-    if (explicitContext === 'signup' || explicitContext === 'signin') {
-      return explicitContext;
-    }
-
-    const createPanel = document.getElementById('panel-create');
-    const createTab = document.getElementById('tab-create');
-    const createPanelActive = createPanel && createPanel.hidden === false;
-    const createTabActive = createTab && createTab.getAttribute('aria-selected') === 'true';
-    const query = new URLSearchParams(window.location.search);
-
-    if (
-      createPanelActive ||
-      createTabActive ||
-      window.location.hash === '#create' ||
-      query.get('tab') === 'create'
-    ) {
-      return 'signup';
-    }
-
-    return 'signin';
-  }
-
   function setGoogleAuthContext(context) {
     if (context === 'signup' || context === 'signin') {
       window.__eventflowGoogleAuthContext = context;
@@ -115,13 +93,71 @@
     return '';
   }
 
+  function cleanValue(value, maxLength) {
+    return String(value || '')
+      .trim()
+      .slice(0, maxLength || 120);
+  }
+
+  function getInputValue(id, maxLength) {
+    const el = document.getElementById(id);
+    return cleanValue(el && el.value, maxLength);
+  }
+
+  function getSelectedSignupRole() {
+    const roleInput = document.getElementById('reg-role');
+    if (roleInput && (roleInput.value === 'supplier' || roleInput.value === 'customer')) {
+      return roleInput.value;
+    }
+
+    const selectedRole = document.querySelector(
+      '.auth-role-picker [aria-checked="true"][data-role], .role-toggle [aria-checked="true"][data-role]'
+    );
+    return selectedRole && selectedRole.dataset.role === 'supplier' ? 'supplier' : 'customer';
+  }
+
+  function getSignupFormSnapshot() {
+    const role = getSelectedSignupRole();
+    const snapshot = {
+      role,
+      location: getInputValue('reg-location', 100),
+      postcode: getInputValue('reg-postcode', 10),
+      company: getInputValue('reg-company', 100),
+      jobTitle: getInputValue('reg-jobtitle', 100),
+      website: getInputValue('reg-website', 180),
+      socials: {
+        instagram: getInputValue('reg-instagram', 180),
+        facebook: getInputValue('reg-facebook', 180),
+        twitter: getInputValue('reg-twitter', 180),
+        linkedin: getInputValue('reg-linkedin', 180),
+      },
+    };
+
+    const params = new URLSearchParams(window.location.search);
+    const ref = cleanValue(params.get('ref') || params.get('partner') || '', 80);
+    if (ref) {
+      snapshot.ref = ref;
+    }
+
+    return snapshot;
+  }
+
   function getGoogleButtonState(context) {
     const params = new URLSearchParams(window.location.search);
+    const normalizedContext = context === 'signup' ? 'signup' : 'signin';
     const state = {
-      context: context === 'signup' ? 'signup' : 'signin',
+      context: normalizedContext,
       returnTo: getSafeReturnPath(),
       plan: params.get('plan') || '',
     };
+
+    if (normalizedContext === 'signup') {
+      Object.assign(state, getSignupFormSnapshot());
+      if (!state.returnTo) {
+        state.returnTo = state.role === 'supplier' ? '/dashboard/supplier' : '/dashboard/customer';
+      }
+    }
+
     return encodeState(state);
   }
 
@@ -188,8 +224,109 @@
     return window.__eventflowGoogleScriptPromise;
   }
 
+  function ensureRolePolishStylesheet() {
+    if (document.querySelector(`link[href="${ROLE_POLISH_CSS}"]`)) {
+      return;
+    }
+
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = ROLE_POLISH_CSS;
+    document.head.appendChild(link);
+  }
+
+  function syncRolePickerState() {
+    const rolePicker = document.querySelector('.auth-role-picker, .role-toggle');
+    const role = getSelectedSignupRole();
+    const roleInput = document.getElementById('reg-role');
+    const supplierFields = document.getElementById('supplier-fields');
+
+    if (roleInput) {
+      roleInput.value = role;
+    }
+    if (supplierFields) {
+      supplierFields.style.display = role === 'supplier' ? '' : 'none';
+    }
+    if (rolePicker) {
+      rolePicker.classList.toggle('is-customer-selected', role === 'customer');
+      rolePicker.classList.toggle('is-supplier-selected', role === 'supplier');
+    }
+  }
+
+  function getSupplierReadiness() {
+    const snapshot = getSignupFormSnapshot();
+    if (snapshot.role !== 'supplier') {
+      return { ready: true, role: snapshot.role, missing: [] };
+    }
+
+    const missing = [];
+    if (!snapshot.location) {
+      missing.push('location');
+    }
+    if (!snapshot.company) {
+      missing.push('company name');
+    }
+
+    return { ready: missing.length === 0, role: snapshot.role, missing };
+  }
+
+  function syncSignupGoogleReadiness(showMessage) {
+    syncRolePickerState();
+
+    const signUpContainer = document.getElementById('google-signup-button');
+    const note = document.querySelector('#panel-create .auth-google-note');
+    const readiness = getSupplierReadiness();
+
+    if (signUpContainer) {
+      signUpContainer.classList.toggle('auth-google-button--disabled', !readiness.ready);
+      signUpContainer.setAttribute('aria-disabled', readiness.ready ? 'false' : 'true');
+    }
+
+    if (note) {
+      note.classList.remove('is-ready', 'is-warning');
+      if (readiness.role === 'supplier') {
+        if (readiness.ready) {
+          note.textContent =
+            'Supplier Google signup is ready — we’ll create your supplier account and send you to the supplier dashboard.';
+          note.classList.add('is-ready');
+        } else {
+          note.textContent = `Supplier Google signup needs your ${readiness.missing.join(' and ')} before continuing.`;
+          note.classList.add('is-warning');
+        }
+      } else {
+        note.textContent =
+          'Creating a customer account with Google is quick and free. Choose Supplier first if you are registering a business.';
+      }
+    }
+
+    if (!readiness.ready && showMessage) {
+      setStatus(
+        `Please add your ${readiness.missing.join(' and ')} before continuing with Google as a supplier.`,
+        'warning'
+      );
+    }
+
+    return readiness.ready;
+  }
+
+  function renderGoogleButton(container, context, baseRenderOptions) {
+    if (!container || !window.google?.accounts?.id) {
+      return;
+    }
+
+    container.innerHTML = '';
+    window.google.accounts.id.renderButton(container, {
+      ...baseRenderOptions,
+      text: context === 'signup' ? 'signup_with' : 'signin_with',
+      state: getGoogleButtonState(context),
+    });
+    container.classList.add('is-ready');
+  }
+
   async function initGoogleAuth() {
     showGoogleRedirectErrorFromQuery();
+    ensureRolePolishStylesheet();
+    syncSignupGoogleReadiness(false);
 
     const signInContainer = document.getElementById('google-signin-button');
     const signUpContainer = document.getElementById('google-signup-button');
@@ -252,26 +389,45 @@
           setGoogleAuthContext('signin');
         });
       });
-      window.google.accounts.id.renderButton(signInContainer, {
-        ...renderOptions,
-        text: 'signin_with',
-        state: getGoogleButtonState('signin'),
-      });
-      signInContainer.classList.add('is-ready');
+      renderGoogleButton(signInContainer, 'signin', renderOptions);
     }
 
     if (signUpContainer) {
+      let rerenderTimer = null;
+      const rerenderSignupButton = () => {
+        window.clearTimeout(rerenderTimer);
+        rerenderTimer = window.setTimeout(() => {
+          syncSignupGoogleReadiness(false);
+          renderGoogleButton(signUpContainer, 'signup', renderOptions);
+          syncSignupGoogleReadiness(false);
+        }, GOOGLE_SIGNUP_RERENDER_DELAY);
+      };
+
       ['pointerenter', 'pointerdown', 'touchstart', 'click', 'focusin'].forEach(eventName => {
-        signUpContainer.addEventListener(eventName, () => {
+        signUpContainer.addEventListener(eventName, event => {
           setGoogleAuthContext('signup');
+          if (!syncSignupGoogleReadiness(true)) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
         });
       });
-      window.google.accounts.id.renderButton(signUpContainer, {
-        ...renderOptions,
-        text: 'signup_with',
-        state: getGoogleButtonState('signup'),
+
+      document.querySelectorAll(
+        '#reg-role, #reg-location, #reg-postcode, #reg-company, #reg-jobtitle, #reg-website, #reg-instagram, #reg-facebook, #reg-twitter, #reg-linkedin'
+      ).forEach(el => {
+        el.addEventListener('input', rerenderSignupButton);
+        el.addEventListener('change', rerenderSignupButton);
       });
-      signUpContainer.classList.add('is-ready');
+
+      document.querySelectorAll('.auth-role-picker [data-role], .role-toggle [data-role]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          window.setTimeout(rerenderSignupButton, 0);
+        });
+      });
+
+      renderGoogleButton(signUpContainer, 'signup', renderOptions);
+      syncSignupGoogleReadiness(false);
     }
 
     setGoogleButtonsBusy(false);

@@ -2,6 +2,7 @@
 
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const validator = require('validator');
 
 const logger = require('../utils/logger');
 const dbUnified = require('../db-unified');
@@ -17,7 +18,9 @@ const GOOGLE_LOGIN_PATH = '/api/auth/callback/google';
 const PRODUCTION_ORIGIN = 'https://event-flow.co.uk';
 
 function getPublicBaseUrl() {
-  const configured = String(process.env.BASE_URL || '').trim().replace(/\/$/, '');
+  const configured = String(process.env.BASE_URL || '')
+    .trim()
+    .replace(/\/$/, '');
   if (configured && !configured.includes('localhost')) {
     return configured;
   }
@@ -49,6 +52,34 @@ function isSafeRelativePath(value) {
   );
 }
 
+function getPathname(value) {
+  try {
+    return new URL(value, PRODUCTION_ORIGIN).pathname;
+  } catch (_) {
+    return String(value || '').split('?')[0].split('#')[0];
+  }
+}
+
+function isDestinationAllowedForRole(role, destination) {
+  const pathname = getPathname(destination);
+
+  if (role === 'admin') {
+    return true;
+  }
+
+  if (role === 'supplier') {
+    return !pathname.startsWith('/admin') && pathname !== '/dashboard/customer';
+  }
+
+  return ![
+    '/admin',
+    '/dashboard/supplier',
+    '/supplier/subscription',
+    '/supplier/marketplace-new-listing',
+    '/my-marketplace-listings',
+  ].some(blockedPath => pathname === blockedPath || pathname.startsWith(`${blockedPath}/`));
+}
+
 function decodeState(state) {
   if (!state || typeof state !== 'string') {
     return {};
@@ -66,8 +97,13 @@ function decodeState(state) {
 }
 
 function destinationFromState(user, state) {
-  const destination = isSafeRelativePath(state.returnTo) ? state.returnTo : defaultDestinationForRole(user.role);
+  const requestedDestination = isSafeRelativePath(state.returnTo) ? state.returnTo : '';
+  const destination =
+    requestedDestination && isDestinationAllowedForRole(user.role, requestedDestination)
+      ? requestedDestination
+      : defaultDestinationForRole(user.role);
   const plan = typeof state.plan === 'string' ? state.plan.trim() : '';
+
   if (plan && !destination.includes('plan=')) {
     return `${destination}${destination.includes('?') ? '&' : '?'}plan=${encodeURIComponent(plan)}`;
   }
@@ -92,6 +128,111 @@ async function updateLastLogin(userId) {
   }
 }
 
+function cleanStateText(value, maxLength) {
+  return String(value || '')
+    .trim()
+    .slice(0, maxLength || 120);
+}
+
+function sanitizeUrl(url) {
+  const trimmed = cleanStateText(url, 180);
+  if (!trimmed) {
+    return undefined;
+  }
+  if (!validator.isURL(trimmed, { require_protocol: false })) {
+    return undefined;
+  }
+  return trimmed;
+}
+
+function sanitizeSocials(socials) {
+  if (!socials || typeof socials !== 'object') {
+    return {};
+  }
+
+  return {
+    instagram: sanitizeUrl(socials.instagram),
+    facebook: sanitizeUrl(socials.facebook),
+    twitter: sanitizeUrl(socials.twitter),
+    linkedin: sanitizeUrl(socials.linkedin),
+  };
+}
+
+function getSignupState(state) {
+  const role = state && state.role === 'supplier' ? 'supplier' : 'customer';
+  const signupState = {
+    role,
+    location: cleanStateText(state && state.location, 100),
+    postcode: cleanStateText(state && state.postcode, 10),
+    company: cleanStateText(state && state.company, 100),
+    jobTitle: cleanStateText(state && state.jobTitle, 100),
+    website: sanitizeUrl(state && state.website),
+    socials: sanitizeSocials(state && state.socials),
+    ref: cleanStateText(state && state.ref, 80),
+  };
+
+  if (signupState.role !== 'supplier') {
+    signupState.company = '';
+    signupState.jobTitle = '';
+  }
+
+  return signupState;
+}
+
+async function validateNewGoogleSignupState(signupState) {
+  const features = await getFeatureFlags();
+  if (!features.registration) {
+    const error = new Error('New account registrations are temporarily unavailable. Please try again later.');
+    error.statusCode = 503;
+    throw error;
+  }
+
+  if (signupState.role !== 'supplier') {
+    return;
+  }
+
+  if (!features.supplierApplications) {
+    const error = new Error('Supplier applications are currently disabled. Please try again later.');
+    error.statusCode = 503;
+    throw error;
+  }
+
+  if (!signupState.location) {
+    const error = new Error('Location is required for supplier Google sign up.');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  if (!signupState.company) {
+    const error = new Error('Company name is required for supplier Google sign up.');
+    error.statusCode = 400;
+    throw error;
+  }
+}
+
+async function recordSupplierPartnerReferral(refCode, user) {
+  if (!refCode) {
+    return;
+  }
+
+  try {
+    const partnerService = require('../services/partnerService');
+    const partner = await partnerService.getPartnerByRefCode(String(refCode).trim());
+    if (partner && partner.status === 'active') {
+      await partnerService.recordReferral({
+        partnerId: partner.id,
+        supplierUserId: user.id,
+        supplierCreatedAt: user.createdAt,
+      });
+      partnerService.awardReferralSignupBonus(user.id).catch(bonusErr => {
+        logger.warn('Partner referral signup bonus failed (non-blocking):', bonusErr.message);
+      });
+    }
+  } catch (_refErr) {
+    logger.warn('Partner referral recording failed (non-blocking):', _refErr.message);
+  }
+}
+
 function isAuthoritativeProfileEmail(googleProfile) {
   if (googleProfile.emailAuthoritative !== undefined) {
     return Boolean(googleProfile.emailAuthoritative);
@@ -100,7 +241,7 @@ function isAuthoritativeProfileEmail(googleProfile) {
   return Boolean(googleProfile.email_verified && (email.endsWith('@gmail.com') || googleProfile.hd));
 }
 
-function buildGoogleUser(googleProfile, nowIso) {
+function buildGoogleUser(googleProfile, nowIso, signupState = {}) {
   const email = String(googleProfile.email || '').toLowerCase();
   const googleSub = String(googleProfile.sub || '');
   const givenName = String(googleProfile.given_name || '').trim().slice(0, 40);
@@ -109,8 +250,9 @@ function buildGoogleUser(googleProfile, nowIso) {
   const fallbackName = email.split('@')[0] || 'Google user';
   const fullName = (profileName || `${givenName} ${familyName}`.trim() || fallbackName).slice(0, 80);
   const [derivedFirstName, ...derivedLastParts] = fullName.split(/\s+/);
+  const requestedRole = signupState.role === 'supplier' ? 'supplier' : 'customer';
   const isOwner = domainAdmin.isOwnerEmail(email);
-  const roleDecision = domainAdmin.determineRole(email, 'customer', true);
+  const roleDecision = domainAdmin.determineRole(email, requestedRole, true);
 
   return {
     id: uid('usr'),
@@ -119,7 +261,12 @@ function buildGoogleUser(googleProfile, nowIso) {
     lastName: familyName || derivedLastParts.join(' ') || 'User',
     email,
     role: isOwner ? 'admin' : roleDecision.role,
-    location: 'Not specified',
+    location: signupState.location || 'Not specified',
+    postcode: signupState.postcode || undefined,
+    company: signupState.company || undefined,
+    jobTitle: signupState.jobTitle || undefined,
+    website: signupState.website || undefined,
+    socials: signupState.socials || {},
     badges: [],
     notify: true,
     notify_account: true,
@@ -136,11 +283,12 @@ function buildGoogleUser(googleProfile, nowIso) {
   };
 }
 
-async function findOrCreateGoogleUser(googleProfile) {
+async function findOrCreateGoogleUser(googleProfile, state = {}) {
   const users = await dbUnified.read('users');
   const email = String(googleProfile.email || '').toLowerCase();
   const googleSub = String(googleProfile.sub || '');
   const nowIso = new Date().toISOString();
+  const signupState = getSignupState(state);
 
   let user = users.find(u => u.googleSub === googleSub || u.authProviderIds?.google === googleSub);
   const existingByEmail = users.find(u => (u.email || '').toLowerCase() === email);
@@ -177,15 +325,13 @@ async function findOrCreateGoogleUser(googleProfile) {
   }
 
   if (!user) {
-    const features = await getFeatureFlags();
-    if (!features.registration) {
-      const error = new Error('New account registrations are temporarily unavailable. Please try again later.');
-      error.statusCode = 503;
-      throw error;
-    }
-
-    user = buildGoogleUser(googleProfile, nowIso);
+    await validateNewGoogleSignupState(signupState);
+    user = buildGoogleUser(googleProfile, nowIso, signupState);
     await dbUnified.insertOne('users', user);
+
+    if (signupState.role === 'supplier') {
+      await recordSupplierPartnerReferral(signupState.ref, user);
+    }
     return user;
   }
 
@@ -239,9 +385,9 @@ router.post('/callback/google', parseGoogleFormPost, async (req, res) => {
   }
 
   try {
-    const googleProfile = await googleAuthService.verifyGoogleCredential(credential);
-    const user = await findOrCreateGoogleUser(googleProfile);
     const state = decodeState(req.body && req.body.state);
+    const googleProfile = await googleAuthService.verifyGoogleCredential(credential);
+    const user = await findOrCreateGoogleUser(googleProfile, state);
 
     if (user.twoFactorEnabled) {
       logger.info('[GOOGLE REDIRECT LOGIN] 2FA required; redirecting to auth');
