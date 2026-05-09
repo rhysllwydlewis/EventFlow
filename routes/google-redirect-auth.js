@@ -18,7 +18,9 @@ const GOOGLE_LOGIN_PATH = '/api/auth/callback/google';
 const PRODUCTION_ORIGIN = 'https://event-flow.co.uk';
 
 function getPublicBaseUrl() {
-  const configured = String(process.env.BASE_URL || '').trim().replace(/\/$/, '');
+  const configured = String(process.env.BASE_URL || '')
+    .trim()
+    .replace(/\/$/, '');
   if (configured && !configured.includes('localhost')) {
     return configured;
   }
@@ -50,6 +52,34 @@ function isSafeRelativePath(value) {
   );
 }
 
+function getPathname(value) {
+  try {
+    return new URL(value, PRODUCTION_ORIGIN).pathname;
+  } catch (_) {
+    return String(value || '').split('?')[0].split('#')[0];
+  }
+}
+
+function isDestinationAllowedForRole(role, destination) {
+  const pathname = getPathname(destination);
+
+  if (role === 'admin') {
+    return true;
+  }
+
+  if (role === 'supplier') {
+    return !pathname.startsWith('/admin') && pathname !== '/dashboard/customer';
+  }
+
+  return ![
+    '/admin',
+    '/dashboard/supplier',
+    '/supplier/subscription',
+    '/supplier/marketplace-new-listing',
+    '/my-marketplace-listings',
+  ].some(blockedPath => pathname === blockedPath || pathname.startsWith(`${blockedPath}/`));
+}
+
 function decodeState(state) {
   if (!state || typeof state !== 'string') {
     return {};
@@ -67,8 +97,13 @@ function decodeState(state) {
 }
 
 function destinationFromState(user, state) {
-  const destination = isSafeRelativePath(state.returnTo) ? state.returnTo : defaultDestinationForRole(user.role);
+  const requestedDestination = isSafeRelativePath(state.returnTo) ? state.returnTo : '';
+  const destination =
+    requestedDestination && isDestinationAllowedForRole(user.role, requestedDestination)
+      ? requestedDestination
+      : defaultDestinationForRole(user.role);
   const plan = typeof state.plan === 'string' ? state.plan.trim() : '';
+
   if (plan && !destination.includes('plan=')) {
     return `${destination}${destination.includes('?') ? '&' : '?'}plan=${encodeURIComponent(plan)}`;
   }
