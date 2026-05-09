@@ -66,6 +66,37 @@ describe('googleAuth.service', () => {
     jest.restoreAllMocks();
   });
 
+  it('uses the first configured GOOGLE_CLIENT_IDS entry when GOOGLE_CLIENT_ID is absent', () => {
+    jest.resetModules();
+    delete process.env.GOOGLE_CLIENT_ID;
+    process.env.GOOGLE_CLIENT_IDS =
+      'first-client.apps.googleusercontent.com, second-client.apps.googleusercontent.com';
+
+    const service = require('../../services/googleAuth.service');
+
+    expect(service.getGoogleClientId()).toBe('first-client.apps.googleusercontent.com');
+    expect(service.getGoogleClientIds()).toEqual([
+      'first-client.apps.googleusercontent.com',
+      'second-client.apps.googleusercontent.com',
+    ]);
+  });
+
+  it('rejects verification before network calls when no Google client ID is configured', async () => {
+    jest.resetModules();
+    delete process.env.GOOGLE_CLIENT_ID;
+    delete process.env.GOOGLE_CLIENT_IDS;
+    delete process.env.GOOGLE_OAUTH_CLIENT_ID;
+    global.fetch = jest.fn();
+
+    const service = require('../../services/googleAuth.service');
+
+    await expect(service.verifyGoogleCredential('token')).rejects.toMatchObject({
+      statusCode: 503,
+      message: 'Google sign-in is not configured',
+    });
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
+
   it('verifies a valid Google ID token and exposes authoritative email metadata', async () => {
     const { privateKey, service } = setupGoogleAuthService();
     const token = signGoogleToken(privateKey);

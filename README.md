@@ -515,6 +515,15 @@ GOOGLE_CLIENT_ID=your-google-web-client-id.apps.googleusercontent.com
 # GOOGLE_CLIENT_IDS=web-client-id,ios-client-id
 ```
 
+Google sign-in uses Google Identity Services (`https://accounts.google.com/gsi/client`) for
+the branded login/sign-up buttons and server-verified ID tokens. The public
+`google/google-api-javascript-client` repository is useful for future browser-side
+Google API calls through `gapi.client`, but that repository is archived, does not
+ship the `gapi` source itself, and its `gapi.auth2` authentication path is
+deprecated in favour of Google Identity Services. Keep EventFlow authentication
+on GIS; only add the API client loader later if we need Google Calendar, Drive,
+or other Google API calls after obtaining the user's explicit OAuth consent.
+
 **Optional - AWS S3:**
 
 ```env
