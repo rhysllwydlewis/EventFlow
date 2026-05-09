@@ -168,6 +168,15 @@ function configureCORS(isProduction = false) {
         return callback(null, true);
       }
 
+      // Google Identity Services redirect mode sends the credential callback from
+      // accounts.google.com. This is still protected by Google's double-submit
+      // g_csrf_token check and backend ID-token verification, but the global CORS
+      // middleware must not reject the request before the callback route runs.
+      const trustedThirdPartyOrigins = ['https://accounts.google.com'];
+      if (trustedThirdPartyOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
       // Get allowed origins from BASE_URL environment variable
       const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
       const allowedOrigins = [baseUrl];
