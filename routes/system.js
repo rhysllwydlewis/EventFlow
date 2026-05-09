@@ -78,6 +78,22 @@ function applyHealthCheckLimiter(req, res, next) {
   next();
 }
 
+function parseGoogleClientIds(value) {
+  return String(value || '')
+    .split(',')
+    .map(id => id.trim())
+    .filter(Boolean);
+}
+
+function getPublicGoogleClientId() {
+  return (
+    process.env.GOOGLE_CLIENT_ID ||
+    process.env.GOOGLE_OAUTH_CLIENT_ID ||
+    parseGoogleClientIds(process.env.GOOGLE_CLIENT_IDS)[0] ||
+    ''
+  );
+}
+
 function getIntegrationStatus() {
   let redisAdapterInstalled = false;
   try {
@@ -176,13 +192,7 @@ router.get('/config', apiLimiter, async (req, res) => {
 
   res.json({
     googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || '',
-    googleClientId:
-      process.env.GOOGLE_CLIENT_ID ||
-      process.env.GOOGLE_OAUTH_CLIENT_ID ||
-      String(process.env.GOOGLE_CLIENT_IDS || '')
-        .split(',')[0]
-        .trim() ||
-      '',
+    googleClientId: getPublicGoogleClientId(),
     version: APP_VERSION,
     sentryDsn: process.env.SENTRY_DSN_FRONTEND || '',
     altchaChallengeUrl: '/api/v1/altcha/challenge',

@@ -641,31 +641,6 @@ function buildGoogleUser({
 }
 
 /**
- * GET /api/auth/callback/google
- * GIS button/One Tap uses a browser credential callback and POSTs the ID token to /google.
- * This explanatory endpoint prevents a configured-but-unused OAuth redirect URI from returning
- * a generic 404 while making it clear that authorization-code redirects are not active.
- */
-router.get('/callback/google', (req, res) => {
-  const { error, error_description: errorDescription } = req.query || {};
-  if (error) {
-    return res.status(400).json({
-      error: 'Google sign-in was not completed',
-      message: errorDescription || String(error),
-      flow: 'google_identity_services',
-    });
-  }
-
-  return res.status(400).json({
-    error: 'Google OAuth redirect callback is not used by this app',
-    message:
-      'EventFlow uses Google Identity Services. Start from /auth and the browser will POST the Google ID token to /api/v1/auth/google.',
-    flow: 'google_identity_services',
-    loginUrl: '/auth',
-  });
-});
-
-/**
  * POST /api/auth/google
  * Sign in or create an account using a Google Identity Services ID token.
  */

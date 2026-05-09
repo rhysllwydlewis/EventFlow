@@ -1,11 +1,6 @@
 (function () {
   'use strict';
 
-  if (window.__eventflowGoogleAuthInitStarted) {
-    return;
-  }
-  window.__eventflowGoogleAuthInitStarted = true;
-
   const GIS_SRC = 'https://accounts.google.com/gsi/client';
 
   function readCookie(name) {
@@ -46,73 +41,23 @@
     if (!status) {
       return;
     }
+
+    const statusType = type || 'info';
     status.textContent = message || '';
-    status.dataset.type = type || 'info';
-    status.style.display = message ? 'block' : 'none';
-  }
+    status.dataset.type = statusType;
+    status.classList.remove(
+      'is-visible',
+      'is-info',
+      'is-success',
+      'is-warning',
+      'is-error',
+      'auth-status--2fa'
+    );
+    status.style.display = '';
 
-  function createGoogleShell(id, label, includeSupplierNote) {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'auth-google';
-
-    const button = document.createElement('div');
-    button.id = id;
-    button.className = 'auth-google-button';
-    button.setAttribute('aria-label', label);
-    button.innerHTML =
-      '<button type="button" class="auth-google-placeholder" disabled>Continue with Google</button>';
-    wrapper.appendChild(button);
-
-    if (includeSupplierNote) {
-      const note = document.createElement('p');
-      note.className = 'auth-google-note small';
-      note.textContent =
-        'For supplier accounts, choose Supplier and fill in the business fields before using Google.';
-      wrapper.appendChild(note);
+    if (message) {
+      status.classList.add('is-visible', `is-${statusType}`);
     }
-
-    const divider = document.createElement('div');
-    divider.className = 'auth-divider';
-    divider.innerHTML = '<span>or use email</span>';
-    wrapper.appendChild(divider);
-    return wrapper;
-  }
-
-  function insertBeforeFirstField(form, shell) {
-    if (!form) {
-      return;
-    }
-    const loadingOverlay = form.querySelector('.auth-loading-overlay');
-    const target = loadingOverlay ? loadingOverlay.nextSibling : form.firstChild;
-    form.insertBefore(shell, target);
-  }
-
-  function ensureGoogleContainers() {
-    if (!document.getElementById('google-signin-button')) {
-      insertBeforeFirstField(
-        document.getElementById('login-form'),
-        createGoogleShell('google-signin-button', 'Sign in with Google', false)
-      );
-    }
-
-    if (!document.getElementById('google-signup-button')) {
-      insertBeforeFirstField(
-        document.getElementById('register-form'),
-        createGoogleShell('google-signup-button', 'Sign up with Google', true)
-      );
-    }
-  }
-
-  function renderGoogleUnavailable(message) {
-    document.querySelectorAll('.auth-google-button').forEach(container => {
-      container.innerHTML = '';
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'auth-google-placeholder auth-google-placeholder--unavailable';
-      button.disabled = true;
-      button.textContent = message || 'Google sign-in unavailable';
-      container.appendChild(button);
-    });
   }
 
   function defaultDestinationForRole(role) {
@@ -146,6 +91,36 @@
     return destination;
   }
 
+  function getGoogleAuthContext() {
+    const explicitContext = window.__eventflowGoogleAuthContext;
+    if (explicitContext === 'signup' || explicitContext === 'signin') {
+      return explicitContext;
+    }
+
+    const createPanel = document.getElementById('panel-create');
+    const createTab = document.getElementById('tab-create');
+    const createPanelActive = createPanel && createPanel.hidden === false;
+    const createTabActive = createTab && createTab.getAttribute('aria-selected') === 'true';
+    const query = new URLSearchParams(window.location.search);
+
+    if (
+      createPanelActive ||
+      createTabActive ||
+      window.location.hash === '#create' ||
+      query.get('tab') === 'create'
+    ) {
+      return 'signup';
+    }
+
+    return 'signin';
+  }
+
+  function setGoogleAuthContext(context) {
+    if (context === 'signup' || context === 'signin') {
+      window.__eventflowGoogleAuthContext = context;
+    }
+  }
+
   function getSignupProfileFields() {
     const role = document.getElementById('reg-role')?.value || 'customer';
     const ref = new URLSearchParams(window.location.search).get('ref') || undefined;
@@ -166,7 +141,9 @@
     }
 
     status.dataset.type = 'info';
-    status.style.display = 'block';
+    status.classList.remove('is-error', 'is-success', 'is-warning');
+    status.classList.add('is-visible', 'is-info', 'auth-status--2fa');
+    status.style.display = '';
     status.innerHTML = '';
 
     const label = document.createElement('label');
@@ -288,65 +265,107 @@
   }
 
   function loadGoogleScript() {
-    if (document.querySelector(`script[src="${GIS_SRC}"]`)) {
+    if (window.google?.accounts?.id) {
       return Promise.resolve();
     }
-    return new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = GIS_SRC;
-      script.async = true;
-      script.defer = true;
-      script.onload = resolve;
-      script.onerror = reject;
-      document.head.appendChild(script);
+
+    if (window.__eventflowGoogleScriptPromise) {
+      return window.__eventflowGoogleScriptPromise;
+    }
+
+    window.__eventflowGoogleScriptPromise = new Promise((resolve, reject) => {
+      const existing = document.querySelector(`script[src="${GIS_SRC}"]`);
+      const script = existing || document.createElement('script');
+      const timeout = setTimeout(() => {
+        reject(new Error('Google Identity Services script timed out'));
+      }, 8000);
+
+      const handleLoad = () => {
+        clearTimeout(timeout);
+        resolve();
+      };
+      const handleError = () => {
+        clearTimeout(timeout);
+        reject(new Error('Google Identity Services script failed to load'));
+      };
+
+      script.addEventListener('load', handleLoad, { once: true });
+      script.addEventListener('error', handleError, { once: true });
+
+      if (!existing) {
+        script.src = GIS_SRC;
+        script.async = true;
+        script.defer = true;
+        document.head.appendChild(script);
+      }
+    }).finally(() => {
+      window.__eventflowGoogleScriptPromise = null;
     });
+
+    return window.__eventflowGoogleScriptPromise;
   }
 
   async function initGoogleAuth() {
-    ensureGoogleContainers();
-
     const signInContainer = document.getElementById('google-signin-button');
     const signUpContainer = document.getElementById('google-signup-button');
     if (!signInContainer && !signUpContainer) {
       return;
     }
 
+    document.querySelectorAll('.auth-google-button').forEach(el => {
+      el.classList.add('is-loading');
+      el.setAttribute('aria-busy', 'true');
+    });
+
     let config = {};
     try {
-      const res = await fetch(`/api/v1/config?googleAuth=1&_=${Date.now()}`, {
-        credentials: 'include',
-        cache: 'no-store',
-      });
+      const res = await fetch('/api/v1/config', { credentials: 'include' });
       config = await res.json();
     } catch (_) {
+      document.querySelectorAll('.auth-google-button').forEach(el => {
+        el.classList.remove('is-loading');
+        el.removeAttribute('aria-busy');
+      });
       setStatus('Google sign-in configuration could not be loaded.', 'error');
       return;
     }
 
     if (!config.googleClientId) {
-      renderGoogleUnavailable('Google sign-in not configured');
-      setStatus('Google sign-in is not configured yet. Please contact EventFlow support.', 'error');
+      document.querySelectorAll('.auth-google').forEach(el => {
+        el.hidden = true;
+      });
       return;
     }
 
     try {
       await loadGoogleScript();
     } catch (_) {
-      renderGoogleUnavailable('Google sign-in unavailable');
+      document.querySelectorAll('.auth-google-button').forEach(el => {
+        el.classList.remove('is-loading');
+        el.removeAttribute('aria-busy');
+      });
       setStatus('Google sign-in could not be loaded. Please refresh and try again.', 'error');
       return;
     }
 
     if (!window.google || !window.google.accounts || !window.google.accounts.id) {
-      renderGoogleUnavailable('Google sign-in unavailable');
+      document.querySelectorAll('.auth-google-button').forEach(el => {
+        el.classList.remove('is-loading');
+        el.removeAttribute('aria-busy');
+      });
       setStatus('Google sign-in is unavailable in this browser.', 'error');
       return;
     }
 
     window.google.accounts.id.initialize({
       client_id: config.googleClientId,
-      callback: response =>
-        submitGoogleCredential(response, window.__eventflowGoogleAuthContext || 'signin'),
+      // Google Identity Services owns the sign-in button iframe. Pointer/click
+      // events do not always bubble from that iframe, so resolve the auth
+      // context from the active tab at callback time instead of relying only on
+      // the last button event. The archived google-api-javascript-client repo
+      // is still useful for API calls via gapi.client, but its auth2 flow is
+      // deprecated; keep sign-in on GIS.
+      callback: response => submitGoogleCredential(response, getGoogleAuthContext()),
       use_fedcm_for_prompt: true,
     });
 
@@ -358,29 +377,33 @@
     };
 
     if (signInContainer) {
-      signInContainer.innerHTML = '';
-      ['pointerdown', 'click', 'focusin'].forEach(eventName => {
+      ['pointerenter', 'pointerdown', 'touchstart', 'click', 'focusin'].forEach(eventName => {
         signInContainer.addEventListener(eventName, () => {
-          window.__eventflowGoogleAuthContext = 'signin';
+          setGoogleAuthContext('signin');
         });
       });
       window.google.accounts.id.renderButton(signInContainer, {
         ...renderOptions,
         text: 'signin_with',
       });
+      signInContainer.classList.remove('is-loading');
+      signInContainer.classList.add('is-ready');
+      signInContainer.removeAttribute('aria-busy');
     }
 
     if (signUpContainer) {
-      signUpContainer.innerHTML = '';
-      ['pointerdown', 'click', 'focusin'].forEach(eventName => {
+      ['pointerenter', 'pointerdown', 'touchstart', 'click', 'focusin'].forEach(eventName => {
         signUpContainer.addEventListener(eventName, () => {
-          window.__eventflowGoogleAuthContext = 'signup';
+          setGoogleAuthContext('signup');
         });
       });
       window.google.accounts.id.renderButton(signUpContainer, {
         ...renderOptions,
         text: 'signup_with',
       });
+      signUpContainer.classList.remove('is-loading');
+      signUpContainer.classList.add('is-ready');
+      signUpContainer.removeAttribute('aria-busy');
     }
   }
 

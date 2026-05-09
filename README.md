@@ -515,11 +515,14 @@ GOOGLE_CLIENT_ID=your-google-web-client-id.apps.googleusercontent.com
 # GOOGLE_CLIENT_IDS=web-client-id,ios-client-id
 ```
 
-Google Cloud Console setup for the current production domain:
-
-- Authorized JavaScript origin: `https://event-flow.co.uk`
-- Authorized redirect URI: not required for the current GIS popup/button flow. EventFlow starts from `/auth`, receives the Google ID token in the browser, and POSTs it to `/api/v1/auth/google`. If `/api/auth/callback/google` is already configured in Google Cloud, it is harmless but not used by this flow.
-- Railway must expose `GOOGLE_CLIENT_ID` (or `GOOGLE_OAUTH_CLIENT_ID`) plus the standard production auth settings such as `JWT_SECRET` and `BASE_URL`. `GOOGLE_CLIENT_SECRET` is not required unless a future authorization-code redirect flow is added.
+Google sign-in uses Google Identity Services (`https://accounts.google.com/gsi/client`) for
+the branded login/sign-up buttons and server-verified ID tokens. The public
+`google/google-api-javascript-client` repository is useful for future browser-side
+Google API calls through `gapi.client`, but that repository is archived, does not
+ship the `gapi` source itself, and its `gapi.auth2` authentication path is
+deprecated in favour of Google Identity Services. Keep EventFlow authentication
+on GIS; only add the API client loader later if we need Google Calendar, Drive,
+or other Google API calls after obtaining the user's explicit OAuth consent.
 
 **Optional - AWS S3:**
 
