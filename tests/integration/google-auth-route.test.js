@@ -1,7 +1,16 @@
 'use strict';
 
 const express = require('express');
+const cookieParser = require('cookie-parser');
 const request = require('supertest');
+
+function encodeState(payload) {
+  return Buffer.from(JSON.stringify(payload), 'utf8')
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+}
 
 function buildAuthApp({ googleProfile, googleError, users = [] } = {}) {
   jest.resetModules();
@@ -42,10 +51,21 @@ function buildAuthApp({ googleProfile, googleError, users = [] } = {}) {
     }),
   }));
 
+  jest.doMock('../../middleware/features', () => ({
+    featureRequired: () => (_req, _res, next) => next(),
+    getFeatureFlags: jest.fn(async () => ({
+      registration: true,
+      supplierApplications: true,
+    })),
+  }));
+
   const app = express();
   app.use(express.json());
+  app.use(cookieParser());
   app.use('/api/v1/auth', require('../../routes/auth'));
   app.use('/api/auth', require('../../routes/auth'));
+  app.use('/api/v1/auth', require('../../routes/google-redirect-auth'));
+  app.use('/api/auth', require('../../routes/google-redirect-auth'));
   return { app, inserted, updates };
 }
 
@@ -53,36 +73,76 @@ describe('Google auth route', () => {
   afterEach(() => {
     jest.dontMock('../../db-unified');
     jest.dontMock('../../services/googleAuth.service');
+    jest.dontMock('../../middleware/features');
     jest.restoreAllMocks();
   });
 
-  it('returns a clear explanatory response for the unused GIS redirect callback', async () => {
+  it('redirects manual GETs on the SIWG callback back to the auth page', async () => {
     const { app } = buildAuthApp();
 
-    const response = await request(app).get('/api/auth/callback/google').expect(400);
+    const response = await request(app).get('/api/auth/callback/google').expect(303);
 
-    expect(response.body).toMatchObject({
-      error: 'Google OAuth redirect callback is not used by this app',
-      flow: 'google_identity_services',
-      loginUrl: '/auth',
-    });
+    expect(response.headers.location).toBe('/auth?google=callback_requires_post');
   });
 
-  it('returns denied consent details on the compatibility callback route', async () => {
-    const { app } = buildAuthApp();
+  it('rejects form-posted SIWG callbacks when the Google CSRF token is missing', async () => {
+    const { app, inserted } = buildAuthApp();
 
     const response = await request(app)
-      .get('/api/v1/auth/callback/google?error=access_denied')
-      .expect(400);
+      .post('/api/auth/callback/google')
+      .type('form')
+      .send({ credential: 'valid-google-id-token' })
+      .expect(303);
 
-    expect(response.body).toMatchObject({
-      error: 'Google sign-in was not completed',
-      message: 'access_denied',
-      flow: 'google_identity_services',
+    expect(response.headers.location).toBe('/auth?google=error&reason=google_csrf');
+    expect(inserted).toHaveLength(0);
+  });
+
+  it('creates a user, sets the app auth cookie, and redirects for a valid SIWG callback', async () => {
+    const { app, inserted } = buildAuthApp();
+    const state = encodeState({ returnTo: '/dashboard/customer?from=test', plan: 'starter' });
+
+    const response = await request(app)
+      .post('/api/auth/callback/google')
+      .set('Cookie', ['g_csrf_token=csrf-token-123'])
+      .type('form')
+      .send({
+        credential: 'valid-google-id-token',
+        g_csrf_token: 'csrf-token-123',
+        state,
+      })
+      .expect(303);
+
+    expect(response.headers.location).toBe('/dashboard/customer?from=test&plan=starter');
+    expect(response.headers['set-cookie']?.join(';')).toContain('token=');
+    expect(inserted).toHaveLength(1);
+    expect(inserted[0]).toMatchObject({
+      email: 'new-user@gmail.com',
+      googleSub: 'google-sub-123',
+      verified: true,
+      authProvider: 'google',
     });
   });
 
-  it('creates a user and sets the app auth cookie for a valid GIS credential', async () => {
+  it('ignores unsafe redirect state and falls back to the role dashboard', async () => {
+    const { app } = buildAuthApp();
+    const state = encodeState({ returnTo: 'https://evil.example/path', plan: 'pro' });
+
+    const response = await request(app)
+      .post('/api/v1/auth/callback/google')
+      .set('Cookie', ['g_csrf_token=csrf-token-123'])
+      .type('form')
+      .send({
+        credential: 'valid-google-id-token',
+        g_csrf_token: 'csrf-token-123',
+        state,
+      })
+      .expect(303);
+
+    expect(response.headers.location).toBe('/dashboard/customer?plan=pro');
+  });
+
+  it('creates a user and sets the app auth cookie for a valid GIS JSON credential', async () => {
     const { app, inserted } = buildAuthApp();
 
     const response = await request(app)

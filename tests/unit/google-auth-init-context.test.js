@@ -9,13 +9,12 @@ const source = fs.readFileSync(
 );
 
 describe('auth-google-init context handling', () => {
-  it('resolves Google auth context from the active create-account tab at callback time', () => {
+  it('resolves Google auth context from the active create-account tab', () => {
     expect(source).toContain('function getGoogleAuthContext()');
     expect(source).toContain("document.getElementById('panel-create')");
     expect(source).toContain("createTab.getAttribute('aria-selected') === 'true'");
     expect(source).toContain("window.location.hash === '#create'");
     expect(source).toContain("query.get('tab') === 'create'");
-    expect(source).toContain('submitGoogleCredential(response, getGoogleAuthContext())');
   });
 
   it('deduplicates and times out the GIS script loader so auth controls fail visibly', () => {
@@ -49,12 +48,13 @@ describe('auth-google-init context handling', () => {
     expect(source).toContain("signUpContainer.classList.add('is-ready')");
   });
 
-  it('uses popup-only GIS credential flow and does not rely on OAuth redirect callbacks', () => {
-    expect(source).toContain("ux_mode: 'popup'");
+  it('uses server-side SIWG redirect mode instead of the popup transform flow', () => {
+    expect(source).toContain("ux_mode: 'redirect'");
+    expect(source).toContain('login_uri: `${window.location.origin}/api/auth/callback/google`');
     expect(source).toContain('use_fedcm_for_prompt: false');
     expect(source).toContain('use_fedcm_for_button: false');
-    expect(source).toContain("/api/v1/auth/google");
-    expect(source).toContain('Google sign-in was cancelled. Please try again or use email login.');
-    expect(source).not.toContain('/api/auth/callback/google');
+    expect(source).toContain('Google sign-in could not be completed. Please try again or use email login.');
+    expect(source).not.toContain('submitGoogleCredential');
+    expect(source).not.toContain('/api/v1/auth/google');
   });
 });

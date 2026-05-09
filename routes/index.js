@@ -14,6 +14,7 @@ const logger = require('../utils/logger');
 const systemRoutes = require('./system');
 const publicRoutes = require('./public');
 const authRoutes = require('./auth');
+const googleRedirectAuthRoutes = require('./google-redirect-auth');
 const adminRoutes = require('./admin');
 const systemChecksAdminRoutes = require('./system-checks-admin');
 const newsletterRoutes = require('./newsletter');
@@ -110,6 +111,11 @@ function mountRoutes(app, deps) {
   }
   app.use('/api/v1/auth', authRoutes);
   app.use('/api/auth', authRoutes); // Backward compatibility
+
+  // Sign in with Google redirect-mode callback. This is mounted separately from
+  // the JSON auth API because Google posts x-www-form-urlencoded credentials.
+  app.use('/api/v1/auth', googleRedirectAuthRoutes);
+  app.use('/api/auth', googleRedirectAuthRoutes); // Backward compatibility
 
   // Email verification routes
   app.use('/api/v1/auth', emailVerificationRoutes);
