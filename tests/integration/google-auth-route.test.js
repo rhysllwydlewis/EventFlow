@@ -33,6 +33,8 @@ function buildAuthApp({ googleProfile, googleError, users = [], includeGlobalCor
   }));
 
   jest.doMock('../../services/googleAuth.service', () => ({
+    getGoogleClientIds: jest.fn(() => ['test-client-id.apps.googleusercontent.com']),
+    getGoogleClientId: jest.fn(() => 'test-client-id.apps.googleusercontent.com'),
     verifyGoogleCredential: jest.fn(async () => {
       if (googleError) {
         throw googleError;
@@ -126,7 +128,104 @@ describe('Google auth route', () => {
       googleSub: 'google-sub-123',
       verified: true,
       authProvider: 'google',
+      role: 'customer',
     });
+  });
+
+  it('creates supplier accounts from Google redirect signup state', async () => {
+    const { app, inserted } = buildAuthApp();
+    const state = encodeState({
+      context: 'signup',
+      role: 'supplier',
+      returnTo: '/dashboard/supplier',
+      location: 'Wales',
+      postcode: 'CF39 8AA',
+      company: 'EventFlow Test Events',
+      jobTitle: 'Owner',
+      website: 'example.com',
+      socials: {
+        instagram: 'instagram.com/eventflowtest',
+        facebook: 'facebook.com/eventflowtest',
+      },
+    });
+
+    const response = await request(app)
+      .post('/api/auth/callback/google')
+      .set('Cookie', ['g_csrf_token=csrf-token-123'])
+      .type('form')
+      .send({
+        credential: 'valid-google-id-token',
+        g_csrf_token: 'csrf-token-123',
+        state,
+      })
+      .expect(303);
+
+    expect(response.headers.location).toBe('/dashboard/supplier');
+    expect(inserted).toHaveLength(1);
+    expect(inserted[0]).toMatchObject({
+      email: 'new-user@gmail.com',
+      role: 'supplier',
+      location: 'Wales',
+      postcode: 'CF39 8AA',
+      company: 'EventFlow Test Events',
+      jobTitle: 'Owner',
+      website: 'example.com',
+      socials: {
+        instagram: 'instagram.com/eventflowtest',
+        facebook: 'facebook.com/eventflowtest',
+      },
+    });
+  });
+
+  it('rejects supplier Google redirect signup state without supplier essentials', async () => {
+    const { app, inserted } = buildAuthApp();
+    const state = encodeState({ context: 'signup', role: 'supplier', location: 'Wales' });
+
+    const response = await request(app)
+      .post('/api/auth/callback/google')
+      .set('Cookie', ['g_csrf_token=csrf-token-123'])
+      .type('form')
+      .send({
+        credential: 'valid-google-id-token',
+        g_csrf_token: 'csrf-token-123',
+        state,
+      })
+      .expect(303);
+
+    expect(response.headers.location).toBe('/auth?google=error&reason=google_400');
+    expect(inserted).toHaveLength(0);
+  });
+
+  it('does not promote existing customer accounts using supplier Google state', async () => {
+    const existingCustomer = {
+      id: 'usr_existing',
+      email: 'new-user@gmail.com',
+      role: 'customer',
+      verified: true,
+      authProviderIds: {},
+    };
+    const { app, inserted, updates } = buildAuthApp({ users: [existingCustomer] });
+    const state = encodeState({
+      context: 'signup',
+      role: 'supplier',
+      location: 'Wales',
+      company: 'Should Not Promote Ltd',
+    });
+
+    const response = await request(app)
+      .post('/api/auth/callback/google')
+      .set('Cookie', ['g_csrf_token=csrf-token-123'])
+      .type('form')
+      .send({
+        credential: 'valid-google-id-token',
+        g_csrf_token: 'csrf-token-123',
+        state,
+      })
+      .expect(303);
+
+    expect(response.headers.location).toBe('/dashboard/supplier');
+    expect(inserted).toHaveLength(0);
+    expect(updates.some(entry => entry.update?.$set?.role === 'supplier')).toBe(false);
   });
 
   it('allows the SIWG callback through production global CORS when BASE_URL is internal', async () => {
