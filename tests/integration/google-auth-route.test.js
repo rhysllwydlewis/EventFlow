@@ -223,7 +223,7 @@ describe('Google auth route', () => {
       })
       .expect(303);
 
-    expect(response.headers.location).toBe('/dashboard/supplier');
+    expect(response.headers.location).toBe('/dashboard/customer');
     expect(inserted).toHaveLength(0);
     expect(updates.some(entry => entry.update?.$set?.role === 'supplier')).toBe(false);
   });
