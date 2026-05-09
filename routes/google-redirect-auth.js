@@ -29,6 +29,37 @@ function defaultDestinationForRole(role) {
   return '/dashboard/customer';
 }
 
+function isSafeRelativePath(value) {
+  return Boolean(
+    typeof value === 'string' && value.startsWith('/') && !value.startsWith('//') && !value.includes('\\')
+  );
+}
+
+function decodeState(state) {
+  if (!state || typeof state !== 'string') {
+    return {};
+  }
+
+  try {
+    const normalized = state.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(normalized.length + ((4 - (normalized.length % 4)) % 4), '=');
+    const decoded = Buffer.from(padded, 'base64').toString('utf8');
+    const parsed = JSON.parse(decoded);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (_) {
+    return {};
+  }
+}
+
+function destinationFromState(user, state) {
+  const destination = isSafeRelativePath(state.returnTo) ? state.returnTo : defaultDestinationForRole(user.role);
+  const plan = typeof state.plan === 'string' ? state.plan.trim() : '';
+  if (plan && !destination.includes('plan=')) {
+    return `${destination}${destination.includes('?') ? '&' : '?'}plan=${encodeURIComponent(plan)}`;
+  }
+  return destination;
+}
+
 function validateGoogleDoubleSubmitCsrf(req) {
   const bodyToken = req.body && req.body.g_csrf_token;
   const cookieToken = req.cookies && req.cookies.g_csrf_token;
@@ -180,6 +211,7 @@ router.post('/callback/google', parseGoogleFormPost, async (req, res) => {
   try {
     const googleProfile = await googleAuthService.verifyGoogleCredential(credential);
     const user = await findOrCreateGoogleUser(googleProfile);
+    const state = decodeState(req.body && req.body.state);
 
     if (user.twoFactorEnabled) {
       logger.info('[GOOGLE REDIRECT LOGIN] 2FA required; redirecting to auth');
@@ -192,7 +224,7 @@ router.post('/callback/google', parseGoogleFormPost, async (req, res) => {
     });
 
     setAuthCookie(res, token, { remember: true });
-    return res.redirect(303, defaultDestinationForRole(user.role));
+    return res.redirect(303, destinationFromState(user, state));
   } catch (error) {
     logger.error('[GOOGLE REDIRECT LOGIN] Failed', { message: error.message });
     return redirectWithError(res, error.statusCode ? `google_${error.statusCode}` : 'google_failed');
