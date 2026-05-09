@@ -82,11 +82,45 @@ describe('System API Endpoints', () => {
   });
 
   describe('GET /api/config', () => {
+    const originalGoogleClientId = process.env.GOOGLE_CLIENT_ID;
+    const originalGoogleClientIds = process.env.GOOGLE_CLIENT_IDS;
+
+    afterEach(() => {
+      if (originalGoogleClientId === undefined) {
+        delete process.env.GOOGLE_CLIENT_ID;
+      } else {
+        process.env.GOOGLE_CLIENT_ID = originalGoogleClientId;
+      }
+      if (originalGoogleClientIds === undefined) {
+        delete process.env.GOOGLE_CLIENT_IDS;
+      } else {
+        process.env.GOOGLE_CLIENT_IDS = originalGoogleClientIds;
+      }
+    });
+
     it('should return public configuration', async () => {
       const response = await request(app).get('/api/config').expect(200);
 
       expect(response.body).toHaveProperty('version');
       expect(response.body).toHaveProperty('googleMapsApiKey');
+      expect(response.body).toHaveProperty('googleClientId');
+    });
+
+    it('should expose the configured Google client ID on the v1 config endpoint', async () => {
+      process.env.GOOGLE_CLIENT_ID = 'config-test-client.apps.googleusercontent.com';
+
+      const response = await request(app).get('/api/v1/config').expect(200);
+
+      expect(response.body.googleClientId).toBe('config-test-client.apps.googleusercontent.com');
+    });
+
+    it('should fall back to the first configured Google client ID list entry', async () => {
+      delete process.env.GOOGLE_CLIENT_ID;
+      process.env.GOOGLE_CLIENT_IDS = 'first-client.apps.googleusercontent.com,second-client';
+
+      const response = await request(app).get('/api/v1/config').expect(200);
+
+      expect(response.body.googleClientId).toBe('first-client.apps.googleusercontent.com');
     });
   });
 

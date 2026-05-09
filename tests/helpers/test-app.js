@@ -62,6 +62,7 @@ function createTestApp() {
     if (systemRoutes.initializeDependencies) {
       systemRoutes.initializeDependencies(mockDeps);
     }
+    app.use('/api/v1', systemRoutes);
     app.use('/api', systemRoutes);
   } catch (error) {
     console.error('Error mounting system routes:', error);

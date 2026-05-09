@@ -65,6 +65,7 @@ function configureHelmet(isProduction = false) {
           'blob:',
           'https://cdn.jsdelivr.net',
           'https://fonts.googleapis.com',
+          'https://accounts.google.com',
         ],
         fontSrc: ["'self'", 'https://fonts.gstatic.com', 'data:'],
         imgSrc: [
@@ -99,6 +100,7 @@ function configureHelmet(isProduction = false) {
           'https://*.tidycal.net',
           'https://api.stripe.com',
           'https://static.cloudflareinsights.com',
+          'https://accounts.google.com',
         ],
         frameSrc: [
           "'self'",
