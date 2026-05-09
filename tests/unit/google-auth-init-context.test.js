@@ -52,6 +52,7 @@ describe('auth-google-init context handling', () => {
   it('uses popup-only GIS credential flow and does not rely on OAuth redirect callbacks', () => {
     expect(source).toContain("ux_mode: 'popup'");
     expect(source).toContain('use_fedcm_for_prompt: false');
+    expect(source).toContain('use_fedcm_for_button: false');
     expect(source).toContain("/api/v1/auth/google");
     expect(source).toContain('Google sign-in was cancelled. Please try again or use email login.');
     expect(source).not.toContain('/api/auth/callback/google');
