@@ -50,10 +50,14 @@ describe('auth-google-init context handling', () => {
 
   it('uses server-side SIWG redirect mode instead of the popup transform flow', () => {
     expect(source).toContain("ux_mode: 'redirect'");
-    expect(source).toContain('login_uri: `${window.location.origin}/api/auth/callback/google`');
+    expect(source).toContain('function getGoogleLoginUri()');
+    expect(source).toContain('login_uri: getGoogleLoginUri()');
+    expect(source).toContain("const GOOGLE_LOGIN_PATH = '/api/auth/callback/google'");
     expect(source).toContain('use_fedcm_for_prompt: false');
     expect(source).toContain('use_fedcm_for_button: false');
-    expect(source).toContain('Google sign-in could not be completed. Please try again or use email login.');
+    expect(source).toContain(
+      'Google sign-in could not be completed. Please try again or use email login.'
+    );
     expect(source).not.toContain('submitGoogleCredential');
     expect(source).not.toContain('/api/v1/auth/google');
   });

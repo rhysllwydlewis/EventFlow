@@ -1918,6 +1918,21 @@ body.auth-page .auth-card .checkbox-label-right {
   width: 16px;
 }
 
+.auth-google-button--unavailable {
+  align-items: center;
+  background: rgba(11, 128, 115, 0.06);
+  border: 1px dashed rgba(11, 128, 115, 0.45);
+  border-radius: 999px;
+  color: var(--ef-text-muted);
+  display: flex;
+  font-size: 0.9rem;
+  font-weight: 700;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 14px;
+  text-align: center;
+}
+
 .auth-google-button iframe {
   max-width: 100%;
 }

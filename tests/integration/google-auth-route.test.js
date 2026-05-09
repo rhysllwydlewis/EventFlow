@@ -12,7 +12,7 @@ function encodeState(payload) {
     .replace(/=+$/g, '');
 }
 
-function buildAuthApp({ googleProfile, googleError, users = [] } = {}) {
+function buildAuthApp({ googleProfile, googleError, users = [], includeGlobalCors = false } = {}) {
   jest.resetModules();
   process.env.JWT_SECRET = 'test-secret-key-for-google-route-tests-minimum-32';
   process.env.NODE_ENV = 'test';
@@ -60,6 +60,11 @@ function buildAuthApp({ googleProfile, googleError, users = [] } = {}) {
   }));
 
   const app = express();
+  if (includeGlobalCors) {
+    const cors = require('cors');
+    const { configureCORS } = require('../../middleware/security');
+    app.use(cors(configureCORS(true)));
+  }
   app.use(express.json());
   app.use(cookieParser());
   app.use('/api/v1/auth', require('../../routes/auth'));
@@ -75,6 +80,7 @@ describe('Google auth route', () => {
     jest.dontMock('../../services/googleAuth.service');
     jest.dontMock('../../middleware/features');
     jest.restoreAllMocks();
+    delete process.env.BASE_URL;
   });
 
   it('redirects manual GETs on the SIWG callback back to the auth page', async () => {
@@ -122,6 +128,27 @@ describe('Google auth route', () => {
       verified: true,
       authProvider: 'google',
     });
+  });
+
+  it('allows the SIWG callback through production global CORS when BASE_URL is internal', async () => {
+    process.env.BASE_URL = 'https://eventflow-production.up.railway.app';
+    const { app, inserted } = buildAuthApp({ includeGlobalCors: true });
+
+    const response = await request(app)
+      .post('/api/auth/callback/google')
+      .set('Origin', 'https://event-flow.co.uk')
+      .set('Cookie', ['g_csrf_token=csrf-token-123'])
+      .type('form')
+      .send({
+        credential: 'valid-google-id-token',
+        g_csrf_token: 'csrf-token-123',
+      })
+      .expect(303);
+
+    expect(response.headers.location).toBe('/dashboard/customer');
+    expect(response.headers['access-control-allow-origin']).toBe('https://event-flow.co.uk');
+    expect(response.headers['set-cookie']?.join(';')).toContain('token=');
+    expect(inserted).toHaveLength(1);
   });
 
   it('ignores unsafe redirect state and falls back to the role dashboard', async () => {
