@@ -2,6 +2,13 @@
   'use strict';
 
   const GIS_SRC = 'https://accounts.google.com/gsi/client';
+  const GOOGLE_LOGIN_PATH = '/api/auth/callback/google';
+  const PRODUCTION_ORIGIN = 'https://event-flow.co.uk';
+
+  function getGoogleLoginUri() {
+    const origin = window.location.hostname === 'event-flow.co.uk' ? window.location.origin : PRODUCTION_ORIGIN;
+    return `${origin}${GOOGLE_LOGIN_PATH}`;
+  }
 
   function setStatus(message, type) {
     const status = document.getElementById('auth-status');
@@ -199,7 +206,7 @@
 
     window.google.accounts.id.initialize({
       client_id: config.googleClientId,
-      login_uri: `${window.location.origin}/api/auth/callback/google`,
+      login_uri: getGoogleLoginUri(),
       ux_mode: 'redirect',
       use_fedcm_for_prompt: false,
       use_fedcm_for_button: false,
