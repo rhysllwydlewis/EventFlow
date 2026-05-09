@@ -61,9 +61,8 @@ function buildAuthApp({ googleProfile, googleError, users = [], includeGlobalCor
 
   const app = express();
   if (includeGlobalCors) {
-    const cors = require('cors');
-    const { configureCORS } = require('../../middleware/security');
-    app.use(cors(configureCORS(true)));
+    const { configureCORSMiddleware } = require('../../middleware/security');
+    app.use(configureCORSMiddleware(true));
   }
   app.use(express.json());
   app.use(cookieParser());
@@ -147,6 +146,27 @@ describe('Google auth route', () => {
 
     expect(response.headers.location).toBe('/dashboard/customer');
     expect(response.headers['access-control-allow-origin']).toBe('https://event-flow.co.uk');
+    expect(response.headers['set-cookie']?.join(';')).toContain('token=');
+    expect(inserted).toHaveLength(1);
+  });
+
+  it('allows opaque browser origins on the SIWG form-post callback', async () => {
+    process.env.BASE_URL = 'https://eventflow-production.up.railway.app';
+    const { app, inserted } = buildAuthApp({ includeGlobalCors: true });
+
+    const response = await request(app)
+      .post('/api/auth/callback/google')
+      .set('Origin', 'null')
+      .set('Cookie', ['g_csrf_token=csrf-token-123'])
+      .type('form')
+      .send({
+        credential: 'valid-google-id-token',
+        g_csrf_token: 'csrf-token-123',
+      })
+      .expect(303);
+
+    expect(response.headers.location).toBe('/dashboard/customer');
+    expect(response.headers['access-control-allow-origin']).toBeUndefined();
     expect(response.headers['set-cookie']?.join(';')).toContain('token=');
     expect(inserted).toHaveLength(1);
   });

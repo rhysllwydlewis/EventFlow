@@ -6,8 +6,6 @@
 'use strict';
 
 const helmet = require('helmet');
-// cors is used in server.js via require('cors')
-// eslint-disable-next-line no-unused-vars
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const logger = require('../utils/logger');
@@ -202,7 +200,32 @@ function configurePermissionsPolicy() {
  * @param {boolean} isProduction - Whether running in production
  * @returns {Object} CORS options
  */
-function configureCORS(isProduction = false) {
+function isGoogleRedirectCallbackRequest(req) {
+  if (!req) {
+    return false;
+  }
+
+  const path = req.path || String(req.originalUrl || req.url || '').split('?')[0];
+  return (
+    req.method === 'POST' &&
+    (path === '/api/auth/callback/google' || path === '/api/v1/auth/callback/google')
+  );
+}
+
+function isOpaqueOrigin(origin) {
+  return origin === 'null';
+}
+
+function isAllowedGoogleCallbackOrigin(origin, allowedOrigins) {
+  const googleIdentityOrigins = new Set(['https://accounts.google.com']);
+  if (googleIdentityOrigins.has(normalizeCorsOrigin(origin))) {
+    return true;
+  }
+
+  return allowedOrigins.has(normalizeCorsOrigin(origin));
+}
+
+function configureCORS(isProduction = false, req = null) {
   return {
     origin: function (origin, callback) {
       // Allow requests with no origin (mobile apps, curl, etc.)
@@ -210,16 +233,16 @@ function configureCORS(isProduction = false) {
         return callback(null, true);
       }
 
-      // Google Identity Services redirect mode sends the credential callback from
-      // accounts.google.com. This is still protected by Google's double-submit
-      // g_csrf_token check and backend ID-token verification, but the global CORS
-      // middleware must not reject the request before the callback route runs.
-      const trustedThirdPartyOrigins = ['https://accounts.google.com'];
-      if (trustedThirdPartyOrigins.includes(origin)) {
+      const requestOrigin = normalizeCorsOrigin(origin);
+
+      // Google Identity Services redirect mode can send credential callbacks from
+      // accounts.google.com. Keep that origin globally trusted for existing GIS
+      // integrations; the exact callback route below also lets opaque `null`
+      // browser origins reach route-level CSRF and ID-token validation without
+      // granting them CORS response headers.
+      if (requestOrigin === 'https://accounts.google.com') {
         return callback(null, true);
       }
-
-      const requestOrigin = normalizeCorsOrigin(origin);
 
       // Get allowed origins from BASE_URL environment variable. Normalize every
       // configured value to URL.origin so a trailing slash or accidental path in
@@ -242,6 +265,21 @@ function configureCORS(isProduction = false) {
           addAllowedOrigin(allowedOrigins, o);
           addWwwVariant(allowedOrigins, o);
         });
+      }
+
+      // Google Identity Services redirect-mode callbacks are browser form
+      // navigations rather than application XHR calls. Some browsers/privacy
+      // contexts can send `Origin: null` for those navigations. For that exact
+      // POST callback only, disable CORS header emission but do not reject the
+      // request, so Google's double-submit CSRF and ID-token checks decide it.
+      if (isGoogleRedirectCallbackRequest(req)) {
+        if (isOpaqueOrigin(origin)) {
+          return callback(null, false);
+        }
+
+        if (isAllowedGoogleCallbackOrigin(origin, allowedOrigins)) {
+          return callback(null, true);
+        }
       }
 
       // Support Railway preview URLs in non-production
@@ -288,6 +326,12 @@ function configureCORS(isProduction = false) {
     credentials: true, // Allow cookies to be sent with requests
     optionsSuccessStatus: 200,
   };
+}
+
+function configureCORSMiddleware(isProduction = false) {
+  return cors((req, callback) => {
+    callback(null, configureCORS(isProduction, req));
+  });
 }
 
 /**
@@ -391,6 +435,7 @@ module.exports = {
   configureHelmet,
   configurePermissionsPolicy,
   configureCORS,
+  configureCORSMiddleware,
   createRateLimiters,
   configureHTTPSRedirect,
 };
