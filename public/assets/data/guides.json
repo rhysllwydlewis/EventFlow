@@ -673,33 +673,5 @@
     "lastUpdated": "2026-03-15",
     "primaryTag": "outdoor",
     "ogImage": "https://images.pexels.com/photos/1580913/pexels-photo-1580913.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1"
-  },
-  {
-    "id": 25,
-    "title": "Event Photography: Shot List Template",
-    "description": "Never miss a key moment with our ready-to-use event photography shot list template.",
-    "excerpt": "Never miss a key moment with our ready-to-use event photography shot list template. Covers weddings, parties, and corporate events with tips for briefing your photographer.",
-    "image": "https://images.pexels.com/photos/3014853/pexels-photo-3014853.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1",
-    "category": "Photography",
-    "tags": [
-      "photography",
-      "shot-list",
-      "tips"
-    ],
-    "href": "/articles/event-photography-shot-list-guide",
-    "readingMins": 5,
-    "publishedDate": "2026-03-15",
-    "featured": false,
-    "affiliate": false,
-    "tool": {
-      "label": "Find photographers",
-      "href": "/suppliers"
-    },
-    "author": "EventFlow Team",
-    "summary": "Never miss a key moment with our ready-to-use event photography shot list template.",
-    "difficulty": "Intermediate",
-    "lastUpdated": "2026-03-15",
-    "primaryTag": "photography",
-    "ogImage": "https://images.pexels.com/photos/3014853/pexels-photo-3014853.jpeg?auto=compress&cs=tinysrgb&w=800&h=500&dpr=1"
   }
 ]

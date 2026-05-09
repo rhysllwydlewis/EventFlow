@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let searchQuery = '';
   let sortOrder = 'newest';
   let showAllGuides = false;
-  const INITIAL_GUIDE_LIMIT = 24;
+  const INITIAL_GUIDE_LIMIT = 23;
 
   const searchInput = document.getElementById('guides-search-input');
   const searchClear = document.getElementById('guides-search-clear');

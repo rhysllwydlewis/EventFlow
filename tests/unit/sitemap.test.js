@@ -28,10 +28,7 @@ const BASE_URL = 'https://event-flow.co.uk';
 
 // Load guides.json once to derive expected article slugs
 const guidesData = JSON.parse(
-  fs.readFileSync(
-    path.join(__dirname, '../../public/assets/data/guides.json'),
-    'utf8'
-  )
+  fs.readFileSync(path.join(__dirname, '../../public/assets/data/guides.json'), 'utf8')
 );
 const expectedArticleSlugs = guidesData.map(g => g.href.replace('/articles/', ''));
 
@@ -61,13 +58,17 @@ describe('generateSitemap', () => {
     expect(count).toBe(1);
   });
 
+  test('guide catalogue is intentionally capped at 24 public entries', () => {
+    expect(guidesData).toHaveLength(24);
+  });
+
   test('includes all article URLs from guides.json', () => {
     for (const slug of expectedArticleSlugs) {
       expect(xml).toContain(`<loc>${BASE_URL}/articles/${slug}</loc>`);
     }
   });
 
-  test('includes all 25 article entries matching guides.json', () => {
+  test('includes every article entry matching guides.json', () => {
     const matches = [...xml.matchAll(/<loc>[^<]*\/articles\/[^<]+<\/loc>/g)];
     expect(matches.length).toBe(expectedArticleSlugs.length);
   });
@@ -83,9 +84,7 @@ describe('generateSitemap', () => {
   });
 
   test('does not contain .html extensions in article URLs', () => {
-    const articleUrls = [...xml.matchAll(/<loc>[^<]*\/articles\/[^<]+<\/loc>/g)].map(
-      m => m[0]
-    );
+    const articleUrls = [...xml.matchAll(/<loc>[^<]*\/articles\/[^<]+<\/loc>/g)].map(m => m[0]);
     for (const url of articleUrls) {
       expect(url).not.toContain('.html');
     }

@@ -42,7 +42,10 @@ describe('guides SEO and UX assets', () => {
     );
     expect(css).toContain('.guides-nojs-list[hidden]');
     expect(css).toContain('.guide-card--more');
-    expect(init).toContain('INITIAL_GUIDE_LIMIT = 24');
+    expect(css).toContain('article .article-cta-card');
+    expect(css).toContain('white-space: nowrap');
+    expect(init).toContain('INITIAL_GUIDE_LIMIT = 23');
+    expect(guides).toHaveLength(24);
     expect(init).toContain('View all ${list.length} guides');
     expect(init).toContain('function bindMediaQueryChange');
     expect(init).toContain('if (searchClear)');
