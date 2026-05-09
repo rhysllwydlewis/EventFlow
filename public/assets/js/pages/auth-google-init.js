@@ -367,10 +367,11 @@
       client_id: config.googleClientId,
       // Keep EventFlow on the Google Identity Services button flow. The app
       // receives an ID token in this callback and then POSTs it to
-      // /api/v1/auth/google; it should not rely on /api/auth/callback/google.
+      // /api/v1/auth/google; it should not rely on an OAuth redirect callback.
       callback: response => submitGoogleCredential(response, getGoogleAuthContext()),
       ux_mode: 'popup',
       use_fedcm_for_prompt: false,
+      use_fedcm_for_button: false,
     });
 
     const renderOptions = {
