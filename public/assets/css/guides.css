@@ -2795,3 +2795,115 @@ article .card table tr:last-child td {
     break-after: avoid;
   }
 }
+
+/* Guide SEO/UX enhancement components */
+.guide-card__badges {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.guide-card__tag,
+.guide-card__difficulty {
+  background: #ecfeff;
+  border: 1px solid rgba(11, 128, 115, 0.14);
+  border-radius: 999px;
+  color: #0b8073;
+  display: inline-flex;
+  font-size: 0.76rem;
+  font-weight: 800;
+  line-height: 1;
+  padding: 7px 10px;
+}
+
+.guide-card__summary {
+  background: #f8fffe;
+  border-left: 3px solid #13b6a2;
+  border-radius: 10px;
+  color: #24413e;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+}
+
+.guide-feedback {
+  background: linear-gradient(135deg, #f8fffe 0%, #eefaf8 100%);
+  border: 1px solid rgba(11, 128, 115, 0.16);
+  border-radius: 20px;
+  box-shadow: 0 10px 32px rgba(11, 128, 115, 0.1);
+  margin: 32px 0;
+  padding: 24px;
+}
+
+.guide-feedback__title {
+  color: #123835;
+  font-size: 1.15rem;
+  font-weight: 850;
+  margin: 0 0 8px;
+}
+
+.guide-feedback__text {
+  color: #48625f;
+  margin: 0 0 18px;
+}
+
+.guide-feedback__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.guide-feedback__button,
+.guide-feedback__link {
+  align-items: center;
+  border-radius: 999px;
+  display: inline-flex;
+  font-weight: 800;
+  gap: 8px;
+  min-height: 42px;
+  padding: 10px 16px;
+  text-decoration: none;
+}
+
+.guide-feedback__button {
+  background: #fff;
+  border: 1px solid rgba(11, 128, 115, 0.22);
+  color: #0b8073;
+  cursor: pointer;
+}
+
+.guide-feedback__button[aria-pressed='true'] {
+  background: #0b8073;
+  color: #fff;
+}
+
+.guide-feedback__link {
+  background: #123835;
+  color: #fff;
+}
+
+.guide-feedback__status {
+  color: #48625f;
+  font-size: 0.9rem;
+  margin: 14px 0 0;
+  min-height: 1.3em;
+}
+
+.article-share {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.article-share__link {
+  background: rgba(11, 128, 115, 0.08);
+  border-radius: 999px;
+  color: #0b8073;
+  font-weight: 800;
+  padding: 8px 12px;
+  text-decoration: none;
+}
