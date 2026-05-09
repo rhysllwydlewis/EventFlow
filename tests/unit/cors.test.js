@@ -84,6 +84,15 @@ describe('CORS Configuration', () => {
       expect(response.body).toEqual({ ok: true });
     });
 
+    test('should allow Google Identity Services callback origin', async () => {
+      const response = await request(app)
+        .get('/test')
+        .set('Origin', 'https://accounts.google.com');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual({ ok: true });
+    });
+
     test('should reject non-configured origin with 403', async () => {
       const response = await request(app).get('/test').set('Origin', 'https://malicious-site.com');
 
