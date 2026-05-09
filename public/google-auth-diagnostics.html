@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>EventFlow Google Sign-In Diagnostics</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      background: #f6f8f7;
+      color: #17332f;
+    }
+    main {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 32px 20px;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+    }
+    .card {
+      background: #fff;
+      border: 1px solid rgba(23, 51, 47, 0.12);
+      border-radius: 18px;
+      box-shadow: 0 18px 45px rgba(23, 51, 47, 0.08);
+      padding: 20px;
+      margin-top: 18px;
+    }
+    dt {
+      font-weight: 700;
+      margin-top: 14px;
+    }
+    dd {
+      margin: 6px 0 0;
+      padding: 10px 12px;
+      background: #f1f5f4;
+      border-radius: 10px;
+      overflow-wrap: anywhere;
+      font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+    }
+    .ok { color: #0f7a43; font-weight: 700; }
+    .warn { color: #9f5b00; font-weight: 700; }
+    .bad { color: #a12828; font-weight: 700; }
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 10px 16px;
+      background: #17332f;
+      color: #fff;
+      cursor: pointer;
+      font-weight: 700;
+    }
+    pre {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      background: #0d1f1d;
+      color: #e7f5f1;
+      padding: 14px;
+      border-radius: 12px;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Google Sign-In Diagnostics</h1>
+    <p>This page exposes only public, non-secret Google Sign-In values from the live deployment so the OAuth client can be checked against Google Cloud.</p>
+
+    <section class="card">
+      <button id="refresh" type="button">Refresh diagnostics</button>
+      <dl id="results"></dl>
+    </section>
+
+    <section class="card">
+      <h2>Expected Google Cloud values</h2>
+      <dl>
+        <dt>Authorised JavaScript origin</dt>
+        <dd>https://event-flow.co.uk</dd>
+        <dt>Authorised redirect URI</dt>
+        <dd>https://event-flow.co.uk/api/auth/callback/google</dd>
+      </dl>
+    </section>
+
+    <section class="card">
+      <h2>Raw /api/v1/config response</h2>
+      <pre id="raw">Loading…</pre>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      'use strict';
+
+      const EXPECTED_ORIGIN = 'https://event-flow.co.uk';
+      const EXPECTED_LOGIN_URI = 'https://event-flow.co.uk/api/auth/callback/google';
+      const results = document.getElementById('results');
+      const raw = document.getElementById('raw');
+      const refresh = document.getElementById('refresh');
+
+      function row(label, value, status) {
+        const term = document.createElement('dt');
+        term.textContent = label;
+        const detail = document.createElement('dd');
+        detail.textContent = value || '(empty)';
+        if (status) {
+          const badge = document.createElement('span');
+          badge.className = status.type;
+          badge.textContent = ` ${status.text}`;
+          detail.appendChild(badge);
+        }
+        results.append(term, detail);
+      }
+
+      function expectedLoginUriForThisBuild() {
+        if (window.location.hostname === 'event-flow.co.uk') {
+          return `${window.location.origin}/api/auth/callback/google`;
+        }
+        return EXPECTED_LOGIN_URI;
+      }
+
+      async function loadDiagnostics() {
+        results.innerHTML = '';
+        raw.textContent = 'Loading…';
+        try {
+          const response = await fetch('/api/v1/config', { credentials: 'include', cache: 'no-store' });
+          const config = await response.json();
+          raw.textContent = JSON.stringify(config, null, 2);
+
+          const liveOrigin = window.location.origin;
+          const liveClientId = config.googleClientId || '';
+          const computedLoginUri = expectedLoginUriForThisBuild();
+
+          row('Current page origin', liveOrigin, {
+            type: liveOrigin === EXPECTED_ORIGIN ? 'ok' : 'warn',
+            text: liveOrigin === EXPECTED_ORIGIN ? 'matches production origin' : 'not production origin'
+          });
+          row('Live googleClientId from /api/v1/config', liveClientId, {
+            type: liveClientId.endsWith('.apps.googleusercontent.com') ? 'ok' : 'bad',
+            text: liveClientId ? 'present' : 'missing'
+          });
+          row('Computed Sign in with Google login_uri', computedLoginUri, {
+            type: computedLoginUri === EXPECTED_LOGIN_URI ? 'ok' : 'bad',
+            text: computedLoginUri === EXPECTED_LOGIN_URI ? 'matches expected URI' : 'does not match expected URI'
+          });
+          row('Expected authorised redirect URI', EXPECTED_LOGIN_URI);
+          row('Expected authorised JavaScript origin', EXPECTED_ORIGIN);
+          row('Config endpoint status', `${response.status} ${response.statusText}`, {
+            type: response.ok ? 'ok' : 'bad',
+            text: response.ok ? 'ok' : 'failed'
+          });
+        } catch (error) {
+          raw.textContent = error && error.stack ? error.stack : String(error);
+          row('Diagnostics error', error.message || String(error), { type: 'bad', text: 'failed' });
+        }
+      }
+
+      refresh.addEventListener('click', loadDiagnostics);
+      loadDiagnostics();
+    })();
+  </script>
+</body>
+</html>
