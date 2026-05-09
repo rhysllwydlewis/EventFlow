@@ -331,7 +331,7 @@ app.disable('x-powered-by');
 app.use(security.configureHTTPSRedirect(isProduction));
 app.use(security.configureHelmet(isProduction));
 app.use(security.configurePermissionsPolicy());
-app.use(require('cors')(security.configureCORS(isProduction)));
+app.use(security.configureCORSMiddleware(isProduction));
 
 // Sentry request and tracing handlers
 app.use(sentry.getRequestHandler());
