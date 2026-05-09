@@ -1,0 +1,35 @@
+name: Lighthouse CI
+
+on:
+  pull_request:
+    paths:
+      - 'public/**'
+      - 'routes/**'
+      - 'server.js'
+      - '.lighthouserc.json'
+      - '.github/workflows/lighthouse-ci.yml'
+      - 'package*.json'
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Lighthouse CI
+        env:
+          NODE_ENV: test
+          PORT: 3000
+          BASE_URL: http://localhost:3000
+        run: npx --yes @lhci/cli@0.14.x autorun

@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
   //  HELPERS
   // ──────────────────────────────────────────────
   function escHtml(str) {
-    return String(str)
+    return String(str === null || str === undefined ? '' : str)
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
@@ -62,9 +62,26 @@ document.addEventListener('DOMContentLoaded', () => {
   // ──────────────────────────────────────────────
   //  HERO CAROUSEL
   // ──────────────────────────────────────────────
+  function formatGuideDate(value) {
+    if (!value) {
+      return 'Updated recently';
+    }
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return 'Updated recently';
+    }
+    return `Updated ${date.toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}`;
+  }
+
+  function trackGuideEvent(eventName, params) {
+    if (window.EFAnalytics && typeof window.EFAnalytics.track === 'function') {
+      window.EFAnalytics.track(eventName, params);
+    }
+  }
+
   function buildSideCardHTML(article, eager) {
     return `
-        <a href="${escHtml(article.link)}" class="hero-side-card" aria-label="Read guide: ${escHtml(article.title)}">
+        <a href="${escHtml(article.link)}" class="hero-side-card" data-analytics-event="guide_card_click" data-guide-slug="${escHtml(article.slug)}" data-guide-title="${escHtml(article.title)}" aria-label="Read guide: ${escHtml(article.title)}">
           <div class="hero-side-card__image-wrap">
             <img src="${escHtml(article.image)}" alt="" class="hero-side-card__image" loading="${eager ? 'eager' : 'lazy'}" width="400" height="260">
             <div class="hero-side-card__overlay" aria-hidden="true"></div>
@@ -363,18 +380,24 @@ document.addEventListener('DOMContentLoaded', () => {
             <img src="${escHtml(article.image)}" alt="" class="guide-card__image" loading="${i < 4 ? 'eager' : 'lazy'}" width="640" height="360">
           </div>
           <div class="guide-card__body">
-            <span class="guide-card__category">${categoryEmoji[article.category] || ''} ${escHtml(article.category)}</span>
+            <div class="guide-card__badges">
+              <span class="guide-card__category">${categoryEmoji[article.category] || ''} ${escHtml(article.category)}</span>
+              <span class="guide-card__tag">#${escHtml(article.primaryTag)}</span>
+            </div>
             <h3 class="guide-card__title">${escHtml(article.title)}</h3>
+            <p class="guide-card__summary"><strong>TL;DR:</strong> ${escHtml(article.summary)}</p>
             <p class="guide-card__excerpt">${escHtml(article.excerpt)}</p>
-            <div class="guide-card__meta">
+            <div class="guide-card__meta" aria-label="Guide details">
               <span class="guide-card__meta-item">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                 ${article.readTime} min read
               </span>
+              <span class="guide-card__meta-item guide-card__difficulty">${escHtml(article.difficulty)}</span>
+              <span class="guide-card__meta-item">${escHtml(formatGuideDate(article.lastUpdated))}</span>
               ${article.affiliate ? '<span class="guide-card__partner-badge">Partner</span>' : ''}
             </div>
             <div class="guide-card__cta-row">
-              <a href="${escHtml(article.link)}" class="guide-card__cta" aria-label="Read guide: ${escHtml(article.title)}">
+              <a href="${escHtml(article.link)}" class="guide-card__cta" data-analytics-event="guide_card_click" data-guide-slug="${escHtml(article.slug)}" data-guide-title="${escHtml(article.title)}" aria-label="Read guide: ${escHtml(article.title)}">
                 Read guide <span class="guide-card__cta-arrow" aria-hidden="true">→</span>
               </a>
               ${article.tool ? `<a href="${escHtml(article.tool.href)}" class="article-end-cta__tool guide-card__tool-link" aria-label="${escHtml(article.tool.label)}">${escHtml(article.tool.label)}</a>` : ''}
@@ -399,8 +422,13 @@ document.addEventListener('DOMContentLoaded', () => {
         category: g.category || '',
         tags: Array.isArray(g.tags) ? g.tags : [],
         link: g.href || g.link || '',
+        slug: (g.href || g.link || '').replace('/articles/', ''),
+        summary: g.summary || g.excerpt || g.description || '',
+        difficulty: g.difficulty || 'Beginner',
+        primaryTag: g.primaryTag || (Array.isArray(g.tags) && g.tags[0]) || g.category || '',
         readTime: g.readingMins || g.readTime || 0,
         publishedDate: g.publishedDate || '',
+        lastUpdated: g.lastUpdated || g.publishedDate || '',
         featured: g.featured || false,
         featuredOrder: g.featuredOrder || 999,
         affiliate: g.affiliate || false,
@@ -426,6 +454,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       }
     });
+
+  document.addEventListener('click', event => {
+    const target = event.target.closest('[data-analytics-event="guide_card_click"]');
+    if (!target) {
+      return;
+    }
+    trackGuideEvent('guide_card_click', {
+      guide_slug: target.dataset.guideSlug || '',
+      guide_title: target.dataset.guideTitle || target.textContent.trim(),
+      location: target.classList.contains('hero-side-card') ? 'guides_hero' : 'guides_grid',
+    });
+  });
 
   // ──────────────────────────────────────────────
   //  AUTH GATE FOR PLANNING TOOLS
