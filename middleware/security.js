@@ -57,6 +57,11 @@ function addWwwVariant(allowedOrigins, origin) {
  */
 function configureHelmet(isProduction = false) {
   return helmet({
+    // Google Identity Services can briefly use a popup at /gsi/transform even
+    // for button flows. Helmet's default `same-origin` COOP severs the popup's
+    // opener relationship and leaves that window blank, so allow same-origin
+    // isolation while preserving popup communication for trusted sign-in flows.
+    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],

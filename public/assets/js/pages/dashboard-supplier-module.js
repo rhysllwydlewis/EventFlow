@@ -685,9 +685,9 @@ window.addEventListener('load', () => {
           pendingDisconnectNoticeTimer = setTimeout(() => {
             lastDisconnectToastAt = Date.now();
             if (typeof EventFlowNotifications !== 'undefined') {
-              NotificationDispatcher.warning('Live dashboard disconnected\nReconnecting…', 4000);
+              NotificationDispatcher.warning('Live dashboard disconnected\nretrying...', 4000);
             }
-            showUrgentAlert('Live updates disconnected. Retrying…', 'warning');
+            showUrgentAlert('Live updates disconnected. retrying...', 'warning');
             pendingDisconnectNoticeTimer = null;
           }, DISCONNECT_TOAST_DELAY_MS);
         },
