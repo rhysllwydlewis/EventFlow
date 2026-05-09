@@ -47,9 +47,10 @@
   async function copyShareUrl(button) {
     const url = button.dataset.shareUrl || window.location.href;
     try {
-      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-        await navigator.clipboard.writeText(url);
+      if (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') {
+        throw new Error('Clipboard API unavailable');
       }
+      await navigator.clipboard.writeText(url);
       const feedbackWidget = button.closest('[data-guide-feedback]');
       const status = feedbackWidget && feedbackWidget.querySelector('[data-feedback-status]');
       if (status) {

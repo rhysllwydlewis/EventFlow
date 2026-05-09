@@ -12,7 +12,7 @@ const logger = require('./utils/logger');
 
 /**
  * Load guide slugs from the static guides.json data file.
- * Returns an array of objects { slug, publishedDate } for all guides.
+ * Returns an array of objects { slug, lastmod } for all guides.
  * Falls back to an empty array if the file cannot be read.
  */
 function loadGuideEntries() {
@@ -22,7 +22,7 @@ function loadGuideEntries() {
     const guides = JSON.parse(raw);
     return guides.map(g => ({
       slug: (g.href || '').replace('/articles/', ''),
-      publishedDate: g.publishedDate || null,
+      lastmod: g.lastUpdated || g.publishedDate || null,
     }));
   } catch (err) {
     logger.error('sitemap: could not load guides.json:', err);
@@ -35,8 +35,18 @@ function loadGuideEntries() {
  * @param {string} baseUrl - Base URL of the site
  * @returns {Promise<string>} Sitemap XML
  */
+function xmlEscape(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
 async function generateSitemap(baseUrl) {
   const now = new Date().toISOString();
+  const normalizedBaseUrl = String(baseUrl || '').replace(/\/$/, '');
 
   let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
   xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
@@ -59,7 +69,7 @@ async function generateSitemap(baseUrl) {
 
   staticPages.forEach(page => {
     xml += '  <url>\n';
-    xml += `    <loc>${baseUrl}${page.url}</loc>\n`;
+    xml += `    <loc>${xmlEscape(normalizedBaseUrl + page.url)}</loc>\n`;
     xml += `    <lastmod>${now}</lastmod>\n`;
     xml += `    <changefreq>${page.changefreq}</changefreq>\n`;
     xml += `    <priority>${page.priority}</priority>\n`;
@@ -74,7 +84,7 @@ async function generateSitemap(baseUrl) {
         .filter(s => s.approved)
         .forEach(supplier => {
           xml += '  <url>\n';
-          xml += `    <loc>${baseUrl}/supplier.html?id=${supplier.id}</loc>\n`;
+          xml += `    <loc>${xmlEscape(`${normalizedBaseUrl}/supplier.html?id=${supplier.id}`)}</loc>\n`;
           xml += `    <lastmod>${supplier.updatedAt || now}</lastmod>\n`;
           xml += `    <changefreq>weekly</changefreq>\n`;
           xml += `    <priority>0.8</priority>\n`;
@@ -89,7 +99,7 @@ async function generateSitemap(baseUrl) {
         // Use slug if available, fallback to id
         const identifier = pkg.slug ? `slug=${pkg.slug}` : `id=${pkg.id}`;
         xml += '  <url>\n';
-        xml += `    <loc>${baseUrl}/package.html?${identifier}</loc>\n`;
+        xml += `    <loc>${xmlEscape(`${normalizedBaseUrl}/package.html?${identifier}`)}</loc>\n`;
         xml += `    <lastmod>${pkg.updatedAt || now}</lastmod>\n`;
         xml += `    <changefreq>weekly</changefreq>\n`;
         xml += `    <priority>0.7</priority>\n`;
@@ -99,12 +109,13 @@ async function generateSitemap(baseUrl) {
 
     // Individual article pages — derived from guides.json
     const guideEntries = loadGuideEntries();
-    guideEntries.forEach(({ slug, publishedDate }) => {
-      if (!slug) return;
-      const lastmod = publishedDate || now;
+    guideEntries.forEach(({ slug, lastmod }) => {
+      if (!slug) {
+        return;
+      }
       xml += '  <url>\n';
-      xml += `    <loc>${baseUrl}/articles/${slug}</loc>\n`;
-      xml += `    <lastmod>${lastmod}</lastmod>\n`;
+      xml += `    <loc>${xmlEscape(`${normalizedBaseUrl}/articles/${slug}`)}</loc>\n`;
+      xml += `    <lastmod>${lastmod || now}</lastmod>\n`;
       xml += `    <changefreq>monthly</changefreq>\n`;
       xml += `    <priority>0.7</priority>\n`;
       xml += '  </url>\n';
@@ -151,4 +162,6 @@ Crawl-delay: 1
 module.exports = {
   generateSitemap,
   generateRobotsTxt,
+  loadGuideEntries,
+  xmlEscape,
 };

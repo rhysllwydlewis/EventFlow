@@ -81,6 +81,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function bindMediaQueryChange(query, handler) {
+    if (query && typeof query.addEventListener === 'function') {
+      query.addEventListener('change', handler);
+    } else if (query && typeof query.addListener === 'function') {
+      query.addListener(handler);
+    }
+  }
+
   function buildSideCardHTML(article, eager) {
     return `
         <a href="${escHtml(article.link)}" class="hero-side-card" data-analytics-event="guide_card_click" data-guide-slug="${escHtml(article.slug)}" data-guide-title="${escHtml(article.title)}" aria-label="Read guide: ${escHtml(article.title)}">
@@ -136,7 +144,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let idx = 0;
     let carouselInterval = null;
-    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const motionQuery = window.matchMedia
+      ? window.matchMedia('(prefers-reduced-motion: reduce)')
+      : { matches: false };
 
     function showPair(isFirst) {
       const leftIdx = idx % featured.length;
@@ -176,7 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
     startInterval();
 
     // Respond to live changes in the user's motion preference
-    motionQuery.addEventListener('change', () => {
+    bindMediaQueryChange(motionQuery, () => {
       if (motionQuery.matches) {
         clearInterval(carouselInterval);
         carouselInterval = null;
@@ -198,8 +208,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let html = `<button class="guides-chip active" data-filter="" role="radio" aria-checked="true">All guides</button>`;
     categories.forEach(cat => {
       const em = categoryEmoji[cat] || '';
-      html += `<button class="guides-chip" data-filter="${cat}" role="radio" aria-checked="false">
-          <span class="guides-chip__icon" aria-hidden="true">${em}</span> ${cat}
+      html += `<button class="guides-chip" data-filter="${escHtml(cat)}" role="radio" aria-checked="false">
+          <span class="guides-chip__icon" aria-hidden="true">${escHtml(em)}</span> ${escHtml(cat)}
         </button>`;
     });
     chipsWrap.innerHTML = html;
@@ -222,8 +232,10 @@ document.addEventListener('DOMContentLoaded', () => {
   //  SEARCH
   // ──────────────────────────────────────────────
   function handleSearch() {
-    searchQuery = searchInput.value.trim().toLowerCase();
-    searchClear.classList.toggle('visible', searchQuery.length > 0);
+    searchQuery = searchInput ? searchInput.value.trim().toLowerCase() : '';
+    if (searchClear) {
+      searchClear.classList.toggle('visible', searchQuery.length > 0);
+    }
     updateClearBtn();
     showAllGuides = false;
     renderGrid();
@@ -266,7 +278,9 @@ document.addEventListener('DOMContentLoaded', () => {
       searchInput.value = '';
     }
     searchQuery = '';
-    searchClear.classList.remove('visible');
+    if (searchClear) {
+      searchClear.classList.remove('visible');
+    }
     updateClearBtn();
     showAllGuides = false;
     renderGrid();
@@ -297,7 +311,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (sortSelect) {
       sortSelect.value = 'newest';
     }
-    searchClear.classList.remove('visible');
+    if (searchClear) {
+      searchClear.classList.remove('visible');
+    }
     chipsWrap.querySelectorAll('.guides-chip').forEach(b => {
       const isAll = b.dataset.filter === '';
       b.classList.toggle('active', isAll);

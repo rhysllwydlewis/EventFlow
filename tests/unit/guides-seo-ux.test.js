@@ -44,6 +44,8 @@ describe('guides SEO and UX assets', () => {
     expect(css).toContain('.guide-card--more');
     expect(init).toContain('INITIAL_GUIDE_LIMIT = 24');
     expect(init).toContain('View all ${list.length} guides');
+    expect(init).toContain('function bindMediaQueryChange');
+    expect(init).toContain('if (searchClear)');
   });
 
   test('sample article includes schema, feedback, prefilled report link and copy button', () => {
@@ -56,6 +58,12 @@ describe('guides SEO and UX assets', () => {
     expect(html).toContain('labels=content,guides');
     expect(html).toContain('data-share-channel="copy"');
     expect(html).toContain(`data-share-url="https://event-flow.co.uk${guide.href}"`);
+
+    const analytics = fs.readFileSync(
+      path.join(repoRoot, 'public/assets/js/analytics-events.js'),
+      'utf8'
+    );
+    expect(analytics).toContain("throw new Error('Clipboard API unavailable')");
   });
 
   test('Lighthouse CI uses the static server so CI does not require app secrets', () => {
