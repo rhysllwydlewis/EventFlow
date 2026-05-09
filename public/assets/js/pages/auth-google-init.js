@@ -2,6 +2,7 @@
   'use strict';
 
   const GIS_SRC = 'https://accounts.google.com/gsi/client';
+  const ROLE_POLISH_CSS = '/assets/css/auth-google-signup.css?v=18.3.0';
   const GOOGLE_LOGIN_PATH = '/api/auth/callback/google';
   const PRODUCTION_ORIGIN = 'https://event-flow.co.uk';
   const GOOGLE_SIGNUP_RERENDER_DELAY = 160;
@@ -58,30 +59,6 @@
       el.textContent = fallback;
     });
     setStatus(fallback, 'warning');
-  }
-
-  function getGoogleAuthContext() {
-    const explicitContext = window.__eventflowGoogleAuthContext;
-    if (explicitContext === 'signup' || explicitContext === 'signin') {
-      return explicitContext;
-    }
-
-    const createPanel = document.getElementById('panel-create');
-    const createTab = document.getElementById('tab-create');
-    const createPanelActive = createPanel && createPanel.hidden === false;
-    const createTabActive = createTab && createTab.getAttribute('aria-selected') === 'true';
-    const query = new URLSearchParams(window.location.search);
-
-    if (
-      createPanelActive ||
-      createTabActive ||
-      window.location.hash === '#create' ||
-      query.get('tab') === 'create'
-    ) {
-      return 'signup';
-    }
-
-    return 'signin';
   }
 
   function setGoogleAuthContext(context) {
@@ -247,125 +224,15 @@
     return window.__eventflowGoogleScriptPromise;
   }
 
-  function ensureLiquidGlassRolePickerStyles() {
-    if (document.getElementById('auth-google-role-polish-styles')) {
+  function ensureRolePolishStylesheet() {
+    if (document.querySelector(`link[href="${ROLE_POLISH_CSS}"]`)) {
       return;
     }
 
-    const style = document.createElement('style');
-    style.id = 'auth-google-role-polish-styles';
-    style.textContent = `
-      body.auth-page .auth-role-picker {
-        position: relative;
-        isolation: isolate;
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 0.35rem;
-        padding: 0.35rem;
-        border-radius: 1rem;
-        background:
-          radial-gradient(circle at 18% 0%, rgba(255,255,255,.95), rgba(255,255,255,.52) 34%, transparent 58%),
-          linear-gradient(135deg, rgba(11,128,115,.10), rgba(19,182,162,.05));
-        border: 1px solid rgba(11,128,115,.16);
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.72), 0 14px 30px rgba(15,23,42,.08);
-        overflow: hidden;
-      }
-
-      body.auth-page .auth-role-picker::before {
-        content: '';
-        position: absolute;
-        z-index: -1;
-        top: 0.35rem;
-        bottom: 0.35rem;
-        left: 0.35rem;
-        width: calc(50% - 0.35rem);
-        border-radius: 0.75rem;
-        background:
-          linear-gradient(135deg, rgba(255,255,255,.96), rgba(255,255,255,.72)),
-          linear-gradient(135deg, rgba(11,128,115,.18), rgba(19,182,162,.12));
-        border: 1px solid rgba(255,255,255,.76);
-        box-shadow: 0 10px 22px rgba(11,128,115,.18), inset 0 1px 0 rgba(255,255,255,.88);
-        transform: translateX(0);
-        transition: transform .42s cubic-bezier(.2, 1.25, .32, 1), box-shadow .24s ease;
-      }
-
-      body.auth-page .auth-role-picker.is-supplier-selected::before {
-        transform: translateX(calc(100% + 0.35rem));
-      }
-
-      body.auth-page .auth-role-option {
-        position: relative;
-        min-height: 3rem;
-        border: 0 !important;
-        background: transparent !important;
-        box-shadow: none !important;
-        color: #475467;
-        transform: translateZ(0);
-        transition: color .22s ease, transform .22s cubic-bezier(.2, 1.25, .32, 1), opacity .22s ease;
-      }
-
-      body.auth-page .auth-role-option:hover {
-        transform: translateY(-1px);
-      }
-
-      body.auth-page .auth-role-option.is-active,
-      body.auth-page .auth-role-option.auth-role-option--active {
-        color: #075e54;
-        font-weight: 800;
-      }
-
-      body.auth-page .auth-role-icon {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 1.65rem;
-        height: 1.65rem;
-        margin-right: .45rem;
-        border-radius: 999px;
-        background: rgba(255,255,255,.58);
-        box-shadow: inset 0 1px 0 rgba(255,255,255,.8);
-        transition: transform .28s cubic-bezier(.2, 1.45, .32, 1);
-      }
-
-      body.auth-page .auth-role-option.is-active .auth-role-icon,
-      body.auth-page .auth-role-option.auth-role-option--active .auth-role-icon {
-        transform: scale(1.08) rotate(-4deg);
-      }
-
-      body.auth-page .auth-google-button.auth-google-button--disabled {
-        position: relative;
-        pointer-events: none;
-        opacity: .46;
-        filter: grayscale(.18);
-      }
-
-      body.auth-page .auth-google-note {
-        border-radius: .85rem;
-        transition: background .25s ease, border-color .25s ease, color .25s ease, transform .25s ease;
-      }
-
-      body.auth-page .auth-google-note.is-ready {
-        background: rgba(209,250,229,.64);
-        border-color: rgba(16,185,129,.28);
-        color: #047857;
-      }
-
-      body.auth-page .auth-google-note.is-warning {
-        background: rgba(254,243,199,.74);
-        border-color: rgba(245,158,11,.28);
-        color: #92400e;
-      }
-
-      @media (prefers-reduced-motion: reduce) {
-        body.auth-page .auth-role-picker::before,
-        body.auth-page .auth-role-option,
-        body.auth-page .auth-role-icon,
-        body.auth-page .auth-google-note {
-          transition: none;
-        }
-      }
-    `;
-    document.head.appendChild(style);
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = ROLE_POLISH_CSS;
+    document.head.appendChild(link);
   }
 
   function syncRolePickerState() {
@@ -419,19 +286,24 @@
       note.classList.remove('is-ready', 'is-warning');
       if (readiness.role === 'supplier') {
         if (readiness.ready) {
-          note.textContent = 'Supplier Google signup is ready — we’ll create your supplier account and send you to the supplier dashboard.';
+          note.textContent =
+            'Supplier Google signup is ready — we’ll create your supplier account and send you to the supplier dashboard.';
           note.classList.add('is-ready');
         } else {
           note.textContent = `Supplier Google signup needs your ${readiness.missing.join(' and ')} before continuing.`;
           note.classList.add('is-warning');
         }
       } else {
-        note.textContent = 'Creating a customer account with Google is quick and free. Choose Supplier first if you are registering a business.';
+        note.textContent =
+          'Creating a customer account with Google is quick and free. Choose Supplier first if you are registering a business.';
       }
     }
 
     if (!readiness.ready && showMessage) {
-      setStatus(`Please add your ${readiness.missing.join(' and ')} before continuing with Google as a supplier.`, 'warning');
+      setStatus(
+        `Please add your ${readiness.missing.join(' and ')} before continuing with Google as a supplier.`,
+        'warning'
+      );
     }
 
     return readiness.ready;
@@ -453,7 +325,7 @@
 
   async function initGoogleAuth() {
     showGoogleRedirectErrorFromQuery();
-    ensureLiquidGlassRolePickerStyles();
+    ensureRolePolishStylesheet();
     syncSignupGoogleReadiness(false);
 
     const signInContainer = document.getElementById('google-signin-button');
