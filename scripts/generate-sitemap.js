@@ -81,7 +81,7 @@ function generateSitemap() {
 
 function writeSitemap() {
   const sitemap = generateSitemap();
-  fs.writeFileSync(OUTPUT_FILE, sitemap, 'utf8');
+  fs.writeFileSync(OUTPUT_FILE, `${sitemap}\n`, 'utf8');
   console.log(`Sitemap generated: ${OUTPUT_FILE}`);
 }
 
