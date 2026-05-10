@@ -26,7 +26,7 @@
     <link rel="stylesheet" href="/assets/css/navbar.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/p3-features.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/liquid-glass.css?v=18.3.0" />
-    <link rel="stylesheet" href="/assets/css/auth.css?v=18.4.1" />
+    <link rel="stylesheet" href="/assets/css/auth.css?v=18.4.0" />
     <meta name="sentry-dsn" content="" />
     <meta name="sentry-release" content="eventflow@18.1.0" />
     <meta name="sentry-environment" content="production" />
@@ -36,6 +36,7 @@
     <link rel="manifest" href="/site.webmanifest" />
   </head>
   <body class="auth-page">
+    <a class="auth-skip-link" href="#main-content">Skip to sign in</a>
     <!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
     <header class="ef-header" role="banner">
       <div class="ef-container">
@@ -462,7 +463,7 @@
 
                   <div class="auth-field-row auth-field-row--location">
                     <div class="auth-field form-row">
-                      <label class="auth-label" for="reg-location">County or region *</label>
+                      <label class="auth-label" for="reg-location">Location (UK County) *</label>
                       <select
                         id="reg-location"
                         name="location"
@@ -470,7 +471,7 @@
                         required
                         aria-required="true"
                       >
-                        <option value="">Select county or region...</option>
+                        <option value="">Select your county...</option>
                         <option value="Bedfordshire">Bedfordshire</option>
                         <option value="Berkshire">Berkshire</option>
                         <option value="Bristol">Bristol</option>
@@ -554,7 +555,7 @@
                     <div class="auth-field-row auth-field-row--supplier">
                       <div class="auth-field form-row">
                         <label class="auth-label" for="reg-jobtitle"
-                          >Job title <span class="auth-label-optional">(Optional)</span></label
+                          >Job Title <span class="auth-label-optional">(Optional)</span></label
                         >
                         <input
                           id="reg-jobtitle"
@@ -581,7 +582,7 @@
                     </div>
                     <div class="auth-field form-row">
                       <label class="auth-label"
-                        >Social media <span class="auth-label-optional">(Optional)</span></label
+                        >Social Media <span class="auth-label-optional">(Optional)</span></label
                       >
                       <input
                         id="reg-instagram"
@@ -746,7 +747,7 @@
 
                 <div class="auth-field form-row">
                   <label class="auth-label" for="reg-avatar"
-                    >Profile picture <span class="auth-label-optional">(Optional)</span></label
+                    >Profile Picture <span class="auth-label-optional">(Optional)</span></label
                   >
                   <div class="auth-file-upload">
                     <input
