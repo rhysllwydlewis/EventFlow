@@ -88,6 +88,7 @@
       'featureSupportTickets',
       'featurePexelsCollage',
       'featureRequirePackageApproval',
+      'featureRequirePublicCalendarApproval',
     ];
 
     checkboxes.forEach(id => {
@@ -118,6 +119,7 @@
       supportTickets: getCheckboxValue('featureSupportTickets'),
       pexelsCollage: getCheckboxValue('featurePexelsCollage'),
       requirePackageApproval: getCheckboxValue('featureRequirePackageApproval'),
+      requirePublicCalendarApproval: getCheckboxValue('featureRequirePublicCalendarApproval'),
     };
 
     return JSON.stringify(current) !== JSON.stringify(originalFeatureFlags);
@@ -164,6 +166,7 @@
         supportTickets: flags.supportTickets !== false,
         pexelsCollage: flags.pexelsCollage === true,
         requirePackageApproval: flags.requirePackageApproval === true,
+        requirePublicCalendarApproval: flags.requirePublicCalendarApproval === true,
       };
 
       // Set checkbox values with null checks
@@ -183,6 +186,10 @@
       setCheckboxValue(
         'featureRequirePackageApproval',
         originalFeatureFlags.requirePackageApproval
+      );
+      setCheckboxValue(
+        'featureRequirePublicCalendarApproval',
+        originalFeatureFlags.requirePublicCalendarApproval
       );
 
       // Display last updated info
@@ -230,6 +237,7 @@
       'featureSupportTickets',
       'featurePexelsCollage',
       'featureRequirePackageApproval',
+      'featureRequirePublicCalendarApproval',
     ];
 
     checkboxIds.forEach(id => {
@@ -295,6 +303,7 @@
       supportTickets: getCheckboxValue('featureSupportTickets'),
       pexelsCollage: getCheckboxValue('featurePexelsCollage'),
       requirePackageApproval: getCheckboxValue('featureRequirePackageApproval'),
+      requirePublicCalendarApproval: getCheckboxValue('featureRequirePublicCalendarApproval'),
     };
 
     // Set saving state

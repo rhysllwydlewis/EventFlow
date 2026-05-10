@@ -429,8 +429,8 @@
 
     const saveBtn = isLoggedIn
       ? ev.savedByMe
-        ? `<button class="ef-cta pc-btn pc-btn-sm pc-btn-saved" data-action="unsave" data-id="${esc(ev.id)}" title="Remove from my calendar">✓ Saved</button>`
-        : `<button class="ef-cta pc-btn pc-btn-sm pc-btn-save" data-action="save" data-id="${esc(ev.id)}">+ Save</button>`
+        ? `<button class="ef-cta pc-btn pc-btn-sm pc-btn-saved" data-action="unsave" data-id="${esc(ev.id)}" title="Remove from my calendar">Remove from calendar</button>`
+        : `<button class="ef-cta pc-btn pc-btn-sm pc-btn-save" data-action="save" data-id="${esc(ev.id)}">+ Add to calendar</button>`
       : `<a class="pc-btn pc-btn-sm pc-btn-disabled" href="/auth?redirect=/public-calendar" aria-label="Sign in to save this event">Sign in to save</a>`;
 
     const editBtns = canEdit
@@ -448,7 +448,7 @@
         ? `<a href="${esc(ev.externalBookingUrl || ev.externalUrl)}" target="_blank" rel="noopener noreferrer" class="pc-btn pc-btn-sm pc-btn-ghost">Book/info ↗</a>`
         : '';
     const detailLink = `<a href="/events/${esc(ev.slug || ev.id)}" class="pc-btn pc-btn-sm pc-btn-ghost">View details</a>`;
-    const icsLink = `<a href="/api/v1/public-calendar/events/${esc(ev.id)}/ics" class="pc-btn pc-btn-sm pc-btn-ghost">Add to calendar</a>`;
+    const icsLink = `<a href="/api/v1/public-calendar/events/${esc(ev.id)}/ics" class="pc-btn pc-btn-sm pc-btn-ghost">Download event</a>`;
 
     const categoryBadge =
       ev.eventType || ev.category
@@ -995,7 +995,7 @@
     }
     try {
       const data = await apiFetch(
-        '/api/v1/public-calendar/events?includePast=true&limit=200&offset=0'
+        '/api/v1/public-calendar/events?includePast=true&limit=100&offset=0'
       );
       calendarWidgetEvents = (data.events || []).sort(
         (a, b) => new Date(a.startDate) - new Date(b.startDate)

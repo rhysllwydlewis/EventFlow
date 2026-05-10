@@ -38,7 +38,6 @@ const {
 const { stripHtml } = require('../utils/helpers');
 const { withLock } = require('../utils/asyncMutex');
 
-const REQUEST_STATUSES = ['pending', 'approved', 'rejected', 'cancelled'];
 const REPORT_REASONS = [
   'Incorrect information',
   'Spam or advertising',
@@ -106,6 +105,21 @@ function locationSummary(event) {
   return parts.length
     ? parts.join(', ')
     : event?.location || (event?.isOnline ? 'Online event' : '');
+}
+
+function isDeletedPublicCalendarEvent(event) {
+  return (
+    event?.deleted === true ||
+    event?.isDeleted === true ||
+    event?.deletedAt ||
+    event?.status === 'deleted'
+  );
+}
+
+async function readActivePublicCalendarEvents() {
+  return (await dbUnified.read('public_calendar_events'))
+    .filter(event => !isDeletedPublicCalendarEvent(event))
+    .map(normalizeEvent);
 }
 
 function normalizeEvent(event) {
@@ -203,6 +217,16 @@ async function requirePublisher(req, res, next) {
   } catch (err) {
     logger.error('requirePublisher: error fetching supplier', err);
     return res.status(500).json({ error: 'Server error during permission check' });
+  }
+}
+
+async function requiresPublicCalendarApproval() {
+  try {
+    const settings = (await dbUnified.read('settings')) || {};
+    return settings.features?.requirePublicCalendarApproval === true;
+  } catch (err) {
+    logger.warn('Failed to read public calendar approval setting; defaulting to auto-publish', err);
+    return false;
   }
 }
 
@@ -399,7 +423,7 @@ function absoluteEventUrl(req, event) {
 
 router.get('/events', apiLimiter, userExtractionMiddleware, async (req, res) => {
   try {
-    let events = (await dbUnified.read('public_calendar_events')).map(normalizeEvent);
+    let events = await readActivePublicCalendarEvents();
     const now = new Date();
     const includePast = String(req.query.includePast || '').toLowerCase() === 'true';
     const requestedStatus = req.query.status ? String(req.query.status).trim() : '';
@@ -505,16 +529,35 @@ router.get('/events', apiLimiter, userExtractionMiddleware, async (req, res) => 
 
 router.get('/events/saved', authRequired, apiLimiter, async (req, res) => {
   try {
-    const saves = await dbUnified.read('public_calendar_saves');
+    let saves = await dbUnified.read('public_calendar_saves');
     const userSaves = saves.filter(s => s.userId === req.user.id);
-    const events = (await dbUnified.read('public_calendar_events')).map(normalizeEvent);
+    const events = await readActivePublicCalendarEvents();
     const eventMap = new Map(events.map(e => [e.id, e]));
+    const staleSaveKeys = new Set();
     const savedEvents = userSaves
       .map(s => {
         const ev = eventMap.get(s.eventId);
-        return ev ? { ...ev, savedAt: s.savedAt, savedByMe: true } : null;
+        if (!ev || !['published', 'cancelled'].includes(eventStatus(ev))) {
+          staleSaveKeys.add(`${s.userId}:${s.eventId}`);
+          return null;
+        }
+        return { ...ev, savedAt: s.savedAt, savedByMe: true };
       })
       .filter(Boolean);
+
+    if (staleSaveKeys.size > 0) {
+      await withLock('public_calendar_saves', async () => {
+        saves = await dbUnified.read('public_calendar_saves');
+        const cleaned = saves.filter(s => !staleSaveKeys.has(`${s.userId}:${s.eventId}`));
+        if (cleaned.length !== saves.length) {
+          await dbUnified.write('public_calendar_saves', cleaned);
+        }
+      });
+      logger.info(
+        `Cleaned ${staleSaveKeys.size} stale public calendar save(s) for user ${req.user.id}`
+      );
+    }
+
     res.json({ ok: true, events: savedEvents, count: savedEvents.length });
   } catch (err) {
     logger.error('GET /public-calendar/events/saved error:', err);
@@ -524,7 +567,7 @@ router.get('/events/saved', authRequired, apiLimiter, async (req, res) => {
 
 router.get('/events/:id/ics', apiLimiter, userExtractionMiddleware, async (req, res) => {
   try {
-    const events = (await dbUnified.read('public_calendar_events')).map(normalizeEvent);
+    const events = await readActivePublicCalendarEvents();
     const event = events.find(e => e.id === req.params.id || e.slug === req.params.id);
     if (!event || !canSeeEvent(req.user, event)) {
       return res.status(404).json({ error: 'Event not found' });
@@ -566,7 +609,7 @@ router.get('/events/:id/ics', apiLimiter, userExtractionMiddleware, async (req, 
 
 router.get('/events/:id', apiLimiter, userExtractionMiddleware, async (req, res) => {
   try {
-    const events = (await dbUnified.read('public_calendar_events')).map(normalizeEvent);
+    const events = await readActivePublicCalendarEvents();
     const event = events.find(e => e.id === req.params.id || e.slug === req.params.id);
     if (!event || !canSeeEvent(req.user, event)) {
       return res.status(404).json({ error: 'Event not found' });
@@ -599,7 +642,12 @@ router.post(
       }
       const now = new Date().toISOString();
       const eventId = uid('pce');
-      const status = data.status || 'published';
+      const manualApprovalRequired =
+        req.user.role !== 'admin' && (await requiresPublicCalendarApproval());
+      const status = manualApprovalRequired ? 'pending_review' : data.status || 'published';
+      if (manualApprovalRequired) {
+        delete data.publishedAt;
+      }
       const event = normalizeEvent({
         id: eventId,
         ...data,
@@ -755,7 +803,7 @@ router.post(
   csrfProtection,
   async (req, res) => {
     try {
-      const allEvents = (await dbUnified.read('public_calendar_events')).map(normalizeEvent);
+      const allEvents = await readActivePublicCalendarEvents();
       const event = allEvents.find(e => e.id === req.params.id || e.slug === req.params.id);
       if (!event || eventStatus(event) !== 'published') {
         return res.status(404).json({ error: 'Event not found' });
@@ -798,12 +846,13 @@ router.delete(
   csrfProtection,
   async (req, res) => {
     try {
+      const allEvents = await readActivePublicCalendarEvents();
+      const event = allEvents.find(e => e.id === req.params.id || e.slug === req.params.id);
+      const eventId = event ? event.id : req.params.id;
       let found = false;
       await withLock('public_calendar_saves', async () => {
         const saves = await dbUnified.read('public_calendar_saves');
-        const updated = saves.filter(
-          s => !(s.userId === req.user.id && s.eventId === req.params.id)
-        );
+        const updated = saves.filter(s => !(s.userId === req.user.id && s.eventId === eventId));
         found = updated.length !== saves.length;
         await dbUnified.write('public_calendar_saves', updated);
       });
@@ -993,7 +1042,7 @@ router.post(
   csrfProtection,
   async (req, res) => {
     try {
-      const events = (await dbUnified.read('public_calendar_events')).map(normalizeEvent);
+      const events = await readActivePublicCalendarEvents();
       const event = events.find(e => e.id === req.params.id || e.slug === req.params.id);
       if (!event) {
         return res.status(404).json({ error: 'Event not found' });
@@ -1004,29 +1053,58 @@ router.post(
           .status(400)
           .json({ error: 'Validation failed', details: ['reason is not supported'] });
       }
-      let report = null;
-      await withLock('public_calendar_event_reports', async () => {
-        const reports = await dbUnified.read('public_calendar_event_reports');
-        const existingOpen = reports.find(
-          r => r.eventId === event.id && r.reporterUserId === req.user.id && r.status === 'open'
-        );
-        if (existingOpen) {
-          report = existingOpen;
-          return;
-        }
-        report = {
-          id: uid('pcer'),
+      const now = new Date().toISOString();
+      const reportId = uid('pcer');
+      const notes = sanitiseText(req.body.notes, MAX_MEDIUM_TEXT_LENGTH);
+      const ticketSubject = `Public event report: ${event.title}`.slice(0, 180);
+      const ticketMessage = [
+        `A user reported a public calendar event.`,
+        ``,
+        `Event: ${event.title}`,
+        `Event ID: ${event.id}`,
+        `Reason: ${reason}`,
+        notes ? `Notes: ${notes}` : '',
+        `Event URL: /events/${event.slug || event.id}`,
+      ]
+        .filter(Boolean)
+        .join('\n');
+      const ticket = {
+        id: uid(),
+        senderId: req.user.id,
+        senderType: req.user.role === 'supplier' ? 'supplier' : 'customer',
+        senderName: req.user.name || req.user.firstName || req.user.email || 'EventFlow user',
+        senderEmail: req.user.email || '',
+        subject: ticketSubject,
+        message: ticketMessage,
+        status: 'open',
+        priority: 'medium',
+        accountTier: 'standard',
+        prioritySource: 'system',
+        assignedTo: null,
+        lastReplyAt: now,
+        lastReplyBy: req.user.role === 'supplier' ? 'supplier' : 'customer',
+        responses: [],
+        source: 'public_calendar_report',
+        relatedReportId: reportId,
+        relatedEventId: event.id,
+        createdAt: now,
+        updatedAt: now,
+      };
+      await dbUnified.insertOne('tickets', ticket);
+      res.status(201).json({
+        ok: true,
+        ticketId: ticket.id,
+        report: {
+          id: reportId,
           eventId: event.id,
           reporterUserId: req.user.id,
           reason,
-          notes: sanitiseText(req.body.notes, MAX_MEDIUM_TEXT_LENGTH),
+          notes,
           status: 'open',
-          createdAt: new Date().toISOString(),
-        };
-        reports.push(report);
-        await dbUnified.write('public_calendar_event_reports', reports);
+          createdAt: now,
+          ticketId: ticket.id,
+        },
       });
-      res.status(201).json({ ok: true, report });
     } catch (err) {
       logger.error('POST /public-calendar/events/:id/report error:', err);
       res.status(500).json({ error: 'Failed to report event' });
@@ -1043,8 +1121,8 @@ router.get('/reports', apiLimiter, authRequired, async (req, res) => {
     if (req.query.status && REPORT_STATUSES.includes(req.query.status)) {
       reports = reports.filter(r => r.status === req.query.status);
     }
-    const events = await dbUnified.read('public_calendar_events');
-    const eventMap = new Map(events.map(event => [event.id, normalizeEvent(event)]));
+    const events = await readActivePublicCalendarEvents();
+    const eventMap = new Map(events.map(event => [event.id, event]));
     const enrichedReports = reports.map(report => {
       const event = eventMap.get(report.eventId);
       return event

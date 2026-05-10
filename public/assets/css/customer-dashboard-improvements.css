@@ -149,39 +149,61 @@
   text-transform: uppercase;
 }
 
-/* Dismiss (close) button for the welcome card */
-.customer-welcome-dismiss {
+.customer-welcome-card::before {
+  content: '';
   position: absolute;
-  top: var(--ef-space-4);
-  right: var(--ef-space-4);
-  display: flex;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: linear-gradient(180deg, #0b8073, #14b8a6);
+}
+
+.customer-welcome-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.55rem;
+  padding: 0.28rem 0.7rem;
+  border: 1px solid rgba(13, 148, 136, 0.18);
+  border-radius: 999px;
+  background: rgba(240, 253, 250, 0.85);
+  color: #0f766e;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Dismiss button for the welcome card */
+.customer-welcome-dismiss {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--ef-radius-sm);
-  color: var(--ef-text-muted);
+  min-width: 132px;
+  padding: 0.72rem 1.2rem !important;
+  background: linear-gradient(135deg, #22c55e, #16a34a) !important;
+  border: 0 !important;
+  border-radius: 12px !important;
+  color: #fff !important;
   cursor: pointer;
+  font-weight: 800 !important;
+  box-shadow: 0 10px 24px rgba(22, 163, 74, 0.24);
   transition:
-    background 0.15s ease,
-    color 0.15s ease,
-    border-color 0.15s ease;
+    transform 0.16s ease,
+    box-shadow 0.16s ease;
+  width: auto !important;
+  margin-top: 0 !important;
 }
 
 .customer-welcome-dismiss:hover,
 .customer-welcome-dismiss:focus-visible {
-  background: var(--ef-bg-subtle);
-  border-color: var(--ef-border);
-  color: var(--ef-text);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 30px rgba(22, 163, 74, 0.32);
   outline: none;
 }
 
 .customer-welcome-dismiss:focus-visible {
-  outline: 2px solid var(--ef-primary);
-  outline-offset: 2px;
+  outline: 2px solid #0d9488;
+  outline-offset: 3px;
 }
 
 .customer-welcome-heading {
@@ -321,6 +343,37 @@
 
 .customer-welcome-contextual-prompt {
   margin-top: var(--ef-space-4);
+}
+
+
+.customer-welcome-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding: 0.95rem 1rem;
+  border: 1px solid rgba(16, 185, 129, 0.18);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(236, 253, 245, 0.92), rgba(240, 253, 250, 0.82));
+}
+
+.customer-welcome-footer p {
+  margin: 0;
+  color: #166534;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .customer-welcome-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .customer-welcome-dismiss {
+    width: 100% !important;
+  }
 }
 
 /* Contextual prompt variants */

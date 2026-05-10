@@ -140,7 +140,7 @@
     currentEvent = event;
     const panel = document.getElementById('event-panel');
     const image = event.featuredImageUrl || event.imageUrl;
-    const saveLabel = event.savedByMe ? 'Saved' : 'Save to planning calendar';
+    const saveLabel = event.savedByMe ? 'Remove from calendar' : 'Add to calendar';
     const saveAction = event.savedByMe ? 'unsave' : 'save';
     const cancelled = event.status === 'cancelled';
 
@@ -163,8 +163,8 @@
             ${event.accessibilityNotes ? `<p><strong>Accessibility:</strong> ${esc(event.accessibilityNotes)}</p>` : ''}
             ${event.parkingInfo ? `<p><strong>Parking:</strong> ${esc(event.parkingInfo)}</p>` : ''}
             <div class="event-actions">
-              <a class="ef-btn ef-btn-primary" href="/api/v1/public-calendar/events/${encodeURIComponent(event.id)}/ics">Add to calendar (.ics)</a>
-              ${cancelled ? '' : `<button class="ef-btn ef-btn-secondary" type="button" data-event-action="${saveAction}">${saveLabel}</button>`}
+              ${cancelled ? '' : `<button class="ef-btn ef-btn-primary" type="button" data-event-action="${saveAction}">${saveLabel}</button>`}
+              <a class="ef-btn ef-btn-secondary" href="/api/v1/public-calendar/events/${encodeURIComponent(event.id)}/ics">Download event (.ics)</a>
               ${event.externalBookingUrl ? `<a class="ef-btn ef-btn-secondary" href="${esc(event.externalBookingUrl)}" target="_blank" rel="noopener noreferrer">Book / more info</a>` : ''}
               <button class="ef-btn ef-btn-secondary" type="button" data-event-action="report">Report this event</button>
             </div>
@@ -216,23 +216,79 @@
     }
   }
 
+  function openReportModal() {
+    return new Promise(resolve => {
+      const existing = document.querySelector('.event-report-modal');
+      if (existing) {
+        existing.remove();
+      }
+      const overlay = document.createElement('div');
+      overlay.className = 'event-report-modal';
+      overlay.setAttribute('role', 'dialog');
+      overlay.setAttribute('aria-modal', 'true');
+      overlay.innerHTML = `
+        <form class="event-report-card" id="event-report-form">
+          <h2>Report this event</h2>
+          <p style="margin:.25rem 0 0;color:#64748b;">Tell the EventFlow team what needs checking. This creates a support ticket for admin review.</p>
+          <div class="event-report-field">
+            <label for="event-report-reason">Reason</label>
+            <select id="event-report-reason" required>
+              <option>Incorrect information</option>
+              <option>Spam or advertising</option>
+              <option>Event no longer exists</option>
+              <option>Inappropriate content</option>
+              <option>Duplicate event</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="event-report-field">
+            <label for="event-report-notes">Notes for admin <span style="color:#64748b;font-weight:500;">(optional)</span></label>
+            <textarea id="event-report-notes" rows="4" maxlength="500" placeholder="Add any helpful details…"></textarea>
+          </div>
+          <div class="event-report-actions">
+            <button type="button" class="ef-btn ef-btn-secondary" data-report-cancel>Cancel</button>
+            <button type="submit" class="ef-btn ef-btn-primary">Submit report</button>
+          </div>
+        </form>`;
+      document.body.appendChild(overlay);
+      const close = value => {
+        overlay.remove();
+        resolve(value);
+      };
+      overlay.addEventListener('click', event => {
+        if (event.target === overlay) {
+          close(null);
+        }
+      });
+      overlay.querySelector('[data-report-cancel]').addEventListener('click', () => close(null));
+      overlay.querySelector('form').addEventListener('submit', event => {
+        event.preventDefault();
+        close({
+          reason: overlay.querySelector('#event-report-reason').value,
+          notes: overlay.querySelector('#event-report-notes').value || '',
+        });
+      });
+      overlay.querySelector('#event-report-reason').focus();
+    });
+  }
+
   async function reportEvent() {
-    const reason = window.prompt(
-      'Why are you reporting this event? Use: Incorrect information, Spam or advertising, Event no longer exists, Inappropriate content, Duplicate event, or Other.'
-    );
-    if (!reason) {
+    const report = await openReportModal();
+    if (!report) {
       return;
     }
-    const notes = window.prompt('Optional notes for the admin team:') || '';
     try {
       await apiFetch(
         `/api/v1/public-calendar/events/${encodeURIComponent(currentEvent.id)}/report`,
         {
           method: 'POST',
-          body: JSON.stringify({ reason, notes }),
+          body: JSON.stringify(report),
         }
       );
-      showToast('Thanks — this event has been reported for admin review.', 'success');
+      showToast(
+        'Thanks — this event has been reported and a support ticket was created.',
+        'success'
+      );
     } catch (err) {
       if (err.status === 401) {
         window.location.href = `/auth?redirect=${encodeURIComponent(window.location.pathname)}`;

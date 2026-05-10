@@ -3278,6 +3278,7 @@ router.get('/settings/features', authRequired, roleRequired('admin'), async (req
       supportTickets: true,
       pexelsCollage: false,
       requirePackageApproval: false,
+      requirePublicCalendarApproval: false,
     };
 
     // Ensure metadata fields are included in response
@@ -3290,6 +3291,7 @@ router.get('/settings/features', authRequired, roleRequired('admin'), async (req
       supportTickets: features.supportTickets !== false,
       pexelsCollage: features.pexelsCollage === true,
       requirePackageApproval: features.requirePackageApproval === true,
+      requirePublicCalendarApproval: features.requirePublicCalendarApproval === true,
       photoAutoApprove: features.photoAutoApprove !== false,
       autoApproveReviews: features.autoApproveReviews !== false,
       autoApproveSupplierVerification: features.autoApproveSupplierVerification === true,
@@ -3328,6 +3330,7 @@ router.put(
         supportTickets,
         pexelsCollage,
         requirePackageApproval,
+        requirePublicCalendarApproval,
         photoAutoApprove,
         autoApproveReviews,
         autoApproveSupplierVerification,
@@ -3359,6 +3362,7 @@ router.put(
         'supportTickets',
         'pexelsCollage',
         'requirePackageApproval',
+        'requirePublicCalendarApproval',
         'photoAutoApprove',
         'autoApproveReviews',
         'autoApproveSupplierVerification',
@@ -3383,6 +3387,7 @@ router.put(
         supportTickets: supportTickets !== false,
         pexelsCollage: pexelsCollage === true,
         requirePackageApproval: requirePackageApproval === true,
+        requirePublicCalendarApproval: requirePublicCalendarApproval === true,
         photoAutoApprove: photoAutoApprove !== false,
         autoApproveReviews: autoApproveReviews !== false,
         autoApproveSupplierVerification: autoApproveSupplierVerification === true,

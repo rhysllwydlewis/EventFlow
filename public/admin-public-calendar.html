@@ -25,10 +25,11 @@
     .calendar-admin-hero h1 { margin: 0 0 8px; font-size: clamp(1.8rem, 4vw, 2.7rem); }
     .calendar-admin-hero p { margin: 0; opacity: .92; max-width: 780px; }
     .calendar-admin-actions { display:flex; gap:.75rem; flex-wrap:wrap; margin-top: 18px; }
-    .calendar-admin-grid { display:grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
+    .calendar-admin-grid { display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
     .calendar-admin-stat { background:#fff; border:1px solid #e5e7eb; border-radius: 18px; padding: 1rem; box-shadow: 0 10px 30px rgba(15,23,42,.06); }
     .calendar-admin-stat__label { color:#64748b; font-size:.85rem; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
     .calendar-admin-stat__value { font-size: 2rem; font-weight: 800; color:#0f172a; margin-top:.25rem; }
+    .calendar-admin-stat__hint { color:#64748b; font-size:.82rem; margin-top:.15rem; }
     .calendar-admin-panel { background:#fff; border:1px solid #e5e7eb; border-radius: 20px; padding: 1.25rem; box-shadow: 0 10px 32px rgba(15,23,42,.06); margin-bottom: 1.25rem; }
     .calendar-admin-panel__header { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; flex-wrap:wrap; margin-bottom:1rem; }
     .calendar-admin-panel__title { margin:0; font-size:1.2rem; color:#0f172a; }
@@ -50,6 +51,11 @@
     .calendar-admin-modal { width:min(780px, 100%); max-height:92vh; overflow:auto; background:#fff; border-radius:22px; padding:1.35rem; box-shadow:0 24px 70px rgba(15,23,42,.3); }
     .calendar-admin-form-grid { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:.75rem; }
     .calendar-admin-error { display:none; color:#991b1b; background:#fee2e2; border-radius:10px; padding:.75rem; margin:.75rem 0; }
+    .calendar-admin-approval-panel { background:linear-gradient(135deg,#ffffff 0%,#f0fdfa 100%); border-color:#99f6e4; }
+    .calendar-admin-mode-pill { display:inline-flex; align-items:center; gap:.35rem; border-radius:999px; padding:.28rem .7rem; margin-top:.5rem; font-size:.78rem; font-weight:800; background:#dbeafe; color:#1e40af; }
+    .calendar-admin-mode-pill--manual { background:#fef3c7; color:#92400e; }
+    .calendar-admin-mode-pill--auto { background:#dcfce7; color:#166534; }
+    .calendar-admin-support-note { margin:.75rem 0 0; color:#475569; font-size:.92rem; }
     @media (max-width: 900px) { .calendar-admin-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .calendar-admin-form-grid { grid-template-columns: 1fr; } }
     @media (max-width: 560px) { .calendar-admin-grid { grid-template-columns: 1fr; } .calendar-admin-hero { padding: 22px; } }
   </style>
@@ -61,18 +67,34 @@
   <main id="main-content" class="admin-main-content">
     <section class="calendar-admin-hero" aria-labelledby="calendarAdminTitle">
       <h1 id="calendarAdminTitle">Shared Events Calendar</h1>
-      <p>Manage public calendar events, supplier publishing access requests, reported events and the public Events page from one admin workspace.</p>
+      <p>Manage public calendar events, supplier publishing access requests and the public Events page from one admin workspace. Event reports now create support tickets.</p>
       <div class="calendar-admin-actions">
         <button id="adminCalendarCreateBtn" class="ef-cta btn btn-primary" type="button">Create event</button>
         <a class="ef-cta btn btn-secondary" href="/public-calendar" target="_blank" rel="noopener noreferrer">View public calendar ↗</a>
+        <a class="ef-cta btn btn-secondary" href="/admin-tickets">Review report tickets</a>
       </div>
     </section>
 
     <section class="calendar-admin-grid" aria-label="Calendar summary">
-      <div class="calendar-admin-stat"><div class="calendar-admin-stat__label">Total events</div><div id="adminCalendarTotalEvents" class="calendar-admin-stat__value">—</div></div>
-      <div class="calendar-admin-stat"><div class="calendar-admin-stat__label">Published</div><div id="adminCalendarPublishedEvents" class="calendar-admin-stat__value">—</div></div>
-      <div class="calendar-admin-stat"><div class="calendar-admin-stat__label">Access requests</div><div id="adminCalendarPendingRequests" class="calendar-admin-stat__value">—</div></div>
-      <div class="calendar-admin-stat"><div class="calendar-admin-stat__label">Open reports</div><div id="adminCalendarOpenReports" class="calendar-admin-stat__value">—</div></div>
+      <div class="calendar-admin-stat"><div class="calendar-admin-stat__label">Total events</div><div id="adminCalendarTotalEvents" class="calendar-admin-stat__value">—</div><div class="calendar-admin-stat__hint">Non-deleted records</div></div>
+      <div class="calendar-admin-stat"><div class="calendar-admin-stat__label">Published</div><div id="adminCalendarPublishedEvents" class="calendar-admin-stat__value">—</div><div class="calendar-admin-stat__hint">Visible on Events</div></div>
+      <div class="calendar-admin-stat"><div class="calendar-admin-stat__label">Access requests</div><div id="adminCalendarPendingRequests" class="calendar-admin-stat__value">—</div><div class="calendar-admin-stat__hint">Awaiting action</div></div>
+    </section>
+
+    <section class="calendar-admin-panel calendar-admin-approval-panel" aria-labelledby="calendarSettingsTitle">
+      <div class="calendar-admin-panel__header">
+        <div>
+          <h2 id="calendarSettingsTitle" class="calendar-admin-panel__title">Publishing approval settings</h2>
+          <p class="calendar-admin-panel__subtitle">Choose whether supplier-created public events publish automatically or wait for manual admin approval.</p>
+          <span id="adminCalendarApprovalMode" class="calendar-admin-mode-pill">Loading mode…</span>
+        </div>
+        <label class="toggle-switch" for="adminCalendarRequireApproval" aria-label="Toggle manual public event approval">
+          <input type="checkbox" id="adminCalendarRequireApproval">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <p id="adminCalendarApprovalStatus" class="calendar-admin-panel__subtitle" aria-live="polite">Loading approval setting…</p>
+      <p class="calendar-admin-support-note">Reported event tickets are reviewed in <a href="/admin-tickets">Support Tickets</a>, not in this calendar workspace.</p>
     </section>
 
     <section class="calendar-admin-panel" aria-labelledby="eventsPanelTitle">
@@ -105,16 +127,6 @@
       <div id="adminCalendarRequestsContainer" aria-live="polite"></div>
     </section>
 
-    <section class="calendar-admin-panel" aria-labelledby="reportsPanelTitle">
-      <div class="calendar-admin-panel__header">
-        <div>
-          <h2 id="reportsPanelTitle" class="calendar-admin-panel__title">Reported events</h2>
-          <p class="calendar-admin-panel__subtitle">Review reports without automatically removing events.</p>
-        </div>
-        <button id="adminCalendarRefreshReports" class="ef-cta btn btn-secondary" type="button">Refresh</button>
-      </div>
-      <div id="adminCalendarReportsContainer" aria-live="polite"></div>
-    </section>
   </main>
 
   <div id="adminCalendarEventModal" class="calendar-admin-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="adminCalendarEventModalTitle">
