@@ -38,24 +38,6 @@
     }
   }
 
-  function errorText(err, fallback) {
-    return err?.message || fallback || 'Something went wrong.';
-  }
-
-  function showPanelError(containerId, err, fallback, retryHandler) {
-    const container = document.getElementById(containerId);
-    if (!container) {
-      return;
-    }
-    container.innerHTML = `
-      <div class="calendar-admin-empty calendar-admin-empty--error">
-        <strong>${esc(fallback)}</strong>
-        <span>${esc(errorText(err, fallback))}</span>
-        ${retryHandler ? '<button type="button" class="ef-cta btn-sm" data-calendar-retry>Retry</button>' : ''}
-      </div>`;
-    container.querySelector('[data-calendar-retry]')?.addEventListener('click', retryHandler);
-  }
-
   function showToast(message, type = 'success') {
     if (AdminShared.showToast) {
       AdminShared.showToast(message, type);
@@ -113,12 +95,8 @@
       events = data.events || [];
       renderEvents();
     } catch (err) {
-      showPanelError(
-        'adminCalendarEventsContainer',
-        err,
-        'Failed to load calendar events.',
-        loadEvents
-      );
+      document.getElementById('adminCalendarEventsContainer').innerHTML =
+        '<div class="calendar-admin-empty" style="color:#dc2626;">Failed to load calendar events.</div>';
     }
   }
 
@@ -170,12 +148,8 @@
       requests = data.requests || [];
       renderRequests();
     } catch (err) {
-      showPanelError(
-        'adminCalendarRequestsContainer',
-        err,
-        'Failed to load publishing requests.',
-        loadRequests
-      );
+      container.innerHTML =
+        '<div class="calendar-admin-empty" style="color:#dc2626;">Failed to load publishing requests.</div>';
     }
   }
 
@@ -220,12 +194,8 @@
       reports = data.reports || [];
       renderReports();
     } catch (err) {
-      showPanelError(
-        'adminCalendarReportsContainer',
-        err,
-        'Failed to load event reports.',
-        loadReports
-      );
+      container.innerHTML =
+        '<div class="calendar-admin-empty" style="color:#dc2626;">Failed to load event reports.</div>';
     }
   }
 

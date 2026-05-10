@@ -216,96 +216,14 @@
     }
   }
 
-  function ensureReportModal() {
-    const existing = document.getElementById('event-report-overlay');
-    if (existing) {
-      return existing;
-    }
-
-    const overlay = document.createElement('div');
-    overlay.id = 'event-report-overlay';
-    overlay.className = 'event-report-overlay';
-    overlay.setAttribute('role', 'dialog');
-    overlay.setAttribute('aria-modal', 'true');
-    overlay.setAttribute('aria-labelledby', 'event-report-title');
-    overlay.innerHTML = `
-      <div class="event-report-modal" role="document">
-        <div class="event-report-modal__header">
-          <div>
-            <p class="event-report-modal__eyebrow">Help keep the calendar accurate</p>
-            <h2 id="event-report-title">Report this public event</h2>
-          </div>
-          <button class="event-report-modal__close" type="button" aria-label="Close report form">×</button>
-        </div>
-        <form id="event-report-form" novalidate>
-          <label class="event-report-modal__label" for="event-report-reason">Reason</label>
-          <select id="event-report-reason" class="event-report-modal__control" required>
-            <option value="">Choose a reason…</option>
-            <option>Incorrect information</option>
-            <option>Spam or advertising</option>
-            <option>Event no longer exists</option>
-            <option>Inappropriate content</option>
-            <option>Duplicate event</option>
-            <option>Other</option>
-          </select>
-          <label class="event-report-modal__label" for="event-report-notes">Optional notes</label>
-          <textarea id="event-report-notes" class="event-report-modal__control" rows="4" maxlength="500" placeholder="Add context for the admin team…"></textarea>
-          <div id="event-report-error" class="event-report-modal__error" role="alert"></div>
-          <div class="event-report-modal__actions">
-            <button class="ef-btn ef-btn-secondary" type="button" data-report-cancel>Cancel</button>
-            <button class="ef-btn ef-btn-primary" type="submit" id="event-report-submit">Submit report</button>
-          </div>
-        </form>
-      </div>`;
-    document.body.appendChild(overlay);
-    overlay.querySelector('.event-report-modal__close').addEventListener('click', closeReportModal);
-    overlay.querySelector('[data-report-cancel]').addEventListener('click', closeReportModal);
-    overlay.addEventListener('click', event => {
-      if (event.target === overlay) {
-        closeReportModal();
-      }
-    });
-    overlay.querySelector('#event-report-form').addEventListener('submit', submitReportForm);
-    return overlay;
-  }
-
-  function openReportModal() {
-    const overlay = ensureReportModal();
-    overlay.querySelector('#event-report-form').reset();
-    overlay.querySelector('#event-report-error').textContent = '';
-    overlay.querySelector('#event-report-error').style.display = 'none';
-    overlay.style.display = 'flex';
-    document.body.style.overflow = 'hidden';
-    overlay.querySelector('#event-report-reason').focus();
-  }
-
-  function closeReportModal() {
-    const overlay = document.getElementById('event-report-overlay');
-    if (overlay) {
-      overlay.style.display = 'none';
-      document.body.style.overflow = '';
-    }
-  }
-
-  async function submitReportForm(event) {
-    event.preventDefault();
-    if (!currentEvent) {
-      return;
-    }
-    const reason = document.getElementById('event-report-reason').value;
-    const notes = document.getElementById('event-report-notes').value;
-    const errorEl = document.getElementById('event-report-error');
-    const submitBtn = document.getElementById('event-report-submit');
-
+  async function reportEvent() {
+    const reason = window.prompt(
+      'Why are you reporting this event? Use: Incorrect information, Spam or advertising, Event no longer exists, Inappropriate content, Duplicate event, or Other.'
+    );
     if (!reason) {
-      errorEl.textContent = 'Please choose a report reason.';
-      errorEl.style.display = 'block';
       return;
     }
-
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Submitting…';
-    errorEl.style.display = 'none';
+    const notes = window.prompt('Optional notes for the admin team:') || '';
     try {
       await apiFetch(
         `/api/v1/public-calendar/events/${encodeURIComponent(currentEvent.id)}/report`,
@@ -314,31 +232,17 @@
           body: JSON.stringify({ reason, notes }),
         }
       );
-      closeReportModal();
       showToast('Thanks — this event has been reported for admin review.', 'success');
     } catch (err) {
       if (err.status === 401) {
         window.location.href = `/auth?redirect=${encodeURIComponent(window.location.pathname)}`;
         return;
       }
-      errorEl.textContent = err.data?.details?.[0] || err.data?.error || 'Unable to report event';
-      errorEl.style.display = 'block';
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Submit report';
+      showToast(err.data?.details?.[0] || err.data?.error || 'Unable to report event', 'error');
     }
   }
 
-  async function reportEvent() {
-    openReportModal();
-  }
-
   async function init() {
-    document.addEventListener('keydown', event => {
-      if (event.key === 'Escape') {
-        closeReportModal();
-      }
-    });
     const slug = decodeURIComponent(location.pathname.split('/').pop());
     const panel = document.getElementById('event-panel');
     try {

@@ -8848,7 +8848,3 @@ label .required {
 .supplier-calendar-viewport .fc-daygrid-day-frame {
   min-height: 70px;
 }
-
-.supplier-calendar-viewport .fc-button {
-  text-transform: capitalize;
-}

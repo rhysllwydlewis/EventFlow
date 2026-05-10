@@ -405,7 +405,7 @@
     }
     return {
       id: event.id,
-      title: displayTitle(event.title || 'Untitled entry'),
+      title: event.title || 'Untitled entry',
       start,
       type:
         event.extendedProps?.entryType ||
@@ -632,7 +632,7 @@
     renderNextUpSummary(
       entries.map(entry => ({
         id: entry.id,
-        title: displayTitle(entry.title),
+        title: entry.title,
         start: entry.time ? `${entry.date}T${entry.time}` : `${entry.date}T00:00:00`,
         backgroundColor: getEntryColor(entry.type),
         extendedProps: {
@@ -798,17 +798,18 @@
       });
       if (pubRes.ok) {
         const pubData = await pubRes.json();
-        const pubEvents = (pubData.events || []).map(ev => {
-          const deleted = ev.eventDeleted || ev.isDeleted || ev.status === 'deleted';
-          const title = displayTitle(ev.title || 'Public Event');
-          return {
-            id: `pce_${ev.id}`,
-            title: deleted ? `⚠ Deleted: ${title}` : title,
-            start: ev.startDate,
-            end: ev.endDate || undefined,
-            description: deleted
-              ? ev.warning || 'This saved public event has been removed from the shared calendar.'
-              : ev.description || '',
+        const pubEvents = (pubData.events || []).map(ev => ({
+          id: `pce_${ev.id}`,
+          title: displayTitle(ev.title || 'Public Event'),
+          start: ev.startDate,
+          end: ev.endDate || undefined,
+          description: ev.description || '',
+          location: ev.location || '',
+          url: `/public-calendar`,
+          backgroundColor: '#7c3aed',
+          borderColor: '#6d28d9',
+          extendedProps: {
+            description: ev.description || '',
             location: ev.location || '',
             url: deleted ? '' : `/public-calendar`,
             backgroundColor: deleted ? '#9ca3af' : '#7c3aed',

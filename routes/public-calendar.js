@@ -39,7 +39,6 @@ const { stripHtml } = require('../utils/helpers');
 const { withLock } = require('../utils/asyncMutex');
 
 const REQUEST_STATUSES = ['pending', 'approved', 'rejected', 'cancelled'];
-const REQUEST_ACTIONS = ['approve', 'reject', 'cancel'];
 const REPORT_REASONS = [
   'Incorrect information',
   'Spam or advertising',
@@ -513,29 +512,7 @@ router.get('/events/saved', authRequired, apiLimiter, async (req, res) => {
     const savedEvents = userSaves
       .map(s => {
         const ev = eventMap.get(s.eventId);
-        if (ev) {
-          return { ...ev, savedAt: s.savedAt, savedByMe: true };
-        }
-        const snapshot = s.eventSnapshot || {};
-        const deletedAt = s.eventDeletedAt || s.deletedAt || null;
-        return {
-          id: s.eventId,
-          title: snapshot.title || s.eventTitle || 'Deleted public event',
-          startDate: snapshot.startDate || s.eventStartDate || s.savedAt,
-          endDate: snapshot.endDate || s.eventEndDate || '',
-          slug: snapshot.slug || s.eventSlug || s.eventId,
-          eventType: snapshot.eventType || s.eventType || 'Public Event',
-          location: snapshot.location || s.eventLocation || '',
-          status: 'deleted',
-          savedAt: s.savedAt,
-          savedByMe: true,
-          eventDeleted: true,
-          isDeleted: true,
-          deletedAt,
-          warning: deletedAt
-            ? 'This event was removed from the shared public calendar.'
-            : 'This saved event is no longer available on the shared public calendar.',
-        };
+        return ev ? { ...ev, savedAt: s.savedAt, savedByMe: true } : null;
       })
       .filter(Boolean);
     res.json({ ok: true, events: savedEvents, count: savedEvents.length });
@@ -751,28 +728,8 @@ router.delete(
         );
         await withLock('public_calendar_saves', async () => {
           const saves = await dbUnified.read('public_calendar_saves');
-          const deletedAt = new Date().toISOString();
-          const eventSnapshot = normalizeEvent(existing);
-          const updatedSaves = saves.map(save => {
-            if (save.eventId !== existing.id) {
-              return save;
-            }
-            cascadeCount += 1;
-            return {
-              ...save,
-              eventDeleted: true,
-              eventDeletedAt: deletedAt,
-              eventSnapshot: {
-                id: eventSnapshot.id,
-                title: eventSnapshot.title,
-                startDate: eventSnapshot.startDate,
-                endDate: eventSnapshot.endDate || '',
-                slug: eventSnapshot.slug,
-                eventType: eventSnapshot.eventType,
-                location: eventSnapshot.location,
-              },
-            };
-          });
+          const updatedSaves = saves.filter(s => s.eventId !== existing.id);
+          cascadeCount = saves.length - updatedSaves.length;
           await dbUnified.write('public_calendar_saves', updatedSaves);
         });
       });
@@ -780,7 +737,7 @@ router.delete(
         return res.status(earlyExit.status).json(earlyExit.body);
       }
       logger.info(
-        `Public calendar event deleted: ${req.params.id} by user ${req.user.id}; ${cascadeCount} save(s) marked deleted`
+        `Public calendar event deleted: ${req.params.id} by user ${req.user.id}; ${cascadeCount} save(s) cascaded`
       );
       res.json({ ok: true, message: 'Event deleted' });
     } catch (err) {
@@ -816,12 +773,6 @@ router.post(
           id: uid('pcs'),
           userId: req.user.id,
           eventId: event.id,
-          eventTitle: event.title,
-          eventStartDate: event.startDate,
-          eventEndDate: event.endDate || '',
-          eventSlug: event.slug,
-          eventType: event.eventType,
-          eventLocation: event.location,
           savedAt: new Date().toISOString(),
         };
         saves.push(save);
@@ -968,14 +919,7 @@ router.get('/publisher-requests', apiLimiter, authRequired, async (req, res) => 
   try {
     let requests = await dbUnified.read('public_calendar_publisher_requests');
     if (req.query.status) {
-      const status = String(req.query.status).trim();
-      if (!REQUEST_STATUSES.includes(status)) {
-        return res.status(400).json({
-          error: 'Validation failed',
-          details: [`status must be one of: ${REQUEST_STATUSES.join(', ')}`],
-        });
-      }
-      requests = requests.filter(r => r.status === status);
+      requests = requests.filter(r => r.status === req.query.status);
     }
     requests.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     res.json({ ok: true, requests, total: requests.length });
@@ -996,7 +940,7 @@ router.post(
       return res.status(403).json({ error: 'Admin required' });
     }
     const action = req.params.action;
-    if (!REQUEST_ACTIONS.includes(action)) {
+    if (!['approve', 'reject', 'cancel'].includes(action)) {
       return res.status(400).json({ error: 'Unsupported request action' });
     }
     try {
@@ -1051,7 +995,7 @@ router.post(
     try {
       const events = (await dbUnified.read('public_calendar_events')).map(normalizeEvent);
       const event = events.find(e => e.id === req.params.id || e.slug === req.params.id);
-      if (!event || !canSeeEvent(req.user, event)) {
+      if (!event) {
         return res.status(404).json({ error: 'Event not found' });
       }
       const reason = sanitiseText(req.body.reason, 80);

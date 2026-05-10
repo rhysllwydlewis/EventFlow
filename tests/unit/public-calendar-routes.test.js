@@ -1007,26 +1007,6 @@ describe('Public calendar regression fixes', () => {
       expect.arrayContaining(['endDate must be on or after startDate'])
     );
   });
-
-  it('does not allow customers to report hidden draft events by guessed id', async () => {
-    setupReadMock({
-      events: [{ ...SAMPLE_EVENT, status: 'draft' }],
-      public_calendar_event_reports: [],
-    });
-
-    const res = await withAuth(
-      request(app)
-        .post(`/api/public-calendar/events/${SAMPLE_EVENT.id}/report`)
-        .send({ reason: 'Incorrect information', notes: 'This should not be visible.' }),
-      CUSTOMER_USER
-    );
-
-    expect(res.status).toBe(404);
-    expect(dbUnified.write).not.toHaveBeenCalledWith(
-      'public_calendar_event_reports',
-      expect.any(Array)
-    );
-  });
 });
 
 describe('Public calendar admin management surfaces', () => {
@@ -1051,21 +1031,6 @@ describe('Public calendar admin management surfaces', () => {
     );
     expect(res.status).toBe(200);
     expect(res.body.events[0].savesCount).toBe(2);
-  });
-
-  it('supports the admin dashboard default event query with upcoming/current events', async () => {
-    setupReadMock({ events: [SAMPLE_EVENT], saves: [] });
-
-    const res = await withAuth(
-      request(app).get(
-        '/api/public-calendar/events?limit=200&offset=0&status=all&includePast=false'
-      ),
-      ADMIN_USER
-    );
-
-    expect(res.status).toBe(200);
-    expect(res.body.ok).toBe(true);
-    expect(res.body.total).toBe(1);
   });
 
   it('enriches admin event reports with event details', async () => {

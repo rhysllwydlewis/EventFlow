@@ -699,6 +699,7 @@
   margin-bottom: 1.5rem;
 }
 
+
 /* Next-up summary beneath the customer calendar keeps future entries visible even when they are outside the current month view. */
 .customer-calendar-next-up {
   margin-top: 1rem;
@@ -1976,8 +1977,4 @@ body.customer-dashboard-page .customer-calendar-card .fc-daygrid-day-frame {
 body.customer-dashboard-page .customer-calendar-card .fc-event-title,
 body.customer-dashboard-page .customer-calendar-next-up__title {
   text-transform: none;
-}
-
-body.customer-dashboard-page .customer-calendar-card .fc-button {
-  text-transform: capitalize;
 }

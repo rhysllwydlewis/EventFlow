@@ -383,28 +383,6 @@
       @keyframes pcSkeletonPulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
 
 
-      .pc-btn-calendar {
-        color: #0b8073;
-        background: rgba(255,255,255,0.72);
-        border-color: rgba(11,128,115,0.26);
-        box-shadow: 0 10px 28px rgba(11,128,115,0.12), inset 0 1px 0 rgba(255,255,255,0.72);
-      }
-      .pc-btn-calendar:hover { background: #ecfdf5; transform: translateY(-1px); }
-      .pc-calendar-modal { max-width: 980px; }
-      .pc-calendar-modal__top { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1rem; flex-wrap:wrap; }
-      .pc-calendar-modal__month { font-size:1.25rem; font-weight:800; color:#0f172a; margin:0; }
-      .pc-calendar-modal__controls { display:flex; gap:.5rem; flex-wrap:wrap; }
-      .pc-calendar-grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); overflow:hidden; border:1px solid rgba(11,128,115,.14); border-radius:18px; background:rgba(255,255,255,.58); }
-      .pc-calendar-weekday { padding:.65rem .45rem; text-align:center; font-size:.78rem; font-weight:800; color:#0b8073; background:rgba(236,253,245,.78); }
-      .pc-calendar-day { min-height:112px; padding:.5rem; border-top:1px solid rgba(15,23,42,.08); border-left:1px solid rgba(15,23,42,.08); background:rgba(255,255,255,.54); }
-      .pc-calendar-day:nth-child(7n+1) { border-left:0; }
-      .pc-calendar-day--muted { color:#94a3b8; background:rgba(248,250,252,.58); }
-      .pc-calendar-day__num { font-weight:800; color:#0f766e; font-size:.85rem; margin-bottom:.35rem; }
-      .pc-calendar-event { display:block; margin:.25rem 0; padding:.35rem .45rem; border-radius:10px; background:linear-gradient(135deg,#0b8073,#14b8a6); color:#fff; font-size:.74rem; font-weight:800; text-decoration:none; box-shadow:0 8px 20px rgba(11,128,115,.16); }
-      .pc-calendar-event:hover { filter:brightness(1.05); transform:translateY(-1px); }
-      .pc-calendar-empty { padding:2rem; text-align:center; color:#64748b; }
-      @media (max-width: 760px) { .pc-calendar-grid { grid-template-columns:1fr; } .pc-calendar-weekday { display:none; } .pc-calendar-day { min-height:auto; border-left:0; } }
-
       /* Liquid glass polish */
       .pc-hero::after {
         content: '';
