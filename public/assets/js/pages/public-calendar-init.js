@@ -435,7 +435,7 @@
 
     const editBtns = canEdit
       ? `<button class="ef-cta pc-btn pc-btn-sm pc-btn-outline-green" data-action="edit" data-id="${esc(ev.id)}">Edit</button>
-         <button class="ef-cta pc-btn pc-btn-sm pc-btn-danger" data-action="delete" data-id="${esc(ev.id)}" data-title="${esc(ev.title)}">Delete</button>`
+         <button class="ef-cta pc-btn pc-btn-sm pc-btn-danger" data-action="delete" data-id="${esc(ev.id)}" data-title="${esc(displayTitle(ev.title))}">Delete</button>`
       : '';
 
     const image = ev.featuredImageUrl || ev.imageUrl;
@@ -849,6 +849,167 @@
     loadEvents();
   }
 
+  // ── Public calendar widget ───────────────────────────────────────────────
+  let calendarWidgetDate = new Date();
+  let calendarWidgetEvents = [];
+
+  function ensureCalendarWidgetModal() {
+    const existing = document.getElementById('pc-calendar-widget-overlay');
+    if (existing) {
+      return existing;
+    }
+
+    const overlay = document.createElement('div');
+    overlay.id = 'pc-calendar-widget-overlay';
+    overlay.className = 'pc-modal-overlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-labelledby', 'pc-calendar-widget-title');
+    overlay.innerHTML = `
+      <div class="pc-modal pc-calendar-modal" role="document">
+        <div class="pc-modal__header">
+          <div>
+            <h2 class="pc-modal__title" id="pc-calendar-widget-title">Public events calendar</h2>
+            <p style="margin:.35rem 0 0;color:#64748b;font-size:.92rem;">All public events in a simple month view.</p>
+          </div>
+          <button class="ef-cta pc-modal__close" id="pc-calendar-widget-close" aria-label="Close public calendar" type="button">×</button>
+        </div>
+        <div id="pc-calendar-widget-body" aria-live="polite"></div>
+      </div>`;
+    document.body.appendChild(overlay);
+    overlay
+      .querySelector('#pc-calendar-widget-close')
+      .addEventListener('click', closeCalendarWidget);
+    overlay.addEventListener('click', e => {
+      if (e.target === overlay) {
+        closeCalendarWidget();
+      }
+    });
+    return overlay;
+  }
+
+  function closeCalendarWidget() {
+    const overlay = document.getElementById('pc-calendar-widget-overlay');
+    if (overlay) {
+      overlay.style.display = 'none';
+      overlay.classList.remove('is-open');
+      document.body.style.overflow = '';
+    }
+  }
+
+  function eventDateKey(event) {
+    const date = new Date(event.startDate);
+    return Number.isNaN(date.getTime()) ? '' : date.toISOString().slice(0, 10);
+  }
+
+  function renderCalendarWidget() {
+    const body = document.getElementById('pc-calendar-widget-body');
+    if (!body) {
+      return;
+    }
+
+    const monthStart = new Date(calendarWidgetDate.getFullYear(), calendarWidgetDate.getMonth(), 1);
+    const gridStart = new Date(monthStart);
+    gridStart.setDate(monthStart.getDate() - monthStart.getDay());
+    const byDay = new Map();
+    calendarWidgetEvents.forEach(event => {
+      const key = eventDateKey(event);
+      if (!key) {
+        return;
+      }
+      if (!byDay.has(key)) {
+        byDay.set(key, []);
+      }
+      byDay.get(key).push(event);
+    });
+
+    const days = [];
+    const cursor = new Date(gridStart);
+    for (let i = 0; i < 42; i += 1) {
+      const key = cursor.toISOString().slice(0, 10);
+      const dayEvents = byDay.get(key) || [];
+      const muted = cursor.getMonth() !== monthStart.getMonth();
+      days.push(`
+        <div class="pc-calendar-day ${muted ? 'pc-calendar-day--muted' : ''}">
+          <div class="pc-calendar-day__num">${cursor.getDate()}</div>
+          ${dayEvents
+            .slice(0, 4)
+            .map(
+              event =>
+                `<a class="pc-calendar-event" href="/events/${encodeURIComponent(event.slug || event.id)}" title="${esc(displayTitle(event.title))}">${esc(formatDate(event.startDate).replace(/,.*$/, ''))} · ${esc(displayTitle(event.title))}</a>`
+            )
+            .join('')}
+          ${dayEvents.length > 4 ? `<div style="font-size:.75rem;color:#64748b;font-weight:700;">+${dayEvents.length - 4} more</div>` : ''}
+        </div>`);
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    body.innerHTML = `
+      <div class="pc-calendar-modal__top">
+        <h3 class="pc-calendar-modal__month">${monthStart.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}</h3>
+        <div class="pc-calendar-modal__controls">
+          <button class="ef-cta pc-btn pc-btn-ghost" type="button" id="pc-cal-prev">← Previous</button>
+          <button class="ef-cta pc-btn pc-btn-calendar" type="button" id="pc-cal-today">Today</button>
+          <button class="ef-cta pc-btn pc-btn-ghost" type="button" id="pc-cal-next">Next →</button>
+        </div>
+      </div>
+      ${
+        calendarWidgetEvents.length
+          ? `<div class="pc-calendar-grid">
+        ${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => `<div class="pc-calendar-weekday">${day}</div>`).join('')}
+        ${days.join('')}
+      </div>`
+          : '<div class="pc-calendar-empty">No public events are currently available.</div>'
+      }`;
+
+    document.getElementById('pc-cal-prev')?.addEventListener('click', () => {
+      calendarWidgetDate = new Date(
+        calendarWidgetDate.getFullYear(),
+        calendarWidgetDate.getMonth() - 1,
+        1
+      );
+      renderCalendarWidget();
+    });
+    document.getElementById('pc-cal-next')?.addEventListener('click', () => {
+      calendarWidgetDate = new Date(
+        calendarWidgetDate.getFullYear(),
+        calendarWidgetDate.getMonth() + 1,
+        1
+      );
+      renderCalendarWidget();
+    });
+    document.getElementById('pc-cal-today')?.addEventListener('click', () => {
+      calendarWidgetDate = new Date();
+      renderCalendarWidget();
+    });
+  }
+
+  async function openCalendarWidget() {
+    const overlay = ensureCalendarWidgetModal();
+    const body = document.getElementById('pc-calendar-widget-body');
+    overlay.style.display = 'flex';
+    overlay.classList.add('is-open');
+    document.body.style.overflow = 'hidden';
+    if (body) {
+      body.innerHTML = '<div class="pc-calendar-empty">Loading public events…</div>';
+    }
+    try {
+      const data = await apiFetch(
+        '/api/v1/public-calendar/events?includePast=true&limit=200&offset=0'
+      );
+      calendarWidgetEvents = (data.events || []).sort(
+        (a, b) => new Date(a.startDate) - new Date(b.startDate)
+      );
+      const nextEvent = calendarWidgetEvents.find(event => new Date(event.startDate) >= new Date());
+      calendarWidgetDate = nextEvent ? new Date(nextEvent.startDate) : new Date();
+      renderCalendarWidget();
+    } catch (err) {
+      if (body) {
+        body.innerHTML = `<div class="pc-calendar-empty" style="color:#b91c1c;">${esc(err.message || 'Failed to load public events.')}</div>`;
+      }
+    }
+  }
+
   // ── Initialise ────────────────────────────────────────────────────────────
   async function init() {
     await loadCurrentUser();
@@ -893,6 +1054,7 @@
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape') {
         closeModal();
+        closeCalendarWidget();
       }
     });
 

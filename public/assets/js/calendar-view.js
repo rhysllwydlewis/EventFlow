@@ -811,9 +811,20 @@
           extendedProps: {
             description: ev.description || '',
             location: ev.location || '',
-            publicEvent: true,
-          },
-        }));
+            url: deleted ? '' : `/public-calendar`,
+            backgroundColor: deleted ? '#9ca3af' : '#7c3aed',
+            borderColor: deleted ? '#ef4444' : '#6d28d9',
+            textColor: '#fff',
+            extendedProps: {
+              description: deleted
+                ? ev.warning || 'This saved public event has been removed from the shared calendar.'
+                : ev.description || '',
+              location: ev.location || '',
+              publicEvent: true,
+              deletedEvent: deleted,
+            },
+          };
+        });
         events = events.concat(pubEvents);
       }
     } catch (_) {
@@ -858,6 +869,12 @@
         center: 'title',
         right: 'dayGridMonth,timeGridWeek,listWeek',
       },
+      buttonText: {
+        today: 'Today',
+        month: 'Month',
+        week: 'Week',
+        list: 'List',
+      },
       events: events,
       expandRows: false,
       contentHeight: 'auto',
@@ -887,7 +904,8 @@
         const desc = info.event.extendedProps.description;
         const loc = info.event.extendedProps.location;
         const entryType = info.event.extendedProps.entryType;
-        if (desc || loc || entryType) {
+        const deletedEvent = info.event.extendedProps.deletedEvent;
+        if (desc || loc || entryType || deletedEvent) {
           const tooltip = document.createElement('div');
           tooltip.className = 'calendar-tooltip';
           tooltip.style.cssText =
@@ -895,9 +913,11 @@
             'border-radius:8px;padding:8px 12px;box-shadow:0 4px 12px rgba(0,0,0,.12);' +
             'z-index:9999;max-width:260px;font-size:0.85rem;pointer-events:none;';
 
-          const typeLabel = entryType
-            ? `<span class="cal-entry-badge cal-entry-badge--${escapeHtml(entryType)}">${escapeHtml(entryType)}</span><br>`
-            : '';
+          const typeLabel = deletedEvent
+            ? '<span class="cal-entry-badge" style="background:#fee2e2;color:#991b1b;">Removed public event</span><br>'
+            : entryType
+              ? `<span class="cal-entry-badge cal-entry-badge--${escapeHtml(entryType)}">${escapeHtml(entryType)}</span><br>`
+              : '';
           const actionHint = entryType
             ? `<br><small style="color:#9ca3af;font-size:0.75rem;">Click to edit or delete</small>`
             : '';

@@ -1079,6 +1079,12 @@
         center: 'title',
         right: 'dayGridMonth,timeGridWeek,listWeek',
       },
+      buttonText: {
+        today: 'Today',
+        month: 'Month',
+        week: 'Week',
+        list: 'List',
+      },
       events: allEvents,
       expandRows: false,
       contentHeight: 'auto',

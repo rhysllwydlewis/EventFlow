@@ -548,6 +548,41 @@ describe('GET /api/public-calendar/events/saved', () => {
     expect(res.status).toBe(200);
     expect(res.body.events.length).toBe(0);
   });
+
+  it('returns a deleted warning placeholder for saved events removed from the shared calendar', async () => {
+    setupReadMock({
+      events: [],
+      saves: [
+        {
+          ...save,
+          eventDeleted: true,
+          eventDeletedAt: '2026-01-03T00:00:00.000Z',
+          eventSnapshot: {
+            title: SAMPLE_EVENT.title,
+            startDate: SAMPLE_EVENT.startDate,
+            slug: 'spring-wedding-fayre-deleted',
+            eventType: 'Wedding Fayre',
+          },
+        },
+      ],
+    });
+
+    const res = await withAuth(
+      request(app).get('/api/public-calendar/events/saved'),
+      CUSTOMER_USER
+    );
+
+    expect(res.status).toBe(200);
+    expect(res.body.events.length).toBe(1);
+    expect(res.body.events[0]).toEqual(
+      expect.objectContaining({
+        eventDeleted: true,
+        isDeleted: true,
+        status: 'deleted',
+        warning: expect.stringContaining('removed'),
+      })
+    );
+  });
 });
 
 // ─── New behaviour tests (Fix 1, 3, 5, 8) ───────────────────────────────────
