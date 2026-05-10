@@ -596,6 +596,15 @@ app.get('/articles/:slug.html', (req, res) => {
   res.redirect(301, `/articles/${req.params.slug}${qs}`);
 });
 
+// Public event detail pages — clean, shareable event URLs backed by API data.
+app.get('/events/:slug', apiLimiter, (req, res, next) => {
+  const slug = req.params.slug;
+  if (!/^[a-zA-Z0-9_-]+$/.test(slug)) {
+    return next();
+  }
+  res.sendFile(path.join(__dirname, 'public', 'event-detail.html'));
+});
+
 // Block test/dev pages in production
 if (process.env.NODE_ENV === 'production') {
   const testPages = [

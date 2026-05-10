@@ -81,10 +81,23 @@ function withAuth(req, user) {
   return req.set('Cookie', `token=${makeToken(user)}`);
 }
 
-function setupReadMock(entries = []) {
+function setupReadMock(entries = [], notifications = [], savedPublicEvents = []) {
   dbUnified.read.mockImplementation(async collection => {
     if (collection === 'customer_calendar_entries') {
       return [...entries];
+    }
+    if (collection === 'notifications') {
+      return [...notifications];
+    }
+    if (collection === 'public_calendar_saves') {
+      return savedPublicEvents.map(event => ({
+        id: `save_${event.id}`,
+        userId: USER_A.id,
+        eventId: event.id,
+      }));
+    }
+    if (collection === 'public_calendar_events') {
+      return [...savedPublicEvents];
     }
     if (collection === 'users') {
       return [USER_A, USER_B];
@@ -105,6 +118,7 @@ describe('GET /api/me/calendar-entries', () => {
   let app;
 
   beforeEach(() => {
+    jest.clearAllMocks();
     app = buildApp();
     setupReadMock([EXISTING_ENTRY]);
   });
@@ -127,6 +141,74 @@ describe('GET /api/me/calendar-entries', () => {
     const res = await withAuth(request(app).get('/api/me/calendar-entries'), USER_B);
     expect(res.status).toBe(200);
     expect(res.body.entries.length).toBe(0);
+  });
+
+  it('creates a 7-day reminder notification once for upcoming calendar entries', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2027-06-08T12:00:00.000Z'));
+    setupReadMock([EXISTING_ENTRY], []);
+
+    const res = await withAuth(request(app).get('/api/me/calendar-entries'), USER_A);
+
+    expect(res.status).toBe(200);
+    expect(res.body.remindersCreated).toBe(1);
+    expect(dbUnified.write).toHaveBeenCalledWith(
+      'notifications',
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: `calrem_${USER_A.id}_${EXISTING_ENTRY.id}_7_${EXISTING_ENTRY.date}`,
+          userId: USER_A.id,
+          type: 'reminder',
+          priority: 'normal',
+          category: 'calendar',
+          actionUrl: '/dashboard/customer#events-calendar',
+        }),
+      ])
+    );
+    jest.useRealTimers();
+  });
+
+  it('does not duplicate an existing calendar reminder notification', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2027-06-14T12:00:00.000Z'));
+    const existingReminder = {
+      id: `calrem_${USER_A.id}_${EXISTING_ENTRY.id}_1_${EXISTING_ENTRY.date}`,
+    };
+    setupReadMock([EXISTING_ENTRY], [existingReminder]);
+
+    const res = await withAuth(request(app).get('/api/me/calendar-entries'), USER_A);
+
+    expect(res.status).toBe(200);
+    expect(res.body.remindersCreated).toBe(0);
+    expect(dbUnified.write).not.toHaveBeenCalledWith('notifications', expect.any(Array));
+    jest.useRealTimers();
+  });
+
+  it('creates reminders for saved public calendar events due in 1 day', async () => {
+    jest.useFakeTimers().setSystemTime(new Date('2027-08-19T12:00:00.000Z'));
+    const savedPublicEvent = {
+      id: 'pce_public_1',
+      slug: 'summer-fayre',
+      title: 'Summer Fayre',
+      startDate: '2027-08-20T10:30:00.000Z',
+    };
+    setupReadMock([], [], [savedPublicEvent]);
+
+    const res = await withAuth(request(app).get('/api/me/calendar-entries'), USER_A);
+
+    expect(res.status).toBe(200);
+    expect(res.body.remindersCreated).toBe(1);
+    expect(dbUnified.write).toHaveBeenCalledWith(
+      'notifications',
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: `calrem_public_${USER_A.id}_${savedPublicEvent.id}_1_2027-08-20`,
+          type: 'reminder',
+          priority: 'high',
+          actionUrl: '/events/summer-fayre',
+          metadata: expect.objectContaining({ source: 'public' }),
+        }),
+      ])
+    );
+    jest.useRealTimers();
   });
 });
 
