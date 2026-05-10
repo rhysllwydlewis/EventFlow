@@ -30,6 +30,8 @@ describe('auth-google-init context handling', () => {
     expect(source).toContain('https://accounts.google.com/gsi/client');
     expect(source).toContain('google.accounts.id.initialize');
     expect(source).toContain('google.accounts.id.renderButton');
+    expect(source).toContain('const buttonWidth = Math.min(400, availableWidth)');
+    expect(source).toContain('container.style.width = `${buttonWidth}px`');
     expect(source).not.toContain('gapi.auth2');
   });
 

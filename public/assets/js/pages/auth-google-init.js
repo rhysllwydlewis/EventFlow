@@ -314,9 +314,15 @@
       return;
     }
 
+    const availableWidth = Math.max(220, Math.floor(container.parentElement?.clientWidth || 360));
+    const buttonWidth = Math.min(400, availableWidth);
+
     container.innerHTML = '';
+    container.style.width = `${buttonWidth}px`;
+    container.style.maxWidth = '100%';
     window.google.accounts.id.renderButton(container, {
       ...baseRenderOptions,
+      width: buttonWidth,
       text: context === 'signup' ? 'signup_with' : 'signin_with',
       state: getGoogleButtonState(context),
     });
@@ -379,7 +385,6 @@
     const renderOptions = {
       theme: 'outline',
       size: 'large',
-      width: Math.min(360, signInContainer?.offsetWidth || signUpContainer?.offsetWidth || 320),
       shape: 'pill',
     };
 
@@ -413,18 +418,22 @@
         });
       });
 
-      document.querySelectorAll(
-        '#reg-role, #reg-location, #reg-postcode, #reg-company, #reg-jobtitle, #reg-website, #reg-instagram, #reg-facebook, #reg-twitter, #reg-linkedin'
-      ).forEach(el => {
-        el.addEventListener('input', rerenderSignupButton);
-        el.addEventListener('change', rerenderSignupButton);
-      });
-
-      document.querySelectorAll('.auth-role-picker [data-role], .role-toggle [data-role]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          window.setTimeout(rerenderSignupButton, 0);
+      document
+        .querySelectorAll(
+          '#reg-role, #reg-location, #reg-postcode, #reg-company, #reg-jobtitle, #reg-website, #reg-instagram, #reg-facebook, #reg-twitter, #reg-linkedin'
+        )
+        .forEach(el => {
+          el.addEventListener('input', rerenderSignupButton);
+          el.addEventListener('change', rerenderSignupButton);
         });
-      });
+
+      document
+        .querySelectorAll('.auth-role-picker [data-role], .role-toggle [data-role]')
+        .forEach(btn => {
+          btn.addEventListener('click', () => {
+            window.setTimeout(rerenderSignupButton, 0);
+          });
+        });
 
       renderGoogleButton(signUpContainer, 'signup', renderOptions);
       syncSignupGoogleReadiness(false);
