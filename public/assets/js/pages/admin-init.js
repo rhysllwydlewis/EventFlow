@@ -336,6 +336,38 @@
       featuredPackagesEl.textContent = counts.featuredPackages || 0;
     }
 
+    // Shared public calendar management card — load asynchronously (best-effort)
+    (async () => {
+      try {
+        const [eventsData, publishedData, requestsData, reportsData] = await Promise.all([
+          AdminShared.api('/api/v1/public-calendar/events?status=all&includePast=true&limit=1'),
+          AdminShared.api(
+            '/api/v1/public-calendar/events?status=published&includePast=true&limit=1'
+          ),
+          AdminShared.api('/api/v1/public-calendar/publisher-requests?status=pending'),
+          AdminShared.api('/api/v1/public-calendar/reports?status=open'),
+        ]);
+        const totalCalendarEventsEl = document.getElementById('totalCalendarEventsCountCard');
+        if (totalCalendarEventsEl) {
+          totalCalendarEventsEl.textContent = eventsData.total || 0;
+        }
+        const publishedCalendarEventsEl = document.getElementById('publishedCalendarEventsCount');
+        if (publishedCalendarEventsEl) {
+          publishedCalendarEventsEl.textContent = publishedData.total || 0;
+        }
+        const pendingRequestsEl = document.getElementById('pendingCalendarRequestsCount');
+        if (pendingRequestsEl) {
+          pendingRequestsEl.textContent = requestsData.total || 0;
+        }
+        const openReportsEl = document.getElementById('openCalendarReportsCount');
+        if (openReportsEl) {
+          openReportsEl.textContent = reportsData.total || 0;
+        }
+      } catch (_) {
+        // Non-blocking — card shows — if API fails stats stay at —
+      }
+    })();
+
     // Partners management card — load asynchronously (best-effort)
     (async () => {
       try {
@@ -1693,6 +1725,7 @@
       setupNavButton('supportTicketsBtn', '/admin-tickets');
       setupNavButton('paymentsAnalyticsBtn', '/admin-payments');
       setupNavButton('reportsQueueBtn', '/admin-reports');
+      setupNavButton('eventsCalendarBtn', '/admin-public-calendar');
       setupNavButton('auditLogBtn', '/admin-audit');
       setupNavButton('adminSettingsBtn', '/admin-settings');
       setupNavButton('contentManagementBtn', '/admin-content');

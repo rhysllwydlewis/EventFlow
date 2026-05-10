@@ -73,6 +73,14 @@
       desc: 'Marketplace management',
     },
     {
+      href: '/admin-public-calendar',
+      icon: '📅',
+      label: 'Events',
+      group: 'catalogue',
+      desc: 'Shared calendar events & publishing requests',
+      badgeId: 'navBadgePublicCalendar',
+    },
+    {
       href: '/admin-photos',
       icon: '📸',
       label: 'Photos',
@@ -835,6 +843,18 @@
             packagesBadge.style.display = 'flex';
           } else {
             packagesBadge.style.display = 'none';
+          }
+        }
+
+        // Public calendar badge (pending publishing requests + open event reports)
+        const calendarBadge = document.getElementById('navBadgePublicCalendar');
+        if (calendarBadge) {
+          const count = pending.publicCalendarRequests || 0;
+          if (count > 0) {
+            calendarBadge.textContent = count;
+            calendarBadge.style.display = 'flex';
+          } else {
+            calendarBadge.style.display = 'none';
           }
         }
 

@@ -8822,3 +8822,29 @@ label .required {
 .spc-checklist-step--complete .spc-checklist-step-detail {
   color: #0f766e;
 }
+
+/* Liquid glass supplier calendar polish and scrollbar-free month layout */
+.supplier-calendar-viewport.fc-loaded {
+  min-height: 0;
+}
+
+.supplier-calendar-viewport .fc,
+.supplier-calendar-viewport .fc-view-harness,
+.supplier-calendar-viewport .fc-scroller,
+.supplier-calendar-viewport .fc-scroller-liquid,
+.supplier-calendar-viewport .fc-scroller-liquid-absolute {
+  height: auto !important;
+  overflow: visible !important;
+  position: relative !important;
+}
+
+.supplier-calendar-viewport .fc-scrollgrid {
+  border-radius: 18px;
+  overflow: hidden;
+  border-color: rgba(11, 128, 115, 0.14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+.supplier-calendar-viewport .fc-daygrid-day-frame {
+  min-height: 70px;
+}

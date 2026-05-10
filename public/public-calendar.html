@@ -22,6 +22,7 @@
     <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/navbar.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/liquid-glass.css?v=18.3.0" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -72,7 +73,17 @@
       .pc-hero p {
         font-size: 1.05rem;
         opacity: 0.9;
-        margin: 0 0 1.5rem;
+        margin: 0 0 1rem;
+      }
+      .pc-hero__explainer {
+        display: inline-block;
+        max-width: 760px;
+        margin-bottom: 1.5rem !important;
+        padding: 0.7rem 1rem;
+        border: 1px solid rgba(255,255,255,0.25);
+        border-radius: 999px;
+        background: rgba(255,255,255,0.12);
+        font-size: 0.95rem !important;
       }
       .pc-hero__actions {
         display: flex;
@@ -116,6 +127,7 @@
         z-index: 10;
         max-width: 900px;
       }
+      .pc-filters__intro { margin: 0 0 1rem; color:#4b5563; font-size:0.95rem; }
       .pc-filters__grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -370,6 +382,46 @@
       .pc-skeleton-card { background: #f3f4f6; border-radius: 1rem; height: 300px; animation: pcSkeletonPulse 1.4s ease-in-out infinite; }
       @keyframes pcSkeletonPulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
 
+
+      /* Liquid glass polish */
+      .pc-hero::after {
+        content: '';
+        position: absolute;
+        inset: 1rem;
+        border: 1px solid rgba(255,255,255,0.18);
+        border-radius: 2rem;
+        pointer-events: none;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
+      }
+      .pc-filters,
+      .pc-event-card,
+      .pc-publisher-banner,
+      .pc-modal {
+        background: rgba(255,255,255,0.78);
+        border-color: rgba(11,128,115,0.14);
+        backdrop-filter: blur(18px) saturate(1.2);
+        -webkit-backdrop-filter: blur(18px) saturate(1.2);
+        box-shadow: 0 18px 50px rgba(15,23,42,0.08), inset 0 1px 0 rgba(255,255,255,0.65);
+      }
+      .pc-event-card { position: relative; }
+      .pc-event-card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        pointer-events: none;
+        background: linear-gradient(135deg, rgba(255,255,255,0.55), rgba(255,255,255,0.08));
+        opacity: 0.55;
+      }
+      .pc-event-card__body,
+      .pc-event-card__img,
+      .pc-event-card__img-placeholder { position: relative; z-index: 1; }
+      .pc-btn-primary,
+      .pc-hero__cta {
+        box-shadow: 0 10px 28px rgba(11,128,115,0.22), inset 0 1px 0 rgba(255,255,255,0.22);
+      }
+      .pc-events-grid { align-items: stretch; }
+
       @media (max-width: 600px) {
         .pc-hero { padding: 3rem 0 2rem; }
         .pc-filters { margin: -1rem auto 1.5rem; border-radius: 0.75rem; }
@@ -437,6 +489,7 @@
         <span class="pc-hero__eyebrow">📅 Events Calendar</span>
         <h1>Wedding Fayres &amp; Upcoming Events</h1>
         <p>Discover local wedding fayres, planning showcases and supplier events near you.</p>
+        <p class="pc-hero__explainer">Anyone can browse public events. Approved suppliers can publish events. Customers can save events to their planning calendar.</p>
         <div class="pc-hero__actions">
           <a href="/suppliers" class="pc-hero__cta pc-hero__cta--outline">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
@@ -451,8 +504,28 @@
 
         <!-- Filters card (overlaps hero) -->
         <div class="pc-filters" role="search" aria-label="Filter events">
+          <p class="pc-filters__intro">Search upcoming public wedding fayres, open days, workshops, supplier showcases and venue tours.</p>
           <div class="pc-filters__grid">
             <div class="pc-filters__field">
+              <label for="pc-filter-q">Search</label>
+              <input id="pc-filter-q" type="search" placeholder="Keyword or organiser" />
+            </div>
+            <div class="pc-filters__field">
+              <label for="pc-filter-event-type">Event type</label>
+              <select id="pc-filter-event-type">
+                <option value="">All event types</option>
+                <option>Wedding Fayre</option>
+                <option>Open Day</option>
+                <option>Supplier Showcase</option>
+                <option>Workshop</option>
+                <option>Venue Tour</option>
+                <option>Planning Event</option>
+                <option>Networking Event</option>
+                <option>Online Event</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="pc-filters__field" style="display:none;">
               <label for="pc-filter-category">Category</label>
               <select id="pc-filter-category">
                 <option value="">All categories</option>
@@ -490,6 +563,15 @@
               <label for="pc-filter-to">To date</label>
               <input id="pc-filter-to" type="date" />
             </div>
+            <div class="pc-filters__field" id="pc-filter-status-wrap" style="display:none;">
+              <label for="pc-filter-status">Status</label>
+              <select id="pc-filter-status"><option value="">Published</option><option value="all">All statuses</option><option>draft</option><option>published</option><option>cancelled</option><option>pending_review</option><option>rejected</option><option>expired</option></select>
+            </div>
+            <div class="pc-filters__field">
+              <label style="display:flex;align-items:center;gap:0.45rem;text-transform:none;letter-spacing:0;font-size:0.85rem;margin-top:1.85rem;">
+                <input id="pc-filter-past" type="checkbox" style="width:auto;" /> Include past events
+              </label>
+            </div>
             <div class="pc-filters__actions">
               <button id="pc-filter-btn" class="ef-cta pc-btn pc-btn-primary" type="button">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
@@ -502,14 +584,29 @@
 
         <!-- Publisher banner (shown only to authorized publishers) -->
         <div id="pc-publisher-banner" class="pc-publisher-banner" style="display:none;" role="status">
-          <span class="pc-publisher-banner__text">
-            <strong>✓ Publisher access</strong> — You can add events to the public calendar.
+          <span class="pc-publisher-banner__text" id="pc-publisher-banner-text">
+            <strong>Shared Events Calendar publishing enabled.</strong> You can publish public events to the shared calendar and manage events you created.
           </span>
           <button id="pc-add-event-btn" class="ef-cta pc-btn pc-btn-primary" type="button">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Add Event
           </button>
         </div>
+
+        <div id="pc-permission-notice" class="pc-publisher-banner" style="display:none;background:#fffbeb;border-color:#fde68a;color:#92400e;" role="status"></div>
+
+        <section id="pc-admin-requests-panel" class="pc-publisher-banner" style="display:none;background:#f8fafc;border-color:#cbd5e1;color:#0f172a;align-items:flex-start;" aria-labelledby="pc-admin-requests-title">
+          <div style="width:100%;">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:0.75rem;">
+              <div>
+                <h2 id="pc-admin-requests-title" style="font-size:1rem;margin:0 0 0.25rem;">Calendar publishing requests</h2>
+                <p style="margin:0;color:#64748b;font-size:0.9rem;">Approve suitable suppliers or reject with a reason. Approval grants the existing admin override.</p>
+              </div>
+              <button id="pc-admin-requests-refresh" class="ef-cta pc-btn pc-btn-ghost" type="button">Refresh requests</button>
+            </div>
+            <div id="pc-admin-requests-list" aria-live="polite"></div>
+          </div>
+        </section>
 
         <!-- Results bar -->
         <div class="pc-results-bar" aria-live="polite">
@@ -561,9 +658,17 @@
               <input id="pc-form-location" type="text" class="pc-form__control" maxlength="200" placeholder="City or venue" />
             </div>
             <div class="pc-form__group">
-              <label class="pc-form__label" for="pc-form-category">Category</label>
+              <label class="pc-form__label" for="pc-form-category">Event type / category</label>
               <select id="pc-form-category" class="pc-form__control">
                 <option value="">Choose…</option>
+                <option>Wedding Fayre</option>
+                <option>Open Day</option>
+                <option>Supplier Showcase</option>
+                <option>Workshop</option>
+                <option>Venue Tour</option>
+                <option>Planning Event</option>
+                <option>Networking Event</option>
+                <option>Online Event</option>
                 <option>Venues</option>
                 <option>Catering</option>
                 <option>Photography</option>
@@ -597,8 +702,18 @@
               <input id="pc-form-image" type="url" class="pc-form__control" maxlength="500" placeholder="https://…" />
             </div>
             <div class="pc-form__group">
-              <label class="pc-form__label" for="pc-form-external">External link</label>
+              <label class="pc-form__label" for="pc-form-external">External booking link</label>
               <input id="pc-form-external" type="url" class="pc-form__control" maxlength="500" placeholder="https://…" />
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+            <div class="pc-form__group">
+              <label class="pc-form__label" for="pc-form-price-type">Price</label>
+              <select id="pc-form-price-type" class="pc-form__control"><option value="unknown">Unknown</option><option value="free">Free</option><option value="paid">Paid</option><option value="donation">Donation</option></select>
+            </div>
+            <div class="pc-form__group">
+              <label class="pc-form__label" for="pc-form-booking-required">Booking required?</label>
+              <select id="pc-form-booking-required" class="pc-form__control"><option value="false">No</option><option value="true">Yes</option></select>
             </div>
           </div>
           <div id="pc-form-error" class="pc-form__error" role="alert"></div>
@@ -623,6 +738,7 @@
       </div>
     </footer>
 
+    <script src="/assets/js/utils/auth-state.js" defer></script>
     <script src="/assets/js/navbar.js" defer></script>
     <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
     <script src="/assets/js/pages/public-calendar-init.js" defer></script>

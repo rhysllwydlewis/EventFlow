@@ -705,6 +705,7 @@ const adminPages = [
   'admin-reviews',
   'admin-search',
   'admin-photos',
+  'admin-public-calendar',
   'admin-reports',
   'admin-settings',
   'admin-supplier-detail',

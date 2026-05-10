@@ -116,6 +116,16 @@ const REGISTRY = [
     desc: 'Marketplace management',
   },
   {
+    route: '/admin-public-calendar',
+    htmlFile: 'admin-public-calendar',
+    label: 'Events',
+    icon: '📅',
+    category: 'catalogue',
+    inNav: true,
+    desc: 'Shared calendar events & publishing requests',
+    badgeId: 'navBadgePublicCalendar',
+  },
+  {
     route: '/admin-photos',
     htmlFile: 'admin-photos',
     label: 'Photos',
