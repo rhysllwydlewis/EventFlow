@@ -26,6 +26,16 @@ describe('auth signup layout', () => {
     expect(loginForm).not.toContain('id="reg-role-picker"');
     expect(loginForm).not.toContain('id="supplier-fields"');
   });
+
+  it('keeps the auth page compact and free from unwanted skip-link chrome', () => {
+    expect(authHtml).not.toContain('Skip to sign in');
+    expect(authHtml).not.toContain('auth-skip-link');
+    expect(authHtml).toContain('/assets/css/auth.css?v=18.4.1');
+    expect(authHtml).toContain('County or region *');
+    expect(authHtml).toContain('Company name *');
+    expect(authHtml).toContain('Profile picture');
+  });
+
   it('labels the signup choice as a guided two-step flow', () => {
     expect(authHtml).toContain('Step 1');
     expect(authHtml).toContain('Choose your account type');

@@ -22,7 +22,15 @@
   const panelSign = document.getElementById('panel-signin');
   const panelCreate = document.getElementById('panel-create');
 
+  function isDisabledTab(tab) {
+    return !!(tab && (tab.disabled || tab.getAttribute('aria-disabled') === 'true'));
+  }
+
   function activateTab(activeTab, activePanel, inactiveTab, inactivePanel, moveFocus) {
+    if (isDisabledTab(activeTab)) {
+      return;
+    }
+
     activeTab.setAttribute('aria-selected', 'true');
     activeTab.setAttribute('tabindex', '0');
     inactiveTab.setAttribute('aria-selected', 'false');
@@ -54,6 +62,9 @@
     });
 
     tabCreate.addEventListener('click', () => {
+      if (isDisabledTab(tabCreate)) {
+        return;
+      }
       activateTab(tabCreate, panelCreate, tabSign, panelSign, false);
     });
 
@@ -62,7 +73,7 @@
       tab.addEventListener('keydown', e => {
         if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
           e.preventDefault();
-          if (tab === tabSign) {
+          if (tab === tabSign && !isDisabledTab(tabCreate)) {
             activateTab(tabCreate, panelCreate, tabSign, panelSign, true);
           } else {
             activateTab(tabSign, panelSign, tabCreate, panelCreate, true);
@@ -72,39 +83,100 @@
           activateTab(tabSign, panelSign, tabCreate, panelCreate, true);
         } else if (e.key === 'End') {
           e.preventDefault();
-          activateTab(tabCreate, panelCreate, tabSign, panelSign, true);
+          if (!isDisabledTab(tabCreate)) {
+            activateTab(tabCreate, panelCreate, tabSign, panelSign, true);
+          }
         }
       });
     });
 
     // Activate the correct tab based on URL hash / query-param (no focus steal on load)
-    if (window.location.hash === '#create' || window.location.search.includes('tab=create')) {
+    const initialTab = new URLSearchParams(window.location.search).get('tab');
+    if (window.location.hash === '#create' || initialTab === 'create') {
       activateTab(tabCreate, panelCreate, tabSign, panelSign, false);
     }
   }
 
   // ── Role-picker active class management ───────────────────────
-  // Works for both `.role-pill` (legacy) and `.auth-role-option` (new)
+  // Works for both `.role-pill` (legacy) and `.auth-role-option` (new).
   const rolePicker = document.querySelector('.auth-role-picker, .role-toggle');
+  const roleInput = document.getElementById('reg-role');
+  const supplierFields = document.getElementById('supplier-fields');
+  const supplierCompanyInput = document.getElementById('reg-company');
+
+  function selectRole(btn) {
+    if (!btn || btn.dataset.disabled === 'true' || btn.getAttribute('aria-disabled') === 'true') {
+      return;
+    }
+
+    const selectedRole = btn.getAttribute('data-role') || 'customer';
+    rolePicker.querySelectorAll('.role-pill, .auth-role-option').forEach(option => {
+      const isSelected = option === btn;
+      option.classList.toggle('is-active', isSelected);
+      option.classList.toggle('auth-role-option--active', isSelected);
+      option.setAttribute('aria-checked', isSelected ? 'true' : 'false');
+      option.tabIndex = isSelected ? 0 : -1;
+    });
+
+    rolePicker.classList.toggle('is-customer-selected', selectedRole === 'customer');
+    rolePicker.classList.toggle('is-supplier-selected', selectedRole === 'supplier');
+
+    if (roleInput) {
+      roleInput.value = selectedRole;
+    }
+
+    if (supplierFields) {
+      supplierFields.style.display = selectedRole === 'supplier' ? 'block' : 'none';
+    }
+    if (supplierCompanyInput) {
+      supplierCompanyInput.required = selectedRole === 'supplier';
+      supplierCompanyInput.setAttribute(
+        'aria-required',
+        selectedRole === 'supplier' ? 'true' : 'false'
+      );
+    }
+  }
+
   if (rolePicker) {
+    rolePicker.querySelectorAll('.role-pill, .auth-role-option').forEach(option => {
+      option.tabIndex = option.getAttribute('aria-checked') === 'true' ? 0 : -1;
+    });
+
     rolePicker.addEventListener('click', e => {
-      const btn = e.target.closest('.role-pill, .auth-role-option');
-      if (!btn) {
+      selectRole(e.target.closest('.role-pill, .auth-role-option'));
+    });
+
+    rolePicker.addEventListener('keydown', e => {
+      const current = e.target.closest('.role-pill, .auth-role-option');
+      if (!current) {
+        return;
+      }
+      const options = [...rolePicker.querySelectorAll('.role-pill, .auth-role-option')].filter(
+        option =>
+          option.dataset.disabled !== 'true' && option.getAttribute('aria-disabled') !== 'true'
+      );
+      const currentIndex = options.indexOf(current);
+      if (currentIndex === -1) {
         return;
       }
 
-      // Ignore clicks on a disabled supplier option
-      if (btn.dataset.role === 'supplier' && btn.dataset.disabled === 'true') {
+      let nextIndex = currentIndex;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        nextIndex = (currentIndex + 1) % options.length;
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        nextIndex = (currentIndex - 1 + options.length) % options.length;
+      } else if (e.key === 'Home') {
+        nextIndex = 0;
+      } else if (e.key === 'End') {
+        nextIndex = options.length - 1;
+      } else {
         return;
       }
 
-      // Update active state and aria-checked
-      rolePicker.querySelectorAll('.role-pill, .auth-role-option').forEach(b => {
-        b.classList.remove('is-active', 'auth-role-option--active');
-        b.setAttribute('aria-checked', 'false');
-      });
-      btn.classList.add('is-active', 'auth-role-option--active');
-      btn.setAttribute('aria-checked', 'true');
+      e.preventDefault();
+      const next = options[nextIndex];
+      selectRole(next);
+      next.focus();
     });
   }
 
@@ -153,7 +225,8 @@
         // If the user is already on the create tab, show a banner and switch
         // them to sign-in so the disabled form isn't the landing state.
         const isOnCreateTab =
-          window.location.hash === '#create' || window.location.search.includes('tab=create');
+          window.location.hash === '#create' ||
+          new URLSearchParams(window.location.search).get('tab') === 'create';
 
         if (tabSign && panelSign && tabCreate && panelCreate) {
           if (isOnCreateTab) {
@@ -161,15 +234,23 @@
           }
         }
 
-        // Insert a visible banner at the top of the create panel
-        if (panelCreate) {
+        const registrationDisabledMessage =
+          'New account registrations are temporarily unavailable. Please check back later.';
+        const sharedStatus = document.getElementById('auth-status');
+        if (sharedStatus) {
+          sharedStatus.className = 'auth-status auth-status--warning is-visible';
+          sharedStatus.textContent = registrationDisabledMessage;
+        }
+
+        // Insert a visible banner at the top of the create panel too, in case the tab
+        // is re-enabled by an operator without a page refresh.
+        if (panelCreate && !document.getElementById('reg-disabled-banner')) {
           const banner = document.createElement('p');
           banner.id = 'reg-disabled-banner';
-          banner.className = 'auth-status auth-status--warning';
+          banner.className = 'auth-status auth-status--warning is-visible';
           banner.setAttribute('role', 'status');
           banner.setAttribute('aria-live', 'polite');
-          banner.textContent =
-            'New account registrations are temporarily unavailable. Please check back later.';
+          banner.textContent = registrationDisabledMessage;
           panelCreate.insertAdjacentElement('afterbegin', banner);
         }
       }
