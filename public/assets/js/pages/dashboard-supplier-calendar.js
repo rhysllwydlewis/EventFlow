@@ -156,6 +156,7 @@
     const subtitle = document.getElementById('supplier-cal-subtitle');
     const publisherBtns = document.querySelectorAll('.sup-cal-publisher-only');
 
+    const notice = document.getElementById('sup-cal-permission-notice');
     if (isPublisher) {
       if (ctaLink) {
         ctaLink.textContent = 'Manage Events';
@@ -164,11 +165,94 @@
       if (subtitle) {
         subtitle.textContent = 'Manage shared public events and your personal schedule';
       }
+      if (notice) {
+        notice.innerHTML =
+          currentSupplier && currentSupplier.publicCalendarPublisherOverride === true
+            ? '<strong>Calendar publishing has been granted by admin override.</strong>'
+            : '<strong>Shared Events Calendar publishing enabled.</strong><br>You can publish public events to the shared calendar and manage events you created.';
+      }
       publisherBtns.forEach(el => el.style.removeProperty('display'));
     } else {
+      if (notice) {
+        const forceDenied =
+          currentSupplier && currentSupplier.publicCalendarPublisherOverride === false;
+        notice.style.background = forceDenied ? '#fef2f2' : '#fffbeb';
+        notice.style.borderColor = forceDenied ? '#fecaca' : '#fde68a';
+        notice.style.color = forceDenied ? '#991b1b' : '#92400e';
+        notice.innerHTML = forceDenied
+          ? '<strong>Calendar publishing has been disabled for this supplier account by an administrator.</strong>'
+          : '<strong>Your supplier category does not currently include shared calendar publishing.</strong><br>Event Planner and Wedding Fayre suppliers can publish by default. Other suppliers can request publishing access if they regularly host public events such as open days, showcases, workshops, venue tours or fayres. <button type="button" class="cta secondary" id="sup-request-publishing-btn" style="margin-left:.5rem;">Request calendar publishing access</button>';
+        document
+          .getElementById('sup-request-publishing-btn')
+          ?.addEventListener('click', requestPublishingAccess);
+      }
       publisherBtns.forEach(el => {
         el.style.display = 'none';
       });
+    }
+  }
+
+  async function requestPublishingAccess() {
+    const reason = window.prompt(
+      'Why do you need shared calendar publishing access? Include event types, an example event title, and expected frequency.'
+    );
+    if (!reason) {
+      return;
+    }
+    try {
+      const res = await fetch('/api/v1/public-calendar/publisher-request', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders() },
+        body: JSON.stringify({
+          reason,
+          eventTypes: reason,
+          exampleEventTitle: 'See reason',
+          expectedFrequency: 'See reason',
+        }),
+      });
+      if (!res.ok) {
+        throw new Error('Request failed');
+      }
+      showToast('Calendar publishing access request submitted.', 'success');
+    } catch (_) {
+      showToast('Unable to submit calendar publishing request.', 'error');
+    }
+  }
+
+  async function renderMyPublicEvents() {
+    const mount = document.getElementById('sup-my-public-events');
+    if (!mount) {
+      return;
+    }
+    if (!isPublisher) {
+      mount.innerHTML =
+        '<h3 style="margin:0 0 .5rem;">My Public Events</h3><p style="color:#6b7280;margin:0;">Publishing access is required before you can create or manage shared public events.</p>';
+      return;
+    }
+    try {
+      const res = await fetch(
+        '/api/v1/public-calendar/events?status=all&includePast=true&limit=100',
+        { credentials: 'include' }
+      );
+      const data = await res.json();
+      const own = (data.events || []).filter(
+        ev => ev.createdByUserId === (currentSupplier && currentSupplier.ownerUserId)
+      );
+      const rows = own
+        .slice(0, 8)
+        .map(
+          ev =>
+            `<tr><td>${escapeHtml(ev.title)}</td><td>${escapeHtml(formatDate(ev.startDate))}</td><td><span style="font-weight:700;">${escapeHtml(ev.status || 'published')}</span></td><td><a href="/events/${encodeURIComponent(ev.slug || ev.id)}">View</a></td></tr>`
+        )
+        .join('');
+      mount.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:.5rem;"><h3 style="margin:0;">My Public Events</h3><button type="button" class="cta secondary sup-cal-publisher-only" id="sup-my-events-create">Create event</button></div>${own.length ? `<div style="overflow:auto;"><table style="width:100%;border-collapse:collapse;"><thead><tr><th align="left">Title</th><th align="left">Date</th><th align="left">Status</th><th align="left">Public page</th></tr></thead><tbody>${rows}</tbody></table></div>` : '<p style="color:#6b7280;margin:0;">No public events yet. Create your first wedding fayre, open day, workshop or showcase.</p>'}`;
+      document
+        .getElementById('sup-my-events-create')
+        ?.addEventListener('click', () => openEventModal());
+    } catch (_) {
+      mount.innerHTML =
+        '<h3 style="margin:0 0 .5rem;">My Public Events</h3><p style="color:#dc2626;margin:0;">Unable to load your public events.</p>';
     }
   }
 
@@ -885,6 +969,7 @@
     await ensureCsrfToken();
     await loadSupplierProfile();
     updateCalendarHeader();
+    renderMyPublicEvents();
 
     const entryModal = ensureEntryModal();
     if (isPublisher) {

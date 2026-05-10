@@ -191,6 +191,10 @@
       <div class="action-icon">📊</div>
       <div class="action-label">Reports</div>
     </button>
+    <button id="eventsCalendarBtn" class="ef-cta action-btn">
+      <div class="action-icon">📅</div>
+      <div class="action-label">Events</div>
+    </button>
     <button id="auditLogBtn" class="ef-cta action-btn">
       <div class="action-icon">📋</div>
       <div class="action-label">Audit Log</div>
@@ -275,6 +279,29 @@
       </div>
       <a href="/admin-packages" class="btn-manage">
         Manage Packages →
+      </a>
+    </div>
+
+    <!-- Public Events Calendar Management Card -->
+    <div class="management-card">
+      <div class="management-header">
+        <div class="management-icon">📅</div>
+        <div class="management-badge" id="totalCalendarEventsCountCard">—</div>
+      </div>
+      <h3 class="management-title">Shared Events Calendar</h3>
+      <p class="management-description">Manage public events, supplier publishing requests, reports and calendar visibility</p>
+      <div class="management-stats">
+        <div class="stat-item">
+          <span class="stat-value" id="pendingCalendarRequestsCount">—</span>
+          <span class="stat-label-sm">Access Requests</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value" id="openCalendarReportsCount">—</span>
+          <span class="stat-label-sm">Open Reports</span>
+        </div>
+      </div>
+      <a href="/admin-public-calendar" class="btn-manage">
+        Manage Events →
       </a>
     </div>
 
