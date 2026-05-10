@@ -37,6 +37,10 @@ const plans = [
 
 jest.mock('../../db-unified', () => ({
   read: jest.fn(async col => (col === 'plans' ? plans : [])),
+  insertOne: jest.fn(async (_c, doc) => {
+    plans.push(doc);
+    return doc;
+  }),
   updateOne: jest.fn(async (_c, q, u) => {
     const p = plans.find(x => x.id === q.id);
     if (p && u.$set) {
@@ -101,6 +105,22 @@ describe('wedding websites routes', () => {
     expect(res.status).toBe(400);
   });
 
+  test('rejects non-unique slug on patch', async () => {
+    const res = await request(app)
+      .patch('/api/me/plans/p1/wedding-website')
+      .send({ slug: 'published-site' });
+    expect(res.status).toBe(409);
+  });
+
+  test('blocks publish when readiness checks are incomplete', async () => {
+    const res = await request(app).post('/api/me/plans/p1/wedding-website/publish').send({});
+    expect(res.status).toBe(400);
+    expect(res.body.checklist.ready).toBe(false);
+    expect(res.body.checklist.missing).toEqual(
+      expect.arrayContaining(['coupleNames', 'eventDate', 'venue'])
+    );
+  });
+
   test('assign and unassign guest', async () => {
     plans[1].guestList[0].rsvpStatus = 'attending';
     let res = await request(app)
@@ -111,5 +131,13 @@ describe('wedding websites routes', () => {
     res = await request(app).post('/api/me/plans/p2/tables/unassign-guest').send({ guestId: 'g1' });
     expect(res.status).toBe(200);
     expect(plans[1].tables[0].guestIds).not.toContain('g1');
+  });
+
+  test('creates standalone wedding workspace when user has no wedding plan', async () => {
+    const res = await request(app).post('/api/me/plans/wedding-workspace').send({});
+    expect([200, 201]).toContain(res.status);
+    expect(res.body.plan).toBeTruthy();
+    expect(res.body.plan.isWebsiteWorkspace).toBe(true);
+    expect(res.body.plan.source).toBe('wedding_website_quick_start');
   });
 });

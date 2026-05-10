@@ -1,14 +1,15 @@
-:root{--accent:#b1457c;--bg:#fff7fb;--card:#ffffff;--text:#2a2438;--muted:#5f5a70}
-*{box-sizing:border-box}body{font-family:Inter,system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);margin:0;line-height:1.5}
-.hero{padding:4rem 1rem 3rem;background:linear-gradient(140deg,#fbe4ef 0%,#efe8ff 100%);text-align:center}
-.hero h1{font-size:clamp(1.8rem,5vw,3rem);margin:0 0 .5rem}
-main{max-width:900px;margin:0 auto;padding:1rem}
-section{background:var(--card);border:1px solid #f1e7f5;border-radius:16px;padding:1rem;margin:.8rem 0}
-section h2{margin:.2rem 0 .7rem;font-size:1.2rem}
-ul{margin:.25rem 0 0 1rem}
-form{display:grid;gap:.55rem}input,select,textarea,button{padding:.7rem;border-radius:.65rem;border:1px solid #ddd;font:inherit}
-button{background:var(--accent);color:#fff;border:none;font-weight:600}
-footer{text-align:center;color:var(--muted);padding:1rem 0 2rem}
-@media (max-width:640px){section{padding:.85rem;border-radius:12px}.hero{padding:3rem 1rem 2rem}}
-
-details{border:1px solid #efe3f4;border-radius:10px;padding:.55rem .65rem;background:#fff}details+details{margin-top:.45rem}summary{cursor:pointer;font-weight:600}
+:root{--bg:#fcf8fb;--text:#2f2335;--muted:#6e6473;--card:rgba(255,255,255,.78);--accent:#8d3f6f;--accent2:#b66990}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,sans-serif;background:radial-gradient(circle at top,#f8e9f3,transparent 45%),var(--bg);color:var(--text)}
+#public-wedding-root{max-width:1024px;margin:0 auto;padding:0 1rem 2rem}
+.wed-hero{position:relative;min-height:62vh;border-radius:0 0 28px 28px;background:linear-gradient(140deg,#f4dce9,#e8e4ff);display:grid;place-items:center;text-align:center;overflow:hidden}.wed-hero--image{background-image:var(--hero-image);background-size:cover;background-position:center}.wed-hero__overlay{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(20,10,20,.18),rgba(20,10,20,.45))}.wed-hero__content{position:relative;z-index:1;color:#fff;max-width:760px;padding:2rem 1.2rem}.wed-kicker{letter-spacing:.1em;text-transform:uppercase;font-size:.78rem;opacity:.9}.wed-hero h1{font-family:Georgia,serif;font-size:clamp(2.1rem,7vw,4rem);margin:.4rem 0}.wed-meta{font-size:1.1rem}.wed-welcome{max-width:620px;margin:.8rem auto 0;opacity:.95}
+.btn{display:inline-block;padding:.72rem 1rem;border-radius:999px;text-decoration:none;font-weight:600}.btn-primary{background:linear-gradient(120deg,var(--accent),var(--accent2));color:#fff}.btn-ghost{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.55);color:#fff}.wed-hero__actions{display:flex;gap:.65rem;justify-content:center;flex-wrap:wrap;margin-top:1rem}
+.wed-card{backdrop-filter:blur(6px);background:var(--card);border:1px solid rgba(255,255,255,.65);border-radius:20px;padding:1rem;margin:1rem 0;box-shadow:0 10px 25px rgba(88,39,73,.08)}h2{font-family:Georgia,serif;margin:.2rem 0 1rem}.wed-grid{display:grid;gap:.8rem;grid-template-columns:repeat(auto-fit,minmax(230px,1fr))}.wed-pane,.wed-chip-grid article,.wed-party{background:#fff;border-radius:14px;padding:.8rem}
+.wed-timeline{display:grid;gap:.8rem}.wed-time{display:grid;grid-template-columns:18px 1fr;gap:.75rem}.wed-time__dot{width:12px;height:12px;border-radius:999px;background:var(--accent);margin-top:.4rem;box-shadow:0 0 0 4px #f2d9e8}.wed-time__hour{font-weight:700;margin:0}.wed-time h3{margin:.15rem 0}
+.wed-chip-grid{display:grid;gap:.6rem;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+.wed-links{display:flex;gap:.55rem;flex-wrap:wrap}.small{color:var(--muted);font-size:.92rem}
+.wed-party img,.wed-avatar{width:66px;height:66px;border-radius:999px;object-fit:cover;margin-bottom:.5rem}.wed-avatar{display:grid;place-items:center;background:#f2dbe8;color:#5f2d4c;font-weight:700}
+.wed-story p{font-size:1.03rem;line-height:1.8}.wed-faq{background:#fff;border-radius:12px;padding:.6rem .8rem}.wed-faq+ .wed-faq{margin-top:.5rem}.wed-faq summary{cursor:pointer;font-weight:600}
+.wed-form{display:grid;gap:.65rem}.wed-form label,.wed-form fieldset{display:grid;gap:.3rem}.wed-form input,.wed-form select,.wed-form textarea{border:1px solid #e5dce5;border-radius:12px;padding:.65rem .72rem;font:inherit;background:#fff}.wed-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:.65rem}.inline-check{display:flex;gap:.45rem;align-items:center}.req{font-size:.72rem;color:#8b294f}.hp{position:absolute;left:-9999px}
+.msg{margin-top:.6rem;padding:.65rem .75rem;border-radius:10px}.msg--ok{background:#ecfdf3;color:#166534}.msg--error{background:#fef2f2;color:#991b1b}
+.wed-footer{text-align:center;color:var(--muted);padding:1rem}
+@media (max-width:640px){#public-wedding-root{padding:0 .75rem 1rem}.wed-card{padding:.9rem;border-radius:16px}.wed-form-grid{grid-template-columns:1fr}}

@@ -2,3 +2,6 @@
 
 .ww-modal{border:none;border-radius:12px;max-width:620px;width:95%}.ww-modal__form{display:grid;gap:.5rem}.ww-modal::backdrop{background:rgba(0,0,0,.45)}
 .ww-builder input:focus-visible,.ww-builder textarea:focus-visible,.ww-builder select:focus-visible,.ww-actions button:focus-visible{outline:2px solid #8b5cf6;outline-offset:2px}.ww-table button{padding:.3rem .5rem;border:1px solid #ddd;border-radius:6px;background:#fff}.ww-table button:hover{background:#f8f5ff}
+.ww-choice-panel{background:linear-gradient(180deg,#fff,#faf7ff);border:1px solid #eadff2;border-radius:16px;padding:1rem}.ww-choice-panel h3{margin:.2rem 0}.ww-choice-grid{display:grid;gap:.75rem;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}.ww-choice-card{border:1px solid #ece2ff;background:#fff;border-radius:12px;padding:.85rem;display:grid;gap:.55rem}
+.ww-toast{position:fixed;right:14px;bottom:14px;background:#111827;color:#fff;padding:.65rem .85rem;border-radius:10px;opacity:0;transform:translateY(8px);transition:all .2s ease;z-index:2000}.ww-toast.show{opacity:1;transform:translateY(0)}.ww-toast--warn{background:#92400e}
+.ww-status-msg{margin:.5rem 0;padding:.65rem .75rem;border-radius:10px;background:#fff8e8;color:#7c2d12;border:1px solid #fed7aa}.ww-status-msg ul{margin:.35rem 0 0 1rem}

@@ -14,9 +14,22 @@
     const r = await fetch(path, opts);
     const j = await r.json().catch(() => ({}));
     if (!r.ok) {
-      throw new Error(j.error || 'Request failed');
+      const err = new Error(j.error || 'Request failed');
+      err.payload = j;
+      throw err;
     }
     return j;
+  }
+  function toast(msg, type = 'ok') {
+    const el = document.createElement('div');
+    el.className = `ww-toast ww-toast--${type}`;
+    el.textContent = msg;
+    document.body.appendChild(el);
+    setTimeout(() => el.classList.add('show'), 10);
+    setTimeout(() => {
+      el.classList.remove('show');
+      setTimeout(() => el.remove(), 250);
+    }, 2200);
   }
   const filters = {
     all: () => true,
@@ -414,14 +427,35 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      alert('Saved');
+      toast('Saved successfully');
     };
     root.querySelector('#ww-pub').onclick = async () => {
-      await api(
-        `/api/me/plans/${plan.id}/wedding-website/${site.status === 'published' ? 'unpublish' : 'publish'}`,
-        { method: 'POST' }
-      );
-      location.reload();
+      const statusEl =
+        root.querySelector('.ww-status-msg') ||
+        (() => {
+          const el = document.createElement('div');
+          el.className = 'ww-status-msg';
+          root.querySelector('.ww-actions').after(el);
+          return el;
+        })();
+      statusEl.textContent = '';
+      try {
+        await api(
+          `/api/me/plans/${plan.id}/wedding-website/${site.status === 'published' ? 'unpublish' : 'publish'}`,
+          { method: 'POST' }
+        );
+        toast(site.status === 'published' ? 'Website unpublished' : 'Website published');
+        location.reload();
+      } catch (err) {
+        const missing = err?.payload?.checklist?.missing;
+        if (Array.isArray(missing) && missing.length) {
+          statusEl.innerHTML = `<strong>Before publishing, please complete:</strong> <ul>${missing
+            .map(item => `<li>${esc(item)}</li>`)
+            .join('')}</ul>`;
+        } else {
+          statusEl.textContent = err.message || 'Unable to publish right now.';
+        }
+      }
     };
     await renderGuests(plan.id, root);
     await renderSeating(plan.id, root);
@@ -432,17 +466,39 @@
     if (!root) {
       return;
     }
-    if (!plans?.length) {
-      root.innerHTML =
-        '<div class="empty-state"><p>Create a plan first.</p><a class="cta" href="/start">Create Event Plan</a></div>';
+    const weddingPlans = (plans || []).filter(isWeddingPlan);
+    if (!weddingPlans.length) {
+      root.innerHTML = `<section class="ww-choice-panel">
+        <h3>Wedding Website & RSVPs</h3>
+        <p>Create a beautiful guest website, collect RSVPs, manage your guest list and organise seating — with or without building a full EventFlow plan.</p>
+        <div class="ww-choice-grid">
+          <article class="ww-choice-card"><h4>Start with a free wedding website</h4><p>Best if you want to quickly create a guest website, RSVP form, guest list and seating plan.</p><button class="cta" id="ww-quick-start">Create Wedding Website</button></article>
+          <article class="ww-choice-card"><h4>Build a full EventFlow plan</h4><p>Best if you also want to manage budget, suppliers, packages and planning tasks.</p><a class="cta secondary" href="/start">Create Full Event Plan</a></article>
+          ${(plans || []).length ? `<article class="ww-choice-card"><h4>Connect to an existing plan</h4><p>If a wedding/event plan exists, select it and attach the wedding website.</p><select id="ww-existing-plan"><option value="">Select plan</option>${(plans || []).map(p => `<option value="${esc(p.id)}">${esc(p.name || p.eventName || 'Untitled plan')}</option>`).join('')}</select><button class="cta secondary" id="ww-use-existing">Use Existing Plan</button></article>` : ''}
+        </div></section>`;
+      root.querySelector('#ww-quick-start').onclick = async () => {
+        const res = await api('/api/me/plans/wedding-workspace', { method: 'POST' });
+        const p = res.plan;
+        const siteRes = await api(
+          `/api/me/plans/${encodeURIComponent(p.id)}/wedding-website`
+        ).catch(() => ({ website: null }));
+        await renderModule(p, siteRes.website, root);
+      };
+      root.querySelector('#ww-use-existing') &&
+        (root.querySelector('#ww-use-existing').onclick = async () => {
+          const selected = root.querySelector('#ww-existing-plan').value;
+          if (!selected) {
+            return toast('Choose a plan first', 'warn');
+          }
+          const chosen = (plans || []).find(p => p.id === selected);
+          const data = await api(
+            `/api/me/plans/${encodeURIComponent(chosen.id)}/wedding-website`
+          ).catch(() => ({ website: null }));
+          await renderModule(chosen, data.website, root);
+        });
       return;
     }
-    const plan = plans.find(isWeddingPlan);
-    if (!plan) {
-      root.innerHTML =
-        '<div class="empty-state"><p>This feature is designed for wedding plans.</p><a class="cta" href="/start">Create Wedding Plan</a></div>';
-      return;
-    }
+    const plan = weddingPlans[0];
     const data = await api(`/api/me/plans/${encodeURIComponent(plan.id)}/wedding-website`).catch(
       () => ({ website: null })
     );

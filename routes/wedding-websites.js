@@ -50,6 +50,28 @@ const slugify = str =>
     .replace(/-+/g, '-')
     .slice(0, 80);
 
+async function isSlugTaken(slug, planId) {
+  const plans = await dbUnified.read('plans');
+  return plans.some(p => p.id !== planId && p.weddingWebsite && p.weddingWebsite.slug === slug);
+}
+
+function getPublishReadiness(site) {
+  const checks = [
+    { key: 'coupleNames', ok: !!sanitize(site.coupleNames, 200) },
+    { key: 'eventDate', ok: !!sanitize(site.eventDate, 100) },
+    {
+      key: 'venue',
+      ok: !!(sanitize(site.ceremonyVenueName, 200) || sanitize(site.receptionVenueName, 200)),
+    },
+    { key: 'rsvpEnabled', ok: site.rsvpEnabled !== false },
+    { key: 'slug', ok: !!sanitize(site.slug, 80) },
+  ];
+  return {
+    ready: checks.every(c => c.ok),
+    missing: checks.filter(c => !c.ok).map(c => c.key),
+  };
+}
+
 async function getOwnedPlan(req, res, next) {
   const plans = await dbUnified.read('plans');
   const plan = plans.find(p => p.id === req.params.planId && p.userId === req.user.id);
@@ -100,6 +122,42 @@ function safePublic(site) {
 router.get('/:planId/wedding-website', authRequired, getOwnedPlan, async (req, res) => {
   res.json({ success: true, website: req.plan.weddingWebsite || null });
 });
+
+router.post(
+  '/wedding-workspace',
+  authRequired,
+  requireVerifiedUser,
+  csrfProtection,
+  writeLimiter,
+  async (req, res) => {
+    const plans = await dbUnified.read('plans');
+    const existing = plans.find(
+      p =>
+        p.userId === req.user.id &&
+        p.isWebsiteWorkspace &&
+        p.source === 'wedding_website_quick_start'
+    );
+    if (existing) {
+      return res.status(200).json({ success: true, plan: existing, reused: true });
+    }
+    const now = new Date().toISOString();
+    const plan = {
+      id: uid('plan'),
+      userId: req.user.id,
+      name: 'Wedding Website',
+      eventType: 'wedding',
+      source: 'wedding_website_quick_start',
+      isWebsiteWorkspace: true,
+      guestCount: null,
+      guestList: [],
+      tables: [],
+      createdAt: now,
+      updatedAt: now,
+    };
+    await dbUnified.insertOne('plans', plan);
+    return res.status(201).json({ success: true, plan, reused: false });
+  }
+);
 
 router.post(
   '/:planId/wedding-website',
@@ -185,6 +243,9 @@ router.patch(
       if (!s || PUBLIC_SLUGS.has(s)) {
         return res.status(400).json({ error: 'Invalid slug' });
       }
+      if (await isSlugTaken(s, req.plan.id)) {
+        return res.status(409).json({ error: 'Slug is already in use.' });
+      }
       patch.slug = s;
     }
     [
@@ -234,6 +295,13 @@ router.post(
   async (req, res) => {
     if (!req.plan.weddingWebsite) {
       return res.status(404).json({ error: 'Wedding website not found' });
+    }
+    const readiness = getPublishReadiness(req.plan.weddingWebsite);
+    if (!readiness.ready) {
+      return res.status(400).json({
+        error: 'Website is not ready to publish yet.',
+        checklist: readiness,
+      });
     }
     const now = new Date().toISOString();
     const website = {
