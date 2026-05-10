@@ -65,6 +65,17 @@
       !!(g.dietaryRequirements || g.dietary || g.accessibilityRequirements) ||
       (g.rsvpStatus === 'attending' && !(g.tableId || g.tableName || g.table)),
   };
+  const filterLabels = {
+    all: 'All',
+    attending: 'Attending',
+    declined: 'Declined',
+    awaiting: 'Awaiting',
+    dietary: 'Dietary',
+    unseated: 'Unseated',
+    manual: 'Manual',
+    public_rsvp: 'Public RSVP',
+    attention: 'Attention',
+  };
 
   function statusBadge(status) {
     const normalized = String(status || 'pending').toLowerCase();
@@ -83,7 +94,7 @@
       listEl.innerHTML = list
         .map(
           (it, i) =>
-            `<div class='rep-item'>${fields.map(f => `<label>${f.label}<input data-k='${f.key}' data-i='${i}' value='${esc(it[f.key] || '')}'></label>`).join('')}<button type='button' data-i='${i}' class='rep-del'>Delete</button></div>`
+            `<div class='rep-item'>${fields.map(f => `<label>${f.label}<input data-k='${f.key}' data-i='${i}' value='${esc(it[f.key] || '')}'></label>`).join('')}<button type='button' data-i='${i}' class='cta secondary small ww-btn-danger-soft rep-del'>Delete</button></div>`
         )
         .join('');
       listEl.querySelectorAll('input').forEach(
@@ -150,12 +161,12 @@
     <div class='ww-actions ww-actions--rsvp'>${Object.keys(filters)
       .map(
         f =>
-          `<button class='cta secondary small ww-filter' data-f='${f}'>${f.replace('_', ' ')}</button>`
+          `<button class='cta secondary small ww-filter ${filter === f ? 'ww-filter--active' : ''}' data-f='${f}'>${filterLabels[f] || f}</button>`
       )
       .join(
         ''
       )}<input class='ww-search' id='ww-guest-search' placeholder='Search guests' value='${esc(root.dataset.guestSearch || '')}'><select id='ww-guest-sort'><option value='updated_desc'>Recently updated</option><option value='name_asc'>Name A-Z</option><option value='status'>RSVP status</option></select><button class='cta secondary small' id='ww-add-guest'>Add guest</button><a class='cta secondary small' href='/api/me/plans/${planId}/guests/export.csv'>Export CSV</a></div>
-    <table class='ww-table'><thead><tr><th>Name</th><th>RSVP</th><th>Party</th><th>Meal</th><th>Dietary/Access</th><th>Table</th><th>Source</th><th>Updated</th><th>Actions</th></tr></thead><tbody>${shown.map(x => `<tr><td>${esc(x.name)}</td><td>${statusBadge(x.rsvpStatus)}</td><td>${x.partySize || 1}</td><td>${esc(x.mealChoice || '')}</td><td>${esc([x.dietaryRequirements || x.dietary, x.accessibilityRequirements].filter(Boolean).join(' • '))}</td><td>${esc(x.tableName || x.table || '')}</td><td>${esc(x.source || 'manual')}</td><td>${esc((x.updatedAt || '').slice(0, 10))}</td><td><button class='ww-edit' data-id='${x.id}'>Edit</button><button class='ww-del' data-id='${x.id}'>Delete</button></td></tr>`).join('')}</tbody></table><div class='ww-pagination'><button class='cta secondary small' id='ww-prev-page' ${currentPage <= 1 ? 'disabled' : ''}>Prev</button><span>Page ${currentPage} of ${totalPages} (${sorted.length} guests)</span><button class='cta secondary small' id='ww-next-page' ${currentPage >= totalPages ? 'disabled' : ''}>Next</button></div>`;
+    <table class='ww-table'><thead><tr><th>Name</th><th>RSVP</th><th>Party</th><th>Meal</th><th>Dietary/Access</th><th>Table</th><th>Source</th><th>Updated</th><th>Actions</th></tr></thead><tbody>${shown.map(x => `<tr><td>${esc(x.name)}</td><td>${statusBadge(x.rsvpStatus)}</td><td>${x.partySize || 1}</td><td>${esc(x.mealChoice || '')}</td><td>${esc([x.dietaryRequirements || x.dietary, x.accessibilityRequirements].filter(Boolean).join(' • '))}</td><td>${esc(x.tableName || x.table || '')}</td><td>${esc(x.source || 'manual')}</td><td>${esc((x.updatedAt || '').slice(0, 10))}</td><td><button class='cta secondary small ww-edit' data-id='${x.id}'>Edit</button><button class='cta secondary small ww-btn-danger-soft ww-del' data-id='${x.id}'>Delete</button></td></tr>`).join('')}</tbody></table><div class='ww-pagination'><button class='cta secondary small' id='ww-prev-page' ${currentPage <= 1 ? 'disabled' : ''}>Prev</button><span>Page ${currentPage} of ${totalPages} (${sorted.length} guests)</span><button class='cta secondary small' id='ww-next-page' ${currentPage >= totalPages ? 'disabled' : ''}>Next</button></div>`;
     root.querySelectorAll('.ww-filter').forEach(
       b =>
         (b.onclick = async () => {
@@ -315,7 +326,7 @@
               })
               .join(
                 ''
-              )}</div><button class='edit-table' data-id='${t.id}'>Edit</button><button class='del-table' data-id='${t.id}'>Delete</button></div>`
+              )}</div><button class='cta secondary small edit-table' data-id='${t.id}'>Edit</button><button class='cta secondary small ww-btn-danger-soft del-table' data-id='${t.id}'>Delete</button></div>`
         )
         .join(
           ''
@@ -411,7 +422,7 @@
     <form id='ww-builder' class='ww-builder'><details open><summary>Essentials</summary><label>Couple names<input name='coupleNames' value='${esc(site.coupleNames || '')}'></label><label>Welcome<textarea name='welcomeMessage'>${esc(site.welcomeMessage || '')}</textarea></label></details>
     <details><summary>Travel & Accommodation</summary><div id='rep-acc'></div><div id='rep-taxi'></div><div id='rep-local'></div></details>
     <details><summary>Wedding Party</summary><div id='rep-party'></div></details>
-    <details><summary>FAQs & RSVP settings</summary><div id='rep-faq'></div><div id='rep-meal'></div><div id='rep-questions'></div><label><input type='checkbox' name='rsvpEnabled' ${site.rsvpEnabled === false ? '' : 'checked'}> RSVP enabled</label><label>RSVP deadline<input type='date' name='rsvpDeadline' value='${esc((site.rsvpDeadline || '').slice(0, 10))}'></label><label>RSVP intro<textarea name='rsvpIntroText'>${esc(site.rsvpIntroText || '')}</textarea></label></details></form>
+    <details><summary>FAQs & RSVP settings</summary><div id='rep-faq'></div><div id='rep-meal'></div><div id='rep-questions'></div><label class='ww-checkbox-row'><input class='ww-toggle' type='checkbox' name='rsvpEnabled' ${site.rsvpEnabled === false ? '' : 'checked'}><span>RSVP Enabled</span></label><label>RSVP deadline<input type='date' name='rsvpDeadline' value='${esc((site.rsvpDeadline || '').slice(0, 10))}'></label><label>RSVP intro<textarea name='rsvpIntroText'>${esc(site.rsvpIntroText || '')}</textarea></label></details></form>
     <section class='ww-rsvp ww-module-block'></section><section class='ww-seating ww-module-block'></section>`;
     const form = root.querySelector('#ww-builder');
     const acc = renderRepeater(
@@ -569,12 +580,16 @@
           ${(plans || []).length ? `<article class="ww-choice-card ww-glass-card"><span class='ww-choice-card__icon' aria-hidden='true'>🔗</span><h4>Use an existing plan</h4><p>If a wedding/event plan exists, select it and attach the wedding website.</p><select id="ww-existing-plan"><option value="">Select plan</option>${(plans || []).map(p => `<option value="${esc(p.id)}">${esc(p.name || p.eventName || 'Untitled plan')}</option>`).join('')}</select><button class="cta secondary" id="ww-use-existing">Use Existing Plan</button></article>` : ''}
         </div></section>`;
       root.querySelector('#ww-quick-start').onclick = async () => {
-        const res = await api('/api/me/plans/wedding-workspace', { method: 'POST' });
-        const p = res.plan;
-        const siteRes = await api(
-          `/api/me/plans/${encodeURIComponent(p.id)}/wedding-website`
-        ).catch(() => ({ website: null }));
-        await renderModule(p, siteRes.website, root);
+        try {
+          const res = await api('/api/me/plans/wedding-workspace', { method: 'POST' });
+          const p = res.plan;
+          const siteRes = await api(
+            `/api/me/plans/${encodeURIComponent(p.id)}/wedding-website`
+          ).catch(() => ({ website: null }));
+          await renderModule(p, siteRes.website, root);
+        } catch (err) {
+          toast(err?.message || 'Unable to create wedding website right now.', 'warn');
+        }
       };
       root.querySelector('#ww-use-existing') &&
         (root.querySelector('#ww-use-existing').onclick = async () => {

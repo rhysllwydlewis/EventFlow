@@ -140,4 +140,68 @@ describe('wedding websites routes', () => {
     expect(res.body.plan.isWebsiteWorkspace).toBe(true);
     expect(res.body.plan.source).toBe('wedding_website_quick_start');
   });
+
+  test('deleting a table unseats guests assigned to that table via guestList', async () => {
+    plans[1].tables = [
+      { id: 't1', name: 'Table 1', capacity: 10, guestIds: ['g1', 'g2'] },
+      { id: 't2', name: 'Table 2', capacity: 10, guestIds: ['g3'] },
+    ];
+    plans[1].guestList = [
+      { id: 'g1', name: 'Jane', rsvpStatus: 'attending', tableId: 't1', tableName: 'Table 1' },
+      { id: 'g2', name: 'Joe', rsvpStatus: 'attending', table: 'Table 1' },
+      { id: 'g3', name: 'June', rsvpStatus: 'attending', tableId: 't2', tableName: 'Table 2' },
+    ];
+
+    const res = await request(app).delete('/api/me/plans/p2/tables/t1');
+    expect(res.status).toBe(200);
+    expect(plans[1].tables).toHaveLength(1);
+    expect(plans[1].tables[0].id).toBe('t2');
+    expect(plans[1].guestList[0].tableId).toBeNull();
+    expect(plans[1].guestList[0].tableName).toBeNull();
+    expect(plans[1].guestList[0].table).toBeNull();
+    expect(plans[1].guestList[1].tableId).toBeNull();
+    expect(plans[1].guestList[1].tableName).toBeNull();
+    expect(plans[1].guestList[1].table).toBeNull();
+    expect(plans[1].guestList[2].tableId).toBe('t2');
+    expect(plans[1].guestList[2].tableName).toBe('Table 2');
+  });
+
+  test('seating summary reflects guests unseated after table deletion', async () => {
+    const res = await request(app).get('/api/me/plans/p2/seating-summary');
+    expect(res.status).toBe(200);
+    expect(res.body.summary.seated).toBe(1);
+    expect(res.body.summary.unseated).toBe(2);
+  });
+
+  test('deleting a table updates legacy guests array compatibility', async () => {
+    plans[1].guests = [
+      {
+        id: 'lg1',
+        name: 'Legacy One',
+        rsvpStatus: 'attending',
+        tableId: 'lt1',
+        tableName: 'Legacy T1',
+      },
+      { id: 'lg2', name: 'Legacy Two', rsvpStatus: 'attending', table: 'Legacy T1' },
+      {
+        id: 'lg3',
+        name: 'Legacy Three',
+        rsvpStatus: 'attending',
+        tableId: 'lt2',
+        tableName: 'Legacy T2',
+      },
+    ];
+    delete plans[1].guestList;
+    plans[1].tables = [
+      { id: 'lt1', name: 'Legacy T1', capacity: 10, guestIds: ['lg1', 'lg2'] },
+      { id: 'lt2', name: 'Legacy T2', capacity: 10, guestIds: ['lg3'] },
+    ];
+
+    const res = await request(app).delete('/api/me/plans/p2/tables/lt1');
+    expect(res.status).toBe(200);
+    expect(plans[1].guests[0].tableId).toBeNull();
+    expect(plans[1].guests[1].table).toBeNull();
+    expect(plans[1].guests[2].tableId).toBe('lt2');
+    expect(plans[1].guestList).toBeUndefined();
+  });
 });
