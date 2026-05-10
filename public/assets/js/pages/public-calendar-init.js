@@ -1043,6 +1043,11 @@
       addBtn.addEventListener('click', openAddModal);
     }
 
+    const calendarViewBtn = document.getElementById('pc-calendar-view-btn');
+    if (calendarViewBtn) {
+      calendarViewBtn.addEventListener('click', openCalendarWidget);
+    }
+
     // Modal cancel / overlay click
     document.getElementById('pc-modal-cancel')?.addEventListener('click', closeModal);
     document.getElementById('pc-modal-close-btn')?.addEventListener('click', closeModal);

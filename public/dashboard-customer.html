@@ -1,5 +1,5 @@
 <!DOCTYPE html><html lang='en-GB'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>Customer dashboard — EventFlow</title>
-<meta name="robots" content="noindex,nofollow"><meta name="csrf-token" content=""><link rel='stylesheet' href='/assets/css/styles.css?v=18.3.0'><link rel='stylesheet' href='/assets/css/eventflow-17.0.0.css?v=18.3.0'><link rel='stylesheet' href='/assets/css/utilities.css?v=18.3.0'><link rel='stylesheet' href='/assets/css/components.css?v=18.3.0'><link rel='stylesheet' href='/assets/css/animations.css?v=18.3.0'><link rel='stylesheet' href='/assets/css/mobile-optimizations.css?v=18.3.0'><link rel='stylesheet' href='/assets/css/ui-ux-fixes.css?v=18.3.0'><link rel='stylesheet' href='/assets/css/navbar.css?v=18.3.0'><link rel='stylesheet' href='/assets/css/skeleton.css?v=18.3.0'><link rel='stylesheet' href='/assets/css/dashboard-animations.css?v=18.3.0'><link rel='stylesheet' href='/assets/css/liquid-glass.css?v=18.3.0'><link rel='stylesheet' href='/assets/css/messaging-glass-enhancements.css?v=18.3.0'><link rel='stylesheet' href='/assets/css/p3-features.css?v=18.3.0'><link rel='stylesheet' href='/assets/css/customer-dashboard-improvements.css?v=1.0.0'><link rel='stylesheet' href='/assets/css/dashboard-mobile.css?v=1.0.0'><link rel='stylesheet' href='/assets/css/card-collapse.css'><link rel='stylesheet' href='/assets/css/customer-dashboard-liquid-glass.css?v=1.0.0'><script src="/assets/js/dashboard-guard.js?v=17.0.2"></script>
+<meta name="robots" content="noindex,nofollow"><meta name="csrf-token" content=""><link rel='stylesheet' href='/assets/css/styles.css?v=18.3.0'><link rel='stylesheet' href='/assets/css/eventflow-17.0.0.css?v=18.3.0'><link rel='stylesheet' href='/assets/css/utilities.css?v=18.3.0'><link rel='stylesheet' href='/assets/css/components.css?v=18.3.0'><link rel='stylesheet' href='/assets/css/animations.css?v=18.3.0'><link rel='stylesheet' href='/assets/css/mobile-optimizations.css?v=18.3.0'><link rel='stylesheet' href='/assets/css/ui-ux-fixes.css?v=18.3.0'><link rel='stylesheet' href='/assets/css/navbar.css?v=18.3.0'><link rel='stylesheet' href='/assets/css/skeleton.css?v=18.3.0'><link rel='stylesheet' href='/assets/css/dashboard-animations.css?v=18.3.0'><link rel='stylesheet' href='/assets/css/liquid-glass.css?v=18.3.0'><link rel='stylesheet' href='/assets/css/messaging-glass-enhancements.css?v=18.3.0'><link rel='stylesheet' href='/assets/css/p3-features.css?v=18.3.0'><link rel='stylesheet' href='/assets/css/customer-dashboard-improvements.css?v=1.0.0'><link rel='stylesheet' href='/assets/css/dashboard-mobile.css?v=1.0.0'><link rel='stylesheet' href='/assets/css/card-collapse.css'><link rel='stylesheet' href='/assets/css/customer-dashboard-liquid-glass.css?v=1.0.0'><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css"><script src="/assets/js/dashboard-guard.js?v=17.0.2"></script>
 <link rel="stylesheet" href="/messenger/css/messenger-widget-v4.css">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml"><link rel="icon" href="/favicon.ico" sizes="any">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -156,16 +156,29 @@
       <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
     </svg>
   </button>
-  <h2 id="welcome-heading" class="customer-welcome-heading">Welcome to EventFlow!</h2>
-  <p class="small customer-welcome-intro">Plan your perfect event with our curated suppliers.</p>
+  <div class="customer-welcome-kicker">Your planning hub</div>
+  <h2 id="welcome-heading" class="customer-welcome-heading">Welcome to your EventFlow dashboard!</h2>
+  <p class="small customer-welcome-intro">Build your plan, shortlist trusted suppliers, save public events, and keep every important date in one calm workspace.</p>
   <div id="what-you-can-do" class="customer-welcome-actions">
-    <h3 class="customer-welcome-actions__title">What you can do from here:</h3>
-    <ul class="customer-welcome-actions__list">
-      <li>Create and manage event plans with our wizard</li>
-      <li>Browse and save suppliers for your events</li>
-      <li>Track your budget with our calculator</li>
-      <li>Manage support tickets and conversations</li>
-    </ul>
+    <h3 class="customer-welcome-actions__title">Start with what matters most:</h3>
+    <div class="customer-welcome-actions__grid">
+      <a href="/start" class="customer-welcome-action-card">
+        <span class="customer-welcome-action-card__icon" aria-hidden="true">📋</span>
+        <span><strong>Create your plan</strong><small>Turn ideas into a clear event checklist.</small></span>
+      </a>
+      <a href="/suppliers" class="customer-welcome-action-card">
+        <span class="customer-welcome-action-card__icon" aria-hidden="true">✨</span>
+        <span><strong>Find suppliers</strong><small>Browse, compare, and save your favourites.</small></span>
+      </a>
+      <a href="/public-calendar" class="customer-welcome-action-card">
+        <span class="customer-welcome-action-card__icon" aria-hidden="true">🗓️</span>
+        <span><strong>Discover events</strong><small>Save fayres and showcases to your calendar.</small></span>
+      </a>
+      <a href="#budget-settings-form" class="customer-welcome-action-card">
+        <span class="customer-welcome-action-card__icon" aria-hidden="true">💷</span>
+        <span><strong>Track budget</strong><small>Keep spend visible as your plans evolve.</small></span>
+      </a>
+    </div>
   </div>
   <!-- Contextual prompt shown dynamically by JS -->
   <div id="welcome-contextual-prompt" class="customer-welcome-contextual-prompt"></div>
@@ -421,6 +434,8 @@
 <script src="/assets/js/unread-badge-manager.js?v=18.3.0"></script>
 <script type="module" src="/assets/js/customer-tickets.js?v=18.3.0"></script>
 
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+<script src="/assets/js/calendar-view.js"></script>
 <script type="module" src="/assets/js/pages/dashboard-customer-module.js"></script>
 <script src="/assets/js/pages/dashboard-customer-init.js"></script>
 </div></main>
@@ -509,10 +524,6 @@
   </footer>
 <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
 
-<!-- FullCalendar for Events Calendar -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css">
-<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
-<script src="/assets/js/calendar-view.js"></script>
 <script src="/assets/js/recommendations-widget.js" defer></script>
 <script src="/assets/js/keyboard-shortcuts.js" defer></script>
 <script src="/assets/js/vendor/confetti-safe.js?v=18.3.0" defer></script>

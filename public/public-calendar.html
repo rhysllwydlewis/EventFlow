@@ -162,10 +162,12 @@
       }
       .pc-filters__actions {
         display: flex;
+        flex-wrap: wrap;
         gap: 0.5rem;
         align-items: end;
+        min-width: max-content;
       }
-      .pc-btn { display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 600; border-radius: 0.5rem; padding: 0.55rem 1.1rem; font-size: 0.9rem; cursor: pointer; border: 1px solid transparent; transition: all 140ms; text-decoration: none; }
+      .pc-btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem; min-width: max-content; white-space: nowrap; font-weight: 600; border-radius: 0.5rem; padding: 0.55rem 1.1rem; font-size: 0.9rem; line-height: 1.2; cursor: pointer; border: 1px solid transparent; transition: all 140ms; text-decoration: none; }
       .pc-btn-primary { background: #0b8073; color: #fff; }
       .pc-btn-primary:hover { background: #0a6b61; }
       .pc-btn-ghost { background: transparent; color: #6b7280; border-color: #d1d5db; }
@@ -267,6 +269,23 @@
         padding-top: 0.75rem;
         border-top: 1px solid #f3f4f6;
       }
+
+
+      .pc-btn-calendar { background: #f8fafc; color: #0f172a; border-color: #dbeafe; box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08); }
+      .pc-btn-calendar:hover { background: #eefdfb; color: #0b8073; border-color: #99f6e4; }
+      .pc-calendar-modal { max-width: min(980px, calc(100vw - 2rem)); }
+      .pc-calendar-modal__top { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin-bottom:1rem; flex-wrap:wrap; }
+      .pc-calendar-modal__month { margin:0; color:#0f172a; font-size:1.15rem; font-weight:800; }
+      .pc-calendar-modal__controls { display:flex; flex-wrap:wrap; gap:.5rem; }
+      .pc-calendar-grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); border:1px solid rgba(11,128,115,.16); border-radius:1rem; overflow:hidden; background:#fff; }
+      .pc-calendar-weekday { padding:.55rem .4rem; background:#f0fdfa; color:#0f766e; font-size:.74rem; font-weight:800; text-align:center; text-transform:uppercase; border-bottom:1px solid rgba(11,128,115,.12); }
+      .pc-calendar-day { min-height:96px; padding:.45rem; border-right:1px solid rgba(11,128,115,.1); border-bottom:1px solid rgba(11,128,115,.1); background:rgba(255,255,255,.86); overflow:hidden; }
+      .pc-calendar-day:nth-child(7n) { border-right:0; }
+      .pc-calendar-day--muted { background:#f8fafc; color:#94a3b8; }
+      .pc-calendar-day__num { display:block; font-weight:800; font-size:.82rem; margin-bottom:.35rem; }
+      .pc-calendar-event { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-bottom:.22rem; border-left:3px solid #0b8073; border-radius:.35rem; background:#ecfdf5; padding:.16rem .28rem; color:#0f766e; font-size:.72rem; font-weight:700; text-decoration:none; }
+      .pc-calendar-event:hover, .pc-calendar-event:focus-visible { background:#ccfbf1; outline:2px solid rgba(13,148,136,.35); outline-offset:1px; }
+      .pc-calendar-empty { padding:2rem; border:1px dashed rgba(11,128,115,.25); border-radius:1rem; color:#64748b; text-align:center; background:#f8fafc; }
 
       /* Empty state */
       .pc-empty {
@@ -427,6 +446,10 @@
         .pc-filters { margin: -1rem auto 1.5rem; border-radius: 0.75rem; }
         .pc-filters__grid { grid-template-columns: 1fr 1fr; }
         .pc-events-grid { grid-template-columns: 1fr; }
+        .pc-filters__actions { grid-column: 1 / -1; min-width: 0; }
+        .pc-filters__actions .pc-btn { width: auto; margin-top: 0; flex: 1 1 120px; }
+        .pc-calendar-day { min-height: 64px; }
+        .pc-calendar-event { display: none; }
       }
     </style>
   </head>
