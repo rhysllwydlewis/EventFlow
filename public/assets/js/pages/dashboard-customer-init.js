@@ -646,7 +646,7 @@ function initCalendar() {
       try {
         window.CalendarView.init('events-calendar', {
           initialView: 'dayGridMonth',
-          height: 500,
+          height: 'auto',
         });
         dbg('✅ Calendar initialized');
       } catch (err) {

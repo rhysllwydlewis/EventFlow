@@ -90,6 +90,11 @@
 
   // ── Escape HTML ────────────────────────────────────────────────────────────
 
+  function displayTitle(value) {
+    const title = String(value || '').trim();
+    return title ? title.charAt(0).toUpperCase() + title.slice(1) : '';
+  }
+
   function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text || '';
@@ -429,7 +434,7 @@
       if (calendarInstance) {
         calendarInstance.addEvent({
           id: entry.id,
-          title: entry.title,
+          title: displayTitle(entry.title),
           start: entry.time ? `${entry.date}T${entry.time}` : entry.date,
           allDay: !entry.time,
           backgroundColor: getEntryColor(entry.type),
@@ -846,7 +851,7 @@
           // Update existing event on calendar
           const existing = calendarInstance.getEventById(`pub_${eventId}`);
           if (existing) {
-            existing.setProp('title', ev.title);
+            existing.setProp('title', displayTitle(ev.title));
             existing.setStart(ev.startDate);
             if (ev.endDate) {
               existing.setEnd(ev.endDate);
@@ -859,7 +864,7 @@
           const colors = getPublicEventColor(ev);
           calendarInstance.addEvent({
             id: `pub_${ev.id}`,
-            title: ev.title,
+            title: displayTitle(ev.title),
             start: ev.startDate,
             end: ev.endDate || undefined,
             backgroundColor: colors.bg,
@@ -1020,7 +1025,7 @@
           const isOwn = currentSupplier && String(ev.supplierId) === String(currentSupplier.id);
           return {
             id: `pub_${ev.id}`,
-            title: ev.title || 'Public Event',
+            title: displayTitle(ev.title || 'Public Event'),
             start: ev.startDate,
             end: ev.endDate || undefined,
             backgroundColor: colors.bg,
@@ -1048,7 +1053,7 @@
         const entryData = await entryRes.json();
         const entries = (entryData.entries || []).map(entry => ({
           id: entry.id,
-          title: entry.title,
+          title: displayTitle(entry.title),
           start: entry.time ? `${entry.date}T${entry.time}` : entry.date,
           allDay: !entry.time,
           backgroundColor: getEntryColor(entry.type),
@@ -1075,6 +1080,8 @@
         right: 'dayGridMonth,timeGridWeek,listWeek',
       },
       events: allEvents,
+      expandRows: false,
+      contentHeight: 'auto',
       selectable: true,
       nowIndicator: true,
       // Click on a day cell — open personal entry modal
@@ -1159,7 +1166,7 @@
           html: '<div class="cal-no-events">No events yet. Click any day to add one.</div>',
         };
       },
-      height: 500,
+      height: 'auto',
     });
 
     calendarInstance.render();

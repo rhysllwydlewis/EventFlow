@@ -18,6 +18,12 @@
    * @param {string} message
    * @param {'success'|'error'} [type='success']
    */
+
+  function displayTitle(value) {
+    const title = String(value || '').trim();
+    return title ? title.charAt(0).toUpperCase() + title.slice(1) : '';
+  }
+
   function showToast(message, type) {
     const toast = document.createElement('div');
     toast.className = `cal-toast cal-toast--${type || 'success'}`;
@@ -277,7 +283,7 @@
                 const newStart = data.entry.time
                   ? `${data.entry.date}T${data.entry.time}`
                   : data.entry.date;
-                ev.setProp('title', data.entry.title);
+                ev.setProp('title', displayTitle(data.entry.title));
                 ev.setStart(newStart);
                 ev.setAllDay(!data.entry.time);
                 ev.setProp('backgroundColor', getEntryColor(data.entry.type));
@@ -304,7 +310,7 @@
               const start = entry.time ? `${entry.date}T${entry.time}` : entry.date;
               calendarInstance.addEvent({
                 id: entry.id,
-                title: entry.title,
+                title: displayTitle(entry.title),
                 start,
                 allDay: !entry.time,
                 backgroundColor: getEntryColor(entry.type),
@@ -761,7 +767,7 @@
       const data = await response.json();
       events = (data.plans || []).map(plan => ({
         id: plan.id,
-        title: plan.eventName || plan.title || 'Untitled Event',
+        title: displayTitle(plan.eventName || plan.title || 'Untitled Event'),
         start: plan.eventDate || plan.date,
         description: plan.description || '',
         type: plan.eventType || plan.type || 'event',
@@ -794,7 +800,7 @@
         const pubData = await pubRes.json();
         const pubEvents = (pubData.events || []).map(ev => ({
           id: `pce_${ev.id}`,
-          title: ev.title || 'Public Event',
+          title: displayTitle(ev.title || 'Public Event'),
           start: ev.startDate,
           end: ev.endDate || undefined,
           description: ev.description || '',
@@ -823,7 +829,7 @@
         const entryData = await entryRes.json();
         const entryEvents = (entryData.entries || []).map(entry => ({
           id: entry.id,
-          title: entry.title,
+          title: displayTitle(entry.title),
           start: entry.time ? `${entry.date}T${entry.time}` : entry.date,
           allDay: !entry.time,
           backgroundColor: getEntryColor(entry.type),
@@ -853,6 +859,8 @@
         right: 'dayGridMonth,timeGridWeek,listWeek',
       },
       events: events,
+      expandRows: false,
+      contentHeight: 'auto',
       selectable: true,
       nowIndicator: true,
       // Open the "Add Entry" modal when the user clicks a day cell
@@ -865,7 +873,7 @@
         if (info.event.extendedProps.personalEntry) {
           const rawEntry = info.event.extendedProps.rawEntry || {
             id: info.event.id,
-            title: info.event.title,
+            title: displayTitle(info.event.title),
           };
           showEntryActions(info.el, rawEntry, calendar, modal);
           return;

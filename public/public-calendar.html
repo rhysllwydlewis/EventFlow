@@ -22,6 +22,7 @@
     <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/navbar.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/liquid-glass.css?v=18.3.0" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -380,6 +381,46 @@
       .pc-skeleton-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.25rem; }
       .pc-skeleton-card { background: #f3f4f6; border-radius: 1rem; height: 300px; animation: pcSkeletonPulse 1.4s ease-in-out infinite; }
       @keyframes pcSkeletonPulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+
+      /* Liquid glass polish */
+      .pc-hero::after {
+        content: '';
+        position: absolute;
+        inset: 1rem;
+        border: 1px solid rgba(255,255,255,0.18);
+        border-radius: 2rem;
+        pointer-events: none;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
+      }
+      .pc-filters,
+      .pc-event-card,
+      .pc-publisher-banner,
+      .pc-modal {
+        background: rgba(255,255,255,0.78);
+        border-color: rgba(11,128,115,0.14);
+        backdrop-filter: blur(18px) saturate(1.2);
+        -webkit-backdrop-filter: blur(18px) saturate(1.2);
+        box-shadow: 0 18px 50px rgba(15,23,42,0.08), inset 0 1px 0 rgba(255,255,255,0.65);
+      }
+      .pc-event-card { position: relative; }
+      .pc-event-card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        pointer-events: none;
+        background: linear-gradient(135deg, rgba(255,255,255,0.55), rgba(255,255,255,0.08));
+        opacity: 0.55;
+      }
+      .pc-event-card__body,
+      .pc-event-card__img,
+      .pc-event-card__img-placeholder { position: relative; z-index: 1; }
+      .pc-btn-primary,
+      .pc-hero__cta {
+        box-shadow: 0 10px 28px rgba(11,128,115,0.22), inset 0 1px 0 rgba(255,255,255,0.22);
+      }
+      .pc-events-grid { align-items: stretch; }
 
       @media (max-width: 600px) {
         .pc-hero { padding: 3rem 0 2rem; }

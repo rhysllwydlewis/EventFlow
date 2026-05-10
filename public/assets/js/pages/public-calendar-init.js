@@ -34,6 +34,11 @@
       .replace(/'/g, '&#39;');
   }
 
+  function displayTitle(value) {
+    const title = String(value || '').trim();
+    return title ? title.charAt(0).toUpperCase() + title.slice(1) : '';
+  }
+
   function formatDate(iso) {
     if (!iso) {
       return '';

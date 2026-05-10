@@ -45,8 +45,9 @@
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at top right, rgba(19, 182, 162, 0.35) 0%, transparent 65%),
-              radial-gradient(ellipse at bottom left, rgba(11, 128, 115, 0.4) 0%, transparent 60%);
+  background:
+    radial-gradient(ellipse at top right, rgba(19, 182, 162, 0.35) 0%, transparent 65%),
+    radial-gradient(ellipse at bottom left, rgba(11, 128, 115, 0.4) 0%, transparent 60%);
   z-index: 0;
 }
 
@@ -137,7 +138,10 @@
   border-radius: var(--ef-radius-sm);
   color: var(--ef-text-muted);
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .customer-welcome-dismiss:hover,
@@ -272,7 +276,9 @@
   padding: 0.75rem var(--ef-space-4);
   margin-bottom: 0.75rem;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
   cursor: default;
 }
 
@@ -324,7 +330,9 @@
   margin-bottom: 0.5rem;
   cursor: pointer;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .customer-ticket-item:hover,
@@ -375,7 +383,9 @@
   padding: var(--ef-space-2) var(--ef-space-4);
   border: 1px solid var(--ef-primary);
   border-radius: var(--ef-radius-sm);
-  transition: background 0.2s ease, color 0.2s ease;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
 }
 
 .customer-tickets-view-all:hover {
@@ -461,7 +471,9 @@
   border-radius: var(--ef-radius-md);
   padding: var(--ef-space-5);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .customer-stat-card:hover {
@@ -803,7 +815,9 @@
   background: transparent;
   color: var(--ef-primary);
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
   white-space: nowrap;
 }
 
@@ -902,7 +916,9 @@
   cursor: pointer;
   border-radius: var(--ef-radius-sm);
   flex-shrink: 0;
-  transition: color 0.15s ease, background 0.15s ease;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
 }
 
 .cal-fallback-item__edit {
@@ -918,7 +934,9 @@
   cursor: pointer;
   border-radius: var(--ef-radius-sm);
   flex-shrink: 0;
-  transition: color 0.15s ease, background 0.15s ease;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
 }
 
 .cal-fallback-item__delete:hover,
@@ -969,7 +987,9 @@
   z-index: 11000;
   opacity: 0;
   transform: translateY(8px);
-  transition: opacity 0.25s ease, transform 0.25s ease;
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
   pointer-events: none;
   max-width: 320px;
 }
@@ -1017,7 +1037,9 @@
   border-radius: var(--ef-radius-sm);
   cursor: pointer;
   border: 1px solid transparent;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
 .cal-delete-popover__btn--cancel {
@@ -1256,7 +1278,9 @@ body.customer-dashboard-page .ef-bottom-nav.logged-in #ef-bottom-menu {
   border-radius: 50%;
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
   z-index: 2;
 }
 
@@ -1311,8 +1335,14 @@ body.customer-dashboard-page .ef-bottom-nav.logged-in #ef-bottom-menu {
 }
 
 @keyframes calModalIn {
-  from { opacity: 0; transform: translateY(-12px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0)    scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .cal-entry-modal__header {
@@ -1342,7 +1372,9 @@ body.customer-dashboard-page .ef-bottom-nav.logged-in #ef-bottom-menu {
   border-radius: var(--ef-radius-sm);
   color: var(--ef-text-muted);
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
 .cal-entry-modal__close:hover,
@@ -1405,7 +1437,9 @@ body.customer-dashboard-page .ef-bottom-nav.logged-in #ef-bottom-menu {
   font-size: 0.9375rem;
   color: var(--ef-text);
   background: #fff;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
   box-sizing: border-box;
 }
 
@@ -1448,7 +1482,10 @@ body.customer-dashboard-page .ef-bottom-nav.logged-in #ef-bottom-menu {
   font-weight: 500;
   cursor: pointer;
   border: 1px solid transparent;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .cal-entry-modal__btn--cancel {
@@ -1569,24 +1606,43 @@ body.customer-dashboard-page .sd-card-header {
   margin-bottom: 0;
   border-radius: 0;
   border-bottom: 1px solid var(--sd-header-border, rgba(11, 128, 115, 0.1));
-  background: var(--sd-header-bg, linear-gradient(135deg, rgba(11, 128, 115, 0.04) 0%, rgba(16, 185, 129, 0.03) 100%));
+  background: var(
+    --sd-header-bg,
+    linear-gradient(135deg, rgba(11, 128, 115, 0.04) 0%, rgba(16, 185, 129, 0.03) 100%)
+  );
 }
 
 /* Colour variants */
 body.customer-dashboard-page .sd-card-header--teal {
-  --sd-header-bg: linear-gradient(135deg, rgba(11, 128, 115, 0.07) 0%, rgba(16, 185, 129, 0.04) 100%);
+  --sd-header-bg: linear-gradient(
+    135deg,
+    rgba(11, 128, 115, 0.07) 0%,
+    rgba(16, 185, 129, 0.04) 100%
+  );
   --sd-header-border: rgba(11, 128, 115, 0.12);
 }
 body.customer-dashboard-page .sd-card-header--blue {
-  --sd-header-bg: linear-gradient(135deg, rgba(59, 130, 246, 0.07) 0%, rgba(37, 99, 235, 0.04) 100%);
+  --sd-header-bg: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.07) 0%,
+    rgba(37, 99, 235, 0.04) 100%
+  );
   --sd-header-border: rgba(59, 130, 246, 0.12);
 }
 body.customer-dashboard-page .sd-card-header--amber {
-  --sd-header-bg: linear-gradient(135deg, rgba(245, 158, 11, 0.07) 0%, rgba(251, 191, 36, 0.04) 100%);
+  --sd-header-bg: linear-gradient(
+    135deg,
+    rgba(245, 158, 11, 0.07) 0%,
+    rgba(251, 191, 36, 0.04) 100%
+  );
   --sd-header-border: rgba(245, 158, 11, 0.12);
 }
 body.customer-dashboard-page .sd-card-header--emerald {
-  --sd-header-bg: linear-gradient(135deg, rgba(16, 185, 129, 0.07) 0%, rgba(5, 150, 105, 0.04) 100%);
+  --sd-header-bg: linear-gradient(
+    135deg,
+    rgba(16, 185, 129, 0.07) 0%,
+    rgba(5, 150, 105, 0.04) 100%
+  );
   --sd-header-border: rgba(16, 185, 129, 0.12);
 }
 body.customer-dashboard-page .sd-card-header--red {
@@ -1594,7 +1650,11 @@ body.customer-dashboard-page .sd-card-header--red {
   --sd-header-border: rgba(239, 68, 68, 0.12);
 }
 body.customer-dashboard-page .sd-card-header--indigo {
-  --sd-header-bg: linear-gradient(135deg, rgba(99, 102, 241, 0.07) 0%, rgba(139, 92, 246, 0.04) 100%);
+  --sd-header-bg: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.07) 0%,
+    rgba(139, 92, 246, 0.04) 100%
+  );
   --sd-header-border: rgba(99, 102, 241, 0.12);
 }
 
@@ -1634,12 +1694,24 @@ body.customer-dashboard-page .sd-card-header__icon svg {
 }
 
 /* Icon colour variants */
-body.customer-dashboard-page .sd-card-header__icon--teal    { background: linear-gradient(135deg, #0b8073 0%, #10b981 100%); }
-body.customer-dashboard-page .sd-card-header__icon--blue    { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
-body.customer-dashboard-page .sd-card-header__icon--amber   { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); }
-body.customer-dashboard-page .sd-card-header__icon--emerald { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
-body.customer-dashboard-page .sd-card-header__icon--red     { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
-body.customer-dashboard-page .sd-card-header__icon--indigo  { background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); }
+body.customer-dashboard-page .sd-card-header__icon--teal {
+  background: linear-gradient(135deg, #0b8073 0%, #10b981 100%);
+}
+body.customer-dashboard-page .sd-card-header__icon--blue {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+body.customer-dashboard-page .sd-card-header__icon--amber {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+body.customer-dashboard-page .sd-card-header__icon--emerald {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+body.customer-dashboard-page .sd-card-header__icon--red {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+body.customer-dashboard-page .sd-card-header__icon--indigo {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+}
 
 /* Heading */
 body.customer-dashboard-page .sd-card-header__heading {
@@ -1714,7 +1786,10 @@ body.customer-dashboard-page .customer-tickets-create-btn {
   font-weight: 500;
   white-space: nowrap;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 body.customer-dashboard-page .customer-tickets-create-btn:hover,
@@ -1743,7 +1818,9 @@ body.customer-dashboard-page .customer-inbox-btn {
   text-decoration: none;
   display: inline-flex;
   align-items: center;
-  transition: background 0.15s ease, color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
 }
 
 body.customer-dashboard-page .customer-inbox-btn:hover,
@@ -1766,7 +1843,9 @@ body.customer-dashboard-page .customer-card-action--full {
   font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
 }
 
 body.customer-dashboard-page .customer-card-action--full:hover,
@@ -1858,7 +1937,44 @@ body.customer-dashboard-page .customer-unread-badge {
 }
 
 /* Hide badge when count is 0 */
-body.customer-dashboard-page .customer-unread-badge[data-count="0"],
+body.customer-dashboard-page .customer-unread-badge[data-count='0'],
 body.customer-dashboard-page .customer-unread-badge:empty {
   display: none;
+}
+
+/* Liquid glass calendar polish and scrollbar-free month layout */
+body.customer-dashboard-page .customer-calendar-card {
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(11, 128, 115, 0.12);
+  backdrop-filter: blur(18px) saturate(1.15);
+  -webkit-backdrop-filter: blur(18px) saturate(1.15);
+  box-shadow:
+    0 18px 55px rgba(15, 23, 42, 0.09),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+body.customer-dashboard-page .customer-calendar-card .fc,
+body.customer-dashboard-page .customer-calendar-card .fc-view-harness,
+body.customer-dashboard-page .customer-calendar-card .fc-scroller,
+body.customer-dashboard-page .customer-calendar-card .fc-scroller-liquid,
+body.customer-dashboard-page .customer-calendar-card .fc-scroller-liquid-absolute {
+  height: auto !important;
+  overflow: visible !important;
+  position: relative !important;
+}
+
+body.customer-dashboard-page .customer-calendar-card .fc-scrollgrid {
+  border-radius: 18px;
+  overflow: hidden;
+  border-color: rgba(11, 128, 115, 0.14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+body.customer-dashboard-page .customer-calendar-card .fc-daygrid-day-frame {
+  min-height: 70px;
+}
+
+body.customer-dashboard-page .customer-calendar-card .fc-event-title,
+body.customer-dashboard-page .customer-calendar-next-up__title {
+  text-transform: none;
 }
