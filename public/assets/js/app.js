@@ -6162,24 +6162,33 @@ document.addEventListener('DOMContentLoaded', () => {
           if (btn.dataset.disabled === 'true' || btn.getAttribute('aria-disabled') === 'true') {
             return;
           }
-          rolePills.forEach(b => b.classList.remove('is-active'));
-          btn.classList.add('is-active');
+          const val = btn.getAttribute('data-role') || 'customer';
+          rolePills.forEach(b => {
+            const isSelected = b === btn;
+            b.classList.toggle('is-active', isSelected);
+            b.classList.toggle('auth-role-option--active', isSelected);
+            b.setAttribute('aria-checked', isSelected ? 'true' : 'false');
+          });
+          const rolePicker = btn.closest('.auth-role-picker, .role-toggle');
+          if (rolePicker) {
+            rolePicker.classList.toggle('is-customer-selected', val === 'customer');
+            rolePicker.classList.toggle('is-supplier-selected', val === 'supplier');
+          }
           if (roleHidden) {
-            const val = btn.getAttribute('data-role') || 'customer';
             roleHidden.value = val;
+          }
 
-            // Show/hide supplier-specific fields
-            if (supplierFields) {
-              if (val === 'supplier') {
-                supplierFields.style.display = 'block';
-                if (companyInput) {
-                  companyInput.required = true;
-                }
-              } else {
-                supplierFields.style.display = 'none';
-                if (companyInput) {
-                  companyInput.required = false;
-                }
+          // Show/hide supplier-specific fields
+          if (supplierFields) {
+            if (val === 'supplier') {
+              supplierFields.style.display = 'block';
+              if (companyInput) {
+                companyInput.required = true;
+              }
+            } else {
+              supplierFields.style.display = 'none';
+              if (companyInput) {
+                companyInput.required = false;
               }
             }
           }

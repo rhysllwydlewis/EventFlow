@@ -352,9 +352,159 @@
                   <div class="auth-spinner"></div>
                 </div>
 
-                <div class="auth-google">
+                <div class="auth-signup-choice" aria-describedby="signup-choice-help">
+                  <div class="auth-signup-choice__header">
+                    <span class="auth-step-badge">Step 1</span>
+                    <div>
+                      <span class="auth-label" id="role-label">Choose your account type</span>
+                      <p class="auth-field-help small" id="signup-choice-help">We’ll tune your signup and dashboard for planning an event or managing a supplier business.</p>
+                    </div>
+                  </div>
+
+                  <div class="role-toggle auth-role-picker" role="radiogroup" aria-labelledby="role-label" id="reg-role-picker">
+                    <button type="button" class="role-pill auth-role-option auth-role-option--active is-active" data-role="customer" role="radio" aria-checked="true">
+                      <span class="auth-role-icon">🎉</span>
+                      <span class="auth-role-copy">
+                        <span class="auth-role-title">Customer</span>
+                        <span class="auth-role-description">Plan, shortlist and message suppliers.</span>
+                      </span>
+                    </button>
+                    <button type="button" class="role-pill auth-role-option" data-role="supplier" role="radio" aria-checked="false">
+                      <span class="auth-role-icon">🏪</span>
+                      <span class="auth-role-copy">
+                        <span class="auth-role-title">Supplier</span>
+                        <span class="auth-role-description">List your business and manage enquiries.</span>
+                      </span>
+                    </button>
+                  </div>
+                  <input type="hidden" id="reg-role" name="role" value="customer" />
+
+                  <div class="auth-signup-choice__divider"><span>A few essentials</span></div>
+
+                  <div class="auth-field-row auth-field-row--location">
+                    <div class="auth-field form-row">
+                      <label class="auth-label" for="reg-location">Location (UK County) *</label>
+                      <select id="reg-location" name="location" class="auth-input" required aria-required="true">
+                        <option value="">Select your county...</option>
+                        <option value="Bedfordshire">Bedfordshire</option>
+                        <option value="Berkshire">Berkshire</option>
+                        <option value="Bristol">Bristol</option>
+                        <option value="Buckinghamshire">Buckinghamshire</option>
+                        <option value="Cambridgeshire">Cambridgeshire</option>
+                        <option value="Cheshire">Cheshire</option>
+                        <option value="Cornwall">Cornwall</option>
+                        <option value="Cumbria">Cumbria</option>
+                        <option value="Derbyshire">Derbyshire</option>
+                        <option value="Devon">Devon</option>
+                        <option value="Dorset">Dorset</option>
+                        <option value="Durham">Durham</option>
+                        <option value="East Sussex">East Sussex</option>
+                        <option value="Essex">Essex</option>
+                        <option value="Gloucestershire">Gloucestershire</option>
+                        <option value="Greater London">Greater London</option>
+                        <option value="Greater Manchester">Greater Manchester</option>
+                        <option value="Hampshire">Hampshire</option>
+                        <option value="Herefordshire">Herefordshire</option>
+                        <option value="Hertfordshire">Hertfordshire</option>
+                        <option value="Isle of Wight">Isle of Wight</option>
+                        <option value="Kent">Kent</option>
+                        <option value="Lancashire">Lancashire</option>
+                        <option value="Leicestershire">Leicestershire</option>
+                        <option value="Lincolnshire">Lincolnshire</option>
+                        <option value="Merseyside">Merseyside</option>
+                        <option value="Norfolk">Norfolk</option>
+                        <option value="North Yorkshire">North Yorkshire</option>
+                        <option value="Northamptonshire">Northamptonshire</option>
+                        <option value="Northumberland">Northumberland</option>
+                        <option value="Nottinghamshire">Nottinghamshire</option>
+                        <option value="Oxfordshire">Oxfordshire</option>
+                        <option value="Rutland">Rutland</option>
+                        <option value="Shropshire">Shropshire</option>
+                        <option value="Somerset">Somerset</option>
+                        <option value="South Yorkshire">South Yorkshire</option>
+                        <option value="Staffordshire">Staffordshire</option>
+                        <option value="Suffolk">Suffolk</option>
+                        <option value="Surrey">Surrey</option>
+                        <option value="Tyne and Wear">Tyne and Wear</option>
+                        <option value="Warwickshire">Warwickshire</option>
+                        <option value="West Midlands">West Midlands</option>
+                        <option value="West Sussex">West Sussex</option>
+                        <option value="West Yorkshire">West Yorkshire</option>
+                        <option value="Wiltshire">Wiltshire</option>
+                        <option value="Worcestershire">Worcestershire</option>
+                        <option value="Wales">Wales</option>
+                        <option value="Scotland">Scotland</option>
+                        <option value="Northern Ireland">Northern Ireland</option>
+                      </select>
+                    </div>
+
+                    <div class="auth-field form-row">
+                      <label class="auth-label" for="reg-postcode">Postcode <span class="auth-label-optional">(Optional)</span></label>
+                      <input
+                        id="reg-postcode"
+                        name="postcode"
+                        type="text"
+                        class="auth-input"
+                        placeholder="e.g. SW1A 1AA"
+                        autocomplete="postal-code"
+                      />
+                    </div>
+                  </div>
+
+                  <!-- Supplier-specific fields (shown when supplier role is selected) -->
+                  <div id="supplier-fields" class="auth-supplier-fields" style="display: none">
+                    <div class="auth-field form-row">
+                      <label class="auth-label" for="reg-company">Company Name *</label>
+                      <input
+                        id="reg-company"
+                        name="company"
+                        type="text"
+                        class="auth-input"
+                        placeholder="Your business name"
+                        autocomplete="organization"
+                      />
+                    </div>
+                    <div class="auth-field-row auth-field-row--supplier">
+                      <div class="auth-field form-row">
+                        <label class="auth-label" for="reg-jobtitle">Job Title <span class="auth-label-optional">(Optional)</span></label>
+                        <input
+                          id="reg-jobtitle"
+                          name="jobtitle"
+                          type="text"
+                          class="auth-input"
+                          placeholder="e.g. Event Manager"
+                          autocomplete="organization-title"
+                        />
+                      </div>
+                      <div class="auth-field form-row">
+                        <label class="auth-label" for="reg-website">Website <span class="auth-label-optional">(Optional)</span></label>
+                        <input
+                          id="reg-website"
+                          name="website"
+                          type="url"
+                          class="auth-input"
+                          placeholder="https://example.com"
+                          autocomplete="url"
+                        />
+                      </div>
+                    </div>
+                    <div class="auth-field form-row">
+                      <label class="auth-label">Social Media <span class="auth-label-optional">(Optional)</span></label>
+                      <input id="reg-instagram" name="instagram" type="url" class="auth-input auth-input--stacked" placeholder="Instagram URL" />
+                      <input id="reg-facebook" name="facebook" type="url" class="auth-input auth-input--stacked" placeholder="Facebook URL" />
+                      <input id="reg-twitter" name="twitter" type="url" class="auth-input auth-input--stacked" placeholder="Twitter/X URL" />
+                      <input id="reg-linkedin" name="linkedin" type="url" class="auth-input auth-input--stacked" placeholder="LinkedIn URL" />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="auth-google auth-google--signup">
+                  <div class="auth-google-heading">
+                    <span class="auth-step-badge auth-step-badge--muted">Step 2</span>
+                    <span>Continue with Google or email</span>
+                  </div>
                   <div id="google-signup-button" class="auth-google-button" aria-label="Sign up with Google"></div>
-                  <p class="auth-google-note small">For supplier accounts, choose Supplier and fill in the business fields before using Google.</p>
+                  <p class="auth-google-note small">Choose your account type above before continuing with Google.</p>
                   <div class="auth-divider"><span>or use email</span></div>
                 </div>
 
@@ -457,133 +607,6 @@
                     />
                   </div>
                   <span class="small auth-match-msg auth-field-error" id="password-match-msg" role="alert"></span>
-                </div>
-
-                <div class="auth-field form-row">
-                  <label class="auth-label" for="reg-location">Location (UK County) *</label>
-                  <select id="reg-location" name="location" class="auth-input" required aria-required="true">
-                    <option value="">Select your county...</option>
-                    <option value="Bedfordshire">Bedfordshire</option>
-                    <option value="Berkshire">Berkshire</option>
-                    <option value="Bristol">Bristol</option>
-                    <option value="Buckinghamshire">Buckinghamshire</option>
-                    <option value="Cambridgeshire">Cambridgeshire</option>
-                    <option value="Cheshire">Cheshire</option>
-                    <option value="Cornwall">Cornwall</option>
-                    <option value="Cumbria">Cumbria</option>
-                    <option value="Derbyshire">Derbyshire</option>
-                    <option value="Devon">Devon</option>
-                    <option value="Dorset">Dorset</option>
-                    <option value="Durham">Durham</option>
-                    <option value="East Sussex">East Sussex</option>
-                    <option value="Essex">Essex</option>
-                    <option value="Gloucestershire">Gloucestershire</option>
-                    <option value="Greater London">Greater London</option>
-                    <option value="Greater Manchester">Greater Manchester</option>
-                    <option value="Hampshire">Hampshire</option>
-                    <option value="Herefordshire">Herefordshire</option>
-                    <option value="Hertfordshire">Hertfordshire</option>
-                    <option value="Isle of Wight">Isle of Wight</option>
-                    <option value="Kent">Kent</option>
-                    <option value="Lancashire">Lancashire</option>
-                    <option value="Leicestershire">Leicestershire</option>
-                    <option value="Lincolnshire">Lincolnshire</option>
-                    <option value="Merseyside">Merseyside</option>
-                    <option value="Norfolk">Norfolk</option>
-                    <option value="North Yorkshire">North Yorkshire</option>
-                    <option value="Northamptonshire">Northamptonshire</option>
-                    <option value="Northumberland">Northumberland</option>
-                    <option value="Nottinghamshire">Nottinghamshire</option>
-                    <option value="Oxfordshire">Oxfordshire</option>
-                    <option value="Rutland">Rutland</option>
-                    <option value="Shropshire">Shropshire</option>
-                    <option value="Somerset">Somerset</option>
-                    <option value="South Yorkshire">South Yorkshire</option>
-                    <option value="Staffordshire">Staffordshire</option>
-                    <option value="Suffolk">Suffolk</option>
-                    <option value="Surrey">Surrey</option>
-                    <option value="Tyne and Wear">Tyne and Wear</option>
-                    <option value="Warwickshire">Warwickshire</option>
-                    <option value="West Midlands">West Midlands</option>
-                    <option value="West Sussex">West Sussex</option>
-                    <option value="West Yorkshire">West Yorkshire</option>
-                    <option value="Wiltshire">Wiltshire</option>
-                    <option value="Worcestershire">Worcestershire</option>
-                    <option value="Wales">Wales</option>
-                    <option value="Scotland">Scotland</option>
-                    <option value="Northern Ireland">Northern Ireland</option>
-                  </select>
-                </div>
-
-                <div class="auth-field form-row">
-                  <label class="auth-label" for="reg-postcode">Postcode <span class="auth-label-optional">(Optional)</span></label>
-                  <input
-                    id="reg-postcode"
-                    name="postcode"
-                    type="text"
-                    class="auth-input"
-                    placeholder="e.g. SW1A 1AA"
-                    autocomplete="postal-code"
-                  />
-                </div>
-
-                <div class="auth-field form-row">
-                  <span class="auth-label" id="role-label">I am a…</span>
-                  <div class="role-toggle auth-role-picker" role="radiogroup" aria-labelledby="role-label" id="reg-role-picker">
-                    <button type="button" class="role-pill auth-role-option auth-role-option--active is-active" data-role="customer" role="radio" aria-checked="true">
-                      <span class="auth-role-icon">🎉</span>
-                      <span>Customer</span>
-                    </button>
-                    <button type="button" class="role-pill auth-role-option" data-role="supplier" role="radio" aria-checked="false">
-                      <span class="auth-role-icon">🏪</span>
-                      <span>Supplier</span>
-                    </button>
-                  </div>
-                  <input type="hidden" id="reg-role" name="role" value="customer" />
-                </div>
-
-                <!-- Supplier-specific fields (shown when supplier role is selected) -->
-                <div id="supplier-fields" style="display: none">
-                  <div class="auth-field form-row">
-                    <label class="auth-label" for="reg-company">Company Name *</label>
-                    <input
-                      id="reg-company"
-                      name="company"
-                      type="text"
-                      class="auth-input"
-                      placeholder="Your business name"
-                      autocomplete="organization"
-                    />
-                  </div>
-                  <div class="auth-field form-row">
-                    <label class="auth-label" for="reg-jobtitle">Job Title <span class="auth-label-optional">(Optional)</span></label>
-                    <input
-                      id="reg-jobtitle"
-                      name="jobtitle"
-                      type="text"
-                      class="auth-input"
-                      placeholder="e.g. Event Manager"
-                      autocomplete="organization-title"
-                    />
-                  </div>
-                  <div class="auth-field form-row">
-                    <label class="auth-label" for="reg-website">Website <span class="auth-label-optional">(Optional)</span></label>
-                    <input
-                      id="reg-website"
-                      name="website"
-                      type="url"
-                      class="auth-input"
-                      placeholder="https://example.com"
-                      autocomplete="url"
-                    />
-                  </div>
-                  <div class="auth-field form-row">
-                    <label class="auth-label">Social Media <span class="auth-label-optional">(Optional)</span></label>
-                    <input id="reg-instagram" name="instagram" type="url" class="auth-input auth-input--stacked" placeholder="Instagram URL" />
-                    <input id="reg-facebook" name="facebook" type="url" class="auth-input auth-input--stacked" placeholder="Facebook URL" />
-                    <input id="reg-twitter" name="twitter" type="url" class="auth-input auth-input--stacked" placeholder="Twitter/X URL" />
-                    <input id="reg-linkedin" name="linkedin" type="url" class="auth-input auth-input--stacked" placeholder="LinkedIn URL" />
-                  </div>
                 </div>
 
                 <div class="auth-field form-row">
