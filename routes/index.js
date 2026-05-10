@@ -31,6 +31,7 @@ const quoteRequestsRoutes = require('./quote-requests');
 const analyticsRoutes = require('./analytics');
 const plansRoutes = require('./plans');
 const guestsRoutes = require('./guests');
+const weddingWebsiteRoutes = require('./wedding-websites');
 const savedRoutes = require('./saved');
 const supplierRoutes = require('./supplier');
 const supplierAdminRoutes = require('./supplier-admin');
@@ -256,6 +257,12 @@ function mountRoutes(app, deps) {
 
   // Search V2 routes (advanced search with caching and analytics)
   app.use('/api/v2/search', searchV2Routes);
+
+  // Wedding website and RSVP routes
+  app.use('/api/v1/me/plans', weddingWebsiteRoutes);
+  app.use('/api/me/plans', weddingWebsiteRoutes); // Backward compatibility
+  app.use('/api/v1', weddingWebsiteRoutes);
+  app.use('/api', weddingWebsiteRoutes); // Backward compatibility
 
   // Shortlist routes (user favorites)
   app.use('/api/v1/shortlist', shortlistRoutes);
