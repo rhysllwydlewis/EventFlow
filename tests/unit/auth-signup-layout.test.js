@@ -44,4 +44,21 @@ describe('auth signup layout', () => {
     expect(authHtml).toContain('Step 2');
     expect(authHtml).toContain('Continue with Google or email');
   });
+
+  it('keeps auth tabs readable and Google buttons fitted to the card', () => {
+    const authCss = fs.readFileSync(
+      path.join(__dirname, '../../public/assets/css/auth.css'),
+      'utf8'
+    );
+    const googleSignupCss = fs.readFileSync(
+      path.join(__dirname, '../../public/assets/css/auth-google-signup.css'),
+      'utf8'
+    );
+
+    expect(authCss).toContain('grid-template-columns: repeat(2, minmax(0, 1fr));');
+    expect(authCss).toContain('white-space: normal;');
+    expect(authCss).toContain('inline-size: min(100%, var(--google-button-width, 320px));');
+    expect(authCss).toContain('overflow: hidden;');
+    expect(googleSignupCss).toContain('inline-size: min(100%, var(--google-button-width, 320px));');
+  });
 });

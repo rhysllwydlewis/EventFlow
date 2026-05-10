@@ -42,6 +42,12 @@
       activeTab.focus();
     }
 
+    window.dispatchEvent(
+      new CustomEvent('eventflow:auth-tab-change', {
+        detail: { tab: activeTab.id === 'tab-create' ? 'create' : 'signin' },
+      })
+    );
+
     // Sync page heading and subtitle with the active tab
     const heading = document.querySelector('.auth-heading');
     if (heading) {

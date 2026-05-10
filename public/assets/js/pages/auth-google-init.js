@@ -2,10 +2,12 @@
   'use strict';
 
   const GIS_SRC = 'https://accounts.google.com/gsi/client';
-  const ROLE_POLISH_CSS = '/assets/css/auth-google-signup.css?v=18.3.0';
+  const ROLE_POLISH_CSS = '/assets/css/auth-google-signup.css?v=18.4.2';
   const GOOGLE_LOGIN_PATH = '/api/auth/callback/google';
   const PRODUCTION_ORIGIN = 'https://event-flow.co.uk';
   const GOOGLE_SIGNUP_RERENDER_DELAY = 160;
+  const GOOGLE_BUTTON_MIN_WIDTH = 220;
+  const GOOGLE_BUTTON_MAX_WIDTH = 320;
 
   function getGoogleLoginUri() {
     const origin =
@@ -307,6 +309,31 @@
     }
 
     return readiness.ready;
+  }
+
+  function getVisibleWidth(element) {
+    if (!element) {
+      return 0;
+    }
+
+    const rectWidth = Math.floor(element.getBoundingClientRect?.().width || 0);
+    return rectWidth || Math.floor(element.clientWidth || element.offsetWidth || 0);
+  }
+
+  function getGoogleButtonWidth(container) {
+    const googleBlock = container.closest('.auth-google');
+    const card = container.closest('.auth-card');
+    const measuredWidth = [
+      getVisibleWidth(googleBlock),
+      getVisibleWidth(container.parentElement),
+      getVisibleWidth(card),
+    ].find(width => width > 0);
+    const availableWidth = Math.max(
+      GOOGLE_BUTTON_MIN_WIDTH,
+      measuredWidth || GOOGLE_BUTTON_MAX_WIDTH
+    );
+
+    return Math.min(GOOGLE_BUTTON_MAX_WIDTH, availableWidth);
   }
 
   function renderGoogleButton(container, context, baseRenderOptions) {
