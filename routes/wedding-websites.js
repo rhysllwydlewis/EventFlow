@@ -544,11 +544,40 @@ router.delete(
   writeLimiter,
   getOwnedPlan,
   async (req, res) => {
-    const tables = getTables(req.plan).filter(t => t.id !== req.params.tableId);
+    const tableId = req.params.tableId;
+    const currentTables = getTables(req.plan);
+    const deletedTable = currentTables.find(t => t.id === tableId);
+    const tables = currentTables.filter(t => t.id !== tableId);
+    const deletedTableName = String(deletedTable?.name || '').trim();
+    const guests = guestListForPlan(req.plan).map(g => {
+      const matchesTableId = g.tableId === tableId;
+      const matchesTableName =
+        deletedTableName && String(g.tableName || '').trim() === deletedTableName;
+      const matchesLegacyTableField =
+        (deletedTableName && String(g.table || '').trim() === deletedTableName) ||
+        g.table === tableId;
+      if (!matchesTableId && !matchesTableName && !matchesLegacyTableField) {
+        return g;
+      }
+      return {
+        ...g,
+        tableId: null,
+        tableName: null,
+        table: null,
+        updatedAt: new Date().toISOString(),
+      };
+    });
+    const now = new Date().toISOString();
     await dbUnified.updateOne(
       'plans',
       { id: req.plan.id },
-      { $set: { tables, updatedAt: new Date().toISOString() } }
+      {
+        $set: {
+          tables,
+          ...setGuestList(req.plan, guests),
+          updatedAt: now,
+        },
+      }
     );
     res.json({ success: true });
   }
