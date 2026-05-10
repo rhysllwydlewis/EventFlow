@@ -18,6 +18,12 @@
    * @param {string} message
    * @param {'success'|'error'} [type='success']
    */
+
+  function displayTitle(value) {
+    const title = String(value || '').trim();
+    return title ? title.charAt(0).toUpperCase() + title.slice(1) : '';
+  }
+
   function showToast(message, type) {
     const toast = document.createElement('div');
     toast.className = `cal-toast cal-toast--${type || 'success'}`;
@@ -277,7 +283,7 @@
                 const newStart = data.entry.time
                   ? `${data.entry.date}T${data.entry.time}`
                   : data.entry.date;
-                ev.setProp('title', data.entry.title);
+                ev.setProp('title', displayTitle(data.entry.title));
                 ev.setStart(newStart);
                 ev.setAllDay(!data.entry.time);
                 ev.setProp('backgroundColor', getEntryColor(data.entry.type));
@@ -293,6 +299,9 @@
                 await renderFallbackCalendar(calEl);
               }
             }
+            if (calendarInstance) {
+              renderNextUpFromCalendar(calendarInstance);
+            }
             showToast(`"${title}" updated`, 'success');
           } else {
             // Immediately add the new event to the calendar without a full reload
@@ -301,7 +310,7 @@
               const start = entry.time ? `${entry.date}T${entry.time}` : entry.date;
               calendarInstance.addEvent({
                 id: entry.id,
-                title: entry.title,
+                title: displayTitle(entry.title),
                 start,
                 allDay: !entry.time,
                 backgroundColor: getEntryColor(entry.type),
@@ -319,6 +328,9 @@
               if (calEl) {
                 await renderFallbackCalendar(calEl);
               }
+            }
+            if (calendarInstance) {
+              renderNextUpFromCalendar(calendarInstance);
             }
             showToast(`"${title}" added to your calendar`, 'success');
           }
@@ -382,6 +394,78 @@
       }
     }
     return '';
+  }
+
+  // ── Next-up summary ──────────────────────────────────────────────────────
+
+  function normalizeCalendarItem(event) {
+    const start = event.start instanceof Date ? event.start : new Date(event.start);
+    if (Number.isNaN(start.getTime())) {
+      return null;
+    }
+    return {
+      id: event.id,
+      title: displayTitle(event.title || 'Untitled entry'),
+      start,
+      type:
+        event.extendedProps?.entryType ||
+        (event.extendedProps?.publicEvent ? 'public event' : event.type || 'event'),
+      location: event.extendedProps?.location || event.location || '',
+      color:
+        event.backgroundColor || event.borderColor || getEntryColor(event.extendedProps?.entryType),
+    };
+  }
+
+  function formatDateTime(date) {
+    return date.toLocaleString('en-GB', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Europe/London',
+    });
+  }
+
+  function renderNextUpSummary(rawEvents) {
+    const panel = document.getElementById('calendar-next-up');
+    if (!panel) {
+      return;
+    }
+
+    const now = new Date();
+    const next = (rawEvents || [])
+      .map(normalizeCalendarItem)
+      .filter(item => item && item.start >= now)
+      .sort((a, b) => a.start - b.start)[0];
+
+    const body = panel.querySelector('.customer-calendar-next-up__body');
+    if (!body) {
+      return;
+    }
+
+    if (!next) {
+      body.textContent =
+        'No upcoming meetings, appointments, or events yet. Add one above and it will appear here.';
+      return;
+    }
+
+    const location = next.location
+      ? `<div class="customer-calendar-next-up__meta">📍 ${escapeHtml(next.location)}</div>`
+      : '';
+    body.innerHTML = `
+      <div><span class="customer-calendar-next-up__badge" style="background:${escapeHtml(next.color)};">${escapeHtml(next.type)}</span><span class="customer-calendar-next-up__title">${escapeHtml(next.title)}</span></div>
+      <div class="customer-calendar-next-up__meta">${escapeHtml(formatDateTime(next.start))}</div>
+      ${location}
+    `;
+  }
+
+  function renderNextUpFromCalendar(calendarInstance) {
+    if (!calendarInstance) {
+      return;
+    }
+    renderNextUpSummary(calendarInstance.getEvents());
   }
 
   // ── Entry actions popover ─────────────────────────────────────────────────
@@ -480,6 +564,7 @@
             if (ev) {
               ev.remove();
             }
+            renderNextUpFromCalendar(calendarInstance);
           } else {
             // Fallback list mode: remove the row or refresh the list
             const listItem = anchorEl.closest('.cal-fallback-item');
@@ -488,6 +573,19 @@
               const calEl = document.getElementById('events-calendar');
               if (calEl && !calEl.querySelector('.cal-fallback-item')) {
                 await renderFallbackCalendar(calEl);
+              } else if (calEl) {
+                const remaining = [...calEl.querySelectorAll('.cal-fallback-item')]
+                  .map(item => item._calEntry)
+                  .filter(Boolean);
+                renderNextUpSummary(
+                  remaining.map(item => ({
+                    id: item.id,
+                    title: item.title,
+                    start: item.time ? `${item.date}T${item.time}` : `${item.date}T00:00:00`,
+                    backgroundColor: getEntryColor(item.type),
+                    extendedProps: { entryType: item.type, description: item.description },
+                  }))
+                );
               }
             }
           }
@@ -530,6 +628,19 @@
     } catch (_) {
       /* non-fatal */
     }
+
+    renderNextUpSummary(
+      entries.map(entry => ({
+        id: entry.id,
+        title: displayTitle(entry.title),
+        start: entry.time ? `${entry.date}T${entry.time}` : `${entry.date}T00:00:00`,
+        backgroundColor: getEntryColor(entry.type),
+        extendedProps: {
+          entryType: entry.type,
+          description: entry.description,
+        },
+      }))
+    );
 
     if (entries.length === 0) {
       container.innerHTML = `
@@ -656,7 +767,7 @@
       const data = await response.json();
       events = (data.plans || []).map(plan => ({
         id: plan.id,
-        title: plan.eventName || plan.title || 'Untitled Event',
+        title: displayTitle(plan.eventName || plan.title || 'Untitled Event'),
         start: plan.eventDate || plan.date,
         description: plan.description || '',
         type: plan.eventType || plan.type || 'event',
@@ -687,22 +798,32 @@
       });
       if (pubRes.ok) {
         const pubData = await pubRes.json();
-        const pubEvents = (pubData.events || []).map(ev => ({
-          id: `pce_${ev.id}`,
-          title: ev.title || 'Public Event',
-          start: ev.startDate,
-          end: ev.endDate || undefined,
-          description: ev.description || '',
-          location: ev.location || '',
-          url: `/public-calendar`,
-          backgroundColor: '#7c3aed',
-          borderColor: '#6d28d9',
-          extendedProps: {
-            description: ev.description || '',
+        const pubEvents = (pubData.events || []).map(ev => {
+          const deleted = ev.eventDeleted || ev.isDeleted || ev.status === 'deleted';
+          const title = displayTitle(ev.title || 'Public Event');
+          return {
+            id: `pce_${ev.id}`,
+            title: deleted ? `⚠ Deleted: ${title}` : title,
+            start: ev.startDate,
+            end: ev.endDate || undefined,
+            description: deleted
+              ? ev.warning || 'This saved public event has been removed from the shared calendar.'
+              : ev.description || '',
             location: ev.location || '',
-            publicEvent: true,
-          },
-        }));
+            url: deleted ? '' : `/public-calendar`,
+            backgroundColor: deleted ? '#9ca3af' : '#7c3aed',
+            borderColor: deleted ? '#ef4444' : '#6d28d9',
+            textColor: '#fff',
+            extendedProps: {
+              description: deleted
+                ? ev.warning || 'This saved public event has been removed from the shared calendar.'
+                : ev.description || '',
+              location: ev.location || '',
+              publicEvent: true,
+              deletedEvent: deleted,
+            },
+          };
+        });
         events = events.concat(pubEvents);
       }
     } catch (_) {
@@ -718,7 +839,7 @@
         const entryData = await entryRes.json();
         const entryEvents = (entryData.entries || []).map(entry => ({
           id: entry.id,
-          title: entry.title,
+          title: displayTitle(entry.title),
           start: entry.time ? `${entry.date}T${entry.time}` : entry.date,
           allDay: !entry.time,
           backgroundColor: getEntryColor(entry.type),
@@ -747,7 +868,15 @@
         center: 'title',
         right: 'dayGridMonth,timeGridWeek,listWeek',
       },
+      buttonText: {
+        today: 'Today',
+        month: 'Month',
+        week: 'Week',
+        list: 'List',
+      },
       events: events,
+      expandRows: false,
+      contentHeight: 'auto',
       selectable: true,
       nowIndicator: true,
       // Open the "Add Entry" modal when the user clicks a day cell
@@ -760,7 +889,7 @@
         if (info.event.extendedProps.personalEntry) {
           const rawEntry = info.event.extendedProps.rawEntry || {
             id: info.event.id,
-            title: info.event.title,
+            title: displayTitle(info.event.title),
           };
           showEntryActions(info.el, rawEntry, calendar, modal);
           return;
@@ -774,7 +903,8 @@
         const desc = info.event.extendedProps.description;
         const loc = info.event.extendedProps.location;
         const entryType = info.event.extendedProps.entryType;
-        if (desc || loc || entryType) {
+        const deletedEvent = info.event.extendedProps.deletedEvent;
+        if (desc || loc || entryType || deletedEvent) {
           const tooltip = document.createElement('div');
           tooltip.className = 'calendar-tooltip';
           tooltip.style.cssText =
@@ -782,9 +912,11 @@
             'border-radius:8px;padding:8px 12px;box-shadow:0 4px 12px rgba(0,0,0,.12);' +
             'z-index:9999;max-width:260px;font-size:0.85rem;pointer-events:none;';
 
-          const typeLabel = entryType
-            ? `<span class="cal-entry-badge cal-entry-badge--${escapeHtml(entryType)}">${escapeHtml(entryType)}</span><br>`
-            : '';
+          const typeLabel = deletedEvent
+            ? '<span class="cal-entry-badge" style="background:#fee2e2;color:#991b1b;">Removed public event</span><br>'
+            : entryType
+              ? `<span class="cal-entry-badge cal-entry-badge--${escapeHtml(entryType)}">${escapeHtml(entryType)}</span><br>`
+              : '';
           const actionHint = entryType
             ? `<br><small style="color:#9ca3af;font-size:0.75rem;">Click to edit or delete</small>`
             : '';
@@ -838,6 +970,7 @@
     });
 
     calendar.render();
+    renderNextUpFromCalendar(calendar);
 
     // Store calendar instance for external access
     container._calendarInstance = calendar;
