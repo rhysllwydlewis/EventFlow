@@ -30,11 +30,8 @@ describe('auth-google-init context handling', () => {
     expect(source).toContain('https://accounts.google.com/gsi/client');
     expect(source).toContain('google.accounts.id.initialize');
     expect(source).toContain('google.accounts.id.renderButton');
-    expect(source).toContain('const GOOGLE_BUTTON_MAX_WIDTH = 320');
-    expect(source).toContain('function getGoogleButtonWidth(container)');
-    expect(source).toContain(
-      "container.style.setProperty('--google-button-width', `${buttonWidth}px`)"
-    );
+    expect(source).toContain('const buttonWidth = Math.min(400, availableWidth)');
+    expect(source).toContain('container.style.width = `${buttonWidth}px`');
     expect(source).not.toContain('gapi.auth2');
   });
 
@@ -54,7 +51,6 @@ describe('auth-google-init context handling', () => {
     expect(source).toContain("container.classList.add('is-ready')");
     expect(source).toContain("renderGoogleButton(signInContainer, 'signin', renderOptions)");
     expect(source).toContain("renderGoogleButton(signUpContainer, 'signup', renderOptions)");
-    expect(source).toContain("window.addEventListener('eventflow:auth-tab-change'");
   });
 
   it('uses server-side SIWG redirect mode instead of the popup transform flow', () => {

@@ -341,12 +341,12 @@
       return;
     }
 
-    const buttonWidth = getGoogleButtonWidth(container);
+    const availableWidth = Math.max(220, Math.floor(container.parentElement?.clientWidth || 360));
+    const buttonWidth = Math.min(400, availableWidth);
 
     container.innerHTML = '';
     container.style.width = `${buttonWidth}px`;
     container.style.maxWidth = '100%';
-    container.style.setProperty('--google-button-width', `${buttonWidth}px`);
     window.google.accounts.id.renderButton(container, {
       ...baseRenderOptions,
       width: buttonWidth,
@@ -461,13 +461,6 @@
             window.setTimeout(rerenderSignupButton, 0);
           });
         });
-
-      window.addEventListener('resize', rerenderSignupButton, { passive: true });
-      window.addEventListener('eventflow:auth-tab-change', event => {
-        if (event.detail?.tab === 'create') {
-          rerenderSignupButton();
-        }
-      });
 
       renderGoogleButton(signUpContainer, 'signup', renderOptions);
       syncSignupGoogleReadiness(false);
