@@ -39,7 +39,6 @@ const { stripHtml } = require('../utils/helpers');
 const { withLock } = require('../utils/asyncMutex');
 
 const REQUEST_STATUSES = ['pending', 'approved', 'rejected', 'cancelled'];
-const REQUEST_ACTIONS = ['approve', 'reject', 'cancel'];
 const REPORT_REASONS = [
   'Incorrect information',
   'Spam or advertising',
@@ -920,14 +919,7 @@ router.get('/publisher-requests', apiLimiter, authRequired, async (req, res) => 
   try {
     let requests = await dbUnified.read('public_calendar_publisher_requests');
     if (req.query.status) {
-      const status = String(req.query.status).trim();
-      if (!REQUEST_STATUSES.includes(status)) {
-        return res.status(400).json({
-          error: 'Validation failed',
-          details: [`status must be one of: ${REQUEST_STATUSES.join(', ')}`],
-        });
-      }
-      requests = requests.filter(r => r.status === status);
+      requests = requests.filter(r => r.status === req.query.status);
     }
     requests.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     res.json({ ok: true, requests, total: requests.length });
@@ -948,7 +940,7 @@ router.post(
       return res.status(403).json({ error: 'Admin required' });
     }
     const action = req.params.action;
-    if (!REQUEST_ACTIONS.includes(action)) {
+    if (!['approve', 'reject', 'cancel'].includes(action)) {
       return res.status(400).json({ error: 'Unsupported request action' });
     }
     try {

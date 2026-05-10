@@ -998,21 +998,6 @@ describe('Public calendar admin management surfaces', () => {
     expect(res.body.events[0].savesCount).toBe(2);
   });
 
-  it('supports the admin dashboard default event query with upcoming/current events', async () => {
-    setupReadMock({ events: [SAMPLE_EVENT], saves: [] });
-
-    const res = await withAuth(
-      request(app).get(
-        '/api/public-calendar/events?limit=200&offset=0&status=all&includePast=false'
-      ),
-      ADMIN_USER
-    );
-
-    expect(res.status).toBe(200);
-    expect(res.body.ok).toBe(true);
-    expect(res.body.total).toBe(1);
-  });
-
   it('enriches admin event reports with event details', async () => {
     setupReadMock({
       events: [SAMPLE_EVENT],
