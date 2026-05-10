@@ -30,6 +30,7 @@ jest.mock('../../db-unified', () => ({
   read: jest.fn(),
   write: jest.fn().mockResolvedValue(undefined),
   findOne: jest.fn(),
+  insertOne: jest.fn().mockResolvedValue(undefined),
   updateOne: jest.fn().mockResolvedValue(undefined),
 }));
 
@@ -146,6 +147,7 @@ function setupReadMock({
   users = [],
   public_calendar_publisher_requests = [],
   public_calendar_event_reports = [],
+  settings = {},
 } = {}) {
   dbUnified.read.mockImplementation(async collection => {
     if (collection === 'public_calendar_events') {
@@ -165,6 +167,9 @@ function setupReadMock({
     }
     if (collection === 'public_calendar_event_reports') {
       return [...public_calendar_event_reports];
+    }
+    if (collection === 'settings') {
+      return settings;
     }
     return [];
   });
@@ -549,7 +554,7 @@ describe('GET /api/public-calendar/events/saved', () => {
     expect(res.body.events.length).toBe(0);
   });
 
-  it('returns a deleted warning placeholder for saved events removed from the shared calendar', async () => {
+  it('removes stale saves for events removed from the shared calendar', async () => {
     setupReadMock({
       events: [],
       saves: [
@@ -573,15 +578,8 @@ describe('GET /api/public-calendar/events/saved', () => {
     );
 
     expect(res.status).toBe(200);
-    expect(res.body.events.length).toBe(1);
-    expect(res.body.events[0]).toEqual(
-      expect.objectContaining({
-        eventDeleted: true,
-        isDeleted: true,
-        status: 'deleted',
-        warning: expect.stringContaining('removed'),
-      })
-    );
+    expect(res.body.events).toEqual([]);
+    expect(res.body.count).toBe(0);
   });
 });
 
@@ -855,6 +853,25 @@ describe('Public calendar lifecycle, richer fields, export and publishing reques
     expect(res.body.event.externalBookingUrl).toBe('https://example.com/tour');
   });
 
+  it('holds supplier-created events for review when public calendar approval is required', async () => {
+    setupReadMock({
+      events: [],
+      suppliers: [PUBLISHER_SUPPLIER_DOC],
+      settings: { features: { requirePublicCalendarApproval: true } },
+    });
+    const res = await withAuth(
+      request(app).post('/api/public-calendar/events').send({
+        title: 'Approval Needed',
+        startDate: '2027-07-01T18:00:00Z',
+        status: 'published',
+      }),
+      PUBLISHER_SUPPLIER_USER
+    );
+    expect(res.status).toBe(201);
+    expect(res.body.event.status).toBe('pending_review');
+    expect(res.body.event.publishedAt).toBeNull();
+  });
+
   it('rejects unsafe rich URLs and invalid dates', async () => {
     setupReadMock({ events: [], suppliers: [PUBLISHER_SUPPLIER_DOC] });
     const res = await withAuth(
@@ -1031,6 +1048,53 @@ describe('Public calendar admin management surfaces', () => {
     );
     expect(res.status).toBe(200);
     expect(res.body.events[0].savesCount).toBe(2);
+  });
+
+  it('excludes soft-deleted legacy events from admin counts and listings', async () => {
+    setupReadMock({
+      events: [
+        SAMPLE_EVENT,
+        { ...SAMPLE_EVENT, id: 'pce_deleted_status', status: 'deleted' },
+        { ...SAMPLE_EVENT, id: 'pce_deleted_at', deletedAt: '2026-01-03T00:00:00.000Z' },
+      ],
+    });
+
+    const res = await withAuth(
+      request(app).get('/api/public-calendar/events?status=all&includePast=true'),
+      ADMIN_USER
+    );
+    expect(res.status).toBe(200);
+    expect(res.body.total).toBe(1);
+    expect(res.body.events.map(event => event.id)).toEqual([SAMPLE_EVENT.id]);
+  });
+
+  it('creates a support ticket when a customer reports a public event', async () => {
+    setupReadMock({ events: [SAMPLE_EVENT] });
+
+    const res = await withAuth(
+      request(app).post(`/api/public-calendar/events/${SAMPLE_EVENT.id}/report`).send({
+        reason: 'Incorrect information',
+        notes: 'The venue address is wrong.',
+      }),
+      CUSTOMER_USER
+    );
+
+    expect(res.status).toBe(201);
+    expect(dbUnified.write).not.toHaveBeenCalledWith(
+      'public_calendar_event_reports',
+      expect.any(Array)
+    );
+    expect(dbUnified.insertOne).toHaveBeenCalledWith(
+      'tickets',
+      expect.objectContaining({
+        senderId: CUSTOMER_USER.id,
+        senderType: 'customer',
+        source: 'public_calendar_report',
+        relatedEventId: SAMPLE_EVENT.id,
+        subject: expect.stringContaining(SAMPLE_EVENT.title),
+        message: expect.stringContaining('The venue address is wrong.'),
+      })
+    );
   });
 
   it('enriches admin event reports with event details', async () => {

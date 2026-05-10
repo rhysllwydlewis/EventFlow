@@ -4,7 +4,7 @@
   const API_BASE = '/api/v1/public-calendar';
   let events = [];
   let requests = [];
-  let reports = [];
+  let featureFlags = null;
   let editingEvent = null;
 
   function esc(value) {
@@ -50,7 +50,7 @@
 
   function buildEventQuery() {
     const params = new URLSearchParams({
-      limit: '200',
+      limit: '100',
       offset: '0',
       status: document.getElementById('eventStatusFilter')?.value || 'all',
       includePast: document.getElementById('eventIncludePastFilter')?.value || 'true',
@@ -72,17 +72,15 @@
 
   async function loadStats() {
     try {
-      const [allData, publishedData, requestsData, reportsData] = await Promise.all([
+      const [allData, publishedData, requestsData] = await Promise.all([
         api(`${API_BASE}/events?status=all&includePast=true&limit=1`),
         api(`${API_BASE}/events?status=published&includePast=true&limit=1`),
         api(`${API_BASE}/publisher-requests?status=pending`),
-        api(`${API_BASE}/reports?status=open`),
       ]);
       document.getElementById('adminCalendarTotalEvents').textContent = allData.total || 0;
       document.getElementById('adminCalendarPublishedEvents').textContent =
         publishedData.total || 0;
       document.getElementById('adminCalendarPendingRequests').textContent = requestsData.total || 0;
-      document.getElementById('adminCalendarOpenReports').textContent = reportsData.total || 0;
     } catch (err) {
       console.warn('Failed to load calendar stats:', err.message);
     }
@@ -186,50 +184,6 @@
     });
   }
 
-  async function loadReports() {
-    const container = document.getElementById('adminCalendarReportsContainer');
-    container.innerHTML = '<div class="calendar-admin-empty">Loading event reports…</div>';
-    try {
-      const data = await api(`${API_BASE}/reports?status=open`);
-      reports = data.reports || [];
-      renderReports();
-    } catch (err) {
-      container.innerHTML =
-        '<div class="calendar-admin-empty" style="color:#dc2626;">Failed to load event reports.</div>';
-    }
-  }
-
-  function renderReports() {
-    const container = document.getElementById('adminCalendarReportsContainer');
-    if (!reports.length) {
-      container.innerHTML = '<div class="calendar-admin-empty">No open event reports.</div>';
-      return;
-    }
-    container.innerHTML = `
-      <div class="calendar-admin-table-wrap"><table class="calendar-admin-table">
-        <thead><tr><th>Event</th><th>Reason</th><th>Notes</th><th>Reported</th><th>Actions</th></tr></thead>
-        <tbody>${reports
-          .map(
-            report => `
-              <tr>
-                <td><strong>${esc(report.eventTitle || report.eventId)}</strong>${report.eventSlug ? `<div class="small"><a href="/events/${encodeURIComponent(report.eventSlug)}" target="_blank" rel="noopener noreferrer">View event ↗</a></div>` : ''}</td>
-                <td>${esc(report.reason)}</td>
-                <td>${esc(report.notes || '—')}</td>
-                <td>${formatDate(report.createdAt)}</td>
-                <td><div class="calendar-admin-actions-inline">
-                  <button class="ef-cta btn-sm" data-report-status="reviewed" data-id="${esc(report.id)}">Mark reviewed</button>
-                  <button class="ef-cta btn-sm" data-report-status="dismissed" data-id="${esc(report.id)}">Dismiss</button>
-                  <button class="ef-cta btn-sm btn-danger" data-report-status="actioned" data-id="${esc(report.id)}">Actioned</button>
-                </div></td>
-              </tr>`
-          )
-          .join('')}</tbody>
-      </table></div>`;
-    container.querySelectorAll('[data-report-status]').forEach(button => {
-      button.addEventListener('click', () => handleReportStatus(button));
-    });
-  }
-
   async function handleEventAction(button) {
     const id = button.dataset.id;
     const action = button.dataset.eventAction;
@@ -274,7 +228,10 @@
           confirmText: 'Cancel event',
           type: 'textarea',
         });
-        body.cancelledReason = result.confirmed ? result.value || '' : '';
+        if (!result.confirmed) {
+          return;
+        }
+        body.cancelledReason = result.value || '';
       }
       button.disabled = true;
       try {
@@ -380,10 +337,21 @@
   async function handleRequestAction(button) {
     const id = button.dataset.id;
     const action = button.dataset.requestAction;
-    const reason =
-      action === 'reject'
-        ? window.prompt('Optional rejection reason:') || ''
-        : 'Approved for shared calendar publishing';
+    let reason = 'Approved for shared calendar publishing';
+    if (action === 'reject') {
+      const result = await AdminShared.showInputModal({
+        title: 'Reject publishing request',
+        message: 'Add an optional note for the supplier and audit trail.',
+        label: 'Rejection reason',
+        required: false,
+        confirmText: 'Reject request',
+        type: 'textarea',
+      });
+      if (!result.confirmed) {
+        return;
+      }
+      reason = result.value || '';
+    }
     button.disabled = true;
     try {
       await api(`${API_BASE}/publisher-requests/${encodeURIComponent(id)}/${action}`, 'POST', {
@@ -397,31 +365,87 @@
     }
   }
 
-  async function handleReportStatus(button) {
-    const id = button.dataset.id;
-    const status = button.dataset.reportStatus;
-    const noteResult = await AdminShared.showInputModal({
-      title: 'Update event report',
-      message: `Mark this report as ${status}. Add an optional admin note for the audit trail.`,
-      label: 'Admin note',
-      required: false,
-      confirmText: 'Update report',
-      type: 'textarea',
-    });
-    const adminNotes = noteResult.confirmed ? noteResult.value || '' : '';
-    button.disabled = true;
+  function updateApprovalSettingUi() {
+    const toggle = document.getElementById('adminCalendarRequireApproval');
+    const status = document.getElementById('adminCalendarApprovalStatus');
+    const mode = document.getElementById('adminCalendarApprovalMode');
+    if (!toggle || !status || !featureFlags) {
+      return;
+    }
+    const manualApproval = featureFlags.requirePublicCalendarApproval === true;
+    toggle.checked = manualApproval;
+    status.textContent = manualApproval
+      ? 'Manual approval is ON — new supplier-created public events are held as pending review until an admin publishes them.'
+      : 'Auto-publish is ON — authorised suppliers can publish public events immediately.';
+    if (mode) {
+      mode.textContent = manualApproval ? 'Manual approval mode' : 'Auto-publish mode';
+      mode.classList.toggle('calendar-admin-mode-pill--manual', manualApproval);
+      mode.classList.toggle('calendar-admin-mode-pill--auto', !manualApproval);
+    }
+  }
+
+  async function loadApprovalSetting() {
+    const status = document.getElementById('adminCalendarApprovalStatus');
     try {
-      await api(`${API_BASE}/reports/${encodeURIComponent(id)}`, 'PUT', { status, adminNotes });
-      showToast(`Report marked ${status}`, 'success');
-      await refreshAll();
+      featureFlags = await api('/api/admin/settings/features');
+      updateApprovalSettingUi();
     } catch (err) {
-      showToast(err.message || 'Failed to update report', 'error');
-      button.disabled = false;
+      if (status) {
+        status.textContent = 'Failed to load approval setting.';
+      }
+    }
+  }
+
+  async function handleApprovalToggle(e) {
+    const toggle = e.currentTarget;
+    const nextValue = toggle.checked;
+    const previousValue = featureFlags?.requirePublicCalendarApproval === true;
+    const status = document.getElementById('adminCalendarApprovalStatus');
+    const mode = document.getElementById('adminCalendarApprovalMode');
+    toggle.disabled = true;
+    if (status) {
+      status.textContent = 'Saving approval setting…';
+    }
+    if (mode) {
+      mode.textContent = 'Saving mode…';
+    }
+    try {
+      if (!featureFlags) {
+        featureFlags = await api('/api/admin/settings/features');
+      }
+      const payload = {
+        registration: featureFlags.registration !== false,
+        supplierApplications: featureFlags.supplierApplications !== false,
+        reviews: featureFlags.reviews !== false,
+        photoUploads: featureFlags.photoUploads !== false,
+        supportTickets: featureFlags.supportTickets !== false,
+        pexelsCollage: featureFlags.pexelsCollage === true,
+        requirePackageApproval: featureFlags.requirePackageApproval === true,
+        requirePublicCalendarApproval: nextValue,
+        photoAutoApprove: featureFlags.photoAutoApprove !== false,
+        autoApproveReviews: featureFlags.autoApproveReviews !== false,
+        autoApproveSupplierVerification: featureFlags.autoApproveSupplierVerification === true,
+      };
+      const result = await api('/api/admin/settings/features', 'PUT', payload);
+      featureFlags = result.features || {
+        ...featureFlags,
+        requirePublicCalendarApproval: nextValue,
+      };
+      updateApprovalSettingUi();
+      showToast(nextValue ? 'Manual event approval enabled' : 'Auto-publish enabled', 'success');
+    } catch (err) {
+      toggle.checked = previousValue;
+      if (status) {
+        status.textContent = 'Failed to save approval setting.';
+      }
+      showToast(err.message || 'Failed to save approval setting', 'error');
+    } finally {
+      toggle.disabled = false;
     }
   }
 
   async function refreshAll() {
-    await Promise.all([loadStats(), loadEvents(), loadRequests(), loadReports()]);
+    await Promise.all([loadStats(), loadEvents(), loadRequests(), loadApprovalSetting()]);
   }
 
   function setupListeners() {
@@ -432,8 +456,10 @@
     document
       .getElementById('adminCalendarRefreshRequests')
       ?.addEventListener('click', loadRequests);
-    document.getElementById('adminCalendarRefreshReports')?.addEventListener('click', loadReports);
     document.getElementById('adminCalendarApplyFilters')?.addEventListener('click', loadEvents);
+    document
+      .getElementById('adminCalendarRequireApproval')
+      ?.addEventListener('change', handleApprovalToggle);
     document.getElementById('adminCalendarEventForm')?.addEventListener('submit', submitEventForm);
     document
       .getElementById('adminCalendarEventModalClose')

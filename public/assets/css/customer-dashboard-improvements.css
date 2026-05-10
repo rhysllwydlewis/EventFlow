@@ -113,66 +113,94 @@
    3. WELCOME SECTION
    =========================================== */
 .customer-welcome-card {
-  background: #fff;
-  border-radius: var(--ef-radius-lg);
-  border: 1px solid var(--ef-border);
-  padding: var(--ef-space-6);
+  background:
+    radial-gradient(circle at 92% 10%, rgba(20, 184, 166, 0.18), transparent 30%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(240, 253, 250, 0.86));
+  border-radius: 22px;
+  border: 1px solid rgba(11, 128, 115, 0.14);
+  padding: clamp(1.35rem, 2.5vw, 2rem);
   margin-bottom: var(--ef-space-5);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8);
   position: relative;
+  overflow: hidden;
 }
 
-/* Dismiss (close) button for the welcome card */
-.customer-welcome-dismiss {
+.customer-welcome-card::before {
+  content: '';
   position: absolute;
-  top: var(--ef-space-4);
-  right: var(--ef-space-4);
-  display: flex;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: linear-gradient(180deg, #0b8073, #14b8a6);
+}
+
+.customer-welcome-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.55rem;
+  padding: 0.28rem 0.7rem;
+  border: 1px solid rgba(13, 148, 136, 0.18);
+  border-radius: 999px;
+  background: rgba(240, 253, 250, 0.85);
+  color: #0f766e;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Dismiss button for the welcome card */
+.customer-welcome-dismiss {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--ef-radius-sm);
-  color: var(--ef-text-muted);
+  min-width: 132px;
+  padding: 0.72rem 1.2rem !important;
+  background: linear-gradient(135deg, #22c55e, #16a34a) !important;
+  border: 0 !important;
+  border-radius: 12px !important;
+  color: #fff !important;
   cursor: pointer;
+  font-weight: 800 !important;
+  box-shadow: 0 10px 24px rgba(22, 163, 74, 0.24);
   transition:
-    background 0.15s ease,
-    color 0.15s ease,
-    border-color 0.15s ease;
+    transform 0.16s ease,
+    box-shadow 0.16s ease;
+  width: auto !important;
+  margin-top: 0 !important;
 }
 
 .customer-welcome-dismiss:hover,
 .customer-welcome-dismiss:focus-visible {
-  background: var(--ef-bg-subtle);
-  border-color: var(--ef-border);
-  color: var(--ef-text);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 30px rgba(22, 163, 74, 0.32);
   outline: none;
 }
 
 .customer-welcome-dismiss:focus-visible {
-  outline: 2px solid var(--ef-primary);
-  outline-offset: 2px;
+  outline: 2px solid #0d9488;
+  outline-offset: 3px;
 }
 
 .customer-welcome-heading {
+  max-width: 720px;
   margin: 0 0 0.75rem;
-  color: #1f2937;
-  font-size: 1.75rem;
+  color: #102a43;
+  font-size: clamp(1.75rem, 3vw, 2.35rem);
+  line-height: 1.08;
+  letter-spacing: -0.035em;
 }
 
 .customer-welcome-card h2 {
   margin: 0 0 0.75rem;
-  color: #1f2937;
-  font-size: 1.75rem;
 }
 
 .customer-welcome-card .customer-welcome-intro {
-  color: #4b5563;
+  max-width: 760px;
+  color: #475569;
   margin: 0 0 var(--ef-space-4);
   font-size: 1rem;
+  line-height: 1.7;
 }
 
 .customer-welcome-intro {
@@ -184,13 +212,81 @@
 .customer-welcome-actions {
   margin-top: var(--ef-space-4);
   padding-top: var(--ef-space-4);
-  border-top: 1px solid var(--ef-border);
+  border-top: 1px solid rgba(11, 128, 115, 0.12);
 }
 
 .customer-welcome-actions__title {
-  margin: 0 0 0.5rem;
-  color: #1f2937;
-  font-size: 1.1rem;
+  margin: 0 0 0.75rem;
+  color: #102a43;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.customer-welcome-actions__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.customer-welcome-action-card {
+  display: flex;
+  gap: 0.7rem;
+  min-width: 0;
+  padding: 0.85rem;
+  border: 1px solid rgba(11, 128, 115, 0.14);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #102a43;
+  text-decoration: none;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05);
+  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.customer-welcome-action-card:hover,
+.customer-welcome-action-card:focus-visible {
+  transform: translateY(-2px);
+  border-color: rgba(13, 148, 136, 0.38);
+  box-shadow: 0 14px 28px rgba(13, 148, 136, 0.12);
+  outline: none;
+}
+
+.customer-welcome-action-card__icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 10px;
+  background: #ecfdf5;
+}
+
+.customer-welcome-action-card strong,
+.customer-welcome-action-card small {
+  display: block;
+}
+
+.customer-welcome-action-card strong {
+  margin-bottom: 0.18rem;
+  font-size: 0.92rem;
+}
+
+.customer-welcome-action-card small {
+  color: #64748b;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+@media (max-width: 980px) {
+  .customer-welcome-actions__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .customer-welcome-actions__grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .customer-welcome-actions__list {
@@ -223,6 +319,37 @@
 
 .customer-welcome-contextual-prompt {
   margin-top: var(--ef-space-4);
+}
+
+
+.customer-welcome-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding: 0.95rem 1rem;
+  border: 1px solid rgba(16, 185, 129, 0.18);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(236, 253, 245, 0.92), rgba(240, 253, 250, 0.82));
+}
+
+.customer-welcome-footer p {
+  margin: 0;
+  color: #166534;
+  font-size: 0.92rem;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .customer-welcome-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .customer-welcome-dismiss {
+    width: 100% !important;
+  }
 }
 
 /* Contextual prompt variants */
@@ -855,6 +982,158 @@
   height: 10px;
   border-radius: 50%;
   flex-shrink: 0;
+}
+
+
+.cal-fallback-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.cal-fallback-month {
+  border: 1px solid rgba(11, 128, 115, 0.16);
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(240, 253, 250, 0.74), rgba(255, 255, 255, 0.92));
+  overflow: hidden;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.cal-fallback-month__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.95rem 1rem;
+  border-bottom: 1px solid rgba(11, 128, 115, 0.12);
+}
+
+.cal-fallback-month__eyebrow {
+  color: #0f766e;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cal-fallback-month__title {
+  margin: 0.1rem 0 0;
+  color: #102a43;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.cal-fallback-month__hint {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.86rem;
+  text-align: right;
+}
+
+.cal-fallback-month__weekdays,
+.cal-fallback-month__grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.cal-fallback-month__weekdays span {
+  padding: 0.55rem 0.35rem;
+  background: rgba(15, 118, 110, 0.07);
+  color: #0f766e;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.cal-fallback-day {
+  min-height: 76px;
+  padding: 0.45rem;
+  border: 0;
+  border-right: 1px solid rgba(11, 128, 115, 0.1);
+  border-bottom: 1px solid rgba(11, 128, 115, 0.1);
+  background: rgba(255, 255, 255, 0.72);
+  color: #334155;
+  text-align: left;
+  cursor: pointer;
+}
+
+.cal-fallback-day:nth-child(7n) {
+  border-right: 0;
+}
+
+.cal-fallback-day:hover,
+.cal-fallback-day:focus-visible {
+  background: #f0fdfa;
+  outline: 2px solid rgba(13, 148, 136, 0.45);
+  outline-offset: -2px;
+}
+
+.cal-fallback-day--muted {
+  color: #94a3b8;
+  background: rgba(248, 250, 252, 0.76);
+}
+
+.cal-fallback-day--today .cal-fallback-day__num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 999px;
+  background: #0b8073;
+  color: #fff;
+  font-weight: 800;
+}
+
+.cal-fallback-day__events {
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+  margin-top: 0.35rem;
+}
+
+.cal-fallback-day__event,
+.cal-fallback-day__more {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-left: 3px solid var(--cal-event-color, #0b8073);
+  border-radius: 5px;
+  background: rgba(11, 128, 115, 0.08);
+  padding: 0.13rem 0.25rem;
+  color: #134e4a;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.cal-fallback-day__more {
+  border-left-color: #94a3b8;
+  background: rgba(148, 163, 184, 0.12);
+  color: #64748b;
+}
+
+@media (max-width: 720px) {
+  .cal-fallback-month__header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .cal-fallback-month__hint {
+    text-align: left;
+  }
+
+  .cal-fallback-day {
+    min-height: 58px;
+    padding: 0.32rem;
+  }
+
+  .cal-fallback-day__event,
+  .cal-fallback-day__more {
+    display: none;
+  }
 }
 
 /* Fallback list when FullCalendar is unavailable */
@@ -1915,9 +2194,8 @@ body.customer-dashboard-page #budget-settings-form {
        identity within the glass design system.
    =========================================== */
 body.customer-dashboard-page .customer-welcome-card.card {
-  background: rgba(255, 255, 255, 0.85);
-  border: 1px solid rgba(11, 128, 115, 0.12);
-  border-radius: var(--ef-radius-lg, 14px);
+  border-color: rgba(11, 128, 115, 0.14);
+  border-radius: 22px;
 }
 
 /* ===========================================
