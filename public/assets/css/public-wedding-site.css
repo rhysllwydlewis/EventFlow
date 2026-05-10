@@ -1,0 +1,14 @@
+:root{--accent:#b1457c;--bg:#fff7fb;--card:#ffffff;--text:#2a2438;--muted:#5f5a70}
+*{box-sizing:border-box}body{font-family:Inter,system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);margin:0;line-height:1.5}
+.hero{padding:4rem 1rem 3rem;background:linear-gradient(140deg,#fbe4ef 0%,#efe8ff 100%);text-align:center}
+.hero h1{font-size:clamp(1.8rem,5vw,3rem);margin:0 0 .5rem}
+main{max-width:900px;margin:0 auto;padding:1rem}
+section{background:var(--card);border:1px solid #f1e7f5;border-radius:16px;padding:1rem;margin:.8rem 0}
+section h2{margin:.2rem 0 .7rem;font-size:1.2rem}
+ul{margin:.25rem 0 0 1rem}
+form{display:grid;gap:.55rem}input,select,textarea,button{padding:.7rem;border-radius:.65rem;border:1px solid #ddd;font:inherit}
+button{background:var(--accent);color:#fff;border:none;font-weight:600}
+footer{text-align:center;color:var(--muted);padding:1rem 0 2rem}
+@media (max-width:640px){section{padding:.85rem;border-radius:12px}.hero{padding:3rem 1rem 2rem}}
+
+details{border:1px solid #efe3f4;border-radius:10px;padding:.55rem .65rem;background:#fff}details+details{margin-top:.45rem}summary{cursor:pointer;font-weight:600}

@@ -596,6 +596,14 @@ app.get('/articles/:slug.html', (req, res) => {
   res.redirect(301, `/articles/${req.params.slug}${qs}`);
 });
 
+// Public wedding website pages
+app.get('/wedding/:slug', apiLimiter, (req, res, next) => {
+  if (!/^[a-z0-9-]+$/i.test(req.params.slug)) {
+    return next();
+  }
+  res.sendFile(path.join(__dirname, 'public', 'wedding.html'));
+});
+
 // Public event detail pages — clean, shareable event URLs backed by API data.
 app.get('/events/:slug', apiLimiter, (req, res, next) => {
   const slug = req.params.slug;
