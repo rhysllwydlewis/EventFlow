@@ -405,7 +405,7 @@
     }
     return {
       id: event.id,
-      title: displayTitle(event.title || 'Untitled entry'),
+      title: event.title || 'Untitled entry',
       start,
       type:
         event.extendedProps?.entryType ||
@@ -632,7 +632,7 @@
     renderNextUpSummary(
       entries.map(entry => ({
         id: entry.id,
-        title: displayTitle(entry.title),
+        title: entry.title,
         start: entry.time ? `${entry.date}T${entry.time}` : `${entry.date}T00:00:00`,
         backgroundColor: getEntryColor(entry.type),
         extendedProps: {

@@ -699,6 +699,7 @@
   margin-bottom: 1.5rem;
 }
 
+
 /* Next-up summary beneath the customer calendar keeps future entries visible even when they are outside the current month view. */
 .customer-calendar-next-up {
   margin-top: 1rem;
