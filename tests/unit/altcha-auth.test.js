@@ -243,8 +243,8 @@ describe('app.js registration ALTCHA submission guard', () => {
 
     // Verify the guard exists
     expect(content).toContain('Please complete the verification challenge');
-    // Verify it returns early
-    expect(content).toContain("regBtn.textContent = 'Create account'");
+    // Verify it restores the non-loading submit state before returning early
+    expect(content).toContain("setAuthSubmitButtonState(regBtn, 'Create account')");
   });
 
   it('handles __altchaUnavailable flag correctly', () => {
