@@ -88,6 +88,130 @@ function validateEntryBody(body) {
   return { data, errors };
 }
 
+function daysUntilDate(dateStr, now = new Date()) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr || '')) {
+    return null;
+  }
+  const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  const target = new Date(`${dateStr}T00:00:00Z`);
+  if (Number.isNaN(target.getTime())) {
+    return null;
+  }
+  return Math.round((target - today) / 86400000);
+}
+
+function reminderNotificationForEntry(userId, entry, daysUntil) {
+  const label = daysUntil === 1 ? 'tomorrow' : `in ${daysUntil} days`;
+  const time = entry.time ? ` at ${entry.time}` : '';
+  const source = entry.source || 'personal';
+  const reminderId =
+    source === 'personal'
+      ? `calrem_${userId}_${entry.id}_${daysUntil}_${entry.date}`
+      : `calrem_${source}_${userId}_${entry.id}_${daysUntil}_${entry.date}`;
+  const typeLabel = entry.type || (source === 'public' ? 'public event' : 'an event');
+  return {
+    id: reminderId,
+    userId,
+    type: 'reminder',
+    title: `Calendar reminder: ${entry.title}`,
+    message: `You have ${typeLabel} ${label}${time}.`,
+    actionUrl: entry.actionUrl || '/dashboard/customer#events-calendar',
+    actionText: 'View calendar',
+    icon: '⏰',
+    priority: daysUntil === 1 ? 'high' : 'normal',
+    category: 'calendar',
+    metadata: {
+      calendarEntryId: entry.id,
+      reminderDays: daysUntil,
+      entryDate: entry.date,
+      entryType: entry.type,
+      source,
+    },
+    isRead: false,
+    readAt: null,
+    isDismissed: false,
+    dismissedAt: null,
+    expiresAt: new Date(`${entry.date}T23:59:59.999Z`).toISOString(),
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function calendarEntryReminderItem(entry) {
+  return {
+    id: entry.id,
+    title: entry.title,
+    type: entry.type,
+    date: entry.date,
+    time: entry.time,
+    source: 'personal',
+    actionUrl: '/dashboard/customer#events-calendar',
+  };
+}
+
+function publicEventReminderItem(event) {
+  const start = new Date(event.startDate);
+  if (Number.isNaN(start.getTime())) {
+    return null;
+  }
+  return {
+    id: event.id,
+    title: event.title || 'Saved public event',
+    type: 'public event',
+    date: start.toISOString().slice(0, 10),
+    time: start.toISOString().slice(11, 16),
+    source: 'public',
+    actionUrl: `/events/${encodeURIComponent(event.slug || event.id)}`,
+  };
+}
+
+async function getSavedPublicEventReminderItems(userId) {
+  const saves = await dbUnified.read('public_calendar_saves');
+  const savedEventIds = new Set(
+    saves.filter(save => save.userId === userId).map(save => save.eventId)
+  );
+  if (!savedEventIds.size) {
+    return [];
+  }
+  const publicEvents = await dbUnified.read('public_calendar_events');
+  return publicEvents
+    .filter(event => savedEventIds.has(event.id))
+    .map(publicEventReminderItem)
+    .filter(Boolean);
+}
+
+async function ensureCalendarReminderNotifications(userId, entries) {
+  const reminderItems = entries.map(calendarEntryReminderItem);
+  try {
+    reminderItems.push(...(await getSavedPublicEventReminderItems(userId)));
+  } catch (err) {
+    logger.warn('Failed to include saved public events in calendar reminders:', err.message);
+  }
+
+  const dueReminders = reminderItems
+    .map(entry => ({ entry, daysUntil: daysUntilDate(entry.date) }))
+    .filter(({ daysUntil }) => daysUntil === 7 || daysUntil === 1)
+    .map(({ entry, daysUntil }) => reminderNotificationForEntry(userId, entry, daysUntil));
+
+  if (!dueReminders.length) {
+    return [];
+  }
+
+  let created = [];
+  await withLock('notifications', async () => {
+    const notifications = await dbUnified.read('notifications');
+    const existingIds = new Set(notifications.map(notification => notification.id));
+    created = dueReminders.filter(notification => !existingIds.has(notification.id));
+    if (!created.length) {
+      return;
+    }
+    notifications.push(...created);
+    await dbUnified.write('notifications', notifications);
+  });
+
+  return created;
+}
+
 /**
  * GET /api/me/calendar-entries
  * List current user's personal calendar entries.
@@ -97,7 +221,8 @@ router.get('/', authRequired, async (req, res) => {
     const userId = req.user.id;
     const entries = await dbUnified.read('customer_calendar_entries');
     const userEntries = entries.filter(e => e.userId === userId);
-    res.json({ ok: true, entries: userEntries });
+    const reminderNotifications = await ensureCalendarReminderNotifications(userId, userEntries);
+    res.json({ ok: true, entries: userEntries, remindersCreated: reminderNotifications.length });
   } catch (error) {
     logger.error('Error fetching calendar entries:', error);
     res.status(500).json({ error: 'Failed to fetch calendar entries' });

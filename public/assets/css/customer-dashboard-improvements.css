@@ -687,6 +687,53 @@
   margin-bottom: 1.5rem;
 }
 
+
+/* Next-up summary beneath the customer calendar keeps future entries visible even when they are outside the current month view. */
+.customer-calendar-next-up {
+  margin-top: 1rem;
+  border: 1px solid rgba(11, 128, 115, 0.16);
+  border-radius: var(--ef-radius-md, 14px);
+  background: linear-gradient(135deg, rgba(11, 128, 115, 0.08), rgba(255, 255, 255, 0.96));
+  padding: 0.95rem 1rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.customer-calendar-next-up__eyebrow {
+  color: var(--ef-primary, #0b8073);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.customer-calendar-next-up__body {
+  color: #334155;
+  font-size: 0.95rem;
+}
+
+.customer-calendar-next-up__title {
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.customer-calendar-next-up__meta {
+  color: #64748b;
+  margin-top: 0.2rem;
+}
+
+.customer-calendar-next-up__badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  margin-right: 0.45rem;
+  padding: 0.15rem 0.5rem;
+  text-transform: capitalize;
+}
+
 /* Plans list container bottom margin */
 .customer-plans-list-container {
   margin-bottom: 1rem;
