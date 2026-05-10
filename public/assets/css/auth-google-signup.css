@@ -1,12 +1,13 @@
 /* Google signup role selection polish — loaded by auth-google-init.js only on /auth. */
+body.auth-page .auth-signup-choice .auth-role-picker,
 body.auth-page .auth-role-picker {
   position: relative;
   isolation: isolate;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.35rem;
-  padding: 0.35rem;
-  border-radius: 1rem;
+  gap: 0.45rem;
+  padding: 0.45rem;
+  border-radius: 1.15rem;
   background:
     radial-gradient(
       circle at 18% 0%,
@@ -14,10 +15,10 @@ body.auth-page .auth-role-picker {
       rgba(255, 255, 255, 0.52) 34%,
       transparent 58%
     ),
-    linear-gradient(135deg, rgba(11, 128, 115, 0.1), rgba(19, 182, 162, 0.05));
+    linear-gradient(135deg, rgba(11, 128, 115, 0.12), rgba(19, 182, 162, 0.06));
   border: 1px solid rgba(11, 128, 115, 0.16);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.72),
+    inset 0 1px 0 rgba(255, 255, 255, 0.76),
     0 14px 30px rgba(15, 23, 42, 0.08);
   overflow: hidden;
 }
@@ -26,18 +27,18 @@ body.auth-page .auth-role-picker::before {
   content: '';
   position: absolute;
   z-index: -1;
-  top: 0.35rem;
-  bottom: 0.35rem;
-  left: 0.35rem;
-  width: calc(50% - 0.35rem);
-  border-radius: 0.75rem;
+  top: 0.45rem;
+  bottom: 0.45rem;
+  left: 0.45rem;
+  width: calc(50% - 0.45rem);
+  border-radius: 0.9rem;
   background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.72)),
-    linear-gradient(135deg, rgba(11, 128, 115, 0.18), rgba(19, 182, 162, 0.12));
+    linear-gradient(135deg, rgba(255, 255, 255, 0.97), rgba(255, 255, 255, 0.76)),
+    linear-gradient(135deg, rgba(11, 128, 115, 0.2), rgba(19, 182, 162, 0.14));
   border: 1px solid rgba(255, 255, 255, 0.76);
   box-shadow:
-    0 10px 22px rgba(11, 128, 115, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+    0 12px 24px rgba(11, 128, 115, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
   transform: translateX(0);
   transition:
     transform 0.42s cubic-bezier(0.2, 1.25, 0.32, 1),
@@ -45,16 +46,20 @@ body.auth-page .auth-role-picker::before {
 }
 
 body.auth-page .auth-role-picker.is-supplier-selected::before {
-  transform: translateX(calc(100% + 0.35rem));
+  transform: translateX(calc(100% + 0.45rem));
 }
 
 body.auth-page .auth-role-option {
   position: relative;
-  min-height: 3rem;
+  align-items: flex-start;
+  justify-content: flex-start;
+  min-height: 4.35rem;
+  padding: 0.78rem 0.86rem !important;
   border: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
   color: #475467;
+  text-align: left;
   transform: translateZ(0);
   transition:
     color 0.22s ease,
@@ -76,13 +81,38 @@ body.auth-page .auth-role-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.65rem;
-  height: 1.65rem;
-  margin-right: 0.45rem;
+  width: 1.8rem;
+  height: 1.8rem;
+  margin-right: 0.5rem;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.58);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  background: rgba(255, 255, 255, 0.66);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.86);
   transition: transform 0.28s cubic-bezier(0.2, 1.45, 0.32, 1);
+}
+
+body.auth-page .auth-role-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  line-height: 1.2;
+  min-width: 0;
+}
+
+body.auth-page .auth-role-title {
+  font-size: 0.94rem;
+  font-weight: 800;
+}
+
+body.auth-page .auth-role-description {
+  color: #667085;
+  font-size: 0.74rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+body.auth-page .auth-role-option.is-active .auth-role-description,
+body.auth-page .auth-role-option.auth-role-option--active .auth-role-description {
+  color: #0b8073;
 }
 
 body.auth-page .auth-role-option.is-active .auth-role-icon,
@@ -116,6 +146,23 @@ body.auth-page .auth-google-note.is-warning {
   background: rgba(254, 243, 199, 0.74);
   border-color: rgba(245, 158, 11, 0.28);
   color: #92400e;
+}
+
+@media (max-width: 390px) {
+  body.auth-page .auth-role-picker {
+    grid-template-columns: 1fr;
+  }
+
+  body.auth-page .auth-role-picker::before {
+    display: none;
+  }
+
+  body.auth-page .auth-role-option.is-active,
+  body.auth-page .auth-role-option.auth-role-option--active {
+    background: rgba(255, 255, 255, 0.76) !important;
+    border-radius: 0.9rem !important;
+    box-shadow: 0 10px 22px rgba(11, 128, 115, 0.14) !important;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

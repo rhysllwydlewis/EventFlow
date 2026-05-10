@@ -844,6 +844,137 @@ body.auth-page form.auth-card:hover {
   color: #9ca3af;
 }
 
+.auth-field-help {
+  color: #667085;
+  line-height: 1.45;
+  margin: 0.125rem 0 0;
+}
+
+.auth-signup-choice {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(19, 182, 162, 0.24), transparent 28%),
+    radial-gradient(circle at 100% 12%, rgba(11, 128, 115, 0.14), transparent 30%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.78), rgba(240, 253, 250, 0.56));
+  border: 1px solid rgba(11, 128, 115, 0.18);
+  border-radius: 22px;
+  box-shadow:
+    0 18px 42px rgba(11, 128, 115, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  margin-bottom: 1rem;
+  padding: 1rem;
+}
+
+.auth-signup-choice::before {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  z-index: -1;
+  border-radius: 21px;
+  border: 1px solid rgba(255, 255, 255, 0.58);
+  pointer-events: none;
+}
+
+.auth-signup-choice__header,
+.auth-google-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.875rem;
+}
+
+.auth-step-badge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.65rem;
+  padding: 0 0.65rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #0b8073, #13b6a2);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  box-shadow: 0 8px 18px rgba(11, 128, 115, 0.22);
+}
+
+.auth-step-badge--muted {
+  background: rgba(11, 128, 115, 0.09);
+  color: #0b8073;
+  box-shadow: none;
+}
+
+.auth-signup-choice__divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #667085;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  margin: 0.95rem 0 0.75rem;
+  text-transform: uppercase;
+}
+
+.auth-signup-choice__divider::before,
+.auth-signup-choice__divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(11, 128, 115, 0.24), transparent);
+}
+
+.auth-field-row--location {
+  grid-template-columns: minmax(0, 1.25fr) minmax(130px, 0.75fr);
+}
+
+.auth-signup-choice .auth-field:last-child,
+.auth-supplier-fields .auth-field:last-child,
+.auth-field-row--supplier,
+.auth-field-row--location {
+  margin-bottom: 0;
+}
+
+.auth-supplier-fields {
+  animation: authSupplierReveal 0.24s ease both;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(11, 128, 115, 0.12);
+  border-radius: 16px;
+  margin-top: 0.875rem;
+  padding: 0.875rem;
+}
+
+.auth-google--signup {
+  background: rgba(255, 255, 255, 0.46);
+  border: 1px solid rgba(11, 128, 115, 0.1);
+  border-radius: 18px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  padding: 0.875rem;
+}
+
+.auth-google-heading {
+  align-items: center;
+  color: #344054;
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+@keyframes authSupplierReveal {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 body.auth-page .auth-label-row {
   display: flex;
   flex-direction: row; /* override .form-row > div { flex-direction: column } from ui-ux-fixes.css */
