@@ -2,10 +2,12 @@
   'use strict';
 
   const GIS_SRC = 'https://accounts.google.com/gsi/client';
-  const ROLE_POLISH_CSS = '/assets/css/auth-google-signup.css?v=18.3.0';
+  const ROLE_POLISH_CSS = '/assets/css/auth-google-signup.css?v=18.4.2';
   const GOOGLE_LOGIN_PATH = '/api/auth/callback/google';
   const PRODUCTION_ORIGIN = 'https://event-flow.co.uk';
   const GOOGLE_SIGNUP_RERENDER_DELAY = 160;
+  const GOOGLE_BUTTON_MIN_WIDTH = 220;
+  const GOOGLE_BUTTON_MAX_WIDTH = 320;
 
   function getGoogleLoginUri() {
     const origin =
@@ -309,14 +311,45 @@
     return readiness.ready;
   }
 
+  function getVisibleWidth(element) {
+    if (!element) {
+      return 0;
+    }
+
+    const rectWidth = Math.floor(element.getBoundingClientRect?.().width || 0);
+    return rectWidth || Math.floor(element.clientWidth || element.offsetWidth || 0);
+  }
+
+  function getGoogleButtonWidth(container) {
+    const googleBlock = container.closest('.auth-google');
+    const card = container.closest('.auth-card');
+    const measuredWidth = [
+      getVisibleWidth(googleBlock),
+      getVisibleWidth(container.parentElement),
+      getVisibleWidth(card),
+    ].find(width => width > 0);
+    const availableWidth = Math.max(
+      GOOGLE_BUTTON_MIN_WIDTH,
+      measuredWidth || GOOGLE_BUTTON_MAX_WIDTH
+    );
+
+    return Math.min(GOOGLE_BUTTON_MAX_WIDTH, availableWidth);
+  }
+
   function renderGoogleButton(container, context, baseRenderOptions) {
     if (!container || !window.google?.accounts?.id) {
       return;
     }
 
+    const buttonWidth = getGoogleButtonWidth(container);
+
     container.innerHTML = '';
+    container.style.width = `${buttonWidth}px`;
+    container.style.maxWidth = '100%';
+    container.style.setProperty('--google-button-width', `${buttonWidth}px`);
     window.google.accounts.id.renderButton(container, {
       ...baseRenderOptions,
+      width: buttonWidth,
       text: context === 'signup' ? 'signup_with' : 'signin_with',
       state: getGoogleButtonState(context),
     });
@@ -379,7 +412,6 @@
     const renderOptions = {
       theme: 'outline',
       size: 'large',
-      width: Math.min(360, signInContainer?.offsetWidth || signUpContainer?.offsetWidth || 320),
       shape: 'pill',
     };
 
@@ -413,17 +445,28 @@
         });
       });
 
-      document.querySelectorAll(
-        '#reg-role, #reg-location, #reg-postcode, #reg-company, #reg-jobtitle, #reg-website, #reg-instagram, #reg-facebook, #reg-twitter, #reg-linkedin'
-      ).forEach(el => {
-        el.addEventListener('input', rerenderSignupButton);
-        el.addEventListener('change', rerenderSignupButton);
-      });
-
-      document.querySelectorAll('.auth-role-picker [data-role], .role-toggle [data-role]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          window.setTimeout(rerenderSignupButton, 0);
+      document
+        .querySelectorAll(
+          '#reg-role, #reg-location, #reg-postcode, #reg-company, #reg-jobtitle, #reg-website, #reg-instagram, #reg-facebook, #reg-twitter, #reg-linkedin'
+        )
+        .forEach(el => {
+          el.addEventListener('input', rerenderSignupButton);
+          el.addEventListener('change', rerenderSignupButton);
         });
+
+      document
+        .querySelectorAll('.auth-role-picker [data-role], .role-toggle [data-role]')
+        .forEach(btn => {
+          btn.addEventListener('click', () => {
+            window.setTimeout(rerenderSignupButton, 0);
+          });
+        });
+
+      window.addEventListener('resize', rerenderSignupButton, { passive: true });
+      window.addEventListener('eventflow:auth-tab-change', event => {
+        if (event.detail?.tab === 'create') {
+          rerenderSignupButton();
+        }
       });
 
       renderGoogleButton(signUpContainer, 'signup', renderOptions);

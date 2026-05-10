@@ -5813,16 +5813,13 @@ document.addEventListener('DOMContentLoaded', () => {
     toggle.className = 'password-toggle';
     toggle.innerHTML = SVG_EYE;
     toggle.setAttribute('aria-label', 'Show password');
+    toggle.setAttribute('aria-pressed', 'false');
     toggle.addEventListener('click', () => {
-      if (input.type === 'password') {
-        input.type = 'text';
-        toggle.innerHTML = SVG_EYE_OFF;
-        toggle.setAttribute('aria-label', 'Hide password');
-      } else {
-        input.type = 'password';
-        toggle.innerHTML = SVG_EYE;
-        toggle.setAttribute('aria-label', 'Show password');
-      }
+      const isHidden = input.type === 'password';
+      input.type = isHidden ? 'text' : 'password';
+      toggle.innerHTML = isHidden ? SVG_EYE_OFF : SVG_EYE;
+      toggle.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+      toggle.setAttribute('aria-pressed', isHidden ? 'true' : 'false');
     });
     input.classList.add('has-toggle');
     wrapper.appendChild(toggle);
@@ -6206,6 +6203,27 @@ document.addEventListener('DOMContentLoaded', () => {
       return headers;
     };
 
+    const setAuthSubmitButtonState = (button, label, isLoading = false) => {
+      if (!button) {
+        return;
+      }
+
+      const labelEl = button.querySelector('.auth-submit-text');
+      if (labelEl) {
+        labelEl.textContent = label;
+      } else {
+        button.textContent = label;
+      }
+
+      button.disabled = isLoading;
+      button.classList.toggle('is-loading', isLoading);
+      if (isLoading) {
+        button.setAttribute('aria-busy', 'true');
+      } else {
+        button.removeAttribute('aria-busy');
+      }
+    };
+
     // Helper function to show toast notification
     const showToast = function (message, type = 'info') {
       const toast = document.createElement('div');
@@ -6330,11 +6348,7 @@ document.addEventListener('DOMContentLoaded', () => {
           loginErrorEl.textContent = '';
         }
 
-        if (loginBtn) {
-          loginBtn.disabled = true;
-          loginBtn.setAttribute('aria-busy', 'true');
-          loginBtn.textContent = 'Signing in…';
-        }
+        setAuthSubmitButtonState(loginBtn, 'Signing in…', true);
         try {
           const r = await fetch('/api/v1/auth/login', {
             method: 'POST',
@@ -6437,22 +6451,57 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           console.error('Login error', err);
         } finally {
-          if (loginBtn) {
-            loginBtn.disabled = false;
-            loginBtn.removeAttribute('aria-busy');
-            loginBtn.textContent = 'Log in';
-          }
+          setAuthSubmitButtonState(loginBtn, 'Log in');
         }
       });
     }
 
     if (regForm && regEmail && regPassword) {
       const regBtn = regForm.querySelector('button[type="submit"]');
+      const setAuthFieldError = (field, message) => {
+        if (!field) {
+          return;
+        }
+        if (regForm._validator && typeof regForm._validator.showError === 'function') {
+          regForm._validator.showError(field, message);
+        } else {
+          field.classList.add('form-field-error');
+          field.setAttribute('aria-invalid', 'true');
+          let container = field.parentElement;
+          if (container && container.classList.contains('auth-input-wrap')) {
+            container = container.parentElement || container;
+          }
+          let errorEl = container ? container.querySelector(':scope > .form-error-message') : null;
+          if (!errorEl && container) {
+            errorEl = document.createElement('span');
+            errorEl.className = 'form-error-message';
+            errorEl.setAttribute('role', 'alert');
+            container.appendChild(errorEl);
+          }
+          if (errorEl) {
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+          }
+        }
+        field.focus();
+      };
+
       regForm.addEventListener('submit', async e => {
         e.preventDefault();
+        if (regForm._validator && typeof regForm._validator.clearAllErrors === 'function') {
+          regForm._validator.clearAllErrors();
+        }
         if (regStatus) {
           regStatus.textContent = '';
           regStatus.style.cssText = '';
+        }
+
+        if (regForm._validator && !regForm._validator.validateAll()) {
+          const firstError = regForm.querySelector('.form-field-error');
+          if (firstError) {
+            firstError.focus();
+          }
+          return;
         }
 
         // Pre-check: registration feature flag (set by auth-init.js)
@@ -6475,12 +6524,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const hasNumber = /\d/.test(password);
 
         if (!hasMinLength || !hasLetter || !hasNumber) {
+          const message =
+            'Password must be at least 8 characters and contain both letters and numbers';
           if (regStatus) {
-            regStatus.textContent =
-              'Password must be at least 8 characters and contain both letters and numbers';
+            regStatus.textContent = message;
           }
-          // Scroll to password field
-          regPassword.focus();
+          setAuthFieldError(regPassword, message);
           return;
         }
 
@@ -6495,27 +6544,22 @@ document.addEventListener('DOMContentLoaded', () => {
             passwordMatchMsg.style.display = 'block';
             passwordMatchMsg.style.color = '#b00020';
           }
-          if (regPasswordConfirm) {
-            regPasswordConfirm.focus();
-          }
+          setAuthFieldError(regPasswordConfirm, 'Passwords do not match');
           return;
         }
 
         // Validate terms checkbox
         const termsCheckbox = document.getElementById('reg-terms');
         if (termsCheckbox && !termsCheckbox.checked) {
+          const message = 'You must agree to the Terms and Privacy Policy to create an account.';
           if (regStatus) {
-            regStatus.textContent =
-              'You must agree to the Terms and Privacy Policy to create an account.';
+            regStatus.textContent = message;
           }
+          setAuthFieldError(termsCheckbox, message);
           return;
         }
 
-        if (regBtn) {
-          regBtn.disabled = true;
-          regBtn.setAttribute('aria-busy', 'true');
-          regBtn.textContent = 'Creating…';
-        }
+        setAuthSubmitButtonState(regBtn, 'Creating…', true);
         try {
           const firstName = regFirstName ? regFirstName.value.trim() : '';
           const lastName = regLastName ? regLastName.value.trim() : '';
@@ -6553,24 +6597,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
           // Validate required fields
           if (!location) {
+            const message = 'Please select your location';
             if (regStatus) {
-              regStatus.textContent = 'Please select your location';
+              regStatus.textContent = message;
             }
-            if (regBtn) {
-              regBtn.disabled = false;
-              regBtn.textContent = 'Create account';
-            }
+            setAuthFieldError(locationEl, message);
+            setAuthSubmitButtonState(regBtn, 'Create account');
             return;
           }
 
           if (role === 'supplier' && !company) {
+            const message = 'Company name is required for suppliers';
             if (regStatus) {
-              regStatus.textContent = 'Company name is required for suppliers';
+              regStatus.textContent = message;
             }
-            if (regBtn) {
-              regBtn.disabled = false;
-              regBtn.textContent = 'Create account';
-            }
+            setAuthFieldError(companyEl, message);
+            setAuthSubmitButtonState(regBtn, 'Create account');
             return;
           }
 
@@ -6628,10 +6670,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 regStatus.textContent =
                   'Please complete the verification challenge before creating your account.';
               }
-              if (regBtn) {
-                regBtn.disabled = false;
-                regBtn.textContent = 'Create account';
-              }
+              setAuthSubmitButtonState(regBtn, 'Create account');
               return;
             }
 
@@ -6642,10 +6681,7 @@ document.addEventListener('DOMContentLoaded', () => {
               regStatus.textContent =
                 'Verification is unavailable. Please refresh the page and try again.';
             }
-            if (regBtn) {
-              regBtn.disabled = false;
-              regBtn.textContent = 'Create account';
-            }
+            setAuthSubmitButtonState(regBtn, 'Create account');
             return;
           } else if (altchaContainer) {
             // Container exists but widget element isn't in DOM yet (still loading).
@@ -6654,10 +6690,7 @@ document.addEventListener('DOMContentLoaded', () => {
               regStatus.textContent =
                 'Please wait for the verification to load and complete the challenge.';
             }
-            if (regBtn) {
-              regBtn.disabled = false;
-              regBtn.textContent = 'Create account';
-            }
+            setAuthSubmitButtonState(regBtn, 'Create account');
             return;
           }
 
@@ -6787,11 +6820,7 @@ document.addEventListener('DOMContentLoaded', () => {
           }
           console.error('Register error', err);
         } finally {
-          if (regBtn) {
-            regBtn.disabled = false;
-            regBtn.removeAttribute('aria-busy');
-            regBtn.textContent = 'Create account';
-          }
+          setAuthSubmitButtonState(regBtn, 'Create account');
         }
       });
     }

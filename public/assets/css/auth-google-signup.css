@@ -148,6 +148,22 @@ body.auth-page .auth-google-note.is-warning {
   color: #92400e;
 }
 
+/* Keep late-loaded Google signup polish from undoing the auth.css fit fixes. */
+body.auth-page .auth-google-button {
+  inline-size: min(100%, var(--google-button-width, 320px));
+  margin-inline: auto;
+  max-inline-size: 100%;
+  min-inline-size: min(100%, 220px);
+  overflow: hidden;
+}
+
+body.auth-page .auth-google-button > div,
+body.auth-page .auth-google-button iframe {
+  inline-size: 100% !important;
+  max-inline-size: 100% !important;
+  min-inline-size: 0 !important;
+}
+
 @media (max-width: 390px) {
   body.auth-page .auth-role-picker {
     grid-template-columns: 1fr;

@@ -9,12 +9,14 @@ const source = fs.readFileSync(
 );
 
 describe('auth-google-init context handling', () => {
-  it('resolves Google auth context from the active create-account tab', () => {
-    expect(source).toContain('function getGoogleAuthContext()');
-    expect(source).toContain("document.getElementById('panel-create')");
-    expect(source).toContain("createTab.getAttribute('aria-selected') === 'true'");
-    expect(source).toContain("window.location.hash === '#create'");
-    expect(source).toContain("query.get('tab') === 'create'");
+  it('encodes Google auth context into the GIS button state', () => {
+    expect(source).toContain('function getGoogleButtonState(context)');
+    expect(source).toContain(
+      "const normalizedContext = context === 'signup' ? 'signup' : 'signin'"
+    );
+    expect(source).toContain('context: normalizedContext');
+    expect(source).toContain('Object.assign(state, getSignupFormSnapshot())');
+    expect(source).toContain("renderGoogleButton(signUpContainer, 'signup', renderOptions)");
   });
 
   it('deduplicates and times out the GIS script loader so auth controls fail visibly', () => {
@@ -28,6 +30,11 @@ describe('auth-google-init context handling', () => {
     expect(source).toContain('https://accounts.google.com/gsi/client');
     expect(source).toContain('google.accounts.id.initialize');
     expect(source).toContain('google.accounts.id.renderButton');
+    expect(source).toContain('const GOOGLE_BUTTON_MAX_WIDTH = 320');
+    expect(source).toContain('function getGoogleButtonWidth(container)');
+    expect(source).toContain(
+      "container.style.setProperty('--google-button-width', `${buttonWidth}px`)"
+    );
     expect(source).not.toContain('gapi.auth2');
   });
 
@@ -44,8 +51,10 @@ describe('auth-google-init context handling', () => {
     expect(source).toContain('function setGoogleButtonsBusy(isBusy)');
     expect(source).toContain("el.classList.add('is-loading')");
     expect(source).toContain("el.setAttribute('aria-busy', 'true')");
-    expect(source).toContain("signInContainer.classList.add('is-ready')");
-    expect(source).toContain("signUpContainer.classList.add('is-ready')");
+    expect(source).toContain("container.classList.add('is-ready')");
+    expect(source).toContain("renderGoogleButton(signInContainer, 'signin', renderOptions)");
+    expect(source).toContain("renderGoogleButton(signUpContainer, 'signup', renderOptions)");
+    expect(source).toContain("window.addEventListener('eventflow:auth-tab-change'");
   });
 
   it('uses server-side SIWG redirect mode instead of the popup transform flow', () => {
