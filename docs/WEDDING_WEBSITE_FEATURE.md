@@ -43,6 +43,37 @@
 4. Save and publish, then share `/wedding/:slug`.
 5. Monitor RSVPs with filters, edit guests, export CSV, and manage seating tables.
 
+## Recommended Next PR Scope (PR #1052)
+
+Focus PR #1052 on dashboard-side product polish rather than another public-page redesign.
+
+1. **Customer dashboard builder UX (primary)**
+   - Stronger section navigation and more obvious current-step context.
+   - Higher-contrast section cards with clearer completion/progress state.
+   - Richer repeatable-card editing controls (less dense/"form-like" layout).
+   - Improved save/publish surface with clearer draft vs published state and actions.
+
+2. **RSVP dashboard at real event scale (80-150 guests)**
+   - Search across name/email/household.
+   - Better compound filters and explicit sort controls.
+   - Pagination or grouping to handle long guest lists.
+   - Clearer status badges and stronger dietary/accessibility triage.
+   - Optional “attention needed” preset view for unresolved items.
+
+3. **Seating dashboard UI polish (non-DnD first pass)**
+   - Better table cards with capacity indicators and warning states.
+   - Dedicated unseated panel and obvious “all guests seated” success state.
+   - Clearer assign/unassign controls and conflict feedback.
+
+4. **Keep password-protected websites as a separate security PR**
+   - Do not bundle into UX polish.
+   - Implement later with hashed password verification, access gating, short-lived access token/cookie behavior, rate limiting, and dedicated tests.
+
+5. **Testing follow-up expected in this cycle**
+   - Add at least browser smoke coverage for quick-start flow.
+   - Add browser smoke coverage for public `/wedding/:slug` rendering.
+   - Keep route/unit tests, but raise confidence with end-to-end rendering checks.
+
 ## API Summary
 
 - Website: `GET/POST/PATCH /api/me/plans/:planId/wedding-website`, publish/unpublish/regenerate-slug

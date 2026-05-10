@@ -10,8 +10,29 @@
       m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[m]
     );
   const uid = p => `${p}_${Math.random().toString(36).slice(2, 9)}`;
+  function getCsrfToken() {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    const tokenFromMeta = meta?.getAttribute('content');
+    if (tokenFromMeta) {
+      return tokenFromMeta;
+    }
+    const cookieMatch = document.cookie.match(/(?:^|; )csrfToken=([^;]+)/);
+    return cookieMatch ? decodeURIComponent(cookieMatch[1]) : '';
+  }
   async function api(path, opts) {
-    const r = await fetch(path, opts);
+    const options = { ...(opts || {}) };
+    options.credentials = options.credentials || 'same-origin';
+    const method = String(options.method || 'GET').toUpperCase();
+    if (method !== 'GET' && method !== 'HEAD') {
+      options.headers = { ...(options.headers || {}) };
+      if (!options.headers['X-CSRF-Token']) {
+        const csrfToken = getCsrfToken();
+        if (csrfToken) {
+          options.headers['X-CSRF-Token'] = csrfToken;
+        }
+      }
+    }
+    const r = await fetch(path, options);
     const j = await r.json().catch(() => ({}));
     if (!r.ok) {
       const err = new Error(j.error || 'Request failed');
@@ -40,7 +61,15 @@
     unseated: g => g.rsvpStatus === 'attending' && !(g.tableId || g.tableName || g.table),
     manual: g => !g.source || g.source === 'manual',
     public_rsvp: g => g.source === 'public_rsvp',
+    attention: g =>
+      !!(g.dietaryRequirements || g.dietary || g.accessibilityRequirements) ||
+      (g.rsvpStatus === 'attending' && !(g.tableId || g.tableName || g.table)),
   };
+
+  function statusBadge(status) {
+    const normalized = String(status || 'pending').toLowerCase();
+    return `<span class='ww-badge ww-badge--${esc(normalized)}'>${esc(normalized)}</span>`;
+  }
 
   function renderRepeater(host, name, fields, items) {
     const list = items || [];
@@ -91,18 +120,42 @@
     const guests = g.guests || [];
     const sum = s.summary || {};
     const filter = root.dataset.guestFilter || 'all';
-    const shown = guests.filter(filters[filter] || filters.all);
+    const q = String(root.dataset.guestSearch || '').toLowerCase();
+    const sort = root.dataset.guestSort || 'updated_desc';
+    const pageSize = 25;
+    const page = Math.max(1, Number(root.dataset.guestPage || 1));
+    const filtered = guests.filter(filters[filter] || filters.all).filter(
+      g =>
+        !q ||
+        [g.name, g.email, g.householdName, g.plusOneName].some(v =>
+          String(v || '')
+            .toLowerCase()
+            .includes(q)
+        )
+    );
+    const sorted = [...filtered].sort((a, b) => {
+      if (sort === 'name_asc') {
+        return String(a.name || '').localeCompare(String(b.name || ''));
+      }
+      if (sort === 'status') {
+        return String(a.rsvpStatus || 'pending').localeCompare(String(b.rsvpStatus || 'pending'));
+      }
+      return String(b.updatedAt || '').localeCompare(String(a.updatedAt || ''));
+    });
+    const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+    const currentPage = Math.min(page, totalPages);
+    const shown = sorted.slice((currentPage - 1) * pageSize, currentPage * pageSize);
     root.querySelector('.ww-rsvp').innerHTML =
       `<div class='ww-tiles'><div>Total <strong>${sum.totalGuests || 0}</strong></div><div>Responses <strong>${sum.responsesReceived || 0}</strong></div><div>Attending <strong>${sum.attending || 0}</strong></div><div>Declined <strong>${sum.declined || 0}</strong></div><div>Awaiting <strong>${sum.pending || 0}</strong></div><div>Dietary <strong>${sum.dietaryRequirementCount || 0}</strong></div><div>Unseated <strong>${sum.unseatedAttending || 0}</strong></div></div>
-    <div class='ww-actions'>${Object.keys(filters)
+    <div class='ww-actions ww-actions--rsvp'>${Object.keys(filters)
       .map(
         f =>
           `<button class='cta secondary small ww-filter' data-f='${f}'>${f.replace('_', ' ')}</button>`
       )
       .join(
         ''
-      )}<button class='cta secondary small' id='ww-add-guest'>Add guest</button><a class='cta secondary small' href='/api/me/plans/${planId}/guests/export.csv'>Export CSV</a></div>
-    <table class='ww-table'><thead><tr><th>Name</th><th>RSVP</th><th>Party</th><th>Meal</th><th>Dietary</th><th>Table</th><th>Source</th><th>Updated</th><th>Actions</th></tr></thead><tbody>${shown.map(x => `<tr><td>${esc(x.name)}</td><td>${esc(x.rsvpStatus || 'pending')}</td><td>${x.partySize || 1}</td><td>${esc(x.mealChoice || '')}</td><td>${esc(x.dietaryRequirements || x.dietary || '')}</td><td>${esc(x.tableName || x.table || '')}</td><td>${esc(x.source || 'manual')}</td><td>${esc((x.updatedAt || '').slice(0, 10))}</td><td><button class='ww-edit' data-id='${x.id}'>Edit</button><button class='ww-del' data-id='${x.id}'>Delete</button></td></tr>`).join('')}</tbody></table>`;
+      )}<input class='ww-search' id='ww-guest-search' placeholder='Search guests' value='${esc(root.dataset.guestSearch || '')}'><select id='ww-guest-sort'><option value='updated_desc'>Recently updated</option><option value='name_asc'>Name A-Z</option><option value='status'>RSVP status</option></select><button class='cta secondary small' id='ww-add-guest'>Add guest</button><a class='cta secondary small' href='/api/me/plans/${planId}/guests/export.csv'>Export CSV</a></div>
+    <table class='ww-table'><thead><tr><th>Name</th><th>RSVP</th><th>Party</th><th>Meal</th><th>Dietary/Access</th><th>Table</th><th>Source</th><th>Updated</th><th>Actions</th></tr></thead><tbody>${shown.map(x => `<tr><td>${esc(x.name)}</td><td>${statusBadge(x.rsvpStatus)}</td><td>${x.partySize || 1}</td><td>${esc(x.mealChoice || '')}</td><td>${esc([x.dietaryRequirements || x.dietary, x.accessibilityRequirements].filter(Boolean).join(' • '))}</td><td>${esc(x.tableName || x.table || '')}</td><td>${esc(x.source || 'manual')}</td><td>${esc((x.updatedAt || '').slice(0, 10))}</td><td><button class='ww-edit' data-id='${x.id}'>Edit</button><button class='ww-del' data-id='${x.id}'>Delete</button></td></tr>`).join('')}</tbody></table><div class='ww-pagination'><button class='cta secondary small' id='ww-prev-page' ${currentPage <= 1 ? 'disabled' : ''}>Prev</button><span>Page ${currentPage} of ${totalPages} (${sorted.length} guests)</span><button class='cta secondary small' id='ww-next-page' ${currentPage >= totalPages ? 'disabled' : ''}>Next</button></div>`;
     root.querySelectorAll('.ww-filter').forEach(
       b =>
         (b.onclick = async () => {
@@ -111,6 +164,24 @@
         })
     );
     root.querySelector('#ww-add-guest').onclick = async () => editGuest(planId, root, null);
+    root.querySelector('#ww-guest-search').oninput = async e => {
+      root.dataset.guestSearch = e.target.value || '';
+      root.dataset.guestPage = '1';
+      await renderGuests(planId, root);
+    };
+    root.querySelector('#ww-guest-sort').value = sort;
+    root.querySelector('#ww-guest-sort').onchange = async e => {
+      root.dataset.guestSort = e.target.value;
+      await renderGuests(planId, root);
+    };
+    root.querySelector('#ww-prev-page').onclick = async () => {
+      root.dataset.guestPage = String(Math.max(1, currentPage - 1));
+      await renderGuests(planId, root);
+    };
+    root.querySelector('#ww-next-page').onclick = async () => {
+      root.dataset.guestPage = String(Math.min(totalPages, currentPage + 1));
+      await renderGuests(planId, root);
+    };
     root.querySelectorAll('.ww-edit').forEach(
       b =>
         (b.onclick = async () =>
@@ -230,16 +301,16 @@
     const candidates = guests.filter(g => g.rsvpStatus === 'attending');
     const unseated = candidates.filter(g => !(g.tableId || g.tableName || g.table));
     root.querySelector('.ww-seating').innerHTML =
-      `<h4>Seating</h4><p class='small'>Tables: ${seatingRes.summary.tables} • Seated: ${seatingRes.summary.seated} • Unseated: ${seatingRes.summary.unseated}</p><div class='ww-actions'><button class='cta secondary small' id='ww-add-table'>Add table</button></div><div class='seat-grid'>${tables
+      `<h4>Seating</h4><p class='small'>Tables: ${seatingRes.summary.tables} • Seated: ${seatingRes.summary.seated} • Unseated: ${seatingRes.summary.unseated}</p>${unseated.length === 0 && candidates.length ? "<p class='ww-success'>All attending guests are seated.</p>" : ''}<div class='ww-actions'><button class='cta secondary small' id='ww-add-table'>Add table</button></div><div class='seat-grid'>${tables
         .map(
           t =>
-            `<div class='seat-card'><h5>${esc(t.name)}</h5><p>${esc(t.type)} • ${(t.guestIds || []).length}/${t.capacity}</p>${(t.guestIds || []).length > t.capacity ? '<p class="warn">Over capacity</p>' : ''}<div>${(
+            `<div class='seat-card'><div class='seat-card__head'><h5>${esc(t.name)}</h5><span class='seat-cap ${(t.guestIds || []).length > t.capacity ? 'seat-cap--warn' : ''}'>${(t.guestIds || []).length}/${t.capacity}</span></div><p>${esc(t.type)}</p>${(t.guestIds || []).length > t.capacity ? '<p class="warn">Over capacity</p>' : ''}<div>${(
               t.guestIds || []
             )
               .map(id => {
                 const g = guests.find(x => x.id === id);
                 return g
-                  ? `<div>${esc(g.name)} <button class='unassign' data-id='${g.id}'>×</button></div>`
+                  ? `<div class='seat-row'>${esc(g.name)} <button class='unassign' data-id='${g.id}'>Unassign</button></div>`
                   : '';
               })
               .join(
@@ -248,7 +319,7 @@
         )
         .join(
           ''
-        )}</div><h5>Unseated attending guests</h5><div>${unseated.map(g => `<div>${esc(g.name)} <select data-guest='${g.id}' class='assign-select'><option value=''>Assign to table</option>${tables.map(t => `<option value='${t.id}'>${esc(t.name)}</option>`).join('')}</select></div>`).join('') || '<p class="small">None</p>'}</div>`;
+        )}</div><h5>Unseated attending guests</h5><div class='ww-unseated'>${unseated.map(g => `<div class='seat-row'>${esc(g.name)} <select data-guest='${g.id}' class='assign-select'><option value=''>Assign to table</option>${tables.map(t => `<option value='${t.id}'>${esc(t.name)}</option>`).join('')}</select></div>`).join('') || '<p class="small">None</p>'}</div>`;
     root.querySelector('#ww-add-table').onclick = async () => {
       const payload = await editTableModal({
         name: `Table ${tables.length + 1}`,
@@ -321,23 +392,27 @@
 
   async function renderModule(plan, site, root) {
     if (!site) {
-      root.innerHTML = `<p>Create your free wedding website</p><button class='cta' id='ww-create'>Create Website</button>`;
+      root.innerHTML = `<section class='ww-glass-card'><h4>Create your free wedding website</h4><p>Start your draft, then refine content, RSVPs, and seating in one workspace.</p><button class='cta' id='ww-create'>Create Website</button></section>`;
       root.querySelector('#ww-create').onclick = async () => {
-        await api(`/api/me/plans/${plan.id}/wedding-website`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: '{}',
-        });
-        location.reload();
+        try {
+          await api(`/api/me/plans/${plan.id}/wedding-website`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: '{}',
+          });
+          location.reload();
+        } catch (err) {
+          toast(err.message || 'Unable to create website draft right now.', 'warn');
+        }
       };
       return;
     }
-    root.innerHTML = `<div class='ww-actions'><button class='cta' id='ww-save'>Save</button><button class='cta secondary' id='ww-pub'>${site.status === 'published' ? 'Unpublish' : 'Publish'}</button><a class='cta secondary' target='_blank' href='/wedding/${site.slug}'>Preview</a></div>
+    root.innerHTML = `<div class='ww-actions ww-builder-actions ww-glass-card'><button class='cta' id='ww-save'>Save</button><button class='cta secondary' id='ww-pub'>${site.status === 'published' ? 'Unpublish' : 'Publish'}</button><a class='cta secondary' target='_blank' href='/wedding/${site.slug}'>Preview</a></div>
     <form id='ww-builder' class='ww-builder'><details open><summary>Essentials</summary><label>Couple names<input name='coupleNames' value='${esc(site.coupleNames || '')}'></label><label>Welcome<textarea name='welcomeMessage'>${esc(site.welcomeMessage || '')}</textarea></label></details>
     <details><summary>Travel & Accommodation</summary><div id='rep-acc'></div><div id='rep-taxi'></div><div id='rep-local'></div></details>
     <details><summary>Wedding Party</summary><div id='rep-party'></div></details>
     <details><summary>FAQs & RSVP settings</summary><div id='rep-faq'></div><div id='rep-meal'></div><div id='rep-questions'></div><label><input type='checkbox' name='rsvpEnabled' ${site.rsvpEnabled === false ? '' : 'checked'}> RSVP enabled</label><label>RSVP deadline<input type='date' name='rsvpDeadline' value='${esc((site.rsvpDeadline || '').slice(0, 10))}'></label><label>RSVP intro<textarea name='rsvpIntroText'>${esc(site.rsvpIntroText || '')}</textarea></label></details></form>
-    <section class='ww-rsvp'></section><section class='ww-seating'></section>`;
+    <section class='ww-rsvp ww-module-block'></section><section class='ww-seating ww-module-block'></section>`;
     const form = root.querySelector('#ww-builder');
     const acc = renderRepeater(
       form.querySelector('#rep-acc'),
@@ -400,6 +475,23 @@
       'Meal option',
       [{ key: 'value', label: 'Meal option' }],
       (site.mealOptions || []).map(v => ({ id: uid('meal'), value: v }))
+    );
+    const questions = renderRepeater(
+      form.querySelector('#rep-questions'),
+      'Custom RSVP question',
+      [
+        { key: 'label', label: 'Question label' },
+        { key: 'type', label: 'Type (text/textarea/select/checkbox)' },
+        { key: 'required', label: 'Required (true/false)' },
+        { key: 'optionsCsv', label: 'Options (comma separated)' },
+      ],
+      (site.customRsvpQuestions || []).map(q => ({
+        id: q.id || uid('question'),
+        label: q.label || '',
+        type: q.type || 'text',
+        required: String(!!q.required),
+        optionsCsv: (q.options || []).join(', '),
+      }))
     );
     root.querySelector('#ww-save').onclick = async () => {
       const payload = Object.fromEntries(new FormData(form).entries());
@@ -472,9 +564,9 @@
         <h3>Wedding Website & RSVPs</h3>
         <p>Create a beautiful guest website, collect RSVPs, manage your guest list and organise seating — with or without building a full EventFlow plan.</p>
         <div class="ww-choice-grid">
-          <article class="ww-choice-card"><h4>Start with a free wedding website</h4><p>Best if you want to quickly create a guest website, RSVP form, guest list and seating plan.</p><button class="cta" id="ww-quick-start">Create Wedding Website</button></article>
-          <article class="ww-choice-card"><h4>Build a full EventFlow plan</h4><p>Best if you also want to manage budget, suppliers, packages and planning tasks.</p><a class="cta secondary" href="/start">Create Full Event Plan</a></article>
-          ${(plans || []).length ? `<article class="ww-choice-card"><h4>Connect to an existing plan</h4><p>If a wedding/event plan exists, select it and attach the wedding website.</p><select id="ww-existing-plan"><option value="">Select plan</option>${(plans || []).map(p => `<option value="${esc(p.id)}">${esc(p.name || p.eventName || 'Untitled plan')}</option>`).join('')}</select><button class="cta secondary" id="ww-use-existing">Use Existing Plan</button></article>` : ''}
+          <article class="ww-choice-card ww-glass-card ww-choice-card--primary"><span class='ww-choice-card__icon' aria-hidden='true'>✨</span><h4>Start with a free wedding website</h4><p>Best if you want to quickly create a guest website, RSVP form, guest list and seating plan.</p><button class="cta" id="ww-quick-start">Create Wedding Website</button></article>
+          <article class="ww-choice-card ww-glass-card"><span class='ww-choice-card__icon' aria-hidden='true'>🧭</span><h4>Build a full EventFlow plan</h4><p>Best if you also want to manage budget, suppliers, packages and planning tasks.</p><a class="cta secondary" href="/start">Create Full Event Plan</a></article>
+          ${(plans || []).length ? `<article class="ww-choice-card ww-glass-card"><span class='ww-choice-card__icon' aria-hidden='true'>🔗</span><h4>Use an existing plan</h4><p>If a wedding/event plan exists, select it and attach the wedding website.</p><select id="ww-existing-plan"><option value="">Select plan</option>${(plans || []).map(p => `<option value="${esc(p.id)}">${esc(p.name || p.eventName || 'Untitled plan')}</option>`).join('')}</select><button class="cta secondary" id="ww-use-existing">Use Existing Plan</button></article>` : ''}
         </div></section>`;
       root.querySelector('#ww-quick-start').onclick = async () => {
         const res = await api('/api/me/plans/wedding-workspace', { method: 'POST' });
