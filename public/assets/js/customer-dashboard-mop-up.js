@@ -1,6 +1,7 @@
 /*
  * Customer Dashboard Desktop Mop-up
- * Focused visual and layout polish for the customer dashboard.
+ * Handles welcome cleanup, wedding website status and the specialist wedding card collapse.
+ * Recommendation layout is intentionally handled in customer-dashboard-polish.js to avoid double-normalising cards.
  */
 (function () {
   'use strict';
@@ -11,7 +12,6 @@
   const STYLE_ID = 'customer-dashboard-mop-up-styles';
   const COLLAPSE_KEY = 'ef_customer_wedding_card_collapsed';
   const REFRESH_EVENT = 'eventflow:customer-dashboard-mop-up-ready';
-  const MAX_RECOMMENDATIONS_DESKTOP = 5;
   let observer;
   let observerQueued = false;
 
@@ -36,9 +36,7 @@
         user-select: none;
         transition: background .18s ease, box-shadow .18s ease;
       }
-      #wedding-website-dashboard-card.customer-wedding-card--collapsible .sd-card-header:hover {
-        box-shadow: inset 0 -1px 0 rgba(13, 148, 136, .16);
-      }
+      #wedding-website-dashboard-card.customer-wedding-card--collapsible .sd-card-header:hover { box-shadow: inset 0 -1px 0 rgba(13, 148, 136, .16); }
       #wedding-website-dashboard-card .customer-wedding-collapse-toggle {
         display: inline-flex;
         align-items: center;
@@ -92,90 +90,8 @@
       #wedding-website-status-pill[data-status="published"],
       #wedding-website-status-pill[data-status="complete"] { background: #dcfce7; border-color: rgba(22, 163, 74, .32); color: #166534; }
 
-      .customer-dashboard-page .recommendations-widget {
-        border-radius: 18px;
-        box-shadow: 0 18px 42px rgba(15, 23, 42, .07);
-        overflow: hidden;
-      }
-      .customer-dashboard-page .recommendations-widget__header,
-      .customer-dashboard-page .recommendations-header {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: flex-start !important;
-        gap: .85rem !important;
-        margin-bottom: 1rem !important;
-      }
-      .customer-dashboard-page .recommendations-widget__header h2,
-      .customer-dashboard-page .recommendations-widget__header h3,
-      .customer-dashboard-page .recommendations-header h2,
-      .customer-dashboard-page .recommendations-header h3 {
-        margin: 0 !important;
-        line-height: 1.25 !important;
-      }
-      .customer-dashboard-page .recommendations-widget__subtitle,
-      .customer-dashboard-page [data-recommendations-subtitle] { display: none !important; }
-      .customer-dashboard-page .recommendations-view-all {
-        color: #0b8073;
-        font-weight: 850;
-        font-size: .92rem;
-        text-decoration: none;
-        white-space: nowrap;
-      }
-      .customer-dashboard-page .recommendations-view-all:hover,
-      .customer-dashboard-page .recommendations-view-all:focus-visible { text-decoration: underline; outline: none; }
-      .customer-dashboard-page .recommendations-widget .ef-rec-hidden { display: none !important; }
-      .customer-dashboard-page .recommendations-widget img[src=""],
-      .customer-dashboard-page .recommendations-widget img:not([src]) { display: none !important; }
-
-      .customer-dashboard-page .ef-recommendations-row,
-      .customer-dashboard-page #recommendations-widget .recommendations-grid,
-      .customer-dashboard-page .recommendations-widget .recommendations-grid--single-row {
-        display: flex !important;
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-        align-items: stretch !important;
-        gap: 1rem !important;
-        width: 100% !important;
-        max-width: 100% !important;
-        overflow: hidden !important;
-      }
-      .customer-dashboard-page .ef-recommendations-row > .recommendation-card,
-      .customer-dashboard-page .ef-recommendations-row > .supplier-card,
-      .customer-dashboard-page .ef-recommendations-row > article,
-      .customer-dashboard-page #recommendations-widget .recommendations-grid > .recommendation-card,
-      .customer-dashboard-page .recommendations-widget .recommendations-grid--single-row > .recommendation-card {
-        flex: 1 1 0 !important;
-        min-width: 0 !important;
-        width: auto !important;
-        max-width: none !important;
-        display: block !important;
-        border-radius: 14px !important;
-      }
-      .customer-dashboard-page .ef-recommendations-row > *:nth-child(n+6),
-      .customer-dashboard-page #recommendations-widget .recommendations-grid > *:nth-child(n+6),
-      .customer-dashboard-page .recommendations-widget .recommendations-grid--single-row > *:nth-child(n+6) {
-        display: none !important;
-      }
-
       @media (min-width: 900px) {
         #wedding-website-dashboard-card .sd-card-header__actions { align-items: center; gap: .65rem; flex-wrap: nowrap; }
-      }
-      @media (max-width: 900px) {
-        .customer-dashboard-page .ef-recommendations-row,
-        .customer-dashboard-page #recommendations-widget .recommendations-grid,
-        .customer-dashboard-page .recommendations-widget .recommendations-grid--single-row {
-          overflow-x: auto !important;
-          padding-bottom: .25rem;
-          scroll-snap-type: x proximity;
-        }
-        .customer-dashboard-page .ef-recommendations-row > .recommendation-card,
-        .customer-dashboard-page .ef-recommendations-row > .supplier-card,
-        .customer-dashboard-page .ef-recommendations-row > article,
-        .customer-dashboard-page #recommendations-widget .recommendations-grid > .recommendation-card,
-        .customer-dashboard-page .recommendations-widget .recommendations-grid--single-row > .recommendation-card {
-          flex: 0 0 min(78vw, 260px) !important;
-          scroll-snap-align: start;
-        }
       }
       @media (max-width: 700px) {
         #wedding-website-dashboard-card .sd-card-header__actions { justify-content: flex-start; width: 100%; }
@@ -322,9 +238,7 @@
     toggle.setAttribute('aria-controls', body.id);
     actions.appendChild(toggle);
 
-    let collapsed = false;
-    try { collapsed = localStorage.getItem(COLLAPSE_KEY) === '1'; } catch (_) { collapsed = false; }
-    setCardCollapsed(card, toggle, collapsed);
+    setCardCollapsed(card, toggle, true);
 
     toggle.addEventListener('click', event => {
       event.stopPropagation();
@@ -336,117 +250,9 @@
     });
   }
 
-  function isLikelyRecommendationWidget(element) {
-    if (!element) return false;
-    if (element.matches('.recommendations-widget, #recommendations-widget, [data-recommendations-widget]')) return true;
-    return /recommended/i.test(element.textContent || '') && Boolean(element.querySelector('h2, h3'));
-  }
-
-  function getRecommendationWidgets() {
-    const explicit = Array.from(document.querySelectorAll('.recommendations-widget, #recommendations-widget, [data-recommendations-widget]'));
-    const cards = Array.from(document.querySelectorAll('.card, section')).filter(isLikelyRecommendationWidget);
-    return Array.from(new Set([...explicit, ...cards]));
-  }
-
-  function getRecommendationItems(widget) {
-    const selectors = [
-      '.recommendation-card', '.supplier-card', '[class*="supplier-card"]', '[class*="recommendation-card"]', 'article'
-    ];
-    return Array.from(widget.querySelectorAll(selectors.join(','))).filter(card =>
-      !card.closest('.recommendations-widget__header, .recommendations-header') &&
-      !card.classList.contains('recommendations-widget')
-    );
-  }
-
-  function normaliseRecommendationRow(widget) {
-    const items = getRecommendationItems(widget);
-    if (!items.length) return;
-
-    items.forEach((item, index) => {
-      item.classList.toggle('ef-rec-hidden', index >= MAX_RECOMMENDATIONS_DESKTOP);
-      item.classList.add('ef-rec-item');
-    });
-
-    const visibleItems = items.slice(0, MAX_RECOMMENDATIONS_DESKTOP);
-    const parents = new Set(visibleItems.map(item => item.parentElement).filter(Boolean));
-    if (parents.size === 1) {
-      const parent = visibleItems[0].parentElement;
-      if (parent && !parent.matches('.recommendations-widget__header, .recommendations-header')) {
-        parent.classList.add('ef-recommendations-row');
-        return;
-      }
-    }
-
-    let header = widget.querySelector('.recommendations-widget__header, .recommendations-header');
-    if (!header) {
-      const heading = Array.from(widget.querySelectorAll('h2, h3')).find(el => /recommended/i.test(el.textContent || ''));
-      if (heading) {
-        header = document.createElement('div');
-        header.className = 'recommendations-widget__header';
-        heading.parentNode.insertBefore(header, heading);
-        header.appendChild(heading);
-      }
-    }
-
-    let row = widget.querySelector(':scope > .ef-recommendations-row');
-    if (!row) {
-      row = document.createElement('div');
-      row.className = 'ef-recommendations-row';
-      if (header?.parentElement === widget) header.after(row);
-      else widget.appendChild(row);
-    }
-    items.forEach(item => row.appendChild(item));
-  }
-
-  function compactRecommendationsHeader() {
-    getRecommendationWidgets().forEach(widget => {
-      const headings = Array.from(widget.querySelectorAll('h2, h3'));
-      const heading = headings.find(el => /recommended/i.test(el.textContent || '')) || headings[0];
-      if (!heading) return;
-
-      widget.classList.add('recommendations-widget');
-      let header = heading.closest('.recommendations-widget__header, .recommendations-header, .section-header, .card-header');
-      if (!header) {
-        header = document.createElement('div');
-        header.className = 'recommendations-widget__header';
-        heading.parentNode.insertBefore(header, heading);
-        header.appendChild(heading);
-      } else {
-        header.classList.add('recommendations-widget__header');
-      }
-
-      const existingViewAll = Array.from(header.querySelectorAll('a')).find(a => /view all/i.test(a.textContent || '')) ||
-        Array.from(widget.querySelectorAll('a')).find(a => /view all/i.test(a.textContent || ''));
-      if (existingViewAll) {
-        existingViewAll.classList.add('recommendations-view-all');
-        if (existingViewAll.parentElement !== header) header.appendChild(existingViewAll);
-      } else {
-        const link = document.createElement('a');
-        link.href = '/suppliers';
-        link.className = 'recommendations-view-all';
-        link.textContent = 'View All →';
-        header.appendChild(link);
-      }
-
-      normaliseRecommendationRow(widget);
-    });
-  }
-
-  async function getPlans() {
-    try {
-      const response = await fetch('/api/me/plans', { credentials: 'include' });
-      if (!response.ok) return [];
-      const data = await response.json();
-      return data.plans || [];
-    } catch (_) {
-      return [];
-    }
-  }
-
   function runLightweightPass() {
     removeDuplicateWelcomeDismissButton();
     setupWeddingCollapse();
-    compactRecommendationsHeader();
     setWeddingStatusFromRenderedState();
   }
 
@@ -467,6 +273,17 @@
     observer = new MutationObserver(queueLightweightPass);
     observer.observe(document.documentElement, { childList: true, subtree: true });
     window.dispatchEvent(new CustomEvent(REFRESH_EVENT));
+  }
+
+  async function getPlans() {
+    try {
+      const response = await fetch('/api/me/plans', { credentials: 'include' });
+      if (!response.ok) return [];
+      const data = await response.json();
+      return data.plans || [];
+    } catch (_) {
+      return [];
+    }
   }
 
   window.addEventListener('beforeunload', () => { if (observer) observer.disconnect(); });
