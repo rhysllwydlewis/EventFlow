@@ -1,0 +1,220 @@
+/* Wedding Website dashboard modal/button polish
+   Keeps destructive/cancel controls on brand and fixes the square-edge modal scroll feel. */
+.ww-modal {
+  --ww-teal: #14b8a6;
+  --ww-teal-dark: #0f766e;
+  --ww-danger: #dc2626;
+  --ww-danger-dark: #991b1b;
+  border: 0;
+  border-radius: 24px;
+  max-width: min(640px, calc(100vw - 32px));
+  width: 95%;
+  max-height: min(88vh, 780px);
+  padding: 0;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(248, 253, 252, 0.92)),
+    radial-gradient(circle at 12% 0%, rgba(20, 184, 166, 0.16), transparent 34%);
+  box-shadow:
+    0 28px 72px rgba(15, 23, 42, 0.26),
+    0 0 0 1px rgba(255, 255, 255, 0.72),
+    inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+
+.ww-modal::backdrop {
+  background:
+    radial-gradient(circle at 50% 0%, rgba(20, 184, 166, 0.14), transparent 36%),
+    rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(5px);
+}
+
+.ww-modal__form {
+  box-sizing: border-box;
+  display: grid;
+  gap: 0.82rem;
+  max-height: min(88vh, 780px);
+  padding: 1.25rem;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(20, 184, 166, 0.62) rgba(240, 253, 250, 0.74);
+}
+
+.ww-modal__form::-webkit-scrollbar {
+  width: 10px;
+}
+
+.ww-modal__form::-webkit-scrollbar-track {
+  margin: 18px 0;
+  border-radius: 999px;
+  background: rgba(240, 253, 250, 0.74);
+}
+
+.ww-modal__form::-webkit-scrollbar-thumb {
+  border: 2px solid rgba(255, 255, 255, 0.88);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(45, 212, 191, 0.9), rgba(13, 148, 136, 0.92));
+}
+
+.ww-modal__form h4 {
+  position: sticky;
+  top: -1.25rem;
+  z-index: 2;
+  margin: -1.25rem -1.25rem 0.15rem;
+  padding: 1.2rem 1.25rem 0.9rem;
+  border-bottom: 1px solid rgba(20, 184, 166, 0.16);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(250, 255, 254, 0.94));
+  color: #0f172a;
+  font-size: 1.08rem;
+  letter-spacing: -0.01em;
+}
+
+.ww-modal__form label {
+  color: #0f172a;
+  font-weight: 720;
+}
+
+.ww-modal__form input,
+.ww-modal__form textarea,
+.ww-modal__form select {
+  box-sizing: border-box;
+  width: 100%;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+  font: inherit;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
+}
+
+.ww-modal__form input:focus,
+.ww-modal__form textarea:focus,
+.ww-modal__form select:focus {
+  border-color: rgba(20, 184, 166, 0.78);
+  background: #fff;
+  box-shadow:
+    0 0 0 4px rgba(20, 184, 166, 0.14),
+    inset 0 1px 2px rgba(15, 23, 42, 0.04);
+  outline: 0;
+}
+
+.ww-modal .ww-actions {
+  position: sticky;
+  bottom: -1.25rem;
+  z-index: 2;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  margin: 0.15rem -1.25rem -1.25rem;
+  padding: 0.95rem 1.25rem;
+  border-top: 1px solid rgba(20, 184, 166, 0.16);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(248, 253, 252, 0.98));
+  box-shadow: 0 -12px 28px rgba(15, 23, 42, 0.06);
+}
+
+.ww-modal button,
+.ww-table button,
+.seat-card button,
+.rep-item .rep-del,
+.customer-plan-item__actions button,
+#_dash_plan_delete_modal button,
+#_dash_plan_edit_modal button {
+  min-height: 40px;
+  border-radius: 999px !important;
+  font-family: inherit;
+  font-weight: 760;
+  letter-spacing: -0.01em;
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease,
+    border-color 0.16s ease,
+    background 0.16s ease;
+}
+
+.ww-modal button:hover,
+.ww-table button:hover,
+.seat-card button:hover,
+.rep-item .rep-del:hover,
+.customer-plan-item__actions button:hover,
+#_dash_plan_delete_modal button:hover,
+#_dash_plan_edit_modal button:hover {
+  transform: translateY(-1px);
+}
+
+.ww-modal button[value='cancel'],
+.ww-modal .ww-modal-cancel,
+#_pf_cancel,
+#_del_cancel {
+  border: 1px solid rgba(20, 184, 166, 0.28) !important;
+  color: var(--ww-teal-dark, #0f766e) !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(236, 253, 245, 0.92)) !important;
+  box-shadow: 0 8px 18px rgba(20, 184, 166, 0.12) !important;
+}
+
+.ww-modal button[value='cancel']:hover,
+.ww-modal .ww-modal-cancel:hover,
+#_pf_cancel:hover,
+#_del_cancel:hover {
+  border-color: rgba(20, 184, 166, 0.48) !important;
+  background: linear-gradient(180deg, rgba(240, 253, 250, 0.98), rgba(204, 251, 241, 0.88)) !important;
+  box-shadow: 0 12px 24px rgba(20, 184, 166, 0.16) !important;
+}
+
+.ww-btn-danger-soft,
+.ww-table .ww-del,
+.seat-card .del-table,
+.rep-item .rep-del,
+.plan-delete-btn,
+#_del_confirm {
+  border: 1px solid rgba(248, 113, 113, 0.34) !important;
+  color: var(--ww-danger-dark, #991b1b) !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(254, 242, 242, 0.92)) !important;
+  box-shadow: 0 8px 18px rgba(220, 38, 38, 0.1) !important;
+}
+
+.ww-btn-danger-soft:hover,
+.ww-table .ww-del:hover,
+.seat-card .del-table:hover,
+.rep-item .rep-del:hover,
+.plan-delete-btn:hover,
+#_del_confirm:hover {
+  border-color: rgba(239, 68, 68, 0.5) !important;
+  color: #7f1d1d !important;
+  background: linear-gradient(180deg, rgba(254, 242, 242, 1), rgba(254, 226, 226, 0.94)) !important;
+  box-shadow: 0 12px 26px rgba(220, 38, 38, 0.15) !important;
+}
+
+.ww-table td:last-child,
+.seat-card,
+.rep-item {
+  gap: 0.45rem;
+}
+
+.ww-table td:last-child {
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .ww-modal {
+    max-width: calc(100vw - 18px);
+    width: calc(100vw - 18px);
+    border-radius: 22px;
+  }
+
+  .ww-modal__form {
+    padding: 1rem;
+  }
+
+  .ww-modal__form h4 {
+    top: -1rem;
+    margin: -1rem -1rem 0.15rem;
+    padding: 1rem 1rem 0.8rem;
+  }
+
+  .ww-modal .ww-actions {
+    bottom: -1rem;
+    margin: 0.1rem -1rem -1rem;
+    padding: 0.85rem 1rem;
+  }
+}
