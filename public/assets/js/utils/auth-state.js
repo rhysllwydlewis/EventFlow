@@ -326,21 +326,31 @@
     return;
   }
 
-  const cssId = 'wedding-dashboard-modal-polish-css';
-  if (!document.getElementById(cssId)) {
-    const link = document.createElement('link');
-    link.id = cssId;
-    link.rel = 'stylesheet';
-    link.href = '/assets/css/wedding-dashboard-modal-polish.css?v=1.0.1';
-    document.head.appendChild(link);
-  }
+  const cssAssets = [
+    ['wedding-dashboard-modal-polish-css', '/assets/css/wedding-dashboard-modal-polish.css?v=1.0.1'],
+    ['wedding-publish-mop-up-css', '/assets/css/wedding-publish-mop-up.css?v=1.0.0'],
+  ];
+  cssAssets.forEach(([id, href]) => {
+    if (!document.getElementById(id)) {
+      const link = document.createElement('link');
+      link.id = id;
+      link.rel = 'stylesheet';
+      link.href = href;
+      document.head.appendChild(link);
+    }
+  });
 
-  const jsId = 'wedding-dashboard-modal-polish-js';
-  if (!document.getElementById(jsId)) {
-    const script = document.createElement('script');
-    script.id = jsId;
-    script.src = '/assets/js/pages/wedding-dashboard-modal-polish.js?v=1.0.1';
-    script.defer = true;
-    document.head.appendChild(script);
-  }
+  const jsAssets = [
+    ['wedding-dashboard-modal-polish-js', '/assets/js/pages/wedding-dashboard-modal-polish.js?v=1.0.1'],
+    ['wedding-publish-mop-up-js', '/assets/js/pages/wedding-publish-mop-up.js?v=1.0.0'],
+  ];
+  jsAssets.forEach(([id, src]) => {
+    if (!document.getElementById(id)) {
+      const script = document.createElement('script');
+      script.id = id;
+      script.src = src;
+      script.defer = true;
+      document.head.appendChild(script);
+    }
+  });
 })();
