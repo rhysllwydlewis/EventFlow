@@ -33,9 +33,7 @@
   color: #0f172a;
 }
 
-.ww-theme-tools h4:first-child {
-  margin-top: 0;
-}
+.ww-theme-tools h4:first-child { margin-top: 0; }
 
 .ww-palette-grid,
 .ww-colour-grid,
@@ -45,9 +43,7 @@
   gap: 0.65rem;
 }
 
-.ww-palette-grid {
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-}
+.ww-palette-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 
 .ww-palette {
   display: grid;
@@ -80,9 +76,7 @@
   font-size: 0.82rem;
 }
 
-.ww-colour-grid {
-  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
-}
+.ww-colour-grid { grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); }
 
 .ww-colour-grid label,
 .ww-layout-row label {
@@ -111,9 +105,7 @@
   font-size: 0.82rem;
 }
 
-.ww-layout-row {
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-}
+.ww-layout-row { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
 
 .ww-layout-row label {
   display: flex;
@@ -216,8 +208,7 @@
   align-content: end;
   gap: 0.25rem;
   padding: 1.3rem;
-  background:
-    linear-gradient(135deg, color-mix(in srgb, var(--ww-theme-accent, #0B8073) 18%, transparent), color-mix(in srgb, var(--ww-theme-secondary, #F4A6C8) 20%, transparent));
+  background: linear-gradient(135deg, rgba(11,128,115,.18), rgba(244,166,200,.22));
   background-size: cover;
   background-position: center;
   color: #fff;
@@ -234,9 +225,7 @@
   font-weight: 800;
 }
 
-.ww-theme-preview__body {
-  padding: 1rem;
-}
+.ww-theme-preview__body { padding: 1rem; }
 
 .ww-theme-preview__body button {
   border: 0;
@@ -262,8 +251,76 @@
   background-color: rgba(255,255,255,.65);
 }
 
+body.wed-themed {
+  background: var(--wed-bg, #fff7fb);
+  color: var(--wed-text, #1e1b4b);
+}
+
+body.wed-themed .wed-card,
+body.wed-themed .wed-pane,
+body.wed-themed .wed-party,
+body.wed-themed .wed-faq {
+  border-color: color-mix(in srgb, var(--wed-accent, #0B8073) 22%, rgba(255,255,255,.55));
+}
+
+body.wed-themed .wed-kicker,
+body.wed-themed .text-link,
+body.wed-themed .wed-time__hour {
+  color: var(--wed-accent, #0B8073);
+}
+
+body.wed-themed .btn-primary,
+body.wed-themed .wed-form button,
+body.wed-themed .wed-rsvp button {
+  background: var(--wed-accent, #0B8073);
+  border-color: var(--wed-accent, #0B8073);
+}
+
+body.wed-themed .wed-hero:not(.wed-hero--image) {
+  background:
+    radial-gradient(circle at 15% 15%, color-mix(in srgb, var(--wed-secondary, #F4A6C8) 35%, transparent), transparent 32%),
+    radial-gradient(circle at 85% 5%, color-mix(in srgb, var(--wed-accent, #0B8073) 24%, transparent), transparent 34%),
+    linear-gradient(135deg, var(--wed-bg, #fff7fb), #fff);
+}
+
+body[data-hero-layout='editorial'] .wed-hero__content {
+  max-width: 760px;
+  margin-left: 0;
+  text-align: left;
+}
+
+body[data-hero-layout='full_bleed'] .wed-hero {
+  min-height: min(86vh, 820px);
+  border-radius: 0 0 42px 42px;
+}
+
+.wed-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.85rem;
+}
+
+.wed-gallery figure {
+  margin: 0;
+  overflow: hidden;
+  border-radius: 22px;
+  background: rgba(255,255,255,.75);
+  box-shadow: 0 16px 36px rgba(15,23,42,.08);
+}
+
+.wed-gallery img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  display: block;
+}
+
+.wed-gallery figcaption {
+  padding: 0.75rem 0.85rem;
+  color: var(--wed-text, #1e1b4b);
+  font-weight: 750;
+}
+
 @media (max-width: 900px) {
-  .ww-theme-media-grid {
-    grid-template-columns: 1fr;
-  }
+  .ww-theme-media-grid { grid-template-columns: 1fr; }
 }
