@@ -2385,6 +2385,7 @@ function generateUniqueId(prefix) {
  * Returns: pending suppliers, packages, photos, reviews, reports, and totals
  */
 router.get('/badge-counts', authRequired, roleRequired('admin'), async (req, res) => {
+  // Response shape includes pending: and totals: sections for dashboard badges.
   try {
     // Use efficient counting instead of loading full collections
     const [

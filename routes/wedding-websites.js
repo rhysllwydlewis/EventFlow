@@ -302,7 +302,11 @@ router.post('/:planId/wedding-website', authRequired, requireVerifiedUser, csrfP
     template: 'classic',
     accentColor: '#0B8073',
     coupleNames: sanitize(req.body.coupleNames || req.plan.name || 'Our Wedding', 200),
-    eventDate: req.plan.eventDate || req.plan.date || null,
+    eventDate: req.plan.eventDate || req.plan.date || new Date().toISOString().slice(0, 10),
+    ceremonyVenueName: sanitize(
+      req.body.ceremonyVenueName || req.plan.venueName || req.plan.location || 'Venue to be confirmed',
+      200
+    ),
     welcomeMessage: '',
     rsvpEnabled: true,
     createdAt: now,

@@ -1,5 +1,3 @@
-@import url('/assets/css/customer-dashboard-welcome-card.css?v=1.0.0');
-
 /**
  * EventFlow — Customer Dashboard Liquid Glass v1.0.0
  * Glassmorphism design system for the customer dashboard.
@@ -17,37 +15,37 @@
    ============================================================ */
 body.customer-dashboard-page {
   /* Glass surfaces */
-  --cdlg-bg:              rgba(255, 255, 255, 0.58);
-  --cdlg-bg-hover:        rgba(255, 255, 255, 0.72);
-  --cdlg-border:          rgba(255, 255, 255, 0.32);
-  --cdlg-border-hover:    rgba(255, 255, 255, 0.52);
-  --cdlg-shadow:          0 8px 32px rgba(0, 0, 0, 0.09), 0 2px 8px rgba(0, 0, 0, 0.05);
-  --cdlg-shadow-hover:    0 16px 48px rgba(0, 0, 0, 0.13), 0 4px 12px rgba(0, 0, 0, 0.07);
+  --cdlg-bg: rgba(255, 255, 255, 0.58);
+  --cdlg-bg-hover: rgba(255, 255, 255, 0.72);
+  --cdlg-border: rgba(255, 255, 255, 0.32);
+  --cdlg-border-hover: rgba(255, 255, 255, 0.52);
+  --cdlg-shadow: 0 8px 32px rgba(0, 0, 0, 0.09), 0 2px 8px rgba(0, 0, 0, 0.05);
+  --cdlg-shadow-hover: 0 16px 48px rgba(0, 0, 0, 0.13), 0 4px 12px rgba(0, 0, 0, 0.07);
 
   /* Blur */
-  --cdlg-blur:            16px;
-  --cdlg-blur-light:       8px;
+  --cdlg-blur: 16px;
+  --cdlg-blur-light: 8px;
 
   /* Radius */
-  --cdlg-radius:          20px;
-  --cdlg-radius-sm:       14px;
+  --cdlg-radius: 20px;
+  --cdlg-radius-sm: 14px;
 
   /* Transition */
-  --cdlg-transition:      0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  --cdlg-transition: 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 
   /* Tinted header overlays */
-  --cdlg-teal:            rgba(11, 128, 115, 0.14);
-  --cdlg-teal-border:     rgba(11, 128, 115, 0.25);
-  --cdlg-indigo:          rgba(99, 102, 241, 0.14);
-  --cdlg-indigo-border:   rgba(99, 102, 241, 0.25);
-  --cdlg-blue:            rgba(59, 130, 246, 0.14);
-  --cdlg-blue-border:     rgba(59, 130, 246, 0.25);
-  --cdlg-red:             rgba(239, 68, 68, 0.14);
-  --cdlg-red-border:      rgba(239, 68, 68, 0.25);
-  --cdlg-amber:           rgba(245, 158, 11, 0.14);
-  --cdlg-amber-border:    rgba(245, 158, 11, 0.25);
-  --cdlg-emerald:         rgba(16, 185, 129, 0.14);
-  --cdlg-emerald-border:  rgba(16, 185, 129, 0.25);
+  --cdlg-teal: rgba(11, 128, 115, 0.14);
+  --cdlg-teal-border: rgba(11, 128, 115, 0.25);
+  --cdlg-indigo: rgba(99, 102, 241, 0.14);
+  --cdlg-indigo-border: rgba(99, 102, 241, 0.25);
+  --cdlg-blue: rgba(59, 130, 246, 0.14);
+  --cdlg-blue-border: rgba(59, 130, 246, 0.25);
+  --cdlg-red: rgba(239, 68, 68, 0.14);
+  --cdlg-red-border: rgba(239, 68, 68, 0.25);
+  --cdlg-amber: rgba(245, 158, 11, 0.14);
+  --cdlg-amber-border: rgba(245, 158, 11, 0.25);
+  --cdlg-emerald: rgba(16, 185, 129, 0.14);
+  --cdlg-emerald-border: rgba(16, 185, 129, 0.25);
 }
 
 /* ============================================================
@@ -77,7 +75,7 @@ body.customer-dashboard-page .card {
   border-radius: var(--cdlg-radius);
   box-shadow:
     var(--cdlg-shadow),
-    inset 0 1px 1px rgba(255, 255, 255, 0.70);
+    inset 0 1px 1px rgba(255, 255, 255, 0.7);
   transition:
     box-shadow var(--cdlg-transition),
     border-color var(--cdlg-transition),
@@ -94,9 +92,9 @@ body.customer-dashboard-page .card::before {
   border-radius: inherit;
   background: linear-gradient(
     155deg,
-    rgba(255, 255, 255, 0.40) 0%,
-    rgba(255, 255, 255, 0.10) 40%,
-    rgba(255, 255, 255, 0.00) 65%
+    rgba(255, 255, 255, 0.4) 0%,
+    rgba(255, 255, 255, 0.1) 40%,
+    rgba(255, 255, 255, 0) 65%
   );
   pointer-events: none;
   z-index: 0;
@@ -113,14 +111,22 @@ body.customer-dashboard-page .card:hover {
   border-color: var(--cdlg-border-hover);
   box-shadow:
     var(--cdlg-shadow-hover),
-    inset 0 1px 1px rgba(255, 255, 255, 0.80);
+    inset 0 1px 1px rgba(255, 255, 255, 0.8);
 }
 
 /* Shimmer sweep on hover */
 @keyframes cdlg-shimmer {
-  0%   { transform: translateX(-100%) skewX(-12deg); opacity: 0; }
-  20%  { opacity: 1; }
-  100% { transform: translateX(250%) skewX(-12deg); opacity: 0; }
+  0% {
+    transform: translateX(-100%) skewX(-12deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(250%) skewX(-12deg);
+    opacity: 0;
+  }
 }
 
 body.customer-dashboard-page .card::after {
@@ -168,8 +174,8 @@ body.customer-dashboard-page .sd-card-header::after {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.80) 25%,
-    rgba(255, 255, 255, 0.80) 75%,
+    rgba(255, 255, 255, 0.8) 25%,
+    rgba(255, 255, 255, 0.8) 75%,
     transparent 100%
   );
   pointer-events: none;
@@ -177,37 +183,37 @@ body.customer-dashboard-page .sd-card-header::after {
 
 /* Teal */
 body.customer-dashboard-page .sd-card-header--teal {
-  --sd-header-bg:     linear-gradient(135deg, var(--cdlg-teal) 0%, rgba(16, 185, 129, 0.07) 100%);
+  --sd-header-bg: linear-gradient(135deg, var(--cdlg-teal) 0%, rgba(16, 185, 129, 0.07) 100%);
   --sd-header-border: var(--cdlg-teal-border);
 }
 
 /* Blue */
 body.customer-dashboard-page .sd-card-header--blue {
-  --sd-header-bg:     linear-gradient(135deg, var(--cdlg-blue) 0%, rgba(37, 99, 235, 0.07) 100%);
+  --sd-header-bg: linear-gradient(135deg, var(--cdlg-blue) 0%, rgba(37, 99, 235, 0.07) 100%);
   --sd-header-border: var(--cdlg-blue-border);
 }
 
 /* Amber */
 body.customer-dashboard-page .sd-card-header--amber {
-  --sd-header-bg:     linear-gradient(135deg, var(--cdlg-amber) 0%, rgba(251, 191, 36, 0.07) 100%);
+  --sd-header-bg: linear-gradient(135deg, var(--cdlg-amber) 0%, rgba(251, 191, 36, 0.07) 100%);
   --sd-header-border: var(--cdlg-amber-border);
 }
 
 /* Emerald */
 body.customer-dashboard-page .sd-card-header--emerald {
-  --sd-header-bg:     linear-gradient(135deg, var(--cdlg-emerald) 0%, rgba(5, 150, 105, 0.07) 100%);
+  --sd-header-bg: linear-gradient(135deg, var(--cdlg-emerald) 0%, rgba(5, 150, 105, 0.07) 100%);
   --sd-header-border: var(--cdlg-emerald-border);
 }
 
 /* Red */
 body.customer-dashboard-page .sd-card-header--red {
-  --sd-header-bg:     linear-gradient(135deg, var(--cdlg-red) 0%, rgba(220, 38, 38, 0.07) 100%);
+  --sd-header-bg: linear-gradient(135deg, var(--cdlg-red) 0%, rgba(220, 38, 38, 0.07) 100%);
   --sd-header-border: var(--cdlg-red-border);
 }
 
 /* Indigo */
 body.customer-dashboard-page .sd-card-header--indigo {
-  --sd-header-bg:     linear-gradient(135deg, var(--cdlg-indigo) 0%, rgba(139, 92, 246, 0.07) 100%);
+  --sd-header-bg: linear-gradient(135deg, var(--cdlg-indigo) 0%, rgba(139, 92, 246, 0.07) 100%);
   --sd-header-border: var(--cdlg-indigo-border);
 }
 
@@ -308,210 +314,5 @@ body.customer-dashboard-page .card.card--collapsed .sd-card-header {
     -webkit-backdrop-filter: none;
     background: #fff;
     border: 2px solid currentColor;
-  }
-}
-
-/* ============================================================
-   11. CUSTOMER WELCOME CARD FINAL OVERRIDES
-   These sit after the generic .card glass rules so the bespoke welcome
-   artwork, CTA and spacing are not overwritten by the generic shimmer layer.
-   ============================================================ */
-body.customer-dashboard-page #welcome-section.customer-welcome-card.card.no-collapse {
-  overflow: hidden !important;
-  min-height: 0 !important;
-  padding: clamp(2.2rem, 3.1vw, 3.1rem) clamp(2.4rem, 3vw, 3.3rem) !important;
-  border-radius: 24px !important;
-  border: 1px solid rgba(11, 128, 115, 0.14) !important;
-  background:
-    radial-gradient(370px 240px at 88% 16%, rgba(19, 182, 162, 0.12), transparent 72%),
-    radial-gradient(320px 220px at 14% 7%, rgba(220, 252, 231, 0.35), transparent 70%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(250, 253, 252, 0.96)) !important;
-  box-shadow: 0 20px 44px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
-}
-
-body.customer-dashboard-page #welcome-section.customer-welcome-card.card.no-collapse::before {
-  content: '' !important;
-  position: absolute !important;
-  inset: 0 !important;
-  width: auto !important;
-  height: auto !important;
-  pointer-events: none !important;
-  z-index: 0 !important;
-  opacity: 1 !important;
-  transform: none !important;
-  background:
-    radial-gradient(circle at 70.5% 15%, rgba(11, 128, 115, 0.18) 0 4px, transparent 5px),
-    radial-gradient(circle at 73.6% 20%, rgba(11, 128, 115, 0.10) 0 2px, transparent 3px),
-    radial-gradient(circle at 75.7% 24%, rgba(11, 128, 115, 0.14) 0 3px, transparent 4px),
-    radial-gradient(circle at 97.5% 15%, rgba(11, 128, 115, 0.08) 0 5px, transparent 6px),
-    linear-gradient(180deg, rgba(255,255,255,0.5), transparent 42%) !important;
-}
-
-body.customer-dashboard-page #welcome-section.customer-welcome-card.card.no-collapse::after {
-  content: '' !important;
-  position: absolute !important;
-  top: clamp(1.2rem, 2vw, 1.7rem) !important;
-  right: clamp(2.5rem, 7vw, 8rem) !important;
-  left: auto !important;
-  width: clamp(230px, 25vw, 340px) !important;
-  height: clamp(155px, 16vw, 215px) !important;
-  opacity: 0.92 !important;
-  transform: none !important;
-  animation: none !important;
-  pointer-events: none !important;
-  z-index: 0 !important;
-  background:
-    linear-gradient(#d6eee9,#d6eee9) 50% 1%/7px 28px no-repeat,
-    linear-gradient(#d6eee9,#d6eee9) 66% 1%/7px 28px no-repeat,
-    linear-gradient(135deg,#6ee7b7,#0b9f74) 36% 12%/46% 27% no-repeat,
-    radial-gradient(circle at 56.5% 56%,#42c78d 0 16px,transparent 17px),
-    linear-gradient(135deg,transparent 0 38%,#fff 38% 48%,transparent 48%) 54.5% 56.5%/21px 15px no-repeat,
-    linear-gradient(45deg,transparent 0 42%,#fff 42% 54%,transparent 54%) 58.3% 53%/23px 18px no-repeat,
-    repeating-linear-gradient(90deg,rgba(15,23,42,.06) 0 16%,transparent 16% 25%) 36% 52%/40% 48% no-repeat,
-    repeating-linear-gradient(180deg,rgba(15,23,42,.04) 0 24%,transparent 24% 33%) 36% 52%/40% 48% no-repeat,
-    linear-gradient(8deg,rgba(255,255,255,.96),rgba(248,250,252,.92)) 12% 52%/25% 34% no-repeat,
-    repeating-linear-gradient(8deg,rgba(148,163,184,.46) 0 3px,transparent 3px 14px) 13.5% 54%/20% 22% no-repeat,
-    radial-gradient(circle at 29% 72%,#7bd7ad 0 13px,transparent 14px),
-    radial-gradient(ellipse at 82% 56%,rgba(52,211,153,.72) 0 18px,transparent 19px),
-    radial-gradient(ellipse at 90% 49%,rgba(52,211,153,.82) 0 22px,transparent 23px),
-    radial-gradient(ellipse at 88% 66%,rgba(16,185,129,.78) 0 25px,transparent 26px),
-    linear-gradient(180deg,#e8eef0,#d2dcde) 84% 77%/38px 40px no-repeat,
-    linear-gradient(180deg,#fff 0%,#f7faf9 100%) 36% 55%/46% 73% no-repeat,
-    radial-gradient(ellipse at 67% 55%,rgba(153,226,202,.32) 0 39%,transparent 40%) !important;
-  border-radius: 26px !important;
-  filter: drop-shadow(0 18px 26px rgba(11,128,115,.08)) !important;
-}
-
-body.customer-dashboard-page #welcome-section.customer-welcome-card > * {
-  position: relative !important;
-  z-index: 2 !important;
-}
-
-body.customer-dashboard-page #welcome-section .customer-welcome-kicker {
-  width: auto !important;
-  max-width: max-content !important;
-  margin: 0 0 1.55rem !important;
-  padding: .58rem 1.05rem !important;
-  border-radius: 999px !important;
-  font-size: .82rem !important;
-  font-weight: 850 !important;
-  letter-spacing: .095em !important;
-  background: rgba(236,253,245,.72) !important;
-  border: 1px solid rgba(11,128,115,.13) !important;
-  color: #087669 !important;
-}
-
-body.customer-dashboard-page #welcome-section .customer-welcome-heading {
-  max-width: min(760px, calc(100% - 440px)) !important;
-  margin: 0 0 .9rem !important;
-  color: #102033 !important;
-  font-size: clamp(2.35rem, 3.55vw, 3.25rem) !important;
-  line-height: 1.04 !important;
-  letter-spacing: -.052em !important;
-  font-weight: 850 !important;
-}
-
-body.customer-dashboard-page #welcome-section .customer-welcome-intro {
-  max-width: min(705px, calc(100% - 470px)) !important;
-  margin: 0 0 2.15rem !important;
-  color: #475467 !important;
-  font-size: clamp(1rem, 1.35vw, 1.12rem) !important;
-  line-height: 1.68 !important;
-}
-
-body.customer-dashboard-page #welcome-section .customer-welcome-actions {
-  margin: 0 !important;
-  padding-top: 1.7rem !important;
-  border-top: 1px solid rgba(15,23,42,.1) !important;
-}
-
-body.customer-dashboard-page #welcome-section .customer-welcome-actions__grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-  gap: clamp(.9rem, 1.7vw, 1.35rem) !important;
-}
-
-body.customer-dashboard-page #welcome-section .customer-welcome-action-card {
-  min-height: 112px !important;
-  border-radius: 18px !important;
-  border: 1px solid rgba(15,23,42,.09) !important;
-  background: rgba(255,255,255,.82) !important;
-  box-shadow: 0 12px 28px rgba(15,23,42,.055), inset 0 1px 0 rgba(255,255,255,.9) !important;
-}
-
-body.customer-dashboard-page #welcome-section .customer-welcome-contextual-prompt {
-  margin-top: 1.35rem !important;
-}
-
-body.customer-dashboard-page #welcome-section .customer-welcome-prompt {
-  min-height: 62px !important;
-  padding: .92rem 10.2rem .92rem 1.15rem !important;
-  border-radius: 14px !important;
-}
-
-body.customer-dashboard-page #welcome-section .customer-welcome-footer {
-  min-height: 72px !important;
-  margin-top: 1.35rem !important;
-  padding: 1rem 10.8rem 1rem 1.15rem !important;
-  border-radius: 16px !important;
-}
-
-body.customer-dashboard-page #welcome-section > .customer-welcome-dismiss:first-child {
-  display: inline-flex !important;
-  position: absolute !important;
-  right: clamp(3.05rem, 3.4vw, 3.8rem) !important;
-  bottom: clamp(2.35rem, 3vw, 3.15rem) !important;
-  z-index: 5 !important;
-  min-width: 120px !important;
-  min-height: 48px !important;
-  padding: .78rem 1.35rem !important;
-  border: 0 !important;
-  border-radius: 12px !important;
-  background: linear-gradient(135deg,#22c55e,#16a34a) !important;
-  color: #fff !important;
-  box-shadow: 0 10px 22px rgba(22,163,74,.24) !important;
-  font-size: 0 !important;
-}
-
-body.customer-dashboard-page #welcome-section > .customer-welcome-dismiss:first-child svg {
-  display: none !important;
-}
-
-body.customer-dashboard-page #welcome-section > .customer-welcome-dismiss:first-child::after {
-  content: 'Got it! 🎉' !important;
-  font-size: 1rem !important;
-  font-weight: 850 !important;
-}
-
-body.customer-dashboard-page #welcome-section .customer-welcome-footer .customer-welcome-dismiss {
-  display: none !important;
-}
-
-@media (max-width: 1180px) {
-  body.customer-dashboard-page #welcome-section .customer-welcome-heading,
-  body.customer-dashboard-page #welcome-section .customer-welcome-intro {
-    max-width: 100% !important;
-  }
-  body.customer-dashboard-page #welcome-section.customer-welcome-card.card.no-collapse::after {
-    opacity: .16 !important;
-  }
-  body.customer-dashboard-page #welcome-section .customer-welcome-actions__grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
-}
-
-@media (max-width: 700px) {
-  body.customer-dashboard-page #welcome-section.customer-welcome-card.card.no-collapse {
-    padding: 1rem !important;
-  }
-  body.customer-dashboard-page #welcome-section.customer-welcome-card.card.no-collapse::after {
-    display: none !important;
-  }
-  body.customer-dashboard-page #welcome-section .customer-welcome-actions__grid {
-    grid-template-columns: 1fr !important;
-  }
-  body.customer-dashboard-page #welcome-section > .customer-welcome-dismiss:first-child {
-    position: static !important;
-    width: 100% !important;
-    margin-top: .85rem !important;
   }
 }
