@@ -83,6 +83,22 @@ function passwordCookieName(slug) {
   return `${PASSWORD_COOKIE_PREFIX}${String(slug || '').replace(/[^a-z0-9_-]/gi, '').slice(0, 90)}`;
 }
 
+function readCookie(req, name) {
+  if (req.cookies && Object.prototype.hasOwnProperty.call(req.cookies, name)) {
+    return req.cookies[name];
+  }
+  const cookieHeader = String(req.headers?.cookie || '');
+  if (!cookieHeader) {
+    return '';
+  }
+  const target = `${name}=`;
+  const found = cookieHeader
+    .split(';')
+    .map(part => part.trim())
+    .find(part => part.startsWith(target));
+  return found ? decodeURIComponent(found.slice(target.length)) : '';
+}
+
 function hashWeddingPassword(password) {
   const salt = crypto.randomBytes(16).toString('hex');
   const hash = crypto
@@ -139,7 +155,7 @@ function hasWeddingPasswordAccess(req, site) {
   if (site.visibility !== 'password') {
     return true;
   }
-  const token = req.cookies?.[passwordCookieName(site.slug)] || req.get('x-wedding-access-token');
+  const token = readCookie(req, passwordCookieName(site.slug)) || req.get('x-wedding-access-token');
   return verifyAccessToken(token, site.slug);
 }
 
@@ -242,194 +258,155 @@ router.get('/:planId/wedding-website', authRequired, getOwnedPlan, async (req, r
   res.json({ success: true, website: scrubCustomerWebsite(req.plan.weddingWebsite) || null });
 });
 
-router.post(
-  '/wedding-workspace',
-  authRequired,
-  requireVerifiedUser,
-  csrfProtection,
-  writeLimiter,
-  async (req, res) => {
-    const plans = await dbUnified.read('plans');
-    const existing = plans.find(
-      p => p.userId === req.user.id && p.isWebsiteWorkspace && p.source === 'wedding_website_quick_start'
-    );
-    if (existing) {
-      return res.status(200).json({ success: true, plan: existing, reused: true });
-    }
-    const now = new Date().toISOString();
-    const plan = {
-      id: uid('plan'),
-      userId: req.user.id,
-      name: 'Wedding Website',
-      eventType: 'wedding',
-      source: 'wedding_website_quick_start',
-      isWebsiteWorkspace: true,
-      guestCount: null,
-      guestList: [],
-      tables: [],
-      createdAt: now,
-      updatedAt: now,
-    };
-    await dbUnified.insertOne('plans', plan);
-    return res.status(201).json({ success: true, plan, reused: false });
+router.post('/wedding-workspace', authRequired, requireVerifiedUser, csrfProtection, writeLimiter, async (req, res) => {
+  const plans = await dbUnified.read('plans');
+  const existing = plans.find(
+    p => p.userId === req.user.id && p.isWebsiteWorkspace && p.source === 'wedding_website_quick_start'
+  );
+  if (existing) {
+    return res.status(200).json({ success: true, plan: existing, reused: true });
   }
-);
+  const now = new Date().toISOString();
+  const plan = {
+    id: uid('plan'),
+    userId: req.user.id,
+    name: 'Wedding Website',
+    eventType: 'wedding',
+    source: 'wedding_website_quick_start',
+    isWebsiteWorkspace: true,
+    guestCount: null,
+    guestList: [],
+    tables: [],
+    createdAt: now,
+    updatedAt: now,
+  };
+  await dbUnified.insertOne('plans', plan);
+  return res.status(201).json({ success: true, plan, reused: false });
+});
 
-router.post(
-  '/:planId/wedding-website',
-  authRequired,
-  requireVerifiedUser,
-  csrfProtection,
-  writeLimiter,
-  getOwnedPlan,
-  async (req, res) => {
-    if (req.plan.weddingWebsite) {
-      return res.status(409).json({ error: 'Wedding website already exists' });
-    }
-    const now = new Date().toISOString();
-    const seed = req.body.slug || req.body.coupleNames || req.plan.name || req.plan.eventName || 'our-wedding';
-    const slug = await generateUniqueSlug(seed, req.plan.id);
-    const website = {
-      id: uid('wedsite'),
-      planId: req.plan.id,
-      userId: req.user.id,
-      slug,
-      status: 'draft',
-      visibility: 'private_link',
-      noindex: true,
-      template: 'classic',
-      accentColor: '#0B8073',
-      coupleNames: sanitize(req.body.coupleNames || req.plan.name || 'Our Wedding', 200),
-      welcomeMessage: '',
-      rsvpEnabled: true,
-      createdAt: now,
-      updatedAt: now,
-      publishedAt: null,
-    };
-    await dbUnified.updateOne('plans', { id: req.plan.id }, { $set: { weddingWebsite: website, updatedAt: now } });
-    res.status(201).json({ success: true, website: scrubCustomerWebsite(website) });
+router.post('/:planId/wedding-website', authRequired, requireVerifiedUser, csrfProtection, writeLimiter, getOwnedPlan, async (req, res) => {
+  if (req.plan.weddingWebsite) {
+    return res.status(409).json({ error: 'Wedding website already exists' });
   }
-);
+  const now = new Date().toISOString();
+  const seed = req.body.slug || req.body.coupleNames || req.plan.name || req.plan.eventName || 'our-wedding';
+  const slug = await generateUniqueSlug(seed, req.plan.id);
+  const website = {
+    id: uid('wedsite'),
+    planId: req.plan.id,
+    userId: req.user.id,
+    slug,
+    status: 'draft',
+    visibility: 'private_link',
+    noindex: true,
+    template: 'classic',
+    accentColor: '#0B8073',
+    coupleNames: sanitize(req.body.coupleNames || req.plan.name || 'Our Wedding', 200),
+    welcomeMessage: '',
+    rsvpEnabled: true,
+    createdAt: now,
+    updatedAt: now,
+    publishedAt: null,
+  };
+  await dbUnified.updateOne('plans', { id: req.plan.id }, { $set: { weddingWebsite: website, updatedAt: now } });
+  res.status(201).json({ success: true, website: scrubCustomerWebsite(website) });
+});
 
-router.patch(
-  '/:planId/wedding-website',
-  authRequired,
-  requireVerifiedUser,
-  csrfProtection,
-  writeLimiter,
-  getOwnedPlan,
-  async (req, res) => {
-    if (!req.plan.weddingWebsite) {
-      return res.status(404).json({ error: 'Wedding website not found' });
+router.patch('/:planId/wedding-website', authRequired, requireVerifiedUser, csrfProtection, writeLimiter, getOwnedPlan, async (req, res) => {
+  if (!req.plan.weddingWebsite) {
+    return res.status(404).json({ error: 'Wedding website not found' });
+  }
+  const patch = { ...req.plan.weddingWebsite };
+  const fields = [
+    'coupleNames', 'welcomeMessage', 'loveStory', 'proposalStory', 'ceremonyVenueName',
+    'ceremonyVenueAddress', 'receptionVenueName', 'receptionVenueAddress', 'arrivalTime',
+    'ceremonyTime', 'receptionTime', 'finishTime', 'dressCode', 'childrenPolicy',
+    'plusOnePolicy', 'giftInfo', 'parkingInfo', 'accessibilityInfo', 'rsvpIntroText',
+    'template', 'accentColor',
+  ];
+  fields.forEach(f => {
+    if (req.body[f] !== undefined) {
+      patch[f] = sanitize(req.body[f]);
     }
-    const patch = { ...req.plan.weddingWebsite };
-    const fields = [
-      'coupleNames', 'welcomeMessage', 'loveStory', 'proposalStory', 'ceremonyVenueName',
-      'ceremonyVenueAddress', 'receptionVenueName', 'receptionVenueAddress', 'arrivalTime',
-      'ceremonyTime', 'receptionTime', 'finishTime', 'dressCode', 'childrenPolicy',
-      'plusOnePolicy', 'giftInfo', 'parkingInfo', 'accessibilityInfo', 'rsvpIntroText',
-      'template', 'accentColor',
-    ];
-    fields.forEach(f => {
-      if (req.body[f] !== undefined) {
-        patch[f] = sanitize(req.body[f]);
-      }
-    });
-    if (req.body.slug !== undefined) {
-      const s = slugify(req.body.slug);
-      if (isReservedSlug(s)) {
-        return res.status(400).json({ error: 'Please choose a more personal website link.' });
-      }
-      if (await isSlugTaken(s, req.plan.id)) {
-        return res.status(409).json({ error: 'Slug is already in use.' });
-      }
-      patch.slug = s;
-    } else if (isReservedSlug(patch.slug)) {
-      patch.slug = await generateUniqueSlug(patch.coupleNames || req.plan.name || 'our-wedding', req.plan.id);
+  });
+  if (req.body.slug !== undefined) {
+    const s = slugify(req.body.slug);
+    if (isReservedSlug(s)) {
+      return res.status(400).json({ error: 'Please choose a more personal website link.' });
     }
-    ['accommodationRecommendations', 'taxiRecommendations', 'localInfo', 'faq', 'weddingParty', 'mealOptions', 'customRsvpQuestions'].forEach(k => {
-      if (Array.isArray(req.body[k])) {
-        patch[k] = req.body[k];
-      }
-    });
-    if (req.body.rsvpEnabled !== undefined) {
-      patch.rsvpEnabled = !!req.body.rsvpEnabled;
+    if (await isSlugTaken(s, req.plan.id)) {
+      return res.status(409).json({ error: 'Slug is already in use.' });
     }
-    if (req.body.rsvpDeadline !== undefined) {
-      patch.rsvpDeadline = req.body.rsvpDeadline || null;
+    patch.slug = s;
+  } else if (isReservedSlug(patch.slug)) {
+    patch.slug = await generateUniqueSlug(patch.coupleNames || req.plan.name || 'our-wedding', req.plan.id);
+  }
+  ['accommodationRecommendations', 'taxiRecommendations', 'localInfo', 'faq', 'weddingParty', 'mealOptions', 'customRsvpQuestions'].forEach(k => {
+    if (Array.isArray(req.body[k])) {
+      patch[k] = req.body[k];
     }
-    if (req.body.visibility !== undefined) {
-      const visibility = String(req.body.visibility);
-      if (!ALLOWED_VISIBILITY.has(visibility)) {
-        return res.status(400).json({ error: 'Invalid visibility mode.' });
+  });
+  if (req.body.rsvpEnabled !== undefined) {
+    patch.rsvpEnabled = !!req.body.rsvpEnabled;
+  }
+  if (req.body.rsvpDeadline !== undefined) {
+    patch.rsvpDeadline = req.body.rsvpDeadline || null;
+  }
+  if (req.body.visibility !== undefined) {
+    const visibility = String(req.body.visibility);
+    if (!ALLOWED_VISIBILITY.has(visibility)) {
+      return res.status(400).json({ error: 'Invalid visibility mode.' });
+    }
+    patch.visibility = visibility;
+    const suppliedPassword = sanitize(req.body.password || req.body.weddingPassword, 300);
+    if (visibility === 'password') {
+      if (!patch.passwordHash && !suppliedPassword) {
+        return res.status(400).json({ error: 'Please set a password before enabling password protection.' });
       }
-      patch.visibility = visibility;
-      const suppliedPassword = sanitize(req.body.password || req.body.weddingPassword, 300);
-      if (visibility === 'password') {
-        if (!patch.passwordHash && !suppliedPassword) {
-          return res.status(400).json({ error: 'Please set a password before enabling password protection.' });
+      if (suppliedPassword) {
+        if (suppliedPassword.length < 6) {
+          return res.status(400).json({ error: 'Password must be at least 6 characters.' });
         }
-        if (suppliedPassword) {
-          if (suppliedPassword.length < 6) {
-            return res.status(400).json({ error: 'Password must be at least 6 characters.' });
-          }
-          patch.passwordHash = hashWeddingPassword(suppliedPassword);
-          patch.passwordUpdatedAt = new Date().toISOString();
-        }
-      } else {
-        delete patch.passwordHash;
-        delete patch.passwordUpdatedAt;
+        patch.passwordHash = hashWeddingPassword(suppliedPassword);
+        patch.passwordUpdatedAt = new Date().toISOString();
       }
+    } else {
+      delete patch.passwordHash;
+      delete patch.passwordUpdatedAt;
     }
-    patch.updatedAt = new Date().toISOString();
-    await dbUnified.updateOne('plans', { id: req.plan.id }, { $set: { weddingWebsite: patch, updatedAt: patch.updatedAt } });
-    res.json({ success: true, website: scrubCustomerWebsite(patch) });
   }
-);
+  patch.updatedAt = new Date().toISOString();
+  await dbUnified.updateOne('plans', { id: req.plan.id }, { $set: { weddingWebsite: patch, updatedAt: patch.updatedAt } });
+  res.json({ success: true, website: scrubCustomerWebsite(patch) });
+});
 
-router.post(
-  '/:planId/wedding-website/publish',
-  authRequired,
-  requireVerifiedUser,
-  csrfProtection,
-  writeLimiter,
-  getOwnedPlan,
-  async (req, res) => {
-    if (!req.plan.weddingWebsite) {
-      return res.status(404).json({ error: 'Wedding website not found' });
-    }
-    let website = { ...req.plan.weddingWebsite };
-    if (isReservedSlug(website.slug)) {
-      website.slug = await generateUniqueSlug(website.coupleNames || req.plan.name || 'our-wedding', req.plan.id);
-    }
-    const readiness = getPublishReadiness(website);
-    if (!readiness.ready) {
-      return res.status(400).json({ error: 'Website is not ready to publish yet.', checklist: readiness });
-    }
-    const now = new Date().toISOString();
-    website = { ...website, status: 'published', publishedAt: now, updatedAt: now };
-    await dbUnified.updateOne('plans', { id: req.plan.id }, { $set: { weddingWebsite: website, updatedAt: now } });
-    res.json({ success: true, website: scrubCustomerWebsite(website) });
+router.post('/:planId/wedding-website/publish', authRequired, requireVerifiedUser, csrfProtection, writeLimiter, getOwnedPlan, async (req, res) => {
+  if (!req.plan.weddingWebsite) {
+    return res.status(404).json({ error: 'Wedding website not found' });
   }
-);
+  let website = { ...req.plan.weddingWebsite };
+  if (isReservedSlug(website.slug)) {
+    website.slug = await generateUniqueSlug(website.coupleNames || req.plan.name || 'our-wedding', req.plan.id);
+  }
+  const readiness = getPublishReadiness(website);
+  if (!readiness.ready) {
+    return res.status(400).json({ error: 'Website is not ready to publish yet.', checklist: readiness });
+  }
+  const now = new Date().toISOString();
+  website = { ...website, status: 'published', publishedAt: now, updatedAt: now };
+  await dbUnified.updateOne('plans', { id: req.plan.id }, { $set: { weddingWebsite: website, updatedAt: now } });
+  res.json({ success: true, website: scrubCustomerWebsite(website) });
+});
 
-router.post(
-  '/:planId/wedding-website/unpublish',
-  authRequired,
-  requireVerifiedUser,
-  csrfProtection,
-  writeLimiter,
-  getOwnedPlan,
-  async (req, res) => {
-    if (!req.plan.weddingWebsite) {
-      return res.status(404).json({ error: 'Wedding website not found' });
-    }
-    const now = new Date().toISOString();
-    const website = { ...req.plan.weddingWebsite, status: 'draft', updatedAt: now };
-    await dbUnified.updateOne('plans', { id: req.plan.id }, { $set: { weddingWebsite: website, updatedAt: now } });
-    res.json({ success: true, website: scrubCustomerWebsite(website) });
+router.post('/:planId/wedding-website/unpublish', authRequired, requireVerifiedUser, csrfProtection, writeLimiter, getOwnedPlan, async (req, res) => {
+  if (!req.plan.weddingWebsite) {
+    return res.status(404).json({ error: 'Wedding website not found' });
   }
-);
+  const now = new Date().toISOString();
+  const website = { ...req.plan.weddingWebsite, status: 'draft', updatedAt: now };
+  await dbUnified.updateOne('plans', { id: req.plan.id }, { $set: { weddingWebsite: website, updatedAt: now } });
+  res.json({ success: true, website: scrubCustomerWebsite(website) });
+});
 
 router.get('/public/wedding-websites/:slug', async (req, res) => {
   const slug = slugify(req.params.slug);
@@ -549,23 +526,15 @@ router.post('/public/wedding-websites/:slug/rsvp', writeLimiter, async (req, res
   return res.json({ success: true, message: 'Thank you — your RSVP has been received.' });
 });
 
-router.post(
-  '/:planId/wedding-website/regenerate-slug',
-  authRequired,
-  requireVerifiedUser,
-  csrfProtection,
-  writeLimiter,
-  getOwnedPlan,
-  async (req, res) => {
-    if (!req.plan.weddingWebsite) {
-      return res.status(404).json({ error: 'Wedding website not found' });
-    }
-    const slug = await generateUniqueSlug(req.plan.weddingWebsite.coupleNames || req.plan.name || 'our-wedding', req.plan.id);
-    const website = { ...req.plan.weddingWebsite, slug, updatedAt: new Date().toISOString() };
-    await dbUnified.updateOne('plans', { id: req.plan.id }, { $set: { weddingWebsite: website, updatedAt: website.updatedAt } });
-    res.json({ success: true, website: scrubCustomerWebsite(website) });
+router.post('/:planId/wedding-website/regenerate-slug', authRequired, requireVerifiedUser, csrfProtection, writeLimiter, getOwnedPlan, async (req, res) => {
+  if (!req.plan.weddingWebsite) {
+    return res.status(404).json({ error: 'Wedding website not found' });
   }
-);
+  const slug = await generateUniqueSlug(req.plan.weddingWebsite.coupleNames || req.plan.name || 'our-wedding', req.plan.id);
+  const website = { ...req.plan.weddingWebsite, slug, updatedAt: new Date().toISOString() };
+  await dbUnified.updateOne('plans', { id: req.plan.id }, { $set: { weddingWebsite: website, updatedAt: website.updatedAt } });
+  res.json({ success: true, website: scrubCustomerWebsite(website) });
+});
 
 function getTables(plan) {
   return Array.isArray(plan.tables) ? plan.tables : [];
