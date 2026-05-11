@@ -45,9 +45,24 @@
   }
 
   function planIdFromDom(root) {
-    const exportLink = root.querySelector("a[href*='/api/me/plans/'][href$='/guests/export.csv']");
-    const match = exportLink?.getAttribute('href')?.match(/\/api\/me\/plans\/([^/]+)\/guests\/export\.csv/);
-    return match ? decodeURIComponent(match[1]) : '';
+    if (root?.dataset?.planId) return root.dataset.planId;
+    const candidates = Array.from(root.querySelectorAll("a[href*='/api/me/plans/'], a[href*='/guests/export.csv']"));
+    for (const link of candidates) {
+      const match = link.getAttribute('href')?.match(/\/api\/me\/plans\/([^/]+)/);
+      if (match) return decodeURIComponent(match[1]);
+    }
+    return '';
+  }
+
+  function collapseBuilderSections(root) {
+    if (!root || root.dataset.defaultCollapsed === 'true') return;
+    root.dataset.defaultCollapsed = 'true';
+    const close = () => root.querySelectorAll('#ww-builder > details, .ww-password-privacy-panel, .ww-theme-media-panel').forEach(detail => {
+      detail.open = false;
+    });
+    close();
+    setTimeout(close, 500);
+    setTimeout(close, 1200);
   }
 
   function defaultState() {
@@ -64,7 +79,7 @@
 
   async function imageToDataUrl(file) {
     if (!file || !file.type.startsWith('image/')) throw new Error('Please choose an image file.');
-    if (file.size > 850000) throw new Error('Please choose an image under 850 KB for now.');
+    if (file.size > 700000) throw new Error('Please choose an image under 700 KB for now.');
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(String(reader.result || ''));
@@ -94,8 +109,10 @@
     preview.style.setProperty('--ww-theme-bg', state.backgroundColor);
     preview.style.setProperty('--ww-theme-text', state.textColor);
     preview.className = `ww-theme-preview ww-theme-preview--${state.heroLayout}`;
-    preview.querySelector('.ww-theme-preview__hero').style.backgroundImage = state.coverImageUrl ? `linear-gradient(135deg, rgba(0,0,0,.42), rgba(0,0,0,.08)), url('${state.coverImageUrl}')` : '';
-    preview.querySelector('.ww-theme-preview__gallery').innerHTML = state.galleryImages.slice(0, 4).map(item => `<span style="background-image:url('${esc(item.imageUrl)}')"></span>`).join('');
+    const hero = preview.querySelector('.ww-theme-preview__hero');
+    if (hero) hero.style.backgroundImage = state.coverImageUrl ? `linear-gradient(135deg, rgba(0,0,0,.42), rgba(0,0,0,.08)), url('${state.coverImageUrl}')` : '';
+    const gallery = preview.querySelector('.ww-theme-preview__gallery');
+    if (gallery) gallery.innerHTML = state.galleryImages.slice(0, 4).map(item => `<span style="background-image:url('${esc(item.imageUrl)}')"></span>`).join('');
   }
 
   function renderGallery(panel) {
@@ -157,7 +174,7 @@
     if (!form || form.querySelector('.ww-theme-media-panel')) return null;
     const panel = document.createElement('details');
     panel.className = 'ww-theme-media-panel';
-    panel.open = true;
+    panel.open = false;
     panel.innerHTML = `
       <summary>Theme colours & photos</summary>
       <div class="ww-theme-media-card">
@@ -200,10 +217,11 @@
   async function init(root) {
     const form = root.querySelector('#ww-builder');
     if (!form || form.dataset.themeMediaReady === 'true') return;
+    const planId = planIdFromDom(root);
+    if (!planId) return;
     form.dataset.themeMediaReady = 'true';
     const panel = createPanel(root);
     if (!panel) return;
-    const planId = planIdFromDom(root);
     cachedPlanId = planId;
     try {
       const data = await api(`/api/me/plans/${encodeURIComponent(planId)}/wedding-website/theme-media`);
@@ -212,6 +230,7 @@
       cachedState = defaultState();
     }
     setState(panel, cachedState);
+    collapseBuilderSections(root);
     panel.addEventListener('input', event => {
       if (event.target.matches('input[type="color"], input[name="heroLayout"]')) applyPreview(panel);
     });
@@ -250,6 +269,10 @@
     panel.querySelector('[data-save-theme]').addEventListener('click', async () => {
       const button = panel.querySelector('[data-save-theme]');
       const msg = panel.querySelector('.ww-theme-message');
+      if (!cachedPlanId) {
+        msg.textContent = 'Unable to find the wedding plan. Please refresh and try again.';
+        return;
+      }
       button.disabled = true;
       button.textContent = 'Saving…';
       try {
@@ -259,7 +282,8 @@
           body: JSON.stringify(collect(panel)),
         });
         cachedState = data.themeMedia;
-        msg.textContent = 'Theme and photos saved.';
+        setState(panel, cachedState);
+        msg.textContent = 'Theme and photos saved. Preview has been updated.';
       } catch (err) { msg.textContent = err.message || 'Unable to save theme.'; }
       button.disabled = false;
       button.textContent = 'Save theme & photos';
@@ -271,10 +295,10 @@
     const timer = setInterval(() => {
       attempts += 1;
       const root = document.querySelector(rootSelector);
-      if (root?.querySelector('#ww-builder')) {
+      if (root?.querySelector('#ww-builder') && planIdFromDom(root)) {
         clearInterval(timer);
         init(root);
-      } else if (attempts > 80) clearInterval(timer);
+      } else if (attempts > 120) clearInterval(timer);
     }, 250);
   }
 
