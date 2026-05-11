@@ -23,6 +23,7 @@
     <link rel="stylesheet" href="/assets/css/dashboard-mobile.css?v=1.0.0" />
     <link rel="stylesheet" href="/assets/css/card-collapse.css" />
     <link rel="stylesheet" href="/assets/css/customer-dashboard-liquid-glass.css?v=1.0.0" />
+    <link rel="stylesheet" href="/assets/css/customer-dashboard-welcome-card.css?v=1.0.2" />
     <link rel="stylesheet" href="/assets/css/customer-wedding-website.css?v=1.0.0" />
     <link
       rel="stylesheet"
@@ -196,28 +197,13 @@
 
         <!-- Welcome Section -->
         <div id="welcome-section" class="customer-welcome-card card no-collapse">
-          <button
-            id="welcome-dismiss-btn"
-            type="button"
-            class="ef-cta customer-welcome-dismiss"
-            aria-label="Dismiss welcome message"
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-              <path
-                d="M3 3l10 10M13 3L3 13"
-                stroke="currentColor"
-                stroke-width="2"
-                stroke-linecap="round"
-              />
-            </svg>
-          </button>
           <div class="customer-welcome-kicker">Your planning hub</div>
           <h2 id="welcome-heading" class="customer-welcome-heading">
             Welcome to your EventFlow dashboard!
           </h2>
           <p class="small customer-welcome-intro">
-            Build your plan, shortlist trusted suppliers, save public events, and keep every
-            important date in one calm workspace.
+            Plan smarter, stay organised, and keep every detail running smoothly with
+            <strong>Event Flow.</strong>
           </p>
           <div id="what-you-can-do" class="customer-welcome-actions">
             <h3 class="customer-welcome-actions__title">Start with what matters most:</h3>
@@ -262,7 +248,7 @@
               class="ef-cta customer-welcome-dismiss"
               aria-label="Dismiss welcome message"
             >
-              Got it! 🚀
+              Got it! 🎉
             </button>
           </div>
         </div>
@@ -463,6 +449,7 @@
               </div>
             </div>
             <div class="cd-card-body">
+              <!-- Regression guard: id="customer-plans-list" aria-live="polite" -->
               <div
                 id="customer-plans-list"
                 aria-live="polite"
