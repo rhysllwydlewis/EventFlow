@@ -16,6 +16,7 @@
   const requiredKeys = ['coupleNames', 'eventDate', 'venue'];
   let lastPlanId = '';
   let lastWebsitePromise = null;
+  let lastPlanPromise = null;
 
   function esc(value) {
     return String(value || '').replace(/[&<>"']/g, ch => ({
@@ -89,6 +90,42 @@
     return String(root.querySelector(selector)?.value || '').trim();
   }
 
+  function firstValue(...values) {
+    return values.map(value => String(value || '').trim()).find(Boolean) || '';
+  }
+
+  function normaliseDate(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    return raw.slice(0, 10);
+  }
+
+  function derivePlanEssentials(plan) {
+    if (!plan) return {};
+    const venueName = firstValue(
+      plan.venueName,
+      plan.venue,
+      plan.location,
+      plan.venueDetails?.name,
+      plan.venueDetails?.venueName,
+      plan.selectedVenue?.name
+    );
+    const venueAddress = firstValue(
+      plan.venueAddress,
+      plan.address,
+      plan.venueDetails?.address,
+      plan.selectedVenue?.address,
+      plan.location
+    );
+    return {
+      eventDate: normaliseDate(plan.eventDate || plan.date || plan.weddingDate || plan.startDate),
+      ceremonyVenueName: venueName,
+      ceremonyVenueAddress: venueAddress,
+      receptionVenueName: firstValue(plan.receptionVenueName, plan.receptionVenue, venueName),
+      receptionVenueAddress: firstValue(plan.receptionVenueAddress, venueAddress),
+    };
+  }
+
   function collectEssentials(root) {
     return {
       coupleNames: valueOf(root, '[name="coupleNames"]'),
@@ -138,7 +175,7 @@
     const complete = states.filter(item => item.ok).length;
     const total = states.length;
     const ready = complete === total;
-    card.innerHTML = `<div class="ww-readiness-card__head"><div><p class="ww-readiness-kicker">Publish readiness</p><h4>${ready ? 'Ready to save and publish' : `${total - complete} item${total - complete === 1 ? '' : 's'} left before publishing`}</h4></div><span class="ww-readiness-score ${ready ? 'ww-readiness-score--ready' : ''}">${complete}/${total}</span></div><div class="ww-readiness-list">${states.map(item => `<button type="button" class="ww-readiness-item ${item.ok ? 'is-complete' : ''}" data-target="${esc(item.key)}"><span aria-hidden="true">${item.ok ? '✓' : '•'}</span><strong>${esc(item.label)}</strong><small>${item.ok ? 'Completed' : esc(item.help)}</small></button>`).join('')}</div>${ready ? '<p class="ww-publish-helper">These essentials are complete. Publish will now save these details first, then publish the website.</p>' : ''}`;
+    card.innerHTML = `<div class="ww-readiness-card__head"><div><p class="ww-readiness-kicker">Publish readiness</p><h4>${ready ? 'Ready to save and publish' : `${total - complete} item${total - complete === 1 ? '' : 's'} left before publishing`}</h4></div><span class="ww-readiness-score ${ready ? 'ww-readiness-score--ready' : ''}">${complete}/${total}</span></div><div class="ww-readiness-list">${states.map(item => `<button type="button" class="ww-readiness-item ${item.ok ? 'is-complete' : ''}" data-target="${esc(item.key)}"><span aria-hidden="true">${item.ok ? '✓' : '•'}</span><strong>${esc(item.label)}</strong><small>${item.ok ? 'Completed' : esc(item.help)}</small></button>`).join('')}</div>${ready ? '<p class="ww-publish-helper">These essentials are complete. Publish will now save these details first, then publish the website.</p>' : '<p class="small ww-publish-helper">If these details already exist in your event plan, EventFlow will prefill them from the database rather than relying on local browser storage.</p>'}`;
     card.querySelectorAll('[data-target]').forEach(button => {
       button.addEventListener('click', () => focusTarget(button.dataset.target));
     });
@@ -160,29 +197,63 @@
       headers: { 'Cache-Control': 'no-cache' },
     })
       .then(res => (res.ok ? res.json() : null))
-      .then(data => data?.website || null)
+      .then(data => data?.website || data?.site || data?.data?.website || null)
       .catch(() => null);
     return lastWebsitePromise;
   }
 
-  function ensureEssentialsFields(root, website) {
+  async function fetchPlan(planId) {
+    if (!planId) return null;
+    if (lastPlanId === planId && lastPlanPromise) return lastPlanPromise;
+    lastPlanPromise = fetch('/api/me/plans', {
+      credentials: 'same-origin',
+      headers: { 'Cache-Control': 'no-cache' },
+    })
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => (data?.plans || []).find(plan => String(plan.id) === String(planId)) || null)
+      .catch(() => null);
+    return lastPlanPromise;
+  }
+
+  function applyPlanFallbacks(root, website, plan) {
+    const fallback = derivePlanEssentials(plan);
+    const mapping = {
+      eventDate: normaliseDate(website?.eventDate) || fallback.eventDate,
+      ceremonyVenueName: firstValue(website?.ceremonyVenueName, website?.venueName, fallback.ceremonyVenueName),
+      ceremonyVenueAddress: firstValue(website?.ceremonyVenueAddress, website?.venueAddress, fallback.ceremonyVenueAddress),
+      receptionVenueName: firstValue(website?.receptionVenueName, fallback.receptionVenueName),
+      receptionVenueAddress: firstValue(website?.receptionVenueAddress, fallback.receptionVenueAddress),
+    };
+    Object.entries(mapping).forEach(([name, value]) => {
+      const input = root.querySelector(`[name="${name}"]`);
+      if (input && !String(input.value || '').trim() && value) {
+        input.value = value;
+      }
+    });
+  }
+
+  function ensureEssentialsFields(root, website, plan) {
     const form = root.querySelector('#ww-builder');
-    if (!form || form.querySelector('.ww-publish-essentials')) return;
+    if (!form || form.querySelector('.ww-publish-essentials')) {
+      applyPlanFallbacks(root, website, plan);
+      return;
+    }
     const essentials = Array.from(form.querySelectorAll('details')).find(d =>
       String(d.querySelector('summary')?.textContent || '').trim().toLowerCase().includes('essentials')
     );
     if (!essentials) return;
+    const fallback = derivePlanEssentials(plan);
     const panel = document.createElement('div');
     panel.className = 'ww-publish-essentials';
     panel.innerHTML = `
       <div class="ww-form-grid ww-form-grid--publish">
-        <label>Event Date<input name="eventDate" type="date" value="${esc(String(website?.eventDate || '').slice(0, 10))}"></label>
-        <label>Ceremony Venue Name<input name="ceremonyVenueName" value="${esc(website?.ceremonyVenueName || '')}" placeholder="e.g. Cardiff Church"></label>
-        <label>Ceremony Venue Address<input name="ceremonyVenueAddress" value="${esc(website?.ceremonyVenueAddress || '')}" placeholder="Address guests can use for directions"></label>
-        <label>Reception Venue Name<input name="receptionVenueName" value="${esc(website?.receptionVenueName || '')}" placeholder="e.g. The Manor House"></label>
-        <label>Reception Venue Address<input name="receptionVenueAddress" value="${esc(website?.receptionVenueAddress || '')}" placeholder="Address guests can use for directions"></label>
+        <label>Event Date<input name="eventDate" type="date" value="${esc(normaliseDate(website?.eventDate) || fallback.eventDate)}"></label>
+        <label>Ceremony Venue Name<input name="ceremonyVenueName" value="${esc(firstValue(website?.ceremonyVenueName, website?.venueName, fallback.ceremonyVenueName))}" placeholder="e.g. Cardiff Church"></label>
+        <label>Ceremony Venue Address<input name="ceremonyVenueAddress" value="${esc(firstValue(website?.ceremonyVenueAddress, website?.venueAddress, fallback.ceremonyVenueAddress))}" placeholder="Address guests can use for directions"></label>
+        <label>Reception Venue Name<input name="receptionVenueName" value="${esc(firstValue(website?.receptionVenueName, fallback.receptionVenueName))}" placeholder="e.g. The Manor House"></label>
+        <label>Reception Venue Address<input name="receptionVenueAddress" value="${esc(firstValue(website?.receptionVenueAddress, fallback.receptionVenueAddress))}" placeholder="Address guests can use for directions"></label>
       </div>
-      <p class="small ww-publish-helper">Publishing needs an event date and at least one venue name. These details also improve the public schedule, venue cards and map links.</p>`;
+      <p class="small ww-publish-helper">Publishing readiness now reads saved database values from your wedding website and event plan. It does not rely on local browser storage.</p>`;
     essentials.querySelector('summary').insertAdjacentElement('afterend', panel);
     panel.addEventListener('input', () => {
       renderReadinessCard(root);
@@ -227,8 +298,9 @@
     const form = root.querySelector('#ww-builder');
     if (!form || root.dataset.publishMopUpReady === 'true') return;
     root.dataset.publishMopUpReady = 'true';
-    const website = await fetchWebsite(findPlanId(root));
-    ensureEssentialsFields(root, website);
+    const planId = findPlanId(root);
+    const [website, plan] = await Promise.all([fetchWebsite(planId), fetchPlan(planId)]);
+    ensureEssentialsFields(root, website, plan);
     enhancePreviewLink(root);
     renderReadinessCard(root);
     form.addEventListener('input', event => {
