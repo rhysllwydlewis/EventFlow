@@ -57,18 +57,47 @@
     }
   }
 
+  function renderShareCard(root, website) {
+    const actions = root.querySelector('.ww-builder-actions, .ww-actions');
+    if (!actions || !website) return;
+    let card = root.querySelector('.ww-share-card');
+    if (!card) {
+      card = document.createElement('section');
+      card.className = 'ww-share-card';
+      actions.after(card);
+    }
+    const url = website.slug ? `${window.location.origin}/wedding/${encodeURIComponent(website.slug)}` : '';
+    const isLive = website.shareable || website.status === 'published';
+    const modeLabel = website.visibility === 'password' ? 'Password protected' : website.visibility === 'public' ? 'Public' : 'Anyone with link';
+    card.innerHTML = isLive
+      ? `<div class="ww-share-card__head"><h4>Your wedding website is live</h4><span class="ww-share-pill">${esc(modeLabel)}</span></div><p class="ww-share-note">Share this link with guests.${website.visibility === 'password' ? ' Send the password separately. EventFlow will never show the saved password again.' : ''}</p><div class="ww-share-link-row"><input readonly value="${esc(url)}" aria-label="Wedding website guest link"><button type="button" class="cta secondary small ww-copy-link">Copy guest link</button></div>`
+      : `<div class="ww-share-card__head"><h4>Your wedding website is saved as a draft</h4><span class="ww-share-pill ww-share-pill--draft">Not live yet</span></div><p class="ww-share-note">Publish your wedding website before sharing it with guests. EventFlow will avoid placeholder links such as <strong>/wedding/wedding-website</strong>.</p>${url ? `<div class="ww-share-link-row"><input readonly value="${esc(url)}" aria-label="Draft website link"><button type="button" class="cta secondary small" disabled>Publish first</button></div>` : ''}`;
+    const copyBtn = card.querySelector('.ww-copy-link');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(url);
+          copyBtn.textContent = 'Copied';
+          setTimeout(() => (copyBtn.textContent = 'Copy guest link'), 1400);
+        } catch (_err) {
+          const input = card.querySelector('input');
+          input?.select?.();
+          copyBtn.textContent = 'Select link';
+        }
+      });
+    }
+  }
+
   async function refreshState(root, form) {
     const planId = planIdFromDom(root);
-    if (!planId || form.dataset.privacyLoaded === planId) {
-      return;
-    }
+    if (!planId) return;
     try {
       const data = await api(`/api/me/plans/${encodeURIComponent(planId)}/wedding-website`);
       const website = data.website || {};
       form.dataset.privacyLoaded = planId;
       form.dataset.passwordSet = website.passwordSet ? 'true' : 'false';
       const visibility = website.visibility || 'private_link';
-      const selected = form.querySelector(`input[name='visibility'][value='${CSS.escape(visibility)}']`);
+      const selected = form.querySelector(`input[name='visibility'][value='${window.CSS?.escape ? CSS.escape(visibility) : visibility}']`);
       if (selected) selected.checked = true;
       const state = form.querySelector('.ww-password-state');
       if (state) {
@@ -77,6 +106,7 @@
           : 'No password is stored yet. You must set one before enabling password protection.';
       }
       updateVisibilityUi(form);
+      renderShareCard(root, website);
     } catch (_err) {
       const state = form.querySelector('.ww-password-state');
       if (state) {
@@ -138,6 +168,11 @@
         passwordInput.reportValidity();
         setTimeout(() => passwordInput.setCustomValidity(''), 800);
       }
+      setTimeout(() => {
+        const freshRoot = document.querySelector(rootSelector);
+        const freshForm = freshRoot?.querySelector('#ww-builder');
+        if (freshRoot && freshForm) refreshState(freshRoot, freshForm);
+      }, 900);
     },
     true
   );
