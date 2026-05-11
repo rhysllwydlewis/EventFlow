@@ -140,7 +140,7 @@
         <h3 class="recommendations-title">Recommended for You</h3>
         <a href="/suppliers" class="recommendations-view-all">View All →</a>
       </div>
-      <div class="recommendations-grid recommendations-grid--single-row">
+      <div class="recommendations-grid recommendations-grid--single-row" style="display:grid;grid-template-columns:repeat(${RECOMMENDATION_LIMIT},minmax(0,1fr));gap:1rem;align-items:stretch;overflow:hidden;">
         ${recommendations
           .slice(0, RECOMMENDATION_LIMIT)
           .map(supplier => {
@@ -160,7 +160,7 @@
               : '';
             const rankingReason = supplier.rankingReason ? escapeHtml(supplier.rankingReason) : '';
             return `
-          <a href="${href}" class="recommendation-card" aria-label="View ${name}" style="text-decoration: none; color: inherit; display: block; cursor: pointer;">
+          <a href="${href}" class="recommendation-card" aria-label="View ${name}" style="text-decoration:none;color:inherit;display:block;cursor:pointer;min-width:0;">
             <div class="recommendation-card__top">
               ${recommendationAvatar(rawName, logoSrc)}
               <div class="recommendation-card__identity">
