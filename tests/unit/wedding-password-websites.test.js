@@ -56,6 +56,21 @@ const plans = [
       rsvpEnabled: true,
     },
   },
+  {
+    id: 'placeholder-plan',
+    userId: 'u1',
+    name: 'Wedding Website',
+    guestList: [],
+    weddingWebsite: {
+      slug: 'wedding-website',
+      status: 'draft',
+      visibility: 'private_link',
+      coupleNames: 'Rhys & Jade',
+      eventDate: '2027-07-01',
+      ceremonyVenueName: 'The Venue',
+      rsvpEnabled: true,
+    },
+  },
 ];
 
 jest.mock('../../db-unified', () => ({
@@ -197,5 +212,45 @@ describe('password protected wedding websites', () => {
 
     res = await request(app).get('/api/public/wedding-websites/draft-password-wedding');
     expect(res.status).toBe(404);
+  });
+
+  test('reserved placeholder slug is rejected on manual save', async () => {
+    const res = await request(app)
+      .patch('/api/me/plans/plain-plan/wedding-website')
+      .send({ slug: 'wedding-website' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/personal website link/i);
+  });
+
+  test('reserved placeholder slug is never publicly available', async () => {
+    const res = await request(app).get('/api/public/wedding-websites/wedding-website');
+
+    expect(res.status).toBe(404);
+    expect(res.body.error).toMatch(/not available/i);
+  });
+
+  test('publish repairs legacy placeholder slug before going live', async () => {
+    const res = await request(app).post('/api/me/plans/placeholder-plan/wedding-website/publish');
+
+    expect(res.status).toBe(200);
+    expect(res.body.website.slug).not.toBe('wedding-website');
+    expect(res.body.website.slug).toBe('rhys-jade');
+    expect(res.body.website.shareable).toBe(true);
+  });
+
+  test('switching away from password clears stored hash', async () => {
+    await request(app)
+      .patch('/api/me/plans/password-plan/wedding-website')
+      .send({ visibility: 'password', password: 'guest-secret' });
+
+    const res = await request(app)
+      .patch('/api/me/plans/password-plan/wedding-website')
+      .send({ visibility: 'public' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.website.passwordHash).toBeUndefined();
+    expect(res.body.website.passwordSet).toBe(false);
+    expect(plans[1].weddingWebsite.passwordHash).toBeUndefined();
   });
 });
