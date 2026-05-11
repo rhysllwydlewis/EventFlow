@@ -172,6 +172,7 @@
     ['wedding-theme-media-css', '/assets/css/wedding-theme-media.css?v=1.0.0'],
     ['wedding-theme-media-polish-css', '/assets/css/wedding-theme-media-polish.css?v=1.0.0'],
     ['wedding-mobile-stabilisation-css', '/assets/css/wedding-mobile-stabilisation.css?v=1.0.0'],
+    ['wedding-compact-polish-css', '/assets/css/wedding-compact-polish.css?v=1.0.0'],
   ];
   cssAssets.forEach(([id, href]) => {
     if (!document.getElementById(id)) {
