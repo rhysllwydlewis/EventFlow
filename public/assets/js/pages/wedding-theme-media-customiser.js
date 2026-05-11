@@ -103,11 +103,22 @@
     const list = panel.querySelector('.ww-media-gallery-list');
     if (!list) return;
     list.innerHTML = gallery.length
-      ? gallery.map((item, index) => `<article class="ww-media-thumb"><img src="${esc(item.imageUrl)}" alt="${esc(item.alt || item.caption || 'Gallery image')}"><input value="${esc(item.caption || '')}" placeholder="Optional caption" data-caption-index="${index}"><button type="button" data-remove-gallery="${index}" aria-label="Remove image">Remove</button></article>`).join('')
+      ? gallery.map((item, index) => `<article class="ww-media-thumb"><img src="${esc(item.imageUrl)}" alt="${esc(item.alt || item.caption || 'Gallery image')}"><input value="${esc(item.caption || '')}" placeholder="Optional caption" data-caption-index="${index}"><div class="ww-media-thumb__actions"><button type="button" data-move-gallery="${index}" data-direction="up" ${index === 0 ? 'disabled' : ''}>Move up</button><button type="button" data-move-gallery="${index}" data-direction="down" ${index === gallery.length - 1 ? 'disabled' : ''}>Move down</button><button type="button" data-remove-gallery="${index}" aria-label="Remove image">Remove</button></div></article>`).join('')
       : '<p class="small">No gallery photos yet. Add a few moments guests will love.</p>';
     list.querySelectorAll('[data-remove-gallery]').forEach(button => button.addEventListener('click', () => {
       const next = JSON.parse(panel.dataset.galleryImages || '[]');
       next.splice(Number(button.dataset.removeGallery), 1);
+      panel.dataset.galleryImages = JSON.stringify(next);
+      renderGallery(panel);
+      applyPreview(panel);
+    }));
+    list.querySelectorAll('[data-move-gallery]').forEach(button => button.addEventListener('click', () => {
+      const next = JSON.parse(panel.dataset.galleryImages || '[]');
+      const from = Number(button.dataset.moveGallery);
+      const to = button.dataset.direction === 'up' ? from - 1 : from + 1;
+      if (to < 0 || to >= next.length) return;
+      const [item] = next.splice(from, 1);
+      next.splice(to, 0, item);
       panel.dataset.galleryImages = JSON.stringify(next);
       renderGallery(panel);
       applyPreview(panel);
