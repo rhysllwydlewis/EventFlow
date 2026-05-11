@@ -45,9 +45,13 @@
   }
 
   function planIdFromDom(root) {
-    const exportLink = root.querySelector("a[href*='/api/me/plans/'][href$='/guests/export.csv']");
-    const match = exportLink?.getAttribute('href')?.match(/\/api\/me\/plans\/([^/]+)\/guests\/export\.csv/);
-    return match ? decodeURIComponent(match[1]) : '';
+    if (root?.dataset?.planId) return root.dataset.planId;
+    const candidates = Array.from(root.querySelectorAll("a[href*='/api/me/plans/'], a[href*='/guests/export.csv']"));
+    for (const link of candidates) {
+      const match = link.getAttribute('href')?.match(/\/api\/me\/plans\/([^/]+)/);
+      if (match) return decodeURIComponent(match[1]);
+    }
+    return '';
   }
 
   function updateVisibilityUi(form) {
@@ -110,6 +114,7 @@
 
   async function refreshState(root, form) {
     const planId = planIdFromDom(root);
+    if (!planId) return;
     const website = await getWebsiteState(planId);
     if (!website) {
       const state = form.querySelector('.ww-password-state');
@@ -138,7 +143,7 @@
     const slug = preview ? preview.getAttribute('href').split('/').filter(Boolean).pop() : '';
     const privacyPanel = document.createElement('details');
     privacyPanel.className = 'ww-password-privacy-panel';
-    privacyPanel.open = true;
+    privacyPanel.open = false;
     privacyPanel.innerHTML = `
       <summary>Privacy & password protection</summary>
       <div class="ww-privacy-card">
@@ -195,10 +200,10 @@
     const timer = setInterval(() => {
       attempts += 1;
       const root = document.querySelector(rootSelector);
-      if (root?.querySelector('#ww-builder')) {
+      if (root?.querySelector('#ww-builder') && planIdFromDom(root)) {
         clearInterval(timer);
         injectControls(root);
-      } else if (attempts > 80) {
+      } else if (attempts > 120) {
         clearInterval(timer);
       }
     }, 250);

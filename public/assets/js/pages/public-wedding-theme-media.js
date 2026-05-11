@@ -31,6 +31,7 @@
     if (hero && theme.coverImageUrl) {
       hero.classList.add('wed-hero--image');
       hero.style.setProperty('--hero-image', `url('${theme.coverImageUrl}')`);
+      hero.style.backgroundImage = `linear-gradient(135deg, rgba(0,0,0,.44), rgba(0,0,0,.12)), url('${theme.coverImageUrl}')`;
     }
 
     const gallery = Array.isArray(theme.galleryImages) ? theme.galleryImages.filter(item => item && item.imageUrl) : [];
@@ -45,14 +46,28 @@
     else root.appendChild(section);
   }
 
+  async function loadFromThemeEndpoint() {
+    const response = await fetch(`/api/public/wedding-websites/${encodeURIComponent(slug)}/theme-media`, {
+      credentials: 'same-origin',
+    });
+    if (!response.ok) return null;
+    const data = await response.json().catch(() => ({}));
+    return data.themeMedia || null;
+  }
+
+  async function loadFromWebsitePayload() {
+    const response = await fetch(`/api/public/wedding-websites/${encodeURIComponent(slug)}`, {
+      credentials: 'same-origin',
+    });
+    if (!response.ok) return null;
+    const data = await response.json().catch(() => ({}));
+    return data.website || null;
+  }
+
   async function load() {
     try {
-      const response = await fetch(`/api/public/wedding-websites/${encodeURIComponent(slug)}/theme-media`, {
-        credentials: 'same-origin',
-      });
-      if (!response.ok) return;
-      const data = await response.json().catch(() => ({}));
-      apply(data.themeMedia);
+      const theme = (await loadFromThemeEndpoint()) || (await loadFromWebsitePayload());
+      apply(theme);
     } catch (_err) {
       // Decorative enhancement only. Never block the public website.
     }
