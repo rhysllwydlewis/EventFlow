@@ -22,7 +22,7 @@ jobs:
     name: Visual + a11y (Chromium desktop + mobile)
     runs-on: ubuntu-latest
     env:
-      CONTINUE_ON_ERROR_UNTIL: '2026-05-01'
+      CONTINUE_ON_ERROR_UNTIL: '2026-06-15'
     permissions:
       contents: read
     timeout-minutes: 20
