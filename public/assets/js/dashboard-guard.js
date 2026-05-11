@@ -172,6 +172,18 @@
     }
   }
 
+  function loadCustomerDashboardMopUp() {
+    if (requiredRole !== 'customer' || document.getElementById('customer-dashboard-mop-up-script')) {
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.id = 'customer-dashboard-mop-up-script';
+    script.src = '/assets/js/customer-dashboard-mop-up.js?v=1.0.0';
+    script.defer = true;
+    document.head.appendChild(script);
+  }
+
   try {
     // Fetch current user with cache-busting
     // Using timestamp + random value for better cache-busting
@@ -257,6 +269,7 @@
     } catch (e) {
       // Ignore sessionStorage errors
     }
+    loadCustomerDashboardMopUp();
     showPage();
   } catch (error) {
     console.error('Dashboard guard error:', error);
