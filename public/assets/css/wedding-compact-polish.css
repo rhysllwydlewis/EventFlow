@@ -1,0 +1,67 @@
+/* Compact liquid-glass polish for Wedding Website mobile controls. */
+:root { --ww-compact-button-height: 36px; }
+
+.ww-share-card,
+.ww-readiness-card,
+.ww-publish-essentials,
+.ww-theme-media-card,
+.ww-privacy-card,
+.ww-module-block,
+.ww-builder details {
+  border-color: rgba(255, 255, 255, 0.44) !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.76), rgba(240, 253, 250, 0.58)) !important;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.88) !important;
+}
+
+.ww-builder button,
+.ww-builder .cta,
+.ww-share-card button,
+.ww-readiness-card button,
+.ww-status-msg button,
+.ww-theme-media-panel button,
+.ww-modal button,
+.wed-form button,
+.wed-hero__actions .btn {
+  min-height: var(--ww-compact-button-height) !important;
+  padding: 0.44rem 0.72rem !important;
+}
+
+.ww-builder .cta.small,
+.ww-share-card .cta.small,
+.ww-theme-media-panel .cta.small,
+.ww-media-thumb button,
+.ww-pagination button,
+.seat-card button {
+  min-height: 32px !important;
+  padding: 0.34rem 0.56rem !important;
+}
+
+.ww-readiness-item,
+.ww-checklist-link,
+.ww-palette,
+.ww-radio-row,
+.ww-colour-grid label,
+.ww-layout-row label {
+  border-radius: 14px !important;
+}
+
+@media (max-width: 700px) {
+  .ww-share-card,
+  .ww-readiness-card,
+  .ww-publish-essentials,
+  .ww-theme-media-card,
+  .ww-privacy-card,
+  .ww-module-block,
+  .ww-builder details {
+    padding: 0.68rem !important;
+  }
+
+  .ww-readiness-item,
+  .ww-checklist-link,
+  .ww-palette,
+  .ww-radio-row,
+  .ww-colour-grid label,
+  .ww-layout-row label {
+    padding: 0.6rem 0.68rem !important;
+  }
+}
