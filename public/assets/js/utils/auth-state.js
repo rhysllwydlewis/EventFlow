@@ -317,3 +317,30 @@
     };
   }
 })();
+
+(function loadWeddingDashboardModalPolish() {
+  'use strict';
+
+  const customerDashboardPaths = ['/dashboard/customer', '/dashboard-customer.html'];
+  if (!customerDashboardPaths.includes(window.location.pathname)) {
+    return;
+  }
+
+  const cssId = 'wedding-dashboard-modal-polish-css';
+  if (!document.getElementById(cssId)) {
+    const link = document.createElement('link');
+    link.id = cssId;
+    link.rel = 'stylesheet';
+    link.href = '/assets/css/wedding-dashboard-modal-polish.css?v=1.0.1';
+    document.head.appendChild(link);
+  }
+
+  const jsId = 'wedding-dashboard-modal-polish-js';
+  if (!document.getElementById(jsId)) {
+    const script = document.createElement('script');
+    script.id = jsId;
+    script.src = '/assets/js/pages/wedding-dashboard-modal-polish.js?v=1.0.1';
+    script.defer = true;
+    document.head.appendChild(script);
+  }
+})();
