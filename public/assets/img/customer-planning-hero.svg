@@ -1,0 +1,51 @@
+<svg width="560" height="292" viewBox="0 0 560 292" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Event planning calendar illustration</title>
+  <desc id="desc">A calendar with a completed date, notes, and leaves.</desc>
+  <ellipse cx="339" cy="153" rx="216" ry="123" fill="#D8F4EC" fill-opacity=".78"/>
+  <ellipse cx="359" cy="220" rx="196" ry="31" fill="#BEEBDE" fill-opacity=".55"/>
+  <g filter="url(#soft)">
+    <rect x="252" y="24" width="240" height="226" rx="24" fill="white"/>
+    <path d="M252 48c0-13.255 10.745-24 24-24h192c13.255 0 24 10.745 24 24v45H252V48z" fill="#5AD49D"/>
+    <path d="M456 24h12c13.255 0 24 10.745 24 24v45h-22V49c0-13.807-11.193-25-25-25h11z" fill="#159C72"/>
+    <rect x="299" y="121" width="35" height="36" rx="8" fill="#EFF5F4"/>
+    <rect x="347" y="121" width="35" height="36" rx="8" fill="#EFF5F4"/>
+    <rect x="395" y="121" width="35" height="36" rx="8" fill="#EFF5F4"/>
+    <rect x="443" y="121" width="35" height="36" rx="8" fill="#EFF5F4"/>
+    <rect x="299" y="169" width="35" height="36" rx="8" fill="#EFF5F4"/>
+    <rect x="347" y="169" width="35" height="36" rx="8" fill="#EFF5F4"/>
+    <rect x="395" y="169" width="35" height="36" rx="8" fill="#39BE86"/>
+    <rect x="443" y="169" width="35" height="36" rx="8" fill="#EFF5F4"/>
+    <rect x="299" y="217" width="35" height="36" rx="8" fill="#EFF5F4"/>
+    <rect x="347" y="217" width="35" height="36" rx="8" fill="#EFF5F4"/>
+    <circle cx="414" cy="236" r="5" fill="#D1E3DF"/>
+    <circle cx="462" cy="236" r="5" fill="#D1E3DF"/>
+    <path d="M404 187l9 9 18-21" stroke="white" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <g filter="url(#soft)">
+    <rect x="84" y="121" width="118" height="98" rx="11" transform="rotate(8 84 121)" fill="white"/>
+    <path d="M111 151l61 9M108 173l72 10M105 194l52 8" stroke="#C7D3D7" stroke-width="5" stroke-linecap="round"/>
+  </g>
+  <circle cx="173" cy="221" r="21" fill="white"/>
+  <circle cx="173" cy="221" r="15" fill="#8DE0BC"/>
+  <path d="M166 221l5 5 10-12" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M456 224c31-43 63-60 96-72-11 44-34 76-68 95l-28-23z" fill="#86DFB7"/>
+  <path d="M481 226c31-10 59-34 71-74" stroke="#51B982" stroke-width="4" stroke-linecap="round"/>
+  <path d="M440 219c-27-41-58-58-92-69 11 43 36 74 71 91l21-22z" fill="#59CB98" fill-opacity=".74"/>
+  <path d="M437 218c-28-12-66-43-89-68" stroke="#2FA976" stroke-width="4" stroke-linecap="round"/>
+  <path d="M452 218c14-28 33-46 58-55-7 31-23 54-48 70l-10-15z" fill="#6ED6A8"/>
+  <path d="M441 222h63l-9 46h-45l-9-46z" fill="#E4ECEE"/>
+  <ellipse cx="472" cy="268" rx="57" ry="9" fill="#CBDCDC"/>
+  <rect x="292" y="0" width="18" height="45" rx="9" fill="#DEECEE"/>
+  <rect x="418" y="0" width="18" height="45" rx="9" fill="#DEECEE"/>
+  <rect x="299" y="6" width="9" height="35" rx="4.5" fill="#C9DEE1"/>
+  <rect x="425" y="6" width="9" height="35" rx="4.5" fill="#C9DEE1"/>
+  <path d="M36 79l5 13 13 5-13 5-5 13-5-13-13-5 13-5 5-13z" fill="#27B779"/>
+  <circle cx="12" cy="126" r="4" fill="#BFEAE0"/>
+  <circle cx="91" cy="101" r="3" fill="#BFEAE0"/>
+  <path d="M544 76l4 10 10 4-10 4-4 10-4-10-10-4 10-4 4-10z" fill="#CDEBE4"/>
+  <defs>
+    <filter id="soft" x="50" y="-20" width="480" height="310" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="12" stdDeviation="11" flood-color="#0F172A" flood-opacity=".09"/>
+    </filter>
+  </defs>
+</svg>
