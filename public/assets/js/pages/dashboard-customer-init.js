@@ -615,10 +615,39 @@ function makeWelcomeContextual(plans) {
 
   if (!hasBudget && !lsBudget) {
     promptContainer.innerHTML = `
-      <div class="customer-welcome-prompt customer-welcome-prompt--budget">
+      <div class="customer-welcome-prompt customer-welcome-prompt--budget" role="link" tabindex="0" aria-label="Set your budget">
         <span>💰</span>
         <span>Don't forget to <a href="#budget-settings-form" style="color:inherit;font-weight:600;text-decoration:underline;">set your budget</a> so we can track your spending accurately.</span>
       </div>`;
+
+    const budgetPrompt = promptContainer.querySelector('.customer-welcome-prompt--budget');
+    const scrollToBudget = () => {
+      const budgetForm = document.getElementById('budget-settings-form');
+      if (budgetForm) {
+        budgetForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const firstInput = budgetForm.querySelector('input, select, textarea, button');
+        if (firstInput && typeof firstInput.focus === 'function') {
+          firstInput.focus({ preventScroll: true });
+        }
+      } else {
+        window.location.hash = 'budget-settings-form';
+      }
+    };
+
+    if (budgetPrompt) {
+      budgetPrompt.addEventListener('click', event => {
+        if (event.target.closest('a')) {
+          return;
+        }
+        scrollToBudget();
+      });
+      budgetPrompt.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          scrollToBudget();
+        }
+      });
+    }
     return;
   }
 
