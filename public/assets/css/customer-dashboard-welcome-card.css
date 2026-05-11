@@ -1,0 +1,512 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700;800;900&display=swap');
+
+/* EventFlow customer dashboard welcome card refresh
+   Scoped visual polish for /dashboard/customer. */
+
+body.customer-dashboard-page {
+  --ef-welcome-ink: #101828;
+  --ef-welcome-muted: #475467;
+  --ef-welcome-teal: #0b8073;
+  --ef-welcome-green: #16a34a;
+  --ef-welcome-amber: #c45a11;
+}
+
+body.customer-dashboard-page .customer-welcome-card {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: 24px;
+  border: 1px solid rgba(11, 128, 115, 0.16);
+  background:
+    radial-gradient(320px 210px at 88% 18%, rgba(19, 182, 162, 0.13), transparent 72%),
+    radial-gradient(320px 220px at 18% 6%, rgba(220, 252, 231, 0.46), transparent 70%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(249, 253, 252, 0.92));
+  box-shadow:
+    0 18px 46px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+  padding: clamp(1.15rem, 2.2vw, 1.85rem);
+  margin-bottom: 1.5rem;
+}
+
+body.customer-dashboard-page .customer-welcome-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: auto;
+  pointer-events: none;
+  z-index: -2;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.68), transparent 48%),
+    radial-gradient(circle at 70.9% 14.8%, rgba(11, 128, 115, 0.2) 0 4px, transparent 5px),
+    radial-gradient(circle at 73.8% 20.2%, rgba(11, 128, 115, 0.12) 0 2px, transparent 3px),
+    radial-gradient(circle at 75.8% 24.3%, rgba(11, 128, 115, 0.16) 0 3px, transparent 4px),
+    radial-gradient(circle at 97.5% 16%, rgba(11, 128, 115, 0.08) 0 5px, transparent 6px);
+}
+
+/* Right-hand calendar/plant illustration built in CSS so no extra asset is required. */
+body.customer-dashboard-page .customer-welcome-card::after {
+  content: '';
+  position: absolute;
+  top: clamp(1.05rem, 2vw, 1.5rem);
+  right: clamp(2rem, 7vw, 7.8rem);
+  width: clamp(210px, 25vw, 335px);
+  height: clamp(150px, 16vw, 210px);
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.9;
+  background:
+    /* calendar rings */
+    linear-gradient(#d6eee9, #d6eee9) 49.8% 1% / 7px 28px no-repeat,
+    linear-gradient(#d6eee9, #d6eee9) 65.5% 1% / 7px 28px no-repeat,
+    /* calendar top */
+    linear-gradient(135deg, #6ee7b7, #0b9f74) 36% 12% / 46% 27% no-repeat,
+    /* calendar check */
+    radial-gradient(circle at 56.5% 56%, #42c78d 0 16px, transparent 17px),
+    linear-gradient(135deg, transparent 0 38%, #fff 38% 48%, transparent 48%) 54.5% 56.5% / 21px 15px no-repeat,
+    linear-gradient(45deg, transparent 0 42%, #fff 42% 54%, transparent 54%) 58.3% 53% / 23px 18px no-repeat,
+    /* calendar cells */
+    repeating-linear-gradient(90deg, rgba(15, 23, 42, 0.06) 0 16%, transparent 16% 25%) 36% 52% / 40% 48% no-repeat,
+    repeating-linear-gradient(180deg, rgba(15, 23, 42, 0.04) 0 24%, transparent 24% 33%) 36% 52% / 40% 48% no-repeat,
+    /* note */
+    linear-gradient(8deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.92)) 12% 52% / 25% 34% no-repeat,
+    repeating-linear-gradient(8deg, rgba(148, 163, 184, 0.46) 0 3px, transparent 3px 14px) 13.5% 54% / 20% 22% no-repeat,
+    radial-gradient(circle at 29% 72%, #7bd7ad 0 13px, transparent 14px),
+    linear-gradient(45deg, transparent 0 44%, #fff 44% 55%, transparent 55%) 28.7% 72.5% / 15px 13px no-repeat,
+    linear-gradient(135deg, transparent 0 44%, #fff 44% 55%, transparent 55%) 31% 70.6% / 15px 13px no-repeat,
+    /* plant leaves + pot */
+    radial-gradient(ellipse at 82% 56%, rgba(52, 211, 153, 0.72) 0 18px, transparent 19px),
+    radial-gradient(ellipse at 90% 49%, rgba(52, 211, 153, 0.82) 0 22px, transparent 23px),
+    radial-gradient(ellipse at 88% 66%, rgba(16, 185, 129, 0.78) 0 25px, transparent 26px),
+    linear-gradient(180deg, #e8eef0, #d2dcde) 84% 77% / 38px 40px no-repeat,
+    /* calendar body */
+    linear-gradient(180deg, #fff 0%, #f7faf9 100%) 36% 55% / 46% 73% no-repeat,
+    /* soft background blob */
+    radial-gradient(ellipse at 67% 55%, rgba(153, 226, 202, 0.32) 0 39%, transparent 40%);
+  border-radius: 26px;
+  filter: drop-shadow(0 18px 26px rgba(11, 128, 115, 0.08));
+}
+
+/* The original top dismiss button has the working JS listener because of a duplicate id.
+   Keep that real button, restyle it as the visible footer CTA, and hide the duplicate footer button. */
+body.customer-dashboard-page .customer-welcome-card > .customer-welcome-dismiss:first-child {
+  position: absolute;
+  right: clamp(1.25rem, 2.7vw, 1.85rem);
+  bottom: clamp(1.08rem, 2.2vw, 1.75rem);
+  z-index: 4;
+  min-width: 120px;
+  min-height: 48px;
+  padding: 0.78rem 1.35rem !important;
+  border: 0 !important;
+  border-radius: 12px !important;
+  background: linear-gradient(135deg, #22c55e, #16a34a) !important;
+  color: #fff !important;
+  box-shadow: 0 10px 22px rgba(22, 163, 74, 0.24);
+  font-size: 0 !important;
+  line-height: 1 !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+body.customer-dashboard-page .customer-welcome-card > .customer-welcome-dismiss:first-child svg {
+  display: none;
+}
+
+body.customer-dashboard-page .customer-welcome-card > .customer-welcome-dismiss:first-child::after {
+  content: 'Got it! 🎉';
+  font-size: 1rem;
+  font-weight: 850;
+  letter-spacing: -0.015em;
+}
+
+body.customer-dashboard-page .customer-welcome-card > .customer-welcome-dismiss:first-child:hover,
+body.customer-dashboard-page .customer-welcome-card > .customer-welcome-dismiss:first-child:focus-visible {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 28px rgba(22, 163, 74, 0.3);
+  outline: none;
+}
+
+body.customer-dashboard-page .customer-welcome-card > .customer-welcome-dismiss:first-child:focus-visible {
+  outline: 3px solid rgba(11, 128, 115, 0.26);
+  outline-offset: 3px;
+}
+
+body.customer-dashboard-page .customer-welcome-footer .customer-welcome-dismiss {
+  display: none !important;
+}
+
+body.customer-dashboard-page .customer-welcome-kicker {
+  display: inline-flex;
+  width: auto;
+  max-width: max-content;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0 0 1.18rem;
+  padding: 0.56rem 1rem;
+  border: 1px solid rgba(11, 128, 115, 0.13);
+  border-radius: 999px;
+  background: rgba(236, 253, 245, 0.72);
+  color: #087669;
+  font-size: 0.82rem;
+  font-weight: 850;
+  letter-spacing: 0.095em;
+  line-height: 1;
+  text-transform: uppercase;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.86);
+}
+
+body.customer-dashboard-page .customer-welcome-kicker::before {
+  content: '✦';
+  font-size: 1rem;
+  color: #16a34a;
+}
+
+body.customer-dashboard-page .customer-welcome-heading {
+  max-width: min(765px, calc(100% - 430px));
+  margin: 0 0 0.8rem;
+  color: #102033;
+  font-size: clamp(2.15rem, 3.45vw, 3.25rem);
+  line-height: 1.04;
+  letter-spacing: -0.052em;
+  font-weight: 850;
+}
+
+body.customer-dashboard-page .customer-welcome-intro,
+body.customer-dashboard-page .customer-welcome-card .customer-welcome-intro {
+  max-width: min(705px, calc(100% - 460px));
+  margin: 0 0 1.55rem;
+  color: #475467;
+  font-size: clamp(1rem, 1.4vw, 1.12rem);
+  line-height: 1.65;
+  letter-spacing: -0.01em;
+}
+
+body.customer-dashboard-page .customer-welcome-intro .eventflow-strong,
+body.customer-dashboard-page .customer-welcome-intro strong {
+  color: #09865f;
+  font-weight: 800;
+}
+
+body.customer-dashboard-page .customer-welcome-actions {
+  margin-top: 0;
+  padding-top: 1.7rem;
+  border-top: 1px solid rgba(15, 23, 42, 0.1);
+}
+
+body.customer-dashboard-page .customer-welcome-actions__title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+body.customer-dashboard-page .customer-welcome-actions__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(0.85rem, 1.7vw, 1.35rem);
+}
+
+body.customer-dashboard-page .customer-welcome-action-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 56px 1fr 16px;
+  align-items: center;
+  gap: 0.95rem;
+  min-height: 112px;
+  padding: 1.05rem 1rem;
+  border: 1px solid rgba(15, 23, 42, 0.09);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #102033;
+  text-decoration: none;
+  box-shadow:
+    0 12px 28px rgba(15, 23, 42, 0.055),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px) saturate(145%);
+  -webkit-backdrop-filter: blur(10px) saturate(145%);
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background 0.18s ease;
+}
+
+body.customer-dashboard-page .customer-welcome-action-card::after {
+  content: '›';
+  justify-self: end;
+  color: #132238;
+  font-size: 2rem;
+  line-height: 1;
+  font-weight: 450;
+}
+
+body.customer-dashboard-page .customer-welcome-action-card:hover,
+body.customer-dashboard-page .customer-welcome-action-card:focus-visible {
+  transform: translateY(-2px);
+  border-color: rgba(11, 128, 115, 0.24);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow:
+    0 16px 34px rgba(11, 128, 115, 0.11),
+    inset 0 1px 0 rgba(255, 255, 255, 0.96);
+  outline: none;
+}
+
+body.customer-dashboard-page .customer-welcome-action-card__icon {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(236, 253, 245, 0.95), rgba(240, 253, 250, 0.82));
+  border: 1px solid rgba(11, 128, 115, 0.1);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.84);
+  font-size: 0;
+}
+
+body.customer-dashboard-page .customer-welcome-action-card__icon::before {
+  content: '';
+  width: 28px;
+  height: 28px;
+  display: block;
+  background: #20ad78;
+  -webkit-mask: var(--welcome-icon) center / contain no-repeat;
+  mask: var(--welcome-icon) center / contain no-repeat;
+}
+
+body.customer-dashboard-page .customer-welcome-action-card:nth-child(1) .customer-welcome-action-card__icon {
+  --welcome-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M9 3h6a2 2 0 0 1 2 2h2a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2a2 2 0 0 1 2-2Zm0 2v2h6V5H9Zm-1 7h2v2H8v-2Zm4 0h5v2h-5v-2Zm-4 4h2v2H8v-2Zm4 0h5v2h-5v-2Z'/%3E%3C/svg%3E");
+}
+
+body.customer-dashboard-page .customer-welcome-action-card:nth-child(2) .customer-welcome-action-card__icon {
+  --welcome-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M9.5 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8.5.5a3.25 3.25 0 1 0 0-6.5 3.25 3.25 0 0 0 0 6.5ZM2 19.2C2 15.8 5.4 13 9.5 13S17 15.8 17 19.2V20H2v-.8Zm13.7-5.35A7.3 7.3 0 0 1 19 19.2V20h3v-.55c0-2.62-2.27-4.88-5.27-5.55-.34-.07-.68-.1-1.03-.05Z'/%3E%3C/svg%3E");
+}
+
+body.customer-dashboard-page .customer-welcome-action-card:nth-child(3) .customer-welcome-action-card__icon {
+  --welcome-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 2h2v3h6V2h2v3h2a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2V2Zm12 8H5v10h14V10ZM7 12h3v3H7v-3Zm5 0h3v3h-3v-3Zm-5 5h3v2H7v-2Zm5 0h3v2h-3v-2Z'/%3E%3C/svg%3E");
+}
+
+body.customer-dashboard-page .customer-welcome-action-card:nth-child(4) .customer-welcome-action-card__icon {
+  --welcome-icon: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M13 2a10 10 0 1 0 9 9h-9V2Zm2 0v7h7a10 10 0 0 0-7-7Z'/%3E%3C/svg%3E");
+}
+
+body.customer-dashboard-page .customer-welcome-action-card strong {
+  margin: 0 0 0.34rem;
+  color: #101828;
+  font-size: 1.04rem;
+  line-height: 1.2;
+  font-weight: 850;
+  letter-spacing: -0.025em;
+}
+
+body.customer-dashboard-page .customer-welcome-action-card small {
+  color: #526071;
+  font-size: 0.93rem;
+  line-height: 1.38;
+  letter-spacing: -0.01em;
+}
+
+body.customer-dashboard-page .customer-welcome-contextual-prompt {
+  margin-top: 1.35rem;
+}
+
+body.customer-dashboard-page .customer-welcome-prompt {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.95rem;
+  min-height: 62px;
+  padding: 0.92rem 10.2rem 0.92rem 1.15rem;
+  border-radius: 14px;
+  border: 1px solid rgba(245, 158, 11, 0.36);
+  background: linear-gradient(90deg, rgba(255, 251, 235, 0.94), rgba(255, 248, 226, 0.78));
+  color: #9a4b0f;
+  font-size: 0.99rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+body.customer-dashboard-page .customer-welcome-prompt > span:first-child {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 34px;
+  font-size: 1.35rem;
+}
+
+body.customer-dashboard-page .customer-welcome-prompt > span:nth-child(2) {
+  display: inline;
+  color: transparent;
+  font-size: 0;
+}
+
+body.customer-dashboard-page .customer-welcome-prompt > span:nth-child(2)::before {
+  content: "Don’t forget to set your budget so we can track your spending accurately.";
+  color: #a14b0c;
+  font-size: 0.99rem;
+  line-height: 1.45;
+}
+
+body.customer-dashboard-page .customer-welcome-prompt a {
+  position: absolute;
+  right: 1.15rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #c45a11;
+  font-size: 0;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+body.customer-dashboard-page .customer-welcome-prompt a::before {
+  content: 'Set budget';
+  font-size: 0.99rem;
+}
+
+body.customer-dashboard-page .customer-welcome-prompt a::after {
+  content: '›';
+  font-size: 2rem;
+  line-height: 0.8;
+  font-weight: 450;
+}
+
+body.customer-dashboard-page .customer-welcome-prompt--messages > span:nth-child(2)::before,
+body.customer-dashboard-page .customer-welcome-prompt:not(.customer-welcome-prompt--budget) > span:nth-child(2)::before {
+  content: none;
+}
+
+body.customer-dashboard-page .customer-welcome-prompt--messages > span:nth-child(2),
+body.customer-dashboard-page .customer-welcome-prompt:not(.customer-welcome-prompt--budget) > span:nth-child(2) {
+  color: inherit;
+  font-size: 0.99rem;
+}
+
+body.customer-dashboard-page .customer-welcome-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 72px;
+  margin-top: 1.35rem;
+  padding: 1rem 10.8rem 1rem 1.15rem;
+  border: 1px solid rgba(11, 128, 115, 0.15);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(236, 253, 245, 0.86), rgba(240, 253, 250, 0.74));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+body.customer-dashboard-page .customer-welcome-footer p {
+  position: relative;
+  margin: 0;
+  padding-left: 2.65rem;
+  color: #0f5f43;
+  font-size: 1rem;
+  font-weight: 650;
+  line-height: 1.42;
+  letter-spacing: -0.012em;
+}
+
+body.customer-dashboard-page .customer-welcome-footer p::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.82rem;
+  height: 1.82rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #20ad78;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 2h2v3h6V2h2v3h2a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2V2Zm12 8H5v10h14V10ZM7 12h3v3H7v-3Zm5 0h3v3h-3v-3Zm-5 5h3v2H7v-2Zm5 0h3v2h-3v-2Z'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 2h2v3h6V2h2v3h2a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2V2Zm12 8H5v10h14V10ZM7 12h3v3H7v-3Zm5 0h3v3h-3v-3Zm-5 5h3v2H7v-2Zm5 0h3v2h-3v-2Z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+@media (max-width: 1180px) {
+  body.customer-dashboard-page .customer-welcome-heading,
+  body.customer-dashboard-page .customer-welcome-intro,
+  body.customer-dashboard-page .customer-welcome-card .customer-welcome-intro {
+    max-width: 100%;
+  }
+
+  body.customer-dashboard-page .customer-welcome-card::after {
+    opacity: 0.18;
+    right: 1.1rem;
+  }
+
+  body.customer-dashboard-page .customer-welcome-actions__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  body.customer-dashboard-page .customer-welcome-card {
+    padding: 1rem;
+    border-radius: 20px;
+  }
+
+  body.customer-dashboard-page .customer-welcome-card::after {
+    display: none;
+  }
+
+  body.customer-dashboard-page .customer-welcome-actions {
+    padding-top: 1rem;
+  }
+
+  body.customer-dashboard-page .customer-welcome-actions__grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  body.customer-dashboard-page .customer-welcome-action-card {
+    min-height: 84px;
+    grid-template-columns: 48px 1fr 14px;
+    padding: 0.85rem;
+  }
+
+  body.customer-dashboard-page .customer-welcome-action-card__icon {
+    width: 48px;
+    height: 48px;
+  }
+
+  body.customer-dashboard-page .customer-welcome-prompt {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 0.9rem;
+  }
+
+  body.customer-dashboard-page .customer-welcome-prompt a {
+    position: static;
+    transform: none;
+    margin-top: 0.35rem;
+  }
+
+  body.customer-dashboard-page .customer-welcome-footer {
+    min-height: 0;
+    align-items: stretch;
+    flex-direction: column;
+    padding: 0.95rem;
+  }
+
+  body.customer-dashboard-page .customer-welcome-card > .customer-welcome-dismiss:first-child {
+    position: static;
+    width: 100% !important;
+    margin-top: 0.85rem !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.customer-dashboard-page .customer-welcome-action-card,
+  body.customer-dashboard-page .customer-welcome-dismiss {
+    transition: none !important;
+  }
+}
