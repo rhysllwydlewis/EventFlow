@@ -78,7 +78,8 @@
   text-align: left;
   cursor: pointer;
   box-shadow: 0 10px 22px rgba(124, 45, 18, 0.08);
-  transition: border-color 0.12s ease, background 0.12s ease;
+  transition: border-color 0.12s ease, background-color 0.12s ease;
+  transform: none !important;
 }
 
 .ww-checklist-link {
@@ -91,6 +92,7 @@
 .ww-checklist-link:focus-visible {
   border-color: rgba(249, 115, 22, 0.56);
   outline: 0;
+  transform: none !important;
 }
 
 .ww-readiness-item.is-complete {
@@ -152,7 +154,7 @@
   background: rgba(255, 255, 255, 0.88);
   color: #0f172a;
   font: inherit;
-  transition: border-color 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease, background-color 0.12s ease;
 }
 
 .ww-form-grid--publish input:focus {
@@ -178,12 +180,33 @@
 
 .ww-status-msg { border-radius: 18px; }
 
+.ww-share-card .cta,
+.ww-share-card button,
+.ww-builder-actions .cta,
+.ww-readiness-card button,
+.ww-status-msg button {
+  transform: none !important;
+  will-change: auto !important;
+}
+
+.ww-share-card .cta:hover,
+.ww-share-card button:hover,
+.ww-builder-actions .cta:hover,
+.ww-readiness-card button:hover,
+.ww-status-msg button:hover {
+  transform: none !important;
+}
+
 .ww-share-card .cta[disabled],
 .ww-share-card button[disabled] {
   pointer-events: none;
   transform: none !important;
   box-shadow: none !important;
   cursor: not-allowed;
+}
+
+.ww-publish-first {
+  white-space: nowrap;
 }
 
 @media (max-width: 640px) {
