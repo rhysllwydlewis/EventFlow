@@ -1,0 +1,159 @@
+(function () {
+  'use strict';
+
+  const rootSelector = '#wedding-website-dashboard-root';
+
+  function esc(value) {
+    return String(value || '').replace(/[&<>"']/g, ch => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;',
+    })[ch]);
+  }
+
+  function getCsrfToken() {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    const tokenFromMeta = meta?.getAttribute('content');
+    if (tokenFromMeta) return tokenFromMeta;
+    const cookieMatch = document.cookie.match(/(?:^|; )csrfToken=([^;]+)/);
+    return cookieMatch ? decodeURIComponent(cookieMatch[1]) : '';
+  }
+
+  async function api(path, options = {}) {
+    const opts = { ...options, credentials: options.credentials || 'same-origin' };
+    const method = String(opts.method || 'GET').toUpperCase();
+    if (method !== 'GET' && method !== 'HEAD') {
+      opts.headers = { ...(opts.headers || {}) };
+      const csrfToken = getCsrfToken();
+      if (csrfToken && !opts.headers['X-CSRF-Token']) {
+        opts.headers['X-CSRF-Token'] = csrfToken;
+      }
+    }
+    const res = await fetch(path, opts);
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(json.error || 'Request failed');
+    }
+    return json;
+  }
+
+  function planIdFromDom(root) {
+    const exportLink = root.querySelector("a[href*='/api/me/plans/'][href$='/guests/export.csv']");
+    const match = exportLink?.getAttribute('href')?.match(/\/api\/me\/plans\/([^/]+)\/guests\/export\.csv/);
+    return match ? decodeURIComponent(match[1]) : '';
+  }
+
+  function updateVisibilityUi(form) {
+    const selected = form.querySelector("input[name='visibility']:checked")?.value || 'private_link';
+    const passwordFields = form.querySelector('.ww-password-fields');
+    const passwordInput = form.querySelector("input[name='password']");
+    if (passwordFields) {
+      passwordFields.hidden = selected !== 'password';
+    }
+    if (passwordInput) {
+      passwordInput.required = selected === 'password' && form.dataset.passwordSet !== 'true';
+    }
+  }
+
+  async function refreshState(root, form) {
+    const planId = planIdFromDom(root);
+    if (!planId || form.dataset.privacyLoaded === planId) {
+      return;
+    }
+    try {
+      const data = await api(`/api/me/plans/${encodeURIComponent(planId)}/wedding-website`);
+      const website = data.website || {};
+      form.dataset.privacyLoaded = planId;
+      form.dataset.passwordSet = website.passwordSet ? 'true' : 'false';
+      const visibility = website.visibility || 'private_link';
+      const selected = form.querySelector(`input[name='visibility'][value='${CSS.escape(visibility)}']`);
+      if (selected) selected.checked = true;
+      const state = form.querySelector('.ww-password-state');
+      if (state) {
+        state.textContent = website.passwordSet
+          ? 'Password protection is configured. Enter a new password only if you want to change it.'
+          : 'No password is stored yet. You must set one before enabling password protection.';
+      }
+      updateVisibilityUi(form);
+    } catch (_err) {
+      const state = form.querySelector('.ww-password-state');
+      if (state) {
+        state.textContent = 'Privacy settings will be saved with the rest of the website details.';
+      }
+    }
+  }
+
+  function injectControls(root) {
+    const form = root.querySelector('#ww-builder');
+    if (!form) {
+      return;
+    }
+    if (!form.querySelector('.ww-password-privacy-panel')) {
+      const preview = root.querySelector("a[href^='/wedding/']");
+      const slug = preview ? preview.getAttribute('href').split('/').filter(Boolean).pop() : '';
+      const privacyPanel = document.createElement('details');
+      privacyPanel.className = 'ww-password-privacy-panel';
+      privacyPanel.open = true;
+      privacyPanel.innerHTML = `
+        <summary>Privacy & password protection</summary>
+        <div class="ww-privacy-card">
+          <p class="small">Choose how guests access your wedding website. Password protected pages require guests to enter the password before viewing details or submitting an RSVP.</p>
+          <label class="ww-radio-row"><input type="radio" name="visibility" value="private_link"> <span><strong>Anyone with link</strong><small>Unlisted guest link. Search engines remain discouraged.</small></span></label>
+          <label class="ww-radio-row"><input type="radio" name="visibility" value="public"> <span><strong>Public</strong><small>Accessible to anyone who visits the link.</small></span></label>
+          <label class="ww-radio-row"><input type="radio" name="visibility" value="password"> <span><strong>Password protected</strong><small>Guests must enter the password before the page or RSVP form loads.</small></span></label>
+          <div class="ww-password-fields" hidden>
+            <label>Website password<input type="password" name="password" autocomplete="new-password" minlength="6" placeholder="Set or change password"></label>
+            <p class="small ww-password-help">Existing passwords are never displayed. Leave this blank to keep the current password; enter a new value to change it. Minimum 6 characters.</p>
+          </div>
+          <p class="small ww-password-state" data-slug="${esc(slug)}">Loading privacy settings…</p>
+        </div>`;
+      form.prepend(privacyPanel);
+      Array.from(form.querySelectorAll("input[name='visibility']")).forEach(input =>
+        input.addEventListener('change', () => updateVisibilityUi(form))
+      );
+      const fallback = form.querySelector("input[name='visibility'][value='private_link']");
+      if (fallback) fallback.checked = true;
+      updateVisibilityUi(form);
+    }
+    refreshState(root, form);
+  }
+
+  document.addEventListener(
+    'click',
+    event => {
+      const saveButton = event.target.closest('#ww-save');
+      if (!saveButton) return;
+      const root = document.querySelector(rootSelector);
+      const form = root?.querySelector('#ww-builder');
+      if (!form) return;
+      const visibility = form.querySelector("input[name='visibility']:checked")?.value;
+      const passwordInput = form.querySelector("input[name='password']");
+      if (visibility === 'password' && passwordInput && passwordInput.required && !passwordInput.value) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        passwordInput.focus();
+        passwordInput.setCustomValidity('Please set a password before enabling password protection.');
+        passwordInput.reportValidity();
+        setTimeout(() => passwordInput.setCustomValidity(''), 800);
+      }
+    },
+    true
+  );
+
+  const observer = new MutationObserver(() => {
+    const root = document.querySelector(rootSelector);
+    if (root) injectControls(root);
+  });
+  observer.observe(document.documentElement, { childList: true, subtree: true });
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      const root = document.querySelector(rootSelector);
+      if (root) injectControls(root);
+    });
+  } else {
+    const root = document.querySelector(rootSelector);
+    if (root) injectControls(root);
+  }
+})();
