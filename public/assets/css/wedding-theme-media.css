@@ -1,0 +1,326 @@
+/* Wedding website theme/media customiser */
+.ww-theme-media-panel {
+  margin: 0.9rem 0;
+}
+
+.ww-theme-media-panel summary {
+  cursor: pointer;
+  font-weight: 900;
+  color: #0f172a;
+}
+
+.ww-theme-media-card {
+  margin-top: 0.75rem;
+  padding: 1rem;
+  border: 1px solid rgba(20, 184, 166, 0.18);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 100% 0, rgba(244, 166, 200, 0.15), transparent 34%),
+    radial-gradient(circle at 0 100%, rgba(20, 184, 166, 0.14), transparent 38%),
+    linear-gradient(135deg, rgba(255,255,255,.97), rgba(240,253,250,.8));
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255,255,255,.9);
+}
+
+.ww-theme-media-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(280px, .85fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.ww-theme-tools h4 {
+  margin: 1rem 0 0.4rem;
+  color: #0f172a;
+}
+
+.ww-theme-tools h4:first-child { margin-top: 0; }
+
+.ww-palette-grid,
+.ww-colour-grid,
+.ww-layout-row,
+.ww-media-actions {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.ww-palette-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+
+.ww-palette {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.35rem;
+  align-items: center;
+  padding: 0.65rem;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 16px;
+  background: rgba(255,255,255,.82);
+  color: #0f172a;
+  cursor: pointer;
+  text-align: left;
+}
+
+.ww-palette:hover,
+.ww-palette:focus-visible {
+  border-color: rgba(20,184,166,.45);
+  outline: 0;
+}
+
+.ww-palette span {
+  min-height: 24px;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px rgba(15,23,42,.08);
+}
+
+.ww-palette strong {
+  grid-column: 1 / -1;
+  font-size: 0.82rem;
+}
+
+.ww-colour-grid { grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); }
+
+.ww-colour-grid label,
+.ww-layout-row label {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.7rem;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 16px;
+  background: rgba(255,255,255,.78);
+  font-weight: 800;
+}
+
+.ww-colour-grid input[type='color'] {
+  width: 100%;
+  min-height: 42px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.ww-colour-grid span,
+.ww-layout-row label,
+.ww-theme-tools .small {
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.ww-layout-row { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+
+.ww-layout-row label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #334155;
+}
+
+.ww-cover-preview {
+  min-height: 160px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px dashed rgba(20,184,166,.38);
+  border-radius: 18px;
+  background: rgba(255,255,255,.74);
+}
+
+.ww-cover-preview img {
+  width: 100%;
+  height: 190px;
+  object-fit: cover;
+}
+
+.ww-cover-empty {
+  color: #64748b;
+  font-weight: 800;
+}
+
+.ww-media-actions {
+  grid-template-columns: repeat(auto-fit, minmax(140px, max-content));
+  margin-top: 0.6rem;
+}
+
+.ww-media-gallery-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.65rem;
+}
+
+.ww-media-thumb {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.55rem;
+  border: 1px solid rgba(148,163,184,.22);
+  border-radius: 16px;
+  background: rgba(255,255,255,.82);
+}
+
+.ww-media-thumb img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.ww-media-thumb input {
+  min-height: 36px;
+  border: 1px solid rgba(148,163,184,.24);
+  border-radius: 10px;
+  padding: 0.45rem 0.55rem;
+}
+
+.ww-media-thumb button {
+  border: 0;
+  border-radius: 10px;
+  padding: 0.48rem 0.6rem;
+  background: rgba(244, 63, 94, .1);
+  color: #9f1239;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.ww-theme-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
+.ww-theme-message {
+  color: #0f766e;
+  font-weight: 800;
+}
+
+.ww-theme-preview {
+  overflow: hidden;
+  border: 1px solid rgba(148,163,184,.2);
+  border-radius: 24px;
+  background: var(--ww-theme-bg, #fff7fb);
+  color: var(--ww-theme-text, #1e1b4b);
+  box-shadow: 0 20px 46px rgba(15,23,42,.1);
+}
+
+.ww-theme-preview__hero {
+  min-height: 230px;
+  display: grid;
+  align-content: end;
+  gap: 0.25rem;
+  padding: 1.3rem;
+  background: linear-gradient(135deg, rgba(11,128,115,.18), rgba(244,166,200,.22));
+  background-size: cover;
+  background-position: center;
+  color: #fff;
+}
+
+.ww-theme-preview__hero h3 {
+  margin: 0;
+  font-size: clamp(1.8rem, 4vw, 3rem);
+}
+
+.ww-theme-preview__hero p,
+.ww-theme-preview__hero span {
+  margin: 0;
+  font-weight: 800;
+}
+
+.ww-theme-preview__body { padding: 1rem; }
+
+.ww-theme-preview__body button {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.7rem 1rem;
+  background: var(--ww-theme-accent, #0B8073);
+  color: #fff;
+  font-weight: 900;
+}
+
+.ww-theme-preview__gallery {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.45rem;
+  margin-top: 0.8rem;
+}
+
+.ww-theme-preview__gallery span {
+  aspect-ratio: 1;
+  border-radius: 12px;
+  background-size: cover;
+  background-position: center;
+  background-color: rgba(255,255,255,.65);
+}
+
+body.wed-themed {
+  background: var(--wed-bg, #fff7fb);
+  color: var(--wed-text, #1e1b4b);
+}
+
+body.wed-themed .wed-card,
+body.wed-themed .wed-pane,
+body.wed-themed .wed-party,
+body.wed-themed .wed-faq {
+  border-color: color-mix(in srgb, var(--wed-accent, #0B8073) 22%, rgba(255,255,255,.55));
+}
+
+body.wed-themed .wed-kicker,
+body.wed-themed .text-link,
+body.wed-themed .wed-time__hour {
+  color: var(--wed-accent, #0B8073);
+}
+
+body.wed-themed .btn-primary,
+body.wed-themed .wed-form button,
+body.wed-themed .wed-rsvp button {
+  background: var(--wed-accent, #0B8073);
+  border-color: var(--wed-accent, #0B8073);
+}
+
+body.wed-themed .wed-hero:not(.wed-hero--image) {
+  background:
+    radial-gradient(circle at 15% 15%, color-mix(in srgb, var(--wed-secondary, #F4A6C8) 35%, transparent), transparent 32%),
+    radial-gradient(circle at 85% 5%, color-mix(in srgb, var(--wed-accent, #0B8073) 24%, transparent), transparent 34%),
+    linear-gradient(135deg, var(--wed-bg, #fff7fb), #fff);
+}
+
+body[data-hero-layout='editorial'] .wed-hero__content {
+  max-width: 760px;
+  margin-left: 0;
+  text-align: left;
+}
+
+body[data-hero-layout='full_bleed'] .wed-hero {
+  min-height: min(86vh, 820px);
+  border-radius: 0 0 42px 42px;
+}
+
+.wed-gallery-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.85rem;
+}
+
+.wed-gallery figure {
+  margin: 0;
+  overflow: hidden;
+  border-radius: 22px;
+  background: rgba(255,255,255,.75);
+  box-shadow: 0 16px 36px rgba(15,23,42,.08);
+}
+
+.wed-gallery img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  display: block;
+}
+
+.wed-gallery figcaption {
+  padding: 0.75rem 0.85rem;
+  color: var(--wed-text, #1e1b4b);
+  font-weight: 750;
+}
+
+@media (max-width: 900px) {
+  .ww-theme-media-grid { grid-template-columns: 1fr; }
+}
