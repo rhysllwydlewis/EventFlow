@@ -2120,30 +2120,8 @@ body.auth-page .auth-card .checkbox-label-right {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   25. CRITICAL AUTH PAGE POLISH — ACCESSIBILITY + TRUST
+   25. CRITICAL AUTH PAGE POLISH — TRUST
 ───────────────────────────────────────────────────────────────*/
-.auth-skip-link {
-  position: fixed;
-  left: 1rem;
-  top: 1rem;
-  z-index: 10000;
-  transform: translateY(-140%);
-  border-radius: 999px;
-  background: #ffffff;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.22);
-  color: #0b8073;
-  font-weight: 800;
-  padding: 0.75rem 1rem;
-  text-decoration: none;
-  transition: transform 0.18s ease;
-}
-
-.auth-skip-link:focus-visible {
-  outline: 3px solid #13b6a2;
-  outline-offset: 3px;
-  transform: translateY(0);
-}
-
 #login-error-row:has(#login-error:empty),
 #login-error-row:has(#login-error[style*='display: none']) {
   display: none;
@@ -2293,4 +2271,18 @@ body.auth-page .auth-card .auth-requirements {
   body.auth-page .auth-card select.auth-input {
     height: 42px;
   }
+}
+
+/* Auth layout regression guard: keep tabs as a readable two-column control. */
+body.auth-page .auth-tabs {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+body.auth-page .auth-tab {
+  white-space: normal;
+}
+
+body.auth-page .auth-google-button,
+body.auth-page .google-signup-button {
+  inline-size: min(100%, var(--google-button-width, 320px));
 }

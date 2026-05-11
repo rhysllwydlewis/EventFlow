@@ -389,12 +389,12 @@ async function initDashboard() {
   const welcomeHeading = document.getElementById('welcome-heading');
   if (welcomeHeading) {
     if (user.firstName) {
-      welcomeHeading.textContent = `Welcome to your planning hub, ${user.firstName}!`;
+      welcomeHeading.textContent = `Welcome back, ${user.firstName}!`;
     } else if (user.name) {
       const firstName = user.name.split(' ')[0];
-      welcomeHeading.textContent = `Welcome to your planning hub, ${firstName}!`;
+      welcomeHeading.textContent = `Welcome back, ${firstName}!`;
     } else {
-      welcomeHeading.textContent = 'Welcome to your EventFlow planning hub!';
+      welcomeHeading.textContent = 'Welcome back!';
     }
   }
 

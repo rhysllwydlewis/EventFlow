@@ -218,12 +218,12 @@
 
   function openReportModal() {
     return new Promise(resolve => {
-      const existing = document.querySelector('.event-report-modal');
+      const existing = document.querySelector('.event-report-overlay');
       if (existing) {
         existing.remove();
       }
       const overlay = document.createElement('div');
-      overlay.className = 'event-report-modal';
+      overlay.className = 'event-report-modal event-report-overlay';
       overlay.setAttribute('role', 'dialog');
       overlay.setAttribute('aria-modal', 'true');
       overlay.innerHTML = `
