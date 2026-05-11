@@ -189,6 +189,7 @@
     ['wedding-password-dashboard-js', '/assets/js/pages/wedding-password-dashboard.js?v=1.0.1'],
     ['wedding-publish-mop-up-js', '/assets/js/pages/wedding-publish-mop-up.js?v=1.0.0'],
     ['wedding-theme-media-js', '/assets/js/pages/wedding-theme-media-customiser.js?v=1.0.0'],
+    ['wedding-mongodb-authority-js', '/assets/js/pages/wedding-mongodb-authority.js?v=1.0.0'],
   ];
   jsAssets.forEach(([id, src]) => {
     if (!document.getElementById(id)) {
