@@ -302,6 +302,7 @@ router.post('/:planId/wedding-website', authRequired, requireVerifiedUser, csrfP
     template: 'classic',
     accentColor: '#0B8073',
     coupleNames: sanitize(req.body.coupleNames || req.plan.name || 'Our Wedding', 200),
+    eventDate: req.plan.eventDate || req.plan.date || null,
     welcomeMessage: '',
     rsvpEnabled: true,
     createdAt: now,
@@ -318,7 +319,7 @@ router.patch('/:planId/wedding-website', authRequired, requireVerifiedUser, csrf
   }
   const patch = { ...req.plan.weddingWebsite };
   const fields = [
-    'coupleNames', 'welcomeMessage', 'loveStory', 'proposalStory', 'ceremonyVenueName',
+    'coupleNames', 'eventDate', 'welcomeMessage', 'loveStory', 'proposalStory', 'ceremonyVenueName',
     'ceremonyVenueAddress', 'receptionVenueName', 'receptionVenueAddress', 'arrivalTime',
     'ceremonyTime', 'receptionTime', 'finishTime', 'dressCode', 'childrenPolicy',
     'plusOnePolicy', 'giftInfo', 'parkingInfo', 'accessibilityInfo', 'rsvpIntroText',

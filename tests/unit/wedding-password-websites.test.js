@@ -71,6 +71,20 @@ const plans = [
       rsvpEnabled: true,
     },
   },
+  {
+    id: 'publish-plan',
+    userId: 'u1',
+    name: 'Publish Wedding',
+    eventDate: '2028-05-20',
+    guestList: [],
+    weddingWebsite: {
+      slug: 'publish-wedding',
+      status: 'draft',
+      visibility: 'private_link',
+      coupleNames: 'Publish Couple',
+      rsvpEnabled: true,
+    },
+  },
 ];
 
 jest.mock('../../db-unified', () => ({
@@ -252,5 +266,40 @@ describe('password protected wedding websites', () => {
     expect(res.body.website.passwordHash).toBeUndefined();
     expect(res.body.website.passwordSet).toBe(false);
     expect(plans[1].weddingWebsite.passwordHash).toBeUndefined();
+  });
+
+  test('eventDate is persisted and satisfies publish readiness with venue details', async () => {
+    let res = await request(app).post('/api/me/plans/publish-plan/wedding-website/publish');
+    expect(res.status).toBe(400);
+    expect(res.body.checklist.missing).toEqual(expect.arrayContaining(['eventDate', 'venue']));
+
+    res = await request(app)
+      .patch('/api/me/plans/publish-plan/wedding-website')
+      .send({ eventDate: '2028-05-20', ceremonyVenueName: 'Cardiff Castle' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.website.eventDate).toBe('2028-05-20');
+    expect(res.body.website.ceremonyVenueName).toBe('Cardiff Castle');
+
+    res = await request(app).post('/api/me/plans/publish-plan/wedding-website/publish');
+    expect(res.status).toBe(200);
+    expect(res.body.website.shareable).toBe(true);
+  });
+
+  test('new wedding website drafts inherit plan event date where available', async () => {
+    const plan = {
+      id: 'new-date-plan',
+      userId: 'u1',
+      name: 'New Date Wedding',
+      eventType: 'wedding',
+      eventDate: '2029-08-12',
+      guestList: [],
+    };
+    plans.push(plan);
+
+    const res = await request(app).post('/api/me/plans/new-date-plan/wedding-website').send({});
+
+    expect(res.status).toBe(201);
+    expect(res.body.website.eventDate).toBe('2029-08-12');
   });
 });

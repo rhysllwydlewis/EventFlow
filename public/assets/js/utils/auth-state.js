@@ -329,6 +329,7 @@
   const cssAssets = [
     ['wedding-dashboard-modal-polish-css', '/assets/css/wedding-dashboard-modal-polish.css?v=1.0.1'],
     ['wedding-password-protection-css', '/assets/css/wedding-password-protection.css?v=1.0.1'],
+    ['wedding-publish-mop-up-css', '/assets/css/wedding-publish-mop-up.css?v=1.0.0'],
   ];
   cssAssets.forEach(([id, href]) => {
     if (!document.getElementById(id)) {
@@ -343,6 +344,7 @@
   const jsAssets = [
     ['wedding-dashboard-modal-polish-js', '/assets/js/pages/wedding-dashboard-modal-polish.js?v=1.0.1'],
     ['wedding-password-dashboard-js', '/assets/js/pages/wedding-password-dashboard.js?v=1.0.1'],
+    ['wedding-publish-mop-up-js', '/assets/js/pages/wedding-publish-mop-up.js?v=1.0.0'],
   ];
   jsAssets.forEach(([id, src]) => {
     if (!document.getElementById(id)) {
