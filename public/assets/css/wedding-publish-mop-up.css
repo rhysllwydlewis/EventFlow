@@ -1,0 +1,114 @@
+/* Wedding Website publish mop-up: guidance, missing fields and share-state polish */
+.ww-publish-guidance {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.ww-checklist-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+}
+
+.ww-checklist-link {
+  display: grid;
+  gap: 0.25rem;
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(251, 146, 60, 0.35);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 0 0, rgba(251, 146, 60, 0.12), transparent 42%),
+    rgba(255, 251, 235, 0.82);
+  color: #7c2d12;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(124, 45, 18, 0.08);
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+
+.ww-checklist-link:hover,
+.ww-checklist-link:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(249, 115, 22, 0.56);
+  box-shadow: 0 16px 28px rgba(124, 45, 18, 0.13);
+  outline: 0;
+}
+
+.ww-checklist-link span {
+  font-weight: 850;
+}
+
+.ww-checklist-link small {
+  color: #9a3412;
+  line-height: 1.35;
+}
+
+.ww-publish-essentials {
+  margin: 0.85rem 0 1rem;
+  padding: 1rem;
+  border: 1px solid rgba(20, 184, 166, 0.18);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 100% 0, rgba(20, 184, 166, 0.12), transparent 36%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(240, 253, 250, 0.78));
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.86);
+}
+
+.ww-form-grid--publish {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 0.85rem;
+}
+
+.ww-form-grid--publish label {
+  display: grid;
+  gap: 0.4rem;
+  color: #0f172a;
+  font-weight: 760;
+}
+
+.ww-form-grid--publish input {
+  width: 100%;
+  min-height: 44px;
+  box-sizing: border-box;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 14px;
+  padding: 0.7rem 0.85rem;
+  background: rgba(255, 255, 255, 0.88);
+  color: #0f172a;
+  font: inherit;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, background 0.16s ease;
+}
+
+.ww-form-grid--publish input:focus {
+  border-color: rgba(20, 184, 166, 0.72);
+  background: #fff;
+  box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.13);
+  outline: 0;
+}
+
+.ww-publish-helper {
+  margin: 0.85rem 0 0;
+  color: #64748b;
+}
+
+.ww-field-pulse {
+  animation: wwFieldPulse 1.55s ease;
+}
+
+@keyframes wwFieldPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 rgba(20, 184, 166, 0);
+  }
+  25% {
+    box-shadow: 0 0 0 6px rgba(20, 184, 166, 0.22);
+  }
+  60% {
+    box-shadow: 0 0 0 10px rgba(20, 184, 166, 0.08);
+  }
+}
+
+.ww-status-msg {
+  border-radius: 18px;
+}
