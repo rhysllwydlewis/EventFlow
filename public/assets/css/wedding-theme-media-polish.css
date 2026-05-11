@@ -1,0 +1,43 @@
+/* Compact polish overrides for the Wedding Website theme/media customiser. */
+.ww-media-gallery-list {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 210px));
+}
+
+.ww-media-thumb img {
+  max-height: 132px;
+}
+
+.ww-media-thumb__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.ww-media-thumb button {
+  background: rgba(20, 184, 166, 0.1);
+  color: #0f766e;
+}
+
+.ww-media-thumb button[disabled] {
+  opacity: 0.48;
+  cursor: not-allowed;
+}
+
+.ww-media-thumb button[data-remove-gallery] {
+  background: rgba(244, 63, 94, 0.1);
+  color: #9f1239;
+}
+
+.ww-theme-message.is-error {
+  color: #b91c1c;
+}
+
+.ww-theme-message.is-saving {
+  color: #92400e;
+}
+
+@media (max-width: 640px) {
+  .ww-media-gallery-list {
+    grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  }
+}
