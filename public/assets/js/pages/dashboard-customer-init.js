@@ -448,11 +448,19 @@ async function initDashboard() {
     console.error('Error pre-fetching plans:', err);
   }
 
-  const componentNames = ['loadCustomerPlans', 'initCustomerDashboardWidgets', 'initCalendar'];
+  const componentNames = [
+    'loadCustomerPlans',
+    'initCustomerDashboardWidgets',
+    'initCalendar',
+    'initWeddingWebsiteDashboard',
+  ];
   const settledResults = await Promise.allSettled([
     loadCustomerPlans(sharedPlans),
     initCustomerDashboardWidgets(sharedPlans),
     initCalendar(),
+    window.initWeddingWebsiteDashboard
+      ? window.initWeddingWebsiteDashboard(sharedPlans || [], user)
+      : Promise.resolve(),
   ]);
 
   settledResults.forEach((result, index) => {

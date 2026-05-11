@@ -1,8 +1,6 @@
 'use strict';
 
-const crypto = require('crypto');
 const express = require('express');
-const rateLimit = require('express-rate-limit');
 const { authRequired, requireVerifiedUser } = require('../middleware/auth');
 const { csrfProtection } = require('../middleware/csrf');
 const { writeLimiter } = require('../middleware/rateLimits');
@@ -41,20 +39,7 @@ const setGuestList = (plan, list) => {
 };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX = { name: 200, email: 200, phone: 30, text: 1000, note: 2000 };
-const ALLOWED_VISIBILITY = new Set(['private_link', 'public', 'password']);
-const PASSWORD_ACCESS_TTL_MS = 2 * 60 * 60 * 1000;
-const PASSWORD_HASH_ITERATIONS = 210000;
-const PASSWORD_HASH_KEYLEN = 32;
-const PASSWORD_HASH_DIGEST = 'sha256';
-const PASSWORD_COOKIE_PREFIX = 'ewp_';
-
-const passwordAccessLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 8,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'Too many password attempts. Please try again later.' },
-});
+const ALLOWED_VISIBILITY = new Set(['private_link', 'public']);
 
 const slugify = str =>
   String(str || '')
@@ -64,74 +49,6 @@ const slugify = str =>
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
     .slice(0, 80);
-
-function accessSecret() {
-  return String(process.env.JWT_SECRET || process.env.SESSION_SECRET || 'change_me_wedding_access');
-}
-
-function passwordCookieName(slug) {
-  return `${PASSWORD_COOKIE_PREFIX}${String(slug || '').replace(/[^a-z0-9_-]/gi, '').slice(0, 90)}`;
-}
-
-function hashWeddingPassword(password) {
-  const salt = crypto.randomBytes(16).toString('hex');
-  const hash = crypto
-    .pbkdf2Sync(String(password), salt, PASSWORD_HASH_ITERATIONS, PASSWORD_HASH_KEYLEN, PASSWORD_HASH_DIGEST)
-    .toString('hex');
-  return `pbkdf2:${PASSWORD_HASH_DIGEST}:${PASSWORD_HASH_ITERATIONS}:${salt}:${hash}`;
-}
-
-function verifyWeddingPassword(password, storedHash) {
-  const parts = String(storedHash || '').split(':');
-  if (parts.length !== 5 || parts[0] !== 'pbkdf2') {
-    return false;
-  }
-  const [, digest, iterationsRaw, salt, expected] = parts;
-  const actual = crypto
-    .pbkdf2Sync(String(password), salt, Number(iterationsRaw), expected.length / 2, digest)
-    .toString('hex');
-  const actualBuffer = Buffer.from(actual, 'hex');
-  const expectedBuffer = Buffer.from(expected, 'hex');
-  return (
-    actualBuffer.length === expectedBuffer.length &&
-    crypto.timingSafeEqual(actualBuffer, expectedBuffer)
-  );
-}
-
-function signAccessToken(slug) {
-  const body = Buffer.from(
-    JSON.stringify({ slug, exp: Date.now() + PASSWORD_ACCESS_TTL_MS })
-  ).toString('base64url');
-  const sig = crypto.createHmac('sha256', accessSecret()).update(body).digest('base64url');
-  return `${body}.${sig}`;
-}
-
-function verifyAccessToken(token, slug) {
-  const [body, sig] = String(token || '').split('.');
-  if (!body || !sig) {
-    return false;
-  }
-  const expected = crypto.createHmac('sha256', accessSecret()).update(body).digest('base64url');
-  const a = Buffer.from(sig);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) {
-    return false;
-  }
-  try {
-    const payload = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
-    return payload.slug === slug && Number(payload.exp || 0) > Date.now();
-  } catch (_err) {
-    return false;
-  }
-}
-
-function hasWeddingPasswordAccess(req, site) {
-  if (site.visibility !== 'password') {
-    return true;
-  }
-  const token = req.cookies?.[passwordCookieName(site.slug)] || req.get('x-wedding-access-token');
-  return verifyAccessToken(token, site.slug);
-}
 
 async function isSlugTaken(slug, planId) {
   const plans = await dbUnified.read('plans');
@@ -148,7 +65,6 @@ function getPublishReadiness(site) {
     },
     { key: 'rsvpEnabled', ok: site.rsvpEnabled !== false },
     { key: 'slug', ok: !!sanitize(site.slug, 80) },
-    { key: 'password', ok: site.visibility !== 'password' || !!site.passwordHash },
   ];
   return {
     ready: checks.every(c => c.ok),
@@ -164,17 +80,6 @@ async function getOwnedPlan(req, res, next) {
   }
   req.plan = plan;
   next();
-}
-
-function scrubCustomerWebsite(site) {
-  if (!site) {
-    return null;
-  }
-  const copy = { ...site };
-  delete copy.passwordHash;
-  copy.passwordSet = !!site.passwordHash;
-  copy.passwordProtected = site.visibility === 'password';
-  return copy;
 }
 
 function safePublic(site) {
@@ -215,7 +120,7 @@ function safePublic(site) {
 }
 
 router.get('/:planId/wedding-website', authRequired, getOwnedPlan, async (req, res) => {
-  res.json({ success: true, website: scrubCustomerWebsite(req.plan.weddingWebsite) || null });
+  res.json({ success: true, website: req.plan.weddingWebsite || null });
 });
 
 router.post(
@@ -289,7 +194,7 @@ router.post(
       { id: req.plan.id },
       { $set: { weddingWebsite: website, updatedAt: now } }
     );
-    res.status(201).json({ success: true, website: scrubCustomerWebsite(website) });
+    res.status(201).json({ success: true, website });
   }
 );
 
@@ -363,29 +268,12 @@ router.patch(
       patch.rsvpDeadline = req.body.rsvpDeadline || null;
     }
     if (req.body.visibility !== undefined) {
-      const visibility = String(req.body.visibility);
-      if (!ALLOWED_VISIBILITY.has(visibility)) {
-        return res.status(400).json({ error: 'Invalid visibility mode.' });
+      if (!ALLOWED_VISIBILITY.has(String(req.body.visibility))) {
+        return res
+          .status(400)
+          .json({ error: 'Password protected visibility is not yet available.' });
       }
-      patch.visibility = visibility;
-      const suppliedPassword = sanitize(req.body.password || req.body.weddingPassword, 300);
-      if (visibility === 'password') {
-        if (!patch.passwordHash && !suppliedPassword) {
-          return res
-            .status(400)
-            .json({ error: 'Please set a password before enabling password protection.' });
-        }
-        if (suppliedPassword) {
-          if (suppliedPassword.length < 6) {
-            return res.status(400).json({ error: 'Password must be at least 6 characters.' });
-          }
-          patch.passwordHash = hashWeddingPassword(suppliedPassword);
-          patch.passwordUpdatedAt = new Date().toISOString();
-        }
-      } else {
-        delete patch.passwordHash;
-        delete patch.passwordUpdatedAt;
-      }
+      patch.visibility = String(req.body.visibility);
     }
     patch.updatedAt = new Date().toISOString();
     await dbUnified.updateOne(
@@ -393,7 +281,7 @@ router.patch(
       { id: req.plan.id },
       { $set: { weddingWebsite: patch, updatedAt: patch.updatedAt } }
     );
-    res.json({ success: true, website: scrubCustomerWebsite(patch) });
+    res.json({ success: true, website: patch });
   }
 );
 
@@ -427,7 +315,7 @@ router.post(
       { id: req.plan.id },
       { $set: { weddingWebsite: website, updatedAt: now } }
     );
-    res.json({ success: true, website: scrubCustomerWebsite(website) });
+    res.json({ success: true, website });
   }
 );
 router.post(
@@ -448,61 +336,35 @@ router.post(
       { id: req.plan.id },
       { $set: { weddingWebsite: website, updatedAt: now } }
     );
-    res.json({ success: true, website: scrubCustomerWebsite(website) });
+    res.json({ success: true, website });
   }
 );
 
 router.get('/public/wedding-websites/:slug', async (req, res) => {
   const plans = await dbUnified.read('plans');
   const plan = plans.find(p => p.weddingWebsite && p.weddingWebsite.slug === req.params.slug);
-  if (!plan || plan.weddingWebsite.status !== 'published') {
+  if (
+    !plan ||
+    plan.weddingWebsite.status !== 'published' ||
+    plan.weddingWebsite.visibility === 'password'
+  ) {
     return res.status(404).json({ error: 'Wedding website not found' });
   }
-  const site = plan.weddingWebsite;
-  if (site.visibility === 'password' && !hasWeddingPasswordAccess(req, site)) {
-    return res.status(401).json({
-      error: 'Password required',
-      passwordRequired: true,
-      noindex: true,
-    });
-  }
-  res.json({ success: true, website: safePublic(site) });
+  res.json({ success: true, website: safePublic(plan.weddingWebsite) });
 });
-
-router.post('/public/wedding-websites/:slug/access', passwordAccessLimiter, async (req, res) => {
-  const plans = await dbUnified.read('plans');
-  const plan = plans.find(p => p.weddingWebsite && p.weddingWebsite.slug === req.params.slug);
-  if (!plan || plan.weddingWebsite.status !== 'published') {
-    return res.status(404).json({ error: 'Wedding website not found' });
-  }
-  const site = plan.weddingWebsite;
-  if (site.visibility !== 'password') {
-    return res.json({ success: true, passwordRequired: false });
-  }
-  const password = sanitize(req.body.password, 300);
-  if (!password || !site.passwordHash || !verifyWeddingPassword(password, site.passwordHash)) {
-    return res.status(403).json({ error: 'The password was not recognised.', passwordRequired: true });
-  }
-  const token = signAccessToken(site.slug);
-  res.cookie(passwordCookieName(site.slug), token, {
-    httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: PASSWORD_ACCESS_TTL_MS,
-    path: '/',
-  });
-  return res.json({ success: true, expiresInSeconds: Math.floor(PASSWORD_ACCESS_TTL_MS / 1000) });
-});
-
 router.post('/public/wedding-websites/:slug/rsvp', writeLimiter, async (req, res) => {
   const plans = await dbUnified.read('plans');
   const plan = plans.find(p => p.weddingWebsite && p.weddingWebsite.slug === req.params.slug);
-  if (!plan || plan.weddingWebsite.status !== 'published') {
+  if (
+    !plan ||
+    plan.weddingWebsite.status !== 'published' ||
+    plan.weddingWebsite.visibility === 'password'
+  ) {
     return res.status(404).json({ error: 'Wedding website not found' });
   }
   const site = plan.weddingWebsite;
-  if (site.visibility === 'password' && !hasWeddingPasswordAccess(req, site)) {
-    return res.status(403).json({ error: 'Password access is required before RSVP.', passwordRequired: true });
+  if (site.visibility === 'password') {
+    return res.status(403).json({ error: 'This wedding website is not currently available.' });
   }
   if (site.rsvpEnabled === false) {
     return res.status(400).json({ error: 'RSVPs are not currently open.' });
@@ -605,7 +467,7 @@ router.post(
       { id: req.plan.id },
       { $set: { weddingWebsite: website, updatedAt: website.updatedAt } }
     );
-    res.json({ success: true, website: scrubCustomerWebsite(website) });
+    res.json({ success: true, website });
   }
 );
 
