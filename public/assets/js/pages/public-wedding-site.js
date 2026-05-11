@@ -9,7 +9,7 @@
   const toPhoneHref = v => `tel:${String(v || '').replace(/[^\d+]/g, '')}`;
 
   function renderUnavailable(message) {
-    root.innerHTML = `<section class='wed-card wed-unavailable'><p class='wed-kicker'>Wedding website</p><h2>This wedding website is not available</h2><p>${esc(message || 'It may not have been published yet, the link may be incorrect, or the couple may have changed the link.')}</p><a class='btn btn-primary' href='/'>Return to EventFlow</a></section>`;
+    root.innerHTML = `<section class='wed-unavailable-shell'><article class='wed-unavailable-card'><div class='wed-unavailable-icon' aria-hidden='true'>💌</div><p class='wed-kicker'>Wedding website</p><h1>This wedding website is not available</h1><p class='wed-unavailable-copy'>${esc(message || 'It may not have been published yet, the link may be incorrect, or the couple may have changed the link.')}</p><a class='btn btn-primary' href='/'>Return to EventFlow</a></article></section>`;
   }
 
   const req = await fetch(`/api/public/wedding-websites/${encodeURIComponent(slug)}`, {
