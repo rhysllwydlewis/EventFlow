@@ -84,7 +84,9 @@
         localStorage.removeItem(STORAGE_KEYS.USER);
         localStorage.removeItem(STORAGE_KEYS.ONBOARDING);
         sessionStorage.clear();
-      } catch (e) {}
+      } catch (e) {
+        // Ignore storage errors in private browsing / restricted storage modes.
+      }
     }
 
     _setState(state, user) {
