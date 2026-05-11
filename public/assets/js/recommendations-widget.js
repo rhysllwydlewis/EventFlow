@@ -52,11 +52,13 @@
 
   function recommendationAvatar(name, logoSrc) {
     const initial = escapeHtml(String(name || 'S').charAt(0).toUpperCase());
-    const fallback = `<div class="recommendation-avatar recommendation-avatar--fallback" aria-hidden="true">${initial}</div>`;
+    const fallback = `<div class="recommendation-avatar recommendation-avatar--fallback" aria-hidden="true" style="width:48px;height:48px;border-radius:999px;background:linear-gradient(135deg,#13b6a2,#0b8073);display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:1.08rem;box-shadow:0 8px 18px rgba(19,182,162,.18);">${initial}</div>`;
     if (!logoSrc) {
       return fallback;
     }
-    return `<span class="recommendation-avatar-wrap"><img src="${escapeHtml(logoSrc)}" alt="${escapeHtml(name)}" class="recommendation-avatar" loading="lazy" onerror="this.closest('.recommendation-avatar-wrap').innerHTML='${fallback.replace(/'/g, '&apos;')}'"></span>`;
+    return `<span class="recommendation-avatar-wrap" style="display:inline-flex;width:48px;height:48px;flex:0 0 48px;">` +
+      `<img src="${escapeHtml(logoSrc)}" alt="${escapeHtml(name)}" class="recommendation-avatar" loading="lazy" style="width:48px;height:48px;border-radius:999px;object-fit:cover;box-shadow:0 8px 18px rgba(15,23,42,.10);" onerror="this.closest('.recommendation-avatar-wrap').innerHTML='${fallback.replace(/'/g, '&apos;')}'">` +
+      `</span>`;
   }
 
   /**
@@ -136,7 +138,7 @@
     }
 
     widget.innerHTML = `
-      <div class="recommendations-header">
+      <div class="recommendations-header recommendations-widget__header">
         <h3 class="recommendations-title">Recommended for You</h3>
         <a href="/suppliers" class="recommendations-view-all">View All →</a>
       </div>
@@ -160,17 +162,17 @@
               : '';
             const rankingReason = supplier.rankingReason ? escapeHtml(supplier.rankingReason) : '';
             return `
-          <a href="${href}" class="recommendation-card" aria-label="View ${name}" style="text-decoration:none;color:inherit;display:block;cursor:pointer;min-width:0;">
-            <div class="recommendation-card__top">
+          <a href="${href}" class="recommendation-card" aria-label="View ${name}" style="text-decoration:none;color:inherit;display:block;cursor:pointer;min-width:0;min-height:168px;border-radius:14px;padding:1rem;">
+            <div class="recommendation-card__top" style="display:flex;align-items:center;gap:.78rem;margin-bottom:.82rem;min-width:0;">
               ${recommendationAvatar(rawName, logoSrc)}
-              <div class="recommendation-card__identity">
-                <h4>${name}</h4>
-                <p>${category}</p>
+              <div class="recommendation-card__identity" style="min-width:0;flex:1;">
+                <h4 style="margin:0 0 .25rem;font-size:.98rem;font-weight:800;color:#1f2937;line-height:1.35;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${name}</h4>
+                <p style="margin:0;font-size:.86rem;color:#6b7280;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${category}</p>
               </div>
             </div>
-            ${location ? `<p class="recommendation-card__meta">📍 ${location}</p>` : ''}
-            ${ratingText ? `<p class="recommendation-card__meta">${ratingText}</p>` : ''}
-            ${rankingReason ? `<p class="recommendation-card__reason">${rankingReason}</p>` : ''}
+            ${location ? `<p class="recommendation-card__meta" style="margin:0 0 .55rem;font-size:.84rem;color:#667085;line-height:1.45;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">📍 ${location}</p>` : ''}
+            ${ratingText ? `<p class="recommendation-card__meta" style="margin:0 0 .42rem;font-size:.84rem;color:#667085;line-height:1.35;">${ratingText}</p>` : ''}
+            ${rankingReason ? `<p class="recommendation-card__reason" style="margin:0;font-size:.76rem;color:#8a94a6;font-style:italic;line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${rankingReason}</p>` : ''}
           </a>
         `;
           })
