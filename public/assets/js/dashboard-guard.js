@@ -184,8 +184,8 @@
   }
 
   function loadCustomerDashboardMopUp() {
-    loadCustomerScript('customer-dashboard-mop-up-script', '/assets/js/customer-dashboard-mop-up.js?v=1.0.0');
-    loadCustomerScript('customer-dashboard-polish-script', '/assets/js/customer-dashboard-polish.js?v=1.0.0');
+    loadCustomerScript('customer-dashboard-mop-up-script', '/assets/js/customer-dashboard-mop-up.js?v=1.0.3');
+    loadCustomerScript('customer-dashboard-polish-script', '/assets/js/customer-dashboard-polish.js?v=1.0.3');
   }
 
   try {
