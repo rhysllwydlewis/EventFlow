@@ -13,6 +13,7 @@
   const STYLE_ID = 'customer-dashboard-mop-up-styles';
   const COLLAPSE_KEY = 'ef_customer_wedding_card_collapsed';
   const REFRESH_EVENT = 'eventflow:customer-dashboard-mop-up-ready';
+  const MAX_RECOMMENDATIONS_DESKTOP = 5;
   let observer;
   let observerQueued = false;
 
@@ -63,34 +64,35 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: .4rem;
-        min-height: 2.35rem;
-        padding: .48rem .78rem;
+        gap: .45rem;
+        min-height: 2.45rem;
+        padding: .52rem .84rem;
         border-radius: 999px;
-        border: 1px solid rgba(11, 128, 115, .2);
-        background: rgba(255, 255, 255, .82);
+        border: 1px solid rgba(11, 128, 115, .18);
+        background: linear-gradient(135deg, rgba(255, 255, 255, .96), rgba(240, 253, 250, .92));
         color: #0b8073;
         cursor: pointer;
         font-family: inherit;
-        font-weight: 800;
+        font-weight: 850;
         font-size: .82rem;
         line-height: 1;
-        box-shadow: 0 8px 20px rgba(15, 23, 42, .06);
-        transition: transform .16s ease, background .16s ease, box-shadow .16s ease;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, .07), inset 0 1px 0 rgba(255,255,255,.85);
+        transition: transform .16s ease, background .16s ease, box-shadow .16s ease, border-color .16s ease;
       }
 
       #wedding-website-dashboard-card .customer-wedding-collapse-toggle:hover,
       #wedding-website-dashboard-card .customer-wedding-collapse-toggle:focus-visible {
-        background: #ecfdf5;
-        box-shadow: 0 12px 24px rgba(13, 148, 136, .12);
+        background: linear-gradient(135deg, #fff, #ecfdf5);
+        border-color: rgba(11, 128, 115, .36);
+        box-shadow: 0 14px 28px rgba(13, 148, 136, .14), inset 0 1px 0 rgba(255,255,255,.92);
         transform: translateY(-1px);
         outline: 2px solid rgba(11, 128, 115, .25);
         outline-offset: 2px;
       }
 
       #wedding-website-dashboard-card .customer-wedding-collapse-toggle__icon {
-        display: inline-block;
-        font-size: .9rem;
+        width: 16px;
+        height: 16px;
         transition: transform .16s ease;
       }
 
@@ -158,8 +160,8 @@
       .customer-dashboard-page .recommendations-widget__header {
         display: flex !important;
         align-items: center !important;
-        justify-content: space-between !important;
-        gap: 1rem !important;
+        justify-content: flex-start !important;
+        gap: .85rem !important;
         margin-bottom: 1rem;
       }
 
@@ -176,7 +178,8 @@
 
       .customer-dashboard-page .recommendations-view-all {
         color: #0b8073;
-        font-weight: 800;
+        font-weight: 850;
+        font-size: .92rem;
         text-decoration: none;
         white-space: nowrap;
       }
@@ -185,6 +188,10 @@
       .customer-dashboard-page .recommendations-view-all:focus-visible {
         text-decoration: underline;
         outline: none;
+      }
+
+      .customer-dashboard-page .recommendations-widget .ef-rec-hidden {
+        display: none !important;
       }
 
       .customer-dashboard-page .recommendations-widget img[src=""],
@@ -265,6 +272,11 @@
       'venueAddress',
       'ceremonyTime',
       'receptionTime',
+      'ceremonyVenueName',
+      'receptionVenueName',
+      'ceremonyVenueAddress',
+      'receptionVenueAddress',
+      'eventDate',
     ];
     const arrayFields = [
       'accommodationRecommendations',
@@ -301,10 +313,16 @@
     pill.setAttribute('aria-label', `Wedding website status: ${label}`);
   }
 
-  function setWeddingStatusFromRenderedState() {
+  function setWeddingStatusFromRenderedState(force = false) {
     const root = document.getElementById('wedding-website-dashboard-root');
     const pill = document.getElementById('wedding-website-status-pill');
-    if (!root || !pill || pill.dataset.status) {
+    if (!root || !pill || (!force && pill.dataset.status)) {
+      return;
+    }
+
+    const rootText = String(root.textContent || '').toLowerCase();
+    if (rootText.includes('your wedding website is live') || root.querySelector('a[href^="/wedding/"], input[value*="/wedding/"]')) {
+      setWeddingStatus('Published', 'published');
       return;
     }
 
@@ -321,7 +339,10 @@
   async function updateWeddingStatus(plans) {
     const plan = getWeddingPlan(plans);
     if (!plan) {
-      setWeddingStatus('Not started', 'not-started');
+      setWeddingStatusFromRenderedState(true);
+      if (!document.getElementById('wedding-website-status-pill')?.dataset.status) {
+        setWeddingStatus('Not started', 'not-started');
+      }
       return;
     }
 
@@ -330,11 +351,17 @@
         credentials: 'include',
       });
       if (response.status === 404) {
-        setWeddingStatus('Not started', 'not-started');
+        setWeddingStatusFromRenderedState(true);
+        if (!document.getElementById('wedding-website-status-pill')?.dataset.status) {
+          setWeddingStatus('Not started', 'not-started');
+        }
         return;
       }
       if (!response.ok) {
-        setWeddingStatus('In progress', 'in-progress');
+        setWeddingStatusFromRenderedState(true);
+        if (!document.getElementById('wedding-website-status-pill')?.dataset.status) {
+          setWeddingStatus('In progress', 'in-progress');
+        }
         return;
       }
       const data = await response.json().catch(() => ({}));
@@ -347,15 +374,22 @@
       } else if (hasMeaningfulSiteContent(site)) {
         setWeddingStatus('In progress', 'in-progress');
       } else {
-        setWeddingStatus('Draft started', 'in-progress');
+        setWeddingStatusFromRenderedState(true);
+        if (!document.getElementById('wedding-website-status-pill')?.dataset.status) {
+          setWeddingStatus('Draft started', 'in-progress');
+        }
       }
     } catch (error) {
       console.warn('Unable to resolve wedding website status:', error);
-      setWeddingStatusFromRenderedState();
+      setWeddingStatusFromRenderedState(true);
       if (!document.getElementById('wedding-website-status-pill')?.dataset.status && plan) {
         setWeddingStatus('In progress', 'in-progress');
       }
     }
+  }
+
+  function collapseIconSvg() {
+    return '<svg class="customer-wedding-collapse-toggle__icon" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 8l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   }
 
   function setupWeddingCollapse() {
@@ -385,7 +419,7 @@
       card.classList.toggle('customer-wedding-card--collapsed', collapsed);
       toggle.setAttribute('aria-expanded', String(!collapsed));
       toggle.setAttribute('aria-label', collapsed ? 'Expand Wedding Website and RSVPs' : 'Minimise Wedding Website and RSVPs');
-      toggle.innerHTML = `<span>${collapsed ? 'Expand' : 'Minimise'}</span><span class="customer-wedding-collapse-toggle__icon" aria-hidden="true">⌄</span>`;
+      toggle.innerHTML = `<span>${collapsed ? 'Expand' : 'Minimise'}</span>${collapseIconSvg()}`;
       try {
         localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0');
       } catch (_) {
@@ -430,20 +464,33 @@
     return Array.from(new Set([...explicit, ...cards]));
   }
 
+  function getRecommendationItems(widget) {
+    const header = widget.querySelector('.recommendations-widget__header');
+    const directCards = Array.from(widget.children).filter(child => child !== header && child.matches('article, .card, [class*="card"]'));
+    const nestedCards = Array.from(widget.querySelectorAll('article, .supplier-card, [class*="supplier-card"], .recommendation-card, [class*="recommendation-card"]'));
+    const allCards = directCards.length ? directCards : nestedCards;
+    return allCards.filter(card => !card.classList.contains('recommendations-widget__header') && !card.closest('.recommendations-widget__header'));
+  }
+
+  function enforceRecommendationLimit(widget) {
+    const items = getRecommendationItems(widget);
+    if (!items.length) {
+      return;
+    }
+    items.forEach((item, index) => {
+      item.classList.toggle('ef-rec-hidden', index >= MAX_RECOMMENDATIONS_DESKTOP);
+    });
+  }
+
   function compactRecommendationsHeader() {
     const widgets = getRecommendationWidgets();
     widgets.forEach(widget => {
-      if (widget.dataset.mopUpRecommendationsReady === '1') {
-        return;
-      }
-
       const headings = Array.from(widget.querySelectorAll('h2, h3'));
       const heading = headings.find(el => /recommended/i.test(el.textContent || '')) || headings[0];
       if (!heading) {
         return;
       }
 
-      widget.dataset.mopUpRecommendationsReady = '1';
       widget.classList.add('recommendations-widget');
 
       let header = heading.closest('.recommendations-widget__header, .section-header, .card-header');
@@ -471,6 +518,8 @@
         link.textContent = 'View All →';
         header.appendChild(link);
       }
+
+      enforceRecommendationLimit(widget);
     });
   }
 
