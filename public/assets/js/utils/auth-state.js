@@ -170,6 +170,7 @@
     ['wedding-password-protection-css', '/assets/css/wedding-password-protection.css?v=1.0.1'],
     ['wedding-publish-mop-up-css', '/assets/css/wedding-publish-mop-up.css?v=1.0.0'],
     ['wedding-theme-media-css', '/assets/css/wedding-theme-media.css?v=1.0.0'],
+    ['wedding-theme-media-polish-css', '/assets/css/wedding-theme-media-polish.css?v=1.0.0'],
   ];
   cssAssets.forEach(([id, href]) => {
     if (!document.getElementById(id)) {
