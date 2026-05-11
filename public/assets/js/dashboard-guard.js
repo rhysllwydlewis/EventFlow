@@ -172,16 +172,20 @@
     }
   }
 
-  function loadCustomerDashboardMopUp() {
-    if (requiredRole !== 'customer' || document.getElementById('customer-dashboard-mop-up-script')) {
+  function loadCustomerScript(id, src) {
+    if (requiredRole !== 'customer' || document.getElementById(id)) {
       return;
     }
-
     const script = document.createElement('script');
-    script.id = 'customer-dashboard-mop-up-script';
-    script.src = '/assets/js/customer-dashboard-mop-up.js?v=1.0.0';
+    script.id = id;
+    script.src = src;
     script.defer = true;
     document.head.appendChild(script);
+  }
+
+  function loadCustomerDashboardMopUp() {
+    loadCustomerScript('customer-dashboard-mop-up-script', '/assets/js/customer-dashboard-mop-up.js?v=1.0.0');
+    loadCustomerScript('customer-dashboard-polish-script', '/assets/js/customer-dashboard-polish.js?v=1.0.0');
   }
 
   try {
