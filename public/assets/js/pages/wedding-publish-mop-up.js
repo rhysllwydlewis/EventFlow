@@ -10,6 +10,10 @@
     slug: { label: 'Website Link', selector: '.ww-share-card input, a[href^="/wedding/"]', help: 'Generate or save a valid public website link.' },
     password: { label: 'Website Password', selector: '[name="password"]', help: 'Set a password before publishing a password-protected website.' },
   };
+  const requiredKeys = ['coupleNames', 'eventDate', 'venue'];
+  let enhanceTimer = 0;
+  let lastPlanId = '';
+  let lastWebsitePromise = null;
 
   function esc(value) {
     return String(value || '').replace(/[&<>"']/g, ch => ({
@@ -42,6 +46,36 @@
     }, 80);
   }
 
+  function getFieldState(root, key) {
+    if (key === 'venue') {
+      return !!String(root.querySelector('[name="ceremonyVenueName"]')?.value || root.querySelector('[name="receptionVenueName"]')?.value || '').trim();
+    }
+    if (key === 'rsvpEnabled') {
+      return root.querySelector('[name="rsvpEnabled"]')?.checked !== false;
+    }
+    const input = root.querySelector(readiness[key]?.selector || '');
+    return !!String(input?.value || '').trim();
+  }
+
+  function renderReadinessCard(root) {
+    const actions = root.querySelector('.ww-builder-actions');
+    if (!actions) return;
+    let card = root.querySelector('.ww-readiness-card');
+    if (!card) {
+      card = document.createElement('section');
+      card.className = 'ww-readiness-card';
+      actions.after(card);
+    }
+    const states = requiredKeys.map(key => ({ key, ok: getFieldState(root, key), ...readiness[key] }));
+    const complete = states.filter(item => item.ok).length;
+    const total = states.length;
+    const ready = complete === total;
+    card.innerHTML = `<div class="ww-readiness-card__head"><div><p class="ww-readiness-kicker">Publish readiness</p><h4>${ready ? 'Ready to publish' : `${total - complete} item${total - complete === 1 ? '' : 's'} left before publishing`}</h4></div><span class="ww-readiness-score ${ready ? 'ww-readiness-score--ready' : ''}">${complete}/${total}</span></div><div class="ww-readiness-list">${states.map(item => `<button type="button" class="ww-readiness-item ${item.ok ? 'is-complete' : ''}" data-target="${esc(item.key)}"><span aria-hidden="true">${item.ok ? '✓' : '•'}</span><strong>${esc(item.label)}</strong><small>${item.ok ? 'Completed' : esc(item.help)}</small></button>`).join('')}</div>`;
+    card.querySelectorAll('[data-target]').forEach(button => {
+      button.addEventListener('click', () => focusTarget(button.dataset.target));
+    });
+  }
+
   function enhanceStatusMessage(statusEl) {
     if (!statusEl || statusEl.dataset.enhancedChecklist === 'true') return;
     const items = Array.from(statusEl.querySelectorAll('li'));
@@ -63,13 +97,16 @@
 
   async function fetchWebsite(planId) {
     if (!planId) return null;
-    const res = await fetch(`/api/me/plans/${encodeURIComponent(planId)}/wedding-website`, {
+    if (lastPlanId === planId && lastWebsitePromise) return lastWebsitePromise;
+    lastPlanId = planId;
+    lastWebsitePromise = fetch(`/api/me/plans/${encodeURIComponent(planId)}/wedding-website`, {
       credentials: 'same-origin',
       headers: { 'Cache-Control': 'no-cache' },
-    });
-    if (!res.ok) return null;
-    const data = await res.json().catch(() => ({}));
-    return data.website || null;
+    })
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => data?.website || null)
+      .catch(() => null);
+    return lastWebsitePromise;
   }
 
   function ensureEssentialsFields(root, website) {
@@ -91,6 +128,8 @@
       </div>
       <p class="small ww-publish-helper">Publishing needs an event date and at least one venue name. These details also improve the public schedule, venue cards and map links.</p>`;
     essentials.querySelector('summary').insertAdjacentElement('afterend', panel);
+    panel.addEventListener('input', () => renderReadinessCard(root));
+    panel.addEventListener('change', () => renderReadinessCard(root));
   }
 
   function enhancePreviewLink(root) {
@@ -115,30 +154,32 @@
     const website = await fetchWebsite(findPlanId(root));
     ensureEssentialsFields(root, website);
     enhancePreviewLink(root);
+    renderReadinessCard(root);
     root.querySelectorAll('.ww-status-msg').forEach(enhanceStatusMessage);
+  }
+
+  function scheduleEnhance(root) {
+    clearTimeout(enhanceTimer);
+    enhanceTimer = setTimeout(() => enhance(root), 80);
   }
 
   const observer = new MutationObserver(records => {
     const root = document.querySelector(rootSelector);
     if (!root) return;
-    enhance(root);
-    records.forEach(record => {
-      record.addedNodes.forEach(node => {
-        if (node instanceof HTMLElement && (node.matches?.('.ww-status-msg') || node.querySelector?.('.ww-status-msg'))) {
-          root.querySelectorAll('.ww-status-msg').forEach(enhanceStatusMessage);
-        }
-      });
-    });
+    if (records.some(record => Array.from(record.addedNodes).some(node => node instanceof HTMLElement && !node.closest?.('.ww-readiness-card')))) {
+      scheduleEnhance(root);
+    }
+    root.querySelectorAll('.ww-status-msg').forEach(enhanceStatusMessage);
   });
 
   observer.observe(document.documentElement, { childList: true, subtree: true });
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
       const root = document.querySelector(rootSelector);
-      if (root) enhance(root);
+      if (root) scheduleEnhance(root);
     });
   } else {
     const root = document.querySelector(rootSelector);
-    if (root) enhance(root);
+    if (root) scheduleEnhance(root);
   }
 })();
