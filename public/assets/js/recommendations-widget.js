@@ -6,6 +6,7 @@
 (function () {
   'use strict';
 
+  const RECOMMENDATION_LIMIT = 5;
   const isDevelopment =
     window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
@@ -47,6 +48,15 @@
       }
     }
     return '';
+  }
+
+  function recommendationAvatar(name, logoSrc) {
+    const initial = escapeHtml(String(name || 'S').charAt(0).toUpperCase());
+    const fallback = `<div class="recommendation-avatar recommendation-avatar--fallback" aria-hidden="true">${initial}</div>`;
+    if (!logoSrc) {
+      return fallback;
+    }
+    return `<span class="recommendation-avatar-wrap"><img src="${escapeHtml(logoSrc)}" alt="${escapeHtml(name)}" class="recommendation-avatar" loading="lazy" onerror="this.closest('.recommendation-avatar-wrap').innerHTML='${fallback.replace(/'/g, '&apos;')}'"></span>`;
   }
 
   /**
@@ -101,7 +111,7 @@
       // eventType takes precedence over category when both are supplied
       queryParams.set('eventType', params.eventType);
     }
-    queryParams.set('limit', '6');
+    queryParams.set('limit', String(RECOMMENDATION_LIMIT));
 
     // Use Phase 3 personalized discovery endpoint
     const response = await fetch(`/api/v2/search/personalized?${queryParams}`);
@@ -112,7 +122,7 @@
 
     const data = await response.json();
     // Phase 3 response shape: { success, data: { results, context } }
-    return (data.data && data.data.results) || [];
+    return ((data.data && data.data.results) || []).slice(0, RECOMMENDATION_LIMIT);
   }
 
   /**
@@ -130,17 +140,18 @@
         <h3 class="recommendations-title">Recommended for You</h3>
         <a href="/suppliers" class="recommendations-view-all">View All →</a>
       </div>
-      <div class="recommendations-grid">
+      <div class="recommendations-grid recommendations-grid--single-row">
         ${recommendations
+          .slice(0, RECOMMENDATION_LIMIT)
           .map(supplier => {
             // Phase 3 API returns `name` (not `businessName`)
-            const name = escapeHtml(supplier.name || supplier.businessName || 'Supplier');
+            const rawName = supplier.name || supplier.businessName || 'Supplier';
+            const name = escapeHtml(rawName);
             const category = escapeHtml(supplier.category || '');
             const location = escapeHtml(
               typeof supplier.location === 'string' ? supplier.location : ''
             );
             const logoSrc = safeSrc(supplier.logo || '');
-            const initial = name.charAt(0).toUpperCase();
             const supplierId =
               typeof supplier.id === 'string' || typeof supplier.id === 'number' ? supplier.id : '';
             const href = `/supplier?id=${encodeURIComponent(supplierId)}`;
@@ -149,21 +160,17 @@
               : '';
             const rankingReason = supplier.rankingReason ? escapeHtml(supplier.rankingReason) : '';
             return `
-          <a href="${href}" class="recommendation-card" style="text-decoration: none; color: inherit; display: block; cursor: pointer;">
-            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
-              ${
-                logoSrc
-                  ? `<img src="${logoSrc}" alt="${name}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;">`
-                  : `<div style="width: 50px; height: 50px; border-radius: 50%; background: var(--accent, #13B6A2); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 1.25rem;">${initial}</div>`
-              }
-              <div style="flex: 1;">
-                <h4 style="margin: 0; font-size: 1rem; font-weight: 600; color: #1f2937;">${name}</h4>
-                <p style="margin: 0; font-size: 0.875rem; color: #6b7280;">${category}</p>
+          <a href="${href}" class="recommendation-card" aria-label="View ${name}" style="text-decoration: none; color: inherit; display: block; cursor: pointer;">
+            <div class="recommendation-card__top">
+              ${recommendationAvatar(rawName, logoSrc)}
+              <div class="recommendation-card__identity">
+                <h4>${name}</h4>
+                <p>${category}</p>
               </div>
             </div>
-            ${location ? `<p style="margin: 0 0 0.5rem; font-size: 0.875rem; color: #6b7280;">📍 ${location}</p>` : ''}
-            ${ratingText ? `<p style="margin: 0 0 0.25rem; font-size: 0.875rem; color: #6b7280;">${ratingText}</p>` : ''}
-            ${rankingReason ? `<p style="margin: 0; font-size: 0.75rem; color: #9ca3af; font-style: italic;">${rankingReason}</p>` : ''}
+            ${location ? `<p class="recommendation-card__meta">📍 ${location}</p>` : ''}
+            ${ratingText ? `<p class="recommendation-card__meta">${ratingText}</p>` : ''}
+            ${rankingReason ? `<p class="recommendation-card__reason">${rankingReason}</p>` : ''}
           </a>
         `;
           })
@@ -176,7 +183,7 @@
     widget.style.display = '';
 
     if (isDevelopment) {
-      console.log(`✓ Rendered ${recommendations.length} recommendations`);
+      console.log(`✓ Rendered ${Math.min(recommendations.length, RECOMMENDATION_LIMIT)} recommendations`);
     }
   }
 
