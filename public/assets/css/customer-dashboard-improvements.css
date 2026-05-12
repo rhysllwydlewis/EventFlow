@@ -28,89 +28,7 @@
 }
 
 /* ===========================================
-   2. CUSTOMER HERO SECTION
-   =========================================== */
-.customer-hero {
-  position: relative;
-  border-radius: var(--ef-radius-lg);
-  overflow: hidden;
-  margin-bottom: var(--ef-space-4);
-  padding: clamp(16px, 2.2vw, 24px);
-  background: linear-gradient(135deg, #0b8073 0%, #096b60 40%, #13b6a2 100%);
-  color: #fff;
-  isolation: isolate;
-}
-
-.customer-hero::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(ellipse at top right, rgba(19, 182, 162, 0.35) 0%, transparent 65%),
-    radial-gradient(ellipse at bottom left, rgba(11, 128, 115, 0.4) 0%, transparent 60%);
-  z-index: 0;
-}
-
-.customer-hero__content {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  gap: var(--ef-space-2);
-}
-
-.customer-hero__greeting {
-  font-size: clamp(1.4rem, 3vw, 2rem);
-  font-weight: 700;
-  margin: 0;
-  line-height: 1.2;
-  letter-spacing: -0.02em;
-}
-
-.customer-hero__subtitle {
-  font-size: 1rem;
-  opacity: 0.88;
-  margin: 0;
-}
-
-.customer-hero__stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
-  gap: var(--ef-space-2);
-  margin-top: 0;
-}
-
-.customer-hero__stat {
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: var(--ef-radius-md);
-  padding: 0.55rem 0.85rem;
-  text-align: center;
-  transition: background 0.2s ease;
-}
-
-.customer-hero__stat:hover {
-  background: rgba(255, 255, 255, 0.22);
-}
-
-.customer-hero__stat-value {
-  font-size: 1.25rem;
-  font-weight: 700;
-  line-height: 1;
-  margin-bottom: 0.15rem;
-}
-
-.customer-hero__stat-label {
-  font-size: 0.68rem;
-  opacity: 0.85;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-/* ===========================================
-   3. WELCOME SECTION
+   2. WELCOME SECTION
    =========================================== */
 .customer-welcome-card {
   background:
@@ -120,7 +38,9 @@
   border: 1px solid rgba(11, 128, 115, 0.14);
   padding: clamp(1.35rem, 2.5vw, 2rem);
   margin-bottom: var(--ef-space-5);
-  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  box-shadow:
+    0 18px 48px rgba(15, 23, 42, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
   position: relative;
   overflow: hidden;
 }
@@ -263,7 +183,10 @@
   color: #102a43;
   text-decoration: none;
   box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05);
-  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+  transition:
+    transform 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease;
 }
 
 .customer-welcome-action-card:hover,
@@ -344,7 +267,6 @@
 .customer-welcome-contextual-prompt {
   margin-top: var(--ef-space-4);
 }
-
 
 .customer-welcome-footer {
   display: flex;
@@ -791,14 +713,6 @@
    17. MOBILE RESPONSIVENESS
    =========================================== */
 @media (max-width: 640px) {
-  .customer-hero__stats {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .customer-hero {
-    padding: var(--ef-space-5);
-  }
-
   .customer-conversations-controls {
     flex-direction: column;
     align-items: stretch;
@@ -814,7 +728,6 @@
    18. REDUCED MOTION
    =========================================== */
 @media (prefers-reduced-motion: reduce) {
-  .customer-hero::before,
   .customer-plan-item,
   .customer-ticket-item,
   .customer-stat-card {
@@ -849,7 +762,6 @@
 .customer-calendar-card {
   margin-bottom: 1.5rem;
 }
-
 
 /* Next-up summary beneath the customer calendar keeps future entries visible even when they are outside the current month view. */
 .customer-calendar-next-up {
@@ -1007,7 +919,6 @@
   border-radius: 50%;
   flex-shrink: 0;
 }
-
 
 .cal-fallback-wrap {
   display: flex;

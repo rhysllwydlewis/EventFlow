@@ -2844,12 +2844,7 @@ function efMaybeShowOnboarding(page) {
       </div>
     `;
 
-    const hero = container.querySelector('#customer-hero');
-    if (hero && hero.parentNode === container) {
-      container.insertBefore(box, hero);
-    } else {
-      container.insertBefore(box, container.firstChild);
-    }
+    container.insertBefore(box, container.firstChild);
 
     // Hide the static #welcome-section to prevent two welcome messages on first visit
     const welcomeSection = container.querySelector('#welcome-section');
