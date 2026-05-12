@@ -7,7 +7,9 @@
   'use strict';
 
   const CUSTOMER_PATHS = new Set(['/dashboard/customer', '/dashboard-customer.html']);
-  if (!CUSTOMER_PATHS.has(window.location.pathname)) return;
+  if (!CUSTOMER_PATHS.has(window.location.pathname)) {
+    return;
+  }
 
   const STYLE_ID = 'customer-dashboard-mop-up-styles';
   const COLLAPSE_KEY = 'ef_customer_wedding_card_collapsed';
@@ -16,12 +18,13 @@
   let observerQueued = false;
 
   function injectStyles() {
-    if (document.getElementById(STYLE_ID)) return;
+    if (document.getElementById(STYLE_ID)) {
+      return;
+    }
     const style = document.createElement('style');
     style.id = STYLE_ID;
     style.textContent = `
       .customer-dashboard-page .container { max-width: 1420px; }
-      .customer-dashboard-page .customer-hero { box-shadow: 0 22px 54px rgba(11, 128, 115, .16); }
       .customer-welcome-card > .customer-welcome-dismiss:first-child { display: none !important; }
       .customer-welcome-card { padding-top: clamp(1.35rem, 2.5vw, 2rem) !important; }
       .customer-welcome-card .customer-welcome-footer { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .85); }
@@ -102,12 +105,20 @@
 
   function removeDuplicateWelcomeDismissButton() {
     const welcome = document.getElementById('welcome-section');
-    if (!welcome) return;
+    if (!welcome) {
+      return;
+    }
     const dismissButtons = Array.from(welcome.querySelectorAll('#welcome-dismiss-btn'));
-    if (dismissButtons.length <= 1) return;
+    if (dismissButtons.length <= 1) {
+      return;
+    }
     dismissButtons.forEach(button => {
-      const label = String(button.textContent || '').trim().toLowerCase();
-      if (!label.includes('got it')) button.remove();
+      const label = String(button.textContent || '')
+        .trim()
+        .toLowerCase();
+      if (!label.includes('got it')) {
+        button.remove();
+      }
     });
   }
 
@@ -120,27 +131,58 @@
   }
 
   function getSitePayload(data) {
-    if (!data || typeof data !== 'object') return null;
-    return data.website || data.site || data.weddingWebsite || data.data?.website || data.data?.site || data;
+    if (!data || typeof data !== 'object') {
+      return null;
+    }
+    return (
+      data.website ||
+      data.site ||
+      data.weddingWebsite ||
+      data.data?.website ||
+      data.data?.site ||
+      data
+    );
   }
 
   function hasMeaningfulSiteContent(site) {
-    if (!site) return false;
+    if (!site) {
+      return false;
+    }
     const stringFields = [
-      'coupleNames', 'welcomeMessage', 'rsvpIntroText', 'rsvpDeadline', 'slug', 'venueName',
-      'venueAddress', 'ceremonyTime', 'receptionTime', 'ceremonyVenueName', 'receptionVenueName',
-      'ceremonyVenueAddress', 'receptionVenueAddress', 'eventDate',
+      'coupleNames',
+      'welcomeMessage',
+      'rsvpIntroText',
+      'rsvpDeadline',
+      'slug',
+      'venueName',
+      'venueAddress',
+      'ceremonyTime',
+      'receptionTime',
+      'ceremonyVenueName',
+      'receptionVenueName',
+      'ceremonyVenueAddress',
+      'receptionVenueAddress',
+      'eventDate',
     ];
     const arrayFields = [
-      'accommodationRecommendations', 'taxiRecommendations', 'localInfo', 'weddingParty',
-      'faq', 'mealOptions', 'customRsvpQuestions',
+      'accommodationRecommendations',
+      'taxiRecommendations',
+      'localInfo',
+      'weddingParty',
+      'faq',
+      'mealOptions',
+      'customRsvpQuestions',
     ];
-    return stringFields.some(key => String(site[key] || '').trim()) ||
-      arrayFields.some(key => Array.isArray(site[key]) && site[key].length > 0);
+    return (
+      stringFields.some(key => String(site[key] || '').trim()) ||
+      arrayFields.some(key => Array.isArray(site[key]) && site[key].length > 0)
+    );
   }
 
   function isReadyToPublish(site) {
-    if (!site) return false;
+    if (!site) {
+      return false;
+    }
     return Boolean(
       String(site.coupleNames || '').trim() &&
       String(site.slug || '').trim() &&
@@ -150,7 +192,9 @@
 
   function setWeddingStatus(label, status) {
     const pill = document.getElementById('wedding-website-status-pill');
-    if (!pill) return;
+    if (!pill) {
+      return;
+    }
     pill.textContent = label;
     pill.dataset.status = status;
     pill.setAttribute('aria-label', `Wedding website status: ${label}`);
@@ -159,10 +203,15 @@
   function setWeddingStatusFromRenderedState(force = false) {
     const root = document.getElementById('wedding-website-dashboard-root');
     const pill = document.getElementById('wedding-website-status-pill');
-    if (!root || !pill || (!force && pill.dataset.status)) return;
+    if (!root || !pill || (!force && pill.dataset.status)) {
+      return;
+    }
 
     const rootText = String(root.textContent || '').toLowerCase();
-    if (rootText.includes('your wedding website is live') || root.querySelector('a[href^="/wedding/"], input[value*="/wedding/"]')) {
+    if (
+      rootText.includes('your wedding website is live') ||
+      root.querySelector('a[href^="/wedding/"], input[value*="/wedding/"]')
+    ) {
       setWeddingStatus('Published', 'published');
       return;
     }
@@ -170,41 +219,58 @@
       setWeddingStatus('In progress', 'in-progress');
       return;
     }
-    if (root.querySelector('#ww-create, #ww-quick-start, .ww-choice-panel')) setWeddingStatus('Not started', 'not-started');
+    if (root.querySelector('#ww-create, #ww-quick-start, .ww-choice-panel')) {
+      setWeddingStatus('Not started', 'not-started');
+    }
   }
 
   async function updateWeddingStatus(plans) {
     const plan = getWeddingPlan(plans);
     if (!plan) {
       setWeddingStatusFromRenderedState(true);
-      if (!document.getElementById('wedding-website-status-pill')?.dataset.status) setWeddingStatus('Not started', 'not-started');
+      if (!document.getElementById('wedding-website-status-pill')?.dataset.status) {
+        setWeddingStatus('Not started', 'not-started');
+      }
       return;
     }
 
     try {
-      const response = await fetch(`/api/me/plans/${encodeURIComponent(plan.id)}/wedding-website`, { credentials: 'include' });
+      const response = await fetch(`/api/me/plans/${encodeURIComponent(plan.id)}/wedding-website`, {
+        credentials: 'include',
+      });
       if (response.status === 404) {
         setWeddingStatusFromRenderedState(true);
-        if (!document.getElementById('wedding-website-status-pill')?.dataset.status) setWeddingStatus('Not started', 'not-started');
+        if (!document.getElementById('wedding-website-status-pill')?.dataset.status) {
+          setWeddingStatus('Not started', 'not-started');
+        }
         return;
       }
       if (!response.ok) {
         setWeddingStatusFromRenderedState(true);
-        if (!document.getElementById('wedding-website-status-pill')?.dataset.status) setWeddingStatus('In progress', 'in-progress');
+        if (!document.getElementById('wedding-website-status-pill')?.dataset.status) {
+          setWeddingStatus('In progress', 'in-progress');
+        }
         return;
       }
       const site = getSitePayload(await response.json().catch(() => ({})));
-      if (site?.status === 'published') setWeddingStatus('Published', 'published');
-      else if (isReadyToPublish(site)) setWeddingStatus('Ready to publish', 'ready');
-      else if (hasMeaningfulSiteContent(site)) setWeddingStatus('In progress', 'in-progress');
-      else {
+      if (site?.status === 'published') {
+        setWeddingStatus('Published', 'published');
+      } else if (isReadyToPublish(site)) {
+        setWeddingStatus('Ready to publish', 'ready');
+      } else if (hasMeaningfulSiteContent(site)) {
+        setWeddingStatus('In progress', 'in-progress');
+      } else {
         setWeddingStatusFromRenderedState(true);
-        if (!document.getElementById('wedding-website-status-pill')?.dataset.status) setWeddingStatus('Draft started', 'in-progress');
+        if (!document.getElementById('wedding-website-status-pill')?.dataset.status) {
+          setWeddingStatus('Draft started', 'in-progress');
+        }
       }
     } catch (error) {
       console.warn('Unable to resolve wedding website status:', error);
       setWeddingStatusFromRenderedState(true);
-      if (!document.getElementById('wedding-website-status-pill')?.dataset.status && plan) setWeddingStatus('In progress', 'in-progress');
+      if (!document.getElementById('wedding-website-status-pill')?.dataset.status && plan) {
+        setWeddingStatus('In progress', 'in-progress');
+      }
     }
   }
 
@@ -215,18 +281,29 @@
   function setCardCollapsed(card, toggle, collapsed) {
     card.classList.toggle('customer-wedding-card--collapsed', collapsed);
     toggle.setAttribute('aria-expanded', String(!collapsed));
-    toggle.setAttribute('aria-label', collapsed ? 'Expand Wedding Website and RSVPs' : 'Minimise Wedding Website and RSVPs');
+    toggle.setAttribute(
+      'aria-label',
+      collapsed ? 'Expand Wedding Website and RSVPs' : 'Minimise Wedding Website and RSVPs'
+    );
     toggle.innerHTML = `<span>${collapsed ? 'Expand' : 'Minimise'}</span>${collapseIconSvg()}`;
-    try { localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0'); } catch (_) { /* ignore */ }
+    try {
+      localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0');
+    } catch (_) {
+      /* ignore */
+    }
   }
 
   function setupWeddingCollapse() {
     const card = document.getElementById('wedding-website-dashboard-card');
-    if (!card || card.dataset.mopUpCollapseReady === '1') return;
+    if (!card || card.dataset.mopUpCollapseReady === '1') {
+      return;
+    }
     const header = card.querySelector('.sd-card-header');
     const actions = card.querySelector('.sd-card-header__actions');
     const body = card.querySelector('.cd-card-body');
-    if (!header || !actions || !body) return;
+    if (!header || !actions || !body) {
+      return;
+    }
 
     card.dataset.mopUpCollapseReady = '1';
     card.classList.add('customer-wedding-card--collapsible');
@@ -245,7 +322,9 @@
       setCardCollapsed(card, toggle, !card.classList.contains('customer-wedding-card--collapsed'));
     });
     header.addEventListener('click', event => {
-      if (event.target.closest('button, a, input, select, textarea')) return;
+      if (event.target.closest('button, a, input, select, textarea')) {
+        return;
+      }
       setCardCollapsed(card, toggle, !card.classList.contains('customer-wedding-card--collapsed'));
     });
   }
@@ -257,7 +336,9 @@
   }
 
   function queueLightweightPass() {
-    if (observerQueued) return;
+    if (observerQueued) {
+      return;
+    }
     observerQueued = true;
     window.requestAnimationFrame(() => {
       observerQueued = false;
@@ -278,7 +359,9 @@
   async function getPlans() {
     try {
       const response = await fetch('/api/me/plans', { credentials: 'include' });
-      if (!response.ok) return [];
+      if (!response.ok) {
+        return [];
+      }
       const data = await response.json();
       return data.plans || [];
     } catch (_) {
@@ -286,7 +369,14 @@
     }
   }
 
-  window.addEventListener('beforeunload', () => { if (observer) observer.disconnect(); });
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
-  else init();
+  window.addEventListener('beforeunload', () => {
+    if (observer) {
+      observer.disconnect();
+    }
+  });
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+  } else {
+    init();
+  }
 })();

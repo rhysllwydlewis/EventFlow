@@ -368,23 +368,6 @@ async function initDashboard() {
     return;
   }
 
-  // Time-based greeting for hero section
-  const heroGreeting = document.getElementById('customer-hero-greeting');
-  if (heroGreeting) {
-    const hour = new Date().getHours();
-    const MORNING_START = 5;
-    const AFTERNOON_START = 12;
-    const EVENING_START = 17;
-    let greeting = 'Good evening';
-    if (hour >= MORNING_START && hour < AFTERNOON_START) {
-      greeting = 'Good morning';
-    } else if (hour >= AFTERNOON_START && hour < EVENING_START) {
-      greeting = 'Good afternoon';
-    }
-    const firstName = user.firstName || (user.name ? user.name.split(' ')[0] : null);
-    heroGreeting.textContent = firstName ? `${greeting}, ${firstName}!` : `${greeting}!`;
-  }
-
   // Personalize welcome message
   const welcomeHeading = document.getElementById('welcome-heading');
   if (welcomeHeading) {
@@ -472,8 +455,8 @@ async function initDashboard() {
     }
   });
 
-  // Populate hero stats and make welcome section contextual
-  populateHeroStats(sharedPlans || []);
+  // Populate saved supplier status and make welcome section contextual
+  populateSavedSupplierStatus();
   makeWelcomeContextual(sharedPlans || []);
 
   // Setup event handlers
@@ -483,18 +466,11 @@ async function initDashboard() {
 }
 
 /**
- * Populate the hero section stats from loaded data.
- * Saved supplier count is fetched from the server shortlist API and also
- * written back to localStorage so other parts of the UI stay in sync.
+ * Populate the saved suppliers dashboard status from the server shortlist API.
+ * The count is also written back to localStorage so other parts of the UI stay
+ * in sync with the authoritative shortlist data.
  */
-async function populateHeroStats(plans) {
-  // Plans count
-  const heroPlans = document.getElementById('hero-stat-plans');
-  if (heroPlans) {
-    heroPlans.textContent = plans.length;
-  }
-
-  // Saved suppliers — authoritative source is /api/v1/shortlist
+async function populateSavedSupplierStatus() {
   let savedCount = 0;
   let savedSupplierIds = [];
   try {
@@ -525,11 +501,6 @@ async function populateHeroStats(plans) {
     }
   }
 
-  const heroSuppliers = document.getElementById('hero-stat-suppliers');
-  if (heroSuppliers) {
-    heroSuppliers.textContent = savedCount;
-  }
-
   // Populate saved suppliers card status
   const savedStatusEl = document.getElementById('saved-suppliers-status');
   const openPlanBtn = document.getElementById('openPlanBtn');
@@ -553,35 +524,6 @@ async function populateHeroStats(plans) {
       if (openPlanBtn) {
         openPlanBtn.style.display = '';
       }
-    }
-  }
-
-  // Days to event (nearest upcoming plan with a date)
-  const heroDays = document.getElementById('hero-stat-days');
-  if (heroDays) {
-    const planWithDate = plans.find(p => p.eventDate || p.date);
-    if (planWithDate) {
-      const eventDateObj = new Date(planWithDate.eventDate || planWithDate.date);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const days = Math.ceil((eventDateObj - today) / (1000 * 60 * 60 * 24));
-      heroDays.textContent = days > 0 ? days : '–';
-    } else {
-      heroDays.textContent = '–';
-    }
-  }
-
-  // Unread messages — start at 0; update live when UnreadBadgeManager fires.
-  // Guard against adding multiple listeners if populateHeroStats is ever called again.
-  const heroMessages = document.getElementById('hero-stat-messages');
-  if (heroMessages) {
-    heroMessages.textContent = '0';
-    if (!window.__heroUnreadListenerAdded) {
-      window.__heroUnreadListenerAdded = true;
-      window.addEventListener('unreadCountUpdated', e => {
-        const count = typeof e.detail?.count === 'number' ? e.detail.count : 0;
-        heroMessages.textContent = count > 0 ? count : '0';
-      });
     }
   }
 }
