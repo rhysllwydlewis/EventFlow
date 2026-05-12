@@ -22,7 +22,9 @@ function escapeHtml(unsafe) {
 
     if (user) {
       // Personalize welcome message - using textContent is safe but also escape for consistency
-      const welcomeHeading = document.getElementById('welcome-heading');
+      const welcomeHeading =
+        document.querySelector('#welcome-section-template #welcome-heading') ||
+        document.getElementById('welcome-heading');
       if (welcomeHeading) {
         if (user.firstName) {
           welcomeHeading.textContent = `Welcome ${escapeHtml(user.firstName)}!`;

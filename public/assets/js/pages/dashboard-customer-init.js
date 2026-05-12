@@ -34,12 +34,10 @@ function dbg(...args) {
 
 function initCustomerWelcomeWidget() {
   const WELCOME_DISMISS_KEY = 'ef_customer_welcome_dismissed';
-  const welcomeSection = document.getElementById('welcome-section');
-  if (!welcomeSection) {
+  const welcomeTemplate = document.getElementById('welcome-section-template');
+  if (!(welcomeTemplate instanceof HTMLTemplateElement)) {
     return;
   }
-
-  welcomeSection.style.display = 'none';
   let shouldOpenWidget = true;
   try {
     shouldOpenWidget = localStorage.getItem(WELCOME_DISMISS_KEY) !== '1';
@@ -65,7 +63,10 @@ function initCustomerWelcomeWidget() {
   const widget = document.createElement('div');
   widget.className = 'ef-onboarding-widget ef-onboarding-widget--customer';
   widget.setAttribute('tabindex', '-1');
-  const content = welcomeSection.cloneNode(true);
+  const content = welcomeTemplate.content.firstElementChild?.cloneNode(true);
+  if (!content) {
+    return;
+  }
   content.id = 'ef-onboarding-customer-content';
   const heading = content.querySelector('#welcome-heading');
   if (heading) {
@@ -465,7 +466,9 @@ async function initDashboard() {
   }
 
   // Personalize welcome message
-  const welcomeHeading = document.getElementById('welcome-heading');
+  const welcomeHeading =
+    document.querySelector('#welcome-section-template #welcome-heading') ||
+    document.getElementById('welcome-heading');
   if (welcomeHeading) {
     if (user.firstName) {
       welcomeHeading.textContent = `Welcome back, ${user.firstName}!`;

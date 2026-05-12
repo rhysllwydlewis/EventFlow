@@ -2940,8 +2940,6 @@ function efMaybeShowOnboarding(page) {
 }
 
 async function initDashSupplier() {
-  efMaybeShowOnboarding('dash_supplier');
-
   // Fetch CSRF token if not already available
   async function ensureCsrfToken() {
     if (!window.__CSRF_TOKEN__) {
@@ -5743,7 +5741,6 @@ document.addEventListener('DOMContentLoaded', () => {
     initPlan && initPlan();
   }
   if (page === 'dash_customer') {
-    efMaybeShowOnboarding('dash_customer');
     renderThreads && renderThreads('threads-cust');
   }
   if (page === 'dash_supplier') {
