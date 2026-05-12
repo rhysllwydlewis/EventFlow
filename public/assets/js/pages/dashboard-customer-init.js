@@ -10,10 +10,12 @@ function dbg(...args) {
 // --- Customer welcome overlay dismiss logic ---
 (function initCustomerWelcomeOverlayDismiss() {
   const DISMISS_KEY = 'ef_customer_welcome_dismissed';
+  const WIDGET_DISMISS_KEY = 'ef_customer_welcome_widget_dismissed_v2';
 
   function dismissCustomerWelcomeOverlay() {
     try {
       localStorage.setItem(DISMISS_KEY, '1');
+      localStorage.setItem(WIDGET_DISMISS_KEY, '1');
       localStorage.setItem('ef_onboarding_dismissed', '1');
     } catch (_) {
       /* Ignore localStorage errors */
@@ -33,13 +35,11 @@ function dbg(...args) {
 })();
 
 function initCustomerWelcomeWidget() {
-  const WELCOME_DISMISS_KEY = 'ef_customer_welcome_dismissed';
-  const welcomeSection = document.getElementById('welcome-section');
-  if (!welcomeSection) {
+  const WELCOME_DISMISS_KEY = 'ef_customer_welcome_widget_dismissed_v2';
+  const welcomeTemplate = document.getElementById('welcome-section-template');
+  if (!(welcomeTemplate instanceof HTMLTemplateElement)) {
     return;
   }
-
-  welcomeSection.style.display = 'none';
   let shouldOpenWidget = true;
   try {
     shouldOpenWidget = localStorage.getItem(WELCOME_DISMISS_KEY) !== '1';
@@ -65,7 +65,10 @@ function initCustomerWelcomeWidget() {
   const widget = document.createElement('div');
   widget.className = 'ef-onboarding-widget ef-onboarding-widget--customer';
   widget.setAttribute('tabindex', '-1');
-  const content = welcomeSection.cloneNode(true);
+  const content = welcomeTemplate.content.firstElementChild?.cloneNode(true);
+  if (!content) {
+    return;
+  }
   content.id = 'ef-onboarding-customer-content';
   const heading = content.querySelector('#welcome-heading');
   if (heading) {
@@ -82,6 +85,7 @@ function initCustomerWelcomeWidget() {
   overlay.appendChild(widget);
   document.body.appendChild(overlay);
   document.body.classList.add('ef-onboarding-open');
+  window.scrollTo({ top: 0, behavior: 'auto' });
 
   requestAnimationFrame(() => overlay.classList.add('is-visible'));
   setTimeout(() => widget.focus(), 40);
@@ -465,7 +469,9 @@ async function initDashboard() {
   }
 
   // Personalize welcome message
-  const welcomeHeading = document.getElementById('welcome-heading');
+  const welcomeHeading =
+    document.querySelector('#welcome-section-template #welcome-heading') ||
+    document.getElementById('welcome-heading');
   if (welcomeHeading) {
     if (user.firstName) {
       welcomeHeading.textContent = `Welcome back, ${user.firstName}!`;

@@ -41,7 +41,9 @@ window.showEarningsComingSoon = function () {
 
 // Insert a styled alert inside the hero content area
 function showUrgentAlert(message, type = 'warning') {
-  const heroContent = document.querySelector('#welcome-section .dashboard-hero__content');
+  const heroContent = document.querySelector(
+    '#ef-onboarding-box #welcome-section .dashboard-hero__content'
+  );
   if (!heroContent) {
     return;
   }
@@ -1119,12 +1121,10 @@ displaySubscriptionStatus();
 
 function initSupplierWelcomeWidget() {
   const DISMISS_KEY = 'ef_supplier_welcome_dismissed';
-  const welcomeSection = document.getElementById('welcome-section');
-  if (!welcomeSection) {
+  const welcomeTemplate = document.getElementById('welcome-section-template');
+  if (!(welcomeTemplate instanceof HTMLTemplateElement)) {
     return;
   }
-
-  welcomeSection.style.display = 'none';
   let shouldOpenWidget = true;
   try {
     shouldOpenWidget = localStorage.getItem(DISMISS_KEY) !== '1';
@@ -1150,7 +1150,10 @@ function initSupplierWelcomeWidget() {
   const widget = document.createElement('div');
   widget.className = 'ef-onboarding-widget ef-onboarding-widget--supplier';
   widget.setAttribute('tabindex', '-1');
-  const content = welcomeSection.cloneNode(true);
+  const content = welcomeTemplate.content.firstElementChild?.cloneNode(true);
+  if (!content) {
+    return;
+  }
   content.id = 'ef-onboarding-supplier-content';
   const heading = content.querySelector('#welcome-heading');
   if (heading) {
