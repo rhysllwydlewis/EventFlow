@@ -32,6 +32,80 @@ function dbg(...args) {
   window.dismissCustomerWelcome = dismissCustomerWelcomeOverlay;
 })();
 
+function initCustomerWelcomeWidget() {
+  const WELCOME_DISMISS_KEY = 'ef_customer_welcome_dismissed';
+  const welcomeSection = document.getElementById('welcome-section');
+  if (!welcomeSection) {
+    return;
+  }
+
+  welcomeSection.style.display = 'none';
+  let shouldOpenWidget = true;
+  try {
+    shouldOpenWidget = localStorage.getItem(WELCOME_DISMISS_KEY) !== '1';
+  } catch (_) {
+    shouldOpenWidget = true;
+  }
+
+  if (!shouldOpenWidget) {
+    return;
+  }
+
+  const existingOverlay = document.getElementById('ef-onboarding-box');
+  if (existingOverlay) {
+    existingOverlay.remove();
+  }
+
+  const overlay = document.createElement('div');
+  overlay.id = 'ef-onboarding-box';
+  overlay.className = 'ef-onboarding-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-label', 'Welcome to your dashboard');
+  const widget = document.createElement('div');
+  widget.className = 'ef-onboarding-widget ef-onboarding-widget--customer';
+  widget.setAttribute('tabindex', '-1');
+  const content = welcomeSection.cloneNode(true);
+  const dismissBtn = content.querySelector('#welcome-dismiss-btn');
+  if (!dismissBtn) {
+    const footer = document.createElement('div');
+    footer.className = 'customer-welcome-footer';
+    footer.innerHTML = `<button id="welcome-dismiss-btn" type="button" class="ef-cta customer-welcome-dismiss">Got it! 🎉</button>`;
+    content.appendChild(footer);
+  }
+  widget.appendChild(content);
+  overlay.appendChild(widget);
+  document.body.appendChild(overlay);
+  document.body.classList.add('ef-onboarding-open');
+
+  requestAnimationFrame(() => overlay.classList.add('is-visible'));
+  setTimeout(() => widget.focus(), 40);
+
+  const closeOverlay = () => {
+    if (!document.body.contains(overlay)) {
+      return;
+    }
+    document.body.classList.remove('ef-onboarding-open');
+    window.dismissCustomerWelcome?.();
+    document.removeEventListener('keydown', onKeyDown);
+  };
+  const onboardingDismissBtn = overlay.querySelector('#welcome-dismiss-btn');
+  if (onboardingDismissBtn) {
+    onboardingDismissBtn.addEventListener('click', closeOverlay);
+  }
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) {
+      closeOverlay();
+    }
+  });
+  function onKeyDown(e) {
+    if (e.key === 'Escape') {
+      closeOverlay();
+    }
+  }
+  document.addEventListener('keydown', onKeyDown);
+}
+
 // Load customer plans
 async function loadCustomerPlans(preloadedPlans) {
   const container = document.getElementById('customer-plans-list');
@@ -398,34 +472,7 @@ async function initDashboard() {
     }
   }
 
-  // Welcome card dismiss logic (persisted in localStorage)
-  const WELCOME_DISMISS_KEY = 'ef_welcome_dismissed';
-  const welcomeSection = document.getElementById('welcome-section');
-  if (welcomeSection) {
-    let dismissed = false;
-    try {
-      dismissed =
-        localStorage.getItem(WELCOME_DISMISS_KEY) === '1' ||
-        localStorage.getItem('ef_customer_welcome_dismissed') === '1';
-    } catch (_) {
-      /* ignore storage errors */
-    }
-    if (dismissed) {
-      welcomeSection.style.display = 'none';
-    } else {
-      const dismissBtn = document.getElementById('welcome-dismiss-btn');
-      if (dismissBtn) {
-        dismissBtn.addEventListener('click', () => {
-          welcomeSection.style.display = 'none';
-          try {
-            localStorage.setItem(WELCOME_DISMISS_KEY, '1');
-          } catch (_) {
-            /* ignore storage errors */
-          }
-        });
-      }
-    }
-  }
+  initCustomerWelcomeWidget();
 
   // Check for guest plan token and claim it
   await claimGuestPlanIfExists();

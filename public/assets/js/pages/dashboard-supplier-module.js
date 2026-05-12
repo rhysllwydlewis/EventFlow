@@ -1117,6 +1117,80 @@ displayLeadQualityBreakdown();
 
 displaySubscriptionStatus();
 
+function initSupplierWelcomeWidget() {
+  const DISMISS_KEY = 'ef_supplier_welcome_dismissed';
+  const welcomeSection = document.getElementById('welcome-section');
+  if (!welcomeSection) {
+    return;
+  }
+
+  welcomeSection.style.display = 'none';
+  let shouldOpenWidget = true;
+  try {
+    shouldOpenWidget = localStorage.getItem(DISMISS_KEY) !== '1';
+  } catch (_) {
+    shouldOpenWidget = true;
+  }
+
+  if (!shouldOpenWidget) {
+    return;
+  }
+
+  const existingOverlay = document.getElementById('ef-onboarding-box');
+  if (existingOverlay) {
+    existingOverlay.remove();
+  }
+
+  const overlay = document.createElement('div');
+  overlay.id = 'ef-onboarding-box';
+  overlay.className = 'ef-onboarding-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-label', 'Welcome to your supplier dashboard');
+  const widget = document.createElement('div');
+  widget.className = 'ef-onboarding-widget ef-onboarding-widget--supplier';
+  widget.setAttribute('tabindex', '-1');
+  const content = welcomeSection.cloneNode(true);
+  widget.appendChild(content);
+  overlay.appendChild(widget);
+  document.body.appendChild(overlay);
+  document.body.classList.add('ef-onboarding-open');
+  requestAnimationFrame(() => overlay.classList.add('is-visible'));
+  setTimeout(() => widget.focus(), 40);
+
+  const dismissButton = overlay.querySelector('#ef-onboarding-dismiss, #welcome-dismiss-btn');
+  const button = dismissButton || document.createElement('button');
+  if (!dismissButton) {
+    button.type = 'button';
+    button.id = 'ef-onboarding-dismiss';
+    button.className = 'ef-cta dashboard-action-chip dashboard-action-chip--primary';
+    button.style.margin = '12px auto 0';
+    button.style.display = 'block';
+    button.textContent = 'Got it! 🚀';
+    widget.appendChild(button);
+  }
+  const closeOverlay = () => {
+    if (!document.body.contains(overlay)) {
+      return;
+    }
+    document.body.classList.remove('ef-onboarding-open');
+    window.dismissSupplierWelcome?.();
+    document.removeEventListener('keydown', onKeyDown);
+  };
+  button.addEventListener('click', closeOverlay);
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) {
+      closeOverlay();
+    }
+  });
+  function onKeyDown(e) {
+    if (e.key === 'Escape') {
+      closeOverlay();
+    }
+  }
+  document.addEventListener('keydown', onKeyDown);
+}
+
 // --- Welcome overlay dismiss logic ---
 // Manages permanent dismissal of the first-login onboarding overlay only.
 // The hero section (#welcome-section) is permanently visible; only the overlay
@@ -1219,6 +1293,7 @@ displaySubscriptionStatus();
   // Export so that the onboarding overlay card in app.js can call this too
   window.dismissSupplierWelcome = dismissWelcomeOverlay;
 })();
+initSupplierWelcomeWidget();
 
 // Earnings Overview CTA: scroll to packages section and open the form if collapsed
 document.addEventListener('DOMContentLoaded', () => {
