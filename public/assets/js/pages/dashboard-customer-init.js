@@ -10,10 +10,12 @@ function dbg(...args) {
 // --- Customer welcome overlay dismiss logic ---
 (function initCustomerWelcomeOverlayDismiss() {
   const DISMISS_KEY = 'ef_customer_welcome_dismissed';
+  const WIDGET_DISMISS_KEY = 'ef_customer_welcome_widget_dismissed_v2';
 
   function dismissCustomerWelcomeOverlay() {
     try {
       localStorage.setItem(DISMISS_KEY, '1');
+      localStorage.setItem(WIDGET_DISMISS_KEY, '1');
       localStorage.setItem('ef_onboarding_dismissed', '1');
     } catch (_) {
       /* Ignore localStorage errors */
@@ -83,6 +85,7 @@ function initCustomerWelcomeWidget() {
   overlay.appendChild(widget);
   document.body.appendChild(overlay);
   document.body.classList.add('ef-onboarding-open');
+  window.scrollTo({ top: 0, behavior: 'auto' });
 
   requestAnimationFrame(() => overlay.classList.add('is-visible'));
   setTimeout(() => widget.focus(), 40);
