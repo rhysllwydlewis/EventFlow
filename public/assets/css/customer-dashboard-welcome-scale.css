@@ -1,0 +1,77 @@
+/*
+ * Customer dashboard welcome card scale refinement.
+ * Keep the existing card, illustration and masked icons intact; only calm down
+ * the marketing-style hero typography so it matches the surrounding dashboard UI.
+ */
+
+body.customer-dashboard-page #welcome-section.customer-welcome-card.card.no-collapse {
+  padding: clamp(1.45rem, 2.25vw, 2.45rem) clamp(1.55rem, 2.55vw, 3rem) !important;
+}
+
+body.customer-dashboard-page #welcome-section .customer-welcome-kicker {
+  min-height: clamp(2rem, 2.35vw, 2.75rem) !important;
+  gap: clamp(0.55rem, 0.75vw, 0.85rem) !important;
+  margin-bottom: clamp(0.85rem, 1.25vw, 1.25rem) !important;
+  padding-inline: clamp(0.75rem, 1vw, 1.05rem) !important;
+  font-size: clamp(0.78rem, 0.82vw, 0.88rem) !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.025em !important;
+}
+
+body.customer-dashboard-page #welcome-section .customer-welcome-kicker::before {
+  font-size: clamp(0.95rem, 1vw, 1.08rem) !important;
+}
+
+body.customer-dashboard-page #welcome-section .customer-welcome-heading {
+  max-width: 590px !important;
+  margin-bottom: clamp(0.7rem, 1vw, 1.05rem) !important;
+  font-size: clamp(1.75rem, 2.1vw, 2.25rem) !important;
+  line-height: 1.12 !important;
+  letter-spacing: -0.035em !important;
+  font-weight: 800 !important;
+}
+
+body.customer-dashboard-page #welcome-section .customer-welcome-intro {
+  max-width: 560px !important;
+  font-size: clamp(0.98rem, 1.05vw, 1.125rem) !important;
+  line-height: 1.55 !important;
+}
+
+body.customer-dashboard-page #welcome-section .customer-welcome-actions {
+  padding-top: clamp(1.25rem, 1.45vw, 1.65rem) !important;
+}
+
+body.customer-dashboard-page #welcome-section .customer-welcome-action-card {
+  min-height: clamp(6.2rem, 8.4vw, 9.4rem) !important;
+}
+
+body.customer-dashboard-page #welcome-section .customer-welcome-action-card strong {
+  font-size: clamp(0.95rem, 1.06vw, 1.14rem) !important;
+  font-weight: 800 !important;
+}
+
+body.customer-dashboard-page #welcome-section .customer-welcome-action-card small {
+  font-size: clamp(0.88rem, 0.96vw, 1.02rem) !important;
+}
+
+body.customer-dashboard-page #welcome-section .customer-welcome-contextual-prompt {
+  margin-top: clamp(1.25rem, 1.55vw, 1.7rem) !important;
+}
+
+body.customer-dashboard-page #welcome-section .customer-welcome-footer {
+  margin-top: clamp(1.25rem, 1.55vw, 1.7rem) !important;
+}
+
+@media (max-width: 700px) {
+  body.customer-dashboard-page #welcome-section .customer-welcome-kicker {
+    min-height: 36px !important;
+    margin-bottom: 0.8rem !important;
+    font-size: 0.78rem !important;
+  }
+
+  body.customer-dashboard-page #welcome-section .customer-welcome-heading {
+    margin-bottom: 0.65rem !important;
+    font-size: 1.65rem !important;
+    line-height: 1.14 !important;
+  }
+}
