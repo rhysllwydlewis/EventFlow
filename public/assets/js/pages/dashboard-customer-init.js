@@ -1,5 +1,27 @@
 window.__EF_PAGE__ = 'dash_customer';
 
+(function ensureCustomerDashboardStartsAtTop() {
+  if ('scrollRestoration' in history) {
+    history.scrollRestoration = 'manual';
+  }
+
+  const resetToTop = () => {
+    if (window.location.hash) {
+      const cleanUrl = `${window.location.pathname}${window.location.search}`;
+      history.replaceState(null, document.title, cleanUrl);
+    }
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', resetToTop, { once: true });
+  } else {
+    resetToTop();
+  }
+
+  window.addEventListener('pageshow', resetToTop, { once: true });
+})();
+
 /** Debug logging — only emits when window.__EF_DEBUG__ is truthy. */
 function dbg(...args) {
   if (window.__EF_DEBUG__) {
