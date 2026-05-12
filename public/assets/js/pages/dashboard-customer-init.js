@@ -35,7 +35,7 @@ function dbg(...args) {
 })();
 
 function initCustomerWelcomeWidget() {
-  const WELCOME_DISMISS_KEY = 'ef_customer_welcome_widget_dismissed_v2';
+  const WELCOME_DISMISS_KEY = 'ef_customer_welcome_dismissed';
   const welcomeTemplate = document.getElementById('welcome-section-template');
   if (!(welcomeTemplate instanceof HTMLTemplateElement)) {
     return;
