@@ -29,6 +29,12 @@ function dbg(...args) {
   }
 }
 
+function buildCustomerWelcomeWidgetDismissKey(user) {
+  const baseKey = 'ef_customer_welcome_widget_dismissed_v2';
+  const userId = user && typeof user.id === 'string' ? user.id.trim() : '';
+  return userId ? `${baseKey}:${userId}` : baseKey;
+}
+
 // --- Customer welcome overlay dismiss logic ---
 (function initCustomerWelcomeOverlayDismiss() {
   const DISMISS_KEY = 'ef_customer_welcome_dismissed';
@@ -38,6 +44,11 @@ function dbg(...args) {
     try {
       localStorage.setItem(DISMISS_KEY, '1');
       localStorage.setItem(WIDGET_DISMISS_KEY, '1');
+      const overlay = document.getElementById('ef-onboarding-box');
+      const scopedDismissKey = overlay?.dataset?.dismissKey;
+      if (scopedDismissKey) {
+        localStorage.setItem(scopedDismissKey, '1');
+      }
       localStorage.setItem('ef_onboarding_dismissed', '1');
     } catch (_) {
       /* Ignore localStorage errors */
@@ -56,15 +67,19 @@ function dbg(...args) {
   window.dismissCustomerWelcome = dismissCustomerWelcomeOverlay;
 })();
 
-function initCustomerWelcomeWidget() {
-  const WELCOME_DISMISS_KEY = 'ef_customer_welcome_dismissed';
+function initCustomerWelcomeWidget(user) {
+  const WIDGET_DISMISS_KEY = 'ef_customer_welcome_widget_dismissed_v2';
+  const scopedDismissKey = buildCustomerWelcomeWidgetDismissKey(user);
   const welcomeTemplate = document.getElementById('welcome-section-template');
   if (!(welcomeTemplate instanceof HTMLTemplateElement)) {
     return;
   }
   let shouldOpenWidget = true;
   try {
-    shouldOpenWidget = localStorage.getItem(WELCOME_DISMISS_KEY) !== '1';
+    const scopedDismissed = localStorage.getItem(scopedDismissKey) === '1';
+    const legacyDismissed =
+      scopedDismissKey === WIDGET_DISMISS_KEY && localStorage.getItem(WIDGET_DISMISS_KEY) === '1';
+    shouldOpenWidget = !(scopedDismissed || legacyDismissed);
   } catch (_) {
     shouldOpenWidget = true;
   }
@@ -80,6 +95,7 @@ function initCustomerWelcomeWidget() {
 
   const overlay = document.createElement('div');
   overlay.id = 'ef-onboarding-box';
+  overlay.dataset.dismissKey = scopedDismissKey;
   overlay.className = 'ef-onboarding-overlay';
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-modal', 'true');
@@ -505,7 +521,7 @@ async function initDashboard() {
     }
   }
 
-  initCustomerWelcomeWidget();
+  initCustomerWelcomeWidget(user);
 
   // Check for guest plan token and claim it
   await claimGuestPlanIfExists();
