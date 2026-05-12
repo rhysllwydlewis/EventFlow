@@ -61,11 +61,16 @@ function initCustomerWelcomeWidget() {
   overlay.className = 'ef-onboarding-overlay';
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-modal', 'true');
-  overlay.setAttribute('aria-label', 'Welcome to your dashboard');
+  overlay.setAttribute('aria-labelledby', 'ef-onboarding-title-customer');
   const widget = document.createElement('div');
   widget.className = 'ef-onboarding-widget ef-onboarding-widget--customer';
   widget.setAttribute('tabindex', '-1');
   const content = welcomeSection.cloneNode(true);
+  content.id = 'ef-onboarding-customer-content';
+  const heading = content.querySelector('#welcome-heading');
+  if (heading) {
+    heading.id = 'ef-onboarding-title-customer';
+  }
   const dismissBtn = content.querySelector('#welcome-dismiss-btn');
   if (!dismissBtn) {
     const footer = document.createElement('div');

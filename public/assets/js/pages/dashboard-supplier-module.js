@@ -1146,11 +1146,16 @@ function initSupplierWelcomeWidget() {
   overlay.className = 'ef-onboarding-overlay';
   overlay.setAttribute('role', 'dialog');
   overlay.setAttribute('aria-modal', 'true');
-  overlay.setAttribute('aria-label', 'Welcome to your supplier dashboard');
+  overlay.setAttribute('aria-labelledby', 'ef-onboarding-title-supplier');
   const widget = document.createElement('div');
   widget.className = 'ef-onboarding-widget ef-onboarding-widget--supplier';
   widget.setAttribute('tabindex', '-1');
   const content = welcomeSection.cloneNode(true);
+  content.id = 'ef-onboarding-supplier-content';
+  const heading = content.querySelector('#welcome-heading');
+  if (heading) {
+    heading.id = 'ef-onboarding-title-supplier';
+  }
   widget.appendChild(content);
   overlay.appendChild(widget);
   document.body.appendChild(overlay);
