@@ -2,28 +2,9 @@
   'use strict';
 
   const ROOT_ID = 'wedding-website-dashboard-root';
-  let currentWeddingPlanId = null;
   const originalInit = window.initWeddingWebsiteDashboard;
 
   const isWeddingPlan = plan => String(plan?.eventType || '').toLowerCase() === 'wedding' || String(plan?.name || plan?.eventName || '').toLowerCase().includes('wedding');
-  const csrf = () => document.querySelector('meta[name="csrf-token"]')?.content || decodeURIComponent((document.cookie.match(/(?:^|; )csrfToken=([^;]+)/) || [])[1] || '');
-
-  async function postJson(path, payload) {
-    const token = csrf();
-    const response = await fetch(path, {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { 'X-CSRF-Token': token } : {}),
-      },
-      body: JSON.stringify(payload || {}),
-    });
-    if (!response.ok) {
-      const json = await response.json().catch(() => ({}));
-      throw new Error(json.error || json.message || 'Request failed');
-    }
-  }
 
   function addDashboardLauncherMode() {
     const card = document.getElementById('wedding-website-dashboard-card');
@@ -47,8 +28,8 @@
     form.querySelectorAll('details').forEach((details, index) => {
       if (labels[index]) details.id = labels[index];
     });
-    panel?.classList.add('ww-workspace-panel');
-    panel?.prepend(nav);
+    panel.classList.add('ww-workspace-panel');
+    panel.prepend(nav);
     root.querySelector('.ww-builder-actions')?.classList.add('ww-sticky-actions');
   }
 
@@ -64,7 +45,9 @@
     root.querySelector('#ww-copy-link')?.addEventListener('click', event => {
       const old = event.currentTarget.textContent;
       event.currentTarget.textContent = 'Copied';
-      setTimeout(() => { event.currentTarget.textContent = old; }, 1600);
+      setTimeout(() => {
+        event.currentTarget.textContent = old;
+      }, 1600);
     });
   }
 
@@ -114,15 +97,14 @@
         card.classList.add('is-drop-target');
       });
       card.addEventListener('dragleave', () => card.classList.remove('is-drop-target'));
-      card.addEventListener('drop', async event => {
+      card.addEventListener('drop', event => {
         event.preventDefault();
         card.classList.remove('is-drop-target');
         const guestId = event.dataTransfer.getData('text/plain');
-        if (!guestId || !currentWeddingPlanId) return;
-        await postJson(`/api/me/plans/${encodeURIComponent(currentWeddingPlanId)}/tables/${encodeURIComponent(tableId)}/assign-guest`, { guestId });
-        window.initWeddingWebsiteDashboard.__lastToast?.('Guest assigned');
-        card.closest('[data-pane="seating"]')?.querySelector('[aria-live]')?.remove();
-        root.querySelector('.ww-app-tabs [data-tab="seating"]')?.click();
+        const select = unseated.querySelector(`.assign-select[data-guest="${CSS.escape(guestId)}"]`);
+        if (!select) return;
+        select.value = tableId;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
       });
     });
   }
@@ -141,18 +123,8 @@
   }
 
   window.initWeddingWebsiteDashboard = async function patchedWeddingWebsiteDashboard(plans) {
-    currentWeddingPlanId = (plans || []).find(isWeddingPlan)?.id || null;
     await originalInit?.(plans);
-    addDashboardLauncherMode();
-  };
-
-  window.initWeddingWebsiteDashboard.__lastToast = message => {
-    const el = document.createElement('div');
-    el.className = 'ww-toast ww-toast--ok';
-    el.textContent = message;
-    document.body.appendChild(el);
-    setTimeout(() => el.classList.add('show'), 10);
-    setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 240); }, 2200);
+    if ((plans || []).some(isWeddingPlan)) addDashboardLauncherMode();
   };
 
   observeWidget();
