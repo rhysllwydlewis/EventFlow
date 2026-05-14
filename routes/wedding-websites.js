@@ -36,6 +36,9 @@ const PUBLIC_SLUGS = new Set([
   'rsvp',
   'password',
 ]);
+const SLUG_BASE_MAX_LENGTH = 64;
+const SECURE_SLUG_TOKEN_LENGTH = 5;
+const SLUG_TOKEN_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789';
 
 const sanitize = (v, n = 5000) =>
   v === null || v === undefined ? null : stripHtml(String(v)).trim().slice(0, n);
@@ -79,6 +82,24 @@ function accessSecret() {
   return String(process.env.JWT_SECRET || process.env.SESSION_SECRET || 'change_me_wedding_access');
 }
 
+function randomSlugToken(length = SECURE_SLUG_TOKEN_LENGTH) {
+  const bytes = crypto.randomBytes(length);
+  let token = '';
+  for (const byte of bytes) {
+    token += SLUG_TOKEN_ALPHABET[byte % SLUG_TOKEN_ALPHABET.length];
+  }
+  return token;
+}
+
+function readableSlugBase(seed) {
+  let base = slugify(seed);
+  if (isReservedSlug(base)) {
+    base = 'our-wedding';
+  }
+  base = base.slice(0, SLUG_BASE_MAX_LENGTH).replace(/-+$/g, '');
+  return base || 'our-wedding';
+}
+
 function passwordCookieName(slug) {
   return `${PASSWORD_COOKIE_PREFIX}${String(slug || '').replace(/[^a-z0-9_-]/gi, '').slice(0, 90)}`;
 }
@@ -118,16 +139,11 @@ function verifyWeddingPassword(password, storedHash) {
     .toString('hex');
   const actualBuffer = Buffer.from(actual, 'hex');
   const expectedBuffer = Buffer.from(expected, 'hex');
-  return (
-    actualBuffer.length === expectedBuffer.length &&
-    crypto.timingSafeEqual(actualBuffer, expectedBuffer)
-  );
+  return actualBuffer.length === expectedBuffer.length && crypto.timingSafeEqual(actualBuffer, expectedBuffer);
 }
 
 function signAccessToken(slug) {
-  const body = Buffer.from(
-    JSON.stringify({ slug, exp: Date.now() + PASSWORD_ACCESS_TTL_MS })
-  ).toString('base64url');
+  const body = Buffer.from(JSON.stringify({ slug, exp: Date.now() + PASSWORD_ACCESS_TTL_MS })).toString('base64url');
   const sig = crypto.createHmac('sha256', accessSecret()).update(body).digest('base64url');
   return `${body}.${sig}`;
 }
@@ -165,16 +181,15 @@ async function isSlugTaken(slug, planId) {
 }
 
 async function generateUniqueSlug(seed, planId) {
-  let base = slugify(seed);
-  if (isReservedSlug(base)) {
-    base = 'our-wedding';
+  const base = readableSlugBase(seed);
+  for (let i = 0; i < 28; i += 1) {
+    const slug = `${base}-${randomSlugToken()}`;
+    if (!isReservedSlug(slug) && !(await isSlugTaken(slug, planId))) {
+      return slug;
+    }
   }
-  let slug = base;
-  let i = 2;
-  while (isReservedSlug(slug) || (await isSlugTaken(slug, planId))) {
-    slug = `${base}-${i++}`;
-  }
-  return slug;
+  const fallback = `${base}-${Date.now().toString(36).slice(-5)}-${randomSlugToken(3)}`;
+  return fallback.slice(0, 80).replace(/-+$/g, '');
 }
 
 function getPublishReadiness(site) {
@@ -214,6 +229,10 @@ function scrubCustomerWebsite(site) {
   copy.passwordSet = !!site.passwordHash;
   copy.passwordProtected = site.visibility === 'password';
   copy.shareable = site.status === 'published' && !!site.slug && !isReservedSlug(site.slug);
+  copy.privateLinkMessage =
+    site.visibility === 'private_link'
+      ? 'Anyone with this exact link can view it. Use password protection for restricted access.'
+      : '';
   return copy;
 }
 
@@ -410,7 +429,7 @@ router.post('/:planId/wedding-website/unpublish', authRequired, requireVerifiedU
   const now = new Date().toISOString();
   const website = { ...req.plan.weddingWebsite, status: 'draft', updatedAt: now };
   await dbUnified.updateOne('plans', { id: req.plan.id }, { $set: { weddingWebsite: website, updatedAt: now } });
-  res.json({ success: true, website: scrubCustomerWebsite(website) });
+  res.json({ success: true });
 });
 
 router.get('/public/wedding-websites/:slug', async (req, res) => {
@@ -535,7 +554,8 @@ router.post('/:planId/wedding-website/regenerate-slug', authRequired, requireVer
   if (!req.plan.weddingWebsite) {
     return res.status(404).json({ error: 'Wedding website not found' });
   }
-  const slug = await generateUniqueSlug(req.plan.weddingWebsite.coupleNames || req.plan.name || 'our-wedding', req.plan.id);
+  const seed = req.body.seed || req.plan.weddingWebsite.coupleNames || req.plan.name || 'our-wedding';
+  const slug = await generateUniqueSlug(seed, req.plan.id);
   const website = { ...req.plan.weddingWebsite, slug, updatedAt: new Date().toISOString() };
   await dbUnified.updateOne('plans', { id: req.plan.id }, { $set: { weddingWebsite: website, updatedAt: website.updatedAt } });
   res.json({ success: true, website: scrubCustomerWebsite(website) });
