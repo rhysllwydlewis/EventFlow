@@ -61,6 +61,7 @@
   function loadWeddingWidgetPolish() {
     loadScriptOnce('ww-polish-enhancer-script', '/assets/js/pages/customer-wedding-widget-polish.js');
     loadScriptOnce('ww-advanced-enhancer-script', '/assets/js/pages/customer-wedding-widget-share-builder.js');
+    loadScriptOnce('ww-nav-card-fixes-script', '/assets/js/pages/customer-wedding-widget-nav-card-fixes.js');
   }
 
   /**
