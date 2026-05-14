@@ -157,19 +157,30 @@
       if (!el) {
         return;
       }
-      previous.push([el, el.style.display, el.style.maxHeight, el.style.opacity]);
-      el.style.display = '';
-      el.style.maxHeight = '';
-      el.style.opacity = '';
+      previous.push([
+        el,
+        el.style.getPropertyValue('display'),
+        el.style.getPropertyPriority('display'),
+        el.style.getPropertyValue('max-height'),
+        el.style.getPropertyPriority('max-height'),
+        el.style.getPropertyValue('opacity'),
+        el.style.getPropertyPriority('opacity'),
+      ]);
+      el.style.setProperty('display', 'block', 'important');
+      el.style.setProperty('max-height', 'none', 'important');
+      el.style.setProperty('opacity', '1', 'important');
     });
 
     root?.removeAttribute('hidden');
 
     return () => {
-      previous.forEach(([el, display, maxHeight, opacity]) => {
-        el.style.display = display;
-        el.style.maxHeight = maxHeight;
-        el.style.opacity = opacity;
+      previous.forEach(([el, display, displayPriority, maxHeight, maxHeightPriority, opacity, opacityPriority]) => {
+        if (display) el.style.setProperty('display', display, displayPriority);
+        else el.style.removeProperty('display');
+        if (maxHeight) el.style.setProperty('max-height', maxHeight, maxHeightPriority);
+        else el.style.removeProperty('max-height');
+        if (opacity) el.style.setProperty('opacity', opacity, opacityPriority);
+        else el.style.removeProperty('opacity');
       });
     };
   }
@@ -215,17 +226,25 @@
     return /expand|minimise|minimize|collapse/i.test(`${text} ${label} ${classes}`);
   }
 
+  function bindOpenApp(button) {
+    if (button.dataset.wwOpenBound === 'true') {
+      return;
+    }
+    button.dataset.wwOpenBound = 'true';
+    button.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      openWidgetApp();
+    });
+  }
+
   function buildOpenAppButton(source) {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = `${source?.className || ''} ww-card-open-app-btn`.trim();
     button.textContent = 'Open app';
     button.setAttribute('aria-label', 'Open Wedding Website and RSVPs app');
-    button.addEventListener('click', event => {
-      event.preventDefault();
-      event.stopPropagation();
-      openWidgetApp();
-    });
+    bindOpenApp(button);
     return button;
   }
 
@@ -239,14 +258,7 @@
     if (existing) {
       existing.textContent = 'Open app';
       existing.onclick = null;
-      if (existing.dataset.wwOpenBound !== 'true') {
-        existing.dataset.wwOpenBound = 'true';
-        existing.addEventListener('click', event => {
-          event.preventDefault();
-          event.stopPropagation();
-          openWidgetApp();
-        });
-      }
+      bindOpenApp(existing);
       return;
     }
 
@@ -254,18 +266,6 @@
     const actionCollapse = actionControls.find(isCollapseControl);
     if (actionCollapse) {
       actionCollapse.replaceWith(buildOpenAppButton(actionCollapse));
-      return;
-    }
-
-    const anyCollapse = Array.from(card.querySelectorAll('button, a')).find(el => {
-      if (el.closest('.ww-app-dialog')) {
-        return false;
-      }
-      return isCollapseControl(el);
-    });
-
-    if (anyCollapse && anyCollapse.closest(actions)) {
-      anyCollapse.replaceWith(buildOpenAppButton(anyCollapse));
       return;
     }
 
@@ -277,10 +277,7 @@
     card.classList.add('no-collapse');
     card.dataset.efPolishCollapseReady = '1';
 
-    const injectedButton = card.querySelector(':scope > .card-collapse-btn');
-    if (injectedButton) {
-      injectedButton.remove();
-    }
+    card.querySelectorAll(':scope > .card-collapse-btn').forEach(button => button.remove());
 
     const wrapper = card.querySelector(':scope > .card-body-collapsible');
     if (wrapper) {
@@ -337,7 +334,7 @@
   }
 
   const observer = new MutationObserver(queueRun);
-  observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'aria-expanded'] });
+  observer.observe(document.body, { childList: true, subtree: true });
 
   window.addEventListener('load', run);
   window.setTimeout(run, 0);
