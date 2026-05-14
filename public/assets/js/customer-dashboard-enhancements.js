@@ -14,9 +14,13 @@
   }
 
   function addRecommendationsWidget() {
-    if (document.getElementById('recommendations-widget')) return;
+    if (document.getElementById('recommendations-widget')) {
+      return;
+    }
     const statsSection = document.querySelector('#customer-stats-grid');
-    if (!statsSection) return;
+    if (!statsSection) {
+      return;
+    }
     const widgetContainer = document.createElement('div');
     widgetContainer.id = 'recommendations-widget';
     widgetContainer.className = 'recommendations-widget';
@@ -50,10 +54,14 @@
       let settled = false;
       let timeoutId = null;
       const finish = loaded => {
-        if (settled) return;
+        if (settled) {
+          return;
+        }
         settled = true;
         window.clearTimeout(timeoutId);
-        if (loaded) loadedScripts.add(id);
+        if (loaded) {
+          loadedScripts.add(id);
+        }
         resolve(loaded);
       };
       script.id = id;
