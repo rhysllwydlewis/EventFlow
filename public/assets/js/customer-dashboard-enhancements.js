@@ -40,22 +40,27 @@
     }
   }
 
-  /**
-   * Load the wedding widget polish enhancement after the base widget exists.
-   * This keeps the dashboard HTML untouched while making the follow-up PR active.
-   */
-  function loadWeddingWidgetPolish() {
-    if (document.getElementById('ww-polish-enhancer-script')) {
+  function loadScriptOnce(id, src) {
+    if (document.getElementById(id)) {
       return;
     }
     if (!document.getElementById('wedding-website-dashboard-root')) {
       return;
     }
     const script = document.createElement('script');
-    script.id = 'ww-polish-enhancer-script';
-    script.src = '/assets/js/pages/customer-wedding-widget-polish.js';
+    script.id = id;
+    script.src = src;
     script.defer = true;
     document.body.appendChild(script);
+  }
+
+  /**
+   * Load the wedding widget enhancement modules after the base widget exists.
+   * This keeps the dashboard HTML untouched while making the follow-up PR active.
+   */
+  function loadWeddingWidgetPolish() {
+    loadScriptOnce('ww-polish-enhancer-script', '/assets/js/pages/customer-wedding-widget-polish.js');
+    loadScriptOnce('ww-advanced-enhancer-script', '/assets/js/pages/customer-wedding-widget-share-builder.js');
   }
 
   /**
