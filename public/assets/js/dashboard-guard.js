@@ -13,6 +13,107 @@
   // Get current page
   const currentPath = window.location.pathname;
 
+  function installCustomerDashboardFetchGuard() {
+    const isCustomerDashboard = currentPath === '/dashboard/customer' || currentPath === '/dashboard-customer.html';
+    if (!isCustomerDashboard || window.__EF_CUSTOMER_DASHBOARD_FETCH_GUARD__) {
+      return;
+    }
+
+    window.__EF_CUSTOMER_DASHBOARD_FETCH_GUARD__ = true;
+    const originalFetch = window.fetch.bind(window);
+    const guardedPaths = [
+      '/api/v1/auth/me',
+      '/api/me/plans',
+      '/api/meta',
+      '/api/csrf-token',
+      '/api/v1/csrf-token',
+      '/api/notifications',
+      '/api/conversations',
+      '/api/tickets',
+    ];
+
+    function getPath(input) {
+      const raw = typeof input === 'string' ? input : input?.url || '';
+      try {
+        return new URL(raw, window.location.origin).pathname;
+      } catch (_err) {
+        return raw.split('?')[0];
+      }
+    }
+
+    function timeoutFor(path) {
+      if (path === '/api/v1/auth/me') return 7000;
+      if (path === '/api/me/plans') return 5000;
+      if (path === '/api/csrf-token' || path === '/api/v1/csrf-token') return 4000;
+      return 3500;
+    }
+
+    function responseFor(path) {
+      const headers = { 'Content-Type': 'application/json', 'X-EF-Dashboard-Fallback': 'timeout' };
+      const storedUser = window.__EF_DASHBOARD_USER__;
+      if (path === '/api/v1/auth/me' && storedUser) {
+        return new Response(JSON.stringify({ user: storedUser }), { status: 200, headers });
+      }
+      if (path === '/api/me/plans') {
+        return new Response(JSON.stringify({ plans: [] }), { status: 200, headers });
+      }
+      if (path === '/api/notifications') {
+        return new Response(JSON.stringify({ notifications: [], unreadCount: 0, total: 0 }), {
+          status: 200,
+          headers,
+        });
+      }
+      if (path === '/api/conversations') {
+        return new Response(JSON.stringify({ conversations: [], data: [], total: 0 }), {
+          status: 200,
+          headers,
+        });
+      }
+      if (path === '/api/tickets') {
+        return new Response(JSON.stringify({ tickets: [], data: [], total: 0 }), { status: 200, headers });
+      }
+      if (path === '/api/csrf-token' || path === '/api/v1/csrf-token') {
+        const csrf =
+          window.__CSRF_TOKEN__ ||
+          document.querySelector('meta[name="csrf-token"]')?.content ||
+          (document.cookie.match(/(?:^|; )csrf=([^;]+)/) || [])[1] ||
+          '';
+        return new Response(JSON.stringify({ csrfToken: decodeURIComponent(csrf), token: decodeURIComponent(csrf) }), {
+          status: 200,
+          headers,
+        });
+      }
+      return new Response(JSON.stringify({}), { status: 200, headers });
+    }
+
+    window.fetch = function customerDashboardFetch(input, options = {}) {
+      const path = getPath(input);
+      const method = String(options.method || 'GET').toUpperCase();
+      const shouldGuard = method === 'GET' && guardedPaths.some(guarded => path === guarded);
+      if (!shouldGuard) {
+        return originalFetch(input, options);
+      }
+
+      const timeoutMs = timeoutFor(path);
+      const controller = !options.signal && typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const opts = controller ? { ...options, signal: controller.signal } : options;
+      let timeoutId;
+      const timeoutPromise = new Promise(resolve => {
+        timeoutId = window.setTimeout(() => {
+          if (controller) controller.abort();
+          console.warn(`Customer dashboard request timed out; using safe fallback for ${path}`);
+          resolve(responseFor(path));
+        }, timeoutMs);
+      });
+
+      return Promise.race([originalFetch(input, opts), timeoutPromise]).finally(() => {
+        window.clearTimeout(timeoutId);
+      });
+    };
+  }
+
+  installCustomerDashboardFetchGuard();
+
   // Role requirements for each dashboard type
   const dashboardRoles = {
     '/dashboard/supplier': 'supplier',
@@ -215,6 +316,7 @@
 
     const data = await response.json();
     const user = data.user || data; // Support both wrapped and unwrapped formats
+    window.__EF_DASHBOARD_USER__ = user;
 
     // Log user data in development mode for debugging
     if (window.location.hostname === 'localhost') {
