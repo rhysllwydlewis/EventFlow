@@ -12,181 +12,46 @@
       "'": '&#39;',
     })[ch]);
 
+  const cssEscape = value =>
+    window.CSS?.escape ? window.CSS.escape(value) : String(value || '').replace(/["\\]/g, '\\$&');
+
   function injectStyles() {
     if (document.getElementById('ww-product-upgrade-styles')) return;
     const style = document.createElement('style');
     style.id = 'ww-product-upgrade-styles';
     style.textContent = `
-      .ww-product-command {
-        display: grid;
-        grid-template-columns: minmax(0, 1.25fr) minmax(220px, .75fr);
-        gap: .85rem;
-        margin-bottom: .85rem;
-      }
-      .ww-product-next,
-      .ww-product-progress,
-      .ww-product-empty,
-      .ww-product-tip {
-        border: 1px solid rgba(80, 192, 176, .16);
-        border-radius: 20px;
-        background: linear-gradient(135deg, rgba(255,255,255,.88), rgba(243,252,250,.74));
-        box-shadow: 0 16px 36px rgba(36,67,111,.07);
-        padding: .95rem;
-      }
-      .ww-product-next {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        align-items: center;
-        gap: .75rem;
-      }
-      .ww-product-next h4,
-      .ww-product-progress h4,
-      .ww-product-empty h4,
-      .ww-product-tip h4 {
-        margin: .1rem 0 .3rem;
-        color: var(--ww-ink, #172033);
-        font-size: 1.05rem;
-      }
-      .ww-product-next p,
-      .ww-product-progress p,
-      .ww-product-empty p,
-      .ww-product-tip p { margin: 0; color: var(--ww-muted, #63708a); }
-      .ww-progress-track {
-        height: 10px;
-        overflow: hidden;
-        border-radius: 999px;
-        background: rgba(80,192,176,.14);
-        margin: .55rem 0 .65rem;
-      }
-      .ww-progress-track span {
-        display: block;
-        height: 100%;
-        border-radius: inherit;
-        background: linear-gradient(90deg, var(--ww-mint, #50c0b0), var(--ww-teal, #2c94b1));
-      }
-      .ww-progress-list {
-        display: flex;
-        flex-wrap: wrap;
-        gap: .35rem;
-        margin: 0;
-        padding: 0;
-        list-style: none;
-      }
-      .ww-progress-list li {
-        display: inline-flex;
-        align-items: center;
-        gap: .28rem;
-        border: 1px solid rgba(80,192,176,.16);
-        border-radius: 999px;
-        background: rgba(255,255,255,.66);
-        color: var(--ww-navy, #24436f);
-        font-size: .76rem;
-        font-weight: 800;
-        padding: .25rem .5rem;
-      }
+      .ww-product-command { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(220px, .75fr); gap: .85rem; margin-bottom: .85rem; }
+      .ww-product-next,.ww-product-progress,.ww-product-empty,.ww-product-tip { border: 1px solid rgba(80, 192, 176, .16); border-radius: 20px; background: linear-gradient(135deg, rgba(255,255,255,.88), rgba(243,252,250,.74)); box-shadow: 0 16px 36px rgba(36,67,111,.07); padding: .95rem; }
+      .ww-product-next { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: .75rem; }
+      .ww-product-next h4,.ww-product-progress h4,.ww-product-empty h4,.ww-product-tip h4 { margin: .1rem 0 .3rem; color: var(--ww-ink, #172033); font-size: 1.05rem; }
+      .ww-product-next p,.ww-product-progress p,.ww-product-empty p,.ww-product-tip p { margin: 0; color: var(--ww-muted, #63708a); }
+      .ww-progress-track { height: 10px; overflow: hidden; border-radius: 999px; background: rgba(80,192,176,.14); margin: .55rem 0 .65rem; }
+      .ww-progress-track span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--ww-mint, #50c0b0), var(--ww-teal, #2c94b1)); }
+      .ww-progress-list { display: flex; flex-wrap: wrap; gap: .35rem; margin: 0; padding: 0; list-style: none; }
+      .ww-progress-list li { display: inline-flex; align-items: center; gap: .28rem; border: 1px solid rgba(80,192,176,.16); border-radius: 999px; background: rgba(255,255,255,.66); color: var(--ww-navy, #24436f); font-size: .76rem; font-weight: 800; padding: .25rem .5rem; }
       .ww-progress-list li[data-done="true"] { color: #047857; background: rgba(220,252,231,.78); }
-      .ww-product-kicker {
-        color: var(--ww-muted, #63708a);
-        font-size: .72rem;
-        font-weight: 900;
-        letter-spacing: .08em;
-        text-transform: uppercase;
-      }
-      .ww-app-dialog.ww-product-enhanced .ww-overview-grid article,
-      .ww-app-dialog.ww-product-enhanced .ww-tiles > div {
-        position: relative;
-        overflow: hidden;
-        background: linear-gradient(135deg, rgba(255,255,255,.9), rgba(247,253,252,.72));
-      }
-      .ww-app-dialog.ww-product-enhanced .ww-overview-grid article::after,
-      .ww-app-dialog.ww-product-enhanced .ww-tiles > div::after {
-        content: '';
-        position: absolute;
-        inset: auto -20% -45% 30%;
-        height: 70%;
-        border-radius: 999px;
-        background: rgba(80,192,176,.08);
-        pointer-events: none;
-      }
-      .ww-builder details,
-      .ww-builder .ww-advanced-panel {
-        border-radius: 18px;
-        box-shadow: 0 12px 26px rgba(36,67,111,.055);
-      }
-      .ww-product-required-hint {
-        display: inline-flex;
-        width: max-content;
-        margin-top: .28rem;
-        border-radius: 999px;
-        background: rgba(254,243,199,.78);
-        color: #92400e;
-        font-size: .72rem;
-        font-weight: 800;
-        padding: .18rem .45rem;
-      }
-      .ww-save-state {
-        display: inline-flex;
-        align-items: center;
-        gap: .32rem;
-        border: 1px solid rgba(80,192,176,.16);
-        border-radius: 999px;
-        background: rgba(255,255,255,.72);
-        color: var(--ww-navy, #24436f);
-        font-size: .78rem;
-        font-weight: 800;
-        padding: .42rem .6rem;
-      }
+      .ww-product-kicker { color: var(--ww-muted, #63708a); font-size: .72rem; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+      .ww-app-dialog.ww-product-enhanced .ww-overview-grid article,.ww-app-dialog.ww-product-enhanced .ww-tiles > div { position: relative; overflow: hidden; background: linear-gradient(135deg, rgba(255,255,255,.9), rgba(247,253,252,.72)); }
+      .ww-app-dialog.ww-product-enhanced .ww-overview-grid article::after,.ww-app-dialog.ww-product-enhanced .ww-tiles > div::after { content: ''; position: absolute; inset: auto -20% -45% 30%; height: 70%; border-radius: 999px; background: rgba(80,192,176,.08); pointer-events: none; }
+      .ww-builder details,.ww-builder .ww-advanced-panel { border-radius: 18px; box-shadow: 0 12px 26px rgba(36,67,111,.055); }
+      .ww-product-required-hint { display: inline-flex; width: max-content; margin-top: .28rem; border-radius: 999px; background: rgba(254,243,199,.78); color: #92400e; font-size: .72rem; font-weight: 800; padding: .18rem .45rem; }
+      .ww-save-state { display: inline-flex; align-items: center; gap: .32rem; border: 1px solid rgba(80,192,176,.16); border-radius: 999px; background: rgba(255,255,255,.72); color: var(--ww-navy, #24436f); font-size: .78rem; font-weight: 800; padding: .42rem .6rem; }
       .ww-save-state[data-state="dirty"] { color: #92400e; background: #fef3c7; }
       .ww-guest-card-list { display: none; gap: .55rem; margin-top: .75rem; }
-      .ww-guest-card {
-        border: 1px solid rgba(80,192,176,.16);
-        border-radius: 16px;
-        background: rgba(255,255,255,.72);
-        padding: .75rem;
-      }
+      .ww-guest-card { border: 1px solid rgba(80,192,176,.16); border-radius: 16px; background: rgba(255,255,255,.72); padding: .75rem; }
       .ww-guest-card__top { display: flex; justify-content: space-between; gap: .55rem; align-items: flex-start; }
       .ww-guest-card strong { color: var(--ww-ink, #172033); }
       .ww-guest-card small { color: var(--ww-muted, #63708a); }
       .ww-guest-card__meta { display: flex; flex-wrap: wrap; gap: .35rem; margin-top: .55rem; }
       .ww-guest-card__meta span { border-radius: 999px; background: rgba(80,192,176,.10); color: var(--ww-navy,#24436f); font-weight: 800; font-size: .72rem; padding: .22rem .42rem; }
-      .ww-seating-command {
-        display: grid;
-        gap: .5rem;
-        border: 1px solid rgba(80,192,176,.16);
-        border-radius: 18px;
-        background: rgba(255,255,255,.72);
-        padding: .75rem;
-        margin: .75rem 0;
-      }
+      .ww-seating-command { display: grid; gap: .5rem; border: 1px solid rgba(80,192,176,.16); border-radius: 18px; background: rgba(255,255,255,.72); padding: .75rem; margin: .75rem 0; }
       .ww-seating-command__chips { display: flex; flex-wrap: wrap; gap: .35rem; }
       .ww-seating-command__chips span { border-radius: 999px; background: rgba(80,192,176,.10); color: var(--ww-navy,#24436f); font-weight: 800; font-size: .75rem; padding: .28rem .5rem; }
-      .ww-share-publishing-centre {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) auto;
-        align-items: center;
-        gap: .8rem;
-        border: 1px solid rgba(80,192,176,.16);
-        border-radius: 20px;
-        background: linear-gradient(135deg, rgba(255,255,255,.9), rgba(243,252,250,.74));
-        box-shadow: 0 16px 36px rgba(36,67,111,.07);
-        padding: .95rem;
-        margin-bottom: .85rem;
-      }
+      .ww-share-publishing-centre { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: .8rem; border: 1px solid rgba(80,192,176,.16); border-radius: 20px; background: linear-gradient(135deg, rgba(255,255,255,.9), rgba(243,252,250,.74)); box-shadow: 0 16px 36px rgba(36,67,111,.07); padding: .95rem; margin-bottom: .85rem; }
       .ww-share-publishing-centre h4 { margin: .1rem 0 .25rem; color: var(--ww-ink,#172033); }
       .ww-share-publishing-centre p { margin: 0; color: var(--ww-muted,#63708a); }
-      .ww-focus-ring :is(button,a,input,select,textarea):focus-visible,
-      .ww-app-dialog :is(button,a,input,select,textarea):focus-visible {
-        outline: 3px solid rgba(80,192,176,.36);
-        outline-offset: 2px;
-      }
-      @media (max-width: 760px) {
-        .ww-product-command,
-        .ww-product-next,
-        .ww-share-publishing-centre { grid-template-columns: 1fr; }
-        .ww-table-wrap { overflow-x: auto; }
-        .ww-guest-card-list { display: grid; }
-        .ww-table-wrap .ww-table { display: none; }
-      }
+      .ww-focus-ring :is(button,a,input,select,textarea):focus-visible,.ww-app-dialog :is(button,a,input,select,textarea):focus-visible { outline: 3px solid rgba(80,192,176,.36); outline-offset: 2px; }
+      @media (max-width: 760px) { .ww-product-command,.ww-product-next,.ww-share-publishing-centre { grid-template-columns: 1fr; } .ww-table-wrap { overflow-x: auto; } .ww-guest-card-list { display: grid; } .ww-table-wrap .ww-table { display: none; } }
     `;
     document.head.appendChild(style);
   }
@@ -221,11 +86,11 @@
 
   function completionItems(state) {
     return [
-      { key: 'website', label: 'Website', done: state.websiteStarted },
-      { key: 'published', label: 'Published', done: state.websitePublished },
-      { key: 'guests', label: 'Guests', done: state.guests > 0 },
-      { key: 'rsvps', label: 'RSVPs', done: state.expected === 0 ? false : state.responses >= state.expected },
-      { key: 'seating', label: 'Seating', done: state.guests > 0 && state.seated >= Math.min(state.guests, state.expected || state.guests) },
+      { label: 'Website', done: state.websiteStarted },
+      { label: 'Published', done: state.websitePublished },
+      { label: 'Guests', done: state.guests > 0 },
+      { label: 'RSVPs', done: state.expected === 0 ? false : state.responses >= state.expected },
+      { label: 'Seating', done: state.guests > 0 && state.seated >= Math.min(state.guests, state.expected || state.guests) },
     ];
   }
 
@@ -250,16 +115,7 @@
     const action = nextAction(state);
     const command = document.createElement('div');
     command.className = 'ww-product-command';
-    command.innerHTML = `
-      <section class="ww-product-next">
-        <div><span class="ww-product-kicker">Next best action</span><h4>${esc(action.title)}</h4><p>${esc(action.body)}</p></div>
-        <button type="button" class="cta small" data-ww-product-tab="${esc(action.tab)}">${esc(action.button)}</button>
-      </section>
-      <section class="ww-product-progress">
-        <span class="ww-product-kicker">Setup health</span><h4>${done}/${items.length} complete</h4>
-        <div class="ww-progress-track" aria-label="Wedding widget setup ${percent}% complete"><span style="width:${percent}%"></span></div>
-        <ul class="ww-progress-list">${items.map(item => `<li data-done="${item.done}">${item.done ? '✓' : '○'} ${esc(item.label)}</li>`).join('')}</ul>
-      </section>`;
+    command.innerHTML = `<section class="ww-product-next"><div><span class="ww-product-kicker">Next best action</span><h4>${esc(action.title)}</h4><p>${esc(action.body)}</p></div><button type="button" class="cta small" data-ww-product-tab="${esc(action.tab)}">${esc(action.button)}</button></section><section class="ww-product-progress"><span class="ww-product-kicker">Setup health</span><h4>${done}/${items.length} complete</h4><div class="ww-progress-track" aria-label="Wedding widget setup ${percent}% complete"><span style="width:${percent}%"></span></div><ul class="ww-progress-list">${items.map(item => `<li data-done="${item.done}">${item.done ? '✓' : '○'} ${esc(item.label)}</li>`).join('')}</ul></section>`;
     panel.prepend(command);
     command.querySelector('[data-ww-product-tab]')?.addEventListener('click', event => switchTab(dialog, event.currentTarget.dataset.wwProductTab));
   }
@@ -271,15 +127,12 @@
     if (!form || form.dataset.wwProductWorkspace === 'true') return;
     form.dataset.wwProductWorkspace = 'true';
     form.classList.add('ww-product-workspace');
-    const requiredNames = ['coupleNames', 'eventDate', 'ceremonyVenueName', 'welcomeMessage'];
-    requiredNames.forEach(name => {
+    ['coupleNames', 'eventDate', 'ceremonyVenueName', 'welcomeMessage'].forEach(name => {
       const field = form.querySelector(`[name="${name}"]`);
       if (!field) return;
       field.required = true;
       const label = field.closest('label');
-      if (label && !label.querySelector('.ww-product-required-hint')) {
-        label.insertAdjacentHTML('beforeend', '<span class="ww-product-required-hint">Recommended before publishing</span>');
-      }
+      if (label && !label.querySelector('.ww-product-required-hint')) label.insertAdjacentHTML('beforeend', '<span class="ww-product-required-hint">Recommended before publishing</span>');
     });
     if (actions && !actions.querySelector('.ww-save-state')) {
       actions.insertAdjacentHTML('beforeend', '<span class="ww-save-state" data-state="clean">✓ No unsaved changes</span>');
@@ -313,8 +166,8 @@
         }).join('')
       : '<section class="ww-product-empty"><h4>No guests match this view</h4><p>Try another filter or add a guest to start building your RSVP list.</p></section>';
     table.closest('.ww-table-wrap')?.after(cards);
-    cards.querySelectorAll('.ww-edit').forEach(button => button.addEventListener('click', () => table.querySelector(`.ww-edit[data-id="${CSS.escape(button.dataset.id)}"]`)?.click()));
-    cards.querySelectorAll('.ww-del').forEach(button => button.addEventListener('click', () => table.querySelector(`.ww-del[data-id="${CSS.escape(button.dataset.id)}"]`)?.click()));
+    cards.querySelectorAll('.ww-edit').forEach(button => button.addEventListener('click', () => table.querySelector(`.ww-edit[data-id="${cssEscape(button.dataset.id)}"]`)?.click()));
+    cards.querySelectorAll('.ww-del').forEach(button => button.addEventListener('click', () => table.querySelector(`.ww-del[data-id="${cssEscape(button.dataset.id)}"]`)?.click()));
   }
 
   function enhanceSeating(dialog) {
@@ -325,13 +178,7 @@
     const tableCount = summary.match(/Tables:\s*(\d+)/i)?.[1] || '0';
     const seated = summary.match(/Seated:\s*(\d+)/i)?.[1] || '0';
     const unseated = summary.match(/Unseated:\s*(\d+)/i)?.[1] || '0';
-    panel.querySelector('.ww-actions')?.insertAdjacentHTML('afterend', `
-      <section class="ww-seating-command">
-        <span class="ww-product-kicker">Planner command bar</span>
-        <h4>Keep tables balanced and guest needs visible</h4>
-        <div class="ww-seating-command__chips"><span>${esc(tableCount)} tables</span><span>${esc(seated)} seated</span><span>${esc(unseated)} unseated</span></div>
-        <p class="small">Use table capacity, dietary/access notes and the unseated list to quickly spot anything that needs attention.</p>
-      </section>`);
+    panel.querySelector('.ww-actions')?.insertAdjacentHTML('afterend', `<section class="ww-seating-command"><span class="ww-product-kicker">Planner command bar</span><h4>Keep tables balanced and guest needs visible</h4><div class="ww-seating-command__chips"><span>${esc(tableCount)} tables</span><span>${esc(seated)} seated</span><span>${esc(unseated)} unseated</span></div><p class="small">Use table capacity, dietary/access notes and the unseated list to quickly spot anything that needs attention.</p></section>`);
   }
 
   function enhanceShare(dialog) {
@@ -339,11 +186,11 @@
     const card = pane?.querySelector('.ww-share-card, .ww-app-panel');
     if (!card || pane.querySelector('.ww-share-publishing-centre')) return;
     const url = pane.querySelector('input[readonly]')?.value || pane.querySelector('.ww-link-preview')?.textContent || '';
-    card.prepend(Object.assign(document.createElement('section'), {
-      className: 'ww-share-publishing-centre',
-      innerHTML: `<div><span class="ww-product-kicker">Publishing centre</span><h4>Share the right link with confidence</h4><p>${url ? 'Your guest website link is ready. Copy it, preview it, or download a QR code from this page.' : 'Publish your website to unlock guest sharing tools.'}</p></div>${url ? `<a class="cta secondary small" href="${esc(url)}" target="_blank" rel="noopener">View as guest</a>` : '<button type="button" class="cta secondary small" data-ww-product-tab="workspace">Finish setup</button>'}`
-    }));
-    pane.querySelector('[data-ww-product-tab]')?.addEventListener('click', event => switchTab(dialog, event.currentTarget.dataset.wwProductTab));
+    const section = document.createElement('section');
+    section.className = 'ww-share-publishing-centre';
+    section.innerHTML = `<div><span class="ww-product-kicker">Publishing centre</span><h4>Share the right link with confidence</h4><p>${url ? 'Your guest website link is ready. Copy it, preview it, or download a QR code from this page.' : 'Publish your website to unlock guest sharing tools.'}</p></div>${url ? `<a class="cta secondary small" href="${esc(url)}" target="_blank" rel="noopener">View as guest</a>` : '<button type="button" class="cta secondary small" data-ww-product-tab="workspace">Finish setup</button>'}`;
+    card.prepend(section);
+    section.querySelector('[data-ww-product-tab]')?.addEventListener('click', event => switchTab(dialog, event.currentTarget.dataset.wwProductTab));
   }
 
   function installTabKeyboard(dialog) {
@@ -388,14 +235,22 @@
     });
   }
 
+  function shouldRunForMutation(mutation) {
+    return Array.from(mutation.addedNodes).some(node =>
+      node instanceof Element &&
+      !node.closest?.('.ww-product-command,.ww-share-publishing-centre,.ww-guest-card-list,.ww-seating-command') &&
+      (node.matches('.ww-app-dialog,.ww-app-panel,.ww-table-wrap,.ww-share-card') || node.querySelector?.('.ww-app-dialog,.ww-app-panel,.ww-table-wrap,.ww-share-card'))
+    );
+  }
+
   const observer = new MutationObserver(mutations => {
-    if (mutations.some(mutation => Array.from(mutation.addedNodes).some(node => node instanceof Element && (node.matches('.ww-app-dialog') || node.querySelector?.('.ww-app-dialog'))))) {
-      schedule();
-    }
+    if (mutations.some(shouldRunForMutation)) schedule();
   });
   observer.observe(document.body, { childList: true, subtree: true });
   document.addEventListener('click', event => {
-    if (event.target instanceof Element && event.target.closest('.ww-app-tabs button,[data-tab]')) window.setTimeout(schedule, 0);
+    if (event.target instanceof Element && event.target.closest('.ww-app-tabs button,[data-tab]')) {
+      [0, 250, 900].forEach(delay => window.setTimeout(schedule, delay));
+    }
   }, true);
   injectStyles();
   schedule();
