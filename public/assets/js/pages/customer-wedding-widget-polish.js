@@ -140,15 +140,19 @@
     });
   }
 
+  function enhanceOpenDialogs() {
+    document.querySelectorAll('.ww-app-dialog').forEach(dialog => {
+      enhanceStats(dialog);
+      enhanceWorkspace(dialog);
+      enhanceSeating(dialog);
+      enhanceShare(dialog);
+    });
+  }
+
   function observeWidget() {
     const observer = new MutationObserver(() => {
       addDashboardLauncherMode();
-      document.querySelectorAll('.ww-app-dialog').forEach(dialog => {
-        enhanceStats(dialog);
-        enhanceWorkspace(dialog);
-        enhanceSeating(dialog);
-        enhanceShare(dialog);
-      });
+      enhanceOpenDialogs();
     });
     observer.observe(document.body, { childList: true, subtree: true });
   }
@@ -159,5 +163,7 @@
   };
 
   injectStyles();
+  addDashboardLauncherMode();
+  enhanceOpenDialogs();
   observeWidget();
 })();
