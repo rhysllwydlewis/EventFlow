@@ -20,8 +20,8 @@
 
   /**
    * Add recommendations widget to dashboard.
-   * Called directly after initCustomerDashboardWidgets completes rather than
-   * using a MutationObserver, to avoid the 10-second timeout race condition.
+   * This is optional UI and can create supplier-card/logo requests, so it should
+   * not compete with the customer dashboard's auth/plans boot requests.
    */
   function addRecommendationsWidget() {
     // Check if widget already exists
@@ -48,7 +48,11 @@
 
     // Initialize the widget
     if (window.RecommendationsWidget) {
-      window.RecommendationsWidget.init();
+      try {
+        window.RecommendationsWidget.init();
+      } catch (err) {
+        console.warn('Recommendations widget failed to initialise:', err);
+      }
     }
   }
 
@@ -124,7 +128,7 @@
 
     onIdle(() => {
       loadCardCtaEnhancer();
-    }, 1200);
+    }, 1800);
 
     document.addEventListener(
       'click',
@@ -179,16 +183,20 @@
     }
   }
 
-  // Initialize when DOM is ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      addRecommendationsWidget();
-      loadWeddingWidgetPolish();
-      setupProfileCompletionConfetti();
-    });
-  } else {
-    addRecommendationsWidget();
+  function initOptionalEnhancements() {
     loadWeddingWidgetPolish();
     setupProfileCompletionConfetti();
+    // Recommendations are deliberately delayed so supplier/logo requests do not
+    // compete with the dashboard's required auth/plans boot flow.
+    onIdle(() => {
+      addRecommendationsWidget();
+    }, 2500);
+  }
+
+  // Initialize when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initOptionalEnhancements);
+  } else {
+    initOptionalEnhancements();
   }
 })();
