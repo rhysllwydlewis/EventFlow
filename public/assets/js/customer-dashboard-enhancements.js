@@ -41,6 +41,24 @@
   }
 
   /**
+   * Load the wedding widget polish enhancement after the base widget exists.
+   * This keeps the dashboard HTML untouched while making the follow-up PR active.
+   */
+  function loadWeddingWidgetPolish() {
+    if (document.getElementById('ww-polish-enhancer-script')) {
+      return;
+    }
+    if (!document.getElementById('wedding-website-dashboard-root')) {
+      return;
+    }
+    const script = document.createElement('script');
+    script.id = 'ww-polish-enhancer-script';
+    script.src = '/assets/js/pages/customer-wedding-widget-polish.js';
+    script.defer = true;
+    document.body.appendChild(script);
+  }
+
+  /**
    * Trigger confetti on profile completion
    */
   function setupProfileCompletionConfetti() {
@@ -70,10 +88,12 @@
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
       addRecommendationsWidget();
+      loadWeddingWidgetPolish();
       setupProfileCompletionConfetti();
     });
   } else {
     addRecommendationsWidget();
+    loadWeddingWidgetPolish();
     setupProfileCompletionConfetti();
   }
 })();
