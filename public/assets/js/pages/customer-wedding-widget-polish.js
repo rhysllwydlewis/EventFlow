@@ -6,7 +6,38 @@
 
   const isWeddingPlan = plan => String(plan?.eventType || '').toLowerCase() === 'wedding' || String(plan?.name || plan?.eventName || '').toLowerCase().includes('wedding');
 
+  function injectStyles() {
+    if (document.getElementById('ww-polish-enhancer-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'ww-polish-enhancer-styles';
+    style.textContent = `
+      .customer-wedding-card.ww-card-launcher-only .card-collapse-toggle,
+      .customer-wedding-card.ww-card-launcher-only [data-collapse-toggle],
+      .customer-wedding-card.ww-card-launcher-only .cd-card-toggle { display: none !important; }
+      .ww-launcher--clean { margin: .15rem 0; }
+      .ww-stat-card { border-radius: 18px !important; padding: .85rem !important; display: grid; gap: .35rem; }
+      .ww-stat-card strong { color: var(--ww-navy, #24436f); font-size: 1.15rem; }
+      .ww-section-nav { display: flex; flex-wrap: wrap; gap: .45rem; margin-bottom: .75rem; padding: .65rem; border: 1px solid rgba(80,192,176,.16); border-radius: 16px; background: rgba(255,255,255,.64); }
+      .ww-section-nav .ww-kicker { flex: 1 1 100%; }
+      .ww-section-nav a { border: 1px solid rgba(80,192,176,.18); border-radius: 999px; color: var(--ww-navy, #24436f); font-size: .8rem; font-weight: 800; padding: .38rem .65rem; text-decoration: none; }
+      .ww-sticky-actions { position: sticky; top: 0; z-index: 4; padding: .55rem; border: 1px solid rgba(80,192,176,.14); border-radius: 16px; background: rgba(249,254,253,.9); backdrop-filter: blur(14px); }
+      .ww-seat-layout { display: grid; grid-template-columns: minmax(230px, .8fr) minmax(0, 1.6fr); gap: 1rem; margin-top: 1rem; }
+      .ww-unseated-panel, .ww-table-board, .ww-qr-card { border: 1px solid rgba(80,192,176,.16); border-radius: 18px; background: rgba(255,255,255,.62); padding: .85rem; }
+      .ww-draggable-guest { cursor: grab; }
+      .ww-draggable-guest:active { cursor: grabbing; }
+      .ww-table-card { transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease; }
+      .ww-table-card.is-drop-target { border-color: rgba(80,192,176,.58) !important; box-shadow: 0 18px 42px rgba(44,148,177,.16) !important; transform: translateY(-2px); }
+      .ww-capacity-bar { height: 8px; overflow: hidden; border-radius: 999px; background: rgba(80,192,176,.12); margin: .55rem 0; }
+      .ww-capacity-bar span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--ww-mint, #50c0b0), var(--ww-teal, #2c94b1)); }
+      .ww-qr-placeholder { display: grid; grid-template-columns: repeat(2, 38px); grid-template-rows: repeat(2, 38px); gap: 8px; width: max-content; padding: 12px; border: 1px solid rgba(80,192,176,.18); border-radius: 16px; background: #fff; }
+      .ww-qr-placeholder span { border-radius: 8px; background: linear-gradient(135deg, var(--ww-navy, #24436f), var(--ww-teal, #2c94b1)); }
+      @media (max-width: 720px) { .ww-seat-layout { grid-template-columns: 1fr; } }
+    `;
+    document.head.appendChild(style);
+  }
+
   function addDashboardLauncherMode() {
+    injectStyles();
     const card = document.getElementById('wedding-website-dashboard-card');
     const root = document.getElementById(ROOT_ID);
     card?.classList.add('ww-card-launcher-only');
@@ -127,5 +158,6 @@
     if ((plans || []).some(isWeddingPlan)) addDashboardLauncherMode();
   };
 
+  injectStyles();
   observeWidget();
 })();
