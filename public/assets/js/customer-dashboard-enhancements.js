@@ -76,6 +76,7 @@
       loadScriptOnce('ww-advanced-enhancer-script', '/assets/js/pages/customer-wedding-widget-share-builder.js'),
       loadScriptOnce('ww-product-upgrade-script', '/assets/js/pages/customer-wedding-widget-product-upgrade.js'),
       loadScriptOnce('ww-scroll-share-polish-script', '/assets/js/pages/customer-wedding-widget-scroll-share-polish.js'),
+      loadScriptOnce('ww-link-theme-upgrade-script', '/assets/js/pages/customer-wedding-widget-link-themes-upgrade.js'),
     ]);
   }
 
