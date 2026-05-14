@@ -4,7 +4,9 @@
   const ROOT_ID = 'wedding-website-dashboard-root';
   let cachedPlans = [];
   let planPromise = null;
+  let sitePromise = null;
   let qrPromise = null;
+  let enhanceQueued = false;
 
   const esc = value =>
     String(value || '').replace(/[&<>"']/g, ch => ({
@@ -31,10 +33,6 @@
   const csrf = () =>
     document.querySelector('meta[name="csrf-token"]')?.content ||
     decodeURIComponent((document.cookie.match(/(?:^|; )csrfToken=([^;]+)/) || [])[1] || '');
-
-  function cssEscape(value) {
-    return window.CSS?.escape ? window.CSS.escape(value) : String(value).replace(/["\\]/g, '\\$&');
-  }
 
   async function api(path, opts = {}) {
     const method = String(opts.method || 'GET').toUpperCase();
@@ -81,15 +79,21 @@
     return planPromise;
   }
 
-  async function getSite() {
-    const plan = await getPlan();
-    if (!plan?.id) {
-      return { plan: null, site: null };
+  async function getSite(force = false) {
+    if (sitePromise && !force) {
+      return sitePromise;
     }
-    const data = await api(`/api/me/plans/${encodeURIComponent(plan.id)}/wedding-website`).catch(
-      () => ({})
-    );
-    return { plan, site: data.website || null };
+    sitePromise = (async () => {
+      const plan = await getPlan();
+      if (!plan?.id) {
+        return { plan: null, site: null };
+      }
+      const data = await api(`/api/me/plans/${encodeURIComponent(plan.id)}/wedding-website`).catch(
+        () => ({})
+      );
+      return { plan, site: data.website || null };
+    })();
+    return sitePromise;
   }
 
   function injectStyles() {
@@ -245,9 +249,10 @@
 
   function enhanceBuilder(root) {
     const form = root.querySelector('#ww-builder');
-    if (!form || form.querySelector('#ww-extra-details')) {
+    if (!form || form.dataset.wwAdvancedEnhanced === 'true') {
       return;
     }
+    form.dataset.wwAdvancedEnhanced = 'true';
     const first = form.querySelector('details');
     const details = document.createElement('details');
     details.id = 'ww-extra-details';
@@ -272,12 +277,12 @@
       </div>`;
     first?.after(details);
     hydrateBuilder(form);
-    form.addEventListener('input', () => markUnsaved(root, form));
+    form.addEventListener('input', () => markUnsaved(root, form), { passive: true });
   }
 
   async function hydrateBuilder(form) {
     const { site } = await getSite();
-    if (!site) {
+    if (!site || !form.isConnected) {
       return;
     }
     [
@@ -313,8 +318,8 @@
     qrPromise = new Promise((resolve, reject) => {
       const existing = document.getElementById('ww-qrcode-lib');
       if (existing) {
-        existing.addEventListener('load', () => resolve(window.QRCode));
-        existing.addEventListener('error', reject);
+        existing.addEventListener('load', () => resolve(window.QRCode), { once: true });
+        existing.addEventListener('error', reject, { once: true });
         return;
       }
       const script = document.createElement('script');
@@ -329,13 +334,22 @@
   }
 
   async function renderQr(target, url) {
+    if (!target || target.dataset.wwQrStarted === 'true') {
+      return;
+    }
+    target.dataset.wwQrStarted = 'true';
     try {
       const qr = await loadQrLibrary();
+      if (!target.isConnected) {
+        return;
+      }
       const canvas = document.createElement('canvas');
       await qr.toCanvas(canvas, url, { width: 132, margin: 1, errorCorrectionLevel: 'M' });
       target.replaceWith(canvas);
     } catch (_err) {
-      target.textContent = 'QR unavailable';
+      if (target.isConnected) {
+        target.textContent = 'QR unavailable';
+      }
     }
   }
 
@@ -356,7 +370,7 @@
       return;
     }
     const { plan, site } = await getSite();
-    if (!plan?.id || !site) {
+    if (!plan?.id || !site || !root.isConnected || root.querySelector('#ww-share-admin')) {
       return;
     }
 
@@ -423,6 +437,7 @@
           body: JSON.stringify(payload),
         });
         status.textContent = 'Saved — reopen the app to see the updated link.';
+        sitePromise = null;
         toast('Share settings saved');
       } catch (err) {
         status.textContent = err.message;
@@ -473,11 +488,12 @@
     const panel = root.querySelector('.ww-app-panel');
     const grid = root.querySelector('.seat-grid');
     const unseated = root.querySelector('.ww-unseated');
-    if (!panel || !grid || !unseated || panel.querySelector('.ww-seat-toolbox')) {
+    if (!panel || !grid || !unseated || panel.dataset.wwAdvancedSeating === 'true') {
       return;
     }
+    panel.dataset.wwAdvancedSeating = 'true';
     const { plan } = await getSite();
-    if (!plan?.id) {
+    if (!plan?.id || !panel.isConnected) {
       return;
     }
 
@@ -513,12 +529,12 @@
 
     unseated.querySelectorAll('.seat-row').forEach(row => {
       const guestId = row.querySelector('.assign-select')?.dataset.guest;
-      if (!guestId) {
+      if (!guestId || row.dataset.wwAdvancedDrag === 'true') {
         return;
       }
+      row.dataset.wwAdvancedDrag = 'true';
       row.draggable = true;
       row.classList.add('ww-draggable-guest');
-      row.dataset.guest = guestId;
       row.addEventListener('dragstart', event => {
         event.dataTransfer.setData('text/plain', guestId);
       });
@@ -527,25 +543,34 @@
     tables.forEach(table => {
       const pct = table.cap ? Math.min(100, Math.round((table.used / table.cap) * 100)) : 0;
       table.card.classList.add('ww-table-card');
-      table.card.insertAdjacentHTML(
-        'beforeend',
-        `<div class="ww-capacity-bar"><span style="width:${pct}%"></span></div>${
-          table.used > table.cap
-            ? '<p class="ww-capacity-warning">Over capacity — move a guest or increase capacity.</p>'
-            : ''
-        }`
-      );
-      table.card.addEventListener('dragover', event => {
-        event.preventDefault();
-        table.card.classList.add('is-drop-target');
-      });
-      table.card.addEventListener('dragleave', () => table.card.classList.remove('is-drop-target'));
-      table.card.addEventListener('drop', async event => {
-        event.preventDefault();
-        table.card.classList.remove('is-drop-target');
-        await assign(table.id, event.dataTransfer.getData('text/plain'));
-      });
+      if (!table.card.querySelector('.ww-capacity-bar')) {
+        table.card.insertAdjacentHTML(
+          'beforeend',
+          `<div class="ww-capacity-bar"><span style="width:${pct}%"></span></div>${
+            table.used > table.cap
+              ? '<p class="ww-capacity-warning">Over capacity — move a guest or increase capacity.</p>'
+              : ''
+          }`
+        );
+      }
+      if (table.card.dataset.wwAdvancedDrop !== 'true') {
+        table.card.dataset.wwAdvancedDrop = 'true';
+        table.card.addEventListener('dragover', event => {
+          event.preventDefault();
+          table.card.classList.add('is-drop-target');
+        });
+        table.card.addEventListener('dragleave', () => table.card.classList.remove('is-drop-target'));
+        table.card.addEventListener('drop', async event => {
+          event.preventDefault();
+          table.card.classList.remove('is-drop-target');
+          await assign(table.id, event.dataTransfer.getData('text/plain'));
+        });
+      }
       table.card.querySelectorAll('.unassign').forEach(button => {
+        if (button.dataset.wwAdvancedMove === 'true') {
+          return;
+        }
+        button.dataset.wwAdvancedMove = 'true';
         const move = document.createElement('select');
         move.className = 'ww-move-select';
         move.innerHTML = `<option value="">Move to…</option>${tables
@@ -612,7 +637,7 @@
       }
     });
 
-    if (tables.some(table => table.used > table.cap)) {
+    if (tables.some(table => table.used > table.cap) && !panel.querySelector('.ww-seating-warning')) {
       toolbox.insertAdjacentHTML(
         'afterend',
         '<p class="ww-seating-warning">One or more tables is over capacity.</p>'
@@ -620,17 +645,48 @@
     }
   }
 
-  function enhanceOpenDialogs() {
-    document.querySelectorAll('.ww-app-dialog').forEach(dialog => {
+  function enhanceDialog(dialog) {
+    if (dialog.dataset.wwAdvancedEnhancing === 'true') {
+      return;
+    }
+    dialog.dataset.wwAdvancedEnhancing = 'true';
+    try {
       enhanceBuilder(dialog);
       enhanceShare(dialog);
       enhanceSeating(dialog);
       enhanceUniqueLinkWording(dialog);
+    } finally {
+      dialog.dataset.wwAdvancedEnhancing = 'false';
+    }
+  }
+
+  function enhanceOpenDialogs() {
+    document.querySelectorAll('.ww-app-dialog').forEach(enhanceDialog);
+  }
+
+  function scheduleEnhance() {
+    if (enhanceQueued) {
+      return;
+    }
+    enhanceQueued = true;
+    window.requestAnimationFrame(() => {
+      enhanceQueued = false;
+      enhanceOpenDialogs();
     });
   }
 
   function observe() {
-    const obs = new MutationObserver(() => enhanceOpenDialogs());
+    const obs = new MutationObserver(mutations => {
+      if (
+        mutations.some(mutation =>
+          Array.from(mutation.addedNodes).some(
+            node => node instanceof Element && (node.matches('.ww-app-dialog') || node.querySelector?.('.ww-app-dialog'))
+          )
+        )
+      ) {
+        scheduleEnhance();
+      }
+    });
     obs.observe(document.body, { childList: true, subtree: true });
   }
 
@@ -643,6 +699,6 @@
   };
 
   injectStyles();
-  enhanceOpenDialogs();
+  scheduleEnhance();
   observe();
 })();
