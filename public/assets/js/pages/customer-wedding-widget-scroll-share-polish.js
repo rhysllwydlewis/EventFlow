@@ -23,6 +23,7 @@
       .ww-app-dialog {
         width: min(940px, calc(100vw - 24px)) !important;
         max-width: 940px !important;
+        height: min(820px, calc(100dvh - 24px)) !important;
         max-height: calc(100dvh - 24px) !important;
         padding: 0 !important;
         overflow: hidden !important;
@@ -30,7 +31,9 @@
       .ww-app-shell {
         display: grid !important;
         grid-template-rows: auto auto minmax(0, 1fr) !important;
+        height: 100% !important;
         max-height: calc(100dvh - 24px) !important;
+        min-height: 0 !important;
         overflow: hidden !important;
       }
       .ww-app-header { flex: 0 0 auto; }
@@ -45,10 +48,31 @@
       .ww-app-tabs button { flex: 0 0 auto; margin-bottom: 0 !important; }
       .ww-app-body {
         min-height: 0 !important;
+        height: auto !important;
+        max-height: none !important;
         overflow-x: hidden !important;
-        overflow-y: auto !important;
+        overflow-y: scroll !important;
         overscroll-behavior: contain;
         padding-bottom: 1.35rem !important;
+        scrollbar-gutter: stable;
+        scrollbar-width: thin !important;
+        scrollbar-color: rgba(80, 192, 176, 0.62) rgba(255, 255, 255, 0.36) !important;
+        -ms-overflow-style: auto !important;
+        -webkit-overflow-scrolling: touch;
+      }
+      .ww-app-body::-webkit-scrollbar {
+        display: block !important;
+        width: 10px !important;
+        height: 10px !important;
+      }
+      .ww-app-body::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.42) !important;
+        border-radius: 999px !important;
+      }
+      .ww-app-body::-webkit-scrollbar-thumb {
+        border: 2px solid rgba(255, 255, 255, 0.72) !important;
+        border-radius: 999px !important;
+        background: rgba(80, 192, 176, 0.62) !important;
       }
       .ww-app-pane { min-height: 0; }
       .ww-app-pane[hidden] { display: none !important; }
@@ -116,7 +140,7 @@
       .ww-share-admin--clean .ww-link-preview { overflow-wrap: anywhere; }
       .ww-share-admin--clean .ww-actions { display: flex; flex-wrap: wrap; gap: 0.45rem; }
       @media (max-width: 720px) {
-        .ww-app-dialog { width: calc(100vw - 12px) !important; max-height: calc(100dvh - 12px) !important; }
+        .ww-app-dialog { width: calc(100vw - 12px) !important; height: calc(100dvh - 12px) !important; max-height: calc(100dvh - 12px) !important; }
         .ww-app-shell { max-height: calc(100dvh - 12px) !important; }
         .ww-app-tabs { padding-inline: 0.78rem !important; }
         .ww-sticky-actions,
