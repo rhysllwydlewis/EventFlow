@@ -11,6 +11,7 @@
 'use strict';
 
 const express = require('express');
+const QRCode = require('qrcode');
 const logger = require('../utils/logger');
 const router = express.Router();
 
@@ -36,6 +37,37 @@ function initializeDependencies(deps) {
   dbUnified = deps.dbUnified;
   geocoding = deps.geocoding;
 }
+
+// ---------- Same-origin QR helper ----------
+
+router.get('/tools/qr.png', async (req, res) => {
+  try {
+    const rawUrl = String(req.query.url || '').trim().slice(0, 500);
+    const origin = `${req.protocol}://${req.get('host')}`;
+    const url = new URL(rawUrl, origin);
+
+    if (url.origin !== origin || !url.pathname.startsWith('/wedding/')) {
+      return res.status(400).json({ error: 'QR codes are only available for EventFlow wedding links.' });
+    }
+
+    const png = await QRCode.toBuffer(url.toString(), {
+      errorCorrectionLevel: 'M',
+      margin: 1,
+      type: 'png',
+      width: 256,
+    });
+
+    res.set({
+      'Cache-Control': 'private, max-age=300',
+      'Content-Type': 'image/png',
+      'X-Content-Type-Options': 'nosniff',
+    });
+    return res.send(png);
+  } catch (error) {
+    logger.warn('QR generation failed:', error.message);
+    return res.status(400).json({ error: 'Unable to generate QR code.' });
+  }
+});
 
 // ---------- Venues Proximity Search ----------
 
