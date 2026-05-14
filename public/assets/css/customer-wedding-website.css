@@ -2,12 +2,15 @@
   --ww-mint: #50c0b0;
   --ww-teal: #2c94b1;
   --ww-navy: #24436f;
+  --ww-ink: #172033;
+  --ww-muted: #627084;
   --ww-glass-border: rgba(80, 192, 176, 0.18);
   --ww-glass-surface: rgba(255, 255, 255, 0.82);
 }
 
 body.ww-app-open {
   overflow: hidden;
+  overscroll-behavior: none;
 }
 
 .customer-wedding-card {
@@ -94,14 +97,14 @@ body.ww-app-open {
 .ww-app-panel h3,
 .ww-app-header h2 {
   margin: 0;
-  color: #172033;
+  color: var(--ww-ink);
 }
 
 .ww-launcher p,
 .ww-app-panel p,
 .ww-app-header p {
   margin: 0.25rem 0 0;
-  color: #627084;
+  color: var(--ww-muted);
 }
 
 .ww-launcher__link {
@@ -132,6 +135,10 @@ body.ww-app-open {
   border-radius: 28px;
   background: transparent;
   overflow: visible;
+}
+
+.ww-app-dialog[open] {
+  animation: ww-pop-in 0.22s ease-out;
 }
 
 .ww-app-dialog::backdrop {
@@ -170,6 +177,13 @@ body.ww-app-open {
   font-size: 1.45rem;
   line-height: 1;
   cursor: pointer;
+  transition: background 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.ww-app-close:hover {
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 10px 24px rgba(36, 67, 111, 0.12);
+  transform: translateY(-1px);
 }
 
 .ww-app-tabs {
@@ -178,6 +192,8 @@ body.ww-app-open {
   padding: 0.75rem 1.25rem;
   overflow-x: auto;
   border-bottom: 1px solid rgba(80, 192, 176, 0.12);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(80, 192, 176, 0.42) transparent;
 }
 
 .ww-app-tabs button {
@@ -202,6 +218,25 @@ body.ww-app-open {
   min-height: 0;
   overflow: auto;
   padding: 1.15rem 1.25rem 1.35rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(80, 192, 176, 0.42) rgba(255, 255, 255, 0.2);
+}
+
+.ww-app-body::-webkit-scrollbar,
+.ww-app-tabs::-webkit-scrollbar,
+.ww-table-wrap::-webkit-scrollbar,
+.ww-modal::-webkit-scrollbar {
+  height: 10px;
+  width: 10px;
+}
+
+.ww-app-body::-webkit-scrollbar-thumb,
+.ww-app-tabs::-webkit-scrollbar-thumb,
+.ww-table-wrap::-webkit-scrollbar-thumb,
+.ww-modal::-webkit-scrollbar-thumb {
+  border: 3px solid rgba(255, 255, 255, 0.72);
+  border-radius: 999px;
+  background: rgba(80, 192, 176, 0.5);
 }
 
 .ww-app-panel,
@@ -253,11 +288,20 @@ body.ww-app-open {
 .ww-modal__form input,
 .ww-modal__form textarea,
 .ww-modal__form select,
-.ww-share-card input {
+.ww-share-card input,
+.ww-search {
   width: 100%;
   padding: 0.55rem;
   border: 1px solid rgba(80, 192, 176, 0.22);
   border-radius: 12px;
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--ww-ink);
+}
+
+.ww-builder textarea,
+.ww-modal__form textarea {
+  min-height: 84px;
+  resize: vertical;
 }
 
 .ww-actions {
@@ -265,6 +309,12 @@ body.ww-app-open {
   gap: 0.5rem;
   flex-wrap: wrap;
   margin: 0.6rem 0;
+}
+
+.ww-actions button:disabled,
+.ww-actions .cta:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .ww-tiles,
@@ -297,7 +347,7 @@ body.ww-app-open {
 }
 
 .ww-overview-grid span {
-  color: #627084;
+  color: var(--ww-muted);
   font-size: 0.82rem;
   font-weight: 700;
 }
@@ -309,6 +359,9 @@ body.ww-app-open {
 
 .ww-table-wrap {
   overflow-x: auto;
+  border: 1px solid rgba(80, 192, 176, 0.12);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.55);
 }
 
 .ww-table {
@@ -321,8 +374,20 @@ body.ww-app-open {
 .ww-table th,
 .ww-table td {
   border-bottom: 1px solid rgba(80, 192, 176, 0.14);
-  padding: 0.45rem;
+  padding: 0.55rem;
   text-align: left;
+  vertical-align: top;
+}
+
+.ww-table th {
+  color: var(--ww-navy);
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ww-table tbody tr:hover {
+  background: rgba(80, 192, 176, 0.06);
 }
 
 .ww-share-mini,
@@ -340,6 +405,11 @@ body.ww-app-open {
   margin-top: 1rem;
   border-radius: 18px;
   padding: 0.85rem;
+}
+
+.ww-share-card {
+  align-items: stretch;
+  flex-direction: column;
 }
 
 .ww-share-mini span {
@@ -414,9 +484,11 @@ body.ww-app-open {
 .ww-modal {
   width: min(620px, calc(100vw - 24px));
   max-height: calc(100vh - 32px);
+  padding: 0;
   border: 0;
   border-radius: 20px;
   overflow: auto;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(244, 252, 250, 0.92));
   box-shadow: 0 18px 60px rgba(15, 61, 55, 0.18);
 }
 
@@ -428,6 +500,28 @@ body.ww-app-open {
 .ww-modal__form {
   display: grid;
   gap: 0.5rem;
+  padding: 1rem;
+}
+
+.ww-modal__form h4 {
+  margin: 0 0 0.25rem;
+  color: var(--ww-ink);
+}
+
+.ww-modal__form .ww-actions {
+  justify-content: flex-end;
+  padding-top: 0.35rem;
+}
+
+.ww-modal__form .ww-actions button:not(.cta) {
+  min-height: 2.4rem;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid rgba(80, 192, 176, 0.24);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  color: var(--ww-navy);
+  cursor: pointer;
+  font-weight: 800;
 }
 
 .ww-toast {
@@ -469,16 +563,40 @@ body.ww-app-open {
 .ww-app-dialog a:focus-visible,
 .ww-app-dialog input:focus-visible,
 .ww-app-dialog textarea:focus-visible,
-.ww-app-dialog select:focus-visible {
+.ww-app-dialog select:focus-visible,
+.ww-modal button:focus-visible,
+.ww-modal input:focus-visible,
+.ww-modal textarea:focus-visible,
+.ww-modal select:focus-visible {
   outline: 3px solid rgba(80, 192, 176, 0.45);
   outline-offset: 2px;
+}
+
+@keyframes ww-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ww-app-dialog[open],
+  .ww-app-close,
+  .ww-toast {
+    animation: none;
+    transition: none;
+  }
 }
 
 @media (max-width: 720px) {
   .ww-launcher,
   .ww-app-header,
-  .ww-share-mini,
-  .ww-share-card {
+  .ww-share-mini {
     align-items: stretch;
     flex-direction: column;
   }
@@ -504,5 +622,10 @@ body.ww-app-open {
 
   .ww-app-body {
     padding: 0.9rem;
+  }
+
+  .ww-actions--rsvp .ww-search,
+  .ww-actions--rsvp select {
+    flex: 1 1 100%;
   }
 }
