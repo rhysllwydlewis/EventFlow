@@ -3,9 +3,6 @@
 
   let queued = false;
 
-  const cssEscape = value =>
-    window.CSS?.escape ? window.CSS.escape(value) : String(value || '').replace(/["\\]/g, '\\$&');
-
   const normalizeSlug = value =>
     String(value || '')
       .toLowerCase()
@@ -16,7 +13,9 @@
       .slice(0, 80);
 
   function injectStyles() {
-    if (document.getElementById('ww-scroll-share-polish-styles')) return;
+    if (document.getElementById('ww-scroll-share-polish-styles')) {
+      return;
+    }
     const style = document.createElement('style');
     style.id = 'ww-scroll-share-polish-styles';
     style.textContent = `
@@ -140,7 +139,11 @@
       .ww-share-admin--clean .ww-link-preview { overflow-wrap: anywhere; }
       .ww-share-admin--clean .ww-actions { display: flex; flex-wrap: wrap; gap: 0.45rem; }
       @media (max-width: 720px) {
-        .ww-app-dialog { width: calc(100vw - 12px) !important; height: calc(100dvh - 12px) !important; max-height: calc(100dvh - 12px) !important; }
+        .ww-app-dialog {
+          width: calc(100vw - 12px) !important;
+          height: calc(100dvh - 12px) !important;
+          max-height: calc(100dvh - 12px) !important;
+        }
         .ww-app-shell { max-height: calc(100dvh - 12px) !important; }
         .ww-app-tabs { padding-inline: 0.78rem !important; }
         .ww-sticky-actions,
@@ -156,7 +159,9 @@
     const input = root.querySelector('.ww-share-card input[readonly]');
     const preview = root.querySelector('.ww-link-preview');
     const slug = normalizeSlug(root.querySelector('#ww-custom-slug')?.value || '');
-    if (slug) return `${window.location.origin}/wedding/${slug}`;
+    if (slug) {
+      return `${window.location.origin}/wedding/${slug}`;
+    }
     return input?.value || preview?.textContent?.trim() || '';
   }
 
@@ -184,16 +189,24 @@
 
   function syncShareLinks(root) {
     const url = currentShareUrl(root);
-    if (!url) return;
+    if (!url) {
+      return;
+    }
     const input = root.querySelector('.ww-share-card input[readonly]');
-    if (input) input.value = url;
+    if (input) {
+      input.value = url;
+    }
     root.querySelectorAll('a[href*="/wedding/"]').forEach(link => {
-      if (!/wa\.me|mailto:/i.test(link.href)) link.href = url;
+      if (!/wa\.me|mailto:/i.test(link.href)) {
+        link.href = url;
+      }
     });
     const preview = root.querySelector('.ww-link-preview');
     const slugPreview = root.querySelector('#ww-slug-preview');
     const slug = normalizeSlug(root.querySelector('#ww-custom-slug')?.value || url.split('/').pop());
-    if (preview && slugPreview) slugPreview.textContent = slug;
+    if (preview && slugPreview) {
+      slugPreview.textContent = slug;
+    }
     root.querySelectorAll('a[href^="https://wa.me/"]').forEach(link => {
       link.href = `https://wa.me/?text=${encodeURIComponent(url)}`;
     });
@@ -213,12 +226,16 @@
       }
     }
     const download = root.querySelector('#ww-download-qr');
-    if (download) download.dataset.qrUrl = qrUrlFor(url);
+    if (download) {
+      download.dataset.qrUrl = qrUrlFor(url);
+    }
   }
 
   function enhanceShare(root) {
     const admin = root.querySelector('#ww-share-admin');
-    if (!admin || admin.dataset.wwScrollSharePolished === 'true') return;
+    if (!admin || admin.dataset.wwScrollSharePolished === 'true') {
+      return;
+    }
     admin.dataset.wwScrollSharePolished = 'true';
     admin.classList.add('ww-share-admin--clean');
     syncShareLinks(root);
@@ -227,48 +244,64 @@
     slugInput?.addEventListener('input', () => syncShareLinks(root));
 
     root.querySelectorAll('#ww-copy-link, #ww-copy-overview').forEach(button => {
-      if (button.dataset.wwReliableCopy === 'true') return;
+      if (button.dataset.wwReliableCopy === 'true') {
+        return;
+      }
       button.dataset.wwReliableCopy = 'true';
-      button.addEventListener('click', async event => {
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        const ok = await copyText(currentShareUrl(root));
-        button.textContent = ok ? 'Copied' : 'Copy manually';
-        window.setTimeout(() => {
-          if (button.isConnected) button.textContent = button.id === 'ww-copy-link' ? 'Copy wedding website link' : 'Copy link';
-        }, 1400);
-      }, true);
+      button.addEventListener(
+        'click',
+        async event => {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          const ok = await copyText(currentShareUrl(root));
+          button.textContent = ok ? 'Copied' : 'Copy manually';
+          window.setTimeout(() => {
+            if (button.isConnected) {
+              button.textContent = button.id === 'ww-copy-link' ? 'Copy wedding website link' : 'Copy link';
+            }
+          }, 1400);
+        },
+        true
+      );
     });
 
     const save = admin.querySelector('#ww-save-share');
     const status = admin.querySelector('#ww-share-status');
     if (save && save.dataset.wwStatusPolished !== 'true') {
       save.dataset.wwStatusPolished = 'true';
-      save.addEventListener('click', () => {
-        window.setTimeout(() => {
-          syncShareLinks(root);
-          if (status && /reopen the app/i.test(status.textContent || '')) {
-            status.textContent = 'Saved — your share links have been updated.';
-          }
-        }, 650);
-      }, true);
+      save.addEventListener(
+        'click',
+        () => {
+          window.setTimeout(() => {
+            syncShareLinks(root);
+            if (status && /reopen the app/i.test(status.textContent || '')) {
+              status.textContent = 'Saved — your share links have been updated.';
+            }
+          }, 650);
+        },
+        true
+      );
     }
 
     const download = admin.querySelector('#ww-download-qr');
     if (download && download.dataset.wwReliableDownload !== 'true') {
       download.dataset.wwReliableDownload = 'true';
-      download.addEventListener('click', event => {
-        const url = currentShareUrl(root);
-        const qr = qrUrlFor(url);
-        const a = document.createElement('a');
-        a.href = qr;
-        a.download = `${normalizeSlug(url.split('/').pop()) || 'wedding'}-qr.png`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        event.preventDefault();
-        event.stopImmediatePropagation();
-      }, true);
+      download.addEventListener(
+        'click',
+        event => {
+          const url = currentShareUrl(root);
+          const qr = qrUrlFor(url);
+          const a = document.createElement('a');
+          a.href = qr;
+          a.download = `${normalizeSlug(url.split('/').pop()) || 'wedding'}-qr.png`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          event.preventDefault();
+          event.stopImmediatePropagation();
+        },
+        true
+      );
     }
   }
 
@@ -282,7 +315,9 @@
   }
 
   function schedule() {
-    if (queued) return;
+    if (queued) {
+      return;
+    }
     queued = true;
     window.requestAnimationFrame(() => {
       queued = false;
@@ -294,7 +329,10 @@
     if (
       mutations.some(mutation =>
         Array.from(mutation.addedNodes).some(
-          node => node instanceof Element && (node.matches('.ww-app-dialog,#ww-share-admin') || node.querySelector?.('.ww-app-dialog,#ww-share-admin'))
+          node =>
+            node instanceof Element &&
+            (node.matches('.ww-app-dialog,#ww-share-admin') ||
+              node.querySelector?.('.ww-app-dialog,#ww-share-admin'))
         )
       )
     ) {
@@ -303,11 +341,15 @@
   });
 
   observer.observe(document.body, { childList: true, subtree: true });
-  document.addEventListener('click', event => {
-    if (event.target instanceof Element && event.target.closest('.ww-app-tabs button,[data-tab]')) {
-      [0, 250, 900].forEach(delay => window.setTimeout(schedule, delay));
-    }
-  }, true);
+  document.addEventListener(
+    'click',
+    event => {
+      if (event.target instanceof Element && event.target.closest('.ww-app-tabs button,[data-tab]')) {
+        [0, 250, 900].forEach(delay => window.setTimeout(schedule, delay));
+      }
+    },
+    true
+  );
   injectStyles();
   schedule();
 })();
