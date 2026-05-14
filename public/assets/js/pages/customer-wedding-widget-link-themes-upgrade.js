@@ -2,6 +2,7 @@
   'use strict';
 
   let queued = false;
+  let planLookupPromise = null;
 
   const THEMES = [
     { id: 'classic', label: 'Classic Mint', template: 'classic', accent: '#0B8073', description: 'Clean EventFlow mint and navy.' },
@@ -62,14 +63,33 @@
       .slice(0, 80);
   }
 
+  function isWeddingPlan(plan) {
+    const type = String(plan?.eventType || '').toLowerCase();
+    const name = String(plan?.name || plan?.eventName || '').toLowerCase();
+    return type === 'wedding' || name.includes('wedding') || Boolean(plan?.weddingWebsite);
+  }
+
   function planIdFromDialog(dialog) {
     const csv = dialog.querySelector('a[href*="/guests/export.csv"]')?.getAttribute('href') || '';
     const match = csv.match(/\/api\/me\/plans\/([^/]+)\/guests\/export\.csv/);
-    if (match) {
-      return decodeURIComponent(match[1]);
+    return match ? decodeURIComponent(match[1]) : '';
+  }
+
+  async function resolvePlanId(dialog) {
+    const fromDom = planIdFromDialog(dialog);
+    if (fromDom) {
+      return fromDom;
     }
-    const tableAction = dialog.querySelector('.edit-table[data-id], .del-table[data-id], .assign-select[data-guest]');
-    return tableAction?.closest('[data-plan-id]')?.dataset.planId || '';
+    if (!planLookupPromise) {
+      planLookupPromise = api('/api/me/plans')
+        .then(data => data.plans || [])
+        .catch(() => []);
+    }
+    const plans = await planLookupPromise;
+    const slug = normalizeSlug(currentShareUrl(dialog).split('/').pop());
+    const matchingSlug = plans.find(plan => plan?.weddingWebsite?.slug === slug);
+    const plan = matchingSlug || plans.find(isWeddingPlan);
+    return plan?.id || '';
   }
 
   function currentShareUrl(root) {
@@ -287,23 +307,22 @@
     if (!sharePane || !admin || admin.querySelector('.ww-secure-link-panel')) {
       return;
     }
-    const planId = planIdFromDialog(dialog);
     const slugInput = admin.querySelector('#ww-custom-slug');
     const panel = document.createElement('section');
     panel.className = 'ww-secure-link-panel';
     panel.innerHTML = `<h4>Secure guest link</h4><p>Private link only means anyone with the exact link can view it. Use a unique code or password protection for extra reassurance.</p><div class="ww-secure-link-actions"><button type="button" class="cta secondary small" id="ww-generate-secure-link">Generate new secure link</button><span class="small" id="ww-secure-link-status" role="status" aria-live="polite"></span></div><p class="ww-private-link-note">Tip: send the QR code or copied link after saving the new secure link.</p>`;
     admin.insertBefore(panel, admin.querySelector('.ww-actions') || admin.firstChild);
     panel.querySelector('#ww-generate-secure-link').addEventListener('click', async event => {
-      if (!planId) {
-        toast('Open the Guests tab once before regenerating the link.', 'warn');
-        return;
-      }
       const button = event.currentTarget;
       const status = panel.querySelector('#ww-secure-link-status');
       button.disabled = true;
       button.textContent = 'Generating…';
       status.textContent = '';
       try {
+        const planId = await resolvePlanId(dialog);
+        if (!planId) {
+          throw new Error('Unable to find this wedding plan. Reopen the widget and try again.');
+        }
         const data = await api(`/api/me/plans/${encodeURIComponent(planId)}/wedding-website/regenerate-slug`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -314,6 +333,7 @@
           syncLink(sharePane, slug);
           status.textContent = 'New secure link generated and saved.';
           toast('New secure wedding link generated');
+          planLookupPromise = null;
         }
       } catch (err) {
         status.textContent = err.message || 'Unable to generate link.';
