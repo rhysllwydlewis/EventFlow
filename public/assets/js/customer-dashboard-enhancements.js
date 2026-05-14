@@ -24,7 +24,6 @@
    * not compete with the customer dashboard's auth/plans boot requests.
    */
   function addRecommendationsWidget() {
-    // Check if widget already exists
     if (document.getElementById('recommendations-widget')) {
       return;
     }
@@ -35,18 +34,12 @@
       return;
     }
 
-    // Create widget container
     const widgetContainer = document.createElement('div');
     widgetContainer.id = 'recommendations-widget';
     widgetContainer.className = 'recommendations-widget';
-    // Start hidden — RecommendationsWidget.init() will toggle visibility via its own
-    // internal logic once data is fetched (see recommendations-widget.js)
     widgetContainer.hidden = true;
-
-    // Insert after stats section
     statsSection.insertAdjacentElement('afterend', widgetContainer);
 
-    // Initialize the widget
     if (window.RecommendationsWidget) {
       try {
         window.RecommendationsWidget.init();
@@ -60,14 +53,14 @@
     return Boolean(document.getElementById(WEDDING_ROOT_ID));
   }
 
-  function loadScriptOnce(id, src) {
+  function loadScriptOnce(id, src, requireWeddingRoot = true) {
     return new Promise(resolve => {
       if (loadedScripts.has(id) || document.getElementById(id)) {
         loadedScripts.add(id);
         resolve(true);
         return;
       }
-      if (!hasWeddingWidgetRoot()) {
+      if (requireWeddingRoot && !hasWeddingWidgetRoot()) {
         resolve(false);
         return;
       }
@@ -106,7 +99,8 @@
   function loadCardCtaEnhancer() {
     return loadScriptOnce(
       'ww-nav-card-fixes-script',
-      '/assets/js/pages/customer-wedding-widget-nav-card-fixes.js'
+      '/assets/js/pages/customer-wedding-widget-nav-card-fixes.js',
+      false
     );
   }
 
@@ -118,17 +112,13 @@
   }
 
   /**
-   * Keep dashboard boot light: load only the small card CTA fix after idle, then
+   * Keep dashboard boot light: load only the small card CTA fix early, then
    * load heavier widget-app enhancers only when the Wedding Website app opens.
    */
   function loadWeddingWidgetPolish() {
-    if (!hasWeddingWidgetRoot()) {
-      return;
-    }
-
-    onIdle(() => {
-      loadCardCtaEnhancer();
-    }, 1800);
+    // The CTA/card fix is tiny and must be present before card-collapse and
+    // dashboard-polish can leave the wedding card in a generic Expand state.
+    loadCardCtaEnhancer();
 
     document.addEventListener(
       'click',
@@ -157,17 +147,12 @@
     window.setTimeout(() => dialogObserver.disconnect(), 30000);
   }
 
-  /**
-   * Trigger confetti on profile completion
-   */
   function setupProfileCompletionConfetti() {
-    // Check if profile was just completed
     const params = new URLSearchParams(window.location.search);
     if (
       params.get('profile_completed') === 'true' &&
       typeof triggerSuccessConfetti === 'function'
     ) {
-      // Small delay for page to load
       setTimeout(() => {
         try {
           triggerSuccessConfetti();
@@ -177,7 +162,6 @@
             err
           );
         }
-        // Remove param from URL
         window.history.replaceState({}, '', window.location.pathname);
       }, 500);
     }
@@ -186,14 +170,11 @@
   function initOptionalEnhancements() {
     loadWeddingWidgetPolish();
     setupProfileCompletionConfetti();
-    // Recommendations are deliberately delayed so supplier/logo requests do not
-    // compete with the dashboard's required auth/plans boot flow.
     onIdle(() => {
       addRecommendationsWidget();
     }, 2500);
   }
 
-  // Initialize when DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initOptionalEnhancements);
   } else {
