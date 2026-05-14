@@ -131,9 +131,12 @@
     root.querySelectorAll('a[href^="mailto:"]').forEach(link => {
       link.href = `mailto:?subject=Wedding%20details&body=${encodeURIComponent(url)}`;
     });
-    const qr = root.querySelector('#ww-qr-target, .ww-qr-card img');
-    if (qr) {
+    root.querySelectorAll('#ww-qr-target, .ww-qr-card img').forEach(qr => {
       qr.src = `/api/tools/qr.png?url=${encodeURIComponent(url)}`;
+    });
+    const download = root.querySelector('#ww-download-qr');
+    if (download) {
+      download.dataset.qrUrl = `/api/tools/qr.png?url=${encodeURIComponent(url)}`;
     }
   }
 
@@ -158,6 +161,7 @@
         place-items: center;
         width: 2rem;
         height: 2rem;
+        flex: 0 0 auto;
         border: 1px solid rgba(80, 192, 176, 0.2);
         border-radius: 999px;
         color: #0f766e;
@@ -176,7 +180,7 @@
       .ww-secure-link-panel {
         border: 1px solid rgba(80, 192, 176, 0.14);
         border-radius: 16px;
-        background: rgba(255, 255, 255, 0.64);
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.72), rgba(245, 253, 251, 0.58));
         padding: 0.85rem;
         margin: 0.75rem 0;
       }
@@ -196,8 +200,16 @@
         border: 1px solid rgba(80, 192, 176, 0.16);
         border-radius: 14px;
         background: rgba(255, 255, 255, 0.72);
+        color: inherit;
         text-align: left;
         cursor: pointer;
+        transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+      }
+      .ww-theme-card:hover,
+      .ww-theme-card:focus-visible {
+        transform: translateY(-1px);
+        border-color: rgba(80, 192, 176, 0.42);
+        box-shadow: 0 10px 22px rgba(36, 67, 111, 0.08);
       }
       .ww-theme-card[aria-pressed='true'] {
         border-color: rgba(80, 192, 176, 0.5);
@@ -228,6 +240,10 @@
         color: #92400e !important;
         padding: 0.55rem;
         font-weight: 800;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .ww-expand-indicator,
+        .ww-theme-card { animation: none; transition: none; }
       }
     `;
     document.head.appendChild(style);
@@ -276,6 +292,12 @@
     const originalAccent = form.querySelector('[name="accentColor"]:not([data-theme-control])');
     const template = lab.querySelector('[data-theme-control="template"]');
     const accent = lab.querySelector('[data-theme-control="accent"]');
+    if (originalTemplate) {
+      template.removeAttribute('name');
+    }
+    if (originalAccent) {
+      accent.removeAttribute('name');
+    }
     template.value = currentTemplate;
     accent.value = currentAccent;
     const syncOriginals = () => {
@@ -310,7 +332,7 @@
     const slugInput = admin.querySelector('#ww-custom-slug');
     const panel = document.createElement('section');
     panel.className = 'ww-secure-link-panel';
-    panel.innerHTML = `<h4>Secure guest link</h4><p>Private link only means anyone with the exact link can view it. Use a unique code or password protection for extra reassurance.</p><div class="ww-secure-link-actions"><button type="button" class="cta secondary small" id="ww-generate-secure-link">Generate new secure link</button><span class="small" id="ww-secure-link-status" role="status" aria-live="polite"></span></div><p class="ww-private-link-note">Tip: send the QR code or copied link after saving the new secure link.</p>`;
+    panel.innerHTML = `<h4>Secure guest link</h4><p>Private link only means anyone with the exact link can view it. Use a unique code or password protection for extra reassurance.</p><div class="ww-secure-link-actions"><button type="button" class="cta secondary small" id="ww-generate-secure-link">Generate new secure link</button><span class="small" id="ww-secure-link-status" role="status" aria-live="polite"></span></div><p class="ww-private-link-note">New secure links are saved immediately. If you manually edit the link, press Save share settings before sharing.</p>`;
     admin.insertBefore(panel, admin.querySelector('.ww-actions') || admin.firstChild);
     panel.querySelector('#ww-generate-secure-link').addEventListener('click', async event => {
       const button = event.currentTarget;
