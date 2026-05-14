@@ -7,6 +7,7 @@
   'use strict';
 
   const WEDDING_ROOT_ID = 'wedding-website-dashboard-root';
+  const SCRIPT_LOAD_TIMEOUT_MS = 6000;
   const loadedScripts = new Set();
 
   function onIdle(callback, timeout) {
@@ -66,40 +67,55 @@
         resolve(false);
         return;
       }
+
       const script = document.createElement('script');
+      let settled = false;
+      let timeoutId = null;
+      const finish = loaded => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        window.clearTimeout(timeoutId);
+        if (loaded) {
+          loadedScripts.add(id);
+        }
+        resolve(loaded);
+      };
+
       script.id = id;
       script.src = src;
       script.async = true;
-      script.onload = () => {
-        loadedScripts.add(id);
-        resolve(true);
-      };
+      script.onload = () => finish(true);
       script.onerror = () => {
         console.warn(`Wedding widget enhancement failed to load: ${src}`);
-        resolve(false);
+        finish(false);
       };
+      timeoutId = window.setTimeout(() => {
+        console.warn(`Wedding widget enhancement timed out: ${src}`);
+        finish(false);
+      }, SCRIPT_LOAD_TIMEOUT_MS);
       document.body.appendChild(script);
     });
   }
 
-  function loadWeddingPolishEnhancers() {
-    return Promise.allSettled([
-      loadScriptOnce('ww-polish-enhancer-script', '/assets/js/pages/customer-wedding-widget-polish.js'),
-      loadScriptOnce('ww-nav-card-fixes-script', '/assets/js/pages/customer-wedding-widget-nav-card-fixes.js'),
-    ]);
-  }
-
-  function loadAdvancedWeddingEnhancer() {
+  function loadCardCtaEnhancer() {
     return loadScriptOnce(
-      'ww-advanced-enhancer-script',
-      '/assets/js/pages/customer-wedding-widget-share-builder.js'
+      'ww-nav-card-fixes-script',
+      '/assets/js/pages/customer-wedding-widget-nav-card-fixes.js'
     );
   }
 
+  function loadWidgetAppEnhancers() {
+    return Promise.allSettled([
+      loadScriptOnce('ww-polish-enhancer-script', '/assets/js/pages/customer-wedding-widget-polish.js'),
+      loadScriptOnce('ww-advanced-enhancer-script', '/assets/js/pages/customer-wedding-widget-share-builder.js'),
+    ]);
+  }
+
   /**
-   * Load widget polish after dashboard boot, and delay heavier advanced features
-   * until the widget app is actually opened. This prevents the customer dashboard
-   * shell from being held up by optional wedding-widget enhancements.
+   * Keep dashboard boot light: load only the small card CTA fix after idle, then
+   * load heavier widget-app enhancers only when the Wedding Website app opens.
    */
   function loadWeddingWidgetPolish() {
     if (!hasWeddingWidgetRoot()) {
@@ -107,8 +123,8 @@
     }
 
     onIdle(() => {
-      loadWeddingPolishEnhancers();
-    }, 800);
+      loadCardCtaEnhancer();
+    }, 1200);
 
     document.addEventListener(
       'click',
@@ -118,7 +134,7 @@
           target instanceof Element &&
           (target.closest('#ww-open-app') || target.closest('.ww-card-open-app-btn'))
         ) {
-          loadAdvancedWeddingEnhancer();
+          loadWidgetAppEnhancers();
         }
       },
       true
@@ -128,7 +144,7 @@
       if (document.querySelector('.ww-app-dialog')) {
         observer.disconnect();
         onIdle(() => {
-          loadAdvancedWeddingEnhancer();
+          loadWidgetAppEnhancers();
         }, 250);
       }
     });
