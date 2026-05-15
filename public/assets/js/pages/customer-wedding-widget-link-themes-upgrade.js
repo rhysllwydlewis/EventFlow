@@ -155,6 +155,18 @@
         cursor: pointer;
         list-style: none;
       }
+      .ww-builder details > summary.ww-has-expand-indicator {
+        justify-content: flex-start;
+      }
+      .ww-builder details > summary.ww-has-expand-indicator::after,
+      .ww-app-dialog.ww-ux-polished .ww-product-workspace summary.ww-has-expand-indicator::after {
+        content: none !important;
+        display: none !important;
+      }
+      .ww-app-dialog.ww-ux-polished .ww-product-workspace details,
+      .ww-app-dialog.ww-ux-polished .ww-product-workspace details.ww-advanced-panel {
+        margin: 0 !important;
+      }
       .ww-builder details > summary::-webkit-details-marker { display: none; }
       .ww-expand-indicator {
         display: inline-grid;
@@ -162,15 +174,20 @@
         width: 2rem;
         height: 2rem;
         flex: 0 0 auto;
+        margin-left: auto;
         border: 1px solid rgba(80, 192, 176, 0.2);
         border-radius: 999px;
         color: #0f766e;
         background: rgba(255, 255, 255, 0.74);
         box-shadow: 0 8px 20px rgba(36, 67, 111, 0.06);
         animation: ww-arrow-throb 1.7s ease-in-out infinite;
-        transition: transform 0.18s ease, background 0.18s ease;
+        transition: transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
       }
       .ww-builder details[open] > summary .ww-expand-indicator { transform: rotate(180deg); }
+      .ww-builder details > summary:hover .ww-expand-indicator {
+        background: rgba(235, 251, 248, 0.95);
+        box-shadow: 0 0 0 6px rgba(80, 192, 176, 0.08), 0 10px 22px rgba(36, 67, 111, 0.1);
+      }
       .ww-expand-indicator svg { width: 1rem; height: 1rem; stroke-width: 3; }
       @keyframes ww-arrow-throb {
         0%, 100% { box-shadow: 0 0 0 0 rgba(80, 192, 176, 0.22), 0 8px 20px rgba(36, 67, 111, 0.06); }
@@ -251,6 +268,7 @@
 
   function addExpandIndicators(dialog) {
     dialog.querySelectorAll('.ww-builder details > summary').forEach(summary => {
+      summary.classList.add('ww-has-expand-indicator');
       if (summary.querySelector('.ww-expand-indicator')) {
         return;
       }
