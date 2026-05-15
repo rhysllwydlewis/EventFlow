@@ -15,7 +15,11 @@ body.ww-app-open {
 
 .customer-wedding-card {
   border: 1px solid rgba(80, 192, 176, 0.22) !important;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(244, 252, 250, 0.84)) !important;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.9),
+    rgba(244, 252, 250, 0.84)
+  ) !important;
   box-shadow: 0 18px 52px rgba(36, 67, 111, 0.08) !important;
 }
 
@@ -26,7 +30,11 @@ body.ww-app-open {
 .customer-wedding-heading-badge,
 .ww-launcher__orb,
 .ww-app-icon {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(235, 251, 248, 0.82)) !important;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.92),
+    rgba(235, 251, 248, 0.82)
+  ) !important;
   border: 1px solid rgba(80, 192, 176, 0.28) !important;
 }
 
@@ -177,7 +185,10 @@ body.ww-app-open {
   font-size: 1.45rem;
   line-height: 1;
   cursor: pointer;
-  transition: background 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+  transition:
+    background 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
 }
 
 .ww-app-close:hover {
@@ -248,7 +259,11 @@ body.ww-app-open {
 .ww-builder details,
 .ww-choice-card {
   border: 1px solid rgba(80, 192, 176, 0.16) !important;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(247, 253, 252, 0.72)) !important;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.82),
+    rgba(247, 253, 252, 0.72)
+  ) !important;
   box-shadow: 0 12px 28px rgba(36, 67, 111, 0.07) !important;
 }
 
@@ -536,7 +551,9 @@ body.ww-app-open {
   color: #fff;
   opacity: 0;
   transform: translateY(8px);
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
 
 .ww-toast.show {
@@ -628,4 +645,213 @@ body.ww-app-open {
   .ww-actions--rsvp select {
     flex: 1 1 100%;
   }
+}
+
+.ww-app-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition:
+    background 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease;
+}
+
+.ww-app-tabs button:hover {
+  border-color: rgba(80, 192, 176, 0.36);
+  color: var(--ww-navy);
+  transform: translateY(-1px);
+}
+
+.ww-overview-hero,
+.ww-progress-strip,
+.ww-next-steps,
+.ww-share-tips {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.ww-overview-hero {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.ww-progress-strip {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 1rem 0;
+}
+
+.ww-progress-strip > div,
+.ww-next-step,
+.ww-share-tips {
+  border: 1px solid rgba(80, 192, 176, 0.16);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  padding: 0.75rem;
+}
+
+.ww-progress-strip span {
+  display: block;
+  color: var(--ww-navy);
+  font-size: 1.35rem;
+  font-weight: 900;
+}
+
+.ww-progress-strip small,
+.ww-overview-grid small,
+.ww-next-step small,
+.ww-share-tips li {
+  color: var(--ww-muted);
+}
+
+.ww-next-steps {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  margin-top: 1rem;
+}
+
+.ww-next-step {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  text-align: left;
+  cursor: pointer;
+}
+
+.ww-next-step span {
+  grid-row: span 2;
+  display: inline-grid;
+  width: 1.65rem;
+  height: 1.65rem;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(80, 192, 176, 0.12);
+  color: #0f766e;
+  font-weight: 900;
+}
+
+.ww-next-step strong {
+  color: var(--ww-ink);
+}
+
+.ww-next-step.is-complete {
+  border-color: rgba(34, 197, 94, 0.24);
+  background: rgba(240, 253, 244, 0.76);
+}
+
+.ww-builder-actions {
+  position: sticky;
+  top: -1px;
+  z-index: 3;
+  align-items: center;
+  border-radius: 18px;
+  padding: 0.7rem;
+  backdrop-filter: blur(14px);
+}
+
+.ww-save-state {
+  margin-right: auto;
+  color: var(--ww-muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.ww-save-state[data-state='dirty'] {
+  color: #92400e;
+}
+
+.ww-save-state[data-state='saved'] {
+  color: #166534;
+}
+
+.ww-share-tips ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1.1rem;
+}
+
+@media (max-width: 720px) {
+  .ww-overview-hero,
+  .ww-progress-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .ww-builder-actions {
+    top: 0;
+  }
+
+  .ww-save-state {
+    flex: 1 1 100%;
+  }
+}
+
+.ww-next-step {
+  color: inherit;
+  font: inherit;
+}
+
+.ww-tiles > div {
+  position: relative;
+  overflow: hidden;
+}
+
+.ww-tiles > div::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--ww-mint), var(--ww-teal));
+  opacity: 0.55;
+}
+
+.ww-actions--rsvp {
+  align-items: center;
+  border: 1px solid rgba(80, 192, 176, 0.14);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.56);
+  padding: 0.65rem;
+}
+
+.ww-actions--rsvp .ww-filter {
+  min-height: 2.2rem;
+}
+
+.ww-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: rgba(247, 253, 252, 0.96);
+  backdrop-filter: blur(10px);
+}
+
+.ww-table td:first-child {
+  color: var(--ww-ink);
+  font-weight: 800;
+}
+
+.seat-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.seat-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 4px;
+  background: linear-gradient(90deg, var(--ww-mint), var(--ww-teal));
+  opacity: 0.65;
+}
+
+.ww-btn-danger {
+  border-color: rgba(220, 38, 38, 0.36) !important;
+  background: linear-gradient(135deg, #dc2626, #b91c1c) !important;
+  color: #fff !important;
+}
+
+.ww-confirm-modal .ww-modal__form p {
+  margin: 0;
+  color: var(--ww-muted);
+}
+
+.ww-share-panel .ww-actions {
+  align-items: center;
 }
