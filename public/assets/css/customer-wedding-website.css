@@ -290,6 +290,18 @@ body.ww-app-open {
   font-weight: 800;
 }
 
+.ww-field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0.55rem 0.75rem;
+}
+
+.ww-builder label small {
+  color: var(--ww-muted);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
 .ww-builder label,
 .ww-modal__form label {
   display: grid;
