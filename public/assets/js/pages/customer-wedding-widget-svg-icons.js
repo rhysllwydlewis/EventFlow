@@ -2,7 +2,8 @@
   'use strict';
 
   const STYLE_ID = 'ww-widget-svg-icons-styles';
-  const OBSERVED_SELECTOR = '.ww-app-dialog,.ww-app-tabs,.ww-app-icon,.ww-launcher,.ww-launcher__orb';
+  const OBSERVED_SELECTOR =
+    '.ww-app-dialog,.ww-app-tabs,.ww-app-icon,.ww-launcher,.ww-launcher__orb,#ww-guest-search,.ww-actions--rsvp';
   let queued = false;
 
   const ICONS = {
@@ -63,6 +64,10 @@
     document.head.appendChild(style);
   }
 
+  function isLikelyEmail(value) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
+  }
+
   function replaceIcon(el, svg, className) {
     if (!el || el.dataset.wwSvgIcon === 'true') {
       return;
@@ -92,10 +97,30 @@
     });
   }
 
+  function hardenGuestSearch(root) {
+    root.querySelectorAll('#ww-guest-search').forEach(input => {
+      input.type = 'search';
+      input.placeholder = 'Search guests';
+      input.setAttribute('aria-label', 'Search guests');
+      input.setAttribute('autocomplete', 'off');
+      input.setAttribute('autocapitalize', 'none');
+      input.setAttribute('autocorrect', 'off');
+      input.setAttribute('spellcheck', 'false');
+      input.setAttribute('inputmode', 'search');
+      input.setAttribute('name', 'ww-guest-search-query');
+
+      if (isLikelyEmail(input.value) && !isLikelyEmail(input.defaultValue)) {
+        input.value = '';
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    });
+  }
+
   function polishIcons(root = document) {
     injectStyles();
     replaceTabIcons(root);
     replaceAppIcons(root);
+    hardenGuestSearch(root);
   }
 
   function schedule(root = document) {
@@ -106,6 +131,8 @@
     window.requestAnimationFrame(() => {
       queued = false;
       polishIcons(root);
+      window.setTimeout(() => hardenGuestSearch(root), 250);
+      window.setTimeout(() => hardenGuestSearch(root), 900);
     });
   }
 
