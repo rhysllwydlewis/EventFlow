@@ -3,6 +3,9 @@
 
   const WEDDING_ROOT_ID = 'wedding-website-dashboard-root';
   const SCRIPT_LOAD_TIMEOUT_MS = 6000;
+  const WIDGET_TYPOGRAPHY_STYLES_ID = 'ww-typography-polish-styles';
+  const WIDGET_TYPOGRAPHY_STYLES_HREF =
+    '/assets/css/customer-wedding-widget-typography.css?v=1.0.0';
   const loadedScripts = new Set();
   const loadedStylesheets = new Set();
 
@@ -92,31 +95,45 @@
     });
   }
 
+  function loadWidgetTypographyPolish() {
+    return loadStylesheetOnce(WIDGET_TYPOGRAPHY_STYLES_ID, WIDGET_TYPOGRAPHY_STYLES_HREF);
+  }
+
   function loadCardCtaEnhancer() {
-    return loadScriptOnce('ww-nav-card-fixes-script', '/assets/js/pages/customer-wedding-widget-nav-card-fixes.js', false);
+    return loadScriptOnce(
+      'ww-nav-card-fixes-script',
+      '/assets/js/pages/customer-wedding-widget-nav-card-fixes.js',
+      false
+    );
   }
 
   function loadWidgetAppEnhancers() {
-    loadStylesheetOnce('ww-typography-polish-styles', '/assets/css/customer-wedding-widget-typography.css?v=1.0.0');
+    loadWidgetTypographyPolish();
     return Promise.allSettled([
       loadScriptOnce('ww-polish-enhancer-script', '/assets/js/pages/customer-wedding-widget-polish.js'),
       loadScriptOnce('ww-advanced-enhancer-script', '/assets/js/pages/customer-wedding-widget-share-builder.js'),
       loadScriptOnce('ww-product-upgrade-script', '/assets/js/pages/customer-wedding-widget-product-upgrade.js'),
       loadScriptOnce('ww-scroll-share-polish-script', '/assets/js/pages/customer-wedding-widget-scroll-share-polish.js'),
-      loadScriptOnce('ww-link-theme-upgrade-script', '/assets/js/pages/customer-wedding-widget-link-themes-upgrade.js'),
+      loadScriptOnce(
+        'ww-link-theme-upgrade-script',
+        '/assets/js/pages/customer-wedding-widget-link-themes-upgrade.js'
+      ),
     ]).finally(() => {
-      loadStylesheetOnce('ww-typography-polish-styles', '/assets/css/customer-wedding-widget-typography.css?v=1.0.0');
+      loadWidgetTypographyPolish();
     });
   }
 
   function loadWeddingWidgetPolish() {
     loadCardCtaEnhancer();
-    loadStylesheetOnce('ww-typography-polish-styles', '/assets/css/customer-wedding-widget-typography.css?v=1.0.0');
+    loadWidgetTypographyPolish();
     document.addEventListener(
       'click',
       event => {
         const target = event.target;
-        if (target instanceof Element && (target.closest('#ww-open-app') || target.closest('.ww-card-open-app-btn'))) {
+        const shouldLoad =
+          target instanceof Element &&
+          (target.closest('#ww-open-app') || target.closest('.ww-card-open-app-btn'));
+        if (shouldLoad) {
           loadWidgetAppEnhancers();
         }
       },
