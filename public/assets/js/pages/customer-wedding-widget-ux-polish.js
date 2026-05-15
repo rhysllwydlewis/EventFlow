@@ -152,12 +152,24 @@
         padding-inline: 1rem;
       }
 
+      .ww-app-dialog.ww-ux-polished .ww-seating-polished .ww-seating-heading-actions #ww-add-table {
+        border-color: rgba(80, 192, 176, 0.28);
+        background: rgba(255, 255, 255, 0.82);
+        box-shadow: 0 8px 18px rgba(36, 67, 111, 0.055);
+      }
+
+      .ww-app-dialog.ww-ux-polished .ww-seating-polished .ww-seating-heading-shell + .ww-success {
+        margin-top: 0.55rem;
+      }
+
       .ww-app-dialog.ww-ux-polished .ww-seating-polished .seat-grid {
         grid-template-columns: repeat(2, minmax(280px, 1fr));
         align-items: stretch;
+        gap: 0.85rem;
       }
 
       .ww-app-dialog.ww-ux-polished .ww-seating-polished .seat-card {
+        align-content: start;
         min-height: 196px;
       }
 
@@ -166,9 +178,14 @@
         align-items: flex-start;
       }
 
+      .ww-app-dialog.ww-ux-polished .ww-seating-polished .seat-card__head h5 {
+        min-width: 0;
+      }
+
       .ww-app-dialog.ww-ux-polished .ww-seating-polished .ww-seat-card-controls {
         display: flex;
         flex: 0 0 auto;
+        flex-wrap: wrap;
         align-items: center;
         justify-content: flex-end;
         gap: 0.4rem;
@@ -183,6 +200,11 @@
       }
 
       .ww-app-dialog.ww-ux-polished .ww-seating-polished .seat-card > p {
+        width: max-content;
+        max-width: 100%;
+        border-radius: 999px;
+        background: rgba(80, 192, 176, 0.08);
+        padding: 0.2rem 0.52rem;
         text-transform: none;
       }
 
@@ -281,8 +303,21 @@
     });
   }
 
+  function keepCommandBarOutOfHeader(panel) {
+    const shell = panel.querySelector(':scope > .ww-seating-heading-shell');
+    if (!shell) {
+      return;
+    }
+
+    shell.querySelectorAll('.ww-seating-command').forEach(command => {
+      shell.insertAdjacentElement('afterend', command);
+    });
+  }
+
   function moveSeatingHeader(panel) {
-    if (panel.querySelector(':scope > .ww-seating-heading-shell')) {
+    const existingShell = panel.querySelector(':scope > .ww-seating-heading-shell');
+    if (existingShell) {
+      keepCommandBarOutOfHeader(panel);
       return;
     }
 
@@ -308,6 +343,7 @@
     }
     actionSlot.append(actions);
     shell.append(copy, actionSlot);
+    keepCommandBarOutOfHeader(panel);
   }
 
   function polishTableCards(panel) {
@@ -389,8 +425,8 @@
         Array.from(mutation.addedNodes).some(
           node =>
             node instanceof Element &&
-            (node.matches('.ww-app-dialog,.ww-app-panel,#ww-builder,.seat-grid,.ww-unseated') ||
-              node.querySelector?.('.ww-app-dialog,.ww-app-panel,#ww-builder,.seat-grid,.ww-unseated'))
+            (node.matches('.ww-app-dialog,.ww-app-panel,#ww-builder,.seat-grid,.ww-unseated,.ww-seating-command') ||
+              node.querySelector?.('.ww-app-dialog,.ww-app-panel,#ww-builder,.seat-grid,.ww-unseated,.ww-seating-command'))
         )
       )
     ) {
