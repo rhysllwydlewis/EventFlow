@@ -249,7 +249,7 @@ describe('password protected wedding websites', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.website.slug).not.toBe('wedding-website');
-    expect(res.body.website.slug).toBe('rhys-jade');
+    expect(res.body.website.slug).toMatch(/^rhys-jade-[a-z0-9]{5}$/);
     expect(res.body.website.shareable).toBe(true);
   });
 
