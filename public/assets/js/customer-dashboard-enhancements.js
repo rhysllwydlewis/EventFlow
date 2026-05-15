@@ -4,6 +4,7 @@
   const WEDDING_ROOT_ID = 'wedding-website-dashboard-root';
   const SCRIPT_LOAD_TIMEOUT_MS = 6000;
   const loadedScripts = new Set();
+  const loadedStylesheets = new Set();
 
   function onIdle(callback, timeout) {
     if (typeof window.requestIdleCallback === 'function') {
@@ -37,6 +38,23 @@
 
   function hasWeddingWidgetRoot() {
     return Boolean(document.getElementById(WEDDING_ROOT_ID));
+  }
+
+  function loadStylesheetOnce(id, href, requireWeddingRoot = true) {
+    if (loadedStylesheets.has(id) || document.getElementById(id)) {
+      loadedStylesheets.add(id);
+      return true;
+    }
+    if (requireWeddingRoot && !hasWeddingWidgetRoot()) {
+      return false;
+    }
+    const link = document.createElement('link');
+    link.id = id;
+    link.rel = 'stylesheet';
+    link.href = href;
+    document.head.appendChild(link);
+    loadedStylesheets.add(id);
+    return true;
   }
 
   function loadScriptOnce(id, src, requireWeddingRoot = true) {
@@ -79,17 +97,21 @@
   }
 
   function loadWidgetAppEnhancers() {
+    loadStylesheetOnce('ww-typography-polish-styles', '/assets/css/customer-wedding-widget-typography.css?v=1.0.0');
     return Promise.allSettled([
       loadScriptOnce('ww-polish-enhancer-script', '/assets/js/pages/customer-wedding-widget-polish.js'),
       loadScriptOnce('ww-advanced-enhancer-script', '/assets/js/pages/customer-wedding-widget-share-builder.js'),
       loadScriptOnce('ww-product-upgrade-script', '/assets/js/pages/customer-wedding-widget-product-upgrade.js'),
       loadScriptOnce('ww-scroll-share-polish-script', '/assets/js/pages/customer-wedding-widget-scroll-share-polish.js'),
       loadScriptOnce('ww-link-theme-upgrade-script', '/assets/js/pages/customer-wedding-widget-link-themes-upgrade.js'),
-    ]);
+    ]).finally(() => {
+      loadStylesheetOnce('ww-typography-polish-styles-final', '/assets/css/customer-wedding-widget-typography.css?v=1.0.0');
+    });
   }
 
   function loadWeddingWidgetPolish() {
     loadCardCtaEnhancer();
+    loadStylesheetOnce('ww-typography-polish-styles', '/assets/css/customer-wedding-widget-typography.css?v=1.0.0');
     document.addEventListener(
       'click',
       event => {
