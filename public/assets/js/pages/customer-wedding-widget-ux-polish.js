@@ -121,7 +121,39 @@
         padding: 0.72rem;
       }
 
+      .ww-app-dialog.ww-ux-polished .ww-seating-polished .ww-seating-heading-shell {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 0.9rem;
+        align-items: start;
+        margin-bottom: 0.65rem;
+      }
+
+      .ww-app-dialog.ww-ux-polished .ww-seating-polished .ww-seating-heading-copy > * {
+        margin-bottom: 0.2rem;
+      }
+
+      .ww-app-dialog.ww-ux-polished .ww-seating-polished .ww-seating-heading-copy > *:last-child {
+        margin-bottom: 0;
+      }
+
+      .ww-app-dialog.ww-ux-polished .ww-seating-polished .ww-seating-heading-actions {
+        display: flex;
+        justify-content: flex-end;
+        min-width: 128px;
+      }
+
+      .ww-app-dialog.ww-ux-polished .ww-seating-polished .ww-seating-heading-actions .ww-actions {
+        margin: 0;
+      }
+
+      .ww-app-dialog.ww-ux-polished .ww-seating-polished .ww-seating-heading-actions .cta {
+        min-height: 40px;
+        padding-inline: 1rem;
+      }
+
       .ww-app-dialog.ww-ux-polished .ww-seating-polished .seat-grid {
+        grid-template-columns: repeat(2, minmax(280px, 1fr));
         align-items: stretch;
       }
 
@@ -131,6 +163,16 @@
 
       .ww-app-dialog.ww-ux-polished .ww-seating-polished .seat-card__head {
         gap: 0.75rem;
+        align-items: flex-start;
+      }
+
+      .ww-app-dialog.ww-ux-polished .ww-seating-polished .ww-seat-card-controls {
+        display: flex;
+        flex: 0 0 auto;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 0.4rem;
+        margin-left: auto;
       }
 
       .ww-app-dialog.ww-ux-polished .ww-seating-polished .seat-row {
@@ -138,6 +180,10 @@
         min-height: 38px;
         padding: 0.45rem 0;
         border-top: 1px solid rgba(80, 192, 176, 0.1);
+      }
+
+      .ww-app-dialog.ww-ux-polished .ww-seating-polished .seat-card > p {
+        text-transform: none;
       }
 
       .ww-app-dialog.ww-ux-polished .ww-seating-polished .assign-select,
@@ -180,6 +226,8 @@
       .ww-app-dialog.ww-ux-polished .ww-seating-polished .edit-table,
       .ww-app-dialog.ww-ux-polished .ww-seating-polished .del-table {
         width: max-content;
+        min-height: 30px;
+        padding: 0.36rem 0.62rem;
       }
 
       .ww-app-dialog.ww-ux-polished .ww-seating-polished .ww-unseated {
@@ -195,9 +243,28 @@
         .ww-app-dialog.ww-ux-polished .ww-builder-actions.ww-glass-card {
           align-items: stretch;
         }
+
+        .ww-app-dialog.ww-ux-polished .ww-seating-polished .ww-seating-heading-shell {
+          grid-template-columns: 1fr;
+        }
+
+        .ww-app-dialog.ww-ux-polished .ww-seating-polished .ww-seating-heading-actions {
+          justify-content: flex-start;
+        }
+
+        .ww-app-dialog.ww-ux-polished .ww-seating-polished .seat-grid {
+          grid-template-columns: 1fr;
+        }
       }
     `;
     document.head.appendChild(style);
+  }
+
+  function titleCase(value) {
+    return String(value || '')
+      .replace(/_/g, ' ')
+      .trim()
+      .replace(/\b\w/g, letter => letter.toUpperCase());
   }
 
   function polishWorkspace(dialog) {
@@ -214,6 +281,66 @@
     });
   }
 
+  function moveSeatingHeader(panel) {
+    if (panel.querySelector(':scope > .ww-seating-heading-shell')) {
+      return;
+    }
+
+    const kicker = panel.querySelector(':scope > .ww-kicker');
+    const title = kicker?.nextElementSibling?.matches('h3') ? kicker.nextElementSibling : panel.querySelector(':scope > h3');
+    const summary = title?.nextElementSibling?.matches('p:not(.ww-success)') ? title.nextElementSibling : null;
+    const actions = panel.querySelector(':scope > .ww-actions');
+    if (!kicker || !title || !actions) {
+      return;
+    }
+
+    const shell = document.createElement('div');
+    shell.className = 'ww-seating-heading-shell';
+    const copy = document.createElement('div');
+    copy.className = 'ww-seating-heading-copy';
+    const actionSlot = document.createElement('div');
+    actionSlot.className = 'ww-seating-heading-actions';
+
+    panel.insertBefore(shell, kicker);
+    copy.append(kicker, title);
+    if (summary) {
+      copy.append(summary);
+    }
+    actionSlot.append(actions);
+    shell.append(copy, actionSlot);
+  }
+
+  function polishTableCards(panel) {
+    panel.querySelectorAll('.seat-card').forEach(card => {
+      const head = card.querySelector('.seat-card__head');
+      if (!head) {
+        return;
+      }
+
+      let controls = head.querySelector('.ww-seat-card-controls');
+      if (!controls) {
+        controls = document.createElement('div');
+        controls.className = 'ww-seat-card-controls';
+        head.append(controls);
+      }
+
+      const cap = head.querySelector('.seat-cap');
+      if (cap && cap.parentElement !== controls) {
+        controls.append(cap);
+      }
+
+      Array.from(card.children)
+        .filter(child => child.matches?.('.edit-table, .del-table'))
+        .forEach(button => controls.append(button));
+
+      const type = Array.from(card.children).find(child => child.matches?.('p'));
+      if (type && !type.dataset.wwTitleCased) {
+        type.textContent = titleCase(type.textContent);
+        type.dataset.wwTitleCased = 'true';
+      }
+    });
+  }
+
   function polishSeating(dialog) {
     const panel = dialog.querySelector('[data-pane="seating"] .ww-app-panel');
     if (!panel) {
@@ -221,6 +348,8 @@
     }
 
     panel.classList.add('ww-seating-polished');
+    moveSeatingHeader(panel);
+    polishTableCards(panel);
     panel.querySelectorAll('.assign-select').forEach(select => {
       select.classList.add('ww-seat-assign-select');
       if (!select.getAttribute('aria-label')) {
@@ -270,11 +399,15 @@
   });
 
   observer.observe(document.body, { childList: true, subtree: true });
-  document.addEventListener('click', event => {
-    if (event.target instanceof Element && event.target.closest('.ww-app-tabs button,[data-tab]')) {
-      [0, 120, 450].forEach(delay => window.setTimeout(schedule, delay));
-    }
-  }, true);
+  document.addEventListener(
+    'click',
+    event => {
+      if (event.target instanceof Element && event.target.closest('.ww-app-tabs button,[data-tab]')) {
+        [0, 120, 450].forEach(delay => window.setTimeout(schedule, delay));
+      }
+    },
+    true
+  );
 
   schedule();
 })();
