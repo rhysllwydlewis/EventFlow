@@ -105,7 +105,7 @@
       loadScriptOnce('ww-scroll-share-polish-script', '/assets/js/pages/customer-wedding-widget-scroll-share-polish.js'),
       loadScriptOnce('ww-link-theme-upgrade-script', '/assets/js/pages/customer-wedding-widget-link-themes-upgrade.js'),
     ]).finally(() => {
-      loadStylesheetOnce('ww-typography-polish-styles-final', '/assets/css/customer-wedding-widget-typography.css?v=1.0.0');
+      loadStylesheetOnce('ww-typography-polish-styles', '/assets/css/customer-wedding-widget-typography.css?v=1.0.0');
     });
   }
 
