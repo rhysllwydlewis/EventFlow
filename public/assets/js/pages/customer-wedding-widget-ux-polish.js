@@ -2,6 +2,8 @@
   'use strict';
 
   const STYLE_ID = 'ww-widget-ux-polish-styles';
+  const OBSERVED_WIDGET_SELECTOR =
+    '.ww-app-dialog,.ww-app-panel,#ww-builder,.seat-grid,.ww-unseated,.ww-seating-command';
   let queued = false;
 
   function injectStyles() {
@@ -425,8 +427,7 @@
         Array.from(mutation.addedNodes).some(
           node =>
             node instanceof Element &&
-            (node.matches('.ww-app-dialog,.ww-app-panel,#ww-builder,.seat-grid,.ww-unseated,.ww-seating-command') ||
-              node.querySelector?.('.ww-app-dialog,.ww-app-panel,#ww-builder,.seat-grid,.ww-unseated,.ww-seating-command'))
+            (node.matches(OBSERVED_WIDGET_SELECTOR) || node.querySelector?.(OBSERVED_WIDGET_SELECTOR))
         )
       )
     ) {
