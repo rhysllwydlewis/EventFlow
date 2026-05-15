@@ -125,6 +125,26 @@
     return data.website || data.site || data.data?.website || null;
   }
 
+  async function ensureWebsite(plan, seed = {}) {
+    if (!plan?.id) {
+      return null;
+    }
+    const existing = await getWebsite(plan);
+    if (existing) {
+      return existing;
+    }
+    const payload = {
+      coupleNames: seed.coupleNames || plan.name || plan.eventName || 'Our Wedding',
+      ceremonyVenueName: seed.ceremonyVenueName || plan.venueName || plan.location || '',
+    };
+    await api(`/api/me/plans/${encodeURIComponent(plan.id)}/wedding-website`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return getWebsite(plan);
+  }
+
   const filters = {
     all: () => true,
     attending: guest => guest.rsvpStatus === 'attending',
@@ -389,7 +409,11 @@
       },
       { once: true }
     );
-    dialog.showModal();
+    try {
+      dialog.showModal();
+    } catch (_err) {
+      dialog.show();
+    }
     refresh()
       .then(() => switchTab('overview'))
       .catch(err => toast(err.message || 'Unable to load wedding widget', 'warn'));
@@ -480,8 +504,8 @@
       try {
         const res = await api('/api/me/plans/wedding-workspace', { method: 'POST' });
         const nextPlan = res.plan;
-        await onReady(nextPlan, await getWebsite(nextPlan));
-        toast('Wedding workspace created');
+        await onReady(nextPlan, await ensureWebsite(nextPlan));
+        toast('Wedding website workspace created');
       } finally {
         setBusy(event.currentTarget, false);
       }
@@ -494,8 +518,11 @@
         return;
       }
       setBusy(event.currentTarget, true);
-      await onReady(nextPlan, await getWebsite(nextPlan));
-      setBusy(event.currentTarget, false);
+      try {
+        await onReady(nextPlan, await ensureWebsite(nextPlan));
+      } finally {
+        setBusy(event.currentTarget, false);
+      }
     });
   }
 
@@ -509,13 +536,17 @@
       );
       root.querySelector('#ww-create').addEventListener('click', async event => {
         setBusy(event.currentTarget, true);
-        await api(`/api/me/plans/${encodeURIComponent(plan.id)}/wedding-website`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: '{}',
-        });
-        toast('Website draft created');
-        await refresh(plan, await getWebsite(plan));
+        try {
+          await api(`/api/me/plans/${encodeURIComponent(plan.id)}/wedding-website`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: '{}',
+          });
+          toast('Website draft created');
+          await refresh(plan, await getWebsite(plan));
+        } finally {
+          setBusy(event.currentTarget, false);
+        }
       });
       return;
     }
@@ -523,11 +554,19 @@
       site.status === 'published' ? 'Unpublish' : 'Publish'
     }</button><a class="cta secondary" target="_blank" rel="noopener" href="/wedding/${esc(
       site.slug
-    )}">Preview</a></div><form id="ww-builder" class="ww-builder"><details open><summary>Essentials</summary><label>Couple names<input name="coupleNames" value="${esc(
+    )}">Preview</a></div><form id="ww-builder" class="ww-builder"><details open><summary>Essentials</summary><div class="ww-field-grid"><label>Couple names<input name="coupleNames" value="${esc(
       site.coupleNames || ''
-    )}"></label><label>Event date<input type="date" name="eventDate" value="${esc(
+    )}" autocomplete="off"></label><label>Event date<input type="date" name="eventDate" value="${esc(
       (site.eventDate || '').slice(0, 10)
-    )}"></label><label>Ceremony venue name<input name="ceremonyVenueName" value="${esc(
+    )}"></label><label>Guest link slug<input name="slug" value="${esc(
+      site.slug || ''
+    )}" inputmode="url" autocomplete="off"></label><label>Template<select name="template"><option value="classic">Classic</option><option value="modern">Modern</option><option value="romantic">Romantic</option><option value="minimal">Minimal</option></select></label><label>Accent colour<input type="color" name="accentColor" value="${esc(
+      site.accentColor || '#0B8073'
+    )}"></label><label>Cover image URL<input name="coverImageUrl" value="${esc(
+      site.coverImageUrl || ''
+    )}" type="url" placeholder="https://..."></label></div><label>Welcome<textarea name="welcomeMessage">${esc(
+      site.welcomeMessage || ''
+    )}</textarea></label><div class="ww-field-grid"><label>Ceremony venue name<input name="ceremonyVenueName" value="${esc(
       site.ceremonyVenueName || site.venueName || ''
     )}"></label><label>Ceremony venue address<input name="ceremonyVenueAddress" value="${esc(
       site.ceremonyVenueAddress || site.venueAddress || ''
@@ -535,16 +574,40 @@
       site.receptionVenueName || ''
     )}"></label><label>Reception venue address<input name="receptionVenueAddress" value="${esc(
       site.receptionVenueAddress || ''
-    )}"></label><label>Welcome<textarea name="welcomeMessage">${esc(
-      site.welcomeMessage || ''
-    )}</textarea></label></details><details><summary>Travel & Accommodation</summary><div id="rep-acc"></div><div id="rep-taxi"></div><div id="rep-local"></div></details><details><summary>Wedding Party</summary><div id="rep-party"></div></details><details><summary>FAQs & RSVP settings</summary><div id="rep-faq"></div><div id="rep-meal"></div><div id="rep-questions"></div><label class="ww-checkbox-row"><input class="ww-toggle" type="checkbox" name="rsvpEnabled" ${
+    )}"></label></div></details><details><summary>Schedule & guest information</summary><div class="ww-field-grid"><label>Arrival time<input name="arrivalTime" value="${esc(
+      site.arrivalTime || ''
+    )}" placeholder="13:00"></label><label>Ceremony time<input name="ceremonyTime" value="${esc(
+      site.ceremonyTime || ''
+    )}" placeholder="14:00"></label><label>Reception time<input name="receptionTime" value="${esc(
+      site.receptionTime || ''
+    )}" placeholder="17:30"></label><label>Finish time<input name="finishTime" value="${esc(
+      site.finishTime || ''
+    )}" placeholder="Midnight"></label></div><label>Dress code<textarea name="dressCode">${esc(
+      site.dressCode || ''
+    )}</textarea></label><label>Children policy<textarea name="childrenPolicy">${esc(
+      site.childrenPolicy || ''
+    )}</textarea></label><label>Plus-one policy<textarea name="plusOnePolicy">${esc(
+      site.plusOnePolicy || ''
+    )}</textarea></label><label>Gift information<textarea name="giftInfo">${esc(
+      site.giftInfo || ''
+    )}</textarea></label><label>Parking information<textarea name="parkingInfo">${esc(
+      site.parkingInfo || ''
+    )}</textarea></label><label>Accessibility information<textarea name="accessibilityInfo">${esc(
+      site.accessibilityInfo || ''
+    )}</textarea></label></details><details><summary>Travel & Accommodation</summary><div id="rep-acc"></div><div id="rep-taxi"></div><div id="rep-local"></div></details><details><summary>Wedding Party & Stories</summary><div id="rep-party"></div><label>Love story<textarea name="loveStory">${esc(
+      site.loveStory || ''
+    )}</textarea></label><label>Proposal story<textarea name="proposalStory">${esc(
+      site.proposalStory || ''
+    )}</textarea></label></details><details><summary>FAQs & RSVP settings</summary><div id="rep-faq"></div><div id="rep-meal"></div><div id="rep-questions"></div><label class="ww-checkbox-row"><input class="ww-toggle" type="checkbox" name="rsvpEnabled" ${
       site.rsvpEnabled === false ? '' : 'checked'
-    }><span>RSVP Enabled</span></label><label>RSVP deadline<input type="date" name="rsvpDeadline" value="${esc(
+    }><span>RSVP Enabled</span></label><div class="ww-field-grid"><label>RSVP deadline<input type="date" name="rsvpDeadline" value="${esc(
       (site.rsvpDeadline || '').slice(0, 10)
-    )}"></label><label>RSVP intro<textarea name="rsvpIntroText">${esc(
+    )}"></label><label>Visibility<select name="visibility"><option value="private_link">Private link</option><option value="password">Password protected</option><option value="public">Public</option></select></label><label>Password <small>Only used when password protected; leave blank to keep current password.</small><input name="password" type="password" autocomplete="new-password" placeholder="Optional"></label></div><label>RSVP intro<textarea name="rsvpIntroText">${esc(
       site.rsvpIntroText || ''
     )}</textarea></label></details></form></div>`;
     const form = root.querySelector('#ww-builder');
+    form.querySelector('[name="template"]').value = site.template || 'classic';
+    form.querySelector('[name="visibility"]').value = site.visibility || 'private_link';
     const saveState = root.querySelector('#ww-save-state');
     const markDirty = () => {
       if (saveState) {
@@ -657,7 +720,11 @@
           .map(question => ({
             id: question.id || uid('question'),
             label: question.label,
-            type: question.type || 'text',
+            type: ['text', 'textarea', 'select', 'checkbox'].includes(
+              String(question.type || '').toLowerCase()
+            )
+              ? String(question.type).toLowerCase()
+              : 'text',
             required: String(question.required).toLowerCase() === 'true',
             options: String(question.optionsCsv || '')
               .split(',')

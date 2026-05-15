@@ -8,6 +8,15 @@
     );
   const toPhoneHref = v => `tel:${String(v || '').replace(/[^\d+]/g, '')}`;
 
+  const isDeadlinePassed = value => {
+    if (!value) {
+      return false;
+    }
+    const raw = String(value);
+    const deadline = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? new Date(`${raw}T23:59:59.999Z`) : new Date(raw);
+    return !Number.isNaN(deadline.getTime()) && deadline < new Date();
+  };
+
   function renderUnavailable(message) {
     root.innerHTML = `<section class='wed-unavailable-shell'><article class='wed-unavailable-card'><div class='wed-unavailable-icon' aria-hidden='true'>💌</div><p class='wed-kicker'>Wedding website</p><h1>This wedding website is not available</h1><p class='wed-unavailable-copy'>${esc(message || 'It may not have been published yet, the link may be incorrect, or the couple may have changed the link.')}</p><a class='btn btn-primary' href='/'>Return to EventFlow</a></article></section>`;
   }
@@ -117,12 +126,14 @@
   ${(w.faq || []).filter(f => f.question && f.answer).length ? `<section class='wed-card'><h2>FAQs</h2>${(w.faq || []).filter(f => f.question && f.answer).map(f => `<details class='wed-faq'><summary>${esc(f.question)}</summary><p>${esc(f.answer)}</p></details>`).join('')}</section>` : ''}
 
   <section id='rsvp' class='wed-card wed-rsvp'><h2>RSVP</h2>${w.rsvpIntroText ? `<p>${esc(w.rsvpIntroText)}</p>` : ''}
-    ${w.rsvpEnabled === false ? '<p>RSVPs are not currently open.</p>' : w.rsvpDeadline && new Date(w.rsvpDeadline) < new Date() ? '<p>RSVPs are now closed.</p>' : `<form id='rsvp-form' class='wed-form'><label>Full name<input name='guestName' required></label><label>Email address<input name='email' type='email'></label><input name='website' class='hp' tabindex='-1' autocomplete='off'><label>Are you attending?<select name='attending'><option value='true'>Joyfully attending</option><option value='false'>Regretfully declining</option></select></label><div class='wed-form-grid'><label>Party size<input type='number' name='partySize' min='1' max='20' value='1'></label><label>Children count<input type='number' name='childrenCount' min='0' max='10' value='0'></label></div><label>Plus-one name<input name='plusOneName'></label>${(w.mealOptions || []).length ? `<label>Meal choice<select name='mealChoice'><option value=''>Select meal</option>${w.mealOptions.map(m => `<option value='${esc(m)}'>${esc(m)}</option>`).join('')}</select></label>` : ''}<label>Dietary requirements<textarea name='dietaryRequirements'></textarea></label><label>Accessibility requirements<textarea name='accessibilityRequirements'></textarea></label><label>Song request<input name='songRequest'></label><label>Notes<textarea name='notes'></textarea></label>${customQuestionHtml}<button type='submit' class='btn btn-primary'>Send RSVP</button></form><p id='rsvp-msg' role='status' aria-live='polite'></p>`}
+    ${w.rsvpEnabled === false ? '<p>RSVPs are not currently open.</p>' : isDeadlinePassed(w.rsvpDeadline) ? '<p>RSVPs are now closed.</p>' : `<form id='rsvp-form' class='wed-form'><label>Full name<input name='guestName' required></label><label>Email address<input name='email' type='email'></label><input name='website' class='hp' tabindex='-1' autocomplete='off'><label>Are you attending?<select name='attending'><option value='true'>Joyfully attending</option><option value='false'>Regretfully declining</option></select></label><div class='wed-form-grid'><label>Party size<input type='number' name='partySize' min='1' max='20' value='1'></label><label>Children count<input type='number' name='childrenCount' min='0' max='10' value='0'></label></div><label>Plus-one name<input name='plusOneName'></label>${(w.mealOptions || []).length ? `<label>Meal choice<select name='mealChoice'><option value=''>Select meal</option>${w.mealOptions.map(m => `<option value='${esc(m)}'>${esc(m)}</option>`).join('')}</select></label>` : ''}<label>Dietary requirements<textarea name='dietaryRequirements'></textarea></label><label>Accessibility requirements<textarea name='accessibilityRequirements'></textarea></label><label>Song request<input name='songRequest'></label><label>Notes<textarea name='notes'></textarea></label>${customQuestionHtml}<button type='submit' class='btn btn-primary'>Send RSVP</button></form><p id='rsvp-msg' role='status' aria-live='polite'></p>`}
   </section>
   <footer class='wed-footer'>Crafted with EventFlow</footer>`;
 
   const form = document.getElementById('rsvp-form');
-  if (!form) return;
+  if (!form) {
+    return;
+  }
   const msgEl = document.getElementById('rsvp-msg');
   form.addEventListener('submit', async e => {
     e.preventDefault();
@@ -150,6 +161,8 @@
     const j = await r.json().catch(() => ({}));
     msgEl.textContent = j.message || j.error || 'Submitted';
     msgEl.className = r.ok ? 'msg msg--ok' : 'msg msg--error';
-    if (r.ok) form.reset();
+    if (r.ok) {
+      form.reset();
+    }
   });
 })();

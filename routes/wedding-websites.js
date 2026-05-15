@@ -53,6 +53,14 @@ const setGuestList = (plan, list) => {
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX = { name: 200, email: 200, phone: 30, text: 1000, note: 2000 };
 const ALLOWED_VISIBILITY = new Set(['private_link', 'public', 'password']);
+const isDeadlinePassed = value => {
+  if (!value) {
+    return false;
+  }
+  const raw = String(value);
+  const deadline = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? new Date(`${raw}T23:59:59.999Z`) : new Date(raw);
+  return !Number.isNaN(deadline.getTime()) && deadline < new Date();
+};
 const PASSWORD_ACCESS_TTL_MS = 2 * 60 * 60 * 1000;
 const PASSWORD_HASH_ITERATIONS = 210000;
 const PASSWORD_HASH_KEYLEN = 32;
@@ -265,6 +273,7 @@ function safePublic(site) {
     weddingParty: site.weddingParty || [],
     loveStory: site.loveStory,
     proposalStory: site.proposalStory,
+    coverImageUrl: site.coverImageUrl,
     rsvpEnabled: site.rsvpEnabled !== false,
     rsvpDeadline: site.rsvpDeadline || null,
     rsvpIntroText: site.rsvpIntroText || '',
@@ -336,6 +345,46 @@ router.post('/:planId/wedding-website', authRequired, requireVerifiedUser, csrfP
   res.status(201).json({ success: true, website: scrubCustomerWebsite(website) });
 });
 
+
+function sanitizeWebsiteList(items, mapper, max = 25) {
+  return items.slice(0, max).map(raw => mapper(raw && typeof raw === 'object' ? raw : {}));
+}
+
+function sanitizeCustomRsvpQuestions(items) {
+  const allowedTypes = new Set(['text', 'textarea', 'select', 'checkbox']);
+  return sanitizeWebsiteList(
+    items,
+    item => {
+      const type = allowedTypes.has(String(item.type || '').toLowerCase())
+        ? String(item.type).toLowerCase()
+        : 'text';
+      return {
+        id: sanitize(item.id, 80) || uid('question'),
+        label: sanitize(item.label, 300),
+        type,
+        required: !!item.required,
+        options: Array.isArray(item.options)
+          ? item.options.slice(0, 20).map(option => sanitize(option, 120)).filter(Boolean)
+          : [],
+      };
+    },
+    20
+  ).filter(item => item.label);
+}
+
+function sanitizeCustomAnswers(items) {
+  if (!Array.isArray(items)) {
+    return [];
+  }
+  return items.slice(0, 20).map(raw => {
+    const answer = raw && typeof raw === 'object' ? raw : {};
+    const value = Array.isArray(answer.value)
+      ? answer.value.slice(0, 20).map(item => sanitize(item, 300)).filter(Boolean)
+      : sanitize(answer.value, 1000);
+    return { id: sanitize(answer.id, 80), label: sanitize(answer.label, 300), value };
+  });
+}
+
 router.patch('/:planId/wedding-website', authRequired, requireVerifiedUser, csrfProtection, writeLimiter, getOwnedPlan, async (req, res) => {
   if (!req.plan.weddingWebsite) {
     return res.status(404).json({ error: 'Wedding website not found' });
@@ -346,7 +395,7 @@ router.patch('/:planId/wedding-website', authRequired, requireVerifiedUser, csrf
     'ceremonyVenueAddress', 'receptionVenueName', 'receptionVenueAddress', 'arrivalTime',
     'ceremonyTime', 'receptionTime', 'finishTime', 'dressCode', 'childrenPolicy',
     'plusOnePolicy', 'giftInfo', 'parkingInfo', 'accessibilityInfo', 'rsvpIntroText',
-    'template', 'accentColor',
+    'template', 'accentColor', 'coverImageUrl',
   ];
   fields.forEach(f => {
     if (req.body[f] !== undefined) {
@@ -365,11 +414,58 @@ router.patch('/:planId/wedding-website', authRequired, requireVerifiedUser, csrf
   } else if (isReservedSlug(patch.slug)) {
     patch.slug = await generateUniqueSlug(patch.coupleNames || req.plan.name || 'our-wedding', req.plan.id);
   }
-  ['accommodationRecommendations', 'taxiRecommendations', 'localInfo', 'faq', 'weddingParty', 'mealOptions', 'customRsvpQuestions'].forEach(k => {
-    if (Array.isArray(req.body[k])) {
-      patch[k] = req.body[k];
-    }
-  });
+  if (Array.isArray(req.body.accommodationRecommendations)) {
+    patch.accommodationRecommendations = sanitizeWebsiteList(req.body.accommodationRecommendations, item => ({
+      id: sanitize(item.id, 80) || uid('acc'),
+      name: sanitize(item.name, 160),
+      description: sanitize(item.description, 500),
+      address: sanitize(item.address, 500),
+      phone: sanitize(item.phone, MAX.phone),
+      websiteUrl: sanitize(item.websiteUrl, 500),
+      distance: sanitize(item.distance, 120),
+      notes: sanitize(item.notes, 500),
+    }));
+  }
+  if (Array.isArray(req.body.taxiRecommendations)) {
+    patch.taxiRecommendations = sanitizeWebsiteList(req.body.taxiRecommendations, item => ({
+      id: sanitize(item.id, 80) || uid('taxi'),
+      name: sanitize(item.name, 160),
+      phone: sanitize(item.phone, MAX.phone),
+      websiteUrl: sanitize(item.websiteUrl, 500),
+      notes: sanitize(item.notes, 500),
+    }));
+  }
+  if (Array.isArray(req.body.localInfo)) {
+    patch.localInfo = sanitizeWebsiteList(req.body.localInfo, item => ({
+      id: sanitize(item.id, 80) || uid('local'),
+      title: sanitize(item.title, 160),
+      description: sanitize(item.description, 700),
+      url: sanitize(item.url, 500),
+      type: sanitize(item.type, 80),
+    }));
+  }
+  if (Array.isArray(req.body.faq)) {
+    patch.faq = sanitizeWebsiteList(req.body.faq, item => ({
+      id: sanitize(item.id, 80) || uid('faq'),
+      question: sanitize(item.question, 300),
+      answer: sanitize(item.answer, 1000),
+    }), 40);
+  }
+  if (Array.isArray(req.body.weddingParty)) {
+    patch.weddingParty = sanitizeWebsiteList(req.body.weddingParty, item => ({
+      id: sanitize(item.id, 80) || uid('party'),
+      name: sanitize(item.name, 160),
+      role: sanitize(item.role, 120),
+      bio: sanitize(item.bio, 1000),
+      imageUrl: sanitize(item.imageUrl, 500),
+    }), 30);
+  }
+  if (Array.isArray(req.body.mealOptions)) {
+    patch.mealOptions = req.body.mealOptions.slice(0, 30).map(item => sanitize(item, 120)).filter(Boolean);
+  }
+  if (Array.isArray(req.body.customRsvpQuestions)) {
+    patch.customRsvpQuestions = sanitizeCustomRsvpQuestions(req.body.customRsvpQuestions);
+  }
   if (req.body.rsvpEnabled !== undefined) {
     patch.rsvpEnabled = !!req.body.rsvpEnabled;
   }
@@ -495,7 +591,7 @@ router.post('/public/wedding-websites/:slug/rsvp', writeLimiter, async (req, res
   if (site.rsvpEnabled === false) {
     return res.status(400).json({ error: 'RSVPs are not currently open.' });
   }
-  if (site.rsvpDeadline && new Date(site.rsvpDeadline) < new Date()) {
+  if (isDeadlinePassed(site.rsvpDeadline)) {
     return res.status(400).json({ error: 'RSVPs are now closed.' });
   }
   if (req.body.website) {
@@ -537,7 +633,7 @@ router.post('/public/wedding-websites/:slug/rsvp', writeLimiter, async (req, res
     accessibilityRequirements: sanitize(req.body.accessibilityRequirements, 500),
     songRequest: sanitize(req.body.songRequest, 200),
     notes: sanitize(req.body.notes, MAX.note),
-    customAnswers: Array.isArray(req.body.customAnswers) ? req.body.customAnswers.slice(0, 20) : [],
+    customAnswers: sanitizeCustomAnswers(req.body.customAnswers),
     rsvpUpdatedAt: now,
     updatedAt: now,
   };
@@ -576,13 +672,23 @@ router.post('/:planId/tables', authRequired, requireVerifiedUser, csrfProtection
 router.patch('/:planId/tables/:tableId', authRequired, requireVerifiedUser, csrfProtection, writeLimiter, getOwnedPlan, async (req, res) => {
   const tables = getTables(req.plan);
   const i = tables.findIndex(t => t.id === req.params.tableId);
-  if (i < 0) return res.status(404).json({ error: 'Table not found' });
+  if (i < 0) {
+    return res.status(404).json({ error: 'Table not found' });
+  }
   const now = new Date().toISOString();
   const t = { ...tables[i] };
-  if (req.body.name !== undefined) t.name = sanitize(req.body.name, 80);
-  if (req.body.type !== undefined) t.type = sanitize(req.body.type, 40);
-  if (req.body.capacity !== undefined) t.capacity = Math.max(1, Math.min(30, Number(req.body.capacity) || 10));
-  if (req.body.notes !== undefined) t.notes = sanitize(req.body.notes, 500);
+  if (req.body.name !== undefined) {
+    t.name = sanitize(req.body.name, 80);
+  }
+  if (req.body.type !== undefined) {
+    t.type = sanitize(req.body.type, 40);
+  }
+  if (req.body.capacity !== undefined) {
+    t.capacity = Math.max(1, Math.min(30, Number(req.body.capacity) || 10));
+  }
+  if (req.body.notes !== undefined) {
+    t.notes = sanitize(req.body.notes, 500);
+  }
   t.updatedAt = now;
   tables[i] = t;
   await dbUnified.updateOne('plans', { id: req.plan.id }, { $set: { tables, updatedAt: now } });
@@ -598,7 +704,9 @@ router.delete('/:planId/tables/:tableId', authRequired, requireVerifiedUser, csr
     const matchesTableId = g.tableId === tableId;
     const matchesTableName = deletedTableName && String(g.tableName || '').trim() === deletedTableName;
     const matchesLegacyTableField = (deletedTableName && String(g.table || '').trim() === deletedTableName) || g.table === tableId;
-    if (!matchesTableId && !matchesTableName && !matchesLegacyTableField) return g;
+    if (!matchesTableId && !matchesTableName && !matchesLegacyTableField) {
+      return g;
+    }
     return { ...g, tableId: null, tableName: null, table: null, updatedAt: new Date().toISOString() };
   });
   const now = new Date().toISOString();
@@ -610,10 +718,14 @@ router.post('/:planId/tables/:tableId/assign-guest', authRequired, requireVerifi
   const guestId = req.body.guestId;
   const tables = getTables(req.plan);
   const t = tables.find(x => x.id === tableId);
-  if (!t) return res.status(404).json({ error: 'Table not found' });
+  if (!t) {
+    return res.status(404).json({ error: 'Table not found' });
+  }
   const guests = guestListForPlan(req.plan);
   const gi = guests.findIndex(g => g.id === guestId && g.rsvpStatus === 'attending');
-  if (gi < 0) return res.status(400).json({ error: 'Attending guest not found' });
+  if (gi < 0) {
+    return res.status(400).json({ error: 'Attending guest not found' });
+  }
   tables.forEach(tb => (tb.guestIds = (tb.guestIds || []).filter(id => id !== guestId)));
   t.guestIds = [...(t.guestIds || []), guestId];
   guests[gi] = { ...guests[gi], tableId: t.id, tableName: t.name, updatedAt: new Date().toISOString() };
