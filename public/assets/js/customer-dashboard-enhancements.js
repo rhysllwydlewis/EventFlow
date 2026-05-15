@@ -3,7 +3,11 @@
 
   const WEDDING_ROOT_ID = 'wedding-website-dashboard-root';
   const SCRIPT_LOAD_TIMEOUT_MS = 6000;
+  const WIDGET_TYPOGRAPHY_STYLES_ID = 'ww-typography-polish-styles';
+  const WIDGET_TYPOGRAPHY_STYLES_HREF =
+    '/assets/css/customer-wedding-widget-typography.css?v=1.0.0';
   const loadedScripts = new Set();
+  const loadedStylesheets = new Set();
 
   function onIdle(callback, timeout) {
     if (typeof window.requestIdleCallback === 'function') {
@@ -37,6 +41,23 @@
 
   function hasWeddingWidgetRoot() {
     return Boolean(document.getElementById(WEDDING_ROOT_ID));
+  }
+
+  function loadStylesheetOnce(id, href, requireWeddingRoot = true) {
+    if (loadedStylesheets.has(id) || document.getElementById(id)) {
+      loadedStylesheets.add(id);
+      return true;
+    }
+    if (requireWeddingRoot && !hasWeddingWidgetRoot()) {
+      return false;
+    }
+    const link = document.createElement('link');
+    link.id = id;
+    link.rel = 'stylesheet';
+    link.href = href;
+    document.head.appendChild(link);
+    loadedStylesheets.add(id);
+    return true;
   }
 
   function loadScriptOnce(id, src, requireWeddingRoot = true) {
@@ -74,27 +95,45 @@
     });
   }
 
+  function loadWidgetTypographyPolish() {
+    return loadStylesheetOnce(WIDGET_TYPOGRAPHY_STYLES_ID, WIDGET_TYPOGRAPHY_STYLES_HREF);
+  }
+
   function loadCardCtaEnhancer() {
-    return loadScriptOnce('ww-nav-card-fixes-script', '/assets/js/pages/customer-wedding-widget-nav-card-fixes.js', false);
+    return loadScriptOnce(
+      'ww-nav-card-fixes-script',
+      '/assets/js/pages/customer-wedding-widget-nav-card-fixes.js',
+      false
+    );
   }
 
   function loadWidgetAppEnhancers() {
+    loadWidgetTypographyPolish();
     return Promise.allSettled([
       loadScriptOnce('ww-polish-enhancer-script', '/assets/js/pages/customer-wedding-widget-polish.js'),
       loadScriptOnce('ww-advanced-enhancer-script', '/assets/js/pages/customer-wedding-widget-share-builder.js'),
       loadScriptOnce('ww-product-upgrade-script', '/assets/js/pages/customer-wedding-widget-product-upgrade.js'),
       loadScriptOnce('ww-scroll-share-polish-script', '/assets/js/pages/customer-wedding-widget-scroll-share-polish.js'),
-      loadScriptOnce('ww-link-theme-upgrade-script', '/assets/js/pages/customer-wedding-widget-link-themes-upgrade.js'),
-    ]);
+      loadScriptOnce(
+        'ww-link-theme-upgrade-script',
+        '/assets/js/pages/customer-wedding-widget-link-themes-upgrade.js'
+      ),
+    ]).finally(() => {
+      loadWidgetTypographyPolish();
+    });
   }
 
   function loadWeddingWidgetPolish() {
     loadCardCtaEnhancer();
+    loadWidgetTypographyPolish();
     document.addEventListener(
       'click',
       event => {
         const target = event.target;
-        if (target instanceof Element && (target.closest('#ww-open-app') || target.closest('.ww-card-open-app-btn'))) {
+        const shouldLoad =
+          target instanceof Element &&
+          (target.closest('#ww-open-app') || target.closest('.ww-card-open-app-btn'));
+        if (shouldLoad) {
           loadWidgetAppEnhancers();
         }
       },
