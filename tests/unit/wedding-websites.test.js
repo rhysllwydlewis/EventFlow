@@ -112,6 +112,27 @@ describe('wedding websites routes', () => {
     expect(res.status).toBe(409);
   });
 
+  test('accepts an uploaded data-url cover image on patch', async () => {
+    const coverImageUrl = `data:image/png;base64,${'a'.repeat(6000)}`;
+    const res = await request(app)
+      .patch('/api/me/plans/p1/wedding-website')
+      .send({ coverImageUrl });
+
+    expect(res.status).toBe(200);
+    expect(res.body.website.coverImageUrl).toBe(coverImageUrl);
+    expect(plans[0].weddingWebsite.coverImageUrl).toBe(coverImageUrl);
+  });
+
+  test('strips malformed uploaded cover image data urls', async () => {
+    const res = await request(app)
+      .patch('/api/me/plans/p1/wedding-website')
+      .send({ coverImageUrl: "data:image/png;base64,abc');background:url(javascript:alert(1))" });
+
+    expect(res.status).toBe(200);
+    expect(res.body.website.coverImageUrl).toBe('');
+    expect(plans[0].weddingWebsite.coverImageUrl).toBe('');
+  });
+
   test('blocks publish when readiness checks are incomplete', async () => {
     const res = await request(app).post('/api/me/plans/p1/wedding-website/publish').send({});
     expect(res.status).toBe(400);

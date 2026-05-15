@@ -52,6 +52,7 @@ const setGuestList = (plan, list) => {
 };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MAX = { name: 200, email: 200, phone: 30, text: 1000, note: 2000 };
+const MAX_IMAGE_CHARS = 1200000;
 const ALLOWED_VISIBILITY = new Set(['private_link', 'public', 'password']);
 const isDeadlinePassed = value => {
   if (!value) {
@@ -60,6 +61,22 @@ const isDeadlinePassed = value => {
   const raw = String(value);
   const deadline = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? new Date(`${raw}T23:59:59.999Z`) : new Date(raw);
   return !Number.isNaN(deadline.getTime()) && deadline < new Date();
+};
+
+const sanitizeImageUrl = value => {
+  const cleaned = sanitize(value, MAX_IMAGE_CHARS) || '';
+  if (!cleaned) {
+    return '';
+  }
+  const lower = cleaned.toLowerCase();
+  if (
+    lower.startsWith('https://') ||
+    lower.startsWith('http://') ||
+    /^data:image\/(png|jpe?g|webp|gif);base64,[a-z0-9+/]+={0,2}$/i.test(cleaned)
+  ) {
+    return cleaned;
+  }
+  return '';
 };
 const PASSWORD_ACCESS_TTL_MS = 2 * 60 * 60 * 1000;
 const PASSWORD_HASH_ITERATIONS = 210000;
@@ -395,13 +412,16 @@ router.patch('/:planId/wedding-website', authRequired, requireVerifiedUser, csrf
     'ceremonyVenueAddress', 'receptionVenueName', 'receptionVenueAddress', 'arrivalTime',
     'ceremonyTime', 'receptionTime', 'finishTime', 'dressCode', 'childrenPolicy',
     'plusOnePolicy', 'giftInfo', 'parkingInfo', 'accessibilityInfo', 'rsvpIntroText',
-    'template', 'accentColor', 'coverImageUrl',
+    'template', 'accentColor',
   ];
   fields.forEach(f => {
     if (req.body[f] !== undefined) {
       patch[f] = sanitize(req.body[f]);
     }
   });
+  if (req.body.coverImageUrl !== undefined) {
+    patch.coverImageUrl = sanitizeImageUrl(req.body.coverImageUrl);
+  }
   if (req.body.slug !== undefined) {
     const s = slugify(req.body.slug);
     if (isReservedSlug(s)) {

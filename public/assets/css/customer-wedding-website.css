@@ -867,3 +867,38 @@ body.ww-app-open {
 .ww-share-panel .ww-actions {
   align-items: center;
 }
+
+.ww-cover-upload-field {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0.35rem 0;
+}
+
+.ww-cover-upload-label {
+  color: var(--ww-ink);
+  font-weight: 800;
+}
+
+.ww-cover-preview--compact {
+  min-height: 118px;
+  border-color: rgba(80, 192, 176, 0.28);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(240, 253, 250, 0.74)),
+    radial-gradient(circle at 20% 20%, rgba(80, 192, 176, 0.16), transparent 42%);
+}
+
+.ww-cover-preview--compact img {
+  height: 132px;
+}
+
+.ww-cover-upload-field .ww-media-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0;
+}
+
+.ww-cover-upload-field small {
+  color: var(--ww-muted);
+  font-weight: 650;
+}
