@@ -37,7 +37,6 @@ describe('public wedding website renderer', () => {
               eventDate: '2027-08-22',
               ceremonyVenueName: 'Rosewood Hall',
               ceremonyVenueAddress: 'York',
-              coverImageUrl: 'data:image/png;base64,aGVybw==',
               rsvpDeadline: '2027-08-01',
               arrivalTime: '12:30',
               ceremonyTime: '13:00',
@@ -74,7 +73,6 @@ describe('public wedding website renderer', () => {
         if (!document.querySelector('.wed-nav a[href="#schedule"]')) throw new Error('navigation missing');
         if (!document.querySelector('.wed-nav a[href="#wedding-party"]')) throw new Error('wedding party navigation missing');
         if (!document.querySelector('.wed-countdown')) throw new Error('countdown missing');
-        if (!document.querySelector('.wed-hero--image')) throw new Error('uploaded cover image missing');
         if (!document.querySelector('.wed-quick-facts')) throw new Error('quick facts missing');
         if ([...document.querySelectorAll('a')].some(a => a.href.startsWith('javascript:'))) throw new Error('unsafe link rendered');
         if (document.querySelector('.wed-party img')) throw new Error('unsafe image rendered');

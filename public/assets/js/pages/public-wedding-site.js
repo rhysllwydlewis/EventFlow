@@ -29,14 +29,6 @@
     }
   };
 
-  const safeImageUrl = value => {
-    const raw = String(value || '').trim();
-    if (/^data:image\/(png|jpe?g|webp|gif);base64,[a-z0-9+/]+={0,2}$/i.test(raw)) {
-      return raw;
-    }
-    return safeExternalUrl(raw);
-  };
-
   const parseDate = value => {
     if (!value) {
       return null;
@@ -200,7 +192,7 @@
     return;
   }
 
-  const coverImageUrl = safeImageUrl(w.coverImageUrl);
+  const coverImageUrl = safeExternalUrl(w.coverImageUrl);
   const hasCover = !!coverImageUrl;
   const countdown = daysUntil(w.eventDate);
   const scheduleItems = [
@@ -325,7 +317,7 @@
       ? `<section id='wedding-party' class='wed-card'><div class='wed-section-heading'><p class='wed-eyebrow'>Meet the people</p><h2>Wedding Party</h2></div><div class='wed-grid'>${weddingParty
           .map(p =>
             (() => {
-              const partyImage = safeImageUrl(p.imageUrl);
+              const partyImage = safeExternalUrl(p.imageUrl);
               const initials = (p.name || '?')
                 .split(' ')
                 .map(s => s[0])
