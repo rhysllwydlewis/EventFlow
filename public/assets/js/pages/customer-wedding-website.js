@@ -7,14 +7,26 @@
   let cachedPlans = [];
   let activeLauncher = null;
 
+  const APP_TABS = [
+    { key: 'overview', label: 'Overview', icon: '✨' },
+    { key: 'workspace', label: 'Workspace', icon: '✍️' },
+    { key: 'guests', label: 'RSVPs & Guests', icon: '💌' },
+    { key: 'seating', label: 'Seating', icon: '🪑' },
+    { key: 'share', label: 'Share', icon: '🔗' },
+  ];
+
   function esc(value) {
-    return String(value || '').replace(/[&<>"']/g, ch => ({
-      '&': '&amp;',
-      '<': '&lt;',
-      '>': '&gt;',
-      '"': '&quot;',
-      "'": '&#39;',
-    })[ch]);
+    return String(value || '').replace(
+      /[&<>"']/g,
+      ch =>
+        ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;',
+        })[ch]
+    );
   }
 
   function uid(prefix) {
@@ -28,7 +40,9 @@
   }
 
   function getCsrfToken() {
-    const tokenFromMeta = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    const tokenFromMeta = document
+      .querySelector('meta[name="csrf-token"]')
+      ?.getAttribute('content');
     if (tokenFromMeta) {
       return tokenFromMeta;
     }
@@ -69,13 +83,21 @@
 
   function getStatus(site, plan) {
     if (!plan) {
-      return { key: 'not-started', label: 'Not started', text: 'Create your wedding website workspace.' };
+      return {
+        key: 'not-started',
+        label: 'Not started',
+        text: 'Create your wedding website workspace.',
+      };
     }
     if (!site) {
       return { key: 'draft', label: 'Draft', text: 'Create your website draft.' };
     }
     if (site.status === 'published') {
-      return { key: 'published', label: 'Published', text: 'Your guest website is live and ready to share.' };
+      return {
+        key: 'published',
+        label: 'Published',
+        text: 'Your guest website is live and ready to share.',
+      };
     }
     return { key: 'draft', label: 'Draft', text: 'Finish your details and publish when ready.' };
   }
@@ -97,7 +119,9 @@
     if (!plan?.id) {
       return null;
     }
-    const data = await api(`/api/me/plans/${encodeURIComponent(plan.id)}/wedding-website`).catch(() => ({}));
+    const data = await api(`/api/me/plans/${encodeURIComponent(plan.id)}/wedding-website`).catch(
+      () => ({})
+    );
     return data.website || data.site || data.data?.website || null;
   }
 
@@ -107,7 +131,8 @@
     declined: guest => guest.rsvpStatus === 'declined',
     awaiting: guest => !guest.rsvpStatus || guest.rsvpStatus === 'pending',
     dietary: guest => Boolean(guest.dietaryRequirements || guest.dietary),
-    unseated: guest => guest.rsvpStatus === 'attending' && !(guest.tableId || guest.tableName || guest.table),
+    unseated: guest =>
+      guest.rsvpStatus === 'attending' && !(guest.tableId || guest.tableName || guest.table),
     manual: guest => !guest.source || guest.source === 'manual',
     public_rsvp: guest => guest.source === 'public_rsvp',
     attention: guest =>
@@ -127,6 +152,60 @@
     attention: 'Attention',
   };
 
+  function percent(value, total) {
+    if (!total) {
+      return 0;
+    }
+    return Math.max(0, Math.min(100, Math.round((Number(value || 0) / Number(total || 0)) * 100)));
+  }
+
+  function formatDate(value) {
+    if (!value) {
+      return '';
+    }
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return String(value).slice(0, 10);
+    }
+    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  function readinessItems(site, summary = {}) {
+    const hasVenue = Boolean(
+      site?.ceremonyVenueName || site?.venueName || site?.receptionVenueName
+    );
+    return [
+      {
+        key: 'essentials',
+        label: 'Add essentials',
+        text: 'Couple names, date and venue details',
+        complete: Boolean(site?.coupleNames && site?.eventDate && hasVenue),
+        tab: 'workspace',
+      },
+      {
+        key: 'rsvp',
+        label: 'Prepare RSVP form',
+        text: 'Deadline, intro copy and meal options',
+        complete: Boolean(site?.rsvpEnabled !== false && site?.rsvpDeadline),
+        tab: 'workspace',
+      },
+      {
+        key: 'guests',
+        label: 'Add guests',
+        text: 'Import or add guests before sharing',
+        complete: Number(summary.totalGuests || 0) > 0,
+        tab: 'guests',
+      },
+      {
+        key: 'publish',
+        label: 'Publish and share',
+        text: 'Make your guest link live',
+        complete: site?.status === 'published',
+        tab: site ? 'share' : 'workspace',
+      },
+    ];
+  }
+
   function statusBadge(status) {
     const normalized = String(status || 'pending').toLowerCase();
     return `<span class="ww-badge ww-badge--${esc(normalized)}">${esc(normalized)}</span>`;
@@ -140,7 +219,7 @@
     button.setAttribute('aria-busy', String(Boolean(busy)));
   }
 
-  function renderRepeater(host, name, fields, items) {
+  function renderRepeater(host, name, fields, items, onChange = () => {}) {
     const list = Array.isArray(items) ? items : [];
     host.innerHTML = `<div class="rep-list"></div><button type="button" class="cta secondary small rep-add">Add ${esc(name)}</button>`;
     const listEl = host.querySelector('.rep-list');
@@ -151,25 +230,30 @@
       }
       listEl.innerHTML = list
         .map(
-          (item, index) => `<div class="rep-item">${fields
-            .map(
-              field =>
-                `<label>${esc(field.label)}<input data-k="${esc(field.key)}" data-i="${index}" value="${esc(
-                  item[field.key] || ''
-                )}"></label>`
-            )
-            .join('')}<button type="button" data-i="${index}" class="cta secondary small ww-btn-danger-soft rep-del">Delete</button></div>`
+          (item, index) =>
+            `<div class="rep-item">${fields
+              .map(
+                field =>
+                  `<label>${esc(field.label)}<input data-k="${esc(field.key)}" data-i="${index}" value="${esc(
+                    item[field.key] || ''
+                  )}"></label>`
+              )
+              .join(
+                ''
+              )}<button type="button" data-i="${index}" class="cta secondary small ww-btn-danger-soft rep-del">Delete</button></div>`
         )
         .join('');
       listEl.querySelectorAll('input').forEach(input => {
         input.addEventListener('input', () => {
           list[Number(input.dataset.i)][input.dataset.k] = input.value;
+          onChange();
         });
       });
       listEl.querySelectorAll('.rep-del').forEach(button => {
         button.addEventListener('click', () => {
           list.splice(Number(button.dataset.i), 1);
           draw();
+          onChange();
         });
       });
     };
@@ -180,9 +264,28 @@
       });
       list.push(item);
       draw();
+      onChange();
     });
     draw();
     return list;
+  }
+
+  function renderAppTabs() {
+    return APP_TABS.map(
+      (tab, index) =>
+        `<button type="button" id="ww-tab-${esc(tab.key)}" data-tab="${esc(tab.key)}" aria-selected="${index === 0}" aria-controls="ww-pane-${esc(tab.key)}" role="tab"${index === 0 ? '' : ' tabindex="-1"'}><span aria-hidden="true">${esc(tab.icon)}</span>${esc(tab.label)}</button>`
+    ).join('');
+  }
+
+  function renderAppPanes() {
+    return APP_TABS.map(
+      (tab, index) =>
+        `<section class="ww-app-pane" id="ww-pane-${esc(tab.key)}" data-pane="${esc(tab.key)}" aria-labelledby="ww-tab-${esc(tab.key)}" role="tabpanel"${index === 0 ? '' : ' hidden'}></section>`
+    ).join('');
+  }
+
+  function renderEmptyPanel(kicker, title, body, actionHtml = '') {
+    return `<section class="ww-app-panel ww-empty-state"><p class="ww-kicker">${esc(kicker)}</p><h3>${esc(title)}</h3><p>${esc(body)}</p>${actionHtml}</section>`;
   }
 
   function renderLauncher(root, plan, site) {
@@ -223,14 +326,16 @@
     const dialog = document.createElement('dialog');
     dialog.className = 'ww-app-dialog';
     dialog.setAttribute('aria-labelledby', 'ww-app-title');
-    dialog.innerHTML = `<div class="ww-app-shell"><header class="ww-app-header"><div class="ww-app-title-group"><span class="ww-app-icon" aria-hidden="true">💍</span><div><p class="ww-kicker">EventFlow widget app</p><h2 id="ww-app-title">Wedding Website & RSVPs</h2><p>Manage your wedding website, RSVPs, guest list, seating and share link in one polished app.</p></div></div><div class="ww-app-header-actions"><span class="customer-wedding-status-pill ww-app-status"></span><button class="ww-app-close" type="button" aria-label="Close Wedding Website app">×</button></div></header><nav class="ww-app-tabs" aria-label="Wedding Website app sections"><button type="button" data-tab="overview" aria-selected="true">Overview</button><button type="button" data-tab="workspace">Workspace</button><button type="button" data-tab="guests">RSVPs & Guests</button><button type="button" data-tab="seating">Seating</button><button type="button" data-tab="share">Share</button></nav><div class="ww-app-body"><section class="ww-app-pane" data-pane="overview"></section><section class="ww-app-pane" data-pane="workspace" hidden></section><section class="ww-app-pane" data-pane="guests" hidden></section><section class="ww-app-pane" data-pane="seating" hidden></section><section class="ww-app-pane" data-pane="share" hidden></section></div></div>`;
+    dialog.innerHTML = `<div class="ww-app-shell"><header class="ww-app-header"><div class="ww-app-title-group"><span class="ww-app-icon" aria-hidden="true">💍</span><div><p class="ww-kicker">EventFlow widget app</p><h2 id="ww-app-title">Wedding Website & RSVPs</h2><p>Manage your wedding website, RSVPs, guest list, seating and share link in one polished app.</p></div></div><div class="ww-app-header-actions"><span class="customer-wedding-status-pill ww-app-status"></span><button class="ww-app-close" type="button" aria-label="Close Wedding Website app">×</button></div></header><nav class="ww-app-tabs" aria-label="Wedding Website app sections" role="tablist">${renderAppTabs()}</nav><div class="ww-app-body">${renderAppPanes()}</div></div>`;
     document.body.appendChild(dialog);
     document.body.classList.add('ww-app-open');
 
     const pane = name => dialog.querySelector(`[data-pane="${name}"]`);
     const switchTab = name => {
       dialog.querySelectorAll('.ww-app-tabs button').forEach(button => {
-        button.setAttribute('aria-selected', String(button.dataset.tab === name));
+        const isActive = button.dataset.tab === name;
+        button.setAttribute('aria-selected', String(isActive));
+        button.tabIndex = isActive ? 0 : -1;
       });
       dialog.querySelectorAll('.ww-app-pane').forEach(section => {
         section.hidden = section.dataset.pane !== name;
@@ -257,6 +362,18 @@
     dialog.querySelector('.ww-app-close').addEventListener('click', () => dialog.close());
     dialog.querySelectorAll('.ww-app-tabs button').forEach(button => {
       button.addEventListener('click', () => switchTab(button.dataset.tab));
+      button.addEventListener('keydown', event => {
+        const tabs = Array.from(dialog.querySelectorAll('.ww-app-tabs button'));
+        const current = tabs.indexOf(event.currentTarget);
+        const offset = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
+        if (!offset) {
+          return;
+        }
+        event.preventDefault();
+        const next = tabs[(current + offset + tabs.length) % tabs.length];
+        next.focus();
+        switchTab(next.dataset.tab);
+      });
     });
     dialog.addEventListener(
       'close',
@@ -280,28 +397,53 @@
 
   async function renderOverviewPane(host, plan, site, switchTab) {
     if (!plan) {
-      host.innerHTML = `<div class="ww-app-panel ww-empty-state"><p class="ww-kicker">Overview</p><h3>No wedding workspace yet</h3><p>Create a quick-start wedding website or attach an existing event plan.</p><button type="button" class="cta" data-tab="workspace">Start setup</button></div>`;
+      host.innerHTML = renderEmptyPanel(
+        'Overview',
+        'No wedding workspace yet',
+        'Create a quick-start wedding website or attach an existing event plan.',
+        '<button type="button" class="cta" data-tab="workspace">Start setup</button>'
+      );
       host.querySelector('[data-tab]').addEventListener('click', () => switchTab('workspace'));
       return;
     }
     const [guestsRes, rsvpRes, seatingRes] = await Promise.all([
       api(`/api/me/plans/${encodeURIComponent(plan.id)}/guests`).catch(() => ({ guests: [] })),
-      api(`/api/me/plans/${encodeURIComponent(plan.id)}/rsvp-summary`).catch(() => ({ summary: {} })),
-      api(`/api/me/plans/${encodeURIComponent(plan.id)}/seating-summary`).catch(() => ({ summary: {} })),
+      api(`/api/me/plans/${encodeURIComponent(plan.id)}/rsvp-summary`).catch(() => ({
+        summary: {},
+      })),
+      api(`/api/me/plans/${encodeURIComponent(plan.id)}/seating-summary`).catch(() => ({
+        summary: {},
+      })),
     ]);
     const meta = getStatus(site, plan);
     const url = publicUrl(site);
-    host.innerHTML = `<div class="ww-app-panel"><p class="ww-kicker">Overview</p><h3>Your wedding guest hub</h3><p>${esc(
+    const summary = rsvpRes.summary || {};
+    const seating = seatingRes.summary || {};
+    const totalGuests = Number(summary.totalGuests || guestsRes.guests?.length || 0);
+    const responsePct = percent(summary.responsesReceived, totalGuests);
+    const seatedPct = percent(
+      seating.seated,
+      Math.max(Number(summary.attending || 0), Number(seating.seated || 0))
+    );
+    const checks = readinessItems(site, summary);
+    const completeChecks = checks.filter(item => item.complete).length;
+    const nextAction = checks.find(item => !item.complete) || checks[checks.length - 1];
+    host.innerHTML = `<div class="ww-app-panel ww-overview-panel"><div class="ww-overview-hero"><div><p class="ww-kicker">Overview</p><h3>Your wedding guest hub</h3><p>${esc(
       meta.text
-    )}</p><div class="ww-overview-grid"><article><span>Website</span><strong>${esc(
+    )}</p></div><button type="button" class="cta" data-tab="${esc(nextAction.tab)}">${esc(nextAction.complete ? 'Review share link' : nextAction.label)}</button></div><div class="ww-progress-strip" aria-label="Wedding website readiness"><div><span>${completeChecks}/${checks.length}</span><small>Setup steps done</small></div><div><span>${responsePct}%</span><small>RSVP response rate</small></div><div><span>${seatedPct}%</span><small>Attending guests seated</small></div></div><div class="ww-overview-grid"><article><span>Website</span><strong>${esc(
       meta.label
-    )}</strong><button type="button" class="cta secondary small" data-tab="workspace">Edit website</button></article><article><span>RSVPs</span><strong>${
-      rsvpRes.summary?.responsesReceived || 0
-    }/${rsvpRes.summary?.totalGuests || 0}</strong><button type="button" class="cta secondary small" data-tab="guests">Manage RSVPs</button></article><article><span>Guests</span><strong>${
+    )}</strong><small>${site?.eventDate ? `Wedding date: ${esc(formatDate(site.eventDate))}` : 'Add your date in Workspace.'}</small><button type="button" class="cta secondary small" data-tab="workspace">Edit website</button></article><article><span>RSVPs</span><strong>${
+      summary.responsesReceived || 0
+    }/${totalGuests}</strong><small>${summary.pending || 0} still awaiting a response.</small><button type="button" class="cta secondary small" data-tab="guests">Manage RSVPs</button></article><article><span>Guests</span><strong>${
       guestsRes.guests?.length || 0
-    }</strong><button type="button" class="cta secondary small" data-tab="guests">Open guests</button></article><article><span>Seating</span><strong>${
-      seatingRes.summary?.seated || 0
-    } seated</strong><button type="button" class="cta secondary small" data-tab="seating">Open seating</button></article></div>${
+    }</strong><small>${summary.dietaryRequirementCount || 0} dietary/access notes to review.</small><button type="button" class="cta secondary small" data-tab="guests">Open guests</button></article><article><span>Seating</span><strong>${
+      seating.seated || 0
+    } seated</strong><small>${summary.unseatedAttending || seating.unseated || 0} attending guests unseated.</small><button type="button" class="cta secondary small" data-tab="seating">Open seating</button></article></div><div class="ww-next-steps" aria-label="Recommended setup checklist">${checks
+      .map(
+        item =>
+          `<button type="button" class="ww-next-step ${item.complete ? 'is-complete' : ''}" data-tab="${esc(item.tab)}"><span>${item.complete ? '✓' : '•'}</span><strong>${esc(item.label)}</strong><small>${esc(item.text)}</small></button>`
+      )
+      .join('')}</div>${
       url
         ? `<div class="ww-share-mini"><span>${esc(url)}</span><button type="button" class="cta secondary small" id="ww-copy-overview">Copy link</button></div>`
         : '<div class="ww-share-mini"><span>Create and publish your website to get a share link.</span><button type="button" class="cta secondary small" data-tab="workspace">Finish setup</button></div>'
@@ -324,8 +466,13 @@
     host.innerHTML = `<div class="ww-app-panel ww-choice-panel"><p class="ww-kicker">Start here</p><h3>Create your wedding website workspace</h3><p>Create a guest website, collect RSVPs, manage your guest list and organise seating — with or without a full EventFlow plan.</p><div class="ww-choice-grid"><article class="ww-choice-card ww-glass-card ww-choice-card--primary"><h4>Start with a free wedding website</h4><p>Best if you want a guest website, RSVP form, guest list and seating plan quickly.</p><button class="cta" id="ww-quick-start" type="button">Create Wedding Website</button></article><article class="ww-choice-card ww-glass-card"><h4>Build a full EventFlow plan</h4><p>Best if you also want budget, suppliers, packages and planning tasks.</p><a class="cta secondary" href="/start">Create Full Event Plan</a></article>${
       cachedPlans.length
         ? `<article class="ww-choice-card ww-glass-card"><h4>Use an existing plan</h4><p>Select an existing plan and attach the wedding website to it.</p><select id="ww-existing-plan"><option value="">Select plan</option>${cachedPlans
-            .map(item => `<option value="${esc(item.id)}">${esc(item.name || item.eventName || 'Untitled plan')}</option>`)
-            .join('')}</select><button class="cta secondary" id="ww-use-existing" type="button">Use Existing Plan</button></article>`
+            .map(
+              item =>
+                `<option value="${esc(item.id)}">${esc(item.name || item.eventName || 'Untitled plan')}</option>`
+            )
+            .join(
+              ''
+            )}</select><button class="cta secondary" id="ww-use-existing" type="button">Use Existing Plan</button></article>`
         : ''
     }</div></div>`;
     host.querySelector('#ww-quick-start').addEventListener('click', async event => {
@@ -354,7 +501,12 @@
 
   async function renderModule(plan, site, root, refresh) {
     if (!site) {
-      root.innerHTML = `<section class="ww-app-panel ww-empty-state"><p class="ww-kicker">Website draft</p><h3>Create your free wedding website</h3><p>Start your draft, then refine content, RSVPs and seating in one workspace.</p><button class="cta" id="ww-create" type="button">Create Website</button></section>`;
+      root.innerHTML = renderEmptyPanel(
+        'Website draft',
+        'Create your free wedding website',
+        'Start your draft, then refine content, RSVPs and seating in one workspace.',
+        '<button class="cta" id="ww-create" type="button">Create Website</button>'
+      );
       root.querySelector('#ww-create').addEventListener('click', async event => {
         setBusy(event.currentTarget, true);
         await api(`/api/me/plans/${encodeURIComponent(plan.id)}/wedding-website`, {
@@ -367,7 +519,7 @@
       });
       return;
     }
-    root.innerHTML = `<div class="ww-app-panel"><div class="ww-actions ww-builder-actions ww-glass-card"><button class="cta" id="ww-save" type="button">Save</button><button class="cta secondary" id="ww-pub" type="button">${
+    root.innerHTML = `<div class="ww-app-panel"><div class="ww-actions ww-builder-actions ww-glass-card"><span class="ww-save-state" id="ww-save-state" aria-live="polite">No unsaved changes</span><button class="cta" id="ww-save" type="button">Save</button><button class="cta secondary" id="ww-pub" type="button">${
       site.status === 'published' ? 'Unpublish' : 'Publish'
     }</button><a class="cta secondary" target="_blank" rel="noopener" href="/wedding/${esc(
       site.slug
@@ -393,6 +545,14 @@
       site.rsvpIntroText || ''
     )}</textarea></label></details></form></div>`;
     const form = root.querySelector('#ww-builder');
+    const saveState = root.querySelector('#ww-save-state');
+    const markDirty = () => {
+      if (saveState) {
+        saveState.textContent = 'Unsaved changes';
+        saveState.dataset.state = 'dirty';
+      }
+    };
+    form.addEventListener('input', markDirty);
     const acc = renderRepeater(
       form.querySelector('#rep-acc'),
       'Accommodation',
@@ -405,7 +565,8 @@
         { key: 'distance', label: 'Distance' },
         { key: 'notes', label: 'Notes' },
       ],
-      site.accommodationRecommendations || []
+      site.accommodationRecommendations || [],
+      markDirty
     );
     const taxi = renderRepeater(
       form.querySelector('#rep-taxi'),
@@ -416,7 +577,8 @@
         { key: 'websiteUrl', label: 'Website URL' },
         { key: 'notes', label: 'Notes' },
       ],
-      site.taxiRecommendations || []
+      site.taxiRecommendations || [],
+      markDirty
     );
     const local = renderRepeater(
       form.querySelector('#rep-local'),
@@ -427,7 +589,8 @@
         { key: 'url', label: 'URL' },
         { key: 'type', label: 'Type' },
       ],
-      site.localInfo || []
+      site.localInfo || [],
+      markDirty
     );
     const party = renderRepeater(
       form.querySelector('#rep-party'),
@@ -438,7 +601,8 @@
         { key: 'bio', label: 'Bio' },
         { key: 'imageUrl', label: 'Image URL' },
       ],
-      site.weddingParty || []
+      site.weddingParty || [],
+      markDirty
     );
     const faq = renderRepeater(
       form.querySelector('#rep-faq'),
@@ -447,13 +611,15 @@
         { key: 'question', label: 'Question' },
         { key: 'answer', label: 'Answer' },
       ],
-      site.faq || []
+      site.faq || [],
+      markDirty
     );
     const meal = renderRepeater(
       form.querySelector('#rep-meal'),
       'Meal option',
       [{ key: 'value', label: 'Meal option' }],
-      (site.mealOptions || []).map(value => ({ id: uid('meal'), value }))
+      (site.mealOptions || []).map(value => ({ id: uid('meal'), value })),
+      markDirty
     );
     const questions = renderRepeater(
       form.querySelector('#rep-questions'),
@@ -470,7 +636,8 @@
         type: question.type || 'text',
         required: String(Boolean(question.required)),
         optionsCsv: (question.options || []).join(', '),
-      }))
+      })),
+      markDirty
     );
 
     root.querySelector('#ww-save').addEventListener('click', async event => {
@@ -504,6 +671,11 @@
         });
         toast('Saved successfully');
         await refresh(plan, await getWebsite(plan));
+        const nextSaveState = root.querySelector('#ww-save-state');
+        if (nextSaveState) {
+          nextSaveState.textContent = 'Saved just now';
+          nextSaveState.dataset.state = 'saved';
+        }
       } finally {
         setBusy(button, false);
       }
@@ -512,15 +684,20 @@
       const button = event.currentTarget;
       setBusy(button, true);
       try {
-        await api(`/api/me/plans/${encodeURIComponent(plan.id)}/wedding-website/${site.status === 'published' ? 'unpublish' : 'publish'}`, {
-          method: 'POST',
-        });
+        await api(
+          `/api/me/plans/${encodeURIComponent(plan.id)}/wedding-website/${site.status === 'published' ? 'unpublish' : 'publish'}`,
+          {
+            method: 'POST',
+          }
+        );
         toast(site.status === 'published' ? 'Website unpublished' : 'Website published');
         await refresh(plan, await getWebsite(plan));
       } catch (err) {
         const missing = err?.payload?.checklist?.missing;
         toast(
-          Array.isArray(missing) && missing.length ? `Before publishing: ${missing.join(', ')}` : err.message || 'Unable to publish right now.',
+          Array.isArray(missing) && missing.length
+            ? `Before publishing: ${missing.join(', ')}`
+            : err.message || 'Unable to publish right now.',
           'warn'
         );
       } finally {
@@ -543,7 +720,8 @@
 
   async function renderGuestsPane(root, plan, afterChange) {
     if (!plan) {
-      root.innerHTML = '<section class="ww-app-panel ww-empty-state"><h3>Create a workspace first</h3><p>Guests and RSVPs will appear here.</p></section>';
+      root.innerHTML =
+        '<section class="ww-app-panel ww-empty-state"><h3>Create a workspace first</h3><p>Guests and RSVPs will appear here.</p></section>';
       return;
     }
     const [guestsRes, summaryRes] = await Promise.all([
@@ -556,9 +734,15 @@
     const query = String(root.dataset.guestSearch || '').toLowerCase();
     const sort = root.dataset.guestSort || 'updated_desc';
     const page = Math.max(1, Number(root.dataset.guestPage || 1));
-    const filtered = guests
-      .filter(filters[filter] || filters.all)
-      .filter(guest => !query || [guest.name, guest.email, guest.householdName, guest.plusOneName].some(value => String(value || '').toLowerCase().includes(query)));
+    const filtered = guests.filter(filters[filter] || filters.all).filter(
+      guest =>
+        !query ||
+        [guest.name, guest.email, guest.householdName, guest.plusOneName].some(value =>
+          String(value || '')
+            .toLowerCase()
+            .includes(query)
+        )
+    );
     const sorted = sortGuests(filtered, sort);
     const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE));
     const currentPage = Math.min(page, totalPages);
@@ -578,7 +762,9 @@
             filterLabels[key] || key
           )}</button>`
       )
-      .join('')}<input class="ww-search" id="ww-guest-search" placeholder="Search guests" value="${esc(
+      .join(
+        ''
+      )}<input class="ww-search" id="ww-guest-search" placeholder="Search guests" value="${esc(
       root.dataset.guestSearch || ''
     )}"><select id="ww-guest-sort"><option value="updated_desc">Recently updated</option><option value="name_asc">Name A-Z</option><option value="status">RSVP status</option></select><button class="cta secondary small" id="ww-add-guest" type="button">Add guest</button><a class="cta secondary small" href="/api/me/plans/${encodeURIComponent(
       plan.id
@@ -631,13 +817,32 @@
       root.dataset.guestPage = String(Math.min(totalPages, currentPage + 1));
       await rerender();
     });
-    root.querySelector('#ww-add-guest').addEventListener('click', () => editGuestModal(plan.id, null, rerender));
+    root
+      .querySelector('#ww-add-guest')
+      .addEventListener('click', () => editGuestModal(plan.id, null, rerender));
     root.querySelectorAll('.ww-edit').forEach(button => {
-      button.addEventListener('click', () => editGuestModal(plan.id, guests.find(guest => String(guest.id) === String(button.dataset.id)), rerender));
+      button.addEventListener('click', () =>
+        editGuestModal(
+          plan.id,
+          guests.find(guest => String(guest.id) === String(button.dataset.id)),
+          rerender
+        )
+      );
     });
     root.querySelectorAll('.ww-del').forEach(button => {
       button.addEventListener('click', async () => {
-        await api(`/api/me/plans/${encodeURIComponent(plan.id)}/guests/${encodeURIComponent(button.dataset.id)}`, { method: 'DELETE' });
+        const confirmed = await confirmAction({
+          title: 'Delete guest?',
+          message: 'This removes the guest and their RSVP details from your workspace.',
+          confirmLabel: 'Delete guest',
+        });
+        if (!confirmed) {
+          return;
+        }
+        await api(
+          `/api/me/plans/${encodeURIComponent(plan.id)}/guests/${encodeURIComponent(button.dataset.id)}`,
+          { method: 'DELETE' }
+        );
         await rerender();
       });
     });
@@ -650,6 +855,27 @@
     } catch (_err) {
       dialog.show();
     }
+  }
+
+  function confirmAction({ title, message, confirmLabel = 'Continue' }) {
+    return new Promise(resolve => {
+      let confirmed = false;
+      const dialog = document.createElement('dialog');
+      dialog.className = 'ww-modal ww-confirm-modal';
+      dialog.innerHTML = `<form method="dialog" class="ww-modal__form"><h4>${esc(title)}</h4><p>${esc(message)}</p><div class="ww-actions"><button value="cancel">Cancel</button><button class="cta ww-btn-danger" id="ww-confirm-action" value="default">${esc(confirmLabel)}</button></div></form>`;
+      openModal(dialog);
+      dialog.querySelector('#ww-confirm-action').addEventListener('click', () => {
+        confirmed = true;
+      });
+      dialog.addEventListener(
+        'close',
+        () => {
+          dialog.remove();
+          resolve(confirmed);
+        },
+        { once: true }
+      );
+    });
   }
 
   function editGuestModal(planId, guest, onSaved) {
@@ -701,11 +927,14 @@
         return;
       }
       setBusy(event.currentTarget, true);
-      await api(`/api/me/plans/${encodeURIComponent(planId)}/guests${guest ? `/${encodeURIComponent(guest.id)}` : ''}`, {
-        method: guest ? 'PATCH' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      await api(
+        `/api/me/plans/${encodeURIComponent(planId)}/guests${guest ? `/${encodeURIComponent(guest.id)}` : ''}`,
+        {
+          method: guest ? 'PATCH' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        }
+      );
       dialog.close();
       await onSaved();
     });
@@ -753,7 +982,8 @@
 
   async function renderSeatingPane(root, plan) {
     if (!plan) {
-      root.innerHTML = '<section class="ww-app-panel ww-empty-state"><h3>Create a workspace first</h3><p>Seating tools will appear here.</p></section>';
+      root.innerHTML =
+        '<section class="ww-app-panel ww-empty-state"><h3>Create a workspace first</h3><p>Seating tools will appear here.</p></section>';
       return;
     }
     const [tablesRes, guestsRes, seatingRes] = await Promise.all([
@@ -768,17 +998,23 @@
     root.innerHTML = `<section class="ww-app-panel"><p class="ww-kicker">Seating planner</p><h3>Tables & seating</h3><p>Tables: ${
       seatingRes.summary?.tables || 0
     } • Seated: ${seatingRes.summary?.seated || 0} • Unseated: ${seatingRes.summary?.unseated || 0}</p>${
-      unseated.length === 0 && attending.length ? '<p class="ww-success">All attending guests are seated.</p>' : ''
+      unseated.length === 0 && attending.length
+        ? '<p class="ww-success">All attending guests are seated.</p>'
+        : ''
     }<div class="ww-actions"><button class="cta secondary small" id="ww-add-table" type="button">Add table</button></div><div class="seat-grid">${
       tables
         .map(
           table =>
             `<div class="seat-card"><div class="seat-card__head"><h5>${esc(table.name)}</h5><span class="seat-cap ${
               (table.guestIds || []).length > table.capacity ? 'seat-cap--warn' : ''
-            }">${(table.guestIds || []).length}/${table.capacity}</span></div><p>${esc(table.type)}</p>${(table.guestIds || [])
+            }">${(table.guestIds || []).length}/${table.capacity}</span></div><p>${esc(table.type)}</p>${(
+              table.guestIds || []
+            )
               .map(id => {
                 const guest = guests.find(item => item.id === id);
-                return guest ? `<div class="seat-row">${esc(guest.name)} <button class="unassign" data-id="${esc(guest.id)}" type="button">Unassign</button></div>` : '';
+                return guest
+                  ? `<div class="seat-row">${esc(guest.name)} <button class="unassign" data-id="${esc(guest.id)}" type="button">Unassign</button></div>`
+                  : '';
               })
               .join('')}<button class="cta secondary small edit-table" data-id="${esc(
               table.id
@@ -799,7 +1035,11 @@
     }</div></section>`;
     const rerender = () => renderSeatingPane(root, plan);
     root.querySelector('#ww-add-table').addEventListener('click', async () => {
-      const payload = await editTableModal({ name: `Table ${tables.length + 1}`, capacity: 10, type: 'round' });
+      const payload = await editTableModal({
+        name: `Table ${tables.length + 1}`,
+        capacity: 10,
+        type: 'round',
+      });
       if (!payload) {
         return;
       }
@@ -812,7 +1052,19 @@
     });
     root.querySelectorAll('.del-table').forEach(button => {
       button.addEventListener('click', async () => {
-        await api(`/api/me/plans/${encodeURIComponent(plan.id)}/tables/${encodeURIComponent(button.dataset.id)}`, { method: 'DELETE' });
+        const confirmed = await confirmAction({
+          title: 'Delete table?',
+          message:
+            'Guests assigned to this table will become unseated, but their RSVP details will stay in your guest list.',
+          confirmLabel: 'Delete table',
+        });
+        if (!confirmed) {
+          return;
+        }
+        await api(
+          `/api/me/plans/${encodeURIComponent(plan.id)}/tables/${encodeURIComponent(button.dataset.id)}`,
+          { method: 'DELETE' }
+        );
         await rerender();
       });
     });
@@ -823,11 +1075,14 @@
         if (!payload) {
           return;
         }
-        await api(`/api/me/plans/${encodeURIComponent(plan.id)}/tables/${encodeURIComponent(table.id)}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
+        await api(
+          `/api/me/plans/${encodeURIComponent(plan.id)}/tables/${encodeURIComponent(table.id)}`,
+          {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          }
+        );
         await rerender();
       });
     });
@@ -836,11 +1091,14 @@
         if (!select.value) {
           return;
         }
-        await api(`/api/me/plans/${encodeURIComponent(plan.id)}/tables/${encodeURIComponent(select.value)}/assign-guest`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ guestId: select.dataset.guest }),
-        });
+        await api(
+          `/api/me/plans/${encodeURIComponent(plan.id)}/tables/${encodeURIComponent(select.value)}/assign-guest`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ guestId: select.dataset.guest }),
+          }
+        );
         await rerender();
       });
     });
@@ -858,11 +1116,13 @@
 
   function renderSharePane(root, site, switchTab) {
     const url = publicUrl(site);
-    root.innerHTML = `<section class="ww-app-panel"><p class="ww-kicker">Share</p><h3>${
+    const subject = encodeURIComponent('Our wedding website');
+    const body = encodeURIComponent(`We would love you to RSVP on our wedding website: ${url}`);
+    root.innerHTML = `<section class="ww-app-panel ww-share-panel"><p class="ww-kicker">Share</p><h3>${
       site?.status === 'published' ? 'Your website is published' : 'Your website is not live yet'
-    }</h3><p>${url ? 'Copy or preview your guest link below.' : 'Create and publish your website before sharing.'}</p>${
+    }</h3><p>${url ? 'Copy, preview or open an email draft with your guest link below.' : 'Create and publish your website before sharing.'}</p>${
       url
-        ? `<div class="ww-share-card"><label>Guest link<input readonly value="${esc(url)}"></label><div class="ww-actions"><button type="button" class="cta" id="ww-copy-link">Copy link</button><a class="cta secondary" href="${esc(url)}" target="_blank" rel="noopener">Preview website</a><button type="button" class="cta secondary small" data-tab="workspace">Manage publishing</button></div></div>`
+        ? `<div class="ww-share-card"><label>Guest link<input readonly value="${esc(url)}" aria-label="Published guest website link"></label><div class="ww-share-tips"><strong>Before sending</strong><ul><li>Check the RSVP deadline and meal options.</li><li>Preview the link in a private browser window.</li><li>Ask one trusted guest to test the form first.</li></ul></div><div class="ww-actions"><button type="button" class="cta" id="ww-copy-link">Copy link</button><a class="cta secondary" href="${esc(url)}" target="_blank" rel="noopener">Preview website</a><a class="cta secondary" href="mailto:?subject=${subject}&body=${body}">Draft email</a><button type="button" class="cta secondary small" data-tab="workspace">Manage publishing</button></div></div>`
         : '<button type="button" class="cta" data-tab="workspace">Create website</button>'
     }</section>`;
     root.querySelector('#ww-copy-link')?.addEventListener('click', () => copyLink(url));
