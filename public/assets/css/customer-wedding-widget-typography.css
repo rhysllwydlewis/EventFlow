@@ -9,7 +9,6 @@
 .ww-app-dialog,
 .ww-modal {
   --ww-type-caption: 11px;
-  --ww-type-meta: 12px;
   --ww-type-small: 13px;
   --ww-type-body: 15px;
   --ww-type-control: 14px;
@@ -43,6 +42,7 @@
   display: inline-flex;
   align-items: center;
   width: max-content;
+  max-width: 100%;
   color: var(--ww-muted, #627084);
   font-size: var(--ww-type-caption);
   font-weight: var(--ww-type-weight-caption);
@@ -110,8 +110,7 @@
 
 .ww-app-dialog .seat-card h5,
 .ww-app-dialog .ww-app-panel > h5,
-.ww-app-dialog .ww-tiles > div,
-.ww-modal .ww-modal__form h4 {
+.ww-app-dialog .ww-tiles > div {
   color: var(--ww-ink, #172033);
   font-size: var(--ww-type-card-title);
   font-weight: 780;
