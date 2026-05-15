@@ -69,6 +69,29 @@
     return json;
   }
 
+  const allowedCoverImageTypes = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
+
+  async function imageFileToDataUrl(file) {
+    if (!file) {
+      return '';
+    }
+    if (!file.type || !file.type.startsWith('image/')) {
+      throw new Error('Please choose an image file.');
+    }
+    if (!allowedCoverImageTypes.has(file.type)) {
+      throw new Error('Please choose a JPG, PNG, WebP or GIF image.');
+    }
+    if (file.size > 700000) {
+      throw new Error('Please choose an image under 700 KB.');
+    }
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(new Error('Unable to read this image.'));
+      reader.readAsDataURL(file);
+    });
+  }
+
   function toast(message, type = 'ok') {
     const el = document.createElement('div');
     el.className = `ww-toast ww-toast--${type}`;
@@ -562,9 +585,11 @@
       site.slug || ''
     )}" inputmode="url" autocomplete="off"></label><label>Template<select name="template"><option value="classic">Classic</option><option value="modern">Modern</option><option value="romantic">Romantic</option><option value="minimal">Minimal</option></select></label><label>Accent colour<input type="color" name="accentColor" value="${esc(
       site.accentColor || '#0B8073'
-    )}"></label><label>Cover image URL<input name="coverImageUrl" value="${esc(
+    )}"></label><div class="ww-cover-upload-field"><input type="hidden" name="coverImageUrl" value="${esc(
       site.coverImageUrl || ''
-    )}" type="url" placeholder="https://..."></label></div><label>Welcome<textarea name="welcomeMessage">${esc(
+    )}"><span class="ww-cover-upload-label">Cover photo</span><div class="ww-cover-preview ww-cover-preview--compact"><img alt="Cover photo preview" src="${esc(
+      site.coverImageUrl || ''
+    )}" ${site.coverImageUrl ? '' : 'hidden'}><div class="ww-cover-empty" ${site.coverImageUrl ? 'hidden' : ''}>Upload a cover photo</div></div><div class="ww-media-actions"><label class="cta secondary small">Choose cover photo<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" data-cover-upload hidden></label><button type="button" class="cta secondary small" data-remove-cover>Remove</button></div><small>Upload a JPG, PNG, WebP or GIF under 700 KB. No image URL needed.</small></div></div><label>Welcome<textarea name="welcomeMessage">${esc(
       site.welcomeMessage || ''
     )}</textarea></label><div class="ww-field-grid"><label>Ceremony venue name<input name="ceremonyVenueName" value="${esc(
       site.ceremonyVenueName || site.venueName || ''
@@ -616,6 +641,43 @@
       }
     };
     form.addEventListener('input', markDirty);
+    const coverInput = form.querySelector('[name="coverImageUrl"]');
+    const coverUpload = form.querySelector('[data-cover-upload]');
+    const coverRemove = form.querySelector('[data-remove-cover]');
+    const coverPreview = form.querySelector('.ww-cover-preview--compact img');
+    const coverEmpty = form.querySelector('.ww-cover-preview--compact .ww-cover-empty');
+    const syncCoverPreview = value => {
+      const hasCover = Boolean(value);
+      if (coverPreview) {
+        coverPreview.src = value || '';
+        coverPreview.hidden = !hasCover;
+      }
+      if (coverEmpty) {
+        coverEmpty.hidden = hasCover;
+      }
+    };
+    coverUpload?.addEventListener('change', async event => {
+      try {
+        const dataUrl = await imageFileToDataUrl(event.target.files?.[0]);
+        if (dataUrl && coverInput) {
+          coverInput.value = dataUrl;
+          syncCoverPreview(dataUrl);
+          markDirty();
+          toast('Cover photo ready. Save to update your website.');
+        }
+      } catch (err) {
+        toast(err.message || 'Unable to use that cover photo.', 'warn');
+      } finally {
+        event.target.value = '';
+      }
+    });
+    coverRemove?.addEventListener('click', () => {
+      if (coverInput) {
+        coverInput.value = '';
+      }
+      syncCoverPreview('');
+      markDirty();
+    });
     const acc = renderRepeater(
       form.querySelector('#rep-acc'),
       'Accommodation',
