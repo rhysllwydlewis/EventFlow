@@ -5,7 +5,7 @@
   const SCRIPT_LOAD_TIMEOUT_MS = 6000;
   const WIDGET_TYPOGRAPHY_STYLES_ID = 'ww-typography-polish-styles';
   const WIDGET_TYPOGRAPHY_STYLES_HREF =
-    '/assets/css/customer-wedding-widget-typography.css?v=1.0.0';
+    '/assets/css/customer-wedding-widget-typography.css?v=1.1.0';
   const loadedScripts = new Set();
   const loadedStylesheets = new Set();
 
@@ -113,6 +113,7 @@
       loadScriptOnce('ww-polish-enhancer-script', '/assets/js/pages/customer-wedding-widget-polish.js'),
       loadScriptOnce('ww-advanced-enhancer-script', '/assets/js/pages/customer-wedding-widget-share-builder.js'),
       loadScriptOnce('ww-product-upgrade-script', '/assets/js/pages/customer-wedding-widget-product-upgrade.js'),
+      loadScriptOnce('ww-ux-polish-script', '/assets/js/pages/customer-wedding-widget-ux-polish.js'),
       loadScriptOnce('ww-scroll-share-polish-script', '/assets/js/pages/customer-wedding-widget-scroll-share-polish.js'),
       loadScriptOnce(
         'ww-link-theme-upgrade-script',
