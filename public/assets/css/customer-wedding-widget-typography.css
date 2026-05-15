@@ -9,51 +9,91 @@
 .ww-app-dialog,
 .ww-modal {
   --ww-type-caption: 11px;
+  --ww-type-meta: 12px;
   --ww-type-small: 13px;
   --ww-type-body: 15px;
   --ww-type-control: 14px;
-  --ww-type-h4: 19px;
-  --ww-type-h3: 23px;
-  --ww-type-title: clamp(26px, 2.4vw, 30px);
+  --ww-type-card-title: 16px;
+  --ww-type-h4: 18px;
+  --ww-type-h3: 22px;
+  --ww-type-title: clamp(25px, 2.25vw, 29px);
+  --ww-type-weight-caption: 850;
+  --ww-type-weight-body: 520;
+  --ww-type-weight-label: 740;
+  --ww-type-weight-heading: 820;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: var(--ww-type-body);
-  line-height: 1.45;
-  letter-spacing: -0.01em;
+  font-weight: var(--ww-type-weight-body);
+  line-height: 1.48;
+  letter-spacing: -0.012em;
   text-rendering: optimizeLegibility;
+}
+
+.ww-app-dialog {
+  color: var(--ww-ink, #172033);
+}
+
+.ww-app-dialog :is(h1, h2, h3, h4, h5, h6, p) {
+  margin-top: 0;
 }
 
 .ww-app-dialog .ww-kicker,
 .ww-app-dialog .ww-product-kicker,
 .ww-app-dialog .ww-launcher__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  width: max-content;
   color: var(--ww-muted, #627084);
   font-size: var(--ww-type-caption);
-  font-weight: 900;
-  letter-spacing: 0.08em;
+  font-weight: var(--ww-type-weight-caption);
+  letter-spacing: 0.075em;
   line-height: 1.1;
   text-transform: uppercase;
 }
 
-.ww-app-dialog .ww-app-header h2 {
-  color: var(--ww-ink, #172033);
-  font-size: var(--ww-type-title);
-  font-weight: 850;
-  letter-spacing: -0.045em;
-  line-height: 1.06;
+.ww-app-dialog .ww-app-header {
+  align-items: flex-start;
 }
 
-.ww-app-dialog .ww-app-header p {
-  max-width: 640px;
+.ww-app-dialog .ww-app-title-group {
+  gap: 14px;
+}
+
+.ww-app-dialog .ww-app-header h2 {
+  margin: 2px 0 0;
+  color: var(--ww-ink, #172033);
+  font-size: var(--ww-type-title);
+  font-weight: 840;
+  letter-spacing: -0.047em;
+  line-height: 1.04;
+}
+
+.ww-app-dialog .ww-app-header p:not(.ww-kicker) {
+  max-width: 650px;
+  margin-top: 7px;
   color: var(--ww-muted, #627084);
   font-size: var(--ww-type-body);
-  line-height: 1.55;
+  font-weight: 510;
+  letter-spacing: -0.012em;
+  line-height: 1.5;
+}
+
+.ww-app-dialog .ww-app-header-actions {
+  align-items: center;
+  gap: 12px;
+}
+
+.ww-app-dialog .ww-app-panel > .ww-kicker + h3,
+.ww-app-dialog .ww-app-panel > h3:first-child {
+  margin: 2px 0 5px;
 }
 
 .ww-app-dialog .ww-app-panel h3 {
   color: var(--ww-ink, #172033);
   font-size: var(--ww-type-h3);
-  font-weight: 850;
-  letter-spacing: -0.035em;
-  line-height: 1.15;
+  font-weight: var(--ww-type-weight-heading);
+  letter-spacing: -0.036em;
+  line-height: 1.12;
 }
 
 .ww-app-dialog .ww-app-panel h4,
@@ -63,9 +103,24 @@
 .ww-modal .ww-modal__form h4 {
   color: var(--ww-ink, #172033);
   font-size: var(--ww-type-h4);
-  font-weight: 820;
-  letter-spacing: -0.025em;
+  font-weight: 800;
+  letter-spacing: -0.028em;
+  line-height: 1.18;
+}
+
+.ww-app-dialog .seat-card h5,
+.ww-app-dialog .ww-app-panel > h5,
+.ww-app-dialog .ww-tiles > div,
+.ww-modal .ww-modal__form h4 {
+  color: var(--ww-ink, #172033);
+  font-size: var(--ww-type-card-title);
+  font-weight: 780;
+  letter-spacing: -0.024em;
   line-height: 1.2;
+}
+
+.ww-app-dialog .ww-app-panel > h5 {
+  margin: 17px 0 8px;
 }
 
 .ww-app-dialog .ww-app-panel p,
@@ -78,7 +133,17 @@
 .ww-modal .ww-modal__form p {
   color: var(--ww-muted, #627084);
   font-size: var(--ww-type-body);
-  line-height: 1.52;
+  font-weight: var(--ww-type-weight-body);
+  letter-spacing: -0.01em;
+  line-height: 1.5;
+}
+
+.ww-app-dialog .ww-app-panel > .ww-kicker + h3 + p {
+  margin: 0 0 12px;
+  color: var(--ww-muted, #627084);
+  font-size: var(--ww-type-body);
+  font-weight: 560;
+  line-height: 1.45;
 }
 
 .ww-app-dialog .small,
@@ -96,16 +161,16 @@
 .ww-app-dialog .seat-cap,
 .ww-app-dialog .ww-badge {
   font-size: var(--ww-type-small);
-  font-weight: 800;
-  letter-spacing: -0.01em;
+  font-weight: 790;
+  letter-spacing: -0.012em;
   line-height: 1.15;
 }
 
 .ww-app-dialog .ww-app-tabs button {
-  min-height: 36px;
-  padding: 9px 14px;
+  min-height: 38px;
+  padding: 10px 15px;
   font-size: var(--ww-type-small);
-  font-weight: 820;
+  font-weight: 780;
   letter-spacing: -0.01em;
   line-height: 1.1;
 }
@@ -119,7 +184,7 @@
   min-height: 38px;
   padding: 10px 14px;
   font-size: var(--ww-type-control);
-  font-weight: 820;
+  font-weight: 770;
   letter-spacing: -0.015em;
   line-height: 1.1;
 }
@@ -130,8 +195,8 @@
 .ww-modal .cta.small,
 .ww-modal button.cta.small,
 .ww-modal a.cta.small {
-  min-height: 36px;
-  padding: 9px 12px;
+  min-height: 34px;
+  padding: 8px 12px;
   font-size: var(--ww-type-small);
 }
 
@@ -139,7 +204,7 @@
 .ww-modal label {
   color: #344256;
   font-size: var(--ww-type-small);
-  font-weight: 820;
+  font-weight: var(--ww-type-weight-label);
   line-height: 1.25;
 }
 
@@ -153,7 +218,7 @@
   min-height: 40px;
   padding: 10px 12px;
   font-size: var(--ww-type-control);
-  font-weight: 650;
+  font-weight: 610;
   letter-spacing: -0.01em;
   line-height: 1.3;
 }
@@ -166,6 +231,139 @@
 .ww-app-dialog .ww-actions {
   gap: 8px;
   margin: 10px 0 0;
+}
+
+.ww-app-dialog .ww-tiles {
+  gap: 10px;
+  margin-top: 13px;
+}
+
+.ww-app-dialog .ww-tiles > div {
+  display: grid;
+  align-content: center;
+  min-height: 76px;
+  padding: 14px;
+  color: #536175;
+  font-size: var(--ww-type-small);
+  font-weight: 700;
+  text-transform: none;
+}
+
+.ww-app-dialog .ww-tiles strong,
+.ww-app-dialog .ww-overview-grid strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--ww-navy, #24436f);
+  font-size: 22px;
+  font-weight: 820;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.ww-app-dialog .ww-overview-grid article {
+  gap: 8px;
+  padding: 16px;
+}
+
+.ww-app-dialog .ww-overview-grid span {
+  color: #647188;
+  font-size: var(--ww-type-small);
+  font-weight: 720;
+  letter-spacing: -0.01em;
+}
+
+.ww-app-dialog .ww-table,
+.ww-app-dialog .ww-table td,
+.ww-app-dialog .ww-table th {
+  font-size: var(--ww-type-small);
+  line-height: 1.35;
+}
+
+.ww-app-dialog .ww-table th {
+  font-size: var(--ww-type-caption);
+  font-weight: 780;
+  letter-spacing: 0.055em;
+}
+
+.ww-app-dialog .ww-success {
+  margin: 10px 0 12px;
+  color: #166534;
+  font-size: var(--ww-type-small);
+  font-weight: 740;
+  letter-spacing: -0.01em;
+  line-height: 1.35;
+}
+
+.ww-app-dialog .ww-seating-command {
+  gap: 12px;
+  margin: 14px 0 16px;
+  padding: 18px;
+}
+
+.ww-app-dialog .ww-seating-command h4 {
+  margin: 1px 0 2px;
+  max-width: 620px;
+  font-size: var(--ww-type-h4);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.ww-app-dialog .ww-seating-command p.small {
+  margin: 0;
+  max-width: 720px;
+  font-size: var(--ww-type-body);
+  font-weight: 520;
+}
+
+.ww-app-dialog .ww-seating-command__chips {
+  gap: 7px;
+}
+
+.ww-app-dialog .ww-seating-command__chips span {
+  padding: 5px 9px;
+}
+
+.ww-app-dialog .seat-grid,
+.ww-app-dialog .ww-choice-grid {
+  gap: 12px;
+}
+
+.ww-app-dialog .seat-card {
+  display: grid;
+  gap: 10px;
+  padding: 15px;
+}
+
+.ww-app-dialog .seat-card__head {
+  align-items: flex-start;
+}
+
+.ww-app-dialog .seat-card h5 {
+  margin: 0;
+}
+
+.ww-app-dialog .seat-card > p {
+  margin: 0;
+  color: #647188;
+  font-size: var(--ww-type-small);
+  font-weight: 560;
+}
+
+.ww-app-dialog .seat-row {
+  gap: 10px;
+  color: var(--ww-ink, #172033);
+  font-size: var(--ww-type-small);
+  font-weight: 610;
+  line-height: 1.35;
+}
+
+.ww-app-dialog .seat-row .unassign {
+  flex: 0 0 auto;
+}
+
+.ww-app-dialog .ww-unseated {
+  margin-top: 0;
+  padding: 15px;
 }
 
 .ww-app-dialog [data-pane='share'] .ww-app-panel {
@@ -200,35 +398,43 @@
 .ww-app-dialog [data-pane='share'] .ww-share-card input[readonly] {
   color: var(--ww-ink, #172033);
   font-size: var(--ww-type-control);
-  font-weight: 760;
+  font-weight: 720;
 }
 
 .ww-app-dialog [data-pane='share'] .ww-actions .cta {
   margin: 0;
 }
 
-.ww-app-dialog .ww-table,
-.ww-app-dialog .ww-table td,
-.ww-app-dialog .ww-table th {
-  font-size: var(--ww-type-small);
-  line-height: 1.35;
-}
-
 @media (max-width: 720px) {
   .ww-app-dialog,
   .ww-modal {
     --ww-type-body: 14px;
-    --ww-type-h4: 18px;
-    --ww-type-h3: 21px;
+    --ww-type-h4: 17px;
+    --ww-type-h3: 20px;
     --ww-type-title: 25px;
   }
 
-  .ww-app-dialog .ww-app-header p {
+  .ww-app-dialog .ww-app-header p:not(.ww-kicker) {
     max-width: none;
+    margin-top: 6px;
   }
 
+  .ww-app-dialog .ww-app-header-actions {
+    width: 100%;
+  }
+
+  .ww-app-dialog .ww-app-tabs button {
+    min-height: 36px;
+    padding: 9px 13px;
+  }
+
+  .ww-app-dialog .ww-seating-command,
   .ww-app-dialog [data-pane='share'] .ww-share-publishing-centre,
   .ww-app-dialog [data-pane='share'] .ww-share-card {
     padding: 12px;
+  }
+
+  .ww-app-dialog .ww-tiles > div {
+    min-height: 66px;
   }
 }
