@@ -31,6 +31,7 @@ describe('supplier public profile safety helpers', () => {
     expect(payload.featuredSupplier).toBe(true);
     expect(payload.email).toBeUndefined();
     expect(payload.ownerUserId).toBeUndefined();
+    expect(payload.messagingRecipientId).toBeUndefined();
     expect(payload.latitude).toBeUndefined();
     expect(payload.longitude).toBeUndefined();
     expect(payload.adminNotes).toBeUndefined();
