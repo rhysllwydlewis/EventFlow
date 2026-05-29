@@ -18,6 +18,9 @@
   const WIDGET_RENDER_FINAL_STYLES_ID = 'ww-render-final-styles';
   const WIDGET_RENDER_FINAL_STYLES_HREF =
     '/assets/css/customer-wedding-widget-render-final.css?v=1.0.0';
+  const WIDGET_HEADER_SCROLL_FIX_STYLES_ID = 'ww-header-scroll-fix-styles';
+  const WIDGET_HEADER_SCROLL_FIX_STYLES_HREF =
+    '/assets/css/customer-wedding-widget-header-scroll-fix.css?v=1.0.0';
   const loadedScripts = new Set();
   const loadedStylesheets = new Set();
 
@@ -119,7 +122,11 @@
     );
     const loadedParity = loadStylesheetOnce(WIDGET_RENDER_PARITY_STYLES_ID, WIDGET_RENDER_PARITY_STYLES_HREF);
     const loadedFinal = loadStylesheetOnce(WIDGET_RENDER_FINAL_STYLES_ID, WIDGET_RENDER_FINAL_STYLES_HREF);
-    return loadedBase && loadedRefinements && loadedParity && loadedFinal;
+    const loadedHeaderScrollFix = loadStylesheetOnce(
+      WIDGET_HEADER_SCROLL_FIX_STYLES_ID,
+      WIDGET_HEADER_SCROLL_FIX_STYLES_HREF
+    );
+    return loadedBase && loadedRefinements && loadedParity && loadedFinal && loadedHeaderScrollFix;
   }
 
   function loadWidgetRenderPolish() {
