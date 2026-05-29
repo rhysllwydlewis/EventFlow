@@ -1,0 +1,512 @@
+/* Render parity pass: make the Wedding Website & RSVPs widget closely match the supplied premium mockups. */
+:root {
+  --ww-render-paper: #fbfefd;
+  --ww-render-paper-strong: #ffffff;
+  --ww-render-navy: #121a33;
+  --ww-render-slate: #4e5c74;
+  --ww-render-faint: #eef8f6;
+  --ww-render-teal-deep: #007f72;
+  --ww-render-teal: #009b8b;
+  --ww-render-mint: #dff6f2;
+  --ww-render-border: rgba(80, 192, 176, 0.25);
+  --ww-render-border-soft: rgba(32, 57, 91, 0.11);
+  --ww-render-shadow: 0 28px 90px rgba(27, 42, 66, 0.18);
+  --ww-render-card-shadow: 0 20px 54px rgba(27, 42, 66, 0.1);
+}
+
+.ww-app-dialog.ww-render-polish {
+  width: min(1320px, calc(100vw - 48px)) !important;
+  max-height: min(940px, calc(100dvh - 48px)) !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 32px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.ww-app-dialog.ww-render-polish::backdrop {
+  background:
+    radial-gradient(circle at 12% 8%, rgba(80, 192, 176, 0.18), transparent 30%),
+    radial-gradient(circle at 88% 16%, rgba(44, 148, 177, 0.14), transparent 34%),
+    rgba(207, 217, 225, 0.62) !important;
+  backdrop-filter: blur(16px) saturate(1.04) !important;
+}
+
+.ww-render-polish .ww-app-shell {
+  display: flex !important;
+  min-height: min(870px, calc(100dvh - 48px)) !important;
+  border: 1px solid rgba(255, 255, 255, 0.86) !important;
+  border-radius: 32px !important;
+  background:
+    radial-gradient(circle at 84% 12%, rgba(224, 250, 246, 0.94) 0 9rem, transparent 19rem),
+    radial-gradient(circle at 92% 24%, rgba(207, 241, 238, 0.78) 0 8rem, transparent 21rem),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 253, 252, 0.95)) !important;
+  box-shadow: var(--ww-render-shadow), inset 0 1px 0 rgba(255, 255, 255, 0.96) !important;
+}
+
+.ww-render-polish .ww-app-shell::before {
+  top: -10rem !important;
+  right: -2.25rem !important;
+  width: 31rem !important;
+  height: 24rem !important;
+  border: 1px solid rgba(80, 192, 176, 0.13) !important;
+  border-radius: 41% 59% 52% 48% !important;
+  background:
+    linear-gradient(145deg, rgba(80, 192, 176, 0.12), rgba(255, 255, 255, 0.03)),
+    radial-gradient(circle at 45% 55%, rgba(255, 255, 255, 0.55), transparent 54%) !important;
+  filter: blur(0.1px);
+}
+
+.ww-render-polish .ww-app-shell::after {
+  top: 8.3rem !important;
+  right: 24rem !important;
+  width: 0.7rem !important;
+  height: 0.7rem !important;
+  background: rgba(255, 255, 255, 0.96) !important;
+  box-shadow:
+    0 0 0 7px rgba(255, 255, 255, 0.22),
+    -6.2rem 3.8rem 0 -2px rgba(255, 255, 255, 0.9),
+    14.2rem 2.1rem 0 -2px rgba(255, 255, 255, 0.9),
+    21.3rem 12.2rem 0 -1px rgba(255, 255, 255, 0.88) !important;
+}
+
+.ww-render-polish .ww-app-header {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  gap: 1.5rem !important;
+  min-height: 250px !important;
+  padding: 2.6rem 3rem 1.15rem !important;
+}
+
+.ww-render-polish .ww-app-title-group {
+  display: grid !important;
+  grid-template-columns: auto minmax(0, 1fr) !important;
+  align-items: start !important;
+  column-gap: 2rem !important;
+  max-width: 820px !important;
+}
+
+.ww-render-polish .ww-app-icon {
+  width: 4.55rem !important;
+  height: 4.55rem !important;
+  margin-top: 0.1rem !important;
+  border: 1px solid rgba(32, 57, 91, 0.08) !important;
+  background:
+    radial-gradient(circle at 38% 28%, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 0.78)),
+    rgba(255, 255, 255, 0.86) !important;
+  box-shadow:
+    0 18px 38px rgba(27, 42, 66, 0.13),
+    inset 0 1px 0 rgba(255, 255, 255, 0.98) !important;
+}
+
+.ww-render-polish .ww-app-icon svg {
+  width: 1.7rem !important;
+  height: 1.7rem !important;
+  stroke-width: 2.25 !important;
+}
+
+.ww-render-polish .ww-kicker,
+.ww-render-polish .ww-launcher__eyebrow {
+  color: #526077 !important;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
+  font-size: 0.82rem !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.24em !important;
+}
+
+.ww-render-polish .ww-app-header h2 {
+  margin: 0.45rem 0 0 !important;
+  max-width: 760px !important;
+  color: var(--ww-render-navy) !important;
+  font-family: Georgia, 'Times New Roman', serif !important;
+  font-size: clamp(3rem, 4.8vw, 4.6rem) !important;
+  font-weight: 800 !important;
+  line-height: 0.95 !important;
+  letter-spacing: -0.068em !important;
+}
+
+.ww-render-polish .ww-app-header p:not(.ww-kicker) {
+  max-width: 680px !important;
+  margin-top: 1rem !important;
+  color: var(--ww-render-slate) !important;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
+  font-size: clamp(1.08rem, 1.8vw, 1.35rem) !important;
+  font-weight: 500 !important;
+  line-height: 1.55 !important;
+  letter-spacing: 0.01em !important;
+}
+
+.ww-render-polish .ww-app-header-actions {
+  padding-top: 0.2rem !important;
+}
+
+.ww-render-polish .ww-app-status,
+.ww-render-polish .customer-wedding-status-pill {
+  min-height: 2.85rem !important;
+  padding: 0.68rem 1.2rem !important;
+  border: 1px solid rgba(45, 111, 170, 0.22) !important;
+  background: rgba(255, 255, 255, 0.54) !important;
+  color: var(--ww-render-navy) !important;
+  font-size: 1rem !important;
+  font-weight: 800 !important;
+  backdrop-filter: blur(14px) !important;
+}
+
+.ww-render-polish .ww-app-close {
+  width: 3.1rem !important;
+  height: 3.1rem !important;
+  border: 0 !important;
+  background: rgba(255, 255, 255, 0.72) !important;
+  box-shadow: 0 16px 36px rgba(27, 42, 66, 0.14) !important;
+  color: #1f2940 !important;
+  font-size: 1.45rem !important;
+}
+
+.ww-render-header-art {
+  right: 7rem !important;
+  bottom: 0.4rem !important;
+  width: 20rem !important;
+  height: 11rem !important;
+  opacity: 0.98 !important;
+}
+
+.ww-render-header-art::before {
+  right: 2.1rem !important;
+  bottom: 0.5rem !important;
+  width: 5.2rem !important;
+  height: 5.6rem !important;
+  background:
+    radial-gradient(circle at 34% 25%, rgba(255, 255, 255, 0.98) 0 10%, transparent 11%),
+    radial-gradient(circle at 62% 24%, rgba(255, 255, 255, 0.95) 0 10%, transparent 11%),
+    radial-gradient(circle at 46% 48%, rgba(255, 255, 255, 0.93) 0 11%, transparent 12%),
+    linear-gradient(145deg, rgba(80, 192, 176, 0.24), rgba(44, 148, 177, 0.05)) !important;
+}
+
+.ww-render-header-art span {
+  width: 1.7rem !important;
+  height: 5.4rem !important;
+  border-radius: 999px 999px 0 999px !important;
+  background: rgba(80, 192, 176, 0.2) !important;
+}
+
+.ww-render-polish .ww-app-tabs {
+  grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+  margin: 0 2.65rem 1.7rem !important;
+  border: 1px solid rgba(32, 57, 91, 0.1) !important;
+  border-radius: 18px !important;
+  background: rgba(255, 255, 255, 0.72) !important;
+  box-shadow:
+    0 18px 44px rgba(27, 42, 66, 0.11),
+    inset 0 1px 0 rgba(255, 255, 255, 0.98) !important;
+  backdrop-filter: blur(18px) saturate(1.04) !important;
+}
+
+.ww-render-polish .ww-app-tabs button {
+  min-height: 4.9rem !important;
+  color: #1e273d !important;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
+  font-size: 1.05rem !important;
+  font-weight: 600 !important;
+}
+
+.ww-render-polish .ww-app-tabs button span,
+.ww-render-polish .ww-svg-tab-icon {
+  width: 1.55rem !important;
+  height: 1.55rem !important;
+  color: currentColor !important;
+}
+
+.ww-render-polish .ww-app-tabs button[aria-selected='true'] {
+  color: var(--ww-render-teal-deep) !important;
+  font-weight: 850 !important;
+}
+
+.ww-render-polish .ww-app-tabs button[aria-selected='true']::after {
+  right: 2.45rem !important;
+  left: 2.45rem !important;
+  height: 4px !important;
+  background: linear-gradient(90deg, var(--ww-render-teal-deep), #17b7a9) !important;
+}
+
+.ww-render-polish .ww-app-body {
+  padding: 0 2.65rem 1.6rem !important;
+}
+
+.ww-render-polish .ww-render-workspace-start,
+.ww-render-polish .ww-render-overview-hero,
+.ww-render-polish .ww-render-overview-panel,
+.ww-render-polish .ww-app-panel {
+  border-radius: 22px !important;
+}
+
+.ww-render-polish .ww-render-workspace-start {
+  min-height: 510px !important;
+  padding: 2.55rem 2.85rem !important;
+  border: 1px solid rgba(80, 192, 176, 0.35) !important;
+  background:
+    radial-gradient(circle at 74% 30%, rgba(80, 192, 176, 0.1), transparent 27%),
+    radial-gradient(circle at 89% 16%, rgba(44, 148, 177, 0.07), transparent 32%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.84), rgba(242, 253, 251, 0.84)) !important;
+  box-shadow:
+    0 22px 58px rgba(27, 42, 66, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.98) !important;
+}
+
+.ww-render-polish .ww-render-overview-hero {
+  min-height: 240px !important;
+  padding: 2.15rem 2.4rem !important;
+  border: 1px solid rgba(80, 192, 176, 0.38) !important;
+  background:
+    radial-gradient(circle at 79% 45%, rgba(80, 192, 176, 0.13), transparent 34%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.86), rgba(238, 252, 249, 0.82)) !important;
+}
+
+.ww-render-polish .ww-render-workspace-start .ww-kicker,
+.ww-render-polish .ww-render-overview-hero .ww-kicker {
+  min-height: 2.2rem !important;
+  margin-bottom: 1.2rem !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--ww-render-teal-deep) !important;
+  font-size: 0.88rem !important;
+  letter-spacing: 0.25em !important;
+}
+
+.ww-render-polish .ww-render-workspace-start h2,
+.ww-render-polish .ww-render-workspace-start h3,
+.ww-render-polish .ww-render-overview-hero h3 {
+  max-width: 780px !important;
+  color: var(--ww-render-navy) !important;
+  font-size: clamp(2.2rem, 3.2vw, 3.25rem) !important;
+  line-height: 1.04 !important;
+  letter-spacing: -0.058em !important;
+}
+
+.ww-render-polish .ww-render-workspace-start > p:not(.ww-kicker),
+.ww-render-polish .ww-render-overview-hero > p:not(.ww-kicker),
+.ww-render-polish .ww-render-workspace-start h2 + p,
+.ww-render-polish .ww-render-workspace-start h3 + p {
+  max-width: 780px !important;
+  color: var(--ww-render-slate) !important;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
+  font-size: 1.1rem !important;
+  font-weight: 500 !important;
+  line-height: 1.62 !important;
+}
+
+.ww-render-workspace-art,
+.ww-render-panel-art {
+  top: 1rem !important;
+  right: 4.5rem !important;
+  width: 22rem !important;
+  height: 13.5rem !important;
+  opacity: 0.85 !important;
+}
+
+.ww-render-workspace-art::before,
+.ww-render-panel-art::before {
+  right: 0 !important;
+  top: 0 !important;
+  width: 12rem !important;
+  height: 7.4rem !important;
+  border-radius: 14px !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(255, 255, 255, 0.44)),
+    linear-gradient(90deg, rgba(80, 192, 176, 0.2) 0 1rem, transparent 1rem 2rem, rgba(32, 57, 91, 0.07) 2rem 100%) !important;
+  box-shadow: 0 24px 44px rgba(27, 42, 66, 0.12) !important;
+}
+
+.ww-render-workspace-art::after,
+.ww-render-panel-art::after {
+  right: 8.5rem !important;
+  bottom: 1.1rem !important;
+  width: 5.8rem !important;
+  height: 5.6rem !important;
+  background:
+    radial-gradient(circle at 35% 21%, rgba(255, 255, 255, 0.98) 0 9%, transparent 10%),
+    radial-gradient(circle at 60% 24%, rgba(255, 255, 255, 0.95) 0 9%, transparent 10%),
+    radial-gradient(circle at 48% 45%, rgba(255, 255, 255, 0.93) 0 10%, transparent 11%),
+    linear-gradient(145deg, rgba(80, 192, 176, 0.24), rgba(44, 148, 177, 0.06)) !important;
+}
+
+.ww-render-polish .ww-render-choice-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 1.55rem !important;
+  margin-top: 2.25rem !important;
+}
+
+.ww-render-polish .ww-render-choice-card {
+  min-height: 295px !important;
+  padding: 1.95rem 1.65rem 1.65rem !important;
+  border: 1px solid var(--ww-render-border-soft) !important;
+  border-radius: 19px !important;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.88), rgba(250, 253, 252, 0.8)) !important;
+  box-shadow:
+    0 18px 44px rgba(27, 42, 66, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.98) !important;
+}
+
+.ww-render-polish .ww-render-choice-card[data-ww-choice='free'] {
+  border-color: rgba(0, 155, 139, 0.6) !important;
+  background:
+    radial-gradient(circle at 94% 12%, rgba(80, 192, 176, 0.13), transparent 25%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(239, 253, 250, 0.9)) !important;
+  box-shadow:
+    0 22px 62px rgba(0, 127, 114, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.98) !important;
+}
+
+.ww-render-polish .ww-render-choice-icon {
+  width: 3.55rem !important;
+  height: 3.55rem !important;
+  border: 1px solid rgba(80, 192, 176, 0.22) !important;
+  background: rgba(239, 251, 249, 0.78) !important;
+  color: var(--ww-render-teal-deep) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.92) !important;
+}
+
+.ww-render-polish .ww-render-choice-card h3,
+.ww-render-polish .ww-render-choice-card h4,
+.ww-render-polish .ww-render-choice-card strong {
+  color: var(--ww-render-navy) !important;
+  font-family: Georgia, 'Times New Roman', serif !important;
+  font-size: clamp(1.45rem, 1.7vw, 1.8rem) !important;
+  line-height: 1.1 !important;
+  letter-spacing: -0.05em !important;
+}
+
+.ww-render-polish .ww-render-choice-card p {
+  color: var(--ww-render-slate) !important;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
+  font-size: 1rem !important;
+  line-height: 1.62 !important;
+}
+
+.ww-render-polish .ww-render-choice-card .cta,
+.ww-render-polish .ww-render-choice-card button,
+.ww-render-polish .ww-render-choice-card select {
+  min-height: 3.35rem !important;
+  border-radius: 12px !important;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
+  font-size: 0.98rem !important;
+  font-weight: 850 !important;
+}
+
+.ww-render-polish .ww-render-choice-card[data-ww-choice='free'] .cta,
+.ww-render-polish .ww-render-choice-card[data-ww-choice='free'] button {
+  background:
+    linear-gradient(135deg, #05b7a4 0%, #008a7b 58%, #007467 100%) !important;
+  box-shadow: 0 18px 32px rgba(0, 127, 114, 0.28) !important;
+}
+
+.ww-render-polish .ww-render-choice-card:not([data-ww-choice='free']) .cta,
+.ww-render-polish .ww-render-choice-card:not([data-ww-choice='free']) button {
+  border: 1px solid rgba(80, 192, 176, 0.34) !important;
+  background: rgba(255, 255, 255, 0.68) !important;
+  color: var(--ww-render-teal-deep) !important;
+}
+
+.ww-render-polish .ww-render-choice-card select {
+  border: 1px solid rgba(32, 57, 91, 0.14) !important;
+  background: rgba(255, 255, 255, 0.82) !important;
+  color: #1c253b !important;
+  padding-inline: 1.1rem !important;
+}
+
+.ww-render-polish .ww-render-overview-hero + .ww-app-panel,
+.ww-render-polish .ww-render-overview-panel {
+  margin-top: 1.55rem !important;
+}
+
+.ww-render-polish .ww-overview-grid,
+.ww-render-polish .ww-tiles {
+  gap: 1.1rem !important;
+}
+
+.ww-render-polish .ww-render-metric-card,
+.ww-render-polish .ww-overview-grid article,
+.ww-render-polish .ww-tiles > div {
+  border-radius: 16px !important;
+  background: rgba(255, 255, 255, 0.7) !important;
+  box-shadow:
+    0 14px 32px rgba(27, 42, 66, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+}
+
+.ww-render-polish .ww-render-trust-line {
+  color: #5a667d !important;
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
+  font-size: 0.98rem !important;
+  padding-bottom: 1.25rem !important;
+}
+
+@media (max-width: 980px) {
+  .ww-render-polish .ww-app-header {
+    min-height: 0 !important;
+    padding: 1.6rem 1.25rem 1rem !important;
+  }
+
+  .ww-render-polish .ww-app-title-group {
+    grid-template-columns: auto minmax(0, 1fr) !important;
+    column-gap: 1rem !important;
+  }
+
+  .ww-render-polish .ww-app-header h2 {
+    font-size: clamp(2.15rem, 8vw, 3.35rem) !important;
+  }
+
+  .ww-render-polish .ww-app-tabs {
+    margin: 0 1rem 1.1rem !important;
+    grid-template-columns: repeat(5, max-content) !important;
+    overflow-x: auto !important;
+  }
+
+  .ww-render-polish .ww-app-tabs button {
+    min-width: 10.6rem !important;
+  }
+
+  .ww-render-polish .ww-app-body {
+    padding: 0 1rem 1rem !important;
+  }
+
+  .ww-render-polish .ww-render-choice-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .ww-render-polish .ww-render-choice-card {
+    min-height: 0 !important;
+  }
+}
+
+@media (max-width: 720px) {
+  .ww-app-dialog.ww-render-polish {
+    width: calc(100vw - 12px) !important;
+    max-height: calc(100dvh - 12px) !important;
+  }
+
+  .ww-render-polish .ww-app-shell {
+    min-height: calc(100dvh - 12px) !important;
+    border-radius: 22px !important;
+  }
+
+  .ww-render-polish .ww-app-header {
+    padding: 1rem 0.85rem 0.8rem !important;
+  }
+
+  .ww-render-polish .ww-app-title-group {
+    grid-template-columns: 1fr !important;
+    gap: 0.8rem !important;
+  }
+
+  .ww-render-polish .ww-app-icon {
+    width: 3rem !important;
+    height: 3rem !important;
+  }
+
+  .ww-render-polish .ww-render-workspace-start,
+  .ww-render-polish .ww-render-overview-hero {
+    padding: 1.1rem !important;
+  }
+}
