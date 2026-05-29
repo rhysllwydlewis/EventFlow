@@ -6,6 +6,12 @@
   const WIDGET_TYPOGRAPHY_STYLES_ID = 'ww-typography-polish-styles';
   const WIDGET_TYPOGRAPHY_STYLES_HREF =
     '/assets/css/customer-wedding-widget-typography.css?v=1.1.0';
+  const WIDGET_RENDER_POLISH_STYLES_ID = 'ww-render-polish-styles';
+  const WIDGET_RENDER_POLISH_STYLES_HREF =
+    '/assets/css/customer-wedding-widget-render-polish.css?v=1.0.0';
+  const WIDGET_RENDER_REFINEMENTS_STYLES_ID = 'ww-render-refinements-styles';
+  const WIDGET_RENDER_REFINEMENTS_STYLES_HREF =
+    '/assets/css/customer-wedding-widget-render-refinements.css?v=1.0.0';
   const loadedScripts = new Set();
   const loadedStylesheets = new Set();
 
@@ -99,6 +105,32 @@
     return loadStylesheetOnce(WIDGET_TYPOGRAPHY_STYLES_ID, WIDGET_TYPOGRAPHY_STYLES_HREF);
   }
 
+  function loadWidgetRenderPolishStyles() {
+    const loadedBase = loadStylesheetOnce(WIDGET_RENDER_POLISH_STYLES_ID, WIDGET_RENDER_POLISH_STYLES_HREF);
+    const loadedRefinements = loadStylesheetOnce(
+      WIDGET_RENDER_REFINEMENTS_STYLES_ID,
+      WIDGET_RENDER_REFINEMENTS_STYLES_HREF
+    );
+    return loadedBase && loadedRefinements;
+  }
+
+  function loadWidgetRenderPolish() {
+    loadWidgetRenderPolishStyles();
+    return loadScriptOnce(
+      'ww-render-polish-script',
+      '/assets/js/pages/customer-wedding-widget-render-polish.js?v=1.0.1',
+      false
+    );
+  }
+
+  function loadPreviewPublishHardener() {
+    return loadScriptOnce(
+      'ww-preview-publish-hardener-script',
+      '/assets/js/pages/customer-wedding-preview-publish-hardener.js?v=1.0.0',
+      false
+    );
+  }
+
   function loadCardCtaEnhancer() {
     return loadScriptOnce(
       'ww-nav-card-fixes-script',
@@ -117,8 +149,11 @@
 
   function loadWidgetAppEnhancers() {
     loadWidgetTypographyPolish();
+    loadWidgetRenderPolishStyles();
     return Promise.allSettled([
       loadWidgetMediaStabiliser(),
+      loadWidgetRenderPolish(),
+      loadPreviewPublishHardener(),
       loadScriptOnce('ww-polish-enhancer-script', '/assets/js/pages/customer-wedding-widget-polish.js'),
       loadScriptOnce('ww-advanced-enhancer-script', '/assets/js/pages/customer-wedding-widget-share-builder.js'),
       loadScriptOnce('ww-product-upgrade-script', '/assets/js/pages/customer-wedding-widget-product-upgrade.js'),
@@ -131,6 +166,7 @@
       ),
     ]).finally(() => {
       loadWidgetTypographyPolish();
+      loadWidgetRenderPolishStyles();
     });
   }
 
@@ -138,6 +174,8 @@
     loadCardCtaEnhancer();
     loadWidgetMediaStabiliser();
     loadWidgetTypographyPolish();
+    loadWidgetRenderPolish();
+    loadPreviewPublishHardener();
     document.addEventListener(
       'click',
       event => {
