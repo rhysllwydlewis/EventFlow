@@ -12,7 +12,7 @@ function runNodeSmoke(source) {
 }
 
 describe('public wedding website renderer', () => {
-  test('renders polished guest content, blocks unsafe URLs, and validates RSVP flow', () => {
+  test('renders polished guest content, safe data-url cover images, and validates RSVP flow', () => {
     const output = runNodeSmoke(String.raw`
       const { JSDOM } = require('jsdom');
       const fs = require('fs');
@@ -40,6 +40,7 @@ describe('public wedding website renderer', () => {
               rsvpDeadline: '2027-08-01',
               arrivalTime: '12:30',
               ceremonyTime: '13:00',
+              coverImageUrl: 'data:image/png;base64,aaaa',
               welcomeMessage: 'We cannot wait to celebrate with you.',
               accommodationRecommendations: [{ name: 'The Minster Hotel', websiteUrl: 'https://example.com/hotel' }],
               localInfo: [{ title: 'Unsafe link', url: 'javascript:alert(1)' }],
@@ -68,6 +69,10 @@ describe('public wedding website renderer', () => {
         await waitFor(() => {
           if (document.querySelector('.wed-hero h1')?.textContent !== 'Jamie & Taylor') throw new Error('hero not rendered');
         });
+        const hero = document.querySelector('.wed-hero');
+        if (!hero.classList.contains('wed-hero--image')) throw new Error('safe cover image not applied');
+        if (!hero.style.backgroundImage.includes('data:image/png;base64,aaaa')) throw new Error('data image cover missing');
+        if (dom.window.__PUBLIC_WEDDING_THEME_MEDIA__?.coverImageUrl !== 'data:image/png;base64,aaaa') throw new Error('theme payload not shared');
         if (document.title !== 'Jamie & Taylor — Wedding Website') throw new Error('title not updated');
         if (document.getElementById('public-wedding-root').classList.contains('wed-loading')) throw new Error('loading class not removed');
         if (!document.querySelector('.wed-nav a[href="#schedule"]')) throw new Error('navigation missing');

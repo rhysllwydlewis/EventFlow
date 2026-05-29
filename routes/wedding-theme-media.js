@@ -7,6 +7,7 @@ const { csrfProtection } = require('../middleware/csrf');
 const { writeLimiter } = require('../middleware/rateLimits');
 const dbUnified = require('../db-unified');
 const { stripHtml } = require('../utils/helpers');
+const { sanitizeWeddingImageUrl } = require('../utils/weddingImageUrl');
 
 const router = express.Router({ mergeParams: true });
 const MAX_IMAGE_CHARS = 900000;
@@ -37,15 +38,7 @@ function colour(value, fallback) {
 }
 
 function image(value) {
-  const cleaned = sanitize(value, MAX_IMAGE_CHARS);
-  if (!cleaned || cleaned.length > MAX_IMAGE_CHARS) {
-    return '';
-  }
-  const lower = cleaned.toLowerCase();
-  if (lower.startsWith('https://') || lower.startsWith('http://') || lower.startsWith('data:image/')) {
-    return cleaned;
-  }
-  return '';
+  return sanitizeWeddingImageUrl(value, MAX_IMAGE_CHARS);
 }
 
 function galleryItem(item, index) {

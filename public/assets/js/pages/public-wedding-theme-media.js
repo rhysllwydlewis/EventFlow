@@ -8,6 +8,8 @@
   const root = document.getElementById('public-wedding-root');
   if (!slug || !root) return;
 
+  const DATA_IMAGE_RE = /^data:image\/(png|jpe?g|webp|gif);base64,[a-z0-9+/]+={0,2}$/i;
+
   function esc(value) {
     return String(value || '').replace(/[&<>"']/g, ch => ({
       '&': '&amp;',
@@ -16,6 +18,23 @@
       '"': '&quot;',
       "'": '&#39;',
     })[ch]);
+  }
+
+  function safeImageUrl(value) {
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    if (DATA_IMAGE_RE.test(raw)) return raw;
+    try {
+      const url = new URL(raw, window.location.origin);
+      return ['http:', 'https:'].includes(url.protocol) ? url.href : '';
+    } catch (_err) {
+      return '';
+    }
+  }
+
+  function cssUrl(value) {
+    const safe = safeImageUrl(value);
+    return safe ? `url("${safe.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}")` : '';
   }
 
   function apply(theme) {
@@ -27,14 +46,19 @@
     document.body.classList.add('wed-themed');
     if (theme.heroLayout) document.body.dataset.heroLayout = theme.heroLayout;
 
+    const heroImage = cssUrl(theme.coverImageUrl);
     const hero = root.querySelector('.wed-hero');
-    if (hero && theme.coverImageUrl) {
+    if (hero && heroImage) {
       hero.classList.add('wed-hero--image');
-      hero.style.setProperty('--hero-image', `url('${theme.coverImageUrl}')`);
-      hero.style.backgroundImage = `linear-gradient(135deg, rgba(0,0,0,.44), rgba(0,0,0,.12)), url('${theme.coverImageUrl}')`;
+      hero.style.setProperty('--hero-image', heroImage);
+      hero.style.backgroundImage = `linear-gradient(135deg, rgba(0,0,0,.44), rgba(0,0,0,.12)), ${heroImage}`;
     }
 
-    const gallery = Array.isArray(theme.galleryImages) ? theme.galleryImages.filter(item => item && item.imageUrl) : [];
+    const gallery = Array.isArray(theme.galleryImages)
+      ? theme.galleryImages
+          .map(item => ({ ...item, imageUrl: safeImageUrl(item && item.imageUrl) }))
+          .filter(item => item && item.imageUrl)
+      : [];
     if (!gallery.length || root.querySelector('.wed-gallery')) return;
     const rsvp = root.querySelector('#rsvp');
     const section = document.createElement('section');
@@ -55,23 +79,18 @@
     return data.themeMedia || null;
   }
 
-  async function loadFromWebsitePayload() {
-    const response = await fetch(`/api/public/wedding-websites/${encodeURIComponent(slug)}`, {
-      credentials: 'same-origin',
-    });
-    if (!response.ok) return null;
-    const data = await response.json().catch(() => ({}));
-    return data.website || null;
-  }
-
   async function load() {
     try {
-      const theme = (await loadFromThemeEndpoint()) || (await loadFromWebsitePayload());
+      const theme = window.__PUBLIC_WEDDING_THEME_MEDIA__ || (await loadFromThemeEndpoint());
       apply(theme);
     } catch (_err) {
       // Decorative enhancement only. Never block the public website.
     }
   }
+
+  window.addEventListener('eventflow:wedding-theme-media-ready', event => {
+    apply(event.detail || window.__PUBLIC_WEDDING_THEME_MEDIA__);
+  });
 
   const observer = new MutationObserver(() => {
     if (root.querySelector('.wed-hero')) {

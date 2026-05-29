@@ -16,6 +16,7 @@
   const toPhoneHref = v => `tel:${String(v || '').replace(/[^\d+]/g, '')}`;
   const coerceList = value => (Array.isArray(value) ? value.filter(Boolean) : []);
   const hasText = value => stripTags(value).length > 0;
+  const DATA_IMAGE_RE = /^data:image\/(png|jpe?g|webp|gif);base64,[a-z0-9+/]+={0,2}$/i;
 
   const safeExternalUrl = value => {
     if (!value) {
@@ -27,6 +28,22 @@
     } catch (_err) {
       return '';
     }
+  };
+
+  const safeImageUrl = value => {
+    const raw = String(value || '').trim();
+    if (!raw) {
+      return '';
+    }
+    if (DATA_IMAGE_RE.test(raw)) {
+      return raw;
+    }
+    return safeExternalUrl(raw);
+  };
+
+  const cssUrl = value => {
+    const safe = safeImageUrl(value);
+    return safe ? `url("${safe.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}")` : '';
   };
 
   const parseDate = value => {
@@ -192,8 +209,9 @@
     return;
   }
 
-  const coverImageUrl = safeExternalUrl(w.coverImageUrl);
-  const hasCover = !!coverImageUrl;
+  const coverImageUrl = safeImageUrl(w.coverImageUrl);
+  const coverImageCss = cssUrl(coverImageUrl);
+  const hasCover = !!coverImageCss;
   const countdown = daysUntil(w.eventDate);
   const scheduleItems = [
     ['arrivalTime', 'Arrival', 'Please arrive in good time for welcome drinks.'],
@@ -270,7 +288,7 @@
   document.title = w.coupleNames ? `${w.coupleNames} — Wedding Website` : 'Wedding Website';
   root.classList.remove('wed-loading');
   root.innerHTML = `
-  <section class='wed-hero ${hasCover ? 'wed-hero--image' : ''}' style="${hasCover ? `--hero-image:url('${attr(coverImageUrl)}')` : ''}">
+  <section class='wed-hero ${hasCover ? 'wed-hero--image' : ''}'>
     <div class='wed-hero__overlay'></div>
     <div class='wed-hero__content'>
       <p class='wed-kicker'>Wedding Celebration</p>
@@ -317,7 +335,7 @@
       ? `<section id='wedding-party' class='wed-card'><div class='wed-section-heading'><p class='wed-eyebrow'>Meet the people</p><h2>Wedding Party</h2></div><div class='wed-grid'>${weddingParty
           .map(p =>
             (() => {
-              const partyImage = safeExternalUrl(p.imageUrl);
+              const partyImage = safeImageUrl(p.imageUrl);
               const initials = (p.name || '?')
                 .split(' ')
                 .map(s => s[0])
@@ -339,6 +357,22 @@
     ${renderRsvpForm(w, customQuestionHtml)}
   </section>
   <footer class='wed-footer'><strong>Crafted with EventFlow</strong><span>Plan, invite and celebrate beautifully.</span></footer>`;
+
+  const hero = root.querySelector('.wed-hero');
+  if (hero && coverImageCss) {
+    hero.style.setProperty('--hero-image', coverImageCss);
+    hero.style.backgroundImage = `linear-gradient(135deg, rgba(0,0,0,.44), rgba(0,0,0,.12)), ${coverImageCss}`;
+  }
+
+  window.__PUBLIC_WEDDING_THEME_MEDIA__ = {
+    ...w,
+    coverImageUrl,
+  };
+  window.dispatchEvent(
+    new CustomEvent('eventflow:wedding-theme-media-ready', {
+      detail: window.__PUBLIC_WEDDING_THEME_MEDIA__,
+    })
+  );
 
   const form = document.getElementById('rsvp-form');
   if (!form) {
