@@ -6,14 +6,12 @@ const { resolvePackageImage } = require('../utils/packageImageUtils');
 const { safePublicPackage, safePublicSupplier } = require('../utils/supplierPublicProfile');
 
 let dbUnified;
-let supplierAnalytics;
 let getUserFromCookie;
 let supplierIsProActive;
 let logger;
 
 function initializeDependencies(deps = {}) {
   dbUnified = deps.dbUnified;
-  supplierAnalytics = deps.supplierAnalytics;
   getUserFromCookie = deps.getUserFromCookie;
   supplierIsProActive = deps.supplierIsProActive;
   logger = deps.logger || console;
@@ -64,13 +62,6 @@ router.get('/suppliers/:id', async (req, res, next) => {
     const featuredSupplier = packages.some(pkg => pkg.supplierId === supplier.id && pkg.featured);
     const isPro = supplierIsProActive ? await supplierIsProActive(supplier) : Boolean(supplier.isPro);
     const preview = previewMode(req);
-
-    if (!preview && supplierAnalytics) {
-      const user = currentUser(req);
-      supplierAnalytics
-        .trackProfileView(supplier.id, user ? user.id : null, req.session ? req.session.id : null, false)
-        .catch(error => logger.error('Profile view tracking failed:', error));
-    }
 
     return res.json(
       safePublicSupplier(supplier, {
