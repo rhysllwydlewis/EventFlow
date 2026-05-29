@@ -15,6 +15,9 @@
   const WIDGET_RENDER_PARITY_STYLES_ID = 'ww-render-parity-styles';
   const WIDGET_RENDER_PARITY_STYLES_HREF =
     '/assets/css/customer-wedding-widget-render-parity.css?v=1.0.0';
+  const WIDGET_RENDER_FINAL_STYLES_ID = 'ww-render-final-styles';
+  const WIDGET_RENDER_FINAL_STYLES_HREF =
+    '/assets/css/customer-wedding-widget-render-final.css?v=1.0.0';
   const loadedScripts = new Set();
   const loadedStylesheets = new Set();
 
@@ -115,7 +118,8 @@
       WIDGET_RENDER_REFINEMENTS_STYLES_HREF
     );
     const loadedParity = loadStylesheetOnce(WIDGET_RENDER_PARITY_STYLES_ID, WIDGET_RENDER_PARITY_STYLES_HREF);
-    return loadedBase && loadedRefinements && loadedParity;
+    const loadedFinal = loadStylesheetOnce(WIDGET_RENDER_FINAL_STYLES_ID, WIDGET_RENDER_FINAL_STYLES_HREF);
+    return loadedBase && loadedRefinements && loadedParity && loadedFinal;
   }
 
   function loadWidgetRenderPolish() {
