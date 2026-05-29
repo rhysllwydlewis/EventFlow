@@ -180,7 +180,6 @@ function safePublicSupplier(supplier = {}, extras = {}) {
     badges: safeStringArray(supplier.badges, 24, 80),
     badgeDetails: safeBadgeDetails(extras.badgeDetails || supplier.badgeDetails),
     topPackages: safeTopPackages(supplier.topPackages),
-    messagingRecipientId: maybeText(supplier.ownerUserId, 120),
     isPreview: bool(extras.isPreview),
   };
 }
