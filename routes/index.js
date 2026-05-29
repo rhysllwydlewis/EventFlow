@@ -146,8 +146,6 @@ function mountRoutes(app, deps) {
   app.use('/api/admin', systemChecksAdminRoutes); // Backward compatibility
 
   // Admin debug routes (emergency auth debugging)
-  // SECURITY: Only mounted in non-production environments with explicit opt-in.
-  // Set ENABLE_ADMIN_DEBUG_ROUTES=true to enable (never default to true in production).
   const isProduction = process.env.NODE_ENV === 'production';
   const debugRoutesEnabled = process.env.ENABLE_ADMIN_DEBUG_ROUTES === 'true';
 
@@ -340,6 +338,11 @@ function mountRoutes(app, deps) {
   app.get('/messages.html', (req, res) => res.redirect(301, '/messenger/'));
   app.use('/email', emailUnsubscribeRoutes);
   app.get('/conversation', (req, res) => {
+    const id = req.query.id;
+    if (id) return res.redirect(301, `/messenger/?conversation=${id}`);
+    return res.redirect(301, '/messenger/');
+  });
+  app.get('/conversation.html', (req, res) => {
     const id = req.query.id;
     if (id) return res.redirect(301, `/messenger/?conversation=${id}`);
     return res.redirect(301, '/messenger/');
