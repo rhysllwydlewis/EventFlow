@@ -110,7 +110,7 @@
   function loadWidgetMediaStabiliser() {
     return loadScriptOnce(
       'ww-media-stabiliser-script',
-      '/assets/js/pages/customer-wedding-widget-media-stabiliser.js?v=1.0.0',
+      '/assets/js/pages/customer-wedding-widget-media-stabiliser.js?v=1.0.1',
       false
     );
   }
