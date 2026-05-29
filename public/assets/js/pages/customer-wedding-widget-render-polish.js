@@ -26,6 +26,9 @@
   }
 
   function setActiveTab(dialog) {
+    if (!dialog) {
+      return;
+    }
     const activeButton = dialog.querySelector('.ww-app-tabs button[aria-selected="true"]');
     const activeTab = activeButton?.dataset?.tab || 'overview';
     dialog.dataset.activeTab = activeTab;
@@ -60,9 +63,14 @@
     if (!pane) {
       return;
     }
-    pane.querySelectorAll('.ww-app-panel').forEach((panel, index) => {
-      panel.classList.add(index === 0 ? 'ww-render-overview-hero' : 'ww-render-overview-panel');
-      ensureElement(panel, '.ww-render-panel-art', 'div', 'ww-render-panel-art');
+    pane.querySelectorAll('.ww-app-panel, .ww-empty-state').forEach((panel, index) => {
+      const text = normaliseText(panel.textContent);
+      if (index === 0 || text.includes('no wedding workspace') || text.includes('next best action')) {
+        panel.classList.add('ww-render-overview-hero');
+        ensureElement(panel, '.ww-render-panel-art', 'div', 'ww-render-panel-art');
+      } else {
+        panel.classList.add('ww-render-overview-panel');
+      }
     });
 
     pane.querySelectorAll('.ww-overview-grid article, .ww-tiles > div').forEach((card, index) => {
@@ -85,6 +93,16 @@
     return '';
   }
 
+  function choiceIconSvg(type) {
+    if (type === 'existing') {
+      return '<svg viewBox="0 0 24 24" fill="none"><path d="M3.75 7.5h6l1.8 2.1h8.7v8.65a1.75 1.75 0 0 1-1.75 1.75h-13A1.75 1.75 0 0 1 3.75 18.25V7.5Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    }
+    if (type === 'full') {
+      return '<svg viewBox="0 0 24 24" fill="none"><path d="M8 5.25h8A1.75 1.75 0 0 1 17.75 7v12A1.75 1.75 0 0 1 16 20.75H8A1.75 1.75 0 0 1 6.25 19V7A1.75 1.75 0 0 1 8 5.25Z" stroke="currentColor" stroke-width="1.8"/><path d="M9 4h6M9.25 10.5h5.5M9.25 14h5.5M9.25 17.5h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+    }
+    return '<svg viewBox="0 0 24 24" fill="none"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" stroke="currentColor" stroke-width="1.8"/><path d="M3.6 12h16.8M12 3c2.25 2.2 3.4 5.2 3.4 9S14.25 18.8 12 21M12 3c-2.25 2.2-3.4 5.2-3.4 9s1.15 6.8 3.4 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+  }
+
   function enhanceChoiceCard(card, index) {
     if (!card) {
       return;
@@ -99,14 +117,13 @@
       const icon = document.createElement('span');
       icon.className = 'ww-render-choice-icon';
       icon.setAttribute('aria-hidden', 'true');
-      icon.innerHTML =
-        type === 'existing'
-          ? '<svg viewBox="0 0 24 24" fill="none"><path d="M3.75 7.5h6l1.8 2.1h8.7v8.65a1.75 1.75 0 0 1-1.75 1.75h-13A1.75 1.75 0 0 1 3.75 18.25V7.5Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-          : type === 'full'
-            ? '<svg viewBox="0 0 24 24" fill="none"><path d="M8 5.25h8A1.75 1.75 0 0 1 17.75 7v12A1.75 1.75 0 0 1 16 20.75H8A1.75 1.75 0 0 1 6.25 19V7A1.75 1.75 0 0 1 8 5.25Z" stroke="currentColor" stroke-width="1.8"/><path d="M9 4h6M9.25 10.5h5.5M9.25 14h5.5M9.25 17.5h3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>'
-            : '<svg viewBox="0 0 24 24" fill="none"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" stroke="currentColor" stroke-width="1.8"/><path d="M3.6 12h16.8M12 3c2.25 2.2 3.4 5.2 3.4 9S14.25 18.8 12 21M12 3c-2.25 2.2-3.4 5.2-3.4 9s1.15 6.8 3.4 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+      icon.innerHTML = choiceIconSvg(type);
       card.prepend(icon);
     }
+
+    card.querySelectorAll('button, .cta, select').forEach(control => {
+      control.classList.add(`ww-render-${type || 'choice'}-control`);
+    });
   }
 
   function enhanceWorkspace(dialog) {
@@ -130,9 +147,11 @@
   }
 
   function enhanceDialog(dialog) {
-    if (!dialog || dialog.dataset.wwRenderPolished === 'true') {
-      setActiveTab(dialog);
-    } else {
+    if (!dialog) {
+      return;
+    }
+
+    if (dialog.dataset.wwRenderPolished !== 'true') {
       dialog.dataset.wwRenderPolished = 'true';
       dialog.classList.add('ww-render-polish');
       dialog.querySelector('.ww-app-shell')?.classList.add('ww-render-shell');
