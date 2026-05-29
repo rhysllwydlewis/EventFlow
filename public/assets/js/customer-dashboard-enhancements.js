@@ -9,6 +9,9 @@
   const WIDGET_RENDER_POLISH_STYLES_ID = 'ww-render-polish-styles';
   const WIDGET_RENDER_POLISH_STYLES_HREF =
     '/assets/css/customer-wedding-widget-render-polish.css?v=1.0.0';
+  const WIDGET_RENDER_REFINEMENTS_STYLES_ID = 'ww-render-refinements-styles';
+  const WIDGET_RENDER_REFINEMENTS_STYLES_HREF =
+    '/assets/css/customer-wedding-widget-render-refinements.css?v=1.0.0';
   const loadedScripts = new Set();
   const loadedStylesheets = new Set();
 
@@ -103,14 +106,19 @@
   }
 
   function loadWidgetRenderPolishStyles() {
-    return loadStylesheetOnce(WIDGET_RENDER_POLISH_STYLES_ID, WIDGET_RENDER_POLISH_STYLES_HREF);
+    const loadedBase = loadStylesheetOnce(WIDGET_RENDER_POLISH_STYLES_ID, WIDGET_RENDER_POLISH_STYLES_HREF);
+    const loadedRefinements = loadStylesheetOnce(
+      WIDGET_RENDER_REFINEMENTS_STYLES_ID,
+      WIDGET_RENDER_REFINEMENTS_STYLES_HREF
+    );
+    return loadedBase && loadedRefinements;
   }
 
   function loadWidgetRenderPolish() {
     loadWidgetRenderPolishStyles();
     return loadScriptOnce(
       'ww-render-polish-script',
-      '/assets/js/pages/customer-wedding-widget-render-polish.js?v=1.0.0',
+      '/assets/js/pages/customer-wedding-widget-render-polish.js?v=1.0.1',
       false
     );
   }
