@@ -123,6 +123,14 @@
     );
   }
 
+  function loadPreviewPublishHardener() {
+    return loadScriptOnce(
+      'ww-preview-publish-hardener-script',
+      '/assets/js/pages/customer-wedding-preview-publish-hardener.js?v=1.0.0',
+      false
+    );
+  }
+
   function loadCardCtaEnhancer() {
     return loadScriptOnce(
       'ww-nav-card-fixes-script',
@@ -145,6 +153,7 @@
     return Promise.allSettled([
       loadWidgetMediaStabiliser(),
       loadWidgetRenderPolish(),
+      loadPreviewPublishHardener(),
       loadScriptOnce('ww-polish-enhancer-script', '/assets/js/pages/customer-wedding-widget-polish.js'),
       loadScriptOnce('ww-advanced-enhancer-script', '/assets/js/pages/customer-wedding-widget-share-builder.js'),
       loadScriptOnce('ww-product-upgrade-script', '/assets/js/pages/customer-wedding-widget-product-upgrade.js'),
@@ -166,6 +175,7 @@
     loadWidgetMediaStabiliser();
     loadWidgetTypographyPolish();
     loadWidgetRenderPolish();
+    loadPreviewPublishHardener();
     document.addEventListener(
       'click',
       event => {
