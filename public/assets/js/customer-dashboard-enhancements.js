@@ -107,9 +107,18 @@
     );
   }
 
+  function loadWidgetMediaStabiliser() {
+    return loadScriptOnce(
+      'ww-media-stabiliser-script',
+      '/assets/js/pages/customer-wedding-widget-media-stabiliser.js?v=1.0.0',
+      false
+    );
+  }
+
   function loadWidgetAppEnhancers() {
     loadWidgetTypographyPolish();
     return Promise.allSettled([
+      loadWidgetMediaStabiliser(),
       loadScriptOnce('ww-polish-enhancer-script', '/assets/js/pages/customer-wedding-widget-polish.js'),
       loadScriptOnce('ww-advanced-enhancer-script', '/assets/js/pages/customer-wedding-widget-share-builder.js'),
       loadScriptOnce('ww-product-upgrade-script', '/assets/js/pages/customer-wedding-widget-product-upgrade.js'),
@@ -127,6 +136,7 @@
 
   function loadWeddingWidgetPolish() {
     loadCardCtaEnhancer();
+    loadWidgetMediaStabiliser();
     loadWidgetTypographyPolish();
     document.addEventListener(
       'click',
