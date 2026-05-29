@@ -38,6 +38,7 @@ const supplierRoutes = require('./supplier');
 const supplierAdminRoutes = require('./supplier-admin');
 const supplierManagementRoutes = require('./supplier-management');
 const suppliersV2Routes = require('./suppliers-v2');
+const supplierProfileSafeRoutes = require('./supplier-profile-safe');
 
 // New extracted route modules
 const suppliersRoutes = require('./suppliers');
@@ -145,8 +146,6 @@ function mountRoutes(app, deps) {
   app.use('/api/admin', systemChecksAdminRoutes); // Backward compatibility
 
   // Admin debug routes (emergency auth debugging)
-  // SECURITY: Only mounted in non-production environments with explicit opt-in.
-  // Set ENABLE_ADMIN_DEBUG_ROUTES=true to enable (never default to true in production).
   const isProduction = process.env.NODE_ENV === 'production';
   const debugRoutesEnabled = process.env.ENABLE_ADMIN_DEBUG_ROUTES === 'true';
 
@@ -264,6 +263,9 @@ function mountRoutes(app, deps) {
   app.use('/api/v1/me/suppliers', suppliersV2Routes);
   app.use('/api/me/suppliers', suppliersV2Routes);
 
+  if (deps && supplierProfileSafeRoutes.initializeDependencies) supplierProfileSafeRoutes.initializeDependencies(deps);
+  app.use('/api/v1', supplierProfileSafeRoutes);
+  app.use('/api', supplierProfileSafeRoutes);
   if (deps && suppliersRoutes.initializeDependencies) suppliersRoutes.initializeDependencies(deps);
   app.use('/api/v1', suppliersRoutes);
   app.use('/api', suppliersRoutes);
@@ -345,7 +347,9 @@ function mountRoutes(app, deps) {
     if (id) return res.redirect(301, `/messenger/?conversation=${id}`);
     return res.redirect(301, '/messenger/');
   });
-  app.get('/conversation/:id', (req, res) => res.redirect(301, `/messenger/?conversation=${encodeURIComponent(req.params.id)}`));
+  app.get('/conversation/:id', (req, res) =>
+    res.redirect(301, `/messenger/?conversation=${encodeURIComponent(req.params.id)}`)
+  );
 }
 
 module.exports = {
