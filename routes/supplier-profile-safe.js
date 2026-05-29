@@ -29,11 +29,15 @@ function previewMode(req) {
   return req.query.preview === 'true' || /[?&]preview=true(?:&|$)/.test(String(req.get('referer') || ''));
 }
 
+function canPreview(req, supplier) {
+  const user = currentUser(req);
+  return Boolean(user && supplier && (user.role === 'admin' || user.id === supplier.ownerUserId));
+}
+
 function canRead(req, supplier) {
   if (!supplier) return false;
   if (supplier.approved) return true;
-  const user = currentUser(req);
-  return Boolean(user && (user.role === 'admin' || user.id === supplier.ownerUserId));
+  return canPreview(req, supplier);
 }
 
 async function badgeDetailsFor(supplier) {
@@ -61,7 +65,7 @@ router.get('/suppliers/:id', async (req, res, next) => {
     const packages = await dbUnified.read('packages');
     const featuredSupplier = packages.some(pkg => pkg.supplierId === supplier.id && pkg.featured);
     const isPro = supplierIsProActive ? await supplierIsProActive(supplier) : Boolean(supplier.isPro);
-    const preview = previewMode(req);
+    const preview = previewMode(req) && canPreview(req, supplier);
 
     return res.json(
       safePublicSupplier(supplier, {
@@ -83,9 +87,9 @@ router.get('/suppliers/:id/packages', async (req, res, next) => {
     const supplier = (await dbUnified.read('suppliers')).find(item => item.id === req.params.id);
     if (!canRead(req, supplier)) return res.status(404).json({ error: 'Supplier not found' });
 
-    const preview = previewMode(req);
+    const includeUnpublished = previewMode(req) && canPreview(req, supplier);
     const items = (await dbUnified.read('packages'))
-      .filter(pkg => pkg.supplierId === supplier.id && (preview || pkg.approved))
+      .filter(pkg => pkg.supplierId === supplier.id && (includeUnpublished || pkg.approved))
       .map(pkg => safePublicPackage(pkg, resolvePackageImage));
 
     return res.json({ items });
