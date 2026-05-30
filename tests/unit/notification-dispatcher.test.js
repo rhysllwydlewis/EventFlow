@@ -93,3 +93,50 @@ describe('NotificationDispatcher', () => {
     expect(warns).toEqual([]);
   });
 });
+
+describe('NotificationDispatcher helper loading', () => {
+  it('loads helper scripts once, in insertion order, without duplicating existing script URLs', () => {
+    const appended = [];
+    const existingScript = {
+      getAttribute: name => (name === 'src' ? '/assets/js/utils/csrf-token.js?v=already' : null),
+    };
+    const created = [];
+    const document = {
+      getElementById: jest.fn(() => null),
+      querySelectorAll: jest.fn(() => [existingScript]),
+      createElement: jest.fn(() => {
+        const script = {
+          set id(value) {
+            this._id = value;
+          },
+          get id() {
+            return this._id;
+          },
+        };
+        created.push(script);
+        return script;
+      }),
+      head: { appendChild: jest.fn(script => appended.push(script)) },
+    };
+    const sandbox = {
+      window: {
+        document,
+        console,
+        EventFlowNotifications: { success() {}, error() {}, warning() {}, info() {} },
+      },
+      module: { exports: {} },
+      document,
+      console,
+      Array,
+    };
+    sandbox.globalThis = sandbox;
+    vm.createContext(sandbox);
+    vm.runInContext(dispatcherSource, sandbox);
+
+    expect(appended.map(script => script.src)).toEqual([
+      '/assets/js/utils/notification-state.js?v=18.3.1',
+      '/assets/js/messaging-notifications-stabilisation.js?v=18.3.1',
+    ]);
+    expect(created.every(script => script.async === false && script.defer === true)).toBe(true);
+  });
+});

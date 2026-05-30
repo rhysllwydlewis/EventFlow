@@ -197,7 +197,7 @@
 
     // Add to notification list if notification system is initialized
     if (state.isInitialized) {
-      addMessageNotification({
+      const added = addMessageNotification({
         type,
         title,
         message,
@@ -206,6 +206,10 @@
         timestamp: new Date(),
         isRead: false,
       });
+
+      if (!added) {
+        return;
+      }
 
       // Update unread count
       state.unreadCount++;
@@ -233,7 +237,7 @@
       const messagePreview = message?.content || message?.text || 'New message';
       const actionUrl = conversationId ? `/messenger?conversation=${conversationId}` : '/messenger';
 
-      addMessageNotification({
+      const added = addMessageNotification({
         type: 'message',
         title: senderName,
         message: messagePreview,
@@ -243,6 +247,10 @@
         createdAt: new Date(),
         isRead: false,
       });
+
+      if (!added) {
+        return;
+      }
 
       // Update unread count
       state.unreadCount++;
@@ -474,13 +482,42 @@
   // REAL-TIME NOTIFICATION HANDLING
   // ==========================================
 
-  function handleRealtimeNotification(notification) {
-    // Add to state
+  function addNotificationToState(notification) {
+    const before = state.notifications.length;
+    if (window.EventFlowNotificationDedupe) {
+      state.notifications = window.EventFlowNotificationDedupe.upsert(
+        state.notifications,
+        notification
+      );
+      window.EventFlowNotificationDedupe.remember(notification);
+      return state.notifications.length > before;
+    }
+    if (
+      window.EventFlowNotificationState &&
+      typeof window.EventFlowNotificationState.upsertNotification === 'function'
+    ) {
+      state.notifications = window.EventFlowNotificationState.upsertNotification(
+        state.notifications,
+        notification
+      );
+      return state.notifications.length > before;
+    }
     state.notifications.unshift(notification);
-    state.unreadCount++;
+    return true;
+  }
+
+  function handleRealtimeNotification(notification) {
+    const added = addNotificationToState(notification);
+    if (added && !notification.isRead) {
+      state.unreadCount++;
+    }
 
     // Update UI
     updateUI();
+
+    if (!added) {
+      return;
+    }
 
     // Show desktop notification if permitted
     if (state.hasDesktopPermission) {
@@ -506,11 +543,15 @@
       notification.id = `msg-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
     }
 
-    // Add to state
-    state.notifications.unshift(notification);
+    // Add to state without duplicating realtime echoes of the same notification.
+    const added = addNotificationToState(notification);
 
     // Update UI
     updateUI();
+
+    if (!added) {
+      return false;
+    }
 
     // Show in-app toast notification
     showToastNotification(notification);
@@ -521,6 +562,7 @@
         detail: notification,
       })
     );
+    return true;
   }
 
   /**
@@ -833,8 +875,9 @@
     window.__notificationBellInitialized = true;
 
     // Keep accessibility state explicit from first render.
-    bell.setAttribute('aria-haspopup', 'true');
+    bell.setAttribute('aria-haspopup', 'dialog');
     bell.setAttribute('aria-expanded', 'false');
+    bell.setAttribute('aria-controls', 'notification-dropdown');
     bell.classList.remove('is-open');
 
     // Position dropdown below bell with viewport boundary detection
@@ -927,6 +970,9 @@
       // Mark that we need to attach event listeners
       needsEventListeners = true;
     }
+
+    dropdown.setAttribute('role', 'dialog');
+    dropdown.setAttribute('aria-label', 'Notifications');
 
     // Toggle dropdown - Mobile-friendly event handling
     let touchHandled = false;

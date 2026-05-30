@@ -40,6 +40,40 @@
   // ==========================================
   // UTILITY FUNCTIONS
   // ==========================================
+
+  function getCsrfToken() {
+    if (window.EventFlowCsrf && typeof window.EventFlowCsrf.get === 'function') {
+      return window.EventFlowCsrf.get();
+    }
+    return window.__CSRF_TOKEN__ || '';
+  }
+
+  function upsertNotification(notification) {
+    const before = state.notifications.length;
+    if (window.EventFlowNotificationDedupe) {
+      state.notifications = window.EventFlowNotificationDedupe.upsert(
+        state.notifications,
+        notification
+      );
+      window.EventFlowNotificationDedupe.remember(notification);
+      return state.notifications.length > before;
+    }
+
+    if (
+      window.EventFlowNotificationState &&
+      typeof window.EventFlowNotificationState.upsertNotification === 'function'
+    ) {
+      state.notifications = window.EventFlowNotificationState.upsertNotification(
+        state.notifications,
+        notification
+      );
+      return state.notifications.length > before;
+    }
+
+    state.notifications.unshift(notification);
+    return true;
+  }
+
   function escapeHtml(text) {
     if (!text) {
       return '';
@@ -270,7 +304,7 @@
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': window.__CSRF_TOKEN__ || '',
+          'X-CSRF-Token': getCsrfToken(),
         },
         credentials: 'include',
       });
@@ -310,7 +344,7 @@
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': window.__CSRF_TOKEN__ || '',
+          'X-CSRF-Token': getCsrfToken(),
         },
         credentials: 'include',
       });
@@ -342,7 +376,7 @@
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': window.__CSRF_TOKEN__ || '',
+          'X-CSRF-Token': getCsrfToken(),
         },
         credentials: 'include',
       });
@@ -387,7 +421,7 @@
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          'X-CSRF-Token': window.__CSRF_TOKEN__ || '',
+          'X-CSRF-Token': getCsrfToken(),
         },
         credentials: 'include',
       });
@@ -600,10 +634,10 @@
 
     // Listen for real-time notification events
     window.addEventListener('notification:added', e => {
-      // Prepend new notification to the list
+      // Upsert new notification so realtime + refresh echoes do not duplicate it.
       const notification = e.detail;
-      state.notifications.unshift(notification);
-      if (!notification.isRead) {
+      const added = upsertNotification(notification);
+      if (added && !notification.isRead) {
         state.unreadCount++;
       }
       renderNotifications();
