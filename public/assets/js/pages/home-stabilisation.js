@@ -12,6 +12,8 @@
   const MARKETPLACE_ENDPOINT = '/api/v1/marketplace/listings?limit=12';
   const REVIEWS_ENDPOINT = '/api/v1/reviews?limit=3&sort=rating';
 
+  let hasInitialised = false;
+
   function isDebugEnabled() {
     try {
       return window.DEBUG === true || new URLSearchParams(window.location.search).has('debug');
@@ -282,11 +284,30 @@
     });
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
+  function runStabilisation() {
+    if (hasInitialised) {
+      return;
+    }
+    hasInitialised = true;
+
     stabiliseSupplierClaim();
     stabiliseVersionLabels();
     stabiliseStats();
     stabiliseMarketplace();
     stabiliseTestimonials();
-  });
+
+    // The legacy homepage initialisers also fetch marketplace/review data. Run a
+    // short second pass so honest empty states win if those async fallbacks finish
+    // after this layer.
+    window.setTimeout(() => {
+      stabiliseMarketplace();
+      stabiliseTestimonials();
+    }, 750);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', runStabilisation, { once: true });
+  } else {
+    runStabilisation();
+  }
 })();
