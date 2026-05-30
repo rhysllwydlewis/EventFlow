@@ -8,12 +8,12 @@ const helperSource = fs.readFileSync(helperPath, 'utf8');
 function loadHelpers(html = '<!doctype html><html><body></body></html>') {
   const dom = new JSDOM(html, { runScripts: 'outside-only' });
   dom.window.eval(helperSource);
-  return dom.window.EventFlowNotificationState;
+  return { dom, helpers: dom.window.EventFlowNotificationState };
 }
 
 describe('EventFlowNotificationState helpers', () => {
   it('deduplicates notifications by canonical id', () => {
-    const helpers = loadHelpers();
+    const { helpers } = loadHelpers();
     const list = helpers.dedupeNotifications([
       { id: 'n1', title: 'First' },
       { id: 'n1', title: 'Duplicate' },
@@ -25,7 +25,7 @@ describe('EventFlowNotificationState helpers', () => {
   });
 
   it('deduplicates message notifications by metadata.messageId', () => {
-    const helpers = loadHelpers();
+    const { helpers } = loadHelpers();
     const list = helpers.dedupeNotifications([
       { type: 'message', metadata: { messageId: 'm1' }, message: 'Hello' },
       { type: 'message', metadata: { messageId: 'm1' }, message: 'Hello again' },
@@ -35,7 +35,7 @@ describe('EventFlowNotificationState helpers', () => {
   });
 
   it('upserts an existing notification instead of duplicating it', () => {
-    const helpers = loadHelpers();
+    const { helpers } = loadHelpers();
     const list = helpers.upsertNotification([{ id: 'n1', isRead: false }], {
       id: 'n1',
       isRead: true,
@@ -46,11 +46,12 @@ describe('EventFlowNotificationState helpers', () => {
   });
 
   it('updates all matching badge elements and hides them at zero', () => {
-    const helpers = loadHelpers(`<!doctype html><html><body>
+    const { dom, helpers } = loadHelpers(`<!doctype html><html><body>
       <span id="ef-notification-badge" style="display:none"></span>
       <span id="ef-bottom-dashboard-badge" style="display:none"></span>
       <span class="notification-badge" style="display:none"></span>
     </body></html>`);
+    const { document } = dom.window;
 
     helpers.updateBadges(7);
     expect(document.querySelector('#ef-notification-badge').textContent).toBe('7');
