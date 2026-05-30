@@ -403,17 +403,27 @@
     };
 
     dialog.querySelector('.ww-app-close').addEventListener('click', () => dialog.close());
+    dialog.addEventListener('click', event => {
+      if (event.target === dialog) {
+        dialog.close();
+      }
+    });
     dialog.querySelectorAll('.ww-app-tabs button').forEach(button => {
       button.addEventListener('click', () => switchTab(button.dataset.tab));
       button.addEventListener('keydown', event => {
         const tabs = Array.from(dialog.querySelectorAll('.ww-app-tabs button'));
         const current = tabs.indexOf(event.currentTarget);
-        const offset = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
-        if (!offset) {
+        const keyActions = {
+          ArrowRight: (current + 1) % tabs.length,
+          ArrowLeft: (current - 1 + tabs.length) % tabs.length,
+          Home: 0,
+          End: tabs.length - 1,
+        };
+        if (!(event.key in keyActions)) {
           return;
         }
         event.preventDefault();
-        const next = tabs[(current + offset + tabs.length) % tabs.length];
+        const next = tabs[keyActions[event.key]];
         next.focus();
         switchTab(next.dataset.tab);
       });

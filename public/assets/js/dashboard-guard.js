@@ -25,7 +25,8 @@
   }
 
   function installCustomerDashboardFetchGuard() {
-    const isCustomerDashboard = currentPath === '/dashboard/customer' || currentPath === '/dashboard-customer.html';
+    const isCustomerDashboard =
+      currentPath === '/dashboard/customer' || currentPath === '/dashboard-customer.html';
     if (!isCustomerDashboard || window.__EF_CUSTOMER_DASHBOARD_FETCH_GUARD__) {
       return;
     }
@@ -53,9 +54,15 @@
     }
 
     function timeoutFor(path) {
-      if (path === '/api/v1/auth/me') return 7000;
-      if (path === '/api/me/plans') return 5000;
-      if (path === '/api/csrf-token' || path === '/api/v1/csrf-token') return 4000;
+      if (path === '/api/v1/auth/me') {
+        return 7000;
+      }
+      if (path === '/api/me/plans') {
+        return 5000;
+      }
+      if (path === '/api/csrf-token' || path === '/api/v1/csrf-token') {
+        return 4000;
+      }
       return 3500;
     }
 
@@ -118,7 +125,8 @@
       }
 
       const timeoutMs = timeoutFor(path);
-      const controller = !options.signal && typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const controller =
+        !options.signal && typeof AbortController !== 'undefined' ? new AbortController() : null;
       const opts = controller ? { ...options, signal: controller.signal } : options;
       let timeoutId;
       const timeoutPromise = new Promise(resolve => {
@@ -192,7 +200,10 @@
       showAccessError();
       return;
     }
-    sessionStorage.setItem(REDIRECT_LOOP_KEY, storedPath === currentPath ? String(redirectCount + 1) : '1');
+    sessionStorage.setItem(
+      REDIRECT_LOOP_KEY,
+      storedPath === currentPath ? String(redirectCount + 1) : '1'
+    );
     sessionStorage.setItem(REDIRECT_LOOP_PATH_KEY, currentPath);
   } catch (e) {
     console.warn('Dashboard guard: Unable to access sessionStorage', e);
@@ -217,8 +228,14 @@
   }
 
   function loadCustomerDashboardMopUp() {
-    loadCustomerScript('customer-dashboard-mop-up-script', '/assets/js/customer-dashboard-mop-up.js?v=1.0.3');
-    loadCustomerScript('customer-dashboard-polish-script', '/assets/js/customer-dashboard-polish.js?v=1.0.3');
+    loadCustomerScript(
+      'customer-dashboard-mop-up-script',
+      '/assets/js/customer-dashboard-mop-up.js?v=1.0.5'
+    );
+    loadCustomerScript(
+      'customer-dashboard-polish-script',
+      '/assets/js/customer-dashboard-polish.js?v=1.0.3'
+    );
   }
 
   try {

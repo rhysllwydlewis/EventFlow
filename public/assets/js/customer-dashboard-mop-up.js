@@ -1,6 +1,6 @@
 /*
  * Customer Dashboard Desktop Mop-up
- * Handles welcome cleanup, wedding website status and the specialist wedding card collapse.
+ * Handles welcome cleanup, wedding website status and the specialist wedding card launcher.
  * Recommendation layout is intentionally handled in customer-dashboard-polish.js to avoid double-normalising cards.
  */
 (function () {
@@ -12,7 +12,6 @@
   }
 
   const STYLE_ID = 'customer-dashboard-mop-up-styles';
-  const COLLAPSE_KEY = 'ef_customer_wedding_card_collapsed';
   const REFRESH_EVENT = 'eventflow:customer-dashboard-mop-up-ready';
   let observer;
   let observerQueued = false;
@@ -29,50 +28,18 @@
       .customer-welcome-card { padding-top: clamp(1.35rem, 2.5vw, 2rem) !important; }
       .customer-welcome-card .customer-welcome-footer { box-shadow: inset 0 1px 0 rgba(255, 255, 255, .85); }
 
-      .customer-wedding-card--collapsible {
-        border-color: rgba(13, 148, 136, .16) !important;
-        box-shadow: 0 18px 45px rgba(15, 23, 42, .08) !important;
+      #wedding-website-dashboard-card.customer-wedding-card--open-app-only {
         overflow: hidden;
       }
-      #wedding-website-dashboard-card.customer-wedding-card--collapsible .sd-card-header {
-        cursor: pointer;
-        user-select: none;
-        transition: background .18s ease, box-shadow .18s ease;
+      #wedding-website-dashboard-card .customer-wedding-collapse-toggle,
+      #wedding-website-dashboard-card .ef-dashboard-collapse-toggle,
+      #wedding-website-dashboard-card .card-collapse-btn {
+        display: none !important;
       }
-      #wedding-website-dashboard-card.customer-wedding-card--collapsible .sd-card-header:hover { box-shadow: inset 0 -1px 0 rgba(13, 148, 136, .16); }
-      #wedding-website-dashboard-card .customer-wedding-collapse-toggle {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: .45rem;
-        min-height: 2.45rem;
-        padding: .52rem .84rem;
-        border-radius: 999px;
-        border: 1px solid rgba(11, 128, 115, .18);
-        background: linear-gradient(135deg, rgba(255, 255, 255, .96), rgba(240, 253, 250, .92));
-        color: #0b8073;
-        cursor: pointer;
-        font-family: inherit;
-        font-weight: 850;
-        font-size: .82rem;
-        line-height: 1;
-        box-shadow: 0 10px 24px rgba(15, 23, 42, .07), inset 0 1px 0 rgba(255,255,255,.85);
-        transition: transform .16s ease, background .16s ease, box-shadow .16s ease, border-color .16s ease;
+      #wedding-website-dashboard-card > .cd-card-body,
+      #wedding-website-dashboard-card > .card-body-collapsible {
+        display: none !important;
       }
-      #wedding-website-dashboard-card .customer-wedding-collapse-toggle:hover,
-      #wedding-website-dashboard-card .customer-wedding-collapse-toggle:focus-visible {
-        background: linear-gradient(135deg, #fff, #ecfdf5);
-        border-color: rgba(11, 128, 115, .36);
-        box-shadow: 0 14px 28px rgba(13, 148, 136, .14), inset 0 1px 0 rgba(255,255,255,.92);
-        transform: translateY(-1px);
-        outline: 2px solid rgba(11, 128, 115, .25);
-        outline-offset: 2px;
-      }
-      #wedding-website-dashboard-card .customer-wedding-collapse-toggle__icon { width: 16px; height: 16px; transition: transform .16s ease; }
-      #wedding-website-dashboard-card:not(.customer-wedding-card--collapsed) .customer-wedding-collapse-toggle__icon { transform: rotate(180deg); }
-      #wedding-website-dashboard-card.customer-wedding-card--collapsed .cd-card-body { display: none !important; }
-      #wedding-website-dashboard-card.customer-wedding-card--collapsed { margin-bottom: 1rem; }
-      #wedding-website-dashboard-card.customer-wedding-card--collapsed .sd-card-header { border-bottom-left-radius: inherit; border-bottom-right-radius: inherit; }
 
       #wedding-website-status-pill.customer-wedding-status-pill {
         display: inline-flex;
@@ -274,59 +241,31 @@
     }
   }
 
-  function collapseIconSvg() {
-    return '<svg class="customer-wedding-collapse-toggle__icon" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 8l5 5 5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  }
-
-  function setCardCollapsed(card, toggle, collapsed) {
-    card.classList.toggle('customer-wedding-card--collapsed', collapsed);
-    toggle.setAttribute('aria-expanded', String(!collapsed));
-    toggle.setAttribute(
-      'aria-label',
-      collapsed ? 'Expand Wedding Website and RSVPs' : 'Minimise Wedding Website and RSVPs'
-    );
-    toggle.innerHTML = `<span>${collapsed ? 'Expand' : 'Minimise'}</span>${collapseIconSvg()}`;
-    try {
-      localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0');
-    } catch (_) {
-      /* ignore */
-    }
-  }
-
   function setupWeddingCollapse() {
     const card = document.getElementById('wedding-website-dashboard-card');
-    if (!card || card.dataset.mopUpCollapseReady === '1') {
+    if (!card) {
       return;
     }
-    const header = card.querySelector('.sd-card-header');
-    const actions = card.querySelector('.sd-card-header__actions');
     const body = card.querySelector('.cd-card-body');
-    if (!header || !actions || !body) {
-      return;
-    }
+    const wrapper = card.querySelector(':scope > .card-body-collapsible');
 
     card.dataset.mopUpCollapseReady = '1';
-    card.classList.add('customer-wedding-card--collapsible');
-    body.id = body.id || 'wedding-website-card-body';
+    card.classList.remove('customer-wedding-card--collapsible', 'customer-wedding-card--collapsed');
+    card.classList.add('customer-wedding-card--open-app-only', 'no-collapse');
+    card.querySelectorAll('.customer-wedding-collapse-toggle').forEach(toggle => toggle.remove());
 
-    const toggle = document.createElement('button');
-    toggle.type = 'button';
-    toggle.className = 'customer-wedding-collapse-toggle';
-    toggle.setAttribute('aria-controls', body.id);
-    actions.appendChild(toggle);
-
-    setCardCollapsed(card, toggle, true);
-
-    toggle.addEventListener('click', event => {
-      event.stopPropagation();
-      setCardCollapsed(card, toggle, !card.classList.contains('customer-wedding-card--collapsed'));
-    });
-    header.addEventListener('click', event => {
-      if (event.target.closest('button, a, input, select, textarea')) {
-        return;
+    if (wrapper) {
+      while (wrapper.firstChild) {
+        card.insertBefore(wrapper.firstChild, wrapper);
       }
-      setCardCollapsed(card, toggle, !card.classList.contains('customer-wedding-card--collapsed'));
-    });
+      wrapper.remove();
+    }
+    if (body) {
+      body.hidden = false;
+      body.style.removeProperty('display');
+      body.style.removeProperty('max-height');
+      body.style.removeProperty('opacity');
+    }
   }
 
   function runLightweightPass() {

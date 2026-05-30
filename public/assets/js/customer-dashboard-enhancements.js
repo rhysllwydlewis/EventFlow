@@ -118,13 +118,22 @@
   }
 
   function loadWidgetRenderPolishStyles() {
-    const loadedBase = loadStylesheetOnce(WIDGET_RENDER_POLISH_STYLES_ID, WIDGET_RENDER_POLISH_STYLES_HREF);
+    const loadedBase = loadStylesheetOnce(
+      WIDGET_RENDER_POLISH_STYLES_ID,
+      WIDGET_RENDER_POLISH_STYLES_HREF
+    );
     const loadedRefinements = loadStylesheetOnce(
       WIDGET_RENDER_REFINEMENTS_STYLES_ID,
       WIDGET_RENDER_REFINEMENTS_STYLES_HREF
     );
-    const loadedParity = loadStylesheetOnce(WIDGET_RENDER_PARITY_STYLES_ID, WIDGET_RENDER_PARITY_STYLES_HREF);
-    const loadedFinal = loadStylesheetOnce(WIDGET_RENDER_FINAL_STYLES_ID, WIDGET_RENDER_FINAL_STYLES_HREF);
+    const loadedParity = loadStylesheetOnce(
+      WIDGET_RENDER_PARITY_STYLES_ID,
+      WIDGET_RENDER_PARITY_STYLES_HREF
+    );
+    const loadedFinal = loadStylesheetOnce(
+      WIDGET_RENDER_FINAL_STYLES_ID,
+      WIDGET_RENDER_FINAL_STYLES_HREF
+    );
     const loadedHeaderScrollFix = loadStylesheetOnce(
       WIDGET_HEADER_SCROLL_FIX_STYLES_ID,
       WIDGET_HEADER_SCROLL_FIX_STYLES_HREF
@@ -163,7 +172,7 @@
   function loadCardCtaEnhancer() {
     return loadScriptOnce(
       'ww-nav-card-fixes-script',
-      '/assets/js/pages/customer-wedding-widget-nav-card-fixes.js',
+      '/assets/js/pages/customer-wedding-widget-nav-card-fixes.js?v=1.0.2',
       false
     );
   }
@@ -183,12 +192,30 @@
       loadWidgetMediaStabiliser(),
       loadWidgetRenderPolish(),
       loadPreviewPublishHardener(),
-      loadScriptOnce('ww-polish-enhancer-script', '/assets/js/pages/customer-wedding-widget-polish.js'),
-      loadScriptOnce('ww-advanced-enhancer-script', '/assets/js/pages/customer-wedding-widget-share-builder.js'),
-      loadScriptOnce('ww-product-upgrade-script', '/assets/js/pages/customer-wedding-widget-product-upgrade.js'),
-      loadScriptOnce('ww-ux-polish-script', '/assets/js/pages/customer-wedding-widget-ux-polish.js'),
-      loadScriptOnce('ww-svg-icons-script', '/assets/js/pages/customer-wedding-widget-svg-icons.js'),
-      loadScriptOnce('ww-scroll-share-polish-script', '/assets/js/pages/customer-wedding-widget-scroll-share-polish.js'),
+      loadScriptOnce(
+        'ww-polish-enhancer-script',
+        '/assets/js/pages/customer-wedding-widget-polish.js'
+      ),
+      loadScriptOnce(
+        'ww-advanced-enhancer-script',
+        '/assets/js/pages/customer-wedding-widget-share-builder.js'
+      ),
+      loadScriptOnce(
+        'ww-product-upgrade-script',
+        '/assets/js/pages/customer-wedding-widget-product-upgrade.js'
+      ),
+      loadScriptOnce(
+        'ww-ux-polish-script',
+        '/assets/js/pages/customer-wedding-widget-ux-polish.js'
+      ),
+      loadScriptOnce(
+        'ww-svg-icons-script',
+        '/assets/js/pages/customer-wedding-widget-svg-icons.js'
+      ),
+      loadScriptOnce(
+        'ww-scroll-share-polish-script',
+        '/assets/js/pages/customer-wedding-widget-scroll-share-polish.js'
+      ),
       loadScriptOnce(
         'ww-link-theme-upgrade-script',
         '/assets/js/pages/customer-wedding-widget-link-themes-upgrade.js'
@@ -230,7 +257,10 @@
 
   function setupProfileCompletionConfetti() {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('profile_completed') === 'true' && typeof triggerSuccessConfetti === 'function') {
+    if (
+      params.get('profile_completed') === 'true' &&
+      typeof triggerSuccessConfetti === 'function'
+    ) {
       setTimeout(() => {
         try {
           triggerSuccessConfetti();
