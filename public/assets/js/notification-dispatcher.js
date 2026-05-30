@@ -17,6 +17,24 @@
 (function initNotificationDispatcher(globalScope) {
   'use strict';
 
+  function loadScriptOnce(id, src) {
+    if (!globalScope || !globalScope.document || document.getElementById(id)) return;
+    const script = document.createElement('script');
+    script.id = id;
+    script.src = src;
+    script.defer = true;
+    document.head.appendChild(script);
+  }
+
+  // Load shared stabilisation helpers on notification-enabled pages without
+  // requiring every HTML shell to be edited individually.
+  loadScriptOnce('ef-csrf-token-helper', '/assets/js/utils/csrf-token.js?v=18.3.1');
+  loadScriptOnce('ef-notification-state-helper', '/assets/js/utils/notification-state.js?v=18.3.1');
+  loadScriptOnce(
+    'ef-messaging-notifications-stabilisation',
+    '/assets/js/messaging-notifications-stabilisation.js?v=18.3.1'
+  );
+
   // Mirror the server-side enum. Keep in sync with `models/index.js`
   // (NOTIFICATION_TYPES) — drift is caught by the enum drift guard test.
   const NOTIFICATION_TYPES = [
