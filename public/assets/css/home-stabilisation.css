@@ -1,0 +1,100 @@
+/* Homepage stabilisation polish
+   Styles the honest launch-state fallbacks introduced by home-stabilisation.js. */
+
+#marketplace-preview > .ef-card.ef-card--center {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  max-width: 880px !important;
+  margin: 0 auto !important;
+  padding: clamp(28px, 5vw, 48px) !important;
+  border: 1px solid rgba(19, 182, 162, 0.28) !important;
+  border-radius: 28px !important;
+  background:
+    radial-gradient(circle at 14% 12%, rgba(19, 182, 162, 0.18), transparent 32%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(240, 253, 250, 0.88)) !important;
+  box-shadow:
+    0 24px 70px rgba(15, 23, 42, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.78) !important;
+}
+
+#marketplace-preview > .ef-card.ef-card--center::before {
+  content: "Coming soon";
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  padding: 7px 12px;
+  border: 1px solid rgba(11, 128, 115, 0.18);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.76);
+  color: #0b8073;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.06);
+}
+
+#marketplace-preview > .ef-card.ef-card--center::after {
+  content: "";
+  position: absolute;
+  right: -88px;
+  bottom: -110px;
+  z-index: -1;
+  width: 260px;
+  height: 260px;
+  border-radius: 999px;
+  background: rgba(11, 128, 115, 0.12);
+  filter: blur(6px);
+}
+
+#marketplace-preview > .ef-card.ef-card--center .ef-card__icon {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 18px !important;
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(11, 128, 115, 0.95), rgba(19, 182, 162, 0.88));
+  box-shadow: 0 18px 42px rgba(11, 128, 115, 0.22);
+  font-size: 34px !important;
+}
+
+#marketplace-preview > .ef-card.ef-card--center .ef-card__title {
+  margin-bottom: 10px !important;
+  color: #0b1220 !important;
+  font-size: clamp(1.45rem, 2.4vw, 2.12rem) !important;
+  line-height: 1.12 !important;
+  letter-spacing: -0.03em;
+}
+
+#marketplace-preview > .ef-card.ef-card--center .ef-card__text {
+  max-width: 600px !important;
+  color: #475467 !important;
+  font-size: 1rem !important;
+  line-height: 1.65 !important;
+}
+
+.ef-section--supplier-cta p strong {
+  color: inherit;
+  font-weight: 900;
+}
+
+.version[aria-hidden="true"] {
+  display: none !important;
+}
+
+@media (max-width: 640px) {
+  #marketplace-preview > .ef-card.ef-card--center {
+    padding: 24px 18px !important;
+    border-radius: 22px !important;
+  }
+
+  #marketplace-preview > .ef-card.ef-card--center .ef-card__icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 20px;
+    font-size: 28px !important;
+  }
+}
