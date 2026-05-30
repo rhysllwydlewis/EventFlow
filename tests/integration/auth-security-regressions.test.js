@@ -110,6 +110,24 @@ describe('auth.html – security regressions', () => {
     });
   });
 
+  describe('Registration verification UX', () => {
+    it('does not redirect or upload avatars when registration requires email verification', () => {
+      const appContent = fs.readFileSync(
+        path.join(__dirname, '../../public/assets/js/app.js'),
+        'utf8'
+      );
+      const verificationCheck = appContent.indexOf('if (data.requiresVerification)');
+      const avatarUpload = appContent.indexOf("fetch('/api/v1/profile/avatar'");
+      const redirectBranch = appContent.indexOf('if (redirect)', verificationCheck);
+
+      expect(verificationCheck).toBeGreaterThan(-1);
+      expect(appContent).toContain('showVerificationPending(email);');
+      expect(appContent).toContain('Unverified accounts do not receive an auth cookie');
+      expect(avatarUpload).toBeGreaterThan(verificationCheck);
+      expect(redirectBranch).toBeGreaterThan(verificationCheck);
+    });
+  });
+
   describe('Google sign-in visibility', () => {
     it('loads the Google auth init script from auth.html', () => {
       expect(content).toContain('auth-google-init.js" defer');

@@ -6717,33 +6717,8 @@ document.addEventListener('DOMContentLoaded', () => {
               regStatus.textContent = errorMsg;
             }
           } else {
-            // Handle avatar upload if file was selected
-            const avatarInput = document.getElementById('reg-avatar');
-            if (avatarInput && avatarInput.files && avatarInput.files[0]) {
-              try {
-                const formData = new FormData();
-                formData.append('avatar', avatarInput.files[0]);
-
-                const uploadRes = await fetch('/api/v1/profile/avatar', {
-                  method: 'POST',
-                  credentials: 'include',
-                  body: formData,
-                });
-
-                if (!uploadRes.ok) {
-                  console.warn('Avatar upload failed, but account was created');
-                }
-              } catch (uploadErr) {
-                console.warn('Avatar upload error:', uploadErr);
-              }
-            }
-
-            // Check if there's a redirect parameter
-            const urlParams = new URLSearchParams(window.location.search);
-            const redirect = urlParams.get('redirect');
-            const plan = urlParams.get('plan');
-
-            // Helper: display the verification-pending success state and wire up resend
+            // Helper: display the verification-pending success state and wire up resend.
+            // Unverified accounts do not receive an auth cookie, so do not upload avatars or redirect yet.
             const showVerificationPending = emailAddr => {
               if (!regStatus) {
                 return;
@@ -6780,6 +6755,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
               }
             };
+
+            if (data.requiresVerification) {
+              showVerificationPending(email);
+              return;
+            }
+
+            // Handle avatar upload if file was selected. This only runs when the backend
+            // established an authenticated session (for example, an already-verified owner account).
+            const avatarInput = document.getElementById('reg-avatar');
+            if (avatarInput && avatarInput.files && avatarInput.files[0]) {
+              try {
+                const formData = new FormData();
+                formData.append('avatar', avatarInput.files[0]);
+
+                const uploadRes = await fetch('/api/v1/profile/avatar', {
+                  method: 'POST',
+                  credentials: 'include',
+                  body: formData,
+                });
+
+                if (!uploadRes.ok) {
+                  console.warn('Avatar upload failed, but account was created');
+                }
+              } catch (uploadErr) {
+                console.warn('Avatar upload error:', uploadErr);
+              }
+            }
+
+            // Check if there's a redirect parameter
+            const urlParams = new URLSearchParams(window.location.search);
+            const redirect = urlParams.get('redirect');
+            const plan = urlParams.get('plan');
 
             if (redirect) {
               // Validate redirect is safe: same-origin and allowlisted for user's role

@@ -3,7 +3,7 @@
  *
  * Verifies that the endpoint handles:
  *   1. JWT verification tokens (System A)
- *   2. Legacy verificationToken field (System B)
+ *   2. Legacy verificationToken field (System B) with active expiry records
  *   3. emailVerificationToken field from emailVerification.js (System C)
  *   4. Expired tokens in both legacy fields
  *   5. Already-verified users
@@ -112,7 +112,8 @@ describe('GET /api/auth/verify — missing token', () => {
 describe('GET /api/auth/verify — legacy verificationToken field', () => {
   it('should verify user with a plain-hex verificationToken', async () => {
     const token = crypto.randomBytes(16).toString('hex');
-    mockUsers = [makeUser({ verificationToken: token, verificationTokenExpiresAt: null })];
+    const futureExpiry = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    mockUsers = [makeUser({ verificationToken: token, verificationTokenExpiresAt: futureExpiry })];
 
     const dbUnified = require('../../db-unified');
     dbUnified.read.mockResolvedValue([...mockUsers]);
