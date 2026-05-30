@@ -37,7 +37,7 @@ test.describe('Messenger v4 – Core Flows', () => {
       await page.goto(MESSENGER_URL);
       await page.waitForLoadState('domcontentloaded');
 
-      expect(failedRequests.filter(u => u.includes('/assets/'))).toHaveLength(0);
+      expect(failedRequests.filter(u => u.includes('/assets/') || u.includes('/messenger/'))).toHaveLength(0);
     });
 
     test('should render the messenger v4 container', async ({ page }) => {
@@ -60,6 +60,12 @@ test.describe('Messenger v4 – Core Flows', () => {
       await page.waitForURL(/\/messenger\//);
       expect(page.url()).toContain('/messenger/');
     });
+
+    test('/conversation?id=... preserves the target conversation', async ({ page }) => {
+      await page.goto('/conversation?id=507f1f77bcf86cd799439011');
+      await page.waitForURL(/\/messenger\/\?conversation=507f1f77bcf86cd799439011/);
+      expect(page.url()).toContain('/messenger/?conversation=507f1f77bcf86cd799439011');
+    });
   });
 
   test.describe('Messenger v4 API – Conversations', () => {
@@ -77,24 +83,39 @@ test.describe('Messenger v4 – Core Flows', () => {
     test('should return unread count from v4 endpoint', async ({ request }) => {
       if (!authToken) test.skip();
 
-      const response = await request.get(`${V4_API}/unread`, {
+      const response = await request.get(`${V4_API}/unread-count`, {
         headers: { Authorization: `Bearer ${authToken}` },
       });
 
       expect(response.status()).not.toBe(404);
+      if (response.ok()) {
+        const data = await response.json();
+        expect(data).toHaveProperty('unreadCount');
+        expect(Number.isFinite(Number(data.unreadCount))).toBe(true);
+      }
     });
   });
 
   test.describe('Messenger v4 – Send message flow', () => {
-    test('should open messenger and show conversation list or empty state', async ({ page }) => {
+    test('should open messenger and show a meaningful shell state', async ({ page }) => {
       await page.goto(MESSENGER_URL);
       await page.waitForLoadState('domcontentloaded');
 
-      // Either a conversation list or an empty state should be present
-      const hasConversations = await page
-        .locator('.conversation-list, .conversations-list, [data-empty-state]')
+      await expect(page.locator('.messenger-v4')).toBeVisible();
+
+      const shellStateCount = await page
+        .locator([
+          '.messenger-v4__conversation-list',
+          '.conversation-list',
+          '.conversations-list',
+          '.messenger-v4__empty-state',
+          '[data-empty-state]',
+          '.messenger-v4__chat-panel',
+          '.messenger-v4__composer',
+        ].join(','))
         .count();
-      expect(hasConversations).toBeGreaterThanOrEqual(0);
+
+      expect(shellStateCount).toBeGreaterThan(0);
     });
   });
 
