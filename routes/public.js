@@ -149,9 +149,11 @@ router.get('/stats', async (req, res) => {
     const marketplaceListings = (await dbUnified.read('marketplace_listings')) || [];
     const reviews = (await dbUnified.read('reviews')) || [];
     const stats = {
-      suppliersVerified: suppliers.filter(s => s.verified === true).length,
+      suppliersVerified: suppliers.filter(s => s.approved === true || s.verified === true).length,
       packagesApproved: packages.filter(p => p.approved === true).length,
-      marketplaceListingsActive: marketplaceListings.filter(m => m.status === 'active').length,
+      marketplaceListingsActive: marketplaceListings.filter(
+        m => m.approved === true && m.status === 'active'
+      ).length,
       reviewsApproved: reviews.filter(r => r.approved === true).length,
     };
     statsCache = stats;
