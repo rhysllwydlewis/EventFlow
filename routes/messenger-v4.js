@@ -17,6 +17,7 @@ const { CONVERSATION_V4_TYPES, CONVERSATION_CONTEXT_TYPES } = require('../models
 const NotificationService = require('../services/notification.service');
 const messengerMetrics = require('../services/messengerMetrics');
 const { setQueueContext } = require('../services/queue');
+const { validateMessengerAttachment } = require('../utils/messengerAttachmentValidation');
 
 // Returns true if a string looks like an email address — used to prevent
 // email addresses from being stored as participant display names.
@@ -128,6 +129,53 @@ function applyCsrfProtection(req, res, next) {
 
 // Configure multer for attachments
 const attachmentStorage = multer.memoryStorage();
+
+function createBadAttachmentError(reason) {
+  const error = new Error(reason || 'Invalid attachment');
+  error.statusCode = 400;
+  error.expose = true;
+  return error;
+}
+
+async function persistValidatedMessengerAttachments(files, options = {}) {
+  const incomingFiles = Array.isArray(files) ? files : [];
+  if (incomingFiles.length === 0) {
+    return [];
+  }
+
+  // Validate every in-memory multer file before creating directories or writing
+  // bytes. This prevents spoofed/oversized files from leaving partial uploads
+  // behind when a later file in the batch fails validation.
+  const validatedFiles = incomingFiles.map(file => {
+    const validation = validateMessengerAttachment(file);
+    if (!validation.ok) {
+      throw createBadAttachmentError(validation.reason);
+    }
+    return { file, validation };
+  });
+
+  const fsImpl = options.fsImpl || fs;
+  const cryptoImpl = options.cryptoImpl || crypto;
+  const uploadsDir = options.uploadsDir || path.join(__dirname, '..', 'uploads', 'messenger');
+  await fsImpl.mkdir(uploadsDir, { recursive: true });
+
+  const attachments = [];
+  for (const { file, validation } of validatedFiles) {
+    const ext = validation.extension;
+    const filename = `${cryptoImpl.randomBytes(16).toString('hex')}${ext}`;
+    const filepath = path.join(uploadsDir, filename);
+    await fsImpl.writeFile(filepath, file.buffer);
+
+    attachments.push({
+      url: `/uploads/messenger/${filename}`,
+      filename: String(file.originalname || 'attachment').substring(0, 255),
+      mimeType: validation.mimetype || file.mimetype,
+      size: file.size,
+    });
+  }
+
+  return attachments;
+}
 
 const attachmentFileFilter = (req, file, cb) => {
   const allowedMimeTypes = [
@@ -625,45 +673,17 @@ router.post(
         }
       }
 
-      // Process attachments if any
-      const attachments = [];
+      // Process attachments if any. Validation verifies MIME signature and
+      // size before any file is written to disk.
+      let attachments = [];
       if (req.files && req.files.length > 0) {
-        // Save attachments to uploads directory
-        const uploadsDir = path.join(__dirname, '..', 'uploads', 'messenger');
-        await fs.mkdir(uploadsDir, { recursive: true });
-
-        // Map validated MIME types to safe file extensions so the saved
-        // filename is never derived from user-controlled originalname.
-        const MIME_TO_EXT = {
-          'image/jpeg': '.jpg',
-          'image/png': '.png',
-          'image/gif': '.gif',
-          'image/webp': '.webp',
-          'application/pdf': '.pdf',
-          'application/msword': '.doc',
-          'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
-          'application/vnd.ms-excel': '.xls',
-          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
-          'text/plain': '.txt',
-        };
-
-        for (const file of req.files) {
-          const ext = MIME_TO_EXT[file.mimetype];
-          if (!ext) {
-            // Should not reach here because multer fileFilter already rejects
-            // unknown MIME types, but guard defensively.
-            return res.status(400).json({ error: `Unsupported file type: ${file.mimetype}` });
+        try {
+          attachments = await persistValidatedMessengerAttachments(req.files);
+        } catch (error) {
+          if (error.statusCode === 400 && error.expose) {
+            return res.status(400).json({ error: error.message });
           }
-          const filename = `${crypto.randomBytes(16).toString('hex')}${ext}`;
-          const filepath = path.join(uploadsDir, filename);
-          await fs.writeFile(filepath, file.buffer);
-
-          attachments.push({
-            url: `/uploads/messenger/${filename}`,
-            filename: file.originalname.substring(0, 255),
-            mimeType: file.mimetype,
-            size: file.size,
-          });
+          throw error;
         }
 
         if (attachments.length > 0) {
@@ -1416,3 +1436,8 @@ router.get('/admin/metrics', applyAuthRequired, writeLimiter, (req, res, next) =
 });
 
 module.exports = { router, initialize };
+
+module.exports._private = {
+  persistValidatedMessengerAttachments,
+  createBadAttachmentError,
+};

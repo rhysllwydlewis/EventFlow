@@ -102,7 +102,7 @@ class ChatViewV4 {
       </div>
 
       <div class="messenger-v4__messages" id="v4Messages" role="log" aria-live="polite" aria-label="Messages">
-        <div class="messenger-v4__empty-state" id="v4ChatEmpty">
+        <div class="messenger-v4__empty-state" id="v4ChatEmpty" role="status" aria-live="polite">
           <span class="messenger-v4__empty-icon" aria-hidden="true">💬</span>
           <p>Select a conversation to start messaging</p>
         </div>
@@ -364,7 +364,7 @@ class ChatViewV4 {
       });
     } catch (err) {
       console.error('[ChatViewV4] Failed to load messages:', err);
-      this.messagesEl.innerHTML = `<div class="messenger-v4__empty-state">Failed to load messages. Please try again.</div>`;
+      this.messagesEl.innerHTML = `<div class="messenger-v4__empty-state" role="status" aria-live="polite">Failed to load messages. Please try again.</div>`;
     }
   }
 
@@ -532,7 +532,7 @@ class ChatViewV4 {
     this.isLoadingOlder = false;
     this.headerEl.style.display = 'none';
     this.messagesEl.innerHTML = `
-      <div class="messenger-v4__empty-state" id="v4ChatEmpty">
+      <div class="messenger-v4__empty-state" id="v4ChatEmpty" role="status" aria-live="polite">
         <span class="messenger-v4__empty-icon" aria-hidden="true">💬</span>
         <p>Select a conversation to start messaging</p>
       </div>`;
@@ -660,7 +660,7 @@ class ChatViewV4 {
   /** Render a full messages array grouped by date. */
   _renderMessages(messages) {
     if (!messages.length) {
-      this.messagesEl.innerHTML = `<div class="messenger-v4__empty-state">No messages yet. Say hello! 👋</div>`;
+      this.messagesEl.innerHTML = `<div class="messenger-v4__empty-state" role="status" aria-live="polite">No messages yet. Say hello! 👋</div>`;
       return;
     }
 

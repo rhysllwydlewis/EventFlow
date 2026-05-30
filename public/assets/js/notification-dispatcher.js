@@ -18,10 +18,24 @@
   'use strict';
 
   function loadScriptOnce(id, src) {
-    if (!globalScope || !globalScope.document || document.getElementById(id)) return;
+    if (!globalScope || !globalScope.document || document.getElementById(id)) {
+      return;
+    }
+    const baseSrc = String(src).split('?')[0];
+    const alreadyPresent = Array.from(document.querySelectorAll('script[src]')).some(script => {
+      const existingSrc = script.getAttribute('src') || '';
+      return existingSrc.split('?')[0] === baseSrc;
+    });
+    if (alreadyPresent) {
+      return;
+    }
+
     const script = document.createElement('script');
     script.id = id;
     script.src = src;
+    // Dynamic scripts are async by default. Force ordered execution so csrf-token
+    // and notification-state are ready before the stabilisation layer uses them.
+    script.async = false;
     script.defer = true;
     document.head.appendChild(script);
   }
