@@ -148,10 +148,6 @@ router.get('/stats', async (req, res) => {
     const packages = (await dbUnified.read('packages')) || [];
     const marketplaceListings = (await dbUnified.read('marketplace_listings')) || [];
     const reviews = (await dbUnified.read('reviews')) || [];
-
-    // Public homepage stats must reflect data visitors can actually discover.
-    // Count approved suppliers as the public-facing supplier network, while still
-    // accepting legacy records that only have verified=true.
     const stats = {
       suppliersVerified: suppliers.filter(s => s.approved === true || s.verified === true).length,
       packagesApproved: packages.filter(p => p.approved === true).length,
@@ -264,28 +260,197 @@ router.get('/recommendations', async (req, res) => {
     const { category, location, budget } = req.query;
 
     const suppliers = await dbUnified.read('suppliers');
-    let recommendations = suppliers.filter(s => s.approved);
 
+    // Filter active and verified suppliers
+    let recommended = suppliers.filter(
+      s => s.verified === true && s.subscriptionStatus === 'active'
+    );
+
+    // Apply category filter
     if (category) {
-      recommendations = recommendations.filter(s => s.category === category);
+      recommended = recommended.filter(s => s.category === category);
     }
 
+    // Apply location filter (basic match)
     if (location) {
-      const loc = location.toLowerCase();
-      recommendations = recommendations.filter(s => s.location?.toLowerCase().includes(loc));
+      const locationLower = location.toLowerCase();
+      recommended = recommended.filter(s => {
+        const supplierLocation = (s.location || '').toLowerCase();
+        return supplierLocation.includes(locationLower) || locationLower.includes(supplierLocation);
+      });
     }
 
-    // Sort by rating/featured
-    recommendations.sort((a, b) => {
-      if (a.featured && !b.featured) return -1;
-      if (!a.featured && b.featured) return 1;
-      return (b.rating || 0) - (a.rating || 0);
+    // Apply budget filter (if supplier has pricing info)
+    if (budget) {
+      const budgetNum = parseFloat(budget);
+      if (!isNaN(budgetNum)) {
+        recommended = recommended.filter(s => {
+          if (!s.priceRange) {
+            return true;
+          }
+          const minPrice = parseFloat(s.priceRange.min || 0);
+          const maxPrice = parseFloat(s.priceRange.max || 999999);
+          return budgetNum >= minPrice && budgetNum <= maxPrice;
+        });
+      }
+    }
+
+    // Score and sort by relevance
+    recommended = recommended.map(s => {
+      let score = 0;
+
+      // Boost score for category match
+      if (category && s.category === category) {
+        score += 10;
+      }
+
+      // Boost score for location proximity
+      if (location && (s.location || '').toLowerCase().includes(location.toLowerCase())) {
+        score += 5;
+      }
+
+      // Boost for reviews
+      score += (s.reviewCount || 0) * 0.1;
+      score += (s.averageRating || 0) * 2;
+
+      return { ...s, recommendationScore: score };
     });
 
-    res.json({ recommendations: recommendations.slice(0, 6) });
+    // Sort by score descending
+    recommended.sort((a, b) => b.recommendationScore - a.recommendationScore);
+
+    // Return top 3
+    const top3 = recommended.slice(0, 3);
+
+    res.json({
+      success: true,
+      recommendations: top3,
+      total: recommended.length,
+    });
   } catch (error) {
-    logger.error('[ERROR] Failed to get recommendations:', error.message);
-    res.status(500).json({ error: 'Failed to get recommendations' });
+    logger.error('Error fetching recommendations:', error);
+    res.status(500).json({
+      error: 'Failed to fetch recommendations',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
+  }
+});
+
+/**
+ * GET /api/public/auth-photos
+ * Returns event-themed photos for the auth page left-panel slideshow.
+ * No authentication required — uses Pexels API if configured, or falls back
+ * to curated hardcoded photos from pexels-fallback.js.
+ * Response is cached for 5 minutes to minimise API calls.
+ */
+const AUTH_PHOTO_QUERIES = [
+  'wedding celebration venue',
+  'corporate event conference',
+  'birthday party celebration',
+  'event planning elegant flowers',
+];
+
+const AUTH_PHOTO_PEXELS_DOMAIN = 'images.pexels.com';
+const AUTH_PHOTO_PEXELS_PROFILE_DOMAIN = 'www.pexels.com';
+
+function isSafeAuthPexelsUrl(url) {
+  try {
+    const parsed = new URL(url);
+    return (
+      parsed.protocol === 'https:' &&
+      (parsed.hostname === AUTH_PHOTO_PEXELS_DOMAIN ||
+        parsed.hostname === AUTH_PHOTO_PEXELS_PROFILE_DOMAIN)
+    );
+  } catch {
+    return false;
+  }
+}
+
+// Return the first URL in the list that passes isSafeAuthPexelsUrl, or null.
+function pickSafeAuthUrl(...candidates) {
+  for (const u of candidates) {
+    if (u && isSafeAuthPexelsUrl(u)) {
+      return u;
+    }
+  }
+  return null;
+}
+
+function buildAuthFallbackResponse(fallbacks) {
+  return {
+    source: 'fallback',
+    photos: fallbacks
+      .map(p => {
+        const url = pickSafeAuthUrl(p.src && p.src.large, p.url);
+        if (!url) {
+          return null;
+        }
+        return {
+          url,
+          photographer: String(p.photographer || 'Pexels').slice(0, 80),
+          photographerUrl: 'https://www.pexels.com',
+          alt: String(p.alt || 'Event photo').slice(0, 120),
+        };
+      })
+      .filter(Boolean),
+  };
+}
+
+router.get('/auth-photos', apiLimiter, async (req, res) => {
+  try {
+    res.set('Cache-Control', 'public, max-age=300');
+
+    const { getPexelsService } = require('../utils/pexels-service');
+    const { getRandomFallbackPhotos } = require('../config/pexels-fallback');
+
+    const pexels = getPexelsService();
+
+    if (!pexels.isConfigured()) {
+      return res.json(buildAuthFallbackResponse(getRandomFallbackPhotos(8)));
+    }
+
+    const query = AUTH_PHOTO_QUERIES[Math.floor(Math.random() * AUTH_PHOTO_QUERIES.length)];
+
+    let results;
+    try {
+      results = await pexels.searchPhotos(query, 8, 1, { orientation: 'portrait', size: 'large' });
+    } catch (_) {
+      results = { photos: [] };
+    }
+
+    const photos = (results.photos || [])
+      .map(p => {
+        const url = p.src && pickSafeAuthUrl(p.src.large, p.src.medium, p.src.original);
+        const photographerUrl =
+          p.photographer_url && isSafeAuthPexelsUrl(p.photographer_url)
+            ? p.photographer_url
+            : 'https://www.pexels.com';
+        if (!url) {
+          return null;
+        }
+        return {
+          url,
+          photographer: String(p.photographer || 'Pexels').slice(0, 80),
+          photographerUrl,
+          alt: String(p.alt || 'Event photo').slice(0, 120),
+        };
+      })
+      .filter(Boolean);
+
+    if (photos.length === 0) {
+      return res.json(buildAuthFallbackResponse(getRandomFallbackPhotos(6)));
+    }
+
+    res.json({ source: 'pexels', photos });
+  } catch (error) {
+    logger.error('Auth photos error:', error);
+    try {
+      const { getRandomFallbackPhotos } = require('../config/pexels-fallback');
+      res.set('Cache-Control', 'public, max-age=60');
+      res.json(buildAuthFallbackResponse(getRandomFallbackPhotos(8)));
+    } catch (_) {
+      res.status(500).json({ photos: [] });
+    }
   }
 });
 
