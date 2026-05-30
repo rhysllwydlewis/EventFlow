@@ -2,11 +2,25 @@
 (function () {
   'use strict';
 
+  function loadHomepageStabilisationStyles() {
+    if (document.getElementById('ef-home-stabilisation-css')) {
+      return;
+    }
+
+    const link = document.createElement('link');
+    link.id = 'ef-home-stabilisation-css';
+    link.rel = 'stylesheet';
+    link.href = '/assets/css/home-stabilisation.css?v=18.3.1';
+    document.head.appendChild(link);
+  }
+
   function loadHomepageStabilisation() {
     if (window.__homepageStabilisationLoading) {
       return;
     }
     window.__homepageStabilisationLoading = true;
+
+    loadHomepageStabilisationStyles();
 
     const script = document.createElement('script');
     script.src = '/assets/js/pages/home-stabilisation.js?v=18.3.1';
