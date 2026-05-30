@@ -7,6 +7,7 @@
 
 const express = require('express');
 const { notificationLimiter } = require('../middleware/rateLimits');
+const { NOTIFICATION_TYPES, NOTIFICATION_PRIORITIES } = require('../models/index');
 const router = express.Router();
 
 // Service class loaded at module level for efficiency
@@ -18,6 +19,20 @@ let logger;
 let mongoDb;
 let getWebSocketServer;
 let csrfProtection;
+
+const MAX_NOTIFICATION_LIMIT = 100;
+const MAX_NOTIFICATION_SKIP = 10000;
+
+function clampInteger(value, fallback, min, max) {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(max, Math.max(min, parsed));
+}
+
+function normaliseOptionalEnum(value, allowedValues) {
+  if (value === undefined || value === null || value === '') return null;
+  return allowedValues.includes(value) ? value : null;
+}
 
 /**
  * Initialize dependencies from server.js
@@ -124,11 +139,15 @@ router.get('/', notificationLimiter, applyAuthRequired, async (req, res) => {
   try {
     const notificationService = await getNotificationService();
     const userId = req.user.id;
-    const { limit = 50, skip = 0, unreadOnly = 'false', type = null, priority = null } = req.query;
+    const { unreadOnly = 'false' } = req.query;
+    const limit = clampInteger(req.query.limit, 50, 1, MAX_NOTIFICATION_LIMIT);
+    const skip = clampInteger(req.query.skip, 0, 0, MAX_NOTIFICATION_SKIP);
+    const type = normaliseOptionalEnum(req.query.type, NOTIFICATION_TYPES);
+    const priority = normaliseOptionalEnum(req.query.priority, NOTIFICATION_PRIORITIES);
 
     const result = await notificationService.getForUser(userId, {
-      limit: parseInt(limit, 10),
-      skip: parseInt(skip, 10),
+      limit,
+      skip,
       unreadOnly: unreadOnly === 'true',
       type,
       priority,
@@ -312,3 +331,9 @@ if (process.env.NODE_ENV !== 'production') {
 
 module.exports = router;
 module.exports.initializeDependencies = initializeDependencies;
+module.exports._private = {
+  clampInteger,
+  normaliseOptionalEnum,
+  MAX_NOTIFICATION_LIMIT,
+  MAX_NOTIFICATION_SKIP,
+};
