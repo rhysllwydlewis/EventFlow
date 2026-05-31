@@ -6,18 +6,30 @@ const dbUnified = require('../db-unified');
 const { TIER_LEVELS } = require('../models/Subscription');
 
 function isSubscriptionLive(subscription) {
-  if (!subscription) return false;
-  if (subscription.status !== 'active' && subscription.status !== 'trialing') return false;
-  if (subscription.plan === 'free') return true;
-  if (subscription.currentPeriodEnd && new Date(subscription.currentPeriodEnd) > new Date()) return true;
-  if (subscription.trialEnd && new Date(subscription.trialEnd) > new Date()) return true;
+  if (!subscription) {
+    return false;
+  }
+  if (subscription.status !== 'active' && subscription.status !== 'trialing') {
+    return false;
+  }
+  if (subscription.plan === 'free') {
+    return true;
+  }
+  if (subscription.currentPeriodEnd && new Date(subscription.currentPeriodEnd) > new Date()) {
+    return true;
+  }
+  if (subscription.trialEnd && new Date(subscription.trialEnd) > new Date()) {
+    return true;
+  }
   return false;
 }
 
 async function resolveEffectiveTier(userId) {
   const subscription = await subscriptionService.getSubscriptionByUserId(userId);
   if (subscription) {
-    if (isSubscriptionLive(subscription)) return { tier: subscription.plan, subscription };
+    if (isSubscriptionLive(subscription)) {
+      return { tier: subscription.plan, subscription };
+    }
     return { tier: 'free', subscription: null };
   }
   const users = await dbUnified.read('users');
@@ -32,7 +44,9 @@ async function resolveEffectiveTier(userId) {
 
 function requireSubscription(minTier = 'free') {
   return async (req, res, next) => {
-    if (!req.user) return res.status(401).json({ error: 'Authentication required' });
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
     try {
       const result = await resolveEffectiveTier(req.user.id);
       if ((TIER_LEVELS[result.tier] || 0) >= (TIER_LEVELS[minTier] || 0)) {
@@ -55,12 +69,16 @@ function requireSubscription(minTier = 'free') {
 
 function checkFeatureLimit(feature) {
   return async (req, res, next) => {
-    if (!req.user) return res.status(401).json({ error: 'Authentication required' });
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
     try {
       const hasAccess = await subscriptionService.checkFeatureAccess(req.user.id, feature);
-      if (hasAccess) return next();
+      if (hasAccess) {
+        return next();
+      }
       return res.status(403).json({
-        error: 'Feature requires subscription upgrade',
+        error: `Feature ${feature} requires subscription upgrade`,
         feature,
         upgradeUrl: '/supplier/subscription.html',
       });

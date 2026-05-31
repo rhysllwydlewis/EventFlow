@@ -11,6 +11,11 @@ const paymentService = require('../services/paymentService');
 const dbUnified = require('../db-unified');
 const { uid } = require('../store');
 const postmark = require('../utils/postmark');
+const { normalisePlanRequest } = require('../config/billingPlans');
+
+function timestampToIso(timestamp) {
+  return timestamp ? new Date(timestamp * 1000).toISOString() : null;
+}
 
 /**
  * Format an internal plan tier key into a human-readable display name.
@@ -45,10 +50,9 @@ const PLAN_EMAIL_FEATURES = {
  *   1. Exact match on a canonical planId value (set in Stripe metadata by the checkout session).
  *      Accepted values: 'pro', 'pro_plus', 'pro_monthly', 'pro_yearly',
  *                       'pro_plus_monthly', 'pro_plus_yearly'
- *   2. Substring heuristic on the lower-cased name as a last-resort fallback.
- *      'pro_plus' / 'proplus' / 'pro+' are checked before 'pro' to prevent false matches.
- *      Note: names like "Pro Plus Monthly" (without underscore/proplus/pro+) fall through
- *      to the 'pro' match — use metadata.planId for deterministic mapping.
+ *   2. Canonical billing-plan aliases such as "Pro Plus" / "professional_plus".
+ *   3. Substring heuristic on the lower-cased name as a last-resort fallback.
+ *      Pro Plus variants are checked before Pro to prevent false matches.
  *
  * @param {string} planName - Raw plan identifier from Stripe metadata or price nickname
  * @returns {string} Canonical tier: 'pro_plus' | 'pro' | 'free'
@@ -70,8 +74,19 @@ function resolvePlanTier(planName) {
     return exactMap[lc];
   }
 
-  // 2. Substring heuristic fallback — check pro_plus variants before pro to avoid false matches
-  if (lc.includes('pro_plus') || lc.includes('proplus') || lc.includes('pro+')) {
+  const normalized = normalisePlanRequest(raw);
+  if (normalized) {
+    return normalized.planId;
+  }
+
+  // 3. Substring heuristic fallback — check Pro Plus variants before Pro to avoid false matches
+  if (
+    lc.includes('pro_plus') ||
+    lc.includes('pro plus') ||
+    lc.includes('professional plus') ||
+    lc.includes('proplus') ||
+    lc.includes('pro+')
+  ) {
     return 'pro_plus';
   }
   if (lc.includes('pro')) {
@@ -351,7 +366,7 @@ async function handleSubscriptionCreated(stripeSubscription) {
   const planId =
     stripeSubscription.metadata?.planId ||
     stripeSubscription.metadata?.planName ||
-    stripeSubscription.items.data[0]?.price?.nickname ||
+    stripeSubscription.items?.data?.[0]?.price?.nickname ||
     '';
   const plan = resolvePlanTier(planId);
 
@@ -362,12 +377,8 @@ async function handleSubscriptionCreated(stripeSubscription) {
 
   const priceItem = stripeSubscription.items?.data?.[0];
   const billingInterval = priceItem?.price?.recurring?.interval || null;
-  const currentPeriodStart = stripeSubscription.current_period_start
-    ? new Date(stripeSubscription.current_period_start * 1000).toISOString()
-    : null;
-  const currentPeriodEnd = stripeSubscription.current_period_end
-    ? new Date(stripeSubscription.current_period_end * 1000).toISOString()
-    : null;
+  const currentPeriodStart = timestampToIso(stripeSubscription.current_period_start);
+  const currentPeriodEnd = timestampToIso(stripeSubscription.current_period_end);
   const discountCoupon = stripeSubscription.discount?.coupon || null;
   const discountName = discountCoupon?.name || discountCoupon?.id || null;
   const discountPercent = discountCoupon?.percent_off || null;
@@ -452,13 +463,19 @@ async function handleSubscriptionUpdated(stripeSubscription) {
   }
 
   // Update subscription status and dates
+  const periodStart = timestampToIso(stripeSubscription.current_period_start);
+  const periodEnd = timestampToIso(stripeSubscription.current_period_end);
   const updates = {
     status: stripeSubscription.status,
-    currentPeriodStart: new Date(stripeSubscription.current_period_start * 1000).toISOString(),
-    currentPeriodEnd: new Date(stripeSubscription.current_period_end * 1000).toISOString(),
-    nextBillingDate: new Date(stripeSubscription.current_period_end * 1000).toISOString(),
-    cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
+    cancelAtPeriodEnd: Boolean(stripeSubscription.cancel_at_period_end),
   };
+  if (periodStart) {
+    updates.currentPeriodStart = periodStart;
+  }
+  if (periodEnd) {
+    updates.currentPeriodEnd = periodEnd;
+    updates.nextBillingDate = periodEnd;
+  }
 
   // Billing interval
   const updatedItem = stripeSubscription.items?.data?.[0];
@@ -473,7 +490,7 @@ async function handleSubscriptionUpdated(stripeSubscription) {
   updates.discountPercent = updatedCoupon?.percent_off || null;
 
   if (stripeSubscription.canceled_at) {
-    updates.canceledAt = new Date(stripeSubscription.canceled_at * 1000).toISOString();
+    updates.canceledAt = timestampToIso(stripeSubscription.canceled_at);
   }
 
   // When a billing period renews (Stripe clears cancel_at_period_end) and a downgrade
@@ -498,7 +515,7 @@ async function handleSubscriptionUpdated(stripeSubscription) {
     const planIdentifier =
       stripeSubscription.metadata?.planId ||
       stripeSubscription.metadata?.planName ||
-      stripeSubscription.items.data[0]?.price?.nickname ||
+      stripeSubscription.items?.data?.[0]?.price?.nickname ||
       '';
     if (planIdentifier) {
       const newPlan = resolvePlanTier(planIdentifier);
@@ -922,6 +939,7 @@ async function handleCheckoutSessionCompleted(session) {
         trialEnd: session.subscription_trial_end
           ? new Date(session.subscription_trial_end * 1000)
           : null,
+        billingInterval: session.metadata?.billingInterval || null,
       });
       logger.info(
         `checkout.session.completed: subscription created for user ${userId}, plan=${plan}`
@@ -965,15 +983,18 @@ async function isEventAlreadyProcessed(eventId) {
   }
 
   const existing = await dbUnified.read('webhook_events');
-  if (existing.some(e => e.eventId === eventId)) {
-    return true;
+  return existing.some(e => e.eventId === eventId);
+}
+
+async function markEventProcessed(eventId) {
+  if (!eventId || (await isEventAlreadyProcessed(eventId))) {
+    return;
   }
 
   await dbUnified.insertOne('webhook_events', {
     eventId,
     processedAt: new Date().toISOString(),
   });
-  return false;
 }
 
 /**
@@ -981,7 +1002,9 @@ async function isEventAlreadyProcessed(eventId) {
  * @param {Object} event - Stripe event object
  */
 async function processWebhookEvent(event) {
-  // Idempotency: skip events we have already processed (Stripe retries safely)
+  // Idempotency: skip events that were fully processed before. We intentionally
+  // mark events only after successful processing so Stripe retries are not lost
+  // if a handler fails midway through.
   if (await isEventAlreadyProcessed(event.id)) {
     logger.info(`Skipping already-processed webhook event: ${event.id}`);
     return;
@@ -1036,6 +1059,8 @@ async function processWebhookEvent(event) {
       default:
         logger.info('Unhandled webhook event type:', event.type);
     }
+
+    await markEventProcessed(event.id);
   } catch (error) {
     logger.error(`Error processing webhook event ${event.type}:`, error);
     throw error;
@@ -1045,6 +1070,7 @@ async function processWebhookEvent(event) {
 module.exports = {
   processWebhookEvent,
   isEventAlreadyProcessed,
+  markEventProcessed,
   formatPlanName,
   resolvePlanTier,
   handleCheckoutSessionCompleted,

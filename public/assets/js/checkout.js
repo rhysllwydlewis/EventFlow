@@ -333,37 +333,16 @@
         headers['X-CSRF-Token'] = window.__CSRF_TOKEN__;
       }
 
-      // Decide payment mode: prefer subscription when a Stripe priceId is available
-      let requestBody;
-
-      if (stripeConfig?.proPriceId && planKey === 'pro') {
-        // Use subscription mode with server-configured price
-        requestBody = {
-          type: 'subscription',
-          priceId: stripeConfig.proPriceId,
-          planName: plan.name,
-        };
-      } else if (stripeConfig?.proPriceId && planKey === 'pro_plus') {
-        // Use subscription mode for pro_plus — falls back to the server-configured proPriceId
-        // when STRIPE_PRO_PLUS_PRICE_ID is not separately set. The server's create-checkout-session
-        // endpoint will select the correct price from env if a dedicated pro_plus price exists.
-        requestBody = {
-          type: 'subscription',
-          priceId: stripeConfig.proPriceId,
-          planName: plan.name,
-        };
-      } else {
-        // Fallback: one-time payment
-        const amount = Math.round(plan.price * 100);
-        requestBody = {
-          type: 'one_time',
-          amount,
-          currency: 'gbp',
-          planName: plan.name,
-        };
-      }
+      const configuredPlan = stripeConfig?.plans?.find(({ id }) => id === planKey);
+      const requestBody = {
+        type: 'subscription',
+        planId: planKey,
+        billingInterval: plan.interval || configuredPlan?.billingInterval || 'month',
+        successUrl: `${window.location.origin}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+        cancelUrl: `${window.location.origin}/payment-cancel`,
+      };
       if (isDevelopment) {
-        console.log(`[Checkout] Mode: ${requestBody.type} for plan: ${planKey}`);
+        console.log(`[Checkout] Mode: subscription for plan: ${planKey}`);
       }
 
       const response = await fetch('/api/v1/payments/create-checkout-session', {

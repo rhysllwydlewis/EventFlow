@@ -71,7 +71,7 @@ function setupMocks() {
     }
   });
   dbUnified.updateOne.mockImplementation(async (collection, filter, update) => {
-    const applySet = (arr, key) => {
+    const applySet = arr => {
       const idx = arr.findIndex(item => Object.keys(filter).every(k => item[k] === filter[k]));
       if (idx >= 0) {
         arr[idx] = { ...arr[idx], ...update.$set };
@@ -189,7 +189,7 @@ describe('1. New purchase — entitlements become active', () => {
   });
 
   it('dashboard GET /me returns correct plan and no pendingPlan', async () => {
-    const sub = await subscriptionService.createSubscription({
+    await subscriptionService.createSubscription({
       userId: 'usr-1',
       plan: 'pro',
       stripeSubscriptionId: 'sub_s1',
@@ -500,10 +500,10 @@ describe('6. Expired / past_due / payment_failed — entitlements removed', () =
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('7. Webhook idempotency', () => {
-  it('isEventAlreadyProcessed returns false for a new event ID and records it', async () => {
+  it('isEventAlreadyProcessed returns false for a new event ID without recording it early', async () => {
     const result = await isEventAlreadyProcessed('evt_new_001');
     expect(result).toBe(false);
-    expect(mockWebhookEvents.some(e => e.eventId === 'evt_new_001')).toBe(true);
+    expect(mockWebhookEvents.some(e => e.eventId === 'evt_new_001')).toBe(false);
   });
 
   it('isEventAlreadyProcessed returns true for an already-recorded event ID', async () => {
@@ -515,6 +515,31 @@ describe('7. Webhook idempotency', () => {
   it('isEventAlreadyProcessed returns false when event.id is absent (allows dev payloads)', async () => {
     const result = await isEventAlreadyProcessed(undefined);
     expect(result).toBe(false);
+  });
+
+  it('processWebhookEvent records the event only after successful processing', async () => {
+    const event = { id: 'evt_unknown_success', type: 'unknown.event', data: { object: {} } };
+
+    await processWebhookEvent(event);
+
+    expect(mockWebhookEvents.some(e => e.eventId === 'evt_unknown_success')).toBe(true);
+  });
+
+  it('processWebhookEvent does not record failed events before Stripe can retry them', async () => {
+    // Missing subscriptions are handled gracefully, so force an actual handler failure.
+    dbUnified.read
+      .mockImplementationOnce(async collection => {
+        if (collection === 'webhook_events') {
+          return [...mockWebhookEvents];
+        }
+        return [];
+      })
+      .mockImplementationOnce(async () => {
+        throw new Error('database unavailable');
+      });
+    const failingEvent = { id: 'evt_failed_read', type: 'invoice.created', data: { object: {} } };
+    await expect(processWebhookEvent(failingEvent)).rejects.toThrow('database unavailable');
+    expect(mockWebhookEvents.some(e => e.eventId === 'evt_failed_read')).toBe(false);
   });
 
   it('processWebhookEvent skips already-processed event', async () => {

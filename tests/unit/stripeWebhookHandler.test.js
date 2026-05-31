@@ -75,11 +75,8 @@ describe('Stripe Webhook Handler — resolvePlanTier', () => {
     expect(resolvePlanTier('Pro+ Monthly')).toBe('pro_plus');
   });
 
-  it('resolves "Pro Plus Monthly" (no underscore/proplus/pro+) to pro via substring fallback', () => {
-    expect(resolvePlanTier('Pro Plus Monthly')).toBe('pro');
-    // Note: "Pro Plus Monthly" does NOT contain "pro_plus", "proplus", or "pro+" so falls
-    // through to the "pro" substring match — this is an acceptable known limitation;
-    // callers should use metadata.planId for deterministic mapping.
+  it('resolves "Pro Plus Monthly" nickname to pro_plus (not pro)', () => {
+    expect(resolvePlanTier('Pro Plus Monthly')).toBe('pro_plus');
   });
 
   it('resolves "ProPlus" substring to pro_plus', () => {

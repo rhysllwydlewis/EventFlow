@@ -51,6 +51,7 @@ function pastDate(daysAgo = 5) {
 
 let mockSubscriptions = [];
 let mockUsers = [{ id: 'usr-1', isPro: false }];
+let mockSuppliers = [];
 
 function setupMocks() {
   dbUnified.read.mockImplementation(async collection => {
@@ -59,6 +60,9 @@ function setupMocks() {
     }
     if (collection === 'users') {
       return [...mockUsers];
+    }
+    if (collection === 'suppliers') {
+      return [...mockSuppliers];
     }
     return [];
   });
@@ -81,6 +85,7 @@ function setupMocks() {
 beforeEach(() => {
   mockSubscriptions = [];
   mockUsers = [{ id: 'usr-1', isPro: false }];
+  mockSuppliers = [];
   jest.clearAllMocks();
   setupMocks();
 });
@@ -353,6 +358,24 @@ describe('subscriptionService.createSubscription', () => {
       { id: 'usr-1' },
       expect.objectContaining({
         $set: expect.objectContaining({ isPro: false, subscriptionTier: 'free' }),
+      })
+    );
+  });
+
+  it('syncs supplier tier fields so public badges reflect the account level', async () => {
+    mockSuppliers = [{ id: 'sup-1', ownerUserId: 'usr-1', subscriptionTier: 'free' }];
+    await subscriptionService.createSubscription({
+      userId: 'usr-1',
+      plan: 'pro_plus',
+      stripeSubscriptionId: 'sub_stripe_1',
+      stripeCustomerId: 'cus_1',
+      currentPeriodEnd: futureDate(),
+    });
+    expect(dbUnified.updateOne).toHaveBeenCalledWith(
+      'suppliers',
+      { id: 'sup-1' },
+      expect.objectContaining({
+        $set: expect.objectContaining({ subscriptionTier: 'pro_plus', isPro: true }),
       })
     );
   });
