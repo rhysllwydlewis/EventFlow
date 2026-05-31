@@ -5,21 +5,22 @@ This PR addresses the highest-risk payment, subscription, pricing and access-con
 ## Implemented changes
 
 - Added `config/billingPlans.js` as the canonical server-side billing plan registry.
-- Hardened the legacy payment checkout endpoint so browser-supplied `priceId`, `amount`, `currency`, `successUrl` and `cancelUrl` are not used as billing authority.
+- Hardened the legacy payment checkout endpoint so browser-supplied billing values are not used as billing authority.
+- Wired `routes/subscriptions-v2.js` checkout, direct subscription, upgrade and downgrade handlers to the canonical billing registry.
+- Removed client-supplied Stripe price authority from the v2 direct subscription and upgrade flows.
 - Resolved Stripe price IDs server-side from canonical `planId` and `billingInterval`.
 - Preserved compatibility for legacy plan names such as `Professional Plus` while normalising them to canonical `pro_plus`.
-- Added canonical `planId` and `billingInterval` metadata to legacy Checkout Sessions and pending payment records.
+- Added canonical `planId` and `billingInterval` metadata to Stripe Checkout Sessions and pending payment records.
 - Normalised checkout and billing portal return URLs to the configured EventFlow origin.
+- Added v2 webhook entry-point validation for canonical billing metadata.
 - Hardened feature gating so paid access requires active/trialing subscription status with a valid current period or trial end.
 - Hardened subscription service feature checks and user-tier persistence so stale `subscriptionTier` does not continue granting paid features after expiry.
 - Added unit tests for plan resolution, aliases and off-origin return URLs.
 
-## Known follow-up before production billing cutover
+## Remaining check before production billing cutover
 
-- Wire `routes/subscriptions-v2.js` checkout, direct subscription, upgrade and downgrade handlers to `config/billingPlans.js`.
-- Remove remaining client-supplied `priceId` authority from the direct v2 subscription endpoint.
-- Harden `webhooks/stripeWebhookHandler.js` so missing or unknown paid plan metadata is rejected instead of falling back to Pro.
-- Run the full test suite and any deployment smoke tests before enabling live billing.
+- Clean `public/assets/js/checkout.js` so the browser sends only `planId` and optional `billingInterval`. The backend now ignores/rejects unsafe billing authority, but the frontend should still be tidied to avoid confusing payloads.
+- Run the full test suite and deployment smoke tests before enabling live billing.
 
 ## Acceptance checks
 
