@@ -593,7 +593,13 @@ function makeWelcomeContextual(plans) {
     return;
   }
 
-  // Listen for unread count once it arrives from the messaging system (async)
+  // Listen for unread count once it arrives from the messaging system (async).
+  // makeWelcomeContextual can run more than once after dashboard refreshes, so guard
+  // the window listener to avoid duplicate prompts and repeated DOM work.
+  if (window.__heroUnreadListenerAdded) {
+    return;
+  }
+  window.__heroUnreadListenerAdded = true;
   window.addEventListener('unreadCountUpdated', function onUnreadForPrompt(e) {
     window.removeEventListener('unreadCountUpdated', onUnreadForPrompt);
     const unreadCount =

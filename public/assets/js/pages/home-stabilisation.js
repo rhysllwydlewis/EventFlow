@@ -30,7 +30,7 @@
 
   function escapeHtml(value) {
     const div = document.createElement('div');
-    div.textContent = value == null ? '' : String(value);
+    div.textContent = value === null || value === undefined ? '' : String(value);
     return div.innerHTML;
   }
 
@@ -149,9 +149,12 @@
     const button = section.querySelector('a.ef-btn');
 
     if (hasListings) {
-      if (title) title.textContent = 'Latest Items for Sale';
+      if (title) {
+        title.textContent = 'Latest Items for Sale';
+      }
       if (subtitle) {
-        subtitle.textContent = 'Buy and sell pre-loved event items — dresses, décor, AV gear and more';
+        subtitle.textContent =
+          'Buy and sell pre-loved event items — dresses, décor, AV gear and more';
       }
       if (button) {
         button.textContent = 'View All Marketplace Items';
@@ -160,9 +163,12 @@
       return;
     }
 
-    if (title) title.textContent = 'Marketplace launching soon';
+    if (title) {
+      title.textContent = 'Marketplace launching soon';
+    }
     if (subtitle) {
-      subtitle.textContent = 'Pre-loved event items will appear here once marketplace listings are open.';
+      subtitle.textContent =
+        'Pre-loved event items will appear here once marketplace listings are open.';
     }
     if (button) {
       button.textContent = 'View Marketplace Updates';
