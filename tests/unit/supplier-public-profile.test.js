@@ -1,6 +1,11 @@
 'use strict';
 
-const { safeImageUrl, safePublicPackage, safePublicSupplier } = require('../../utils/supplierPublicProfile');
+const {
+  safeExternalUrl,
+  safeImageUrl,
+  safePublicPackage,
+  safePublicSupplier,
+} = require('../../utils/supplierPublicProfile');
 
 describe('supplier public profile safety helpers', () => {
   test('strips private/internal fields from public supplier payloads', () => {
@@ -44,6 +49,48 @@ describe('supplier public profile safety helpers', () => {
     expect(safeImageUrl('data:image/webp;base64,aaaa')).toBe('data:image/webp;base64,aaaa');
     expect(safeImageUrl('javascript:alert(1)')).toBe('');
     expect(safeImageUrl('data:image/svg+xml;base64,PHN2Zy8+')).toBe('');
+  });
+
+  test('handles null and malformed nested public profile fields without leaking placeholders', () => {
+    expect(safePublicPackage(null)).toMatchObject({ title: 'Package', image: '', imageUrl: '' });
+    expect(safePublicSupplier(null)).toMatchObject({ name: 'Supplier', topPackages: [] });
+
+    const payload = safePublicSupplier({
+      badgeDetails: [null, 'invalid', { name: '<b>Trusted</b>' }],
+      socialLinks: 'not-an-object',
+      topPackages: [null, 'invalid', { title: '<i>Real Package</i>', image: 'javascript:bad' }],
+      verifications: 'not-an-object',
+    });
+
+    expect(payload.badgeDetails).toEqual([
+      {
+        id: null,
+        type: null,
+        name: 'Trusted',
+        description: null,
+        icon: null,
+        displayOrder: null,
+      },
+    ]);
+    expect(payload.socialLinks).toEqual({});
+    expect(payload.topPackages).toEqual([
+      expect.objectContaining({ title: 'Real Package', image: '', imageUrl: '' }),
+    ]);
+    expect(payload.verifications).toEqual({
+      email: { verified: false },
+      phone: { verified: false },
+      business: { verified: false },
+    });
+  });
+
+  test('normalises URLs through URL parsing and rejects non-absolute external links', () => {
+    expect(safeImageUrl('https://example.com/photo one.jpg')).toBe(
+      'https://example.com/photo%20one.jpg'
+    );
+    expect(safeExternalUrl('/relative-path')).toBe('');
+    expect(safeExternalUrl('https://example.com/suppliers?ref=EventFlow')).toBe(
+      'https://example.com/suppliers?ref=EventFlow'
+    );
   });
 
   test('returns trimmed package payloads for public profile cards', () => {

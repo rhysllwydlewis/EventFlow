@@ -196,14 +196,17 @@ function parsePaginationParams(query) {
 }
 
 /**
- * Strip HTML tags from a string by removing all angle brackets.
+ * Strip HTML tags from a string while preserving the readable text they wrap.
  * Used as a server-side defence for text-only fields (names, locations, notes).
- * Strips both '<' and '>' so that split/nested patterns cannot survive.
+ * Any unmatched angle brackets are removed afterwards so malformed/split tags
+ * cannot survive in public payloads.
  * @param {string} str - Raw input
  * @returns {string} Sanitized string
  */
 function stripHtml(str) {
-  return String(str).replace(/[<>]/g, '');
+  return String(str)
+    .replace(/<[^>]*>/g, '')
+    .replace(/[<>]/g, '');
 }
 
 module.exports = {

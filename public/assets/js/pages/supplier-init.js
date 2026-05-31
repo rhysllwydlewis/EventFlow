@@ -5,48 +5,70 @@
     const isPreview = params.get('preview') === 'true';
     const DATA_IMAGE_RE = /^data:image\/(png|jpe?g|webp|gif);base64,[a-z0-9+/]+={0,2}$/i;
 
-    function safeImageUrl(value) {
+    const safeImageUrl = value => {
       const raw = String(value || '').trim();
-      if (!raw) return '';
-      if (DATA_IMAGE_RE.test(raw)) return raw;
+      if (!raw) {
+        return '';
+      }
+      if (DATA_IMAGE_RE.test(raw)) {
+        return raw;
+      }
       try {
         const url = new URL(raw, window.location.origin);
         return ['https:', 'http:'].includes(url.protocol) ? url.href : '';
       } catch (_err) {
         return '';
       }
-    }
+    };
 
-    function safeExternalUrl(value) {
+    const safeExternalUrl = value => {
       const raw = String(value || '').trim();
-      if (!raw) return '';
+      if (!/^https?:\/\//i.test(raw)) {
+        return '';
+      }
       try {
-        const url = new URL(raw, window.location.origin);
+        const url = new URL(raw);
         return ['https:', 'http:'].includes(url.protocol) ? url.href : '';
       } catch (_err) {
         return '';
       }
-    }
+    };
 
-    function safeTel(value) {
+    const safeTel = value => {
       const raw = String(value || '').trim();
       return /^[+\d][\d\s().-]{5,}$/.test(raw) ? raw : '';
-    }
+    };
 
-    function appendPreview(urlLike) {
-      if (!isPreview || typeof urlLike !== 'string') return urlLike;
-      if (!/^\/api\/suppliers\/[^/]+(?:\/packages)?(?:\?|$)/.test(urlLike)) return urlLike;
+    const supplierApiPath = urlLike => {
+      if (typeof urlLike !== 'string') {
+        return '';
+      }
+      try {
+        const url = new URL(urlLike, window.location.origin);
+        return url.origin === window.location.origin ? url.pathname : '';
+      } catch (_err) {
+        return '';
+      }
+    };
+
+    const appendPreview = urlLike => {
+      const path = supplierApiPath(urlLike);
+      if (!isPreview || !/^\/api\/suppliers\/[^/]+(?:\/packages)?$/.test(path)) {
+        return urlLike;
+      }
       try {
         const url = new URL(urlLike, window.location.origin);
         url.searchParams.set('preview', 'true');
-        return url.pathname + url.search;
+        return /^https?:\/\//i.test(urlLike) ? url.href : `${url.pathname}${url.search}${url.hash}`;
       } catch (_err) {
         return urlLike;
       }
-    }
+    };
 
-    function sanitiseSupplier(data) {
-      if (!data || typeof data !== 'object') return data;
+    const sanitiseSupplier = data => {
+      if (!data || typeof data !== 'object') {
+        return data;
+      }
       const supplier = { ...data };
       const banner = safeImageUrl(supplier.bannerUrl || supplier.coverImage);
       const logo = safeImageUrl(supplier.logo || supplier.profileImage);
@@ -64,28 +86,42 @@
       );
       supplier.photosGallery = Array.isArray(supplier.photosGallery)
         ? supplier.photosGallery
-            .map(item => safeImageUrl(typeof item === 'string' ? item : item && (item.url || item.src)))
+            .map(item =>
+              safeImageUrl(typeof item === 'string' ? item : item && (item.url || item.src))
+            )
             .filter(Boolean)
         : [];
       supplier.isPreview = isPreview || supplier.isPreview === true;
       return supplier;
-    }
+    };
 
-    function sanitisePackageData(data) {
-      if (!data || typeof data !== 'object') return data;
+    const sanitisePackageData = data => {
+      if (!data || typeof data !== 'object') {
+        return data;
+      }
       const copy = { ...data };
-      const items = Array.isArray(copy.items) ? copy.items : Array.isArray(copy.packages) ? copy.packages : null;
+      const items = Array.isArray(copy.items)
+        ? copy.items
+        : Array.isArray(copy.packages)
+          ? copy.packages
+          : null;
       if (items) {
-        const clean = items.map(item => ({
-          ...item,
-          image: safeImageUrl(item.image || item.imageUrl),
-          imageUrl: safeImageUrl(item.imageUrl || item.image),
-        }));
-        if (Array.isArray(copy.items)) copy.items = clean;
-        if (Array.isArray(copy.packages)) copy.packages = clean;
+        const clean = items
+          .filter(item => item && typeof item === 'object')
+          .map(item => ({
+            ...item,
+            image: safeImageUrl(item.image || item.imageUrl),
+            imageUrl: safeImageUrl(item.imageUrl || item.image),
+          }));
+        if (Array.isArray(copy.items)) {
+          copy.items = clean;
+        }
+        if (Array.isArray(copy.packages)) {
+          copy.packages = clean;
+        }
       }
       return copy;
-    }
+    };
 
     if (!window.__supplierProfileFetchPreflight && window.fetch) {
       window.__supplierProfileFetchPreflight = true;
@@ -93,9 +129,16 @@
       window.fetch = async function supplierProfileFetch(input, init) {
         const originalUrl = typeof input === 'string' ? input : input && input.url;
         const patchedUrl = appendPreview(originalUrl);
-        const requestInput = typeof input === 'string' ? patchedUrl : input;
+        let requestInput = input;
+        if (typeof input === 'string') {
+          requestInput = patchedUrl;
+        } else if (patchedUrl !== originalUrl && typeof Request !== 'undefined') {
+          requestInput = new Request(new URL(patchedUrl, window.location.origin).href, input);
+        }
+
         const response = await originalFetch(requestInput, init);
-        if (!originalUrl || !/^\/api\/suppliers\/[^/]+/.test(originalUrl)) {
+        const path = supplierApiPath(originalUrl);
+        if (!path.startsWith('/api/suppliers/')) {
           return response;
         }
         const clone = response.clone();
@@ -104,7 +147,7 @@
             if (prop === 'json') {
               return async () => {
                 const data = await clone.json();
-                return /\/packages(?:\?|$)/.test(originalUrl)
+                return path.endsWith('/packages')
                   ? sanitisePackageData(data)
                   : sanitiseSupplier(data);
               };
@@ -123,7 +166,7 @@
       safeTel,
     };
 
-    function loadProfilePolish() {
+    const loadProfilePolish = () => {
       if (document.getElementById('supplier-profile-public-polish-script')) {
         return;
       }
@@ -132,7 +175,7 @@
       script.src = '/assets/js/pages/supplier-profile-public-polish.js?v=1.0.0';
       script.defer = true;
       document.body.appendChild(script);
-    }
+    };
 
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', loadProfilePolish);

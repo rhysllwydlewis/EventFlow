@@ -6,7 +6,9 @@ const DEFAULT_MAX_IMAGE_CHARS = 1200000;
 const DATA_IMAGE_RE = /^data:image\/(png|jpe?g|webp|gif);base64,[a-z0-9+/]+={0,2}$/i;
 
 function text(value, max = 500) {
-  if (value === null || value === undefined) return '';
+  if (value === null || value === undefined) {
+    return '';
+  }
   return stripHtml(String(value)).trim().slice(0, max);
 }
 
@@ -26,17 +28,25 @@ function bool(value) {
 
 function safeImageUrl(value, max = DEFAULT_MAX_IMAGE_CHARS) {
   const cleaned = text(value, max);
-  if (!cleaned) return '';
-  const lower = cleaned.toLowerCase();
-  if (lower.startsWith('https://') || lower.startsWith('http://') || DATA_IMAGE_RE.test(cleaned)) {
+  if (!cleaned) {
+    return '';
+  }
+  if (DATA_IMAGE_RE.test(cleaned)) {
     return cleaned;
   }
-  return '';
+  try {
+    const parsed = new URL(cleaned);
+    return ['https:', 'http:'].includes(parsed.protocol) ? parsed.href : '';
+  } catch (_err) {
+    return '';
+  }
 }
 
 function safeExternalUrl(value) {
   const cleaned = text(value, 500);
-  if (!cleaned) return '';
+  if (!cleaned) {
+    return '';
+  }
   try {
     const parsed = new URL(cleaned);
     return ['https:', 'http:'].includes(parsed.protocol) ? parsed.href : '';
@@ -51,30 +61,42 @@ function safePhone(value) {
 }
 
 function safeStringArray(items, maxItems = 12, maxLen = 120) {
-  if (!Array.isArray(items)) return [];
-  return items.map(item => text(item, maxLen)).filter(Boolean).slice(0, maxItems);
+  if (!Array.isArray(items)) {
+    return [];
+  }
+  return items
+    .map(item => text(item, maxLen))
+    .filter(Boolean)
+    .slice(0, maxItems);
 }
 
 function safeSocialLinks(socialLinks = {}) {
+  const source = socialLinks && typeof socialLinks === 'object' ? socialLinks : {};
   const allowed = ['facebook', 'instagram', 'twitter', 'linkedin', 'youtube', 'tiktok'];
   return allowed.reduce((acc, platform) => {
-    const safe = safeExternalUrl(socialLinks[platform]);
-    if (safe) acc[platform] = safe;
+    const safe = safeExternalUrl(source[platform]);
+    if (safe) {
+      acc[platform] = safe;
+    }
     return acc;
   }, {});
 }
 
 function safeVerifications(verifications = {}) {
+  const source = verifications && typeof verifications === 'object' ? verifications : {};
   return {
-    email: { verified: bool(verifications.email?.verified) },
-    phone: { verified: bool(verifications.phone?.verified) },
-    business: { verified: bool(verifications.business?.verified) },
+    email: { verified: bool(source.email?.verified) },
+    phone: { verified: bool(source.phone?.verified) },
+    business: { verified: bool(source.business?.verified) },
   };
 }
 
 function safeBadgeDetails(badges = []) {
-  if (!Array.isArray(badges)) return [];
+  if (!Array.isArray(badges)) {
+    return [];
+  }
   return badges
+    .map(badge => (badge && typeof badge === 'object' ? badge : {}))
     .map(badge => ({
       id: maybeText(badge.id, 80),
       type: maybeText(badge.type, 80),
@@ -88,99 +110,110 @@ function safeBadgeDetails(badges = []) {
 }
 
 function safePublicPackage(pkg = {}, resolveImage) {
-  const image = typeof resolveImage === 'function' ? resolveImage(pkg) : pkg.image || pkg.imageUrl;
+  const source = pkg && typeof pkg === 'object' ? pkg : {};
+  const image =
+    typeof resolveImage === 'function' ? resolveImage(source) : source.image || source.imageUrl;
   return {
-    id: maybeText(pkg.id, 100),
-    slug: maybeText(pkg.slug, 120),
-    supplierId: maybeText(pkg.supplierId, 100),
-    title: maybeText(pkg.title || pkg.name, 160) || 'Package',
-    name: maybeText(pkg.name || pkg.title, 160),
-    description: maybeText(pkg.description, 800),
-    description_short: maybeText(pkg.description_short || pkg.descriptionShort, 240),
-    price: maybeText(pkg.price || pkg.price_display || pkg.priceDisplay, 80),
-    price_display: maybeText(pkg.price_display || pkg.priceDisplay || pkg.price, 80),
-    priceDisplay: maybeText(pkg.priceDisplay || pkg.price_display || pkg.price, 80),
+    id: maybeText(source.id, 100),
+    slug: maybeText(source.slug, 120),
+    supplierId: maybeText(source.supplierId, 100),
+    title: maybeText(source.title || source.name, 160) || 'Package',
+    name: maybeText(source.name || source.title, 160),
+    description: maybeText(source.description, 800),
+    description_short: maybeText(source.description_short || source.descriptionShort, 240),
+    price: maybeText(source.price || source.price_display || source.priceDisplay, 80),
+    price_display: maybeText(source.price_display || source.priceDisplay || source.price, 80),
+    priceDisplay: maybeText(source.priceDisplay || source.price_display || source.price, 80),
     image: safeImageUrl(image),
-    imageUrl: safeImageUrl(pkg.imageUrl || image),
+    imageUrl: safeImageUrl(source.imageUrl || image),
   };
 }
 
 function safeTopPackages(packages = []) {
-  if (!Array.isArray(packages)) return [];
-  return packages.map(pkg => safePublicPackage(pkg)).slice(0, 4);
+  if (!Array.isArray(packages)) {
+    return [];
+  }
+  return packages
+    .filter(pkg => pkg && typeof pkg === 'object')
+    .map(pkg => safePublicPackage(pkg))
+    .slice(0, 4);
 }
 
 function safePublicSupplier(supplier = {}, extras = {}) {
-  const bannerUrl = safeImageUrl(supplier.bannerUrl || supplier.coverImage);
-  const logo = safeImageUrl(supplier.logo || supplier.profileImage);
-  const website = safeExternalUrl(supplier.website);
-  const socialLinks = safeSocialLinks(supplier.socialLinks);
-  const rating = numberOrNull(supplier.averageRating ?? supplier.rating);
-  const reviewCount = numberOrNull(supplier.reviewCount);
-  const avgResponseTime = numberOrNull(supplier.avgResponseTime);
+  const source = supplier && typeof supplier === 'object' ? supplier : {};
+  const extra = extras && typeof extras === 'object' ? extras : {};
+  const bannerUrl = safeImageUrl(source.bannerUrl || source.coverImage);
+  const logo = safeImageUrl(source.logo || source.profileImage);
+  const website = safeExternalUrl(source.website);
+  const socialLinks = safeSocialLinks(source.socialLinks);
+  const rating = numberOrNull(source.averageRating ?? source.rating);
+  const reviewCount = numberOrNull(source.reviewCount);
+  const avgResponseTime = numberOrNull(source.avgResponseTime);
 
   return {
-    id: maybeText(supplier.id, 100),
-    name: maybeText(supplier.name, 140) || 'Supplier',
-    category: maybeText(supplier.category, 100),
-    location: maybeText(supplier.location, 180),
-    postcode: maybeText(supplier.postcode || supplier.venuePostcode, 32),
-    tagline: maybeText(supplier.tagline, 220),
-    description: maybeText(supplier.description || supplier.description_short, 1200),
-    description_short: maybeText(supplier.description_short, 320),
-    description_long: maybeText(supplier.description_long, 5000),
-    metaDescription: maybeText(supplier.metaDescription, 260),
+    id: maybeText(source.id, 100),
+    name: maybeText(source.name, 140) || 'Supplier',
+    category: maybeText(source.category, 100),
+    location: maybeText(source.location, 180),
+    postcode: maybeText(source.postcode || source.venuePostcode, 32),
+    tagline: maybeText(source.tagline, 220),
+    description: maybeText(source.description || source.description_short, 1200),
+    description_short: maybeText(source.description_short, 320),
+    description_long: maybeText(source.description_long, 5000),
+    metaDescription: maybeText(source.metaDescription, 260),
     bannerUrl,
     coverImage: bannerUrl,
-    openGraphImage: safeImageUrl(supplier.openGraphImage || bannerUrl || logo),
+    openGraphImage: safeImageUrl(source.openGraphImage || bannerUrl || logo),
     logo,
     profileImage: logo,
-    themeColor: /^#[0-9a-f]{6}$/i.test(String(supplier.themeColor || ''))
-      ? String(supplier.themeColor).trim()
+    themeColor: /^#[0-9a-f]{6}$/i.test(String(source.themeColor || ''))
+      ? String(source.themeColor).trim()
       : null,
-    priceRange: maybeText(supplier.priceRange || supplier.price_display, 80),
-    price_display: maybeText(supplier.price_display || supplier.priceRange, 80),
-    priceHint: maybeText(supplier.priceHint || supplier.price_display, 80),
+    priceRange: maybeText(source.priceRange || source.price_display, 80),
+    price_display: maybeText(source.price_display || source.priceRange, 80),
+    priceHint: maybeText(source.priceHint || source.price_display, 80),
     website,
-    phone: safePhone(supplier.phone),
-    maxGuests: numberOrNull(supplier.maxGuests),
-    amenities: safeStringArray(supplier.amenities, 24, 80),
-    highlights: safeStringArray(supplier.highlights, 5, 80),
-    featuredServices: safeStringArray(supplier.featuredServices, 10, 100),
+    phone: safePhone(source.phone),
+    maxGuests: numberOrNull(source.maxGuests),
+    amenities: safeStringArray(source.amenities, 24, 80),
+    highlights: safeStringArray(source.highlights, 5, 80),
+    featuredServices: safeStringArray(source.featuredServices, 10, 100),
     socialLinks,
-    photosGallery: Array.isArray(supplier.photosGallery)
-      ? supplier.photosGallery
+    photosGallery: Array.isArray(source.photosGallery)
+      ? source.photosGallery
           .map(item => safeImageUrl(typeof item === 'string' ? item : item?.url || item?.src))
           .filter(Boolean)
           .slice(0, 24)
       : [],
-    completedEvents: numberOrNull(supplier.completedEvents),
-    createdAt: maybeText(supplier.createdAt, 40),
+    completedEvents: numberOrNull(source.completedEvents),
+    createdAt: maybeText(source.createdAt, 40),
     avgResponseTime,
     rating,
     averageRating: rating,
     reviewCount,
-    verified: bool(supplier.verified || supplier.approved),
-    approved: bool(supplier.approved),
-    emailVerified: bool(supplier.emailVerified || supplier.verifications?.email?.verified),
-    phoneVerified: bool(supplier.phoneVerified || supplier.verifications?.phone?.verified),
-    businessVerified: bool(supplier.businessVerified || supplier.verifications?.business?.verified),
-    verifications: safeVerifications(supplier.verifications),
-    insurance: bool(supplier.insurance),
-    license: maybeText(supplier.license, 120),
-    isFoundingSupplier: bool(supplier.isFoundingSupplier || supplier.isFounding || supplier.founding),
-    isFounding: bool(supplier.isFounding || supplier.isFoundingSupplier || supplier.founding),
-    founding: bool(supplier.founding || supplier.isFoundingSupplier || supplier.isFounding),
-    foundingYear: numberOrNull(supplier.foundingYear),
-    featured: bool(supplier.featured || extras.featuredSupplier),
-    featuredSupplier: bool(extras.featuredSupplier || supplier.featuredSupplier),
-    isPro: bool(extras.isPro || supplier.isPro),
-    subscriptionTier: maybeText(supplier.subscriptionTier || supplier.subscription?.tier, 40),
-    subscription: supplier.subscription?.tier ? { tier: maybeText(supplier.subscription.tier, 40) } : undefined,
-    badges: safeStringArray(supplier.badges, 24, 80),
-    badgeDetails: safeBadgeDetails(extras.badgeDetails || supplier.badgeDetails),
-    topPackages: safeTopPackages(supplier.topPackages),
-    isPreview: bool(extras.isPreview),
+    verified: bool(source.verified || source.approved),
+    approved: bool(source.approved),
+    emailVerified: bool(source.emailVerified || source.verifications?.email?.verified),
+    phoneVerified: bool(source.phoneVerified || source.verifications?.phone?.verified),
+    businessVerified: bool(source.businessVerified || source.verifications?.business?.verified),
+    verifications: safeVerifications(source.verifications),
+    insurance: bool(source.insurance),
+    license: maybeText(source.license, 120),
+    isFoundingSupplier: bool(source.isFoundingSupplier || source.isFounding || source.founding),
+    isFounding: bool(source.isFounding || source.isFoundingSupplier || source.founding),
+    founding: bool(source.founding || source.isFoundingSupplier || source.isFounding),
+    foundingYear: numberOrNull(source.foundingYear),
+    featured: bool(source.featured || extra.featuredSupplier),
+    featuredSupplier: bool(extra.featuredSupplier || source.featuredSupplier),
+    isPro: bool(extra.isPro || source.isPro),
+    subscriptionTier: maybeText(source.subscriptionTier || source.subscription?.tier, 40),
+    subscription: source.subscription?.tier
+      ? { tier: maybeText(source.subscription.tier, 40) }
+      : undefined,
+    badges: safeStringArray(source.badges, 24, 80),
+    badgeDetails: safeBadgeDetails(extra.badgeDetails || source.badgeDetails),
+    topPackages: safeTopPackages(source.topPackages),
+    isPreview: bool(extra.isPreview),
   };
 }
 

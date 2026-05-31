@@ -10,18 +10,17 @@
   const isDevelopment =
     window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   const currentPath = window.location.pathname;
+  const dashboardRoles = {
+    '/dashboard/customer': 'customer',
+    '/dashboard-customer.html': 'customer',
+    '/dashboard/supplier': 'supplier',
+    '/dashboard-supplier.html': 'supplier',
+    '/admin': 'admin',
+    '/admin.html': 'admin',
+  };
 
   function requiredRoleForPath(path) {
-    if (path === '/dashboard/customer' || path === '/dashboard-customer.html') {
-      return 'customer';
-    }
-    if (path === '/dashboard/supplier' || path === '/dashboard-supplier.html') {
-      return 'supplier';
-    }
-    if (path === '/admin' || path === '/admin.html' || path.startsWith('/admin-')) {
-      return 'admin';
-    }
-    return null;
+    return dashboardRoles[path] || (path.startsWith('/admin-') ? 'admin' : null);
   }
 
   function installCustomerDashboardFetchGuard() {
