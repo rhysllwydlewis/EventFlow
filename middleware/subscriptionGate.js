@@ -1,1 +1,83 @@
-// test
+/**
+ * Subscription-based feature gating middleware.
+ */
+
+'use strict';
+
+const subscriptionService = require('../services/subscriptionService');
+const logger = require('../utils/logger');
+const dbUnified = require('../db-unified');
+const { TIER_LEVELS } = require('../models/Subscription');
+
+async function resolveEffectiveTier(userId) {
+  const subscription = await subscriptionService.getSubscriptionByUserId(userId);
+
+  if (subscription) {
+    if (subscriptionService.isLiveEntitlement(subscription)) {
+      return { tier: subscription.plan, subscription };
+    }
+    return { tier: 'free', subscription: null };
+  }
+
+  const users = await dbUnified.read('users');
+  const user = users.find(u => u.id === userId);
+  if (user && user.subscriptionTier && user.subscriptionTier !== 'free') {
+    if (user.proExpiresAt && new Date(user.proExpiresAt) > new Date()) {
+      return { tier: user.subscriptionTier, subscription: null };
+    }
+  }
+
+  return { tier: 'free', subscription: null };
+}
+
+function requireSubscription(minTier = 'free') {
+  return async (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    try {
+      const { tier, subscription } = await resolveEffectiveTier(req.user.id);
+      if ((TIER_LEVELS[tier] || 0) >= (TIER_LEVELS[minTier] || 0)) {
+        req.subscription = subscription;
+        req.subscriptionTier = tier;
+        return next();
+      }
+
+      return res.status(403).json({
+        error: 'Subscription upgrade required',
+        currentTier: tier,
+        requiredTier: minTier,
+        upgradeUrl: '/supplier/subscription.html',
+      });
+    } catch (error) {
+      logger.error('Error checking subscription:', error);
+      return res.status(500).json({ error: 'Failed to check subscription status' });
+    }
+  };
+}
+
+function checkFeatureLimit(feature) {
+  return async (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    try {
+      const hasAccess = await subscriptionService.checkFeatureAccess(req.user.id, feature);
+      if (hasAccess) {
+        return next();
+      }
+
+      return res.status(403).json({
+        error: "Feature '" + feature + "' requires subscription upgrade",
+        upgradeUrl: '/supplier/subscription.html',
+      });
+    } catch (error) {
+      logger.error('Error checking feature access:', error);
+      return res.status(500).json({ error: 'Failed to check feature access' });
+    }
+  };
+}
+
+module.exports = { requireSubscription, checkFeatureLimit, resolveEffectiveTier, TIER_LEVELS };
