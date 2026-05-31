@@ -564,7 +564,8 @@ async function handleSubscribe(planId) {
       credentials: 'include',
       body: JSON.stringify({
         planId: plan.id,
-        returnUrl: successUrl,
+        successUrl,
+        cancelUrl: `${window.location.origin}/supplier/subscription?billing=cancelled`,
       }),
     });
 

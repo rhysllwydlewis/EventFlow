@@ -11,8 +11,6 @@ const { authRequired } = require('../middleware/auth');
 const { writeLimiter } = require('../middleware/rateLimits');
 const { csrfProtection } = require('../middleware/csrf');
 const dbUnified = require('../db-unified');
-const mongoDb = require('../db');
-const NotificationService = require('../services/notification.service');
 const { uid } = require('../store');
 const { processWebhookEvent } = require('../webhooks/stripeWebhookHandler');
 const {
@@ -44,7 +42,13 @@ try {
 
 const STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || '';
 const STRIPE_PRO_INTRO_COUPON_ID = process.env.STRIPE_PRO_INTRO_COUPON_ID || '';
-const INTRO_PRICING_ENABLED = Boolean(process.env.STRIPE_PRO_PRICE_ID && STRIPE_PRO_INTRO_COUPON_ID);
+const STRIPE_PRO_PRICE_ID = process.env.STRIPE_PRO_PRICE_ID || null;
+const STRIPE_PRO_YEARLY_PRICE_ID = process.env.STRIPE_PRO_YEARLY_PRICE_ID || null;
+const STRIPE_PRO_PLUS_PRICE_ID = process.env.STRIPE_PRO_PLUS_PRICE_ID || null;
+const STRIPE_PRO_PLUS_YEARLY_PRICE_ID = process.env.STRIPE_PRO_PLUS_YEARLY_PRICE_ID || null;
+const INTRO_PRICING_ENABLED = Boolean(
+  process.env.STRIPE_PRO_PRICE_ID && STRIPE_PRO_INTRO_COUPON_ID
+);
 
 function ensureStripeEnabled(req, res, next) {
   if (!STRIPE_ENABLED || !stripe) {
@@ -56,24 +60,32 @@ function ensureStripeEnabled(req, res, next) {
   next();
 }
 
-async function getNotificationService() {
-  try {
-    const db = await mongoDb.getDb();
-    const wsServer = global.wsServerV2 || null;
-    return new NotificationService(db, wsServer);
-  } catch (err) {
-    logger.warn('Could not create NotificationService for payments route:', err.message);
-    return null;
-  }
-}
-
 function checkoutRequestToPlan(body = {}) {
   return body.planId || body.plan || body.planName;
 }
 
+function getSubscriptionTier(planName, billingInterval = 'month') {
+  const resolved = resolvePriceIdForRequest(planName, billingInterval);
+  return resolved?.planId || null;
+}
+
+function legacyPriceIdFallback(planName, billingInterval = 'month') {
+  const resolved = resolvePriceIdForRequest(planName, billingInterval);
+  const tier = getSubscriptionTier(planName, billingInterval);
+  const interval = resolved?.billingInterval || 'month';
+  const priceIds = {
+    pro: { month: STRIPE_PRO_PRICE_ID, year: STRIPE_PRO_YEARLY_PRICE_ID },
+    pro_plus: { month: STRIPE_PRO_PLUS_PRICE_ID, year: STRIPE_PRO_PLUS_YEARLY_PRICE_ID },
+  };
+  return priceIds[tier]?.[interval] || null;
+}
+
 async function getOrCreateStripeCustomer(user) {
   const existingPayments = await dbUnified.find('payments', { userId: user.id });
-  const existingCustomerId = existingPayments.find(p => p.stripeCustomerId)?.stripeCustomerId;
+  const subscriptions = await dbUnified.find('subscriptions', { userId: user.id });
+  const existingCustomerId =
+    existingPayments.find(p => p.stripeCustomerId)?.stripeCustomerId ||
+    subscriptions.find(s => s.stripeCustomerId)?.stripeCustomerId;
 
   if (existingCustomerId) {
     try {
@@ -141,10 +153,15 @@ router.post(
         });
       }
 
-      if (!resolved.priceId) {
+      const fallbackPriceId = legacyPriceIdFallback(
+        checkoutRequestToPlan(req.body),
+        resolved.billingInterval
+      );
+      const stripePriceId = resolved.priceId || fallbackPriceId;
+      if (!stripePriceId) {
         return res.status(503).json({
           error: 'Payment processing is not currently available. Please contact support.',
-          message: `No Stripe price is configured for ${resolved.planId} (${resolved.billingInterval}).`,
+          message: `Price ID is required for subscriptions. No Stripe price is configured for ${resolved.planId} (${resolved.billingInterval}).`,
         });
       }
 
@@ -170,7 +187,7 @@ router.post(
           '/payment-success?session_id={CHECKOUT_SESSION_ID}'
         ),
         cancel_url: normaliseReturnUrl(cancelUrl, '/payment-cancel'),
-        line_items: [{ price: resolved.priceId, quantity: 1 }],
+        line_items: [{ price: stripePriceId, quantity: 1 }],
         metadata,
         subscription_data: { metadata },
       };
@@ -180,6 +197,7 @@ router.post(
         sessionConfig.metadata.introPricing = 'true';
         sessionConfig.subscription_data.metadata.introPricing = 'true';
       } else {
+        // Allow customers to use Stripe promotion codes when no intro coupon is applied.
         sessionConfig.allow_promotion_codes = true;
       }
 
@@ -212,7 +230,8 @@ router.post(
       const statusCode = error.type === 'StripeInvalidRequestError' ? 400 : 500;
       res.status(statusCode).json({
         error: 'Failed to create checkout session',
-        message: statusCode === 400 ? 'Invalid payment request. Please contact support.' : error.message,
+        message:
+          statusCode === 400 ? 'Invalid payment request. Please contact support.' : error.message,
       });
     }
   }
@@ -228,7 +247,10 @@ router.post(
     try {
       const user = req.user;
       const existingPayments = await dbUnified.find('payments', { userId: user.id });
-      const stripeCustomerId = existingPayments.find(p => p.stripeCustomerId)?.stripeCustomerId;
+      const subscriptions = await dbUnified.find('subscriptions', { userId: user.id });
+      const stripeCustomerId =
+        existingPayments.find(p => p.stripeCustomerId)?.stripeCustomerId ||
+        subscriptions.find(s => s.stripeCustomerId)?.stripeCustomerId;
 
       if (!stripeCustomerId) {
         return res.status(404).json({
@@ -271,7 +293,9 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
         STRIPE_WEBHOOK_SECRET
       );
     } else if (process.env.NODE_ENV === 'production') {
-      return res.status(400).json({ error: 'Webhook signature verification required in production' });
+      return res
+        .status(400)
+        .json({ error: 'Webhook signature verification required in production' });
     } else {
       event = JSON.parse(req.body.toString());
     }
@@ -281,6 +305,7 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
   }
 
   try {
+    // processWebhookEvent handles checkout.session.completed and all supported Stripe events.
     await processWebhookEvent(event);
     res.json({ received: true });
   } catch (error) {
@@ -330,12 +355,13 @@ router.get('/', authRequired, async (req, res) => {
 router.get('/:id', authRequired, async (req, res) => {
   try {
     const payments = await dbUnified.find('payments', { id: req.params.id, userId: req.user.id });
-    if (payments.length === 0) return res.status(404).json({ error: 'Payment not found' });
+    if (payments.length === 0) {
+      return res.status(404).json({ error: 'Payment not found' });
+    }
     res.json({ success: true, payment: payments[0] });
   } catch (error) {
     logger.error('Error fetching payment:', error);
     res.status(500).json({ error: 'Failed to fetch payment', message: error.message });
   }
 });
-
 module.exports = router;

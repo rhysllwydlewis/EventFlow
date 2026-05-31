@@ -16,21 +16,90 @@ const {
 const logger = require('../utils/logger');
 
 function isFuture(value) {
-  if (!value) return false;
+  if (!value) {
+    return false;
+  }
   const parsed = new Date(value);
   return Number.isFinite(parsed.getTime()) && parsed > new Date();
 }
 
 function isLiveEntitlement(subscription) {
-  if (!subscription) return false;
-  if (subscription.status !== 'active' && subscription.status !== 'trialing') return false;
-  if (subscription.plan === 'free') return true;
-  return isFuture(subscription.currentPeriodEnd) || isFuture(subscription.trialEnd);
+  if (!subscription) {
+    return false;
+  }
+  if (subscription.status !== 'active' && subscription.status !== 'trialing') {
+    return false;
+  }
+  if (subscription.plan === 'free') {
+    return true;
+  }
+  if (isFuture(subscription.currentPeriodEnd) || isFuture(subscription.trialEnd)) {
+    return true;
+  }
+  return (
+    !subscription.stripeSubscriptionId &&
+    !subscription.currentPeriodEnd &&
+    subscription.status === 'active'
+  );
+}
+
+function addBillingPeriod(startIso, billingInterval = 'month') {
+  const start = startIso ? new Date(startIso) : new Date();
+  if (!Number.isFinite(start.getTime())) {
+    return null;
+  }
+  const end = new Date(start);
+  if (billingInterval === 'year') {
+    end.setFullYear(end.getFullYear() + 1);
+  } else {
+    end.setMonth(end.getMonth() + 1);
+  }
+  return end.toISOString();
+}
+
+function resolveSubscriptionStatus({ status, trialEnd }) {
+  if (status) {
+    return status;
+  }
+  if (trialEnd) {
+    return 'trialing';
+  }
+  return 'active';
 }
 
 async function persistUserSubscriptionState(userId, updates) {
   const nowIso = new Date().toISOString();
-  await dbUnified.updateOne('users', { id: userId }, { $set: { ...updates, updatedAt: nowIso } });
+  const state = { ...updates, updatedAt: nowIso };
+  await dbUnified.updateOne('users', { id: userId }, { $set: state });
+
+  const supplierState = {};
+  if (Object.prototype.hasOwnProperty.call(updates, 'subscriptionTier')) {
+    supplierState.subscriptionTier = updates.subscriptionTier;
+  }
+  if (Object.prototype.hasOwnProperty.call(updates, 'isPro')) {
+    supplierState.isPro = updates.isPro;
+  }
+  if (Object.prototype.hasOwnProperty.call(updates, 'proExpiresAt')) {
+    supplierState.proExpiresAt = updates.proExpiresAt;
+  }
+
+  if (Object.keys(supplierState).length > 0) {
+    try {
+      const suppliers = await dbUnified.read('suppliers');
+      const ownedSuppliers = suppliers.filter(s => s.ownerUserId === userId);
+      await Promise.all(
+        ownedSuppliers.map(supplier =>
+          dbUnified.updateOne(
+            'suppliers',
+            { id: supplier.id },
+            { $set: { ...supplierState, updatedAt: nowIso } }
+          )
+        )
+      );
+    } catch (err) {
+      logger.warn('Unable to sync supplier subscription badges:', err.message);
+    }
+  }
 }
 
 async function createSubscription({
@@ -44,21 +113,28 @@ async function createSubscription({
   currentPeriodEnd = null,
   discountName = null,
   discountPercent = null,
+  status = null,
 }) {
   const now = new Date().toISOString();
   const trialEndIso = trialEnd ? trialEnd.toISOString() : null;
+  const resolvedStatus = resolveSubscriptionStatus({ status, trialEnd, plan });
+  const resolvedCurrentPeriodEnd =
+    currentPeriodEnd ||
+    (resolvedStatus === 'active' && plan !== 'free'
+      ? addBillingPeriod(currentPeriodStart || now, billingInterval || 'month')
+      : null);
   const subscription = {
     id: store.uid('sub'),
     userId,
     plan,
-    status: trialEnd ? 'trialing' : 'active',
+    status: resolvedStatus,
     stripeSubscriptionId: stripeSubscriptionId || null,
     stripeCustomerId: stripeCustomerId || null,
     trialStart: trialEnd ? now : null,
     trialEnd: trialEndIso,
     currentPeriodStart: currentPeriodStart || now,
-    currentPeriodEnd: currentPeriodEnd || null,
-    nextBillingDate: currentPeriodEnd || trialEndIso,
+    currentPeriodEnd: resolvedCurrentPeriodEnd,
+    nextBillingDate: resolvedCurrentPeriodEnd || trialEndIso,
     cancelAtPeriodEnd: false,
     canceledAt: null,
     cancelReason: null,
@@ -76,7 +152,9 @@ async function createSubscription({
     subscriptionId: subscription.id,
     subscriptionTier: isLiveEntitlement(subscription) ? plan : 'free',
     isPro: isLiveEntitlement(subscription) && plan !== 'free',
-    proExpiresAt: subscription.currentPeriodEnd || subscription.trialEnd || null,
+    proExpiresAt: isLiveEntitlement(subscription)
+      ? subscription.currentPeriodEnd || subscription.trialEnd || null
+      : null,
   });
   return subscription;
 }
@@ -88,7 +166,20 @@ async function getSubscription(subscriptionId) {
 
 async function getSubscriptionByUserId(userId) {
   const subscriptions = await dbUnified.read('subscriptions');
-  return subscriptions.find(s => s.userId === userId && s.status !== 'canceled') || null;
+  return (
+    subscriptions
+      .filter(s => s.userId === userId && s.status !== 'canceled')
+      .sort((a, b) => {
+        const aLive = isLiveEntitlement(a) ? 1 : 0;
+        const bLive = isLiveEntitlement(b) ? 1 : 0;
+        if (aLive !== bLive) {
+          return bLive - aLive;
+        }
+        return (
+          new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0)
+        );
+      })[0] || null
+  );
 }
 
 async function getSubscriptionByStripeId(stripeSubscriptionId) {
@@ -98,7 +189,9 @@ async function getSubscriptionByStripeId(stripeSubscriptionId) {
 
 async function updateSubscription(subscriptionId, updates) {
   const subscription = await getSubscription(subscriptionId);
-  if (!subscription) throw new Error('Subscription not found');
+  if (!subscription) {
+    throw new Error('Subscription not found');
+  }
 
   const updatePayload = { ...updates, updatedAt: new Date().toISOString() };
   await dbUnified.updateOne('subscriptions', { id: subscriptionId }, { $set: updatePayload });
@@ -108,10 +201,13 @@ async function updateSubscription(subscriptionId, updates) {
     Object.prototype.hasOwnProperty.call(updates, key)
   );
   if (entitlementFieldsChanged) {
+    const hasLiveEntitlement = isLiveEntitlement(updated);
     await persistUserSubscriptionState(updated.userId, {
-      subscriptionTier: isLiveEntitlement(updated) ? updated.plan : 'free',
-      isPro: isLiveEntitlement(updated) && updated.plan !== 'free',
-      proExpiresAt: updated.currentPeriodEnd || updated.trialEnd || null,
+      subscriptionTier: hasLiveEntitlement ? updated.plan : 'free',
+      isPro: hasLiveEntitlement && updated.plan !== 'free',
+      proExpiresAt: hasLiveEntitlement
+        ? updated.currentPeriodEnd || updated.trialEnd || null
+        : null,
     });
   }
 
@@ -125,7 +221,9 @@ async function processSubscriptionPlanChange(subscription, newPlan) {
 
   if (!subscription.stripeSubscriptionId) {
     if (priceDifference !== 0) {
-      logger.info(`Plan change from ${subscription.plan} to ${newPlan}: no Stripe subscription linked`);
+      logger.info(
+        `Plan change from ${subscription.plan} to ${newPlan}: no Stripe subscription linked`
+      );
     }
     return;
   }
@@ -144,15 +242,33 @@ async function processSubscriptionPlanChange(subscription, newPlan) {
   }
 
   const stripeSub = await stripe.subscriptions.retrieve(subscription.stripeSubscriptionId);
-  const currentItem = stripeSub.items.data[0];
-  if (!currentItem) throw new Error('No items found on Stripe subscription');
+  const currentItem = stripeSub.items?.data?.[0];
+  if (!currentItem) {
+    logger.warn('Stripe subscription has no items; skipping plan change');
+    return;
+  }
 
-  if (newPlan === 'free') return;
+  if (newPlan === 'free') {
+    return;
+  }
 
   const { resolvePriceId } = require('../config/billingPlans');
-  const interval = currentItem.price?.recurring?.interval || subscription.billingInterval || 'month';
-  const newPriceId = resolvePriceId(newPlan, interval);
-  if (!newPriceId) throw new Error(`No Stripe price ID configured for plan ${newPlan} (${interval})`);
+  const interval =
+    currentItem.price?.recurring?.interval || subscription.billingInterval || 'month';
+  const envPriceIds = {
+    pro: { month: process.env.STRIPE_PRO_PRICE_ID, year: process.env.STRIPE_PRO_YEARLY_PRICE_ID },
+    pro_plus: {
+      month: process.env.STRIPE_PRO_PLUS_PRICE_ID,
+      year: process.env.STRIPE_PRO_PLUS_YEARLY_PRICE_ID,
+    },
+  };
+  const newPriceId = resolvePriceId(newPlan, interval) || envPriceIds[newPlan]?.[interval] || null;
+  if (!newPriceId) {
+    logger.warn(
+      `No Stripe price ID configured for plan ${newPlan} (${interval}); skipping plan change`
+    );
+    return;
+  }
 
   const isUpgrade = priceDifference > 0;
   await stripe.subscriptions.update(subscription.stripeSubscriptionId, {
@@ -164,15 +280,23 @@ async function processSubscriptionPlanChange(subscription, newPlan) {
 
 async function upgradeSubscription(subscriptionId, newPlan, { skipStripe = false } = {}) {
   const subscription = await getSubscription(subscriptionId);
-  if (!subscription) throw new Error('Subscription not found');
+  if (!subscription) {
+    throw new Error('Subscription not found');
+  }
 
   const planHierarchy = ['free', 'pro', 'pro_plus'];
   const currentIndex = planHierarchy.indexOf(subscription.plan);
   const newIndex = planHierarchy.indexOf(newPlan);
-  if (newIndex === -1) throw new Error(`Unknown plan: ${newPlan}`);
-  if (newIndex <= currentIndex) throw new Error('New plan must be higher tier than current plan');
+  if (newIndex === -1) {
+    throw new Error(`Unknown plan: ${newPlan}`);
+  }
+  if (newIndex <= currentIndex) {
+    throw new Error('New plan must be higher tier than current plan');
+  }
 
-  if (!skipStripe) await processSubscriptionPlanChange(subscription, newPlan);
+  if (!skipStripe) {
+    await processSubscriptionPlanChange(subscription, newPlan);
+  }
 
   return updateSubscription(subscriptionId, {
     plan: newPlan,
@@ -184,22 +308,32 @@ async function upgradeSubscription(subscriptionId, newPlan, { skipStripe = false
 
 async function downgradeSubscription(subscriptionId, newPlan, { skipStripe = false } = {}) {
   const subscription = await getSubscription(subscriptionId);
-  if (!subscription) throw new Error('Subscription not found');
+  if (!subscription) {
+    throw new Error('Subscription not found');
+  }
 
   const planHierarchy = ['free', 'pro', 'pro_plus'];
   const currentIndex = planHierarchy.indexOf(subscription.plan);
   const newIndex = planHierarchy.indexOf(newPlan);
-  if (newIndex === -1) throw new Error(`Unknown plan: ${newPlan}`);
-  if (newIndex >= currentIndex) throw new Error('New plan must be lower tier than current plan');
+  if (newIndex === -1) {
+    throw new Error(`Unknown plan: ${newPlan}`);
+  }
+  if (newIndex >= currentIndex) {
+    throw new Error('New plan must be lower tier than current plan');
+  }
 
-  if (!skipStripe) await processSubscriptionPlanChange(subscription, newPlan);
+  if (!skipStripe) {
+    await processSubscriptionPlanChange(subscription, newPlan);
+  }
 
   return updateSubscription(subscriptionId, { pendingPlan: newPlan, cancelAtPeriodEnd: true });
 }
 
 async function applyPendingPlan(subscriptionId) {
   const subscription = await getSubscription(subscriptionId);
-  if (!subscription || !subscription.pendingPlan) return null;
+  if (!subscription || !subscription.pendingPlan) {
+    return null;
+  }
   const updated = await updateSubscription(subscriptionId, {
     plan: subscription.pendingPlan,
     pendingPlan: null,
@@ -215,7 +349,9 @@ async function applyPendingPlan(subscriptionId) {
 
 async function cancelSubscription(subscriptionId, reason = null, immediately = false) {
   const subscription = await getSubscription(subscriptionId);
-  if (!subscription) throw new Error('Subscription not found');
+  if (!subscription) {
+    throw new Error('Subscription not found');
+  }
 
   const updates = { canceledAt: new Date().toISOString(), cancelReason: reason };
   if (immediately) {
@@ -248,28 +384,38 @@ async function getFallbackUserTier(userId) {
 
 async function checkFeatureAccess(userId, feature) {
   const subscription = await getSubscriptionByUserId(userId);
-  if (subscription) return hasFeature(isLiveEntitlement(subscription) ? subscription.plan : 'free', feature);
+  if (subscription) {
+    return hasFeature(isLiveEntitlement(subscription) ? subscription.plan : 'free', feature);
+  }
   return hasFeature(await getFallbackUserTier(userId), feature);
 }
 
 async function getUserFeatures(userId) {
   const subscription = await getSubscriptionByUserId(userId);
-  if (subscription) return getPlanFeatures(isLiveEntitlement(subscription) ? subscription.plan : 'free');
+  if (subscription) {
+    return getPlanFeatures(isLiveEntitlement(subscription) ? subscription.plan : 'free');
+  }
   return getPlanFeatures(await getFallbackUserTier(userId));
 }
 
 async function enforceActivePackageLimit(userId) {
   const features = await getUserFeatures(userId);
   const maxPackages = features.features.maxPackages;
-  if (maxPackages === -1) return [];
+  if (maxPackages === -1) {
+    return [];
+  }
 
   const allSuppliers = await dbUnified.read('suppliers');
   const supplierIds = allSuppliers.filter(s => s.ownerUserId === userId).map(s => s.id);
-  if (supplierIds.length === 0) return [];
+  if (supplierIds.length === 0) {
+    return [];
+  }
 
   const allPkgs = await dbUnified.read('packages');
   const activePkgs = allPkgs.filter(p => supplierIds.includes(p.supplierId) && p.paused !== true);
-  if (activePkgs.length <= maxPackages) return [];
+  if (activePkgs.length <= maxPackages) {
+    return [];
+  }
 
   const sorted = [...activePkgs].sort((a, b) => {
     const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
@@ -279,7 +425,11 @@ async function enforceActivePackageLimit(userId) {
   const toPause = sorted.slice(0, sorted.length - maxPackages);
   const pausedIds = [];
   for (const pkg of toPause) {
-    await dbUnified.updateOne('packages', { id: pkg.id }, { $set: { paused: true, updatedAt: Date.now() } });
+    await dbUnified.updateOne(
+      'packages',
+      { id: pkg.id },
+      { $set: { paused: true, updatedAt: Date.now() } }
+    );
     pausedIds.push(pkg.id);
   }
   return pausedIds;
@@ -287,7 +437,9 @@ async function enforceActivePackageLimit(userId) {
 
 async function addBillingRecord(subscriptionId, billingRecord) {
   const subscription = await getSubscription(subscriptionId);
-  if (!subscription) throw new Error('Subscription not found');
+  if (!subscription) {
+    throw new Error('Subscription not found');
+  }
   const billingHistory = subscription.billingHistory || [];
   billingHistory.push({
     invoiceId: billingRecord.invoiceId,
@@ -308,15 +460,25 @@ async function updateBillingDates(subscriptionId, periodStart, periodEnd) {
 }
 
 function isInTrial(subscription) {
-  return !!subscription?.trialEnd && isFuture(subscription.trialEnd) && subscription.status === 'trialing';
+  return (
+    !!subscription?.trialEnd &&
+    isFuture(subscription.trialEnd) &&
+    subscription.status === 'trialing'
+  );
 }
 
 async function listSubscriptions(filters = {}) {
   const subscriptions = await dbUnified.read('subscriptions');
   let result = subscriptions;
-  if (filters.status) result = result.filter(s => s.status === filters.status);
-  if (filters.plan) result = result.filter(s => s.plan === filters.plan);
-  if (filters.userId) result = result.filter(s => s.userId === filters.userId);
+  if (filters.status) {
+    result = result.filter(s => s.status === filters.status);
+  }
+  if (filters.plan) {
+    result = result.filter(s => s.plan === filters.plan);
+  }
+  if (filters.userId) {
+    result = result.filter(s => s.userId === filters.userId);
+  }
   return result;
 }
 

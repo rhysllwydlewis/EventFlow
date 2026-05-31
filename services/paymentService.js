@@ -81,11 +81,14 @@ async function getOrCreateStripeCustomer(user) {
     throw new Error('Stripe is not configured');
   }
 
-  // Check if user already has a customer ID
-  const payments = await dbUnified.read('payments');
-  const existingCustomerId = payments.find(
-    p => p.userId === user.id && p.stripeCustomerId
-  )?.stripeCustomerId;
+  // Check if user already has a customer ID from either legacy payments or v2 subscriptions.
+  const [payments, subscriptions] = await Promise.all([
+    dbUnified.read('payments'),
+    dbUnified.read('subscriptions'),
+  ]);
+  const existingCustomerId =
+    payments.find(p => p.userId === user.id && p.stripeCustomerId)?.stripeCustomerId ||
+    subscriptions.find(s => s.userId === user.id && s.stripeCustomerId)?.stripeCustomerId;
 
   if (existingCustomerId) {
     try {
@@ -302,7 +305,8 @@ async function handleFailedPayment(subscriptionId, invoice) {
   // Avoid circular dependency by lazy loading
   const subscriptionService = require('./subscriptionService');
 
-  // Update subscription status to past_due
+  // Update subscription status to past_due and let the subscription service revoke
+  // user entitlements immediately.
   await subscriptionService.updateSubscription(subscriptionId, {
     status: 'past_due',
   });

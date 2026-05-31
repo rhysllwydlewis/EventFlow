@@ -33,7 +33,7 @@ describe('Stripe Checkout — allow_promotion_codes', () => {
 
     it('only sets allow_promotion_codes when NOT using intro pricing', () => {
       // Verify it is inside the else branch of `if (useIntroPricing)`
-      const elseIdx = src.indexOf('} else {\n          // Allow customers');
+      const elseIdx = src.search(/} else \{\n\s*\/\/ Allow customers/);
       expect(elseIdx).toBeGreaterThan(-1);
       const promoIdx = src.indexOf('allow_promotion_codes = true', elseIdx);
       expect(promoIdx).toBeGreaterThan(elseIdx);
@@ -45,7 +45,7 @@ describe('Stripe Checkout — allow_promotion_codes', () => {
       // We verify this by confirming the assignment `sessionConfig.allow_promotion_codes = true`
       // does NOT appear before the else branch.
       const introPricingStart = src.indexOf('if (useIntroPricing) {');
-      const elseIdx = src.indexOf('} else {\n          // Allow customers');
+      const elseIdx = src.search(/} else \{\n\s*\/\/ Allow customers/);
       expect(introPricingStart).toBeGreaterThan(-1);
       expect(elseIdx).toBeGreaterThan(introPricingStart);
 

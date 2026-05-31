@@ -293,94 +293,43 @@ describe('Payment Routes', () => {
 });
 
 // ---------------------------------------------------------------------------
-// Source-level checks for notification wiring in routes/payments.js
+// Source-level checks for hardened payment route behaviour
 // ---------------------------------------------------------------------------
 
 const fs = require('fs');
 const path = require('path');
 const paymentsSource = fs.readFileSync(path.join(process.cwd(), 'routes/payments.js'), 'utf8');
 
-describe('Payment Routes — Notification wiring (source-level)', () => {
-  describe('handleCheckoutCompleted', () => {
-    // Isolate the function body to make assertions specific
-    const fnStart = paymentsSource.indexOf('async function handleCheckoutCompleted(');
-    const fnEnd = paymentsSource.indexOf('\nasync function handleSubscriptionCreated(');
-    const fnBody = paymentsSource.slice(fnStart, fnEnd);
-
-    it('uses session.amount_total for the charged amount, not payment.amount', () => {
-      expect(fnBody).toContain('session.amount_total');
-    });
-
-    it('does not fall through to payment.type for notification description', () => {
-      // The fallback chain should NOT include `payment.type` — that would show
-      // the raw string 'one_time' in user-facing notification messages.
-      const descriptionLine = fnBody
-        .split('\n')
-        .find(l => l.includes('const description') && l.includes('planName'));
-      expect(descriptionLine).toBeDefined();
-      expect(descriptionLine).not.toContain('payment.type');
-    });
-
-    it('only fires notifyBookingUpdate for one_time payments', () => {
-      // The booking-update notification must be guarded by a payment.type check
-      const bookingBlock = fnBody.slice(fnBody.indexOf('notifyBookingUpdate'));
-      // Walk backwards from notifyBookingUpdate to find the nearest if condition
-      const precedingCode = fnBody.slice(0, fnBody.indexOf('notifyBookingUpdate'));
-      expect(precedingCode).toContain("payment.type === 'one_time'");
-    });
+describe('Payment Routes — hardened checkout and portal source checks', () => {
+  it('rejects client-priced one-time payments on the legacy checkout endpoint', () => {
+    expect(paymentsSource).toContain('Client-priced one-time payments are disabled');
+    expect(paymentsSource).toContain("type !== 'subscription'");
   });
 
-  describe('one_time checkout session creation', () => {
-    // Isolate the one_time line_items block
-    const oneTimeBlock = paymentsSource.slice(
-      paymentsSource.indexOf("if (type === 'one_time') {"),
-      paymentsSource.indexOf('} else {\n        // Subscription')
+  it('resolves Stripe prices server-side from canonical plan requests', () => {
+    expect(paymentsSource).toContain(
+      'resolvePriceIdForRequest(checkoutRequestToPlan(req.body), billingInterval)'
     );
-
-    it('uses planName as the Stripe product name for one_time payments', () => {
-      expect(oneTimeBlock).toContain('planName || ');
-      expect(oneTimeBlock).toContain("'EventFlow Payment'");
-      // The product name line must reference planName
-      const productNameLine = oneTimeBlock
-        .split('\n')
-        .find(l => l.includes('name:') && l.includes('planName'));
-      expect(productNameLine).toBeDefined();
-    });
-
-    it('stores planName in session metadata for one_time payments', () => {
-      expect(oneTimeBlock).toContain('sessionConfig.metadata.planName');
-    });
+    expect(paymentsSource).toContain('stripePriceId');
   });
 
-  describe('handleSubscriptionDeleted', () => {
-    const fnStart = paymentsSource.indexOf('async function handleSubscriptionDeleted(');
-    const fnEnd = paymentsSource.indexOf('\nasync function handlePaymentSucceeded(');
-    const fnBody = paymentsSource.slice(fnStart, fnEnd);
-
-    it('calls notifySystem after cancellation', () => {
-      expect(fnBody).toContain('notifySystem');
-    });
-
-    it('includes a link to /settings/billing', () => {
-      expect(fnBody).toContain('/settings/billing');
-    });
+  it('supports distinct Pro and Pro Plus legacy price fallbacks without trusting client price IDs', () => {
+    expect(paymentsSource).toContain('STRIPE_PRO_PRICE_ID');
+    expect(paymentsSource).toContain('STRIPE_PRO_PLUS_PRICE_ID');
+    expect(paymentsSource).toContain('STRIPE_PRO_PLUS_YEARLY_PRICE_ID');
+    expect(paymentsSource).toContain('priceIds[tier]?.[interval]');
   });
 
-  describe('handlePaymentFailed', () => {
-    const fnStart = paymentsSource.indexOf('async function handlePaymentFailed(');
-    const fnEnd = paymentsSource.indexOf('\n/**\n * @swagger\n * /api/payments/config:');
-    const fnBody = paymentsSource.slice(fnStart, fnEnd);
+  it('creates billing portal sessions from payment or subscription customer IDs', () => {
+    expect(paymentsSource).toContain("dbUnified.find('payments'");
+    expect(paymentsSource).toContain("dbUnified.find('subscriptions'");
+    expect(paymentsSource).toContain('stripe.billingPortal.sessions.create');
+  });
 
-    it('calls notifySystem after a failed payment', () => {
-      expect(fnBody).toContain('notifySystem');
-    });
-
-    it('includes the Stripe failure reason in the notification message', () => {
-      expect(fnBody).toContain('last_payment_error?.message');
-    });
-
-    it('notifies the payment owner (payment.userId)', () => {
-      expect(fnBody).toContain('payment.userId');
-    });
+  it('keeps the legacy webhook endpoint in-process and points operators to the v2 webhook', () => {
+    expect(paymentsSource).toContain("router.post('/webhook'");
+    expect(paymentsSource).toContain('/api/v2/webhooks/stripe');
+    expect(paymentsSource).toContain('processWebhookEvent(event)');
+    expect(paymentsSource).not.toContain('redirect(');
   });
 });

@@ -39,19 +39,11 @@ async function supplierIsProActive(userIdOrSupplier) {
     const subscription = await subscriptionService.getSubscriptionByUserId(userId);
 
     if (subscription) {
-      // Check subscription is active and not expired
-      if (!['active', 'trialing'].includes(subscription.status)) {
-        return false;
-      }
-
-      // Verify current period hasn't ended
-      if (subscription.currentPeriodEnd && new Date(subscription.currentPeriodEnd) < new Date()) {
-        return false;
-      }
-
-      // Pro or higher tier
       const validPlans = ['pro', 'pro_plus', 'enterprise'];
-      return validPlans.includes(subscription.plan);
+      return (
+        subscriptionService.isLiveEntitlement(subscription) &&
+        validPlans.includes(subscription.plan)
+      );
     }
 
     // 2. Fall back to admin-granted Pro flags on the supplier document itself.

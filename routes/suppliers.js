@@ -67,6 +67,35 @@ function applyAuthRequired(req, res, next) {
   return authRequired(req, res, next);
 }
 
+async function resolveEffectiveSupplierTier(supplier) {
+  if (!supplier?.ownerUserId) {
+    return supplier?.subscriptionTier || (supplier?.isPro ? 'pro' : 'free');
+  }
+
+  const subscription = await subscriptionService.getSubscriptionByUserId(supplier.ownerUserId);
+  if (subscriptionService.isLiveEntitlement(subscription)) {
+    return subscription.plan;
+  }
+
+  const expiry = supplier.proExpiresAt || supplier.subscription?.endDate || null;
+  if (supplier.subscriptionTier && supplier.subscriptionTier !== 'free') {
+    if (!expiry || new Date(expiry) > new Date()) {
+      return supplier.subscriptionTier;
+    }
+  }
+  if (supplier.subscription?.tier && supplier.subscription.tier !== 'free') {
+    if (!expiry || new Date(expiry) > new Date()) {
+      return supplier.subscription.tier;
+    }
+  }
+  if (supplier.isPro) {
+    if (!expiry || new Date(expiry) > new Date()) {
+      return 'pro';
+    }
+  }
+  return 'free';
+}
+
 function applyRoleRequired(role) {
   return (req, res, next) => {
     if (!roleRequired) {
@@ -143,11 +172,13 @@ router.get('/suppliers', async (req, res) => {
     const itemsWithMeta = await Promise.all(
       items.map(async s => {
         const featuredSupplier = pkgs.some(p => p.supplierId === s.id && p.featured);
-        const isProActive = await supplierIsProActive(s);
+        const subscriptionTier = await resolveEffectiveSupplierTier(s);
+        const isProActive = subscriptionTier !== 'free';
         return {
           ...s,
           featuredSupplier,
           isPro: isProActive,
+          subscriptionTier,
           proExpiresAt: s.proExpiresAt || null,
         };
       })
@@ -206,7 +237,8 @@ router.get('/suppliers/:id', async (req, res) => {
 
     const pkgs = await dbUnified.read('packages');
     const featuredSupplier = pkgs.some(p => p.supplierId === sRaw.id && p.featured);
-    const isProActive = await supplierIsProActive(sRaw);
+    const subscriptionTier = await resolveEffectiveSupplierTier(sRaw);
+    const isProActive = subscriptionTier !== 'free';
 
     // Enrich badges array: look up full badge definitions for each badge ID
     let badgeDetails = [];
@@ -235,6 +267,7 @@ router.get('/suppliers/:id', async (req, res) => {
       ...sRaw,
       featuredSupplier,
       isPro: isProActive,
+      subscriptionTier,
       proExpiresAt: sRaw.proExpiresAt || null,
       badgeDetails,
     };
@@ -293,10 +326,9 @@ router.get('/me/suppliers', applyAuthRequired, applyRoleRequired('supplier'), as
     // Fetch the user's subscription once and attach the plan name to every supplier object
     // so the client-side tier checks (s.subscriptionTier === 'pro') work correctly.
     const userSubscription = await subscriptionService.getSubscriptionByUserId(req.user.id);
-    const subscriptionTier =
-      userSubscription && ['active', 'trialing'].includes(userSubscription.status)
-        ? userSubscription.plan
-        : null;
+    const subscriptionTier = subscriptionService.isLiveEntitlement(userSubscription)
+      ? userSubscription.plan
+      : null;
     const list = await Promise.all(
       listRaw.map(async s => ({
         ...s,
