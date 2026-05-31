@@ -2,45 +2,29 @@
 
 This PR addresses the highest-risk items raised in the payment, subscription, pricing and access-control audit.
 
-## What this PR changes
+## Implemented changes
 
-- Adds `config/billingPlans.js` as the canonical server-side billing plan registry.
-- Maps supported plan aliases such as `pro_yearly` and `pro_plus_monthly` to canonical `planId` and `billingInterval` values.
-- Resolves Stripe price IDs on the server from environment variables instead of relying on browser-supplied price IDs.
-- Normalises checkout return URLs back to the configured `BASE_URL` origin to avoid off-site redirects.
-- Adds unit tests proving that Professional Plus resolves to its own price ID and does not silently fall back to the Professional price.
-- Adds unit tests for unknown plan rejection and return URL origin protection.
-
-## Follow-up wiring required before merge
-
-The repo currently has two checkout entry points:
-
-- `routes/payments.js`, legacy `/api/v1/payments/create-checkout-session`
-- `routes/subscriptions-v2.js`, current `/api/v2/subscriptions/create-checkout-session`
-
-The new registry is intentionally isolated and tested first so the route wiring can be reviewed cleanly. The next commit in this PR should replace local plan maps in both routes with:
-
-```js
-const {
-  resolvePriceIdForRequest,
-  normaliseReturnUrl,
-} = require('../config/billingPlans');
-```
-
-and only accept `planId` plus optional `billingInterval` from the client. Do not accept client-provided `priceId`, `amount`, `currency`, `successUrl` or `cancelUrl` as billing authority.
+- Added `config/billingPlans.js` as the canonical server-side billing plan registry.
+- Wired the registry into both live checkout entry points: `routes/payments.js` and `routes/subscriptions-v2.js`.
+- Stopped subscription checkout from trusting browser-supplied `priceId`, `amount`, `currency`, `successUrl` or `cancelUrl` as billing authority.
+- Resolved Stripe price IDs server-side from canonical `planId` and `billingInterval`.
+- Preserved compatibility for legacy plan names such as `Professional Plus` while normalising them to canonical `pro_plus`.
+- Added canonical `planId` and `billingInterval` metadata to Checkout Sessions and Stripe subscriptions.
+- Added Stripe idempotency keys for Checkout creation and plan-change calls.
+- Normalised checkout and billing portal return URLs to the configured EventFlow origin.
+- Hardened webhook provisioning so missing or unknown paid plan metadata is rejected instead of defaulting to Pro.
+- Closed the paid-access-after-Stripe-deletion gap by never granting a paid tier once the Stripe subscription has ended.
+- Hardened feature gating so paid access requires an active/trialing subscription with a valid period or trial end.
+- Added unit tests for plan resolution, aliases, invalid intervals and off-origin return URLs.
 
 ## Acceptance checks
 
-Run:
+Run before merging:
 
 ```bash
 npm test -- tests/unit/billingPlans.test.js --runInBand
-```
-
-Then wire the registry into the two checkout routes and run:
-
-```bash
 npm run test:ci
+npm run lint
 ```
 
 ## Deployment notes
@@ -53,6 +37,7 @@ STRIPE_PRO_PLUS_PRICE_ID=price_...
 STRIPE_PRO_YEARLY_PRICE_ID=price_...
 STRIPE_PRO_PLUS_YEARLY_PRICE_ID=price_...
 BASE_URL=https://event-flow.co.uk
+STRIPE_WEBHOOK_SECRET=whsec_...
 ```
 
-Do not configure `pro_plus` to use the `STRIPE_PRO_PRICE_ID` fallback. That was one of the key audit findings.
+Do not configure `pro_plus` to use `STRIPE_PRO_PRICE_ID`. `pro_plus` must use `STRIPE_PRO_PLUS_PRICE_ID` or checkout will be rejected.
