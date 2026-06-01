@@ -2,7 +2,7 @@
  * Customer Dashboard Improvements
  * Design tokens and CSS classes for the customer dashboard
  * Modelled after supplier-dashboard-improvements.css
- * Version: 1.0.0
+ * Version: 1.0.1
  */
 
 /* ===========================================
@@ -2166,5 +2166,66 @@ body.customer-dashboard-page .customer-calendar-card .fc-daygrid-day-frame {
 body.customer-dashboard-page .customer-calendar-card .fc-event-title,
 body.customer-dashboard-page .customer-calendar-next-up__title {
   text-transform: none;
+}
+
+/* ===========================================
+   35. EMAIL VERIFICATION BANNER
+       Companion CSS for the dynamically-created
+       #email-verify-banner in dashboard-customer-init.js.
+       Inline styles will override these, but having
+       semantic classes here improves maintainability
+       and dark-mode / high-contrast coverage.
+   =========================================== */
+#email-verify-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: var(--ef-radius-md, 10px);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+#email-verify-banner > span:first-child {
+  flex: 1;
+  color: #78350f;
+}
+
+#email-verify-banner button {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid #d97706;
+  border-radius: var(--ef-radius-sm, 6px);
+  padding: 0.25rem 0.75rem;
+  cursor: pointer;
+  color: #92400e;
+  font-size: 0.8rem;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+#email-verify-banner button:hover,
+#email-verify-banner button:focus-visible {
+  background: #d97706;
+  color: #fff;
+  outline: none;
+}
+
+#email-verify-banner button:focus-visible {
+  outline: 2px solid #d97706;
+  outline-offset: 2px;
+}
+
+@media (prefers-contrast: more) {
+  #email-verify-banner {
+    border-width: 2px;
+    border-color: #92400e;
+    background: #fef3c7;
+  }
 }
 
