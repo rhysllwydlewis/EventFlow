@@ -1112,10 +1112,6 @@
         if (desc || loc || entryType) {
           const tooltip = document.createElement('div');
           tooltip.className = 'calendar-tooltip';
-          tooltip.style.cssText =
-            'display:none;position:fixed;background:#fff;border:1px solid #e5e7eb;' +
-            'border-radius:8px;padding:8px 12px;box-shadow:0 4px 12px rgba(0,0,0,.12);' +
-            'z-index:9999;max-width:260px;font-size:0.85rem;pointer-events:none;';
 
           const typeLabel = entryType
             ? `<span style="font-size:0.75rem;text-transform:capitalize;color:#6b7280;">${escapeHtml(entryType)}</span><br>`
@@ -1137,11 +1133,12 @@
           info.el.addEventListener('mouseenter', () => {
             document.body.appendChild(tooltip);
             const rect = info.el.getBoundingClientRect();
-            tooltip.style.display = 'block';
+            tooltip.classList.add('is-visible');
             tooltip.style.left = `${Math.min(rect.left, window.innerWidth - 280)}px`;
             tooltip.style.top = `${rect.bottom + 6}px`;
           });
           info.el.addEventListener('mouseleave', () => {
+            tooltip.classList.remove('is-visible');
             if (tooltip.parentNode) {
               tooltip.parentNode.removeChild(tooltip);
             }
@@ -1187,3 +1184,4 @@
     initSupplierCalendar();
   }
 })();
+

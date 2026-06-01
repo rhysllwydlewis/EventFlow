@@ -85,8 +85,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (navigator.clipboard) {
         navigator.clipboard.writeText(url).then(
           () => {
-            if (typeof Toast !== 'undefined') {
-              Toast.success('Review link copied!');
+            if (typeof showToast === 'function') {
+              showToast('Review link copied!', 'success');
             } else {
               this.textContent = '✅ Copied!';
               setTimeout(() => {
@@ -104,3 +104,4 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 });
+

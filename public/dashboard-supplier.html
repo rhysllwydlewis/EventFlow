@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
   <meta name="ef-page" content="dash_supplier">
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Supplier dashboard — EventFlow</title>
+    <title>Supplier Dashboard — EventFlow</title>
 <meta name="robots" content="noindex,nofollow">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
@@ -32,12 +32,13 @@
     <link rel="stylesheet" href="/assets/css/supplier-utils.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/profile-health.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/dashboard-mobile.css?v=1.0.0" />
-    <script src="/assets/js/dashboard-guard.js?v=17.0.2"></script>
+    <script src="/assets/js/dashboard-guard.js?v=18.3.0"></script>
     <script src="/assets/js/toast-notifications.js?v=18.3.0"></script>
     <script src="/assets/js/pages/dashboard-supplier-inline.js" defer></script>
   <link rel="stylesheet" href="/messenger/css/messenger-widget-v4.css">
   </head>
   <body class="supplier-dashboard-page">
+    <a href="#main-content" class="skip-to-content">Skip to main content</a>
     <!--
       Liquid Glass SVG Filter Definitions — Mobile (≤768px)
       Injected statically for CSS backdrop-filter: url(#...) references.
@@ -858,7 +859,6 @@
           </div>
         </div>
 
-        <script src="/assets/js/pages/dashboard-supplier-category.js"></script>
 
         <!-- Section Divider -->
         <div class="sd-section-divider" role="separator" aria-hidden="true">
@@ -1054,7 +1054,7 @@
                     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                   </svg>
                 </div>
-                <div style="display: flex; align-items: center; gap: 0.75rem">
+                <div class="sd-messages-heading-row">
                   <h3 id="messages-heading" class="sd-card-header__heading">Messages</h3>
                   <span
                     id="unreadMessageBadge"
@@ -1105,13 +1105,13 @@
           </div>
           <!-- Lead Quality Summary Stats -->
           <div class="sd-card-body">
-          <div id="lead-quality-summary-stats" style="display:none;padding:0.75rem 1rem;margin-bottom:0.75rem;background:#F9FAFB;border-radius:8px;border:1px solid #E5E7EB;">
-            <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap;">
-              <span style="font-size:0.8125rem;font-weight:600;color:#374151;">Lead Quality:</span>
-              <span id="lqs-high" style="font-size:0.8125rem;display:inline-flex;align-items:center;gap:0.25rem;"><span style="width:8px;height:8px;border-radius:50%;background:#10b981;display:inline-block;"></span><span id="lqs-high-text">0 High</span></span>
-              <span id="lqs-medium" style="font-size:0.8125rem;display:inline-flex;align-items:center;gap:0.25rem;"><span style="width:8px;height:8px;border-radius:50%;background:#f59e0b;display:inline-block;"></span><span id="lqs-medium-text">0 Medium</span></span>
-              <span id="lqs-low" style="font-size:0.8125rem;display:inline-flex;align-items:center;gap:0.25rem;"><span style="width:8px;height:8px;border-radius:50%;background:#ef4444;display:inline-block;"></span><span id="lqs-low-text">0 Low</span></span>
-              <span id="lqs-pct" style="font-size:0.8125rem;color:#6B7280;margin-left:auto;"></span>
+          <div id="lead-quality-summary-stats" class="sd-lqs-bar" hidden>
+            <div class="sd-lqs-row">
+              <span class="sd-lqs-label">Lead Quality:</span>
+              <span id="lqs-high" class="sd-lqs-item"><span class="sd-lqs-dot sd-lqs-dot--high" aria-hidden="true"></span><span id="lqs-high-text">0 High</span></span>
+              <span id="lqs-medium" class="sd-lqs-item"><span class="sd-lqs-dot sd-lqs-dot--medium" aria-hidden="true"></span><span id="lqs-medium-text">0 Medium</span></span>
+              <span id="lqs-low" class="sd-lqs-item"><span class="sd-lqs-dot sd-lqs-dot--low" aria-hidden="true"></span><span id="lqs-low-text">0 Low</span></span>
+              <span id="lqs-pct" class="sd-lqs-pct"></span>
             </div>
           </div>
           <!-- Messenger Dashboard Widget -->
@@ -1240,17 +1240,17 @@
             <div class="ef-stat-card">
               <div class="ef-stat-label">Total Revenue</div>
               <div class="ef-stat-value" aria-label="Not available">—</div>
-              <div class="ef-stat-change" style="color: var(--ef-text-light, #9ca3af)">Not yet tracked</div>
+              <div class="ef-stat-change ef-stat-change--muted">Not yet tracked</div>
             </div>
             <div class="ef-stat-card">
               <div class="ef-stat-label">This Month</div>
               <div class="ef-stat-value" aria-label="Not available">—</div>
-              <div class="ef-stat-change" style="color: var(--ef-text-light, #9ca3af)">Coming soon</div>
+              <div class="ef-stat-change ef-stat-change--muted">Coming soon</div>
             </div>
             <div class="ef-stat-card">
               <div class="ef-stat-label">Pending</div>
               <div class="ef-stat-value" aria-label="Not available">—</div>
-              <div class="ef-stat-change" style="color: var(--ef-text-light, #9ca3af)">Coming soon</div>
+              <div class="ef-stat-change ef-stat-change--muted">Coming soon</div>
             </div>
           </div>
 
@@ -1362,15 +1362,15 @@
           </div>
 
           <div class="sd-card-body">
-            <div id="sup-cal-permission-notice" style="margin-bottom:1rem;padding:0.85rem 1rem;border-radius:0.75rem;background:#f0fdfa;border:1px solid #99f6e4;color:#115e59;"></div>
-            <div id="sup-my-public-events" style="margin-bottom:1rem;"></div>
+            <div id="sup-cal-permission-notice" class="sup-cal-permission-notice"></div>
+            <div id="sup-my-public-events" class="sup-my-public-events"></div>
             <div id="sup-cal-legend" class="supplier-calendar-legend" aria-label="Calendar colour legend">
               <span class="cal-legend-item"><span class="cal-legend-dot" style="background:#0b8073;"></span>My events</span>
               <span class="cal-legend-item"><span class="cal-legend-dot" style="background:#e11d48;"></span>Public events</span>
               <span class="cal-legend-item"><span class="cal-legend-dot" style="background:#7c3aed;"></span>Saved</span>
               <span class="cal-legend-item"><span class="cal-legend-dot" style="background:#6366f1;"></span>Meeting</span>
               <span class="cal-legend-item"><span class="cal-legend-dot" style="background:#f59e0b;"></span>Appointment</span>
-              <span class="cal-legend-item"><span class="cal-legend-dot" style="background:#0b8073;"></span>Entry</span>
+
             </div>
             <div id="supplier-events-calendar" class="supplier-calendar-viewport"></div>
           </div>
@@ -1456,9 +1456,8 @@
             </div>
             <div class="sd-card-header__actions">
               <button
-                class="glass-btn glass-btn--primary"
+                class="glass-btn glass-btn--primary sd-ticket-create-btn"
                 id="createSupplierTicketBtn"
-                style="padding: 0.625rem 1.25rem; font-size: 0.875rem"
               >
                 <svg
                   viewBox="0 0 24 24"
@@ -1469,13 +1468,13 @@
                   stroke-linejoin="round"
                   width="16"
                   height="16"
-                  style="margin-right: 0.5rem; display: inline-block; vertical-align: middle"
                   aria-hidden="true"
+                  class="sd-ticket-btn-icon"
                 >
                   <path d="M5 12h14"/>
                   <path d="M12 5v14"/>
                 </svg>
-                <span style="vertical-align: middle">Create Ticket</span>
+                <span>Create Ticket</span>
               </button>
             </div>
           </div>
@@ -1572,17 +1571,17 @@
           </div>
         </section>
 
-        <script src="/assets/js/config/page-init.js"></script>
-  <script src="/assets/js/app.js?v=18.4.0"></script>
-        <script src="/assets/js/components.js?v=18.3.0"></script>
-        <script src="/assets/js/unread-badge-manager.js?v=18.3.0"></script>
-        <script type="module" src="/assets/js/supplier-tickets.js?v=18.3.0"></script>
-        <script type="module" src="/assets/js/supplier-gallery.js?v=18.3.0"></script>
-        <script type="module" src="/assets/js/pages/dashboard-supplier-module.js"></script>
-        
-        <script src="/assets/js/pages/dashboard-supplier-auth.js"></script>
       </div>
     </main>
+    <script src="/assets/js/config/page-init.js" defer></script>
+    <script src="/assets/js/app.js?v=18.4.0" defer></script>
+    <script src="/assets/js/components.js?v=18.3.0" defer></script>
+    <script src="/assets/js/unread-badge-manager.js?v=18.3.0" defer></script>
+    <script src="/assets/js/pages/dashboard-supplier-category.js" defer></script>
+    <script type="module" src="/assets/js/supplier-tickets.js?v=18.3.0"></script>
+    <script type="module" src="/assets/js/supplier-gallery.js?v=18.3.0"></script>
+    <script type="module" src="/assets/js/pages/dashboard-supplier-module.js"></script>
+    <script src="/assets/js/pages/dashboard-supplier-auth.js" defer></script>
     <!-- BOTTOM NAVBAR - GOLD STANDARD REBUILD (Mobile Only) -->
     <nav class="ef-bottom-nav" role="navigation" aria-label="Mobile bottom navigation">
       <a href="/start" class="ef-bottom-link" aria-label="Plan your event">
@@ -1638,7 +1637,7 @@
 
       <!-- Dashboard with notification badge (shown when logged in, replaces Alerts) -->
       <a
-        href="#"
+        href="/dashboard/supplier"
         id="ef-bottom-dashboard"
         class="ef-bottom-link"
         style="display: none"
@@ -1722,7 +1721,7 @@
           <a href="/contact">Contact</a> · <a href="/legal">Legal Hub</a> ·
       <button type="button" data-cookie-prefs>Cookie preferences</button>
         </div>
-        <div class="small" style="width: 100%; margin-top: 8px; text-align: center;">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
+        <div class="footer-credit small">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
       </div>
   </footer>
     <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
@@ -1761,3 +1760,4 @@
     <script src="/assets/js/card-collapse.js" defer></script>
 </body>
 </html>
+
