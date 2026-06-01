@@ -114,6 +114,7 @@
   </script>
 </head>
 <body>
+  <a href="#main-content" class="skip-to-content">Skip to main content</a>
 <!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
 <header class="ef-header" role="banner">
   <div class="ef-container">
@@ -247,7 +248,7 @@
             src="/assets/images/hero-planning.jpg"
             alt="People planning an event together around a laptop with notebooks."
             loading="lazy"
-            style="display:block;width:100%;height:auto;"
+            class="faq-hero-img"
           >
         </div>
       </div>
@@ -259,23 +260,23 @@
       <!-- FAQ Search -->
       <div class="card" style="margin-bottom: 2rem;">
         <div style="margin-bottom: 1rem;">
-          <label for="faq-search" style="display: block; font-weight: 600; margin-bottom: 0.5rem;">
+          <label for="faq-search" class="faq-category-label">
             Search FAQs
           </label>
           <input
             type="search"
             id="faq-search"
             placeholder="Type to search questions and answers..."
-            style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px; font-size: 1rem;"
+            class="faq-search-input"
             aria-label="Search FAQ"
           >
         </div>
-        <div id="faq-count" style="color: #666; font-size: 0.9rem;" aria-live="polite"></div>
+        <div id="faq-count" class="faq-no-results" aria-live="polite"></div>
       </div>
 
       <!-- No Results Message -->
-      <div id="faq-no-results" class="card" style="display: none; text-align: center; padding: 2rem;">
-        <p style="margin-bottom: 1rem; color: #666;">No matching questions found.</p>
+      <div id="faq-no-results" class="card" class="faq-empty-state" hidden>
+        <p class="faq-empty-text">No matching questions found.</p>
         <a href="/contact" class="btn btn-primary">Contact Support</a>
       </div>
 
@@ -360,7 +361,7 @@
       <a href="/legal">Legal Hub</a> ·
       <button type="button" data-cookie-prefs>Cookie preferences</button>
     </div>
-    <div class="small" style="width: 100%; margin-top: 8px; text-align: center;">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
+    <div class="footer-credit small">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
   </div>
   </footer>
 <script src="/assets/js/app.js" defer></script>
