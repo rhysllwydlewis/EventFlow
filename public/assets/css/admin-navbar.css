@@ -1229,3 +1229,87 @@ body.admin {
     animation: none;
   }
 }
+
+/* ===========================================
+   ACTIVE PAGE INDICATOR
+   Set by highlightActivePage() in admin-navbar.js.
+   Gives admin a clear visual cue of their current section.
+   =========================================== */
+.admin-nav-btn.active,
+.admin-nav-btn[aria-current="page"] {
+  background: rgba(11, 128, 115, 0.15);
+  color: #0B8073;
+  font-weight: 600;
+}
+
+.admin-nav-btn.active .nav-icon,
+.admin-nav-btn[aria-current="page"] .nav-icon {
+  filter: none;
+  opacity: 1;
+}
+
+/* Underline accent on active link */
+.admin-nav-btn.active::after,
+.admin-nav-btn[aria-current="page"]::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60%;
+  height: 2px;
+  background: #0B8073;
+  border-radius: 2px 2px 0 0;
+}
+
+/* ===========================================
+   FOCUS-VISIBLE — keyboard accessibility
+   =========================================== */
+.admin-nav-btn:focus-visible {
+  outline: 2px solid #0B8073;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.admin-qnav-btn:focus-visible,
+.admin-user-btn:focus-visible,
+.navbar-icon-btn:focus-visible {
+  outline: 2px solid #0B8073;
+  outline-offset: 2px;
+}
+
+/* ===========================================
+   DB STATUS DOT — pulsing live-status animation
+   =========================================== */
+.db-status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  vertical-align: middle;
+  margin-right: 4px;
+  animation: db-dot-pulse 2.5s ease-in-out infinite;
+}
+
+@keyframes db-dot-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.45; transform: scale(0.75); }
+}
+
+.db-mongodb .db-status-dot  { color: #10b981; }
+.db-local .db-status-dot    { color: #f59e0b; }
+.db-loading .db-status-dot  { color: #9ca3af; }
+
+/* Stop pulsing if user prefers reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .db-status-dot { animation: none; }
+}
+
+/* ===========================================
+   IS-HIDDEN UTILITY (replaces inline display:none on badges)
+   =========================================== */
+.is-hidden {
+  display: none !important;
+}
+
