@@ -244,7 +244,7 @@
       '    <!-- Brand -->',
       '    <div class="admin-navbar-brand">',
       '      <a href="/admin" class="admin-navbar-logo">EventFlow</a>',
-      '      <span class="admin-navbar-title">Admin Panel</span>',
+      '      <span class="admin-navbar-title">Admin Dashboard</span>',
       '    </div>',
       '    <!-- Quick Nav Burger Button -->',
       '    <button class="ef-cta admin-qnav-btn" id="adminQuickNavBtn"',
@@ -394,7 +394,7 @@
 
   function buildTileHTML(item) {
     const badge = item.badgeId
-      ? `<span class="admin-qnav-tile-badge" id="${item.badgeId}" style="display:none;" aria-label="${item.label} count"></span>`
+      ? `<span class="admin-qnav-tile-badge" id="${item.badgeId}" hidden aria-label="${item.label} count"></span>`
       : '';
     const desc = item.desc ? `<span class="admin-qnav-tile-desc">${item.desc}</span>` : '';
     return [
@@ -828,9 +828,9 @@
           const count = pending.suppliers || 0;
           if (count > 0) {
             suppliersBadge.textContent = count;
-            suppliersBadge.style.display = 'flex';
+            suppliersBadge.classList.remove('is-hidden');
           } else {
-            suppliersBadge.style.display = 'none';
+            suppliersBadge.classList.add('is-hidden');
           }
         }
 
@@ -840,9 +840,9 @@
           const count = pending.packages || 0;
           if (count > 0) {
             packagesBadge.textContent = count;
-            packagesBadge.style.display = 'flex';
+            packagesBadge.classList.remove('is-hidden');
           } else {
-            packagesBadge.style.display = 'none';
+            packagesBadge.classList.add('is-hidden');
           }
         }
 
@@ -852,9 +852,9 @@
           const count = pending.publicCalendarRequests || 0;
           if (count > 0) {
             calendarBadge.textContent = count;
-            calendarBadge.style.display = 'flex';
+            calendarBadge.classList.remove('is-hidden');
           } else {
-            calendarBadge.style.display = 'none';
+            calendarBadge.classList.add('is-hidden');
           }
         }
 
@@ -864,9 +864,9 @@
           const count = pending.photos || 0;
           if (count > 0) {
             photosBadge.textContent = count;
-            photosBadge.style.display = 'flex';
+            photosBadge.classList.remove('is-hidden');
           } else {
-            photosBadge.style.display = 'none';
+            photosBadge.classList.add('is-hidden');
           }
         }
 
@@ -876,9 +876,9 @@
           const count = pending.reviews || 0;
           if (count > 0) {
             reviewsBadge.textContent = count;
-            reviewsBadge.style.display = 'flex';
+            reviewsBadge.classList.remove('is-hidden');
           } else {
-            reviewsBadge.style.display = 'none';
+            reviewsBadge.classList.add('is-hidden');
           }
         }
 
@@ -888,9 +888,9 @@
           const count = pending.reports || 0;
           if (count > 0) {
             reportsBadge.textContent = count;
-            reportsBadge.style.display = 'flex';
+            reportsBadge.classList.remove('is-hidden');
           } else {
-            reportsBadge.style.display = 'none';
+            reportsBadge.classList.add('is-hidden');
           }
         }
 
@@ -900,9 +900,9 @@
           const count = pending.tickets || data.openTickets || 0;
           if (count > 0) {
             openTicketsBadge.textContent = count;
-            openTicketsBadge.style.display = 'flex';
+            openTicketsBadge.classList.remove('is-hidden');
           } else {
-            openTicketsBadge.style.display = 'none';
+            openTicketsBadge.classList.add('is-hidden');
           }
         }
       })
@@ -912,10 +912,10 @@
         const errorContainer = document.getElementById('navErrorContainer');
         if (errorContainer) {
           errorContainer.textContent = 'Failed to load badge counts';
-          errorContainer.style.display = 'block';
+          errorContainer.classList.remove('is-hidden');
           // Hide error after 5 seconds
           setTimeout(() => {
-            errorContainer.style.display = 'none';
+            errorContainer.classList.add('is-hidden');
           }, 5000);
         }
       });
@@ -985,3 +985,4 @@
     }
   }
 })();
+
