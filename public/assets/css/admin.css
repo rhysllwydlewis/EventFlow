@@ -1253,3 +1253,36 @@ button.btn-sm.btn-primary:hover {
   }
 }
 
+/* ── Button / text polish ──────────────────────────────────────────────────── */
+
+/* Ensure all button variants inherit the site font stack */
+.btn-secondary,
+.btn-primary,
+.btn-mod,
+.btn-sm,
+.btn-brand,
+.action-btn,
+.bulk-action-select {
+  font-family: inherit;
+}
+
+/* btn-mod focus ring (was missing) */
+.btn-mod:focus-visible {
+  outline: 2px solid #0B8073;
+  outline-offset: 2px;
+}
+
+/* action-btn hover — add explicit label colour so text visibly responds */
+.action-btn:hover .action-label {
+  color: #0B8073;
+}
+
+/* Consistent focus ring on all admin interactive controls */
+.btn-secondary:focus-visible,
+.btn-primary:focus-visible,
+.btn-sm:focus-visible,
+.btn-brand:focus-visible {
+  outline: 2px solid #0B8073;
+  outline-offset: 2px;
+}
+
