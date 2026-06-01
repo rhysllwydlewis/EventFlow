@@ -93,6 +93,11 @@
   background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
 }
 
+/* Revenue / info card — blue gradient */
+.stat-card.stat-info::before {
+  background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
+}
+
 .stat-card-content {
   display: flex;
   align-items: flex-start;
@@ -624,3 +629,4 @@
     grid-template-columns: 1fr;
   }
 }
+
