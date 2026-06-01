@@ -1633,3 +1633,24 @@ body {
     font-size: var(--ef-nav-font-size-mobile) !important;
   }
 }
+
+/* ── Additional focus-visible rings (public navbar) ────────────────────── */
+.ef-auth-btn:focus-visible,
+.ef-cta:focus-visible,
+.ef-notification-btn:focus-visible,
+.ef-mobile-toggle:focus-visible,
+.ef-bottom-link:focus-visible {
+  outline: 2px solid #0B8073;
+  outline-offset: 2px;
+}
+
+/* Mobile menu: aria-modal semantics */
+#ef-mobile-menu[aria-hidden="false"] {
+  /* burger-menu.js sets aria-hidden="false" when open */
+}
+
+/* Notification badge — ensure not tab-focusable (decorative) */
+.ef-notification-badge {
+  pointer-events: none;
+}
+
