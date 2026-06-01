@@ -707,11 +707,13 @@ window.addEventListener('beforeunload', () => {
 });
 
 // Initialize widgets after page loads
-window.addEventListener('load', () => {
-  setTimeout(() => {
-    initSupplierDashboardWidgets();
-  }, 500);
-});
+// The 500ms delay has been removed — ES modules defer by default, so the DOM
+// is guaranteed ready by the time this module evaluates.
+if (document.readyState === 'complete') {
+  initSupplierDashboardWidgets();
+} else {
+  window.addEventListener('load', initSupplierDashboardWidgets, { once: true });
+}
 
 // Expose init function for external callers
 window.initSupplierDashboardWidgets = initSupplierDashboardWidgets;
@@ -1254,23 +1256,10 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function severityStyle(severity) {
-    if (severity === 'red') {
-      return {
-        bg: '#fee2e2',
-        border: '#dc2626',
-        text: '#991b1b',
-        badge: '#dc2626',
-        badgeText: '#fff',
-        label: 'Required',
-      };
-    }
+    // Returns only the label — colour styling is now handled by CSS classes
+    // (.sd-next-steps__item--red / --amber, .sd-next-steps__badge--red / --amber)
     return {
-      bg: '#fffbeb',
-      border: '#d97706',
-      text: '#92400e',
-      badge: '#d97706',
-      badgeText: '#fff',
-      label: 'Recommended',
+      label: severity === 'red' ? 'Required' : 'Recommended',
     };
   }
 
@@ -1345,4 +1334,5 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(loadNextSteps, 800);
   });
 })();
+
 
