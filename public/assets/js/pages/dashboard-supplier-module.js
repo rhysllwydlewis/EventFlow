@@ -32,8 +32,8 @@ initializeFeatureAccess().catch(err => {
 
 // Placeholder function for earnings feature (coming soon)
 window.showEarningsComingSoon = function () {
-  if (typeof Toast !== 'undefined') {
-    Toast.info('Earnings dashboard coming soon! Track your revenue, payments, and invoices.');
+  if (typeof showToast === 'function') {
+    showToast('Earnings dashboard coming soon! Track your revenue, payments, and invoices.', 'info');
   } else {
     alert('Earnings dashboard coming soon! Track your revenue, payments, and invoices.');
   }
@@ -84,22 +84,18 @@ function showEmailVerificationBanner(userEmail) {
 
   const banner = document.createElement('div');
   banner.id = 'email-verify-banner';
+  banner.className = 'sd-email-verify-banner';
   banner.setAttribute('role', 'alert');
-  banner.style.cssText =
-    'background:#fffbeb;border:1px solid #fcd34d;border-radius:8px;padding:0.75rem 1rem;' +
-    'margin-bottom:1rem;display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap;font-size:0.875rem;';
 
   const msg = document.createElement('span');
+  msg.className = 'sd-email-verify-banner__msg';
   msg.textContent =
     '⚠️ Please verify your email address to unlock all features. Check your inbox for a verification link.';
-  msg.style.flex = '1';
 
   const resendBtn = document.createElement('button');
   resendBtn.type = 'button';
+  resendBtn.className = 'sd-email-verify-banner__btn';
   resendBtn.textContent = 'Resend email';
-  resendBtn.style.cssText =
-    'background:none;border:1px solid #d97706;border-radius:6px;padding:0.25rem 0.75rem;' +
-    'cursor:pointer;color:#92400e;font-size:0.8rem;white-space:nowrap;';
 
   resendBtn.addEventListener('click', async () => {
     resendBtn.disabled = true;
@@ -583,7 +579,7 @@ function handleRealtimeNotification(data) {
     if (data.type === 'enquiry_received') {
       const enquiriesDataset = analyticsChartInstance?.data?.datasets?.[1]; // datasets[1]
 
-      if (typeof EventFlowNotifications !== 'undefined') {
+      if (typeof NotificationDispatcher !== 'undefined') {
         NotificationDispatcher.info('New enquiry received.');
       }
 
@@ -664,7 +660,7 @@ window.addEventListener('load', () => {
             clearTimeout(pendingDisconnectNoticeTimer);
             pendingDisconnectNoticeTimer = null;
           }
-          if (typeof EventFlowNotifications !== 'undefined') {
+          if (typeof NotificationDispatcher !== 'undefined') {
             NotificationDispatcher.success(
               isReconnect || hasConnectedOnce
                 ? 'Live Dashboard Reconnected'
@@ -684,7 +680,7 @@ window.addEventListener('load', () => {
           }
           pendingDisconnectNoticeTimer = setTimeout(() => {
             lastDisconnectToastAt = Date.now();
-            if (typeof EventFlowNotifications !== 'undefined') {
+            if (typeof NotificationDispatcher !== 'undefined') {
               NotificationDispatcher.warning('Live dashboard disconnected\nretrying...', 4000);
             }
             showUrgentAlert('Live updates disconnected. retrying...', 'warning');
@@ -954,7 +950,7 @@ async function updatePackageLimitDisplay() {
       const packages = packagesData.items || [];
 
       // Hide limit notice if user has packages (implementation can be enhanced later)
-      limitContainer.style.display = 'none';
+      limitContainer.classList.add('sd-hidden');
     }
   } catch (error) {
     console.error('Error checking package limit:', error);
@@ -1301,23 +1297,23 @@ document.addEventListener('DOMContentLoaded', () => {
       .map(action => {
         const s = severityStyle(action.severity);
         const ctaHtml = action.ctaUrl
-          ? `<a href="${action.ctaUrl}" style="display:inline-block;margin-top:0.5rem;padding:0.35rem 0.875rem;background:#0b8073;color:#fff;border-radius:6px;font-size:0.8rem;font-weight:600;text-decoration:none;">${action.ctaText || 'Fix now'}</a>`
+          ? `<a href="${action.ctaUrl}" class="sd-next-steps__cta">${action.ctaText || 'Fix now'}</a>`
           : '';
-        return `<div style="display:flex;gap:0.875rem;padding:0.875rem;background:${s.bg};border:1px solid ${s.border};border-radius:8px;margin-bottom:0.625rem;">
-        <div style="flex-shrink:0;margin-top:0.125rem;">
-          <span style="display:inline-block;padding:0.15rem 0.5rem;border-radius:9999px;background:${s.badge};color:${s.badgeText};font-size:0.7rem;font-weight:700;">${s.label}</span>
+        return `<div class="sd-next-steps__item sd-next-steps__item--${action.severity || 'amber'}">
+        <div class="sd-next-steps__badge-col">
+          <span class="sd-next-steps__badge sd-next-steps__badge--${action.severity || 'amber'}">${s.label}</span>
         </div>
-        <div style="flex:1;">
-          <div style="font-weight:600;color:${s.text};margin-bottom:0.25rem;">${action.title || action.key}</div>
-          <div style="font-size:0.82rem;color:${s.text};opacity:0.9;">${action.description || ''}</div>
+        <div class="sd-next-steps__content">
+          <div class="sd-next-steps__title">${action.title || action.key}</div>
+          <div class="sd-next-steps__desc">${action.description || ''}</div>
           ${ctaHtml}
         </div>
       </div>`;
       })
       .join('');
 
-    const dismissHtml = `<div style="text-align:right;margin-top:0.25rem;">
-      <button type="button" id="nextStepsDismissBtn" style="background:none;border:none;color:#94a3b8;font-size:0.78rem;cursor:pointer;padding:0.25rem 0;">Dismiss for now</button>
+    const dismissHtml = `<div class="sd-next-steps__dismiss-row">
+      <button type="button" id="nextStepsDismissBtn" class="sd-next-steps__dismiss-btn">Dismiss for now</button>
     </div>`;
 
     list.innerHTML = items + dismissHtml;
@@ -1349,3 +1345,4 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(loadNextSteps, 800);
   });
 })();
+
