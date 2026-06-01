@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Admin Panel - EventFlow</title>
+  <title>Admin Dashboard — EventFlow</title>
 <meta name="robots" content="noindex,nofollow">
   <link rel="stylesheet" href="/assets/css/tokens.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/admin-tokens.css?v=18.3.0">
@@ -54,7 +54,7 @@
   </div>
 
   <!-- Quick Stats Overview -->
-  <div class="stats-grid">
+  <div class="stats-grid" aria-live="polite" aria-label="Dashboard statistics">
     <div class="stat-card stat-primary">
       <div class="stat-icon stat-icon-purple">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
@@ -162,11 +162,11 @@
 
   <!-- Quick Actions -->
   <div class="section-header section-spacer">
-    <h2 class="section-title">Quick Actions</h2>
+    <h2 class="section-title" id="quick-actions-heading">Quick Actions</h2>
     <p class="section-description">Frequently used admin tools</p>
   </div>
 
-  <div class="quick-actions">
+  <div class="quick-actions" role="group" aria-labelledby="quick-actions-heading">
     <button id="userManagementBtn" class="ef-cta action-btn">
       <div class="action-icon">👥</div>
       <div class="action-label">User Management</div>
@@ -338,7 +338,7 @@
   <div class="data-section" id="messageModerationSection">
     <div class="data-header">
       <div class="data-controls">
-        <input id="msgModerationSearch" type="text" placeholder="Search by name, email or conversation ID…" class="search-input" style="min-width:280px">
+        <input id="msgModerationSearch" type="text" placeholder="Search by name, email or conversation ID…" class="search-input admin-messenger-search">
         <select id="msgModerationStatus" class="filter-select">
           <option value="">All statuses</option>
           <option value="active">Active</option>
@@ -349,24 +349,24 @@
       </div>
     </div>
     <div class="table-wrapper">
-      <table id="msgModerationTable" aria-label="Message Moderation" style="width:100%;border-collapse:collapse">
+      <table id="msgModerationTable" class="admin-messenger-table" aria-label="Message Moderation">
         <thead>
           <tr>
-            <th style="text-align:left;padding:0.5rem 0.75rem">Participants</th>
-            <th style="text-align:left;padding:0.5rem 0.75rem">Context</th>
-            <th style="text-align:left;padding:0.5rem 0.75rem">Last Message</th>
-            <th style="text-align:center;padding:0.5rem 0.75rem">Unread</th>
-            <th style="text-align:center;padding:0.5rem 0.75rem">Action</th>
+            <th class="admin-messenger-th" scope="col">Participants</th>
+            <th class="admin-messenger-th" scope="col">Context</th>
+            <th class="admin-messenger-th" scope="col">Last Message</th>
+            <th class="admin-messenger-th" style="text-align:center" scope="col">Unread</th>
+            <th class="admin-messenger-th" style="text-align:center" scope="col">Action</th>
           </tr>
         </thead>
         <tbody id="msgModerationBody">
-          <tr><td colspan="5" style="padding:1rem;text-align:center;opacity:0.6">Loading conversations…</td></tr>
+          <tr><td colspan="5" class="admin-messenger-state admin-messenger-state--loading">Loading conversations…</td></tr>
         </tbody>
       </table>
     </div>
-    <div id="msgModerationPager" style="display:flex;gap:0.5rem;align-items:center;padding:0.75rem 0;justify-content:flex-end">
+    <div id="msgModerationPager" class="admin-messenger-pagination">
       <button id="msgModerationPrev" class="ef-cta btn-sm" disabled>← Prev</button>
-      <span id="msgModerationPageInfo" style="font-size:0.85rem;opacity:0.7"></span>
+      <span id="msgModerationPageInfo" class="admin-messenger-page-info"></span>
       <button id="msgModerationNext" class="ef-cta btn-sm" disabled>Next →</button>
     </div>
   </div>
@@ -400,15 +400,14 @@
 
   
 
-  <script src="/assets/js/notification-system.js?v=18.3.0" defer></script>
-  <script src="/assets/js/notification-dispatcher.js?v=18.3.0" defer></script>
-  <script src="/assets/js/utils/global-error-handler.js?v=18.3.0" defer></script>
-  <script src="/assets/js/utils/sentry-browser-init.js" defer></script>
-  <script src="/assets/js/pages/admin-init.js?v=18.3.0" defer></script>
-  <script src="/assets/js/admin-features.js?v=18.3.0" defer></script>
-  <script src="/assets/js/pages/admin-messages-init.js?v=18.3.0" defer></script>
-</div>
 </main>
+<script src="/assets/js/notification-system.js?v=18.3.0" defer></script>
+<script src="/assets/js/notification-dispatcher.js?v=18.3.0" defer></script>
+<script src="/assets/js/utils/global-error-handler.js?v=18.3.0" defer></script>
+<script src="/assets/js/utils/sentry-browser-init.js" defer></script>
+<script src="/assets/js/pages/admin-init.js?v=18.3.0" defer></script>
+<script src="/assets/js/admin-features.js?v=18.3.0" defer></script>
+<script src="/assets/js/pages/admin-messages-init.js?v=18.3.0" defer></script>
 
 <footer class="footer" role="contentinfo">
   <div class="container flex-between">
@@ -427,3 +426,4 @@
 <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
 </body>
 </html>
+
