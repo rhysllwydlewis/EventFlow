@@ -44,7 +44,7 @@
   </div>
 
   <!-- Auto-approve new suppliers toggle card -->
-  <div class="card card-mt" style="margin-bottom: 24px;">
+  <div class="card card-mt">
     <div class="ap-toggle-row">
       <div class="ap-toggle-label">
         <label for="autoApproveVerificationToggle"><strong>Auto-approve new suppliers</strong></label>
@@ -61,7 +61,7 @@
   </div>
 
   <!-- Stats Overview -->
-  <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 32px;">
+  <div class="stats-grid supplier-stats-grid">
     <div class="stat-card-mini">
       <div class="stat-label">Total Suppliers</div>
       <div class="stat-value" id="totalSuppliers" aria-live="polite">—</div>
@@ -81,10 +81,10 @@
   </div>
 
   <!-- Filters -->
-  <div class="filter-panel" style="background: white; padding: 20px; border-radius: 12px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
-    <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;" role="search" aria-label="Filter suppliers">
+  <div class="filter-panel">
+    <div class="filter-row" role="search" aria-label="Filter suppliers">
       <label for="searchInput" class="sr-only">Search suppliers</label>
-      <input type="text" id="searchInput" placeholder="Search suppliers..." aria-label="Search suppliers" style="flex: 1; min-width: 250px; padding: 10px 16px; border: 1px solid #e5e7eb; border-radius: 8px;">
+      <input type="text" id="searchInput" placeholder="Search suppliers..." aria-label="Search suppliers" class="filter-search-input">
       <label for="approvalFilter" class="sr-only">Filter by approval status</label>
       <select id="approvalFilter" class="filter-select" aria-label="Filter by approval status">
         <option value="all">All Approval Status</option>
@@ -139,7 +139,7 @@
   <!-- Bulk Actions -->
   <div id="bulkActionsBar" class="supplier-bulk-actions" style="display: none;" role="toolbar" aria-label="Bulk actions for selected suppliers">
     <span id="selectedCount" aria-live="polite">0 suppliers selected</span>
-    <div style="display: flex; gap: 12px;">
+    <div class="bulk-btn-group">
       <button id="bulkApproveBtn" class="ef-cta btn-sm btn-bulk-approve">✓ Approve</button>
       <button id="bulkRejectBtn" class="ef-cta btn-sm btn-bulk-danger">✗ Reject</button>
       <button id="bulkDeleteBtn" class="ef-cta btn-sm btn-bulk-danger">🗑 Delete</button>
@@ -166,7 +166,7 @@
         </thead>
         <tbody id="suppliersTableBody">
           <tr>
-            <td colspan="9" style="text-align: center; padding: 40px; color: #9ca3af;">Loading suppliers...</td>
+            <td colspan="9" class="table-empty-state">Loading suppliers...</td>
           </tr>
         </tbody>
       </table>
@@ -174,13 +174,13 @@
   </div>
 
   <!-- Pagination -->
-  <div class="pagination" style="margin-top: 24px; display: flex; justify-content: space-between; align-items: center;" role="navigation" aria-label="Suppliers pagination">
+  <nav class="admin-pagination" role="navigation" aria-label="Suppliers pagination">
     <div id="paginationInfo" aria-live="polite">Showing 0 of 0 suppliers</div>
-    <div style="display: flex; gap: 8px;">
+    <div class="pagination-btn-group">
       <button id="prevPageBtn" class="ef-cta btn-sm" disabled aria-label="Previous page">← Previous</button>
       <button id="nextPageBtn" class="ef-cta btn-sm" disabled aria-label="Next page">Next →</button>
     </div>
-  </div>
+  </nav>
 
 </div>
 </main>
@@ -195,7 +195,7 @@
       <a href="/contact">Contact</a> ·
       <a href="/legal">Legal Hub</a> · <button type="button" data-cookie-prefs>Cookie preferences</button>
     </div>
-    <div class="small" style="width: 100%; margin-top: 8px; text-align: center;">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
+    <div class="footer-credit">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
   </div>
   </footer>
 
@@ -203,3 +203,4 @@
 <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
 </body>
 </html>
+
