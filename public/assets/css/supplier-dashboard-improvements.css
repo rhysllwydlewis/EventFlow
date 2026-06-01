@@ -9426,3 +9426,59 @@ label .required {
   margin: 0 0 1rem 0;
 }
 
+/* ── Button / text polish ──────────────────────────────────────────────────── */
+
+/* dashboard-action-chip hover — was completely missing */
+.dashboard-action-chip:hover {
+  background: rgba(11, 128, 115, 0.08);
+  border-color: rgba(11, 128, 115, 0.35);
+  color: #0B8073;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(11, 128, 115, 0.12);
+}
+
+.dashboard-action-chip:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.dashboard-action-chip:focus-visible {
+  outline: 2px solid #0B8073;
+  outline-offset: 2px;
+}
+
+/* form-toggle-btn focus-visible (was missing) */
+.form-toggle-btn:focus-visible {
+  outline: 2px solid #0B8073;
+  outline-offset: 2px;
+}
+
+/* mobile-nav-pill active state — was not defined */
+.mobile-nav-pill.active,
+.mobile-nav-pill[aria-pressed="true"] {
+  background: rgba(11, 128, 115, 0.12);
+  color: #0B8073;
+  border-color: rgba(11, 128, 115, 0.3);
+}
+
+.mobile-nav-pill.active .pill-icon svg,
+.mobile-nav-pill[aria-pressed="true"] .pill-icon svg {
+  stroke: #0B8073;
+}
+
+/* Consistent font-family on all supplier dashboard buttons */
+.form-toggle-btn,
+.dashboard-action-chip,
+.mobile-nav-pill,
+.glass-btn,
+.cta,
+.sd-reviews-cta-btn {
+  font-family: inherit;
+}
+
+/* sd-reviews-cta-btn focus-visible */
+.sd-reviews-cta-btn:focus-visible {
+  outline: 2px solid #0B8073;
+  outline-offset: 2px;
+}
+
