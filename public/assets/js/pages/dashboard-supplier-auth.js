@@ -14,7 +14,7 @@ function escapeHtml(unsafe) {
     const response = await fetch('/api/v1/auth/me', { credentials: 'include' });
     if (!response.ok) {
       // Redirect to homepage if not authenticated
-      window.location.href = '/';
+      window.location.href = '/auth';
       return;
     }
     const data = await response.json();
@@ -38,3 +38,4 @@ function escapeHtml(unsafe) {
     console.error('Failed to load user data:', error);
   }
 })();
+
