@@ -11,8 +11,8 @@ import { initCountUp } from './count-up-animation.js';
    static HTML cards so CSS sizing + currentColor rules apply uniformly. */
 
 function _enquiryTrendIconHeader() {
-  return `<div class="sd-card-header" style="margin-bottom:1rem;">
-    <div class="sd-card-header__title-row" style="display:flex;align-items:center;gap:0.75rem;">
+  return `<div class="sd-card-header">
+    <div class="sd-card-header__title-row" class="sd-chart-metric-header">
       <div class="sd-card-header__icon sd-card-header__icon--teal" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
           <rect x="2" y="3" width="20" height="15.5" rx="1.5" fill="currentColor" fill-opacity="0.06"/>
@@ -25,13 +25,13 @@ function _enquiryTrendIconHeader() {
           <circle cx="16" cy="7.5" r="1.5" fill="currentColor"/>
         </svg>
       </div>
-      <h3 style="margin:0;font-size:1.25rem;color:#0B1220;font-weight:600;">Enquiry Trends</h3>
+      <h3 class="sd-chart-metric-value">Enquiry Trends</h3>
     </div>
   </div>`;
 }
 function _funnelIconHeader() {
-  return `<div class="sd-card-header" style="margin-bottom:1rem;">
-    <div class="sd-card-header__title-row" style="display:flex;align-items:center;gap:0.75rem;">
+  return `<div class="sd-card-header">
+    <div class="sd-card-header__title-row" class="sd-chart-metric-header">
       <div class="sd-card-header__icon sd-card-header__icon--indigo" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
           <path d="M2 5h20"/>
@@ -46,14 +46,14 @@ function _funnelIconHeader() {
           <line x1="12" y1="15.5" x2="12" y2="18" stroke-width="1.5"/>
         </svg>
       </div>
-      <h3 style="margin:0;font-size:1.25rem;color:#0B1220;font-weight:600;">Conversion Funnel</h3>
+      <h3 class="sd-chart-metric-value">Conversion Funnel</h3>
     </div>
   </div>`;
 }
 
 function _stopwatchIconHeader() {
-  return `<div class="sd-card-header" style="margin-bottom:1rem;">
-    <div class="sd-card-header__title-row" style="display:flex;align-items:center;gap:0.75rem;">
+  return `<div class="sd-card-header">
+    <div class="sd-card-header__title-row" class="sd-chart-metric-header">
       <div class="sd-card-header__icon sd-card-header__icon--blue" aria-hidden="true">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="14" r="7.5" fill="currentColor" fill-opacity="0.09"/>
@@ -68,7 +68,7 @@ function _stopwatchIconHeader() {
           <line x1="4" y1="15" x2="2" y2="15.5" stroke-width="1.25"/>
         </svg>
       </div>
-      <h3 style="margin:0;font-size:1.25rem;color:#0B1220;font-weight:600;">Response Time</h3>
+      <h3 class="sd-chart-metric-value">Response Time</h3>
     </div>
   </div>`;
 }
@@ -222,10 +222,10 @@ export async function createPerformanceChart(containerId, viewsData, enquiriesDa
   const canvasId = `${containerId}-canvas`;
 
   const html = `
-    <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
-      <button class="chart-period-btn active" data-period="7" style="padding: 0.5rem 1rem; border: 1px solid #E7EAF0; background: white; border-radius: 8px; cursor: pointer; font-size: 0.875rem; transition: all 0.2s;">7 Days</button>
-      <button class="chart-period-btn" data-period="30" style="padding: 0.5rem 1rem; border: 1px solid #E7EAF0; background: white; border-radius: 8px; cursor: pointer; font-size: 0.875rem; transition: all 0.2s;">30 Days</button>
-      <button class="chart-period-btn" data-period="90" style="padding: 0.5rem 1rem; border: 1px solid #E7EAF0; background: white; border-radius: 8px; cursor: pointer; font-size: 0.875rem; transition: all 0.2s;">90 Days</button>
+    <div class="sd-chart-period-row">
+      <button class="chart-period-btn active" data-period="7">7 Days</button>
+      <button class="chart-period-btn" data-period="30">30 Days</button>
+      <button class="chart-period-btn" data-period="90">90 Days</button>
     </div>
     <div class="chart-container" style="position: relative; height: 300px;">
       <canvas id="${canvasId}"></canvas>
@@ -617,7 +617,7 @@ export async function createEnquiryTrendChart(containerId) {
     container.innerHTML = `
       <div class="card" style="padding: 1.5rem;">
         ${_enquiryTrendIconHeader()}
-        <p style="color: #667085;">Unable to load enquiry trend data. Please try again later.</p>
+        <p class="sd-analytics-error">Unable to load enquiry trend data. Please try again later.</p>
       </div>
     `;
     return null;
@@ -708,7 +708,7 @@ export async function createLeadQualityWidget(containerId) {
     if (!data || !data.breakdown) {
       // Show empty state
       container.innerHTML = `
-        <div style="padding: 2rem; text-align: center; background: #F9FAFB; border-radius: 8px;">
+        <div class="sd-analytics-empty-state">
           <div style="font-size: 2rem; margin-bottom: 0.5rem;">📊</div>
           <p style="color: #6B7280; margin: 0;">No lead quality data available yet.</p>
           <p style="color: #9CA3AF; font-size: 0.875rem; margin-top: 0.5rem;">Data will appear as you receive enquiries.</p>
@@ -753,8 +753,7 @@ export async function createLeadQualityWidget(containerId) {
   } catch (error) {
     console.error('Error creating Lead Quality widget:', error);
     container.innerHTML = `
-      <div style="padding: 1.5rem; text-align: center; color: #EF4444; background: #FEF2F2; border-radius: 8px;">
-        <p style="margin: 0;">Unable to load lead quality data.</p>
+      <div class="sd-analytics-error-block"><p>Unable to load lead quality data.
       </div>
     `;
   }
@@ -832,8 +831,8 @@ export async function loadReviewStats(containerId) {
     if (!stats || stats.totalReviews === 0) {
       // Show graceful empty state (not "broken" looking)
       container.innerHTML = `
-        <div style="padding: 2rem; text-align: center; background: #F9FAFB; border-radius: 8px;">
-          <div style="font-size: 3rem; margin-bottom: 1rem;">⭐⭐⭐⭐⭐</div>
+        <div class="sd-analytics-empty-state">
+          <div class="sd-analytics-empty-icon">⭐⭐⭐⭐⭐</div>
           <div style="font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem;">No reviews yet</div>
           <p style="color: #6B7280; margin-bottom: 1.5rem;">Reviews from customers will appear here once you complete your first booking.</p>
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; max-width: 600px; margin: 0 auto;">
@@ -855,7 +854,7 @@ export async function loadReviewStats(containerId) {
     const starRating = '⭐'.repeat(Math.round(stats.averageRating));
     container.innerHTML = `
       <div style="padding: 2rem; text-align: center; background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%); border-radius: 8px;">
-        <div style="font-size: 3rem; margin-bottom: 1rem;">${starRating}</div>
+        <div class="sd-analytics-empty-icon">${starRating}</div>
         <div style="font-size: 1.5rem; font-weight: 600; margin-bottom: 0.5rem;">Great reviews!</div>
         <p style="color: #92400E; margin-bottom: 1.5rem;">You're doing an excellent job. Keep up the great work!</p>
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; max-width: 600px; margin: 0 auto;">
@@ -874,8 +873,8 @@ export async function loadReviewStats(containerId) {
     console.error('Error loading review stats:', error);
     // Show empty state on error - graceful degradation
     container.innerHTML = `
-      <div style="padding: 2rem; text-align: center; background: #F9FAFB; border-radius: 8px;">
-        <div style="font-size: 3rem; margin-bottom: 1rem;">⭐</div>
+      <div class="sd-analytics-empty-state">
+        <div class="sd-analytics-empty-icon">⭐</div>
         <p style="color: #6B7280; margin: 0;">Unable to load review data.</p>
       </div>
     `;
@@ -919,7 +918,7 @@ export async function createConversionFunnelWidget(containerId, days = 30) {
 
   // Loading skeleton
   container.innerHTML = `
-    <div class="skeleton skeleton-text skeleton-text-long" style="margin-bottom:0.5rem;"></div>
+    <div class="skeleton skeleton-text skeleton-text-long" ></div>
     <div class="skeleton skeleton-text skeleton-text-medium"></div>
   `;
 
@@ -944,9 +943,9 @@ export async function createConversionFunnelWidget(containerId, days = 30) {
     if (!hasData) {
       container.innerHTML = `
         <p style="color:#6B7280;font-size:0.875rem;margin:0 0 1rem 0;">Views → Enquiries → Replies (last ${days} days)</p>
-        <div style="padding:1.5rem;text-align:center;background:#F9FAFB;border-radius:8px;">
+        <div class="sd-analytics-empty-state">
           <div style="font-size:2rem;margin-bottom:0.5rem;">📊</div>
-          <p style="color:#6B7280;margin:0;">Not enough data yet.</p>
+          <p class="sd-analytics-error">Not enough data yet.</p>
           <p style="color:#9CA3AF;font-size:0.875rem;margin-top:0.25rem;">Data will appear once you start receiving profile views and enquiries.</p>
         </div>
       `;
@@ -977,12 +976,12 @@ export async function createConversionFunnelWidget(containerId, days = 30) {
     const stepsHtml = steps
       .map(
         step => `
-      <div style="margin-bottom:1rem;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.25rem;">
-          <span style="font-size:0.875rem;color:#374151;font-weight:500;">${step.label}</span>
-          <span style="font-size:0.875rem;color:#374151;font-weight:700;">${step.value.toLocaleString()}</span>
+      <div class="sd-funnel-bar-item">
+        <div class="sd-funnel-bar-header">
+          <span class="sd-funnel-bar-label">${step.label}</span>
+          <span class="sd-funnel-bar-value">${step.value.toLocaleString()}</span>
         </div>
-        <div style="height:10px;background:#E5E7EB;border-radius:5px;overflow:hidden;">
+        <div class="sd-funnel-bar-track">
           <div style="height:100%;background:${step.color};width:${step.width}%;transition:width 0.5s;border-radius:5px;"></div>
         </div>
         ${step.rate ? `<div style="font-size:0.75rem;color:#6B7280;margin-top:0.2rem;">${step.rate}</div>` : ''}
@@ -991,7 +990,7 @@ export async function createConversionFunnelWidget(containerId, days = 30) {
       .join('');
 
     container.innerHTML = `
-      <p style="color:#6B7280;font-size:0.875rem;margin:0 0 1.25rem 0;">Last ${days} days</p>
+      <p class="sd-analytics-period">Last ${days} days</p>
       ${stepsHtml}
     `;
   } catch (error) {
@@ -1015,7 +1014,7 @@ export async function createResponseTimeWidget(containerId, days = 30) {
 
   // Loading skeleton
   container.innerHTML = `
-    <div class="skeleton skeleton-text skeleton-text-long" style="margin-bottom:0.5rem;"></div>
+    <div class="skeleton skeleton-text skeleton-text-long" ></div>
     <div class="skeleton skeleton-text skeleton-text-medium"></div>
   `;
 
@@ -1036,10 +1035,10 @@ export async function createResponseTimeWidget(containerId, days = 30) {
 
     if (!hasData) {
       container.innerHTML = `
-        <p style="color:#6B7280;font-size:0.875rem;margin:0 0 1rem 0;">Last ${days} days</p>
-        <div style="padding:1.5rem;text-align:center;background:#F9FAFB;border-radius:8px;">
-          <div style="font-size:2rem;margin-bottom:0.5rem;">⏱️</div>
-          <p style="color:#6B7280;margin:0;">Not enough data yet.</p>
+        <p class="sd-analytics-period">Last ${days} days</p>
+        <div class="sd-analytics-empty-state">
+          <div class="sd-analytics-empty-icon">⏱️</div>
+          <p class="sd-analytics-error">Not enough data yet.</p>
           <p style="color:#9CA3AF;font-size:0.875rem;margin-top:0.25rem;">Respond to enquiries to see your response time stats.</p>
         </div>
       `;
@@ -1074,7 +1073,7 @@ export async function createResponseTimeWidget(containerId, days = 30) {
     }
 
     container.innerHTML = `
-      <p style="color:#6B7280;font-size:0.875rem;margin:0 0 1.25rem 0;">Last ${days} days</p>
+      <p class="sd-analytics-period">Last ${days} days</p>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
         <div style="padding:1rem;background:#F9FAFB;border-radius:8px;text-align:center;">
           <div style="font-size:2rem;font-weight:700;color:#0B1220;">${timeDisplay}</div>
@@ -1109,3 +1108,4 @@ export default {
   createConversionFunnelWidget,
   createResponseTimeWidget,
 };
+
