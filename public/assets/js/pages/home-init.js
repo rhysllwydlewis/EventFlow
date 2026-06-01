@@ -3642,8 +3642,7 @@ function initNewsletterForm() {
 
       // Show error message
       const errorDiv = document.createElement('div');
-      errorDiv.style.cssText =
-        'margin-top: 12px; padding: 12px; background: rgba(255,255,255,0.2); border-radius: 8px; color: white; text-align: center;';
+      errorDiv.className = 'home-hero-error-msg';
       errorDiv.textContent = 'Something went wrong. Please try again.';
       form.appendChild(errorDiv);
 
