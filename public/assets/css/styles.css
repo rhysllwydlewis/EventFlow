@@ -2944,3 +2944,187 @@ textarea:focus:not(:focus-visible) {
   text-decoration: underline;
   outline: none;
 }
+
+/* ===========================================
+   SKIP-TO-CONTENT LINK
+   Keyboard accessibility — bypasses navbar for keyboard users.
+   Hidden off-screen until focused; reachable via Tab as first element.
+   Used on all public pages.
+   =========================================== */
+.skip-to-content {
+  position: absolute;
+  left: -10000px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  background: #0B8073;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0 0 8px 0;
+  text-decoration: none;
+  z-index: 99999;
+  white-space: nowrap;
+}
+
+.skip-to-content:focus {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+}
+
+/* ===========================================
+   HOME HERO ERROR MESSAGE
+   Replaces inline style.cssText in home-init.js
+   =========================================== */
+.home-hero-error-msg {
+  margin-top: 12px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  color: white;
+  text-align: center;
+  font-size: 0.875rem;
+}
+
+/* ===========================================
+   PRICING PAGE — empty state & typography
+   Replaces inline styles in pricing.html
+   =========================================== */
+.pricing-empty-state {
+  text-align: center;
+  padding: 2rem 1rem;
+  background: #f9fafb;
+}
+
+.pricing-empty-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  color: #111827;
+}
+
+.pricing-empty-text {
+  font-size: 1.125rem;
+  color: #6b7280;
+  margin-bottom: 2rem;
+}
+
+.pricing-empty-cta {
+  display: inline-block;
+  padding: 1rem 2rem;
+  font-size: 1.125rem;
+}
+
+/* ===========================================
+   FAQ PAGE — inline style replacements
+   =========================================== */
+.faq-hero-img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.faq-category-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.faq-search-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.faq-search-input:focus {
+  outline: none;
+  border-color: #0B8073;
+  box-shadow: 0 0 0 3px rgba(11, 128, 115, 0.12);
+}
+
+.faq-no-results {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.faq-empty-state {
+  text-align: center;
+  padding: 2rem;
+}
+
+.faq-empty-state[hidden] {
+  display: none !important;
+}
+
+.faq-empty-text {
+  margin-bottom: 1rem;
+  color: #666;
+}
+
+/* ===========================================
+   MARKETPLACE PAGE — inline style replacements
+   =========================================== */
+.marketplace-list-header {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border, #E7EAF0);
+}
+
+.marketplace-list-title {
+  margin: 0 0 0.75rem 0;
+  font-weight: 600;
+}
+
+.marketplace-list-links {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.marketplace-empty-state {
+  text-align: center;
+  padding: 2rem;
+}
+
+.marketplace-text-center {
+  margin: 1rem 0;
+  text-align: center;
+}
+
+.marketplace-cta-row {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 1.5rem;
+}
+
+/* ===========================================
+   ARTICLE READING TIME BADGE
+   Injected by article-progress.js
+   =========================================== */
+.article-reading-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8125rem;
+  color: var(--ef-text-muted, #667085);
+  margin-left: 0.75rem;
+}
+
+.article-reading-time::before {
+  content: '·';
+  margin-right: 0.25rem;
+  color: var(--ef-text-faint, #9ca3af);
+}
+
