@@ -75,28 +75,10 @@
     }
 
     setup() {
-      document.addEventListener('keydown', e => {
-        // Don't intercept typing in form fields
-        const tag = (e.target.tagName || '').toLowerCase();
-        if (['input', 'textarea', 'select'].includes(tag) || e.target.isContentEditable) {
-          return;
-        }
-        const key = this.getKeyCombo(e);
-        const handler = this.shortcuts.get(key);
-        if (handler) {
-          e.preventDefault();
-          handler(e);
-        }
-      });
-
-      // Register default shortcuts
-      this.register('ctrl+k', () => this.showCommandPalette());
-      this.register('ctrl+/', () => this.showShortcutsHelp());
-      this.register('r', () => window.location.reload());
-      this.register('h', () => (window.location.href = '/admin'));
-      this.register('u', () => (window.location.href = '/admin-users'));
-      this.register('p', () => (window.location.href = '/admin-packages'));
-      this.register('s', () => (window.location.href = '/admin-settings'));
+      // NOTE: single-char navigation shortcuts (H/U/P/S/R) and Ctrl+K/Ctrl+/
+      // are registered by AdminShared.initKeyboardShortcuts() which loads first.
+      // This class only registers shortcuts that extend beyond the shared set.
+      // Registering duplicates here would cause every keypress to fire twice.
     }
 
     getKeyCombo(e) {
@@ -524,3 +506,4 @@
     }, 2000);
   });
 })();
+
