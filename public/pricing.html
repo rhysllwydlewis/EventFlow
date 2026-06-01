@@ -686,8 +686,55 @@
   <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/p3-features.css?v=18.3.0">
   <link rel="stylesheet" href="/assets/css/eventflow-footer.css">
+  <!-- Structured Data: PriceSpecification schema for pricing page -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": "EventFlow Pricing Plans",
+    "description": "Choose the right plan for your events business. Join EventFlow and reach thousands of couples and event planners across the UK.",
+    "url": "https://event-flow.co.uk/pricing",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "item": {
+          "@type": "Offer",
+          "name": "Starter Plan",
+          "description": "Perfect for new suppliers getting started on EventFlow",
+          "price": "0",
+          "priceCurrency": "GBP",
+          "priceSpecification": {
+            "@type": "UnitPriceSpecification",
+            "billingDuration": "P1M",
+            "unitText": "month"
+          },
+          "seller": {
+            "@type": "Organization",
+            "name": "EventFlow"
+          }
+        }
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "item": {
+          "@type": "Offer",
+          "name": "Pro Plan",
+          "description": "For growing businesses that want more visibility and leads",
+          "priceCurrency": "GBP",
+          "seller": {
+            "@type": "Organization",
+            "name": "EventFlow"
+          }
+        }
+      }
+    ]
+  }
+  </script>
 </head>
 <body>
+  <a href="#main-content" class="skip-to-content">Skip to main content</a>
 <!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
 <header class="ef-header" role="banner">
   <div class="ef-container">
@@ -1265,11 +1312,11 @@
   </section>
 
   <!-- Final CTA -->
-  <section style="text-align: center; padding: 2rem 1rem; background: #f9fafb;">
+  <section class="pricing-empty-state">
     <div class="container" style="max-width: 600px;">
-      <h2 style="font-size: 2rem; margin-bottom: 1rem; color: #111827;">Ready to grow your business?</h2>
-      <p style="font-size: 1.125rem; color: #6b7280; margin-bottom: 2rem;">Join EventFlow today and start receiving quality enquiries from customers looking for your services.</p>
-      <a href="/checkout?plan=starter" class="cta" id="pricing-bottom-cta" style="display: inline-block; padding: 1rem 2rem; font-size: 1.125rem;">Get Started for Free</a>
+      <h2 class="pricing-empty-icon">Ready to grow your business?</h2>
+      <p class="pricing-empty-text">Join EventFlow today and start receiving quality enquiries from customers looking for your services.</p>
+      <a href="/checkout?plan=starter" class="cta" id="pricing-bottom-cta" class="pricing-empty-cta ef-cta">Get Started for Free</a>
     </div>
   </section>
 </main>
@@ -1350,7 +1397,7 @@
       <a href="/legal">Legal Hub</a> ·
       <button type="button" data-cookie-prefs>Cookie preferences</button>
     </div>
-    <div class="small" style="width: 100%; margin-top: 8px; text-align: center;">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
+    <div class="footer-credit small">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
   </div>
   </footer>
 
