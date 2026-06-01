@@ -756,16 +756,18 @@ tbody tr.selected td {
   50% { opacity: 0.5; }
 }
 
-.status-badge {
+/* .status-badge only pulses during the initial load phase.
+ * admin-init.js adds .is-loading on start and removes it when data arrives. */
+.status-badge.is-loading {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* Smooth Transitions */
-* {
-  transition-property: background-color, border-color, color, fill, stroke;
-  transition-duration: 200ms;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-}
+/* Smooth Transitions
+ * NOTE: The blanket * { transition } rule was removed — it was forcing
+ * the browser to compute transitions for every DOM element (including
+ * <head>, <meta>, etc.), causing layout thrashing and unexpected
+ * animations on components that don't need them.
+ * Transitions are now applied only to the specific elements that need them. */
 
 /* Dashboard Title Styles */
 .dashboard-title {
@@ -1644,10 +1646,6 @@ tbody tr.selected td {
 }
 
 /* Modal Animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
   to {
     opacity: 1;
   }
@@ -3929,3 +3927,4 @@ tbody tr.selected td {
 #suppliersTable th:nth-child(9) {
   min-width: 310px;
 }
+
