@@ -93,6 +93,11 @@
   background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
 }
 
+/* Revenue / info card — blue gradient */
+.stat-card.stat-info::before {
+  background: linear-gradient(90deg, #3b82f6 0%, #60a5fa 100%);
+}
+
 .stat-card-content {
   display: flex;
   align-items: flex-start;
@@ -201,7 +206,7 @@
   color: white;
   border-radius: 16px;
   padding: 28px;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px rgba(11, 128, 115, 0.28);
   transition: all 0.3s ease;
   text-decoration: none;
   display: block;
@@ -209,7 +214,7 @@
 
 .action-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 8px 24px rgba(11, 128, 115, 0.36);
 }
 
 .action-card-icon {
@@ -374,7 +379,7 @@
   padding: 32px;
   margin-bottom: 32px;
   color: white;
-  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 8px 24px rgba(11, 128, 115, 0.28);
 }
 
 .dashboard-title {
@@ -624,3 +629,5 @@
     grid-template-columns: 1fr;
   }
 }
+
+

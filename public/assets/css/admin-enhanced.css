@@ -208,7 +208,7 @@ main.section {
   border-color: #0B8073;
   color: #0B8073;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+  box-shadow: 0 4px 12px rgba(11, 128, 115, 0.15);
 }
 
 .btn-secondary {
@@ -389,6 +389,29 @@ main.section {
   border-radius: 999px;
   font-size: 16px;
   font-weight: 700;
+  min-width: 32px;
+  text-align: center;
+}
+
+/* Badge color matches the card's left-border accent */
+.mod-warning .mod-badge {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.mod-info .mod-badge {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.mod-danger .mod-badge {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.mod-primary .mod-badge {
+  background: #ede9fe;
+  color: #5b21b6;
 }
 
 .mod-title {
@@ -419,7 +442,7 @@ main.section {
 
 .btn-mod:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 16px -4px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 8px 16px -4px rgba(11, 128, 115, 0.36);
 }
 
 /* Quick Actions */
@@ -448,7 +471,7 @@ main.section {
   border-color: #0B8073;
   background: #f8f9ff;
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px -2px rgba(102, 126, 234, 0.2);
+  box-shadow: 0 4px 8px -2px rgba(11, 128, 115, 0.18);
 }
 
 .action-icon {
@@ -527,7 +550,7 @@ th {
 }
 
 th:hover {
-  background: rgba(102, 126, 234, 0.05);
+  background: rgba(11, 128, 115, 0.05);
 }
 
 /* Sortable column indicator */
@@ -606,7 +629,7 @@ tbody tr.selected td {
 .search-input:focus {
   outline: none;
   border-color: #0B8073;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 0 0 3px rgba(11, 128, 115, 0.12);
 }
 
 .filter-select {
@@ -622,7 +645,7 @@ tbody tr.selected td {
 .filter-select:focus {
   outline: none;
   border-color: #0B8073;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 0 0 3px rgba(11, 128, 115, 0.12);
 }
 
 /* Button Variants */
@@ -675,7 +698,7 @@ tbody tr.selected td {
 
 .btn-accent:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px -2px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 8px -2px rgba(11, 128, 115, 0.36);
 }
 
 /* Analytics Grid */
@@ -756,16 +779,18 @@ tbody tr.selected td {
   50% { opacity: 0.5; }
 }
 
-.status-badge {
+/* .status-badge only pulses during the initial load phase.
+ * admin-init.js adds .is-loading on start and removes it when data arrives. */
+.status-badge.is-loading {
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* Smooth Transitions */
-* {
-  transition-property: background-color, border-color, color, fill, stroke;
-  transition-duration: 200ms;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-}
+/* Smooth Transitions
+ * NOTE: The blanket * { transition } rule was removed — it was forcing
+ * the browser to compute transitions for every DOM element (including
+ * <head>, <meta>, etc.), causing layout thrashing and unexpected
+ * animations on components that don't need them.
+ * Transitions are now applied only to the specific elements that need them. */
 
 /* Dashboard Title Styles */
 .dashboard-title {
@@ -1602,7 +1627,7 @@ tbody tr.selected td {
 .form-control:focus {
   outline: none;
   border-color: #0B8073;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 0 0 3px rgba(11, 128, 115, 0.12);
 }
 
 .form-actions {
@@ -1644,10 +1669,6 @@ tbody tr.selected td {
 }
 
 /* Modal Animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
   to {
     opacity: 1;
   }
@@ -1812,7 +1833,7 @@ tbody tr.selected td {
 .floating-label-group select:focus {
   outline: none;
   border-color: #0B8073;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 0 0 3px rgba(11, 128, 115, 0.12);
 }
 
 .floating-label-group input:focus + label,
@@ -2289,8 +2310,16 @@ tbody tr.selected td {
   border-radius: 16px;
   padding: 32px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.25s ease;
   border: 1px solid #e5e7eb;
+}
+
+.management-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(11, 128, 115, 0.12);
+  border-color: rgba(11, 128, 115, 0.3);
 }
 
 .management-card:hover {
@@ -2315,7 +2344,7 @@ tbody tr.selected td {
   justify-content: center;
   font-size: 32px;
   background: linear-gradient(135deg, #0B8073 0%, #13B6A2 100%);
-  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 8px 20px rgba(11, 128, 115, 0.28);
 }
 
 .management-badge {
@@ -2327,7 +2356,7 @@ tbody tr.selected td {
   font-size: 16px;
   min-width: 48px;
   text-align: center;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px rgba(11, 128, 115, 0.28);
 }
 
 .management-title {
@@ -2390,8 +2419,10 @@ tbody tr.selected td {
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+              background 0.2s ease;
+  box-shadow: 0 4px 12px rgba(11, 128, 115, 0.28);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2401,7 +2432,23 @@ tbody tr.selected td {
 
 .btn-manage:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 8px 20px rgba(11, 128, 115, 0.38);
+  background: linear-gradient(135deg, #097267 0%, #10a090 100%);
+}
+
+.btn-manage:focus-visible {
+  outline: 2px solid #0B8073;
+  outline-offset: 3px;
+}
+
+.btn-manage:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(11, 128, 115, 0.22);
+}
+
+.btn-manage:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(11, 128, 115, 0.36);
 }
 
 .btn-manage:active {
@@ -3929,3 +3976,39 @@ tbody tr.selected td {
 #suppliersTable th:nth-child(9) {
   min-width: 310px;
 }
+
+/* Analytics section: style the rendered stat rows ("<p><strong>Label:</strong> value</p>")
+   so they read as metrics rather than a text dump. */
+.analytics-grid .card {
+  padding: 1.25rem 1.5rem;
+  border-left: 3px solid #0B8073;
+}
+
+.analytics-grid .card p {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.35rem 0;
+  margin: 0;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 0.875rem;
+  color: #374151;
+  gap: 1rem;
+}
+
+.analytics-grid .card p:last-child {
+  border-bottom: none;
+}
+
+.analytics-grid .card strong {
+  color: #0B8073;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.analytics-grid .card .small {
+  color: #9ca3af;
+  font-size: 0.8rem;
+  font-style: italic;
+}
+

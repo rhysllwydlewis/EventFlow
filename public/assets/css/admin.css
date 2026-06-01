@@ -1101,6 +1101,11 @@ button.btn-sm.btn-primary:hover {
   font-size: 0.82rem;
   color: #374151;
 }
+/* Center-aligned column modifier for admin-messenger table headers */
+.admin-messenger-th--center {
+  text-align: center;
+}
+
 
 /* Pagination bar */
 .admin-messenger-pagination {
@@ -1247,3 +1252,4 @@ button.btn-sm.btn-primary:hover {
     transition: none;
   }
 }
+
