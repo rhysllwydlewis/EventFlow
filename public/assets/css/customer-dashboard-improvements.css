@@ -2229,3 +2229,180 @@ body.customer-dashboard-page .customer-calendar-next-up__title {
   }
 }
 
+/* ===========================================
+   36. BUDGET STATUS BADGE
+       Replaces inline hex styles in dashboard-widgets.js.
+       Three semantic variants: on-track, attention, over-budget.
+   =========================================== */
+.budget-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  white-space: nowrap;
+  color: #fff;
+}
+
+.budget-status-badge--on-track {
+  background: #16a34a;
+}
+
+.budget-status-badge--attention {
+  background: #d97706;
+}
+
+.budget-status-badge--over-budget {
+  background: #dc2626;
+}
+
+@media (prefers-contrast: more) {
+  .budget-status-badge {
+    outline: 2px solid currentColor;
+    outline-offset: 1px;
+  }
+}
+
+/* ===========================================
+   37. TIMELINE COMPONENT
+       Replaces opacity:0 inline style that
+       permanently hid all timeline steps.
+       Staggered fade-in-up on render.
+   =========================================== */
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.timeline-step {
+  animation: ef-step-in 0.3s ease both;
+}
+
+.timeline-step:nth-child(1) { animation-delay: 0ms; }
+.timeline-step:nth-child(2) { animation-delay: 60ms; }
+.timeline-step:nth-child(3) { animation-delay: 120ms; }
+.timeline-step:nth-child(4) { animation-delay: 180ms; }
+
+@keyframes ef-step-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .timeline-step {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* ===========================================
+   38. DETAILS / SUMMARY ARROW TRANSITION
+       .details-arrow is placed in the budget
+       breakdown <summary>. The arrow character
+       is toggled by JS (▼ → ▲) but the
+       transition is handled in CSS.
+   =========================================== */
+.details-arrow {
+  display: inline-block;
+  font-size: 1rem;
+  line-height: 1;
+  transition: transform 0.2s ease;
+  user-select: none;
+}
+
+/* ===========================================
+   39. CALENDAR TOOLTIP
+       Replaces inline style.cssText on
+       tooltip elements in calendar-view.js.
+   =========================================== */
+.calendar-tooltip {
+  display: none;
+  position: fixed;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 8px 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  z-index: 9999;
+  max-width: 260px;
+  font-size: 0.85rem;
+  pointer-events: none;
+  color: var(--ef-text, #0b1220);
+}
+
+.calendar-tooltip.is-visible {
+  display: block;
+}
+
+/* ===========================================
+   40. WIDGET LAYOUT CLASSES
+       Extracted from inline styles in
+       dashboard-widgets.js to improve
+       maintainability and theme support.
+   =========================================== */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat-widget {
+  padding: 1.5rem;
+}
+
+.stat-widget__inner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.progress-ring-body {
+  text-align: center;
+  padding: 1.25rem 1.5rem;
+}
+
+.progress-ring-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.progress-ring-stat {
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.65);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.budget-stat-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.875rem;
+}
+
+.budget-stat-cell {
+  padding: 0.875rem 1rem;
+  background: rgba(255, 255, 255, 0.65);
+  border-radius: 10px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.budget-stat-cell__label {
+  font-size: 0.8125rem;
+  color: var(--ef-text-muted, #667085);
+  margin-bottom: 0.35rem;
+}
+
+@media (prefers-contrast: more) {
+  .budget-stat-cell,
+  .progress-ring-stat {
+    border: 1px solid currentColor;
+    background: var(--color-background-primary, #fff);
+  }
+}
+
