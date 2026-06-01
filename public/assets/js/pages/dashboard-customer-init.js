@@ -14,18 +14,19 @@ function dbg(...args) {
   function dismissCustomerWelcomeOverlay() {
     try {
       localStorage.setItem(DISMISS_KEY, '1');
-      localStorage.setItem('ef_onboarding_dismissed', '1');
+      localStorage.setItem('ef_customer_welcome_dismissed', '1');
     } catch (_) {
       /* Ignore localStorage errors */
     }
 
-    const overlay = document.getElementById('ef-onboarding-box');
-    if (overlay) {
+    // Target the actual welcome section element used in the current HTML
+    const section = document.getElementById('welcome-section');
+    if (section) {
       const ease = 'cubic-bezier(0.4, 0, 0.2, 1)';
-      overlay.style.transition = `opacity 0.3s ${ease}, transform 0.3s ${ease}`;
-      overlay.style.opacity = '0';
-      overlay.style.transform = 'scale(0.97)';
-      setTimeout(() => overlay.remove(), 300);
+      section.style.transition = `opacity 0.3s ${ease}, transform 0.3s ${ease}`;
+      section.style.opacity = '0';
+      section.style.transform = 'scale(0.97)';
+      setTimeout(() => { section.style.display = 'none'; }, 300);
     }
   }
 
@@ -843,11 +844,12 @@ function setupEventHandlers(latestPlans) {
       // Fire-and-forget: don't block page load; failures are non-fatal
       (async () => {
         try {
+          const retryCsrf = await ensureCsrfToken();
           const retryResp = await fetch(`/api/me/plans/${encodeURIComponent(primaryPlan.id)}`, {
             method: 'PATCH',
             headers: {
               'Content-Type': 'application/json',
-              'X-CSRF-Token': getCsrfToken(),
+              'X-CSRF-Token': retryCsrf,
             },
             credentials: 'include',
             body: JSON.stringify({ budget: pendingBudget }),
@@ -1032,3 +1034,4 @@ if (document.readyState === 'loading') {
 } else {
   initDashboard();
 }
+

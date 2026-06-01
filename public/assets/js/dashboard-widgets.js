@@ -135,7 +135,7 @@ export function createBudgetTracker(budgetData, containerId) {
       <details style="margin-top: 1rem;" id="${containerId}-breakdown">
         <summary style="cursor: pointer; font-size: 0.875rem; color: #0B8073; font-weight: 600; padding: 0.5rem; background: white; border-radius: 8px; list-style: none; display: flex; justify-content: space-between; align-items: center;">
           <span>📊 View Breakdown by Category</span>
-          <span style="font-size: 1rem;">▼</span>
+          <span class="details-arrow" aria-hidden="true">▼</span>
         </summary>
         <div style="margin-top: 0.75rem; background: white; border-radius: 8px; padding: 0.75rem;">
           ${breakdownItems}
@@ -161,7 +161,7 @@ export function createBudgetTracker(budgetData, containerId) {
           <p class="sd-card-header__subtitle">Your event spending overview.</p>
         </div>
         <div class="sd-card-header__actions">
-          <span style="background:${badgeColor};color:#fff;padding:3px 10px;border-radius:12px;font-size:0.8125rem;font-weight:500;white-space:nowrap;">${badgeText}</span>
+          <span class="budget-status-badge budget-status-badge--${badgeText.toLowerCase().replace(' ', '-')}">${badgeText}</span>
         </div>
       </div>
       <div class="cd-card-body">
@@ -172,7 +172,7 @@ export function createBudgetTracker(budgetData, containerId) {
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.875rem;">
           <div style="padding: 0.875rem 1rem; background: rgba(255,255,255,0.65); border-radius: 10px; text-align: center; border: 1px solid rgba(255,255,255,0.5);">
             <div style="font-size: 0.8125rem; color: #667085; margin-bottom: 0.35rem;">Spent</div>
-            <div class="stat-number" data-target="${spent}" data-format="currency" data-start="0" style="font-size: 1.375rem; font-weight: 700; color: #DC2626;">£0</div>
+            <div class="stat-number" data-target="${spent}" data-format="currency" data-start="0" style="font-size: 1.375rem; font-weight: 700; color: ${spent > 0 ? '#DC2626' : '#667085'};">£0</div>
           </div>
           <div style="padding: 0.875rem 1rem; background: rgba(255,255,255,0.65); border-radius: 10px; text-align: center; border: 1px solid rgba(255,255,255,0.5);">
             <div style="font-size: 0.8125rem; color: #667085; margin-bottom: 0.35rem;">Remaining</div>
@@ -193,6 +193,17 @@ export function createBudgetTracker(budgetData, containerId) {
     animateProgressBar(progressBar, percentage);
     initCountUp(`#${containerId} [data-target]`);
   }, 100);
+
+  // Toggle ▼/▲ arrow when breakdown <details> opens/closes
+  const detailsEl = document.getElementById(`${containerId}-breakdown`);
+  if (detailsEl) {
+    detailsEl.addEventListener('toggle', () => {
+      const arrow = detailsEl.querySelector('.details-arrow');
+      if (arrow) {
+        arrow.textContent = detailsEl.open ? '▲' : '▼';
+      }
+    });
+  }
 }
 
 /**
@@ -228,7 +239,7 @@ export function createProgressRing(data, containerId) {
       </div>
       <div class="cd-card-body" style="text-align: center;">
         <div style="position: relative; display: inline-block;">
-          <svg width="120" height="120" style="transform: rotate(-90deg);">
+          <svg width="120" height="120" style="transform: rotate(-90deg);" role="img" aria-label="${escapeHtml(label)}: ${percentage}% complete">
             <circle
               cx="60"
               cy="60"
@@ -373,11 +384,11 @@ export function createEventsTimeline(events, containerId, eventDate = null) {
       </div>
       <div class="cd-card-body">
         ${countdownHtml}
-        <div class="timeline">
+        <ol class="timeline" aria-label="Planning timeline">
           ${events
             .map(
               (event, index) => `
-            <div class="timeline-step" style="opacity: 0;">
+            <li class="timeline-step">
               <div style="display: flex; gap: 1rem; align-items: start;">
                 <div style="width: 8px; height: 8px; background: linear-gradient(135deg, #0B8073 0%, #13B6A2 100%); border-radius: 50%; margin-top: 6px; flex-shrink: 0;${index < events.length - 1 ? ' position: relative;' : ''}">
                   ${
@@ -394,11 +405,11 @@ export function createEventsTimeline(events, containerId, eventDate = null) {
                   ${event.supplier ? `<p class="small" style="color: #667085; margin: 0.25rem 0;">📍 ${escapeHtml(event.supplier)}</p>` : ''}
                 </div>
               </div>
-            </div>
+            </li>
           `
             )
             .join('')}
-        </div>
+        </ol>
       </div>
     </div>
   `;
@@ -415,7 +426,14 @@ export function createEventsTimeline(events, containerId, eventDate = null) {
  * Initialize and update countdown timer
  * @param {string} eventDate - ISO date string for the event
  */
+let _countdownIntervalId = null;
+
 function initCountdown(eventDate) {
+  if (_countdownIntervalId !== null) {
+    clearInterval(_countdownIntervalId);
+    _countdownIntervalId = null;
+  }
+
   function updateCountdown() {
     const now = new Date();
     const event = new Date(eventDate);
@@ -456,8 +474,8 @@ function initCountdown(eventDate) {
   // Update immediately
   updateCountdown();
 
-  // Update every minute
-  setInterval(updateCountdown, 60000);
+  // Update every minute — stored so callers can cancel on re-render
+  _countdownIntervalId = setInterval(updateCountdown, 60000);
 }
 
 function getBadgeStyle(daysUntil) {
@@ -707,3 +725,4 @@ export default {
   createEventsTimeline,
   createProfileChecklist,
 };
+
