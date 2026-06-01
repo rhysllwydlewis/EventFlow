@@ -178,7 +178,7 @@
               </h2>
               <p class="small customer-welcome-intro">
                 Plan smarter, stay organised, and keep every detail running smoothly with
-                <strong>Event Flow.</strong>
+                <strong>EventFlow.</strong>
               </p>
             </div>
             <div class="customer-welcome-hero-art" aria-hidden="true"></div>
@@ -308,6 +308,7 @@
                   type="number"
                   id="custom-budget-input"
                   min="0"
+                  max="1000000000"
                   step="100"
                   placeholder="5000"
                   class="customer-budget-form__input"
@@ -381,16 +382,13 @@
               aria-label="Calendar colour legend"
             >
               <span class="cal-legend-item"
-                ><span class="cal-legend-dot" style="background: #0b8073"></span>Event plan</span
+                ><span class="cal-legend-dot" style="background: #0b8073"></span>Event / Plan</span
               >
               <span class="cal-legend-item"
                 ><span class="cal-legend-dot" style="background: #6366f1"></span>Meeting</span
               >
               <span class="cal-legend-item"
                 ><span class="cal-legend-dot" style="background: #f59e0b"></span>Appointment</span
-              >
-              <span class="cal-legend-item"
-                ><span class="cal-legend-dot" style="background: #0b8073"></span>Event</span
               >
               <span class="cal-legend-item"
                 ><span class="cal-legend-dot" style="background: #7c3aed"></span>Public</span
@@ -604,17 +602,16 @@
           </div>
         </div>
 
-        <script src="/assets/js/app.js?v=18.3.0"></script>
-        <script src="/assets/js/unread-badge-manager.js?v=18.3.0"></script>
-        <script type="module" src="/assets/js/customer-tickets.js?v=18.3.0"></script>
-
-        <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
-        <script src="/assets/js/calendar-view.js"></script>
-        <script type="module" src="/assets/js/pages/dashboard-customer-module.js"></script>
-        <script src="/assets/js/pages/customer-wedding-website.js"></script>
-        <script src="/assets/js/pages/dashboard-customer-init.js"></script>
       </div>
     </main>
+    <script src="/assets/js/app.js?v=18.3.0" defer></script>
+    <script src="/assets/js/unread-badge-manager.js?v=18.3.0" defer></script>
+    <script type="module" src="/assets/js/customer-tickets.js?v=18.3.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js" defer></script>
+    <script src="/assets/js/calendar-view.js" defer></script>
+    <script type="module" src="/assets/js/pages/dashboard-customer-module.js"></script>
+    <script src="/assets/js/pages/customer-wedding-website.js" defer></script>
+    <script src="/assets/js/pages/dashboard-customer-init.js" defer></script>
     <!-- BOTTOM NAVBAR - GOLD STANDARD REBUILD (Mobile Only) -->
     <nav class="ef-bottom-nav" role="navigation" aria-label="Mobile bottom navigation">
       <a href="/start" class="ef-bottom-link" aria-label="Plan your event">
@@ -670,11 +667,12 @@
 
       <!-- Dashboard with notification badge (shown when logged in, replaces Alerts) -->
       <a
-        href="#"
+        href="/dashboard-customer"
         id="ef-bottom-dashboard"
-        class="ef-bottom-link"
+        class="ef-bottom-link ef-bottom-link--active"
         style="display: none"
         aria-label="Go to dashboard"
+        aria-current="page"
       >
         <svg
           class="ef-bottom-icon"
@@ -807,3 +805,4 @@
     <script src="/assets/js/card-collapse.js" defer></script>
   </body>
 </html>
+
