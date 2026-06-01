@@ -88,15 +88,7 @@
     modal.setAttribute('role', 'dialog');
     modal.setAttribute('aria-modal', 'true');
     modal.setAttribute('aria-labelledby', 'sv-modal-title');
-    modal.style.cssText = [
-      'position:fixed',
-      'inset:0',
-      'z-index:9999',
-      'background:rgba(0,0,0,0.55)',
-      'align-items:center',
-      'justify-content:center',
-      'padding:1rem',
-    ].join(';');
+    modal.className = 'sv-modal-overlay';
 
     modal.innerHTML = `
       <div id="sv-modal-inner" style="background:#fff;border-radius:16px;max-width:480px;width:100%;padding:2rem;box-shadow:0 20px 60px rgba(0,0,0,0.25);position:relative;max-height:calc(100vh - 2rem);overflow-y:auto;">
@@ -438,20 +430,10 @@
       }
 
       // Render banner — build each state independently for clean styling
-      const baseBannerStyle = [
-        'display:block',
-        'margin-bottom:1.25rem',
-        'padding:1rem 1.25rem',
-        'border-radius:12px',
-      ].join(';');
+      // Banner styling now handled by CSS classes (.sv-status-banner--warning / --danger)
 
       if (isPending) {
-        banner.style.cssText = [
-          baseBannerStyle,
-          'border-left:4px solid #f59e0b',
-          'background:linear-gradient(135deg,rgba(245,158,11,0.12) 0%,rgba(251,191,36,0.06) 100%)',
-          'box-shadow:0 2px 8px rgba(245,158,11,0.12)',
-        ].join(';');
+        banner.className = 'sv-status-banner sv-status-banner--warning';
         banner.innerHTML = `
           <div style="display:flex;align-items:center;gap:0.875rem;flex-wrap:wrap;">
             <span style="font-size:1.5rem;flex-shrink:0;line-height:1;" aria-hidden="true">⏳</span>
@@ -467,12 +449,7 @@
         const notesHtml = verificationNotes
           ? `<div style="margin-top:0.5rem;padding:0.5rem 0.75rem;background:rgba(239,68,68,0.08);border-radius:6px;font-size:0.8125rem;color:#7f1d1d;border-left:3px solid #ef4444;white-space:pre-wrap;">${verificationNotes.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')}</div>`
           : '';
-        banner.style.cssText = [
-          baseBannerStyle,
-          'border-left:4px solid #ef4444',
-          'background:linear-gradient(135deg,rgba(239,68,68,0.10) 0%,rgba(254,202,202,0.06) 100%)',
-          'box-shadow:0 2px 8px rgba(239,68,68,0.12)',
-        ].join(';');
+        banner.className = 'sv-status-banner sv-status-banner--danger';
         banner.innerHTML = `
           <div style="display:flex;align-items:flex-start;gap:0.875rem;flex-wrap:wrap;">
             <span style="font-size:1.5rem;flex-shrink:0;line-height:1;" aria-hidden="true">🚫</span>
@@ -495,12 +472,7 @@
         const notesHtml = verificationNotes
           ? `<div style="margin-top:0.5rem;padding:0.5rem 0.75rem;background:rgba(239,68,68,0.08);border-radius:6px;font-size:0.8125rem;color:#7f1d1d;border-left:3px solid #ef4444;white-space:pre-wrap;">${verificationNotes.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;')}</div>`
           : '';
-        banner.style.cssText = [
-          baseBannerStyle,
-          'border-left:4px solid #ef4444',
-          'background:linear-gradient(135deg,rgba(239,68,68,0.10) 0%,rgba(254,202,202,0.06) 100%)',
-          'box-shadow:0 2px 8px rgba(239,68,68,0.12)',
-        ].join(';');
+        banner.className = 'sv-status-banner sv-status-banner--danger';
         banner.innerHTML = `
           <div style="display:flex;align-items:flex-start;gap:0.875rem;flex-wrap:wrap;">
             <span style="font-size:1.5rem;flex-shrink:0;line-height:1;" aria-hidden="true">❌</span>
@@ -520,12 +492,7 @@
           openVerificationModal(supplierProfile, { rejectionNotes: verificationNotes });
         });
       } else {
-        banner.style.cssText = [
-          baseBannerStyle,
-          'border-left:4px solid #f59e0b',
-          'background:linear-gradient(135deg,rgba(245,158,11,0.12) 0%,rgba(251,191,36,0.06) 100%)',
-          'box-shadow:0 2px 8px rgba(245,158,11,0.12)',
-        ].join(';');
+        banner.className = 'sv-status-banner sv-status-banner--warning';
         banner.innerHTML = `
           <div style="display:flex;align-items:center;gap:0.875rem;flex-wrap:wrap;">
             <span style="font-size:1.5rem;flex-shrink:0;line-height:1;" aria-hidden="true">⚠️</span>
@@ -560,3 +527,4 @@
     loadApprovalBanner();
   }
 })();
+
