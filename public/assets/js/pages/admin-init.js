@@ -23,15 +23,12 @@
 
   // HTML sanitization helper to prevent XSS
   function escapeHtml(unsafe) {
-    if (!unsafe) {
+    if (unsafe === null || unsafe === undefined) {
       return '';
     }
-    return String(unsafe)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
+    const div = document.createElement('div');
+    div.textContent = String(unsafe);
+    return div.innerHTML;
   }
 
   function _adminToast(msg, type) {
@@ -278,7 +275,7 @@
       }
       let out = '';
       for (let i = 0; i < c; i++) {
-        out += '▮';
+        out += '<span aria-hidden="true">▮</span>';
       }
       return out;
     }
@@ -507,12 +504,12 @@
 
     el.innerHTML =
       `<div class="card">` +
-      `<p><b>Total Users:</b> ${counts.usersTotal || 0}</p>` +
-      `<p><b>Users by role:</b> ${roleParts}</p>` +
-      `<p><b>Total Suppliers:</b> ${counts.suppliersTotal || 0}</p>` +
-      `<p><b>Total Packages:</b> ${counts.packagesTotal || 0}</p>` +
-      `<p><b>Signups last 7 days:</b> ${last7} <span class="small">${bar(last7)}</span></p>` +
-      `<p><b>Signups last 30 days:</b> ${last30} <span class="small">${bar(last30)}</span></p>` +
+      `<p><strong>Total Users:</strong> ${counts.usersTotal || 0}</p>` +
+      `<p><strong>Users by role:</strong> ${roleParts}</p>` +
+      `<p><strong>Total Suppliers:</strong> ${counts.suppliersTotal || 0}</p>` +
+      `<p><strong>Total Packages:</strong> ${counts.packagesTotal || 0}</p>` +
+      `<p><strong>Signups last 7 days:</strong> ${last7} <span class="small">${bar(last7)}</span></p>` +
+      `<p><strong>Signups last 30 days:</strong> ${last30} <span class="small">${bar(last30)}</span></p>` +
       `<p class="small">Plans: ${counts.plansTotal || 0} · Threads: ${
         counts.threadsTotal || 0
       } · Messages: ${counts.messagesTotal || 0}</p>` +
@@ -522,7 +519,8 @@
   function loadAll() {
     const statusEl = document.getElementById('status');
     if (statusEl) {
-      statusEl.innerText = 'Checking admin…';
+      statusEl.textContent = 'Checking admin…';
+      statusEl.classList.add('is-loading');
     }
 
     api('/api/v1/auth/me')
@@ -536,13 +534,20 @@
 
         if (!isAdmin) {
           if (statusEl) {
-            statusEl.innerText = 'Not admin / not logged in.';
+            statusEl.textContent = 'Access denied.';
+            statusEl.style.background = 'rgba(254,242,242,0.95)';
+            statusEl.style.color = '#991b1b';
           }
+          // Hide all dashboard content sections so unauthorised users
+          // don't see the empty admin UI chrome
+          document.querySelectorAll(
+            '.stats-grid, .moderation-grid, .quick-actions, .management-grid, .data-section, .section-header'
+          ).forEach(el => { el.hidden = true; });
           return;
         }
 
         if (statusEl) {
-          statusEl.innerText = 'Loading data…';
+          statusEl.textContent = 'Loading data…';
         }
 
         return Promise.all([
@@ -589,23 +594,23 @@
           );
 
           if (photosEl) {
-            photosEl.innerText = pendingPhotos.length;
+            photosEl.textContent = pendingPhotos.length;
           }
           if (reviewsEl) {
-            reviewsEl.innerText = pendingReviews.length;
+            reviewsEl.textContent = pendingReviews.length;
           }
 
           // Fetch pending reports count
           api('/api/admin/reports/pending', 'GET')
             .then(reportsResp => {
               if (reportsEl) {
-                reportsEl.innerText = reportsResp.count || 0;
+                reportsEl.textContent = reportsResp.count || 0;
               }
             })
             .catch(err => {
               console.warn('Failed to load pending reports:', err.message);
               if (reportsEl) {
-                reportsEl.innerText = '0';
+                reportsEl.textContent = '0';
               }
             });
 
@@ -613,18 +618,19 @@
           api('/api/admin/suppliers/pending-verification', 'GET')
             .then(suppliersResp => {
               if (suppliersVerificationEl) {
-                suppliersVerificationEl.innerText = suppliersResp.count || 0;
+                suppliersVerificationEl.textContent = suppliersResp.count || 0;
               }
             })
             .catch(err => {
               console.warn('Failed to load pending supplier verifications:', err.message);
               if (suppliersVerificationEl) {
-                suppliersVerificationEl.innerText = '0';
+                suppliersVerificationEl.textContent = '0';
               }
             });
 
           if (statusEl) {
-            statusEl.innerText = `Loaded ${allUsers.length} users.`;
+            statusEl.textContent = `Loaded ${allUsers.length} users.`;
+            statusEl.classList.remove('is-loading');
           }
         });
       })
@@ -638,7 +644,8 @@
           typeof err.message === 'string' &&
           !err.message.includes('Authentication required')
         ) {
-          statusEl.innerText = 'Error loading data. Some features may be unavailable.';
+          statusEl.textContent = 'Error loading data. Some features may be unavailable.';
+          statusEl.classList.remove('is-loading');
         }
       });
   }
@@ -908,14 +915,6 @@
           }
         });
     });
-  };
-
-  window.disableUser = function (id) {
-    api(`/api/admin/users/${id}/suspend`, 'POST', { suspended: true, reason: 'Disabled by admin' })
-      .then(loadAll)
-      .catch(err => {
-        console.error('disableUser failed', err);
-      });
   };
 
   // New user management functions
@@ -1673,7 +1672,7 @@
       if (smartTagBtn) {
         smartTagBtn.addEventListener('click', () => {
           smartTagBtn.disabled = true;
-          smartTagBtn.innerText = 'Running smart tagging…';
+          smartTagBtn.textContent = 'Running smart tagging…';
           api('/api/admin/suppliers/smart-tags', 'POST', {})
             .then(() => {
               return loadAll();
@@ -1684,7 +1683,7 @@
             })
             .finally(() => {
               smartTagBtn.disabled = false;
-              smartTagBtn.innerText = 'Run smart tagging (beta)';
+              smartTagBtn.textContent = 'Run smart tagging (beta)';
             });
         });
       }
@@ -1943,77 +1942,6 @@
     }
   };
 
-  window.reviewPendingReviews = function () {
-    api('/api/admin/reviews/pending')
-      .then(data => {
-        const reviews = (data.reviews || []).filter(r => !r.approved && !r.rejected);
-        if (reviews.length === 0) {
-          if (typeof Toast !== 'undefined') {
-            Toast.info('No pending reviews to moderate.');
-          } else {
-            _adminToast('No pending reviews to moderate.', 'warning');
-          }
-          return;
-        }
-
-        const modal = document.createElement('div');
-        modal.className = 'review-modal-overlay review-modal';
-        modal.setAttribute('role', 'dialog');
-        modal.setAttribute('aria-modal', 'true');
-        modal.setAttribute('aria-label', 'Pending Reviews');
-        modal.innerHTML =
-          `<div class="review-modal-container">` +
-          `<h2>Pending Reviews (${reviews.length})</h2>` +
-          `<div id="review-list"></div>` +
-          `<button class="ef-cta" data-action="closeReviewModal">Close</button>` +
-          `</div>`;
-        document.body.appendChild(modal);
-
-        // Close on backdrop click
-        modal.addEventListener('click', e => {
-          if (e.target === modal) {
-            modal.remove();
-          }
-        });
-
-        // Close on Escape key
-        function onKeyDown(e) {
-          if (e.key === 'Escape') {
-            modal.remove();
-            document.removeEventListener('keydown', onKeyDown);
-          }
-        }
-        document.addEventListener('keydown', onKeyDown);
-
-        const list = modal.querySelector('#review-list');
-        reviews.forEach(r => {
-          const item = document.createElement('div');
-          item.className = 'review-modal-item';
-          item.innerHTML =
-            `<p><b>Rating:</b> ${escapeHtml(String(r.rating || 0))} stars</p>` +
-            `<p><b>Comment:</b> ${escapeHtml(r.comment || '')}</p>` +
-            `<p class="small"><b>Supplier ID:</b> ${escapeHtml(r.supplierId)}</p>` +
-            `<p class="small"><b>Date:</b> ${escapeHtml(
-              new Date(r.createdAt).toLocaleString()
-            )}</p>` +
-            `<button class="ef-cta" data-action="approveReview" data-id="${escapeHtml(
-              r.id
-            )}" data-param="true">Approve</button> ` +
-            `<button class="ef-cta" data-action="approveReview" data-id="${escapeHtml(
-              r.id
-            )}" data-param="false">Reject</button>`;
-          list.appendChild(item);
-        });
-      })
-      .catch(err => {
-        console.error('Failed to load reviews', err);
-        if (typeof Toast !== 'undefined') {
-          Toast.error('Failed to load reviews');
-        } else {
-          _adminToast('Failed to load reviews', 'error');
-        }
-      });
-  };
 
   window.approveReview = function (id, approved) {
     api(`/api/admin/reviews/${id}/approve`, 'POST', { approved: approved })
@@ -2409,3 +2337,4 @@
   // Initialize bulk operations
   setupBulkOperations();
 })();
+
