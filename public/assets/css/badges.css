@@ -57,10 +57,6 @@
   transform: translateY(-1px);
 }
 
-.badge-fast-responder:hover {
-  box-shadow: 0 4px 8px rgba(245, 158, 11, 0.35);
-}
-
 .badge-top-rated:hover {
   box-shadow: 0 4px 8px rgba(234, 179, 8, 0.35);
 }
@@ -358,13 +354,7 @@
 }
 
 /* Fast Responder — amber/lightning */
-.badge-fast-responder {
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-  color: #92400e;
-  border: 1px solid #f59e0b;
-  font-weight: 700;
-  box-shadow: 0 1px 3px rgba(245, 158, 11, 0.2);
-}
+
 
 .badge-fast-responder::before {
   content: '⚡';
