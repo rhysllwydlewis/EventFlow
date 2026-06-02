@@ -29,12 +29,16 @@ document.addEventListener('DOMContentLoaded', () => {
   const authState = window.__authState || window.AuthStateManager;
   if (authState) {
     authState.onchange(user => {
-      // Support both old and new notification bell IDs
       const notificationBell =
         document.getElementById('ef-notification-btn') ||
         document.getElementById('notification-bell');
       if (notificationBell) {
-        notificationBell.style.display = user ? 'block' : 'none';
+        // Use classList instead of inline style.display
+        if (user) {
+          notificationBell.classList.remove('is-hidden');
+        } else {
+          notificationBell.classList.add('is-hidden');
+        }
       }
     });
   }

@@ -1693,7 +1693,7 @@ function showToast(message, type = 'info') {
   }
 
   const toast = document.createElement('div');
-  toast.className = 'toast-notification';
+  toast.className = `toast-notification toast-notification--${type || 'info'}`;
   toast.textContent = message;
 
   const colors = {
@@ -1702,21 +1702,7 @@ function showToast(message, type = 'info') {
     info: '#3b82f6',
   };
 
-  toast.style.cssText = `
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background: ${colors[type] || colors.info};
-    color: white;
-    padding: 16px 24px;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    z-index: 10000;
-    animation: slideInUp 0.3s ease-out;
-    max-width: 400px;
-    font-size: 14px;
-    line-height: 1.5;
-  `;
+  // Colour and positioning handled by CSS class
 
   document.body.appendChild(toast);
 
@@ -2912,7 +2898,7 @@ function efMaybeShowOnboarding(page) {
 
   box.innerHTML = `<h2 class="h4">Welcome to EventFlow</h2>${
     body
-  }<div class="form-actions" style="margin-top:8px"><button type="button" class="cta secondary" id="ef-onboarding-dismiss">Got it</button></div>`;
+  }<div class="form-actions form-actions--modal"><button type="button" class="cta secondary" id="ef-onboarding-dismiss">Got it</button></div>`;
 
   const cards = container.querySelector('.cards');
   if (cards && cards.parentNode === container) {
@@ -3648,12 +3634,12 @@ async function initDashSupplier() {
         // Create image element safely to avoid XSS
         const imgDiv = document.createElement('div');
         imgDiv.className = 'photo-preview-item';
-        imgDiv.style.cssText = 'width:100%;height:150px;border-radius:8px;position:relative;';
+        imgDiv.classList.add('photo-preview-item-inner');
 
         const img = document.createElement('img');
         img.src = supplier.bannerUrl; // Browser automatically sanitizes
         img.alt = 'Banner preview';
-        img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:8px;';
+        img.classList.add('photo-preview-img');
         img.addEventListener(
           'error',
           () => {
@@ -6222,22 +6208,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Helper function to show toast notification
     const showToast = function (message, type = 'info') {
       const toast = document.createElement('div');
-      toast.className = 'ef-toast';
+      toast.className = `ef-toast ef-toast--${type || 'info'}`;
       toast.textContent = message;
-      toast.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        padding: 1rem 1.5rem;
-        background: ${type === 'success' ? '#22c55e' : type === 'error' ? '#ef4444' : '#3b82f6'};
-        color: white;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        z-index: 10000;
-        opacity: 0;
-        transform: translateX(400px);
-        transition: all 0.3s ease;
-      `;
+      // Colour and positioning handled by CSS class
       document.body.appendChild(toast);
 
       setTimeout(() => {
@@ -6488,7 +6461,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (regStatus) {
           regStatus.textContent = '';
-          regStatus.style.cssText = '';
+          regStatus.classList.remove('reg-status-visible');
         }
 
         if (regForm._validator && !regForm._validator.validateAll()) {
@@ -6723,8 +6696,7 @@ document.addEventListener('DOMContentLoaded', () => {
               if (!regStatus) {
                 return;
               }
-              regStatus.style.cssText =
-                'display:flex;flex-direction:column;align-items:flex-start;gap:12px;';
+              regStatus.classList.add('reg-status-visible');
               regStatus.innerHTML =
                 '<span style="color:#0B8073;font-weight:500;">\u2713 Account created! Check your email to verify your account, then you can sign in.</span>' +
                 '<button type="button" id="resend-verify-btn" class="ef-cta ef-btn ef-btn-primary">Resend email</button>';
@@ -6885,7 +6857,7 @@ function createResendVerificationForm(containerId, initialEmail = '') {
         const resendData = await resendResp.json();
         if (resendResp.ok) {
           showNetworkError(resendData.message || 'Verification email sent!', 'success');
-          container.innerHTML = `<p class="small">${resendData.message || 'Verification email sent! Check your inbox.'}</p>`;
+          container.innerHTML = `<p class="small">${escapeHtml(resendData.message || 'Verification email sent! Check your inbox.')}</p>`;
         } else {
           showNetworkError(resendData.error || 'Failed to send email', 'error');
         }
@@ -6941,7 +6913,7 @@ async function initVerify() {
             const resendData = await resendResp.json();
             if (resendResp.ok) {
               showNetworkError(resendData.message || 'Verification email sent!', 'success');
-              statusEl.innerHTML = `<p class="small">${resendData.message || 'Verification email sent! Check your inbox.'}</p>`;
+              statusEl.innerHTML = `<p class="small">${escapeHtml(resendData.message || 'Verification email sent! Check your inbox.')}</p>`;
             } else {
               showNetworkError(resendData.error || 'Failed to send email', 'error');
             }
@@ -6975,7 +6947,7 @@ async function initVerify() {
 
         // Show error message with resend option
         statusEl.innerHTML =
-          `<p class="small">${errorMessage}</p>` +
+          `<p class="small">${escapeHtml(errorMessage)}</p>` +
           `<div style="margin-top:16px;">` +
           `<input type="email" id="resend-email" placeholder="Enter your email" style="padding:8px;border:1px solid #ccc;border-radius:4px;margin-right:8px;">` +
           `<button type="button" id="resend-verify-btn" class="ef-cta btn btn-primary">Send new verification email</button>` +
@@ -7003,7 +6975,7 @@ async function initVerify() {
               const resendData = await resendResp.json();
               if (resendResp.ok) {
                 showNetworkError(resendData.message || 'Verification email sent!', 'success');
-                statusEl.innerHTML = `<p class="small">${resendData.message || 'Verification email sent! Check your inbox.'}</p>`;
+                statusEl.innerHTML = `<p class="small">${escapeHtml(resendData.message || 'Verification email sent! Check your inbox.')}</p>`;
               } else {
                 showNetworkError(resendData.error || 'Failed to send email', 'error');
               }

@@ -3538,3 +3538,72 @@ textarea:focus:not(:focus-visible) {
   flex: 1;
 }
 
+/* ===========================================
+   GLOBAL TOAST NOTIFICATIONS (app.js)
+   Replaces style.cssText in showToast() and ef-toast variants
+   =========================================== */
+.toast-notification {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 9999;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  max-width: 350px;
+  pointer-events: none;
+}
+
+.toast-notification--success { background: #10b981; }
+.toast-notification--error   { background: #ef4444; }
+.toast-notification--info    { background: #3b82f6; }
+.toast-notification--warning { background: #f59e0b; }
+
+/* ef-toast variant (top-right, used in auth flows) */
+.ef-toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 1rem 1.5rem;
+  color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 10000;
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  transform: translateX(20px);
+  font-weight: 500;
+  font-size: 0.9rem;
+  pointer-events: none;
+}
+
+.ef-toast--success { background: #22c55e; }
+.ef-toast--error   { background: #ef4444; }
+.ef-toast--info    { background: #3b82f6; }
+
+/* Registration status flex layout */
+.reg-status-visible {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+/* Form actions modal variant */
+.form-actions--modal {
+  margin-top: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast-notification,
+  .ef-toast {
+    transition: none;
+    transform: none;
+  }
+}
+
