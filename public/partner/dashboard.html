@@ -31,19 +31,19 @@
     </div>
 
     <!-- Minimal header bar -->
-    <header style="position:relative;z-index:10;padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,0.06);">
-      <a href="/partner" style="display:flex;align-items:center;gap:0.6rem;text-decoration:none;">
-        <div class="partner-brand-logo-mark" style="width:34px;height:34px;font-size:0.9rem;" aria-hidden="true">EF</div>
-        <span style="color:#fff;font-weight:700;font-size:0.95rem;letter-spacing:-0.01em;">
-          EventFlow <span style="color:rgba(16,185,129,0.8);font-weight:500;">Partners</span>
+    <header class="partner-header">
+      <a href="/partner" class="partner-logo-link">
+        <div class="partner-brand-logo-mark partner-logo-icon" aria-hidden="true">EF</div>
+        <span class="partner-brand-text">
+          EventFlow <span class="partner-verified-label">Partners</span>
         </span>
       </a>
-      <div style="display:flex;align-items:center;gap:1rem;">
-        <span id="partner-user-name" style="color:rgba(255,255,255,0.55);font-size:0.85rem;"></span>
+      <div class="partner-user-area">
+        <span id="partner-user-name" class="partner-role-label"></span>
         <button
           id="partner-logout-btn"
           type="button"
-          style="padding:0.45rem 0.9rem;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:8px;color:rgba(255,255,255,0.65);font-size:0.82rem;cursor:pointer;"
+          class="partner-stat-badge"
           aria-label="Log out"
         >Log out</button>
       </div>
@@ -127,7 +127,7 @@
             <h2 class="partner-section-title" id="ref-link-heading">Your Referral Link</h2>
             <p class="partner-section-subtitle">Share this link with event suppliers to start earning</p>
           </div>
-          <span id="partner-ref-code-badge" class="p-badge p-badge--success partner-ref-code-badge--copyable" style="font-family:monospace;font-size:0.8rem;" tabindex="0" role="button" aria-label="Copy partner code to clipboard"></span>
+          <span id="partner-ref-code-badge" class="p-badge p-badge--success partner-ref-code-badge--copyable partner-mono" tabindex="0" role="button" aria-label="Copy partner code to clipboard"></span>
         </div>
         <div class="partner-ref-link-box" role="group" aria-label="Referral link">
           <span class="partner-ref-link-text" id="partner-ref-link">Loading…</span>
@@ -146,7 +146,7 @@
           <span>📦 Package = <strong>+10</strong></span>
           <span>⭐ Review = <strong>+15</strong></span>
           <span>💳 Subscription = <strong>+100</strong></span>
-          <span style="color:rgba(255,255,255,0.35);">· Available after 30 days</span>
+          <span class="partner-sep">· Available after 30 days</span>
         </div>
       </section>
 
@@ -180,8 +180,8 @@
         </p>
 
         <!-- Code history table -->
-        <div id="code-history-container" style="margin-top:1rem;">
-          <p class="partner-empty-text" style="color:rgba(255,255,255,0.35);font-size:0.82rem;">No previous codes — your current code has never been regenerated.</p>
+        <div id="code-history-container" class="partner-code-history">
+          <p class="partner-empty-text partner-muted-sm">No previous codes — your current code has never been regenerated.</p>
         </div>
       </section>
 
@@ -214,8 +214,8 @@
         <div id="cashout-insufficient" class="cashout-not-configured" style="display:none;" aria-live="polite">
           <span class="cashout-not-configured-icon" aria-hidden="true">💰</span>
           <div style="flex:1;min-width:0;">
-            <p style="margin:0;font-weight:600;">Cashout not yet available</p>
-            <p style="margin:0.25rem 0 0;font-size:0.85rem;opacity:0.8;">
+            <p class="partner-section-title">Cashout not yet available</p>
+            <p class="partner-section-subtitle">
               You need at least <strong>£15 in available points</strong> to request a cashout.
               Your current available balance is <span id="cashout-avail-gbp-msg">£—</span>.
             </p>
@@ -269,7 +269,7 @@
               <!-- Optional notes -->
               <div class="partner-modal-field" style="grid-column:1/-1;">
                 <label for="cashout-notes">
-                  Notes <span style="color:rgba(255,255,255,0.35);font-weight:400;">(optional)</span>
+                  Notes <span class="partner-footer-credit">(optional)</span>
                 </label>
                 <textarea
                   id="cashout-notes"
@@ -288,7 +288,6 @@
                 type="submit"
                 id="cashout-submit-btn"
                 class="ef-cta partner-submit-btn"
-                style="width:auto;max-width:260px;margin:0;"
               >
                 💸 Submit Cashout Request
               </button>
@@ -343,14 +342,13 @@
           </div>
         </div>
         <div class="partner-payout-info">
-          <p style="font-size:0.88rem;color:rgba(255,255,255,0.65);line-height:1.6;margin:0 0 1rem;">
+          <p class="partner-body-copy">
             Need help with your account, referrals, or anything else? Send our team a message and we'll get back to you.
           </p>
           <button
             id="partner-support-btn"
             type="button"
-            class="ef-cta partner-submit-btn"
-            style="max-width:260px;"
+            class="ef-cta partner-submit-btn partner-input-narrow"
             aria-haspopup="dialog"
           >
             ✉️ Raise a support ticket
@@ -454,4 +452,6 @@
     <script src="/assets/js/pages/partner-dashboard-init.js?v=18.3.0" defer></script>
   </body>
 </html>
+
+
 
