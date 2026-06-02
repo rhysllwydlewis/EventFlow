@@ -6,6 +6,7 @@
 
 (function () {
   'use strict';
+function escapeHtml(s){if(s===null||s===undefined)return '';const d=document.createElement('div');d.textContent=String(s);return d.innerHTML;}
 
   // Check authentication and get user info
   async function checkAuthAndUpdateButtons() {
@@ -284,7 +285,7 @@
       `z-index:10000;font-size:.9375rem;font-weight:500;max-width:360px;line-height:1.5;` +
       `display:flex;align-items:flex-start;gap:0.625rem;`;
     banner.innerHTML =
-      `<span style="flex:1;">${message}</span>` +
+      `<span class="pricing-banner-msg">${escapeHtml(message)}</span>` +
       `<button data-dismiss-pricing-banner aria-label="Dismiss" ` +
       `style="background:none;border:none;color:#fff;cursor:pointer;font-size:1.25rem;` +
       `line-height:1;padding:0;margin-left:0.25rem;flex-shrink:0;">&#x00D7;</button>`;
