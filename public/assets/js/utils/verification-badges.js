@@ -1,3 +1,10 @@
+function escapeHtml(s) {
+  if (!s) return '';
+  const d = document.createElement('div');
+  d.textContent = String(s);
+  return d.innerHTML;
+}
+
 /**
  * Verification Badges Utility
  * Renders verification and trust badges for suppliers
@@ -133,9 +140,9 @@ export function renderVerificationBadges(supplier, options = {}) {
       const iconText = cssClass === 'badge-custom' && badge.icon ? `${badge.icon} ` : '';
       badges.push({
         html: `<span class="badge ${cssClass} ${size === 'small' ? 'badge-sm' : ''}" 
-                     title="${badge.description || badge.name}" 
+                     title="${escapeHtml(badge.description || badge.name)}" 
                      role="status"
-                     aria-label="${badge.name}">
+                     aria-label="${escapeHtml(badge.name)}">
                  ${iconText}${badge.name}
                </span>`,
         priority: 2,
