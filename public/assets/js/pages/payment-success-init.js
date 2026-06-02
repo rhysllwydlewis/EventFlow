@@ -1,3 +1,10 @@
+function escapeHtml(s) {
+  if (s === null || s === undefined) return '';
+  const d = document.createElement('div');
+  d.textContent = String(s);
+  return d.innerHTML;
+}
+
 // Get session ID from URL
 const urlParams = new URLSearchParams(window.location.search);
 const sessionId = urlParams.get('session_id');
@@ -32,7 +39,7 @@ async function showSuccess() {
         <h3>Transaction Details</h3>
         <div class="info-row">
           <span class="label">Session ID:</span>
-          <span class="value">${sessionId.substring(0, 20)}...</span>
+          <span class="value">${escapeHtml(sessionId.substring(0, 20))}...</span>
         </div>
         <div class="info-row">
           <span class="label">Status:</span>
@@ -67,7 +74,7 @@ async function showSuccess() {
       sessionInfoHtml
     }<p class="payment-note">If you have any questions about your payment, please contact our support team.</p>` +
     `<div class="action-buttons">` +
-    `<a href="${dashboardUrl}" class="btn btn-primary">Go to Dashboard</a>` +
+    `<a href="${escapeHtml(dashboardUrl)}" class="btn btn-primary">Go to Dashboard</a>` +
     `<a href="/suppliers" class="btn btn-secondary">Browse Suppliers</a>` +
     `</div></div>`;
 }
@@ -121,4 +128,5 @@ async function verifyPayment() {
 
 // Initialize
 verifyPayment();
+
 
