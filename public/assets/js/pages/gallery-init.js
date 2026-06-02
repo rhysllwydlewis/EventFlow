@@ -1,5 +1,14 @@
 'use strict';
 
+// Safe HTML escaping — prevents XSS when inserting user-controlled data
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  const d = document.createElement('div');
+  d.textContent = String(str);
+  return d.innerHTML;
+}
+
+
 let selectedFiles = [];
 let currentImages = [];
 let currentLightboxIndex = 0;
@@ -176,7 +185,7 @@ modalConfirm.addEventListener('click', async () => {
 
     if (response.ok) {
       if (typeof window.EFToast !== 'undefined') {
-        window.EFToast.success(result.message || 'Upload successful!');
+        window.EFshowToast(result.message || 'Upload successful!', 'success');
       } else {
         alert(result.message || 'Upload successful!');
       }
@@ -197,7 +206,7 @@ modalConfirm.addEventListener('click', async () => {
       loadGallery();
     } else {
       if (typeof window.EFToast !== 'undefined') {
-        window.EFToast.error(`Upload failed: ${result.error || 'Unknown error'}`);
+        window.EFshowToast(`Upload failed: ${result.error || 'Unknown error'}`, 'error');
       } else {
         alert(`Upload failed: ${result.error || 'Unknown error'}`);
       }
@@ -483,3 +492,4 @@ document.getElementById('lightboxNext').addEventListener('click', e => {
 
 // Load gallery on page load
 loadGallery();
+

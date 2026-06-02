@@ -174,12 +174,12 @@
       if (supplier.bannerUrl) {
         const imgDiv = document.createElement('div');
         imgDiv.className = 'photo-preview-item';
-        imgDiv.style.cssText = 'width:100%;height:150px;border-radius:8px;position:relative;overflow:hidden;';
+        imgDiv.classList.add('photo-preview-item-inner');
 
         const img = document.createElement('img');
         img.src = supplier.bannerUrl;
         img.alt = 'Banner preview';
-        img.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:8px;';
+        img.className = 'photo-preview-img';
 
         const removeBtn = document.createElement('button');
         removeBtn.type = 'button';
@@ -549,12 +549,12 @@
     // Create preview container
     const container = document.createElement('div');
     container.className = 'photo-preview-item';
-    container.style.cssText = 'width:100%;height:150px;border-radius:8px;position:relative;overflow:hidden;';
+    container.classList.add('photo-preview-item-inner');
 
     // Create image element using DOM (safer than innerHTML)
     const imgElement = document.createElement('img');
     imgElement.alt = 'Selected banner';
-    imgElement.style.cssText = 'width:100%;height:100%;object-fit:cover;border-radius:8px;';
+    imgElement.className = 'photo-preview-img';
 
     // Set src via DOM property (safe after validation)
     imgElement.src = imageUrl;
@@ -618,3 +618,4 @@
     init();
   }
 })();
+

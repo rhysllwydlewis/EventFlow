@@ -110,13 +110,7 @@
     const toast = document.createElement('div');
     toast.setAttribute('role', 'status');
     toast.setAttribute('aria-live', 'polite');
-    toast.style.cssText = [
-      'position:fixed;top:1.25rem;right:1.25rem;z-index:99999',
-      `background:${color || '#374151'}`,
-      'color:#fff;padding:0.75rem 1.25rem;border-radius:8px',
-      'font-size:0.875rem;max-width:320px;box-shadow:0 4px 12px rgba(0,0,0,0.15)',
-      'animation:ef-toast-in 0.2s ease',
-    ].join(';');
+    toast.className = 'notif-toast-inner';
     toast.textContent = message;
     document.body.appendChild(toast);
     setTimeout(() => {
@@ -147,10 +141,7 @@
       overlay.setAttribute('role', 'dialog');
       overlay.setAttribute('aria-modal', 'true');
       overlay.setAttribute('aria-label', 'Confirm action');
-      overlay.style.cssText = [
-        'position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,0.45)',
-        'display:flex;align-items:center;justify-content:center;padding:1rem',
-      ].join(';');
+      overlay.className = 'notif-confirm-overlay';
 
       overlay.innerHTML = `
         <div style="background:#fff;border-radius:10px;max-width:400px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,0.2);padding:1.5rem;font-family:inherit;">
@@ -668,3 +659,4 @@
     init();
   }
 })();
+

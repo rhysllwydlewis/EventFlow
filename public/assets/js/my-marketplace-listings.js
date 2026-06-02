@@ -604,18 +604,7 @@
   function showToast(message, type = 'success') {
     const toast = document.createElement('div');
     toast.textContent = message;
-    toast.style.cssText = `
-      position: fixed;
-      bottom: 80px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: ${type === 'error' ? '#dc2626' : '#16a34a'};
-      color: white;
-      padding: 12px 24px;
-      border-radius: 8px;
-      font-size: 14px;
-      z-index: 10000;
-    `;
+    toast.className = `my-listings-toast my-listings-toast--${type || 'success'}`;
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
   }
@@ -628,3 +617,4 @@
     unsaveListing,
   };
 })();
+

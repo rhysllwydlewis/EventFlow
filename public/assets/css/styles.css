@@ -3128,3 +3128,448 @@ textarea:focus:not(:focus-visible) {
   color: var(--ef-text-faint, #9ca3af);
 }
 
+/* ===========================================
+   NON-PUBLIC PAGE COMPONENT CLASSES
+   Replacing inline styles across authenticated pages
+   =========================================== */
+
+/* Guests empty state */
+.guests-empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+}
+
+.guests-empty-text {
+  margin-bottom: 1rem;
+  color: var(--ef-text-muted, #6b7280);
+}
+
+/* Notifications toast */
+.notif-toast-inner {
+  position: fixed;
+  top: 1.25rem;
+  right: 1.25rem;
+  z-index: 99999;
+  background: var(--toast-bg, #374151);
+  color: #fff;
+  padding: 0.875rem 1.25rem;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  min-width: 240px;
+  max-width: 360px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+/* Notifications confirm overlay */
+.notif-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99998;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Partner dashboard confirm overlay */
+.partner-confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+/* My marketplace listings toast */
+.my-listings-toast {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 9999;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  white-space: nowrap;
+}
+
+.my-listings-toast--success { background: #10b981; }
+.my-listings-toast--error   { background: #ef4444; }
+.my-listings-toast--info    { background: #3b82f6; }
+
+/* Reviews toast container */
+.reviews-toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  pointer-events: none;
+}
+
+/* Pricing notice banner (subscription actions) */
+.pricing-notice-banner {
+  position: fixed;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  color: #fff;
+  padding: 0.875rem 1.25rem;
+  border-radius: 10px;
+  font-weight: 500;
+  font-size: 0.875rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  z-index: 9999;
+  max-width: 360px;
+}
+
+.pricing-notice-banner--success { background: #10b981; }
+.pricing-notice-banner--error   { background: #ef4444; }
+.pricing-notice-banner--info    { background: #3b82f6; }
+
+/* Profile customization photo previews */
+.photo-preview-item-inner {
+  width: 100%;
+  height: 150px;
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+}
+
+.photo-preview-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+/* Payment success page extras */
+.redirect-notice {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0.75rem 0;
+}
+
+.success-icon--error {
+  color: #ef4444;
+}
+
+.success-content--error {
+  border-color: #ef4444;
+}
+
+.error-title {
+  color: #ef4444;
+}
+
+.payment-note {
+  font-size: 0.9rem;
+  color: #9ca3af;
+}
+
+.status-completed {
+  color: #10b981;
+  font-weight: bold;
+}
+
+/* Event detail status */
+.status-completed { color: #10b981; font-weight: bold; }
+
+/* ===========================================
+   SETTINGS PAGE CLASSES
+   =========================================== */
+.settings-section-title {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.settings-section-row {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.settings-label {
+  margin: 0 0 0.5rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #111827;
+}
+
+.settings-btn-group {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.settings-hint {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #9ca3af;
+}
+
+.settings-field-status {
+  display: block;
+  font-size: 0.82rem;
+  min-height: 1.2em;
+  margin-top: 0.25rem;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.settings-success-badge {
+  margin-top: 0.35rem;
+  color: #0B8073;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  padding: 0.25rem 0.625rem;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.settings-action-btn {
+  cursor: pointer;
+  font-size: 0.82rem;
+  padding: 0.375rem 0.875rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 6px;
+  border: 1px solid #0B8073;
+  background: #0B8073;
+  color: #fff;
+  font-family: inherit;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.settings-action-btn:hover {
+  background: #097267;
+  transform: translateY(-1px);
+}
+
+.settings-action-btn--secondary {
+  background: transparent;
+  color: #374151;
+  border-color: #e5e7eb;
+}
+
+.settings-action-btn--secondary:hover {
+  background: #f9fafb;
+  transform: translateY(-1px);
+}
+
+.settings-action-btn:focus-visible,
+.settings-action-btn--secondary:focus-visible {
+  outline: 2px solid #0B8073;
+  outline-offset: 2px;
+}
+
+/* ===========================================
+   GUESTS PAGE CLASSES
+   =========================================== */
+.guests-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.guests-action-row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.guests-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.guests-save-indicator {
+  color: #0B8073;
+  margin-top: 0.25rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+.guests-save-indicator[hidden] { display: none !important; }
+
+.guests-empty-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+/* ===========================================
+   BUDGET PAGE CLASSES
+   =========================================== */
+.budget-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.budget-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.budget-empty-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.budget-period-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.budget-period-btn:hover {
+  border-color: #0B8073;
+  background: #f0fdf4;
+}
+
+.budget-period-btn:focus-visible {
+  outline: 2px solid #0B8073;
+  outline-offset: 2px;
+}
+
+/* ===========================================
+   FOOTER CREDIT (used on all pages)
+   Replaces inline style="width:100%;margin-top:8px;text-align:center"
+   =========================================== */
+.footer-credit {
+  width: 100%;
+  margin-top: 8px;
+  text-align: center;
+}
+
+/* ===========================================
+   EVENT DETAIL — REPORT MODAL
+   =========================================== */
+.event-report-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.event-report-modal {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  max-width: 480px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+
+/* ===========================================
+   MY-MARKETPLACE-LISTINGS AUTH MESSAGE
+   =========================================== */
+.auth-message {
+  padding: 1rem 1.25rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+  border: 1px solid currentColor;
+}
+
+.auth-message.info    { color: #1e40af; background: #dbeafe; }
+.auth-message.success { color: #065f46; background: #d1fae5; }
+.auth-message.error   { color: #991b1b; background: #fee2e2; }
+
+/* ===========================================
+   SUPPLIER PROFILE — PHOTO PREVIEW REMOVE BUTTON
+   =========================================== */
+.photo-preview-remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.75rem;
+  line-height: 1;
+  transition: background 0.15s ease;
+}
+
+.photo-preview-remove:hover {
+  background: rgba(239, 68, 68, 0.85);
+}
+
+.photo-preview-remove:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+/* Event detail toast notification */
+.event-detail-toast {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 9999;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.5rem;
+  color: #fff;
+  font-weight: 700;
+  background: #374151;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  font-size: 0.875rem;
+  pointer-events: none;
+}
+
+/* Pricing banner message */
+.pricing-banner-msg {
+  flex: 1;
+}
+

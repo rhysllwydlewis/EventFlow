@@ -95,7 +95,7 @@ class GuestManager {
     return new Promise(resolve => {
       const container = document.getElementById('guests-list');
       const wrapper = document.createElement('div');
-      wrapper.style.cssText = 'text-align:center;padding:3rem 1rem;';
+      wrapper.className = 'guests-empty-state';
       wrapper.innerHTML = `
         <p style="margin-bottom:1rem;font-weight:600;">Select a plan to manage guests for:</p>
         <select id="plan-selector" class="focus-ring" style="padding:0.5rem 1rem;border-radius:6px;border:1px solid #e5e7eb;margin-bottom:1rem;">
@@ -800,3 +800,4 @@ let guestManager;
 document.addEventListener('DOMContentLoaded', () => {
   guestManager = new GuestManager();
 });
+

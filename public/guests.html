@@ -19,6 +19,7 @@
   <link rel="manifest" href="/site.webmanifest" />
 </head>
 <body>
+  <a href="#main-content" class="skip-to-content">Skip to main content</a>
 <!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
 <header class="ef-header" role="banner">
   <div class="ef-container">
@@ -141,7 +142,7 @@
       <div>
         <h1 class="mb-2">Guest List Manager</h1>
         <p class="small">Track RSVPs and manage your guest list</p>
-        <p id="active-plan-label" class="small" style="display:none;color:#0B8073;margin-top:0.25rem;font-weight:500;"></p>
+        <p id="active-plan-label" class="small" class="guests-save-indicator" hidden></p>
       </div>
       <div class="flex gap-2" style="flex-wrap: wrap;">
         <button class="cta secondary" id="import-guests">
@@ -187,7 +188,7 @@
         <div style="position: relative; height: 250px; display: flex; align-items: center; justify-content: center;">
           <canvas id="rsvp-chart"></canvas>
           <div id="rsvp-empty" style="text-align: center; color: var(--muted); display: none;">
-            <div style="font-size: 2rem; margin-bottom: 0.5rem;">👥</div>
+            <div class="guests-empty-icon">👥</div>
             <div class="small">No guests yet</div>
           </div>
         </div>
@@ -248,7 +249,7 @@
       <a href="/legal">Legal Hub</a> &middot;
       <button type="button" data-cookie-prefs>Cookie preferences</button>
     </div>
-    <div class="small" style="width: 100%; margin-top: 8px; text-align: center;">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
+    <div class="footer-credit small">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
   </div>
   </footer>
 
@@ -324,3 +325,4 @@
 <script src="/assets/js/jadeassist-init.v2.js" defer></script>
 </body>
 </html>
+

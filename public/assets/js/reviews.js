@@ -2046,8 +2046,7 @@
       if (!container) {
         container = document.createElement('div');
         container.id = 'toast-container';
-        container.style.cssText =
-          'position:fixed;top:20px;right:20px;z-index:10000;display:flex;flex-direction:column;align-items:flex-end;';
+        container.className = 'reviews-toast-container';
         document.body.appendChild(container);
       }
 
@@ -2085,3 +2084,4 @@
   window.ReviewsManager = ReviewsManager;
   window.reviewsManager = ReviewsManager; // Instance for direct access
 })();
+

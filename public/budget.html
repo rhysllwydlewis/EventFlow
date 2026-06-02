@@ -22,6 +22,7 @@
     <link rel="manifest" href="/site.webmanifest" />
   </head>
   <body>
+  <a href="#main-content" class="skip-to-content">Skip to main content</a>
     <!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
     <header class="ef-header" role="banner">
       <div class="ef-container">
@@ -171,7 +172,7 @@
             <div class="text-3xl font-bold mb-1" id="total-budget">£0</div>
             <button
               class="cta ghost"
-              style="padding: 0.5rem 1rem; font-size: 0.875rem"
+              class="budget-period-btn"
               id="set-budget"
             >
               Set Budget
@@ -210,7 +211,7 @@
             >
               <canvas id="budget-chart"></canvas>
               <div id="chart-empty" style="text-align: center; color: var(--muted); display: none">
-                <div style="font-size: 2rem; margin-bottom: 0.5rem">📊</div>
+                <div class="budget-empty-icon">📊</div>
                 <div class="small">No expenses yet</div>
               </div>
             </div>
@@ -290,7 +291,7 @@
           <a href="/legal">Legal Hub</a> &middot;
       <button type="button" data-cookie-prefs>Cookie preferences</button>
         </div>
-        <div class="small" style="width: 100%; margin-top: 8px; text-align: center;">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
+        <div class="footer-credit small">Operated by <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a></div>
       </div>
   </footer>
 
@@ -433,3 +434,4 @@
     <script src="/assets/js/jadeassist-init.v2.js" defer></script>
 </body>
 </html>
+

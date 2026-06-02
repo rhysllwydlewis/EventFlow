@@ -1,6 +1,15 @@
 (function () {
   'use strict';
 
+// Safe HTML escaping
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  const d = document.createElement('div');
+  d.textContent = String(str);
+  return d.innerHTML;
+}
+
+
   let currentEvent = null;
 
   function esc(value) {
@@ -71,7 +80,7 @@
     }
     const div = document.createElement('div');
     div.textContent = message;
-    div.style.cssText = `position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;padding:0.75rem 1.25rem;border-radius:0.5rem;color:#fff;font-weight:700;background:${type === 'error' ? '#dc2626' : '#16a34a'};`;
+    div.className = 'event-detail-toast';
     document.body.appendChild(div);
     setTimeout(() => div.remove(), 3500);
   }
@@ -318,3 +327,4 @@
     init();
   }
 })();
+
