@@ -294,7 +294,7 @@ export function displayPackageLimitNotice(container, currentCount) {
     </p>
     ${
       remaining <= 0
-        ? '<a href="/supplier/subscription" class="cta" style="margin-top: 0.5rem;">Upgrade to Pro</a>'
+        ? '<a href="/supplier/subscription" class="cta package-limit-upgrade-cta">Upgrade to Pro</a>'
         : ''
     }
   `;
