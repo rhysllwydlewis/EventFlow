@@ -680,8 +680,7 @@ function showError(message) {
   const errorContainer = document.getElementById('error-message');
   if (errorContainer) {
     errorContainer.innerHTML = `
-      <div class="alert alert-error alert-error-styled">
-        <strong>Error:</strong> ${message}
+      <div class="alert alert-error alert-error-styled"><strong>Error:</strong> ${escapeHtml(message)}
       </div>
     `;
     errorContainer.style.display = 'block';
@@ -702,8 +701,7 @@ function showSuccess(message) {
   const successContainer = document.getElementById('success-message');
   if (successContainer) {
     successContainer.innerHTML = `
-      <div class="alert alert-success">
-        ${message}
+      <div class="alert alert-success">${escapeHtml(message)}
       </div>
     `;
     successContainer.style.display = 'block';

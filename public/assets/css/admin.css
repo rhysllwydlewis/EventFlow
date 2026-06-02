@@ -456,26 +456,6 @@ select:focus {
 }
 
 /* Skip-to-main-content link (keyboard accessibility) */
-.skip-to-content {
-  position: absolute;
-  top: -999px;
-  left: 0;
-  z-index: 9999;
-  padding: 12px 20px;
-  background: #0B8073;
-  color: #ffffff;
-  font-weight: 600;
-  font-size: 14px;
-  border-radius: 0 0 8px 0;
-  text-decoration: none;
-}
-
-.skip-to-content:focus {
-  top: 0;
-  outline: 2px solid #0B8073;
-  outline-offset: 2px;
-}
-
 /* Focus visible for keyboard navigation */
 *:focus-visible {
   outline: 2px solid #0B8073;

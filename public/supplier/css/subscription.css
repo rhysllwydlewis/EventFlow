@@ -1350,3 +1350,145 @@ details[open] .faq-question::after {
 .faq-item > summary::marker {
   content: '';
 }
+
+/* ===========================================
+   SUBSCRIPTION UI IMPROVEMENTS
+   =========================================== */
+
+/* Cancel-at-period-end warning */
+.sub-cancel-notice {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.75rem 1rem;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-left: 3px solid #f59e0b;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  color: #78350f;
+  margin-top: 0.75rem;
+}
+
+.sub-cancel-notice::before {
+  content: '⚠️';
+  flex-shrink: 0;
+}
+
+/* Billing history table */
+.billing-history-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  margin-top: 0.75rem;
+}
+
+.billing-history-table th {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.billing-history-table td {
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid #f3f4f6;
+  color: #374151;
+}
+
+.billing-history-table tr:last-child td {
+  border-bottom: none;
+}
+
+.billing-history-table .amount {
+  font-weight: 600;
+  color: #0b1220;
+}
+
+.billing-history-table .paid-badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.billing-history-table .failed-badge {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Next billing date row */
+.sub-next-billing {
+  font-size: 0.8125rem;
+  color: #6b7280;
+  margin-top: 0.5rem;
+}
+
+.sub-next-billing strong {
+  color: #1f2937;
+}
+
+/* Plan comparison — feature row styling */
+.plan-feature-highlight {
+  background: linear-gradient(90deg, rgba(11,128,115,0.04) 0%, transparent 100%);
+  border-left: 2px solid #0b8073;
+  padding-left: 0.5rem;
+}
+
+/* Current plan indicator */
+.current-plan-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.6rem;
+  background: #0b8073;
+  color: #fff;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* btn-upgrade-plan (was referenced in JS but not styled) */
+.btn-upgrade-plan {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.625rem 1.25rem;
+  background: linear-gradient(135deg, #0B8073 0%, #13B6A2 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-family: inherit;
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  width: 100%;
+}
+
+.btn-upgrade-plan:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(11, 128, 115, 0.35);
+}
+
+.btn-upgrade-plan:focus-visible {
+  outline: 2px solid #0B8073;
+  outline-offset: 2px;
+}
+
+/* Package-limit upgrade CTA (feature-access.js) */
+.package-limit-upgrade-cta {
+  display: inline-block;
+  margin-top: 0.5rem;
+}
+

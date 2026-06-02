@@ -1,3 +1,10 @@
+function escapeHtml(s) {
+  if (!s) return '';
+  const d = document.createElement('div');
+  d.textContent = String(s);
+  return d.innerHTML;
+}
+
 /**
  * Verification Badges Utility
  * Renders verification and trust badges for suppliers
@@ -28,10 +35,10 @@ function resolveSupplierTier(supplier) {
 export function renderTierIcon(supplier) {
   const tier = resolveSupplierTier(supplier);
   if (tier === 'pro_plus') {
-    return `<span class="tier-icon tier-icon-pro-plus" title="Professional Plus subscriber" aria-label="Pro Plus">💎</span>`;
+    return `<span class="tier-icon tier-icon-pro-plus" title="Pro Plus — Priority listing, unlimited packages, custom branding & homepage carousel" aria-label="Pro Plus">💎</span>`;
   }
   if (tier === 'pro') {
-    return `<span class="tier-icon tier-icon-pro" title="Professional subscriber" aria-label="Pro">⭐</span>`;
+    return `<span class="tier-icon tier-icon-pro" title="Pro — Priority listing, analytics & email support" aria-label="Pro">⭐</span>`;
   }
   return '';
 }
@@ -96,18 +103,8 @@ export function renderVerificationBadges(supplier, options = {}) {
              </span>`,
       priority: 2,
     });
-  } else {
-    // Free tier — show Starter badge
-    badges.push({
-      html: `<span class="badge badge-starter ${size === 'small' ? 'badge-sm' : ''}" 
-                   title="Starter — Free plan" 
-                   role="status"
-                   aria-label="Starter plan">
-               Starter
-             </span>`,
-      priority: 2,
-    });
   }
+  // Free tier — no tier badge shown (avoids confusion with earned badges)
 
   // Priority 3a: Featured Badge (priority: 2 — rendered after tier)
   if (supplier.featured || supplier.featuredSupplier) {
@@ -143,9 +140,9 @@ export function renderVerificationBadges(supplier, options = {}) {
       const iconText = cssClass === 'badge-custom' && badge.icon ? `${badge.icon} ` : '';
       badges.push({
         html: `<span class="badge ${cssClass} ${size === 'small' ? 'badge-sm' : ''}" 
-                     title="${badge.description || badge.name}" 
+                     title="${escapeHtml(badge.description || badge.name)}" 
                      role="status"
-                     aria-label="${badge.name}">
+                     aria-label="${escapeHtml(badge.name)}">
                  ${iconText}${badge.name}
                </span>`,
         priority: 2,
@@ -390,3 +387,4 @@ export default {
   hasVerificationBadges,
   getVerificationSummary,
 };
+

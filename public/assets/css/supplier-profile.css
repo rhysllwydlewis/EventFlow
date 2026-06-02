@@ -1698,3 +1698,129 @@
 .sp-fade-in {
   animation: fadeInUp 0.35s ease-out backwards;
 }
+
+/* ===========================================
+   SUPPLIER PROFILE — BADGE DISPLAY
+   =========================================== */
+
+/* Badge group on public profile page */
+.supplier-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  align-items: center;
+  margin: 0.5rem 0;
+}
+
+.supplier-badges-sm {
+  gap: 0.25rem;
+}
+
+/* Badge hover state — lift effect on profile page */
+.supplier-profile-header .badge:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.05);
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+/* Verified tick icon alignment */
+.badge-email-verified i,
+.badge-phone-verified i,
+.badge-business-verified i {
+  vertical-align: middle;
+  margin-right: 0.2rem;
+}
+
+/* Verification section on profile */
+.verification-section {
+  background: #f8fffe;
+  border: 1px solid #ccfbf1;
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-top: 1.25rem;
+}
+
+.verification-section__title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0b8073;
+  margin: 0 0 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.verification-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.verification-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.625rem 0.875rem;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+.verification-item.verified {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+.verification-item.unverified {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  opacity: 0.75;
+}
+
+.verification-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.verification-item.verified .verification-icon {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.verification-item.unverified .verification-icon {
+  background: #f3f4f6;
+  color: #9ca3af;
+}
+
+.verification-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.verification-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.verification-description {
+  font-size: 0.78rem;
+  color: #6b7280;
+  margin-top: 0.1rem;
+}
+
+.verification-status {
+  color: #16a34a;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.verification-item.unverified .verification-status {
+  color: #d1d5db;
+}
+
