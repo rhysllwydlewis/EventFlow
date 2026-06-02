@@ -1457,3 +1457,38 @@ details[open] .faq-question::after {
   text-transform: uppercase;
 }
 
+/* btn-upgrade-plan (was referenced in JS but not styled) */
+.btn-upgrade-plan {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.625rem 1.25rem;
+  background: linear-gradient(135deg, #0B8073 0%, #13B6A2 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  font-family: inherit;
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  width: 100%;
+}
+
+.btn-upgrade-plan:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(11, 128, 115, 0.35);
+}
+
+.btn-upgrade-plan:focus-visible {
+  outline: 2px solid #0B8073;
+  outline-offset: 2px;
+}
+
+/* Package-limit upgrade CTA (feature-access.js) */
+.package-limit-upgrade-cta {
+  display: inline-block;
+  margin-top: 0.5rem;
+}
+
