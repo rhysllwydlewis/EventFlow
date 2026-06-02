@@ -280,9 +280,7 @@
     const banner = document.createElement('div');
     banner.id = 'pricing-status-banner';
     banner.setAttribute('role', 'status');
-    banner.style.cssText =
-      `position:fixed;bottom:1.25rem;right:1.25rem;background:${bg};color:#fff;` +
-      `padding:0.875rem 1.25rem;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.18);` +
+        banner.className = `pricing-notice-banner pricing-notice-banner--${type || 'success'}`;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.18);` +
       `z-index:10000;font-size:.9375rem;font-weight:500;max-width:360px;line-height:1.5;` +
       `display:flex;align-items:flex-start;gap:0.625rem;`;
     banner.innerHTML =
@@ -334,3 +332,4 @@
     init();
   }
 })();
+
