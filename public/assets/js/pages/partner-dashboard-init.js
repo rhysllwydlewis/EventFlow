@@ -4,6 +4,7 @@
  */
 (function () {
   'use strict';
+function escapeHtml(s){if(!s)return '';const d=document.createElement('div');d.textContent=String(s);return d.innerHTML;}
 
   // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -57,11 +58,7 @@
       overlay.setAttribute('role', 'dialog');
       overlay.setAttribute('aria-modal', 'true');
       overlay.setAttribute('aria-label', 'Confirm action');
-      overlay.style.cssText = [
-        'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,0.55)',
-        'backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)',
-        'display:flex;align-items:center;justify-content:center;padding:1rem',
-      ].join(';');
+      overlay.className = 'partner-confirm-overlay';
 
       overlay.innerHTML = `
         <div style="background:rgba(15,28,35,0.97);border:1px solid rgba(255,255,255,0.14);border-radius:16px;max-width:400px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,0.5);padding:1.5rem;">
@@ -1308,3 +1305,4 @@
     init();
   }
 })();
+
