@@ -2093,3 +2093,106 @@ select.partner-modal-input option {
     transform: none;
   }
 }
+
+/* ===========================================
+   PARTNER HEADER COMPONENT
+   Replaces inline styles in partner/dashboard.html
+   =========================================== */
+.partner-header {
+  position: relative;
+  z-index: 10;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.partner-logo-link {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  text-decoration: none;
+}
+
+.partner-logo-icon {
+  width: 34px;
+  height: 34px;
+  font-size: 0.9rem;
+}
+
+.partner-brand-text {
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: -0.01em;
+}
+
+.partner-verified-label {
+  color: rgba(16, 185, 129, 0.8);
+  font-weight: 500;
+}
+
+.partner-user-area {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.partner-role-label {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.85rem;
+}
+
+.partner-stat-badge {
+  padding: 0.45rem 0.9rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.partner-mono {
+  font-family: monospace;
+  font-size: 0.8rem;
+}
+
+.partner-sep {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.partner-muted-sm {
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.82rem;
+}
+
+.partner-section-title {
+  margin: 0;
+  font-weight: 600;
+}
+
+.partner-section-subtitle {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+.partner-footer-credit {
+  color: rgba(255, 255, 255, 0.35);
+  font-weight: 400;
+}
+
+.partner-input-narrow {
+  width: auto;
+  max-width: 260px;
+  margin: 0;
+}
+
+.partner-body-copy {
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.65);
+  line-height: 1.6;
+  margin: 0 0 1rem;
+}
+
