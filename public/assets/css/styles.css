@@ -3471,3 +3471,85 @@ textarea:focus:not(:focus-visible) {
   outline-offset: 2px;
 }
 
+/* ===========================================
+   FOOTER CREDIT (used on all pages)
+   Replaces inline style="width:100%;margin-top:8px;text-align:center"
+   =========================================== */
+.footer-credit {
+  width: 100%;
+  margin-top: 8px;
+  text-align: center;
+}
+
+/* ===========================================
+   EVENT DETAIL — REPORT MODAL
+   =========================================== */
+.event-report-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.event-report-modal {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  max-width: 480px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+}
+
+/* ===========================================
+   MY-MARKETPLACE-LISTINGS AUTH MESSAGE
+   =========================================== */
+.auth-message {
+  padding: 1rem 1.25rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin-bottom: 1rem;
+  border: 1px solid currentColor;
+}
+
+.auth-message.info    { color: #1e40af; background: #dbeafe; }
+.auth-message.success { color: #065f46; background: #d1fae5; }
+.auth-message.error   { color: #991b1b; background: #fee2e2; }
+
+/* ===========================================
+   SUPPLIER PROFILE — PHOTO PREVIEW REMOVE BUTTON
+   =========================================== */
+.photo-preview-remove {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.75rem;
+  line-height: 1;
+  transition: background 0.15s ease;
+}
+
+.photo-preview-remove:hover {
+  background: rgba(239, 68, 68, 0.85);
+}
+
+.photo-preview-remove:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
