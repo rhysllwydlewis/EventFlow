@@ -16,145 +16,11 @@
     <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/navbar.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/checkout.css?v=18.3.0" />
     <link rel="icon" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
-    
-    <style>
-      .cancel-container {
-        max-width: 600px;
-        margin: 5rem auto;
-        padding: 0 1rem;
-        text-align: center;
-      }
-      
-      .cancel-icon {
-        font-size: 5rem;
-        margin-bottom: 2rem;
-        animation: fadeIn 0.5s ease-out;
-      }
-      
-      @keyframes fadeIn {
-        0% {
-          opacity: 0;
-          transform: translateY(-20px);
-        }
-        100% {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-      
-      .cancel-content {
-        background: white;
-        border: 2px solid #f59e0b;
-        border-radius: 12px;
-        padding: 3rem 2rem;
-        box-shadow: 0 8px 24px rgba(245, 158, 11, 0.1);
-      }
-      
-      .cancel-content h1 {
-        color: #f59e0b;
-        font-size: 2rem;
-        margin-bottom: 1rem;
-      }
-      
-      .cancel-content p {
-        color: #666;
-        font-size: 1.1rem;
-        line-height: 1.6;
-        margin-bottom: 1.5rem;
-      }
-      
-      .info-box {
-        background: #fffbeb;
-        border-left: 4px solid #f59e0b;
-        border-radius: 4px;
-        padding: 1.5rem;
-        margin: 2rem 0;
-        text-align: left;
-      }
-      
-      .info-box h3 {
-        font-size: 1.1rem;
-        color: #92400e;
-        margin-bottom: 0.5rem;
-      }
-      
-      .info-box ul {
-        margin: 0;
-        padding-left: 1.5rem;
-        color: #78350f;
-      }
-      
-      .info-box li {
-        margin: 0.5rem 0;
-      }
-      
-      .action-buttons {
-        display: flex;
-        gap: 1rem;
-        justify-content: center;
-        margin-top: 2rem;
-        flex-wrap: wrap;
-      }
-      
-      .btn {
-        display: inline-block;
-        padding: 0.75rem 2rem;
-        border-radius: 8px;
-        font-weight: 600;
-        text-decoration: none;
-        transition: all 0.3s ease;
-        border: none;
-        cursor: pointer;
-        font-size: 1rem;
-      }
-      
-      .btn-primary {
-        background: #4f46e5;
-        color: white;
-      }
-      
-      .btn-primary:hover {
-        background: #4338ca;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
-      }
-      
-      .btn-secondary {
-        background: white;
-        color: #4f46e5;
-        border: 2px solid #4f46e5;
-      }
-      
-      .btn-secondary:hover {
-        background: #f3f4f6;
-      }
-      
-      .help-section {
-        margin-top: 3rem;
-        padding: 2rem;
-        background: #f9fafb;
-        border-radius: 8px;
-      }
-      
-      .help-section h3 {
-        color: #374151;
-        margin-bottom: 1rem;
-      }
-      
-      .help-section p {
-        font-size: 0.95rem;
-        margin-bottom: 1rem;
-      }
-      
-      .help-section a {
-        color: #4f46e5;
-        text-decoration: underline;
-      }
-    </style>
-  </head>
+</head>
   <body>
 <!-- Header -->
     <!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
@@ -329,7 +195,7 @@
       </div>
   </footer>
 
-    <script src="/assets/js/pages/payment-cancel-init.js"></script>
+    <script src="/assets/js/pages/payment-cancel-init.js" defer></script>
   
 <!-- JadeAssist Chat Widget -->
 <script src="/assets/js/vendor/jade-widget.js" defer></script>
@@ -338,4 +204,5 @@
 <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
 </body>
 </html>
+
 
