@@ -16,154 +16,11 @@
     <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/navbar.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/checkout.css?v=18.3.0" />
     <link rel="icon" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
-    
-    <style>
-      .success-container {
-        max-width: 600px;
-        margin: 5rem auto;
-        padding: 0 1rem;
-        text-align: center;
-      }
-      
-      .success-icon {
-        font-size: 5rem;
-        margin-bottom: 2rem;
-        animation: scaleIn 0.5s ease-out;
-      }
-      
-      @keyframes scaleIn {
-        0% {
-          transform: scale(0);
-          opacity: 0;
-        }
-        50% {
-          transform: scale(1.2);
-        }
-        100% {
-          transform: scale(1);
-          opacity: 1;
-        }
-      }
-      
-      .success-content {
-        background: white;
-        border: 2px solid #10b981;
-        border-radius: 12px;
-        padding: 3rem 2rem;
-        box-shadow: 0 8px 24px rgba(16, 185, 129, 0.1);
-      }
-      
-      .success-content h1 {
-        color: #10b981;
-        font-size: 2rem;
-        margin-bottom: 1rem;
-      }
-      
-      .success-content p {
-        color: #666;
-        font-size: 1.1rem;
-        line-height: 1.6;
-        margin-bottom: 1.5rem;
-      }
-      
-      .session-info {
-        background: #f9fafb;
-        border-radius: 8px;
-        padding: 1.5rem;
-        margin: 2rem 0;
-        text-align: left;
-      }
-      
-      .session-info h3 {
-        font-size: 1rem;
-        color: #374151;
-        margin-bottom: 1rem;
-      }
-      
-      .session-info .info-row {
-        display: flex;
-        justify-content: space-between;
-        padding: 0.5rem 0;
-        border-bottom: 1px solid #e5e7eb;
-      }
-      
-      .session-info .info-row:last-child {
-        border-bottom: none;
-      }
-      
-      .session-info .label {
-        font-weight: 600;
-        color: #6b7280;
-      }
-      
-      .session-info .value {
-        color: #111827;
-        font-family: monospace;
-      }
-      
-      .action-buttons {
-        display: flex;
-        gap: 1rem;
-        justify-content: center;
-        margin-top: 2rem;
-      }
-      
-      .btn {
-        display: inline-block;
-        padding: 0.75rem 2rem;
-        border-radius: 8px;
-        font-weight: 600;
-        text-decoration: none;
-        transition: all 0.3s ease;
-        border: none;
-        cursor: pointer;
-        font-size: 1rem;
-      }
-      
-      .btn-primary {
-        background: #4f46e5;
-        color: white;
-      }
-      
-      .btn-primary:hover {
-        background: #4338ca;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
-      }
-      
-      .btn-secondary {
-        background: white;
-        color: #4f46e5;
-        border: 2px solid #4f46e5;
-      }
-      
-      .btn-secondary:hover {
-        background: #f3f4f6;
-      }
-      
-      .loading {
-        padding: 3rem;
-      }
-      
-      .spinner {
-        border: 4px solid #f3f3f3;
-        border-top: 4px solid #10b981;
-        border-radius: 50%;
-        width: 40px;
-        height: 40px;
-        animation: spin 1s linear infinite;
-        margin: 0 auto 1rem;
-      }
-      
-      @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-      }
-    </style>
-  </head>
+</head>
   <body>
 <!-- Header -->
     <!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
@@ -294,7 +151,7 @@
       </div>
   </footer>
 
-    <script src="/assets/js/pages/payment-success-init.js"></script>
+    <script src="/assets/js/pages/payment-success-init.js" defer></script>
   
 <!-- JadeAssist Chat Widget -->
 <script src="/assets/js/vendor/jade-widget.js" defer></script>
@@ -303,4 +160,5 @@
 <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
 </body>
 </html>
+
 

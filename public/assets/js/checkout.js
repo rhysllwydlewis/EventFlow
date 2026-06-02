@@ -206,17 +206,17 @@
           <div class="pricing-card ${plan.featured ? 'featured' : ''}">
             ${
               plan.earlyAccess
-                ? '<div style="display:inline-block; background: #0B8073; color: white; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 0.75rem;">Early Access Offer</div>'
+                ? '<div class="plan-badge-early-access">Early Access Offer</div>'
                 : ''
             }
             ${
               plan.featured && !plan.earlyAccess
-                ? '<div style="background: rgba(255,255,255,0.2); padding: 0.5rem; border-radius: 4px; margin-bottom: 1rem; font-weight: bold;">MOST POPULAR</div>'
+                ? '<div class="plan-badge-popular">MOST POPULAR</div>'
                 : ''
             }
             ${
               plan.isFree
-                ? '<div style="background: #10b981; color: white; padding: 0.5rem; border-radius: 4px; margin-bottom: 1rem; font-weight: bold;">FREE FOREVER</div>'
+                ? '<div class="plan-badge-free">FREE FOREVER</div>'
                 : ''
             }
             <h3>${escapeHtml(plan.name)}</h3>
@@ -226,9 +226,8 @@
             </div>
             ${
               plan.earlyAccess
-                ? `
-              <div style="font-size: 0.875rem; color: #374151; margin: 0.25rem 0 0.5rem;">Early access pricing while EventFlow is in development.</div>
-              <div style="font-size: 0.9375rem; font-weight: 600; color: #6b7280; text-decoration: line-through; margin-bottom: 0.5rem;">Normally £${escapeHtml(String(plan.normallyPrice))} / month</div>
+                ? `<div class="plan-early-note">Early access pricing while EventFlow is in development.</div>
+              <div class="plan-early-was">Normally £${escapeHtml(String(plan.normallyPrice))} / month</div>
             `
                 : ''
             }
@@ -243,9 +242,8 @@
             ${
               plan.earlyAccess
                 ? `
-              <p style="font-size: 0.8125rem; color: #6b7280; margin-top: 0.75rem; line-height: 1.5;">Offer ends ${escapeHtml(plan.earlyAccessEndDate)}. After this date, standard pricing applies. Cancel anytime.</p>
-              <p style="display:flex; align-items:flex-start; gap:0.375rem; font-size:0.75rem; color:#9ca3af; margin-top:0.75rem; line-height:1.5;">
-                <span style="flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; width:1rem; height:1rem; border-radius:50%; border:1px solid #9ca3af; font-size:0.6875rem; cursor:default; margin-top:0.0625rem;" title="Early Access pricing is available for subscriptions started before 31 December 2026. Standard pricing will apply from 1 January 2027.">i</span>
+              <p class="plan-early-fine-print">Offer ends ${escapeHtml(plan.earlyAccessEndDate)}. After this date, standard pricing applies. Cancel anytime.</p>
+              <p class="plan-early-disclaimer"><span class="plan-info-icon" title="Early Access pricing is available for subscriptions started before 31 December 2026. Standard pricing will apply from 1 January 2027." aria-label="Important note">i</span>
                 <small>Early Access pricing is available for subscriptions started before 31 December 2026. Standard pricing will apply from 1 January 2027.</small>
               </p>
             `
@@ -406,3 +404,4 @@
     init();
   }
 })();
+
