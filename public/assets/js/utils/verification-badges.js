@@ -380,3 +380,4 @@ export default {
   hasVerificationBadges,
   getVerificationSummary,
 };
+
