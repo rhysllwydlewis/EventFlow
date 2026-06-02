@@ -356,10 +356,7 @@
 /* Fast Responder — amber/lightning */
 
 
-.badge-fast-responder::before {
-  content: '⚡';
-  margin-right: 0.375rem;
-}
+
 
 /* Top Rated — star yellow */
 .badge-top-rated {
@@ -984,10 +981,10 @@
    (was amber like founding — now teal/cyan)
    =========================================== */
 .badge-fast-responder {
-  background: linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%) !important;
-  color: #134e4a !important;
-  border-color: #14b8a6 !important;
-  box-shadow: 0 1px 3px rgba(20, 184, 166, 0.25) !important;
+  background: linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%);
+  color: #134e4a;
+  border-color: #14b8a6;
+  box-shadow: 0 1px 3px rgba(20, 184, 166, 0.25);
 }
 
 .badge-fast-responder::before {
@@ -1191,5 +1188,6 @@
   font-size: 0.75rem;
   text-decoration: underline;
 }
+
 
 
