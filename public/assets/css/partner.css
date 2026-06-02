@@ -2195,4 +2195,8 @@ select.partner-modal-input option {
   line-height: 1.6;
   margin: 0 0 1rem;
 }
+/* code history container */
+.partner-code-history {
+  margin-top: 1rem;
+}
 
