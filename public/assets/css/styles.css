@@ -2946,41 +2946,6 @@ textarea:focus:not(:focus-visible) {
 }
 
 /* ===========================================
-   SKIP-TO-CONTENT LINK
-   Keyboard accessibility — bypasses navbar for keyboard users.
-   Hidden off-screen until focused; reachable via Tab as first element.
-   Used on all public pages.
-   =========================================== */
-.skip-to-content {
-  position: absolute;
-  left: -10000px;
-  top: auto;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  background: #0B8073;
-  color: #fff;
-  font-weight: 600;
-  font-size: 0.9375rem;
-  padding: 0.75rem 1.5rem;
-  border-radius: 0 0 8px 0;
-  text-decoration: none;
-  z-index: 99999;
-  white-space: nowrap;
-}
-
-.skip-to-content:focus {
-  position: fixed;
-  left: 0;
-  top: 0;
-  width: auto;
-  height: auto;
-  overflow: visible;
-  outline: 3px solid #fff;
-  outline-offset: 2px;
-}
-
-/* ===========================================
    HOME HERO ERROR MESSAGE
    Replaces inline style.cssText in home-init.js
    =========================================== */
