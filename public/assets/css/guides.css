@@ -847,6 +847,13 @@
   border-color: rgba(11,128,115,0.24);
 }
 
+.guide-card:focus-visible,
+.guide-card:focus {
+  outline: 2px solid #0B8073;
+  outline-offset: 2px;
+  box-shadow: 0 8px 24px rgba(11, 128, 115, 0.15);
+}
+
 .guide-card__image-wrap {
   position: relative;
   overflow: hidden;
