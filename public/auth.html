@@ -34,7 +34,13 @@
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
-  </head>
+    <!-- Social preview (even for noindex pages — link previews still use these) -->
+  <meta property="og:image" content="https://event-flow.co.uk/assets/images/eventflow-og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://event-flow.co.uk/assets/images/eventflow-og-image.png" />
+</head>
   <body class="auth-page">
 <!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
     <header class="ef-header" role="banner">
@@ -1002,7 +1008,7 @@
           <a href="/legal">Legal Hub</a> ·
           <button type="button" data-cookie-prefs>Cookie preferences</button>
         </div>
-        <div class="small" style="width: 100%; margin-top: 8px; text-align: center">
+        <div class="small" class="footer-credit">
           Operated by
           <a href="https://vexi.co.uk" target="_blank" rel="noopener noreferrer">VEXI</a>
         </div>
@@ -1018,3 +1024,4 @@
     <script src="/assets/js/jadeassist-init.v2.js" defer></script>
   </body>
 </html>
+
