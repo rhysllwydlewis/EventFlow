@@ -288,11 +288,9 @@ async function findOne(collectionName, filter) {
       if (typeof filter === 'function') {
         return all.find(filter) || null;
       }
-      return (
-        all.find(item => {
-          return Object.keys(filter).every(key => item[key] === filter[key]);
-        }) || null
-      );
+      // Use matchesFilter so $or, dotted-path keys, and comparison operators ($gte etc.)
+      // all work the same way on the local store as they do on MongoDB.
+      return all.find(item => matchesFilter(item, filter)) || null;
     }
   } catch (error) {
     logger.error(`Error finding in ${collectionName}:`, error.message);
@@ -315,9 +313,8 @@ async function find(collectionName, filter) {
       if (typeof filter === 'function') {
         return all.filter(filter);
       }
-      return all.filter(item => {
-        return Object.keys(filter).every(key => item[key] === filter[key]);
-      });
+      // Use matchesFilter for $or, dotted-path, and operator parity with MongoDB.
+      return all.filter(item => matchesFilter(item, filter));
     }
   } catch (error) {
     logger.error(`Error finding in ${collectionName}:`, error.message);

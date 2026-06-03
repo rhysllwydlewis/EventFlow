@@ -261,8 +261,9 @@ router.post(
     if (!userFirstName || !userLastName) {
       return res.status(400).json({ error: 'First name and last name are required' });
     }
-    // Reject names that are purely non-alphabetic (e.g. ";;;", "<script>", "123")
-    if (!/[a-zA-ZÀ-ÖØ-öø-ÿ]/.test(userFirstName) || !/[a-zA-ZÀ-ÖØ-öø-ÿ]/.test(userLastName)) {
+    // Reject names that are purely non-alphabetic (e.g. ";;;", "<script>", "123").
+    // \p{L} matches any Unicode letter — covers Latin, Arabic, Chinese, Hebrew, Cyrillic, etc.
+    if (!/\p{L}/u.test(userFirstName) || !/\p{L}/u.test(userLastName)) {
       return res
         .status(400)
         .json({ error: 'First and last name must contain at least one letter' });
@@ -278,7 +279,7 @@ router.post(
     if (typeof password !== 'string' || password.length > 1024) {
       // bcrypt silently truncates at 72 bytes; a multi-KB password is either a
       // mistake or a DoS probe — reject before we spend cycles hashing it.
-      return res.status(400).json({ error: 'Password must be 1–1024 characters' });
+      return res.status(400).json({ error: 'Password is too long (maximum 1,024 characters)' });
     }
     if (!passwordOk(password)) {
       return res.status(400).json({ error: 'Weak password' });
@@ -414,9 +415,12 @@ router.post(
     // Only save user after email is successfully sent
     const inserted = await dbUnified.insertOne('users', user);
     if (!inserted) {
-      // insertOne returns null on error (e.g. duplicate key race condition).
-      // Avoid returning 201 OK when the account was never actually created.
-      logger.error('[REGISTER] insertOne returned null — account not saved', {
+      // insertOne returns null on error (e.g. a duplicate-key race between the
+      // duplicate check above and this write). The verification email has already
+      // been sent at this point — ops should investigate if this is seen frequently.
+      // The user is told to retry; a fresh attempt will re-send a new verification
+      // email and will succeed once the DB contention clears.
+      logger.error('[REGISTER] insertOne returned null — account not saved (email already sent)', {
         email: normalizedEmail,
       });
       return res.status(500).json({
