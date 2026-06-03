@@ -26,6 +26,7 @@ const {
   resendEmailLimiter,
   strictAuthLimiter,
   passwordResetLimiter,
+  registrationLimiter,
 } = require('../middleware/rateLimits');
 const { csrfProtection } = require('../middleware/csrf');
 const { featureRequired, getFeatureFlags } = require('../middleware/features');
@@ -221,7 +222,8 @@ router.post(
     next();
   },
   featureRequired('registration'),
-  authLimiter,
+  csrfProtection, // CSRF guard — was missing from registration unlike all other auth POSTs
+  registrationLimiter, // Tighter than authLimiter: each attempt triggers bcrypt + email send
   async (req, res) => {
     const {
       firstName,
@@ -259,6 +261,12 @@ router.post(
     if (!userFirstName || !userLastName) {
       return res.status(400).json({ error: 'First name and last name are required' });
     }
+    // Reject names that are purely non-alphabetic (e.g. ";;;", "<script>", "123")
+    if (!/[a-zA-ZÀ-ÖØ-öø-ÿ]/.test(userFirstName) || !/[a-zA-ZÀ-ÖØ-öø-ÿ]/.test(userLastName)) {
+      return res
+        .status(400)
+        .json({ error: 'First and last name must contain at least one letter' });
+    }
     if (!normalizedEmail || !password) {
       return res.status(400).json({
         error: 'Email and password are required',
@@ -266,6 +274,11 @@ router.post(
     }
     if (!isUsableEmail(normalizedEmail)) {
       return res.status(400).json({ error: 'Invalid email' });
+    }
+    if (typeof password !== 'string' || password.length > 1024) {
+      // bcrypt silently truncates at 72 bytes; a multi-KB password is either a
+      // mistake or a DoS probe — reject before we spend cycles hashing it.
+      return res.status(400).json({ error: 'Password must be 1–1024 characters' });
     }
     if (!passwordOk(password)) {
       return res.status(400).json({ error: 'Weak password' });
@@ -284,24 +297,23 @@ router.post(
       return res.status(400).json({ error: 'Company name is required for suppliers' });
     }
 
-    const users = await dbUnified.read('users');
-
-    // Check if this is the owner email trying to register
-    // Owner account should only be created through seed, not registration
-    if (domainAdmin.isOwnerEmail(normalizedEmail)) {
-      const ownerExists = users.find(u => (u.email || '').toLowerCase() === normalizedEmail);
-      if (ownerExists) {
+    // ── Duplicate-email check (indexed findOne, BEFORE bcrypt.hash) ──────────────
+    // Doing this before hashing saves ~177 ms on every duplicate attempt.
+    // The unique index on users.email also protects against the race-condition
+    // window between this check and the later insertOne.
+    const existingUser = await dbUnified.findOne('users', { email: normalizedEmail });
+    if (existingUser) {
+      if (domainAdmin.isOwnerEmail(normalizedEmail)) {
         return res.status(409).json({
           error: 'Email already registered',
           message: 'This email is reserved for the system owner account.',
         });
-      } else {
-        // Owner doesn't exist yet - this shouldn't happen normally (seed creates it)
-        // But we'll allow it and create them as owner
-        logger.warn('Owner account being created through registration (should use seed)');
       }
-    } else if (users.find(u => (u.email || '').toLowerCase() === normalizedEmail)) {
       return res.status(409).json({ error: 'Email already registered' });
+    }
+    if (domainAdmin.isOwnerEmail(normalizedEmail) && !existingUser) {
+      // Owner doesn't exist yet — should only happen via seed, but allow it.
+      logger.warn('Owner account being created through registration (should use seed)');
     }
 
     // Parse socials object
@@ -346,7 +358,7 @@ router.post(
     // Create user object first (needed for JWT token generation)
     const user = {
       id: uid('usr'),
-      name: String(userFullName).slice(0, 80),
+      name: String(userFullName).slice(0, 81), // firstName(40) + ' ' + lastName(40) = 81 max
       firstName: userFirstName,
       lastName: userLastName,
       email: normalizedEmail,
@@ -400,7 +412,17 @@ router.post(
     }
 
     // Only save user after email is successfully sent
-    await dbUnified.insertOne('users', user);
+    const inserted = await dbUnified.insertOne('users', user);
+    if (!inserted) {
+      // insertOne returns null on error (e.g. duplicate key race condition).
+      // Avoid returning 201 OK when the account was never actually created.
+      logger.error('[REGISTER] insertOne returned null — account not saved', {
+        email: normalizedEmail,
+      });
+      return res.status(500).json({
+        error: 'Failed to create account. Please try again.',
+      });
+    }
 
     // Record partner referral if a valid ref code was provided (non-blocking)
     if (refCode && roleFinal === 'supplier') {
@@ -726,14 +748,16 @@ router.post('/google', strictAuthLimiter, csrfProtection, async (req, res) => {
 
   try {
     const googleProfile = await googleAuthService.verifyGoogleCredential(credential);
-    const users = await dbUnified.read('users');
     const email = String(googleProfile.email || '').toLowerCase();
     const googleSub = String(googleProfile.sub || '');
     const nowIso = new Date().toISOString();
-    let user = users.find(
-      u => u.googleSub === googleSub || u.authProviderIds?.google === googleSub
-    );
-    const existingByEmail = users.find(u => (u.email || '').toLowerCase() === email);
+    // Two targeted findOne calls instead of a full collection scan.
+    // The $or object filter lets MongoDB use the sparse googleSub index.
+    // The local store's matchesFilter also supports $or natively.
+    let user = await dbUnified.findOne('users', {
+      $or: [{ googleSub }, { 'authProviderIds.google': googleSub }],
+    });
+    const existingByEmail = await dbUnified.findOne('users', { email });
 
     if (user && user.email && (user.email || '').toLowerCase() !== email) {
       logger.warn('Google subject matched a user with a different email', { userId: user.id });
@@ -973,11 +997,10 @@ router.post('/forgot', passwordResetLimiter, async (req, res) => {
     return res.status(400).json({ error: 'Missing email' });
   }
 
-  // Look up user by email (case-insensitive)
-  const users = await dbUnified.read('users');
-  const idx = users.findIndex(u => (u.email || '').toLowerCase() === normalizedEmail);
+  // Targeted lookup via indexed email field
+  const user = await dbUnified.findOne('users', { email: normalizedEmail });
 
-  if (idx === -1) {
+  if (!user) {
     logger.warn('[PASSWORD RESET] User not found');
     // Always respond success so we don't leak which emails exist
     return res.json({
@@ -985,8 +1008,6 @@ router.post('/forgot', passwordResetLimiter, async (req, res) => {
       message: 'If an account exists with that email, you will receive a password reset link.',
     });
   }
-
-  const user = users[idx];
   logger.debug('[PASSWORD RESET] Found user', { verified: user.verified });
 
   // Generate password reset token with JWT for better security
@@ -1059,18 +1080,15 @@ router.get('/verify', async (req, res) => {
       });
     }
 
-    // Find user by email from JWT
-    const users = await dbUnified.read('users');
-    const idx = users.findIndex(
-      u => (u.email || '').toLowerCase() === String(validation.email).toLowerCase()
-    );
+    // Find user by email from JWT — targeted lookup via indexed email field
+    const user = await dbUnified.findOne('users', {
+      email: String(validation.email).toLowerCase(),
+    });
 
-    if (idx === -1) {
+    if (!user) {
       logger.error('User not found during email verification');
       return res.status(400).json({ error: 'Invalid verification token - user not found' });
     }
-
-    const user = users[idx];
 
     // Check if already verified
     if (user.verified === true) {
@@ -1141,30 +1159,27 @@ router.get('/verify', async (req, res) => {
   }
 
   // Handle legacy tokens (verificationToken field or emailVerificationToken field)
+  // These are opaque strings with no index — findOne with a function filter is the
+  // correct approach. This code path only runs for pre-JWT-migration tokens.
   logger.info('Processing legacy verification token');
-  const legacyUsers = await dbUnified.read('users');
-
-  // Check both legacy token fields for backward compatibility
-  let legacyIdx = legacyUsers.findIndex(u => u.verificationToken === token);
   let tokenField = 'verificationToken';
   let expiresField = 'verificationTokenExpiresAt';
+  let legacyUser = await dbUnified.findOne('users', u => u.verificationToken === token);
 
-  if (legacyIdx === -1) {
+  if (!legacyUser) {
     // Also check the emailVerificationToken field used by emailVerification.js
-    legacyIdx = legacyUsers.findIndex(u => u.emailVerificationToken === token);
-    if (legacyIdx !== -1) {
+    legacyUser = await dbUnified.findOne('users', u => u.emailVerificationToken === token);
+    if (legacyUser) {
       tokenField = 'emailVerificationToken';
       expiresField = 'emailVerificationExpires';
       logger.info('Matched token via emailVerificationToken field');
     }
   }
 
-  if (legacyIdx === -1) {
+  if (!legacyUser) {
     logger.error('Verification failed: Invalid token');
     return res.status(400).json({ error: 'Invalid or expired token', code: 'INVALID_TOKEN' });
   }
-
-  const legacyUser = legacyUsers[legacyIdx];
   logger.debug('Found user for legacy verification', { tokenField });
 
   // Check if already verified
@@ -1254,12 +1269,11 @@ router.post('/verify-email', authLimiter, validateToken({ required: true }), asy
 
   // Handle JWT tokens
   if (validation.isJWT && validation.valid) {
-    const users = await dbUnified.read('users');
-    const idx = users.findIndex(
-      u => (u.email || '').toLowerCase() === String(validation.email).toLowerCase()
-    );
+    const user = await dbUnified.findOne('users', {
+      email: String(validation.email).toLowerCase(),
+    });
 
-    if (idx === -1) {
+    if (!user) {
       logger.error('User not found during email verification');
       return res.status(400).json({
         ok: false,
@@ -1267,8 +1281,6 @@ router.post('/verify-email', authLimiter, validateToken({ required: true }), asy
         code: 'USER_NOT_FOUND',
       });
     }
-
-    const user = users[idx];
 
     // Check if already verified
     if (user.verified === true) {
@@ -1348,20 +1360,25 @@ router.post('/verify-email', authLimiter, validateToken({ required: true }), asy
   if (!validation.isJWT && validation.legacyToken) {
     logger.info('Processing legacy token via POST endpoint');
 
-    const users = await dbUnified.read('users');
     let tokenField = 'verificationToken';
     let expiresField = 'verificationTokenExpiresAt';
-    let idx = users.findIndex(u => u.verificationToken === validation.legacyToken);
+    let user = await dbUnified.findOne(
+      'users',
+      u => u.verificationToken === validation.legacyToken
+    );
 
-    if (idx === -1) {
-      idx = users.findIndex(u => u.emailVerificationToken === validation.legacyToken);
-      if (idx !== -1) {
+    if (!user) {
+      user = await dbUnified.findOne(
+        'users',
+        u => u.emailVerificationToken === validation.legacyToken
+      );
+      if (user) {
         tokenField = 'emailVerificationToken';
         expiresField = 'emailVerificationExpires';
       }
     }
 
-    if (idx === -1) {
+    if (!user) {
       return res.status(400).json({
         ok: false,
         error: 'Invalid or expired verification token',
@@ -1369,8 +1386,6 @@ router.post('/verify-email', authLimiter, validateToken({ required: true }), asy
         canResend: true,
       });
     }
-
-    const user = users[idx];
 
     // Check whether the matched legacy token is still active and unexpired.
     const legacyTokenStatus = getStoredTokenStatus(
@@ -1455,14 +1470,12 @@ router.post('/validate-reset-token', passwordResetLimiter, async (req, res) => {
   }
 
   try {
-    const users = await dbUnified.read('users');
-
     // Try JWT token first
     const jwtValidation = tokenUtils.validatePasswordResetToken(token);
     if (jwtValidation.valid) {
-      const user = users.find(
-        u => (u.email || '').toLowerCase() === String(jwtValidation.email).toLowerCase()
-      );
+      const user = await dbUnified.findOne('users', {
+        email: String(jwtValidation.email).toLowerCase(),
+      });
       const status = getStoredTokenStatus(user, token, 'resetToken', 'resetTokenExpiresAt');
       if (!status.valid) {
         const message =
@@ -1474,8 +1487,8 @@ router.post('/validate-reset-token', passwordResetLimiter, async (req, res) => {
       return res.json({ ok: true });
     }
 
-    // Try legacy reset token
-    const user = users.find(u => u.resetToken === token);
+    // Try legacy reset token (opaque string — no index, function scan)
+    const user = await dbUnified.findOne('users', u => u.resetToken === token);
     if (!user) {
       return res.status(400).json({ error: 'Invalid or expired password reset link' });
     }
@@ -1518,9 +1531,7 @@ router.post('/reset-password', passwordResetLimiter, async (req, res) => {
   }
 
   try {
-    const users = await dbUnified.read('users');
     let user = null;
-    let userIdx = -1;
 
     // Try JWT token first
     logger.debug('[PASSWORD RESET VERIFY] Checking if JWT token');
@@ -1528,17 +1539,10 @@ router.post('/reset-password', passwordResetLimiter, async (req, res) => {
 
     if (validation.valid) {
       logger.info('[PASSWORD RESET VERIFY] Valid JWT token found');
-      userIdx = users.findIndex(
-        u => (u.email || '').toLowerCase() === String(validation.email).toLowerCase()
-      );
+      user = await dbUnified.findOne('users', { email: String(validation.email).toLowerCase() });
 
-      if (userIdx !== -1) {
-        const status = getStoredTokenStatus(
-          users[userIdx],
-          token,
-          'resetToken',
-          'resetTokenExpiresAt'
-        );
+      if (user) {
+        const status = getStoredTokenStatus(user, token, 'resetToken', 'resetTokenExpiresAt');
         if (!status.valid) {
           logger.warn('[PASSWORD RESET VERIFY] JWT token is not the active stored reset token', {
             reason: status.reason,
@@ -1553,14 +1557,11 @@ router.post('/reset-password', passwordResetLimiter, async (req, res) => {
       }
     } else {
       logger.debug('[PASSWORD RESET VERIFY] Not a valid JWT, trying legacy token');
-      // Try legacy reset token
-      userIdx = users.findIndex(u => u.resetToken === token);
+      // Legacy opaque reset token — no index, function scan
+      user = await dbUnified.findOne('users', u => u.resetToken === token);
 
-      if (userIdx !== -1) {
-        user = users[userIdx];
+      if (user) {
         logger.info('[PASSWORD RESET VERIFY] Found legacy token');
-
-        // Check whether this is still the active, unexpired stored token.
         const legacyStatus = getStoredTokenStatus(user, token, 'resetToken', 'resetTokenExpiresAt');
         if (!legacyStatus.valid) {
           if (legacyStatus.reason === 'expired') {
@@ -1570,21 +1571,18 @@ router.post('/reset-password', passwordResetLimiter, async (req, res) => {
               canRequestNew: true,
             });
           }
-
           logger.warn('[PASSWORD RESET VERIFY] Legacy token is malformed or has been replaced');
           return res.status(400).json({ error: 'Invalid reset token format' });
         }
       }
     }
 
-    if (userIdx === -1) {
+    if (!user) {
       logger.warn('[PASSWORD RESET VERIFY] Invalid or expired token');
       return res.status(400).json({
         error: 'Invalid or expired password reset link',
       });
     }
-
-    user = users[userIdx];
     logger.info('[PASSWORD RESET VERIFY] Resetting password');
 
     // Hash new password
@@ -1898,22 +1896,19 @@ router.put('/profile', authRequired, csrfProtection, async (req, res) => {
     website,
   } = req.body;
 
-  const users = await dbUnified.read('users');
-  const idx = users.findIndex(u => u.id === req.user.id);
+  const user = await dbUnified.findOne('users', { id: req.user.id });
 
-  if (idx === -1) {
+  if (!user) {
     return res.status(404).json({ error: 'User not found' });
   }
-
-  const user = users[idx];
 
   // Check if email is being changed and if it's already taken
   const profileUpdates = {};
   const emailOriginal = user.email;
 
   if (email && email !== user.email) {
-    const emailExists = users.some(u => u.email === email && u.id !== user.id);
-    if (emailExists) {
+    const emailExists = await dbUnified.findOne('users', { email });
+    if (emailExists && emailExists.id !== user.id) {
       return res.status(400).json({ error: 'Email address is already in use' });
     }
 

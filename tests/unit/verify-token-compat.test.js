@@ -28,8 +28,16 @@ jest.mock('../../db-unified', () => ({
   }),
   updateOne: jest.fn().mockResolvedValue(true),
   findOne: jest.fn((_collection, query) => {
+    // Support all query shapes used by auth routes:
+    //   function filter, { id }, { email }, { $or: [...] }
+    if (typeof query === 'function') {
+      return Promise.resolve(mockUsers.find(query) || null);
+    }
     if (query && query.id) {
       return Promise.resolve(mockUsers.find(u => u.id === query.id) || null);
+    }
+    if (query && query.email) {
+      return Promise.resolve(mockUsers.find(u => u.email === query.email) || null);
     }
     return Promise.resolve(null);
   }),

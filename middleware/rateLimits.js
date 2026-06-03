@@ -34,6 +34,19 @@ const strictAuthLimiter = rateLimit({
 });
 
 /**
+ * Rate limit for registration — tighter than authLimiter because each attempt triggers
+ * a bcrypt hash (~177 ms CPU) and an outbound email (Postmark API call).
+ * 5 registrations per hour per IP is generous for real users, too slow for abuse.
+ */
+const registrationLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5,
+  message: 'Too many registration attempts. Please try again in an hour.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+/**
  * Rate limit for password-reset flows (forgot, reset-password, validate-reset-token)
  * 5 requests per 15 minutes to prevent reset-link spam and enumeration attempts
  */
@@ -162,5 +175,6 @@ module.exports = {
   apiLimiter,
   writeLimiter,
   resendEmailLimiter,
+  registrationLimiter,
   apiDocsLimiter,
 };
