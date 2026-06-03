@@ -1808,8 +1808,8 @@ router.post('/resend-verification', resendEmailLimiter, csrfProtection, async (r
   }
 
   // Look up user by email — targeted lookup avoids full collection scan
-  const normalizedResendEmail = String(email).toLowerCase();
-  const user = await dbUnified.findOne('users', { email: normalizedResendEmail });
+  const normalizedEmail = normalizeEmail(email);
+  const user = await dbUnified.findOne('users', { email: normalizedEmail });
 
   if (!user) {
     // Don't reveal if email exists - return success anyway for security
