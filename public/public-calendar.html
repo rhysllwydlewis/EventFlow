@@ -21,6 +21,7 @@
     <link rel="stylesheet" href="/assets/css/animations.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/mobile-optimizations.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/ui-ux-fixes.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/calendar.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/navbar.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/liquid-glass.css?v=18.3.0" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
@@ -591,8 +592,8 @@
               <select id="pc-filter-status"><option value="">Published</option><option value="all">All statuses</option><option>draft</option><option>published</option><option>cancelled</option><option>pending_review</option><option>rejected</option><option>expired</option></select>
             </div>
             <div class="pc-filters__field">
-              <label style="display:flex;align-items:center;gap:0.45rem;text-transform:none;letter-spacing:0;font-size:0.85rem;margin-top:1.85rem;">
-                <input id="pc-filter-past" type="checkbox" style="width:auto;" /> Include past events
+              <label class="pc-filters__checkbox-row">
+                <input id="pc-filter-past" type="checkbox" /> Include past events
               </label>
             </div>
             <div class="pc-filters__actions">
@@ -620,14 +621,14 @@
           </button>
         </div>
 
-        <div id="pc-permission-notice" class="pc-publisher-banner" style="display:none;background:#fffbeb;border-color:#fde68a;color:#92400e;" role="status"></div>
+        <div id="pc-permission-notice" class="pc-publisher-banner pc-notice--amber" style="display:none;background:#fffbeb;border-color:#fde68a;color:#92400e;" role="status"></div>
 
-        <section id="pc-admin-requests-panel" class="pc-publisher-banner" style="display:none;background:#f8fafc;border-color:#cbd5e1;color:#0f172a;align-items:flex-start;" aria-labelledby="pc-admin-requests-title">
+        <section id="pc-admin-requests-panel" class="pc-publisher-banner pc-notice--slate" style="display:none;" aria-labelledby="pc-admin-requests-title">
           <div style="width:100%;">
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:0.75rem;">
+            <div class="calendar-admin-requests__header">
               <div>
-                <h2 id="pc-admin-requests-title" style="font-size:1rem;margin:0 0 0.25rem;">Calendar publishing requests</h2>
-                <p style="margin:0;color:#64748b;font-size:0.9rem;">Approve suitable suppliers or reject with a reason. Approval grants the existing admin override.</p>
+                <h2 id="pc-admin-requests-title" class="cal-request-card__name">Calendar publishing requests</h2>
+                <p class="cal-request-card__category">Approve suitable suppliers or reject with a reason. Approval grants the existing admin override.</p>
               </div>
               <button id="pc-admin-requests-refresh" class="ef-cta pc-btn pc-btn-ghost" type="button">Refresh requests</button>
             </div>
@@ -669,7 +670,7 @@
             <label class="pc-form__label" for="pc-form-title">Title <span class="pc-form__label-req">*</span></label>
             <input id="pc-form-title" type="text" class="pc-form__control" required maxlength="200" placeholder="Event name" />
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+          <div class="pc-form-row">
             <div class="pc-form__group">
               <label class="pc-form__label" for="pc-form-start">Start date <span class="pc-form__label-req">*</span></label>
               <input id="pc-form-start" type="datetime-local" class="pc-form__control" required />
@@ -679,7 +680,7 @@
               <input id="pc-form-end" type="datetime-local" class="pc-form__control" />
             </div>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+          <div class="pc-form-row">
             <div class="pc-form__group">
               <label class="pc-form__label" for="pc-form-location">Location</label>
               <input id="pc-form-location" type="text" class="pc-form__control" maxlength="200" placeholder="City or venue" />
@@ -723,7 +724,7 @@
             <label class="pc-form__label" for="pc-form-description">Description</label>
             <textarea id="pc-form-description" class="pc-form__control" rows="3" maxlength="5000" placeholder="Tell attendees what to expect…"></textarea>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+          <div class="pc-form-row">
             <div class="pc-form__group">
               <label class="pc-form__label" for="pc-form-image">Image URL</label>
               <input id="pc-form-image" type="url" class="pc-form__control" maxlength="500" placeholder="https://…" />
@@ -733,7 +734,7 @@
               <input id="pc-form-external" type="url" class="pc-form__control" maxlength="500" placeholder="https://…" />
             </div>
           </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+          <div class="pc-form-row">
             <div class="pc-form__group">
               <label class="pc-form__label" for="pc-form-price-type">Price</label>
               <select id="pc-form-price-type" class="pc-form__control"><option value="unknown">Unknown</option><option value="free">Free</option><option value="paid">Paid</option><option value="donation">Donation</option></select>
@@ -771,3 +772,4 @@
     <script src="/assets/js/pages/public-calendar-init.js" defer></script>
 </body>
 </html>
+
