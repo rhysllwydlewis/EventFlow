@@ -19,6 +19,7 @@ function buildApp({ users, updates }) {
     resendEmailLimiter: noOp,
     strictAuthLimiter: noOp,
     passwordResetLimiter: noOp,
+    registrationLimiter: noOp,
   }));
 
   jest.doMock('../../middleware/features', () => ({
@@ -59,7 +60,25 @@ function buildApp({ users, updates }) {
       }
       return true;
     }),
-    findOne: jest.fn(async (_collection, query) => users.find(u => u.id === query.id) || null),
+    findOne: jest.fn(async (_collection, query) => {
+      // Handle function filters (legacy token lookups), {id}, {email}, and {$or}
+      if (typeof query === 'function') {
+        return users.find(query) || null;
+      }
+      if (query && query.id) {
+        return users.find(u => u.id === query.id) || null;
+      }
+      if (query && query.email) {
+        return users.find(u => u.email === query.email) || null;
+      }
+      if (query && query.$or) {
+        return (
+          users.find(u => query.$or.some(cond => Object.keys(cond).every(k => u[k] === cond[k]))) ||
+          null
+        );
+      }
+      return null;
+    }),
   }));
 
   const authRoutes = require('../../routes/auth');

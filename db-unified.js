@@ -106,6 +106,7 @@ async function createIndexes() {
     logger.info('📊 Creating database indexes...');
     const usersCollection = mongodb.collection('users');
     await usersCollection.createIndex({ id: 1 }, { unique: true }); // custom string id — used by all auth lookups
+    await usersCollection.createIndex({ googleSub: 1 }, { sparse: true }); // sparse: only indexes docs that have the field
     await usersCollection.createIndex({ email: 1 }, { unique: true });
     await usersCollection.createIndex({ role: 1 });
     await usersCollection.createIndex({ createdAt: -1 });
@@ -287,11 +288,9 @@ async function findOne(collectionName, filter) {
       if (typeof filter === 'function') {
         return all.find(filter) || null;
       }
-      return (
-        all.find(item => {
-          return Object.keys(filter).every(key => item[key] === filter[key]);
-        }) || null
-      );
+      // Use matchesFilter so $or, dotted-path keys, and comparison operators ($gte etc.)
+      // all work the same way on the local store as they do on MongoDB.
+      return all.find(item => matchesFilter(item, filter)) || null;
     }
   } catch (error) {
     logger.error(`Error finding in ${collectionName}:`, error.message);
@@ -314,9 +313,8 @@ async function find(collectionName, filter) {
       if (typeof filter === 'function') {
         return all.filter(filter);
       }
-      return all.filter(item => {
-        return Object.keys(filter).every(key => item[key] === filter[key]);
-      });
+      // Use matchesFilter for $or, dotted-path, and operator parity with MongoDB.
+      return all.filter(item => matchesFilter(item, filter));
     }
   } catch (error) {
     logger.error(`Error finding in ${collectionName}:`, error.message);
@@ -553,13 +551,22 @@ async function count(collectionName, filter = {}) {
   }
 }
 
+function getNestedValue(obj, path) {
+  // Resolve dotted paths like 'authProviderIds.google' for local-store filter matching.
+  // MongoDB handles these natively; this brings the local store into parity.
+  return path
+    .split('.')
+    .reduce((cur, seg) => (cur !== null && cur !== undefined ? cur[seg] : undefined), obj);
+}
+
 function matchesFilter(item, filter) {
   return Object.keys(filter).every(key => {
     if (key === '$or' && Array.isArray(filter[key])) {
       return filter[key].some(orFilter => matchesFilter(item, orFilter));
     }
     const filterValue = filter[key];
-    const itemValue = item[key];
+    // Support dotted-path keys (e.g. 'authProviderIds.google') for local store parity with MongoDB
+    const itemValue = key.includes('.') ? getNestedValue(item, key) : item[key];
     if (typeof filterValue === 'object' && filterValue !== null && !Array.isArray(filterValue)) {
       return Object.keys(filterValue).every(operator => {
         const operatorValue = filterValue[operator];

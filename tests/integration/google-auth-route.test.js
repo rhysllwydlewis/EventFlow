@@ -30,6 +30,32 @@ function buildAuthApp({ googleProfile, googleError, users = [], includeGlobalCor
       updates.push({ filter, update });
       return true;
     }),
+    findOne: jest.fn(async (_collection, query) => {
+      // Handle all query shapes used by the Google auth route
+      if (typeof query === 'function') {
+        return users.find(query) || null;
+      }
+      if (query && query.id) {
+        return users.find(u => u.id === query.id) || null;
+      }
+      if (query && query.email) {
+        return users.find(u => u.email === query.email) || null;
+      }
+      if (query && query.$or) {
+        return (
+          users.find(u =>
+            query.$or.some(cond =>
+              Object.keys(cond).every(k => {
+                // Handle dotted keys like 'authProviderIds.google'
+                const val = k.includes('.') ? k.split('.').reduce((o, s) => o?.[s], u) : u[k];
+                return val === cond[k];
+              })
+            )
+          ) || null
+        );
+      }
+      return null;
+    }),
   }));
 
   jest.doMock('../../services/googleAuth.service', () => ({
