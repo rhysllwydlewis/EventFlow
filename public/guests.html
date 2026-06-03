@@ -137,7 +137,7 @@
       <span class="breadcrumb-item active">Guest List</span>
     </div>
 
-    <div class="flex items-center justify-between mb-6" style="flex-wrap: wrap; gap: 1rem;">
+    <div class="flex items-center justify-between mb-6" class="dash-flex-wrap">
       <div>
         <h1 class="mb-2">Guest List Manager</h1>
         <p class="small">Track RSVPs and manage your guest list</p>
@@ -186,7 +186,7 @@
         <h3 class="mb-4">RSVP Progress</h3>
         <div style="position: relative; height: 250px; display: flex; align-items: center; justify-content: center;">
           <canvas id="rsvp-chart"></canvas>
-          <div id="rsvp-empty" style="text-align: center; color: var(--muted); display: none;">
+          <div id="rsvp-empty" class="dash-empty-state" hidden>
             <div class="guests-empty-icon">👥</div>
             <div class="small">No guests yet</div>
           </div>
@@ -196,8 +196,8 @@
       <!-- Dietary Requirements -->
       <div class="card">
         <h3 class="mb-4">Dietary Requirements</h3>
-        <div id="dietary-list" style="max-height: 250px; overflow-y: auto;">
-          <div style="text-align: center; color: var(--muted); padding: 2rem;">
+        <div id="dietary-list" class="dash-scroll-250">
+          <div class="dash-empty-msg">
             <div class="small">Add guests to track dietary requirements</div>
           </div>
         </div>
@@ -206,11 +206,11 @@
 
     <!-- Guest List -->
     <div class="card">
-      <div class="flex items-center justify-between mb-4" style="flex-wrap: wrap; gap: 1rem;">
+      <div class="flex items-center justify-between mb-4" class="dash-flex-wrap">
         <h3 class="m-0">Guest List</h3>
         <div class="flex gap-2" style="flex-wrap: wrap;">
-          <input type="search" id="search-guests" placeholder="Search guests..." style="width: 200px; padding: 0.5rem 1rem; font-size: 0.875rem;">
-          <select id="filter-rsvp" style="width: auto; padding: 0.5rem 1rem; font-size: 0.875rem;">
+          <input type="search" id="search-guests" placeholder="Search guests..." class="dash-btn-sm dash-btn-sm--w200">
+          <select id="filter-rsvp" class="dash-btn-sm">
             <option value="">All RSVPs</option>
             <option value="attending">Attending</option>
             <option value="declined">Declined</option>
@@ -220,8 +220,8 @@
       </div>
       
       <div id="guests-list">
-        <div style="text-align: center; color: var(--muted); padding: 3rem;">
-          <div style="font-size: 3rem; margin-bottom: 1rem;">👥</div>
+        <div class="dash-empty-full">
+          <div class="dash-empty-icon">👥</div>
           <div class="text-lg font-semibold mb-2">No guests yet</div>
           <div class="small mb-4">Start building your guest list by adding your first guest</div>
           <button class="cta" id="add-first-guest-btn">
@@ -324,4 +324,5 @@
 <script src="/assets/js/jadeassist-init.v2.js" defer></script>
 </body>
 </html>
+
 

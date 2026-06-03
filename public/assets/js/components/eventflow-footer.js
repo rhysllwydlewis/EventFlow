@@ -2,10 +2,11 @@
   'use strict';
 
   function toast(message, type) {
-    if (window.Toast && typeof window.Toast.show === 'function') {
-      window.Toast.show(message, { type: type || 'info' });
+    if (typeof window.showToast === 'function') {
+      window.showToast(message, type || 'info');
       return;
     }
+    // Fallback for pages where showToast isn't loaded yet
     if (typeof window.showNotification === 'function') {
       window.showNotification(message, type || 'info');
     }
@@ -87,9 +88,22 @@
       button.textContent = 'Subscribing…';
       feedback.textContent = 'Sending confirmation email…';
       try {
+        // Fetch CSRF token before subscribing
+        let csrfToken = '';
+        try {
+          const csrfRes = await fetch('/api/v1/csrf-token', { credentials: 'include' });
+          if (csrfRes.ok) {
+            const csrfData = await csrfRes.json();
+            csrfToken = csrfData.csrfToken || csrfData.token || '';
+          }
+        } catch (_) { /* non-fatal */ }
+
         const response = await fetch('/api/newsletter/subscribe', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
+          },
           body: JSON.stringify({ email: email, source: 'footer' }),
         });
         const data = await response.json().catch(function () { return {}; });

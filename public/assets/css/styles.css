@@ -3607,3 +3607,50 @@ textarea:focus:not(:focus-visible) {
   }
 }
 
+/* ===========================================
+   DASHBOARD SHARED UTILITY CLASSES
+   Replacing inline styles in budget.html, guests.html,
+   plan.html, and category.html
+   =========================================== */
+.dash-flex-wrap { flex-wrap: wrap; gap: 1rem; }
+.dash-space-between { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.dash-empty-state { text-align: center; color: var(--muted, #6b7280); }
+.dash-empty-state[hidden] { display: none !important; }
+.dash-empty-msg { text-align: center; color: var(--muted, #6b7280); padding: 2rem; }
+.dash-empty-full { text-align: center; color: var(--muted, #6b7280); padding: 3rem; }
+.dash-empty-icon { font-size: 3rem; margin-bottom: 1rem; }
+.dash-scroll-300 { max-height: 300px; overflow-y: auto; }
+.dash-scroll-250 { max-height: 250px; overflow-y: auto; }
+.dash-btn-sm {
+  width: auto;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+  font-family: inherit;
+}
+.dash-btn-sm--w200 { width: 200px; }
+.dash-btn-sm:focus-visible { outline: 2px solid #0B8073; outline-offset: 2px; }
+
+/* Plan page */
+.plan-modal-card { background: #fff; border-radius: 12px; max-width: 720px; width: 100%; padding: 16px; }
+.plan-code-text { font-family: monospace; word-break: break-all; }
+
+/* Category page */
+.category-breadcrumb { margin-bottom: 16px; font-size: 0.9rem; color: var(--color-text-secondary, #6b7280); }
+.category-breadcrumb-link { text-decoration: none; color: inherit; }
+
+/* Category hero */
+.category-hero-img-wrap { position: relative; border-radius: 12px; overflow: hidden; height: 300px; }
+.category-hero-img { width: 100%; height: 100%; object-fit: cover; }
+.category-hero-overlay {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: linear-gradient(to top, rgba(0,0,0,0.7), transparent);
+  padding: 32px;
+  color: white;
+}
+.category-hero-title { margin: 0; font-size: 2.5rem; }
+
