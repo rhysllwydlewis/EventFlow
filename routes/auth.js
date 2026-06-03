@@ -875,9 +875,8 @@ router.post('/login-2fa', strictAuthLimiter, async (req, res) => {
     return res.status(401).json({ error: 'Invalid or expired token' });
   }
 
-  // Get user
-  const users = await dbUnified.read('users');
-  const user = users.find(u => u.id === decoded.id);
+  // Get user — targeted lookup avoids full collection scan
+  const user = await dbUnified.findOne('users', { id: decoded.id });
 
   if (!user || !user.twoFactorEnabled || !user.twoFactorSecret) {
     return res.status(400).json({ error: '2FA is not enabled for this account' });
@@ -1654,8 +1653,8 @@ router.get('/me', async (req, res) => {
   if (!p) {
     return res.json({ user: null });
   }
-  const users = await dbUnified.read('users');
-  const u = users.find(x => x.id === p.id);
+  // Targeted lookup — avoids full collection scan on every page load
+  const u = await dbUnified.findOne('users', { id: p.id });
   if (!u) {
     return res.json({ user: null });
   }
@@ -1667,7 +1666,7 @@ router.get('/me', async (req, res) => {
       const supplierProfile = await dbUnified.findOne('suppliers', { ownerUserId: u.id });
       supplierApproved = supplierProfile ? supplierProfile.approved === true : null;
     } catch (e) {
-      logger.warn('Could not fetch supplier profile for /api/auth/me', {
+      logger.warn('Could not fetch supplier profile for GET /me', {
         userId: u.id,
         error: e.message,
       });
@@ -1730,9 +1729,8 @@ router.put('/preferences', authRequired, csrfProtection, async (req, res) => {
     }
   }
 
-  // Read back to get the current values for the response
-  const users = await dbUnified.read('users');
-  const user = users.find(u => u.id === req.user.id) || {};
+  // Read back current values — targeted lookup avoids full collection scan
+  const user = (await dbUnified.findOne('users', { id: req.user.id })) || {};
 
   res.json({
     ok: true,
@@ -1765,9 +1763,9 @@ router.get('/unsubscribe', async (req, res) => {
     return res.status(400).json({ error: 'Invalid unsubscribe token' });
   }
 
-  const users = await dbUnified.read('users');
   const normalizedEmail = normalizeEmail(email);
-  const user = users.find(u => (u.email || '').toLowerCase() === normalizedEmail);
+  // Targeted lookup — normalizedEmail is already lowercased, emails stored lowercase
+  const user = await dbUnified.findOne('users', { email: normalizedEmail });
 
   if (!user) {
     // Don't reveal if email exists - return success anyway
@@ -1809,11 +1807,11 @@ router.post('/resend-verification', resendEmailLimiter, csrfProtection, async (r
     return res.status(400).json({ error: 'Invalid email address' });
   }
 
-  // Look up user by email (case-insensitive)
-  const users = await dbUnified.read('users');
-  const idx = users.findIndex(u => (u.email || '').toLowerCase() === String(email).toLowerCase());
+  // Look up user by email — targeted lookup avoids full collection scan
+  const normalizedResendEmail = String(email).toLowerCase();
+  const user = await dbUnified.findOne('users', { email: normalizedResendEmail });
 
-  if (idx === -1) {
+  if (!user) {
     // Don't reveal if email exists - return success anyway for security
     return res.json({
       ok: true,
@@ -1821,8 +1819,6 @@ router.post('/resend-verification', resendEmailLimiter, csrfProtection, async (r
         'If this email is registered and unverified, a new verification email has been sent.',
     });
   }
-
-  const user = users[idx];
 
   // Check if user is already verified
   if (user.verified === true) {
@@ -2010,8 +2006,8 @@ router.post('/change-password', authRequired, csrfProtection, authLimiter, async
   }
 
   try {
-    const users = await dbUnified.read('users');
-    const user = users.find(u => u.id === req.user.id);
+    // Targeted lookup — avoids full collection scan for every password change
+    const user = await dbUnified.findOne('users', { id: req.user.id });
 
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
