@@ -614,7 +614,7 @@ loadNotificationSettings();
     document.getElementById('delete-email-input').value = '';
     document.getElementById('delete-email-error').style.display = 'none';
     document.getElementById('delete-step3-error').style.display = 'none';
-    modal.style.display = 'flex';
+    modal.classList.add('is-open');
     document.body.style.overflow = 'hidden';
     _deleteModalOpener = document.activeElement;
     document.addEventListener('keydown', _escapeHandler);
@@ -626,7 +626,7 @@ loadNotificationSettings();
   }
 
   function closeModal() {
-    modal.style.display = 'none';
+    modal.classList.remove('is-open');
     document.body.style.overflow = '';
     document.removeEventListener('keydown', _escapeHandler);
     if (_deleteModalOpener && typeof _deleteModalOpener.focus === 'function') {
@@ -732,10 +732,7 @@ loadNotificationSettings();
   });
 
   // Close modal on Escape key
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && modal.style.display === 'flex') {
-      closeModal();
-    }
-  });
+  // Escape key handled by _escapeHandler (registered on modal open)
 })();
+
 
