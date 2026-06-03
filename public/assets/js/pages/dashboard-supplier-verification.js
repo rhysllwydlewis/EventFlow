@@ -375,11 +375,15 @@
       return;
     }
     try {
-      const res = await fetch('/api/auth/me', { credentials: 'include' });
-      if (!res.ok) {
+      // Use canonical URL + dedup helper so this shares the page-load auth/me request
+      const data = window._efFetchOnceJSON
+        ? await window._efFetchOnceJSON('/api/v1/auth/me', { credentials: 'include' })
+        : await fetch('/api/v1/auth/me', { credentials: 'include' })
+            .then(r => (r.ok ? r.json() : null))
+            .catch(() => null);
+      if (!data) {
         return;
       }
-      const data = await res.json();
       // /api/auth/me returns { user: { role, supplierApproved, ... } }
       const user = data.user;
       if (!user) {
@@ -527,4 +531,3 @@
     loadApprovalBanner();
   }
 })();
-

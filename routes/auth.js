@@ -424,7 +424,10 @@ router.post(
     }
 
     if (user.verified === true) {
-      await updateLastLogin(user.id);
+      // Fire-and-forget — doesn't need to block cookie+redirect
+      updateLastLogin(user.id).catch(err =>
+        logger.warn('[GOOGLE-LOGIN] updateLastLogin failed', { error: err.message })
+      );
 
       const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, {
         expiresIn: '7d',
@@ -597,9 +600,11 @@ router.post('/login', strictAuthLimiter, async (req, res) => {
     });
   }
 
-  // Update last login timestamp
+  // Update last login timestamp — fire-and-forget so it doesn't delay the response
   logger.info('[LOGIN] Successful login');
-  await updateLastLogin(user.id);
+  updateLastLogin(user.id).catch(err =>
+    logger.warn('[LOGIN] updateLastLogin failed', { error: err.message })
+  );
 
   // Align JWT expiry with remember-me: session-only (24h) vs persistent (7d)
   const tokenExpiry = remember ? '7d' : '24h';
@@ -826,7 +831,10 @@ router.post('/google', strictAuthLimiter, csrfProtection, async (req, res) => {
       });
     }
 
-    await updateLastLogin(user.id);
+    // Fire-and-forget — doesn't need to block the login response
+    updateLastLogin(user.id).catch(err =>
+      logger.warn('[GOOGLE-2FA] updateLastLogin failed', { error: err.message })
+    );
 
     const tokenExpiry = remember ? '7d' : '24h';
     const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, {
@@ -928,9 +936,11 @@ router.post('/login-2fa', strictAuthLimiter, async (req, res) => {
     return res.status(401).json({ error: 'Invalid 2FA token or backup code' });
   }
 
-  // Update last login timestamp
+  // Update last login timestamp — fire-and-forget so it doesn't delay the response
   logger.info('[LOGIN-2FA] Successful 2FA login');
-  await updateLastLogin(user.id);
+  updateLastLogin(user.id).catch(err =>
+    logger.warn('[LOGIN-2FA] updateLastLogin failed', { error: err.message })
+  );
 
   // Align JWT expiry with remember-me: session-only (24h) vs persistent (7d)
   const twoFaTokenExpiry = remember ? '7d' : '24h';

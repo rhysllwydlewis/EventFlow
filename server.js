@@ -906,12 +906,31 @@ const getAuthMeHandler = async (req, res) => {
       id: u.id,
       name: u.name,
       firstName: u.firstName || u.name,
+      lastName: u.lastName || '',
       email: u.email,
       role: isOwner ? 'admin' : u.role,
       isOwner,
-      verified: u.verified,
+      // verified / emailVerified: both fields used by dashboard verification banner
+      verified: u.verified === true,
+      emailVerified: u.verified === true || u.emailVerified === true,
       supplierApproved,
       avatarUrl: u.avatarUrl || null,
+      // Profile fields used by settings and supplier profile pages
+      location: u.location || '',
+      postcode: u.postcode || '',
+      company: u.company || '',
+      jobTitle: u.jobTitle || '',
+      website: u.website || '',
+      socials: u.socials || {},
+      // Subscription / feature fields used by dashboard tier display
+      isPro: u.isPro || false,
+      proExpiresAt: u.proExpiresAt || null,
+      subscriptionTier: u.subscriptionTier || 'free',
+      badges: u.badges || [],
+      // Notification preferences
+      notify: u.notify !== false,
+      notify_account: u.notify_account !== false,
+      notify_marketing: u.notify_marketing === true,
     };
     return res.json({ user: userData, ...userData });
   } catch (err) {
