@@ -29,10 +29,10 @@
     <link rel="stylesheet" href="/assets/css/customer-dashboard-welcome-card.css?v=1.0.7" />
     <link rel="stylesheet" href="/assets/css/customer-dashboard-welcome-scale.css?v=1.0.2" />
     <link rel="stylesheet" href="/assets/css/customer-wedding-website.css?v=1.0.4" />
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css"
-    />
+    <!-- NOTE: the fullcalendar global bundle injects its own <style> tag at
+         runtime — there is no separate CSS file in the package. The <link>
+         that previously pointed to index.global.min.css returned a 404 on
+         every page load and has been removed. -->
     <script src="/assets/js/dashboard-guard.js?v=17.0.2"></script>
     <link rel="stylesheet" href="/messenger/css/messenger-widget-v4.css" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />

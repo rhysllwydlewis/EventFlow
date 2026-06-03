@@ -539,8 +539,13 @@ router.post('/login', strictAuthLimiter, async (req, res) => {
     return res.status(400).json({ error: 'Invalid email' });
   }
 
-  const users = await dbUnified.read('users');
-  const user = users.find(u => (u.email || '').toLowerCase() === normalizedEmail);
+  // Use a targeted findOne rather than loading every user into memory.
+  // normalizedEmail is already lowercased (via normalizeEmail) and emails are
+  // stored lowercase on registration, so the exact-match object filter is safe.
+  // On MongoDB this lets the driver push the filter to the server and use an
+  // index; on the local store it short-circuits at the first match — both are
+  // far faster than the previous full collection scan.
+  const user = await dbUnified.findOne('users', { email: normalizedEmail });
 
   if (!user) {
     logger.warn('[LOGIN] User not found');

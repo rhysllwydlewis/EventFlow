@@ -878,8 +878,11 @@ const getAuthMeHandler = async (req, res) => {
     if (!p) {
       return res.status(200).json({ user: null });
     }
-    const users = await dbUnified.read('users');
-    const u = users.find(x => x.id === p.id);
+    // Use a targeted findOne rather than loading all users into memory.
+    // This endpoint is called on every page load (and multiple times per
+    // dashboard), so avoiding the full collection scan meaningfully reduces
+    // login and page-load latency.
+    const u = await dbUnified.findOne('users', { id: p.id });
     if (!u) {
       return res.status(200).json({ user: null });
     }
