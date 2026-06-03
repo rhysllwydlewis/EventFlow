@@ -565,7 +565,7 @@
       <p class="settings-item-desc">Permanently delete your account and all associated data. This action cannot be undone.</p>
     </div>
     <button type="button" id="delete-account-btn"
-      style="flex-shrink:0;font-size:0.85rem;padding:0.5rem 1.125rem;border-radius:6px;border:1.5px solid #dc2626;background:#fff;color:#dc2626;cursor:pointer;font-weight:600;white-space:nowrap;"
+      class="settings-sm-btn settings-sm-btn--danger"
       aria-label="Delete your account permanently">
       Delete Account
     </button>
@@ -602,7 +602,7 @@
             Keep My Account
           </button>
           <button type="button" id="delete-step1-next"
-            style="font-size:0.875rem;padding:0.5rem 1.25rem;border-radius:6px;border:none;background:#dc2626;color:#fff;cursor:pointer;font-weight:600;">
+            class="settings-delete-confirm-btn">
             Continue
           </button>
         </div>
@@ -625,7 +625,7 @@
           <input type="email" id="delete-email-input"
             placeholder="Enter your email…"
             autocomplete="off"
-            style="width:100%;box-sizing:border-box;padding:0.625rem 0.75rem;border:1.5px solid #e5e7eb;border-radius:6px;font-size:0.9rem;outline:none;"
+            class="settings-input settings-input--full"
             aria-describedby="delete-email-hint">
           <p id="delete-email-hint" class="settings-micro-hint">Must match the email address on your account.</p>
           <p id="delete-email-error" style="display:none;margin:0.35rem 0 0;font-size:0.82rem;color:#dc2626;" role="alert"></p>
@@ -636,7 +636,7 @@
             Back
           </button>
           <button type="button" id="delete-step2-next"
-            style="font-size:0.875rem;padding:0.5rem 1.25rem;border-radius:6px;border:none;background:#dc2626;color:#fff;cursor:pointer;font-weight:600;">
+            class="settings-delete-confirm-btn">
             Verify &amp; Continue
           </button>
         </div>
@@ -662,7 +662,7 @@
             Back
           </button>
           <button type="button" id="delete-step3-confirm"
-            style="font-size:0.875rem;padding:0.5rem 1.25rem;border-radius:6px;border:none;background:#dc2626;color:#fff;cursor:pointer;font-weight:600;display:flex;align-items:center;gap:0.5rem;">
+            class="settings-delete-confirm-btn settings-delete-confirm-btn--flex">
             <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
             Yes, Permanently Delete
           </button>
@@ -761,5 +761,6 @@
 <script src="/assets/js/jadeassist-init.v2.js" defer></script>
 </body>
 </html>
+
 
 
