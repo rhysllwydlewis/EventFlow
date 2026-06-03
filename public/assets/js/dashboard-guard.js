@@ -238,14 +238,21 @@
   }
 
   function publishVerifiedUser(user) {
-    try {
-      window.dispatchEvent(new CustomEvent('auth-state-changed', { detail: { user } }));
-      window.dispatchEvent(new CustomEvent('__auth-state-updated', { detail: { user } }));
-    } catch (eventError) {
-      if (isDevelopment) {
-        console.warn('Dashboard guard: failed to publish verified auth state', eventError);
+    const publish = () => {
+      try {
+        window.dispatchEvent(new CustomEvent('auth-state-changed', { detail: { user } }));
+        window.dispatchEvent(new CustomEvent('__auth-state-updated', { detail: { user } }));
+      } catch (eventError) {
+        if (isDevelopment) {
+          console.warn('Dashboard guard: failed to publish verified auth state', eventError);
+        }
       }
-    }
+    };
+
+    publish();
+    window.setTimeout(publish, 0);
+    window.setTimeout(publish, 250);
+    window.setTimeout(publish, 750);
   }
 
   try {
