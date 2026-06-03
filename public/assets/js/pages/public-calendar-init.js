@@ -807,12 +807,16 @@
       window.NotificationSystem.show(message, type);
       return;
     }
-    // Simple fallback
+    // Simple fallback — styled via calendar.css .pc-toast classes
     const div = document.createElement('div');
     div.textContent = message;
-    div.style.cssText = `position:fixed;bottom:1.5rem;right:1.5rem;z-index:9999;padding:0.75rem 1.25rem;border-radius:0.5rem;color:#fff;font-weight:600;background:${type === 'error' ? '#dc2626' : '#16a34a'};`;
+    div.className = `pc-toast pc-toast--${type === 'error' ? 'error' : 'success'}`;
     document.body.appendChild(div);
-    setTimeout(() => div.remove(), 3500);
+    requestAnimationFrame(() => div.classList.add('pc-toast--visible'));
+    setTimeout(() => {
+      div.classList.remove('pc-toast--visible');
+      setTimeout(() => div.remove(), 300);
+    }, 3200);
   }
 
   // ── Filter handlers ───────────────────────────────────────────────────────
@@ -1073,3 +1077,4 @@
     init();
   }
 })();
+
