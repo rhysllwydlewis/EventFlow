@@ -105,10 +105,12 @@ async function createIndexes() {
   try {
     logger.info('📊 Creating database indexes...');
     const usersCollection = mongodb.collection('users');
+    await usersCollection.createIndex({ id: 1 }, { unique: true }); // custom string id — used by all auth lookups
     await usersCollection.createIndex({ email: 1 }, { unique: true });
     await usersCollection.createIndex({ role: 1 });
     await usersCollection.createIndex({ createdAt: -1 });
     const suppliersCollection = mongodb.collection('suppliers');
+    await suppliersCollection.createIndex({ ownerUserId: 1 }); // used by GET /me supplier approval check
     await suppliersCollection.createIndex({ category: 1 });
     await suppliersCollection.createIndex({ userId: 1 });
     await suppliersCollection.createIndex({ featured: 1 });

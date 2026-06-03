@@ -128,7 +128,7 @@ async function seed(options = {}) {
         const owner = {
           id: uid('usr'),
           name: 'EventFlow Owner',
-          email: ownerEmail,
+          email: ownerEmail.toLowerCase(), // normalise so findOne({ email }) exact-match works
           role: 'admin',
           passwordHash: bcrypt.hashSync(ownerPassword, 10),
           createdAt: now,

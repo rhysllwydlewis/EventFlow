@@ -10,6 +10,8 @@
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
+    <!-- Preconnect: FullCalendar loads from jsDelivr; early connection cuts DNS+TLS overhead -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
     <link rel="stylesheet" href="/assets/css/design-tokens.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/styles.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0" />
@@ -1726,9 +1728,12 @@
     <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
 
     <!-- FullCalendar for Events Calendar -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
-    <script src="/assets/js/pages/dashboard-supplier-calendar.js"></script>
+    <!-- NOTE: the fullcalendar global bundle injects its own <style> tag at
+         runtime — there is no separate CSS file in the package. The <link>
+         that previously pointed to index.global.min.css returned a 404 on
+         every page load and has been removed. -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js" defer></script>
+    <script src="/assets/js/pages/dashboard-supplier-calendar.js" defer></script>
 
     <!-- Dashboard avoids third-party chat/widget scripts to reduce CSP/tracking noise -->
 

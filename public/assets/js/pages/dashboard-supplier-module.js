@@ -33,7 +33,10 @@ initializeFeatureAccess().catch(err => {
 // Placeholder function for earnings feature (coming soon)
 window.showEarningsComingSoon = function () {
   if (typeof showToast === 'function') {
-    showToast('Earnings dashboard coming soon! Track your revenue, payments, and invoices.', 'info');
+    showToast(
+      'Earnings dashboard coming soon! Track your revenue, payments, and invoices.',
+      'info'
+    );
   } else {
     alert('Earnings dashboard coming soon! Track your revenue, payments, and invoices.');
   }
@@ -116,9 +119,12 @@ function showEmailVerificationBanner(userEmail) {
       // Use provided email; fall back to a /me call only if not available
       let email = userEmail;
       if (!email) {
-        const meResp = await fetch('/api/v1/auth/me', { credentials: 'include' });
-        const meData = meResp.ok ? await meResp.json() : {};
-        email = meData.user?.email || '';
+        const meData = window._efFetchOnceJSON
+          ? await window._efFetchOnceJSON('/api/v1/auth/me', { credentials: 'include' })
+          : await fetch('/api/v1/auth/me', { credentials: 'include' })
+              .then(r => (r.ok ? r.json() : null))
+              .catch(() => null);
+        email = meData?.user?.email || '';
       }
       if (!email) {
         throw new Error('No email found');
@@ -536,9 +542,12 @@ async function initSupplierDashboardWidgets() {
     let userEmail = '';
 
     try {
-      const userResponse = await fetch('/api/v1/auth/me', { credentials: 'include' });
-      if (userResponse.ok) {
-        const userData = await userResponse.json();
+      const userData = window._efFetchOnceJSON
+        ? await window._efFetchOnceJSON('/api/v1/auth/me', { credentials: 'include' })
+        : await fetch('/api/v1/auth/me', { credentials: 'include' })
+            .then(r => (r.ok ? r.json() : null))
+            .catch(() => null);
+      if (userData) {
         emailVerified = userData.user?.emailVerified || userData.user?.verified || false;
         userEmail = userData.user?.email || '';
       }
@@ -726,8 +735,11 @@ async function displaySubscriptionStatus() {
 
   try {
     // Load current user data (most reliable for tier)
-    const authResponse = await fetch('/api/v1/auth/me', { credentials: 'include' });
-    const authData = authResponse.ok ? await authResponse.json() : null;
+    const authData = window._efFetchOnceJSON
+      ? await window._efFetchOnceJSON('/api/v1/auth/me', { credentials: 'include' })
+      : await fetch('/api/v1/auth/me', { credentials: 'include' })
+          .then(r => (r.ok ? r.json() : null))
+          .catch(() => null);
     const user = authData?.user || null;
     const currentTier = user?.subscriptionTier || 'free';
 
@@ -990,11 +1002,12 @@ async function displayLeadQualityBreakdown() {
     // Resolve current user ID for per-participant unread counts
     let currentUserId = null;
     try {
-      const authRes = await fetch('/api/v1/auth/me', { credentials: 'include' });
-      if (authRes.ok) {
-        const authData = await authRes.json();
-        currentUserId = authData?.user?.id || null;
-      }
+      const authData = window._efFetchOnceJSON
+        ? await window._efFetchOnceJSON('/api/v1/auth/me', { credentials: 'include' })
+        : await fetch('/api/v1/auth/me', { credentials: 'include' })
+            .then(r => (r.ok ? r.json() : null))
+            .catch(() => null);
+      currentUserId = authData?.user?.id || null;
     } catch (_e) {
       /* ignore */
     }
@@ -1334,5 +1347,3 @@ document.addEventListener('DOMContentLoaded', () => {
     setTimeout(loadNextSteps, 800);
   });
 })();
-
-
