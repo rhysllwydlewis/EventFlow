@@ -202,7 +202,11 @@ router.post('/users', authRequired, roleRequired('admin'), csrfProtection, async
       createdBy: req.user.id, // Track who created the user
     };
 
-    await dbUnified.insertOne('users', user);
+    const adminCreatedUser = await dbUnified.insertOne('users', user);
+    if (!adminCreatedUser) {
+      logger.error('[ADMIN] insertOne failed for user creation', { email: user.email });
+      return res.status(500).json({ error: 'Failed to create user. Please try again.' });
+    }
 
     // Create audit log
     auditLog({

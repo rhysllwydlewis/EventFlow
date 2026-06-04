@@ -109,6 +109,30 @@ describe('Complete Subscription Flow Integration', () => {
       return arr.find(item => Object.keys(filter).every(k => item[k] === filter[k])) || null;
     });
 
+    // find() is used by getSubscriptionByUserId — supports $ne/$in operators
+    dbUnified.find.mockImplementation(async (collection, filter) => {
+      const arr =
+        collection === 'subscriptions'
+          ? mockSubscriptions
+          : collection === 'users'
+            ? mockUsers
+            : [];
+      if (typeof filter === 'function') {
+        return arr.filter(filter);
+      }
+      return arr.filter(item =>
+        Object.keys(filter).every(k => {
+          const val = filter[k];
+          if (val && typeof val === 'object' && val.$ne !== undefined) {
+            return item[k] !== val.$ne;
+          }
+          if (val && typeof val === 'object' && val.$in !== undefined) {
+            return Array.isArray(val.$in) && val.$in.includes(item[k]);
+          }
+          return item[k] === val;
+        })
+      );
+    });
     jest.clearAllMocks();
   });
 

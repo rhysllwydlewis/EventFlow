@@ -111,6 +111,32 @@ function setupMocks() {
     }
     return arr.find(item => Object.keys(filter).every(k => item[k] === filter[k])) || null;
   });
+
+  dbUnified.find.mockImplementation(async (collection, filter) => {
+    const arr =
+      collection === 'subscriptions'
+        ? mockSubscriptions
+        : collection === 'users'
+          ? mockUsers
+          : 'suppliers' in (global.mockSuppliers !== undefined ? { suppliers: true } : {})
+            ? mockSuppliers
+            : [];
+    if (typeof filter === 'function') {
+      return arr.filter(filter);
+    }
+    return arr.filter(item =>
+      Object.keys(filter).every(k => {
+        const val = filter[k];
+        if (val && typeof val === 'object' && val.$ne !== undefined) {
+          return item[k] !== val.$ne;
+        }
+        if (val && typeof val === 'object' && val.$in !== undefined) {
+          return Array.isArray(val.$in) && val.$in.includes(item[k]);
+        }
+        return item[k] === val;
+      })
+    );
+  });
 }
 
 beforeEach(() => {
