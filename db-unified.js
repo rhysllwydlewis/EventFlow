@@ -111,12 +111,16 @@ async function createIndexes() {
     await usersCollection.createIndex({ role: 1 });
     await usersCollection.createIndex({ createdAt: -1 });
     const suppliersCollection = mongodb.collection('suppliers');
+    await suppliersCollection.createIndex({ id: 1 }, { unique: true }); // direct id lookups
     await suppliersCollection.createIndex({ ownerUserId: 1 }); // used by GET /me supplier approval check
+    await suppliersCollection.createIndex({ approved: 1, category: 1 }); // public directory
     await suppliersCollection.createIndex({ category: 1 });
     await suppliersCollection.createIndex({ userId: 1 });
     await suppliersCollection.createIndex({ featured: 1 });
     await suppliersCollection.createIndex({ approved: 1 });
     const packagesCollection = mongodb.collection('packages');
+    await packagesCollection.createIndex({ id: 1 }, { unique: true }); // direct id lookups
+    await packagesCollection.createIndex({ supplierId: 1, approved: 1 }); // supplier package lists
     await packagesCollection.createIndex({ supplierId: 1 });
     await packagesCollection.createIndex({ category: 1 });
     await packagesCollection.createIndex({ price: 1 });
@@ -128,6 +132,7 @@ async function createIndexes() {
     await plansCollection.createIndex({ userId: 1 });
     await plansCollection.createIndex({ eventDate: 1 });
     const reviewsCollection = mongodb.collection('reviews');
+    await reviewsCollection.createIndex({ id: 1 }, { unique: true }); // direct id lookups
     await reviewsCollection.createIndex({ supplierId: 1 });
     await reviewsCollection.createIndex({ userId: 1 });
     await reviewsCollection.createIndex({ rating: -1 });
@@ -136,6 +141,7 @@ async function createIndexes() {
     await threadsCollection.createIndex({ createdAt: -1 });
     await threadsCollection.createIndex({ supplierId: 1 });
     const ticketsCollection = mongodb.collection('tickets');
+    await ticketsCollection.createIndex({ id: 1 }, { unique: true }); // direct id lookups
     await ticketsCollection.createIndex({ userId: 1 });
     await ticketsCollection.createIndex({ status: 1 });
     await ticketsCollection.createIndex({ createdAt: -1 });

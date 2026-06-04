@@ -155,10 +155,6 @@ router.post(
 
       // Create ticket
       const now = new Date().toISOString();
-      const tickets = (await dbUnified.read('tickets')).map(ticket =>
-        normalizeTicketRecord(ticket, { generateId: uid })
-      );
-
       // Auto-derive priority from the sender's subscription tier.
       // User-supplied priority values are intentionally ignored.
       const { priority, accountTier, prioritySource } = await deriveTicketPriority(
@@ -196,8 +192,7 @@ router.post(
 
       // Notify admin users about the new ticket
       try {
-        const allUsers = await dbUnified.read('users');
-        const adminUsers = allUsers.filter(u => u.role === 'admin');
+        const adminUsers = await dbUnified.find('users', { role: 'admin' });
         const notifSvc = await getNotificationService(req);
         const baseUrl = process.env.BASE_URL || 'https://event-flow.co.uk';
         const ticketCreatorName = newTicket.senderName || getUserDisplayName(req.user, 'User');

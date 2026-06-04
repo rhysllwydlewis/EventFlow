@@ -186,10 +186,13 @@ async function saveImageBase64(base64, namePrefix) {
  */
 router.get('/me/packages', applyAuthRequired, applyRoleRequired('supplier'), async (req, res) => {
   try {
-    const mine = (await dbUnified.read('suppliers'))
-      .filter(s => s.ownerUserId === req.user.id)
-      .map(s => s.id);
-    const items = (await dbUnified.read('packages')).filter(p => mine.includes(p.supplierId));
+    // Use indexed lookups instead of full collection scans
+    const mySuppliers = await dbUnified.find('suppliers', { ownerUserId: req.user.id });
+    const supplierIds = mySuppliers.map(s => s.id);
+    const items =
+      supplierIds.length > 0
+        ? await dbUnified.find('packages', { supplierId: { $in: supplierIds } })
+        : [];
     res.json({ items });
   } catch (error) {
     logger.error('Error reading supplier packages:', error);
@@ -240,9 +243,7 @@ router.post(
       return res.status(400).json({ error: 'Event types must be "wedding" or "other"' });
     }
 
-    const own = (await dbUnified.read('suppliers')).find(
-      s => s.id === supplierId && s.ownerUserId === req.user.id
-    );
+    const own = await dbUnified.findOne('suppliers', { id: supplierId, ownerUserId: req.user.id });
     if (!own) {
       return res.status(403).json({ error: 'Forbidden' });
     }
