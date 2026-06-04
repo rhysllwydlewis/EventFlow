@@ -168,7 +168,11 @@ async function createReview(reviewData, userId) {
   });
 
   // Save review
-  await dbUnified.insertOne('reviews', review);
+  const reviewInserted = await dbUnified.insertOne('reviews', review);
+  if (!reviewInserted) {
+    logger.error('[REVIEW-SVC] insertOne failed', { reviewId: review._id });
+    throw new Error('Failed to save review');
+  }
 
   // Track review received event
   const supplierAnalytics = require('../utils/supplierAnalytics');

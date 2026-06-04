@@ -148,7 +148,11 @@ class AuthService {
     }
 
     // Save user
-    await dbUnified.insertOne('users', user);
+    const authUserInserted = await dbUnified.insertOne('users', user);
+    if (!authUserInserted) {
+      logger.error('[AUTH-SVC] insertOne failed', { email: user.email });
+      throw new Error('Failed to create user account');
+    }
 
     // Update last login timestamp
     this._updateLastLogin(user.id);

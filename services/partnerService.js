@@ -145,7 +145,11 @@ async function createPartner(userId) {
     updatedAt: new Date().toISOString(),
   };
 
-  await dbUnified.insertOne('partners', partner);
+  const partnerInserted = await dbUnified.insertOne('partners', partner);
+  if (!partnerInserted) {
+    logger.error('[PARTNER-SVC] insertOne failed', { partnerId: partner.id });
+    throw new Error('Failed to create partner record');
+  }
   logger.info(`Partner created: ${partner.id} (refCode=${refCode}) for user ${userId}`);
   return partner;
 }
@@ -260,7 +264,12 @@ async function regenerateCode(partnerId) {
     createdAt: partner.createdAt || new Date().toISOString(),
     archivedAt: new Date().toISOString(),
   };
-  await dbUnified.insertOne('partner_code_history', historyEntry);
+  const historyInserted = await dbUnified.insertOne('partner_code_history', historyEntry);
+  if (!historyInserted) {
+    logger.error('[PARTNER-SVC] code_history insertOne failed', {
+      partnerId: historyEntry.partnerId,
+    });
+  }
 
   // Update the live partner record
   await dbUnified.updateOne(
@@ -368,7 +377,11 @@ async function recordReferral({ partnerId, supplierUserId, supplierCreatedAt }) 
     createdAt: new Date().toISOString(),
   };
 
-  await dbUnified.insertOne('partner_referrals', referral);
+  const referralInserted = await dbUnified.insertOne('partner_referrals', referral);
+  if (!referralInserted) {
+    logger.error('[PARTNER-SVC] referral insertOne failed', { referralId: referral.id });
+    throw new Error('Failed to record referral');
+  }
   logger.info(`Referral recorded: partner ${partnerId} → supplier ${supplierUserId}`);
   return referral;
 }
@@ -413,7 +426,10 @@ async function _awardCredit({ partnerId, supplierUserId, type, amount, notes }) 
     createdAt: new Date().toISOString(),
   };
 
-  await dbUnified.insertOne('partner_credit_transactions', txn);
+  const creditTxInserted = await dbUnified.insertOne('partner_credit_transactions', txn);
+  if (!creditTxInserted) {
+    logger.error('[PARTNER-SVC] credit_tx insertOne failed');
+  }
   logger.info(
     `Credit awarded: +${amount} (${type}) to partner ${partnerId} for supplier ${supplierUserId}`
   );
@@ -519,7 +535,10 @@ async function applyAdminAdjustment({ partnerId, amount, notes, adminUserId }) {
     adminUserId: adminUserId || null,
     createdAt: new Date().toISOString(),
   };
-  await dbUnified.insertOne('partner_credit_transactions', txn);
+  const creditTxInserted = await dbUnified.insertOne('partner_credit_transactions', txn);
+  if (!creditTxInserted) {
+    logger.error('[PARTNER-SVC] credit_tx insertOne failed');
+  }
   logger.info(
     `Admin credit adjustment: ${amount > 0 ? '+' : ''}${amount} to partner ${partnerId} by admin ${adminUserId}`
   );
@@ -619,7 +638,10 @@ async function debitPoints({ partnerId, amount, notes, externalRef }) {
     externalRef: externalRef || null,
     createdAt: new Date().toISOString(),
   };
-  await dbUnified.insertOne('partner_credit_transactions', txn);
+  const creditTxInserted = await dbUnified.insertOne('partner_credit_transactions', txn);
+  if (!creditTxInserted) {
+    logger.error('[PARTNER-SVC] credit_tx insertOne failed');
+  }
   logger.info(
     `Points debit: -${Math.abs(amount)} from partner ${partnerId} (ref: ${externalRef || 'n/a'})`
   );
@@ -651,7 +673,10 @@ async function reverseDebit(debitTxnId, partnerId) {
     externalRef: debitTxnId,
     createdAt: new Date().toISOString(),
   };
-  await dbUnified.insertOne('partner_credit_transactions', reversal);
+  const creditTxInserted = await dbUnified.insertOne('partner_credit_transactions', reversal);
+  if (!creditTxInserted) {
+    logger.error('[PARTNER-SVC] credit_tx insertOne failed');
+  }
   logger.info(
     `Debit reversed: +${reversalAmount} to partner ${partnerId} (debitTxnId: ${debitTxnId})`
   );
@@ -679,7 +704,10 @@ async function createCashoutHold({ partnerId, amount, cashoutId }) {
     externalRef: cashoutId,
     createdAt: new Date().toISOString(),
   };
-  await dbUnified.insertOne('partner_credit_transactions', txn);
+  const creditTxInserted = await dbUnified.insertOne('partner_credit_transactions', txn);
+  if (!creditTxInserted) {
+    logger.error('[PARTNER-SVC] credit_tx insertOne failed');
+  }
   logger.info(
     `Cashout hold: -${Math.abs(amount)} from partner ${partnerId} (cashoutId: ${cashoutId})`
   );
@@ -729,7 +757,10 @@ async function releaseCashoutHold(holdTxnId, partnerId) {
     externalRef: holdTxnId,
     createdAt: new Date().toISOString(),
   };
-  await dbUnified.insertOne('partner_credit_transactions', release);
+  const creditTxInserted = await dbUnified.insertOne('partner_credit_transactions', release);
+  if (!creditTxInserted) {
+    logger.error('[PARTNER-SVC] credit_tx insertOne failed');
+  }
   logger.info(
     `Cashout hold released: +${releaseAmount} to partner ${partnerId} (holdTxnId: ${holdTxnId})`
   );

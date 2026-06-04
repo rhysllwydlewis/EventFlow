@@ -239,7 +239,10 @@ router.post(
     let p = plans.find(x => x.userId === req.userId);
     if (!p) {
       p = { id: uid('pln'), userId: req.userId, plan };
-      await dbUnified.insertOne('plans', p);
+      const planDupInserted = await dbUnified.insertOne('plans', p);
+      if (!planDupInserted) {
+        logger.error('[PLANS-LEGACY] dup insertOne failed');
+      }
     } else {
       p.plan = plan;
       await dbUnified.updateOne('plans', { userId: req.userId }, { $set: { plan } });
@@ -321,7 +324,11 @@ router.post('/plans/guest', applyWriteLimiter, applyCsrfProtection, async (req, 
       updatedAt: new Date().toISOString(),
     };
 
-    await dbUnified.insertOne('plans', newPlan);
+    const newLegacyPlanInserted = await dbUnified.insertOne('plans', newPlan);
+    if (!newLegacyPlanInserted) {
+      logger.error('[PLANS-LEGACY] newPlan insertOne failed', { planId: newPlan.id });
+      return res.status(500).json({ error: 'Failed to create plan. Please try again.' });
+    }
 
     res.json({
       ok: true,

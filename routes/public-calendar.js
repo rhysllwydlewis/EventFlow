@@ -660,7 +660,11 @@ router.post(
         createdAt: now,
         updatedAt: now,
       });
-      await dbUnified.insertOne('public_calendar_events', event);
+      const eventSaved = await dbUnified.insertOne('public_calendar_events', event);
+      if (!eventSaved) {
+        logger.error('[PUBLIC-CAL] event insertOne failed', { eventId: event.id });
+        return res.status(500).json({ error: 'Failed to create event. Please try again.' });
+      }
       logger.info(`Public calendar event created: ${event.id} by user ${req.user.id}`);
       res.status(201).json({ ok: true, event });
     } catch (err) {
@@ -808,7 +812,11 @@ router.post(
         eventId: event.id,
         savedAt: new Date().toISOString(),
       };
-      await dbUnified.insertOne('public_calendar_saves', newSave);
+      const saveSaved = await dbUnified.insertOne('public_calendar_saves', newSave);
+      if (!saveSaved) {
+        logger.error('[PUBLIC-CAL] save insertOne failed');
+        return res.status(500).json({ error: 'Failed to save event. Please try again.' });
+      }
       res.status(201).json({ ok: true, message: 'Saved to your planning calendar', save: newSave });
     } catch (err) {
       logger.error('POST /public-calendar/events/:id/save error:', err);
@@ -1066,7 +1074,11 @@ router.post(
         createdAt: now,
         updatedAt: now,
       };
-      await dbUnified.insertOne('tickets', ticket);
+      const calTicketInserted = await dbUnified.insertOne('tickets', ticket);
+      if (!calTicketInserted) {
+        logger.error('[PUBLIC-CAL] ticket insertOne failed', { ticketId: ticket.id });
+        return res.status(500).json({ error: 'Failed to submit ticket. Please try again.' });
+      }
       res.status(201).json({
         ok: true,
         ticketId: ticket.id,

@@ -361,7 +361,11 @@ router.post(
         updatedAt: now,
       };
 
-      await dbUnified.insertOne('tickets', newTicket);
+      const partnerTicketInserted = await dbUnified.insertOne('tickets', newTicket);
+      if (!partnerTicketInserted) {
+        logger.error('[PARTNER] ticket insertOne failed', { ticketId: newTicket.id });
+        return res.status(500).json({ error: 'Failed to submit ticket. Please try again.' });
+      }
       logger.info(`Partner support ticket created: ${newTicket.id} for partner ${partner.id}`);
 
       res.status(201).json({
@@ -544,7 +548,13 @@ router.post(
         updatedAt: now,
       };
 
-      await dbUnified.insertOne('partner_cashout_requests', cashoutRequest);
+      const cashoutInserted = await dbUnified.insertOne('partner_cashout_requests', cashoutRequest);
+      if (!cashoutInserted) {
+        logger.error('[PARTNER] cashout insertOne failed', { requestId: cashoutRequest.id });
+        return res
+          .status(500)
+          .json({ error: 'Failed to submit cashout request. Please try again.' });
+      }
       logger.info(
         `Cashout request created: ${cashoutId} by partner ${partner.id} — £${denomInt} via ${method}`
       );

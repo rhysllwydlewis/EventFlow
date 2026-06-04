@@ -144,7 +144,11 @@ router.post(
         updatedAt: now,
       };
 
-      await dbUnified.insertOne('badges', newBadge);
+      const badgeInserted = await dbUnified.insertOne('badges', newBadge);
+      if (!badgeInserted) {
+        logger.error('[ADMIN-CONFIG] badge insertOne failed', { badgeId: newBadge.id });
+        return res.status(500).json({ error: 'Failed to create badge.' });
+      }
 
       res.status(201).json({ badge: newBadge });
     } catch (error) {
@@ -491,12 +495,10 @@ router.delete(
       });
     } catch (error) {
       logger.error('Error removing category hero image:', error);
-      res
-        .status(500)
-        .json({
-          error: 'Failed to remove image',
-          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-        });
+      res.status(500).json({
+        error: 'Failed to remove image',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
     }
   }
 );
@@ -538,7 +540,11 @@ router.post(
         visible: visible !== false,
       };
 
-      await dbUnified.insertOne('categories', newCategory);
+      const catInserted = await dbUnified.insertOne('categories', newCategory);
+      if (!catInserted) {
+        logger.error('[ADMIN-CONFIG] category insertOne failed', { categoryId: newCategory.id });
+        return res.status(500).json({ error: 'Failed to create category.' });
+      }
 
       res.json({
         ok: true,
@@ -546,12 +552,10 @@ router.post(
       });
     } catch (error) {
       logger.error('Error creating category:', error);
-      res
-        .status(500)
-        .json({
-          error: 'Failed to create category',
-          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-        });
+      res.status(500).json({
+        error: 'Failed to create category',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
     }
   }
 );
@@ -610,12 +614,10 @@ router.put(
       });
     } catch (error) {
       logger.error('Error reordering categories:', error);
-      res
-        .status(500)
-        .json({
-          error: 'Failed to reorder categories',
-          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-        });
+      res.status(500).json({
+        error: 'Failed to reorder categories',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
     }
   }
 );
@@ -681,12 +683,10 @@ router.put(
       });
     } catch (error) {
       logger.error('Error updating category:', error);
-      res
-        .status(500)
-        .json({
-          error: 'Failed to update category',
-          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-        });
+      res.status(500).json({
+        error: 'Failed to update category',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
     }
   }
 );
@@ -720,12 +720,10 @@ router.delete(
       });
     } catch (error) {
       logger.error('Error deleting category:', error);
-      res
-        .status(500)
-        .json({
-          error: 'Failed to delete category',
-          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-        });
+      res.status(500).json({
+        error: 'Failed to delete category',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
     }
   }
 );
@@ -763,12 +761,10 @@ router.put(
       });
     } catch (error) {
       logger.error('Error toggling category visibility:', error);
-      res
-        .status(500)
-        .json({
-          error: 'Failed to toggle visibility',
-          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-        });
+      res.status(500).json({
+        error: 'Failed to toggle visibility',
+        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+      });
     }
   }
 );

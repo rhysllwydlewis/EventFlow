@@ -818,7 +818,7 @@ router.put(
         return res.status(400).json({ error: 'Rating must be between 1 and 5' });
       }
 
-      const review = await dbUnified.findOne('reviews', { id: reviewId });
+      const review = await dbUnified.findOne('reviews', { _id: reviewId });
 
       if (!review) {
         return res.status(404).json({ error: 'Review not found' });
@@ -848,7 +848,7 @@ router.put(
         updates.eventType = eventType;
       }
 
-      await dbUnified.updateOne('reviews', { id: reviewId }, { $set: updates });
+      await dbUnified.updateOne('reviews', { _id: reviewId }, { $set: updates });
 
       res.json({
         success: true,
@@ -882,7 +882,7 @@ router.post(
         return res.status(400).json({ error: 'A valid reason is required to report a review' });
       }
 
-      const review = await dbUnified.findOne('reviews', { id: reviewId });
+      const review = await dbUnified.findOne('reviews', { _id: reviewId });
 
       if (!review) {
         return res.status(404).json({ error: 'Review not found' });
@@ -909,7 +909,7 @@ router.post(
 
       await dbUnified.updateOne(
         'reviews',
-        { id: reviewId },
+        { _id: reviewId },
         { $set: { reports, flagged: true, updatedAt: new Date().toISOString() } }
       );
 
@@ -927,7 +927,11 @@ router.post(
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
-        await dbUnified.insertOne('support_tickets', ticketData);
+        const reviewTicketInserted = await dbUnified.insertOne('support_tickets', ticketData);
+        if (!reviewTicketInserted) {
+          logger.error('[REVIEWS] support_ticket insertOne failed', { reviewId: reviewId });
+          return res.status(500).json({ error: 'Failed to submit report. Please try again.' });
+        }
       } catch (ticketErr) {
         logger.warn(
           'Failed to create support ticket for review report (non-blocking):',

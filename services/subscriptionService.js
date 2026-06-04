@@ -147,7 +147,11 @@ async function createSubscription({
     updatedAt: now,
   };
 
-  await dbUnified.insertOne('subscriptions', subscription);
+  const subInserted = await dbUnified.insertOne('subscriptions', subscription);
+  if (!subInserted) {
+    logger.error('[SUB-SVC] insertOne failed', { subscriptionId: subscription.id });
+    throw new Error('Failed to save subscription record');
+  }
   await persistUserSubscriptionState(userId, {
     subscriptionId: subscription.id,
     subscriptionTier: isLiveEntitlement(subscription) ? plan : 'free',

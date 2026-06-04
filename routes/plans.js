@@ -163,7 +163,11 @@ router.post(
         updatedAt: now,
       };
 
-      await dbUnified.insertOne('plans', newPlan);
+      const planInserted = await dbUnified.insertOne('plans', newPlan);
+      if (!planInserted) {
+        logger.error('[PLANS] insertOne failed', { planId: newPlan.id });
+        return res.status(500).json({ error: 'Failed to save plan. Please try again.' });
+      }
 
       // Return both modern and legacy success flags for compatibility.
       res.status(200).json({

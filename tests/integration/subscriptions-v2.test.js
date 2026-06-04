@@ -52,7 +52,7 @@ describe('Subscription Service Integration Tests', () => {
       switch (collection) {
         case 'subscriptions':
           mockSubscriptions.push(data);
-          break;
+          return data; // return truthy so insertOne checks pass
       }
     });
 

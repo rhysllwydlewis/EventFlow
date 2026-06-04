@@ -69,10 +69,10 @@ describe('Complete Subscription Flow Integration', () => {
       switch (collection) {
         case 'subscriptions':
           mockSubscriptions.push(data);
-          break;
+          return data; // return truthy so insertOne checks pass
         case 'payments':
           mockPayments.push(data);
-          break;
+          return data;
         case 'invoices':
           mockInvoices.push(data);
           break;

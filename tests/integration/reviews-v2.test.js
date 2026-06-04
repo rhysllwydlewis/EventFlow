@@ -68,7 +68,9 @@ describe('Review Service Integration Tests', () => {
     dbUnified.insertOne.mockImplementation(async (collection, doc) => {
       if (collection === 'reviews') {
         mockReviews.push(doc);
+        return doc; // return truthy so insertOne null-check passes
       }
+      return doc;
     });
 
     dbUnified.updateOne.mockImplementation(async (collection, filter, update) => {
