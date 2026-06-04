@@ -498,7 +498,11 @@ router.post(
         updatedAt: new Date().toISOString(),
       };
 
-      await dbUnified.insertOne('marketplace_listings', listing);
+      const savedListing = await dbUnified.insertOne('marketplace_listings', listing);
+      if (!savedListing) {
+        logger.error('[MARKETPLACE] insertOne failed', { listingId: listing.id });
+        return res.status(500).json({ error: 'Failed to create listing. Please try again.' });
+      }
 
       logger.info('Marketplace listing created', {
         listingId: listing.id,

@@ -261,7 +261,11 @@ router.post(
         createdAt: new Date().toISOString(),
       };
 
-      await dbUnified.insertOne('customer_calendar_entries', entry);
+      const entrySaved = await dbUnified.insertOne('customer_calendar_entries', entry);
+      if (!entrySaved) {
+        logger.error('[CALENDAR] entry insertOne failed', { entryId: entry.id });
+        return res.status(500).json({ error: 'Failed to save calendar entry. Please try again.' });
+      }
 
       logger.info(`Calendar entry created: ${entry.id} by user ${userId}`);
       res.status(201).json({ ok: true, entry });

@@ -85,12 +85,10 @@ router.get('/', authRequired, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching referrals:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to fetch referrals',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to fetch referrals',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 
@@ -136,7 +134,11 @@ router.post('/track', writeLimiter, csrfProtection, async (req, res) => {
       updatedAt: new Date().toISOString(),
     };
 
-    await dbUnified.insertOne('referrals', newReferral);
+    const referralSaved = await dbUnified.insertOne('referrals', newReferral);
+    if (!referralSaved) {
+      logger.error('[REFERRAL] insertOne failed', { referralId: newReferral.id });
+      return res.status(500).json({ error: 'Failed to record referral. Please try again.' });
+    }
 
     res.json({ success: true, message: 'Referral tracked successfully' });
   } catch (error) {
@@ -173,12 +175,10 @@ router.patch('/:id/activate', writeLimiter, authRequired, csrfProtection, async 
     res.json({ success: true, message: 'Referral activated' });
   } catch (error) {
     logger.error('Error activating referral:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to activate referral',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to activate referral',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 
@@ -232,12 +232,10 @@ router.get('/stats', authRequired, async (req, res) => {
     });
   } catch (error) {
     logger.error('Error fetching referral stats:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to fetch referral stats',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to fetch referral stats',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 

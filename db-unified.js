@@ -132,8 +132,9 @@ async function createIndexes() {
     await plansCollection.createIndex({ userId: 1 });
     await plansCollection.createIndex({ eventDate: 1 });
     const reviewsCollection = mongodb.collection('reviews');
-    await reviewsCollection.createIndex({ id: 1 }, { unique: true }); // direct id lookups
+    // Reviews use _id (auto-indexed by MongoDB) — no custom 'id' field
     await reviewsCollection.createIndex({ supplierId: 1 });
+    await reviewsCollection.createIndex({ authorId: 1 }); // eligibility + rate-limit checks
     await reviewsCollection.createIndex({ userId: 1 });
     await reviewsCollection.createIndex({ rating: -1 });
     const threadsCollection = mongodb.collection('threads');
