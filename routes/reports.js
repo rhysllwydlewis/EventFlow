@@ -67,19 +67,19 @@ router.post('/', authRequired, csrfProtection, reportLimiter, async (req, res) =
 
   switch (type) {
     case 'supplier':
-      targetData = (await dbUnified.read('suppliers')).find(s => s.id === targetId);
+      targetData = await dbUnified.findOne('suppliers', { id: targetId });
       targetExists = !!targetData;
       break;
     case 'review':
-      targetData = (await dbUnified.read('reviews')).find(r => r.id === targetId);
+      targetData = await dbUnified.findOne('reviews', { id: targetId });
       targetExists = !!targetData;
       break;
     case 'message':
-      targetData = (await dbUnified.read('messages')).find(m => m.id === targetId);
+      targetData = await dbUnified.findOne('messages', { id: targetId });
       targetExists = !!targetData;
       break;
     case 'user':
-      targetData = (await dbUnified.read('users')).find(u => u.id === targetId);
+      targetData = await dbUnified.findOne('users', { id: targetId });
       targetExists = !!targetData;
       break;
     case 'photo': {

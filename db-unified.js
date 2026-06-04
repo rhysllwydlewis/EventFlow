@@ -219,6 +219,23 @@ async function createIndexes() {
     await pubCalendarCollection.createIndex({ supplierId: 1 }, { sparse: true });
     const pubCalendarSavesCollection = mongodb.collection('public_calendar_saves');
     await pubCalendarSavesCollection.createIndex({ userId: 1, eventId: 1 }, { unique: true }); // dedup saves
+    // Plans collection
+    const plansCollection2 = mongodb.collection('plans');
+    await plansCollection2.createIndex({ id: 1 }, { unique: true });
+    await plansCollection2.createIndex({ userId: 1 });
+    // Saved items
+    const savedItemsCollection = mongodb.collection('savedItems');
+    await savedItemsCollection.createIndex({ userId: 1 });
+    await savedItemsCollection.createIndex({ userId: 1, itemType: 1, itemId: 1 }, { unique: true });
+    // Marketplace
+    const marketplaceCollection2 = mongodb.collection('marketplace_listings');
+    await marketplaceCollection2.createIndex({ id: 1 }, { unique: true });
+    await marketplaceCollection2.createIndex({ userId: 1 });
+    await marketplaceCollection2.createIndex({ status: 1 });
+    // Reviews compound - authorId+supplierId for eligibility check
+    const reviewsCollection2 = mongodb.collection('reviews');
+    await reviewsCollection2.createIndex({ authorId: 1, supplierId: 1 });
+    await reviewsCollection2.createIndex({ authorId: 1, createdAt: -1 });
     logger.info('✅ Database indexes created successfully');
   } catch (error) {
     logger.info('ℹ️  Database indexes:', error.message);

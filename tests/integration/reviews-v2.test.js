@@ -87,6 +87,36 @@ describe('Review Service Integration Tests', () => {
       return null;
     });
 
+    dbUnified.find.mockImplementation(async (collection, filter) => {
+      const arr =
+        collection === 'reviews'
+          ? mockReviews
+          : collection === 'users'
+            ? typeof mockUsers !== 'undefined'
+              ? mockUsers
+              : []
+            : collection === 'suppliers'
+              ? typeof mockSuppliers !== 'undefined'
+                ? mockSuppliers
+                : []
+              : [];
+      if (typeof filter === 'function') {
+        return arr.filter(filter);
+      }
+      return arr.filter(item =>
+        Object.keys(filter).every(k => {
+          const val = filter[k];
+          if (val && typeof val === 'object' && val.$ne !== undefined) {
+            return item[k] !== val.$ne;
+          }
+          if (val && typeof val === 'object' && val.$in !== undefined) {
+            return Array.isArray(val.$in) && val.$in.includes(item[k]);
+          }
+          return item[k] === val;
+        })
+      );
+    });
+
     // Mock uid to return predictable IDs
     jest.spyOn(require('../../store'), 'uid').mockReturnValue('rev-test-123');
   });

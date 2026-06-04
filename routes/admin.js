@@ -991,7 +991,7 @@ router.get('/suppliers/:id', authRequired, roleRequired('admin'), async (req, re
     // Prefer findOne (O(1) index lookup) when available; fall back to read+find
     const supplier = dbUnified.findOne
       ? await dbUnified.findOne('suppliers', { id: req.params.id })
-      : (await dbUnified.read('suppliers')).find(s => s.id === req.params.id);
+      : await dbUnified.findOne('suppliers', { id: req.params.id });
 
     if (!supplier) {
       return res.status(404).json({ error: 'Supplier not found' });

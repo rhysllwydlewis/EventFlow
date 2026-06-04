@@ -26,7 +26,9 @@ function currentUser(req) {
 }
 
 function previewMode(req) {
-  return req.query.preview === 'true' || /[?&]preview=true(?:&|$)/.test(String(req.get('referer') || ''));
+  return (
+    req.query.preview === 'true' || /[?&]preview=true(?:&|$)/.test(String(req.get('referer') || ''))
+  );
 }
 
 function canPreview(req, supplier) {
@@ -35,13 +37,19 @@ function canPreview(req, supplier) {
 }
 
 function canRead(req, supplier) {
-  if (!supplier) return false;
-  if (supplier.approved) return true;
+  if (!supplier) {
+    return false;
+  }
+  if (supplier.approved) {
+    return true;
+  }
   return canPreview(req, supplier);
 }
 
 async function badgeDetailsFor(supplier) {
-  if (!Array.isArray(supplier.badges) || supplier.badges.length === 0) return [];
+  if (!Array.isArray(supplier.badges) || supplier.badges.length === 0) {
+    return [];
+  }
   try {
     const stored = await dbUnified.read('badges');
     const { BADGE_DEFINITIONS } = require('../utils/badgeManagement');
@@ -58,13 +66,19 @@ async function badgeDetailsFor(supplier) {
 
 router.get('/suppliers/:id', async (req, res, next) => {
   try {
-    if (!dbUnified) return next();
-    const supplier = (await dbUnified.read('suppliers')).find(item => item.id === req.params.id);
-    if (!canRead(req, supplier)) return res.status(404).json({ error: 'Supplier not found' });
+    if (!dbUnified) {
+      return next();
+    }
+    const supplier = await dbUnified.findOne('suppliers', { id: req.params.id });
+    if (!canRead(req, supplier)) {
+      return res.status(404).json({ error: 'Supplier not found' });
+    }
 
     const packages = await dbUnified.read('packages');
     const featuredSupplier = packages.some(pkg => pkg.supplierId === supplier.id && pkg.featured);
-    const isPro = supplierIsProActive ? await supplierIsProActive(supplier) : Boolean(supplier.isPro);
+    const isPro = supplierIsProActive
+      ? await supplierIsProActive(supplier)
+      : Boolean(supplier.isPro);
     const preview = previewMode(req) && canPreview(req, supplier);
 
     return res.json(
@@ -83,9 +97,13 @@ router.get('/suppliers/:id', async (req, res, next) => {
 
 router.get('/suppliers/:id/packages', async (req, res, next) => {
   try {
-    if (!dbUnified) return next();
-    const supplier = (await dbUnified.read('suppliers')).find(item => item.id === req.params.id);
-    if (!canRead(req, supplier)) return res.status(404).json({ error: 'Supplier not found' });
+    if (!dbUnified) {
+      return next();
+    }
+    const supplier = await dbUnified.findOne('suppliers', { id: req.params.id });
+    if (!canRead(req, supplier)) {
+      return res.status(404).json({ error: 'Supplier not found' });
+    }
 
     const includeUnpublished = previewMode(req) && canPreview(req, supplier);
     const items = (await dbUnified.read('packages'))

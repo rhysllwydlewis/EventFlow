@@ -29,19 +29,12 @@ const MAX_RESPONSE_LENGTH = 2000; // Maximum characters for supplier response
  * @returns {Promise<Object>} Eligibility result
  */
 async function checkReviewEligibility(userId, supplierId, _bookingId = null) {
-  const reviews = await dbUnified.read('reviews');
   const now = Date.now();
   const cooldownMs = REVIEW_COOLDOWN_DAYS * 24 * 60 * 60 * 1000;
 
-  // Check if user already reviewed this supplier recently
-  const existingReview = reviews.find(
-    r =>
-      r.authorId === userId &&
-      r.supplierId === supplierId &&
-      now - new Date(r.createdAt).getTime() < cooldownMs
-  );
-
-  if (existingReview) {
+  // Check cooldown: has user reviewed this supplier within the cooldown window?
+  const existingReview = await dbUnified.findOne('reviews', { authorId: userId, supplierId });
+  if (existingReview && now - new Date(existingReview.createdAt).getTime() < cooldownMs) {
     const daysRemaining = Math.ceil(
       (cooldownMs - (now - new Date(existingReview.createdAt).getTime())) / (24 * 60 * 60 * 1000)
     );
@@ -52,11 +45,10 @@ async function checkReviewEligibility(userId, supplierId, _bookingId = null) {
     };
   }
 
-  // Check rate limiting (5 reviews per hour)
+  // Check rate limiting (5 reviews per hour) — fetch user's recent reviews
   const oneHourAgo = now - 60 * 60 * 1000;
-  const recentReviews = reviews.filter(
-    r => r.authorId === userId && new Date(r.createdAt).getTime() > oneHourAgo
-  );
+  const userReviews = await dbUnified.find('reviews', { authorId: userId });
+  const recentReviews = userReviews.filter(r => new Date(r.createdAt).getTime() > oneHourAgo);
 
   if (recentReviews.length >= MAX_REVIEWS_PER_HOUR) {
     return {
@@ -226,10 +218,8 @@ async function getSupplierReviews(supplierId, options = {}) {
     approvedOnly = true,
   } = options;
 
-  const reviews = await dbUnified.read('reviews');
-
-  // Filter by supplier
-  let filtered = reviews.filter(r => r.supplierId === supplierId);
+  // Find reviews for this supplier — uses supplierId index
+  let filtered = await dbUnified.find('reviews', { supplierId: supplierId });
 
   // Filter by approval status
   if (approvedOnly) {
@@ -266,9 +256,7 @@ async function getSupplierReviews(supplierId, options = {}) {
   const paginatedReviews = filtered.slice(start, end);
 
   // Get analytics for supplier
-  const analytics = ReviewAnalytics.generateSupplierAnalytics(
-    reviews.filter(r => r.supplierId === supplierId)
-  );
+  const analytics = ReviewAnalytics.generateSupplierAnalytics(filtered);
 
   return {
     reviews: paginatedReviews,

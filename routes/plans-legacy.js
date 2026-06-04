@@ -131,7 +131,7 @@ router.post(
       if (!supplierId) {
         return res.status(400).json({ error: 'Missing supplierId' });
       }
-      const s = (await dbUnified.read('suppliers')).find(x => x.id === supplierId && x.approved);
+      const s = await dbUnified.findOne('suppliers', { id: supplierId, approved: true });
       if (!s) {
         return res.status(404).json({ error: 'Supplier not found' });
       }
@@ -182,7 +182,7 @@ router.get('/notes', applyAuthRequired, async (req, res) => {
     if (req.user.role !== 'customer') {
       return res.status(403).json({ error: 'Customers only' });
     }
-    const n = (await dbUnified.read('notes')).find(x => x.userId === req.user.id);
+    const n = await dbUnified.findOne('notes', { userId: req.user.id });
     res.json({ text: (n && n.text) || '' });
   } catch (error) {
     logger.error('Error reading notes:', error);
