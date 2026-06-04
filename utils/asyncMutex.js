@@ -5,6 +5,13 @@
  * collection so that two simultaneous requests cannot interleave their reads
  * and writes and silently overwrite each other's data.
  *
+ * ⚠️  IMPORTANT: This mutex is in-process only. It provides no protection
+ * against concurrent writes from other Node.js process instances (e.g. multiple
+ * Railway dynos or Heroku workers). On MongoDB, prefer atomic operations
+ * (insertOne / updateOne / deleteOne) which are safe across multiple instances.
+ * This utility is primarily useful for the local file-store backend where
+ * multiple async handlers in the same process can race on a single JSON file.
+ *
  * Usage:
  *   const { withLock } = require('../utils/asyncMutex');
  *
@@ -41,7 +48,10 @@ function withLock(key, fn) {
   // `current` runs fn() after the previous operation for this key settles.
   // The second branch of .then(…, …) ensures the queue advances even when
   // the *previous* caller failed.
-  const current = prev.then(() => fn(), () => fn());
+  const current = prev.then(
+    () => fn(),
+    () => fn()
+  );
 
   // Store a non-rejecting tail so future callers aren't accidentally blocked
   // by errors from the current caller.

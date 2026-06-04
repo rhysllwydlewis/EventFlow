@@ -56,6 +56,26 @@ describe('Subscription Service Integration Tests', () => {
       }
     });
 
+    // findOne needed since getSubscription/getSubscriptionByUserId/getFallbackUserTier
+    // now use findOne instead of read()
+    dbUnified.findOne.mockImplementation(async (collection, filter) => {
+      if (collection === 'subscriptions') {
+        if (typeof filter === 'function') {
+          return mockSubscriptions.find(filter) || null;
+        }
+        return (
+          mockSubscriptions.find(s => Object.keys(filter).every(k => s[k] === filter[k])) || null
+        );
+      }
+      if (collection === 'users') {
+        if (typeof filter === 'function') {
+          return mockUsers.find(filter) || null;
+        }
+        return mockUsers.find(u => Object.keys(filter).every(k => u[k] === filter[k])) || null;
+      }
+      return null;
+    });
+
     dbUnified.updateOne.mockImplementation(async (collection, filter, update) => {
       if (collection === 'users' && update.$set) {
         const idx = mockUsers.findIndex(u => u.id === filter.id);

@@ -48,7 +48,10 @@ function defaultDestinationForRole(role) {
 
 function isSafeRelativePath(value) {
   return Boolean(
-    typeof value === 'string' && value.startsWith('/') && !value.startsWith('//') && !value.includes('\\')
+    typeof value === 'string' &&
+    value.startsWith('/') &&
+    !value.startsWith('//') &&
+    !value.includes('\\')
   );
 }
 
@@ -56,7 +59,9 @@ function getPathname(value) {
   try {
     return new URL(value, PRODUCTION_ORIGIN).pathname;
   } catch (_) {
-    return String(value || '').split('?')[0].split('#')[0];
+    return String(value || '')
+      .split('?')[0]
+      .split('#')[0];
   }
 }
 
@@ -124,7 +129,9 @@ async function updateLastLogin(userId) {
       { $set: { lastLoginAt: new Date().toISOString() } }
     );
   } catch (error) {
-    logger.error('[GOOGLE REDIRECT LOGIN] Failed to update lastLoginAt', { message: error.message });
+    logger.error('[GOOGLE REDIRECT LOGIN] Failed to update lastLoginAt', {
+      message: error.message,
+    });
   }
 }
 
@@ -182,7 +189,9 @@ function getSignupState(state) {
 async function validateNewGoogleSignupState(signupState) {
   const features = await getFeatureFlags();
   if (!features.registration) {
-    const error = new Error('New account registrations are temporarily unavailable. Please try again later.');
+    const error = new Error(
+      'New account registrations are temporarily unavailable. Please try again later.'
+    );
     error.statusCode = 503;
     throw error;
   }
@@ -192,7 +201,9 @@ async function validateNewGoogleSignupState(signupState) {
   }
 
   if (!features.supplierApplications) {
-    const error = new Error('Supplier applications are currently disabled. Please try again later.');
+    const error = new Error(
+      'Supplier applications are currently disabled. Please try again later.'
+    );
     error.statusCode = 503;
     throw error;
   }
@@ -238,17 +249,26 @@ function isAuthoritativeProfileEmail(googleProfile) {
     return Boolean(googleProfile.emailAuthoritative);
   }
   const email = String(googleProfile.email || '').toLowerCase();
-  return Boolean(googleProfile.email_verified && (email.endsWith('@gmail.com') || googleProfile.hd));
+  return Boolean(
+    googleProfile.email_verified && (email.endsWith('@gmail.com') || googleProfile.hd)
+  );
 }
 
 function buildGoogleUser(googleProfile, nowIso, signupState = {}) {
   const email = String(googleProfile.email || '').toLowerCase();
   const googleSub = String(googleProfile.sub || '');
-  const givenName = String(googleProfile.given_name || '').trim().slice(0, 40);
-  const familyName = String(googleProfile.family_name || '').trim().slice(0, 40);
+  const givenName = String(googleProfile.given_name || '')
+    .trim()
+    .slice(0, 40);
+  const familyName = String(googleProfile.family_name || '')
+    .trim()
+    .slice(0, 40);
   const profileName = String(googleProfile.name || '').trim();
   const fallbackName = email.split('@')[0] || 'Google user';
-  const fullName = (profileName || `${givenName} ${familyName}`.trim() || fallbackName).slice(0, 80);
+  const fullName = (profileName || `${givenName} ${familyName}`.trim() || fallbackName).slice(
+    0,
+    80
+  );
   const [derivedFirstName, ...derivedLastParts] = fullName.split(/\s+/);
   const requestedRole = signupState.role === 'supplier' ? 'supplier' : 'customer';
   const isOwner = domainAdmin.isOwnerEmail(email);
@@ -301,7 +321,9 @@ async function findOrCreateGoogleUser(googleProfile, state = {}) {
 
   if (!user && existingByEmail) {
     if (!isAuthoritativeProfileEmail(googleProfile)) {
-      const error = new Error('An account already exists for this email. Please log in with your password first.');
+      const error = new Error(
+        'An account already exists for this email. Please log in with your password first.'
+      );
       error.statusCode = 409;
       throw error;
     }
@@ -327,7 +349,15 @@ async function findOrCreateGoogleUser(googleProfile, state = {}) {
   if (!user) {
     await validateNewGoogleSignupState(signupState);
     user = buildGoogleUser(googleProfile, nowIso, signupState);
-    await dbUnified.insertOne('users', user);
+    const insertedUser = await dbUnified.insertOne('users', user);
+    if (!insertedUser) {
+      // insertOne returns null on DB error. Throw so the route-level catch block
+      // can redirect the user — res is not in scope inside this helper function.
+      logger.error('[GOOGLE-REDIRECT] insertOne returned null — user account not saved', {
+        email: user.email,
+      });
+      throw new Error('account_creation_failed');
+    }
 
     if (signupState.role === 'supplier') {
       await recordSupplierPartnerReferral(signupState.ref, user);
@@ -403,7 +433,10 @@ router.post('/callback/google', parseGoogleFormPost, async (req, res) => {
     return res.redirect(303, destinationFromState(user, state));
   } catch (error) {
     logger.error('[GOOGLE REDIRECT LOGIN] Failed', { message: error.message });
-    return redirectWithError(res, error.statusCode ? `google_${error.statusCode}` : 'google_failed');
+    return redirectWithError(
+      res,
+      error.statusCode ? `google_${error.statusCode}` : 'google_failed'
+    );
   }
 });
 

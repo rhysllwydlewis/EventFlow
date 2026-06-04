@@ -660,11 +660,7 @@ router.post(
         createdAt: now,
         updatedAt: now,
       });
-      await withLock('public_calendar_events', async () => {
-        const events = await dbUnified.read('public_calendar_events');
-        events.push(event);
-        await dbUnified.write('public_calendar_events', events);
-      });
+      await dbUnified.insertOne('public_calendar_events', event);
       logger.info(`Public calendar event created: ${event.id} by user ${req.user.id}`);
       res.status(201).json({ ok: true, event });
     } catch (err) {
@@ -684,51 +680,43 @@ router.put(
   requirePublisher,
   async (req, res) => {
     try {
-      let earlyExit = null;
-      let updatedEvent = null;
-      await withLock('public_calendar_events', async () => {
-        const events = await dbUnified.read('public_calendar_events');
-        const idx = events.findIndex(e => e.id === req.params.id || e.slug === req.params.id);
-        if (idx === -1) {
-          earlyExit = { status: 404, body: { error: 'Event not found' } };
-          return;
-        }
-        const existing = normalizeEvent(events[idx]);
-        if (req.user.role !== 'admin' && existing.createdByUserId !== req.user.id) {
-          earlyExit = {
-            status: 403,
-            body: {
-              error: 'Forbidden',
-              message: 'You can only edit your own public calendar events.',
-            },
-          };
-          return;
-        }
-        const { data, errors } = validateEventBody(req.body, {
-          partial: true,
-          existing,
-          user: req.user,
-        });
-        if (errors.length) {
-          earlyExit = { status: 400, body: { error: 'Validation failed', details: errors } };
-          return;
-        }
-        const next = normalizeEvent({
-          ...existing,
-          ...data,
-          updatedAt: new Date().toISOString(),
-          updatedByUserId: req.user.id,
-        });
-        if (data.title && data.title !== existing.title && !existing.slug) {
-          next.slug = `${makeSlug(data.title)}-${String(existing.id).replace(/^pce_/, '').slice(-8)}`;
-        }
-        events[idx] = next;
-        await dbUnified.write('public_calendar_events', events);
-        updatedEvent = next;
-      });
-      if (earlyExit) {
-        return res.status(earlyExit.status).json(earlyExit.body);
+      // Find event by id or slug
+      const rawEvent = await dbUnified.findOne(
+        'public_calendar_events',
+        e => e.id === req.params.id || e.slug === req.params.id
+      );
+      if (!rawEvent) {
+        return res.status(404).json({ error: 'Event not found' });
       }
+      const existing = normalizeEvent(rawEvent);
+      if (req.user.role !== 'admin' && existing.createdByUserId !== req.user.id) {
+        return res.status(403).json({
+          error: 'Forbidden',
+          message: 'You can only edit your own public calendar events.',
+        });
+      }
+      const { data, errors } = validateEventBody(req.body, {
+        partial: true,
+        existing,
+        user: req.user,
+      });
+      if (errors.length) {
+        return res.status(400).json({ error: 'Validation failed', details: errors });
+      }
+      const updatedEvent = normalizeEvent({
+        ...existing,
+        ...data,
+        updatedAt: new Date().toISOString(),
+        updatedByUserId: req.user.id,
+      });
+      if (data.title && data.title !== existing.title && !existing.slug) {
+        updatedEvent.slug = `${makeSlug(data.title)}-${String(existing.id).replace(/^pce_/, '').slice(-8)}`;
+      }
+      await dbUnified.updateOne(
+        'public_calendar_events',
+        { id: existing.id },
+        { $set: updatedEvent }
+      );
       logger.info(
         `Public calendar event updated: ${updatedEvent.id} by user ${req.user.id}${req.user.role === 'admin' ? ' [admin]' : ''}`
       );
@@ -808,28 +796,20 @@ router.post(
       if (!event || eventStatus(event) !== 'published') {
         return res.status(404).json({ error: 'Event not found' });
       }
-      let alreadySaved = null;
-      let newSave = null;
-      await withLock('public_calendar_saves', async () => {
-        const saves = await dbUnified.read('public_calendar_saves');
-        const existing = saves.find(s => s.userId === req.user.id && s.eventId === event.id);
-        if (existing) {
-          alreadySaved = existing;
-          return;
-        }
-        const save = {
-          id: uid('pcs'),
-          userId: req.user.id,
-          eventId: event.id,
-          savedAt: new Date().toISOString(),
-        };
-        saves.push(save);
-        await dbUnified.write('public_calendar_saves', saves);
-        newSave = save;
+      const alreadySaved = await dbUnified.findOne('public_calendar_saves', {
+        userId: req.user.id,
+        eventId: event.id,
       });
       if (alreadySaved) {
         return res.json({ ok: true, message: 'Already saved', save: alreadySaved });
       }
+      const newSave = {
+        id: uid('pcs'),
+        userId: req.user.id,
+        eventId: event.id,
+        savedAt: new Date().toISOString(),
+      };
+      await dbUnified.insertOne('public_calendar_saves', newSave);
       res.status(201).json({ ok: true, message: 'Saved to your planning calendar', save: newSave });
     } catch (err) {
       logger.error('POST /public-calendar/events/:id/save error:', err);
@@ -849,14 +829,11 @@ router.delete(
       const allEvents = await readActivePublicCalendarEvents();
       const event = allEvents.find(e => e.id === req.params.id || e.slug === req.params.id);
       const eventId = event ? event.id : req.params.id;
-      let found = false;
-      await withLock('public_calendar_saves', async () => {
-        const saves = await dbUnified.read('public_calendar_saves');
-        const updated = saves.filter(s => !(s.userId === req.user.id && s.eventId === eventId));
-        found = updated.length !== saves.length;
-        await dbUnified.write('public_calendar_saves', updated);
+      const deleted = await dbUnified.deleteOne('public_calendar_saves', {
+        userId: req.user.id,
+        eventId: eventId,
       });
-      if (!found) {
+      if (!deleted) {
         return res.status(404).json({ error: 'Save record not found' });
       }
       res.json({ ok: true, message: 'Event removed from your calendar' });

@@ -160,8 +160,7 @@ async function createSubscription({
 }
 
 async function getSubscription(subscriptionId) {
-  const subscriptions = await dbUnified.read('subscriptions');
-  return subscriptions.find(s => s.id === subscriptionId) || null;
+  return dbUnified.findOne('subscriptions', { id: subscriptionId });
 }
 
 async function getSubscriptionByUserId(userId) {
@@ -183,8 +182,7 @@ async function getSubscriptionByUserId(userId) {
 }
 
 async function getSubscriptionByStripeId(stripeSubscriptionId) {
-  const subscriptions = await dbUnified.read('subscriptions');
-  return subscriptions.find(s => s.stripeSubscriptionId === stripeSubscriptionId) || null;
+  return dbUnified.findOne('subscriptions', { stripeSubscriptionId });
 }
 
 async function updateSubscription(subscriptionId, updates) {
@@ -374,8 +372,7 @@ async function cancelSubscription(subscriptionId, reason = null, immediately = f
 }
 
 async function getFallbackUserTier(userId) {
-  const users = await dbUnified.read('users');
-  const user = users.find(u => u.id === userId);
+  const user = await dbUnified.findOne('users', { id: userId });
   if (user?.subscriptionTier && user.subscriptionTier !== 'free' && isFuture(user.proExpiresAt)) {
     return user.subscriptionTier;
   }

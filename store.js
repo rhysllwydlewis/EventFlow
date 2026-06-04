@@ -53,6 +53,16 @@ const files = {
   partners: path.join(DATA_DIR, 'partners.json'),
   partner_referrals: path.join(DATA_DIR, 'partner_referrals.json'),
   partner_credit_transactions: path.join(DATA_DIR, 'partner_credit_transactions.json'),
+  // Calendar and event collections (customer_calendar_entries already registered above)
+  public_calendar_event_reports: path.join(DATA_DIR, 'public_calendar_event_reports.json'),
+  public_calendar_publisher_requests: path.join(
+    DATA_DIR,
+    'public_calendar_publisher_requests.json'
+  ),
+  // Support and content collections
+  partner_cashout_requests: path.join(DATA_DIR, 'partner_cashout_requests.json'),
+  support_tickets: path.join(DATA_DIR, 'support_tickets.json'),
+  content: path.join(DATA_DIR, 'content.json'),
 };
 
 function ensure() {
