@@ -32,6 +32,8 @@ jest.mock('../../middleware/audit', () => ({
 jest.mock('../../db-unified', () => ({
   read: jest.fn(),
   write: jest.fn(),
+  find: jest.fn().mockResolvedValue([]),
+  findOne: jest.fn().mockResolvedValue(null),
   insertOne: jest.fn(),
   updateOne: jest.fn(),
   deleteOne: jest.fn(),
@@ -321,14 +323,13 @@ describe('Tickets Routes Integration', () => {
 
     it('assigns urgent priority to a pro_plus supplier without reading user-supplied priority', async () => {
       // First read → tickets collection (empty), second read → suppliers with pro_plus tier
-      dbUnified.read
-        .mockResolvedValueOnce([]) // tickets read in POST handler
-        .mockResolvedValueOnce([
-          {
-            userId: 'sup-user-1',
-            subscription: { tier: 'pro_plus', status: 'active' },
-          },
-        ]); // suppliers read in deriveTicketPriority
+      // Only read() remaining in POST handler is for suppliers in deriveTicketPriority
+      dbUnified.read.mockResolvedValueOnce([
+        {
+          userId: 'sup-user-1',
+          subscription: { tier: 'pro_plus', status: 'active' },
+        },
+      ]); // suppliers read in deriveTicketPriority
 
       dbUnified.insertOne.mockResolvedValue(true);
 
@@ -350,14 +351,12 @@ describe('Tickets Routes Integration', () => {
     });
 
     it('assigns high priority to a pro supplier', async () => {
-      dbUnified.read
-        .mockResolvedValueOnce([]) // tickets
-        .mockResolvedValueOnce([
-          {
-            userId: 'sup-user-2',
-            subscription: { tier: 'pro', status: 'active' },
-          },
-        ]); // suppliers
+      dbUnified.read.mockResolvedValueOnce([
+        {
+          userId: 'sup-user-2',
+          subscription: { tier: 'pro', status: 'active' },
+        },
+      ]); // suppliers
 
       dbUnified.insertOne.mockResolvedValue(true);
 
@@ -378,14 +377,12 @@ describe('Tickets Routes Integration', () => {
     });
 
     it('assigns medium priority to a free supplier', async () => {
-      dbUnified.read
-        .mockResolvedValueOnce([]) // tickets
-        .mockResolvedValueOnce([
-          {
-            userId: 'sup-user-3',
-            subscription: { tier: 'free', status: 'active' },
-          },
-        ]); // suppliers
+      dbUnified.read.mockResolvedValueOnce([
+        {
+          userId: 'sup-user-3',
+          subscription: { tier: 'free', status: 'active' },
+        },
+      ]); // suppliers
 
       dbUnified.insertOne.mockResolvedValue(true);
 
@@ -406,9 +403,7 @@ describe('Tickets Routes Integration', () => {
     });
 
     it('falls back to medium priority when supplier record cannot be found', async () => {
-      dbUnified.read
-        .mockResolvedValueOnce([]) // tickets
-        .mockResolvedValueOnce([]); // suppliers — no matching record
+      dbUnified.read.mockResolvedValueOnce([]); // suppliers — no matching record
 
       dbUnified.insertOne.mockResolvedValue(true);
 
@@ -498,12 +493,12 @@ describe('Tickets Routes Integration', () => {
       const postmark = require('../../utils/postmark');
       postmark.sendEmail.mockClear();
 
-      // Customer ticket: only 2 reads - tickets then users (no supplier tier lookup)
-      dbUnified.read
-        .mockResolvedValueOnce([]) // tickets collection
-        .mockResolvedValueOnce([
-          { id: 'admin-1', role: 'admin', email: 'admin@example.com' }, // users query for admin notifications
-        ]);
+      // Customer ticket: one read for suppliers in deriveTicketPriority (empty = medium)
+      // Admin users fetched via find({ role: 'admin' })
+      dbUnified.read.mockResolvedValueOnce([]); // suppliers in deriveTicketPriority
+      dbUnified.find.mockResolvedValueOnce([
+        { id: 'admin-1', role: 'admin', email: 'admin@example.com' },
+      ]); // admin users notification
       dbUnified.insertOne.mockResolvedValue(true);
 
       const response = await request(app)

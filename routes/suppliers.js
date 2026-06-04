@@ -296,15 +296,12 @@ router.get('/suppliers/:id', async (req, res) => {
  */
 router.get('/suppliers/:id/packages', async (req, res) => {
   try {
-    const supplier = (await dbUnified.read('suppliers')).find(
-      x => x.id === req.params.id && x.approved
-    );
+    const supplier = await dbUnified.findOne('suppliers', { id: req.params.id, approved: true });
     if (!supplier) {
       return res.status(404).json({ error: 'Supplier not found' });
     }
-    const pkgs = (await dbUnified.read('packages')).filter(
-      p => p.supplierId === supplier.id && p.approved
-    );
+    // Use find with compound index { supplierId, approved }
+    const pkgs = await dbUnified.find('packages', { supplierId: supplier.id, approved: true });
     const items = pkgs.map(pkg => ({
       ...pkg,
       image: resolvePackageImage(pkg),
@@ -322,7 +319,7 @@ router.get('/suppliers/:id/packages', async (req, res) => {
  */
 router.get('/me/suppliers', applyAuthRequired, applyRoleRequired('supplier'), async (req, res) => {
   try {
-    const listRaw = (await dbUnified.read('suppliers')).filter(s => s.ownerUserId === req.user.id);
+    const listRaw = await dbUnified.find('suppliers', { ownerUserId: req.user.id });
     // Fetch the user's subscription once and attach the plan name to every supplier object
     // so the client-side tier checks (s.subscriptionTier === 'pro') work correctly.
     const userSubscription = await subscriptionService.getSubscriptionByUserId(req.user.id);

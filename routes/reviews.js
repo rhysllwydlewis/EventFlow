@@ -818,8 +818,7 @@ router.put(
         return res.status(400).json({ error: 'Rating must be between 1 and 5' });
       }
 
-      const reviews = await dbUnified.read('reviews');
-      const review = reviews.find(r => r.id === reviewId);
+      const review = await dbUnified.findOne('reviews', { id: reviewId });
 
       if (!review) {
         return res.status(404).json({ error: 'Review not found' });
@@ -883,8 +882,7 @@ router.post(
         return res.status(400).json({ error: 'A valid reason is required to report a review' });
       }
 
-      const reviews = await dbUnified.read('reviews');
-      const review = reviews.find(r => r.id === reviewId);
+      const review = await dbUnified.findOne('reviews', { id: reviewId });
 
       if (!review) {
         return res.status(404).json({ error: 'Review not found' });
