@@ -112,7 +112,11 @@ router.post(
         savedAt: now,
       };
 
-      await dbUnified.insertOne('savedItems', newSavedItem);
+      const savedItemResult = await dbUnified.insertOne('savedItems', newSavedItem);
+      if (!savedItemResult) {
+        logger.error('[SAVED] insertOne failed');
+        return res.status(500).json({ error: 'Failed to save item. Please try again.' });
+      }
 
       res.status(201).json({
         success: true,

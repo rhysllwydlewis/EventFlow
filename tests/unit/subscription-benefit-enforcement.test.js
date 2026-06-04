@@ -78,6 +78,7 @@ function setupMocks() {
     if (collection === 'subscriptions') {
       mockSubscriptions.push(data);
     }
+    return data; // return truthy so insertOne null-checks pass
   });
   dbUnified.updateOne.mockImplementation(async (collection, filter, update) => {
     if (update && update.$set) {

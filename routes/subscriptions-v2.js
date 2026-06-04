@@ -196,7 +196,7 @@ router.post(
         !existingPayments.some(p => p.userId === req.user.id && p.stripeCustomerId === customer.id)
       ) {
         const { uid } = require('../store');
-        await dbUnified.insertOne('payments', {
+        const stripePaymentInserted = await dbUnified.insertOne('payments', {
           id: uid('pay'),
           userId: req.user.id,
           stripeCustomerId: customer.id,
@@ -213,6 +213,9 @@ router.post(
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         });
+        if (!stripePaymentInserted) {
+          logger.error('[SUBSCRIPTIONS] payment insertOne failed');
+        }
       }
 
       return res.json({ success: true, url: session.url, sessionId: session.id });

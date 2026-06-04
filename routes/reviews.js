@@ -927,7 +927,11 @@ router.post(
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
-        await dbUnified.insertOne('support_tickets', ticketData);
+        const reviewTicketInserted = await dbUnified.insertOne('support_tickets', ticketData);
+        if (!reviewTicketInserted) {
+          logger.error('[REVIEWS] support_ticket insertOne failed', { reviewId: reviewId });
+          return res.status(500).json({ error: 'Failed to submit report. Please try again.' });
+        }
       } catch (ticketErr) {
         logger.warn(
           'Failed to create support ticket for review report (non-blocking):',

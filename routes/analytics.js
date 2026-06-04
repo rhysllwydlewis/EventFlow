@@ -182,7 +182,10 @@ router.post('/event', writeLimiter, csrfProtection, async (req, res) => {
       analyticsEvents.splice(0, analyticsEvents.length - maxEvents);
       await dbUnified.write('analyticsEvents', analyticsEvents);
     } else {
-      await dbUnified.insertOne('analyticsEvents', analyticsEvent);
+      const analyticsInserted = await dbUnified.insertOne('analyticsEvents', analyticsEvent);
+      if (!analyticsInserted) {
+        logger.warn('[ANALYTICS] event insertOne failed — non-critical');
+      }
     }
 
     // Respond immediately (don't block on write)
@@ -355,12 +358,10 @@ router.post('/lead-score', authRequired, csrfProtection, async (req, res) => {
     });
   } catch (error) {
     logger.error('Lead scoring error:', error);
-    res
-      .status(500)
-      .json({
-        error: 'Failed to calculate lead score',
-        details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-      });
+    res.status(500).json({
+      error: 'Failed to calculate lead score',
+      details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+    });
   }
 });
 

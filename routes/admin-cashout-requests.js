@@ -243,7 +243,13 @@ router.patch('/:id', csrfProtection, async (req, res) => {
               externalRef: request.id,
               createdAt: now,
             };
-            await dbUnified.insertOne('partner_credit_transactions', finalRedeem);
+            const cashoutTxInserted = await dbUnified.insertOne(
+              'partner_credit_transactions',
+              finalRedeem
+            );
+            if (!cashoutTxInserted) {
+              logger.error('[CASHOUT] credit_tx insertOne failed');
+            }
             updates.finalRedeemTxnId = finalRedeem.id;
             logger.info(`Cashout delivered: ${request.id} — finalRedeemTxn=${finalRedeem.id}`);
           }

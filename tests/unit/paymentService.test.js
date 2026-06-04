@@ -69,8 +69,9 @@ describe('Payment Service Unit Tests', () => {
       switch (collection) {
         case 'payments':
           mockPayments.push(data);
-          break;
+          return data; // return truthy so insertOne null-check passes
       }
+      return data;
     });
 
     dbUnified.updateOne.mockImplementation(async (collection, filter, update) => {

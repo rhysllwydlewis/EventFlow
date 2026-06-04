@@ -205,7 +205,7 @@ router.post(
         idempotencyKey: `checkout:${user.id}:${resolved.planId}:${resolved.billingInterval}`,
       });
 
-      await dbUnified.insertOne('payments', {
+      const paymentInserted = await dbUnified.insertOne('payments', {
         id: uid('pay'),
         stripePaymentId: session.payment_intent || session.id,
         stripeCustomerId: customer.id,
@@ -223,6 +223,10 @@ router.post(
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       });
+      if (!paymentInserted) {
+        logger.error('[PAYMENTS] insertOne failed');
+        return res.status(500).json({ error: 'Failed to record payment. Please try again.' });
+      }
 
       res.json({ success: true, sessionId: session.id, url: session.url });
     } catch (error) {

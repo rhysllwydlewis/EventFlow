@@ -1074,7 +1074,11 @@ router.post(
         createdAt: now,
         updatedAt: now,
       };
-      await dbUnified.insertOne('tickets', ticket);
+      const calTicketInserted = await dbUnified.insertOne('tickets', ticket);
+      if (!calTicketInserted) {
+        logger.error('[PUBLIC-CAL] ticket insertOne failed', { ticketId: ticket.id });
+        return res.status(500).json({ error: 'Failed to submit ticket. Please try again.' });
+      }
       res.status(201).json({
         ok: true,
         ticketId: ticket.id,

@@ -304,7 +304,13 @@ router.post(
       logger.warn('Could not read settings for auto-approve check:', settingsErr.message);
     }
 
-    await dbUnified.insertOne('suppliers', s);
+    const suppInserted = await dbUnified.insertOne('suppliers', s);
+    if (!suppInserted) {
+      logger.error('[SUPP-MGMT] insertOne failed', { supplierId: s.id });
+      return res
+        .status(500)
+        .json({ error: 'Failed to create supplier profile. Please try again.' });
+    }
     logger.info('Supplier profile created', {
       supplierId: s.id,
       userId: req.user.id,

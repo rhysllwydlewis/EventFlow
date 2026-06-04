@@ -262,7 +262,11 @@ async function createPaymentRecord(params) {
     updatedAt: new Date().toISOString(),
   };
 
-  await dbUnified.insertOne('payments', payment);
+  const paymentInserted = await dbUnified.insertOne('payments', payment);
+  if (!paymentInserted) {
+    logger.error('[PAYMENT-SVC] insertOne failed', { paymentId: payment.id });
+    throw new Error('Failed to save payment record');
+  }
   return payment;
 }
 

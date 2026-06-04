@@ -138,7 +138,11 @@ router.post('/', authRequired, csrfProtection, reportLimiter, async (req, res) =
   };
 
   existingReports.push(report);
-  await dbUnified.insertOne('reports', report);
+  const reportInserted = await dbUnified.insertOne('reports', report);
+  if (!reportInserted) {
+    logger.error('[REPORTS] insertOne failed', { reportId: report.id });
+    return res.status(500).json({ error: 'Failed to submit report. Please try again.' });
+  }
 
   logger.info(`New report created: ${type} ${targetId} by ${req.user.email}`);
 

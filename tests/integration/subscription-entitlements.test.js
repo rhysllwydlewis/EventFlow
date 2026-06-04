@@ -69,6 +69,7 @@ function setupMocks() {
     if (collection === 'webhook_events') {
       mockWebhookEvents.push(data);
     }
+    return data; // return truthy so insertOne null-checks pass
   });
   dbUnified.updateOne.mockImplementation(async (collection, filter, update) => {
     const applySet = arr => {

@@ -239,7 +239,10 @@ router.post('/faq/vote', writeLimiter, csrfProtection, async (req, res) => {
       ipAddress: req.ip || req.headers['x-forwarded-for'] || 'unknown',
     };
 
-    await dbUnified.insertOne('faqVotes', vote);
+    const faqVoteInserted = await dbUnified.insertOne('faqVotes', vote);
+    if (!faqVoteInserted) {
+      logger.error('[PUBLIC] faqVote insertOne failed');
+    }
 
     res.json({ success: true, message: 'Thank you for your feedback!' });
   } catch (error) {

@@ -618,12 +618,16 @@ router.post(
         return res.status(200).json({ ok: true, message: 'Listing already saved' });
       }
 
-      await dbUnified.insertOne('marketplace_saved_items', {
+      const mktSaveInserted = await dbUnified.insertOne('marketplace_saved_items', {
         id: uid('mkt_saved'),
         userId: req.user.id,
         listingId,
         savedAt: new Date().toISOString(),
       });
+      if (!mktSaveInserted) {
+        logger.error('[MARKETPLACE] saved_item insertOne failed');
+        return res.status(500).json({ error: 'Failed to save item. Please try again.' });
+      }
 
       res.status(201).json({ ok: true, message: 'Listing saved' });
     } catch (error) {

@@ -920,7 +920,7 @@ router.post(
 
       // Write audit log entry
       try {
-        await dbUnified.insertOne('audit_log', {
+        const auditLogInserted = await dbUnified.insertOne('audit_log', {
           id: uid('audit'),
           action: 'supplier_duplicate_cleanup',
           ownerUserId,
@@ -930,6 +930,9 @@ router.post(
           performedBy: req.user?.id,
           performedAt: new Date().toISOString(),
         });
+        if (!auditLogInserted) {
+          logger.warn('[ADMIN] audit_log insertOne failed — non-critical');
+        }
       } catch (auditErr) {
         logger.warn('Failed to write audit log for duplicate cleanup:', auditErr.message);
       }
@@ -1409,7 +1412,10 @@ router.post('/packages', authRequired, roleRequired('admin'), csrfProtection, as
       versionHistory: [],
     };
 
-    await dbUnified.insertOne('packages', newPackage);
+    const adminPkgInserted = await dbUnified.insertOne('packages', newPackage);
+    if (!adminPkgInserted) {
+      logger.error('[ADMIN] package insertOne failed', { pkgId: newPackage.id });
+    }
 
     // Create audit log
     auditLog({
@@ -6288,7 +6294,10 @@ router.post(
       // Remove version history from duplicate
       delete duplicatePkg.versionHistory;
 
-      await dbUnified.insertOne('packages', duplicatePkg);
+      const adminDupPkgInserted = await dbUnified.insertOne('packages', duplicatePkg);
+      if (!adminDupPkgInserted) {
+        logger.error('[ADMIN] dup package insertOne failed');
+      }
 
       // Audit log
       await auditLog({

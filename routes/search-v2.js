@@ -220,7 +220,11 @@ router.post('/saved', authRequired, csrfProtection, async (req, res) => {
       useCount: 0,
     };
 
-    await dbUnified.insertOne('savedSearches', savedSearch);
+    const searchInserted = await dbUnified.insertOne('savedSearches', savedSearch);
+    if (!searchInserted) {
+      logger.error('[SEARCH] insertOne failed', { searchId: savedSearch.id });
+      return res.status(500).json({ error: 'Failed to save search. Please try again.' });
+    }
 
     res.json({
       success: true,
