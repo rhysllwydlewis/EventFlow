@@ -205,6 +205,14 @@ function setupReadMock({
       if (typeof filter === 'function') {
         return events.find(filter) || null;
       }
+      // Handle $or filter used by the UPDATE route (id-or-slug lookup)
+      if (filter.$or) {
+        return (
+          events.find(e =>
+            filter.$or.some(cond => Object.keys(cond).every(k => e[k] === cond[k]))
+          ) || null
+        );
+      }
       return (
         events.find(
           e => (!filter.id || e.id === filter.id) && (!filter.slug || e.slug === filter.slug)

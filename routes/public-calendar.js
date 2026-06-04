@@ -680,11 +680,10 @@ router.put(
   requirePublisher,
   async (req, res) => {
     try {
-      // Find event by id or slug
-      const rawEvent = await dbUnified.findOne(
-        'public_calendar_events',
-        e => e.id === req.params.id || e.slug === req.params.id
-      );
+      // Find event by id or slug — $or object filter lets MongoDB use both indexes
+      const rawEvent = await dbUnified.findOne('public_calendar_events', {
+        $or: [{ id: req.params.id }, { slug: req.params.id }],
+      });
       if (!rawEvent) {
         return res.status(404).json({ error: 'Event not found' });
       }

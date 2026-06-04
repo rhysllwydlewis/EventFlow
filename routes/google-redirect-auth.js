@@ -356,7 +356,9 @@ async function findOrCreateGoogleUser(googleProfile, state = {}) {
       logger.error('[GOOGLE-REDIRECT] insertOne returned null — user account not saved', {
         email: user.email,
       });
-      throw new Error('account_creation_failed');
+      const insertErr = new Error('Failed to create account. Please try again.');
+      insertErr.statusCode = 500;
+      throw insertErr;
     }
 
     if (signupState.role === 'supplier') {

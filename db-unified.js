@@ -140,10 +140,13 @@ async function createIndexes() {
     await ticketsCollection.createIndex({ status: 1 });
     await ticketsCollection.createIndex({ createdAt: -1 });
     const paymentsCollection = mongodb.collection('payments');
+    await paymentsCollection.createIndex({ id: 1 }, { unique: true }); // payment id lookups
+    await paymentsCollection.createIndex({ stripePaymentId: 1 }, { sparse: true }); // Stripe payment lookups
     await paymentsCollection.createIndex({ userId: 1 });
     await paymentsCollection.createIndex({ status: 1 });
     await paymentsCollection.createIndex({ createdAt: -1 });
     const subscriptionsCollection = mongodb.collection('subscriptions');
+    await subscriptionsCollection.createIndex({ id: 1 }, { unique: true }); // subscription id lookups
     await subscriptionsCollection.createIndex({ userId: 1 });
     await subscriptionsCollection.createIndex({ status: 1 });
     await subscriptionsCollection.createIndex({ stripeSubscriptionId: 1 }, { sparse: true }); // Stripe webhook lookups
@@ -198,12 +201,17 @@ async function createIndexes() {
     await partnerCodeHistoryCollection.createIndex({ refCode: 1 });
     // Calendar collections
     const calendarEntriesCollection = mongodb.collection('customer_calendar_entries');
+    await calendarEntriesCollection.createIndex({ id: 1 }, { unique: true }); // entry id lookups
     await calendarEntriesCollection.createIndex({ userId: 1 });
     await calendarEntriesCollection.createIndex({ date: 1 });
     const pubCalendarCollection = mongodb.collection('public_calendar_events');
+    await pubCalendarCollection.createIndex({ id: 1 }, { unique: true }); // event id lookups
+    await pubCalendarCollection.createIndex({ slug: 1 }, { sparse: true, unique: true }); // slug lookups
     await pubCalendarCollection.createIndex({ status: 1, date: 1 });
     await pubCalendarCollection.createIndex({ createdByUserId: 1 });
     await pubCalendarCollection.createIndex({ supplierId: 1 }, { sparse: true });
+    const pubCalendarSavesCollection = mongodb.collection('public_calendar_saves');
+    await pubCalendarSavesCollection.createIndex({ userId: 1, eventId: 1 }, { unique: true }); // dedup saves
     logger.info('✅ Database indexes created successfully');
   } catch (error) {
     logger.info('ℹ️  Database indexes:', error.message);
