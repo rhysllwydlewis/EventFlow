@@ -24,8 +24,11 @@ process.env.NODE_ENV = 'test';
 jest.mock('../../db-unified', () => ({
   read: jest.fn(),
   write: jest.fn().mockResolvedValue(undefined),
+  find: jest.fn().mockResolvedValue([]),
   findOne: jest.fn(),
-  updateOne: jest.fn().mockResolvedValue(undefined),
+  insertOne: jest.fn().mockImplementation(async (_col, doc) => doc),
+  updateOne: jest.fn().mockResolvedValue(true),
+  deleteOne: jest.fn().mockResolvedValue(true),
 }));
 
 jest.mock('../../utils/logger', () => ({
@@ -104,11 +107,33 @@ function setupReadMock(entries = [], notifications = [], savedPublicEvents = [])
     }
     return [];
   });
+  // findOne used by UPDATE (calendar entries) and auth middleware (users)
   dbUnified.findOne.mockImplementation(async (collection, filter) => {
     if (collection === 'users') {
       return [USER_A, USER_B].find(u => u.id === filter.id) || null;
     }
+    if (collection === 'customer_calendar_entries') {
+      // Support { id, userId } filter used by UPDATE and DELETE handlers
+      if (typeof filter === 'function') {
+        return entries.find(filter) || null;
+      }
+      return (
+        entries.find(
+          e => (!filter.id || e.id === filter.id) && (!filter.userId || e.userId === filter.userId)
+        ) || null
+      );
+    }
     return null;
+  });
+  // find used by notification dedup check ($in query)
+  dbUnified.find.mockImplementation(async (collection, filter) => {
+    if (collection === 'notifications') {
+      if (filter && filter.id && filter.id.$in) {
+        return notifications.filter(n => filter.id.$in.includes(n.id));
+      }
+      return [...notifications];
+    }
+    return [];
   });
 }
 
@@ -151,18 +176,16 @@ describe('GET /api/me/calendar-entries', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.remindersCreated).toBe(1);
-    expect(dbUnified.write).toHaveBeenCalledWith(
+    expect(dbUnified.insertOne).toHaveBeenCalledWith(
       'notifications',
-      expect.arrayContaining([
-        expect.objectContaining({
-          id: `calrem_${USER_A.id}_${EXISTING_ENTRY.id}_7_${EXISTING_ENTRY.date}`,
-          userId: USER_A.id,
-          type: 'reminder',
-          priority: 'normal',
-          category: 'calendar',
-          actionUrl: '/dashboard/customer#events-calendar',
-        }),
-      ])
+      expect.objectContaining({
+        id: `calrem_${USER_A.id}_${EXISTING_ENTRY.id}_7_${EXISTING_ENTRY.date}`,
+        userId: USER_A.id,
+        type: 'reminder',
+        priority: 'normal',
+        category: 'calendar',
+        actionUrl: '/dashboard/customer#events-calendar',
+      })
     );
     jest.useRealTimers();
   });
@@ -178,7 +201,7 @@ describe('GET /api/me/calendar-entries', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.remindersCreated).toBe(0);
-    expect(dbUnified.write).not.toHaveBeenCalledWith('notifications', expect.any(Array));
+    expect(dbUnified.insertOne).not.toHaveBeenCalledWith('notifications', expect.anything());
     jest.useRealTimers();
   });
 
@@ -196,17 +219,15 @@ describe('GET /api/me/calendar-entries', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.remindersCreated).toBe(1);
-    expect(dbUnified.write).toHaveBeenCalledWith(
+    expect(dbUnified.insertOne).toHaveBeenCalledWith(
       'notifications',
-      expect.arrayContaining([
-        expect.objectContaining({
-          id: `calrem_public_${USER_A.id}_${savedPublicEvent.id}_1_2027-08-20`,
-          type: 'reminder',
-          priority: 'high',
-          actionUrl: '/events/summer-fayre',
-          metadata: expect.objectContaining({ source: 'public' }),
-        }),
-      ])
+      expect.objectContaining({
+        id: `calrem_public_${USER_A.id}_${savedPublicEvent.id}_1_2027-08-20`,
+        type: 'reminder',
+        priority: 'high',
+        actionUrl: '/events/summer-fayre',
+        metadata: expect.objectContaining({ source: 'public' }),
+      })
     );
     jest.useRealTimers();
   });
@@ -245,9 +266,9 @@ describe('POST /api/me/calendar-entries', () => {
     expect(res.body.entry.type).toBe('appointment');
     expect(res.body.entry.date).toBe('2027-07-20');
     expect(res.body.entry.time).toBe('10:30');
-    expect(dbUnified.write).toHaveBeenCalledWith(
+    expect(dbUnified.insertOne).toHaveBeenCalledWith(
       'customer_calendar_entries',
-      expect.arrayContaining([expect.objectContaining({ title: 'Venue Viewing' })])
+      expect.objectContaining({ title: 'Venue Viewing' })
     );
   });
 
@@ -358,7 +379,11 @@ describe('PUT /api/me/calendar-entries/:id', () => {
     expect(res.body.entry.date).toBe('2027-08-01');
     expect(res.body.entry.time).toBe('09:00');
     expect(res.body.entry.updatedAt).toBeDefined();
-    expect(dbUnified.write).toHaveBeenCalledTimes(1);
+    expect(dbUnified.updateOne).toHaveBeenCalledWith(
+      'customer_calendar_entries',
+      { id: EXISTING_ENTRY.id, userId: USER_A.id },
+      { $set: expect.objectContaining({ title: 'Updated Viewing' }) }
+    );
   });
 
   it('returns 404 when entry does not exist', async () => {
@@ -412,21 +437,25 @@ describe('DELETE /api/me/calendar-entries/:id', () => {
     );
     expect(res.status).toBe(200);
     expect(res.body.ok).toBe(true);
-    expect(dbUnified.write).toHaveBeenCalledWith('customer_calendar_entries', []);
+    expect(dbUnified.deleteOne).toHaveBeenCalledWith('customer_calendar_entries', {
+      id: EXISTING_ENTRY.id,
+      userId: USER_A.id,
+    });
   });
 
   it('returns 404 when entry does not exist', async () => {
+    dbUnified.deleteOne.mockResolvedValueOnce(false); // entry doesn't exist
     const res = await withAuth(request(app).delete('/api/me/calendar-entries/ce_missing'), USER_A);
     expect(res.status).toBe(404);
-    expect(dbUnified.write).not.toHaveBeenCalled();
+    expect(dbUnified.deleteOne).toHaveBeenCalled();
   });
 
   it("returns 404 when trying to delete another user's entry", async () => {
+    dbUnified.deleteOne.mockResolvedValueOnce(false); // filter { id, userId: USER_B } won't match
     const res = await withAuth(
       request(app).delete(`/api/me/calendar-entries/${EXISTING_ENTRY.id}`),
       USER_B
     );
     expect(res.status).toBe(404);
-    expect(dbUnified.write).not.toHaveBeenCalled();
   });
 });

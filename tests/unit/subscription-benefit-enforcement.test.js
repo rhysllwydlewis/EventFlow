@@ -79,7 +79,64 @@ function setupMocks() {
       mockSubscriptions.push(data);
     }
   });
-  dbUnified.updateOne.mockImplementation(async () => {});
+  dbUnified.updateOne.mockImplementation(async (collection, filter, update) => {
+    if (update && update.$set) {
+      if (collection === 'subscriptions') {
+        const idx = mockSubscriptions.findIndex(s =>
+          Object.keys(filter).every(k => s[k] === filter[k])
+        );
+        if (idx >= 0) {
+          mockSubscriptions[idx] = { ...mockSubscriptions[idx], ...update.$set };
+        }
+      }
+      if (collection === 'users') {
+        const idx = mockUsers.findIndex(u => Object.keys(filter).every(k => u[k] === filter[k]));
+        if (idx >= 0) {
+          mockUsers[idx] = { ...mockUsers[idx], ...update.$set };
+        }
+      }
+    }
+  });
+  dbUnified.findOne.mockImplementation(async (collection, filter) => {
+    const arr =
+      collection === 'subscriptions'
+        ? mockSubscriptions
+        : collection === 'users'
+          ? mockUsers
+          : collection === 'suppliers'
+            ? mockSuppliers
+            : [];
+    if (typeof filter === 'function') {
+      return arr.find(filter) || null;
+    }
+    return arr.find(item => Object.keys(filter).every(k => item[k] === filter[k])) || null;
+  });
+
+  dbUnified.find.mockImplementation(async (collection, filter) => {
+    const arr =
+      collection === 'subscriptions'
+        ? mockSubscriptions
+        : collection === 'users'
+          ? mockUsers
+          : 'suppliers' in (global.mockSuppliers !== undefined ? { suppliers: true } : {})
+            ? mockSuppliers
+            : [];
+    if (typeof filter === 'function') {
+      return arr.filter(filter);
+    }
+    return arr.filter(item =>
+      Object.keys(filter).every(k => {
+        const val = filter[k];
+        if (val && typeof val === 'object' && val.$ne !== undefined) {
+          return item[k] !== val.$ne;
+        }
+        if (val && typeof val === 'object' && val.$in !== undefined) {
+          return Array.isArray(val.$in) && val.$in.includes(item[k]);
+        }
+        return item[k] === val;
+      })
+    );
+  });
 }
 
 beforeEach(() => {

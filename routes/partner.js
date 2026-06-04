@@ -72,7 +72,11 @@ router.post('/register', authLimiter, csrfProtection, async (req, res) => {
     notify_account: true,
   };
 
-  await dbUnified.insertOne('users', user);
+  const partnerUserInserted = await dbUnified.insertOne('users', user);
+  if (!partnerUserInserted) {
+    logger.error('[PARTNER-REGISTER] insertOne failed — user not saved', { email: user.email });
+    return res.status(500).json({ error: 'Failed to create partner account. Please try again.' });
+  }
 
   // Create partner record with unique ref code
   const partner = await partnerService.createPartner(user.id);

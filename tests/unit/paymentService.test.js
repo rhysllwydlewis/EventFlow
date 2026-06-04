@@ -91,6 +91,13 @@ describe('Payment Service Unit Tests', () => {
       return true;
     });
 
+    dbUnified.findOne.mockImplementation(async (collection, filter) => {
+      const arr = collection === 'payments' ? mockPayments : mockSubscriptions;
+      if (typeof filter === 'function') {
+        return arr.find(filter) || null;
+      }
+      return arr.find(item => Object.keys(filter).every(k => item[k] === filter[k])) || null;
+    });
     jest.spyOn(require('../../store'), 'uid').mockReturnValue('pay-test-123');
   });
 

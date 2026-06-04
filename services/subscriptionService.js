@@ -160,31 +160,34 @@ async function createSubscription({
 }
 
 async function getSubscription(subscriptionId) {
-  const subscriptions = await dbUnified.read('subscriptions');
-  return subscriptions.find(s => s.id === subscriptionId) || null;
+  return dbUnified.findOne('subscriptions', { id: subscriptionId });
 }
 
 async function getSubscriptionByUserId(userId) {
-  const subscriptions = await dbUnified.read('subscriptions');
+  // Fetch only non-canceled subscriptions for this user — avoids full collection scan.
+  // The $ne operator is supported by matchesFilter on the local store.
+  const candidates = await dbUnified.find('subscriptions', {
+    userId,
+    status: { $ne: 'canceled' },
+  });
+  if (!candidates || candidates.length === 0) {
+    return null;
+  }
+  // Sort to prefer live entitlements, then most recently updated
   return (
-    subscriptions
-      .filter(s => s.userId === userId && s.status !== 'canceled')
-      .sort((a, b) => {
-        const aLive = isLiveEntitlement(a) ? 1 : 0;
-        const bLive = isLiveEntitlement(b) ? 1 : 0;
-        if (aLive !== bLive) {
-          return bLive - aLive;
-        }
-        return (
-          new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0)
-        );
-      })[0] || null
+    candidates.sort((a, b) => {
+      const aLive = isLiveEntitlement(a) ? 1 : 0;
+      const bLive = isLiveEntitlement(b) ? 1 : 0;
+      if (aLive !== bLive) {
+        return bLive - aLive;
+      }
+      return new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0);
+    })[0] || null
   );
 }
 
 async function getSubscriptionByStripeId(stripeSubscriptionId) {
-  const subscriptions = await dbUnified.read('subscriptions');
-  return subscriptions.find(s => s.stripeSubscriptionId === stripeSubscriptionId) || null;
+  return dbUnified.findOne('subscriptions', { stripeSubscriptionId });
 }
 
 async function updateSubscription(subscriptionId, updates) {
@@ -374,8 +377,7 @@ async function cancelSubscription(subscriptionId, reason = null, immediately = f
 }
 
 async function getFallbackUserTier(userId) {
-  const users = await dbUnified.read('users');
-  const user = users.find(u => u.id === userId);
+  const user = await dbUnified.findOne('users', { id: userId });
   if (user?.subscriptionTier && user.subscriptionTier !== 'free' && isFuture(user.proExpiresAt)) {
     return user.subscriptionTier;
   }

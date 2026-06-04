@@ -29,9 +29,11 @@ process.env.NODE_ENV = 'test';
 jest.mock('../../db-unified', () => ({
   read: jest.fn(),
   write: jest.fn().mockResolvedValue(undefined),
+  find: jest.fn().mockResolvedValue([]),
   findOne: jest.fn(),
-  insertOne: jest.fn().mockResolvedValue(undefined),
-  updateOne: jest.fn().mockResolvedValue(undefined),
+  insertOne: jest.fn().mockImplementation(async (_col, doc) => doc),
+  updateOne: jest.fn().mockResolvedValue(true),
+  deleteOne: jest.fn().mockResolvedValue(true),
 }));
 
 jest.mock('../../utils/logger', () => ({
@@ -196,6 +198,33 @@ function setupReadMock({
           s =>
             (!filter.id || s.id === filter.id) &&
             (!filter.ownerUserId || s.ownerUserId === filter.ownerUserId)
+        ) || null
+      );
+    }
+    if (collection === 'public_calendar_events') {
+      if (typeof filter === 'function') {
+        return events.find(filter) || null;
+      }
+      // Handle $or filter used by the UPDATE route (id-or-slug lookup)
+      if (filter.$or) {
+        return (
+          events.find(e =>
+            filter.$or.some(cond => Object.keys(cond).every(k => e[k] === cond[k]))
+          ) || null
+        );
+      }
+      return (
+        events.find(
+          e => (!filter.id || e.id === filter.id) && (!filter.slug || e.slug === filter.slug)
+        ) || null
+      );
+    }
+    if (collection === 'public_calendar_saves') {
+      return (
+        saves.find(
+          s =>
+            (!filter.userId || s.userId === filter.userId) &&
+            (!filter.eventId || s.eventId === filter.eventId)
         ) || null
       );
     }
@@ -501,11 +530,14 @@ describe('DELETE /api/public-calendar/events/:id/save — unsave', () => {
       CUSTOMER_USER
     );
     expect(res.status).toBe(200);
-    expect(dbUnified.write).toHaveBeenCalledWith('public_calendar_saves', []);
+    expect(dbUnified.deleteOne).toHaveBeenCalledWith('public_calendar_saves', {
+      userId: CUSTOMER_USER.id,
+      eventId: SAMPLE_EVENT.id,
+    });
   });
 
   it('returns 404 when save does not exist', async () => {
-    setupReadMock({ saves: [] });
+    dbUnified.deleteOne.mockResolvedValueOnce(false); // no matching save
     const res = await withAuth(
       request(app).delete(`/api/public-calendar/events/${SAMPLE_EVENT.id}/save`),
       CUSTOMER_USER

@@ -146,12 +146,17 @@ async function createIndexes() {
     await ticketsCollection.createIndex({ status: 1 });
     await ticketsCollection.createIndex({ createdAt: -1 });
     const paymentsCollection = mongodb.collection('payments');
+    await paymentsCollection.createIndex({ id: 1 }, { unique: true }); // payment id lookups
+    await paymentsCollection.createIndex({ stripePaymentId: 1 }, { sparse: true }); // Stripe payment lookups
     await paymentsCollection.createIndex({ userId: 1 });
     await paymentsCollection.createIndex({ status: 1 });
     await paymentsCollection.createIndex({ createdAt: -1 });
     const subscriptionsCollection = mongodb.collection('subscriptions');
-    await subscriptionsCollection.createIndex({ userId: 1 });
+    await subscriptionsCollection.createIndex({ id: 1 }, { unique: true }); // subscription id lookups
+    await subscriptionsCollection.createIndex({ userId: 1, status: 1 }); // getSubscriptionByUserId
     await subscriptionsCollection.createIndex({ status: 1 });
+    await subscriptionsCollection.createIndex({ stripeSubscriptionId: 1 }, { sparse: true }); // Stripe webhook lookups
+    await subscriptionsCollection.createIndex({ stripeCustomerId: 1 }, { sparse: true }); // Stripe customer lookups
     const marketplaceCollection = mongodb.collection('marketplace_listings');
     await marketplaceCollection.createIndex({ sellerId: 1 });
     await marketplaceCollection.createIndex({ sellerUserId: 1 });
@@ -173,6 +178,7 @@ async function createIndexes() {
     const shortlistsCollection = mongodb.collection('shortlists');
     await shortlistsCollection.createIndex({ userId: 1 }, { unique: true });
     const notificationsCollection = mongodb.collection('notifications');
+    await notificationsCollection.createIndex({ id: 1 }, { unique: true }); // dedup $in lookups
     await notificationsCollection.createIndex({ userId: 1, createdAt: -1 });
     await notificationsCollection.createIndex({ read: 1 });
     const supplierAnalyticsCollection = mongodb.collection('supplierAnalytics');
@@ -200,6 +206,19 @@ async function createIndexes() {
     const partnerCodeHistoryCollection = mongodb.collection('partner_code_history');
     await partnerCodeHistoryCollection.createIndex({ partnerId: 1 });
     await partnerCodeHistoryCollection.createIndex({ refCode: 1 });
+    // Calendar collections
+    const calendarEntriesCollection = mongodb.collection('customer_calendar_entries');
+    await calendarEntriesCollection.createIndex({ id: 1 }, { unique: true }); // entry id lookups
+    await calendarEntriesCollection.createIndex({ userId: 1 });
+    await calendarEntriesCollection.createIndex({ date: 1 });
+    const pubCalendarCollection = mongodb.collection('public_calendar_events');
+    await pubCalendarCollection.createIndex({ id: 1 }, { unique: true }); // event id lookups
+    await pubCalendarCollection.createIndex({ slug: 1 }, { sparse: true, unique: true }); // slug lookups
+    await pubCalendarCollection.createIndex({ status: 1, date: 1 });
+    await pubCalendarCollection.createIndex({ createdByUserId: 1 });
+    await pubCalendarCollection.createIndex({ supplierId: 1 }, { sparse: true });
+    const pubCalendarSavesCollection = mongodb.collection('public_calendar_saves');
+    await pubCalendarSavesCollection.createIndex({ userId: 1, eventId: 1 }, { unique: true }); // dedup saves
     logger.info('✅ Database indexes created successfully');
   } catch (error) {
     logger.info('ℹ️  Database indexes:', error.message);
@@ -481,62 +500,9 @@ async function withPerformanceTracking(operation, fn) {
   }
 }
 
-const validationSchemas = {
-  users: {
-    email: { type: 'string', required: true },
-    role: { type: 'string', enum: ['customer', 'supplier', 'admin'], required: true },
-    createdAt: { type: 'date', required: true },
-  },
-  suppliers: {
-    userId: { type: 'string', required: true },
-    category: { type: 'string', required: true },
-    approved: { type: 'boolean', required: true },
-  },
-  packages: {
-    supplierId: { type: 'string', required: true },
-    name: { type: 'string', required: true },
-    price: { type: 'number', required: true },
-  },
-  messages: {
-    userId: { type: 'string', required: true },
-    threadId: { type: 'string', required: true },
-    content: { type: 'string', required: true },
-    createdAt: { type: 'date', required: true },
-  },
-};
-
-function validateDocument(collectionName, document) {
-  const schema = validationSchemas[collectionName];
-  if (!schema) {
-    return { isValid: true, errors: [] };
-  }
-  const errors = [];
-  for (const [field, rules] of Object.entries(schema)) {
-    const value = document[field];
-    if (rules.required && (value === undefined || value === null)) {
-      errors.push(`Field '${field}' is required`);
-      continue;
-    }
-    if (value === undefined || value === null) {
-      continue;
-    }
-    if (rules.type) {
-      const actualType = rules.type === 'date' ? 'object' : typeof value;
-      if (rules.type === 'date' && !(value instanceof Date)) {
-        errors.push(`Field '${field}' must be a Date`);
-      } else if (rules.type !== 'date' && actualType !== rules.type) {
-        errors.push(`Field '${field}' must be of type ${rules.type}`);
-      }
-    }
-    if (rules.enum && !rules.enum.includes(value)) {
-      errors.push(`Field '${field}' must be one of: ${rules.enum.join(', ')}`);
-    }
-  }
-  return {
-    isValid: errors.length === 0,
-    errors,
-  };
-}
+// validateDocument was previously defined here but was never called anywhere in the
+// codebase. Validation happens at the route layer via field-level checks. Removed
+// to reduce dead-code surface area.
 
 async function count(collectionName, filter = {}) {
   await initializeDatabase();
@@ -699,25 +665,18 @@ async function findWithOptions(collectionName, filter = {}, options = {}) {
 async function writeAndVerify(collectionName, data) {
   await initializeDatabase();
   try {
-    // Write the data
-    await write(collectionName, data);
-
-    // Read it back to verify persistence
+    const written = await write(collectionName, data);
+    if (!written) {
+      throw new Error('write() returned falsy');
+    }
+    // Read the document back to confirm persistence and return the live value.
+    // writeAndVerify is only used with the settings collection, where read() is
+    // a single-document findOne on MongoDB (not a full collection scan).
     const verified = await read(collectionName);
-
-    // Return structured result with verification status
-    return {
-      success: true,
-      verified: true,
-      data: verified,
-    };
+    return { success: true, verified: true, data: verified };
   } catch (error) {
     logger.error(`Error in writeAndVerify for ${collectionName}:`, error.message);
-    return {
-      success: false,
-      verified: false,
-      error: error.message,
-    };
+    return { success: false, verified: false, error: error.message };
   }
 }
 
@@ -766,7 +725,6 @@ module.exports = {
   getDatabaseStatus,
   getQueryMetrics,
   resetQueryMetrics,
-  validateDocument,
   withPerformanceTracking,
   count,
   aggregate,

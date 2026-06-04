@@ -56,6 +56,26 @@ describe('Subscription Service Integration Tests', () => {
       }
     });
 
+    // findOne needed since getSubscription/getSubscriptionByUserId/getFallbackUserTier
+    // now use findOne instead of read()
+    dbUnified.findOne.mockImplementation(async (collection, filter) => {
+      if (collection === 'subscriptions') {
+        if (typeof filter === 'function') {
+          return mockSubscriptions.find(filter) || null;
+        }
+        return (
+          mockSubscriptions.find(s => Object.keys(filter).every(k => s[k] === filter[k])) || null
+        );
+      }
+      if (collection === 'users') {
+        if (typeof filter === 'function') {
+          return mockUsers.find(filter) || null;
+        }
+        return mockUsers.find(u => Object.keys(filter).every(k => u[k] === filter[k])) || null;
+      }
+      return null;
+    });
+
     dbUnified.updateOne.mockImplementation(async (collection, filter, update) => {
       if (collection === 'users' && update.$set) {
         const idx = mockUsers.findIndex(u => u.id === filter.id);
@@ -74,6 +94,31 @@ describe('Subscription Service Integration Tests', () => {
     });
 
     // Clear any existing mocks
+
+    // find() is used by getSubscriptionByUserId — supports $ne/$in operators
+    dbUnified.find.mockImplementation(async (collection, filter) => {
+      const arr =
+        collection === 'subscriptions'
+          ? mockSubscriptions
+          : collection === 'users'
+            ? mockUsers
+            : [];
+      if (typeof filter === 'function') {
+        return arr.filter(filter);
+      }
+      return arr.filter(item =>
+        Object.keys(filter).every(k => {
+          const val = filter[k];
+          if (val && typeof val === 'object' && val.$ne !== undefined) {
+            return item[k] !== val.$ne;
+          }
+          if (val && typeof val === 'object' && val.$in !== undefined) {
+            return Array.isArray(val.$in) && val.$in.includes(item[k]);
+          }
+          return item[k] === val;
+        })
+      );
+    });
     jest.clearAllMocks();
   });
 
