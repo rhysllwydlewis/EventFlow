@@ -89,6 +89,10 @@ function setupMocks() {
   });
   dbUnified.write.mockImplementation(async () => {});
   dbUnified.findOne.mockImplementation(async (collection, filter) => {
+    if (collection === 'webhook_events') {
+      // Check mockWebhookEvents for idempotency lookups
+      return mockWebhookEvents.find(e => e.eventId === filter.eventId) || null;
+    }
     const arr =
       collection === 'subscriptions' ? mockSubscriptions : collection === 'users' ? mockUsers : [];
     if (typeof filter === 'function') {
@@ -555,18 +559,19 @@ describe('7. Webhook idempotency', () => {
   });
 
   it('processWebhookEvent does not record failed events before Stripe can retry them', async () => {
-    // Missing subscriptions are handled gracefully, so force an actual handler failure.
-    dbUnified.read
-      .mockImplementationOnce(async collection => {
-        if (collection === 'webhook_events') {
-          return [...mockWebhookEvents];
-        }
-        return [];
-      })
+    // isEventAlreadyProcessed uses findOne('webhook_events') — return null (not yet processed).
+    // Then make the next findOne call (subscriptions lookup in handler) throw to simulate
+    // a mid-processing DB failure, ensuring markEventProcessed is never reached.
+    dbUnified.findOne
+      .mockImplementationOnce(async () => null) // webhook_events: not yet processed
       .mockImplementationOnce(async () => {
-        throw new Error('database unavailable');
+        throw new Error('database unavailable'); // subscriptions lookup throws
       });
-    const failingEvent = { id: 'evt_failed_read', type: 'invoice.created', data: { object: {} } };
+    const failingEvent = {
+      id: 'evt_failed_read',
+      type: 'invoice.created',
+      data: { object: { subscription: 'sub_test' } },
+    };
     await expect(processWebhookEvent(failingEvent)).rejects.toThrow('database unavailable');
     expect(mockWebhookEvents.some(e => e.eventId === 'evt_failed_read')).toBe(false);
   });

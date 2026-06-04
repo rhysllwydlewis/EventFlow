@@ -237,6 +237,10 @@ async function createIndexes() {
     const reviewsCollection2 = mongodb.collection('reviews');
     await reviewsCollection2.createIndex({ authorId: 1, supplierId: 1 });
     await reviewsCollection2.createIndex({ authorId: 1, createdAt: -1 });
+    // Webhook events dedup store
+    const webhookEventsCollection = mongodb.collection('webhook_events');
+    await webhookEventsCollection.createIndex({ eventId: 1 }, { unique: true }); // O(1) dedup lookup
+    await webhookEventsCollection.createIndex({ processedAt: -1 });
     logger.info('✅ Database indexes created successfully');
   } catch (error) {
     logger.info('ℹ️  Database indexes:', error.message);

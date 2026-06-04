@@ -540,9 +540,13 @@
           }
           // Hide all dashboard content sections so unauthorised users
           // don't see the empty admin UI chrome
-          document.querySelectorAll(
-            '.stats-grid, .moderation-grid, .quick-actions, .management-grid, .data-section, .section-header'
-          ).forEach(el => { el.hidden = true; });
+          document
+            .querySelectorAll(
+              '.stats-grid, .moderation-grid, .quick-actions, .management-grid, .data-section, .section-header'
+            )
+            .forEach(el => {
+              el.hidden = true;
+            });
           return;
         }
 
@@ -1275,6 +1279,36 @@
     }
   };
 
+  // Suspend / unsuspend a user account
+  window.suspendUser = async function (id, currentlySuspended) {
+    return safeExecute(async () => {
+      const action = currentlySuspended ? 'Unsuspend' : 'Suspend';
+      const msg = currentlySuspended
+        ? 'Reactivate this user account?'
+        : 'Suspend this user? They will be locked out immediately.';
+      if (!(await _adminConfirm(msg))) {
+        return;
+      }
+      api(`/api/admin/users/${id}/suspend`, 'POST', { suspended: !currentlySuspended })
+        .then(() => {
+          if (typeof Toast !== 'undefined') {
+            Toast.success(`User ${action.toLowerCase()}ed successfully.`);
+          } else {
+            _adminToast(`User ${action.toLowerCase()}ed successfully.`, 'success');
+          }
+          loadAll();
+        })
+        .catch(err => {
+          console.error('suspendUser failed', err);
+          if (typeof Toast !== 'undefined') {
+            Toast.error(`Failed to ${action.toLowerCase()} user: ${err.message}`);
+          } else {
+            _adminToast(`Failed to ${action.toLowerCase()} user: ${err.message}`, 'error');
+          }
+        });
+    });
+  };
+
   // Supplier management functions
   window.deleteSupplier = async function (id) {
     return safeExecute(async () => {
@@ -1942,7 +1976,6 @@
     }
   };
 
-
   window.approveReview = function (id, approved) {
     api(`/api/admin/reviews/${id}/approve`, 'POST', { approved: approved })
       .then(() => {
@@ -2337,4 +2370,3 @@
   // Initialize bulk operations
   setupBulkOperations();
 })();
-

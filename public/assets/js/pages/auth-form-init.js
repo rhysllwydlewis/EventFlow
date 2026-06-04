@@ -1,9 +1,17 @@
+const FORM_INIT_MAX_RETRIES = 40; // 40 × 50 ms = 2 s max wait
+let formInitRetries = 0;
+
 function initFormValidation() {
-  // FormValidator and ErrorBoundary are loaded via defer scripts — DOM is guaranteed
-  // ready at this point. If either is missing, we bail gracefully without polling.
+  // FormValidator and ErrorBoundary load via defer — they may not be ready yet.
+  // Poll with a bounded retry loop (max FORM_INIT_MAX_RETRIES attempts).
   if (typeof FormValidator === 'undefined' || typeof ErrorBoundary === 'undefined') {
-    if (typeof console !== 'undefined') {
-      console.warn('[auth-form-init] FormValidator or ErrorBoundary not available — skipping validation setup');
+    if (formInitRetries < FORM_INIT_MAX_RETRIES) {
+      formInitRetries += 1;
+      setTimeout(initFormValidation, 50);
+    } else if (typeof console !== 'undefined') {
+      console.warn(
+        '[auth-form-init] FormValidator or ErrorBoundary not available after max retries — skipping validation setup'
+      );
     }
     return;
   }
@@ -79,4 +87,3 @@ function initFormValidation() {
 
 // Script runs with defer — DOM is always ready; call directly
 initFormValidation();
-

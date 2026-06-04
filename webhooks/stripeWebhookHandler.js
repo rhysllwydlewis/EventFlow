@@ -981,9 +981,8 @@ async function isEventAlreadyProcessed(eventId) {
   if (!eventId) {
     return false; // No ID (e.g. test payload) — allow through
   }
-
-  const existing = await dbUnified.read('webhook_events');
-  return existing.some(e => e.eventId === eventId);
+  const existing = await dbUnified.findOne('webhook_events', { eventId });
+  return existing !== null;
 }
 
 async function markEventProcessed(eventId) {

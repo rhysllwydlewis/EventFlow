@@ -246,6 +246,7 @@ describe('Stripe Analytics — Payment Service MRR (mocked dbUnified)', () => {
         }
         return [];
       }),
+      findOne: jest.fn().mockResolvedValue(null),
       write: jest.fn().mockResolvedValue(undefined),
       insertOne: jest.fn().mockResolvedValue(undefined),
       updateOne: jest.fn().mockResolvedValue(undefined),
@@ -388,6 +389,7 @@ describe('Stripe Analytics — Webhook Handler (mocked)', () => {
 
     jest.mock('../../db-unified', () => ({
       read: jest.fn().mockResolvedValue([]),
+      findOne: jest.fn().mockResolvedValue(null),
       write: jest.fn().mockResolvedValue(undefined),
       insertOne: jest.fn().mockResolvedValue(undefined),
       updateOne: jest.fn().mockResolvedValue(undefined),
