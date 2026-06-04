@@ -188,7 +188,11 @@ router.post(
       };
 
       tickets.push(newTicket);
-      await dbUnified.insertOne('tickets', newTicket);
+      const savedTicket = await dbUnified.insertOne('tickets', newTicket);
+      if (!savedTicket) {
+        logger.error('[TICKET] insertOne failed', { ticketId: newTicket.id });
+        return res.status(500).json({ error: 'Failed to save ticket. Please try again.' });
+      }
 
       // Notify admin users about the new ticket
       try {

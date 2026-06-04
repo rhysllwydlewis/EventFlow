@@ -164,20 +164,25 @@ async function getSubscription(subscriptionId) {
 }
 
 async function getSubscriptionByUserId(userId) {
-  const subscriptions = await dbUnified.read('subscriptions');
+  // Fetch only non-canceled subscriptions for this user — avoids full collection scan.
+  // The $ne operator is supported by matchesFilter on the local store.
+  const candidates = await dbUnified.find('subscriptions', {
+    userId,
+    status: { $ne: 'canceled' },
+  });
+  if (!candidates || candidates.length === 0) {
+    return null;
+  }
+  // Sort to prefer live entitlements, then most recently updated
   return (
-    subscriptions
-      .filter(s => s.userId === userId && s.status !== 'canceled')
-      .sort((a, b) => {
-        const aLive = isLiveEntitlement(a) ? 1 : 0;
-        const bLive = isLiveEntitlement(b) ? 1 : 0;
-        if (aLive !== bLive) {
-          return bLive - aLive;
-        }
-        return (
-          new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0)
-        );
-      })[0] || null
+    candidates.sort((a, b) => {
+      const aLive = isLiveEntitlement(a) ? 1 : 0;
+      const bLive = isLiveEntitlement(b) ? 1 : 0;
+      if (aLive !== bLive) {
+        return bLive - aLive;
+      }
+      return new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0);
+    })[0] || null
   );
 }
 

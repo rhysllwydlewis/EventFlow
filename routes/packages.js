@@ -315,7 +315,11 @@ router.post(
     } catch (_e) {
       // If settings read fails, default to auto-approved
     }
-    await dbUnified.insertOne('packages', pkg);
+    const savedPkg = await dbUnified.insertOne('packages', pkg);
+    if (!savedPkg) {
+      logger.error('[PACKAGES] insertOne failed', { packageId: pkg.id });
+      return res.status(500).json({ error: 'Failed to save package. Please try again.' });
+    }
     suppliersRouter.invalidatePackageCaches();
 
     // Award partner package bonus if this is the supplier's first package

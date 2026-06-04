@@ -147,7 +147,7 @@ async function createIndexes() {
     await paymentsCollection.createIndex({ createdAt: -1 });
     const subscriptionsCollection = mongodb.collection('subscriptions');
     await subscriptionsCollection.createIndex({ id: 1 }, { unique: true }); // subscription id lookups
-    await subscriptionsCollection.createIndex({ userId: 1 });
+    await subscriptionsCollection.createIndex({ userId: 1, status: 1 }); // getSubscriptionByUserId
     await subscriptionsCollection.createIndex({ status: 1 });
     await subscriptionsCollection.createIndex({ stripeSubscriptionId: 1 }, { sparse: true }); // Stripe webhook lookups
     await subscriptionsCollection.createIndex({ stripeCustomerId: 1 }, { sparse: true }); // Stripe customer lookups
@@ -172,6 +172,7 @@ async function createIndexes() {
     const shortlistsCollection = mongodb.collection('shortlists');
     await shortlistsCollection.createIndex({ userId: 1 }, { unique: true });
     const notificationsCollection = mongodb.collection('notifications');
+    await notificationsCollection.createIndex({ id: 1 }, { unique: true }); // dedup $in lookups
     await notificationsCollection.createIndex({ userId: 1, createdAt: -1 });
     await notificationsCollection.createIndex({ read: 1 });
     const supplierAnalyticsCollection = mongodb.collection('supplierAnalytics');
