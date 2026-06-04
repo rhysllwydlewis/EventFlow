@@ -618,6 +618,40 @@ describe('Subscription Service Integration Tests', () => {
         }
       });
 
+      // enforceActivePackageLimit now uses find() for suppliers and packages
+      dbUnified.find.mockImplementation(async (collection, filter) => {
+        const applyFilter = arr => {
+          if (typeof filter === 'function') {
+            return arr.filter(filter);
+          }
+          return arr.filter(item =>
+            Object.keys(filter).every(k => {
+              const val = filter[k];
+              if (val && typeof val === 'object' && val.$in !== undefined) {
+                return Array.isArray(val.$in) && val.$in.includes(item[k]);
+              }
+              if (val && typeof val === 'object' && val.$ne !== undefined) {
+                return item[k] !== val.$ne;
+              }
+              return item[k] === val;
+            })
+          );
+        };
+        if (collection === 'suppliers') {
+          return applyFilter([...mockSuppliers]);
+        }
+        if (collection === 'packages') {
+          return applyFilter([...mockPackages]);
+        }
+        if (collection === 'subscriptions') {
+          return applyFilter([...mockSubscriptions]);
+        }
+        if (collection === 'users') {
+          return applyFilter([...mockUsers]);
+        }
+        return [];
+      });
+
       dbUnified.updateOne.mockImplementation(async (collection, filter, update) => {
         if (collection === 'packages' && update.$set) {
           const idx = mockPackages.findIndex(p =>
