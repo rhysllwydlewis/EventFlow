@@ -199,14 +199,17 @@ async function ensureCalendarReminderNotifications(userId, entries) {
 
   let created = [];
   await withLock('notifications', async () => {
-    const notifications = await dbUnified.read('notifications');
-    const existingIds = new Set(notifications.map(notification => notification.id));
+    // Use dedup-then-insertOne instead of read-entire-collection+write-entire-collection.
+    // We still need to check for existing IDs, but we fetch only a targeted set.
+    const existingNotifications = await dbUnified.find('notifications', {
+      id: { $in: dueReminders.map(n => n.id) },
+    });
+    const existingIds = new Set(existingNotifications.map(n => n.id));
     created = dueReminders.filter(notification => !existingIds.has(notification.id));
     if (!created.length) {
       return;
     }
-    notifications.push(...created);
-    await dbUnified.write('notifications', notifications);
+    await Promise.all(created.map(n => dbUnified.insertOne('notifications', n)));
   });
 
   return created;
@@ -258,11 +261,7 @@ router.post(
         createdAt: new Date().toISOString(),
       };
 
-      await withLock('customer_calendar_entries', async () => {
-        const entries = await dbUnified.read('customer_calendar_entries');
-        entries.push(entry);
-        await dbUnified.write('customer_calendar_entries', entries);
-      });
+      await dbUnified.insertOne('customer_calendar_entries', entry);
 
       logger.info(`Calendar entry created: ${entry.id} by user ${userId}`);
       res.status(201).json({ ok: true, entry });
@@ -292,34 +291,28 @@ router.put(
         return res.status(400).json({ error: errors[0] });
       }
 
-      let earlyExit = null;
-      let updatedEntry = null;
-
-      await withLock('customer_calendar_entries', async () => {
-        const entries = await dbUnified.read('customer_calendar_entries');
-        const idx = entries.findIndex(e => e.id === entryId && e.userId === userId);
-
-        if (idx === -1) {
-          earlyExit = { status: 404, body: { error: 'Entry not found' } };
-          return;
-        }
-
-        entries[idx] = {
-          ...entries[idx],
-          title: data.title,
-          type: data.type,
-          date: data.date,
-          time: data.time !== undefined ? data.time : entries[idx].time,
-          description: data.description !== undefined ? data.description : entries[idx].description,
-          updatedAt: new Date().toISOString(),
-        };
-        await dbUnified.write('customer_calendar_entries', entries);
-        updatedEntry = entries[idx];
+      const existing = await dbUnified.findOne('customer_calendar_entries', {
+        id: entryId,
+        userId,
       });
-
-      if (earlyExit) {
-        return res.status(earlyExit.status).json(earlyExit.body);
+      if (!existing) {
+        return res.status(404).json({ error: 'Entry not found' });
       }
+
+      const patch = {
+        title: data.title,
+        type: data.type,
+        date: data.date,
+        time: data.time !== undefined ? data.time : existing.time,
+        description: data.description !== undefined ? data.description : existing.description,
+        updatedAt: new Date().toISOString(),
+      };
+      await dbUnified.updateOne(
+        'customer_calendar_entries',
+        { id: entryId, userId },
+        { $set: patch }
+      );
+      const updatedEntry = { ...existing, ...patch };
 
       logger.info(`Calendar entry updated: ${entryId} by user ${userId}`);
       res.json({ ok: true, entry: updatedEntry });
@@ -344,20 +337,11 @@ router.delete(
     try {
       const userId = req.user.id;
       const entryId = req.params.id;
-      let found = false;
-
-      await withLock('customer_calendar_entries', async () => {
-        const entries = await dbUnified.read('customer_calendar_entries');
-        const idx = entries.findIndex(e => e.id === entryId && e.userId === userId);
-        if (idx === -1) {
-          return;
-        }
-        found = true;
-        entries.splice(idx, 1);
-        await dbUnified.write('customer_calendar_entries', entries);
+      const deleted = await dbUnified.deleteOne('customer_calendar_entries', {
+        id: entryId,
+        userId,
       });
-
-      if (!found) {
+      if (!deleted) {
         return res.status(404).json({ error: 'Entry not found' });
       }
       res.json({ ok: true });

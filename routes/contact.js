@@ -94,7 +94,11 @@ router.post('/contact', applyWriteLimiter, async (req, res) => {
       updatedAt: now,
     };
 
-    await dbUnified.insertOne('contact_enquiries', enquiry);
+    const savedEnquiry = await dbUnified.insertOne('contact_enquiries', enquiry);
+    if (!savedEnquiry) {
+      logger.error('[CONTACT] Failed to save contact enquiry', { email: enquiry.email });
+      return res.status(500).json({ error: 'Failed to submit enquiry. Please try again.' });
+    }
 
     logger.info('Contact form submission saved', {
       id: enquiry.id,
@@ -157,7 +161,11 @@ router.post('/contact-supplier', applyWriteLimiter, async (req, res) => {
       createdAt: new Date().toISOString(),
     };
 
-    await dbUnified.insertOne('enquiries', enquiry);
+    const savedEnquiryRecord = await dbUnified.insertOne('enquiries', enquiry);
+    if (!savedEnquiryRecord) {
+      logger.error('[CONTACT] Failed to save supplier enquiry', { supplierId: enquiry.supplierId });
+      return res.status(500).json({ error: 'Failed to submit enquiry. Please try again.' });
+    }
 
     logger.info('Supplier enquiry submitted', {
       supplierId,

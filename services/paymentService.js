@@ -273,8 +273,7 @@ async function createPaymentRecord(params) {
  * @returns {Promise<Object>} Updated payment record
  */
 async function updatePaymentRecord(paymentId, updates) {
-  const payments = await dbUnified.read('payments');
-  const payment = payments.find(p => p.id === paymentId);
+  const payment = await dbUnified.findOne('payments', { id: paymentId });
 
   if (!payment) {
     throw new Error('Payment not found');
@@ -291,8 +290,7 @@ async function updatePaymentRecord(paymentId, updates) {
  * @returns {Promise<Object|null>} Payment record or null
  */
 async function getPaymentByStripeId(stripePaymentId) {
-  const payments = await dbUnified.read('payments');
-  return payments.find(p => p.stripePaymentId === stripePaymentId) || null;
+  return dbUnified.findOne('payments', { stripePaymentId });
 }
 
 /**

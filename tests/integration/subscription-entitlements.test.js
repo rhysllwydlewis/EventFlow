@@ -87,6 +87,14 @@ function setupMocks() {
     }
   });
   dbUnified.write.mockImplementation(async () => {});
+  dbUnified.findOne.mockImplementation(async (collection, filter) => {
+    const arr =
+      collection === 'subscriptions' ? mockSubscriptions : collection === 'users' ? mockUsers : [];
+    if (typeof filter === 'function') {
+      return arr.find(filter) || null;
+    }
+    return arr.find(item => Object.keys(filter).every(k => item[k] === filter[k])) || null;
+  });
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

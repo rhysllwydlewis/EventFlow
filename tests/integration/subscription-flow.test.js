@@ -97,6 +97,18 @@ describe('Complete Subscription Flow Integration', () => {
       }
     });
 
+    dbUnified.findOne.mockImplementation(async (collection, filter) => {
+      const mockMap = {
+        subscriptions: mockSubscriptions,
+        users: mockUsers,
+      };
+      const arr = mockMap[collection] || [];
+      if (typeof filter === 'function') {
+        return arr.find(filter) || null;
+      }
+      return arr.find(item => Object.keys(filter).every(k => item[k] === filter[k])) || null;
+    });
+
     jest.clearAllMocks();
   });
 
