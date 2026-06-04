@@ -23,8 +23,7 @@ const router = express.Router();
 router.get('/', authRequired, async (req, res) => {
   try {
     const userId = req.user.id;
-    const plans = await dbUnified.read('plans');
-    const userPlans = plans.filter(p => p.userId === userId);
+    const userPlans = await dbUnified.find('plans', { userId: userId });
 
     res.json({
       ok: true,
@@ -48,8 +47,7 @@ router.get('/:id', authRequired, async (req, res) => {
   try {
     const userId = req.user.id;
     const { id } = req.params;
-    const plans = await dbUnified.read('plans');
-    const plan = plans.find(p => p.id === id && p.userId === userId);
+    const plan = await dbUnified.findOne('plans', { id: id, userId: userId });
 
     if (!plan) {
       return res.status(404).json({ error: 'Plan not found' });
@@ -115,8 +113,7 @@ router.post(
       }
 
       // Plan creation limit per user (Bug 3.3 — free tier cap)
-      const plans = await dbUnified.read('plans');
-      const userPlanCount = plans.filter(p => p.userId === userId).length;
+      const userPlanCount = (await dbUnified.find('plans', { userId: userId })).length;
       if (userPlanCount >= MAX_PLANS_PER_USER) {
         return res.status(403).json({
           error: 'Plan limit reached',
@@ -199,8 +196,7 @@ router.patch(
     try {
       const userId = req.user.id;
       const { id } = req.params;
-      const plans = await dbUnified.read('plans');
-      const plan = plans.find(p => p.id === id && p.userId === userId);
+      const plan = await dbUnified.findOne('plans', { id: id, userId: userId });
 
       if (!plan) {
         return res.status(404).json({ error: 'Plan not found' });
@@ -279,8 +275,7 @@ router.delete(
     try {
       const userId = req.user.id;
       const { id } = req.params;
-      const plans = await dbUnified.read('plans');
-      const plan = plans.find(p => p.id === id && p.userId === userId);
+      const plan = await dbUnified.findOne('plans', { id: id, userId: userId });
 
       if (!plan) {
         return res.status(404).json({ error: 'Plan not found' });
@@ -311,8 +306,7 @@ router.get('/:planId/budget', authRequired, async (req, res) => {
     const userId = req.user.id;
     const { planId } = req.params;
 
-    const plans = await dbUnified.read('plans');
-    const plan = plans.find(p => p.id === planId && p.userId === userId);
+    const plan = await dbUnified.findOne('plans', { id: planId, userId: userId });
 
     if (!plan) {
       return res.status(404).json({ error: 'Plan not found' });
@@ -345,8 +339,7 @@ router.get('/:id/export', authRequired, async (req, res) => {
   try {
     const userId = req.user.id;
     const { id } = req.params;
-    const plans = await dbUnified.read('plans');
-    const plan = plans.find(p => p.id === id && p.userId === userId);
+    const plan = await dbUnified.findOne('plans', { id: id, userId: userId });
 
     if (!plan) {
       return res.status(404).json({ error: 'Plan not found' });
@@ -518,8 +511,7 @@ router.post(
         return res.status(400).json({ error: 'budgetItems must be an array' });
       }
 
-      const plans = await dbUnified.read('plans');
-      const plan = plans.find(p => p.id === planId && p.userId === userId);
+      const plan = await dbUnified.findOne('plans', { id: planId, userId: userId });
 
       if (!plan) {
         return res.status(404).json({ error: 'Plan not found' });

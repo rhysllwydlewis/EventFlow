@@ -183,7 +183,6 @@ router.post(
         updatedAt: now,
       };
 
-      tickets.push(newTicket);
       const savedTicket = await dbUnified.insertOne('tickets', newTicket);
       if (!savedTicket) {
         logger.error('[TICKET] insertOne failed', { ticketId: newTicket.id });

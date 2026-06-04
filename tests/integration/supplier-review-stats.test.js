@@ -9,6 +9,8 @@ const express = require('express');
 // Mock db-unified
 jest.mock('../../db-unified', () => ({
   read: jest.fn(),
+  find: jest.fn().mockResolvedValue([]),
+  findOne: jest.fn().mockResolvedValue(null),
 }));
 
 // Mock auth middleware
@@ -63,13 +65,16 @@ describe('Supplier Review Stats Endpoint', () => {
       ];
 
       dbUnified.read.mockImplementation(collection => {
-        if (collection === 'suppliers') {
-          return Promise.resolve(mockSuppliers);
-        }
         if (collection === 'reviews') {
           return Promise.resolve(mockReviews);
         }
         return Promise.resolve([]);
+      });
+      dbUnified.findOne.mockImplementation(async (collection, filter) => {
+        if (collection === 'suppliers') {
+          return mockSuppliers.find(s => s.ownerUserId === filter.ownerUserId) || null;
+        }
+        return null;
       });
 
       const response = await request(app).get('/api/supplier/reviews/stats').expect(200);
@@ -96,13 +101,16 @@ describe('Supplier Review Stats Endpoint', () => {
       const mockReviews = [];
 
       dbUnified.read.mockImplementation(collection => {
-        if (collection === 'suppliers') {
-          return Promise.resolve(mockSuppliers);
-        }
         if (collection === 'reviews') {
           return Promise.resolve(mockReviews);
         }
         return Promise.resolve([]);
+      });
+      dbUnified.findOne.mockImplementation(async (collection, filter) => {
+        if (collection === 'suppliers') {
+          return mockSuppliers.find(s => s.ownerUserId === filter.ownerUserId) || null;
+        }
+        return null;
       });
 
       const response = await request(app).get('/api/supplier/reviews/stats').expect(200);
@@ -124,11 +132,12 @@ describe('Supplier Review Stats Endpoint', () => {
         { id: 'supplier-2', ownerUserId: 'different-user', name: 'Different Supplier' },
       ];
 
-      dbUnified.read.mockImplementation(collection => {
+      // findOne({ ownerUserId }) won't match because ownerUserId is 'different-user'
+      dbUnified.findOne.mockImplementation(async (collection, filter) => {
         if (collection === 'suppliers') {
-          return Promise.resolve(mockSuppliers);
+          return mockSuppliers.find(s => s.ownerUserId === filter.ownerUserId) || null;
         }
-        return Promise.resolve([]);
+        return null;
       });
 
       const response = await request(app).get('/api/supplier/reviews/stats').expect(404);
@@ -156,7 +165,7 @@ describe('Supplier Review Stats Endpoint', () => {
     });
 
     it('should handle database errors gracefully', async () => {
-      dbUnified.read.mockRejectedValue(new Error('Database error'));
+      dbUnified.findOne.mockRejectedValue(new Error('Database error'));
 
       const response = await request(app).get('/api/supplier/reviews/stats').expect(500);
 
@@ -169,13 +178,16 @@ describe('Supplier Review Stats Endpoint', () => {
       ];
 
       dbUnified.read.mockImplementation(collection => {
-        if (collection === 'suppliers') {
-          return Promise.resolve(mockSuppliers);
-        }
         if (collection === 'reviews') {
           return Promise.resolve(null);
         }
         return Promise.resolve([]);
+      });
+      dbUnified.findOne.mockImplementation(async (collection, filter) => {
+        if (collection === 'suppliers') {
+          return mockSuppliers.find(s => s.ownerUserId === filter.ownerUserId) || null;
+        }
+        return null;
       });
 
       const response = await request(app).get('/api/supplier/reviews/stats').expect(200);
@@ -198,13 +210,16 @@ describe('Supplier Review Stats Endpoint', () => {
       ];
 
       dbUnified.read.mockImplementation(collection => {
-        if (collection === 'suppliers') {
-          return Promise.resolve(mockSuppliers);
-        }
         if (collection === 'reviews') {
           return Promise.resolve(mockReviews);
         }
         return Promise.resolve([]);
+      });
+      dbUnified.findOne.mockImplementation(async (collection, filter) => {
+        if (collection === 'suppliers') {
+          return mockSuppliers.find(s => s.ownerUserId === filter.ownerUserId) || null;
+        }
+        return null;
       });
 
       const response = await request(app).get('/api/supplier/reviews/stats').expect(200);

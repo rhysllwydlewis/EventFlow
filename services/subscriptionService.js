@@ -407,14 +407,14 @@ async function enforceActivePackageLimit(userId) {
     return [];
   }
 
-  const allSuppliers = await dbUnified.read('suppliers');
-  const supplierIds = allSuppliers.filter(s => s.ownerUserId === userId).map(s => s.id);
+  const mySuppliers = await dbUnified.find('suppliers', { ownerUserId: userId });
+  const supplierIds = mySuppliers.map(s => s.id);
   if (supplierIds.length === 0) {
     return [];
   }
 
-  const allPkgs = await dbUnified.read('packages');
-  const activePkgs = allPkgs.filter(p => supplierIds.includes(p.supplierId) && p.paused !== true);
+  const allPkgs = await dbUnified.find('packages', { supplierId: { $in: supplierIds } });
+  const activePkgs = allPkgs.filter(p => p.paused !== true);
   if (activePkgs.length <= maxPackages) {
     return [];
   }

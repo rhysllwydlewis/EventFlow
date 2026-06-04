@@ -312,8 +312,7 @@ router.get('/listings', async (req, res) => {
 // Get single marketplace listing (public)
 router.get('/listings/:id', async (req, res) => {
   try {
-    const listings = await dbUnified.read('marketplace_listings');
-    const listing = listings.find(l => l.id === req.params.id);
+    const listing = await dbUnified.findOne('marketplace_listings', { id: req.params.id });
 
     if (!listing) {
       logger.warn('Marketplace listing not found', { listingId: req.params.id });
@@ -355,8 +354,7 @@ router.get('/listings/:id', async (req, res) => {
  */
 router.get('/my-listings/:id', applyAuthRequired, async (req, res) => {
   try {
-    const listings = await dbUnified.read('marketplace_listings');
-    const listing = listings.find(l => l.id === req.params.id);
+    const listing = await dbUnified.findOne('marketplace_listings', { id: req.params.id });
 
     if (!listing) {
       logger.warn('Marketplace listing not found', { listingId: req.params.id });
@@ -533,8 +531,7 @@ router.get('/my-listings', applyAuthRequired, async (req, res) => {
       endpoint: '/api/marketplace/my-listings',
     });
 
-    const listings = await dbUnified.read('marketplace_listings');
-    const myListings = listings.filter(l => l.userId === req.user.id);
+    const myListings = await dbUnified.find('marketplace_listings', { userId: req.user.id });
 
     logger.info('Marketplace listings retrieved', {
       userId: req.user.id,

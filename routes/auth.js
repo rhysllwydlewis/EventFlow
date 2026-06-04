@@ -832,7 +832,13 @@ router.post('/google', strictAuthLimiter, csrfProtection, async (req, res) => {
         nowIso,
       });
 
-      await dbUnified.insertOne('users', user);
+      const googleUserInserted = await dbUnified.insertOne('users', user);
+      if (!googleUserInserted) {
+        logger.error('[GOOGLE-AUTH] insertOne returned null — user account not saved', {
+          email: user.email,
+        });
+        return res.status(500).json({ error: 'Failed to create account. Please try again.' });
+      }
 
       if (roleFinal === 'supplier') {
         await recordSupplierPartnerReferral(refCode, user);

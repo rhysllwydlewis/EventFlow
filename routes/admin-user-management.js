@@ -183,8 +183,8 @@ router.post('/users', authRequired, roleRequired('admin'), csrfProtection, async
     const roleFinal = VALID_USER_ROLES.includes(role) ? role : 'customer';
 
     // Check if user already exists
-    const users = await dbUnified.read('users');
-    if (users.find(u => u.email.toLowerCase() === String(email).toLowerCase())) {
+    const emailNormalized = String(email).toLowerCase();
+    if (await dbUnified.findOne('users', { email: emailNormalized })) {
       return res.status(409).json({ error: 'A user with this email already exists' });
     }
 

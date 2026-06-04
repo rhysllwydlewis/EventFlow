@@ -40,14 +40,11 @@ router.post('/trial/activate', authRequired, csrfProtection, async (req, res) =>
     }
 
     // Get supplier record
-    const suppliers = await dbUnified.read('suppliers');
-    const supplierIndex = suppliers.findIndex(s => s.ownerUserId === userId);
+    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: userId });
 
-    if (supplierIndex === -1) {
+    if (!supplier) {
       return res.status(404).json({ error: 'Supplier profile not found' });
     }
-
-    const supplier = suppliers[supplierIndex];
 
     // Check if trial already used
     if (supplier.trialUsed) {
@@ -110,8 +107,7 @@ router.get('/analytics', authRequired, async (req, res) => {
     }
 
     // Get supplier record
-    const suppliers = await dbUnified.read('suppliers');
-    const supplier = suppliers.find(s => s.ownerUserId === userId);
+    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: userId });
 
     if (!supplier) {
       return res.status(404).json({ error: 'Supplier profile not found' });
@@ -153,8 +149,7 @@ router.get('/analytics/legacy', authRequired, async (req, res) => {
     }
 
     // Get supplier record
-    const suppliers = await dbUnified.read('suppliers');
-    const supplier = suppliers.find(s => s.ownerUserId === userId);
+    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: userId });
 
     if (!supplier) {
       return res.status(404).json({ error: 'Supplier profile not found' });
@@ -272,8 +267,7 @@ router.get('/invoices', authRequired, async (req, res) => {
     }
 
     // Get supplier record to find Stripe customer ID
-    const suppliers = await dbUnified.read('suppliers');
-    const supplier = suppliers.find(s => s.ownerUserId === userId);
+    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: userId });
 
     if (!supplier) {
       return res.status(404).json({ error: 'Supplier profile not found' });
@@ -331,8 +325,7 @@ router.get('/invoices/:id/download', authRequired, async (req, res) => {
     }
 
     // Get supplier record
-    const suppliers = await dbUnified.read('suppliers');
-    const supplier = suppliers.find(s => s.ownerUserId === userId);
+    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: userId });
 
     if (!supplier || !supplier.stripeCustomerId) {
       return res.status(404).json({ error: 'Supplier or Stripe customer not found' });
@@ -376,8 +369,7 @@ router.get('/enquiries/export', authRequired, async (req, res) => {
       return res.status(403).json({ error: 'Only suppliers can export enquiries' });
     }
 
-    const suppliers = await dbUnified.read('suppliers');
-    const supplier = suppliers.find(s => s.ownerUserId === userId);
+    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: userId });
 
     if (!supplier) {
       return res.status(404).json({ error: 'Supplier profile not found' });
@@ -458,8 +450,7 @@ router.get('/lead-quality', authRequired, async (req, res) => {
     }
 
     // Get supplier record
-    const suppliers = await dbUnified.read('suppliers');
-    const supplier = suppliers.find(s => s.ownerUserId === userId);
+    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: userId });
 
     if (!supplier) {
       return res.status(404).json({ error: 'Supplier profile not found' });
@@ -539,8 +530,7 @@ router.get('/reviews/stats', authRequired, async (req, res) => {
     }
 
     // Get supplier record
-    const suppliers = await dbUnified.read('suppliers');
-    const supplier = suppliers.find(s => s.ownerUserId === userId);
+    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: userId });
 
     if (!supplier) {
       return res.status(404).json({ error: 'Supplier profile not found' });
@@ -603,8 +593,7 @@ router.get('/verification/status', authRequired, async (req, res) => {
       return res.status(403).json({ error: 'Only suppliers can access verification status' });
     }
 
-    const suppliers = await dbUnified.read('suppliers');
-    const supplier = suppliers.find(s => s.ownerUserId === req.user.id);
+    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: req.user.id });
 
     if (!supplier) {
       return res.status(404).json({ error: 'Supplier profile not found' });
@@ -789,8 +778,7 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
       return res.status(403).json({ error: 'Only suppliers can access the dashboard summary' });
     }
 
-    const suppliers = await dbUnified.read('suppliers');
-    const supplier = suppliers.find(s => s.ownerUserId === userId);
+    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: userId });
 
     if (!supplier) {
       return res.status(404).json({ error: 'Supplier profile not found' });
@@ -878,10 +866,10 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
       },
     };
     try {
-      // supplier is already found above; get all profiles for this user from the same array
-      const supplierProfiles = suppliers.filter(s => s.ownerUserId === userId);
+      // Get all profiles for this user to count total
+      const supplierProfiles = await dbUnified.find('suppliers', { ownerUserId: userId });
       const profileCount = supplierProfiles.length;
-      const topProfile = supplier; // supplier is the first match (already found via find)
+      const topProfile = supplier; // primary profile already found above via findOne
 
       const hasDescription = !!(topProfile.description_short || '').trim();
       const hasLocation = !!(topProfile.location || '').trim();
