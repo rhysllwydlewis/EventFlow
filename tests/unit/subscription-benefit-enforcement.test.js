@@ -119,7 +119,7 @@ function setupMocks() {
         ? mockSubscriptions
         : collection === 'users'
           ? mockUsers
-          : 'suppliers' in (global.mockSuppliers !== undefined ? { suppliers: true } : {})
+          : collection === 'suppliers'
             ? mockSuppliers
             : [];
     if (typeof filter === 'function') {

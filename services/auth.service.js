@@ -72,9 +72,9 @@ class AuthService {
       throw new ValidationError('Company name is required for suppliers');
     }
 
-    // Check for existing user
-    const users = await dbUnified.read('users');
-    if (users.find(u => u.email.toLowerCase() === String(email).toLowerCase())) {
+    // Check for existing user — uses email index
+    const emailLower = String(email).toLowerCase();
+    if (await dbUnified.findOne('users', { email: emailLower })) {
       throw new ConflictError('Email already registered');
     }
 
@@ -177,8 +177,8 @@ class AuthService {
       throw new ValidationError('Email and password are required');
     }
 
-    const users = await dbUnified.read('users');
-    const user = users.find(u => u.email.toLowerCase() === String(email).toLowerCase());
+    // Look up by email — uses email index
+    const user = await dbUnified.findOne('users', { email: String(email).toLowerCase() });
 
     if (!user) {
       throw new AuthenticationError('Invalid credentials');
@@ -210,8 +210,8 @@ class AuthService {
       throw new ValidationError('Invalid email');
     }
 
-    const users = await dbUnified.read('users');
-    const user = users.find(u => u.email.toLowerCase() === String(email).toLowerCase());
+    // Look up by email — uses email index
+    const user = await dbUnified.findOne('users', { email: String(email).toLowerCase() });
 
     if (!user) {
       // Don't reveal whether email exists

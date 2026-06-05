@@ -555,8 +555,8 @@ async function getModerationStats() {
  * @returns {Promise<Object>} Analytics data
  */
 async function getSupplierAnalytics(supplierId) {
-  const reviews = await dbUnified.read('reviews');
-  const supplierReviews = reviews.filter(r => r.supplierId === supplierId);
+  const supplierReviews = await dbUnified.find('reviews', { supplierId: supplierId }); // indexed
+  const _reviewsAll = supplierReviews; // alias for backwards-compat if needed);
 
   return ReviewAnalytics.generateSupplierAnalytics(supplierReviews);
 }
@@ -578,8 +578,7 @@ async function getPlatformAnalytics(_timeRange = '1m') {
  * @returns {Promise<Object>} Verified count info
  */
 async function getVerifiedCount(supplierId) {
-  const reviews = await dbUnified.read('reviews');
-  const supplierReviews = reviews.filter(r => r.supplierId === supplierId);
+  const supplierReviews = await dbUnified.find('reviews', { supplierId: supplierId }); // indexed
 
   const verified = supplierReviews.filter(
     r => r.verification?.status !== ReviewModel.VERIFICATION_TYPES.UNVERIFIED

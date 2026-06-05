@@ -13,6 +13,13 @@ jest.mock('../../db-unified');
 jest.mock('../../utils/helpers', () => ({
   supplierIsProActive: jest.fn(),
 }));
+// Mock catalogCache: always miss so searchService falls through to dbUnified.read()
+jest.mock('../../services/catalogCache', () => ({
+  get: jest.fn().mockResolvedValue(null),
+  set: jest.fn().mockResolvedValue(undefined),
+  invalidate: jest.fn().mockResolvedValue(undefined),
+  getTtl: jest.fn().mockReturnValue(300),
+}));
 
 describe('Search Service', () => {
   const mockSuppliers = [
