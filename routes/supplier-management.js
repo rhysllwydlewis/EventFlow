@@ -132,8 +132,10 @@ router.get('/:id/analytics', applyAuthRequired, applyRoleRequired('supplier'), a
     const period = parseInt(req.query.period) || 7; // Default 7 days
 
     // Verify ownership
-    const suppliers = await dbUnified.read('suppliers');
-    const supplier = suppliers.find(s => s.id === supplierId && s.ownerUserId === req.user.id);
+    const supplier = await dbUnified.findOne('suppliers', {
+      id: supplierId,
+      ownerUserId: req.user.id,
+    });
     if (!supplier) {
       return res.status(404).json({ error: 'Supplier not found' });
     }
@@ -332,8 +334,7 @@ router.patch(
   applyRequireVerifiedUser,
   applyCsrfProtection,
   async (req, res) => {
-    const all = await dbUnified.read('suppliers');
-    const s = all.find(sup => sup.id === req.params.id && sup.ownerUserId === req.user.id);
+    const s = await dbUnified.findOne('suppliers', { id: req.params.id, ownerUserId: req.user.id });
     if (!s) {
       return res.status(404).json({ error: 'Not found' });
     }
@@ -458,17 +459,15 @@ router.post(
   applyRoleRequired('supplier'),
   applyCsrfProtection,
   async (req, res) => {
-    const suppliers = await dbUnified.read('suppliers');
+    const ownedSuppliers = await dbUnified.find('suppliers', { ownerUserId: req.user.id });
     let changed = 0;
     const proUpdatePromises = [];
-    suppliers.forEach(s => {
-      if (s.ownerUserId === req.user.id) {
-        if (!s.isPro) {
-          proUpdatePromises.push(
-            dbUnified.updateOne('suppliers', { id: s.id }, { $set: { isPro: true } })
-          );
-          changed += 1;
-        }
+    ownedSuppliers.forEach(s => {
+      if (!s.isPro) {
+        proUpdatePromises.push(
+          dbUnified.updateOne('suppliers', { id: s.id }, { $set: { isPro: true } })
+        );
+        changed += 1;
       }
     });
     await Promise.all(proUpdatePromises);

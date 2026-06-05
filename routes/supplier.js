@@ -164,8 +164,7 @@ router.get('/analytics/legacy', authRequired, async (req, res) => {
     );
 
     // Count enquiries from message threads
-    const threads = await dbUnified.read('threads');
-    const enquiries = threads.filter(t => t.supplierId === supplierId);
+    const enquiries = await dbUnified.find('threads', { supplierId });
     const enquiryCount = enquiries.length;
 
     // Count views from analytics events
@@ -178,8 +177,8 @@ router.get('/analytics/legacy', authRequired, async (req, res) => {
     // Count bookings (from bookings or orders)
     let bookingCount = 0;
     try {
-      const bookings = await dbUnified.read('bookings');
-      bookingCount = bookings.filter(b => b.supplierId === supplierId).length;
+      const bookings = await dbUnified.find('bookings', { supplierId });
+      bookingCount = bookings.length;
     } catch (e) {
       // bookings collection may not exist
       logger.debug('Bookings collection not available:', e.message);
@@ -376,8 +375,7 @@ router.get('/enquiries/export', authRequired, async (req, res) => {
     }
 
     // Get quote requests for this supplier
-    const quoteRequests = await dbUnified.read('quoteRequests');
-    const supplierEnquiries = quoteRequests.filter(q => q.supplierId === supplier.id);
+    const supplierEnquiries = await dbUnified.find('quoteRequests', { supplierId: supplier.id });
 
     // Get user details for enquiries
     const users = await dbUnified.read('users');
@@ -459,8 +457,7 @@ router.get('/lead-quality', authRequired, async (req, res) => {
     const supplierId = supplier.id;
 
     // Count threads by quality/status
-    const threads = await dbUnified.read('threads');
-    const supplierThreads = threads.filter(t => t.supplierId === supplierId);
+    const supplierThreads = await dbUnified.find('threads', { supplierId });
 
     // Lead quality thresholds
     const MILLISECONDS_PER_DAY = 1000 * 60 * 60 * 24;
@@ -537,8 +534,7 @@ router.get('/reviews/stats', authRequired, async (req, res) => {
     }
 
     // Get reviews using dbUnified
-    const reviews = (await dbUnified.read('reviews')) || [];
-    const supplierReviews = reviews.filter(r => r.supplierId === supplier.id);
+    const supplierReviews = await dbUnified.find('reviews', { supplierId: supplier.id });
 
     const totalReviews = supplierReviews.length;
     const averageRating =
@@ -634,14 +630,11 @@ router.post(
         return res.status(403).json({ error: 'Only suppliers can submit verification' });
       }
 
-      const suppliers = await dbUnified.read('suppliers');
-      const supplierIndex = suppliers.findIndex(s => s.ownerUserId === req.user.id);
+      const supplier = await dbUnified.findOne('suppliers', { ownerUserId: req.user.id });
 
-      if (supplierIndex === -1) {
+      if (!supplier) {
         return res.status(404).json({ error: 'Supplier profile not found' });
       }
-
-      const supplier = suppliers[supplierIndex];
 
       // Block resubmission after 5 rejections
       if ((supplier.verificationRejectionCount || 0) >= 5) {
@@ -936,8 +929,7 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
     // --- Packages ---
     let packagesData = { total: 0, active: 0, draft: 0 };
     try {
-      const allPackages = (await dbUnified.read('packages')) || [];
-      const supplierPackages = allPackages.filter(p => p.supplierId === supplierId);
+      const supplierPackages = await dbUnified.find('packages', { supplierId });
       // Count active and draft in a single pass to avoid iterating twice
       const counts = supplierPackages.reduce(
         (acc, p) => {
@@ -995,8 +987,7 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
     // --- Reviews ---
     let reviewsData = { total: 0, averageRating: 0, pending: 0 };
     try {
-      const allReviews = (await dbUnified.read('reviews')) || [];
-      const supplierReviews = allReviews.filter(r => r.supplierId === supplierId);
+      const supplierReviews = await dbUnified.find('reviews', { supplierId });
       const total = supplierReviews.length;
       const averageRating =
         total > 0
@@ -1018,10 +1009,10 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
     // --- Tickets ---
     let ticketsData = { total: 0, open: 0, inProgress: 0 };
     try {
-      const allTickets = (await dbUnified.read('tickets')) || [];
-      const supplierTickets = allTickets.filter(
-        t => t.senderId === userId && t.senderType === 'supplier'
-      );
+      const supplierTickets = await dbUnified.find('tickets', {
+        senderId: userId,
+        senderType: 'supplier',
+      });
       ticketsData = {
         total: supplierTickets.length,
         open: supplierTickets.filter(t => t.status === 'open').length,

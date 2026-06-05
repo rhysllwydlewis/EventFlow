@@ -246,10 +246,10 @@ router.post('/saved', authRequired, csrfProtection, async (req, res) => {
  */
 router.get('/saved', authRequired, async (req, res) => {
   try {
-    const savedSearches = (await dbUnified.read('savedSearches')) || [];
-    const userSearches = savedSearches
-      .filter(s => s.userId === req.user.id)
-      .sort((a, b) => new Date(b.lastUsedAt) - new Date(a.lastUsedAt));
+    const allUserSearches = await dbUnified.find('savedSearches', { userId: req.user.id });
+    const userSearches = allUserSearches.sort(
+      (a, b) => new Date(b.lastUsedAt) - new Date(a.lastUsedAt)
+    );
 
     res.json({
       success: true,
@@ -271,18 +271,19 @@ router.get('/saved', authRequired, async (req, res) => {
 router.delete('/saved/:id', authRequired, csrfProtection, async (req, res) => {
   try {
     const { id } = req.params;
-    const savedSearches = (await dbUnified.read('savedSearches')) || [];
+    const savedSearchToDelete = await dbUnified.findOne('savedSearches', {
+      id,
+      userId: req.user.id,
+    });
 
-    const index = savedSearches.findIndex(s => s.id === id && s.userId === req.user.id);
-
-    if (index === -1) {
+    if (!savedSearchToDelete) {
       return res.status(404).json({
         success: false,
         error: 'Saved search not found',
       });
     }
 
-    await dbUnified.deleteOne('savedSearches', id);
+    await dbUnified.deleteOne('savedSearches', { id });
 
     res.json({
       success: true,
@@ -306,9 +307,8 @@ router.get('/history', authRequired, async (req, res) => {
     const limit = Math.min(Number(req.query.limit) || 50, 100);
     const skip = Number(req.query.skip) || 0;
 
-    const searchHistory = (await dbUnified.read('searchHistory')) || [];
-    const userHistory = searchHistory
-      .filter(s => s.userId === req.user.id)
+    const allHistory = await dbUnified.find('searchHistory', { userId: req.user.id });
+    const userHistory = allHistory
       .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
       .slice(skip, skip + limit);
 
@@ -316,7 +316,7 @@ router.get('/history', authRequired, async (req, res) => {
       success: true,
       data: {
         history: userHistory,
-        total: searchHistory.filter(s => s.userId === req.user.id).length,
+        total: allHistory.length,
       },
     });
   } catch (error) {

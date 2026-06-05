@@ -110,9 +110,11 @@ jest.mock('../../services/partnerService', () => ({
 
 jest.mock('../../db-unified', () => ({
   read: jest.fn().mockResolvedValue([]),
+  find: jest.fn().mockResolvedValue([]),
   findOne: jest.fn().mockResolvedValue(null),
   insertOne: jest.fn().mockResolvedValue({ id: 'tkt_001' }),
   updateOne: jest.fn().mockResolvedValue({ modified: 1 }),
+  deleteOne: jest.fn().mockResolvedValue(true),
 }));
 
 jest.mock('../../store', () => ({
@@ -196,6 +198,13 @@ describe('GET /api/partner/support-tickets', () => {
       }
       return Promise.resolve([]);
     });
+    // Code now uses find({ senderId, senderType: 'partner' }) — return filtered results
+    dbUnified.find.mockImplementation(async (collection, filter) => {
+      if (collection === 'tickets') {
+        return SAMPLE_TICKETS.filter(t => Object.keys(filter).every(k => t[k] === filter[k]));
+      }
+      return [];
+    });
   });
 
   it('returns 401 when unauthenticated', async () => {
@@ -242,7 +251,7 @@ describe('GET /api/partner/support-tickets', () => {
   });
 
   it('returns 200 with empty list when no tickets exist', async () => {
-    dbUnified.read.mockResolvedValue([]);
+    dbUnified.find.mockResolvedValue([]); // find({ senderId, senderType }) returns empty
     const res = await request(app).get('/api/partner/support-tickets');
     expect(res.status).toBe(200);
     expect(res.body.items).toHaveLength(0);

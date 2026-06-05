@@ -244,15 +244,13 @@ router.post(
       const { rating, title, comment, recommend, eventType, eventDate, photos } = req.body;
 
       // Check if supplier exists
-      const suppliers = await dbUnified.read('suppliers');
-      const supplier = suppliers.find(s => s.id === supplierId);
+      const supplier = await dbUnified.findOne('suppliers', { id: supplierId });
       if (!supplier) {
         return res.status(404).json({ error: 'Supplier not found' });
       }
 
       // Get user info
-      const users = await dbUnified.read('users');
-      const user = users.find(u => u.id === req.user.id);
+      const user = await dbUnified.findOne('users', { id: req.user.id });
 
       // Create review with full validation and anti-abuse checks
       const review = await reviewsSystem.createReview(
@@ -332,15 +330,13 @@ router.post(
       }
 
       // Check if supplier exists
-      const suppliers = await dbUnified.read('suppliers');
-      const supplier = suppliers.find(s => s.id === supplierId);
+      const supplier = await dbUnified.findOne('suppliers', { id: supplierId });
       if (!supplier) {
         return res.status(404).json({ error: 'Supplier not found' });
       }
 
       // Get user info
-      const users = await dbUnified.read('users');
-      const user = users.find(u => u.id === req.user.id);
+      const user = await dbUnified.findOne('users', { id: req.user.id });
 
       // Create review using enhanced system
       const review = await reviewsSystem.createReview(
@@ -548,8 +544,7 @@ router.post(
       }
 
       // Get supplier ID from user's supplier profile
-      const suppliers = await dbUnified.read('suppliers');
-      const supplier = suppliers.find(s => s.ownerUserId === req.user.id);
+      const supplier = await dbUnified.findOne('suppliers', { ownerUserId: req.user.id });
 
       if (!supplier) {
         return res.status(404).json({ error: 'Supplier profile not found' });
@@ -587,8 +582,7 @@ router.get(
   async (req, res) => {
     try {
       // Get supplier ID from user's supplier profile
-      const suppliers = await dbUnified.read('suppliers');
-      const supplier = suppliers.find(s => s.ownerUserId === req.user.id);
+      const supplier = await dbUnified.findOne('suppliers', { ownerUserId: req.user.id });
 
       if (!supplier) {
         return res.status(404).json({ error: 'Supplier profile not found' });
@@ -941,8 +935,7 @@ router.post(
 
       // Notify all admin users so they can action the report
       try {
-        const allUsers = await dbUnified.read('users');
-        const adminUsers = allUsers.filter(u => u.role === 'admin' && u.id);
+        const adminUsers = await dbUnified.find('users', { role: 'admin' });
         if (adminUsers.length > 0) {
           const notifSvc = await getNotificationService(req);
           if (notifSvc) {
