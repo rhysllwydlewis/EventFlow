@@ -178,8 +178,10 @@ router.post(
       const supplierId = req.params.id;
 
       // Verify ownership
-      const suppliers = await dbUnified.read('suppliers');
-      const supplier = suppliers.find(s => s.id === supplierId && s.ownerUserId === req.user.id);
+      const supplier = await dbUnified.findOne('suppliers', {
+        id: supplierId,
+        ownerUserId: req.user.id,
+      });
       if (!supplier) {
         return res.status(404).json({ error: 'Supplier not found' });
       }
