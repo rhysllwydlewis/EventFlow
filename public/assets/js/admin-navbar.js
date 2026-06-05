@@ -828,9 +828,9 @@
           const count = pending.suppliers || 0;
           if (count > 0) {
             suppliersBadge.textContent = count;
-            suppliersBadge.classList.remove('is-hidden');
+            suppliersBadge.style.display = 'flex';
           } else {
-            suppliersBadge.classList.add('is-hidden');
+            suppliersBadge.style.display = 'none';
           }
         }
 
@@ -840,9 +840,9 @@
           const count = pending.packages || 0;
           if (count > 0) {
             packagesBadge.textContent = count;
-            packagesBadge.classList.remove('is-hidden');
+            packagesBadge.style.display = 'flex';
           } else {
-            packagesBadge.classList.add('is-hidden');
+            packagesBadge.style.display = 'none';
           }
         }
 
@@ -852,9 +852,9 @@
           const count = pending.publicCalendarRequests || 0;
           if (count > 0) {
             calendarBadge.textContent = count;
-            calendarBadge.classList.remove('is-hidden');
+            calendarBadge.style.display = 'flex';
           } else {
-            calendarBadge.classList.add('is-hidden');
+            calendarBadge.style.display = 'none';
           }
         }
 
@@ -864,9 +864,9 @@
           const count = pending.photos || 0;
           if (count > 0) {
             photosBadge.textContent = count;
-            photosBadge.classList.remove('is-hidden');
+            photosBadge.style.display = 'flex';
           } else {
-            photosBadge.classList.add('is-hidden');
+            photosBadge.style.display = 'none';
           }
         }
 
@@ -876,9 +876,9 @@
           const count = pending.reviews || 0;
           if (count > 0) {
             reviewsBadge.textContent = count;
-            reviewsBadge.classList.remove('is-hidden');
+            reviewsBadge.style.display = 'flex';
           } else {
-            reviewsBadge.classList.add('is-hidden');
+            reviewsBadge.style.display = 'none';
           }
         }
 
@@ -888,9 +888,9 @@
           const count = pending.reports || 0;
           if (count > 0) {
             reportsBadge.textContent = count;
-            reportsBadge.classList.remove('is-hidden');
+            reportsBadge.style.display = 'flex';
           } else {
-            reportsBadge.classList.add('is-hidden');
+            reportsBadge.style.display = 'none';
           }
         }
 
@@ -900,9 +900,9 @@
           const count = pending.tickets || data.openTickets || 0;
           if (count > 0) {
             openTicketsBadge.textContent = count;
-            openTicketsBadge.classList.remove('is-hidden');
+            openTicketsBadge.style.display = 'flex';
           } else {
-            openTicketsBadge.classList.add('is-hidden');
+            openTicketsBadge.style.display = 'none';
           }
         }
       })
@@ -985,4 +985,3 @@
     }
   }
 })();
-
