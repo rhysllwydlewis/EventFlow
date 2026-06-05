@@ -529,7 +529,7 @@ router.get('/events', apiLimiter, userExtractionMiddleware, async (req, res) => 
 
 router.get('/events/saved', authRequired, apiLimiter, async (req, res) => {
   try {
-    let saves = await dbUnified.read('public_calendar_saves');
+    const saves = await dbUnified.read('public_calendar_saves');
     const userSaves = saves.filter(s => s.userId === req.user.id);
     const events = await readActivePublicCalendarEvents();
     const eventMap = new Map(events.map(e => [e.id, e]));
@@ -546,13 +546,11 @@ router.get('/events/saved', authRequired, apiLimiter, async (req, res) => {
       .filter(Boolean);
 
     if (staleSaveKeys.size > 0) {
-      await withLock('public_calendar_saves', async () => {
-        saves = await dbUnified.read('public_calendar_saves');
-        const cleaned = saves.filter(s => !staleSaveKeys.has(`${s.userId}:${s.eventId}`));
-        if (cleaned.length !== saves.length) {
-          await dbUnified.write('public_calendar_saves', cleaned);
-        }
-      });
+      // Remove stale saves with targeted deleteOne calls — avoids wiping the collection
+      for (const key of staleSaveKeys) {
+        const [userId, eventId] = key.split(':');
+        await dbUnified.deleteMany('public_calendar_saves', { userId, eventId });
+      }
       logger.info(
         `Cleaned ${staleSaveKeys.size} stale public calendar save(s) for user ${req.user.id}`
       );
@@ -761,15 +759,9 @@ router.delete(
           };
           return;
         }
-        await dbUnified.write(
-          'public_calendar_events',
-          events.filter(e => e.id !== existing.id)
-        );
-        await withLock('public_calendar_saves', async () => {
-          const saves = await dbUnified.read('public_calendar_saves');
-          const updatedSaves = saves.filter(s => s.eventId !== existing.id);
-          cascadeCount = saves.length - updatedSaves.length;
-          await dbUnified.write('public_calendar_saves', updatedSaves);
+        await dbUnified.deleteOne('public_calendar_events', { id: existing.id });
+        cascadeCount = await dbUnified.deleteMany('public_calendar_saves', {
+          eventId: existing.id,
         });
       });
       if (earlyExit) {
@@ -928,8 +920,16 @@ router.post(
           createdAt: now,
           updatedAt: now,
         };
-        requests.push(requestDoc);
-        await dbUnified.write('public_calendar_publisher_requests', requests);
+        const reqInserted = await dbUnified.insertOne(
+          'public_calendar_publisher_requests',
+          requestDoc
+        );
+        if (!reqInserted) {
+          logger.error('[PUBLIC-CAL] publisher request insertOne failed', {
+            supplierId: supplier.id,
+          });
+          throw new Error('Failed to save publishing request');
+        }
       });
       if (duplicate) {
         return res.status(409).json({
@@ -977,27 +977,28 @@ router.post(
       return res.status(400).json({ error: 'Unsupported request action' });
     }
     try {
+      const existingRequest = await dbUnified.findOne('public_calendar_publisher_requests', {
+        id: req.params.id,
+      });
       let updatedRequest = null;
-      await withLock('public_calendar_publisher_requests', async () => {
-        const requests = await dbUnified.read('public_calendar_publisher_requests');
-        const idx = requests.findIndex(r => r.id === req.params.id);
-        if (idx === -1) {
-          return;
-        }
+      if (existingRequest) {
         const now = new Date().toISOString();
         const status =
           action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : 'cancelled';
-        requests[idx] = {
-          ...requests[idx],
+        const updateFields = {
           status,
           adminReason: sanitiseText(req.body.reason, MAX_MEDIUM_TEXT_LENGTH),
           actionedByAdminUserId: req.user.id,
           actionedAt: now,
           updatedAt: now,
         };
-        updatedRequest = requests[idx];
-        await dbUnified.write('public_calendar_publisher_requests', requests);
-      });
+        await dbUnified.updateOne(
+          'public_calendar_publisher_requests',
+          { id: req.params.id },
+          { $set: updateFields }
+        );
+        updatedRequest = { ...existingRequest, ...updateFields };
+      }
       if (!updatedRequest) {
         return res.status(404).json({ error: 'Publishing request not found' });
       }
@@ -1139,23 +1140,24 @@ router.put(
       return res.status(400).json({ error: 'Unsupported report status' });
     }
     try {
+      const existingReport = await dbUnified.findOne('public_calendar_event_reports', {
+        id: req.params.id,
+      });
       let updated = null;
-      await withLock('public_calendar_event_reports', async () => {
-        const reports = await dbUnified.read('public_calendar_event_reports');
-        const idx = reports.findIndex(r => r.id === req.params.id);
-        if (idx === -1) {
-          return;
-        }
-        reports[idx] = {
-          ...reports[idx],
+      if (existingReport) {
+        const reportUpdates = {
           status,
           adminNotes: sanitiseText(req.body.adminNotes, MAX_MEDIUM_TEXT_LENGTH),
           reviewedByAdminUserId: req.user.id,
           reviewedAt: new Date().toISOString(),
         };
-        updated = reports[idx];
-        await dbUnified.write('public_calendar_event_reports', reports);
-      });
+        await dbUnified.updateOne(
+          'public_calendar_event_reports',
+          { id: req.params.id },
+          { $set: reportUpdates }
+        );
+        updated = { ...existingReport, ...reportUpdates };
+      }
       if (!updated) {
         return res.status(404).json({ error: 'Report not found' });
       }

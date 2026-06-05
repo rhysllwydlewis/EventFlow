@@ -37,6 +37,31 @@ jest.mock('../../db-unified', () => ({
     }
     return Promise.resolve({ modified: idx !== -1 ? 1 : 0 });
   }),
+  find: jest.fn((collection, filter) => {
+    const items = mockStore[collection] || [];
+    const result = items.filter(item => Object.entries(filter).every(([k, v]) => item[k] === v));
+    return Promise.resolve(result);
+  }),
+  deleteMany: jest.fn((collection, filter) => {
+    const items = mockStore[collection] || [];
+    const before = items.length;
+    mockStore[collection] = items.filter(
+      item => !Object.entries(filter).every(([k, v]) => item[k] === v)
+    );
+    return Promise.resolve(before - mockStore[collection].length);
+  }),
+  deleteOne: jest.fn((collection, filter) => {
+    const items = mockStore[collection] || [];
+    const idx = items.findIndex(item =>
+      Object.entries(typeof filter === 'object' ? filter : { id: filter }).every(
+        ([k, v]) => item[k] === v
+      )
+    );
+    if (idx !== -1) {
+      mockStore[collection].splice(idx, 1);
+    }
+    return Promise.resolve(idx !== -1);
+  }),
 }));
 
 jest.mock('../../store', () => ({

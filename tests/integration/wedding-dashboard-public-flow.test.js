@@ -26,6 +26,34 @@ const plans = [
 
 jest.mock('../../db-unified', () => ({
   read: jest.fn(async c => (c === 'plans' ? plans : [])),
+  find: jest.fn(async (col, filter) => {
+    const arr = col === 'plans' ? plans : [];
+    return arr.filter(item =>
+      Object.keys(filter).every(k => {
+        const keys = k.split('.');
+        let val = item;
+        for (const key of keys) {
+          val = val?.[key];
+        }
+        return val === filter[k];
+      })
+    );
+  }),
+  findOne: jest.fn(async (col, filter) => {
+    const arr = col === 'plans' ? plans : [];
+    return (
+      arr.find(item =>
+        Object.keys(filter).every(k => {
+          const keys = k.split('.');
+          let val = item;
+          for (const key of keys) {
+            val = val?.[key];
+          }
+          return val === filter[k];
+        })
+      ) || null
+    );
+  }),
   updateOne: jest.fn(async (_c, q, u) => {
     const p = plans.find(x => x.id === q.id);
     if (p && u.$set) {

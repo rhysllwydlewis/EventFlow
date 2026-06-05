@@ -247,6 +247,39 @@ async function createIndexes() {
     await photosCollection.createIndex({ supplierId: 1 });
     await photosCollection.createIndex({ status: 1 }); // pending moderation queue
     await photosCollection.createIndex({ supplierId: 1, status: 1 }); // per-supplier moderation
+    // Users: referral code lookup (registration via referral link)
+    const usersCollection3 = mongodb.collection('users');
+    await usersCollection3.createIndex({ referralCode: 1 }, { sparse: true });
+
+    // Referrals collection
+    const referralsCollection = mongodb.collection('referrals');
+    await referralsCollection.createIndex({ id: 1 }, { unique: true });
+    await referralsCollection.createIndex({ referrerId: 1 }); // list referrals by partner
+    await referralsCollection.createIndex({ referredUserId: 1 }, { sparse: true, unique: true }); // dedup
+
+    // Wedding websites: public slug lookup
+    const plansCollection3 = mongodb.collection('plans');
+    await plansCollection3.createIndex({ 'weddingWebsite.slug': 1 }, { sparse: true }); // dotted-path
+
+    // Partner credit transactions
+    const partnerCreditCollection = mongodb.collection('partner_credit_transactions');
+    await partnerCreditCollection.createIndex({ id: 1 }, { unique: true });
+    await partnerCreditCollection.createIndex({ partnerId: 1 }); // getBalance
+    await partnerCreditCollection.createIndex(
+      { partnerId: 1, supplierUserId: 1, type: 1 },
+      { sparse: true } // _awardCredit idempotency
+    );
+    await partnerCreditCollection.createIndex(
+      { type: 1, partnerId: 1, externalRef: 1 },
+      { sparse: true } // releaseCashoutHold idempotency
+    );
+
+    // Partner code history and referrals
+    const partnerCodeHistoryCollection2 = mongodb.collection('partner_code_history');
+    await partnerCodeHistoryCollection2.createIndex({ partnerId: 1 });
+    const partnerReferralsCollection2 = mongodb.collection('partner_referrals');
+    await partnerReferralsCollection2.createIndex({ partnerId: 1 });
+
     logger.info('✅ Database indexes created successfully');
   } catch (error) {
     logger.info('ℹ️  Database indexes:', error.message);
@@ -461,6 +494,29 @@ async function deleteOne(collectionName, id) {
   } catch (error) {
     logger.error(`Error deleting from ${collectionName}:`, error.message);
     return false;
+  }
+}
+
+async function deleteMany(collectionName, filter) {
+  await initializeDatabase();
+  try {
+    if (dbType === 'mongodb') {
+      const collection = mongodb.collection(collectionName);
+      const result = await collection.deleteMany(filter);
+      return result.deletedCount;
+    } else {
+      // Local store: filter and rewrite without matching documents
+      const all = store.read(collectionName);
+      const kept = all.filter(item => !Object.keys(filter).every(k => item[k] === filter[k]));
+      const removed = all.length - kept.length;
+      if (removed > 0) {
+        store.write(collectionName, kept);
+      }
+      return removed;
+    }
+  } catch (error) {
+    logger.error(`Error in deleteMany for ${collectionName}:`, error.message);
+    return 0;
   }
 }
 
@@ -748,6 +804,7 @@ module.exports = {
   updateOne,
   insertOne,
   deleteOne,
+  deleteMany,
   uid,
   getDatabaseType,
   getDatabaseStatus,

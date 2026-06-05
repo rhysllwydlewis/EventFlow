@@ -34,6 +34,7 @@ jest.mock('../../db-unified', () => ({
   insertOne: jest.fn().mockImplementation(async (_col, doc) => doc),
   updateOne: jest.fn().mockResolvedValue(true),
   deleteOne: jest.fn().mockResolvedValue(true),
+  deleteMany: jest.fn().mockResolvedValue(0),
 }));
 
 jest.mock('../../utils/logger', () => ({
@@ -225,6 +226,20 @@ function setupReadMock({
           s =>
             (!filter.userId || s.userId === filter.userId) &&
             (!filter.eventId || s.eventId === filter.eventId)
+        ) || null
+      );
+    }
+    if (collection === 'public_calendar_publisher_requests') {
+      return (
+        public_calendar_publisher_requests.find(r =>
+          Object.keys(filter).every(k => r[k] === filter[k])
+        ) || null
+      );
+    }
+    if (collection === 'public_calendar_event_reports') {
+      return (
+        public_calendar_event_reports.find(r =>
+          Object.keys(filter).every(k => r[k] === filter[k])
         ) || null
       );
     }

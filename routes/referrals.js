@@ -39,14 +39,11 @@ router.get('/', authRequired, async (req, res) => {
     const userId = req.user.id;
 
     // Get or create referral code for user
-    const users = await dbUnified.read('users');
-    const userIndex = users.findIndex(u => u.id === userId);
+    const user = await dbUnified.findOne('users', { id: userId });
 
-    if (userIndex === -1) {
+    if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
-
-    const user = users[userIndex];
 
     // Generate referral code if user doesn't have one
     if (!user.referralCode) {
@@ -61,8 +58,7 @@ router.get('/', authRequired, async (req, res) => {
     const referralCode = user.referralCode;
 
     // Get referrals made by this user
-    const referrals = await dbUnified.read('referrals');
-    const userReferrals = referrals.filter(r => r.referrerId === userId);
+    const userReferrals = await dbUnified.find('referrals', { referrerId: userId });
 
     // Count active referrals (users who completed registration)
     const activeReferrals = userReferrals.filter(
@@ -106,8 +102,7 @@ router.post('/track', writeLimiter, csrfProtection, async (req, res) => {
     }
 
     // Find the referrer by their referral code
-    const users = await dbUnified.read('users');
-    const referrer = users.find(u => u.referralCode === referralCode);
+    const referrer = await dbUnified.findOne('users', { referralCode });
 
     if (!referrer) {
       // Silently fail - don't reveal whether code is valid
@@ -115,8 +110,7 @@ router.post('/track', writeLimiter, csrfProtection, async (req, res) => {
     }
 
     // Check if this referral already exists
-    const referrals = await dbUnified.read('referrals');
-    const existingReferral = referrals.find(r => r.referredUserId === newUserId);
+    const existingReferral = await dbUnified.findOne('referrals', { referredUserId: newUserId });
 
     if (existingReferral) {
       // Already tracked
@@ -156,10 +150,9 @@ router.post('/track', writeLimiter, csrfProtection, async (req, res) => {
 router.patch('/:id/activate', writeLimiter, authRequired, csrfProtection, async (req, res) => {
   try {
     const { id } = req.params;
-    const referrals = await dbUnified.read('referrals');
-    const referralIndex = referrals.findIndex(r => r.id === id);
+    const existingReferral2 = await dbUnified.findOne('referrals', { id });
 
-    if (referralIndex === -1) {
+    if (!existingReferral2) {
       return res.status(404).json({ error: 'Referral not found' });
     }
 
