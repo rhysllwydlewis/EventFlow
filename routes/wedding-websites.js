@@ -217,8 +217,9 @@ function hasWeddingPasswordAccess(req, site) {
 }
 
 async function isSlugTaken(slug, planId) {
-  const plans = await dbUnified.read('plans');
-  return plans.some(p => p.id !== planId && p.weddingWebsite && p.weddingWebsite.slug === slug);
+  // Dotted-path filter — uses 'weddingWebsite.slug' sparse index
+  const match = await dbUnified.findOne('plans', { 'weddingWebsite.slug': slug });
+  return match !== null && match.id !== planId;
 }
 
 async function generateUniqueSlug(seed, planId) {
@@ -252,8 +253,7 @@ function getPublishReadiness(site) {
 }
 
 async function getOwnedPlan(req, res, next) {
-  const plans = await dbUnified.read('plans');
-  const plan = plans.find(p => p.id === req.params.planId && p.userId === req.user.id);
+  const plan = await dbUnified.findOne('plans', { id: req.params.planId, userId: req.user.id });
   if (!plan) {
     return res.status(404).json({ error: 'Plan not found' });
   }
@@ -326,13 +326,11 @@ router.post(
   csrfProtection,
   writeLimiter,
   async (req, res) => {
-    const plans = await dbUnified.read('plans');
-    const existing = plans.find(
-      p =>
-        p.userId === req.user.id &&
-        p.isWebsiteWorkspace &&
-        p.source === 'wedding_website_quick_start'
-    );
+    const existing = await dbUnified.findOne('plans', {
+      userId: req.user.id,
+      isWebsiteWorkspace: true,
+      source: 'wedding_website_quick_start',
+    });
     if (existing) {
       return res.status(200).json({ success: true, plan: existing, reused: true });
     }
@@ -681,8 +679,7 @@ router.get('/public/wedding-websites/:slug', async (req, res) => {
   if (isReservedSlug(slug)) {
     return res.status(404).json({ error: 'This wedding website is not available.' });
   }
-  const plans = await dbUnified.read('plans');
-  const plan = plans.find(p => p.weddingWebsite && p.weddingWebsite.slug === slug);
+  const plan = await dbUnified.findOne('plans', { 'weddingWebsite.slug': slug });
   if (!plan || plan.weddingWebsite.status !== 'published') {
     return res.status(404).json({ error: 'This wedding website is not available.' });
   }
@@ -700,8 +697,7 @@ router.post('/public/wedding-websites/:slug/access', passwordAccessLimiter, asyn
   if (isReservedSlug(slug)) {
     return res.status(404).json({ error: 'This wedding website is not available.' });
   }
-  const plans = await dbUnified.read('plans');
-  const plan = plans.find(p => p.weddingWebsite && p.weddingWebsite.slug === slug);
+  const plan = await dbUnified.findOne('plans', { 'weddingWebsite.slug': slug });
   if (!plan || plan.weddingWebsite.status !== 'published') {
     return res.status(404).json({ error: 'This wedding website is not available.' });
   }
@@ -731,8 +727,7 @@ router.post('/public/wedding-websites/:slug/rsvp', writeLimiter, async (req, res
   if (isReservedSlug(slug)) {
     return res.status(404).json({ error: 'This wedding website is not available.' });
   }
-  const plans = await dbUnified.read('plans');
-  const plan = plans.find(p => p.weddingWebsite && p.weddingWebsite.slug === slug);
+  const plan = await dbUnified.findOne('plans', { 'weddingWebsite.slug': slug });
   if (!plan || plan.weddingWebsite.status !== 'published') {
     return res.status(404).json({ error: 'This wedding website is not available.' });
   }

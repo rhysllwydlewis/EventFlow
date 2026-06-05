@@ -289,10 +289,8 @@ async function regenerateCode(partnerId) {
  * @returns {Array<{ id, partnerId, refCode, replacedByCode, createdAt, archivedAt }>}
  */
 async function getCodeHistory(partnerId) {
-  const all = await dbUnified.read('partner_code_history');
-  return all
-    .filter(h => h.partnerId === partnerId)
-    .sort((a, b) => new Date(a.archivedAt) - new Date(b.archivedAt));
+  const all = await dbUnified.find('partner_code_history', { partnerId });
+  return all.sort((a, b) => new Date(a.archivedAt) - new Date(b.archivedAt));
 }
 
 /**
@@ -393,8 +391,7 @@ async function getReferralBySupplierUserId(supplierUserId) {
 
 /** List referrals for a partner */
 async function listReferralsByPartnerId(partnerId) {
-  const all = await dbUnified.read('partner_referrals');
-  return all.filter(r => r.partnerId === partnerId);
+  return dbUnified.find('partner_referrals', { partnerId });
 }
 
 // ─── Credit Ledger ────────────────────────────────────────────────────────────
@@ -405,10 +402,11 @@ async function listReferralsByPartnerId(partnerId) {
  */
 async function _awardCredit({ partnerId, supplierUserId, type, amount, notes }) {
   // Idempotency check: one award per supplier per type
-  const txns = await dbUnified.read('partner_credit_transactions');
-  const duplicate = txns.find(
-    t => t.supplierUserId === supplierUserId && t.type === type && t.partnerId === partnerId
-  );
+  const duplicate = await dbUnified.findOne('partner_credit_transactions', {
+    partnerId,
+    supplierUserId,
+    type,
+  });
   if (duplicate) {
     logger.info(
       `Credit already awarded: partner=${partnerId} supplier=${supplierUserId} type=${type}`
@@ -656,8 +654,10 @@ async function debitPoints({ partnerId, amount, notes, externalRef }) {
  * @returns {Object|null}  Reversal transaction, or null if debit not found
  */
 async function reverseDebit(debitTxnId, partnerId) {
-  const txns = await dbUnified.read('partner_credit_transactions');
-  const debit = txns.find(t => t.id === debitTxnId && t.partnerId === partnerId);
+  const debit = await dbUnified.findOne('partner_credit_transactions', {
+    id: debitTxnId,
+    partnerId,
+  });
   if (!debit) {
     logger.warn(`reverseDebit: transaction ${debitTxnId} not found for partner ${partnerId}`);
     return null;
@@ -725,20 +725,21 @@ async function createCashoutHold({ partnerId, amount, cashoutId }) {
  * @returns {Object|null}  Release transaction, or null if hold not found
  */
 async function releaseCashoutHold(holdTxnId, partnerId) {
-  const txns = await dbUnified.read('partner_credit_transactions');
-  const hold = txns.find(t => t.id === holdTxnId && t.partnerId === partnerId);
+  const hold = await dbUnified.findOne('partner_credit_transactions', {
+    id: holdTxnId,
+    partnerId,
+  });
   if (!hold) {
     logger.warn(`releaseCashoutHold: transaction ${holdTxnId} not found for partner ${partnerId}`);
     return null;
   }
 
   // Idempotency check: don't create a second release for the same hold
-  const existingRelease = txns.find(
-    t =>
-      t.type === CREDIT_TYPES.CASHOUT_RELEASE &&
-      t.partnerId === partnerId &&
-      t.externalRef === holdTxnId
-  );
+  const existingRelease = await dbUnified.findOne('partner_credit_transactions', {
+    type: CREDIT_TYPES.CASHOUT_RELEASE,
+    partnerId,
+    externalRef: holdTxnId,
+  });
   if (existingRelease) {
     logger.info(
       `releaseCashoutHold: release already exists (${existingRelease.id}) for hold ${holdTxnId} — skipping duplicate`
@@ -779,8 +780,7 @@ async function releaseCashoutHold(holdTxnId, partnerId) {
  *   transactions     – full transaction list, newest first
  */
 async function getBalance(partnerId) {
-  const txns = await dbUnified.read('partner_credit_transactions');
-  const partnerTxns = txns.filter(t => t.partnerId === partnerId);
+  const partnerTxns = await dbUnified.find('partner_credit_transactions', { partnerId });
 
   const maturityCutoff = Date.now() - CREDIT_MATURITY_DAYS * 24 * 60 * 60 * 1000;
 

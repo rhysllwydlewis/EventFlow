@@ -254,8 +254,7 @@ router.post(
     const packageLimit = features.features.maxPackages;
 
     // Count existing ACTIVE packages for this supplier (paused !== true)
-    const allPkgs = await dbUnified.read('packages');
-    const existingForSupplier = allPkgs.filter(p => p.supplierId === supplierId);
+    const existingForSupplier = await dbUnified.find('packages', { supplierId });
     const activeCount = existingForSupplier.filter(p => p.paused !== true).length;
 
     // Check if active limit is reached (packageLimit = -1 means unlimited)
@@ -327,9 +326,7 @@ router.post(
     // (non-blocking — must not affect the primary create flow)
     try {
       const partnerService = require('../services/partnerService');
-      const existingAfterInsert = (await dbUnified.read('packages')).filter(
-        p => p.supplierId === supplierId
-      );
+      const existingAfterInsert = await dbUnified.find('packages', { supplierId });
       if (existingAfterInsert.length === 1) {
         // This was the first package for this supplier
         await partnerService.awardPackageBonus(req.user.id);
@@ -351,18 +348,16 @@ router.post(
  * @returns {Promise<{pkg: Object, own: Object}|null>}
  */
 async function resolveOwnedPackage(id, req, res) {
-  const [packages, suppliers] = await Promise.all([
-    dbUnified.read('packages'),
-    dbUnified.read('suppliers'),
-  ]);
-
-  const pkg = packages.find(p => p.id === id);
+  const pkg = await dbUnified.findOne('packages', { id });
   if (!pkg) {
     res.status(404).json({ error: 'Package not found' });
     return null;
   }
 
-  const own = suppliers.find(s => s.id === pkg.supplierId && s.ownerUserId === req.user.id);
+  const own = await dbUnified.findOne('suppliers', {
+    id: pkg.supplierId,
+    ownerUserId: req.user.id,
+  });
   if (!own) {
     res.status(403).json({ error: 'Forbidden' });
     return null;
@@ -583,8 +578,7 @@ router.put(
 
       if (packageLimit !== -1) {
         // Count currently active packages for this supplier (excluding the one being unpaused)
-        const allPkgs = await dbUnified.read('packages');
-        const supplierPkgs = allPkgs.filter(p => p.supplierId === pkg.supplierId);
+        const supplierPkgs = await dbUnified.find('packages', { supplierId: pkg.supplierId });
         const activeCount = supplierPkgs.filter(p => p.paused !== true && p.id !== pkg.id).length;
 
         if (activeCount >= packageLimit) {
@@ -627,13 +621,11 @@ router.post(
     if (!image) {
       return res.status(400).json({ error: 'Missing image' });
     }
-    const pkgs = await dbUnified.read('packages');
-    const p = pkgs.find(x => x.id === req.params.id);
+    const p = await dbUnified.findOne('packages', { id: req.params.id });
     if (!p) {
       return res.status(404).json({ error: 'Not found' });
     }
-    const suppliers = await dbUnified.read('suppliers');
-    const own = suppliers.find(x => x.id === p.supplierId && x.ownerUserId === req.userId);
+    const own = await dbUnified.findOne('suppliers', { id: p.supplierId, ownerUserId: req.userId });
     if (!own) {
       return res.status(403).json({ error: 'Not owner' });
     }
@@ -678,13 +670,11 @@ router.delete(
     if (!url) {
       return res.status(400).json({ error: 'Missing url' });
     }
-    const pkgs = await dbUnified.read('packages');
-    const p = pkgs.find(x => x.id === req.params.id);
+    const p = await dbUnified.findOne('packages', { id: req.params.id });
     if (!p) {
       return res.status(404).json({ error: 'Not found' });
     }
-    const suppliers = await dbUnified.read('suppliers');
-    const own = suppliers.find(x => x.id === p.supplierId && x.ownerUserId === req.userId);
+    const own = await dbUnified.findOne('suppliers', { id: p.supplierId, ownerUserId: req.userId });
     if (!own) {
       return res.status(403).json({ error: 'Not owner' });
     }
@@ -735,14 +725,12 @@ router.put(
       return res.status(400).json({ error: 'urls must be an array' });
     }
 
-    const pkgs = await dbUnified.read('packages');
-    const p = pkgs.find(x => x.id === req.params.id);
+    const p = await dbUnified.findOne('packages', { id: req.params.id });
     if (!p) {
       return res.status(404).json({ error: 'Not found' });
     }
 
-    const suppliers = await dbUnified.read('suppliers');
-    const own = suppliers.find(x => x.id === p.supplierId && x.ownerUserId === req.userId);
+    const own = await dbUnified.findOne('suppliers', { id: p.supplierId, ownerUserId: req.userId });
     if (!own) {
       return res.status(403).json({ error: 'Not owner' });
     }
@@ -807,8 +795,7 @@ router.post(
   applyRoleRequired('admin'),
   applyCsrfProtection,
   async (req, res) => {
-    const all = await dbUnified.read('packages');
-    const pkg = all.find(p => p.id === req.params.id);
+    const pkg = await dbUnified.findOne('packages', { id: req.params.id });
     if (!pkg) {
       return res.status(404).json({ error: 'Not found' });
     }
@@ -833,8 +820,7 @@ router.post(
   applyRoleRequired('admin'),
   applyCsrfProtection,
   async (req, res) => {
-    const all = await dbUnified.read('packages');
-    const pkg = all.find(p => p.id === req.params.id);
+    const pkg = await dbUnified.findOne('packages', { id: req.params.id });
     if (!pkg) {
       return res.status(404).json({ error: 'Not found' });
     }
@@ -860,8 +846,7 @@ router.put(
   applyCsrfProtection,
   async (req, res) => {
     const { id } = req.params;
-    const packages = await dbUnified.read('packages');
-    const pkg = packages.find(p => p.id === id);
+    const pkg = await dbUnified.findOne('packages', { id });
 
     if (!pkg) {
       return res.status(404).json({ error: 'Package not found' });
@@ -923,8 +908,7 @@ router.delete(
   applyCsrfProtection,
   async (req, res) => {
     const { id } = req.params;
-    const packages = await dbUnified.read('packages');
-    const pkg = packages.find(p => p.id === id);
+    const pkg = await dbUnified.findOne('packages', { id });
 
     if (!pkg) {
       return res.status(404).json({ error: 'Package not found' });
@@ -948,10 +932,9 @@ router.post(
   async (req, res) => {
     try {
       const packageId = req.params.id;
-      const packages = await dbUnified.read('packages');
-      const packageIndex = packages.findIndex(p => p.id === packageId);
+      const pkgForUpload = await dbUnified.findOne('packages', { id: packageId });
 
-      if (packageIndex === -1) {
+      if (!pkgForUpload) {
         return res.status(404).json({ error: 'Package not found' });
       }
 
@@ -972,7 +955,7 @@ router.post(
         'supplier'
       );
 
-      const pkg = packages[packageIndex];
+      const pkg = pkgForUpload;
       const uploadedUrl = imageData.optimized || imageData.large;
 
       // Build update: always set pkg.image; also prepend to gallery so the
@@ -999,7 +982,7 @@ router.post(
 
       res.json({
         ok: true,
-        package: { ...packages[packageIndex], ...imageUpdates },
+        package: { ...pkgForUpload, ...imageUpdates },
         imageUrl: imageUpdates.image,
       });
     } catch (error) {

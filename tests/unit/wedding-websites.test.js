@@ -37,6 +37,35 @@ const plans = [
 
 jest.mock('../../db-unified', () => ({
   read: jest.fn(async col => (col === 'plans' ? plans : [])),
+  find: jest.fn(async (col, filter) => {
+    const arr = col === 'plans' ? plans : [];
+    return arr.filter(item =>
+      Object.keys(filter).every(k => {
+        const keys = k.split('.');
+        let val = item;
+        for (const key of keys) {
+          val = val?.[key];
+        }
+        return val === filter[k];
+      })
+    );
+  }),
+  findOne: jest.fn(async (col, filter) => {
+    const arr = col === 'plans' ? plans : [];
+    return (
+      arr.find(item =>
+        Object.keys(filter).every(k => {
+          // Support dotted-path keys like 'weddingWebsite.slug'
+          const keys = k.split('.');
+          let val = item;
+          for (const key of keys) {
+            val = val?.[key];
+          }
+          return val === filter[k];
+        })
+      ) || null
+    );
+  }),
   insertOne: jest.fn(async (_c, doc) => {
     plans.push(doc);
     return doc;
