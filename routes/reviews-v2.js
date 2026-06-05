@@ -121,8 +121,7 @@ router.put('/:id', writeLimiter, authRequired, csrfProtection, async (req, res) 
     const { title, text, rating } = req.body;
 
     const dbUnified = require('../db-unified');
-    const reviews = await dbUnified.read('reviews');
-    const review = reviews.find(r => r._id === id);
+    const review = await dbUnified.findOne('reviews', { _id: id });
 
     if (!review) {
       return res.status(404).json({ error: 'Review not found' });
@@ -173,8 +172,7 @@ router.delete('/:id', writeLimiter, authRequired, csrfProtection, async (req, re
     const { id } = req.params;
 
     const dbUnified = require('../db-unified');
-    const reviews = await dbUnified.read('reviews');
-    const review = reviews.find(r => r._id === id);
+    const review = await dbUnified.findOne('reviews', { _id: id });
 
     if (!review) {
       return res.status(404).json({ error: 'Review not found' });
@@ -258,8 +256,7 @@ router.post(
 
       // Get supplier ID from user
       const dbUnified = require('../db-unified');
-      const suppliers = await dbUnified.read('suppliers');
-      const supplier = suppliers.find(s => s.ownerUserId === req.user.id);
+      const supplier = await dbUnified.findOne('suppliers', { ownerUserId: req.user.id });
 
       if (!supplier && req.user.role !== 'admin') {
         return res.status(404).json({ error: 'Supplier profile not found' });
@@ -304,8 +301,7 @@ router.put(
       }
 
       const dbUnified = require('../db-unified');
-      const reviews = await dbUnified.read('reviews');
-      const review = reviews.find(r => r._id === id);
+      const review = await dbUnified.findOne('reviews', { _id: id });
 
       if (!review) {
         return res.status(404).json({ error: 'Review not found' });
@@ -316,8 +312,7 @@ router.put(
       }
 
       // Get supplier ID
-      const suppliers = await dbUnified.read('suppliers');
-      const supplier = suppliers.find(s => s.ownerUserId === req.user.id);
+      const supplier = await dbUnified.findOne('suppliers', { ownerUserId: req.user.id });
 
       if (!supplier && req.user.role !== 'admin') {
         return res.status(404).json({ error: 'Supplier profile not found' });
@@ -852,10 +847,8 @@ router.get('/', async (req, res) => {
     const sort = req.query.sort === 'rating' ? 'rating' : 'recent';
 
     const dbUnified = require('../db-unified');
-    const allReviews = (await dbUnified.read('reviews')) || [];
-
-    // Filter to only approved reviews
-    const approvedReviews = allReviews.filter(r => r.approved === true);
+    // Uses reviews.{ approved, createdAt } index
+    const approvedReviews = await dbUnified.find('reviews', { approved: true });
 
     // Sort reviews
     if (sort === 'rating') {

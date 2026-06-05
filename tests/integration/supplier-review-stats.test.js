@@ -70,6 +70,12 @@ describe('Supplier Review Stats Endpoint', () => {
         }
         return Promise.resolve([]);
       });
+      dbUnified.find.mockImplementation(async (collection, filter) => {
+        if (collection === 'reviews') {
+          return mockReviews.filter(r => Object.keys(filter).every(k => r[k] === filter[k]));
+        }
+        return [];
+      });
       dbUnified.findOne.mockImplementation(async (collection, filter) => {
         if (collection === 'suppliers') {
           return mockSuppliers.find(s => s.ownerUserId === filter.ownerUserId) || null;
@@ -105,6 +111,12 @@ describe('Supplier Review Stats Endpoint', () => {
           return Promise.resolve(mockReviews);
         }
         return Promise.resolve([]);
+      });
+      dbUnified.find.mockImplementation(async (collection, filter) => {
+        if (collection === 'reviews') {
+          return mockReviews.filter(r => Object.keys(filter).every(k => r[k] === filter[k]));
+        }
+        return [];
       });
       dbUnified.findOne.mockImplementation(async (collection, filter) => {
         if (collection === 'suppliers') {
@@ -214,6 +226,12 @@ describe('Supplier Review Stats Endpoint', () => {
           return Promise.resolve(mockReviews);
         }
         return Promise.resolve([]);
+      });
+      dbUnified.find.mockImplementation(async (collection, filter) => {
+        if (collection === 'reviews') {
+          return mockReviews.filter(r => Object.keys(filter).every(k => r[k] === filter[k]));
+        }
+        return [];
       });
       dbUnified.findOne.mockImplementation(async (collection, filter) => {
         if (collection === 'suppliers') {

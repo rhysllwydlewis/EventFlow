@@ -128,9 +128,11 @@ jest.mock('../../services/partnerService', () => mockPartnerService);
 
 const mockDb = {
   read: jest.fn().mockResolvedValue([]),
+  find: jest.fn().mockResolvedValue([]),
   findOne: jest.fn().mockResolvedValue(null),
   insertOne: jest.fn().mockResolvedValue({ id: 'pcr_test_001' }),
   updateOne: jest.fn().mockResolvedValue({ modified: 1 }),
+  deleteOne: jest.fn().mockResolvedValue(true),
 };
 
 jest.mock('../../db-unified', () => mockDb);
@@ -448,20 +450,20 @@ describe('GET /api/partner/cashout-requests', () => {
   });
 
   it("returns only the current partner's requests", async () => {
-    mockDb.read.mockResolvedValue([
-      {
-        id: 'pcr_001',
-        partnerId: 'prt_001',
-        status: 'submitted',
-        createdAt: new Date().toISOString(),
-      },
-      {
-        id: 'pcr_002',
-        partnerId: 'prt_OTHER',
-        status: 'submitted',
-        createdAt: new Date().toISOString(),
-      },
-    ]);
+    // Code now uses find({ partnerId }) — mock returns filtered results directly
+    mockDb.find.mockImplementation(async (collection, filter) => {
+      if (collection === 'partner_cashout_requests' && filter.partnerId === 'prt_001') {
+        return [
+          {
+            id: 'pcr_001',
+            partnerId: 'prt_001',
+            status: 'submitted',
+            createdAt: new Date().toISOString(),
+          },
+        ];
+      }
+      return [];
+    });
     const res = await request(app).get('/api/partner/cashout-requests');
     expect(res.status).toBe(200);
     expect(res.body.items).toHaveLength(1);
@@ -469,7 +471,7 @@ describe('GET /api/partner/cashout-requests', () => {
   });
 
   it('returns 200 with empty list when no requests exist', async () => {
-    mockDb.read.mockResolvedValue([]);
+    mockDb.find.mockResolvedValue([]); // find returns empty array
     const res = await request(app).get('/api/partner/cashout-requests');
     expect(res.status).toBe(200);
     expect(res.body.items).toEqual([]);
@@ -488,20 +490,14 @@ describe('GET /api/partner/cashout-requests/:id', () => {
   });
 
   it('returns 404 when request does not exist', async () => {
-    mockDb.read.mockResolvedValue([]);
+    mockDb.findOne.mockResolvedValue(null); // no matching request
     const res = await request(app).get('/api/partner/cashout-requests/pcr_nonexistent');
     expect(res.status).toBe(404);
   });
 
   it('returns 404 when request belongs to another partner', async () => {
-    mockDb.read.mockResolvedValue([
-      {
-        id: 'pcr_other',
-        partnerId: 'prt_OTHER',
-        status: 'submitted',
-        createdAt: new Date().toISOString(),
-      },
-    ]);
+    // findOne with { id, partnerId: currentPartner } won't match a different partner's request
+    mockDb.findOne.mockResolvedValue(null);
     const res = await request(app).get('/api/partner/cashout-requests/pcr_other');
     expect(res.status).toBe(404);
   });
@@ -513,7 +509,7 @@ describe('GET /api/partner/cashout-requests/:id', () => {
       status: 'submitted',
       createdAt: new Date().toISOString(),
     };
-    mockDb.read.mockResolvedValue([mockRequest]);
+    mockDb.findOne.mockResolvedValue(mockRequest); // findOne({ id, partnerId }) returns the request
     const res = await request(app).get('/api/partner/cashout-requests/pcr_mine');
     expect(res.status).toBe(200);
     expect(res.body.request.id).toBe('pcr_mine');

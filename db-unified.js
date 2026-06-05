@@ -234,9 +234,9 @@ async function createIndexes() {
     await marketplaceCollection2.createIndex({ userId: 1 });
     await marketplaceCollection2.createIndex({ status: 1 });
     // Reviews compound - authorId+supplierId for eligibility check
-    const reviewsCollection2 = mongodb.collection('reviews');
-    await reviewsCollection2.createIndex({ authorId: 1, supplierId: 1 });
-    await reviewsCollection2.createIndex({ authorId: 1, createdAt: -1 });
+    const reviewsCollection3 = mongodb.collection('reviews');
+    await reviewsCollection3.createIndex({ authorId: 1, supplierId: 1 });
+    await reviewsCollection3.createIndex({ authorId: 1, createdAt: -1 });
     // Webhook events dedup store
     const webhookEventsCollection = mongodb.collection('webhook_events');
     await webhookEventsCollection.createIndex({ eventId: 1 }, { unique: true }); // O(1) dedup lookup
@@ -276,6 +276,44 @@ async function createIndexes() {
     );
 
     // partner_code_history.partnerId and partner_referrals.partnerId already indexed above
+
+    // Tickets collection
+    const ticketsCollection2 = mongodb.collection('tickets');
+    await ticketsCollection2.createIndex({ id: 1 }, { unique: true });
+    await ticketsCollection2.createIndex({ senderId: 1, senderType: 1 }); // user/supplier ticket lists
+    await ticketsCollection2.createIndex({ status: 1, createdAt: -1 }); // status filtering + sort
+
+    // Saved searches and history
+    const savedSearchesCollection = mongodb.collection('savedSearches');
+    await savedSearchesCollection.createIndex({ id: 1 }, { unique: true });
+    await savedSearchesCollection.createIndex({ userId: 1 }); // per-user saved search list
+    const searchHistoryCollection = mongodb.collection('searchHistory');
+    await searchHistoryCollection.createIndex({ userId: 1, timestamp: -1 }); // history ordered by time
+
+    // Partner cashout requests
+    const cashoutRequestsCollection = mongodb.collection('partner_cashout_requests');
+    await cashoutRequestsCollection.createIndex({ id: 1 }, { unique: true });
+    await cashoutRequestsCollection.createIndex({ partnerId: 1 });
+
+    // Quote requests, threads, bookings (supplier dashboard data)
+    const quoteReqColl2 = mongodb.collection('quoteRequests');
+    await quoteReqColl2.createIndex({ supplierId: 1 });
+    const threadsColl2 = mongodb.collection('threads');
+    await threadsColl2.createIndex({ supplierId: 1 });
+    const bookingsColl = mongodb.collection('bookings');
+    await bookingsColl.createIndex({ supplierId: 1 }, { sparse: true });
+
+    // Notes — one note per user
+    const notesColl = mongodb.collection('notes');
+    await notesColl.createIndex({ userId: 1 }, { unique: true });
+
+    // Plans — guest token lookups
+    const plansCollection5 = mongodb.collection('plans');
+    await plansCollection5.createIndex({ guestToken: 1 }, { sparse: true });
+
+    // Reviews — approved flag for public widget
+    const reviewsColl4 = mongodb.collection('reviews');
+    await reviewsColl4.createIndex({ approved: 1, createdAt: -1 }); // public review widget
 
     logger.info('✅ Database indexes created successfully');
   } catch (error) {

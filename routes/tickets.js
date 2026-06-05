@@ -346,10 +346,8 @@ router.get('/:id', authRequired, async (req, res) => {
   try {
     const { id } = req.params;
 
-    const tickets = (await dbUnified.read('tickets')).map(ticket =>
-      normalizeTicketRecord(ticket, { generateId: uid })
-    );
-    const ticket = tickets.find(t => t.id === id);
+    const rawTicket = await dbUnified.findOne('tickets', { id });
+    const ticket = rawTicket ? normalizeTicketRecord(rawTicket, { generateId: uid }) : null;
 
     if (!ticket) {
       return res.status(404).json({ error: 'Ticket not found' });
@@ -381,16 +379,12 @@ router.put('/:id', authRequired, csrfProtection, writeLimiter, async (req, res) 
     const { id } = req.params;
     const { status, response, priority, assignedTo, resolutionNote } = req.body;
 
-    const tickets = (await dbUnified.read('tickets')).map(ticket =>
-      normalizeTicketRecord(ticket, { generateId: uid })
-    );
-    const ticketIndex = tickets.findIndex(t => t.id === id);
-
-    if (ticketIndex === -1) {
+    const rawTicketToUpdate = await dbUnified.findOne('tickets', { id });
+    if (!rawTicketToUpdate) {
       return res.status(404).json({ error: 'Ticket not found' });
     }
 
-    const ticket = tickets[ticketIndex];
+    const ticket = normalizeTicketRecord(rawTicketToUpdate, { generateId: uid });
 
     // Check access permissions
     if (!canUserAccessTicket(req.user, ticket)) {
@@ -463,7 +457,6 @@ router.put('/:id', authRequired, csrfProtection, writeLimiter, async (req, res) 
     }
 
     ticket.updatedAt = now;
-    tickets[ticketIndex] = ticket;
     await dbUnified.updateOne('tickets', { id: ticket.id }, { $set: ticket });
 
     // Audit log
@@ -500,16 +493,12 @@ router.delete('/:id', authRequired, csrfProtection, writeLimiter, async (req, re
       return res.status(403).json({ error: 'Only admins can delete tickets' });
     }
 
-    const tickets = (await dbUnified.read('tickets')).map(ticket =>
-      normalizeTicketRecord(ticket, { generateId: uid })
-    );
-    const ticketIndex = tickets.findIndex(t => t.id === id);
-
-    if (ticketIndex === -1) {
+    const rawTicketForAction = await dbUnified.findOne('tickets', { id });
+    if (!rawTicketForAction) {
       return res.status(404).json({ error: 'Ticket not found' });
     }
 
-    const ticket = tickets[ticketIndex];
+    const ticket = normalizeTicketRecord(rawTicketForAction, { generateId: uid });
     await dbUnified.deleteOne('tickets', ticket.id);
 
     // Audit log
@@ -555,16 +544,12 @@ router.post('/:id/reply', authRequired, csrfProtection, writeLimiter, async (req
       return res.status(400).json({ error: 'Reply message is too long (max 5000 characters)' });
     }
 
-    const tickets = (await dbUnified.read('tickets')).map(ticket =>
-      normalizeTicketRecord(ticket, { generateId: uid })
-    );
-    const ticketIndex = tickets.findIndex(t => t.id === id);
-
-    if (ticketIndex === -1) {
+    const rawTicketForAction = await dbUnified.findOne('tickets', { id });
+    if (!rawTicketForAction) {
       return res.status(404).json({ error: 'Ticket not found' });
     }
 
-    const ticket = tickets[ticketIndex];
+    const ticket = normalizeTicketRecord(rawTicketForAction, { generateId: uid });
 
     // Check access: admins can reply to any ticket, users can only reply to their own
     if (!canUserAccessTicket(req.user, ticket)) {
@@ -600,7 +585,6 @@ router.post('/:id/reply', authRequired, csrfProtection, writeLimiter, async (req
     ticket.lastReplyAt = now;
     ticket.lastReplyBy = userRole;
 
-    tickets[ticketIndex] = ticket;
     await dbUnified.updateOne('tickets', { id: ticket.id }, { $set: ticket });
 
     // Send email notification to ticket creator (if reply is from admin)
@@ -627,8 +611,7 @@ router.post('/:id/reply', authRequired, csrfProtection, writeLimiter, async (req
     // Notify admin users when a non-admin replies to a ticket
     if (userRole !== 'admin') {
       try {
-        const allUsers = await dbUnified.read('users');
-        const adminUsers = allUsers.filter(u => u.role === 'admin');
+        const adminUsers = await dbUnified.find('users', { role: 'admin' });
         const notifSvc = await getNotificationService(req);
         const baseUrl = process.env.BASE_URL || 'https://event-flow.co.uk';
         const replierName = reply.userName || 'User';

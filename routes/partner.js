@@ -49,8 +49,8 @@ router.post('/register', authLimiter, csrfProtection, async (req, res) => {
     return res.status(400).json({ error: 'Location is required' });
   }
 
-  const users = await dbUnified.read('users');
-  if (users.find(u => u.email.toLowerCase() === String(email).toLowerCase())) {
+  const emailLower = String(email).toLowerCase();
+  if (await dbUnified.findOne('users', { email: emailLower })) {
     return res.status(409).json({ error: 'Email already registered' });
   }
 
@@ -400,9 +400,11 @@ router.get('/support-tickets', authRequired, roleRequired('partner'), async (req
       });
     }
 
-    const allTickets = (await dbUnified.read('tickets')) || [];
-    const partnerTickets = allTickets
-      .filter(t => t.senderId === req.user.id && t.senderType === 'partner')
+    const rawPartnerTickets = await dbUnified.find('tickets', {
+      senderId: req.user.id,
+      senderType: 'partner',
+    });
+    const partnerTickets = rawPartnerTickets
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       .map(t => ({
         id: t.id,
@@ -590,9 +592,8 @@ router.get('/cashout-requests', authRequired, roleRequired('partner'), async (re
     }
 
     const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);
-    const all = (await dbUnified.read('partner_cashout_requests')) || [];
-    const mine = all
-      .filter(r => r.partnerId === partner.id)
+    const allMine = await dbUnified.find('partner_cashout_requests', { partnerId: partner.id });
+    const mine = allMine
       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
       .slice(0, limit)
       .map(r => ({
@@ -635,8 +636,10 @@ router.get('/cashout-requests/:id', authRequired, roleRequired('partner'), async
       });
     }
 
-    const all = (await dbUnified.read('partner_cashout_requests')) || [];
-    const request = all.find(r => r.id === req.params.id && r.partnerId === partner.id);
+    const request = await dbUnified.findOne('partner_cashout_requests', {
+      id: req.params.id,
+      partnerId: partner.id,
+    });
     if (!request) {
       return res.status(404).json({ error: 'Cashout request not found' });
     }

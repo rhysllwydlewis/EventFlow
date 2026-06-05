@@ -240,6 +240,16 @@ describe('Tickets Routes Integration', () => {
 
     dbUnified.read.mockResolvedValue(existing);
     dbUnified.write.mockResolvedValue(true);
+    // PUT/reply routes now use findOne({ id }) — provide mock
+    dbUnified.findOne.mockImplementation(async (collection, filter) => {
+      if (collection === 'tickets') {
+        return existing.find(t => t.id === filter.id) || null;
+      }
+      if (collection === 'users' && filter.role === 'admin') {
+        return null;
+      } // no admin notify needed
+      return null;
+    });
 
     const replyResponse = await request(app)
       .post('/api/tickets/ticket-reopen/reply')
@@ -285,6 +295,15 @@ describe('Tickets Routes Integration', () => {
 
     dbUnified.read.mockResolvedValue(existing);
     dbUnified.write.mockResolvedValue(true);
+    dbUnified.findOne.mockImplementation(async (collection, filter) => {
+      if (collection === 'tickets') {
+        return existing.find(t => t.id === filter.id) || null;
+      }
+      if (collection === 'users' && filter.role === 'admin') {
+        return null;
+      }
+      return null;
+    });
 
     const response = await request(app)
       .post('/api/tickets/ticket-1/reply')
@@ -475,6 +494,12 @@ describe('Tickets Routes Integration', () => {
       ];
 
       dbUnified.read.mockResolvedValue(existing);
+      dbUnified.findOne.mockImplementation(async (collection, filter) => {
+        if (collection === 'tickets') {
+          return existing.find(t => t.id === filter.id) || null;
+        }
+        return null;
+      });
 
       const response = await request(app)
         .put('/api/tickets/ticket-admin-pri')
@@ -563,9 +588,18 @@ describe('Tickets Routes Integration', () => {
       const postmark = require('../../utils/postmark');
       postmark.sendEmail.mockClear();
 
-      dbUnified.read
-        .mockResolvedValueOnce([existingTicket]) // tickets
-        .mockResolvedValueOnce([{ id: 'admin-1', role: 'admin', email: 'admin@example.com' }]); // users
+      dbUnified.findOne.mockImplementation(async (collection, filter) => {
+        if (collection === 'tickets' && filter.id === 'ticket-reply-test') {
+          return existingTicket;
+        }
+        return null;
+      });
+      dbUnified.find.mockImplementation(async (collection, filter) => {
+        if (collection === 'users' && filter.role === 'admin') {
+          return [{ id: 'admin-1', role: 'admin', email: 'admin@example.com' }];
+        }
+        return [];
+      });
       dbUnified.updateOne.mockResolvedValue(true);
 
       const response = await request(app)
@@ -586,7 +620,12 @@ describe('Tickets Routes Integration', () => {
       const postmark = require('../../utils/postmark');
       postmark.sendEmail.mockClear();
 
-      dbUnified.read.mockResolvedValueOnce([existingTicket]);
+      dbUnified.findOne.mockImplementation(async (collection, filter) => {
+        if (collection === 'tickets' && filter.id === 'ticket-reply-test') {
+          return existingTicket;
+        }
+        return null;
+      });
       dbUnified.updateOne.mockResolvedValue(true);
 
       await request(app)
