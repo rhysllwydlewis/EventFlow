@@ -296,15 +296,7 @@ router.post(
 
       // Handle marketplace type with multiple files
       if (type === 'marketplace') {
-        const listings = await dbUnified.read('marketplace_listings');
-        if (!Array.isArray(listings)) {
-          return res.status(500).json({
-            error: 'Database unavailable',
-            errorType: 'DatabaseError',
-            details: 'Marketplace listings database is not accessible',
-          });
-        }
-        const listing = listings.find(l => l.id === normalizedId);
+        const listing = await dbUnified.findOne('marketplace_listings', { id: normalizedId });
 
         if (!listing) {
           return res.status(404).json({
@@ -467,8 +459,7 @@ router.post(
 
       // Update supplier or package with new photo
       if (type === 'supplier') {
-        const suppliers = await dbUnified.read('suppliers');
-        const supplier = suppliers.find(s => s.id === id);
+        const supplier = await dbUnified.findOne('suppliers', { id });
 
         if (!supplier) {
           return res.status(404).json({ error: 'Supplier not found' });
@@ -510,9 +501,15 @@ router.post(
             supplierName: supplier.name,
           };
 
-          const existingPhotos = (await dbUnified.read('photos')) || [];
-          existingPhotos.push(pendingRecord);
-          await dbUnified.write('photos', existingPhotos);
+          const photoInserted = await dbUnified.insertOne('photos', pendingRecord);
+          if (!photoInserted) {
+            logger.error('[PHOTOS] insertOne failed for pending record', {
+              photoId: pendingRecord.id,
+            });
+            return res
+              .status(500)
+              .json({ error: 'Failed to save photo record. Please try again.' });
+          }
 
           return res.json({
             success: true,
@@ -522,16 +519,14 @@ router.post(
           });
         }
       } else if (type === 'package') {
-        const packages = await dbUnified.read('packages');
-        const pkg = packages.find(p => p.id === id);
+        const pkg = await dbUnified.findOne('packages', { id });
 
         if (!pkg) {
           return res.status(404).json({ error: 'Package not found' });
         }
 
         // Check if user owns this package's supplier
-        const suppliers = await dbUnified.read('suppliers');
-        const supplier = suppliers.find(s => s.id === pkg.supplierId);
+        const supplier = await dbUnified.findOne('suppliers', { id: pkg.supplierId });
 
         if (!supplier || (supplier.ownerUserId !== req.user.id && req.user.role !== 'admin')) {
           return res.status(403).json({ error: 'Not authorized' });
@@ -631,8 +626,7 @@ router.post(
       // Get existing images count for marketplace listings (for order calculation)
       let existingImagesCount = 0;
       if (type === 'marketplace') {
-        const listings = await dbUnified.read('marketplace_listings');
-        const listing = listings?.find(l => l.id === normalizedId);
+        const listing = await dbUnified.findOne('marketplace_listings', { id: normalizedId });
         if (listing) {
           existingImagesCount = normalizeMarketplaceImageUrls(listing.images).length;
         }
@@ -758,15 +752,7 @@ router.post(
 
       // Update supplier, package, or marketplace listing with new photos
       if (type === 'marketplace') {
-        const listings = await dbUnified.read('marketplace_listings');
-        if (!Array.isArray(listings)) {
-          return res.status(500).json({
-            error: 'Database unavailable',
-            errorType: 'DatabaseError',
-            details: 'Marketplace listings database is not accessible',
-          });
-        }
-        const listing = listings.find(l => l.id === normalizedId);
+        const listing = await dbUnified.findOne('marketplace_listings', { id: normalizedId });
 
         if (!listing) {
           return res.status(404).json({ error: 'Listing not found' });
@@ -821,8 +807,7 @@ router.post(
           message: `${uploadedUrls.length} photo(s) uploaded successfully to marketplace listing.`,
         });
       } else if (type === 'supplier') {
-        const suppliers = await dbUnified.read('suppliers');
-        const supplier = suppliers.find(s => s.id === normalizedId);
+        const supplier = await dbUnified.findOne('suppliers', { id: normalizedId });
 
         if (!supplier) {
           return res.status(404).json({ error: 'Supplier not found' });
@@ -857,29 +842,35 @@ router.post(
             supplierName: supplier.name,
           }));
 
-          const existingPhotos = (await dbUnified.read('photos')) || [];
-          existingPhotos.push(...pendingRecords);
-          await dbUnified.write('photos', existingPhotos);
+          const insertResults = await Promise.all(
+            pendingRecords.map(r => dbUnified.insertOne('photos', r))
+          );
+          const failedInserts = insertResults.filter(r => !r).length;
+          if (failedInserts > 0) {
+            logger.error('[PHOTOS] bulk insertOne: some records failed', {
+              total: pendingRecords.length,
+              failed: failedInserts,
+            });
+          }
+          const savedPhotos = pendingRecords.filter((_, i) => insertResults[i]);
 
           return res.json({
             success: true,
-            uploaded: pendingRecords.length,
-            photos: pendingRecords,
+            uploaded: savedPhotos.length,
+            photos: savedPhotos,
             pending: true,
             errors: errors,
-            message: `${pendingRecords.length} photo(s) uploaded and awaiting moderation approval.`,
+            message: `${savedPhotos.length} photo(s) uploaded and awaiting moderation approval.`,
           });
         }
       } else if (type === 'package') {
-        const packages = await dbUnified.read('packages');
-        const pkg = packages.find(p => p.id === normalizedId);
+        const pkg = await dbUnified.findOne('packages', { id: normalizedId });
 
         if (!pkg) {
           return res.status(404).json({ error: 'Package not found' });
         }
 
-        const suppliers = await dbUnified.read('suppliers');
-        const supplier = suppliers.find(s => s.id === pkg.supplierId);
+        const supplier = await dbUnified.findOne('suppliers', { id: pkg.supplierId });
 
         if (!supplier || (supplier.ownerUserId !== req.user.id && req.user.role !== 'admin')) {
           return res.status(403).json({ error: 'Not authorized' });
@@ -950,8 +941,7 @@ router.delete('/photos/delete', applyAuthRequired, applyCsrfProtection, async (r
     const decodedUrl = decodeURIComponent(photoUrl);
 
     if (type === 'supplier') {
-      const suppliers = await dbUnified.read('suppliers');
-      const supplier = suppliers.find(s => s.id === id);
+      const supplier = await dbUnified.findOne('suppliers', { id });
 
       if (!supplier) {
         return res.status(404).json({ error: 'Supplier not found' });
@@ -980,8 +970,7 @@ router.delete('/photos/delete', applyAuthRequired, applyCsrfProtection, async (r
         return res.status(404).json({ error: 'Package not found' });
       }
 
-      const suppliers = await dbUnified.read('suppliers');
-      const supplier = suppliers.find(s => s.id === pkg.supplierId);
+      const supplier = await dbUnified.findOne('suppliers', { id: pkg.supplierId });
 
       if (!supplier || (supplier.ownerUserId !== req.user.id && req.user.role !== 'admin')) {
         return res.status(403).json({ error: 'Not authorized' });
@@ -1263,13 +1252,21 @@ router.get(
   applyAuthRequired,
   applyRoleRequired('admin'),
   async (req, res) => {
-    const photos = await dbUnified.read('photos');
-    const pendingPhotos = photos.filter(p => p.status === 'pending');
+    const pendingPhotos = await dbUnified.find('photos', { status: 'pending' });
 
     // Enrich with supplier information
-    const suppliers = await dbUnified.read('suppliers');
+    // Fetch only the suppliers referenced by these pending photos
+    const pendingSupplierIds = [...new Set(pendingPhotos.map(p => p.supplierId).filter(Boolean))];
+    const pendingSuppliers = pendingSupplierIds.length
+      ? await Promise.all(
+          pendingSupplierIds.map(sid => dbUnified.findOne('suppliers', { id: sid }))
+        )
+      : [];
+    const pendingSupplierMap = Object.fromEntries(
+      pendingSuppliers.filter(Boolean).map(s => [s.id, s])
+    );
     const enrichedPhotos = pendingPhotos.map(photo => {
-      const supplier = suppliers.find(s => s.id === photo.supplierId);
+      const supplier = pendingSupplierMap[photo.supplierId];
       return {
         ...photo,
         supplierName: supplier ? supplier.name : 'Unknown',
@@ -1337,8 +1334,7 @@ router.get('/admin/photos', applyAuthRequired, applyRoleRequired('admin'), async
       return res.status(400).json({ error: 'supplierId query parameter is required' });
     }
 
-    const suppliers = await dbUnified.read('suppliers');
-    const supplier = suppliers.find(s => s.id === supplierId);
+    const supplier = await dbUnified.findOne('suppliers', { id: supplierId });
 
     if (!supplier) {
       return res.status(404).json({ error: 'Supplier not found' });
@@ -1375,14 +1371,11 @@ router.post(
   applyCsrfProtection,
   async (req, res) => {
     const { id } = req.params;
-    const photos = await dbUnified.read('photos');
-    const photoIndex = photos.findIndex(p => p.id === id);
+    const photo = await dbUnified.findOne('photos', { id });
 
-    if (photoIndex === -1) {
+    if (!photo) {
       return res.status(404).json({ error: 'Photo not found' });
     }
-
-    const photo = photos[photoIndex];
     const now = new Date().toISOString();
 
     // Update photo status
@@ -1397,26 +1390,24 @@ router.post(
     );
 
     // Add photo to supplier's photosGallery if not already there
-    const suppliers = await dbUnified.read('suppliers');
-    const supplierIndex = suppliers.findIndex(s => s.id === photo.supplierId);
+    const approvedSupplier = await dbUnified.findOne('suppliers', { id: photo.supplierId });
 
-    if (supplierIndex !== -1) {
-      if (!suppliers[supplierIndex].photosGallery) {
-        suppliers[supplierIndex].photosGallery = [];
-      }
-      const alreadyInGallery = suppliers[supplierIndex].photosGallery.some(
-        p => p.url === photo.url
-      );
+    if (approvedSupplier) {
+      const currentGallery = approvedSupplier.photosGallery || [];
+      const alreadyInGallery = currentGallery.some(p => p.url === photo.url);
       if (!alreadyInGallery) {
-        suppliers[supplierIndex].photosGallery.push({
-          url: photo.url,
-          approved: true,
-          uploadedAt: photo.uploadedAt || new Date().toISOString(),
-        });
+        const updatedGallery = [
+          ...currentGallery,
+          {
+            url: photo.url,
+            approved: true,
+            uploadedAt: photo.uploadedAt || new Date().toISOString(),
+          },
+        ];
         await dbUnified.updateOne(
           'suppliers',
-          { id: suppliers[supplierIndex].id },
-          { $set: { photosGallery: suppliers[supplierIndex].photosGallery } }
+          { id: approvedSupplier.id },
+          { $set: { photosGallery: updatedGallery } }
         );
       }
     }
@@ -1437,14 +1428,11 @@ router.post(
   async (req, res) => {
     const { id } = req.params;
     const { reason } = req.body;
-    const photos = await dbUnified.read('photos');
-    const photoIndex = photos.findIndex(p => p.id === id);
+    const photo = await dbUnified.findOne('photos', { id });
 
-    if (photoIndex === -1) {
+    if (!photo) {
       return res.status(404).json({ error: 'Photo not found' });
     }
-
-    const photo = photos[photoIndex];
     const now = new Date().toISOString();
 
     // Update photo status

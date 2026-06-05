@@ -241,6 +241,12 @@ async function createIndexes() {
     const webhookEventsCollection = mongodb.collection('webhook_events');
     await webhookEventsCollection.createIndex({ eventId: 1 }, { unique: true }); // O(1) dedup lookup
     await webhookEventsCollection.createIndex({ processedAt: -1 });
+    // Photos collection
+    const photosCollection = mongodb.collection('photos');
+    await photosCollection.createIndex({ id: 1 }, { unique: true });
+    await photosCollection.createIndex({ supplierId: 1 });
+    await photosCollection.createIndex({ status: 1 }); // pending moderation queue
+    await photosCollection.createIndex({ supplierId: 1, status: 1 }); // per-supplier moderation
     logger.info('✅ Database indexes created successfully');
   } catch (error) {
     logger.info('ℹ️  Database indexes:', error.message);
