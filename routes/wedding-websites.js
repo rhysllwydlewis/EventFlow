@@ -253,8 +253,7 @@ function getPublishReadiness(site) {
 }
 
 async function getOwnedPlan(req, res, next) {
-  const plans = await dbUnified.read('plans');
-  const plan = plans.find(p => p.id === req.params.planId && p.userId === req.user.id);
+  const plan = await dbUnified.findOne('plans', { id: req.params.planId, userId: req.user.id });
   if (!plan) {
     return res.status(404).json({ error: 'Plan not found' });
   }
@@ -327,13 +326,11 @@ router.post(
   csrfProtection,
   writeLimiter,
   async (req, res) => {
-    const plans = await dbUnified.read('plans');
-    const existing = plans.find(
-      p =>
-        p.userId === req.user.id &&
-        p.isWebsiteWorkspace &&
-        p.source === 'wedding_website_quick_start'
-    );
+    const existing = await dbUnified.findOne('plans', {
+      userId: req.user.id,
+      isWebsiteWorkspace: true,
+      source: 'wedding_website_quick_start',
+    });
     if (existing) {
       return res.status(200).json({ success: true, plan: existing, reused: true });
     }

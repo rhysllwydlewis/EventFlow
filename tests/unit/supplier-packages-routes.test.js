@@ -108,10 +108,14 @@ describe('Supplier Packages — Ownership Verification', () => {
     expect(routesContent).toContain('async function resolveOwnedPackage(');
   });
 
-  it('resolveOwnedPackage fetches packages and suppliers in parallel via Promise.all', () => {
-    expect(routesContent).toContain('Promise.all([');
-    expect(routesContent).toContain("dbUnified.read('packages')");
-    expect(routesContent).toContain("dbUnified.read('suppliers')");
+  it('resolveOwnedPackage uses findOne for package and supplier lookups (no full scans)', () => {
+    const helperStart = routesContent.indexOf('async function resolveOwnedPackage(');
+    const helperBlock = routesContent.substring(helperStart, helperStart + 600);
+    expect(helperBlock).toContain("dbUnified.findOne('packages'");
+    expect(helperBlock).toContain("dbUnified.findOne('suppliers'");
+    // No longer reads full collections
+    expect(helperBlock).not.toContain("dbUnified.read('packages')");
+    expect(helperBlock).not.toContain("dbUnified.read('suppliers')");
   });
 
   it('resolveOwnedPackage returns 404 for unknown package', () => {
@@ -129,7 +133,7 @@ describe('Supplier Packages — Ownership Verification', () => {
   });
 
   it('ownership check uses ownerUserId matching req.user.id', () => {
-    expect(routesContent).toContain('s.ownerUserId === req.user.id');
+    expect(routesContent).toContain('ownerUserId: req.user.id');
   });
 });
 

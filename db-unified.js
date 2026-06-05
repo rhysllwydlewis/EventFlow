@@ -262,9 +262,10 @@ async function createIndexes() {
     await plansCollection3.createIndex({ 'weddingWebsite.slug': 1 }, { sparse: true }); // dotted-path
 
     // Partner credit transactions
+    // partner_credit_transactions — additional indexes for targeted lookups
     const partnerCreditCollection = mongodb.collection('partner_credit_transactions');
-    await partnerCreditCollection.createIndex({ id: 1 }, { unique: true });
-    await partnerCreditCollection.createIndex({ partnerId: 1 }); // getBalance
+    await partnerCreditCollection.createIndex({ id: 1 }, { unique: true }); // reverseDebit + releaseCashoutHold
+    // Note: { partnerId, createdAt } compound already exists above (covers getBalance partnerId queries)
     await partnerCreditCollection.createIndex(
       { partnerId: 1, supplierUserId: 1, type: 1 },
       { sparse: true } // _awardCredit idempotency
@@ -274,11 +275,7 @@ async function createIndexes() {
       { sparse: true } // releaseCashoutHold idempotency
     );
 
-    // Partner code history and referrals
-    const partnerCodeHistoryCollection2 = mongodb.collection('partner_code_history');
-    await partnerCodeHistoryCollection2.createIndex({ partnerId: 1 });
-    const partnerReferralsCollection2 = mongodb.collection('partner_referrals');
-    await partnerReferralsCollection2.createIndex({ partnerId: 1 });
+    // partner_code_history.partnerId and partner_referrals.partnerId already indexed above
 
     logger.info('✅ Database indexes created successfully');
   } catch (error) {

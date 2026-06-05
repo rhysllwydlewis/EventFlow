@@ -348,18 +348,16 @@ router.post(
  * @returns {Promise<{pkg: Object, own: Object}|null>}
  */
 async function resolveOwnedPackage(id, req, res) {
-  const [packages, suppliers] = await Promise.all([
-    dbUnified.read('packages'),
-    dbUnified.read('suppliers'),
-  ]);
-
-  const pkg = packages.find(p => p.id === id);
+  const pkg = await dbUnified.findOne('packages', { id });
   if (!pkg) {
     res.status(404).json({ error: 'Package not found' });
     return null;
   }
 
-  const own = suppliers.find(s => s.id === pkg.supplierId && s.ownerUserId === req.user.id);
+  const own = await dbUnified.findOne('suppliers', {
+    id: pkg.supplierId,
+    ownerUserId: req.user.id,
+  });
   if (!own) {
     res.status(403).json({ error: 'Forbidden' });
     return null;
