@@ -555,8 +555,7 @@ async function getModerationStats() {
  * @returns {Promise<Object>} Analytics data
  */
 async function getSupplierAnalytics(supplierId) {
-  const supplierReviews = await dbUnified.find('reviews', { supplierId: supplierId }); // indexed
-  const _reviewsAll = supplierReviews; // alias for backwards-compat if needed);
+  const supplierReviews = await dbUnified.find('reviews', { supplierId: supplierId }); // uses supplierId index
 
   return ReviewAnalytics.generateSupplierAnalytics(supplierReviews);
 }

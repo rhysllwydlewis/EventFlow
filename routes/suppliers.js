@@ -136,11 +136,22 @@ const SPOTLIGHT_PACKAGES_CACHE_TTL = 3600000; // 1 hour (they rotate hourly anyw
  * Call this after any package photo upload so the next carousel request
  * reflects the newly-uploaded image instead of serving stale placeholder data.
  */
+const catalogCache = require('../services/catalogCache');
+
 function invalidatePackageCaches() {
   featuredPackagesCache = null;
   featuredPackagesCacheTime = 0;
   spotlightPackagesCache = null;
   spotlightPackagesCacheTime = 0;
+  // Also clear the search-service packages cache so stale data isn't served
+  catalogCache
+    .invalidate()
+    .catch(err =>
+      require('../utils/logger').warn(
+        '[invalidatePackageCaches] catalogCache.invalidate failed:',
+        err.message
+      )
+    );
 }
 
 /**
