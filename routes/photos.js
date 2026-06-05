@@ -963,8 +963,7 @@ router.delete('/photos/delete', applyAuthRequired, applyCsrfProtection, async (r
         await photoUpload.deleteImage(decodedUrl);
       }
     } else if (type === 'package') {
-      const packages = await dbUnified.read('packages');
-      const pkg = packages.find(p => p.id === id);
+      const pkg = await dbUnified.findOne('packages', { id });
 
       if (!pkg) {
         return res.status(404).json({ error: 'Package not found' });
@@ -1289,6 +1288,7 @@ router.get(
   applyRoleRequired('admin'),
   async (req, res) => {
     try {
+      // Admin: iterate all suppliers to compile gallery photos — intentional full read
       const suppliers = await dbUnified.read('suppliers');
       const photos = [];
 
