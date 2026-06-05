@@ -725,14 +725,12 @@ router.put(
       return res.status(400).json({ error: 'urls must be an array' });
     }
 
-    const pkgs = await dbUnified.read('packages');
-    const p = pkgs.find(x => x.id === req.params.id);
+    const p = await dbUnified.findOne('packages', { id: req.params.id });
     if (!p) {
       return res.status(404).json({ error: 'Not found' });
     }
 
-    const suppliers = await dbUnified.read('suppliers');
-    const own = suppliers.find(x => x.id === p.supplierId && x.ownerUserId === req.userId);
+    const own = await dbUnified.findOne('suppliers', { id: p.supplierId, ownerUserId: req.userId });
     if (!own) {
       return res.status(403).json({ error: 'Not owner' });
     }

@@ -150,9 +150,9 @@ router.post('/track', writeLimiter, csrfProtection, async (req, res) => {
 router.patch('/:id/activate', writeLimiter, authRequired, csrfProtection, async (req, res) => {
   try {
     const { id } = req.params;
-    const existingReferral2 = await dbUnified.findOne('referrals', { id });
+    const referralToUpdate = await dbUnified.findOne('referrals', { id });
 
-    if (!existingReferral2) {
+    if (!referralToUpdate) {
       return res.status(404).json({ error: 'Referral not found' });
     }
 

@@ -179,8 +179,7 @@ async function getSupplierForUser(user) {
   if (!user || user.role !== 'supplier') {
     return null;
   }
-  const suppliers = await dbUnified.read('suppliers');
-  return suppliers.find(s => s.ownerUserId === user.id) || null;
+  return dbUnified.findOne('suppliers', { ownerUserId: user.id });
 }
 
 async function requirePublisher(req, res, next) {

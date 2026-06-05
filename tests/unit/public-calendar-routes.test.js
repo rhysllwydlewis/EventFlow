@@ -143,6 +143,8 @@ function withAuth(req, user) {
 
 // ─── Mock helpers ─────────────────────────────────────────────────────────────
 
+let currentTestSuppliers = [];
+
 function setupReadMock({
   events = [],
   saves = [],
@@ -152,6 +154,12 @@ function setupReadMock({
   public_calendar_event_reports = [],
   settings = {},
 } = {}) {
+  // Track current test suppliers so findOne sees the same data as read
+  // Include test-supplied suppliers first so they take priority over defaults
+  currentTestSuppliers =
+    suppliers.length > 0
+      ? suppliers
+      : [PUBLISHER_SUPPLIER_DOC, OTHER_PUBLISHER_SUPPLIER_DOC, NON_PUBLISHER_SUPPLIER_DOC];
   dbUnified.read.mockImplementation(async collection => {
     if (collection === 'public_calendar_events') {
       return [...events];
@@ -188,14 +196,8 @@ function setupReadMock({
       return allUsers.find(u => u.id === filter.id) || null;
     }
     if (collection === 'suppliers') {
-      const all = [
-        PUBLISHER_SUPPLIER_DOC,
-        OTHER_PUBLISHER_SUPPLIER_DOC,
-        NON_PUBLISHER_SUPPLIER_DOC,
-        ...suppliers,
-      ];
       return (
-        all.find(
+        currentTestSuppliers.find(
           s =>
             (!filter.id || s.id === filter.id) &&
             (!filter.ownerUserId || s.ownerUserId === filter.ownerUserId)
