@@ -11,6 +11,12 @@ const dbUnified = require('../../db-unified');
 
 // Mock dbUnified so tests are fully isolated
 jest.mock('../../db-unified');
+jest.mock('../../services/catalogCache', () => ({
+  get: jest.fn().mockResolvedValue(null),
+  set: jest.fn().mockResolvedValue(undefined),
+  invalidate: jest.fn().mockResolvedValue(undefined),
+  getTtl: jest.fn().mockReturnValue(300),
+}));
 
 // ---------------------------------------------------------------------------
 // Shared mock data

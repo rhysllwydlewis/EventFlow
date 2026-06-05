@@ -85,8 +85,7 @@ async function persistUserSubscriptionState(userId, updates) {
 
   if (Object.keys(supplierState).length > 0) {
     try {
-      const suppliers = await dbUnified.read('suppliers');
-      const ownedSuppliers = suppliers.filter(s => s.ownerUserId === userId);
+      const ownedSuppliers = await dbUnified.find('suppliers', { ownerUserId: userId }); // indexed
       await Promise.all(
         ownedSuppliers.map(supplier =>
           dbUnified.updateOne(

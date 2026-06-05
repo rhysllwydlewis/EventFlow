@@ -59,6 +59,8 @@ const files = {
     DATA_DIR,
     'public_calendar_publisher_requests.json'
   ),
+  // Webhook idempotency store
+  webhook_events: path.join(DATA_DIR, 'webhook_events.json'),
   // Support and content collections
   partner_cashout_requests: path.join(DATA_DIR, 'partner_cashout_requests.json'),
   support_tickets: path.join(DATA_DIR, 'support_tickets.json'),

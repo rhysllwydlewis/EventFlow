@@ -6,6 +6,31 @@
 'use strict';
 
 const dbUnified = require('../db-unified');
+const catalogCache = require('./catalogCache');
+
+// ─── Cached data loaders ──────────────────────────────────────────────────────
+
+/** Load all approved suppliers — checks catalogCache before hitting the DB. */
+async function getCachedSuppliers() {
+  const KEY = 'suppliers:all';
+  let suppliers = await catalogCache.get(KEY);
+  if (!suppliers) {
+    suppliers = await dbUnified.read('suppliers');
+    await catalogCache.set(KEY, suppliers);
+  }
+  return suppliers;
+}
+
+/** Load all approved packages — checks catalogCache before hitting the DB. */
+async function getCachedPackages() {
+  const KEY = 'packages:all';
+  let packages = await catalogCache.get(KEY);
+  if (!packages) {
+    packages = await dbUnified.read('packages');
+    await catalogCache.set(KEY, packages);
+  }
+  return packages;
+}
 const { resolvePackageImage } = require('../utils/packageImageUtils');
 const {
   calculateRelevanceScore,
@@ -270,11 +295,11 @@ async function searchSuppliers(query) {
   // Normalize query to ensure consistent, safe values throughout
   const normalizedQuery = normalizeSupplierQuery(query);
   const startTime = Date.now();
-  const suppliersRaw = await dbUnified.read('suppliers');
+  const suppliersRaw = await getCachedSuppliers();
   const suppliers = await hydrateSuppliersWithActivePro(suppliersRaw);
 
   // Pre-load packages to embed top 3 per supplier (for carousel in search results)
-  const allPackages = await dbUnified.read('packages');
+  const allPackages = await getCachedPackages();
 
   // Geocode postcode for distance filtering/sorting
   let userCoords = null;
@@ -412,8 +437,8 @@ async function searchPackages(query) {
   // Normalize query to ensure consistent, safe values throughout
   const normalizedQuery = normalizePackageQuery(query);
   const startTime = Date.now();
-  const packages = await dbUnified.read('packages');
-  const suppliersRaw = await dbUnified.read('suppliers');
+  const packages = await getCachedPackages();
+  const suppliersRaw = await getCachedSuppliers();
   const suppliers = await hydrateSuppliersWithActivePro(suppliersRaw);
 
   // Create a supplier lookup map
@@ -1095,7 +1120,7 @@ function calculateFacets(allSuppliers) {
  * @returns {Promise<Array>} Array of projected public supplier objects
  */
 async function getSimilarSuppliers(supplierId, limit = 6) {
-  const suppliersRaw = await dbUnified.read('suppliers');
+  const suppliersRaw = await getCachedSuppliers();
   const suppliers = await hydrateSuppliersWithActivePro(suppliersRaw);
 
   // Find the reference supplier (approved or not — we just need its attributes)
@@ -1199,7 +1224,7 @@ async function getDiscoveryFeed({
   topRatedLimit = 6,
   newArrivalsLimit = 6,
 } = {}) {
-  const suppliersRaw = await dbUnified.read('suppliers');
+  const suppliersRaw = await getCachedSuppliers();
   const suppliers = await hydrateSuppliersWithActivePro(suppliersRaw);
   const approved = suppliers.filter(s => s.approved);
 
@@ -1350,7 +1375,7 @@ async function getPersonalizedFeed(userId, context = {}, options = {}) {
   const { limit = 12, historyDays = 30 } = options;
   const { eventType, location, budget } = context;
 
-  const suppliersRaw = await dbUnified.read('suppliers');
+  const suppliersRaw = await getCachedSuppliers();
   const suppliers = await hydrateSuppliersWithActivePro(suppliersRaw);
   const approved = suppliers.filter(s => s.approved);
 
@@ -1487,7 +1512,7 @@ async function getPersonalizedFeed(userId, context = {}, options = {}) {
  * @returns {Promise<Array>} Array of projected public supplier objects
  */
 async function getPeopleAlsoViewed(supplierId, limit = 6) {
-  const suppliersRaw = await dbUnified.read('suppliers');
+  const suppliersRaw = await getCachedSuppliers();
   const suppliers = await hydrateSuppliersWithActivePro(suppliersRaw);
 
   const reference = suppliers.find(s => s.id === supplierId || s._id === supplierId);
