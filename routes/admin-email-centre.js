@@ -4,6 +4,7 @@ const express = require('express');
 const auth = require('../middleware/auth');
 const limits = require('../middleware/rateLimits');
 const emailLogService = require('../services/emailLog.service');
+const verificationProvenance = require('../services/verificationProvenance.service');
 const postmark = require('../utils/postmark');
 const { EMAIL_ENABLED } = require('../config/email');
 
@@ -18,6 +19,7 @@ function safeDomain(address) {
 
 router.get('/summary', limits.apiLimiter, auth.authRequired, auth.roleRequired('admin'), async (_req, res) => {
   const emailSummary = await emailLogService.getSummary();
+  const provenance = await verificationProvenance.getVerificationIntegrity({ lookbackDays: 30 });
   const status = postmark.getPostmarkStatus();
   const defaultFrom = status.from || null;
   res.json({
@@ -31,8 +33,15 @@ router.get('/summary', limits.apiLimiter, auth.authRequired, auth.roleRequired('
       emailDomain: process.env.EMAIL_DOMAIN || safeDomain(defaultFrom),
       campaignMessageStream: process.env.CAMPAIGN_MESSAGE_STREAM || 'outbound',
       lastWebhookAt: emailSummary.lastWebhookAt,
+      verificationProvenance: provenance.summary,
     },
   });
+});
+
+router.get('/verification-provenance', limits.apiLimiter, auth.authRequired, auth.roleRequired('admin'), async (req, res) => {
+  const lookbackDays = Number(req.query.lookbackDays || 30);
+  const result = await verificationProvenance.getVerificationIntegrity({ lookbackDays });
+  res.json(result);
 });
 
 module.exports = router;
