@@ -3,6 +3,7 @@
 const express = require('express');
 const auth = require('../middleware/auth');
 const limits = require('../middleware/rateLimits');
+const dbUnified = require('../db-unified');
 const emailLogService = require('../services/emailLog.service');
 const verificationProvenance = require('../services/verificationProvenance.service');
 const postmark = require('../utils/postmark');
@@ -42,6 +43,35 @@ router.get('/verification-provenance', limits.apiLimiter, auth.authRequired, aut
   const lookbackDays = Number(req.query.lookbackDays || 30);
   const result = await verificationProvenance.getVerificationIntegrity({ lookbackDays });
   res.json(result);
+});
+
+router.get('/users-provenance', limits.apiLimiter, auth.authRequired, auth.roleRequired('admin'), async (_req, res) => {
+  const users = await dbUnified.read('users');
+  const verificationLogs = await verificationProvenance.readVerificationLogs();
+  const items = (users || []).map(user => {
+    const summary = verificationProvenance.summariseUser(user, verificationLogs);
+    return {
+      id: user.id || (user._id ? user._id.toString() : undefined),
+      email: user.email,
+      name: user.name,
+      role: user.role,
+      verified: Boolean(user.verified),
+      createdAt: user.createdAt,
+      signupMethod: summary.signupMethod,
+      authProvider: summary.authProvider,
+      verificationMethod: summary.verificationMethod,
+      verifiedAt: summary.verifiedAt,
+      verifiedBy: summary.verifiedBy,
+      emailDeliveryStatus: summary.emailDeliveryStatus,
+      verificationEmailSentAt: summary.verificationEmailSentAt,
+      lastVerificationEmailLogId: summary.lastVerificationEmailLogId,
+      lastVerificationEmailPostmarkMessageId: summary.lastVerificationEmailPostmarkMessageId,
+      hasGoogleLink: summary.hasGoogleLink,
+      googleLinkedAt: summary.googleLinkedAt,
+    };
+  });
+  items.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+  res.json({ ok: true, items });
 });
 
 module.exports = router;
