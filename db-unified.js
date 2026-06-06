@@ -315,6 +315,15 @@ async function createIndexes() {
     const reviewsColl4 = mongodb.collection('reviews');
     await reviewsColl4.createIndex({ approved: 1, createdAt: -1 }); // public review widget
 
+    // Review requests — idempotency check on supplierId+customerEmail
+    const reviewRequestsCollection = mongodb.collection('reviewRequests');
+    await reviewRequestsCollection.createIndex({ id: 1 }, { unique: true });
+    await reviewRequestsCollection.createIndex({ supplierId: 1, customerEmail: 1 }); // dedup check
+
+    // Customer calendar entries — userId lookup for dashboard summary
+    const customerCalendarCollection = mongodb.collection('customer_calendar_entries');
+    await customerCalendarCollection.createIndex({ userId: 1, start: 1 }); // upcoming events query
+
     logger.info('✅ Database indexes created successfully');
   } catch (error) {
     logger.info('ℹ️  Database indexes:', error.message);
