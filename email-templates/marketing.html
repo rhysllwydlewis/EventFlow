@@ -12,7 +12,6 @@
       .email-container { width: 100% !important; border-radius: 0 !important; }
       .email-body { padding: 28px 20px !important; }
       .email-footer { padding: 20px !important; }
-      .email-cta a { display: block !important; text-align: center !important; }
     }
     @media (prefers-color-scheme: dark) {
       .email-body { background-color: #1a2332 !important; }
@@ -52,7 +51,7 @@
 
               <!-- Message content (raw HTML allowed — backend-controlled only) -->
               <div class="message-box" style="background-color:#F2FBF9;border-left:4px solid #13B6A2;border-radius:0 12px 12px 0;padding:20px 22px;margin-bottom:28px;">
-                <p style="margin:0;font-size:15px;color:#0B1220;line-height:1.75;">{{message}}</p>
+                {{message}}
               </div>
 
               <p style="margin:0;font-size:13px;color:#667085;line-height:1.6;">You're receiving this email because you opted in to marketing communications from EventFlow. We respect your inbox — emails are infrequent and relevant.</p>

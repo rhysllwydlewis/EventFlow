@@ -180,20 +180,19 @@ router.post('/preview', authRequired, roleRequired('admin'), async (req, res) =>
   try {
     const { templateName = 'marketing', subject, title, bodyHtml, ctaText, ctaUrl } = req.body;
 
-    if (!CAMPAIGN_SAFE_TEMPLATES.has(templateName)) {
-      return res
-        .status(400)
-        .json({
-          ok: false,
-          error: `Template "${escapeHtml(templateName)}" is not available for campaigns.`,
-        });
+    const safeTemplateName = typeof templateName === 'string' ? templateName.trim() : '';
+    if (!CAMPAIGN_SAFE_TEMPLATES.has(safeTemplateName)) {
+      return res.status(400).json({
+        ok: false,
+        error: `Template "${escapeHtml(safeTemplateName || String(templateName))}" is not available for campaigns.`,
+      });
     }
 
     const templateData = buildTemplateData({ title, bodyHtml, ctaText, ctaUrl });
     // Add a placeholder unsubscribe link so the template renders a visible link
     // in preview mode (the real personalised link is only generated on /test and /send).
     templateData.unsubscribeLink = `${APP_BASE_URL}/api/auth/unsubscribe?preview=1`;
-    const html = postmark.loadEmailTemplate(templateName, templateData);
+    const html = postmark.loadEmailTemplate(safeTemplateName, templateData);
 
     if (!html) {
       return res
@@ -244,13 +243,12 @@ router.post(
         return res.status(422).json({ ok: false, error: 'Invalid email address.' });
       }
 
-      if (!CAMPAIGN_SAFE_TEMPLATES.has(templateName)) {
-        return res
-          .status(400)
-          .json({
-            ok: false,
-            error: `Template "${escapeHtml(templateName)}" is not available for campaigns.`,
-          });
+      const safeTemplateName = typeof templateName === 'string' ? templateName.trim() : '';
+      if (!CAMPAIGN_SAFE_TEMPLATES.has(safeTemplateName)) {
+        return res.status(400).json({
+          ok: false,
+          error: `Template "${escapeHtml(safeTemplateName || String(templateName))}" is not available for campaigns.`,
+        });
       }
 
       // CTA URL must be http/https if CTA text is provided
@@ -278,7 +276,7 @@ router.post(
       await postmark.sendMail({
         to: to.trim(),
         subject: `[TEST] ${subject}`,
-        template: templateName,
+        template: safeTemplateName,
         templateData,
         messageStream: CAMPAIGN_MESSAGE_STREAM,
         tags: ['campaign-test'],
@@ -332,13 +330,12 @@ router.post(
         return res.status(400).json({ ok: false, error: 'Invalid audience value.' });
       }
 
-      if (!CAMPAIGN_SAFE_TEMPLATES.has(templateName)) {
-        return res
-          .status(400)
-          .json({
-            ok: false,
-            error: `Template "${escapeHtml(templateName)}" is not available for campaigns.`,
-          });
+      const safeTemplateName = typeof templateName === 'string' ? templateName.trim() : '';
+      if (!CAMPAIGN_SAFE_TEMPLATES.has(safeTemplateName)) {
+        return res.status(400).json({
+          ok: false,
+          error: `Template "${escapeHtml(safeTemplateName || String(templateName))}" is not available for campaigns.`,
+        });
       }
 
       // CTA URL must be http/https if provided alongside CTA text
@@ -381,7 +378,7 @@ router.post(
               await postmark.sendMail({
                 to: email,
                 subject,
-                template: templateName,
+                template: safeTemplateName,
                 templateData,
                 messageStream: CAMPAIGN_MESSAGE_STREAM,
                 tags: ['campaign'],
