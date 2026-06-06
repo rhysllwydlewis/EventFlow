@@ -1,6 +1,8 @@
 'use strict';
 
 const express = require('express');
+const auth = require('../middleware/auth');
+const limits = require('../middleware/rateLimits');
 const emailLogService = require('../services/emailLog.service');
 const postmark = require('../utils/postmark');
 const { EMAIL_ENABLED } = require('../config/email');
@@ -14,7 +16,7 @@ function safeDomain(address) {
   return address.split('@').pop() || null;
 }
 
-router.get('/summary', async (_req, res) => {
+router.get('/summary', limits.apiLimiter, auth.authRequired, auth.roleRequired('admin'), async (_req, res) => {
   const emailSummary = await emailLogService.getSummary();
   const status = postmark.getPostmarkStatus();
   const defaultFrom = status.from || null;
