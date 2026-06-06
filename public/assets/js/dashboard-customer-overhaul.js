@@ -33,7 +33,7 @@
 
     container.className = 'event-countdown-widget';
     container.innerHTML = `
-      <div class="event-countdown-widget__days" aria-label="${nearest.daysUntil} days until ${nearest.name}">${nearest.daysUntil}</div>
+      <div class="event-countdown-widget__days" aria-label="${esc(String(nearest.daysUntil))} days until ${esc(nearest.name)}">${nearest.daysUntil}</div>
       <div class="event-countdown-widget__text">
         <h3>${esc(nearest.name)}</h3>
         <p>${new Date(nearest.date).toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>

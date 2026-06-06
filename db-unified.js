@@ -315,6 +315,15 @@ async function createIndexes() {
     const reviewsColl4 = mongodb.collection('reviews');
     await reviewsColl4.createIndex({ approved: 1, createdAt: -1 }); // public review widget
 
+    // Review requests — idempotency check on supplierId+customerEmail
+    const reviewRequestsCollection = mongodb.collection('reviewRequests');
+    await reviewRequestsCollection.createIndex({ id: 1 }, { unique: true });
+    await reviewRequestsCollection.createIndex({ supplierId: 1, customerEmail: 1 }); // dedup check
+
+    // customer_calendar_entries: add compound index for upcoming events query
+    // (collection + userId index already declared above; adding userId+start compound)
+    await calendarEntriesCollection.createIndex({ userId: 1, date: 1 }); // upcoming events filter
+
     logger.info('✅ Database indexes created successfully');
   } catch (error) {
     logger.info('ℹ️  Database indexes:', error.message);

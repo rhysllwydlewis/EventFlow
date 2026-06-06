@@ -54,7 +54,11 @@ function buildApp() {
 }
 
 describe('GET /api/v1/customer/dashboard-summary', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.resetAllMocks();
+    mockDb.find.mockResolvedValue([]);
+    mockDb.findOne.mockResolvedValue(null);
+  });
 
   it('returns 403 for non-customer roles', async () => {
     const app = buildApp();
@@ -66,6 +70,7 @@ describe('GET /api/v1/customer/dashboard-summary', () => {
 
   it('returns 200 with empty state for new customer', async () => {
     mockDb.find.mockResolvedValue([]);
+    mockDb.findOne.mockResolvedValue(null);
     const app = buildApp();
     const res = await request(app)
       .get('/api/v1/customer/dashboard-summary')
@@ -74,20 +79,20 @@ describe('GET /api/v1/customer/dashboard-summary', () => {
     expect(res.body).toHaveProperty('plans');
     expect(res.body).toHaveProperty('budget');
     expect(res.body).toHaveProperty('savedSuppliers');
+    expect(res.body).toHaveProperty('upcomingEvents');
     expect(res.body).toHaveProperty('tickets');
     expect(res.body.plans.total).toBe(0);
+    expect(res.body.budget.spent).toBe(0);
+    expect(Array.isArray(res.body.upcomingEvents)).toBe(true);
   });
 
-  it('calculates budget from plan packages', async () => {
+  it('calculates budget by resolving package IDs from plans', async () => {
     const plan = {
       id: 'plan-1',
       userId: 'user-cust-1',
       budget: 5000,
       updatedAt: new Date().toISOString(),
-      packages: [
-        { id: 'pkg-1', price: '£1000' },
-        { id: 'pkg-2', price: '£500 pp' },
-      ],
+      packages: ['pkg-1', 'pkg-2'], // plan.packages stores IDs, not objects
     };
     mockDb.find.mockImplementation(async col => {
       if (col === 'plans') {
@@ -95,18 +100,33 @@ describe('GET /api/v1/customer/dashboard-summary', () => {
       }
       return [];
     });
+    mockDb.findOne.mockImplementation(async (col, filter) => {
+      if (col === 'packages' && filter.id === 'pkg-1') {
+        return { id: 'pkg-1', price: '£1000', primaryCategoryKey: 'Photography' };
+      }
+      if (col === 'packages' && filter.id === 'pkg-2') {
+        return { id: 'pkg-2', price: '£500', primaryCategoryKey: 'Catering' };
+      }
+      return null;
+    });
     const app = buildApp();
     const res = await request(app)
       .get('/api/v1/customer/dashboard-summary')
       .set('x-test-user-role', 'customer');
     expect(res.status).toBe(200);
     expect(res.body.budget.total).toBe(5000);
-    expect(res.body.budget.spent).toBeGreaterThanOrEqual(0);
+    expect(res.body.budget.spent).toBe(1500);
+    expect(res.body.budget.remaining).toBe(3500);
+    expect(res.body.budget.percentUsed).toBe(30);
   });
 });
 
 describe('GET /api/v1/customer/event-countdown', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.resetAllMocks();
+    mockDb.find.mockResolvedValue([]);
+    mockDb.findOne.mockResolvedValue(null);
+  });
 
   it('returns 403 for supplier', async () => {
     const app = buildApp();
@@ -148,7 +168,11 @@ describe('GET /api/v1/customer/event-countdown', () => {
 });
 
 describe('GET /api/v1/customer/milestones', () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.resetAllMocks();
+    mockDb.find.mockResolvedValue([]);
+    mockDb.findOne.mockResolvedValue(null);
+  });
 
   it('returns 403 for non-customers', async () => {
     const app = buildApp();

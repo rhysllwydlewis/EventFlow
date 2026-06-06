@@ -329,28 +329,25 @@
   /* ── Init ── */
   async function init() {
     try {
-      // Fetch dashboard summary
-      const res = await fetch('/api/v1/supplier/dashboard-summary?days=30', {
-        credentials: 'include',
-      });
-      if (!res.ok) {
-        return;
+      // Fire all 3 requests in parallel — none depends on the others
+      const [summaryRes, availRes, tipsRes] = await Promise.allSettled([
+        fetch('/api/v1/supplier/dashboard-summary?days=30', { credentials: 'include' }),
+        fetch('/api/v1/supplier/availability', { credentials: 'include' }),
+        fetch('/api/v1/supplier/performance-tips', { credentials: 'include' }),
+      ]);
+
+      if (summaryRes.status === 'fulfilled' && summaryRes.value.ok) {
+        const data = await summaryRes.value.json();
+        renderKpiGrid(data);
       }
-      const data = await res.json();
 
-      renderKpiGrid(data);
-
-      // Availability
-      const availRes = await fetch('/api/v1/supplier/availability', { credentials: 'include' });
-      if (availRes.ok) {
-        const { availability } = await availRes.json();
+      if (availRes.status === 'fulfilled' && availRes.value.ok) {
+        const { availability } = await availRes.value.json();
         renderAvailabilityWidget(availability || {});
       }
 
-      // Performance tips
-      const tipsRes = await fetch('/api/v1/supplier/performance-tips', { credentials: 'include' });
-      if (tipsRes.ok) {
-        const tipsData = await tipsRes.json();
+      if (tipsRes.status === 'fulfilled' && tipsRes.value.ok) {
+        const tipsData = await tipsRes.value.json();
         renderPerformanceTips(tipsData);
       }
 

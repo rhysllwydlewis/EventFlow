@@ -29,7 +29,7 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
       dbUnified.find('plans', { userId }).catch(() => []),
       dbUnified.find('savedItems', { userId }).catch(() => []),
       dbUnified.find('tickets', { senderId: userId, senderType: 'customer' }).catch(() => []),
-      dbUnified.find('calendarEntries', { userId }).catch(() => []),
+      dbUnified.find('customer_calendar_entries', { userId }).catch(() => []),
     ]);
 
     // Plans summary
@@ -42,14 +42,41 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
         )[0] || null,
     };
 
+    // Resolve package IDs across all plans to calculate spent budget
+    // plan.packages stores string IDs — must look up full package docs for prices
+    const allPackageIds = [
+      ...new Set(
+        plans.flatMap(p => (p.packages || []).filter(id => typeof id === 'string' && id.trim()))
+      ),
+    ];
+    const packageDocs =
+      allPackageIds.length > 0
+        ? (
+            await Promise.all(
+              allPackageIds.map(id => dbUnified.findOne('packages', { id }).catch(() => null))
+            )
+          ).filter(Boolean)
+        : [];
+
+    // Build a price map for fast lookup
+    const priceMap = {};
+    packageDocs.forEach(pkg => {
+      const raw = String(pkg.price || pkg.price_display || '0');
+      const num = parseFloat(raw.replace(/[^0-9.]/g, '')) || 0;
+      priceMap[pkg.id] = num;
+    });
+
     // Budget summary from most recent plan
     const activePlan = plansSummary.recentPlan;
     let budgetSummary = { total: 0, spent: 0, remaining: 0, percentUsed: 0 };
     if (activePlan) {
-      const total = activePlan.budget || activePlan.totalBudget || 0;
-      const spent = (activePlan.packages || []).reduce((sum, pkg) => {
-        const price = parseFloat(String(pkg.price || '0').replace(/[^0-9.]/g, '')) || 0;
-        return sum + price;
+      const rawTotal = activePlan.budget || activePlan.totalBudget || 0;
+      const total =
+        typeof rawTotal === 'number'
+          ? rawTotal
+          : parseFloat(String(rawTotal).replace(/[^0-9.]/g, '')) || 0;
+      const spent = (activePlan.packages || []).reduce((sum, pkgId) => {
+        return sum + (priceMap[pkgId] || 0);
       }, 0);
       const remaining = Math.max(0, total - spent);
       budgetSummary = {
@@ -144,11 +171,11 @@ router.get('/milestones', authRequired, async (req, res) => {
     const hasGuestCount = plans.some(p => p.guestCount || p.guests);
     const hasBudget = plans.some(p => p.budget || p.totalBudget);
     const hasSavedSuppliers = savedItems.length > 0;
-    const hasVenue =
-      savedItems.some(s => (s.category || '').toLowerCase().includes('venue')) ||
-      plans.some(p =>
-        (p.packages || []).some(pkg => (pkg.category || '').toLowerCase().includes('venue'))
-      );
+    // hasVenue: check savedItems category only (plan.packages stores IDs — resolving
+    // them here would add extra DB queries; savedItems is the reliable signal)
+    const hasVenue = savedItems.some(s =>
+      (s.category || s.itemType || '').toLowerCase().includes('venue')
+    );
 
     const milestones = [
       {
