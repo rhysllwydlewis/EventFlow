@@ -1,1 +1,1 @@
-Updated note.
+Note.
