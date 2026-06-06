@@ -47,6 +47,7 @@
   }
 
   function renderHealth(health) {
+    const provenance = health.verificationProvenance || {};
     const rows = [
       ['Email enabled', health.emailEnabled ? 'Yes' : 'No'],
       ['Postmark configured', health.postmarkConfigured ? 'Yes' : 'No'],
@@ -55,9 +56,17 @@
       ['Email domain', health.emailDomain || 'Not configured'],
       ['Campaign stream', health.campaignMessageStream || 'outbound'],
       ['Last webhook received', formatDate(health.lastWebhookAt)],
+      ['Verification users checked', provenance.checkedUsers],
+      ['Verification critical issues', provenance.criticalIssues],
+      ['Verification warnings', provenance.warnings],
+      ['Email/password users missing verification logs', provenance.emailPasswordUsersMissingVerificationEmailLogs],
+      ['Google users with valid provenance', provenance.googleUsersWithValidProvenance],
+      ['Verification emails saved to outbox', provenance.outboxVerificationEmailLogs],
+      ['Failed verification emails', provenance.failedVerificationEmailLogs],
+      ['Bounced verification emails', provenance.bouncedVerificationEmailLogs],
     ];
     document.getElementById('emailHealthList').innerHTML = rows
-      .map(([term, desc]) => `<div><dt>${escapeHtml(term)}</dt><dd>${escapeHtml(desc)}</dd></div>`)
+      .map(([term, desc]) => `<div><dt>${escapeHtml(term)}</dt><dd>${escapeHtml(desc ?? '—')}</dd></div>`)
       .join('');
   }
 
