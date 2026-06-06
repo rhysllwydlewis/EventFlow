@@ -241,6 +241,15 @@ async function createIndexes() {
     const webhookEventsCollection = mongodb.collection('webhook_events');
     await webhookEventsCollection.createIndex({ eventId: 1 }, { unique: true }); // O(1) dedup lookup
     await webhookEventsCollection.createIndex({ processedAt: -1 });
+    // Email Centre activity logs
+    const emailLogsCollection = mongodb.collection('email_logs');
+    await emailLogsCollection.createIndex({ id: 1 }, { unique: true });
+    await emailLogsCollection.createIndex({ postmarkMessageId: 1 });
+    await emailLogsCollection.createIndex({ createdAt: -1 });
+    await emailLogsCollection.createIndex({ status: 1, createdAt: -1 });
+    await emailLogsCollection.createIndex({ recipients: 1 });
+    await emailLogsCollection.createIndex({ template: 1 });
+    await emailLogsCollection.createIndex({ messageStream: 1 });
     // Photos collection
     const photosCollection = mongodb.collection('photos');
     await photosCollection.createIndex({ id: 1 }, { unique: true });
