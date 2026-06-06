@@ -1,0 +1,371 @@
+/**
+ * EventFlow Supplier Dashboard Overhaul — PR #1150
+ * Adds: KPI cards with trend, availability widget, performance tips,
+ * review request form, animated counters, and enhanced empty states.
+ */
+(function () {
+  'use strict';
+
+  /* ── Helpers ── */
+  function esc(str) {
+    const d = document.createElement('div');
+    d.textContent = String(str ?? '');
+    return d.innerHTML;
+  }
+
+  function toast(msg, type = 'info') {
+    let container = document.querySelector('.ef-toast-container');
+    if (!container) {
+      container = document.createElement('div');
+      container.className = 'ef-toast-container';
+      document.body.appendChild(container);
+    }
+    const el = document.createElement('div');
+    el.className = `ef-toast ef-toast--${type}`;
+    el.innerHTML = `<span class="ef-toast__message">${esc(msg)}</span><button class="ef-toast__close" aria-label="Dismiss">×</button>`;
+    el.querySelector('.ef-toast__close').addEventListener('click', () => el.remove());
+    container.appendChild(el);
+    setTimeout(() => el.remove(), 5000);
+  }
+
+  function animateCounter(el, target, duration = 1200) {
+    if (!el || isNaN(target)) {
+      return;
+    }
+    const start = Date.now();
+    const step = () => {
+      const pct = Math.min((Date.now() - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - pct, 3);
+      el.textContent = Math.round(target * eased).toLocaleString();
+      if (pct < 1) {
+        requestAnimationFrame(step);
+      }
+    };
+    requestAnimationFrame(step);
+  }
+
+  function trendBadge(value) {
+    if (value === null || value === undefined) {
+      return '';
+    } // eslint-disable-line no-eq-null
+    const cls = value > 0 ? 'up' : value < 0 ? 'down' : 'flat';
+    const arrow = value > 0 ? '↑' : value < 0 ? '↓' : '→';
+    const label = value === 0 ? 'Steady' : `${Math.abs(value)}% vs last period`;
+    return `<span class="kpi-card__trend kpi-card__trend--${cls}">${arrow} ${label}</span>`;
+  }
+
+  /* ── KPI Grid ── */
+  function renderKpiGrid(data) {
+    const container = document.getElementById('supplier-kpi-grid');
+    if (!container) {
+      return;
+    }
+
+    const { analytics = {}, packages = {}, messages = {}, reviews = {} } = data;
+    const cards = [
+      {
+        cls: 'blue',
+        label: 'Profile Views',
+        value: analytics.totalViews ?? 0,
+        trend: analytics.viewsTrend,
+        icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`,
+      },
+      {
+        cls: 'green',
+        label: 'New Enquiries',
+        value: analytics.totalEnquiries ?? 0,
+        trend: analytics.enquiriesTrend,
+        icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
+      },
+      {
+        cls: 'teal',
+        label: 'Active Packages',
+        value: packages.active ?? 0,
+        icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/></svg>`,
+      },
+      {
+        cls: 'amber',
+        label: 'Unread Messages',
+        value: messages.unread ?? 0,
+        icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>`,
+      },
+      {
+        cls: 'purple',
+        label: 'Avg. Rating',
+        value: reviews.averageRating ? reviews.averageRating.toFixed(1) : '—',
+        isText: true,
+        icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`,
+      },
+      {
+        cls: 'red',
+        label: 'Total Reviews',
+        value: reviews.total ?? 0,
+        icon: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>`,
+      },
+    ];
+
+    container.className = 'kpi-grid';
+    container.innerHTML = cards
+      .map(
+        c => `
+      <div class="kpi-card kpi-card--${c.cls}">
+        <div class="kpi-card__icon">${c.icon}</div>
+        <div class="kpi-card__value" ${c.isText ? '' : `data-animated data-target="${c.value}"`}>${c.isText ? esc(c.value) : '0'}</div>
+        <div class="kpi-card__label">${esc(c.label)}</div>
+        ${c.trend !== null && c.trend !== undefined ? trendBadge(c.trend) : ''}
+      </div>
+    `
+      )
+      .join('');
+
+    // Animate numeric counters
+    container.querySelectorAll('[data-animated]').forEach(el => {
+      const target = parseFloat(el.dataset.target) || 0;
+      animateCounter(el, target);
+    });
+  }
+
+  /* ── Availability Widget ── */
+  function renderAvailabilityWidget(availability) {
+    const container = document.getElementById('supplier-availability-widget');
+    if (!container) {
+      return;
+    }
+
+    const { status = 'available', blockedDates = [], notes = '' } = availability;
+    container.className = 'availability-widget';
+    container.innerHTML = `
+      <div class="availability-widget__header">
+        <span class="availability-widget__title">
+          <span class="availability-dot availability-dot--${esc(status)}" aria-hidden="true"></span>
+          Availability Status
+        </span>
+        <div class="availability-status-selector" role="group" aria-label="Set availability status">
+          <button class="availability-btn ${status === 'available' ? 'active' : ''}" data-status="available" type="button">Available</button>
+          <button class="availability-btn ${status === 'limited' ? 'active' : ''}" data-status="limited" type="button">Limited</button>
+          <button class="availability-btn ${status === 'unavailable' ? 'active' : ''}" data-status="unavailable" type="button">Unavailable</button>
+        </div>
+      </div>
+      <p style="font-size:12px;color:#6b7280;margin:0 0 8px">Let customers know your current booking status</p>
+      <textarea class="availability-notes" placeholder="Add a note (e.g. 'Limited slots in December')" aria-label="Availability notes">${esc(notes)}</textarea>
+      <button class="availability-save-btn" type="button" id="save-availability-btn">Save Status</button>
+      <span id="availability-save-status" style="font-size:12px;color:#059669;margin-left:10px;display:none">Saved ✓</span>
+    `;
+
+    let currentStatus = status;
+
+    // Status button click
+    container.querySelectorAll('.availability-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        container.querySelectorAll('.availability-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentStatus = btn.dataset.status;
+        const dot = container.querySelector('.availability-dot');
+        if (dot) {
+          dot.className = `availability-dot availability-dot--${currentStatus}`;
+        }
+      });
+    });
+
+    // Save
+    container.querySelector('#save-availability-btn').addEventListener('click', async () => {
+      const notes = container.querySelector('.availability-notes').value;
+      const btn = container.querySelector('#save-availability-btn');
+      const statusEl = container.querySelector('#availability-save-status');
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+      try {
+        const res = await fetch('/api/v1/supplier/availability', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ status: currentStatus, notes }),
+        });
+        if (res.ok) {
+          btn.textContent = 'Save Status';
+          btn.disabled = false;
+          statusEl.style.display = 'inline';
+          setTimeout(() => {
+            statusEl.style.display = 'none';
+          }, 3000);
+          toast('Availability updated', 'success');
+        } else {
+          toast('Failed to save availability', 'error');
+          btn.textContent = 'Save Status';
+          btn.disabled = false;
+        }
+      } catch {
+        toast('Network error — please try again', 'error');
+        btn.textContent = 'Save Status';
+        btn.disabled = false;
+      }
+    });
+  }
+
+  /* ── Performance Tips ── */
+  function renderPerformanceTips(data) {
+    const container = document.getElementById('supplier-perf-tips');
+    if (!container) {
+      return;
+    }
+
+    if (!data.tips || data.tips.length === 0) {
+      container.innerHTML = `
+        <div class="ef-empty-state">
+          <div class="ef-empty-state__illustration">🎉</div>
+          <div class="ef-empty-state__title">Looking great!</div>
+          <div class="ef-empty-state__desc">Your profile is in excellent shape. Keep engaging with enquiries!</div>
+        </div>
+      `;
+      return;
+    }
+
+    container.className = 'perf-tips-list';
+    container.innerHTML = data.tips
+      .map(
+        tip => `
+      <div class="perf-tip">
+        <span class="perf-tip__icon" aria-hidden="true">${esc(tip.icon)}</span>
+        <div class="perf-tip__body">
+          <p class="perf-tip__title">${esc(tip.title)}</p>
+          <p class="perf-tip__desc">${esc(tip.body)}</p>
+        </div>
+        ${
+          tip.action
+            ? `
+          ${
+            tip.action.href
+              ? `<a class="perf-tip__action" href="${esc(tip.action.href)}">${esc(tip.action.label)}</a>`
+              : `<button class="perf-tip__action" type="button" data-tip-action="${esc(tip.action.data)}">${esc(tip.action.label)}</button>`
+          }
+        `
+            : ''
+        }
+      </div>
+    `
+      )
+      .join('');
+
+    // Wire up data-tip-action="request-review"
+    container.querySelectorAll('[data-tip-action="request-review"]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const form = document.getElementById('supplier-review-request-form');
+        if (form) {
+          form.style.display = form.style.display === 'none' ? '' : 'none';
+          form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      });
+    });
+  }
+
+  /* ── Review Request Form ── */
+  function renderReviewRequestForm() {
+    const container = document.getElementById('supplier-review-request-widget');
+    if (!container) {
+      return;
+    }
+
+    container.innerHTML = `
+      <form class="review-request-form" id="supplier-review-request-form" style="display:none">
+        <p class="review-request-form__title">⭐ Request a Review</p>
+        <p class="review-request-form__desc">Enter a past customer's details to send them a review request email.</p>
+        <div class="review-request-inputs">
+          <input type="email" id="rreq-email" placeholder="Customer email *" required aria-label="Customer email" />
+          <input type="text" id="rreq-name" placeholder="Customer name (optional)" aria-label="Customer name" />
+        </div>
+        <button type="submit" class="review-request-send-btn">Send Request</button>
+        <span id="rreq-status" style="font-size:12px;color:#059669;margin-left:10px;display:none">Sent ✓</span>
+      </form>
+    `;
+
+    container.querySelector('form').addEventListener('submit', async e => {
+      e.preventDefault();
+      const email = document.getElementById('rreq-email').value.trim();
+      const name = document.getElementById('rreq-name').value.trim();
+      const btn = container.querySelector('.review-request-send-btn');
+      const status = document.getElementById('rreq-status');
+
+      if (!email) {
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = 'Sending…';
+
+      try {
+        const res = await fetch('/api/v1/supplier/request-review', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ customerEmail: email, customerName: name }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          toast('Review request sent!', 'success');
+          status.style.display = 'inline';
+          document.getElementById('rreq-email').value = '';
+          document.getElementById('rreq-name').value = '';
+          btn.textContent = 'Send Request';
+          btn.disabled = false;
+          setTimeout(() => {
+            status.style.display = 'none';
+          }, 4000);
+        } else if (res.status === 409) {
+          toast('A review request was already sent to this customer.', 'info');
+          btn.textContent = 'Send Request';
+          btn.disabled = false;
+        } else {
+          toast(data.error || 'Failed to send request', 'error');
+          btn.textContent = 'Send Request';
+          btn.disabled = false;
+        }
+      } catch {
+        toast('Network error — please try again', 'error');
+        btn.textContent = 'Send Request';
+        btn.disabled = false;
+      }
+    });
+  }
+
+  /* ── Init ── */
+  async function init() {
+    try {
+      // Fetch dashboard summary
+      const res = await fetch('/api/v1/supplier/dashboard-summary?days=30', {
+        credentials: 'include',
+      });
+      if (!res.ok) {
+        return;
+      }
+      const data = await res.json();
+
+      renderKpiGrid(data);
+
+      // Availability
+      const availRes = await fetch('/api/v1/supplier/availability', { credentials: 'include' });
+      if (availRes.ok) {
+        const { availability } = await availRes.json();
+        renderAvailabilityWidget(availability || {});
+      }
+
+      // Performance tips
+      const tipsRes = await fetch('/api/v1/supplier/performance-tips', { credentials: 'include' });
+      if (tipsRes.ok) {
+        const tipsData = await tipsRes.json();
+        renderPerformanceTips(tipsData);
+      }
+
+      renderReviewRequestForm();
+    } catch (err) {
+      // Non-fatal — dashboard still works without the overhaul widgets
+      if (window.__EF_DEBUG__) {
+        console.warn('[overhaul] init error:', err);
+      }
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();

@@ -66,6 +66,7 @@ const emailVerificationRoutes = require('./emailVerification');
 const catalogRoutes = require('./catalog');
 const publicCalendarRoutes = require('./public-calendar');
 const customerCalendarRoutes = require('./customer-calendar');
+const customerDashboardRoutes = require('./customer-dashboard');
 const emailUnsubscribeRoutes = require('./emailUnsubscribe');
 const telemetryRoutes = require('./telemetry');
 
@@ -165,11 +166,17 @@ function mountRoutes(app, deps) {
     app.use('/api/v1/admin/debug', adminDebugRoutes);
     app.use('/api/admin/debug', adminDebugRoutes); // Backward compatibility
     adminDebugStatusRoutes.setDebugRoutesStatus(true, '');
-    logger.info('[admin-debug] Debug routes ENABLED (non-production + ENABLE_ADMIN_DEBUG_ROUTES=true)');
+    logger.info(
+      '[admin-debug] Debug routes ENABLED (non-production + ENABLE_ADMIN_DEBUG_ROUTES=true)'
+    );
   } else {
-    const disabledReason = isProduction ? 'production environment' : 'ENABLE_ADMIN_DEBUG_ROUTES not set to true';
+    const disabledReason = isProduction
+      ? 'production environment'
+      : 'ENABLE_ADMIN_DEBUG_ROUTES not set to true';
     adminDebugStatusRoutes.setDebugRoutesStatus(false, disabledReason);
-    logger.info(`[admin-debug] Debug routes DISABLED and NOT mounted${isProduction ? ' (production environment)' : ' (ENABLE_ADMIN_DEBUG_ROUTES not set to true)'}`);
+    logger.info(
+      `[admin-debug] Debug routes DISABLED and NOT mounted${isProduction ? ' (production environment)' : ' (ENABLE_ADMIN_DEBUG_ROUTES not set to true)'}`
+    );
   }
 
   // Newsletter routes (public, no auth required)
@@ -181,16 +188,23 @@ function mountRoutes(app, deps) {
   app.use('/api/payments', paymentsRoutes); // Backward compatibility
 
   // Billing alias routes (used by app.js supplier upgrade flow)
-  const getBillingStripeKey = () => process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY_LIVE || '';
-  app.get('/api/v1/billing/config', (_req, res) => { res.json({ enabled: !!getBillingStripeKey() }); });
+  const getBillingStripeKey = () =>
+    process.env.STRIPE_SECRET_KEY || process.env.STRIPE_SECRET_KEY_LIVE || '';
+  app.get('/api/v1/billing/config', (_req, res) => {
+    res.json({ enabled: !!getBillingStripeKey() });
+  });
   app.post('/api/v1/billing/checkout', deps.authRequired, deps.csrfProtection, async (req, res) => {
     try {
       const stripeKey = getBillingStripeKey();
-      if (!stripeKey) return res.status(503).json({ error: 'Stripe is not configured' });
+      if (!stripeKey) {
+        return res.status(503).json({ error: 'Stripe is not configured' });
+      }
       const stripeLib = require('stripe');
       const stripe = stripeLib(stripeKey, { apiVersion: '2025-12-15.clover' });
       const priceId = process.env.STRIPE_PRO_PRICE_ID;
-      if (!priceId) return res.status(503).json({ error: 'Stripe price ID is not configured' });
+      if (!priceId) {
+        return res.status(503).json({ error: 'Stripe price ID is not configured' });
+      }
       const paymentService = require('../services/paymentService');
       const customer = await paymentService.getOrCreateStripeCustomer(req.user);
       const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
@@ -244,6 +258,10 @@ function mountRoutes(app, deps) {
   app.use('/api/me/plans', plansRoutes);
   app.use('/api/v1/me/calendar-entries', customerCalendarRoutes);
   app.use('/api/me/calendar-entries', customerCalendarRoutes);
+
+  // Customer dashboard aggregated API
+  app.use('/api/v1/customer', customerDashboardRoutes);
+  app.use('/api/customer', customerDashboardRoutes);
   app.use('/api/v1/me/plans', guestsRoutes);
   app.use('/api/me/plans', guestsRoutes);
   app.use('/api/v1/me/saved', savedRoutes);
@@ -251,77 +269,121 @@ function mountRoutes(app, deps) {
   app.use('/api/v1/supplier', supplierRoutes);
   app.use('/api/supplier', supplierRoutes);
 
-  if (deps && supplierAdminRoutes.initializeDependencies) supplierAdminRoutes.initializeDependencies(deps);
+  if (deps && supplierAdminRoutes.initializeDependencies) {
+    supplierAdminRoutes.initializeDependencies(deps);
+  }
   app.use('/api/v1/admin', supplierAdminRoutes);
   app.use('/api/admin', supplierAdminRoutes);
-  if (deps && supplierManagementRoutes.initializeDependencies) supplierManagementRoutes.initializeDependencies(deps);
+  if (deps && supplierManagementRoutes.initializeDependencies) {
+    supplierManagementRoutes.initializeDependencies(deps);
+  }
   app.use('/api/v1/me/suppliers', supplierManagementRoutes);
   app.use('/api/me/suppliers', supplierManagementRoutes);
   app.use('/api/v1/me', supplierManagementRoutes);
   app.use('/api/me', supplierManagementRoutes);
-  if (deps && suppliersV2Routes.initializeDependencies) suppliersV2Routes.initializeDependencies(deps);
+  if (deps && suppliersV2Routes.initializeDependencies) {
+    suppliersV2Routes.initializeDependencies(deps);
+  }
   app.use('/api/v1/me/suppliers', suppliersV2Routes);
   app.use('/api/me/suppliers', suppliersV2Routes);
 
-  if (deps && supplierProfileSafeRoutes.initializeDependencies) supplierProfileSafeRoutes.initializeDependencies(deps);
+  if (deps && supplierProfileSafeRoutes.initializeDependencies) {
+    supplierProfileSafeRoutes.initializeDependencies(deps);
+  }
   app.use('/api/v1', supplierProfileSafeRoutes);
   app.use('/api', supplierProfileSafeRoutes);
-  if (deps && suppliersRoutes.initializeDependencies) suppliersRoutes.initializeDependencies(deps);
+  if (deps && suppliersRoutes.initializeDependencies) {
+    suppliersRoutes.initializeDependencies(deps);
+  }
   app.use('/api/v1', suppliersRoutes);
   app.use('/api', suppliersRoutes);
-  if (deps && packagesRoutes.initializeDependencies) packagesRoutes.initializeDependencies(deps);
+  if (deps && packagesRoutes.initializeDependencies) {
+    packagesRoutes.initializeDependencies(deps);
+  }
   app.use('/api/v1', packagesRoutes);
   app.use('/api', packagesRoutes);
-  if (deps && categoriesRoutes.initializeDependencies) categoriesRoutes.initializeDependencies(deps);
+  if (deps && categoriesRoutes.initializeDependencies) {
+    categoriesRoutes.initializeDependencies(deps);
+  }
   app.use('/api/v1/categories', categoriesRoutes);
   app.use('/api/categories', categoriesRoutes);
-  if (deps && plansLegacyRoutes.initializeDependencies) plansLegacyRoutes.initializeDependencies(deps);
+  if (deps && plansLegacyRoutes.initializeDependencies) {
+    plansLegacyRoutes.initializeDependencies(deps);
+  }
   app.use('/api/v1', plansLegacyRoutes);
   app.use('/api', plansLegacyRoutes);
-  if (deps && marketplaceRoutes.initializeDependencies) marketplaceRoutes.initializeDependencies(deps);
+  if (deps && marketplaceRoutes.initializeDependencies) {
+    marketplaceRoutes.initializeDependencies(deps);
+  }
   app.use('/api/v1/marketplace', marketplaceRoutes);
   app.use('/api/marketplace', marketplaceRoutes);
-  if (deps && discoveryRoutes.initializeDependencies) discoveryRoutes.initializeDependencies(deps);
+  if (deps && discoveryRoutes.initializeDependencies) {
+    discoveryRoutes.initializeDependencies(deps);
+  }
   app.use('/api/v1/discovery', discoveryRoutes);
   app.use('/api/discovery', discoveryRoutes);
-  if (deps && searchRoutes.initializeDependencies) searchRoutes.initializeDependencies(deps);
+  if (deps && searchRoutes.initializeDependencies) {
+    searchRoutes.initializeDependencies(deps);
+  }
   app.use('/api/v1/search', searchRoutes);
   app.use('/api/search', searchRoutes);
-  if (deps && reviewsRoutes.initializeDependencies) reviewsRoutes.initializeDependencies(deps);
+  if (deps && reviewsRoutes.initializeDependencies) {
+    reviewsRoutes.initializeDependencies(deps);
+  }
   app.use('/api/v1', reviewsRoutes);
   app.use('/api', reviewsRoutes);
-  if (deps && photosRoutes.initializeDependencies) photosRoutes.initializeDependencies(deps);
+  if (deps && photosRoutes.initializeDependencies) {
+    photosRoutes.initializeDependencies(deps);
+  }
   app.use('/api/v1', photosRoutes);
   app.use('/api', photosRoutes);
-  if (deps && metricsRoutes.initializeDependencies) metricsRoutes.initializeDependencies(deps);
+  if (deps && metricsRoutes.initializeDependencies) {
+    metricsRoutes.initializeDependencies(deps);
+  }
   app.use('/api/v1', metricsRoutes);
   app.use('/api', metricsRoutes);
-  if (deps && cacheRoutes.initializeDependencies) cacheRoutes.initializeDependencies(deps);
+  if (deps && cacheRoutes.initializeDependencies) {
+    cacheRoutes.initializeDependencies(deps);
+  }
   app.use('/api/v1/admin/cache', cacheRoutes);
   app.use('/api/admin/cache', cacheRoutes);
   app.use('/api/v1/admin', cacheRoutes);
   app.use('/api/admin', cacheRoutes);
-  if (deps && miscRoutes.initializeDependencies) miscRoutes.initializeDependencies(deps);
+  if (deps && miscRoutes.initializeDependencies) {
+    miscRoutes.initializeDependencies(deps);
+  }
   app.use('/api/v1', miscRoutes);
   app.use('/api', legacyApiDeprecation('/api', '/api/v1'), miscRoutes);
-  if (deps && captchaRoutes.initializeDependencies) captchaRoutes.initializeDependencies(deps);
+  if (deps && captchaRoutes.initializeDependencies) {
+    captchaRoutes.initializeDependencies(deps);
+  }
   app.use('/api/v1', captchaRoutes);
   app.use('/api', legacyApiDeprecation('/api', '/api/v1'), captchaRoutes);
-  if (deps && contactRoutes.initializeDependencies) contactRoutes.initializeDependencies(deps);
+  if (deps && contactRoutes.initializeDependencies) {
+    contactRoutes.initializeDependencies(deps);
+  }
   app.use('/api/v1', contactRoutes);
   app.use('/api', legacyApiDeprecation('/api', '/api/v1'), contactRoutes);
-  if (deps && maintenanceRoutes.initializeDependencies) maintenanceRoutes.initializeDependencies(deps);
+  if (deps && maintenanceRoutes.initializeDependencies) {
+    maintenanceRoutes.initializeDependencies(deps);
+  }
   app.use('/api/v1', maintenanceRoutes);
   app.use('/api', legacyApiDeprecation('/api', '/api/v1'), maintenanceRoutes);
-  if (deps && cspRoutes.initializeDependencies) cspRoutes.initializeDependencies(deps);
+  if (deps && cspRoutes.initializeDependencies) {
+    cspRoutes.initializeDependencies(deps);
+  }
   app.use('/api/v1', cspRoutes);
   app.use('/api', legacyApiDeprecation('/api', '/api/v1'), cspRoutes);
-  if (deps && notificationsRoutes.initializeDependencies) notificationsRoutes.initializeDependencies(deps);
+  if (deps && notificationsRoutes.initializeDependencies) {
+    notificationsRoutes.initializeDependencies(deps);
+  }
   app.use('/api/v1/notifications', notificationsRoutes);
   app.use('/api/notifications', notificationsRoutes);
   app.use('/api/v1/telemetry', telemetryRoutes);
   app.use('/api/telemetry', telemetryRoutes);
-  if (deps && adminConfigRoutes.initializeDependencies) adminConfigRoutes.initializeDependencies(deps);
+  if (deps && adminConfigRoutes.initializeDependencies) {
+    adminConfigRoutes.initializeDependencies(deps);
+  }
   app.use('/api/v1/admin', adminConfigRoutes);
   app.use('/api/admin', adminConfigRoutes);
 
@@ -339,12 +401,16 @@ function mountRoutes(app, deps) {
   app.use('/email', emailUnsubscribeRoutes);
   app.get('/conversation', (req, res) => {
     const id = req.query.id;
-    if (id) return res.redirect(301, `/messenger/?conversation=${id}`);
+    if (id) {
+      return res.redirect(301, `/messenger/?conversation=${id}`);
+    }
     return res.redirect(301, '/messenger/');
   });
   app.get('/conversation.html', (req, res) => {
     const id = req.query.id;
-    if (id) return res.redirect(301, `/messenger/?conversation=${id}`);
+    if (id) {
+      return res.redirect(301, `/messenger/?conversation=${id}`);
+    }
     return res.redirect(301, '/messenger/');
   });
   app.get('/conversation/:id', (req, res) =>

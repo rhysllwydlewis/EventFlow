@@ -1,0 +1,192 @@
+/* EventFlow Dashboard Overhaul - PR #1150 */
+
+/* 1. GLOBAL TOKENS */
+.supplier-dashboard-page,
+.customer-dashboard-page {
+  --dash-card-radius:16px;
+  --dash-card-shadow:0 2px 8px rgba(0,0,0,.06),0 8px 24px rgba(0,0,0,.04);
+  --dash-card-shadow-hover:0 4px 16px rgba(0,0,0,.10),0 12px 32px rgba(0,0,0,.06);
+  --dash-border:1px solid rgba(0,0,0,.07);
+  --dash-transition:200ms cubic-bezier(0.4,0,0.2,1);
+  --dash-green:#059669;--dash-green-light:#d1fae5;
+  --dash-blue:#2563eb;--dash-blue-light:#eff6ff;
+  --dash-amber:#d97706;--dash-amber-light:#fef3c7;
+  --dash-red:#dc2626;--dash-red-light:#fee2e2;
+  --dash-purple:#7c3aed;--dash-purple-light:#ede9fe;
+  --dash-teal:#0b8073;--dash-teal-light:#ccfbf1;
+}
+
+/* 2. KPI CARDS */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:24px}
+.kpi-card{background:#fff;border:var(--dash-border);border-radius:var(--dash-card-radius);padding:18px 20px;display:flex;flex-direction:column;gap:8px;box-shadow:var(--dash-card-shadow);transition:box-shadow var(--dash-transition),transform var(--dash-transition);position:relative;overflow:hidden}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--kpi-accent,var(--dash-blue));border-radius:var(--dash-card-radius) var(--dash-card-radius) 0 0}
+.kpi-card:hover{box-shadow:var(--dash-card-shadow-hover);transform:translateY(-2px)}
+.kpi-card--green{--kpi-accent:var(--dash-green)}.kpi-card--blue{--kpi-accent:var(--dash-blue)}.kpi-card--amber{--kpi-accent:var(--dash-amber)}.kpi-card--red{--kpi-accent:var(--dash-red)}.kpi-card--purple{--kpi-accent:var(--dash-purple)}.kpi-card--teal{--kpi-accent:var(--dash-teal)}
+.kpi-card__icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--kpi-accent,var(--dash-blue));flex-shrink:0}
+.kpi-card--green .kpi-card__icon{background:var(--dash-green-light)}.kpi-card--blue .kpi-card__icon{background:var(--dash-blue-light)}.kpi-card--amber .kpi-card__icon{background:var(--dash-amber-light)}.kpi-card--red .kpi-card__icon{background:var(--dash-red-light)}.kpi-card--teal .kpi-card__icon{background:var(--dash-teal-light)}
+.kpi-card__value{font-size:28px;font-weight:800;line-height:1;color:#111827;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+.kpi-card__label{font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.04em}
+.kpi-card__trend{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:2px 6px;border-radius:6px;width:fit-content;margin-top:2px}
+.kpi-card__trend--up{background:var(--dash-green-light);color:var(--dash-green)}.kpi-card__trend--down{background:var(--dash-red-light);color:var(--dash-red)}.kpi-card__trend--flat{background:#f3f4f6;color:#6b7280}
+
+/* 3. AVAILABILITY WIDGET */
+.availability-widget{background:#fff;border:var(--dash-border);border-radius:var(--dash-card-radius);padding:20px;box-shadow:var(--dash-card-shadow)}
+.availability-widget__header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.availability-widget__title{font-size:15px;font-weight:700;color:#111827}
+.availability-status-selector{display:flex;gap:8px;flex-wrap:wrap}
+.availability-btn{border:2px solid transparent;border-radius:24px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;transition:all var(--dash-transition);background:#f3f4f6;color:#374151}
+.availability-btn:hover{background:#e5e7eb}
+.availability-btn[data-status="available"].active{background:var(--dash-green-light);border-color:var(--dash-green);color:var(--dash-green)}
+.availability-btn[data-status="limited"].active{background:var(--dash-amber-light);border-color:var(--dash-amber);color:var(--dash-amber)}
+.availability-btn[data-status="unavailable"].active{background:var(--dash-red-light);border-color:var(--dash-red);color:var(--dash-red)}
+.availability-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px}
+.availability-dot--available{background:var(--dash-green);animation:availability-pulse 2s ease-in-out infinite}
+.availability-dot--limited{background:var(--dash-amber)}
+.availability-dot--unavailable{background:var(--dash-red)}
+@keyframes availability-pulse{0%,100%{box-shadow:0 0 0 0 rgba(5,150,105,.4)}50%{box-shadow:0 0 0 5px rgba(5,150,105,0)}}
+.availability-notes{width:100%;min-height:60px;padding:10px 12px;border:1px solid #d1d5db;border-radius:10px;font-size:13px;font-family:inherit;resize:vertical;transition:border-color var(--dash-transition),box-shadow var(--dash-transition);margin-top:12px;box-sizing:border-box}
+.availability-notes:focus{outline:none;border-color:var(--dash-blue);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+.availability-save-btn{margin-top:10px;padding:8px 18px;border-radius:10px;font-size:13px;font-weight:700;background:var(--dash-teal);color:#fff;border:none;cursor:pointer;transition:background var(--dash-transition),transform var(--dash-transition)}
+.availability-save-btn:hover{background:#096b62;transform:translateY(-1px)}
+
+/* 4. PERFORMANCE TIPS */
+.perf-tips-list{display:flex;flex-direction:column;gap:10px}
+.perf-tip{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px;transition:background var(--dash-transition),box-shadow var(--dash-transition)}
+.perf-tip:hover{background:#fff;box-shadow:var(--dash-card-shadow)}
+.perf-tip__icon{font-size:20px;flex-shrink:0;line-height:1;margin-top:2px}
+.perf-tip__body{flex:1;min-width:0}
+.perf-tip__title{font-size:13px;font-weight:700;color:#111827;margin:0 0 2px}
+.perf-tip__desc{font-size:12px;color:#6b7280;margin:0}
+.perf-tip__action{flex-shrink:0;font-size:12px;font-weight:700;color:var(--dash-blue);text-decoration:none;padding:4px 10px;border:1px solid currentColor;border-radius:8px;white-space:nowrap;transition:background var(--dash-transition),color var(--dash-transition);background:transparent;cursor:pointer;font-family:inherit}
+.perf-tip__action:hover{background:var(--dash-blue);color:#fff;border-color:var(--dash-blue)}
+
+/* 5. EVENT COUNTDOWN (customer) */
+.event-countdown-widget{background:linear-gradient(135deg,#1d4ed8 0%,#4f46e5 100%);border-radius:var(--dash-card-radius);padding:24px;color:#fff;display:flex;align-items:center;gap:20px;margin-bottom:24px;box-shadow:0 8px 24px rgba(29,78,216,.3);position:relative;overflow:hidden}
+.event-countdown-widget::before{content:'';position:absolute;top:-40px;right:-40px;width:160px;height:160px;background:rgba(255,255,255,.06);border-radius:50%}
+.event-countdown-widget__days{font-size:52px;font-weight:900;line-height:1;letter-spacing:-2px;font-variant-numeric:tabular-nums;flex-shrink:0}
+.event-countdown-widget__text h3{font-size:15px;font-weight:700;margin:0 0 4px;opacity:.95}
+.event-countdown-widget__text p{font-size:13px;margin:0;opacity:.75}
+.event-countdown-widget__label{font-size:13px;font-weight:600;opacity:.75;flex-shrink:0}
+.event-countdown-widget--empty{background:linear-gradient(135deg,#e2e8f0 0%,#cbd5e1 100%);color:#475569;box-shadow:none}
+.event-countdown-widget--empty .event-countdown-widget__days{color:#94a3b8;font-size:32px}
+
+/* 6. MILESTONE CHECKLIST (customer) */
+.milestones-card{background:#fff;border:var(--dash-border);border-radius:var(--dash-card-radius);padding:20px;box-shadow:var(--dash-card-shadow);margin-bottom:20px}
+.milestones-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:12px}
+.milestones-title{font-size:15px;font-weight:700;color:#111827}
+.milestones-progress-label{font-size:12px;font-weight:700;color:var(--dash-teal)}
+.milestones-progress-bar{height:6px;background:#e5e7eb;border-radius:3px;overflow:hidden;margin-bottom:16px}
+.milestones-progress-fill{height:100%;background:linear-gradient(90deg,var(--dash-teal) 0%,var(--dash-green) 100%);border-radius:3px;transition:width .6s ease}
+.milestones-list{display:flex;flex-direction:column;gap:4px}
+.milestone-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;transition:background var(--dash-transition);text-decoration:none;color:inherit}
+.milestone-item:hover{background:#f9fafb}
+.milestone-item__check{width:22px;height:22px;border-radius:50%;border:2px solid #d1d5db;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all var(--dash-transition)}
+.milestone-item--done .milestone-item__check{border-color:var(--dash-green);background:var(--dash-green);color:#fff}
+.milestone-item__label{font-size:13px;font-weight:600;color:#374151;flex:1}
+.milestone-item--done .milestone-item__label{text-decoration:line-through;color:#9ca3af}
+
+/* 7. IMPROVED EMPTY STATES */
+.ef-empty-state{display:flex;flex-direction:column;align-items:center;text-align:center;padding:40px 24px;color:#6b7280}
+.ef-empty-state__illustration{width:80px;height:80px;border-radius:50%;background:#f3f4f6;display:flex;align-items:center;justify-content:center;margin-bottom:16px;font-size:36px}
+.ef-empty-state__title{font-size:16px;font-weight:700;color:#374151;margin:0 0 8px}
+.ef-empty-state__desc{font-size:13px;line-height:1.6;max-width:320px;margin:0 0 20px}
+.ef-empty-state__cta{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;background:var(--dash-blue);color:#fff;border-radius:10px;font-size:13px;font-weight:700;text-decoration:none;transition:background var(--dash-transition),transform var(--dash-transition);border:none;cursor:pointer;font-family:inherit}
+.ef-empty-state__cta:hover{background:#1d4ed8;transform:translateY(-1px)}
+.ef-empty-state__cta--secondary{background:transparent;color:var(--dash-blue);border:1px solid var(--dash-blue)}
+.ef-empty-state__cta--secondary:hover{background:var(--dash-blue-light);transform:translateY(-1px)}
+
+/* 8. REVIEW REQUEST WIDGET */
+.review-request-form{display:flex;flex-direction:column;gap:12px;padding:16px;background:linear-gradient(135deg,#fef3c7 0%,#fde68a 100%);border:1px solid #f59e0b;border-radius:12px;margin-top:12px}
+.review-request-form__title{font-size:14px;font-weight:700;color:#92400e;margin:0}
+.review-request-form__desc{font-size:12px;color:#78350f;margin:0}
+.review-request-inputs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.review-request-inputs input{width:100%;padding:8px 12px;border:1px solid rgba(0,0,0,.15);border-radius:8px;font-size:13px;font-family:inherit;background:rgba(255,255,255,.7);box-sizing:border-box}
+.review-request-inputs input:focus{outline:none;border-color:#f59e0b;box-shadow:0 0 0 3px rgba(245,158,11,.15)}
+.review-request-send-btn{padding:9px 18px;background:#d97706;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:background var(--dash-transition),transform var(--dash-transition);align-self:flex-start}
+.review-request-send-btn:hover{background:#b45309;transform:translateY(-1px)}
+
+/* 9. FORM FOCUS STATES */
+.supplier-dashboard-page input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="range"]),
+.supplier-dashboard-page select,.supplier-dashboard-page textarea,
+.customer-dashboard-page input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="range"]),
+.customer-dashboard-page select,.customer-dashboard-page textarea{transition:border-color var(--dash-transition),box-shadow var(--dash-transition)}
+.supplier-dashboard-page input:focus,.supplier-dashboard-page select:focus,.supplier-dashboard-page textarea:focus,
+.customer-dashboard-page input:focus,.customer-dashboard-page select:focus,.customer-dashboard-page textarea:focus{outline:none;border-color:var(--dash-blue);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+
+/* 10. CARD HOVER */
+.sd-card,.cd-card{transition:box-shadow var(--dash-transition),transform var(--dash-transition)}
+.sd-card:hover,.cd-card:hover{box-shadow:var(--dash-card-shadow-hover)}
+
+/* 11. QUICK ACTIONS (customer) */
+.customer-quick-actions{display:flex;flex-direction:column;gap:8px}
+.customer-quick-actions a,.customer-quick-actions button{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;font-size:13px;font-weight:600;text-decoration:none;color:#374151;background:#f9fafb;border:1px solid #e5e7eb;transition:background var(--dash-transition),box-shadow var(--dash-transition),transform var(--dash-transition);cursor:pointer;font-family:inherit;width:100%;box-sizing:border-box;text-align:left}
+.customer-quick-actions a:hover,.customer-quick-actions button:hover{background:#fff;box-shadow:var(--dash-card-shadow);transform:translateX(3px)}
+
+/* 12. SKELETON SHIMMER */
+@keyframes dash-shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}
+.skeleton{background:linear-gradient(90deg,#f3f4f6 25%,#e5e7eb 50%,#f3f4f6 75%);background-size:800px 100%;animation:dash-shimmer 1.4s ease-in-out infinite;border-radius:6px}
+
+/* 13. SECTION DIVIDERS */
+.sd-section-divider{display:flex;align-items:center;gap:16px;margin:32px 0 20px;color:#6b7280}
+.sd-section-divider::before,.sd-section-divider::after{content:'';flex:1;height:1px;background:#e5e7eb}
+.sd-section-divider__label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;padding:4px 12px;background:#f3f4f6;border-radius:999px}
+
+/* 14. STATUS PILLS */
+.ef-status-pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.ef-status-pill--green{background:var(--dash-green-light);color:var(--dash-green)}.ef-status-pill--amber{background:var(--dash-amber-light);color:var(--dash-amber)}.ef-status-pill--red{background:var(--dash-red-light);color:var(--dash-red)}.ef-status-pill--blue{background:var(--dash-blue-light);color:var(--dash-blue)}.ef-status-pill--grey{background:#f3f4f6;color:#6b7280}
+
+/* 15. PLAN ITEM (customer) */
+.customer-plan-item{border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;margin-bottom:10px;transition:border-color var(--dash-transition),box-shadow var(--dash-transition)}
+.customer-plan-item:hover{border-color:var(--dash-blue);box-shadow:0 0 0 3px rgba(37,99,235,.08)}
+.customer-plan-item__header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px}
+.customer-plan-item__name{font-size:14px;font-weight:700;color:#111827}
+.customer-plan-item__type{color:#6b7280;font-size:12px;display:block;margin-top:2px}
+.customer-plan-item__count{font-size:11px;background:var(--dash-blue-light);color:var(--dash-blue);padding:2px 8px;border-radius:999px;font-weight:700;white-space:nowrap}
+.customer-plan-item__detail{font-size:12px;color:#6b7280;margin:3px 0 0}
+
+/* 16. ENQUIRY CARDS (supplier) */
+.enquiry-card{border:1px solid #e5e7eb;border-radius:12px;padding:14px 16px;margin-bottom:10px;background:#fff;transition:border-color var(--dash-transition),box-shadow var(--dash-transition)}
+.enquiry-card:hover{border-color:#93c5fd;box-shadow:0 2px 12px rgba(37,99,235,.08)}
+.enquiry-card--unread{border-left:3px solid var(--dash-blue);padding-left:13px}
+.enquiry-card__header{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.enquiry-card__avatar{width:36px;height:36px;border-radius:50%;background:var(--dash-blue-light);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--dash-blue);flex-shrink:0}
+.enquiry-card__name{font-size:14px;font-weight:700;color:#111827;flex:1}
+.enquiry-card__time{font-size:11px;color:#9ca3af}
+.enquiry-card__preview{font-size:13px;color:#6b7280;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.enquiry-card__actions{display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid #f3f4f6}
+.enquiry-card__btn{flex:1;padding:6px;border-radius:8px;border:1px solid #e5e7eb;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all var(--dash-transition);background:#fff;color:#374151}
+.enquiry-card__btn:hover{background:var(--dash-blue);color:#fff;border-color:var(--dash-blue)}
+.enquiry-card__btn--primary{background:var(--dash-blue);color:#fff;border-color:var(--dash-blue)}
+.enquiry-card__btn--primary:hover{background:#1d4ed8}
+
+/* 17. TOAST NOTIFICATIONS */
+.ef-toast-container{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:10px;max-width:380px;pointer-events:none}
+.ef-toast{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:14px 18px;box-shadow:0 8px 24px rgba(0,0,0,.12);display:flex;align-items:flex-start;gap:12px;pointer-events:all;animation:toast-in .3s ease both}
+@keyframes toast-in{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+.ef-toast--success{border-left:4px solid var(--dash-green)}.ef-toast--error{border-left:4px solid var(--dash-red)}.ef-toast--info{border-left:4px solid var(--dash-blue)}
+.ef-toast__message{font-size:13px;font-weight:600;color:#111827;flex:1}
+.ef-toast__close{background:none;border:none;cursor:pointer;color:#9ca3af;font-size:16px;line-height:1;padding:0;flex-shrink:0}
+
+/* 18. MOBILE */
+@media(max-width:768px){
+  .kpi-grid{grid-template-columns:repeat(2,1fr);gap:10px}
+  .kpi-card__value{font-size:22px}
+  .review-request-inputs{grid-template-columns:1fr}
+  .event-countdown-widget{flex-direction:column;text-align:center;padding:20px}
+  .event-countdown-widget__days{font-size:48px}
+}
+@media(max-width:480px){
+  .kpi-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .kpi-card{padding:14px 16px}
+  .kpi-card__value{font-size:20px}
+  .milestones-card{padding:16px}
+  .availability-widget{padding:16px}
+}
+
+/* 19. REDUCED MOTION */
+@media(prefers-reduced-motion:reduce){
+  .kpi-card,.sd-card,.cd-card,.perf-tip,.milestone-item{transition:none}
+  .kpi-card:hover,.sd-card:hover,.cd-card:hover{transform:none}
+  .availability-dot--available{animation:none}
+  .ef-toast{animation:none}
+}
