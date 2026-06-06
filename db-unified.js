@@ -320,9 +320,9 @@ async function createIndexes() {
     await reviewRequestsCollection.createIndex({ id: 1 }, { unique: true });
     await reviewRequestsCollection.createIndex({ supplierId: 1, customerEmail: 1 }); // dedup check
 
-    // Customer calendar entries — userId lookup for dashboard summary
-    const customerCalendarCollection = mongodb.collection('customer_calendar_entries');
-    await customerCalendarCollection.createIndex({ userId: 1, start: 1 }); // upcoming events query
+    // customer_calendar_entries: add compound index for upcoming events query
+    // (collection + userId index already declared above; adding userId+start compound)
+    await calendarEntriesCollection.createIndex({ userId: 1, date: 1 }); // upcoming events filter
 
     logger.info('✅ Database indexes created successfully');
   } catch (error) {
