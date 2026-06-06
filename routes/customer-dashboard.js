@@ -27,7 +27,7 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
 
     const [plans, savedItems, tickets, calendarEntries] = await Promise.all([
       dbUnified.find('plans', { userId }).catch(() => []),
-      dbUnified.find('saved', { userId }).catch(() => []),
+      dbUnified.find('savedItems', { userId }).catch(() => []),
       dbUnified.find('tickets', { senderId: userId, senderType: 'customer' }).catch(() => []),
       dbUnified.find('calendarEntries', { userId }).catch(() => []),
     ]);
@@ -36,7 +36,7 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
     const plansSummary = {
       total: plans.length,
       recentPlan:
-        plans.sort(
+        [...plans].sort(
           (a, b) =>
             new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0)
         )[0] || null,
@@ -133,8 +133,10 @@ router.get('/milestones', authRequired, async (req, res) => {
       return res.status(403).json({ error: 'Forbidden' });
     }
     const userId = req.user.id;
-    const plans = await dbUnified.find('plans', { userId }).catch(() => []);
-    const savedItems = await dbUnified.find('saved', { userId }).catch(() => []);
+    const [plans, savedItems] = await Promise.all([
+      dbUnified.find('plans', { userId }).catch(() => []),
+      dbUnified.find('savedItems', { userId }).catch(() => []),
+    ]);
 
     const hasPlan = plans.length > 0;
     const hasDate = plans.some(p => p.eventDate || p.date);
