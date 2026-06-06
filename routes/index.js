@@ -147,6 +147,19 @@ function mountRoutes(app, deps) {
   app.use('/api/v1/admin/email-previews', adminEmailPreviewRoutes);
   app.use('/api/admin/email-previews', adminEmailPreviewRoutes); // Backward compatibility
 
+  // Admin Email Centre and sent email log routes
+  const adminEmailCentreRoutes = require('./admin-email-centre');
+  const adminEmailLogsRoutes = require('./admin-email-logs');
+  app.use('/api/v1/admin/email-centre', adminEmailCentreRoutes);
+  app.use('/api/admin/email-centre', adminEmailCentreRoutes); // Backward compatibility
+  app.use('/api/v1/admin/email-logs', adminEmailLogsRoutes);
+  app.use('/api/admin/email-logs', adminEmailLogsRoutes); // Backward compatibility
+
+  // Postmark delivery webhooks (Basic Auth protected, no admin session required)
+  const postmarkWebhookRoutes = require('./postmark-webhook');
+  app.use('/api/v1/webhooks', postmarkWebhookRoutes);
+  app.use('/api/webhooks', postmarkWebhookRoutes); // Backward compatibility
+
   // System-checks admin routes
   app.use('/api/v1/admin', systemChecksAdminRoutes);
   app.use('/api/admin', systemChecksAdminRoutes); // Backward compatibility
