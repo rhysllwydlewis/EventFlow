@@ -317,3 +317,197 @@ describe('postmark.js — allowed HTML keys', () => {
     });
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Dynamic template-reference scanner
+// Scans all JS/route source files for `template: '...'` literals and verifies
+// each referenced local template exists on disk — catches future omissions
+// automatically without needing to update REFERENCED_TEMPLATES.
+// ─────────────────────────────────────────────────────────────────────────────
+describe('Dynamic template-reference scanner', () => {
+  const SOURCE_ROOTS = [
+    path.join(__dirname, '../../routes'),
+    path.join(__dirname, '../../services'),
+    path.join(__dirname, '../../utils'),
+    path.join(__dirname, '../../webhooks'),
+  ];
+
+  // Template names that are intentionally NOT local email-templates/*.html files
+  // (e.g. wedding-website templates stored elsewhere, or Postmark-hosted templates)
+  const NON_LOCAL_TEMPLATES = new Set(['classic']);
+
+  function scanDir(dir) {
+    if (!fs.existsSync(dir)) {
+      return [];
+    }
+    const files = [];
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        files.push(...scanDir(full));
+      } else if (entry.isFile() && entry.name.endsWith('.js')) {
+        files.push(full);
+      }
+    }
+    return files;
+  }
+
+  test('every template referenced by code has a matching email-templates/*.html file', () => {
+    const allFiles = SOURCE_ROOTS.flatMap(dir => scanDir(dir));
+    // Match: template: 'name' or template: "name"
+    const templateRef = /template:\s*['"]([a-zA-Z0-9_-]+)['"]/g;
+    const missing = [];
+
+    for (const file of allFiles) {
+      const src = fs.readFileSync(file, 'utf8');
+      let match;
+      while ((match = templateRef.exec(src)) !== null) {
+        const name = match[1];
+        if (NON_LOCAL_TEMPLATES.has(name)) {
+          continue;
+        }
+        const templatePath = path.join(TEMPLATES_DIR, `${name}.html`);
+        if (!fs.existsSync(templatePath)) {
+          missing.push({
+            file: path.relative(path.join(__dirname, '../..'), file),
+            template: name,
+          });
+        }
+      }
+    }
+
+    if (missing.length > 0) {
+      const detail = missing
+        .map(({ file, template }) => `  - "${template}" referenced in ${file}`)
+        .join('\n');
+      throw new Error(
+        `${missing.length} template reference(s) have no matching email-templates/*.html file:\n${detail}\n\nFix: create the missing template or add the name to NON_LOCAL_TEMPLATES if intentional.`
+      );
+    }
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Admin campaigns — backend validation
+// ─────────────────────────────────────────────────────────────────────────────
+describe('Admin campaigns — CAMPAIGN_SAFE_TEMPLATES allowlist', () => {
+  let CAMPAIGN_SAFE_TEMPLATES;
+  beforeAll(() => {
+    try {
+      const mod = require('../../routes/admin-campaigns');
+      CAMPAIGN_SAFE_TEMPLATES = mod.CAMPAIGN_SAFE_TEMPLATES;
+    } catch {
+      CAMPAIGN_SAFE_TEMPLATES = null;
+    }
+  });
+
+  test('CAMPAIGN_SAFE_TEMPLATES is exported from admin-campaigns.js', () => {
+    expect(CAMPAIGN_SAFE_TEMPLATES).toBeTruthy();
+  });
+
+  test('marketing is in the campaign-safe allowlist', () => {
+    expect(CAMPAIGN_SAFE_TEMPLATES.has('marketing')).toBe(true);
+  });
+
+  test('transactional templates are not in the campaign-safe allowlist', () => {
+    const transactional = [
+      'verification',
+      'password-reset',
+      'password-reset-confirmation',
+      'welcome',
+      'welcome-customer',
+      'welcome-supplier',
+      'partner-welcome',
+      'supplier-verification-status',
+    ];
+    transactional.forEach(name => {
+      expect(CAMPAIGN_SAFE_TEMPLATES.has(name)).toBe(false);
+    });
+  });
+
+  test('every campaign-safe template file exists on disk', () => {
+    if (!CAMPAIGN_SAFE_TEMPLATES) {
+      return;
+    }
+    CAMPAIGN_SAFE_TEMPLATES.forEach(name => {
+      const templatePath = path.join(TEMPLATES_DIR, `${name}.html`);
+      expect(fs.existsSync(templatePath)).toBe(true);
+    });
+  });
+});
+
+describe('Admin campaigns — marketing.html template quality', () => {
+  let tpl;
+  beforeAll(() => {
+    tpl = fs.readFileSync(path.join(TEMPLATES_DIR, 'marketing.html'), 'utf8');
+  });
+
+  test('marketing template contains {{unsubscribeLink}} placeholder', () => {
+    expect(tpl).toContain('{{unsubscribeLink}}');
+  });
+
+  test('marketing template contains {{message}} placeholder (raw HTML injection)', () => {
+    expect(tpl).toContain('{{message}}');
+  });
+
+  test('marketing template does not have leftover unresolved placeholders when rendered with minimal data', () => {
+    const result = loadEmailTemplate('marketing', {
+      name: 'Test User',
+      title: 'Test Campaign',
+      message: '<p>Hello from EventFlow.</p>',
+      unsubscribeLink: 'https://event-flow.co.uk/unsubscribe?test=1',
+    });
+    expect(result).not.toBeNull();
+    expect(result).not.toMatch(/\{\{[^}]+\}\}/);
+  });
+
+  test('marketing template renders unsubscribe link as an anchor', () => {
+    const result = loadEmailTemplate('marketing', {
+      name: 'Test User',
+      title: 'Test',
+      message: 'Body',
+      unsubscribeLink: 'https://event-flow.co.uk/unsubscribe',
+    });
+    expect(result).toContain('href="https://event-flow.co.uk/unsubscribe"');
+  });
+});
+
+describe('Raw HTML allowlist keys — construction and safety', () => {
+  test('postmark.js source documents all allowlisted HTML keys', () => {
+    const src = fs.readFileSync(path.join(__dirname, '../../utils/postmark.js'), 'utf8');
+    const allowedKeys = [
+      'message',
+      'html',
+      'features',
+      'actionsHtml',
+      'unsubscribeSection',
+      'notesSection',
+      'ctaSection',
+    ];
+    allowedKeys.forEach(key => {
+      expect(src).toContain(`key === '${key}'`);
+    });
+  });
+
+  test('notesSection in supplier-admin.js is escaped in the backend before injection', () => {
+    const src = fs.readFileSync(path.join(__dirname, '../../routes/supplier-admin.js'), 'utf8');
+    // The function must HTML-escape admin notes before wrapping in HTML markup
+    expect(src).toContain('escapeHtml');
+    expect(src).toContain('notesSection');
+  });
+
+  test('ctaSection in postmark.js is backend-constructed from validated actionUrl/actionText', () => {
+    const src = fs.readFileSync(path.join(__dirname, '../../utils/postmark.js'), 'utf8');
+    expect(src).toContain('ctaSection');
+    // Must only be built when both url and text are present
+    expect(src).toContain('actionUrl && actionText');
+  });
+
+  test('message key in admin-campaigns.js is passed through escapeHtml for CTA, not raw', () => {
+    const src = fs.readFileSync(path.join(__dirname, '../../routes/admin-campaigns.js'), 'utf8');
+    // CTA button text should be escaped
+    expect(src).toContain('escapeHtml(ctaText)');
+    // CTA URL should go through escapeAttr which validates http/https
+    expect(src).toContain('escapeAttr(ctaUrl)');
+  });
+});
