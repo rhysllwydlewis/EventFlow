@@ -26,6 +26,13 @@ const dbUnified = require('../db-unified');
 const postmark = require('../utils/postmark');
 const { EMAIL_ENABLED } = require('../config/email');
 
+/**
+ * Templates that can be used for admin campaigns.
+ * Only these template names are accepted for preview, test and send.
+ * This prevents path traversal and accidental use of transactional templates.
+ */
+const CAMPAIGN_SAFE_TEMPLATES = new Set(['marketing', 'notification']);
+
 // ── Template variable replacement ─────────────────────────────────────────────
 
 const APP_BASE_URL = process.env.APP_BASE_URL || process.env.BASE_URL || 'http://localhost:3000';
@@ -153,8 +160,12 @@ async function collectRecipients(audience) {
 
 router.get('/recipient-count', authRequired, roleRequired('admin'), async (req, res) => {
   try {
-    const recipients = await collectRecipients('both');
-    return res.json({ ok: true, total: recipients.length });
+    // Support ?audience=both|marketing|newsletter query param for per-audience counts
+    const requestedAudience = req.query.audience;
+    const validAudiences = ['both', 'marketing', 'newsletter'];
+    const audience = validAudiences.includes(requestedAudience) ? requestedAudience : 'both';
+    const recipients = await collectRecipients(audience);
+    return res.json({ ok: true, total: recipients.length, audience });
   } catch (err) {
     logger.error('[campaigns/recipient-count] Error:', err.message);
     return res.status(500).json({ ok: false, error: 'Failed to count recipients.' });
@@ -169,6 +180,15 @@ router.post('/preview', authRequired, roleRequired('admin'), async (req, res) =>
   try {
     const { templateName = 'marketing', subject, title, bodyHtml, ctaText, ctaUrl } = req.body;
 
+    if (!CAMPAIGN_SAFE_TEMPLATES.has(templateName)) {
+      return res
+        .status(400)
+        .json({
+          ok: false,
+          error: `Template "${escapeHtml(templateName)}" is not available for campaigns.`,
+        });
+    }
+
     const templateData = buildTemplateData({ title, bodyHtml, ctaText, ctaUrl });
     // Add a placeholder unsubscribe link so the template renders a visible link
     // in preview mode (the real personalised link is only generated on /test and /send).
@@ -176,7 +196,9 @@ router.post('/preview', authRequired, roleRequired('admin'), async (req, res) =>
     const html = postmark.loadEmailTemplate(templateName, templateData);
 
     if (!html) {
-      return res.status(404).json({ ok: false, error: `Template "${templateName}" not found.` });
+      return res
+        .status(404)
+        .json({ ok: false, error: `Template "${escapeHtml(templateName)}" not found.` });
     }
 
     return res.json({ ok: true, html });
@@ -219,9 +241,29 @@ router.post(
       // Basic email format validation
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(to.trim())) {
+        return res.status(422).json({ ok: false, error: 'Invalid email address.' });
+      }
+
+      if (!CAMPAIGN_SAFE_TEMPLATES.has(templateName)) {
         return res
-          .status(422)
-          .json({ ok: false, error: `Invalid email address: ${to}` });
+          .status(400)
+          .json({
+            ok: false,
+            error: `Template "${escapeHtml(templateName)}" is not available for campaigns.`,
+          });
+      }
+
+      // CTA URL must be http/https if CTA text is provided
+      if (ctaText && ctaUrl && !/^https?:\/\//i.test(ctaUrl)) {
+        return res
+          .status(400)
+          .json({ ok: false, error: 'CTA URL must start with http:// or https://' });
+      }
+      // CTA text required when CTA URL is provided
+      if (ctaUrl && !ctaText) {
+        return res
+          .status(400)
+          .json({ ok: false, error: 'CTA button text is required when a CTA URL is provided.' });
       }
 
       const templateData = buildTemplateData({
@@ -281,13 +323,34 @@ router.post(
         ctaUrl,
       } = req.body;
 
-      if (!subject || typeof subject !== 'string') {
+      if (!subject || typeof subject !== 'string' || !subject.trim()) {
         return res.status(400).json({ ok: false, error: 'Missing required field: subject' });
       }
 
       const validAudiences = ['both', 'marketing', 'newsletter'];
       if (!validAudiences.includes(audience)) {
         return res.status(400).json({ ok: false, error: 'Invalid audience value.' });
+      }
+
+      if (!CAMPAIGN_SAFE_TEMPLATES.has(templateName)) {
+        return res
+          .status(400)
+          .json({
+            ok: false,
+            error: `Template "${escapeHtml(templateName)}" is not available for campaigns.`,
+          });
+      }
+
+      // CTA URL must be http/https if provided alongside CTA text
+      if (ctaText && ctaUrl && !/^https?:\/\//i.test(ctaUrl)) {
+        return res
+          .status(400)
+          .json({ ok: false, error: 'CTA URL must start with http:// or https://' });
+      }
+      if (ctaUrl && !ctaText) {
+        return res
+          .status(400)
+          .json({ ok: false, error: 'CTA button text is required when a CTA URL is provided.' });
       }
 
       const recipients = await collectRecipients(audience);
@@ -350,3 +413,4 @@ router.post(
 );
 
 module.exports = router;
+module.exports.CAMPAIGN_SAFE_TEMPLATES = CAMPAIGN_SAFE_TEMPLATES;
