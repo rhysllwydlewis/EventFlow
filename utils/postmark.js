@@ -178,7 +178,8 @@ function loadEmailTemplate(templateName, data = {}) {
         key === 'html' ||
         key === 'features' ||
         key === 'actionsHtml' ||
-        key === 'unsubscribeSection'
+        key === 'unsubscribeSection' ||
+        key === 'notesSection'
           ? data[key]
           : escapeHtml(data[key]);
       html = html.replace(regex, value || '');

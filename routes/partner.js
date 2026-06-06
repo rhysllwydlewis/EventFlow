@@ -95,7 +95,7 @@ router.post('/register', authLimiter, csrfProtection, async (req, res) => {
         refLink,
         dashboardLink: `${baseUrl}/partner/dashboard`,
       },
-      from: postmark.FROM_DEFAULT || postmark.FROM_BILLING || 'hello@eventflow.app',
+      from: postmark.FROM_HELLO,
       tags: ['partner-welcome', 'transactional'],
       messageStream: 'outbound',
     });
