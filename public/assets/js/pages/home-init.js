@@ -607,7 +607,7 @@ function renderPackageFallback(container, items) {
 
       return `
         <div class="card featured-fallback-card">
-          <a href="/package?slug=${slug}" class="featured-fallback-link">
+          <a href="/package/${slug}" class="featured-fallback-link">
             <img src="${imgSrc}" alt="${title}" class="featured-fallback-img"
                  data-fallback-src="/assets/images/placeholders/package-event.svg">
             <div class="featured-fallback-content">
@@ -3094,7 +3094,9 @@ async function fetchPublicStats() {
 function hideStatsSection() {
   const section = document.getElementById('stats-section');
   if (section) {
+    section.hidden = true;
     section.style.display = 'none';
+    section.setAttribute('aria-hidden', 'true');
   }
 }
 
@@ -3102,41 +3104,53 @@ function hideStatsSection() {
  * Helper to update stats UI with given values
  */
 function updateStatsUI(stats) {
-  // Update stat counters with real data
+  const section = document.getElementById('stats-section');
   const statItems = document.querySelectorAll('.ef-stat');
-  if (statItems.length >= 4) {
-    const counters = [
-      { value: stats.suppliersVerified, suffix: '+' },
-      { value: stats.packagesApproved, suffix: '+' },
-      { value: stats.marketplaceListingsActive, suffix: '+' },
-      { value: stats.reviewsApproved, suffix: '+' },
-    ];
-
-    statItems.forEach((item, index) => {
-      const counterEl = item.querySelector('.ef-stat__number');
-      if (counterEl && counters[index]) {
-        const newValue = counters[index].value;
-        const suffix = counters[index].suffix;
-
-        // Update the data attributes regardless
-        counterEl.setAttribute('data-counter', newValue);
-        counterEl.setAttribute('data-suffix', suffix);
-
-        if (newValue > 0) {
-          if (counterEl.dataset.counted) {
-            // The IntersectionObserver already ran an animation with fallback
-            // values — update the displayed text directly to show real data
-            // without starting a conflicting animation.
-            counterEl.textContent = `${newValue.toLocaleString()}${suffix}`;
-          } else {
-            // Counter hasn't run yet; mark it so the IntersectionObserver
-            // picks up the updated data-counter value when the section scrolls
-            // into view (already handles this via data-counter attribute).
-          }
-        }
-      }
-    });
+  if (!section || statItems.length < 4) {
+    return;
   }
+
+  const counters = [
+    { value: Number(stats.suppliersVerified) || 0, suffix: '+' },
+    { value: Number(stats.packagesApproved) || 0, suffix: '+' },
+    { value: Number(stats.marketplaceListingsActive) || 0, suffix: '+' },
+    { value: Number(stats.reviewsApproved) || 0, suffix: '+' },
+  ];
+  const hasVisibleStat = counters.some(counter => counter.value > 0);
+
+  if (!hasVisibleStat) {
+    hideStatsSection();
+    return;
+  }
+
+  section.hidden = false;
+  section.style.display = '';
+  section.removeAttribute('aria-hidden');
+
+  statItems.forEach((item, index) => {
+    const counterEl = item.querySelector('.ef-stat__number');
+    const stat = counters[index];
+    if (!counterEl || !stat) {
+      return;
+    }
+
+    if (stat.value <= 0) {
+      item.hidden = true;
+      item.style.display = 'none';
+      item.setAttribute('aria-hidden', 'true');
+      return;
+    }
+
+    item.hidden = false;
+    item.style.display = '';
+    item.removeAttribute('aria-hidden');
+    counterEl.setAttribute('data-counter', String(stat.value));
+    counterEl.setAttribute('data-suffix', stat.suffix);
+
+    if (counterEl.dataset.counted) {
+      counterEl.textContent = `${stat.value.toLocaleString('en-GB')}${stat.suffix}`;
+    }
+  });
 }
 
 /**

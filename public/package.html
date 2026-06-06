@@ -635,9 +635,13 @@
         <div class="pkg-skeleton pkg-skeleton--line pkg-skeleton--line-short"></div>
       </div>
 
-      <div id="package-error" style="display: none;" class="card">
+      <div id="package-error" style="display: none;" class="card" role="status">
         <h2>Package not found</h2>
-        <p>The package you're looking for could not be found. <a href="/">Return home</a></p>
+        <p>Sorry, we could not find that package. It may have been updated, removed, or be awaiting approval.</p>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:18px;">
+          <a href="/suppliers" class="ef-btn ef-btn--primary">Browse suppliers</a>
+          <a href="/" class="ef-btn ef-btn--secondary">Return home</a>
+        </div>
       </div>
 
       <div id="package-content" style="display: none;">
