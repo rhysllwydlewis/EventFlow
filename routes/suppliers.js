@@ -105,6 +105,21 @@ function applyRoleRequired(role) {
   };
 }
 
+function normalisePackageSlug(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, ' and ')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+function getPackageLookupValues(pkg) {
+  return [pkg.id, pkg.packageId, pkg.slug, pkg.title && normalisePackageSlug(pkg.title)]
+    .filter(Boolean)
+    .map(value => String(value));
+}
+
 // Helper function to check if package is featured
 function isFeaturedPackage(pkg) {
   return pkg.featured === true || pkg.isFeatured === true;
@@ -624,20 +639,38 @@ router.post('/packages/bulk', apiLimiter, applyAuthRequired, async (req, res) =>
 router.get('/packages/:slug', async (req, res) => {
   try {
     const packages = await dbUnified.read('packages');
-    const param = req.params.slug;
-    const pkg = packages.find(p => (p.slug === param || p.id === param) && p.approved);
+    const param = decodeURIComponent(req.params.slug || '').trim();
+    const normalisedParam = normalisePackageSlug(param);
+    const pkg = packages.find(p => {
+      if (!p.approved) {
+        return false;
+      }
+      const lookups = getPackageLookupValues(p);
+      return lookups.some(
+        value => value === param || normalisePackageSlug(value) === normalisedParam
+      );
+    });
 
     if (!pkg) {
       return res.status(404).json({ error: 'Package not found' });
     }
 
-    // Get supplier details
+    // Get supplier details. Prefer approved public suppliers, but do not turn an
+    // otherwise visible approved package into an accidental 404 if legacy package
+    // data references a missing supplier record.
     const suppliers = await dbUnified.read('suppliers');
-    const supplier = suppliers.find(s => s.id === pkg.supplierId && s.approved);
-
-    if (!supplier) {
-      return res.status(404).json({ error: 'Supplier not found' });
-    }
+    const supplierRecord = suppliers.find(s => s.id === pkg.supplierId);
+    const supplier =
+      supplierRecord && supplierRecord.approved
+        ? supplierRecord
+        : {
+            id: pkg.supplierId || '',
+            name: pkg.supplier_name || pkg.supplierName || 'EventFlow supplier',
+            category: pkg.category || pkg.primaryCategoryKey || '',
+            location: pkg.location || '',
+            logo: '',
+            isPackageSupplierFallback: true,
+          };
 
     // Get category details
     const categories = await dbUnified.read('categories');

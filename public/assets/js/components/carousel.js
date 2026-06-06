@@ -398,7 +398,7 @@ class Carousel {
 
     return `
       <div class="carousel-item">
-        <a href="/package?slug=${encodeURIComponent(slug)}" class="featured-package-card">
+        <a href="/package/${encodeURIComponent(slug)}" class="featured-package-card">
           <img src="${image}" alt="${title}" loading="lazy"
                data-fallback-src="/assets/images/placeholders/package-event.svg">
           <div class="package-info">

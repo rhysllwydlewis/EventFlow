@@ -578,6 +578,14 @@ app.get('/package.html', (req, res) => {
   res.redirect(301, `/package${qs ? `?${qs}` : ''}`);
 });
 
+// Mirror the main Express app's clean package detail route for static/E2E mode.
+app.get('/package/:slug', (req, res) => {
+  if (!req.params.slug) {
+    return res.redirect(301, '/suppliers');
+  }
+  return res.sendFile(path.join(PUBLIC_DIR, 'package.html'));
+});
+
 // Dead-end singular routes — permanently redirect to the canonical plural/listing page.
 // Crawlers hitting /supplier or /category land here via old links; send them somewhere useful.
 app.get('/supplier', (req, res) => {

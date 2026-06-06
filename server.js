@@ -532,6 +532,16 @@ app.get('/package', (req, res, next) => {
   return res.redirect(301, '/suppliers');
 });
 
+// /package/:slug — support clean package detail URLs used by package cards and
+// older audit-reported links such as /package/full-day-capture. The client reads
+// the final path segment and resolves it through the same API as query URLs.
+app.get('/package/:slug', (req, res) => {
+  if (!req.params.slug) {
+    return res.redirect(301, '/suppliers');
+  }
+  return res.sendFile(path.join(__dirname, 'public', 'package.html'));
+});
+
 // Deprecated admin pages — 302 to canonical replacements (query string preserved).
 // These must come BEFORE the general .html redirect so both the clean URL and the
 // .html variant are handled in a single hop rather than two hops.
