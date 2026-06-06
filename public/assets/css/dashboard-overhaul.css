@@ -28,6 +28,8 @@
 .kpi-card__label{font-size:12px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.04em}
 .kpi-card__trend{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:2px 6px;border-radius:6px;width:fit-content;margin-top:2px}
 .kpi-card__trend--up{background:var(--dash-green-light);color:var(--dash-green)}.kpi-card__trend--down{background:var(--dash-red-light);color:var(--dash-red)}.kpi-card__trend--flat{background:#f3f4f6;color:#6b7280}
+@keyframes kpi-count-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.kpi-card__value[data-animated]{animation:kpi-count-in .4s ease both}
 
 /* 3. AVAILABILITY WIDGET */
 .availability-widget{background:#fff;border:var(--dash-border);border-radius:var(--dash-card-radius);padding:20px;box-shadow:var(--dash-card-shadow)}
