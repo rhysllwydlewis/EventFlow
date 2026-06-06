@@ -142,6 +142,11 @@ function mountRoutes(app, deps) {
   app.use('/api/v1/admin/campaigns', adminCampaignsRoutes);
   app.use('/api/admin/campaigns', adminCampaignsRoutes); // Backward compatibility
 
+  // Admin email preview routes
+  const adminEmailPreviewRoutes = require('./admin-email-previews');
+  app.use('/api/v1/admin/email-previews', adminEmailPreviewRoutes);
+  app.use('/api/admin/email-previews', adminEmailPreviewRoutes); // Backward compatibility
+
   // System-checks admin routes
   app.use('/api/v1/admin', systemChecksAdminRoutes);
   app.use('/api/admin', systemChecksAdminRoutes); // Backward compatibility

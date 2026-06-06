@@ -20,7 +20,10 @@
   };
 
   function requiredRoleForPath(path) {
-    return dashboardRoles[path] || (path.startsWith('/admin-') ? 'admin' : null);
+    return (
+      dashboardRoles[path] ||
+      (path.startsWith('/admin-') || path.startsWith('/admin/') ? 'admin' : null)
+    );
   }
 
   function installCustomerDashboardFetchGuard() {

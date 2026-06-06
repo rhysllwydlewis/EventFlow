@@ -170,3 +170,95 @@ Tests validate:
 - XSS escaping works for user-provided data
 - `notesSection` renders as raw HTML (safe, backend-constructed only)
 - All templates include `{{year}}`, 600px max-width, `<table>` layout, and `lang="en"`
+
+---
+
+## Permanent admin preview gallery
+
+Admins can review the live local templates at `/admin/email-previews`. The page is protected by the same admin HTML guard and API role checks as other admin tools.
+
+The gallery uses `utils/emailTemplateRegistry.js` as the central source for:
+
+- template inventory metadata, categories and purposes;
+- fixed representative sample data;
+- default preheader copy;
+- curated plain-text fallbacks for important templates.
+
+The preview API is mounted at `/api/admin/email-previews` and renders through `utils/postmark.js` via `loadEmailTemplate()`, so the gallery reflects the same local template pipeline used for production sends. Individual preview test sends are available at `/api/admin/email-previews/:templateName/test-send`; they are admin-only, CSRF-protected, rate-limited, restricted to one validated email address and always use a `[TEST]` subject prefix.
+
+## Preheaders and plain text
+
+`loadEmailTemplate()` now injects a hidden email-client-compatible preheader using the default copy in `utils/emailTemplateRegistry.js` unless a caller supplies `templateData.preheader`. The hidden preheader is inserted after `<body>` and should not have visible layout impact.
+
+`sendMail()` now prefers `renderPlainTextTemplate(template, templateData)` for local template sends when the caller does not provide explicit text. The older HTML-stripping fallback remains for ad-hoc HTML emails.
+
+When adding a new important template:
+
+1. Add metadata, sample data and a preheader in `utils/emailTemplateRegistry.js`.
+2. Add a plain-text branch to `renderPlainTextTemplate()` if the email is security, welcome, partner, supplier, marketing/newsletter or billing related.
+3. Confirm the text output includes the full CTA URL, support/contact details where relevant, unsubscribe links for marketing/newsletter content and no raw HTML.
+4. Add/update unit tests in `tests/unit/email-templates.test.js`.
+
+## Branding decision
+
+No current bitmap wordmark is suitable for universal email-client rendering. `public/bimi.svg` remains useful for BIMI/domain identity, but SVG image support in email bodies is inconsistent, so `loadEmailTemplate()` does not inject it as a remote image. Instead it preserves the compact EF tile and adds a light EventFlow wordmark/tagline treatment that works when images are blocked. Templates should continue to use compact green/teal headers rather than large remote hero images.
+
+## Route/link audit notes
+
+Canonical email CTA routes are:
+
+- customer planning: `/start`, `/plan`, `/suppliers`;
+- supplier dashboard: `/dashboard/supplier` (legacy `/dashboard-supplier.html` redirects, but new email links should not use it);
+- supplier billing: `/supplier/subscription`;
+- partner dashboard: `/partner/dashboard`;
+- account/settings: `/settings` and `/settings/notifications`;
+- security: `/verify` and `/reset-password`;
+- legal/help: `/privacy`, `/terms`, `/contact`.
+
+Avoid linking emails to bare `/profile`, `/inquiries` or `/checklist`; these are not canonical public HTML routes. Prefer the supplier dashboard or customer planning pages above.
+
+## Admin campaign composer guidance
+
+`/admin-campaigns` supports structured fields for intro copy, body copy, feature list, optional banner URL, CTA text/URL and secondary notes. The advanced raw HTML field remains available for admin-only formatting, but it is sanitised server-side with the existing content sanitiser before template rendering.
+
+Campaign safety rules:
+
+- CTA text and CTA URL must be provided together.
+- CTA and banner URLs must be `http://` or `https://`.
+- Preview, test-send and broadcast use the same `buildTemplateData()` render path.
+- Marketing unsubscribe links are injected for preview/test/send and must remain visible in `marketing.html`.
+- Always send a test email and review the final confirmation modal before broadcasting.
+
+## Raw HTML allowlist
+
+`utils/postmark.js` exposes `RAW_HTML_TEMPLATE_KEYS` for the small set of placeholders that can intentionally render HTML. Do not add keys unless there is no safer structured alternative.
+
+| Key                  | Constructed by                                      | Safety expectation                                     |
+| -------------------- | --------------------------------------------------- | ------------------------------------------------------ |
+| `message`            | `routes/admin-campaigns.js`, `sendMarketingEmail()` | Admin campaign HTML is sanitised; CTA text is escaped. |
+| `html`               | Explicit callers only                               | Must already be validated/sanitised by the caller.     |
+| `features`           | Subscription builders                               | Backend-controlled markup only.                        |
+| `actionsHtml`        | Action prompt services                              | Backend-controlled markup only.                        |
+| `unsubscribeSection` | Action prompt and campaign helpers                  | Backend-generated links only.                          |
+| `notesSection`       | Supplier verification status builders               | Notes must be escaped before wrapping.                 |
+| `ctaSection`         | `sendNotificationEmail()`                           | Backend-generated only when URL and text are present.  |
+
+## Visual review checklist
+
+Use `/admin/email-previews` before releasing email changes. For screenshot smoke coverage, run the visual test targeting the gallery when a browser environment is available.
+
+### Email release checklist
+
+- [ ] All templates render in `/admin/email-previews`
+- [ ] No unresolved `{{...}}` placeholders
+- [ ] Key CTAs tested
+- [ ] Plain-text fallback checked
+- [ ] Preheader checked
+- [ ] Gmail test sent
+- [ ] Outlook test sent
+- [ ] Mobile test sent
+- [ ] Marketing unsubscribe link tested
+- [ ] Admin campaign preview tested
+- [ ] Admin campaign test send completed
+- [ ] Payment/billing email tone reviewed
+- [ ] Supplier verification note escaping tested

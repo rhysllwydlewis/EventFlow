@@ -78,11 +78,37 @@
       </div>
 
       <div class="form-row">
+        <label for="campaignIntro">Intro paragraph</label>
+        <textarea id="campaignIntro" class="campaigns-textarea" rows="3" placeholder="Short opening paragraph. HTML is escaped automatically."></textarea>
+      </div>
+
+      <div class="form-row">
+        <label for="campaignBodyText">Body content</label>
+        <textarea id="campaignBodyText" class="campaigns-textarea" rows="5" placeholder="Main message. Blank lines become paragraphs; HTML is escaped automatically."></textarea>
+      </div>
+
+      <div class="form-row">
+        <label for="campaignFeatureList">Feature list / bullets <span class="badge badge-info">optional</span></label>
+        <textarea id="campaignFeatureList" class="campaigns-textarea" rows="4" placeholder="One bullet per line. HTML is escaped automatically."></textarea>
+      </div>
+
+      <div class="form-row">
+        <label for="campaignBannerUrl">Optional banner image URL</label>
+        <input type="url" id="campaignBannerUrl" placeholder="https://…" autocomplete="off">
+        <div class="campaigns-help-text" style="margin-top:4px;margin-bottom:0;">Use a stable https:// image URL only.</div>
+      </div>
+
+      <div class="form-row">
         <label for="campaignMessage">
-          Message body <span class="badge badge-info">HTML allowed</span>
+          Advanced raw HTML <span class="badge badge-info">optional, sanitised</span>
         </label>
-        <textarea id="campaignMessage" class="campaigns-textarea" rows="10"
-          placeholder="Write your message here. Basic HTML tags like &lt;b&gt;, &lt;i&gt;, &lt;a&gt; are supported."></textarea>
+        <textarea id="campaignMessage" class="campaigns-textarea" rows="6"
+          placeholder="Optional advanced formatting. Script, style and unsafe attributes are stripped before preview/send."></textarea>
+      </div>
+
+      <div class="form-row">
+        <label for="campaignSecondaryNote">Secondary note</label>
+        <textarea id="campaignSecondaryNote" class="campaigns-textarea" rows="2" placeholder="Optional small note near the end. HTML is escaped automatically."></textarea>
       </div>
 
       <div class="campaigns-cta-group">

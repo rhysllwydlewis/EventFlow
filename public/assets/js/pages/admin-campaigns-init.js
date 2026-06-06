@@ -23,7 +23,16 @@
   }
 
   // ── DOM refs ──────────────────────────────────────────────────────────────
-  let subjectEl, titleEl, messageEl, ctaTextEl, ctaUrlEl;
+  let subjectEl,
+    titleEl,
+    messageEl,
+    introEl,
+    bodyTextEl,
+    featureListEl,
+    bannerUrlEl,
+    secondaryNoteEl,
+    ctaTextEl,
+    ctaUrlEl;
   let testEmailEl, testBtn, sendBtn, audienceEl;
   let previewFrame, previewLoading, refreshBtn, statusEl;
   let recipientBannerText, subjectCharCounter, audienceCountEl;
@@ -36,6 +45,11 @@
       subject: subjectEl ? subjectEl.value.trim() : '',
       title: titleEl ? titleEl.value.trim() : '',
       bodyHtml: messageEl ? messageEl.value : '',
+      intro: introEl ? introEl.value.trim() : '',
+      bodyText: bodyTextEl ? bodyTextEl.value : '',
+      featureList: featureListEl ? featureListEl.value : '',
+      bannerUrl: bannerUrlEl ? bannerUrlEl.value.trim() : '',
+      secondaryNote: secondaryNoteEl ? secondaryNoteEl.value.trim() : '',
       ctaText: ctaTextEl ? ctaTextEl.value.trim() : '',
       ctaUrl: ctaUrlEl ? ctaUrlEl.value.trim() : '',
     };
@@ -276,6 +290,11 @@
     subjectEl = document.getElementById('campaignSubject');
     titleEl = document.getElementById('campaignTitle');
     messageEl = document.getElementById('campaignMessage');
+    introEl = document.getElementById('campaignIntro');
+    bodyTextEl = document.getElementById('campaignBodyText');
+    featureListEl = document.getElementById('campaignFeatureList');
+    bannerUrlEl = document.getElementById('campaignBannerUrl');
+    secondaryNoteEl = document.getElementById('campaignSecondaryNote');
     ctaTextEl = document.getElementById('campaignCtaText');
     ctaUrlEl = document.getElementById('campaignCtaUrl');
     testEmailEl = document.getElementById('campaignTestEmail');
@@ -293,7 +312,18 @@
     previewMobileBtn = document.getElementById('previewMobileBtn');
 
     // Live preview on editor input
-    [subjectEl, titleEl, messageEl, ctaTextEl, ctaUrlEl].forEach(el => {
+    [
+      subjectEl,
+      titleEl,
+      introEl,
+      bodyTextEl,
+      featureListEl,
+      bannerUrlEl,
+      messageEl,
+      secondaryNoteEl,
+      ctaTextEl,
+      ctaUrlEl,
+    ].forEach(el => {
       if (el) {
         el.addEventListener('input', debouncedRefreshPreview);
       }
@@ -359,9 +389,16 @@
     if (titleEl) {
       titleEl.value = 'Welcome to EventFlow';
     }
-    if (messageEl) {
-      messageEl.value =
-        'We have exciting news to share with you. Stay tuned for updates on new events and features coming to EventFlow.';
+    if (introEl) {
+      introEl.value = 'We have useful updates to share from the EventFlow team.';
+    }
+    if (bodyTextEl) {
+      bodyTextEl.value =
+        'We have improved planning tools and supplier discovery to help you organise your next event with more confidence.';
+    }
+    if (featureListEl) {
+      featureListEl.value =
+        'Clearer supplier comparison\nUpdated planning guidance\nMore relevant reminders';
     }
 
     // Load recipient count immediately; delay initial preview until the CSRF

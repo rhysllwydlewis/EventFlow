@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <script src="/assets/js/dashboard-guard.js?v=17.0.2"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Email Previews — EventFlow Admin</title>
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="stylesheet" href="/assets/css/tokens.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-enhanced.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-cards.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/email-previews.css?v=18.3.0">
+  <link rel="icon" href="/favicon.svg">
+  <script src="/assets/js/admin-shared.js?v=18.3.0"></script>
+  <script src="/assets/js/admin-navbar.js?v=18.3.0" defer></script>
+</head>
+<body class="has-admin-navbar admin">
+<div id="adminNavbarMount"></div>
+<main id="main-content" class="admin-main-content email-preview-admin">
+  <div class="dashboard-header email-preview-hero">
+    <div class="header-content">
+      <div>
+        <p class="email-preview-eyebrow">Internal review tool</p>
+        <h1 class="dashboard-title">Email template previews</h1>
+        <p class="dashboard-subtitle">Review every local EventFlow email with fixed sample data, hidden preheaders, plain-text fallbacks and test-send controls.</p>
+      </div>
+      <div class="email-preview-warning" role="note">Sample data only. Do not use this page for real customer, supplier or subscriber content.</div>
+    </div>
+  </div>
+
+  <section class="admin-card email-preview-toolbar" aria-label="Email preview filters">
+    <label class="email-preview-search"><span>Search templates</span><input id="emailPreviewSearch" type="search" placeholder="Search by name, category or purpose"></label>
+    <label><span>Category</span><select id="emailPreviewCategory"><option value="">All categories</option></select></label>
+    <button class="btn btn-secondary" id="emailPreviewRefresh" type="button">Refresh previews</button>
+  </section>
+
+  <section class="admin-card email-preview-checklist" aria-labelledby="emailChecklistTitle">
+    <h2 id="emailChecklistTitle">Manual review checklist</h2>
+    <ul>
+      <li>Open key templates in large preview and check desktop/tablet width.</li>
+      <li>Confirm CTA routes and unsubscribe links before release.</li>
+      <li>Send Gmail, Outlook and mobile test emails before campaign sends.</li>
+      <li>Check the generated plain text for security and billing emails.</li>
+    </ul>
+  </section>
+
+  <div id="emailPreviewStatus" class="campaigns-status" role="status" aria-live="polite"></div>
+  <section id="emailPreviewGrid" class="email-preview-grid" aria-live="polite"></section>
+</main>
+
+<dialog id="emailPreviewDialog" class="email-preview-dialog" aria-labelledby="emailPreviewDialogTitle">
+  <div class="email-preview-dialog-head">
+    <div>
+      <h2 id="emailPreviewDialogTitle">Template preview</h2>
+      <p id="emailPreviewDialogMeta"></p>
+    </div>
+    <button id="emailPreviewDialogClose" class="btn btn-secondary" type="button">Close</button>
+  </div>
+  <div class="email-preview-dialog-actions">
+    <button id="emailPreviewOpenWindow" class="btn btn-secondary" type="button">Open HTML</button>
+    <button id="emailPreviewDownload" class="btn btn-secondary" type="button">Download HTML</button>
+  </div>
+  <iframe id="emailPreviewDialogFrame" title="Large email template preview" sandbox="allow-same-origin"></iframe>
+</dialog>
+
+<script src="/assets/js/pages/admin-email-previews-init.js?v=18.3.0" defer></script>
+</body>
+</html>

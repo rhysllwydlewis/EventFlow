@@ -231,6 +231,15 @@ const REGISTRY = [
     inNav: true,
     desc: 'Compose & send marketing email campaigns',
   },
+  {
+    route: '/admin-email-previews',
+    htmlFile: 'admin-email-previews',
+    label: 'Email Previews',
+    icon: '✉️',
+    category: 'operations',
+    inNav: true,
+    desc: 'Review and test every local email template',
+  },
 
   // ── Content ───────────────────────────────────────────────────────────────
   {

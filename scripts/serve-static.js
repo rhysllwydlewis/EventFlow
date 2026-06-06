@@ -889,6 +889,7 @@ const adminPages = [
   'admin-partners',
   'admin-cashout-requests',
   'admin-campaigns',
+  'admin-email-previews',
 ];
 
 adminPages.forEach(page => {
@@ -898,6 +899,10 @@ adminPages.forEach(page => {
   });
   // In static-mode we keep .html paths working too (no redirect) so that
   // existing E2E tests that navigate to /<page>.html are not broken.
+});
+
+app.get('/admin/email-previews', staticLimiter, (req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, 'admin-email-previews.html'));
 });
 
 // Article pages — serve clean URLs and redirect .html to canonical
