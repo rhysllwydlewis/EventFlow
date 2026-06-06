@@ -10,7 +10,6 @@ const logger = require('../utils/logger');
 const { auditLog, AUDIT_ACTIONS } = require('../middleware/audit');
 const { writeLimiter, apiLimiter } = require('../middleware/rateLimits');
 const postmark = require('../utils/postmark');
-const { FROM_HELLO: POSTMARK_FROM_HELLO } = postmark;
 const {
   VERIFICATION_STATES,
   normaliseState,

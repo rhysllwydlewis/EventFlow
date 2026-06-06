@@ -83,7 +83,7 @@ router.post('/register', authLimiter, csrfProtection, async (req, res) => {
 
   // Send welcome email (best-effort)
   try {
-    const baseUrl = process.env.BASE_URL || 'https://eventflow.app';
+    const baseUrl = process.env.BASE_URL || process.env.APP_BASE_URL || 'https://event-flow.co.uk';
     const refLink = `${baseUrl}/auth?ref=${partner.refCode}&role=supplier`;
     await postmark.sendMail({
       to: user.email,

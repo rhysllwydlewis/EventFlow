@@ -1,6 +1,6 @@
 # EventFlow Email Templates
 
-> **Last updated:** {{year}} — see `email-templates/` directory for the live files.
+> **Last updated:** June 2026 — see `email-templates/` directory for the live files.
 
 EventFlow uses local HTML templates rendered server-side and delivered via Postmark.
 No Postmark-hosted templates are used — all templates live in `email-templates/`.
@@ -41,7 +41,8 @@ Templates are loaded by `loadEmailTemplate(templateName, data)` in `utils/postma
 1. Reads `email-templates/<name>.html` from disk.
 2. Replaces `{{variableName}}` tokens with values from the `data` object.
 3. **HTML-escapes** all values by default (prevents XSS from user input).
-4. **Allows raw HTML** for a specific set of keys: `message`, `html`, `features`, `actionsHtml`, `unsubscribeSection`, `notesSection`.
+4. **Allows raw HTML** for a specific set of keys: `message`, `html`, `features`, `actionsHtml`, `unsubscribeSection`, `notesSection`, `ctaSection`.
+   - `ctaSection`: CTA button block for notification emails — built by `sendNotificationEmail()` only when `actionUrl` and `actionText` are both provided, preventing empty `href=""` anchors.
 5. Appends `{{year}}` → current year, `{{baseUrl}}` → `APP_BASE_URL` env var.
 6. Clears any remaining unresolved `{{...}}` tokens so placeholders never appear in sent emails.
 

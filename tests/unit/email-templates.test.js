@@ -111,6 +111,31 @@ describe('Email template loader — rendering', () => {
     expect(result).toContain('&lt;script&gt;');
   });
 
+  test('does NOT escape ctaSection (allowlisted HTML key)', () => {
+    const ctaSection =
+      '<table><tr><td><a href="https://example.com">Click here</a></td></tr></table>';
+    const result = loadEmailTemplate('notification', {
+      name: 'Test User',
+      title: 'Test notification',
+      message: 'Here is your update.',
+      ctaSection,
+      preferencesLink: 'https://example.com/settings',
+    });
+    expect(result).toContain('<a href="https://example.com">Click here</a>');
+  });
+
+  test('notification renders cleanly without ctaSection (no broken empty link)', () => {
+    const result = loadEmailTemplate('notification', {
+      name: 'Test User',
+      title: 'Test notification',
+      message: 'No CTA here.',
+      ctaSection: '',
+      preferencesLink: 'https://example.com/settings',
+    });
+    expect(result).not.toContain('href=""');
+    expect(result).not.toBeNull();
+  });
+
   test('does NOT escape notesSection (allowlisted HTML key)', () => {
     const notesSection = '<p style="color:red;">Test notes HTML</p>';
     const result = loadEmailTemplate('supplier-verification-status', {
@@ -278,6 +303,7 @@ describe('postmark.js — allowed HTML keys', () => {
 
   test('includes notesSection as an allowed HTML key', () => {
     expect(src).toContain("key === 'notesSection'");
+    expect(src).toContain("key === 'ctaSection'");
   });
 
   test('preserves all original allowed HTML keys', () => {
