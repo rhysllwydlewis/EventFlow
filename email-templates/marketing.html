@@ -3,59 +3,76 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{{title}} - EventFlow</title>
+  <meta name="x-apple-disable-message-reformatting">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+  <title>{{title}} — EventFlow</title>
+  <style>
+    @media only screen and (max-width: 620px) {
+      .email-container { width: 100% !important; border-radius: 0 !important; }
+      .email-body { padding: 28px 20px !important; }
+      .email-footer { padding: 20px !important; }
+    }
+    @media (prefers-color-scheme: dark) {
+      .email-body { background-color: #1a2332 !important; }
+      .email-body h1 { color: #f1f5f9 !important; }
+      .email-body p { color: #cbd5e1 !important; }
+      .email-footer { background-color: #1a2f2b !important; border-top-color: #2a4a45 !important; }
+      .message-box { background-color: #1e2d3d !important; border-left-color: #13B6A2 !important; }
+      .message-box p { color: #e2e8f0 !important; }
+    }
+  </style>
 </head>
 <body style="margin:0;padding:0;background-color:#EBF7F5;font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
   <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#EBF7F5;">
     <tr>
-      <td align="center" style="padding:16px 16px;">
-        <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(11,128,115,0.13);">
+      <td align="center" style="padding:24px 16px 32px;">
+        <table class="email-container" width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;border-radius:20px;overflow:hidden;box-shadow:0 12px 48px rgba(11,128,115,0.16);">
 
-          <!-- ── Gradient Header ─────────────────────────────── -->
+          <!-- ══ Header ═══════════════════════════════════════════════ -->
           <tr>
-            <td style="background:linear-gradient(135deg,#0B8073 0%,#13B6A2 100%);padding:24px 40px 24px;text-align:center;">
-              <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto 14px auto;">
+            <td style="background:linear-gradient(135deg,#0B5E56 0%,#0B8073 45%,#13B6A2 100%);padding:32px 40px 28px;text-align:center;">
+              <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto 16px auto;">
                 <tr>
-                  <td style="width:52px;height:52px;background:rgba(255,255,255,0.18);border-radius:14px;text-align:center;vertical-align:middle;font-size:20px;font-weight:900;color:#ffffff;letter-spacing:-1px;line-height:52px;">EF</td>
+                  <td style="width:56px;height:56px;background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.25);border-radius:16px;text-align:center;vertical-align:middle;font-size:22px;font-weight:900;color:#ffffff;letter-spacing:-1px;line-height:56px;">EF</td>
                 </tr>
               </table>
-              <div style="font-size:24px;font-weight:800;letter-spacing:-0.5px;color:#ffffff;margin-bottom:5px;">EventFlow</div>
-              <div style="font-size:12px;color:rgba(255,255,255,0.72);letter-spacing:0.3px;">Operated by VEXI</div>
+              <div style="font-size:22px;font-weight:800;color:#ffffff;letter-spacing:-0.3px;">EventFlow</div>
+              <div style="font-size:12px;color:rgba(255,255,255,0.65);margin-top:3px;letter-spacing:0.5px;text-transform:uppercase;">Operated by VEXI</div>
             </td>
           </tr>
 
-          <!-- ── Body ────────────────────────────────────────── -->
+          <!-- ══ Body ════════════════════════════════════════════════ -->
           <tr>
-            <td style="background-color:#ffffff;padding:40px 40px 32px;">
-              <h1 style="margin:0 0 20px;font-size:22px;font-weight:700;color:#0B1220;line-height:1.35;">{{title}}</h1>
+            <td class="email-body" style="background-color:#ffffff;padding:40px 40px 32px;">
+
+              <h1 style="margin:0 0 16px;font-size:22px;font-weight:700;color:#0B1220;line-height:1.3;">{{title}}</h1>
               <p style="margin:0 0 24px;font-size:15px;color:#334155;line-height:1.75;">Hi {{name}},</p>
 
-              <!-- Message box -->
-              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:28px;">
-                <tr>
-                  <td style="background-color:#F2FBF9;border-left:4px solid #13B6A2;border-radius:0 10px 10px 0;padding:18px 20px;">
-                    <p style="margin:0;font-size:15px;color:#0B1220;line-height:1.75;">{{message}}</p>
-                  </td>
-                </tr>
-              </table>
+              <!-- Message content (raw HTML allowed — backend-controlled only) -->
+              <div class="message-box" style="background-color:#F2FBF9;border-left:4px solid #13B6A2;border-radius:0 12px 12px 0;padding:20px 22px;margin-bottom:28px;">
+                {{message}}
+              </div>
 
-              <p style="margin:0;font-size:13px;color:#667085;line-height:1.6;">You're receiving this promotional email because you opted in to marketing communications from EventFlow.</p>
+              <p style="margin:0;font-size:13px;color:#667085;line-height:1.6;">You're receiving this email because you opted in to marketing communications from EventFlow. We respect your inbox — emails are infrequent and relevant.</p>
             </td>
           </tr>
 
-          <!-- ── Footer ───────────────────────────────────────── -->
+          <!-- ══ Footer ══════════════════════════════════════════════ -->
           <tr>
-            <td style="background-color:#F2FBF9;padding:24px 40px;text-align:center;border-top:1px solid #D9F0EC;">
-              <p style="margin:0 0 8px;font-size:13px;color:#667085;">© 2025–{{year}} EventFlow. All rights reserved. &nbsp;·&nbsp; Operated by VEXI</p>
-              <p style="margin:0 0 8px;font-size:12px;color:#98A2B3;">
+            <td class="email-footer" style="background-color:#F2FBF9;padding:24px 40px;text-align:center;border-top:1px solid #D9F0EC;">
+              <p style="margin:0 0 8px;font-size:13px;color:#64748B;">© 2025–{{year}} EventFlow. All rights reserved. · Operated by VEXI</p>
+              <p style="margin:0 0 8px;font-size:12px;color:#94A3B8;">
                 <a href="{{baseUrl}}/privacy" style="color:#0B8073;text-decoration:none;">Privacy Policy</a>
                 &nbsp;·&nbsp;
-                <a href="{{baseUrl}}/terms" style="color:#0B8073;text-decoration:none;">Terms of Service</a>
+                <a href="{{baseUrl}}/terms" style="color:#0B8073;text-decoration:none;">Terms</a>
                 &nbsp;·&nbsp;
-                <a href="{{baseUrl}}/contact" style="color:#0B8073;text-decoration:none;">Contact Us</a>
+                <a href="{{baseUrl}}/contact" style="color:#0B8073;text-decoration:none;">Contact</a>
               </p>
-              <p style="margin:0 0 8px;font-size:12px;color:#98A2B3;"><a href="{{baseUrl}}" style="color:#0B8073;text-decoration:none;">event-flow.co.uk</a></p>
-              <p style="margin:0;font-size:11px;color:#98A2B3;"><a href="{{unsubscribeLink}}" style="color:#98A2B3;text-decoration:underline;">Unsubscribe from marketing emails</a></p>
+              <p style="margin:0 0 10px;font-size:12px;color:#94A3B8;"><a href="{{baseUrl}}" style="color:#0B8073;text-decoration:none;">event-flow.co.uk</a></p>
+              <p style="margin:0;font-size:11px;color:#94A3B8;">
+                <a href="{{unsubscribeLink}}" style="color:#94A3B8;text-decoration:underline;">Unsubscribe from marketing emails</a>
+              </p>
             </td>
           </tr>
 

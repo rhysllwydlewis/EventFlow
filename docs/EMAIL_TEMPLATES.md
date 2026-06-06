@@ -17,7 +17,7 @@ No Postmark-hosted templates are used — all templates live in `email-templates
 | `welcome-supplier.html`                 | Supplier onboarding                    | `utils/postmark.js` (sendWelcomeEmail)                 | `{{name}}`                                                                                                                                                             |
 | `password-reset.html`                   | Password reset link                    | `utils/postmark.js`, `routes/auth.js`                  | `{{name}}`, `{{resetLink}}`                                                                                                                                            |
 | `password-reset-confirmation.html`      | Password changed confirmation          | `utils/postmark.js`                                    | `{{name}}`, `{{resetTime}}`                                                                                                                                            |
-| `notification.html`                     | Generic transactional notification     | `utils/postmark.js` (sendNotificationEmail)            | `{{name}}`, `{{title}}`, `{{message}}`, `{{actionUrl}}` (optional), `{{actionText}}` (optional)                                                                        |
+| `notification.html`                     | Generic transactional notification     | `utils/postmark.js` (sendNotificationEmail)            | `{{name}}`, `{{title}}`, `{{message}}`, `{{ctaSection}}` (optional — built server-side; pass `actionUrl` + `actionText` to `sendNotificationEmail()` options)          |
 | `marketing.html`                        | Admin marketing campaigns              | `routes/admin-campaigns.js`                            | `{{name}}`, `{{title}}`, `{{message}}`, `{{unsubscribeLink}}`                                                                                                          |
 | `action-prompts.html`                   | Supplier action reminder emails        | `routes/admin.js`, `services/actionPromptScheduler.js` | `{{actionsHtml}}`, `{{name}}`, `{{unsubscribeSection}}`                                                                                                                |
 | `newsletter-confirm.html`               | Newsletter double opt-in               | `routes/newsletter.js`                                 | `{{name}}`, `{{confirmLink}}`                                                                                                                                          |
@@ -34,6 +34,16 @@ No Postmark-hosted templates are used — all templates live in `email-templates
 
 ---
 
+## Campaign-safe templates
+
+Only a restricted set of templates can be used for admin campaigns (via `/admin-campaigns`). This prevents accidental use of transactional templates (verification, password reset, etc.) in mass-sends.
+
+Currently campaign-safe: `marketing`, `notification`
+
+The allowlist is enforced in `routes/admin-campaigns.js` via `CAMPAIGN_SAFE_TEMPLATES`. Every campaign API endpoint — preview, test-send and broadcast — rejects any template not in this set with a `400` error.
+
+---
+
 ## How the loader works
 
 Templates are loaded by `loadEmailTemplate(templateName, data)` in `utils/postmark.js`:
@@ -45,6 +55,24 @@ Templates are loaded by `loadEmailTemplate(templateName, data)` in `utils/postma
    - `ctaSection`: CTA button block for notification emails — built by `sendNotificationEmail()` only when `actionUrl` and `actionText` are both provided, preventing empty `href=""` anchors.
 5. Appends `{{year}}` → current year, `{{baseUrl}}` → `APP_BASE_URL` env var.
 6. Clears any remaining unresolved `{{...}}` tokens so placeholders never appear in sent emails.
+
+### Raw HTML allowlisted keys — safety warning
+
+The loader HTML-escapes all template variables by default. However, a small set of keys are **allowed to inject raw HTML** unescaped. These must only ever receive backend-constructed markup:
+
+| Key                  | Where it is constructed                                        | Safety note                                                                      |
+| -------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `message`            | `admin-campaigns.js` (campaign body) or `sendMarketingEmail()` | Campaign body from admin form; CTA injected with `escapeHtml(ctaText)`           |
+| `html`               | Explicit callers only                                          | Must only receive validated HTML                                                 |
+| `features`           | Subscription email builders                                    | Always backend-constructed                                                       |
+| `actionsHtml`        | `services/actionPromptScheduler.js`                            | Always backend-constructed                                                       |
+| `unsubscribeSection` | Action prompt builder                                          | Always backend-constructed                                                       |
+| `notesSection`       | `routes/supplier-admin.js`                                     | Admin notes are `escapeHtml()`-escaped before wrapping                           |
+| `ctaSection`         | `utils/postmark.js` (sendNotificationEmail)                    | Only constructed when both `actionUrl` (http/https) and `actionText` are present |
+
+**Never** pass unescaped user input to any of these keys.
+
+---
 
 ### Sending an email
 
