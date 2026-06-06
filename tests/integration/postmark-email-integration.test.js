@@ -138,7 +138,7 @@ describe('Postmark — sendMail with mocked client', () => {
         readFileSync: jest.fn().mockImplementation((filePath, encoding) => {
           // Return a mock template with placeholders
           if (typeof filePath === 'string' && filePath.endsWith('.html')) {
-            return '<html><body>Hello {{name}}, {{message}}</body></html>';
+            return '<html><body>Hello {{name}}, {{message}} {{ctaSection}} {{unsubscribeLink}}</body></html>';
           }
           return actual.readFileSync(filePath, encoding);
         }),
@@ -188,6 +188,38 @@ describe('Postmark — sendMail with mocked client', () => {
         To: 'a@example.com,b@example.com',
       })
     );
+  });
+
+  it('sendMarketingEmail preserves constructed template data when extra templateData is provided', async () => {
+    await postmark.sendMarketingEmail(
+      { email: 'marketing@example.com', name: 'Marketing User', notify_marketing: true },
+      'Campaign Subject',
+      'Safe campaign body',
+      { templateData: { message: 'SHOULD_NOT_OVERRIDE', customValue: 'extra' } }
+    );
+
+    expect(mockSendEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        To: 'marketing@example.com',
+        Subject: 'Campaign Subject',
+        HtmlBody: expect.stringContaining('Safe campaign body'),
+      })
+    );
+    expect(mockSendEmail.mock.calls[0][0].HtmlBody).not.toContain('SHOULD_NOT_OVERRIDE');
+  });
+
+  it('sendNotificationEmail does not allow extra templateData to override generated CTA HTML', async () => {
+    await postmark.sendNotificationEmail(
+      { email: 'notify@example.com', name: 'Notify User', notify_account: true },
+      'Notification Subject',
+      'Account update body',
+      { templateData: { ctaSection: '<script>alert(1)</script>' } }
+    );
+
+    const htmlBody = mockSendEmail.mock.calls[0][0].HtmlBody;
+    expect(htmlBody).toContain('Account update body');
+    expect(htmlBody).not.toContain('<script>');
+    expect(htmlBody).not.toContain('alert(1)');
   });
 });
 

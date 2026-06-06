@@ -288,3 +288,47 @@ describe('admin-navbar.js — campaigns nav item', () => {
     expect(block).toContain("icon: '📣'");
   });
 });
+
+describe('admin-campaigns backend safety helpers', () => {
+  it('sanitises dangerous advanced HTML before rendering campaign message', () => {
+    const { buildTemplateData } = require('../../routes/admin-campaigns');
+    const data = buildTemplateData({
+      title: 'Safety',
+      bodyHtml:
+        '<p onclick="alert(1)">Hello</p><script>alert(1)</script><a href="javascript:alert(1)">bad</a>',
+      ctaText: 'Read more',
+      ctaUrl: 'https://event-flow.co.uk/guides',
+    });
+    expect(data.message).toContain('<p>Hello</p>');
+    expect(data.message).not.toContain('<script>');
+    expect(data.message).not.toContain('onclick=');
+    expect(data.message).not.toContain('javascript:');
+  });
+
+  it('validates CTA text and URL together', () => {
+    const { validateCampaignLinks } = require('../../routes/admin-campaigns');
+    expect(validateCampaignLinks({ ctaText: 'Open', ctaUrl: '' })).toContain('together');
+    expect(validateCampaignLinks({ ctaText: '', ctaUrl: 'https://event-flow.co.uk' })).toContain(
+      'together'
+    );
+    expect(validateCampaignLinks({ ctaText: 'Open', ctaUrl: '/relative' })).toContain(
+      'http:// or https://'
+    );
+    expect(validateCampaignLinks({ ctaText: 'Open', ctaUrl: 'https://event-flow.co.uk' })).toBe('');
+  });
+});
+
+describe('admin-email-previews page registration', () => {
+  it('adminRegistry registers the slash route', () => {
+    const registryContent = fs.readFileSync(REGISTRY, 'utf8');
+    expect(registryContent).toContain("route: '/admin-email-previews'");
+  });
+
+  it('admin navbar includes email previews', () => {
+    const navbarContent = fs.readFileSync(
+      path.join(__dirname, '../../public/assets/js/admin-navbar.js'),
+      'utf8'
+    );
+    expect(navbarContent).toContain("href: '/admin/email-previews'");
+  });
+});

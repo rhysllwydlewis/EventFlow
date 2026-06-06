@@ -25,6 +25,10 @@ const { writeLimiter } = require('../middleware/rateLimits');
 const dbUnified = require('../db-unified');
 const postmark = require('../utils/postmark');
 const { EMAIL_ENABLED } = require('../config/email');
+const {
+  sanitizeContent,
+  escapeHtml: escapeSanitizerHtml,
+} = require('../services/contentSanitizer');
 
 /**
  * Templates that can be used for admin campaigns.
@@ -68,13 +72,54 @@ function buildTemplateData(fields) {
   const {
     title = '',
     bodyHtml = '',
+    intro = '',
+    bodyText = '',
+    featureList = '',
+    bannerUrl = '',
+    secondaryNote = '',
     ctaText = '',
     ctaUrl = '',
     name = DEFAULT_RECIPIENT_NAME,
   } = fields;
 
+  const blocks = [];
+  if (bannerUrl && /^https?:\/\//i.test(bannerUrl)) {
+    blocks.push(
+      `<p style="margin:0 0 20px;text-align:center;"><img src="${escapeAttr(bannerUrl)}" alt="Campaign banner" style="max-width:100%;height:auto;border-radius:14px;border:0;"></p>`
+    );
+  }
+  if (intro) {
+    blocks.push(`<p>${escapeSanitizerHtml(intro)}</p>`);
+  }
+  if (bodyText) {
+    blocks.push(
+      `<p>${escapeSanitizerHtml(bodyText)
+        .replace(/\n{2,}/g, '</p><p>')
+        .replace(/\n/g, '<br>')}</p>`
+    );
+  }
+  if (featureList) {
+    const items = featureList
+      .split(/\n+/)
+      .map(item => item.trim())
+      .filter(Boolean)
+      .map(item => `<li>${escapeSanitizerHtml(item.replace(/^[-*•]\s*/, ''))}</li>`)
+      .join('');
+    if (items) {
+      blocks.push(`<ul>${items}</ul>`);
+    }
+  }
+  if (bodyHtml) {
+    blocks.push(sanitizeContent(bodyHtml, false));
+  }
+  if (secondaryNote) {
+    blocks.push(
+      `<p style="font-size:14px;color:#64748B;"><em>${escapeSanitizerHtml(secondaryNote)}</em></p>`
+    );
+  }
+
   // Append a CTA button to the message body if both button fields are present
-  let message = bodyHtml;
+  let message = blocks.join('\n');
   if (ctaText && ctaUrl) {
     // Inline-styled button for email client compatibility (existing template uses inline styles)
     message += `\n<p style="margin:24px 0 0;text-align:center;">
@@ -107,6 +152,19 @@ function escapeAttr(str) {
     return '#';
   }
   return str.replace(/"/g, '%22');
+}
+
+function validateCampaignLinks({ ctaText, ctaUrl, bannerUrl }) {
+  if ((ctaText && !ctaUrl) || (ctaUrl && !ctaText)) {
+    return 'CTA button text and CTA URL must be provided together.';
+  }
+  if (ctaUrl && !/^https?:\/\//i.test(ctaUrl)) {
+    return 'CTA URL must start with http:// or https://';
+  }
+  if (bannerUrl && !/^https?:\/\//i.test(bannerUrl)) {
+    return 'Banner image URL must start with http:// or https://';
+  }
+  return '';
 }
 
 // ── Recipient collection ───────────────────────────────────────────────────────
@@ -178,7 +236,18 @@ router.get('/recipient-count', authRequired, roleRequired('admin'), async (req, 
 
 router.post('/preview', authRequired, roleRequired('admin'), async (req, res) => {
   try {
-    const { templateName = 'marketing', subject, title, bodyHtml, ctaText, ctaUrl } = req.body;
+    const {
+      templateName = 'marketing',
+      title,
+      bodyHtml,
+      intro,
+      bodyText,
+      featureList,
+      bannerUrl,
+      secondaryNote,
+      ctaText,
+      ctaUrl,
+    } = req.body;
 
     const safeTemplateName = typeof templateName === 'string' ? templateName.trim() : '';
     if (!CAMPAIGN_SAFE_TEMPLATES.has(safeTemplateName)) {
@@ -188,7 +257,22 @@ router.post('/preview', authRequired, roleRequired('admin'), async (req, res) =>
       });
     }
 
-    const templateData = buildTemplateData({ title, bodyHtml, ctaText, ctaUrl });
+    const validationError = validateCampaignLinks({ ctaText, ctaUrl, bannerUrl });
+    if (validationError) {
+      return res.status(400).json({ ok: false, error: validationError });
+    }
+
+    const templateData = buildTemplateData({
+      title,
+      bodyHtml,
+      intro,
+      bodyText,
+      featureList,
+      bannerUrl,
+      secondaryNote,
+      ctaText,
+      ctaUrl,
+    });
     // Add a placeholder unsubscribe link so the template renders a visible link
     // in preview mode (the real personalised link is only generated on /test and /send).
     templateData.unsubscribeLink = `${APP_BASE_URL}/api/auth/unsubscribe?preview=1`;
@@ -228,6 +312,11 @@ router.post(
         subject = '(Test) EventFlow Campaign',
         templateName = 'marketing',
         bodyHtml,
+        intro,
+        bodyText,
+        featureList,
+        bannerUrl,
+        secondaryNote,
         title,
         ctaText,
         ctaUrl,
@@ -251,22 +340,19 @@ router.post(
         });
       }
 
-      // CTA URL must be http/https if CTA text is provided
-      if (ctaText && ctaUrl && !/^https?:\/\//i.test(ctaUrl)) {
-        return res
-          .status(400)
-          .json({ ok: false, error: 'CTA URL must start with http:// or https://' });
-      }
-      // CTA text required when CTA URL is provided
-      if (ctaUrl && !ctaText) {
-        return res
-          .status(400)
-          .json({ ok: false, error: 'CTA button text is required when a CTA URL is provided.' });
+      const validationError = validateCampaignLinks({ ctaText, ctaUrl, bannerUrl });
+      if (validationError) {
+        return res.status(400).json({ ok: false, error: validationError });
       }
 
       const templateData = buildTemplateData({
         title,
         bodyHtml,
+        intro,
+        bodyText,
+        featureList,
+        bannerUrl,
+        secondaryNote,
         ctaText,
         ctaUrl,
         name: 'Test Recipient',
@@ -316,6 +402,11 @@ router.post(
         subject,
         templateName = 'marketing',
         bodyHtml,
+        intro,
+        bodyText,
+        featureList,
+        bannerUrl,
+        secondaryNote,
         title,
         ctaText,
         ctaUrl,
@@ -338,16 +429,9 @@ router.post(
         });
       }
 
-      // CTA URL must be http/https if provided alongside CTA text
-      if (ctaText && ctaUrl && !/^https?:\/\//i.test(ctaUrl)) {
-        return res
-          .status(400)
-          .json({ ok: false, error: 'CTA URL must start with http:// or https://' });
-      }
-      if (ctaUrl && !ctaText) {
-        return res
-          .status(400)
-          .json({ ok: false, error: 'CTA button text is required when a CTA URL is provided.' });
+      const validationError = validateCampaignLinks({ ctaText, ctaUrl, bannerUrl });
+      if (validationError) {
+        return res.status(400).json({ ok: false, error: validationError });
       }
 
       const recipients = await collectRecipients(audience);
@@ -372,7 +456,18 @@ router.post(
         await Promise.allSettled(
           batch.map(async ({ email, name }) => {
             try {
-              const templateData = buildTemplateData({ title, bodyHtml, ctaText, ctaUrl, name });
+              const templateData = buildTemplateData({
+                title,
+                bodyHtml,
+                intro,
+                bodyText,
+                featureList,
+                bannerUrl,
+                secondaryNote,
+                ctaText,
+                ctaUrl,
+                name,
+              });
               templateData.unsubscribeLink = buildUnsubscribeLink(email);
 
               await postmark.sendMail({
@@ -411,3 +506,5 @@ router.post(
 
 module.exports = router;
 module.exports.CAMPAIGN_SAFE_TEMPLATES = CAMPAIGN_SAFE_TEMPLATES;
+module.exports.buildTemplateData = buildTemplateData;
+module.exports.validateCampaignLinks = validateCampaignLinks;

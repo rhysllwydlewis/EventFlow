@@ -42,6 +42,11 @@
 
 const path = require('path');
 const logger = require('./logger');
+const {
+  getPreheader,
+  renderPlainTextTemplate,
+  isKnownTemplate,
+} = require('./emailTemplateRegistry');
 const fs = require('fs');
 const crypto = require('crypto');
 
@@ -140,6 +145,65 @@ function maskEmail(email) {
   return `${maskedLocal}@${domain}`;
 }
 
+function escapeHtmlValue(text) {
+  if (typeof text !== 'string') {
+    return text;
+  }
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function safeHttpUrl(url) {
+  if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) {
+    return '#';
+  }
+  return url.replace(/"/g, '%22');
+}
+
+const RAW_HTML_TEMPLATE_KEYS = new Set([
+  // Backend-generated or sanitised rich content only. See docs/EMAIL_TEMPLATES.md.
+  'message',
+  'html',
+  'features',
+  'actionsHtml',
+  'unsubscribeSection',
+  'notesSection',
+  'ctaSection',
+]);
+
+function buildHiddenPreheader(preheader) {
+  if (!preheader) {
+    return '';
+  }
+  return `<div class="ef-preheader" style="display:none!important;visibility:hidden;opacity:0;color:transparent;height:0;width:0;max-height:0;max-width:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;">${preheader}</div>`;
+}
+
+function injectPreheader(html, preheader) {
+  if (!preheader || html.includes('ef-preheader')) {
+    return html;
+  }
+  const hidden = buildHiddenPreheader(preheader);
+  if (/<body[^>]*>/i.test(html)) {
+    return html.replace(/<body([^>]*)>/i, `<body$1>${hidden}`);
+  }
+  return `${hidden}${html}`;
+}
+
+function injectEmailBranding(html) {
+  const fallbackTile =
+    '<span style="display:inline-block;width:100%;height:100%;line-height:inherit;color:inherit;font:inherit;letter-spacing:inherit;">EF</span>';
+  return html
+    .replace(/<td([^>]*?)>EF<\/td>/, `<td$1>${fallbackTile}</td>`)
+    .replace(
+      />EventFlow<\/div>/,
+      '>EventFlow<span style="font-size:13px;font-weight:500;opacity:.82;"> &middot; Event planning made simple</span></div>'
+    );
+}
+
 /**
  * Load and process email template
  * @param {string} templateName - Name of template file (without .html)
@@ -148,6 +212,10 @@ function maskEmail(email) {
  */
 function loadEmailTemplate(templateName, data = {}) {
   try {
+    if (!isKnownTemplate(templateName)) {
+      logger.error(`Email template not found or not allowlisted: ${templateName}.html`);
+      return null;
+    }
     const templatePath = path.join(__dirname, '..', 'email-templates', `${templateName}.html`);
     if (!fs.existsSync(templatePath)) {
       logger.error(`Email template not found: ${templateName}.html`);
@@ -173,16 +241,7 @@ function loadEmailTemplate(templateName, data = {}) {
     Object.keys(data).forEach(key => {
       const regex = new RegExp(`{{${key}}}`, 'g');
       // Don't escape if the value contains HTML tags (for message content)
-      const value =
-        key === 'message' ||
-        key === 'html' ||
-        key === 'features' ||
-        key === 'actionsHtml' ||
-        key === 'unsubscribeSection' ||
-        key === 'notesSection' ||
-        key === 'ctaSection'
-          ? data[key]
-          : escapeHtml(data[key]);
+      const value = RAW_HTML_TEMPLATE_KEYS.has(key) ? data[key] : escapeHtml(data[key]);
       html = html.replace(regex, value || '');
     });
 
@@ -191,6 +250,11 @@ function loadEmailTemplate(templateName, data = {}) {
 
     // Add base URL
     html = html.replace(/{{baseUrl}}/g, APP_BASE_URL);
+
+    const preheader = escapeHtml(data.preheader || getPreheader(templateName));
+    html = html.replace(/{{preheader}}/g, preheader);
+    html = injectPreheader(html, preheader);
+    html = injectEmailBranding(html);
 
     // Clear any remaining unresolved template placeholders
     html = html.replace(/\{\{[^}]+\}\}/g, '');
@@ -268,7 +332,7 @@ async function sendMail(options) {
       From: from,
       Subject: subject || '(from template)',
       HtmlBody: outboxHtml,
-      TextBody: text,
+      TextBody: text || (template ? renderPlainTextTemplate(template, templateData) : undefined),
       Template: template,
     };
     saveEmailToOutbox(outboxData);
@@ -312,9 +376,11 @@ async function sendMail(options) {
   // Add body content
   if (emailHtml) {
     emailData.HtmlBody = emailHtml;
-    // Provide text fallback if HTML is used
-    if (!text) {
-      // Simple HTML to text conversion
+    // Provide text fallback if HTML is used. Prefer curated template text, then caller text.
+    if (!text && template) {
+      emailData.TextBody = renderPlainTextTemplate(template, templateData);
+    } else if (!text) {
+      // Simple HTML to text conversion fallback for ad-hoc HTML emails
       emailData.TextBody = emailHtml
         .replace(/<[^>]*>/g, '')
         .replace(/\s+/g, ' ')
@@ -498,6 +564,15 @@ async function sendPasswordResetConfirmation(user) {
  * @returns {Promise<Object|null>} Send result or null if user opted out
  */
 async function sendMarketingEmail(user, subject, message, options = {}) {
+  const {
+    template: selectedTemplate = 'marketing',
+    templateData: extraTemplateData = {},
+    messageStream: selectedMessageStream = 'broadcasts',
+    ctaText,
+    ctaLink,
+    ...sendOptions
+  } = options;
+
   // Check if user has opted in to marketing emails
   if (user.notify_marketing === false) {
     logger.info(`Skipping marketing email to ${user.email} (user opted out)`);
@@ -510,29 +585,29 @@ async function sendMarketingEmail(user, subject, message, options = {}) {
 
   // Build message with optional CTA button
   let fullMessage = message;
-  if (options.ctaText && options.ctaLink) {
+  if (ctaText && ctaLink) {
     fullMessage += `\n\n<div style="text-align: center; margin: 24px 0;">
-      <a href="${options.ctaLink}" class="cta-button" style="display: inline-block; padding: 14px 28px; background: linear-gradient(180deg, #16c3ad, #0ea896); color: #ffffff; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 16px;">${options.ctaText}</a>
+      <a href="${safeHttpUrl(ctaLink)}" class="cta-button" style="display: inline-block; padding: 14px 28px; background: linear-gradient(180deg, #16c3ad, #0ea896); color: #ffffff; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 16px;">${escapeHtmlValue(ctaText)}</a>
     </div>`;
   }
 
   const templateData = {
+    ...extraTemplateData,
     name: user.name || 'there',
     title: subject,
     message: fullMessage,
     unsubscribeLink: unsubscribeLink,
-    ...(options.templateData || {}),
   };
 
   return sendMail({
+    ...sendOptions,
     to: user.email,
     subject: subject,
-    template: options.template || 'marketing',
+    template: selectedTemplate,
     templateData: templateData,
-    from: FROM_INFO,
-    tags: ['marketing'],
-    messageStream: options.messageStream || 'broadcasts',
-    ...options,
+    from: sendOptions.from || FROM_INFO,
+    tags: sendOptions.tags || ['marketing'],
+    messageStream: selectedMessageStream,
   });
 }
 
@@ -545,6 +620,14 @@ async function sendMarketingEmail(user, subject, message, options = {}) {
  * @returns {Promise<Object|null>} Send result or null if user opted out
  */
 async function sendNotificationEmail(user, subject, message, options = {}) {
+  const {
+    template: selectedTemplate = 'notification',
+    templateData: extraTemplateData = {},
+    actionUrl: optionActionUrl,
+    actionText: optionActionText,
+    ...sendOptions
+  } = options;
+
   // Check if user has opted in to account notifications
   if (user.notify_account === false) {
     logger.info(`Skipping notification email to ${user.email} (user opted out)`);
@@ -552,32 +635,31 @@ async function sendNotificationEmail(user, subject, message, options = {}) {
   }
 
   // Build optional CTA section — avoids empty href="" in template when no CTA is needed
-  const actionUrl = options.actionUrl || (options.templateData && options.templateData.actionUrl);
-  const actionText =
-    options.actionText || (options.templateData && options.templateData.actionText);
+  const actionUrl = optionActionUrl || extraTemplateData.actionUrl;
+  const actionText = optionActionText || extraTemplateData.actionText;
   const ctaSection =
-    actionUrl && actionText
-      ? `<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;"><tr><td align="center"><a href="${actionUrl}" style="display:inline-block;padding:15px 40px;background:linear-gradient(135deg,#0B8073,#13B6A2);color:#ffffff;text-decoration:none;border-radius:10px;font-weight:700;font-size:15px;letter-spacing:0.2px;">${actionText}</a></td></tr></table>`
+    actionUrl && actionText && /^https?:\/\//i.test(actionUrl)
+      ? `<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;"><tr><td align="center"><a href="${safeHttpUrl(actionUrl)}" style="display:inline-block;padding:15px 40px;background:linear-gradient(135deg,#0B8073,#13B6A2);color:#ffffff;text-decoration:none;border-radius:10px;font-weight:700;font-size:15px;letter-spacing:0.2px;">${escapeHtmlValue(actionText)}</a></td></tr></table>`
       : '';
 
   const templateData = {
+    ...extraTemplateData,
     name: user.name || 'there',
     title: subject,
     message: message,
     preferencesLink: `${APP_BASE_URL}/settings/notifications`,
     ctaSection,
-    ...(options.templateData || {}),
   };
 
   return sendMail({
+    ...sendOptions,
     to: user.email,
     subject: subject,
-    template: options.template || 'notification',
+    template: selectedTemplate,
     templateData: templateData,
-    from: FROM_SUPPORT,
-    tags: ['notification', 'transactional'],
-    messageStream: 'outbound',
-    ...options,
+    from: sendOptions.from || FROM_SUPPORT,
+    tags: sendOptions.tags || ['notification', 'transactional'],
+    messageStream: sendOptions.messageStream || 'outbound',
   });
 }
 
@@ -625,6 +707,7 @@ module.exports = {
   isPostmarkEnabled,
   getPostmarkStatus,
   loadEmailTemplate,
+  RAW_HTML_TEMPLATE_KEYS,
   generateUnsubscribeToken,
   verifyUnsubscribeToken,
 };

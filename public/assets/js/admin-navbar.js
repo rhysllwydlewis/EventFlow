@@ -162,6 +162,13 @@
       desc: 'Compose & send marketing email campaigns',
     },
     {
+      href: '/admin/email-previews',
+      icon: '✉️',
+      label: 'Email Previews',
+      group: 'operations',
+      desc: 'Review and test every local email template',
+    },
+    {
       href: '/admin-homepage',
       icon: '🏠',
       label: 'Homepage',

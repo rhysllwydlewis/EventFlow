@@ -302,17 +302,12 @@ describe('postmark.js — allowed HTML keys', () => {
   });
 
   test('includes notesSection as an allowed HTML key', () => {
-    expect(src).toContain("key === 'notesSection'");
-    expect(src).toContain("key === 'ctaSection'");
+    expect(src).toContain("'notesSection'");
+    expect(src).toContain("'ctaSection'");
   });
 
   test('preserves all original allowed HTML keys', () => {
-    [
-      "key === 'message'",
-      "key === 'html'",
-      "key === 'actionsHtml'",
-      "key === 'unsubscribeSection'",
-    ].forEach(k => {
+    ["'message'", "'html'", "'actionsHtml'", "'unsubscribeSection'"].forEach(k => {
       expect(src).toContain(k);
     });
   });
@@ -485,7 +480,7 @@ describe('Raw HTML allowlist keys — construction and safety', () => {
       'ctaSection',
     ];
     allowedKeys.forEach(key => {
-      expect(src).toContain(`key === '${key}'`);
+      expect(src).toContain(`'${key}'`);
     });
   });
 
@@ -509,5 +504,94 @@ describe('Raw HTML allowlist keys — construction and safety', () => {
     expect(src).toContain('escapeHtml(ctaText)');
     // CTA URL should go through escapeAttr which validates http/https
     expect(src).toContain('escapeAttr(ctaUrl)');
+  });
+});
+
+describe('Email preview registry, preheaders and plain text', () => {
+  const registry = require('../../utils/emailTemplateRegistry');
+
+  test('preview registry covers every local HTML template', () => {
+    const files = fs
+      .readdirSync(TEMPLATES_DIR)
+      .filter(f => f.endsWith('.html'))
+      .map(f => path.basename(f, '.html'))
+      .sort();
+    expect(
+      registry
+        .listTemplateDetails()
+        .map(t => t.name)
+        .sort()
+    ).toEqual(files);
+  });
+
+  test.each([
+    'verification',
+    'password-reset',
+    'password-reset-confirmation',
+    'welcome-customer',
+    'welcome-supplier',
+    'partner-welcome',
+    'supplier-verification-status',
+    'marketing',
+    'newsletter-confirm',
+    'newsletter-welcome',
+    'subscription-payment-failed',
+    'subscription-activated',
+    'subscription-cancelled',
+  ])('%s has clean plain-text output', name => {
+    const detail = registry.getTemplateDetails(name);
+    const text = registry.renderPlainTextTemplate(name, detail.sampleData);
+    expect(text.length).toBeGreaterThan(40);
+    expect(text).not.toMatch(/<[^>]+>/);
+    expect(text).not.toMatch(/\{\{[^}]+\}\}/);
+  });
+
+  test('preheader is injected into rendered HTML and no placeholder remains', () => {
+    const html = loadEmailTemplate('verification', registry.buildSampleData('verification'));
+    expect(html).toContain('ef-preheader');
+    expect(html).toContain(registry.getPreheader('verification'));
+    expect(html).not.toContain('{{preheader}}');
+  });
+
+  test('canonical supplier dashboard route is used in welcome-supplier email', () => {
+    const html = loadEmailTemplate(
+      'welcome-supplier',
+      registry.buildSampleData('welcome-supplier')
+    );
+    expect(html).toContain('/dashboard/supplier');
+    expect(html).not.toContain('/dashboard-supplier');
+    expect(html).not.toContain('/profile');
+    expect(html).not.toContain('/inquiries');
+  });
+
+  test('canonical customer dashboard route is used in welcome-customer email', () => {
+    const html = loadEmailTemplate(
+      'welcome-customer',
+      registry.buildSampleData('welcome-customer')
+    );
+    expect(html).toContain('/dashboard/customer');
+    expect(html).not.toContain('/dashboard-customer');
+    expect(html).not.toContain('/checklist');
+  });
+
+  test('email branding keeps text-only fallback and avoids remote logo dependency', () => {
+    const html = loadEmailTemplate('verification', registry.buildSampleData('verification'));
+    expect(html).toContain('Event planning made simple');
+    expect(html).toContain('>EF</span>');
+    expect(html).not.toContain('/bimi.svg');
+  });
+});
+
+describe('Admin email previews route module', () => {
+  test('route source uses admin auth, CSRF and single-recipient validation', () => {
+    const src = fs.readFileSync(
+      path.join(__dirname, '../../routes/admin-email-previews.js'),
+      'utf8'
+    );
+    expect(src).toContain("roleRequired('admin')");
+    expect(src).toContain('csrfProtection');
+    expect(src).toContain('writeLimiter');
+    expect(src).toContain('[TEST]');
+    expect(src).toContain('validator.isEmail');
   });
 });
