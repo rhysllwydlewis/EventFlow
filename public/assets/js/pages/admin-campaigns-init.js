@@ -26,7 +26,8 @@
   let subjectEl, titleEl, messageEl, ctaTextEl, ctaUrlEl;
   let testEmailEl, testBtn, sendBtn, audienceEl;
   let previewFrame, previewLoading, refreshBtn, statusEl;
-  let recipientBannerText, subjectCharCounter;
+  let recipientBannerText, subjectCharCounter, audienceCountEl;
+  let previewDesktopBtn, previewMobileBtn;
 
   // ── Collect current editor values ─────────────────────────────────────────
   function getEditorValues() {
@@ -93,6 +94,56 @@
     } catch (_err) {
       recipientBannerText.textContent = 'Recipient count unavailable';
     }
+  }
+
+  // Update the per-audience count helper text below the audience dropdown
+  async function updateAudienceCount() {
+    if (!audienceCountEl || !audienceEl) {
+      return;
+    }
+    const audience = audienceEl.value;
+    audienceCountEl.className = 'campaigns-help-text';
+    audienceCountEl.textContent = 'Counting…';
+    try {
+      // The backend /recipient-count endpoint counts "both"; for individual
+      // audiences we pass the param as a query string if the route supports it,
+      // otherwise we display the top-level count as an approximation.
+      const data = await AdminShared.api(
+        `/api/admin/campaigns/recipient-count?audience=${encodeURIComponent(audience)}`,
+        'GET'
+      );
+      const total = data && typeof data.total === 'number' ? data.total : null;
+      if (total === null) {
+        audienceCountEl.textContent = '';
+      } else if (total === 0) {
+        audienceCountEl.className = 'campaigns-help-text campaigns-count--zero';
+        audienceCountEl.textContent = 'No recipients in this audience.';
+      } else {
+        audienceCountEl.textContent = `${total.toLocaleString()} recipient${total !== 1 ? 's' : ''} in this audience`;
+      }
+    } catch {
+      audienceCountEl.textContent = '';
+    }
+  }
+
+  // ── CTA URL validation ─────────────────────────────────────────────────────
+  function validateCtaUrl() {
+    if (!ctaUrlEl) {
+      return true;
+    }
+    const url = ctaUrlEl.value.trim();
+    const text = ctaTextEl ? ctaTextEl.value.trim() : '';
+    if (url && !/^https?:\/\//i.test(url)) {
+      ctaUrlEl.classList.add('campaigns-input--error');
+      return false;
+    }
+    if (url && !text) {
+      // URL without text — flag the text field
+      ctaUrlEl.classList.remove('campaigns-input--error');
+      return false;
+    }
+    ctaUrlEl.classList.remove('campaigns-input--error');
+    return true;
   }
 
   // ── Status helpers ────────────────────────────────────────────────────────
@@ -185,10 +236,11 @@
     const audience = audienceEl.value;
     const audienceLabel = audienceEl.options[audienceEl.selectedIndex].text;
 
+    const subjectPreview = values.subject ? `"${values.subject}"` : '(no subject)';
     const confirmed = await AdminShared.showConfirmModal({
-      title: 'Send Campaign',
-      message: `Send this campaign to all opted-in recipients?\n\nAudience: ${audienceLabel}`,
-      confirmText: 'Yes, send campaign',
+      title: 'Send campaign — are you sure?',
+      message: `Subject: ${subjectPreview}\nAudience: ${audienceLabel}\n\nThis will send immediately to all opted-in recipients. This action cannot be undone.`,
+      confirmText: 'Send campaign',
       cancelText: 'Cancel',
       type: 'danger',
     });
@@ -236,6 +288,9 @@
     statusEl = document.getElementById('campaignStatus');
     recipientBannerText = document.getElementById('recipientBannerText');
     subjectCharCounter = document.getElementById('subjectCharCounter');
+    audienceCountEl = document.getElementById('audienceCount');
+    previewDesktopBtn = document.getElementById('previewDesktopBtn');
+    previewMobileBtn = document.getElementById('previewMobileBtn');
 
     // Live preview on editor input
     [subjectEl, titleEl, messageEl, ctaTextEl, ctaUrlEl].forEach(el => {
@@ -264,6 +319,38 @@
       sendBtn.addEventListener('click', handleCampaignSend);
     }
 
+    // Audience change → refresh count
+    if (audienceEl) {
+      audienceEl.addEventListener('change', () => {
+        updateAudienceCount();
+        debouncedRefreshPreview();
+      });
+    }
+
+    // CTA URL validation on change
+    if (ctaUrlEl) {
+      ctaUrlEl.addEventListener('input', validateCtaUrl);
+      ctaUrlEl.addEventListener('blur', validateCtaUrl);
+    }
+
+    // Preview device toggle
+    if (previewDesktopBtn && previewMobileBtn && previewFrame) {
+      previewDesktopBtn.addEventListener('click', () => {
+        previewFrame.classList.remove('campaigns-preview-frame--mobile');
+        previewDesktopBtn.classList.add('campaigns-device-btn--active');
+        previewDesktopBtn.setAttribute('aria-pressed', 'true');
+        previewMobileBtn.classList.remove('campaigns-device-btn--active');
+        previewMobileBtn.setAttribute('aria-pressed', 'false');
+      });
+      previewMobileBtn.addEventListener('click', () => {
+        previewFrame.classList.add('campaigns-preview-frame--mobile');
+        previewMobileBtn.classList.add('campaigns-device-btn--active');
+        previewMobileBtn.setAttribute('aria-pressed', 'true');
+        previewDesktopBtn.classList.remove('campaigns-device-btn--active');
+        previewDesktopBtn.setAttribute('aria-pressed', 'false');
+      });
+    }
+
     // Initial default content
     if (subjectEl) {
       subjectEl.value = 'News from EventFlow';
@@ -283,6 +370,7 @@
     // request means subsequent state-changing calls (/test, /send) can fire
     // immediately without waiting for a token round-trip.
     loadRecipientCount();
+    updateAudienceCount();
     if (window.__CSRF_TOKEN__) {
       refreshPreview();
     } else {

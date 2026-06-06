@@ -34,7 +34,12 @@
   <div class="dashboard-header">
     <div class="header-content">
       <div>
-        <h1 class="dashboard-title">📣 Campaigns</h1>
+        <h1 class="dashboard-title" style="display:flex;align-items:center;gap:10px;">
+          <span style="width:32px;height:32px;background:linear-gradient(135deg,#0B8073,#13B6A2);border-radius:8px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          </span>
+          Campaigns
+        </h1>
         <p class="dashboard-subtitle">Compose a marketing email, preview it live, and send to opted-in recipients.</p>
       </div>
       <div class="header-actions">
@@ -55,7 +60,9 @@
     <section class="admin-card campaigns-editor" aria-label="Campaign editor">
 
       <div class="campaigns-section-heading">
-        <span class="campaigns-section-icon">✏️</span>
+        <span class="campaigns-section-icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        </span>
         <h2 class="admin-card-title">Compose</h2>
       </div>
 
@@ -87,7 +94,8 @@
           </div>
           <div class="form-row campaigns-cta-field">
             <label for="campaignCtaUrl">Button URL</label>
-            <input type="url" id="campaignCtaUrl" placeholder="https://…" autocomplete="off">
+            <input type="url" id="campaignCtaUrl" placeholder="https://…" autocomplete="off" aria-describedby="ctaUrlHint">
+            <div class="campaigns-help-text" id="ctaUrlHint" style="margin-top:4px;margin-bottom:0;">Must start with https://</div>
           </div>
         </div>
       </div>
@@ -97,8 +105,10 @@
       <!-- Test send -->
       <div class="campaigns-test-block">
         <div class="campaigns-section-heading campaigns-section-heading--sm">
-          <span class="campaigns-section-icon">🧪</span>
-          <h3 class="campaigns-sub-heading">Test delivery</h3>
+          <span class="campaigns-section-icon" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 0 0-2 2v4m6-6h10a2 2 0 0 1 2 2v4M9 3v18m0 0h10a2 2 0 0 0 2-2V9M9 21H5a2 2 0 0 1-2-2V9m0 0h18"/></svg>
+          </span>
+          <h3 class="campaigns-sub-heading">Send a test</h3>
         </div>
         <p class="campaigns-help-text">Send yourself a preview before broadcasting.</p>
         <div class="campaigns-inline-row">
@@ -112,16 +122,19 @@
       <!-- Send campaign -->
       <div class="campaigns-send-block">
         <div class="campaigns-section-heading campaigns-section-heading--sm">
-          <span class="campaigns-section-icon">🚀</span>
+          <span class="campaigns-section-icon" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </span>
           <h3 class="campaigns-sub-heading">Send to recipients</h3>
         </div>
         <div class="form-row">
           <label for="campaignAudience">Audience</label>
-          <select id="campaignAudience">
+          <select id="campaignAudience" aria-describedby="audienceCount">
             <option value="both">All opted-in (users + newsletter)</option>
             <option value="marketing">Marketing opt-in users only</option>
             <option value="newsletter">Newsletter subscribers only</option>
           </select>
+          <div class="campaigns-help-text" id="audienceCount" aria-live="polite" style="margin-top:6px;margin-bottom:0;"></div>
         </div>
 
         <div class="campaigns-send-row">
@@ -129,7 +142,7 @@
             📣 Send campaign
           </button>
           <span class="campaigns-send-warning small">
-            ⚠️ This will send to all opted-in recipients. Double-check your content first.
+            Review your subject, content and audience carefully. Campaign emails are sent immediately and cannot be recalled.
           </span>
         </div>
       </div>
@@ -142,15 +155,27 @@
     <section class="admin-card campaigns-preview-panel" aria-label="Email preview">
       <div class="campaigns-preview-header">
         <div class="campaigns-section-heading campaigns-section-heading--no-mb">
-          <span class="campaigns-section-icon">👁️</span>
-          <h2 class="admin-card-title">Live Preview</h2>
+          <span class="campaigns-section-icon" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        </span>
+        <h2 class="admin-card-title">Live Preview</h2>
         </div>
         <button class="ef-cta btn btn-secondary campaigns-refresh-btn" id="refreshPreviewBtn" type="button"
           title="Refresh preview" aria-label="Refresh preview">
           ↻ Refresh
         </button>
       </div>
-      <p class="campaigns-help-text campaigns-preview-hint">Updates automatically as you type.</p>
+      <div class="campaigns-preview-meta" id="previewMeta">
+        <p class="campaigns-help-text campaigns-preview-hint" style="margin:0;">Updates as you type.</p>
+        <div class="campaigns-preview-device-toggle" role="group" aria-label="Preview device size">
+          <button class="campaigns-device-btn campaigns-device-btn--active" id="previewDesktopBtn" type="button" title="Desktop preview" aria-pressed="true">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          </button>
+          <button class="campaigns-device-btn" id="previewMobileBtn" type="button" title="Mobile preview" aria-pressed="false">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+          </button>
+        </div>
+      </div>
       <div class="campaigns-preview-wrap">
         <div class="campaigns-preview-loading" id="previewLoading" aria-hidden="true">
           <span class="campaigns-preview-loading-spinner"></span>
