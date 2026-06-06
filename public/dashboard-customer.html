@@ -39,7 +39,8 @@
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
-  </head>
+    <link rel="stylesheet" href="/assets/css/dashboard-overhaul.css?v=1.0.0">
+</head>
   <body class="customer-dashboard-page">
     <!-- TOP NAVBAR - GOLD STANDARD REBUILD -->
     <header class="ef-header" role="banner">
@@ -236,6 +237,11 @@
           </div>
         </div>
 
+        <!-- Event Countdown — rendered by dashboard-customer-overhaul.js -->
+        <div id="customer-event-countdown" aria-live="polite" style="margin-bottom:20px">
+          <div class="skeleton" style="height:100px;border-radius:16px;"></div>
+        </div>
+
         <!-- Statistics Widgets -->
         <div id="customer-stats-grid" aria-live="polite" aria-label="Dashboard statistics"></div>
 
@@ -275,6 +281,16 @@
         <div class="customer-widgets-grid">
           <div id="budget-tracker-widget" aria-live="polite"></div>
           <div id="progress-ring-widget" aria-live="polite"></div>
+        </div>
+
+        <!-- Budget KPI Cards -->
+        <div id="customer-budget-kpis" aria-live="polite" aria-label="Budget overview" style="margin-bottom:16px">
+          <div class="skeleton" style="height:80px;border-radius:16px;"></div>
+        </div>
+
+        <!-- Milestone Checklist -->
+        <div id="customer-milestones-widget" aria-live="polite" style="margin-bottom:20px">
+          <div class="skeleton" style="height:200px;border-radius:16px;"></div>
         </div>
 
         <!-- Budget Settings Card -->
@@ -789,6 +805,8 @@
         </div>
       </div>
     </footer>
+    <!-- Dashboard Overhaul — PR #1150 -->
+    <script src="/assets/js/dashboard-customer-overhaul.js" defer></script>
     <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
 
     <script src="/assets/js/recommendations-widget.js" defer></script>

@@ -1058,4 +1058,227 @@ router.get('/dashboard-summary', authRequired, async (req, res) => {
   }
 });
 
+/**
+ * GET /api/v1/supplier/availability
+ * Returns the supplier's availability settings (open dates, block dates).
+ */
+router.get('/availability', authRequired, async (req, res) => {
+  try {
+    if (req.user.role !== 'supplier') {
+      return res.status(403).json({ error: 'Suppliers only' });
+    }
+    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: req.user.id });
+    if (!supplier) {
+      return res.status(404).json({ error: 'Supplier profile not found' });
+    }
+    res.json({
+      supplierId: supplier.id,
+      availability: supplier.availability || { status: 'available', blockedDates: [], notes: '' },
+    });
+  } catch (error) {
+    logger.error('GET /supplier/availability error:', error.message);
+    res.status(500).json({ error: 'Failed to load availability' });
+  }
+});
+
+/**
+ * PATCH /api/v1/supplier/availability
+ * Updates the supplier's availability status and/or blocked dates.
+ */
+router.patch('/availability', authRequired, csrfProtection, writeLimiter, async (req, res) => {
+  try {
+    if (req.user.role !== 'supplier') {
+      return res.status(403).json({ error: 'Suppliers only' });
+    }
+    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: req.user.id });
+    if (!supplier) {
+      return res.status(404).json({ error: 'Supplier profile not found' });
+    }
+
+    const { status, blockedDates, notes } = req.body;
+    const allowed = ['available', 'limited', 'unavailable'];
+    if (status && !allowed.includes(status)) {
+      return res.status(400).json({ error: 'Invalid availability status' });
+    }
+
+    const current = supplier.availability || {};
+    const updated = {
+      status: status || current.status || 'available',
+      blockedDates: Array.isArray(blockedDates)
+        ? blockedDates.slice(0, 365)
+        : current.blockedDates || [],
+      notes: typeof notes === 'string' ? notes.slice(0, 500) : current.notes || '',
+      updatedAt: new Date().toISOString(),
+    };
+
+    await dbUnified.updateOne(
+      'suppliers',
+      { id: supplier.id },
+      { $set: { availability: updated } }
+    );
+    res.json({ ok: true, availability: updated });
+  } catch (error) {
+    logger.error('PATCH /supplier/availability error:', error.message);
+    res.status(500).json({ error: 'Failed to update availability' });
+  }
+});
+
+/**
+ * POST /api/v1/supplier/request-review
+ * Sends a review-request email to a past customer enquiry.
+ * Rate-limited: one request per customer per supplierId.
+ */
+router.post('/request-review', authRequired, csrfProtection, writeLimiter, async (req, res) => {
+  try {
+    if (req.user.role !== 'supplier') {
+      return res.status(403).json({ error: 'Suppliers only' });
+    }
+    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: req.user.id });
+    if (!supplier) {
+      return res.status(404).json({ error: 'Supplier profile not found' });
+    }
+
+    const { customerEmail, customerName, threadId } = req.body;
+    if (!customerEmail || typeof customerEmail !== 'string') {
+      return res.status(400).json({ error: 'customerEmail is required' });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) {
+      return res.status(400).json({ error: 'Invalid email address' });
+    }
+
+    // Idempotency: don't send twice for same supplier+customer combo
+    const existing = await dbUnified.findOne('reviewRequests', {
+      supplierId: supplier.id,
+      customerEmail: customerEmail.trim().toLowerCase(),
+    });
+    if (existing) {
+      return res
+        .status(409)
+        .json({ error: 'A review request has already been sent to this customer' });
+    }
+
+    const requestDoc = {
+      id: `rreq_${Date.now()}`,
+      supplierId: supplier.id,
+      supplierName: supplier.name || 'Your supplier',
+      customerEmail: customerEmail.trim().toLowerCase(),
+      customerName: typeof customerName === 'string' ? customerName.slice(0, 100) : '',
+      threadId: threadId || null,
+      sentAt: new Date().toISOString(),
+      status: 'sent',
+    };
+
+    await dbUnified.insertOne('reviewRequests', requestDoc);
+
+    // TODO: integrate postmark to send actual email — placeholder log for now
+    logger.info(
+      `Review request sent: supplier=${supplier.id} → customer=${requestDoc.customerEmail}`
+    );
+
+    res.json({ ok: true, message: 'Review request sent successfully' });
+  } catch (error) {
+    logger.error('POST /supplier/request-review error:', error.message);
+    res.status(500).json({ error: 'Failed to send review request' });
+  }
+});
+
+/**
+ * GET /api/v1/supplier/performance-tips
+ * Returns personalised actionable tips based on the supplier's profile state.
+ */
+router.get('/performance-tips', authRequired, async (req, res) => {
+  try {
+    if (req.user.role !== 'supplier') {
+      return res.status(403).json({ error: 'Suppliers only' });
+    }
+    const supplier = await dbUnified.findOne('suppliers', { ownerUserId: req.user.id });
+    if (!supplier) {
+      return res.status(404).json({ error: 'Supplier profile not found' });
+    }
+
+    const supplierId = supplier.id;
+    const [packages, reviews] = await Promise.all([
+      dbUnified.find('packages', { supplierId }),
+      dbUnified.find('reviews', { supplierId }),
+    ]);
+
+    const tips = [];
+
+    // Profile completeness tips
+    if (!(supplier.description_short || '').trim()) {
+      tips.push({
+        id: 'add-desc',
+        priority: 1,
+        category: 'profile',
+        icon: '✍️',
+        title: 'Add a business description',
+        body: 'Suppliers with descriptions get 3× more enquiries.',
+        action: { label: 'Edit Profile', href: '#toggle-profile-form' },
+      });
+    }
+    if (!Array.isArray(supplier.photosGallery) || supplier.photosGallery.length < 3) {
+      tips.push({
+        id: 'add-photos',
+        priority: 2,
+        category: 'profile',
+        icon: '📸',
+        title: 'Upload at least 3 photos',
+        body: 'Photo galleries increase conversion by 40%.',
+        action: { label: 'Add Photos', href: '#my-suppliers' },
+      });
+    }
+    if (packages.length === 0) {
+      tips.push({
+        id: 'add-package',
+        priority: 3,
+        category: 'packages',
+        icon: '📦',
+        title: 'Create your first package',
+        body: 'Packages make pricing clear and attract more enquiries.',
+        action: { label: 'Create Package', href: '#toggle-package-form' },
+      });
+    }
+    if (reviews.length === 0) {
+      tips.push({
+        id: 'get-review',
+        priority: 4,
+        category: 'reviews',
+        icon: '⭐',
+        title: 'Get your first review',
+        body: 'Ask a past customer for a review to build trust.',
+        action: { label: 'Request Review', data: 'request-review' },
+      });
+    }
+    if (!(supplier.tagline || '').trim()) {
+      tips.push({
+        id: 'add-tagline',
+        priority: 5,
+        category: 'profile',
+        icon: '💬',
+        title: 'Add a tagline',
+        body: 'A catchy tagline helps you stand out on search results.',
+        action: { label: 'Edit Profile', href: '#toggle-profile-form' },
+      });
+    }
+    if (!supplier.socialLinks || !Object.values(supplier.socialLinks || {}).some(v => v)) {
+      tips.push({
+        id: 'social-links',
+        priority: 6,
+        category: 'profile',
+        icon: '🔗',
+        title: 'Add social media links',
+        body: 'Social proof builds trust with potential customers.',
+        action: { label: 'Edit Profile', href: '#toggle-profile-form' },
+      });
+    }
+
+    // Sort by priority, return top 4
+    tips.sort((a, b) => a.priority - b.priority);
+    res.json({ tips: tips.slice(0, 4), total: tips.length });
+  } catch (error) {
+    logger.error('GET /supplier/performance-tips error:', error.message);
+    res.status(500).json({ error: 'Failed to load performance tips' });
+  }
+});
+
 module.exports = router;

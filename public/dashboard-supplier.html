@@ -38,7 +38,8 @@
     <script src="/assets/js/toast-notifications.js?v=18.3.0"></script>
     <script src="/assets/js/pages/dashboard-supplier-inline.js" defer></script>
   <link rel="stylesheet" href="/messenger/css/messenger-widget-v4.css">
-  </head>
+    <link rel="stylesheet" href="/assets/css/dashboard-overhaul.css?v=1.0.0">
+</head>
   <body class="supplier-dashboard-page">
 <!--
       Liquid Glass SVG Filter Definitions — Mobile (≤768px)
@@ -594,6 +595,17 @@
             </div>
           </div>
         </section>
+
+        <!-- KPI Grid — rendered by dashboard-supplier-overhaul.js -->
+        <div id="supplier-kpi-grid" class="kpi-grid" aria-live="polite" aria-label="Key performance metrics">
+          <!-- Skeleton placeholders until JS populates -->
+          <div class="skeleton" style="height:110px;border-radius:16px;"></div>
+          <div class="skeleton" style="height:110px;border-radius:16px;"></div>
+          <div class="skeleton" style="height:110px;border-radius:16px;"></div>
+          <div class="skeleton" style="height:110px;border-radius:16px;"></div>
+          <div class="skeleton" style="height:110px;border-radius:16px;"></div>
+          <div class="skeleton" style="height:110px;border-radius:16px;"></div>
+        </div>
 
         <!-- Section Divider -->
         <div class="sd-section-divider" role="separator" aria-hidden="true">
@@ -1289,6 +1301,53 @@
           <div id="profile-completeness-widget" class="section"></div>
         </div>
 
+        <!-- Availability Widget -->
+        <div class="card sd-card supplier-dashboard-card" aria-labelledby="avail-heading">
+          <div class="supplier-card-header sd-card-header sd-card-header--teal">
+            <div class="sd-card-header__left">
+              <div class="sd-card-header__title-row">
+                <div class="sd-card-header__icon sd-card-header__icon--teal" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/>
+                  </svg>
+                </div>
+                <h3 id="avail-heading" class="sd-card-header__heading">Availability Status</h3>
+              </div>
+              <p class="sd-card-header__subtitle">Show customers when you can take bookings</p>
+            </div>
+          </div>
+          <div class="sd-card-body" style="padding:20px">
+            <div id="supplier-availability-widget" aria-live="polite">
+              <div class="skeleton" style="height:120px;border-radius:12px;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Performance Tips -->
+        <div class="card sd-card supplier-dashboard-card" aria-labelledby="tips-heading">
+          <div class="supplier-card-header sd-card-header sd-card-header--amber">
+            <div class="sd-card-header__left">
+              <div class="sd-card-header__title-row">
+                <div class="sd-card-header__icon sd-card-header__icon--amber" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>
+                  </svg>
+                </div>
+                <h3 id="tips-heading" class="sd-card-header__heading">Performance Tips</h3>
+              </div>
+              <p class="sd-card-header__subtitle">Personalised actions to grow your enquiries</p>
+            </div>
+          </div>
+          <div class="sd-card-body" style="padding:20px">
+            <div id="supplier-perf-tips" aria-live="polite">
+              <div class="skeleton" style="height:60px;border-radius:12px;margin-bottom:10px;"></div>
+              <div class="skeleton" style="height:60px;border-radius:12px;margin-bottom:10px;"></div>
+              <div class="skeleton" style="height:60px;border-radius:12px;"></div>
+            </div>
+            <div id="supplier-review-request-widget" style="margin-top:12px"></div>
+          </div>
+        </div>
+
         <!-- Next Steps / Action Items -->
         <div class="card sd-card supplier-dashboard-card" id="next-steps-card" style="display:none;">
           <div class="supplier-card-header sd-card-header sd-card-header--rose">
@@ -1762,6 +1821,8 @@
     <!-- Liquid Glass Engine — mobile displacement maps + chromatic aberration (≤768px only) -->
     <script src="/assets/js/liquid-glass-engine.js?v=19.0.0" defer></script>
     <script src="/assets/js/card-collapse.js" defer></script>
-</body>
+    <!-- Dashboard Overhaul Widgets — PR #1150 -->
+    <script src="/assets/js/dashboard-supplier-overhaul.js" defer></script>
+  </body>
 </html>
 
