@@ -1,6 +1,9 @@
 (function () {
   'use strict';
 
+  let cachedItems = [];
+  let decorateTimer = null;
+
   function escapeHtml(value) {
     return String(value || '').replace(/[&<>"']/g, ch => ({
       '&': '&amp;',
@@ -59,7 +62,7 @@
   function decorateRows(items) {
     const byId = new Map();
     const byEmail = new Map();
-    (items || []).forEach(item => {
+    (items || cachedItems || []).forEach(item => {
       if (item.id) byId.set(String(item.id), item);
       if (item.email) byEmail.set(String(item.email).toLowerCase(), item);
     });
@@ -86,11 +89,24 @@
     });
   }
 
+  function scheduleDecorate(delay) {
+    window.clearTimeout(decorateTimer);
+    decorateTimer = window.setTimeout(() => decorateRows(cachedItems), delay || 100);
+  }
+
+  function observeTable() {
+    const tbody = document.querySelector('table.table tbody');
+    if (!tbody || !window.MutationObserver) return;
+    const observer = new MutationObserver(() => scheduleDecorate(50));
+    observer.observe(tbody, { childList: true });
+  }
+
   async function loadProvenance() {
     if (!window.AdminShared || !AdminShared.api) return;
     try {
       const data = await AdminShared.api('/api/admin/email-centre/users-provenance', 'GET');
-      decorateRows(data.items || []);
+      cachedItems = data.items || [];
+      decorateRows(cachedItems);
     } catch (err) {
       if (window.AdminShared && AdminShared.debugError) {
         AdminShared.debugError('Admin user provenance load failed', err);
@@ -99,7 +115,11 @@
   }
 
   document.addEventListener('DOMContentLoaded', () => {
+    observeTable();
     setTimeout(loadProvenance, 900);
+    document.addEventListener('input', event => {
+      if (event.target && event.target.closest('.admin-toolbar')) scheduleDecorate(150);
+    });
     document.addEventListener('click', event => {
       if (event.target && (event.target.id === 'clearFilters' || event.target.closest('[data-resend-verification]'))) {
         setTimeout(loadProvenance, 900);
