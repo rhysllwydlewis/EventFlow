@@ -10,7 +10,6 @@ const logger = require('../utils/logger');
 const { auditLog, AUDIT_ACTIONS } = require('../middleware/audit');
 const { writeLimiter, apiLimiter } = require('../middleware/rateLimits');
 const postmark = require('../utils/postmark');
-const { FROM_HELLO: POSTMARK_FROM_HELLO } = postmark;
 const {
   VERIFICATION_STATES,
   normaliseState,
@@ -103,81 +102,102 @@ async function sendVerificationEmail(supplier, action, notes) {
   const BASE_URL = process.env.BASE_URL || process.env.APP_BASE_URL || 'https://event-flow.co.uk';
   const supplierName = supplier.name || 'Supplier';
   const dashboardUrl = `${BASE_URL}/dashboard-supplier`;
+  const supportEmail = 'support@event-flow.co.uk';
 
-  const subjects = {
-    approved: '🎉 Your EventFlow supplier profile has been approved',
-    rejected: 'Your EventFlow supplier application — update required',
-    needs_changes: 'Action required: changes needed on your EventFlow supplier profile',
-    suspended: 'Your EventFlow supplier account has been suspended',
+  // Per-status configuration for the supplier-verification-status.html template
+  const statusConfig = {
+    approved: {
+      subject: 'Your EventFlow supplier profile has been approved',
+      statusTitle: 'Your profile has been approved',
+      statusMessage:
+        'Great news — your supplier profile has been reviewed and approved. ' +
+        'You can now appear in search results, receive enquiries, and accept bookings on EventFlow.',
+      headerGradient: 'linear-gradient(135deg,#065F46 0%,#059669 100%)',
+      ctaGradient: 'linear-gradient(135deg,#059669,#10B981)',
+      ctaText: 'Go to Your Dashboard',
+    },
+    rejected: {
+      subject: 'Your EventFlow supplier application — update required',
+      statusTitle: 'Your application could not be approved at this time',
+      statusMessage:
+        'Thank you for applying to join EventFlow. Unfortunately, after review, we’re unable to approve your profile in its current form. ' +
+        'You may update your profile and resubmit for review at any time.',
+      headerGradient: 'linear-gradient(135deg,#7C3AED 0%,#8B5CF6 100%)',
+      ctaGradient: 'linear-gradient(135deg,#7C3AED,#8B5CF6)',
+      ctaText: 'Update Your Profile',
+    },
+    needs_changes: {
+      subject: 'Action required: your EventFlow supplier profile needs changes',
+      statusTitle: 'A few changes are needed before approval',
+      statusMessage:
+        'We have reviewed your supplier profile and need some updates before we can approve it. ' +
+        'Please log in, make the changes noted below, and resubmit for review.',
+      headerGradient: 'linear-gradient(135deg,#B45309 0%,#D97706 100%)',
+      ctaGradient: 'linear-gradient(135deg,#D97706,#F59E0B)',
+      ctaText: 'Update Your Profile',
+    },
+    suspended: {
+      subject: 'Your EventFlow supplier account has been suspended',
+      statusTitle: 'Your supplier account has been suspended',
+      statusMessage:
+        'Your EventFlow supplier account has been temporarily suspended and is not currently visible to customers. ' +
+        'If you believe this is in error, please contact our support team.',
+      headerGradient: 'linear-gradient(135deg,#DC2626 0%,#EF4444 100%)',
+      ctaGradient: 'linear-gradient(135deg,#DC2626,#EF4444)',
+      ctaText: 'Contact Support',
+    },
   };
 
-  const bodies = {
-    approved: [
-      `Hi ${supplierName},`,
-      '',
-      'Great news — your supplier profile has been reviewed and approved! 🎉',
-      '',
-      'You can now appear in search results, receive enquiries, and accept bookings on EventFlow.',
-      '',
-      `Visit your dashboard: ${dashboardUrl}`,
-      '',
-      '— The EventFlow Team',
-    ].join('\n'),
-
-    rejected: [
-      `Hi ${supplierName},`,
-      '',
-      "Thank you for applying to join EventFlow. Unfortunately, after review, we're unable to approve your profile at this time.",
-      notes ? `\nReason: ${notes}` : '',
-      '',
-      'You may resubmit your application after addressing the points above.',
-      '',
-      `Visit your dashboard: ${dashboardUrl}`,
-      '',
-      '— The EventFlow Team',
-    ].join('\n'),
-
-    needs_changes: [
-      `Hi ${supplierName},`,
-      '',
-      'We have reviewed your supplier profile and need a few changes before we can approve it.',
-      notes ? `\nWhat we need from you:\n${notes}` : '',
-      '',
-      'Please log in to your dashboard, make the updates, and resubmit for review.',
-      '',
-      `Visit your dashboard: ${dashboardUrl}`,
-      '',
-      '— The EventFlow Team',
-    ].join('\n'),
-
-    suspended: [
-      `Hi ${supplierName},`,
-      '',
-      'Your EventFlow supplier account has been temporarily suspended.',
-      notes ? `\nReason: ${notes}` : '',
-      '',
-      'If you believe this is in error, please contact our support team.',
-      '',
-      '— The EventFlow Team',
-    ].join('\n'),
-  };
-
-  const subject = subjects[action];
-  const text = bodies[action];
-
-  if (!subject || !text) {
+  const config = statusConfig[action];
+  if (!config) {
     return;
+  }
+
+  // Build optional notes section safely — notes are plain text escaped by postmark.js
+  // notesSection is listed as an allowed HTML key so we construct safe markup here
+  let notesSection = '';
+  if (notes && typeof notes === 'string' && notes.trim()) {
+    // Escape the notes text before embedding in HTML
+    const escapeHtml = t =>
+      t
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    const escapedNotes = escapeHtml(notes.trim());
+    notesSection = `<table class="notes-box" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;border:1px solid #E5E7EB;border-radius:10px;background-color:#F9FAFB;">
+      <tr>
+        <td style="padding:16px 20px;">
+          <p style="margin:0 0 6px;font-size:12px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:0.06em;">Note from our team</p>
+          <p style="margin:0;font-size:13px;color:#374151;line-height:1.65;white-space:pre-wrap;">${escapedNotes}</p>
+        </td>
+      </tr>
+    </table>`;
   }
 
   try {
     await postmark.sendMail({
       to: supplier.email,
-      from: POSTMARK_FROM_HELLO,
-      subject,
-      text,
+      from: postmark.FROM_HELLO,
+      subject: config.subject,
+      template: 'supplier-verification-status',
+      templateData: {
+        name: supplierName,
+        statusTitle: config.statusTitle,
+        statusMessage: config.statusMessage,
+        headerGradient: config.headerGradient,
+        ctaGradient: config.ctaGradient,
+        ctaText: config.ctaText,
+        notesSection,
+        dashboardUrl,
+        supportEmail,
+      },
+      tags: ['supplier-verification', action, 'transactional'],
+      messageStream: 'outbound',
     });
   } catch (emailErr) {
-    logger.warn('Failed to send verification email to supplier:', {
+    logger.warn('Failed to send verification status email to supplier:', {
       supplierId: supplier.id,
       action,
       error: emailErr.message,

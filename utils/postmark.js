@@ -178,7 +178,9 @@ function loadEmailTemplate(templateName, data = {}) {
         key === 'html' ||
         key === 'features' ||
         key === 'actionsHtml' ||
-        key === 'unsubscribeSection'
+        key === 'unsubscribeSection' ||
+        key === 'notesSection' ||
+        key === 'ctaSection'
           ? data[key]
           : escapeHtml(data[key]);
       html = html.replace(regex, value || '');
@@ -549,11 +551,21 @@ async function sendNotificationEmail(user, subject, message, options = {}) {
     return null;
   }
 
+  // Build optional CTA section — avoids empty href="" in template when no CTA is needed
+  const actionUrl = options.actionUrl || (options.templateData && options.templateData.actionUrl);
+  const actionText =
+    options.actionText || (options.templateData && options.templateData.actionText);
+  const ctaSection =
+    actionUrl && actionText
+      ? `<table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:24px;"><tr><td align="center"><a href="${actionUrl}" style="display:inline-block;padding:15px 40px;background:linear-gradient(135deg,#0B8073,#13B6A2);color:#ffffff;text-decoration:none;border-radius:10px;font-weight:700;font-size:15px;letter-spacing:0.2px;">${actionText}</a></td></tr></table>`
+      : '';
+
   const templateData = {
     name: user.name || 'there',
     title: subject,
     message: message,
     preferencesLink: `${APP_BASE_URL}/settings/notifications`,
+    ctaSection,
     ...(options.templateData || {}),
   };
 
