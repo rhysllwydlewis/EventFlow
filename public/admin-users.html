@@ -30,7 +30,6 @@
 <div id="adminNavbarMount"></div>
 
 <main id="main-content" class="section">
-  <!-- Modern Dashboard Header -->
   <div class="dashboard-header">
     <div class="header-content">
       <div>
@@ -121,7 +120,6 @@
   </div>
 </main>
 
-<!-- Subscription Management Modal -->
 <div id="subscriptionModal" class="modal-overlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="subscriptionModalTitle">
   <div class="modal-dialog modal-dialog--subscription" style="max-width: 620px;">
     <div class="modal-header modal-header--subscription">
@@ -133,20 +131,16 @@
     </div>
     <div class="modal-body">
       <div id="subscriptionModalContent">
-        <!-- Current Status -->
         <div class="subscription-status-section">
           <h4>Current Status</h4>
           <div id="currentSubscriptionStatus" class="current-status-display" aria-live="polite">
             <div class="sub-status-skeleton"><div class="skeleton-list-item" class="sub-status-skeleton-card"></div></div>
           </div>
         </div>
-
-        <!-- Grant/Update Subscription -->
         <div class="subscription-form-section">
           <h4>Grant or Update Subscription</h4>
           <form id="subscriptionForm">
             <input type="hidden" id="subscriptionUserId" name="userId">
-            
             <div class="form-group">
               <label for="subscriptionTier">Tier</label>
               <select id="subscriptionTier" name="tier" class="form-control" required>
@@ -156,7 +150,6 @@
                 <option value="pro_plus">⭐ Pro+</option>
               </select>
             </div>
-
             <div class="form-group" id="subscriptionDurationGroup">
               <label for="subscriptionDuration">Duration</label>
               <select id="subscriptionDuration" name="duration" class="form-control" required>
@@ -168,27 +161,21 @@
                 <option value="lifetime">♾️ Lifetime</option>
               </select>
             </div>
-
             <div class="form-group">
               <label for="subscriptionReason">Reason / Notes</label>
               <textarea id="subscriptionReason" name="reason" class="form-control" rows="2" placeholder="Why are you granting this subscription?"></textarea>
             </div>
-
             <div class="form-actions">
               <button type="submit" class="ef-cta btn btn-primary">Grant Subscription</button>
               <button type="button" class="ef-cta btn btn-secondary" id="cancelSubscriptionBtn">Cancel</button>
             </div>
           </form>
         </div>
-
-        <!-- Remove Subscription -->
         <div class="subscription-remove-section">
           <h4>Remove Subscription</h4>
           <p class="text-muted subscription-remove-hint">Removes the user's active subscription and sets their tier to Free. A reason prompt will appear.</p>
           <button type="button" class="ef-cta btn btn-danger" id="removeSubscriptionBtn">Remove Current Subscription</button>
         </div>
-
-        <!-- Subscription History -->
         <div class="subscription-history-section">
           <h4>Subscription History</h4>
           <div id="subscriptionHistory" class="subscription-history-list" aria-live="polite">
@@ -213,7 +200,7 @@
   <script src="/assets/js/app.js"></script>
 
 <script src="/assets/js/pages/admin-users-init.js?v=18.3.0" defer></script>
+<script src="/assets/js/pages/admin-users-provenance.js?v=18.3.1" defer></script>
 <script src="/assets/js/cookie-consent.js?v=2.0.0" defer></script>
 </body>
 </html>
-
