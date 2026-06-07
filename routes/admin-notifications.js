@@ -22,6 +22,8 @@ const mongoDb = require('../db');
 const logger = require('../utils/logger');
 const NotificationService = require('../services/notification.service');
 
+// Work queue counts are folded into the notification centre in a follow-up patch.
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
