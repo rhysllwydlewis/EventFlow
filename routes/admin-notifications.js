@@ -18,7 +18,6 @@ const router = express.Router();
 const { authRequired, roleRequired } = require('../middleware/auth');
 const { csrfProtection } = require('../middleware/csrf');
 const { notificationLimiter } = require('../middleware/rateLimits');
-const dbUnified = require('../db-unified');
 const mongoDb = require('../db');
 const logger = require('../utils/logger');
 const NotificationService = require('../services/notification.service');
@@ -37,7 +36,6 @@ async function getNotifSvc(req) {
   }
 
   if (!db) {
-    // Fallback: use dbUnified's raw mongo instance if available
     throw new Error('Database not connected');
   }
 
@@ -61,14 +59,12 @@ router.get('/', authRequired, roleRequired('admin'), notificationLimiter, async 
     res.json({ ok: true, ...result });
   } catch (err) {
     logger.error('[admin-notif] GET / error:', err.message);
-    res
-      .status(503)
-      .json({
-        ok: false,
-        error: 'Notification service unavailable',
-        notifications: [],
-        unreadCount: 0,
-      });
+    res.status(503).json({
+      ok: false,
+      error: 'Notification service unavailable',
+      notifications: [],
+      unreadCount: 0,
+    });
   }
 });
 

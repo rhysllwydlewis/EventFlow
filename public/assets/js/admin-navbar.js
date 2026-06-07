@@ -1160,11 +1160,10 @@
 
           // Mark as read (fire and forget)
           try {
-            const csrf = document.querySelector('meta[name="csrf-token"]');
             await fetch(`/api/admin/notifications/${id}/read`, {
               method: 'PATCH',
               credentials: 'include',
-              headers: csrf ? { 'X-CSRF-Token': csrf.content } : {},
+              headers: window.__CSRF_TOKEN__ ? { 'X-CSRF-Token': window.__CSRF_TOKEN__ } : {},
             });
           } catch {
             /* non-blocking */
@@ -1230,11 +1229,10 @@
     if (markAllBtn) {
       markAllBtn.addEventListener('click', async () => {
         try {
-          const csrf = document.querySelector('meta[name="csrf-token"]');
           await fetch('/api/admin/notifications/read-all', {
             method: 'POST',
             credentials: 'include',
-            headers: csrf ? { 'X-CSRF-Token': csrf.content } : {},
+            headers: window.__CSRF_TOKEN__ ? { 'X-CSRF-Token': window.__CSRF_TOKEN__ } : {},
           });
           updateNotifBadge(0);
           await loadNotifPanel();
