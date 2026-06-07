@@ -1313,3 +1313,55 @@ body.admin {
   display: none !important;
 }
 
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ICON BUTTON VISIBILITY FIX
+   The .ef-cta class (styles.css) sets padding:10px 18px !important which
+   squishes 40×40 icon buttons to a 4×20 content area, making SVGs invisible.
+   These rules restore correct sizing and force explicit icon colours so that
+   SVG currentColor is never white-on-white or transparent.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* Reset .ef-cta padding overrides for icon-only buttons */
+.navbar-icon-btn.ef-cta,
+.admin-notif-bell.ef-cta {
+  padding: 0 !important;
+  font-size: inherit !important;
+  font-weight: inherit !important;
+  border-radius: 10px !important;
+}
+
+/* Explicit dark colour so SVG currentColor is always legible.
+   This beats any inherited transparent / white value. */
+.navbar-icon-btn,
+.admin-notif-bell {
+  color: #1e293b;
+}
+
+/* Force SVG to fill the button area and use the parent text colour */
+.navbar-icon-btn > svg,
+.admin-notif-bell > svg {
+  display: block;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  stroke: currentColor;
+  fill: none;
+  opacity: 1;
+  visibility: visible;
+  overflow: visible;
+}
+
+/* Hover / focus */
+.navbar-icon-btn:hover,
+.navbar-icon-btn:focus-visible,
+.admin-notif-bell:hover,
+.admin-notif-bell:focus-visible {
+  color: #0B8073;
+}
+
+.navbar-icon-btn:focus-visible,
+.admin-notif-bell:focus-visible {
+  outline: 2px solid #0B8073;
+  outline-offset: 2px;
+}
