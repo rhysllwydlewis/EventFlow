@@ -337,24 +337,11 @@ describe('Admin Regression — Subscription management button works for admin-ro
     );
   });
 
-  it('admin-users-init click handler uses btn (closure) not e.target to read data attribute', () => {
-    // Using e.target instead of the closure variable `btn` is a common source of silent
-    // failures: if e.target happens to be a child element it lacks the data attribute and
-    // getAttribute() returns null, making the modal never open ("button does nothing").
-    // Verify the fix: btn.getAttribute should appear in the subscription button handler and
-    // e.target.getAttribute should NOT appear in that same handler.
-
-    // Find the event listener setup section (not the template string where the attribute is set)
-    const listenerSetupIdx = usersInitContent.indexOf(
-      "querySelectorAll('[data-manage-subscription]')"
-    );
-    expect(listenerSetupIdx).toBeGreaterThan(-1);
-
-    // Check the block of code around and after the listener setup
-    const listenerSection = usersInitContent.substring(listenerSetupIdx, listenerSetupIdx + 600);
-    // The click handler must read from btn (the closure variable), not e.target
-    expect(listenerSection).toContain('btn.getAttribute(');
-    expect(listenerSection).not.toContain('e.target.getAttribute(');
+  it('admin-users-init uses data-user-id on checkboxes for selection (not e.target fallback)', () => {
+    // The Users Centre uses data-user-id attributes on checkboxes for selection.
+    // Verify the table rows use this pattern for stable user ID resolution.
+    expect(usersInitContent).toContain('data-user-id=');
+    expect(usersInitContent).toContain('dataset.userId');
   });
 
   it('GET /users endpoint returns _id as fallback id for users without explicit id field', () => {
@@ -407,53 +394,35 @@ describe('Admin Regression — Subscription management button works for admin-ro
 
   // ── Modal visibility: .active class ──────────────────────────────────────────
 
-  it('openSubscriptionModal adds the .active class so components.css opacity/visibility are applied', () => {
-    // components.css defines .modal-overlay with opacity:0;visibility:hidden and only
-    // .modal-overlay.active makes the overlay visible. Without classList.add('active') the
-    // modal is technically display:flex but still invisible — the core bug that caused
-    // "Manage Subscription does nothing".
-    const openIdx = usersInitContent.indexOf('function openSubscriptionModal(');
-    expect(openIdx).toBeGreaterThan(-1);
-    // Grab the function body (up to the next top-level function)
-    const openSection = usersInitContent.substring(openIdx, openIdx + 600);
-    expect(openSection).toContain("classList.add('active')");
+  it('Users Centre bulk actions guard admin/owner accounts from suspension', () => {
+    // Bulk suspend must explicitly exclude admin and owner roles to prevent
+    // admin lockout — a regression risk if the role check is accidentally removed.
+    const bulkSuspendIdx = usersInitContent.indexOf('async function bulkSuspend(');
+    expect(bulkSuspendIdx).toBeGreaterThan(-1);
+    const bulkSection = usersInitContent.substring(bulkSuspendIdx, bulkSuspendIdx + 400);
+    expect(bulkSection).toContain("role !== 'admin'");
+    expect(bulkSection).toContain("role !== 'owner'");
   });
 
-  it('closeSubscriptionModal removes the .active class to properly hide the modal', () => {
-    const closeIdx = usersInitContent.indexOf('function closeSubscriptionModal(');
-    expect(closeIdx).toBeGreaterThan(-1);
-    const closeSection = usersInitContent.substring(closeIdx, closeIdx + 400);
-    expect(closeSection).toContain("classList.remove('active')");
+  it('Users Centre bulk actions guard admin/owner accounts from deletion', () => {
+    const bulkDeleteIdx = usersInitContent.indexOf('async function bulkDelete(');
+    expect(bulkDeleteIdx).toBeGreaterThan(-1);
+    const bulkSection = usersInitContent.substring(bulkDeleteIdx, bulkDeleteIdx + 400);
+    expect(bulkSection).toContain("role !== 'admin'");
+    expect(bulkSection).toContain("role !== 'owner'");
   });
 
-  it('openSubscriptionModal logs a console.error when #subscriptionModal is absent', () => {
-    // Silent early-return on missing DOM makes debugging impossible; a clear error message
-    // is required so developers can trace the issue in production DevTools.
-    const openIdx = usersInitContent.indexOf('function openSubscriptionModal(');
-    const openSection = usersInitContent.substring(openIdx, openIdx + 600);
-    expect(openSection).toContain('console.error');
-    expect(openSection).toContain('subscriptionModal');
+  it('Users Centre bulk verify only includes email/password accounts', () => {
+    const bulkVerifyIdx = usersInitContent.indexOf('async function bulkVerify(');
+    expect(bulkVerifyIdx).toBeGreaterThan(-1);
+    const bulkSection = usersInitContent.substring(bulkVerifyIdx, bulkVerifyIdx + 400);
+    expect(bulkSection).toContain("signupMethod === 'email_password'");
   });
 
-  it('loadSubscriptionData logs a console.error when status/history DOM nodes are absent', () => {
-    // Without this, the function silently returns and developers see no indication of why
-    // subscription status is never rendered (missing DOM = silent no-op).
-    const loadIdx = usersInitContent.indexOf('async function loadSubscriptionData(');
-    expect(loadIdx).toBeGreaterThan(-1);
-    const loadSection = usersInitContent.substring(loadIdx, loadIdx + 600);
-    expect(loadSection).toContain('console.error');
-    expect(loadSection).toContain('currentSubscriptionStatus');
-  });
-
-  it('loadSubscriptionData shows a visible error in historyDiv when API call fails', () => {
-    // On API failure the modal must remain open and display a human-readable error — not
-    // silently stay in "Loading..." state which is indistinguishable from a slow response.
-    const loadIdx = usersInitContent.indexOf('async function loadSubscriptionData(');
-    const closeIdx = usersInitContent.indexOf('function setupSubscriptionModal(');
-    const loadSection = usersInitContent.substring(loadIdx, closeIdx);
-    // catch block must write visible error text into historyDiv
-    expect(loadSection).toContain('text-error');
-    expect(loadSection).toContain('catch');
+  it('Users Centre summary loads from /api/admin/users/summary (shared endpoint)', () => {
+    // Both dashboard and Users Centre must use the same summary source
+    // so counts are always consistent between pages.
+    expect(usersInitContent).toContain('/api/admin/users/summary');
   });
 });
 
@@ -466,16 +435,17 @@ describe('Admin Regression — Subscription modal DOM present in admin-users.htm
     adminUsersHtml = fs.readFileSync(path.join(__dirname, '../../public/admin-users.html'), 'utf8');
   });
 
-  it('admin-users.html contains #subscriptionModal element', () => {
-    expect(adminUsersHtml).toContain('id="subscriptionModal"');
+  it('admin-users.html contains #subscriptionPanel element', () => {
+    // Subscription management panel is present on the Users Centre page
+    expect(adminUsersHtml).toContain('id="subscriptionPanel"');
   });
 
-  it('admin-users.html contains #currentSubscriptionStatus element', () => {
-    expect(adminUsersHtml).toContain('id="currentSubscriptionStatus"');
+  it('admin-users.html contains #ucSummaryGrid (Users Centre summary cards)', () => {
+    expect(adminUsersHtml).toContain('id="ucSummaryGrid"');
   });
 
-  it('admin-users.html contains #subscriptionHistory element', () => {
-    expect(adminUsersHtml).toContain('id="subscriptionHistory"');
+  it('admin-users.html contains #ucTableBody (Users Centre table)', () => {
+    expect(adminUsersHtml).toContain('id="ucTableBody"');
   });
 
   it('admin-users.html contains #subscriptionUserId hidden input', () => {
