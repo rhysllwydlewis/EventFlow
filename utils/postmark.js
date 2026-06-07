@@ -49,6 +49,7 @@ const {
 } = require('./emailTemplateRegistry');
 const fs = require('fs');
 const crypto = require('crypto');
+const emailLogService = require('../services/emailLog.service');
 
 // Lazy-load Postmark to avoid errors if not configured
 let postmarkClient = null;
@@ -266,6 +267,29 @@ function loadEmailTemplate(templateName, data = {}) {
   }
 }
 
+async function updateEmailLogSafe(log, updates) {
+  if (!log || !log.id) {
+    return;
+  }
+  try {
+    await emailLogService.updateStatus(log.id, updates);
+  } catch (err) {
+    logger.warn('[email-log] Failed to update email log:', err.message);
+  }
+}
+
+async function createEmailAttemptLogSafe(options) {
+  if (options && options.logEmail === false) {
+    return null;
+  }
+  try {
+    return await emailLogService.createAttempt(options);
+  } catch (err) {
+    logger.warn('[email-log] Failed to create email log:', err.message);
+    return null;
+  }
+}
+
 /**
  * Send email via Postmark (local templates only)
  * @param {Object} options - Email options
@@ -301,7 +325,17 @@ async function sendMail(options) {
     tags,
     trackOpens = true,
     trackLinks = 'HtmlAndText',
+    criticalDelivery = false,
   } = options;
+
+  const logOptions = {
+    ...options,
+    from,
+    subject: subject || '(from template)',
+    messageStream: options.messageStream || 'outbound',
+  };
+  const emailLog = await createEmailAttemptLogSafe(logOptions);
+  const logId = emailLog && emailLog.id ? emailLog.id : null;
 
   // Log email attempt for debugging (mask email in production)
   const isProduction = process.env.NODE_ENV === 'production';
@@ -316,110 +350,159 @@ async function sendMail(options) {
   logger.info(`   Template: ${template || 'none'}`);
   logger.info(`   Message Stream: ${options.messageStream || 'outbound'}`);
 
-  // Check if Postmark is enabled
-  if (!POSTMARK_ENABLED || !postmarkClient) {
-    logger.warn('⚠️  Postmark not configured - saving email to /outbox instead');
+  try {
+    // Check if Postmark is enabled
+    if (!POSTMARK_ENABLED || !postmarkClient) {
+      logger.warn('⚠️  Postmark not configured - saving email to /outbox instead');
+      if (criticalDelivery && process.env.NODE_ENV === 'production') {
+        const criticalError = new Error(
+          'Critical email delivery failed: Postmark is not configured in production'
+        );
+        await updateEmailLogSafe(emailLog, {
+          provider: 'postmark',
+          status: 'failed',
+          errorMessage: criticalError.message,
+        });
+        throw criticalError;
+      }
 
-    // Load template for outbox if needed
-    let outboxHtml = html;
-    if (template && !html) {
-      outboxHtml = loadEmailTemplate(template, templateData);
+      // Load template for outbox if needed
+      let outboxHtml = html;
+      if (template && !html) {
+        outboxHtml = loadEmailTemplate(template, templateData);
+      }
+
+      // Save to outbox for development/testing
+      const outboxData = {
+        To: Array.isArray(to) ? to.join(',') : to,
+        From: from,
+        Subject: subject || '(from template)',
+        HtmlBody: outboxHtml,
+        TextBody: text || (template ? renderPlainTextTemplate(template, templateData) : undefined),
+        Template: template,
+      };
+      saveEmailToOutbox(outboxData);
+
+      const outboxMessageId = `outbox-${Date.now()}`;
+      const sentAt = new Date().toISOString();
+      await updateEmailLogSafe(emailLog, {
+        provider: 'outbox',
+        status: 'sent',
+        postmarkMessageId: outboxMessageId,
+        sentAt,
+      });
+
+      return {
+        status: 'disabled',
+        message: 'Postmark not configured. Email saved to outbox.',
+        MessageID: outboxMessageId,
+        PostmarkMessageID: null,
+        emailLogId: logId,
+        provider: 'outbox',
+        emailLogStatus: 'sent',
+        sentAt,
+      };
     }
 
-    // Save to outbox for development/testing
-    const outboxData = {
-      To: Array.isArray(to) ? to.join(',') : to,
-      From: from,
-      Subject: subject || '(from template)',
-      HtmlBody: outboxHtml,
-      TextBody: text || (template ? renderPlainTextTemplate(template, templateData) : undefined),
-      Template: template,
-    };
-    saveEmailToOutbox(outboxData);
-
-    return {
-      status: 'disabled',
-      message: 'Postmark not configured. Email saved to outbox.',
-      MessageID: `outbox-${Date.now()}`,
-    };
-  }
-
-  // Require subject for all emails
-  if (!subject) {
-    const error = new Error('Missing required email field: subject');
-    logger.error('❌ Email send failed:', error.message);
-    throw error;
-  }
-
-  // Load local template if specified and HTML not provided
-  let emailHtml = html;
-  if (template && !html) {
-    logger.info(`   Loading local template: ${template}.html`);
-    emailHtml = loadEmailTemplate(template, templateData);
-    if (!emailHtml) {
-      const error = new Error(`Failed to load email template: ${template}`);
+    // Require subject for all emails
+    if (!subject) {
+      const error = new Error('Missing required email field: subject');
       logger.error('❌ Email send failed:', error.message);
       throw error;
     }
-  }
 
-  // Build email data for Postmark
-  const emailData = {
-    From: from,
-    To: Array.isArray(to) ? to.join(',') : to,
-    Subject: subject,
-    TrackOpens: trackOpens,
-    TrackLinks: trackLinks,
-    MessageStream: options.messageStream || 'outbound',
-  };
-
-  // Add body content
-  if (emailHtml) {
-    emailData.HtmlBody = emailHtml;
-    // Provide text fallback if HTML is used. Prefer curated template text, then caller text.
-    if (!text && template) {
-      emailData.TextBody = renderPlainTextTemplate(template, templateData);
-    } else if (!text) {
-      // Simple HTML to text conversion fallback for ad-hoc HTML emails
-      emailData.TextBody = emailHtml
-        .replace(/<[^>]*>/g, '')
-        .replace(/\s+/g, ' ')
-        .trim();
-    } else {
-      emailData.TextBody = text;
+    // Load local template if specified and HTML not provided
+    let emailHtml = html;
+    if (template && !html) {
+      logger.info(`   Loading local template: ${template}.html`);
+      emailHtml = loadEmailTemplate(template, templateData);
+      if (!emailHtml) {
+        const error = new Error(`Failed to load email template: ${template}`);
+        logger.error('❌ Email send failed:', error.message);
+        throw error;
+      }
     }
-  } else if (text) {
-    emailData.TextBody = text;
-  } else {
-    const error = new Error('Email must have either text, html, or template content');
-    logger.error('❌ Email send failed:', error.message);
+
+    // Build email data for Postmark
+    const emailData = {
+      From: from,
+      To: Array.isArray(to) ? to.join(',') : to,
+      Subject: subject,
+      TrackOpens: trackOpens,
+      TrackLinks: trackLinks,
+      MessageStream: options.messageStream || 'outbound',
+    };
+
+    // Add body content
+    if (emailHtml) {
+      emailData.HtmlBody = emailHtml;
+      // Provide text fallback if HTML is used. Prefer curated template text, then caller text.
+      if (!text && template) {
+        emailData.TextBody = renderPlainTextTemplate(template, templateData);
+      } else if (!text) {
+        // Simple HTML to text conversion fallback for ad-hoc HTML emails
+        emailData.TextBody = emailHtml
+          .replace(/<[^>]*>/g, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+      } else {
+        emailData.TextBody = text;
+      }
+    } else if (text) {
+      emailData.TextBody = text;
+    } else {
+      const error = new Error('Email must have either text, html, or template content');
+      logger.error('❌ Email send failed:', error.message);
+      throw error;
+    }
+
+    // Add tags if provided (Postmark supports up to 10 tags)
+    if (tags) {
+      const tagArray = Array.isArray(tags) ? tags : [tags];
+      emailData.Tag = tagArray.slice(0, 10).join(',');
+    }
+
+    try {
+      const response = await postmarkClient.sendEmail(emailData);
+      logger.info(`✅ Email sent successfully via Postmark`);
+      logger.info(`   To: ${emailData.To}`);
+      logger.info(`   Subject: ${emailData.Subject}`);
+      logger.info(`   MessageID: ${response.MessageID}`);
+      logger.info(`   Stream: ${emailData.MessageStream}`);
+      const sentAt = new Date().toISOString();
+      await updateEmailLogSafe(emailLog, {
+        provider: 'postmark',
+        status: 'sent',
+        postmarkMessageId: response.MessageID || null,
+        sentAt,
+      });
+      return {
+        ...response,
+        PostmarkMessageID: response.MessageID || null,
+        emailLogId: logId,
+        provider: 'postmark',
+        emailLogStatus: 'sent',
+        sentAt,
+      };
+    } catch (err) {
+      logger.error('❌ Postmark send error:', err.message);
+      logger.error('   To:', emailData.To);
+      logger.error('   Subject:', emailData.Subject);
+
+      // Save to outbox as fallback for debugging outside production critical auth flows
+      if (!(criticalDelivery && process.env.NODE_ENV === 'production')) {
+        saveEmailToOutbox(emailData);
+      }
+
+      // Re-throw error so calling code can handle it (e.g., rollback)
+      throw new Error(`Failed to send email via Postmark: ${err.message}`);
+    }
+  } catch (error) {
+    await updateEmailLogSafe(emailLog, {
+      status: 'failed',
+      errorMessage: error.message ? error.message.slice(0, 500) : 'Email send failed',
+    });
     throw error;
-  }
-
-  // Add tags if provided (Postmark supports up to 10 tags)
-  if (tags) {
-    const tagArray = Array.isArray(tags) ? tags : [tags];
-    emailData.Tag = tagArray.slice(0, 10).join(',');
-  }
-
-  try {
-    const response = await postmarkClient.sendEmail(emailData);
-    logger.info(`✅ Email sent successfully via Postmark`);
-    logger.info(`   To: ${emailData.To}`);
-    logger.info(`   Subject: ${emailData.Subject}`);
-    logger.info(`   MessageID: ${response.MessageID}`);
-    logger.info(`   Stream: ${emailData.MessageStream}`);
-    return response;
-  } catch (err) {
-    logger.error('❌ Postmark send error:', err.message);
-    logger.error('   To:', emailData.To);
-    logger.error('   Subject:', emailData.Subject);
-
-    // Save to outbox as fallback for debugging
-    saveEmailToOutbox(emailData);
-
-    // Re-throw error so calling code can handle it (e.g., rollback)
-    throw new Error(`Failed to send email via Postmark: ${err.message}`);
   }
 }
 
@@ -473,6 +556,7 @@ async function sendVerificationEmail(user, verificationToken) {
     from: FROM_NOREPLY,
     tags: ['verification', 'transactional'],
     messageStream: 'outbound',
+    criticalDelivery: true,
   });
 }
 
@@ -499,6 +583,7 @@ async function sendPasswordResetEmail(user, resetToken) {
     from: FROM_NOREPLY,
     tags: ['password-reset', 'transactional'],
     messageStream: 'password-reset', // Use dedicated password-reset stream
+    criticalDelivery: true,
   });
 }
 

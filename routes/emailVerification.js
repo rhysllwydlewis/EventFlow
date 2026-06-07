@@ -14,6 +14,7 @@ const { authRequired } = require('../middleware/auth');
 // csrfProtection is available but not used in GET endpoints
 const { resendEmailLimiter } = require('../middleware/rateLimits');
 const postmark = require('../utils/postmark');
+const userProvenance = require('../services/userProvenance.service');
 
 const router = express.Router();
 
@@ -35,8 +36,13 @@ router.post('/send-verification', resendEmailLimiter, authRequired, async (req, 
       });
     }
 
-    // Check if already verified
-    if (user.emailVerified || user.verified) {
+    // Check if already verified or no EventFlow verification email is required
+    if (!userProvenance.canResendVerification(user)) {
+      if (!user.emailVerified && !user.verified) {
+        return res
+          .status(400)
+          .json({ ok: false, error: 'Verification email is not available for this account type' });
+      }
       return res.json({
         ok: true,
         message: 'Email is already verified',
@@ -66,7 +72,7 @@ router.post('/send-verification', resendEmailLimiter, authRequired, async (req, 
     const verificationLink = `${baseUrl}/verify?token=${token}`;
 
     try {
-      await postmark.sendMail({
+      const sendResult = await postmark.sendMail({
         to: user.email,
         subject: 'Verify your email address',
         template: 'verification',
@@ -77,7 +83,14 @@ router.post('/send-verification', resendEmailLimiter, authRequired, async (req, 
         from: postmark.FROM_NOREPLY,
         tags: ['verification', 'transactional'],
         messageStream: 'outbound',
+        criticalDelivery: true,
       });
+
+      await dbUnified.updateOne(
+        'users',
+        { id: userId },
+        { $set: userProvenance.metadataFromSendResult(sendResult) }
+      );
 
       res.json({
         ok: true,
@@ -146,7 +159,7 @@ router.get('/verify-email/:token', async (req, res) => {
       {
         $set: {
           emailVerified: true,
-          verified: true,
+          ...userProvenance.eventflowEmailVerifiedProvenance(new Date().toISOString()),
         },
         $unset: {
           emailVerificationToken: '',

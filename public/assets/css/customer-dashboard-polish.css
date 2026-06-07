@@ -1,0 +1,108 @@
+/**
+ * EventFlow — Customer Dashboard Polish
+ * Visual, UX and aesthetic improvements layered on the existing CSS stack.
+ * All rules scoped to .customer-dashboard-page to prevent cross-page bleed.
+ */
+
+/* ═══ 1. PAGE RHYTHM ═══════════════════════════════════════════════════ */
+.customer-dashboard-page main.section{padding-top:28px;padding-bottom:64px}
+
+/* ═══ 2. SECTION GROUP LABELS ════════════════════════════════════════ */
+.cd-section-label{display:flex;align-items:center;gap:14px;margin:28px 0 4px;color:#6b7280;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+.cd-section-label::before,.cd-section-label::after{content:'';flex:1;height:1px;background:#e5e7eb}
+.cd-section-label span{white-space:nowrap;padding:3px 10px;background:#f3f4f6;border-radius:999px}
+
+/* ═══ 3. BOTTOM CARDS GRID ═══════════════════════════════════════════ */
+.customer-dashboard-page .cards{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+.customer-dashboard-page .cards .cd-card--plans{grid-column:1/-1}
+@media(min-width:900px){
+  .customer-dashboard-page .cards{grid-template-columns:1fr 1fr 1fr}
+  .customer-dashboard-page .cards .cd-card--plans{grid-column:span 1}
+  .customer-dashboard-page .cards .cd-card--conversations{grid-column:span 2}
+}
+
+/* ═══ 4. WELCOME CARD ACTION CARDS — SVG icon version ══════════════ */
+.customer-dashboard-page .customer-welcome-action-card{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;background:rgba(255,255,255,.72);border:1px solid rgba(15,23,42,.09);border-radius:14px;text-decoration:none;color:inherit;transition:background .18s ease,box-shadow .18s ease,transform .18s ease}
+.customer-dashboard-page .customer-welcome-action-card:hover{background:rgba(255,255,255,.96);box-shadow:0 4px 16px rgba(15,23,42,.1);transform:translateY(-2px)}
+.customer-dashboard-page .customer-welcome-action-card__icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff}
+.customer-welcome-action-card--plan .customer-welcome-action-card__icon{background:#2563eb}
+.customer-welcome-action-card--find .customer-welcome-action-card__icon{background:#0b8073}
+.customer-welcome-action-card--events .customer-welcome-action-card__icon{background:#7c3aed}
+.customer-welcome-action-card--budget .customer-welcome-action-card__icon{background:#d97706}
+.customer-dashboard-page .customer-welcome-action-card strong{display:block;font-size:13px;font-weight:700;color:#0b1220;margin-bottom:2px}
+.customer-dashboard-page .customer-welcome-action-card small{display:block;font-size:12px;color:#6b7280;line-height:1.4}
+.customer-dashboard-page .customer-welcome-dismiss{background:#0b8073;color:#fff;border:none;border-radius:10px;padding:9px 20px;font-size:13px;font-weight:700;cursor:pointer;transition:background .18s,transform .18s}
+.customer-dashboard-page .customer-welcome-dismiss:hover{background:#096b60;transform:translateY(-1px)}
+
+/* ═══ 5. QUICK ACTIONS — icon row ════════════════════════════════════ */
+.customer-dashboard-page .customer-quick-actions{display:flex;flex-direction:column;gap:6px}
+.customer-dashboard-page .cd-quick-action{display:flex;align-items:center;gap:12px;padding:11px 14px;border-radius:12px;border:1px solid #e5e7eb;background:#fafafa;text-decoration:none;font-size:13px;font-weight:600;color:#374151;transition:background .16s,border-color .16s,transform .16s;cursor:pointer;font-family:inherit;width:100%;text-align:left;box-sizing:border-box}
+.customer-dashboard-page .cd-quick-action:hover{background:#fff;border-color:#d1d5db;transform:translateX(3px);box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.customer-dashboard-page .cd-quick-action__icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fff}
+.cd-quick-action__icon--blue{background:#2563eb}
+.cd-quick-action__icon--teal{background:#0b8073}
+.cd-quick-action__icon--purple{background:#7c3aed}
+.customer-dashboard-page .cd-quick-action__label{flex:1}
+.customer-dashboard-page .cd-quick-action__chevron{margin-left:auto;color:#9ca3af;flex-shrink:0}
+
+/* ═══ 6. SKELETON — reduce CLS impact ═══════════════════════════════ */
+#customer-event-countdown .skeleton{height:72px!important}
+#customer-budget-kpis .skeleton{height:64px!important}
+#customer-milestones-widget .skeleton{height:140px!important}
+
+/* ═══ 7. CALENDAR CARD ════════════════════════════════════════════════ */
+.customer-dashboard-page .customer-calendar-viewport{min-height:360px;border-radius:12px;overflow:hidden;background:#fafbfc}
+.customer-dashboard-page .customer-calendar-legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin-bottom:14px;padding:10px 14px;background:#f9fafb;border-radius:10px;border:1px solid #e5e7eb}
+.customer-dashboard-page .cal-legend-item{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#4b5563}
+.customer-dashboard-page .cal-legend-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.customer-dashboard-page .customer-calendar-next-up{margin-top:14px;padding:12px 16px;background:linear-gradient(135deg,#f0fdf4,#f0fdfa);border:1px solid #d1fae5;border-radius:12px}
+.customer-dashboard-page .customer-calendar-next-up__eyebrow{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#0b8073;margin-bottom:4px}
+.customer-dashboard-page .customer-calendar-next-up__body{font-size:13px;color:#374151;line-height:1.5}
+
+/* ═══ 8. CONVERSATIONS CARD ══════════════════════════════════════════ */
+.customer-dashboard-page .customer-conversations-controls{display:flex;gap:8px;margin-bottom:14px}
+.customer-dashboard-page .customer-conversations-search{flex:1;padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px;font-size:13px;font-family:inherit;background:#f9fafb;transition:border-color .18s,box-shadow .18s}
+.customer-dashboard-page .customer-conversations-search:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.1);background:#fff}
+.customer-dashboard-page .customer-conversations-filter{padding:8px 10px;border:1px solid #e5e7eb;border-radius:10px;font-size:13px;font-family:inherit;background:#f9fafb;color:#374151;cursor:pointer;transition:border-color .18s}
+.customer-dashboard-page .customer-conversations-filter:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+
+/* ═══ 9. TYPOGRAPHY ══════════════════════════════════════════════════ */
+.customer-dashboard-page .sd-card-header__heading{font-size:15px;font-weight:750;letter-spacing:-.2px}
+.customer-dashboard-page .sd-card-header__subtitle{font-size:12.5px;color:#6b7280;line-height:1.45;margin-top:3px}
+.customer-dashboard-page .customer-budget-form{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.customer-dashboard-page .customer-budget-form__field{flex:1;min-width:160px}
+.customer-dashboard-page .customer-budget-form__label{font-size:13px;font-weight:650;color:#374151;display:block;margin-bottom:6px}
+.customer-dashboard-page .customer-budget-form__input{width:100%;padding:10px 14px;border:1px solid #d1d5db;border-radius:10px;font-size:15px;font-family:inherit;transition:border-color .18s,box-shadow .18s;box-sizing:border-box}
+.customer-dashboard-page .customer-budget-form__input:focus{outline:none;border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+.customer-dashboard-page .customer-budget-form__submit{flex-shrink:0;white-space:nowrap}
+
+/* ═══ 10. UNREAD BADGE ═══════════════════════════════════════════════ */
+.customer-dashboard-page .customer-unread-badge{font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe}
+
+/* ═══ 11. EMPTY STATES ═══════════════════════════════════════════════ */
+.cd-empty-state{display:flex;flex-direction:column;align-items:center;text-align:center;padding:28px 16px;color:#6b7280}
+.cd-empty-state__icon{width:48px;height:48px;border-radius:12px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;margin-bottom:12px;color:#9ca3af}
+.cd-empty-state__title{font-size:14px;font-weight:700;color:#374151;margin:0 0 6px}
+.cd-empty-state__desc{font-size:13px;line-height:1.5;max-width:280px;margin:0 0 16px}
+
+/* ═══ 12. MOBILE ═════════════════════════════════════════════════════ */
+@media(max-width:768px){
+  .customer-dashboard-page .cards{grid-template-columns:1fr;gap:14px}
+  .customer-dashboard-page .cards .cd-card--plans,.customer-dashboard-page .cards .cd-card--conversations{grid-column:1}
+  .customer-dashboard-page .customer-budget-form{flex-direction:column}
+  .customer-dashboard-page .customer-budget-form__field{min-width:0;width:100%}
+  .customer-dashboard-page main.section{padding-top:16px}
+}
+@media(max-width:480px){
+  .customer-dashboard-page .customer-welcome-actions__grid{grid-template-columns:1fr;gap:10px}
+  .customer-dashboard-page .customer-calendar-legend{padding:8px 10px;gap:6px 10px}
+}
+
+/* ═══ 13. REDUCED MOTION ═════════════════════════════════════════════ */
+@media(prefers-reduced-motion:reduce){
+  .customer-dashboard-page .customer-welcome-action-card,
+  .customer-dashboard-page .cd-quick-action,
+  .customer-dashboard-page .customer-welcome-dismiss{transition:none}
+  .customer-dashboard-page .customer-welcome-action-card:hover,
+  .customer-dashboard-page .cd-quick-action:hover{transform:none}
+}

@@ -98,9 +98,72 @@
     return map[method] || `<span class="badge badge-warning">${esc(method)}</span>`;
   }
 
-  function supplierBadge(profile) {
-    if (!profile) {
-      return '<span class="badge" style="opacity:.5">—</span>';
+  function humanize(value) {
+    return String(value || 'unknown')
+      .replace(/_/g, ' ')
+      .replace(/(^|\s)([a-z])/g, (_m, prefix, c) => prefix + c.toUpperCase());
+  }
+
+  function badge(label, type) {
+    return `<span class="badge badge-${type || 'secondary'}" style="display:inline-block;margin:1px 2px 1px 0;white-space:nowrap;">${escapeHtml(label)}</span>`;
+  }
+
+  function verificationBadge(user) {
+    switch (user.verificationMethod) {
+      case 'google_verified_email':
+        return badge('Google verified', 'success');
+      case 'eventflow_email':
+        return badge('Verified by EventFlow email', 'success');
+      case 'admin_created':
+        return badge('Admin-created verified', 'info');
+      case 'owner_account':
+        return badge('Owner account', 'warning');
+      case 'pending':
+        return badge('Email verification pending', 'warning');
+      default:
+        return badge('Unknown verification source', 'danger');
+    }
+  }
+
+  function emailStatusBadge(status) {
+    switch (status) {
+      case 'not_required':
+        return badge('No EventFlow email required', 'secondary');
+      case 'sent':
+        return badge('Email sent', 'info');
+      case 'delivered':
+        return badge('Delivered', 'success');
+      case 'failed':
+        return badge('Email failed', 'danger');
+      case 'outbox':
+        return badge('Outbox fallback', 'warning');
+      case 'bounced':
+        return badge('Bounced', 'danger');
+      case 'pending':
+        return badge('Email pending', 'warning');
+      default:
+        return badge('Email unknown', 'secondary');
+    }
+  }
+
+  function canResendVerification(user) {
+    if (!user || user.verified) {
+      return false;
+    }
+    if (
+      ['google_verified_email', 'admin_created', 'owner_account'].includes(user.verificationMethod)
+    ) {
+      return false;
+    }
+    if (['google', 'admin_created', 'owner_seed'].includes(user.signupMethod)) {
+      return false;
+    }
+    return true;
+  }
+
+  function formatDate(dateStr) {
+    if (!dateStr) {
+      return 'Never';
     }
     if (profile.approved) {
       return `<a href="${esc(profile.profileUrl)}" class="badge badge-yes">Approved</a>`;
@@ -140,29 +203,12 @@
         </a>`;
     };
 
-    const userIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`;
-    const groupIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`;
-    const alertIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`;
-    const clockIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
-    const shopIcon = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>`;
-
-    grid.innerHTML = [
-      makeCard(summary.total, 'Total users', groupIcon, 'blue', ''),
-      makeCard(summary.byRole.customer, 'Customers', userIcon, 'teal', 'role=customer'),
-      makeCard(summary.byRole.supplier, 'Suppliers', shopIcon, 'purple', 'role=supplier'),
-      makeCard(
-        summary.byRole.admin + (summary.byRole.owner || 0),
-        'Admins',
-        userIcon,
-        'grey',
-        'role=admin'
-      ),
-      makeCard(summary.newLast7, 'New this week', clockIcon, 'green', ''),
-      makeCard(summary.unverified, 'Unverified', alertIcon, 'amber', 'verificationMethod=pending'),
-      makeCard(summary.issueCount, 'Issues', alertIcon, 'red', 'issue=email_unverified'),
-      makeCard(summary.suppliers.pending, 'Pending suppliers', shopIcon, 'amber', 'role=supplier'),
-    ].join('');
-  }
+    // Show loading state
+    AdminShared.showLoadingState(tbody, {
+      rows: 5,
+      cols: 12,
+      message: 'Loading users...',
+    });
 
   // ── Table rendering ───────────────────────────────────────────────────────
   function renderTable(users) {
@@ -209,17 +255,11 @@
       })
       .join('');
 
-    // Wire checkboxes
-    tbody.querySelectorAll('.uc-user-checkbox').forEach(cb => {
-      cb.addEventListener('change', () => {
-        const uid = cb.dataset.userId;
-        if (cb.checked) {
-          selectedUserIds.add(uid);
-        } else {
-          selectedUserIds.delete(uid);
-        }
-        updateBulkBar();
-        updateSelectAll();
+      // Show error state with retry button
+      AdminShared.showErrorState(tbody, {
+        message: 'Failed to load users. Please try again.',
+        onRetry: loadAdminUsers,
+        colspan: 12,
       });
     });
   }
@@ -266,22 +306,64 @@
     currentPage = Math.min(currentPage, pages);
     const slice = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-    const statusEl = $('ucFilterStatus');
-    if (statusEl) {
-      statusEl.textContent =
-        total === allUsers.length
-          ? `${total} user${total !== 1 ? 's' : ''}`
-          : `${total} of ${allUsers.length} user${allUsers.length !== 1 ? 's' : ''}`;
+          renderUsers();
+        },
+        colspan: 12,
+      });
+      return;
     }
 
-    const titleEl = $('ucTableTitle');
-    if (titleEl) {
-      titleEl.textContent = role ? `${role.charAt(0).toUpperCase() + role.slice(1)}s` : 'All users';
-    }
+    tbody.innerHTML = filtered
+      .map(u => {
+        // Build role badge using shared helper
+        const roleBadge = AdminShared.getRoleBadge(u.role);
 
-    renderTable(slice);
-    renderPagination(currentPage, pages, total);
-  }
+        // Admin users get an Admin badge — they have full privileges, not a subscription tier
+        const isAdminUser = u.role === 'admin';
+        let subscriptionBadge = '';
+        if (isAdminUser) {
+          subscriptionBadge = '—';
+        } else {
+          const subscription = u.subscription || { tier: 'free', status: 'active' };
+          if (subscription.tier === 'pro') {
+            subscriptionBadge = '<span class="badge badge-pro">Pro</span>';
+          } else if (subscription.tier === 'pro_plus') {
+            subscriptionBadge = '<span class="badge badge-pro-plus">Pro Plus</span>';
+          } else {
+            subscriptionBadge = '<span class="badge badge-starter">Starter</span>';
+          }
+        }
+
+        const userId = escapeHtml(u.id || u._id || '');
+        const isChecked = selectedUserIds.has(userId);
+
+        const actionsHtml = `
+          <button class="btn btn-secondary btn-sm" data-manage-subscription="${userId}" style="font-size:12px;padding:4px 8px;margin-right:4px;">Manage Subscription</button>
+          ${
+            canResendVerification(u)
+              ? `<button class="btn btn-secondary btn-sm" data-resend-verification="${userId}" style="font-size:12px;padding:4px 8px;">Resend Verification</button>`
+              : ''
+          }
+        `;
+
+        return (
+          `<tr>` +
+          `<td class="checkbox-cell"><input type="checkbox" class="user-checkbox table-checkbox" data-user-id="${userId}" ${isChecked ? 'checked' : ''}></td>` +
+          `<td><a href="/admin-user-detail?id=${userId}" style="color:#3b82f6;text-decoration:none;">${escapeHtml(u.name || '')}</a></td>` +
+          `<td><a href="/admin-user-detail?id=${userId}" style="color:#3b82f6;text-decoration:none;">${escapeHtml(u.email || '')}</a></td>` +
+          `<td>${roleBadge}</td>` +
+          `<td>${subscriptionBadge}</td>` +
+          `<td>${u.verified ? '✓ Yes' : '✗ No'}<div>${verificationBadge(u)}</div></td>` +
+          `<td>${badge(humanize(u.signupMethod), 'secondary')}<br>${badge(humanize(u.authProvider), 'secondary')}</td>` +
+          `<td>${emailStatusBadge(u.emailDeliveryStatus)}</td>` +
+          `<td>${u.marketingOptIn ? 'Yes' : 'No'}</td>` +
+          `<td>${formatDate(u.createdAt)}</td>` +
+          `<td>${formatDate(u.lastLoginAt)}</td>` +
+          `<td>${actionsHtml}</td>` +
+          `</tr>`
+        );
+      })
+      .join('');
 
   function clearFilters() {
     ['ucSearch', 'ucRoleFilter', 'ucSignupFilter', 'ucVerifFilter', 'ucIssueFilter'].forEach(id => {

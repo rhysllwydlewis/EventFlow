@@ -1869,6 +1869,7 @@
       setupNavButton('mediaCenterBtn', '/admin-media');
       setupNavButton('globalSearchBtn', '/admin-search');
       setupNavButton('analyticsBtn', '/admin-analytics');
+      setupNavButton('emailCentreBtn', '/admin-emails');
 
       // Moderation queue buttons
       setupNavButton('reviewPhotosBtn', '/admin-photos');

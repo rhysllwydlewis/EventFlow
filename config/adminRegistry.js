@@ -223,6 +223,15 @@ const REGISTRY = [
     desc: 'Data export & downloads',
   },
   {
+    route: '/admin-emails',
+    htmlFile: 'admin-emails',
+    label: 'Email Centre',
+    icon: '📨',
+    category: 'operations',
+    inNav: true,
+    desc: 'Campaigns, templates, sent email logs and delivery status',
+  },
+  {
     route: '/admin-campaigns',
     htmlFile: 'admin-campaigns',
     label: 'Campaigns',
@@ -237,7 +246,7 @@ const REGISTRY = [
     label: 'Email Previews',
     icon: '✉️',
     category: 'operations',
-    inNav: true,
+    inNav: false,
     desc: 'Review and test every local email template',
   },
 

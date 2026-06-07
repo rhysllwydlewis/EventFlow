@@ -866,6 +866,7 @@ const adminPages = [
   'admin-content',
   'admin-content-dates',
   'admin-exports',
+  'admin-emails',
   'admin-homepage',
   'admin-marketplace',
   'admin-messenger',

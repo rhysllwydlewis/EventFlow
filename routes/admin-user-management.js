@@ -18,13 +18,31 @@ const bcrypt = require('bcryptjs');
 const { passwordOk } = require('../utils/validators');
 const domainAdmin = require('../middleware/domain-admin');
 const partnerService = require('../services/partnerService');
-const adminUserSummary = require('../services/adminUserSummary.service');
+const verificationProvenance = require('../services/verificationProvenance.service');
+const userProvenance = require('../services/userProvenance.service');
 
 const router = express.Router();
 
 // Constants for user management
 const VALID_USER_ROLES = ['customer', 'supplier', 'admin'];
 const MAX_NAME_LENGTH = 80;
+
+function sanitizeAdminUser(u, verificationLogs) {
+  const summary = verificationLogs ? verificationProvenance.summariseUser(u, verificationLogs) : {};
+  return {
+    id: u.id || (u._id ? u._id.toString() : undefined),
+    name: u.name,
+    email: u.email,
+    role: u.role,
+    verified: !!u.verified,
+    suspended: !!u.suspended,
+    marketingOptIn: !!u.marketingOptIn,
+    createdAt: u.createdAt,
+    lastLoginAt: u.lastLoginAt || null,
+    subscription: u.subscription || { tier: 'free', status: 'active' },
+    ...userProvenance.safeUserProvenance(u, summary),
+  };
+}
 
 // Helper function to parse duration strings like "7d", "1h", "30m"
 function parseDuration(duration) {
@@ -177,20 +195,9 @@ router.get('/users/:id/detail', authRequired, roleRequired('admin'), async (req,
 router.get('/users', authRequired, roleRequired('admin'), async (req, res) => {
   try {
     const allUsers = await dbUnified.read('users');
-    const users = (allUsers || []).map(u => ({
-      // Fall back to the MongoDB _id string so users created without an explicit `id`
-      // field (e.g. older admin accounts) still receive a non-empty identifier that the
-      // "Manage Subscription" button can use as its data attribute value.
-      id: u.id || (u._id ? u._id.toString() : undefined),
-      name: u.name,
-      email: u.email,
-      role: u.role,
-      verified: !!u.verified,
-      marketingOptIn: !!u.marketingOptIn,
-      createdAt: u.createdAt,
-      lastLoginAt: u.lastLoginAt || null,
-      subscription: u.subscription || { tier: 'free', status: 'active' },
-    }));
+    const verificationLogs = await verificationProvenance.readVerificationLogs();
+    // sanitizeAdminUser preserves the legacy fallback id shape: u.id || u._id.
+    const users = (allUsers || []).map(u => sanitizeAdminUser(u, verificationLogs));
     // Sort newest first by createdAt
     users.sort((a, b) => {
       if (!a.createdAt && !b.createdAt) {
@@ -259,6 +266,7 @@ router.post('/users', authRequired, roleRequired('admin'), csrfProtection, async
       verified: true, // Admin-created users are pre-verified
       createdAt: new Date().toISOString(),
       createdBy: req.user.id, // Track who created the user
+      ...userProvenance.adminCreatedProvenance(req.user.id, new Date().toISOString()),
     };
 
     const adminCreatedUser = await dbUnified.insertOne('users', user);
@@ -278,6 +286,10 @@ router.post('/users', authRequired, roleRequired('admin'), csrfProtection, async
         email: user.email,
         name: user.name,
         role: user.role,
+        signupMethod: user.signupMethod,
+        verificationMethod: user.verificationMethod,
+        verifiedByType: user.verifiedBy && user.verifiedBy.type,
+        adminActorId: req.user.id,
       },
     });
 
@@ -362,19 +374,8 @@ router.get('/users/search', authRequired, roleRequired('admin'), async (req, res
         sort: { createdAt: -1 },
       });
 
-      // Remove sensitive data
-      const sanitizedUsers = users.map(u => ({
-        id: u.id,
-        name: u.name,
-        email: u.email,
-        role: u.role,
-        verified: !!u.verified,
-        suspended: !!u.suspended,
-        marketingOptIn: !!u.marketingOptIn,
-        createdAt: u.createdAt,
-        lastLoginAt: u.lastLoginAt || null,
-        subscription: u.subscription || { tier: 'free', status: 'active' },
-      }));
+      const verificationLogs = await verificationProvenance.readVerificationLogs();
+      const sanitizedUsers = users.map(u => sanitizeAdminUser(u, verificationLogs));
 
       res.json({
         items: sanitizedUsers,
@@ -447,19 +448,8 @@ router.get('/users/search', authRequired, roleRequired('admin'), async (req, res
       const endIndex = startIndex + (parseInt(limit, 10) || 50);
       const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
 
-      // Remove sensitive data
-      const sanitizedUsers = paginatedUsers.map(u => ({
-        id: u.id,
-        name: u.name,
-        email: u.email,
-        role: u.role,
-        verified: !!u.verified,
-        suspended: !!u.suspended,
-        marketingOptIn: !!u.marketingOptIn,
-        createdAt: u.createdAt,
-        lastLoginAt: u.lastLoginAt || null,
-        subscription: u.subscription || { tier: 'free', status: 'active' },
-      }));
+      const verificationLogs = await verificationProvenance.readVerificationLogs();
+      const sanitizedUsers = paginatedUsers.map(u => sanitizeAdminUser(u, verificationLogs));
 
       res.json({
         items: sanitizedUsers,
@@ -702,7 +692,9 @@ router.post(
         $set: {
           verified: true,
           verifiedAt: now,
-          verifiedBy: req.user.id,
+          verificationMethod: 'manual_admin',
+          verifiedBy: { type: 'admin', userId: req.user.id, reason: 'Manually verified by admin' },
+          emailDeliveryStatus: 'not_required',
           verificationToken: null,
           updatedAt: now,
         },
@@ -716,7 +708,12 @@ router.post(
       action: AUDIT_ACTIONS.USER_VERIFIED,
       targetType: 'user',
       targetId: user.id,
-      details: { email: user.email },
+      details: {
+        email: user.email,
+        verificationMethod: 'manual_admin',
+        verifiedByType: 'admin',
+        adminActorId: req.user.id,
+      },
     });
 
     res.json({
@@ -837,7 +834,13 @@ router.post(
                 $set: {
                   verified: true,
                   verifiedAt: now,
-                  verifiedBy: req.user.id,
+                  verificationMethod: 'manual_admin',
+                  verifiedBy: {
+                    type: 'admin',
+                    userId: req.user.id,
+                    reason: 'Bulk manually verified by admin',
+                  },
+                  emailDeliveryStatus: 'not_required',
                   verificationToken: null,
                   updatedAt: now,
                 },
@@ -1808,6 +1811,21 @@ router.put('/users/:id', authRequired, roleRequired('admin'), csrfProtection, as
   }
   if (verified !== undefined) {
     setFields.verified = verified;
+    if (verified === true && user.verified !== true) {
+      setFields.verifiedAt = new Date().toISOString();
+      setFields.verificationMethod = 'manual_admin';
+      setFields.verifiedBy = {
+        type: 'admin',
+        userId: req.user.id,
+        reason: 'Manually verified by admin',
+      };
+      setFields.emailDeliveryStatus = 'not_required';
+    } else if (verified === false && user.verified === true) {
+      setFields.verificationMethod = 'pending';
+      setFields.verifiedBy = null;
+      setFields.verifiedAt = null;
+      setFields.emailDeliveryStatus = user.emailDeliveryStatus || 'pending';
+    }
   }
   if (marketingOptIn !== undefined) {
     setFields.marketingOptIn = marketingOptIn;
@@ -1822,7 +1840,15 @@ router.put('/users/:id', authRequired, roleRequired('admin'), csrfProtection, as
     action: 'user_edited',
     targetType: 'user',
     targetId: user.id,
-    details: { email: user.email, changes: req.body },
+    details: {
+      email: user.email,
+      changes: req.body,
+      verificationMethod: setFields.verificationMethod || user.verificationMethod || null,
+      verifiedByType: setFields.verifiedBy
+        ? setFields.verifiedBy.type
+        : user.verifiedBy?.type || null,
+      adminActorId: req.user.id,
+    },
   });
 
   res.json({ success: true, user: { ...user, ...setFields } });
@@ -2344,21 +2370,8 @@ router.get('/users/:id', authRequired, roleRequired('admin'), async (req, res) =
     return res.status(404).json({ error: 'User not found' });
   }
 
-  // Strip all secrets — never expose raw tokens, hashes, or Google subject IDs
-  // Use /users/:id/detail for the safe enriched projection
-  // eslint-disable-next-line no-unused-vars
-  const {
-    password,
-    passwordHash,
-    googleSub,
-    resetToken,
-    resetTokenExpiresAt,
-    verificationToken,
-    emailVerificationToken,
-    authProviderIds,
-    ...userSafe
-  } = user;
-  res.json(userSafe);
+  const verificationLogs = await verificationProvenance.readVerificationLogs();
+  res.json(sanitizeAdminUser(user, verificationLogs));
 });
 
 /**
@@ -2499,9 +2512,13 @@ router.post(
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Check if user is already verified
-    if (user.verified === true) {
-      return res.status(400).json({ error: 'User is already verified' });
+    if (!userProvenance.canResendVerification(user)) {
+      return res.status(400).json({
+        error:
+          user.verified === true
+            ? 'User is already verified'
+            : 'No EventFlow verification email is required for this account',
+      });
     }
 
     // Generate new verification token with 24-hour expiration
@@ -2509,9 +2526,10 @@ router.post(
     const tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
 
     // Send verification email via Postmark BEFORE saving token
+    let sendResult;
     try {
       logger.info(`📧 Admin ${req.user.email} resending verification email to ${user.email}`);
-      await postmark.sendVerificationEmail(user, verificationToken);
+      sendResult = await postmark.sendVerificationEmail(user, verificationToken);
       logger.info(`✅ Verification email resent successfully to ${user.email}`);
     } catch (emailError) {
       logger.error('❌ Failed to resend verification email:', emailError.message);
@@ -2526,7 +2544,11 @@ router.post(
       'users',
       { id: user.id },
       {
-        $set: { verificationToken, verificationTokenExpiresAt: tokenExpiresAt },
+        $set: {
+          verificationToken,
+          verificationTokenExpiresAt: tokenExpiresAt,
+          ...userProvenance.metadataFromSendResult(sendResult),
+        },
       }
     );
 

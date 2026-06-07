@@ -159,14 +159,21 @@
       icon: '📣',
       label: 'Campaigns',
       group: 'operations',
-      desc: 'Compose & send marketing email campaigns',
+      desc: 'Compose and send marketing email campaigns',
+    },
+    {
+      href: '/admin-emails',
+      icon: '📨',
+      label: 'Email Centre',
+      group: 'operations',
+      desc: 'Campaigns, templates, sent email logs and delivery status',
     },
     {
       href: '/admin/email-previews',
       icon: '✉️',
       label: 'Email Previews',
       group: 'operations',
-      desc: 'Review and test every local email template',
+      desc: 'Preview and test local email templates',
     },
     {
       href: '/admin-homepage',

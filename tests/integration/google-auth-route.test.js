@@ -154,6 +154,10 @@ describe('Google auth route', () => {
       googleSub: 'google-sub-123',
       verified: true,
       authProvider: 'google',
+      signupMethod: 'google',
+      verificationMethod: 'google_verified_email',
+      verifiedBy: { type: 'google' },
+      emailDeliveryStatus: 'not_required',
       role: 'customer',
     });
   });
