@@ -62,11 +62,15 @@ function classifyVerificationMethod(u = {}) {
   if (u.verifiedBy === 'google' || u.authProvider === 'google') {
     return 'google';
   }
-  if (u.verifiedBy === 'admin' || u.verifiedByAdmin) {
+  if (
+    u.verificationMethod === 'manual_admin' ||
+    u.verifiedBy === 'admin' ||
+    (u.verifiedBy && typeof u.verifiedBy === 'object' && u.verifiedBy.type === 'admin') ||
+    u.verifiedByAdmin ||
+    u.adminVerified === true ||
+    u.createdByAdmin === true
+  ) {
     return 'admin';
-  }
-  if (u.verifiedAt && u.verificationToken === undefined && u.emailVerificationToken === undefined) {
-    return 'email_link';
   }
   if (verified && !u.verifiedAt) {
     return 'legacy';
@@ -125,6 +129,15 @@ function isProfileIncomplete(supplier) {
   );
 }
 
+async function requiredRead(collection, stage) {
+  try {
+    return asArray(await dbUnified.read(collection));
+  } catch (err) {
+    err.stage = stage || collection;
+    throw err;
+  }
+}
+
 async function safeRead(collection, stage) {
   try {
     return asArray(await dbUnified.read(collection));
@@ -174,6 +187,7 @@ function projectUser(u, supplier, verificationLogs = []) {
     createdAt: user.createdAt || null,
     lastLoginAt: user.lastLoginAt || null,
     subscription: user.subscription || { tier: 'free', status: 'active' },
+    subscriptionHistory: Array.isArray(user.subscriptionHistory) ? user.subscriptionHistory : [],
     // Provenance (safe — no raw tokens or googleSub)
     signupMethod,
     verificationMethod,
@@ -226,7 +240,7 @@ async function buildUserSummary() {
   const stage = { name: 'read' };
   try {
     const [allUsers, allSuppliers, allPackages, allEmailLogs] = await Promise.all([
-      safeRead('users', 'users'),
+      requiredRead('users', 'users'),
       safeRead('suppliers', 'suppliers'),
       safeRead('packages', 'packages'),
       safeRead(emailLogService.COLLECTION || 'email_logs', 'email_logs'),
@@ -536,13 +550,15 @@ async function listUsers(opts = {}) {
     page = 1,
     limit: rawLimit = 50,
   } = opts;
-  const limit = Math.min(Number(rawLimit) || 50, 200);
-  const pageNum = Math.max(Number(page) || 1, 1);
+  const parsedLimit = Number(rawLimit);
+  const limit = Math.min(Math.max(Number.isFinite(parsedLimit) ? parsedLimit : 50, 1), 200);
+  const parsedPage = Number(page);
+  const pageNum = Math.max(Number.isFinite(parsedPage) ? parsedPage : 1, 1);
 
   const [allUsers, allSuppliers, allEmailLogs] = await Promise.all([
-    Promise.resolve(dbUnified.read('users')).catch(() => []),
-    Promise.resolve(dbUnified.read('suppliers')).catch(() => []),
-    Promise.resolve(dbUnified.read(emailLogService.COLLECTION || 'email_logs')).catch(() => []),
+    requiredRead('users', 'users'),
+    safeRead('suppliers', 'suppliers'),
+    safeRead(emailLogService.COLLECTION || 'email_logs', 'email_logs'),
   ]);
 
   const users = allUsers || [];
@@ -588,11 +604,12 @@ async function listUsers(opts = {}) {
     });
 
   const total = filtered.length;
-  const pages = Math.ceil(total / limit) || 1;
-  const offset = (pageNum - 1) * limit;
+  const pages = Math.max(Math.ceil(total / limit), 1);
+  const effectivePage = Math.min(pageNum, pages);
+  const offset = (effectivePage - 1) * limit;
   const items = filtered.slice(offset, offset + limit);
 
-  return { items, total, page: pageNum, pages, limit };
+  return { items, total, page: effectivePage, pages, limit };
 }
 
 /**
@@ -614,12 +631,19 @@ async function getUserDetail(userId) {
   }
 
   const resolvedUserId = safeUserId(user);
-  const [allSuppliers, verificationLogs] = await Promise.all([
-    Promise.resolve(dbUnified.find('suppliers', { ownerUserId: resolvedUserId })).catch(() => []),
-    Promise.resolve(dbUnified.read(emailLogService.COLLECTION || 'email_logs')).catch(() => []),
+  const [findSuppliers, readSuppliers, verificationLogs] = await Promise.all([
+    Promise.resolve(
+      dbUnified.find ? dbUnified.find('suppliers', { ownerUserId: resolvedUserId }) : []
+    ).catch(() => []),
+    safeRead('suppliers', 'suppliers'),
+    safeRead(emailLogService.COLLECTION || 'email_logs', 'email_logs'),
   ]);
 
-  const supplier = allSuppliers && allSuppliers[0] ? allSuppliers[0] : null;
+  const allSuppliers = [...asArray(findSuppliers), ...asArray(readSuppliers)];
+  const supplier =
+    (allSuppliers || []).find(
+      s => String(getSupplierOwnerId(s) || '') === String(resolvedUserId)
+    ) || null;
   return projectUser(user, supplier, verificationLogs || []);
 }
 

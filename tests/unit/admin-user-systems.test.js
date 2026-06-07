@@ -95,6 +95,29 @@ describe('classifyVerificationMethod', () => {
   test('admin for admin-verified user', () => {
     expect(classifyVerificationMethod({ verified: true, verifiedBy: 'admin' })).toBe('admin');
   });
+  test('admin for individual manual-admin verification provenance', () => {
+    expect(
+      classifyVerificationMethod({
+        verified: true,
+        verifiedAt: new Date().toISOString(),
+        verificationMethod: 'manual_admin',
+        verifiedBy: { type: 'admin', userId: 'admin-1' },
+        verificationToken: null,
+      })
+    ).toBe('admin');
+  });
+  test('admin for bulk manual-admin verification provenance', () => {
+    expect(
+      classifyVerificationMethod({
+        verified: true,
+        emailVerified: true,
+        verifiedAt: new Date().toISOString(),
+        verificationMethod: 'manual_admin',
+        verifiedByAdmin: true,
+        emailVerificationToken: null,
+      })
+    ).toBe('admin');
+  });
   test('email_link for email-verified user with verifiedAt', () => {
     expect(
       classifyVerificationMethod({ verified: true, verifiedAt: new Date().toISOString() })
@@ -377,6 +400,17 @@ describe('buildUserSummary', () => {
     expect(JSON.stringify(s)).not.toContain('reset-secret');
   });
 
+  test('throws when the required users collection cannot be read', async () => {
+    mockDb.read.mockImplementation(async col => {
+      if (col === 'users') {
+        throw new Error('users unavailable');
+      }
+      return [];
+    });
+    await expect(buildUserSummary()).rejects.toThrow('users unavailable');
+    await expect(listUsers({})).rejects.toThrow('users unavailable');
+  });
+
   test('does not throw when suppliers collection is missing', async () => {
     mockDb.read.mockImplementation(async col => {
       if (col === 'users') {
@@ -429,6 +463,13 @@ describe('listUsers — filtering', () => {
     }),
     makeUser({ id: 'u3', role: 'admin', name: 'Carol', email: 'carol@test.com', verified: true }),
     makeUser({
+      id: 'u-missing',
+      role: 'supplier',
+      name: 'Missing',
+      email: 'missing@test.com',
+      verified: true,
+    }),
+    makeUser({
       id: 'u4',
       role: 'customer',
       name: 'Dave',
@@ -455,11 +496,13 @@ describe('listUsers — filtering', () => {
 
   test('filters by signupMethod', async () => {
     const result = await listUsers({ signupMethod: 'google' });
+    expect(result.items).toHaveLength(1);
     expect(result.items.every(u => u.signupMethod === 'google')).toBe(true);
   });
 
   test('filters by verificationMethod pending', async () => {
     const result = await listUsers({ verificationMethod: 'pending' });
+    expect(result.items).toHaveLength(1);
     expect(result.items.every(u => u.verificationMethod === 'pending')).toBe(true);
   });
 
@@ -477,7 +520,8 @@ describe('listUsers — filtering', () => {
 
   test('filters by account issue', async () => {
     const result = await listUsers({ issue: 'supplier_profile_missing' });
-    // Bob is a supplier user; their supplier profile exists so no issue
+    expect(result.items).toHaveLength(1);
+    expect(result.items[0].id).toBe('u-missing');
     expect(result.items.every(u => u.accountIssues.includes('supplier_profile_missing'))).toBe(
       true
     );
@@ -498,8 +542,16 @@ describe('listUsers — filtering', () => {
   test('paginates correctly', async () => {
     const result = await listUsers({ page: 1, limit: 2 });
     expect(result.items).toHaveLength(2);
-    expect(result.pages).toBe(2);
-    expect(result.total).toBe(4);
+    expect(result.pages).toBe(3);
+    expect(result.total).toBe(5);
+  });
+
+  test('clamps out-of-range page and invalid limit safely', async () => {
+    const result = await listUsers({ page: 99, limit: -5 });
+    expect(result.page).toBe(5);
+    expect(result.limit).toBe(1);
+    expect(result.items).toHaveLength(1);
+    expect(result.total).toBe(5);
   });
 });
 
@@ -518,6 +570,7 @@ describe('getUserDetail', () => {
     jest.resetAllMocks();
     mockDb.findOne.mockResolvedValue(user);
     mockDb.find.mockResolvedValue([supplier]);
+    mockDb.read.mockImplementation(async col => (col === 'suppliers' ? [supplier] : []));
   });
 
   test('returns null for non-existent user', async () => {
@@ -540,6 +593,18 @@ describe('getUserDetail', () => {
     expect(result.supplierProfile.id).toBe('sup1');
   });
 
+  test.each(['ownerUserId', 'userId', 'ownerId', 'user_id'])(
+    'includes supplier linkage via %s',
+    async field => {
+      const linkedSupplier = makeSupplier({ ownerUserId: undefined, [field]: 'u1' });
+      mockDb.find.mockResolvedValue([]);
+      mockDb.read.mockImplementation(async col => (col === 'suppliers' ? [linkedSupplier] : []));
+      const result = await getUserDetail('u1');
+      expect(result.supplierProfile).not.toBeNull();
+      expect(result.supplierProfile.id).toBe('sup1');
+    }
+  );
+
   test('includes Google link indicator without googleSub', async () => {
     const result = await getUserDetail('u1');
     expect(result.hasGoogleLink).toBe(true);
@@ -552,6 +617,64 @@ describe('admin user summary route', () => {
   beforeEach(() => {
     jest.resetAllMocks();
     mockDb.read.mockResolvedValue([]);
+  });
+
+  test('GET /api/admin/users/list applies server-side filters and pagination', async () => {
+    const express = require('express');
+    const request = require('supertest');
+    const routes = require('../../routes/admin-user-management');
+    const app = express();
+    app.use('/api/admin', routes);
+
+    mockDb.read.mockImplementation(async col => {
+      if (col === 'users') {
+        return Array.from({ length: 75 }, (_v, i) =>
+          makeUser({
+            id: `u${i + 1}`,
+            role: i % 2 === 0 ? 'customer' : 'supplier',
+            name: `User ${i + 1}`,
+            email: `user${i + 1}@example.com`,
+            verified: i % 3 !== 0,
+            authProvider: i === 60 ? 'google' : undefined,
+            googleSub: i === 60 ? 'google-sub' : undefined,
+          })
+        );
+      }
+      if (col === 'suppliers') {
+        return [];
+      }
+      return [];
+    });
+
+    const res = await request(app)
+      .get('/api/admin/users/list')
+      .query({ role: 'customer', page: 2, limit: 10 })
+      .expect(200);
+
+    expect(res.body.ok).toBe(true);
+    expect(res.body.items).toHaveLength(10);
+    expect(res.body.total).toBe(38);
+    expect(res.body.page).toBe(2);
+    expect(res.body.pages).toBe(4);
+    expect(res.body.items.every(user => user.role === 'customer')).toBe(true);
+  });
+
+  test('GET /api/admin/users/summary returns controlled error when users read fails', async () => {
+    const express = require('express');
+    const request = require('supertest');
+    const routes = require('../../routes/admin-user-management');
+    const app = express();
+    app.use('/api/admin', routes);
+
+    mockDb.read.mockImplementation(async col => {
+      if (col === 'users') {
+        throw new Error('users unavailable');
+      }
+      return [];
+    });
+
+    const res = await request(app).get('/api/admin/users/summary').expect(500);
+    expect(res.body).toEqual({ ok: false, error: 'Failed to build user summary' });
   });
 
   test('GET /api/admin/users/summary returns 200 with an empty database', async () => {
