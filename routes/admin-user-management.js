@@ -18,6 +18,7 @@ const bcrypt = require('bcryptjs');
 const { passwordOk } = require('../utils/validators');
 const domainAdmin = require('../middleware/domain-admin');
 const partnerService = require('../services/partnerService');
+const adminUserSummary = require('../services/adminUserSummary.service');
 
 const router = express.Router();
 
@@ -115,6 +116,64 @@ async function findUserByIdOrObjectId(id) {
  * GET /api/admin/users
  * List all users (without password hashes)
  */
+/**
+ * GET /api/admin/users/summary
+ * Returns aggregated user and supplier counts for the dashboard and Users Centre.
+ * Both pages import this so the numbers are always consistent.
+ */
+router.get('/users/summary', authRequired, roleRequired('admin'), async (req, res) => {
+  try {
+    const summary = await adminUserSummary.buildUserSummary();
+    res.json({ ok: true, ...summary });
+  } catch (err) {
+    logger.error('[admin users/summary] Error:', err.message);
+    res.status(500).json({ ok: false, error: 'Failed to build user summary' });
+  }
+});
+
+/**
+ * GET /api/admin/users/list
+ * Paginated, filtered, safe user list for the Users Centre.
+ * Supports: role, signupMethod, verificationMethod, issue, search, page, limit.
+ * Never returns raw secrets (googleSub, resetToken, verificationToken, passwordHash).
+ */
+router.get('/users/list', authRequired, roleRequired('admin'), async (req, res) => {
+  try {
+    const { role, signupMethod, verificationMethod, issue, search, page, limit } = req.query;
+    const result = await adminUserSummary.listUsers({
+      role,
+      signupMethod,
+      verificationMethod,
+      issue,
+      search,
+      page,
+      limit,
+    });
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    logger.error('[admin users/list] Error:', err.message);
+    res.status(500).json({ ok: false, error: 'Failed to list users', items: [] });
+  }
+});
+
+/**
+ * GET /api/admin/users/:id/detail
+ * Safe detailed user projection including supplier linkage and account health.
+ * Never returns raw secrets.
+ */
+router.get('/users/:id/detail', authRequired, roleRequired('admin'), async (req, res) => {
+  try {
+    const user = await adminUserSummary.getUserDetail(req.params.id);
+    if (!user) {
+      return res.status(404).json({ ok: false, error: 'User not found' });
+    }
+    res.json({ ok: true, user });
+  } catch (err) {
+    logger.error('[admin users/:id/detail] Error:', err.message);
+    res.status(500).json({ ok: false, error: 'Failed to load user detail' });
+  }
+});
+
 router.get('/users', authRequired, roleRequired('admin'), async (req, res) => {
   try {
     const allUsers = await dbUnified.read('users');
@@ -2285,10 +2344,21 @@ router.get('/users/:id', authRequired, roleRequired('admin'), async (req, res) =
     return res.status(404).json({ error: 'User not found' });
   }
 
-  // Return user without password
+  // Strip all secrets — never expose raw tokens, hashes, or Google subject IDs
+  // Use /users/:id/detail for the safe enriched projection
   // eslint-disable-next-line no-unused-vars
-  const { password, ...userWithoutPassword } = user;
-  res.json(userWithoutPassword);
+  const {
+    password,
+    passwordHash,
+    googleSub,
+    resetToken,
+    resetTokenExpiresAt,
+    verificationToken,
+    emailVerificationToken,
+    authProviderIds,
+    ...userSafe
+  } = user;
+  res.json(userSafe);
 });
 
 /**
