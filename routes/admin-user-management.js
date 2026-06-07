@@ -17,10 +17,15 @@ const validator = require('validator');
 const bcrypt = require('bcryptjs');
 const { passwordOk } = require('../utils/validators');
 const domainAdmin = require('../middleware/domain-admin');
-const partnerService = require('../services/partnerService');
 const verificationProvenance = require('../services/verificationProvenance.service');
 const userProvenance = require('../services/userProvenance.service');
 const adminUserSummary = require('../services/adminUserSummary.service');
+const { ensureSupplierProfileForUser } = require('../services/supplierProfileProvisioning.service');
+const {
+  deleteUserAndOwnedData,
+  mergeSummaries,
+  emptySummary,
+} = require('../services/adminUserDeletion.service');
 
 const router = express.Router();
 
@@ -54,13 +59,6 @@ function getUserWriteFilter(user) {
     return { id: user.id };
   }
   return user && user._id ? { _id: user._id } : { id: undefined };
-}
-
-function getUserDeleteTarget(user) {
-  if (user && user.id) {
-    return user.id;
-  }
-  return user && user._id ? { _id: user._id } : undefined;
 }
 
 function safeAuditUser(user, reason) {
@@ -368,6 +366,24 @@ router.post('/users', authRequired, roleRequired('admin'), csrfProtection, async
       return res.status(500).json({ error: 'Failed to create user. Please try again.' });
     }
 
+    let supplierProfile = null;
+    if (roleFinal === 'supplier') {
+      try {
+        supplierProfile = await ensureSupplierProfileForUser(user);
+      } catch (provisionErr) {
+        await dbUnified.deleteOne('users', { id: user.id });
+        logger.error('[ADMIN] supplier profile provisioning failed for admin-created user', {
+          userId: user.id,
+          email: user.email,
+          error: provisionErr.message,
+        });
+        return res.status(500).json({
+          error: 'Failed to provision supplier profile for admin-created supplier user.',
+          code: 'SUPPLIER_PROFILE_PROVISIONING_FAILED',
+        });
+      }
+    }
+
     // Create audit log
     auditLog({
       adminId: req.user.id,
@@ -383,6 +399,7 @@ router.post('/users', authRequired, roleRequired('admin'), csrfProtection, async
         verificationMethod: user.verificationMethod,
         verifiedByType: user.verifiedBy && user.verifiedBy.type,
         adminActorId: req.user.id,
+        supplierProfileId: supplierProfile && supplierProfile.id,
       },
     });
 
@@ -395,6 +412,7 @@ router.post('/users', authRequired, roleRequired('admin'), csrfProtection, async
         email: user.email,
         role: user.role,
         verified: user.verified,
+        supplierProfileId: supplierProfile && supplierProfile.id,
       },
     });
   } catch (error) {
@@ -1108,26 +1126,22 @@ router.post(
       const users = await dbUnified.read('users');
       const bulk = buildBulkResult(userIds, users, req.user, 'destructive');
       const deletedUsers = [];
-      const deletePromises = [];
+      const cascadeSummary = emptySummary();
 
-      bulk.targets.forEach(user => {
+      for (const user of bulk.targets) {
         const userId = getUserIdentifier(user);
-        deletedUsers.push({ id: userId, email: user.email, name: user.name, role: user.role });
-        deletePromises.push(dbUnified.deleteOne('users', getUserDeleteTarget(user)));
+        const deletionSummary = await deleteUserAndOwnedData(user, req.user, {
+          skipProtection: true,
+        });
+        mergeSummaries(cascadeSummary, deletionSummary);
+        deletedUsers.push({
+          id: userId,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+          cascade: deletionSummary,
+        });
         bulk.updated += 1;
-      });
-
-      await Promise.all(deletePromises);
-
-      for (const deletedUser of deletedUsers) {
-        try {
-          await partnerService.softDeletePartnerByUserId(deletedUser.id);
-        } catch (partnerErr) {
-          logger.warn(
-            `Could not soft-delete partner record for user ${deletedUser.id}:`,
-            partnerErr
-          );
-        }
       }
 
       await auditLog({
@@ -1146,6 +1160,7 @@ router.post(
           skipped: bulk.skipped,
           deletedCount: bulk.updated,
           deletedUsers,
+          cascadeSummary,
         },
         ipAddress: req.ip || req.connection.remoteAddress,
         userAgent: req.get('user-agent'),
@@ -1161,6 +1176,7 @@ router.post(
         totalRequested: bulk.totalRequested,
         skipped: bulk.skipped,
         deletedCount: bulk.updated,
+        cascadeSummary,
       });
     } catch (error) {
       logger.error('Error bulk deleting users:', error);
@@ -1959,6 +1975,28 @@ router.put('/users/:id', authRequired, roleRequired('admin'), csrfProtection, as
 
   await dbUnified.updateOne('users', { id }, { $set: setFields });
 
+  let supplierProfile = null;
+  if (user.role !== 'supplier' && setFields.role === 'supplier') {
+    try {
+      supplierProfile = await ensureSupplierProfileForUser({ ...user, ...setFields });
+    } catch (provisionErr) {
+      await dbUnified.updateOne(
+        'users',
+        { id },
+        { $set: { role: user.role, updatedAt: new Date().toISOString() } }
+      );
+      logger.error('[ADMIN] supplier profile provisioning failed after role change', {
+        userId: user.id,
+        previousRole: user.role,
+        error: provisionErr.message,
+      });
+      return res.status(500).json({
+        error: 'Failed to provision supplier profile for role change to supplier.',
+        code: 'SUPPLIER_PROFILE_PROVISIONING_FAILED',
+      });
+    }
+  }
+
   // Create audit log
   auditLog({
     adminId: req.user.id,
@@ -1974,10 +2012,11 @@ router.put('/users/:id', authRequired, roleRequired('admin'), csrfProtection, as
         ? setFields.verifiedBy.type
         : user.verifiedBy?.type || null,
       adminActorId: req.user.id,
+      supplierProfileId: supplierProfile && supplierProfile.id,
     },
   });
 
-  res.json({ success: true, user: { ...user, ...setFields } });
+  res.json({ success: true, user: { ...user, ...setFields }, supplierProfile });
 });
 
 /**
@@ -2012,14 +2051,16 @@ router.delete(
       });
     }
 
-    // Remove the user
-    await dbUnified.deleteOne('users', id);
-
-    // Soft-delete any associated partner record to preserve audit trail
+    let cascadeSummary;
     try {
-      await partnerService.softDeletePartnerByUserId(id);
-    } catch (partnerErr) {
-      logger.warn(`Could not soft-delete partner record for user ${id}:`, partnerErr);
+      cascadeSummary = await deleteUserAndOwnedData(user, req.user);
+    } catch (deleteErr) {
+      logger.error('Error deleting user with owned data:', deleteErr);
+      return res.status(deleteErr.status || 500).json({
+        error: deleteErr.message || 'Failed to delete user',
+        code: deleteErr.code || 'USER_DELETE_FAILED',
+        cascadeSummary: deleteErr.summary,
+      });
     }
 
     // Create audit log
@@ -2029,10 +2070,16 @@ router.delete(
       action: AUDIT_ACTIONS.USER_DELETED,
       targetType: 'user',
       targetId: user.id,
-      details: { email: user.email, name: user.name },
+      details: {
+        email: user.email,
+        name: user.name,
+        supplierIds: cascadeSummary.supplierIds,
+        deletedPackages: cascadeSummary.deletedPackages,
+        cascadeSummary,
+      },
     });
 
-    res.json({ success: true, message: 'User deleted successfully' });
+    res.json({ success: true, message: 'User deleted successfully', cascadeSummary });
   }
 );
 
@@ -2321,6 +2368,36 @@ router.post(
       }
     );
 
+    let supplierProfile = null;
+    if (newRole === 'supplier') {
+      try {
+        supplierProfile = await ensureSupplierProfileForUser({
+          ...user,
+          role: newRole,
+          updatedAt: now,
+        });
+      } catch (provisionErr) {
+        await dbUnified.updateOne(
+          'users',
+          { id },
+          { $set: { role: user.role, updatedAt: new Date().toISOString() } }
+        );
+        logger.error(
+          '[ADMIN] supplier profile provisioning failed after admin revoke role change',
+          {
+            userId: user.id,
+            previousRole: user.role,
+            newRole,
+            error: provisionErr.message,
+          }
+        );
+        return res.status(500).json({
+          error: 'Failed to provision supplier profile for role change to supplier.',
+          code: 'SUPPLIER_PROFILE_PROVISIONING_FAILED',
+        });
+      }
+    }
+
     // Create audit log
     auditLog({
       adminId: req.user.id,
@@ -2332,6 +2409,7 @@ router.post(
         email: user.email,
         previousRole: 'admin',
         newRole: newRole,
+        supplierProfileId: supplierProfile && supplierProfile.id,
       },
     });
 

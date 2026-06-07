@@ -404,23 +404,25 @@ router.get('/packages/featured', async (_req, res) => {
       const suppliers = await Promise.all(
         supplierIds.map(id => dbUnified.findOne('suppliers', { id }))
       );
-      const suppliersMap = new Map(suppliers.filter(Boolean).map(s => [s.id, s]));
+      const suppliersMap = new Map(suppliers.filter(s => s && s.approved).map(s => [s.id, s]));
 
-      items = packages.map(pkg => ({
-        ...pkg,
-        image: resolvePackageImage(pkg),
-        supplier_name: suppliersMap.get(pkg.supplierId)?.name || null,
-      }));
+      items = packages
+        .filter(pkg => suppliersMap.has(pkg.supplierId))
+        .map(pkg => ({
+          ...pkg,
+          image: resolvePackageImage(pkg),
+          supplier_name: suppliersMap.get(pkg.supplierId)?.name || null,
+        }));
     } else {
       // Local storage fallback
       const packages = await dbUnified.read('packages');
       const suppliers = await dbUnified.read('suppliers');
 
       // Create a suppliers lookup map for O(1) access
-      const suppliersMap = new Map(suppliers.map(s => [s.id, s]));
+      const suppliersMap = new Map(suppliers.filter(s => s.approved).map(s => [s.id, s]));
 
       items = packages
-        .filter(p => p.approved && isFeaturedPackage(p))
+        .filter(p => p.approved && isFeaturedPackage(p) && suppliersMap.has(p.supplierId))
         .slice(0, 6)
         .map(pkg => {
           const supplier = suppliersMap.get(pkg.supplierId);
@@ -477,6 +479,12 @@ router.get('/packages/spotlight', async (_req, res) => {
       approvedPackages = packages.filter(p => p.approved);
     }
 
+    const allSuppliersForSpotlight = await dbUnified.read('suppliers');
+    const approvedSpotlightSupplierIds = new Set(
+      allSuppliersForSpotlight.filter(s => s.approved).map(s => s.id)
+    );
+    approvedPackages = approvedPackages.filter(p => approvedSpotlightSupplierIds.has(p.supplierId));
+
     // Use current hour as seed for consistent selection within the hour
     // Encode date as integer: YYYYMMDD * 24 + HH (e.g., 20260116 * 24 + 14 = 486147854)
     // This ensures same packages are shown for the entire hour
@@ -513,10 +521,10 @@ router.get('/packages/spotlight', async (_req, res) => {
       const suppliers = await Promise.all(
         supplierIds.map(id => dbUnified.findOne('suppliers', { id }))
       );
-      suppliersMap = new Map(suppliers.filter(Boolean).map(s => [s.id, s]));
+      suppliersMap = new Map(suppliers.filter(s => s && s.approved).map(s => [s.id, s]));
     } else {
       const suppliers = await dbUnified.read('suppliers');
-      suppliersMap = new Map(suppliers.map(s => [s.id, s]));
+      suppliersMap = new Map(suppliers.filter(s => s.approved).map(s => [s.id, s]));
     }
 
     // Select up to 6 spotlight packages
@@ -552,6 +560,9 @@ router.get('/packages/search', async (req, res) => {
     const approved = req.query.approved === 'true';
 
     let items = await dbUnified.read('packages');
+    const publicSuppliers = await dbUnified.find('suppliers', { approved: true });
+    const publicSupplierIds = new Set(publicSuppliers.map(s => s.id));
+    items = items.filter(p => p.approved && publicSupplierIds.has(p.supplierId));
 
     // Apply filters
     items = items.filter(p => {
@@ -623,7 +634,11 @@ router.post('/packages/bulk', apiLimiter, applyAuthRequired, async (req, res) =>
     }
 
     const allPackages = await dbUnified.read('packages');
-    const matched = allPackages.filter(p => p.approved && uniqueIds.includes(p.id));
+    const publicSuppliers = await dbUnified.find('suppliers', { approved: true });
+    const publicSupplierIds = new Set(publicSuppliers.map(s => s.id));
+    const matched = allPackages.filter(
+      p => p.approved && uniqueIds.includes(p.id) && publicSupplierIds.has(p.supplierId)
+    );
 
     res.json({ packages: matched });
   } catch (error) {
@@ -639,10 +654,12 @@ router.post('/packages/bulk', apiLimiter, applyAuthRequired, async (req, res) =>
 router.get('/packages/:slug', async (req, res) => {
   try {
     const packages = await dbUnified.read('packages');
+    const suppliers = await dbUnified.read('suppliers');
+    const approvedSupplierIds = new Set(suppliers.filter(s => s.approved).map(s => s.id));
     const param = decodeURIComponent(req.params.slug || '').trim();
     const normalisedParam = normalisePackageSlug(param);
     const pkg = packages.find(p => {
-      if (!p.approved) {
+      if (!p.approved || !approvedSupplierIds.has(p.supplierId)) {
         return false;
       }
       const lookups = getPackageLookupValues(p);
@@ -655,22 +672,10 @@ router.get('/packages/:slug', async (req, res) => {
       return res.status(404).json({ error: 'Package not found' });
     }
 
-    // Get supplier details. Prefer approved public suppliers, but do not turn an
-    // otherwise visible approved package into an accidental 404 if legacy package
-    // data references a missing supplier record.
-    const suppliers = await dbUnified.read('suppliers');
-    const supplierRecord = suppliers.find(s => s.id === pkg.supplierId);
-    const supplier =
-      supplierRecord && supplierRecord.approved
-        ? supplierRecord
-        : {
-            id: pkg.supplierId || '',
-            name: pkg.supplier_name || pkg.supplierName || 'EventFlow supplier',
-            category: pkg.category || pkg.primaryCategoryKey || '',
-            location: pkg.location || '',
-            logo: '',
-            isPackageSupplierFallback: true,
-          };
+    const supplier = suppliers.find(s => s.id === pkg.supplierId && s.approved);
+    if (!supplier) {
+      return res.status(404).json({ error: 'Package not found' });
+    }
 
     // Get category details
     const categories = await dbUnified.read('categories');

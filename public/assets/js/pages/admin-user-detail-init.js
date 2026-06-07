@@ -234,9 +234,7 @@
     document
       .getElementById('suspendUserBtn')
       .addEventListener('click', () => toggleSuspend(userId, user.suspended));
-    document
-      .getElementById('deleteUserBtn')
-      .addEventListener('click', () => deleteUser(userId, user.name));
+    document.getElementById('deleteUserBtn').addEventListener('click', () => deleteUser(user));
   }
 
   // ── Actions ────────────────────────────────────────────────────────────────
@@ -318,10 +316,16 @@
     }
   }
 
-  async function deleteUser(id, name) {
+  async function deleteUser(user) {
+    const id = user && user.id ? user.id : userId;
+    const name = user && user.name ? user.name : id;
+    const supplierWarning =
+      user && user.role === 'supplier'
+        ? ' This will delete the user, supplier profile, packages and public listing data.'
+        : '';
     const ok = await AdminShared.showConfirmModal({
       title: 'Delete account permanently?',
-      message: `This will permanently delete the account for "${name || id}". This cannot be undone.`,
+      message: `This will permanently delete the account for "${name || id}".${supplierWarning} This cannot be undone.`,
       confirmText: 'Delete permanently',
       type: 'danger',
     });

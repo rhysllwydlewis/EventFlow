@@ -83,6 +83,18 @@ const META = {
     purpose: 'Transactional account notification',
     variables: ['name', 'title', 'message', 'preferencesLink', 'ctaSection'],
   },
+  'support-ticket-reply': {
+    category: 'account',
+    purpose: 'Support ticket reply',
+    variables: [
+      'name',
+      'ticketSubject',
+      'replyMessageHtml',
+      'ticketUrl',
+      'supportEmail',
+      'preheader',
+    ],
+  },
   'action-prompts': {
     category: 'supplier',
     purpose: 'Supplier profile action prompt digest',
@@ -187,6 +199,15 @@ function buildSampleData(name) {
       message: 'This is a sample account notification for preview and deliverability review.',
       preferencesLink: `${APP_BASE_URL}/settings/notifications`,
       ctaSection: `<table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td align="center"><a href="${APP_BASE_URL}/settings" style="display:inline-block;padding:15px 40px;background:#0B8073;color:#ffffff;text-decoration:none;border-radius:10px;font-weight:700;">Review settings</a></td></tr></table>`,
+    },
+    'support-ticket-reply': {
+      name: 'Olivia Hart',
+      ticketSubject: 'Question about supplier package approval',
+      replyMessageHtml:
+        '<p>Thanks for getting in touch. Your package is now with our supplier review team.</p><p>We will update you as soon as the review is complete, usually within one working day.</p>',
+      ticketUrl: `${APP_BASE_URL}/tickets/ticket-preview-123`,
+      supportEmail: SUPPORT_EMAIL,
+      preheader: 'The EventFlow Support Team has replied to your ticket.',
     },
     'action-prompts': {
       summaryHtml: '<p>Your supplier profile is nearly ready for review.</p>',
@@ -375,6 +396,19 @@ function renderPlainTextTemplate(name, data = {}) {
         `${merged.ctaText || 'Open dashboard'}: ${merged.dashboardUrl}`,
         '',
         `Questions? Email ${merged.supportEmail || SUPPORT_EMAIL}.`
+      );
+      break;
+    case 'support-ticket-reply':
+      lines.push(
+        'We’ve replied to your support ticket.',
+        '',
+        `Ticket: ${merged.ticketSubject}`,
+        '',
+        stripHtml(merged.replyMessageHtml),
+        '',
+        `View your ticket: ${merged.ticketUrl}`,
+        '',
+        `The EventFlow Support Team — ${merged.supportEmail || SUPPORT_EMAIL}`
       );
       break;
     case 'marketing':
