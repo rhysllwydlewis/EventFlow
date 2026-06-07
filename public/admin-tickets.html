@@ -33,7 +33,7 @@
         <div class="header-content">
           <div>
             <h1 class="dashboard-title">Support Tickets &amp; Enquiries</h1>
-            <p class="dashboard-subtitle">Manage support requests and external contact form enquiries. Tickets are prioritized automatically by account tier (Pro Plus → Urgent, Pro → High, Free → Medium)</p>
+            <p class="dashboard-subtitle">Manage support requests and external contact form enquiries. Tickets are prioritized automatically by account tier (Pro Plus → Urgent, Pro → High, Free → Medium). Tab badges show outstanding queue items; the navbar bell shows unread notification records.</p>
           </div>
           <div class="header-actions">
             <button class="ef-cta btn-secondary" id="backToDashboard">← Back to Dashboard</button>
@@ -46,11 +46,11 @@
         <div class="admin-tabs" role="tablist" aria-label="Ticket sections">
           <button class="ef-cta admin-tab admin-tab--active" id="tab-tickets" role="tab" aria-selected="true" aria-controls="panel-tickets" data-tab="tickets">
             🎫 Support Tickets
-            <span class="admin-tab-badge" id="openSupportTicketsBadge" style="display:none;"></span>
+            <span class="admin-tab-badge" id="openSupportTicketsBadge" title="Outstanding support ticket queue count" aria-label="Outstanding support ticket queue count" style="display:none;"></span>
           </button>
           <button class="ef-cta admin-tab" id="tab-contacts" role="tab" aria-selected="false" aria-controls="panel-contacts" data-tab="contacts">
             📬 External Contacts
-            <span class="admin-tab-badge" id="contactEnquiriesBadge" style="display:none;"></span>
+            <span class="admin-tab-badge" id="contactEnquiriesBadge" title="Outstanding external contact enquiry queue count" aria-label="Outstanding external contact enquiry queue count" style="display:none;"></span>
           </button>
         </div>
 
