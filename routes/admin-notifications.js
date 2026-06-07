@@ -54,11 +54,13 @@ function withAdminQueue(result, queueItems, limit, skip) {
   const mergedNotifications = [...queueItems, ...storedNotifications].sort(
     (a, b) => getNotificationTime(b) - getNotificationTime(a)
   );
-  const storedTotal = result.pagination ? Number(result.pagination.total) || 0 : storedNotifications.length;
+  const storedTotal = result.pagination
+    ? Number(result.pagination.total) || 0
+    : storedNotifications.length;
   const total = storedTotal + queueItems.length;
 
   return {
-    notifications: mergedNotifications.slice(0, limit),
+    notifications: mergedNotifications.slice(skip, skip + limit),
     pagination: {
       total,
       limit,
@@ -82,11 +84,20 @@ router.get('/', authRequired, roleRequired('admin'), notificationLimiter, async 
   const unreadOnly = req.query.unreadOnly === 'true';
   const limit = Math.min(Number(req.query.limit) || 30, 100);
   const skip = Math.max(Number(req.query.skip) || 0, 0);
-  let result = { notifications: [], pagination: { total: 0, limit, skip, hasMore: false }, unreadCount: 0 };
+  const storedFetchLimit = Math.min(limit + skip, 100);
+  let result = {
+    notifications: [],
+    pagination: { total: 0, limit: storedFetchLimit, skip: 0, hasMore: false },
+    unreadCount: 0,
+  };
 
   try {
     const svc = await getNotifSvc(req);
-    result = await svc.getForUser(req.user.id, { unreadOnly, limit, skip });
+    result = await svc.getForUser(req.user.id, {
+      unreadOnly,
+      limit: storedFetchLimit,
+      skip: 0,
+    });
   } catch (err) {
     logger.warn('[admin-notif] stored notifications unavailable:', err.message);
   }
@@ -122,7 +133,12 @@ router.get(
 
     try {
       const queueItems = await getAdminQueueNotifications();
-      res.json({ ok: true, count: count + queueItems.length, storedCount: count, workQueueCount: queueItems.length });
+      res.json({
+        ok: true,
+        count: count + queueItems.length,
+        storedCount: count,
+        workQueueCount: queueItems.length,
+      });
     } catch (err) {
       logger.warn('[admin-notif] queue unread-count error:', err.message);
       res.json({ ok: true, count });
