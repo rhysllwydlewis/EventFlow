@@ -66,7 +66,12 @@ router.post('/', writeLimiter, async (req, res) => {
   const incomingSource = (req.headers['x-eventflow-source'] || '').toLowerCase().trim();
 
   // ─── Secret check ─────────────────────────────────────────────────────────
-  if (!secret || !incomingSecret || incomingSecret !== secret) {
+  // Timing-safe comparison prevents timing attacks on the secret
+  const secretValid =
+    secret.length > 0 &&
+    incomingSecret.length === secret.length &&
+    crypto.timingSafeEqual(Buffer.from(incomingSecret), Buffer.from(secret));
+  if (!secretValid) {
     logger.warn('[ext-contacts] invalid or missing integration secret', {
       source: incomingSource,
       hasSecret: !!incomingSecret,

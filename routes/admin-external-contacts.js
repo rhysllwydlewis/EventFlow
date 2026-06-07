@@ -56,8 +56,19 @@ router.get('/', authRequired, roleRequired('admin'), notificationLimiter, async 
       );
     }
 
-    // Sort
-    const [sortField, sortDir] = rawSort.split(':');
+    // Sort — field validated against allowlist to prevent internal field exposure
+    const SORT_FIELDS = new Set([
+      'createdAt',
+      'receivedAt',
+      'updatedAt',
+      'status',
+      'source',
+      'name',
+      'email',
+    ]);
+    const [rawSortField, rawSortDir] = rawSort.split(':');
+    const sortField = SORT_FIELDS.has(rawSortField) ? rawSortField : 'createdAt';
+    const sortDir = rawSortDir === 'asc' ? 'asc' : 'desc';
     all.sort((a, b) => {
       const va = a[sortField] || '';
       const vb = b[sortField] || '';
