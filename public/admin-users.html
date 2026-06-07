@@ -33,8 +33,10 @@
       <div class="dashboard-header">
         <div class="header-content">
           <div>
-            <h1 class="dashboard-title">User Management</h1>
-            <p class="dashboard-subtitle">Overview of all accounts registered on EventFlow</p>
+            <h1 class="dashboard-title">Users Centre</h1>
+            <p class="dashboard-subtitle">
+              Account health, provenance and user management for EventFlow
+            </p>
           </div>
           <div class="header-actions">
             <a
@@ -50,69 +52,78 @@
 
       <div class="container">
         <div class="card">
+          <div id="ucSummaryGrid" class="uc-summary-grid" aria-live="polite">
+            <div class="uc-summary-card skeleton" style="height: 88px"></div>
+            <div class="uc-summary-card skeleton" style="height: 88px"></div>
+            <div class="uc-summary-card skeleton" style="height: 88px"></div>
+            <div class="uc-summary-card skeleton" style="height: 88px"></div>
+          </div>
+
           <div class="admin-toolbar" role="search" aria-label="Filter users">
             <input
               type="text"
-              id="userSearch"
+              id="ucSearch"
               placeholder="Search by name, email..."
               aria-label="Search users by name or email"
               class="toolbar-search-input"
             />
-            <label for="roleFilter" class="sr-only">Filter by role</label>
-            <select id="roleFilter" aria-label="Filter by role">
+            <label for="ucRoleFilter" class="sr-only">Filter by role</label>
+            <select id="ucRoleFilter" aria-label="Filter by role">
               <option value="">All Roles</option>
               <option value="admin">Admin</option>
               <option value="customer">Customer</option>
               <option value="supplier">Supplier</option>
             </select>
-            <label for="subscriptionFilter" class="sr-only">Filter by subscription</label>
-            <select id="subscriptionFilter" aria-label="Filter by subscription">
-              <option value="">All Subscriptions</option>
-              <option value="free">Free</option>
-              <option value="pro">Pro</option>
-              <option value="pro_plus">Pro+</option>
+            <label for="ucSignupFilter" class="sr-only">Filter by signup method</label>
+            <select id="ucSignupFilter" aria-label="Filter by signup method">
+              <option value="">All Signups</option>
+              <option value="google">Google</option>
+              <option value="email_password">Email/password</option>
+              <option value="admin_created">Admin-created</option>
+              <option value="owner">Owner</option>
+              <option value="unknown">Unknown</option>
             </select>
-            <label for="verifiedFilter" class="sr-only">Filter by verification status</label>
-            <select id="verifiedFilter" aria-label="Filter by verification status">
+            <label for="ucVerifFilter" class="sr-only">Filter by verification method</label>
+            <select id="ucVerifFilter" aria-label="Filter by verification method">
               <option value="">All Verification</option>
-              <option value="yes">Verified</option>
-              <option value="no">Unverified</option>
+              <option value="google">Google verified</option>
+              <option value="email_link">EventFlow email</option>
+              <option value="admin">Admin verified</option>
+              <option value="legacy">Legacy</option>
+              <option value="pending">Pending</option>
+              <option value="unknown">Unknown</option>
             </select>
-            <button id="clearFilters" class="ef-cta btn btn-secondary">Clear</button>
+            <label for="ucIssueFilter" class="sr-only">Filter by account issue</label>
+            <select id="ucIssueFilter" aria-label="Filter by account issue">
+              <option value="">All Account Health</option>
+              <option value="email_unverified">Email unverified</option>
+              <option value="unknown_verification_source">Unknown verification source</option>
+              <option value="supplier_profile_missing">Missing supplier profile</option>
+              <option value="suspended">Suspended</option>
+            </select>
+            <button id="ucClearFilters" class="ef-cta btn btn-secondary">Clear</button>
+            <button id="ucRefreshBtn" class="ef-cta btn btn-secondary">Refresh</button>
           </div>
 
           <div
-            id="bulkActionsBar"
+            id="ucBulkActionsBar"
             class="bulk-actions-bar"
             style="display: none"
             role="toolbar"
             aria-label="Bulk actions"
           >
             <div class="bulk-actions-content">
-              <span id="selectedCount" class="bulk-selected-count" aria-live="polite"
+              <span id="ucBulkCount" class="bulk-selected-count" aria-live="polite"
                 >0 users selected</span
               >
-              <label for="bulkActionSelect" class="sr-only">Choose bulk action</label>
-              <select
-                id="bulkActionSelect"
-                class="bulk-action-select"
-                aria-label="Choose bulk action"
-              >
-                <option value="">Select action...</option>
-                <option value="verify">Verify</option>
-                <option value="suspend">Suspend</option>
-                <option value="unsuspend">Unsuspend</option>
-                <option value="delete">Delete</option>
-                <option value="export">Export CSV</option>
-              </select>
-              <button id="executeBulkAction" class="ef-cta btn btn-primary btn-sm">Execute</button>
-              <button id="clearSelection" class="ef-cta btn btn-secondary btn-sm">
-                Clear Selection
-              </button>
+              <button id="ucBulkVerify" class="ef-cta btn btn-primary btn-sm">Verify email</button>
+              <button id="ucBulkSuspend" class="ef-cta btn btn-secondary btn-sm">Suspend</button>
+              <button id="ucBulkDelete" class="ef-cta btn btn-danger btn-sm">Delete</button>
+              <button id="ucBulkExport" class="ef-cta btn btn-secondary btn-sm">Export</button>
             </div>
           </div>
 
-          <div class="small" id="user-summary" role="status" aria-live="polite">Loading…</div>
+          <div class="small" id="ucUserSummary" role="status" aria-live="polite">Loading…</div>
           <div class="table-wrapper">
             <table class="table" aria-label="Users list">
               <thead>
@@ -120,7 +131,7 @@
                   <th class="checkbox-cell" scope="col">
                     <input
                       type="checkbox"
-                      id="selectAll"
+                      id="ucSelectAll"
                       class="table-checkbox"
                       aria-label="Select all users"
                     />
@@ -138,7 +149,7 @@
                   <th scope="col">Actions</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody id="ucTableBody">
                 <tr>
                   <td colspan="12" class="small">Loading…</td>
                 </tr>
@@ -180,7 +191,7 @@
           </button>
         </div>
         <div class="modal-body">
-          <div id="subscriptionModalContent">
+          <div id="subscriptionPanel">
             <div class="subscription-status-section">
               <h4>Current Status</h4>
               <div id="currentSubscriptionStatus" class="current-status-display" aria-live="polite">

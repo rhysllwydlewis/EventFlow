@@ -4,6 +4,18 @@
  */
 'use strict';
 
+jest.mock('../../middleware/auth', () => ({
+  authRequired: (req, res, next) => {
+    req.user = { id: 'admin-test', role: 'admin' };
+    next();
+  },
+  roleRequired: () => (req, res, next) => next(),
+}));
+
+jest.mock('../../middleware/csrf', () => ({
+  csrfProtection: (req, res, next) => next(),
+}));
+
 jest.mock('../../utils/logger', () => ({
   info: jest.fn(),
   warn: jest.fn(),
@@ -253,6 +265,147 @@ describe('buildUserSummary', () => {
     expect(s.total).toBe(0);
     expect(s.suppliers.total).toBe(0);
   });
+
+  test('returns dashboard account-health response shape', async () => {
+    const s = await buildUserSummary();
+    expect(s.summary).toEqual(
+      expect.objectContaining({
+        totalUsers: 4,
+        customers: 2,
+        suppliers: 1,
+        admins: 1,
+        pendingSupplierApprovals: 1,
+        supplierLinkIssues: 0,
+      })
+    );
+    expect(s.health).toEqual(
+      expect.objectContaining({
+        emailPasswordPending: 1,
+        googleVerified: 1,
+        eventflowEmailVerified: expect.any(Number),
+        lastNewSignupAt: expect.any(String),
+      })
+    );
+    expect(s.supplierHealth).toEqual(
+      expect.objectContaining({
+        totalSupplierUsers: 1,
+        totalSupplierProfiles: 1,
+        pendingSuppliers: 1,
+      })
+    );
+    expect(Array.isArray(s.actions)).toBe(true);
+    expect(s.generatedAt).toEqual(expect.any(String));
+  });
+
+  test('handles legacy users missing optional fields and _id-only ids', async () => {
+    mockDb.read.mockImplementation(async col => {
+      if (col === 'users') {
+        return [{ _id: { toString: () => 'legacy-1' }, role: 'supplier' }, { email: null }];
+      }
+      if (col === 'suppliers') {
+        return [];
+      }
+      return [];
+    });
+    await expect(buildUserSummary()).resolves.toEqual(expect.objectContaining({ total: 2 }));
+    const listed = await listUsers({});
+    expect(listed.items[0]).not.toHaveProperty('passwordHash');
+  });
+
+  test('handles supplier users without profiles and profiles without linked users', async () => {
+    mockDb.read.mockImplementation(async col => {
+      if (col === 'users') {
+        return [makeUser({ id: 'supplier-user', role: 'supplier' })];
+      }
+      if (col === 'suppliers') {
+        return [makeSupplier({ id: 'orphan-supplier', ownerUserId: 'missing-user' })];
+      }
+      return [];
+    });
+    const s = await buildUserSummary();
+    expect(s.suppliers.suppliersWithoutProfile).toBe(1);
+    expect(s.suppliers.orphanedSuppliers).toBe(1);
+    expect(s.supplierHealth.linkIssues).toBe(2);
+  });
+
+  test('includes verification email provenance counts without exposing secrets', async () => {
+    mockDb.read.mockImplementation(async col => {
+      if (col === 'users') {
+        return [
+          makeUser({
+            id: 'u-google',
+            authProvider: 'google',
+            googleSub: 'raw-google-sub',
+            verified: true,
+          }),
+          makeUser({
+            id: 'u-email',
+            email: 'email@test.com',
+            verified: false,
+            passwordHash: 'hash',
+            verificationToken: 'secret-token',
+            resetToken: 'reset-secret',
+          }),
+        ];
+      }
+      if (col === 'email_logs') {
+        return [
+          {
+            template: 'verification',
+            to: 'email@test.com',
+            status: 'failed',
+            createdAt: new Date().toISOString(),
+          },
+          {
+            template: 'verification',
+            to: 'email@test.com',
+            status: 'bounced',
+            provider: 'outbox',
+            createdAt: new Date().toISOString(),
+          },
+        ];
+      }
+      return [];
+    });
+    const s = await buildUserSummary();
+    expect(s.health.googleVerified).toBe(1);
+    expect(s.health.verificationEmailFailures).toBe(1);
+    expect(s.health.verificationBounces).toBe(1);
+    expect(s.health.verificationOutboxFallbacks).toBe(1);
+    expect(JSON.stringify(s)).not.toContain('raw-google-sub');
+    expect(JSON.stringify(s)).not.toContain('secret-token');
+    expect(JSON.stringify(s)).not.toContain('reset-secret');
+  });
+
+  test('does not throw when suppliers collection is missing', async () => {
+    mockDb.read.mockImplementation(async col => {
+      if (col === 'users') {
+        return [makeUser({ id: 'u1' })];
+      }
+      if (col === 'suppliers') {
+        throw new Error('collection missing');
+      }
+      return [];
+    });
+    await expect(buildUserSummary()).resolves.toEqual(expect.objectContaining({ total: 1 }));
+  });
+
+  test('uses packages collection when counting supplier profiles without packages', async () => {
+    mockDb.read.mockImplementation(async col => {
+      if (col === 'users') {
+        return [makeUser({ id: 'u1', role: 'supplier' })];
+      }
+      if (col === 'suppliers') {
+        return [makeSupplier({ id: 'sup-with-package', ownerUserId: 'u1', packages: [] })];
+      }
+      if (col === 'packages') {
+        return [{ id: 'pkg1', supplierId: 'sup-with-package' }];
+      }
+      return [];
+    });
+    const s = await buildUserSummary();
+    expect(s.supplierHealth.withoutPackages).toBe(0);
+  });
 });
 
 // ── listUsers ─────────────────────────────────────────────────────────────────
@@ -391,6 +544,32 @@ describe('getUserDetail', () => {
     const result = await getUserDetail('u1');
     expect(result.hasGoogleLink).toBe(true);
     expect(result).not.toHaveProperty('googleSub');
+  });
+});
+
+// ── Admin user summary API route ─────────────────────────────────────────────
+describe('admin user summary route', () => {
+  beforeEach(() => {
+    jest.resetAllMocks();
+    mockDb.read.mockResolvedValue([]);
+  });
+
+  test('GET /api/admin/users/summary returns 200 with an empty database', async () => {
+    const express = require('express');
+    const request = require('supertest');
+    const routes = require('../../routes/admin-user-management');
+    const app = express();
+    app.use('/api/admin', routes);
+
+    const res = await request(app).get('/api/admin/users/summary').expect(200);
+
+    expect(res.body.ok).toBe(true);
+    expect(res.body.summary.totalUsers).toBe(0);
+    expect(res.body.health.emailPasswordPending).toBe(0);
+    expect(res.body.supplierHealth.totalSupplierProfiles).toBe(0);
+    expect(JSON.stringify(res.body)).not.toMatch(
+      /passwordHash|verificationToken|resetToken|googleSub/
+    );
   });
 });
 

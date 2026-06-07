@@ -51,6 +51,22 @@ describe('Admin API Fixes', () => {
     });
   });
 
+  describe('Admin Dashboard Account Health', () => {
+    it('shows controlled fallback when summary API fails', () => {
+      const fs = require('fs');
+      const path = require('path');
+      const content = fs.readFileSync(
+        path.join(__dirname, '../../public/assets/js/pages/admin-init.js'),
+        'utf8'
+      );
+
+      expect(content).toContain('renderAccountHealthFallback');
+      expect(content).toContain('Could not load account health. Try again or open Users Centre.');
+      expect(content).toContain('Dashboard loaded with warnings.');
+      expect(content).toContain('data-action="retryAccountHealth"');
+    });
+  });
+
   describe('Admin Suppliers Init', () => {
     it('should accept data.items from API response', () => {
       const fs = require('fs');
