@@ -230,6 +230,7 @@
     initDatabaseStatus();
     highlightActivePage();
     initBadgeCounts();
+    initNotifBell();
     updateNavbarUser();
     initRefreshButton();
     initLogoutButton();
@@ -284,6 +285,33 @@
       '           aria-live="polite"',
       '           aria-label="Database status: Loading">',
       '        <span class="db-status-dot" aria-hidden="true"></span> Loading...',
+      '      </div>',
+      '      <!-- Admin Notification Bell -->',
+      '      <div class="admin-notif-bell-wrap" id="adminNotifWrap">',
+      '        <button class="ef-cta navbar-icon-btn admin-notif-bell" id="adminNotifBellBtn"',
+      '                aria-label="Notifications" aria-haspopup="true" aria-expanded="false"',
+      '                aria-controls="adminNotifPanel" title="Notifications">',
+      '          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"',
+      '               stroke="currentColor" stroke-width="2" stroke-linecap="round"',
+      '               stroke-linejoin="round" aria-hidden="true">',
+      '            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>',
+      '            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>',
+      '          </svg>',
+      '          <span class="admin-notif-badge" id="adminNotifBadge" hidden aria-label="unread notifications">0</span>',
+      '        </button>',
+      '        <div class="admin-notif-panel" id="adminNotifPanel" hidden',
+      '             role="dialog" aria-label="Notifications panel">',
+      '          <div class="admin-notif-panel-header">',
+      '            <span class="admin-notif-panel-title">Notifications</span>',
+      '            <button class="admin-notif-mark-all-btn" id="adminNotifMarkAllBtn" type="button">Mark all read</button>',
+      '          </div>',
+      '          <div class="admin-notif-panel-body" id="adminNotifPanelBody">',
+      '            <div class="admin-notif-loading">Loading…</div>',
+      '          </div>',
+      '          <div class="admin-notif-panel-footer">',
+      '            <a href="/admin-tickets" class="admin-notif-footer-link">View all tickets</a>',
+      '          </div>',
+      '        </div>',
       '      </div>',
       '      <button class="ef-cta navbar-icon-btn" id="navRefreshBtn"',
       '              title="Refresh data" aria-label="Refresh data">',
@@ -997,5 +1025,241 @@
         }
       });
     }
+  }
+
+  // ── Admin Notification Bell ────────────────────────────────────────────────
+  //
+  // Polls /api/admin/notifications/unread-count every 30s (faster than the
+  // 60s badge-count poll so the admin learns about new tickets sooner).
+  // When the bell is clicked, loads the full list and renders the panel.
+  // Clicking a notification marks it as read and navigates to its actionUrl.
+
+  let notifPanelOpen = false;
+  let notifPollInterval = null;
+
+  function formatNotifTime(isoString) {
+    if (!isoString) {
+      return '';
+    }
+    try {
+      const d = new Date(isoString);
+      const diff = Date.now() - d.getTime();
+      const mins = Math.floor(diff / 60000);
+      if (mins < 1) {
+        return 'just now';
+      }
+      if (mins < 60) {
+        return `${mins}m ago`;
+      }
+      const hrs = Math.floor(mins / 60);
+      if (hrs < 24) {
+        return `${hrs}h ago`;
+      }
+      return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+    } catch {
+      return '';
+    }
+  }
+
+  function getNotifIcon(type) {
+    const icons = {
+      ticket:
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/></svg>',
+      message:
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+      review:
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+      system:
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+    };
+    return icons[type] || icons.system;
+  }
+
+  async function fetchUnreadCount() {
+    try {
+      const res = await fetch('/api/admin/notifications/unread-count', { credentials: 'include' });
+      if (!res.ok) {
+        return;
+      }
+      const data = await res.json();
+      updateNotifBadge(data.count || 0);
+    } catch {
+      /* non-blocking */
+    }
+  }
+
+  function updateNotifBadge(count) {
+    const badge = document.getElementById('adminNotifBadge');
+    const btn = document.getElementById('adminNotifBellBtn');
+    if (!badge) {
+      return;
+    }
+    if (count > 0) {
+      badge.textContent = count > 99 ? '99+' : String(count);
+      badge.hidden = false;
+      if (btn) {
+        btn.classList.add('admin-notif-bell--has-unread');
+      }
+    } else {
+      badge.hidden = true;
+      if (btn) {
+        btn.classList.remove('admin-notif-bell--has-unread');
+      }
+    }
+  }
+
+  async function loadNotifPanel() {
+    const body = document.getElementById('adminNotifPanelBody');
+    if (!body) {
+      return;
+    }
+    body.innerHTML = '<div class="admin-notif-loading">Loading…</div>';
+
+    try {
+      const res = await fetch('/api/admin/notifications?limit=20', { credentials: 'include' });
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      const data = await res.json();
+      const notifications = data.notifications || [];
+
+      if (!notifications.length) {
+        body.innerHTML = '<div class="admin-notif-empty"><p>No notifications yet.</p></div>';
+        return;
+      }
+
+      body.innerHTML = notifications
+        .map(n => {
+          const isUnread = !n.isRead;
+          const icon = getNotifIcon(n.type);
+          const time = formatNotifTime(n.createdAt);
+          const href = n.actionUrl || '#';
+          return `<div class="admin-notif-item ${isUnread ? 'admin-notif-item--unread' : ''}"
+                     data-notif-id="${n.id}" data-action-url="${href}">
+          <span class="admin-notif-item-icon admin-notif-item-icon--${n.type || 'system'}" aria-hidden="true">${icon}</span>
+          <div class="admin-notif-item-body">
+            <p class="admin-notif-item-title">${escapeHtml(n.title || 'Notification')}</p>
+            <p class="admin-notif-item-msg">${escapeHtml(n.message || '')}</p>
+            <span class="admin-notif-item-time">${time}</span>
+          </div>
+          ${isUnread ? '<span class="admin-notif-unread-dot" aria-label="Unread"></span>' : ''}
+        </div>`;
+        })
+        .join('');
+
+      // Wire click handlers
+      body.querySelectorAll('.admin-notif-item').forEach(item => {
+        item.addEventListener('click', async () => {
+          const id = item.dataset.notifId;
+          const url = item.dataset.actionUrl;
+          item.classList.remove('admin-notif-item--unread');
+          const dot = item.querySelector('.admin-notif-unread-dot');
+          if (dot) {
+            dot.remove();
+          }
+
+          // Mark as read (fire and forget)
+          try {
+            const csrf = document.querySelector('meta[name="csrf-token"]');
+            await fetch(`/api/admin/notifications/${id}/read`, {
+              method: 'PATCH',
+              credentials: 'include',
+              headers: csrf ? { 'X-CSRF-Token': csrf.content } : {},
+            });
+          } catch {
+            /* non-blocking */
+          }
+
+          await fetchUnreadCount();
+          if (url && url !== '#') {
+            window.location.href = url;
+          }
+        });
+      });
+    } catch (err) {
+      body.innerHTML = '<div class="admin-notif-empty"><p>Failed to load notifications.</p></div>';
+    }
+  }
+
+  function toggleNotifPanel(open) {
+    const panel = document.getElementById('adminNotifPanel');
+    const btn = document.getElementById('adminNotifBellBtn');
+    if (!panel || !btn) {
+      return;
+    }
+    notifPanelOpen = open;
+    panel.hidden = !open;
+    btn.setAttribute('aria-expanded', String(open));
+    if (open) {
+      loadNotifPanel();
+      document.addEventListener('click', closeNotifOnOutsideClick, true);
+      document.addEventListener('keydown', closeNotifOnEscape);
+    } else {
+      document.removeEventListener('click', closeNotifOnOutsideClick, true);
+      document.removeEventListener('keydown', closeNotifOnEscape);
+    }
+  }
+
+  function closeNotifOnOutsideClick(e) {
+    const wrap = document.getElementById('adminNotifWrap');
+    if (wrap && !wrap.contains(e.target)) {
+      toggleNotifPanel(false);
+    }
+  }
+
+  function closeNotifOnEscape(e) {
+    if (e.key === 'Escape' || e.key === 'Esc') {
+      toggleNotifPanel(false);
+      document.getElementById('adminNotifBellBtn') &&
+        document.getElementById('adminNotifBellBtn').focus();
+    }
+  }
+
+  function initNotifBell() {
+    const bellBtn = document.getElementById('adminNotifBellBtn');
+    if (!bellBtn) {
+      return;
+    }
+
+    bellBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      toggleNotifPanel(!notifPanelOpen);
+    });
+
+    const markAllBtn = document.getElementById('adminNotifMarkAllBtn');
+    if (markAllBtn) {
+      markAllBtn.addEventListener('click', async () => {
+        try {
+          const csrf = document.querySelector('meta[name="csrf-token"]');
+          await fetch('/api/admin/notifications/read-all', {
+            method: 'POST',
+            credentials: 'include',
+            headers: csrf ? { 'X-CSRF-Token': csrf.content } : {},
+          });
+          updateNotifBadge(0);
+          await loadNotifPanel();
+        } catch {
+          /* non-blocking */
+        }
+      });
+    }
+
+    // Initial count fetch + poll every 30s
+    fetchUnreadCount();
+    if (notifPollInterval) {
+      clearInterval(notifPollInterval);
+    }
+    notifPollInterval = setInterval(fetchUnreadCount, 30000);
+  }
+
+  function escapeHtml(str) {
+    if (typeof str !== 'string') {
+      return '';
+    }
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
   }
 })();

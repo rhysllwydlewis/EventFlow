@@ -4327,3 +4327,220 @@ tbody tr.selected td {
 @media(max-width:768px) {
   .dash-health-grid { grid-template-columns: 1fr; }
 }
+
+/* ── Admin Notification Bell — PR #1162 ─────────────────────────────────── */
+
+/* Bell wrap */
+.admin-notif-bell-wrap {
+  position: relative;
+}
+
+/* Bell button state */
+.admin-notif-bell {
+  position: relative;
+  color: var(--color-text-muted, #6b7280);
+  transition: color 0.18s ease, background 0.18s ease;
+}
+
+.admin-notif-bell:hover,
+.admin-notif-bell--has-unread {
+  color: #0B8073;
+}
+
+/* Unread count badge on the bell */
+.admin-notif-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #dc2626;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 18px;
+  text-align: center;
+  pointer-events: none;
+  border: 2px solid var(--admin-navbar-bg, #fff);
+  box-sizing: border-box;
+}
+
+/* Notification panel */
+.admin-notif-panel {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: 360px;
+  max-width: calc(100vw - 24px);
+  background: #fff;
+  border: 1px solid rgba(0,0,0,.08);
+  border-radius: 16px;
+  box-shadow: 0 16px 48px rgba(0,0,0,.14);
+  z-index: 9999;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  max-height: 480px;
+}
+
+.admin-notif-panel[hidden] { display: none; }
+
+.admin-notif-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid #f3f4f6;
+  flex-shrink: 0;
+}
+
+.admin-notif-panel-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.admin-notif-mark-all-btn {
+  background: none;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  color: #0B8073;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-family: inherit;
+  transition: background 0.15s ease;
+}
+
+.admin-notif-mark-all-btn:hover {
+  background: #f0fdf9;
+}
+
+/* Panel scrollable body */
+.admin-notif-panel-body {
+  overflow-y: auto;
+  flex: 1;
+  overscroll-behavior: contain;
+}
+
+.admin-notif-loading,
+.admin-notif-empty {
+  padding: 28px 16px;
+  text-align: center;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+/* Individual notification item */
+.admin-notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  border-bottom: 1px solid #f9fafb;
+  position: relative;
+}
+
+.admin-notif-item:last-child { border-bottom: none; }
+
+.admin-notif-item:hover {
+  background: #f9fafb;
+}
+
+.admin-notif-item--unread {
+  background: #f0fdf9;
+}
+
+.admin-notif-item--unread:hover {
+  background: #e6faf5;
+}
+
+.admin-notif-item-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #fff;
+  margin-top: 1px;
+}
+
+.admin-notif-item-icon--ticket  { background: #2563eb; }
+.admin-notif-item-icon--message { background: #0B8073; }
+.admin-notif-item-icon--review  { background: #d97706; }
+.admin-notif-item-icon--system  { background: #6b7280; }
+.admin-notif-item-icon--booking { background: #7c3aed; }
+.admin-notif-item-icon--payment { background: #059669; }
+
+.admin-notif-item-body { flex: 1; min-width: 0; }
+
+.admin-notif-item-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 3px;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.admin-notif-item-msg {
+  font-size: 12px;
+  color: #4b5563;
+  margin: 0 0 4px;
+  line-height: 1.4;
+  /* clamp to 2 lines */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.admin-notif-item-time {
+  font-size: 11px;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+/* Unread dot on the right */
+.admin-notif-unread-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #0B8073;
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+
+/* Panel footer */
+.admin-notif-panel-footer {
+  padding: 10px 16px;
+  border-top: 1px solid #f3f4f6;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.admin-notif-footer-link {
+  font-size: 12px;
+  font-weight: 600;
+  color: #0B8073;
+  text-decoration: none;
+}
+
+.admin-notif-footer-link:hover { text-decoration: underline; }
+
+/* Mobile */
+@media(max-width:480px) {
+  .admin-notif-panel {
+    width: calc(100vw - 16px);
+    right: -8px;
+  }
+}
