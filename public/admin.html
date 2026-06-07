@@ -110,6 +110,44 @@
     </div>
   </div>
 
+  <!-- User & Account Health ─────────────────────────────────────────── -->
+  <div class="section-header">
+    <h2 class="section-title">Account Health</h2>
+    <p class="section-description">User verification, provenance and supplier status overview</p>
+  </div>
+  <div class="dash-health-grid" id="dashHealthGrid" aria-live="polite">
+    <!-- User health panel -->
+    <div class="dash-health-panel">
+      <div class="dash-health-panel__header">
+        <span class="dash-health-panel__icon dash-health-panel__icon--blue">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        </span>
+        <span class="dash-health-panel__title">User accounts</span>
+        <a href="/admin-users" class="dash-health-panel__link">Open Users Centre →</a>
+      </div>
+      <div class="dash-health-rows" id="dashUserHealthRows">
+        <div class="dash-health-row skeleton" style="height:32px;border-radius:6px;margin-bottom:6px;"></div>
+        <div class="dash-health-row skeleton" style="height:32px;border-radius:6px;margin-bottom:6px;"></div>
+        <div class="dash-health-row skeleton" style="height:32px;border-radius:6px;"></div>
+      </div>
+    </div>
+    <!-- Supplier health panel -->
+    <div class="dash-health-panel">
+      <div class="dash-health-panel__header">
+        <span class="dash-health-panel__icon dash-health-panel__icon--teal">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </span>
+        <span class="dash-health-panel__title">Supplier accounts</span>
+        <a href="/admin-suppliers" class="dash-health-panel__link">Supplier Management →</a>
+      </div>
+      <div class="dash-health-rows" id="dashSupplierHealthRows">
+        <div class="dash-health-row skeleton" style="height:32px;border-radius:6px;margin-bottom:6px;"></div>
+        <div class="dash-health-row skeleton" style="height:32px;border-radius:6px;margin-bottom:6px;"></div>
+        <div class="dash-health-row skeleton" style="height:32px;border-radius:6px;"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Moderation Queue -->
   <div class="section-header">
     <h2 class="section-title">Moderation Queue</h2>

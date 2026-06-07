@@ -120,6 +120,7 @@
   let allUsers = [];
   let allSuppliers = [];
   let allPackages = [];
+  let summary = null; // populated by /users/summary; shared with renderAnalytics
 
   function renderUsersTable(list) {
     const el = document.getElementById('users');
@@ -283,7 +284,109 @@
     // Update stat cards with animated counters
     const totalUsersEl = document.getElementById('totalUsersCount');
     if (totalUsersEl && window.AdminShared && window.AdminShared.animateCounter) {
-      window.AdminShared.animateCounter(totalUsersEl, counts.usersTotal || 0);
+      window.AdminShared.animateCounter(
+        totalUsersEl,
+        (summary && summary.total) || counts.usersTotal || 0
+      );
+
+      // ── Account Health panels (from summary data) ───────────────────────
+      if (summary) {
+        const healthRowsEl = document.getElementById('dashUserHealthRows');
+        const supplierHealthEl = document.getElementById('dashSupplierHealthRows');
+
+        if (healthRowsEl) {
+          const bySig = summary.bySignup || {};
+          const byVerif = summary.byVerification || {};
+          healthRowsEl.innerHTML = [
+            {
+              label: 'Unverified (pending)',
+              value: byVerif.pending || 0,
+              href: '/admin-users?verificationMethod=pending',
+              warn: (byVerif.pending || 0) > 0,
+            },
+            {
+              label: 'Unknown verification source',
+              value: byVerif.unknown || 0,
+              href: '/admin-users?verificationMethod=unknown',
+              warn: (byVerif.unknown || 0) > 0,
+            },
+            {
+              label: 'Google sign-in',
+              value: bySig.google || 0,
+              href: '/admin-users?signupMethod=google',
+              warn: false,
+            },
+            {
+              label: 'Email / password',
+              value: bySig.email_password || 0,
+              href: '/admin-users?signupMethod=email_password',
+              warn: false,
+            },
+            {
+              label: 'Admin-created',
+              value: bySig.admin_created || 0,
+              href: '/admin-users?signupMethod=admin_created',
+              warn: false,
+            },
+            {
+              label: 'Account issues',
+              value: summary.issueCount || 0,
+              href: '/admin-users?issue=email_unverified',
+              warn: (summary.issueCount || 0) > 0,
+            },
+          ]
+            .map(
+              r => `<div class="dash-health-row">
+              <span class="dash-health-row__label">${r.label}</span>
+              <a href="${r.href}" class="dash-health-row__value ${r.warn && r.value > 0 ? 'dash-health-row__value--warn' : ''}">${r.value.toLocaleString()}</a>
+            </div>`
+            )
+            .join('');
+        }
+
+        if (supplierHealthEl && summary.suppliers) {
+          const s = summary.suppliers;
+          supplierHealthEl.innerHTML = [
+            {
+              label: 'Total supplier accounts',
+              value: s.total || 0,
+              href: '/admin-users?role=supplier',
+              warn: false,
+            },
+            {
+              label: 'Pending approval',
+              value: s.pending || 0,
+              href: '/admin-suppliers?status=pending',
+              warn: (s.pending || 0) > 0,
+            },
+            {
+              label: 'Approved',
+              value: s.approved || 0,
+              href: '/admin-suppliers?status=approved',
+              warn: false,
+            },
+            {
+              label: 'Supplier with no profile',
+              value: s.suppliersWithoutProfile || 0,
+              href: '/admin-users?issue=supplier_profile_missing',
+              warn: (s.suppliersWithoutProfile || 0) > 0,
+            },
+            {
+              label: 'Orphaned profiles',
+              value: s.orphanedSuppliers || 0,
+              href: '/admin-suppliers',
+              warn: (s.orphanedSuppliers || 0) > 0,
+            },
+          ]
+            .map(
+              r => `<div class="dash-health-row">
+              <span class="dash-health-row__label">${r.label}</span>
+              <a href="${r.href}" class="dash-health-row__value ${r.warn && r.value > 0 ? 'dash-health-row__value--warn' : ''}">${r.value.toLocaleString()}</a>
+            </div>`
+            )
+            .join('');
+        }
+      }
     } else if (totalUsersEl) {
       totalUsersEl.textContent = counts.usersTotal || 0;
     }
@@ -297,7 +400,10 @@
 
     const totalSuppliersEl = document.getElementById('totalSuppliersCount');
     if (totalSuppliersEl && window.AdminShared && window.AdminShared.animateCounter) {
-      window.AdminShared.animateCounter(totalSuppliersEl, counts.suppliersTotal || 0);
+      window.AdminShared.animateCounter(
+        totalSuppliersEl,
+        (summary && summary.byRole && summary.byRole.supplier) || counts.suppliersTotal || 0
+      );
     } else if (totalSuppliersEl) {
       totalSuppliersEl.textContent = counts.suppliersTotal || 0;
     }
@@ -431,22 +537,14 @@
       }
     })();
 
-    // Trend indicators — real period-over-period comparison
-    // Users: compare last 7 days vs previous 7 days using allUsers (already loaded)
+    // Trend indicators — use summary.newLast7 (from shared summary service)
+    // allUsers is no longer pre-loaded on the dashboard; Users Centre has the full list
     (function () {
       const now = Date.now();
       const oneWeek = 7 * 24 * 60 * 60 * 1000;
-      const cutoffRecent = now - oneWeek;
-      const cutoffPrev = now - 2 * oneWeek;
-      const usersList = Array.isArray(allUsers) ? allUsers : [];
-      const recentUsers = usersList.filter(u => {
-        const t = u.createdAt ? Date.parse(u.createdAt) : NaN;
-        return !isNaN(t) && t >= cutoffRecent;
-      }).length;
-      const prevUsers = usersList.filter(u => {
-        const t = u.createdAt ? Date.parse(u.createdAt) : NaN;
-        return !isNaN(t) && t >= cutoffPrev && t < cutoffRecent;
-      }).length;
+      // Use pre-computed summary.newLast7 (allUsers no longer pre-loaded on dashboard)
+      const recentUsers = (typeof summary !== 'undefined' && summary && summary.newLast7) || 0;
+      const prevUsers = 0; // period-over-period not available from summary; defaults to 0
 
       const usersChangeEl = document.getElementById('totalUsersChange');
       if (usersChangeEl) {
@@ -555,9 +653,10 @@
         }
 
         return Promise.all([
-          api('/api/admin/users').catch(err => {
-            console.warn('Failed to load users:', err.message);
-            return { items: [] };
+          // Use the shared summary service — same source as Users Centre
+          api('/api/admin/users/summary').catch(err => {
+            console.warn('Failed to load user summary:', err.message);
+            return null;
           }),
           api('/api/admin/metrics').catch(err => {
             console.warn('Failed to load metrics:', err.message);
@@ -577,7 +676,10 @@
           const photosResp = results[2] || {};
           const reviewsResp = results[3] || {};
 
-          allUsers = usersResp.items || [];
+          // results[0] is now the /api/admin/users/summary response (stats only, no items)
+          // allUsers is populated separately via the legacy user management section
+          summary = usersResp.total !== null && usersResp.total !== undefined ? usersResp : null; // set on outer scope for renderAnalytics
+          allUsers = []; // dashboard no longer loads the full user list; use Users Centre
           // Reset supplier/package caches so edits refetch fresh data after a reload
           allSuppliers = [];
           allPackages = [];
@@ -633,7 +735,9 @@
             });
 
           if (statusEl) {
-            statusEl.textContent = `Loaded ${allUsers.length} users.`;
+            statusEl.textContent = summary
+              ? `${summary.total || 0} users · ${summary.suppliers ? summary.suppliers.total : 0} suppliers`
+              : 'Dashboard loaded.';
             statusEl.classList.remove('is-loading');
           }
         });

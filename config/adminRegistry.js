@@ -62,11 +62,11 @@ const REGISTRY = [
   {
     route: '/admin-users',
     htmlFile: 'admin-users',
-    label: 'Users',
+    label: 'Users Centre',
     icon: '👥',
     category: 'users',
     inNav: true,
-    desc: 'User accounts & management',
+    desc: 'User accounts, verification health and supplier linkage',
   },
   {
     route: '/admin-user-detail',
