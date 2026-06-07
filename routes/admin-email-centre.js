@@ -18,60 +18,89 @@ function safeDomain(address) {
   return address.split('@').pop() || null;
 }
 
-router.get('/summary', limits.apiLimiter, auth.authRequired, auth.roleRequired('admin'), async (_req, res) => {
-  const emailSummary = await emailLogService.getSummary();
-  const provenance = await verificationProvenance.getVerificationIntegrity({ lookbackDays: 30 });
-  const status = postmark.getPostmarkStatus();
-  const defaultFrom = status.from || null;
-  res.json({
-    ok: true,
-    summary: emailSummary.summary,
-    health: {
-      emailEnabled: EMAIL_ENABLED,
-      postmarkConfigured: Boolean(status.apiKeyConfigured),
-      provider: !EMAIL_ENABLED ? 'disabled' : status.enabled ? 'postmark' : 'outbox',
-      defaultFrom,
-      emailDomain: process.env.EMAIL_DOMAIN || safeDomain(defaultFrom),
-      campaignMessageStream: process.env.CAMPAIGN_MESSAGE_STREAM || 'outbound',
-      lastWebhookAt: emailSummary.lastWebhookAt,
-      verificationProvenance: provenance.summary,
-    },
-  });
-});
+router.get(
+  '/summary',
+  limits.apiLimiter,
+  auth.authRequired,
+  auth.roleRequired('admin'),
+  async (_req, res) => {
+    const emailSummary = await emailLogService.getSummary();
+    const provenance = await verificationProvenance.getVerificationIntegrity({ lookbackDays: 30 });
+    const status = postmark.getPostmarkStatus();
+    const defaultFrom = status.from || null;
+    res.json({
+      ok: true,
+      summary: emailSummary.summary,
+      health: {
+        emailEnabled: EMAIL_ENABLED,
+        postmarkConfigured: Boolean(status.apiKeyConfigured),
+        provider: !EMAIL_ENABLED ? 'disabled' : status.enabled ? 'postmark' : 'outbox',
+        defaultFrom,
+        emailDomain: process.env.EMAIL_DOMAIN || safeDomain(defaultFrom),
+        campaignMessageStream: process.env.CAMPAIGN_MESSAGE_STREAM || 'outbound',
+        lastWebhookAt: emailSummary.lastWebhookAt,
+        verificationProvenance: provenance.summary,
+      },
+    });
+  }
+);
 
-router.get('/verification-provenance', limits.apiLimiter, auth.authRequired, auth.roleRequired('admin'), async (req, res) => {
+async function verificationIntegrityHandler(req, res) {
   const lookbackDays = Number(req.query.lookbackDays || 30);
   const result = await verificationProvenance.getVerificationIntegrity({ lookbackDays });
   res.json(result);
-});
+}
 
-router.get('/users-provenance', limits.apiLimiter, auth.authRequired, auth.roleRequired('admin'), async (_req, res) => {
-  const users = await dbUnified.read('users');
-  const verificationLogs = await verificationProvenance.readVerificationLogs();
-  const items = (users || []).map(user => {
-    const summary = verificationProvenance.summariseUser(user, verificationLogs);
-    return {
-      id: user.id || (user._id ? user._id.toString() : undefined),
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      verified: Boolean(user.verified),
-      createdAt: user.createdAt,
-      signupMethod: summary.signupMethod,
-      authProvider: summary.authProvider,
-      verificationMethod: summary.verificationMethod,
-      verifiedAt: summary.verifiedAt,
-      verifiedBy: summary.verifiedBy,
-      emailDeliveryStatus: summary.emailDeliveryStatus,
-      verificationEmailSentAt: summary.verificationEmailSentAt,
-      lastVerificationEmailLogId: summary.lastVerificationEmailLogId,
-      lastVerificationEmailPostmarkMessageId: summary.lastVerificationEmailPostmarkMessageId,
-      hasGoogleLink: summary.hasGoogleLink,
-      googleLinkedAt: summary.googleLinkedAt,
-    };
-  });
-  items.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-  res.json({ ok: true, items });
-});
+router.get(
+  '/verification-provenance',
+  limits.apiLimiter,
+  auth.authRequired,
+  auth.roleRequired('admin'),
+  verificationIntegrityHandler
+);
+router.get(
+  '/verification-integrity',
+  limits.apiLimiter,
+  auth.authRequired,
+  auth.roleRequired('admin'),
+  verificationIntegrityHandler
+);
+
+router.get(
+  '/users-provenance',
+  limits.apiLimiter,
+  auth.authRequired,
+  auth.roleRequired('admin'),
+  async (_req, res) => {
+    const users = await dbUnified.read('users');
+    const verificationLogs = await verificationProvenance.readVerificationLogs();
+    const items = (users || []).map(user => {
+      const summary = verificationProvenance.summariseUser(user, verificationLogs);
+      return {
+        id: user.id || (user._id ? user._id.toString() : undefined),
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        verified: Boolean(user.verified),
+        createdAt: user.createdAt,
+        signupMethod: summary.signupMethod,
+        authProvider: summary.authProvider,
+        verificationMethod: summary.verificationMethod,
+        verifiedAt: summary.verifiedAt,
+        verifiedBy: summary.verifiedBy,
+        emailDeliveryStatus: summary.emailDeliveryStatus,
+        verificationEmailSentAt: summary.verificationEmailSentAt,
+        lastVerificationEmailLogId: summary.lastVerificationEmailLogId,
+        lastVerificationEmailPostmarkMessageId: summary.lastVerificationEmailPostmarkMessageId,
+        hasGoogleLink: summary.hasGoogleLink,
+        googleLinkedAt: summary.googleLinkedAt,
+      };
+    });
+    items.sort(
+      (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+    );
+    res.json({ ok: true, items });
+  }
+);
 
 module.exports = router;

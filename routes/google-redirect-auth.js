@@ -11,6 +11,7 @@ const { JWT_SECRET, setAuthCookie } = require('../middleware/auth');
 const { getFeatureFlags } = require('../middleware/features');
 const domainAdmin = require('../middleware/domain-admin');
 const googleAuthService = require('../services/googleAuth.service');
+const userProvenance = require('../services/userProvenance.service');
 
 const router = express.Router();
 const parseGoogleFormPost = express.urlencoded({ extended: false, limit: '32kb' });
@@ -294,6 +295,7 @@ function buildGoogleUser(googleProfile, nowIso, signupState = {}) {
     marketingOptIn: false,
     verified: true,
     isOwner,
+    ...userProvenance.googleSignupProvenance(nowIso),
     authProvider: 'google',
     authProviderIds: { google: googleSub },
     googleSub,
@@ -335,15 +337,20 @@ async function findOrCreateGoogleUser(googleProfile, state = {}) {
       {
         $set: {
           googleSub,
-          authProvider: user.authProvider || 'local',
+          ...userProvenance.googleLinkProvenance(user, nowIso),
           authProviderIds: { ...(user.authProviderIds || {}), google: googleSub },
           googleLinkedAt: user.googleLinkedAt || nowIso,
-          verified: user.verified === false ? true : user.verified,
           avatarUrl: user.avatarUrl || googleProfile.picture || undefined,
         },
       }
     );
-    return { ...user, googleSub, verified: user.verified === false ? true : user.verified };
+    return {
+      ...user,
+      googleSub,
+      ...userProvenance.googleLinkProvenance(user, nowIso),
+      authProviderIds: { ...(user.authProviderIds || {}), google: googleSub },
+      googleLinkedAt: user.googleLinkedAt || nowIso,
+    };
   }
 
   if (!user) {
@@ -368,8 +375,9 @@ async function findOrCreateGoogleUser(googleProfile, state = {}) {
   }
 
   if (user.verified === false) {
-    await dbUnified.updateOne('users', { id: user.id }, { $set: { verified: true } });
-    return { ...user, verified: true };
+    const googleVerifyUpdates = userProvenance.googleLinkProvenance(user, nowIso);
+    await dbUnified.updateOne('users', { id: user.id }, { $set: googleVerifyUpdates });
+    return { ...user, ...googleVerifyUpdates };
   }
 
   return user;

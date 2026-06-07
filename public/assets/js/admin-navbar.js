@@ -155,11 +155,25 @@
       desc: 'Data export & downloads',
     },
     {
+      href: '/admin-campaigns',
+      icon: '📣',
+      label: 'Campaigns',
+      group: 'operations',
+      desc: 'Compose and send marketing email campaigns',
+    },
+    {
       href: '/admin-emails',
       icon: '📨',
       label: 'Email Centre',
       group: 'operations',
       desc: 'Campaigns, templates, sent email logs and delivery status',
+    },
+    {
+      href: '/admin/email-previews',
+      icon: '✉️',
+      label: 'Email Previews',
+      group: 'operations',
+      desc: 'Preview and test local email templates',
     },
     {
       href: '/admin-homepage',

@@ -237,7 +237,7 @@ const REGISTRY = [
     label: 'Campaigns',
     icon: '📣',
     category: 'operations',
-    inNav: false,
+    inNav: true,
     desc: 'Compose & send marketing email campaigns',
   },
   {

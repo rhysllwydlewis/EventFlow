@@ -35,6 +35,7 @@ const tokenUtils = require('../utils/token');
 const { validateToken } = require('../middleware/token');
 const domainAdmin = require('../middleware/domain-admin');
 const googleAuthService = require('../services/googleAuth.service');
+const userProvenance = require('../services/userProvenance.service');
 
 const router = express.Router();
 
@@ -379,6 +380,9 @@ router.post(
       verified: isOwner, // Owner is pre-verified, others need verification
       isOwner: isOwner, // Special flag to protect owner account
       createdAt: new Date().toISOString(),
+      ...(isOwner
+        ? userProvenance.ownerProvenance(new Date().toISOString(), 'owner')
+        : userProvenance.emailPasswordPendingProvenance()),
     };
 
     // Generate JWT verification token
@@ -396,8 +400,11 @@ router.post(
     if (!isOwner) {
       try {
         logger.info('Attempting to send verification email');
-        await postmark.sendVerificationEmail(user, verificationToken);
-        logger.info('Verification email sent successfully');
+        const sendResult = await postmark.sendVerificationEmail(user, verificationToken);
+        Object.assign(user, userProvenance.metadataFromSendResult(sendResult));
+        logger.info('Verification email sent successfully', {
+          emailLogId: user.lastVerificationEmailLogId,
+        });
       } catch (emailError) {
         logger.error('Failed to send verification email:', emailError.message);
 
@@ -722,6 +729,7 @@ function buildGoogleUser({
     marketingOptIn: false,
     verified: true,
     isOwner,
+    ...userProvenance.googleSignupProvenance(nowIso),
     authProvider: 'google',
     authProviderIds: { google: googleSub },
     googleSub,
@@ -783,15 +791,20 @@ router.post('/google', strictAuthLimiter, csrfProtection, async (req, res) => {
         {
           $set: {
             googleSub,
-            authProvider: user.authProvider || 'local',
+            ...userProvenance.googleLinkProvenance(user, nowIso),
             authProviderIds: { ...(user.authProviderIds || {}), google: googleSub },
             googleLinkedAt: user.googleLinkedAt || nowIso,
-            verified: user.verified === false ? true : user.verified,
             avatarUrl: user.avatarUrl || googleProfile.picture || undefined,
           },
         }
       );
-      user = { ...user, googleSub, verified: user.verified === false ? true : user.verified };
+      user = {
+        ...user,
+        googleSub,
+        ...userProvenance.googleLinkProvenance(user, nowIso),
+        authProviderIds: { ...(user.authProviderIds || {}), google: googleSub },
+        googleLinkedAt: user.googleLinkedAt || nowIso,
+      };
     }
 
     if (!user) {
@@ -846,8 +859,9 @@ router.post('/google', strictAuthLimiter, csrfProtection, async (req, res) => {
     }
 
     if (user.verified === false) {
-      await dbUnified.updateOne('users', { id: user.id }, { $set: { verified: true } });
-      user = { ...user, verified: true };
+      const googleVerifyUpdates = userProvenance.googleLinkProvenance(user, nowIso);
+      await dbUnified.updateOne('users', { id: user.id }, { $set: googleVerifyUpdates });
+      user = { ...user, ...googleVerifyUpdates };
     }
 
     if (user.twoFactorEnabled) {
@@ -1129,8 +1143,7 @@ router.get('/verify', async (req, res) => {
 
     // Mark user as verified and clear token
     const verifyUpdates = {
-      verified: true,
-      verifiedAt: new Date().toISOString(),
+      ...userProvenance.eventflowEmailVerifiedProvenance(new Date().toISOString()),
     };
 
     // Check if this user should be auto-promoted to admin (domain-based)
@@ -1328,8 +1341,7 @@ router.post('/verify-email', authLimiter, validateToken({ required: true }), asy
 
     // Mark user as verified and apply the same domain-admin promotion rules as GET /verify.
     const verifyUpdates = applyAdminVerificationUpgrade(user, {
-      verified: true,
-      verifiedAt: new Date().toISOString(),
+      ...userProvenance.eventflowEmailVerifiedProvenance(new Date().toISOString()),
     });
 
     await dbUnified.updateOne(
@@ -1418,8 +1430,7 @@ router.post('/verify-email', authLimiter, validateToken({ required: true }), asy
 
     // Verify user and apply the same domain-admin promotion rules as GET /verify.
     const legacyVerifyUpdates = applyAdminVerificationUpgrade(user, {
-      verified: true,
-      verifiedAt: new Date().toISOString(),
+      ...userProvenance.eventflowEmailVerifiedProvenance(new Date().toISOString()),
     });
 
     await dbUnified.updateOne(
@@ -1838,11 +1849,19 @@ router.post('/resend-verification', resendEmailLimiter, csrfProtection, async (r
     });
   }
 
-  // Check if user is already verified
+  // Check if user is already verified or does not require EventFlow email verification
   if (user.verified === true) {
     return res.json({
       ok: true,
       message: 'This email address is already verified.',
+    });
+  }
+
+  if (!userProvenance.canResendVerification(user)) {
+    return res.json({
+      ok: true,
+      message:
+        'If this email is registered and unverified, a new verification email has been sent.',
     });
   }
 
@@ -1855,9 +1874,10 @@ router.post('/resend-verification', resendEmailLimiter, csrfProtection, async (r
   const tokenExpiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours
 
   // Send verification email via Postmark BEFORE saving token
+  let sendResult;
   try {
     logger.info('Resending verification email');
-    await postmark.sendVerificationEmail(user, verificationToken);
+    sendResult = await postmark.sendVerificationEmail(user, verificationToken);
     logger.info('Verification email resent successfully');
   } catch (emailError) {
     logger.error('Failed to resend verification email:', emailError.message);
@@ -1878,6 +1898,7 @@ router.post('/resend-verification', resendEmailLimiter, csrfProtection, async (r
       $set: {
         verificationToken: verificationToken,
         verificationTokenExpiresAt: tokenExpiresAt,
+        ...userProvenance.metadataFromSendResult(sendResult),
       },
     }
   );
