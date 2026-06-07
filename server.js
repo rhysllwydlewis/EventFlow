@@ -987,6 +987,15 @@ const adminUserManagementRoutes = require('./routes/admin-user-management');
 app.use('/api/v1/admin', adminUserManagementRoutes);
 mountDeprecatedApiAlias('/api/admin', '/api/v1/admin', adminUserManagementRoutes); // Backward compatibility
 
+// Admin notification centre routes
+const adminNotificationsRoutes = require('./routes/admin-notifications');
+app.use('/api/v1/admin/notifications', adminNotificationsRoutes);
+mountDeprecatedApiAlias(
+  '/api/admin/notifications',
+  '/api/v1/admin/notifications',
+  adminNotificationsRoutes
+);
+
 // Admin V2 routes (RBAC with granular permissions)
 const adminV2Routes = require('./routes/admin-v2');
 app.use('/api/v2/admin', adminV2Routes);

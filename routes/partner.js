@@ -21,6 +21,7 @@ const { authLimiter } = require('../middleware/rateLimits');
 const { passwordOk } = require('../middleware/validation');
 const partnerService = require('../services/partnerService');
 const postmark = require('../utils/postmark');
+const { notifyAdmins } = require('../services/notifyAdmins.service');
 
 const router = express.Router();
 
@@ -109,6 +110,17 @@ router.post('/register', authLimiter, csrfProtection, async (req, res) => {
   setAuthCookie(res, token, { remember: true });
 
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  // Notify all admins of new partner (fire-and-forget, non-blocking)
+  notifyAdmins({
+    type: 'system',
+    title: 'New Partner Registration',
+    message: `${user.name || user.email} joined the Partner Programme (code: ${partner.refCode})`,
+    actionUrl: `/admin-user-detail?id=${user.id}`,
+    actionText: 'View Partner',
+    priority: 'normal',
+    metadata: { partnerId: partner.id, userId: user.id, refCode: partner.refCode },
+  }).catch(() => {});
+
   res.status(201).json({
     ok: true,
     user: { id: user.id, name: user.name, email: user.email, role: user.role },
