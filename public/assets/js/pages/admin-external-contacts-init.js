@@ -11,6 +11,15 @@
     return d.innerHTML;
   }
 
+  function safeExternalHref(url) {
+    try {
+      const parsed = new URL(String(url || ''), window.location.origin);
+      return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? parsed.href : '';
+    } catch {
+      return '';
+    }
+  }
+
   function fmtDate(dt) {
     if (!dt) {
       return '—';
@@ -100,7 +109,7 @@
     tbody.innerHTML = contacts
       .map(c => {
         const preview = (c.subject || c.message || '').slice(0, 60);
-        return `<tr>
+        return `<tr class="ec-contact-row" tabindex="0" role="button" data-id="${esc(c.id)}" aria-label="View enquiry from ${esc(c.name || c.email || 'external contact')}">
         <td>${sourceBadge(c.source)}</td>
         <td class="uc-name-cell">
           <span class="uc-user-link">${esc(c.name || '—')}</span>
@@ -117,7 +126,20 @@
       .join('');
 
     tbody.querySelectorAll('.ec-view-btn').forEach(btn => {
-      btn.addEventListener('click', () => openDetail(btn.dataset.id));
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        openDetail(btn.dataset.id);
+      });
+    });
+
+    tbody.querySelectorAll('.ec-contact-row').forEach(row => {
+      row.addEventListener('click', () => openDetail(row.dataset.id));
+      row.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openDetail(row.dataset.id);
+        }
+      });
     });
   }
 
@@ -206,7 +228,12 @@
         throw new Error('Not found');
       }
 
-      const src = SOURCE_COLOURS[c.source] || { bg: '#f3f4f6', color: '#374151', label: c.source };
+      const src = SOURCE_COLOURS[c.source] || {
+        bg: '#f3f4f6',
+        color: '#374151',
+        label: esc(c.source),
+      };
+      const pageHref = safeExternalHref(c.pageUrl);
 
       body.innerHTML = `
         <!-- Source banner -->
@@ -222,7 +249,7 @@
           <div><div class="ud-info-label">Email</div><div class="ud-info-value"><a href="mailto:${esc(c.email)}">${esc(c.email || '—')}</a></div></div>
           ${c.phone ? `<div><div class="ud-info-label">Phone</div><div class="ud-info-value">${esc(c.phone)}</div></div>` : ''}
           ${c.company ? `<div><div class="ud-info-label">Company</div><div class="ud-info-value">${esc(c.company)}</div></div>` : ''}
-          ${c.pageUrl ? `<div style="grid-column:1/-1"><div class="ud-info-label">Page URL</div><div class="ud-info-value"><a href="${esc(c.pageUrl)}" target="_blank" rel="noopener noreferrer">${esc(c.pageUrl)}</a></div></div>` : ''}
+          ${pageHref ? `<div style="grid-column:1/-1"><div class="ud-info-label">Page URL</div><div class="ud-info-value"><a href="${esc(pageHref)}" target="_blank" rel="noopener noreferrer">${esc(c.pageUrl)}</a></div></div>` : ''}
         </div>
 
         ${c.subject ? `<div style="margin-bottom:12px;"><div class="ud-info-label">Subject</div><div class="ud-info-value">${esc(c.subject)}</div></div>` : ''}

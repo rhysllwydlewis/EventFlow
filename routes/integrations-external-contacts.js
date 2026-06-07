@@ -51,6 +51,13 @@ function hashIp(ip) {
   return crypto.createHash('sha256').update(ip).digest('hex').slice(0, 16);
 }
 
+function headerValue(val) {
+  if (Array.isArray(val)) {
+    return val[0] || '';
+  }
+  return typeof val === 'string' ? val : '';
+}
+
 function sanitiseStr(val, maxLen = 500) {
   if (typeof val !== 'string') {
     return '';
@@ -58,22 +65,49 @@ function sanitiseStr(val, maxLen = 500) {
   return val.trim().slice(0, maxLen);
 }
 
+function sanitiseLogSource(source) {
+  return sanitiseStr(source, 50).replace(/[^a-z0-9_-]/gi, '');
+}
+
+function sanitisePageUrl(val) {
+  const url = sanitiseStr(val, 500);
+  if (!url) {
+    return '';
+  }
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'https:' || parsed.protocol === 'http:' ? url : '';
+  } catch {
+    return '';
+  }
+}
+
+function safeSecretEquals(incomingSecret, expectedSecret) {
+  if (!expectedSecret) {
+    return false;
+  }
+
+  const incomingBuffer = Buffer.from(incomingSecret);
+  const expectedBuffer = Buffer.from(expectedSecret);
+  return (
+    incomingBuffer.length === expectedBuffer.length &&
+    crypto.timingSafeEqual(incomingBuffer, expectedBuffer)
+  );
+}
+
 // ── POST /api/v1/integrations/external-contacts ──────────────────────────────
 
 router.post('/', writeLimiter, async (req, res) => {
   const secret = getSecret();
-  const incomingSecret = req.headers['x-eventflow-integration-secret'] || '';
-  const incomingSource = (req.headers['x-eventflow-source'] || '').toLowerCase().trim();
+  const incomingSecret = headerValue(req.headers['x-eventflow-integration-secret']);
+  const incomingSource = headerValue(req.headers['x-eventflow-source']).toLowerCase().trim();
 
   // ─── Secret check ─────────────────────────────────────────────────────────
   // Timing-safe comparison prevents timing attacks on the secret
-  const secretValid =
-    secret.length > 0 &&
-    incomingSecret.length === secret.length &&
-    crypto.timingSafeEqual(Buffer.from(incomingSecret), Buffer.from(secret));
+  const secretValid = safeSecretEquals(incomingSecret, secret);
   if (!secretValid) {
     logger.warn('[ext-contacts] invalid or missing integration secret', {
-      source: incomingSource,
+      source: sanitiseLogSource(incomingSource),
       hasSecret: !!incomingSecret,
     });
     return res.status(401).json({ ok: false, error: 'Unauthorised' });
@@ -82,7 +116,7 @@ router.post('/', writeLimiter, async (req, res) => {
   // ─── Source check ─────────────────────────────────────────────────────────
   const allowed = getAllowedSources();
   if (!incomingSource || !allowed.has(incomingSource)) {
-    logger.warn('[ext-contacts] unknown source', { source: incomingSource });
+    logger.warn('[ext-contacts] unknown source', { source: sanitiseLogSource(incomingSource) });
     return res.status(403).json({ ok: false, error: 'Forbidden — unknown source' });
   }
 
@@ -94,7 +128,7 @@ router.post('/', writeLimiter, async (req, res) => {
   const phone = sanitiseStr(body.phone, 30);
   const company = sanitiseStr(body.company, 200);
   const subject = sanitiseStr(body.subject, 300);
-  const pageUrl = sanitiseStr(body.pageUrl, 500);
+  const pageUrl = sanitisePageUrl(body.pageUrl);
 
   const errors = [];
   if (!name) {
@@ -132,7 +166,7 @@ router.post('/', writeLimiter, async (req, res) => {
   }
 
   // ─── Build record ─────────────────────────────────────────────────────────
-  const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
+  const ip = headerValue(req.headers['x-forwarded-for']).split(',')[0].trim() || 'unknown';
   const now = new Date().toISOString();
   const id = crypto.randomUUID();
   const sourceLabel = SOURCE_LABELS[incomingSource] || incomingSource;

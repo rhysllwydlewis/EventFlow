@@ -300,4 +300,28 @@ describe('Admin registry — External Contacts', () => {
     expect(initSrc).toContain("'Chlo'");
     expect(initSrc).toContain('From ${c.label}');
   });
+
+  test('page sanitises external page links before rendering them', () => {
+    const initSrc = fs.readFileSync(
+      path.join(__dirname, '../../public/assets/js/pages/admin-external-contacts-init.js'),
+      'utf8'
+    );
+    expect(initSrc).toContain('function safeExternalHref');
+    expect(initSrc).toContain("parsed.protocol === 'https:' || parsed.protocol === 'http:'");
+  });
+
+  test('contact rows are clickable and keyboard-accessible', () => {
+    const initSrc = fs.readFileSync(
+      path.join(__dirname, '../../public/assets/js/pages/admin-external-contacts-init.js'),
+      'utf8'
+    );
+    const pageSrc = fs.readFileSync(
+      path.join(__dirname, '../../public/admin-external-contacts.html'),
+      'utf8'
+    );
+    expect(initSrc).toContain('class="ec-contact-row"');
+    expect(initSrc).toContain('role="button"');
+    expect(initSrc).toContain("e.key === 'Enter' || e.key === ' '");
+    expect(pageSrc).toContain('.ec-contact-row:focus-visible');
+  });
 });
