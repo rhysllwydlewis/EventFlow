@@ -171,6 +171,7 @@ async function cleanupSupplierOwnedDataForUser(user, options = {}) {
 
   logger.info(`[adminUserDeletion] Starting supplier cascade cleanup for user ${userId}`);
 
+  // ── Step 1: Discover all supplier profiles owned by this user ──────────────
   const supplierProfiles = await findMany('suppliers', { ownerUserId: userId });
   const supplierIds = supplierProfiles.map(s => s.id).filter(Boolean);
   summary.supplierIds = supplierIds;
@@ -179,42 +180,59 @@ async function cleanupSupplierOwnedDataForUser(user, options = {}) {
     `[adminUserDeletion] Found ${supplierProfiles.length} supplier profile(s) for user ${userId}: [${supplierIds.join(', ')}]`
   );
 
-  // Even if no supplier profiles were found by ownerUserId, still attempt a direct
-  // package cleanup keyed on ownerUserId — guards against data where the supplier record
-  // was already removed manually but packages were left behind (e.g. createdBy field).
-  const directPackageFilter = { createdBy: userId };
-  const orphanedPackages = await findMany('packages', directPackageFilter);
-  const orphanedPackageIds = orphanedPackages.map(p => p.id).filter(Boolean);
-  if (orphanedPackageIds.length) {
-    logger.info(
-      `[adminUserDeletion] Found ${orphanedPackageIds.length} orphaned package(s) via createdBy for user ${userId}`
-    );
-    const orphanPkgDeleted = await deleteManyCount('packages', directPackageFilter);
-    summary.deletedPackages += orphanPkgDeleted;
-    summary.deletedPackageIds.push(...orphanedPackageIds);
+  // ── Step 2: Collect ALL package IDs BEFORE any deletions ───────────────────
+  // We need the full set of IDs upfront so that savedItems / shortlists
+  // cleanup is complete even after the packages themselves are gone.
+  //
+  // Two lookup strategies are combined and deduplicated:
+  //   a) by supplierId  — the normal case
+  //   b) by createdBy   — fallback for data where the supplier record was already
+  //                       removed manually but packages were left behind
+  const allPackageIdSet = new Set();
+
+  if (supplierIds.length) {
+    const supplierPackages = await findMany('packages', { supplierId: { $in: supplierIds } });
+    supplierPackages.forEach(p => p.id && allPackageIdSet.add(p.id));
+  }
+
+  const orphanedByCreator = await findMany('packages', { createdBy: userId });
+  orphanedByCreator.forEach(p => p.id && allPackageIdSet.add(p.id));
+
+  const allPackageIds = [...allPackageIdSet];
+  summary.deletedPackageIds = allPackageIds;
+
+  logger.info(
+    `[adminUserDeletion] Found ${allPackageIds.length} package(s) total for user ${userId}`
+  );
+
+  if (!supplierIds.length && !allPackageIds.length) {
+    logger.info(`[adminUserDeletion] No supplier data found for user ${userId} — skipping`);
+    await invalidatePublicSupplierCaches();
+    return summary;
+  }
+
+  // ── Step 3: Delete packages and all supplier-scoped data ───────────────────
+  // Delete packages using both filters so nothing is missed regardless of which
+  // field is populated on a given document.
+  if (allPackageIds.length) {
+    summary.deletedPackages += await deleteManyCount('packages', {
+      id: { $in: allPackageIds },
+    });
   }
 
   if (!supplierIds.length) {
-    if (!orphanedPackageIds.length) {
-      logger.info(`[adminUserDeletion] No supplier data found for user ${userId} — skipping`);
-    }
+    // Only orphaned packages existed; caches still need flushing.
     await invalidatePublicSupplierCaches();
     return summary;
   }
 
   const supplierIdFilter = { $in: supplierIds };
-  const packages = await findMany('packages', { supplierId: supplierIdFilter });
-  const packageIds = packages.map(p => p.id).filter(Boolean);
-  // Merge with any already found via direct lookup above
-  const allPackageIds = [...new Set([...summary.deletedPackageIds, ...packageIds])];
-  summary.deletedPackageIds = allPackageIds;
 
   logger.info(
-    `[adminUserDeletion] Deleting ${packageIds.length} package(s) for suppliers [${supplierIds.join(', ')}]`
+    `[adminUserDeletion] Deleting supplier-scoped data for suppliers [${supplierIds.join(', ')}]`
   );
 
-  // Remove public/listing records that exist only to expose the supplier publicly.
-  summary.deletedPackages += await deleteManyCount('packages', { supplierId: supplierIdFilter });
+  // Photos, analytics, review requests, calendar events, marketplace listings
   summary.deletedPhotos = await deleteManyCount('photos', { supplierId: supplierIdFilter });
   summary.deletedSupplierAnalytics = await deleteManyCount('supplierAnalytics', {
     supplierId: supplierIdFilter,

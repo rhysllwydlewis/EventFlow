@@ -426,7 +426,7 @@
 
         // Orphaned supplier — owner account has been deleted; flagged for admin attention
         const orphanBadge = supplier._ownerDeleted
-          ? ' <span title="Owner account deleted - not visible to the public" style="font-size:10px;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;border-radius:999px;padding:1px 6px;white-space:nowrap;cursor:help;">Owner deleted</span>'
+          ? ' <span title="Owner account deleted — hidden from all public pages. Delete it to clean up." style="font-size:10px;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;border-radius:999px;padding:1px 6px;white-space:nowrap;cursor:help;">⚠️ Owner deleted</span>'
           : '';
 
         return `
