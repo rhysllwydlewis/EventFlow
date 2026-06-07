@@ -628,12 +628,23 @@ router.post(
 router.get('/suppliers', authRequired, roleRequired('admin'), async (_req, res) => {
   try {
     const raw = await dbUnified.read('suppliers');
+
+    // Build a set of valid user IDs so we can flag orphaned supplier profiles
+    // (those whose ownerUserId no longer exists in the users collection).
+    const users = await dbUnified.read('users');
+    const validUserIds = new Set(users.map(u => u.id).filter(Boolean));
+
     const items = await Promise.all(
-      raw.map(async s => ({
-        ...s,
-        isPro: supplierIsProActiveFn ? await supplierIsProActiveFn(s) : s.isPro,
-        proExpiresAt: s.proExpiresAt || null,
-      }))
+      raw.map(async s => {
+        const isOrphaned = s.ownerUserId && !validUserIds.has(s.ownerUserId);
+        return {
+          ...s,
+          isPro: supplierIsProActiveFn ? await supplierIsProActiveFn(s) : s.isPro,
+          proExpiresAt: s.proExpiresAt || null,
+          // Expose orphan flag so the admin UI can highlight / filter these
+          _ownerDeleted: isOrphaned,
+        };
+      })
     );
     res.json({ items });
   } catch (error) {

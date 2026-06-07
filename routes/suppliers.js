@@ -176,7 +176,15 @@ function invalidatePackageCaches() {
 router.get('/suppliers', async (req, res) => {
   try {
     const { category, q, price } = req.query;
-    let items = (await dbUnified.read('suppliers')).filter(s => s.approved);
+
+    // Load users once and build a fast lookup set so orphaned supplier profiles
+    // (whose owner account was deleted) are excluded from public results.
+    const users = await dbUnified.read('users');
+    const validUserIds = new Set(users.map(u => u.id).filter(Boolean));
+
+    let items = (await dbUnified.read('suppliers')).filter(
+      s => s.approved && (!s.ownerUserId || validUserIds.has(s.ownerUserId))
+    );
     if (category) {
       items = items.filter(s => s.category === category);
     }
@@ -259,6 +267,16 @@ router.get('/suppliers/:id', async (req, res) => {
 
     if (!sRaw.approved && !isAdmin && !isOwner) {
       return res.status(404).json({ error: 'Supplier not found' });
+    }
+
+    // Reject orphaned supplier profiles whose owner account no longer exists.
+    // Admins can still view them for moderation; the supplier owner (logged in as themselves)
+    // can also still access their profile (e.g. during an account-transition window).
+    if (!isAdmin && !isOwner && sRaw.ownerUserId) {
+      const ownerUser = await dbUnified.findOne('users', { id: sRaw.ownerUserId });
+      if (!ownerUser) {
+        return res.status(404).json({ error: 'Supplier not found' });
+      }
     }
 
     const pkgs = await dbUnified.read('packages');
@@ -383,6 +401,10 @@ router.get('/packages/featured', async (_req, res) => {
       return res.json(featuredPackagesCache);
     }
 
+    // Build valid user IDs set once for orphan filtering
+    const users = await dbUnified.read('users');
+    const validUserIds = new Set(users.map(u => u.id).filter(Boolean));
+
     // Use efficient querying for MongoDB
     const dbType = dbUnified.getDatabaseType();
     let items;
@@ -399,12 +421,16 @@ router.get('/packages/featured', async (_req, res) => {
         { limit: 6, sort: { createdAt: -1 } }
       );
 
-      // Get supplier names for the packages
+      // Get supplier names for the packages — filter out orphaned suppliers
       const supplierIds = [...new Set(packages.map(p => p.supplierId))];
       const suppliers = await Promise.all(
         supplierIds.map(id => dbUnified.findOne('suppliers', { id }))
       );
-      const suppliersMap = new Map(suppliers.filter(s => s && s.approved).map(s => [s.id, s]));
+      const suppliersMap = new Map(
+        suppliers
+          .filter(s => s && s.approved && (!s.ownerUserId || validUserIds.has(s.ownerUserId)))
+          .map(s => [s.id, s])
+      );
 
       items = packages
         .filter(pkg => suppliersMap.has(pkg.supplierId))
@@ -418,8 +444,12 @@ router.get('/packages/featured', async (_req, res) => {
       const packages = await dbUnified.read('packages');
       const suppliers = await dbUnified.read('suppliers');
 
-      // Create a suppliers lookup map for O(1) access
-      const suppliersMap = new Map(suppliers.filter(s => s.approved).map(s => [s.id, s]));
+      // Create a suppliers lookup map for O(1) access; exclude orphaned suppliers
+      const suppliersMap = new Map(
+        suppliers
+          .filter(s => s.approved && (!s.ownerUserId || validUserIds.has(s.ownerUserId)))
+          .map(s => [s.id, s])
+      );
 
       items = packages
         .filter(p => p.approved && isFeaturedPackage(p) && suppliersMap.has(p.supplierId))
@@ -462,6 +492,10 @@ router.get('/packages/spotlight', async (_req, res) => {
       return res.json(spotlightPackagesCache);
     }
 
+    // Build valid user IDs set once for orphan filtering
+    const users = await dbUnified.read('users');
+    const validUserIds = new Set(users.map(u => u.id).filter(Boolean));
+
     // Get approved packages
     const dbType = dbUnified.getDatabaseType();
     let approvedPackages;
@@ -480,8 +514,11 @@ router.get('/packages/spotlight', async (_req, res) => {
     }
 
     const allSuppliersForSpotlight = await dbUnified.read('suppliers');
+    // Only include approved suppliers whose owner account still exists
     const approvedSpotlightSupplierIds = new Set(
-      allSuppliersForSpotlight.filter(s => s.approved).map(s => s.id)
+      allSuppliersForSpotlight
+        .filter(s => s.approved && (!s.ownerUserId || validUserIds.has(s.ownerUserId)))
+        .map(s => s.id)
     );
     approvedPackages = approvedPackages.filter(p => approvedSpotlightSupplierIds.has(p.supplierId));
 
@@ -521,21 +558,31 @@ router.get('/packages/spotlight', async (_req, res) => {
       const suppliers = await Promise.all(
         supplierIds.map(id => dbUnified.findOne('suppliers', { id }))
       );
-      suppliersMap = new Map(suppliers.filter(s => s && s.approved).map(s => [s.id, s]));
+      suppliersMap = new Map(
+        suppliers
+          .filter(s => s && s.approved && (!s.ownerUserId || validUserIds.has(s.ownerUserId)))
+          .map(s => [s.id, s])
+      );
     } else {
       const suppliers = await dbUnified.read('suppliers');
-      suppliersMap = new Map(suppliers.filter(s => s.approved).map(s => [s.id, s]));
+      suppliersMap = new Map(
+        suppliers
+          .filter(s => s.approved && (!s.ownerUserId || validUserIds.has(s.ownerUserId)))
+          .map(s => [s.id, s])
+      );
     }
 
-    // Select up to 6 spotlight packages
-    const items = selectedPackages.map(pkg => {
-      const supplier = suppliersMap.get(pkg.supplierId);
-      return {
-        ...pkg,
-        image: resolvePackageImage(pkg),
-        supplier_name: supplier ? supplier.name : null,
-      };
-    });
+    // Select up to 6 spotlight packages (filter any whose supplier is orphaned)
+    const items = selectedPackages
+      .filter(pkg => suppliersMap.has(pkg.supplierId))
+      .map(pkg => {
+        const supplier = suppliersMap.get(pkg.supplierId);
+        return {
+          ...pkg,
+          image: resolvePackageImage(pkg),
+          supplier_name: supplier ? supplier.name : null,
+        };
+      });
 
     const result = { items };
     spotlightPackagesCache = result;
@@ -561,7 +608,14 @@ router.get('/packages/search', async (req, res) => {
 
     let items = await dbUnified.read('packages');
     const publicSuppliers = await dbUnified.find('suppliers', { approved: true });
-    const publicSupplierIds = new Set(publicSuppliers.map(s => s.id));
+    // Also load users to exclude packages from suppliers whose owner was deleted
+    const usersForPkgSearch = await dbUnified.read('users');
+    const validUserIdsForPkgSearch = new Set(usersForPkgSearch.map(u => u.id).filter(Boolean));
+    const publicSupplierIds = new Set(
+      publicSuppliers
+        .filter(s => !s.ownerUserId || validUserIdsForPkgSearch.has(s.ownerUserId))
+        .map(s => s.id)
+    );
     items = items.filter(p => p.approved && publicSupplierIds.has(p.supplierId));
 
     // Apply filters
@@ -655,7 +709,14 @@ router.get('/packages/:slug', async (req, res) => {
   try {
     const packages = await dbUnified.read('packages');
     const suppliers = await dbUnified.read('suppliers');
-    const approvedSupplierIds = new Set(suppliers.filter(s => s.approved).map(s => s.id));
+    const users = await dbUnified.read('users');
+    const validUserIds = new Set(users.map(u => u.id).filter(Boolean));
+    // Only include approved suppliers whose owner account still exists
+    const approvedSupplierIds = new Set(
+      suppliers
+        .filter(s => s.approved && (!s.ownerUserId || validUserIds.has(s.ownerUserId)))
+        .map(s => s.id)
+    );
     const param = decodeURIComponent(req.params.slug || '').trim();
     const normalisedParam = normalisePackageSlug(param);
     const pkg = packages.find(p => {
@@ -672,7 +733,9 @@ router.get('/packages/:slug', async (req, res) => {
       return res.status(404).json({ error: 'Package not found' });
     }
 
-    const supplier = suppliers.find(s => s.id === pkg.supplierId && s.approved);
+    const supplier = suppliers.find(
+      s => s.id === pkg.supplierId && s.approved && (!s.ownerUserId || validUserIds.has(s.ownerUserId))
+    );
     if (!supplier) {
       return res.status(404).json({ error: 'Package not found' });
     }
