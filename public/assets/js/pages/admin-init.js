@@ -283,7 +283,109 @@
     // Update stat cards with animated counters
     const totalUsersEl = document.getElementById('totalUsersCount');
     if (totalUsersEl && window.AdminShared && window.AdminShared.animateCounter) {
-      window.AdminShared.animateCounter(totalUsersEl, counts.usersTotal || 0);
+      window.AdminShared.animateCounter(
+        totalUsersEl,
+        (summary && summary.total) || counts.usersTotal || 0
+      );
+
+      // ── Account Health panels (from summary data) ───────────────────────
+      if (summary) {
+        const healthRowsEl = document.getElementById('dashUserHealthRows');
+        const supplierHealthEl = document.getElementById('dashSupplierHealthRows');
+
+        if (healthRowsEl) {
+          const bySig = summary.bySignup || {};
+          const byVerif = summary.byVerification || {};
+          healthRowsEl.innerHTML = [
+            {
+              label: 'Unverified (pending)',
+              value: byVerif.pending || 0,
+              href: '/admin-users?verificationMethod=pending',
+              warn: (byVerif.pending || 0) > 0,
+            },
+            {
+              label: 'Unknown verification source',
+              value: byVerif.unknown || 0,
+              href: '/admin-users?verificationMethod=unknown',
+              warn: (byVerif.unknown || 0) > 0,
+            },
+            {
+              label: 'Google sign-in',
+              value: bySig.google || 0,
+              href: '/admin-users?signupMethod=google',
+              warn: false,
+            },
+            {
+              label: 'Email / password',
+              value: bySig.email_password || 0,
+              href: '/admin-users?signupMethod=email_password',
+              warn: false,
+            },
+            {
+              label: 'Admin-created',
+              value: bySig.admin_created || 0,
+              href: '/admin-users?signupMethod=admin_created',
+              warn: false,
+            },
+            {
+              label: 'Account issues',
+              value: summary.issueCount || 0,
+              href: '/admin-users?issue=email_unverified',
+              warn: (summary.issueCount || 0) > 0,
+            },
+          ]
+            .map(
+              r => `<div class="dash-health-row">
+              <span class="dash-health-row__label">${r.label}</span>
+              <a href="${r.href}" class="dash-health-row__value ${r.warn && r.value > 0 ? 'dash-health-row__value--warn' : ''}">${r.value.toLocaleString()}</a>
+            </div>`
+            )
+            .join('');
+        }
+
+        if (supplierHealthEl && summary.suppliers) {
+          const s = summary.suppliers;
+          supplierHealthEl.innerHTML = [
+            {
+              label: 'Total supplier accounts',
+              value: s.total || 0,
+              href: '/admin-users?role=supplier',
+              warn: false,
+            },
+            {
+              label: 'Pending approval',
+              value: s.pending || 0,
+              href: '/admin-suppliers?status=pending',
+              warn: (s.pending || 0) > 0,
+            },
+            {
+              label: 'Approved',
+              value: s.approved || 0,
+              href: '/admin-suppliers?status=approved',
+              warn: false,
+            },
+            {
+              label: 'Supplier with no profile',
+              value: s.suppliersWithoutProfile || 0,
+              href: '/admin-users?issue=supplier_profile_missing',
+              warn: (s.suppliersWithoutProfile || 0) > 0,
+            },
+            {
+              label: 'Orphaned profiles',
+              value: s.orphanedSuppliers || 0,
+              href: '/admin-suppliers',
+              warn: (s.orphanedSuppliers || 0) > 0,
+            },
+          ]
+            .map(
+              r => `<div class="dash-health-row">
+              <span class="dash-health-row__label">${r.label}</span>
+              <a href="${r.href}" class="dash-health-row__value ${r.warn && r.value > 0 ? 'dash-health-row__value--warn' : ''}">${r.value.toLocaleString()}</a>
+            </div>`
+            )
+            .join('');
+        }
+      }
     } else if (totalUsersEl) {
       totalUsersEl.textContent = counts.usersTotal || 0;
     }
@@ -297,7 +399,10 @@
 
     const totalSuppliersEl = document.getElementById('totalSuppliersCount');
     if (totalSuppliersEl && window.AdminShared && window.AdminShared.animateCounter) {
-      window.AdminShared.animateCounter(totalSuppliersEl, counts.suppliersTotal || 0);
+      window.AdminShared.animateCounter(
+        totalSuppliersEl,
+        (summary && summary.byRole && summary.byRole.supplier) || counts.suppliersTotal || 0
+      );
     } else if (totalSuppliersEl) {
       totalSuppliersEl.textContent = counts.suppliersTotal || 0;
     }
@@ -555,9 +660,10 @@
         }
 
         return Promise.all([
-          api('/api/admin/users').catch(err => {
-            console.warn('Failed to load users:', err.message);
-            return { items: [] };
+          // Use the shared summary service — same source as Users Centre
+          api('/api/admin/users/summary').catch(err => {
+            console.warn('Failed to load user summary:', err.message);
+            return null;
           }),
           api('/api/admin/metrics').catch(err => {
             console.warn('Failed to load metrics:', err.message);

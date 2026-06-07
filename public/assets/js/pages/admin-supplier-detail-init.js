@@ -1110,6 +1110,7 @@
               ? `<table style="width:100%;border-collapse:collapse;font-size:0.875rem;">
             <tr><td style="padding:0.3rem 0;color:#6b7280;">Email</td><td style="padding:0.3rem 0;word-break:break-all;">${escapeHtml(user.email)}</td></tr>
             <tr><td style="padding:0.3rem 0;color:#6b7280;">Verified</td><td>${apBool(user.verified)}</td></tr>
+            <tr><td style="padding:0.3rem 0;color:#6b7280;">User account</td><td style="padding:0.3rem 0;"><a href="/admin-user-detail?id=${escapeHtml(user.id || '')}" style="color:#0B8073;text-decoration:none;font-weight:600;">View User Detail →</a></td></tr>
             <tr><td style="padding:0.3rem 0;color:#6b7280;">Prefs enabled</td><td>${apBool(user.emailPrefsEnabled)}</td></tr>
             <tr><td style="padding:0.3rem 0;color:#6b7280;">Pref: packages</td><td>${apBool(user.emailPrefsPerType.missingPackages)}</td></tr>
             <tr><td style="padding:0.3rem 0;color:#6b7280;">Pref: profile</td><td>${apBool(user.emailPrefsPerType.incompleteProfile)}</td></tr>
