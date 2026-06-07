@@ -57,6 +57,8 @@ async function sendVerificationEmail(to, name, verificationLink) {
     },
     from: postmark.FROM_NOREPLY,
     messageStream: 'outbound',
+    tags: ['verification', 'transactional'],
+    criticalDelivery: true,
   });
 }
 
@@ -78,6 +80,8 @@ async function sendPasswordResetEmail(to, name, resetLink) {
     },
     from: postmark.FROM_NOREPLY,
     messageStream: 'password-reset',
+    tags: ['password-reset', 'transactional'],
+    criticalDelivery: true,
   });
 }
 

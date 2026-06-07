@@ -1,6 +1,7 @@
 (async function () {
   const urlParams = new URLSearchParams(window.location.search);
   const userId = urlParams.get('id');
+  const encodedUserId = encodeURIComponent(userId || '');
 
   if (!userId) {
     document.getElementById('userDetailsContainer').innerHTML =
@@ -10,7 +11,7 @@
 
   async function loadUserDetails() {
     try {
-      const user = await AdminShared.api(`/api/admin/users/${userId}`);
+      const user = await AdminShared.api(`/api/admin/users/${encodedUserId}`);
       renderUserDetails(user);
     } catch (err) {
       console.error('Failed to load user:', err);
@@ -19,13 +20,66 @@
     }
   }
 
+  function humanize(value) {
+    return String(value || 'unknown')
+      .replace(/_/g, ' ')
+      .replace(/(^|\s)([a-z])/g, (_m, prefix, c) => prefix + c.toUpperCase());
+  }
+
+  function canResendVerification(user) {
+    if (!user || user.verified) {
+      return false;
+    }
+    if (
+      ['google_verified_email', 'admin_created', 'owner_account'].includes(user.verificationMethod)
+    ) {
+      return false;
+    }
+    if (['google', 'admin_created', 'owner_seed'].includes(user.signupMethod)) {
+      return false;
+    }
+    return true;
+  }
+
+  function provenancePanel(user) {
+    const verifiedBy = user.verifiedBy
+      ? [user.verifiedBy.type, user.verifiedBy.provider, user.verifiedBy.reason]
+          .filter(Boolean)
+          .join(' — ')
+      : 'N/A';
+    const logLink = user.lastVerificationEmailLogId
+      ? `<a href="/admin-emails?logId=${encodeURIComponent(user.lastVerificationEmailLogId)}">${AdminShared.escapeHtml(user.lastVerificationEmailLogId)}</a>`
+      : 'N/A';
+    return `
+      <div class="card">
+        <h3>Account Provenance</h3>
+        <div class="user-info-grid">
+          <div class="info-item"><div class="info-label">Signup method</div><div class="info-value">${AdminShared.escapeHtml(humanize(user.signupMethod))}</div></div>
+          <div class="info-item"><div class="info-label">Auth provider</div><div class="info-value">${AdminShared.escapeHtml(humanize(user.authProvider))}</div></div>
+          <div class="info-item"><div class="info-label">Verified</div><div class="info-value">${user.verified ? 'Yes' : 'No'}</div></div>
+          <div class="info-item"><div class="info-label">Verification method</div><div class="info-value">${AdminShared.escapeHtml(humanize(user.verificationMethod))}</div></div>
+          <div class="info-item"><div class="info-label">Verified at</div><div class="info-value">${AdminShared.escapeHtml(AdminShared.formatDate(user.verifiedAt))}</div></div>
+          <div class="info-item"><div class="info-label">Verified by</div><div class="info-value">${AdminShared.escapeHtml(verifiedBy)}</div></div>
+          <div class="info-item"><div class="info-label">Google linked</div><div class="info-value">${user.hasGoogleLink ? 'Yes' : 'No'}</div></div>
+          <div class="info-item"><div class="info-label">Google linked at</div><div class="info-value">${AdminShared.escapeHtml(AdminShared.formatDate(user.googleLinkedAt))}</div></div>
+          <div class="info-item"><div class="info-label">Verification email sent at</div><div class="info-value">${AdminShared.escapeHtml(AdminShared.formatDate(user.verificationEmailSentAt))}</div></div>
+          <div class="info-item"><div class="info-label">Last verification email status</div><div class="info-value">${AdminShared.escapeHtml(humanize(user.emailDeliveryStatus))}</div></div>
+          <div class="info-item"><div class="info-label">Postmark MessageID</div><div class="info-value">${AdminShared.escapeHtml(user.lastVerificationEmailPostmarkMessageId || 'N/A')}</div></div>
+          <div class="info-item"><div class="info-label">Email Centre log</div><div class="info-value">${logLink}</div></div>
+        </div>
+      </div>`;
+  }
+
   function getRoleBadge(role) {
-    return AdminShared.getRoleBadge ? AdminShared.getRoleBadge(role) : (
-      role === 'admin' ? '<span class="badge badge-admin">🛡️ Admin</span>' :
-      role === 'supplier' ? '<span class="badge badge-supplier-account">🏪 Supplier</span>' :
-      role === 'partner' ? '<span class="badge badge-partner">🤝 Partner</span>' :
-      '<span class="badge badge-customer">🎉 Customer</span>'
-    );
+    return AdminShared.getRoleBadge
+      ? AdminShared.getRoleBadge(role)
+      : role === 'admin'
+        ? '<span class="badge badge-admin">🛡️ Admin</span>'
+        : role === 'supplier'
+          ? '<span class="badge badge-supplier-account">🏪 Supplier</span>'
+          : role === 'partner'
+            ? '<span class="badge badge-partner">🤝 Partner</span>'
+            : '<span class="badge badge-customer">🎉 Customer</span>';
   }
 
   function renderUserDetails(user) {
@@ -63,7 +117,7 @@
           </div>
         </div>
       </div>
-      
+      ${provenancePanel(user)}
       <div class="card">
         <h3>Edit User</h3>
         <form id="editUserForm">
@@ -103,7 +157,7 @@
           <div class="action-buttons">
             <button type="submit" class="ef-cta btn btn-primary">Save Changes</button>
             <button type="button" class="ef-cta btn btn-secondary" id="resetPasswordBtn">Reset Password</button>
-            ${!user.verified ? '<button type="button" class="ef-cta btn btn-secondary" id="resendVerificationBtn">Resend Verification Email</button>' : ''}
+            ${canResendVerification(user) ? '<button type="button" class="ef-cta btn btn-secondary" id="resendVerificationBtn">Resend Verification Email</button>' : ''}
             <button type="button" class="ef-cta btn btn-danger" id="suspendUserBtn">${user.suspended ? 'Unsuspend' : 'Suspend'} User</button>
             <button type="button" class="ef-cta btn btn-danger" id="deleteUserBtn">Delete User</button>
           </div>
@@ -151,7 +205,7 @@
         marketingOptIn: document.getElementById('userMarketingOptIn').checked,
       };
 
-      await AdminShared.api(`/api/admin/users/${userId}`, 'PUT', data);
+      await AdminShared.api(`/api/admin/users/${encodedUserId}`, 'PUT', data);
       AdminShared.showToast('User updated successfully', 'success');
       await loadUserDetails();
     } catch (err) {
@@ -171,7 +225,7 @@
     }
 
     try {
-      await AdminShared.api(`/api/admin/users/${userId}/reset-password`, 'POST');
+      await AdminShared.api(`/api/admin/users/${encodedUserId}/reset-password`, 'POST');
       AdminShared.showToast('Password reset email sent', 'success');
     } catch (err) {
       AdminShared.showToast(`Failed to send reset email: ${err.message}`, 'error');
@@ -190,7 +244,7 @@
     }
 
     try {
-      await AdminShared.api(`/api/admin/users/${userId}/resend-verification`, 'POST');
+      await AdminShared.api(`/api/admin/users/${encodedUserId}/resend-verification`, 'POST');
       AdminShared.showToast('Verification email sent successfully', 'success');
     } catch (err) {
       AdminShared.showToast(`Failed to send verification email: ${err.message}`, 'error');
@@ -210,7 +264,7 @@
     }
 
     try {
-      await AdminShared.api(`/api/admin/users/${userId}/${action}`, 'POST');
+      await AdminShared.api(`/api/admin/users/${encodedUserId}/${action}`, 'POST');
       AdminShared.showToast(`User ${action}ed successfully`, 'success');
       await loadUserDetails();
     } catch (err) {
@@ -238,7 +292,7 @@
     }
 
     try {
-      await AdminShared.api(`/api/admin/users/${userId}`, 'DELETE');
+      await AdminShared.api(`/api/admin/users/${encodedUserId}`, 'DELETE');
       AdminShared.showToast('User deleted successfully', 'success');
       setTimeout(() => {
         location.href = '/admin-users';

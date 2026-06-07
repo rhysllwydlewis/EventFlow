@@ -59,14 +59,27 @@
       ['Verification users checked', provenance.checkedUsers],
       ['Verification critical issues', provenance.criticalIssues],
       ['Verification warnings', provenance.warnings],
-      ['Email/password users missing verification logs', provenance.emailPasswordUsersMissingVerificationEmailLogs],
+      [
+        'Email/password users missing verification logs',
+        provenance.emailPasswordUsersMissingVerificationEmailLogs,
+      ],
       ['Google users with valid provenance', provenance.googleUsersWithValidProvenance],
+      ['Verification email logs', provenance.verificationEmailLogs],
       ['Verification emails saved to outbox', provenance.outboxVerificationEmailLogs],
       ['Failed verification emails', provenance.failedVerificationEmailLogs],
       ['Bounced verification emails', provenance.bouncedVerificationEmailLogs],
+      ['Last verification email attempt', formatDate(provenance.lastVerificationEmailAttemptAt)],
+      [
+        'Last successful verification email',
+        formatDate(provenance.lastSuccessfulVerificationEmailAt),
+      ],
+      ['Last failed verification email', formatDate(provenance.lastFailedVerificationEmailAt)],
     ];
     document.getElementById('emailHealthList').innerHTML = rows
-      .map(([term, desc]) => `<div><dt>${escapeHtml(term)}</dt><dd>${escapeHtml(desc ?? '—')}</dd></div>`)
+      .map(
+        ([term, desc]) =>
+          `<div><dt>${escapeHtml(term)}</dt><dd>${escapeHtml(desc ?? '—')}</dd></div>`
+      )
       .join('');
   }
 

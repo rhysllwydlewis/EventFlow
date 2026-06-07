@@ -34,3 +34,27 @@ Critical account emails, including verification and reset emails, should not sil
 ## Privacy
 
 The admin UI should show metadata only. It must not expose raw Google subjects, reset links, verification links, full email bodies, Postmark API keys or webhook credentials.
+
+## Follow-up completion after PR1157/PR1158
+
+This follow-up standardises persisted account provenance on user records for all auth write paths:
+
+- Email/password registration starts as `signupMethod=email_password`, `authProvider=local`, `verificationMethod=pending` and records the verification email log/Postmark IDs after a successful critical send.
+- EventFlow verification links set `verificationMethod=eventflow_email`, `verifiedAt` and a safe `verifiedBy.type=user` summary.
+- Google sign-up/linking records `signupMethod=google` or `authProvider=mixed` as appropriate, `verificationMethod=google_verified_email`, `verifiedBy.type=google`, and `emailDeliveryStatus=not_required`.
+- Admin-created accounts record `signupMethod=admin_created`, `authProvider=admin`, `verificationMethod=admin_created` and safe admin actor provenance.
+- Owner/system accounts record `verificationMethod=owner_account` and `emailDeliveryStatus=not_required`.
+
+Critical auth emails (`verification` and `password-reset`) now use `criticalDelivery=true`; in production they fail clearly if Postmark is unavailable instead of silently treating an outbox fallback as success. The Admin Users API includes safe provenance fields without raw `googleSub`, tokens, email body content or verification/reset links.
+
+A safe dry-run backfill is available:
+
+```bash
+node scripts/backfill-user-verification-provenance.js
+```
+
+Apply with:
+
+```bash
+node scripts/backfill-user-verification-provenance.js --apply
+```

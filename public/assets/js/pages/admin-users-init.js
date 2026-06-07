@@ -9,6 +9,69 @@
     return div.innerHTML;
   }
 
+  function humanize(value) {
+    return String(value || 'unknown')
+      .replace(/_/g, ' ')
+      .replace(/(^|\s)([a-z])/g, (_m, prefix, c) => prefix + c.toUpperCase());
+  }
+
+  function badge(label, type) {
+    return `<span class="badge badge-${type || 'secondary'}" style="display:inline-block;margin:1px 2px 1px 0;white-space:nowrap;">${escapeHtml(label)}</span>`;
+  }
+
+  function verificationBadge(user) {
+    switch (user.verificationMethod) {
+      case 'google_verified_email':
+        return badge('Google verified', 'success');
+      case 'eventflow_email':
+        return badge('Verified by EventFlow email', 'success');
+      case 'admin_created':
+        return badge('Admin-created verified', 'info');
+      case 'owner_account':
+        return badge('Owner account', 'warning');
+      case 'pending':
+        return badge('Email verification pending', 'warning');
+      default:
+        return badge('Unknown verification source', 'danger');
+    }
+  }
+
+  function emailStatusBadge(status) {
+    switch (status) {
+      case 'not_required':
+        return badge('No EventFlow email required', 'secondary');
+      case 'sent':
+        return badge('Email sent', 'info');
+      case 'delivered':
+        return badge('Delivered', 'success');
+      case 'failed':
+        return badge('Email failed', 'danger');
+      case 'outbox':
+        return badge('Outbox fallback', 'warning');
+      case 'bounced':
+        return badge('Bounced', 'danger');
+      case 'pending':
+        return badge('Email pending', 'warning');
+      default:
+        return badge('Email unknown', 'secondary');
+    }
+  }
+
+  function canResendVerification(user) {
+    if (!user || user.verified) {
+      return false;
+    }
+    if (
+      ['google_verified_email', 'admin_created', 'owner_account'].includes(user.verificationMethod)
+    ) {
+      return false;
+    }
+    if (['google', 'admin_created', 'owner_seed'].includes(user.signupMethod)) {
+      return false;
+    }
+    return true;
+  }
+
   function formatDate(dateStr) {
     if (!dateStr) {
       return 'Never';
@@ -32,7 +95,7 @@
     // Show loading state
     AdminShared.showLoadingState(tbody, {
       rows: 5,
-      cols: 10,
+      cols: 12,
       message: 'Loading users...',
     });
 
@@ -50,7 +113,7 @@
       AdminShared.showErrorState(tbody, {
         message: 'Failed to load users. Please try again.',
         onRetry: loadAdminUsers,
-        colspan: 10,
+        colspan: 12,
       });
     }
   }
@@ -132,7 +195,7 @@
 
           renderUsers();
         },
-        colspan: 10,
+        colspan: 12,
       });
       return;
     }
@@ -164,7 +227,7 @@
         const actionsHtml = `
           <button class="btn btn-secondary btn-sm" data-manage-subscription="${userId}" style="font-size:12px;padding:4px 8px;margin-right:4px;">Manage Subscription</button>
           ${
-            !u.verified
+            canResendVerification(u)
               ? `<button class="btn btn-secondary btn-sm" data-resend-verification="${userId}" style="font-size:12px;padding:4px 8px;">Resend Verification</button>`
               : ''
           }
@@ -177,7 +240,9 @@
           `<td><a href="/admin-user-detail?id=${userId}" style="color:#3b82f6;text-decoration:none;">${escapeHtml(u.email || '')}</a></td>` +
           `<td>${roleBadge}</td>` +
           `<td>${subscriptionBadge}</td>` +
-          `<td>${u.verified ? '✓ Yes' : '✗ No'}</td>` +
+          `<td>${u.verified ? '✓ Yes' : '✗ No'}<div>${verificationBadge(u)}</div></td>` +
+          `<td>${badge(humanize(u.signupMethod), 'secondary')}<br>${badge(humanize(u.authProvider), 'secondary')}</td>` +
+          `<td>${emailStatusBadge(u.emailDeliveryStatus)}</td>` +
           `<td>${u.marketingOptIn ? 'Yes' : 'No'}</td>` +
           `<td>${formatDate(u.createdAt)}</td>` +
           `<td>${formatDate(u.lastLoginAt)}</td>` +

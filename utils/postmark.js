@@ -325,6 +325,7 @@ async function sendMail(options) {
     tags,
     trackOpens = true,
     trackLinks = 'HtmlAndText',
+    criticalDelivery = false,
   } = options;
 
   const logOptions = {
@@ -334,6 +335,7 @@ async function sendMail(options) {
     messageStream: options.messageStream || 'outbound',
   };
   const emailLog = await createEmailAttemptLogSafe(logOptions);
+  const logId = emailLog && emailLog.id ? emailLog.id : null;
 
   // Log email attempt for debugging (mask email in production)
   const isProduction = process.env.NODE_ENV === 'production';
@@ -352,6 +354,17 @@ async function sendMail(options) {
     // Check if Postmark is enabled
     if (!POSTMARK_ENABLED || !postmarkClient) {
       logger.warn('⚠️  Postmark not configured - saving email to /outbox instead');
+      if (criticalDelivery && process.env.NODE_ENV === 'production') {
+        const criticalError = new Error(
+          'Critical email delivery failed: Postmark is not configured in production'
+        );
+        await updateEmailLogSafe(emailLog, {
+          provider: 'postmark',
+          status: 'failed',
+          errorMessage: criticalError.message,
+        });
+        throw criticalError;
+      }
 
       // Load template for outbox if needed
       let outboxHtml = html;
@@ -371,17 +384,23 @@ async function sendMail(options) {
       saveEmailToOutbox(outboxData);
 
       const outboxMessageId = `outbox-${Date.now()}`;
+      const sentAt = new Date().toISOString();
       await updateEmailLogSafe(emailLog, {
         provider: 'outbox',
         status: 'sent',
         postmarkMessageId: outboxMessageId,
-        sentAt: new Date().toISOString(),
+        sentAt,
       });
 
       return {
         status: 'disabled',
         message: 'Postmark not configured. Email saved to outbox.',
         MessageID: outboxMessageId,
+        PostmarkMessageID: null,
+        emailLogId: logId,
+        provider: 'outbox',
+        emailLogStatus: 'sent',
+        sentAt,
       };
     }
 
@@ -450,20 +469,30 @@ async function sendMail(options) {
       logger.info(`   Subject: ${emailData.Subject}`);
       logger.info(`   MessageID: ${response.MessageID}`);
       logger.info(`   Stream: ${emailData.MessageStream}`);
+      const sentAt = new Date().toISOString();
       await updateEmailLogSafe(emailLog, {
         provider: 'postmark',
         status: 'sent',
         postmarkMessageId: response.MessageID || null,
-        sentAt: new Date().toISOString(),
+        sentAt,
       });
-      return response;
+      return {
+        ...response,
+        PostmarkMessageID: response.MessageID || null,
+        emailLogId: logId,
+        provider: 'postmark',
+        emailLogStatus: 'sent',
+        sentAt,
+      };
     } catch (err) {
       logger.error('❌ Postmark send error:', err.message);
       logger.error('   To:', emailData.To);
       logger.error('   Subject:', emailData.Subject);
 
-      // Save to outbox as fallback for debugging
-      saveEmailToOutbox(emailData);
+      // Save to outbox as fallback for debugging outside production critical auth flows
+      if (!(criticalDelivery && process.env.NODE_ENV === 'production')) {
+        saveEmailToOutbox(emailData);
+      }
 
       // Re-throw error so calling code can handle it (e.g., rollback)
       throw new Error(`Failed to send email via Postmark: ${err.message}`);
@@ -527,6 +556,7 @@ async function sendVerificationEmail(user, verificationToken) {
     from: FROM_NOREPLY,
     tags: ['verification', 'transactional'],
     messageStream: 'outbound',
+    criticalDelivery: true,
   });
 }
 
@@ -553,6 +583,7 @@ async function sendPasswordResetEmail(user, resetToken) {
     from: FROM_NOREPLY,
     tags: ['password-reset', 'transactional'],
     messageStream: 'password-reset', // Use dedicated password-reset stream
+    criticalDelivery: true,
   });
 }
 
