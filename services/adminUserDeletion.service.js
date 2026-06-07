@@ -169,21 +169,52 @@ async function cleanupSupplierOwnedDataForUser(user, options = {}) {
     return summary;
   }
 
+  logger.info(`[adminUserDeletion] Starting supplier cascade cleanup for user ${userId}`);
+
   const supplierProfiles = await findMany('suppliers', { ownerUserId: userId });
   const supplierIds = supplierProfiles.map(s => s.id).filter(Boolean);
   summary.supplierIds = supplierIds;
 
+  logger.info(
+    `[adminUserDeletion] Found ${supplierProfiles.length} supplier profile(s) for user ${userId}: [${supplierIds.join(', ')}]`
+  );
+
+  // Even if no supplier profiles were found by ownerUserId, still attempt a direct
+  // package cleanup keyed on ownerUserId — guards against data where the supplier record
+  // was already removed manually but packages were left behind (e.g. createdBy field).
+  const directPackageFilter = { createdBy: userId };
+  const orphanedPackages = await findMany('packages', directPackageFilter);
+  const orphanedPackageIds = orphanedPackages.map(p => p.id).filter(Boolean);
+  if (orphanedPackageIds.length) {
+    logger.info(
+      `[adminUserDeletion] Found ${orphanedPackageIds.length} orphaned package(s) via createdBy for user ${userId}`
+    );
+    const orphanPkgDeleted = await deleteManyCount('packages', directPackageFilter);
+    summary.deletedPackages += orphanPkgDeleted;
+    summary.deletedPackageIds.push(...orphanedPackageIds);
+  }
+
   if (!supplierIds.length) {
+    if (!orphanedPackageIds.length) {
+      logger.info(`[adminUserDeletion] No supplier data found for user ${userId} — skipping`);
+    }
+    await invalidatePublicSupplierCaches();
     return summary;
   }
 
   const supplierIdFilter = { $in: supplierIds };
   const packages = await findMany('packages', { supplierId: supplierIdFilter });
   const packageIds = packages.map(p => p.id).filter(Boolean);
-  summary.deletedPackageIds = packageIds;
+  // Merge with any already found via direct lookup above
+  const allPackageIds = [...new Set([...summary.deletedPackageIds, ...packageIds])];
+  summary.deletedPackageIds = allPackageIds;
+
+  logger.info(
+    `[adminUserDeletion] Deleting ${packageIds.length} package(s) for suppliers [${supplierIds.join(', ')}]`
+  );
 
   // Remove public/listing records that exist only to expose the supplier publicly.
-  summary.deletedPackages = await deleteManyCount('packages', { supplierId: supplierIdFilter });
+  summary.deletedPackages += await deleteManyCount('packages', { supplierId: supplierIdFilter });
   summary.deletedPhotos = await deleteManyCount('photos', { supplierId: supplierIdFilter });
   summary.deletedSupplierAnalytics = await deleteManyCount('supplierAnalytics', {
     supplierId: supplierIdFilter,
@@ -205,12 +236,12 @@ async function cleanupSupplierOwnedDataForUser(user, options = {}) {
   summary.cleanedReferences += await deleteManyCount('shortlists', {
     supplierId: supplierIdFilter,
   });
-  if (packageIds.length) {
+  if (allPackageIds.length) {
     summary.cleanedReferences += await deleteManyCount('savedItems', {
-      packageId: { $in: packageIds },
+      packageId: { $in: allPackageIds },
     });
     summary.cleanedReferences += await deleteManyCount('shortlists', {
-      packageId: { $in: packageIds },
+      packageId: { $in: allPackageIds },
     });
   }
 
@@ -238,6 +269,11 @@ async function cleanupSupplierOwnedDataForUser(user, options = {}) {
   }
 
   summary.deletedSuppliers = await deleteManyCount('suppliers', { ownerUserId: userId });
+  logger.info(
+    `[adminUserDeletion] Cascade complete for user ${userId}: ` +
+      `${summary.deletedSuppliers} supplier(s), ${summary.deletedPackages} package(s), ` +
+      `${summary.deletedPhotos} photo(s), ${summary.cleanedReferences} reference(s) cleaned`
+  );
   await invalidatePublicSupplierCaches();
   return summary;
 }

@@ -176,7 +176,15 @@ function invalidatePackageCaches() {
 router.get('/suppliers', async (req, res) => {
   try {
     const { category, q, price } = req.query;
-    let items = (await dbUnified.read('suppliers')).filter(s => s.approved);
+
+    // Load users once and build a fast lookup set so orphaned supplier profiles
+    // (whose owner account was deleted) are excluded from public results.
+    const users = await dbUnified.read('users');
+    const validUserIds = new Set(users.map(u => u.id).filter(Boolean));
+
+    let items = (await dbUnified.read('suppliers')).filter(
+      s => s.approved && (!s.ownerUserId || validUserIds.has(s.ownerUserId))
+    );
     if (category) {
       items = items.filter(s => s.category === category);
     }
@@ -259,6 +267,15 @@ router.get('/suppliers/:id', async (req, res) => {
 
     if (!sRaw.approved && !isAdmin && !isOwner) {
       return res.status(404).json({ error: 'Supplier not found' });
+    }
+
+    // Reject orphaned supplier profiles whose owner account no longer exists.
+    // Admins can still view them for moderation purposes.
+    if (!isAdmin && sRaw.ownerUserId) {
+      const ownerUser = await dbUnified.findOne('users', { id: sRaw.ownerUserId });
+      if (!ownerUser) {
+        return res.status(404).json({ error: 'Supplier not found' });
+      }
     }
 
     const pkgs = await dbUnified.read('packages');
@@ -655,7 +672,14 @@ router.get('/packages/:slug', async (req, res) => {
   try {
     const packages = await dbUnified.read('packages');
     const suppliers = await dbUnified.read('suppliers');
-    const approvedSupplierIds = new Set(suppliers.filter(s => s.approved).map(s => s.id));
+    const users = await dbUnified.read('users');
+    const validUserIds = new Set(users.map(u => u.id).filter(Boolean));
+    // Only include approved suppliers whose owner account still exists
+    const approvedSupplierIds = new Set(
+      suppliers
+        .filter(s => s.approved && (!s.ownerUserId || validUserIds.has(s.ownerUserId)))
+        .map(s => s.id)
+    );
     const param = decodeURIComponent(req.params.slug || '').trim();
     const normalisedParam = normalisePackageSlug(param);
     const pkg = packages.find(p => {
@@ -672,7 +696,9 @@ router.get('/packages/:slug', async (req, res) => {
       return res.status(404).json({ error: 'Package not found' });
     }
 
-    const supplier = suppliers.find(s => s.id === pkg.supplierId && s.approved);
+    const supplier = suppliers.find(
+      s => s.id === pkg.supplierId && s.approved && (!s.ownerUserId || validUserIds.has(s.ownerUserId))
+    );
     if (!supplier) {
       return res.status(404).json({ error: 'Package not found' });
     }

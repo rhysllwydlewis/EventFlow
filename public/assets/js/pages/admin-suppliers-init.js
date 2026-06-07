@@ -423,10 +423,16 @@
             ? '<span style="color: #f59e0b;">Pending</span><br><span style="font-size:10px;background:#fef3c7;color:#92400e;border:1px solid #fde68a;border-radius:999px;padding:1px 6px;white-space:nowrap;">🔍 Awaiting review</span>'
             : '<span style="color: #9ca3af;">Unapproved</span>';
 
+
+        // Orphaned supplier — owner account has been deleted; flagged for admin attention
+        const orphanBadge = supplier._ownerDeleted
+          ? ' <span title="Owner account deleted - not visible to the public" style="font-size:10px;background:#fee2e2;color:#991b1b;border:1px solid #fca5a5;border-radius:999px;padding:1px 6px;white-space:nowrap;cursor:help;">Owner deleted</span>'
+          : '';
+
         return `
-        <tr>
+        <tr${supplier._ownerDeleted ? ' style="opacity:0.75;background:#fff7f7;"' : ''}>
           <td><input type="checkbox" aria-label="Select ${escapeHtml(supplier.name || 'supplier')}" ${isSelected ? 'checked' : ''} data-action="toggleSelect" data-id="${escapeHtml(supplier.id)}"></td>
-          <td><a href="/admin-supplier-detail?id=${escapeHtml(supplier.id)}" style="color: #667eea; font-weight: 500;">${escapeHtml(supplier.name || 'Unknown')}</a></td>
+          <td><a href="/admin-supplier-detail?id=${escapeHtml(supplier.id)}" style="color: #667eea; font-weight: 500;">${escapeHtml(supplier.name || 'Unknown')}</a>${orphanBadge}</td>
           <td>${escapeHtml(supplier.email || '')}</td>
           <td>${approvalCell}</td>
           <td>${verificationBadge}</td>
