@@ -184,21 +184,28 @@ async function saveImageBase64(base64, namePrefix) {
  * GET /api/me/packages
  * List supplier's packages
  */
-router.get('/me/packages', applyAuthRequired, applyRoleRequired('supplier'), async (req, res) => {
-  try {
-    // Use indexed lookups instead of full collection scans
-    const mySuppliers = await dbUnified.find('suppliers', { ownerUserId: req.user.id });
-    const supplierIds = mySuppliers.map(s => s.id);
-    const items =
-      supplierIds.length > 0
-        ? await dbUnified.find('packages', { supplierId: { $in: supplierIds } })
-        : [];
-    res.json({ items });
-  } catch (error) {
-    logger.error('Error reading supplier packages:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+router.get(
+  '/me/packages',
+  applyAuthRequired,
+  applyRoleRequired('supplier'),
+  applyRequireApprovedSupplier,
+  async (req, res) => {
+    try {
+      // Use the approved supplier profile resolved by requireApprovedSupplier where available.
+      const supplierIds = req.supplierProfile?.id
+        ? [req.supplierProfile.id]
+        : (await dbUnified.find('suppliers', { ownerUserId: req.user.id })).map(s => s.id);
+      const items =
+        supplierIds.length > 0
+          ? await dbUnified.find('packages', { supplierId: { $in: supplierIds } })
+          : [];
+      res.json({ items });
+    } catch (error) {
+      logger.error('Error reading supplier packages:', error);
+      return res.status(500).json({ error: 'Internal server error' });
+    }
   }
-});
+);
 
 /**
  * POST /api/me/packages
@@ -213,10 +220,10 @@ router.post(
   applyRequireApprovedSupplier,
   applyCsrfProtection,
   async (req, res) => {
-    const { supplierId, title, description, price, image, primaryCategoryKey, eventTypes } =
-      req.body || {};
-    if (!supplierId || !title) {
-      return res.status(400).json({ error: 'Missing required fields: supplierId and title' });
+    let { supplierId } = req.body || {};
+    const { title, description, price, image, primaryCategoryKey, eventTypes } = req.body || {};
+    if (!title) {
+      return res.status(400).json({ error: 'Missing required field: title' });
     }
 
     // Price is required — suppliers must provide a specific figure
@@ -243,9 +250,44 @@ router.post(
       return res.status(400).json({ error: 'Event types must be "wedding" or "other"' });
     }
 
-    const own = await dbUnified.findOne('suppliers', { id: supplierId, ownerUserId: req.user.id });
+    const ownedSuppliers = req.supplierProfile
+      ? [req.supplierProfile]
+      : await dbUnified.find('suppliers', { ownerUserId: req.user.id });
+
+    if (!supplierId && ownedSuppliers.length === 1) {
+      supplierId = ownedSuppliers[0].id;
+      logger.warn(
+        'Package create defaulted missing supplierId to the only owned supplier profile',
+        {
+          userId: req.user.id,
+          supplierId,
+        }
+      );
+    }
+
+    if (!supplierId) {
+      return res.status(400).json({
+        error: 'Missing required field: supplierId',
+        code: 'SUPPLIER_ID_REQUIRED',
+      });
+    }
+
+    const own = ownedSuppliers.find(s => s && s.id === supplierId);
     if (!own) {
-      return res.status(403).json({ error: 'Forbidden' });
+      return res.status(403).json({
+        error: 'Supplier profile ownership failed',
+        code: 'SUPPLIER_PROFILE_OWNERSHIP_FAILED',
+        message: 'Packages can only be created for a supplier profile owned by your account.',
+      });
+    }
+
+    if (own.approved !== true) {
+      return res.status(403).json({
+        error: 'Supplier not approved',
+        code: 'SUPPLIER_NOT_APPROVED',
+        message:
+          'Your supplier profile is pending admin approval. You will be notified once your account has been reviewed.',
+      });
     }
 
     // Check subscription and get package limit

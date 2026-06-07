@@ -36,6 +36,7 @@ const { validateToken } = require('../middleware/token');
 const domainAdmin = require('../middleware/domain-admin');
 const googleAuthService = require('../services/googleAuth.service');
 const userProvenance = require('../services/userProvenance.service');
+const { ensureSupplierProfileForUser } = require('../services/supplierProfileProvisioning.service');
 
 const router = express.Router();
 
@@ -435,8 +436,36 @@ router.post(
       });
     }
 
+    if (user.role === 'supplier') {
+      try {
+        await ensureSupplierProfileForUser(user);
+      } catch (profileError) {
+        logger.error('[REGISTER] failed to provision supplier profile; rolling back user', {
+          userId: user.id,
+          email: normalizedEmail,
+          error: profileError.message,
+        });
+
+        const rolledBack = await dbUnified.deleteOne('users', { id: user.id });
+        if (!rolledBack) {
+          await dbUnified.updateOne(
+            'users',
+            { id: user.id },
+            { $set: { supplierSetupStatus: 'profile_creation_failed' } }
+          );
+        }
+
+        return res.status(500).json({
+          error: 'Failed to create supplier profile. Please try again.',
+          code: 'SUPPLIER_PROFILE_PROVISIONING_FAILED',
+          message:
+            'We could not finish setting up your supplier business profile. Please try again or contact support if the problem continues.',
+        });
+      }
+    }
+
     // Record partner referral if a valid ref code was provided (non-blocking)
-    if (refCode && roleFinal === 'supplier') {
+    if (refCode && user.role === 'supplier') {
       try {
         const partnerService = require('../services/partnerService');
         const partner = await partnerService.getPartnerByRefCode(String(refCode).trim());

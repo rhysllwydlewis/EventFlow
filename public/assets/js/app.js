@@ -3036,7 +3036,11 @@ async function initDashSupplier() {
         // migration). The thrown Error propagates to the caller's catch block, which shows a
         // user-visible message via the status element — so 404s never fail silently.
         const errorData = await r.json().catch(() => ({ error: 'Request failed' }));
-        throw new Error(errorData.error || `HTTP ${r.status}`);
+        const err = new Error(errorData.message || errorData.error || `HTTP ${r.status}`);
+        err.code = errorData.code || '';
+        err.setupUrl = errorData.setupUrl || '';
+        err.status = r.status;
+        throw err;
       }
       return r.json();
     } catch (error) {
@@ -3082,6 +3086,10 @@ async function initDashSupplier() {
       );
       cachedSuppliers = items; // Cache for use within initDashSupplier scope
       window._efCachedSuppliers = items; // Expose globally for editProfile()
+      const hasSupplierProfile = items.length > 0;
+      const hasApprovedSupplierProfile = items.some(s => s && s.approved === true);
+      window._supplierProfileMissing = !hasSupplierProfile;
+      window._supplierApprovalBlocked = hasSupplierProfile && !hasApprovedSupplierProfile;
       // If this user has at least one Pro supplier, treat them as Pro.
       // Check subscriptionTier (new field) first, then subscription.tier, then legacy isPro boolean.
       currentIsPro = items.some(s => {
@@ -3168,7 +3176,7 @@ async function initDashSupplier() {
 
       if (!items || items.length === 0) {
         supWrap.innerHTML =
-          '<div class="sd-empty-state"><div class="sd-empty-state__icon" aria-hidden="true">👤</div><div class="sd-empty-state__body"><p class="sd-empty-state__title">No profiles yet</p><p class="sd-empty-state__desc">Create your first supplier profile to start attracting clients.</p></div></div>';
+          '<div class="sd-empty-state"><div class="sd-empty-state__icon" aria-hidden="true">👤</div><div class="sd-empty-state__body"><p class="sd-empty-state__title">Supplier profile setup needed</p><p class="sd-empty-state__desc">Your supplier account needs a linked business profile before you can create packages.</p><a class="sd-empty-state__cta" href="#profile-form" data-action="open-profile-form">Complete supplier profile →</a></div></div>';
         // Update quick-stat-profiles with the real count (0)
         const quickStatProfiles = document.getElementById('quick-stat-profiles');
         if (quickStatProfiles) {
@@ -3756,6 +3764,10 @@ async function initDashSupplier() {
       // Only block *creating* new packages — editing existing ones must remain allowed.
       const pkgForm = document.getElementById('package-form');
       const pkgStatus = document.getElementById('pkg-status');
+      const supplierBlocked = window._supplierProfileMissing || window._supplierApprovalBlocked;
+      const supplierBlockMessage = window._supplierProfileMissing
+        ? 'Complete your supplier profile setup before creating packages.'
+        : 'Your supplier profile is pending approval. Package creation unlocks after approval.';
       const atLimit = !currentIsPro && activeCount >= freeLimit;
       // Expose globally so togglePackageForm() and editPackage() can reference it.
       window._pkgAtLimit = atLimit;
@@ -3782,6 +3794,16 @@ async function initDashSupplier() {
             toggleBtn.title = `You've reached your ${freeLimit}-package limit. Pause or delete a package, or upgrade your plan.`;
             if (labelEl) {
               labelEl.textContent = window._pkgLimitLabel;
+            }
+          } else if (supplierBlocked) {
+            toggleBtn.disabled = true;
+            toggleBtn.classList.add('form-toggle-btn--at-limit');
+            toggleBtn.setAttribute('aria-label', supplierBlockMessage);
+            toggleBtn.title = supplierBlockMessage;
+            if (labelEl) {
+              labelEl.textContent = window._supplierProfileMissing
+                ? 'Profile setup needed'
+                : 'Pending approval';
             }
           } else {
             toggleBtn.disabled = false;
@@ -3816,8 +3838,8 @@ async function initDashSupplier() {
         const isEditMode = !!editingId;
 
         // Only apply the limit restriction when in create mode.
-        const shouldDisable = atLimit && !isEditMode;
-        setPkgFormDisabled(shouldDisable);
+        const shouldDisable = (atLimit || supplierBlocked) && !isEditMode;
+        setPkgFormDisabled(shouldDisable, supplierBlocked ? supplierBlockMessage : undefined);
       }
 
       if (!items || items.length === 0) {
@@ -3872,8 +3894,16 @@ async function initDashSupplier() {
     } catch (err) {
       console.error('Error loading packages:', err);
       if (pkgsWrap) {
-        pkgsWrap.innerHTML =
-          '<div class="sd-empty-state"><div class="sd-empty-state__icon" aria-hidden="true">⚠️</div><div class="sd-empty-state__body"><p class="sd-empty-state__title">Could not load packages</p><p class="sd-empty-state__desc">Please refresh the page to try again.</p></div></div>';
+        if (err.code === 'SUPPLIER_PROFILE_MISSING') {
+          pkgsWrap.innerHTML =
+            '<div class="sd-empty-state"><div class="sd-empty-state__icon" aria-hidden="true">👤</div><div class="sd-empty-state__body"><p class="sd-empty-state__title">Supplier profile setup needed</p><p class="sd-empty-state__desc">Complete your supplier profile setup before creating packages.</p><a class="sd-empty-state__cta" href="#profile-form" data-action="open-profile-form">Complete supplier profile →</a></div></div>';
+        } else if (err.code === 'SUPPLIER_NOT_APPROVED') {
+          pkgsWrap.innerHTML =
+            '<div class="sd-empty-state"><div class="sd-empty-state__icon" aria-hidden="true">⏳</div><div class="sd-empty-state__body"><p class="sd-empty-state__title">Profile pending approval</p><p class="sd-empty-state__desc">Your supplier profile is awaiting admin approval. Package creation unlocks after approval.</p></div></div>';
+        } else {
+          pkgsWrap.innerHTML =
+            '<div class="sd-empty-state"><div class="sd-empty-state__icon" aria-hidden="true">⚠️</div><div class="sd-empty-state__body"><p class="sd-empty-state__title">Could not load packages</p><p class="sd-empty-state__desc">Please refresh the page to try again.</p></div></div>';
+        }
       }
     }
   }
@@ -4607,7 +4637,15 @@ async function initDashSupplier() {
           setPkgFormDisabled(true);
         }
       } catch (err) {
-        alert(`Error saving package: ${err.message || 'Please try again'}`);
+        if (err.code === 'SUPPLIER_PROFILE_MISSING') {
+          alert('Complete your supplier profile setup before creating packages.');
+        } else if (err.code === 'SUPPLIER_NOT_APPROVED') {
+          alert(
+            'Your supplier profile is pending approval. Package creation unlocks after approval.'
+          );
+        } else {
+          alert(`Error saving package: ${err.message || 'Please try again'}`);
+        }
       } finally {
         if (saveBtn) {
           // Restore button label. Only re-enable if NOT at the package limit:
@@ -4748,7 +4786,7 @@ const PKG_LIMIT_MESSAGE =
  *
  * @param {boolean} disable - true to disable (limit reached), false to enable.
  */
-function setPkgFormDisabled(disable) {
+function setPkgFormDisabled(disable, message) {
   const form = document.getElementById('package-form');
   if (!form) {
     return;
@@ -4758,7 +4796,7 @@ function setPkgFormDisabled(disable) {
   });
   const status = document.getElementById('pkg-status');
   if (status) {
-    status.textContent = disable ? PKG_LIMIT_MESSAGE : '';
+    status.textContent = disable ? message || PKG_LIMIT_MESSAGE : '';
   }
 }
 

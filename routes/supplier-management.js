@@ -8,6 +8,7 @@
 const express = require('express');
 const logger = require('../utils/logger');
 const catalogCache = require('../services/catalogCache');
+const { supplierApprovalDefaults } = require('../services/supplierProfileProvisioning.service');
 const router = express.Router();
 
 /**
@@ -218,13 +219,12 @@ router.post(
       return res.status(400).json({ error: 'Missing fields' });
     }
 
-    // Enforce 1:1 relationship: one supplier profile per user account
-    // Fetch user and suppliers concurrently
-    const [existingSuppliers, ownerUser] = await Promise.all([
-      dbUnified.read('suppliers'),
+    // Enforce 1:1 relationship: one supplier profile per user account.
+    // Keep legacy/demo suppliers with ownerUserId null untouched; linked users are checked by ownerUserId.
+    const [existing, ownerUser] = await Promise.all([
+      dbUnified.findOne('suppliers', { ownerUserId: req.user.id }),
       dbUnified.findOne('users', { id: req.user.id }),
     ]);
-    const existing = existingSuppliers.find(s => s.ownerUserId === req.user.id);
     if (existing) {
       logger.warn('Duplicate supplier profile creation prevented', {
         userId: req.user.id,
@@ -256,6 +256,7 @@ router.post(
     const amenities = (b.amenities ? String(b.amenities).split(',') : [])
       .map(x => x.trim())
       .filter(Boolean);
+    const nowIso = new Date().toISOString();
 
     const s = {
       id: uid('sup'),
@@ -271,8 +272,11 @@ router.post(
       description_short: String(b.description_short || '').slice(0, 220),
       description_long: String(b.description_long || '').slice(0, 2000),
       photosGallery: [],
-      email: ownerUser?.email || '',
-      approved: false,
+      email: ownerUser?.email || req.user.email || '',
+      profileComplete: false,
+      createdAt: nowIso,
+      updatedAt: nowIso,
+      ...(await supplierApprovalDefaults(nowIso)),
     };
 
     // Add venue-specific fields if category is Venues
@@ -296,20 +300,22 @@ router.post(
       }
     }
 
-    // Check if admin has enabled auto-approve for new suppliers
-    try {
-      const settings = (await dbUnified.read('settings')) || {};
-      if (settings.features?.autoApproveSupplierVerification === true) {
-        s.approved = true;
-        s.approvedAt = new Date().toISOString();
-        s.approvedBy = 'system';
-      }
-    } catch (settingsErr) {
-      logger.warn('Could not read settings for auto-approve check:', settingsErr.message);
-    }
-
     const suppInserted = await dbUnified.insertOne('suppliers', s);
     if (!suppInserted) {
+      const racedExisting = await dbUnified.findOne('suppliers', { ownerUserId: req.user.id });
+      if (racedExisting) {
+        logger.warn('Duplicate supplier profile creation prevented after insert race', {
+          userId: req.user.id,
+          existingSupplierId: racedExisting.id,
+        });
+        return res.status(409).json({
+          error: 'Supplier profile already exists',
+          code: 'SUPPLIER_PROFILE_EXISTS',
+          supplierId: racedExisting.id,
+          message:
+            'You already have a supplier profile. Each account can only have one supplier profile.',
+        });
+      }
       logger.error('[SUPP-MGMT] insertOne failed', { supplierId: s.id });
       return res
         .status(500)
