@@ -56,7 +56,6 @@
 
   // ── State ─────────────────────────────────────────────────────────────────
   let allUsers = [];
-  let summaryData = null;
   let currentPage = 1;
   const PAGE_SIZE = 50;
   const selectedUserIds = new Set();
@@ -161,13 +160,7 @@
       makeCard(summary.newLast7, 'New this week', clockIcon, 'green', ''),
       makeCard(summary.unverified, 'Unverified', alertIcon, 'amber', 'verificationMethod=pending'),
       makeCard(summary.issueCount, 'Issues', alertIcon, 'red', 'issue=email_unverified'),
-      makeCard(
-        summary.suppliers.pending,
-        'Pending suppliers',
-        shopIcon,
-        'amber',
-        'role=supplier&issue='
-      ),
+      makeCard(summary.suppliers.pending, 'Pending suppliers', shopIcon, 'amber', 'role=supplier'),
     ].join('');
   }
 
@@ -527,7 +520,6 @@
   async function loadSummary() {
     try {
       const data = await AdminShared.api('/api/admin/users/summary');
-      summaryData = data;
       renderSummaryCards(data);
     } catch (err) {
       AdminShared.showToast('Failed to load user summary.', 'error');

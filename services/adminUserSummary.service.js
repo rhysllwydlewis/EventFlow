@@ -19,7 +19,6 @@
 'use strict';
 
 const dbUnified = require('../db-unified');
-const logger = require('../utils/logger');
 
 // ---------------------------------------------------------------------------
 // Provenance classification (mirrors email-centre diagnostics)
@@ -244,8 +243,10 @@ async function buildUserSummary() {
   const suppliersWithoutProfile = users.filter(
     u => u.role === 'supplier' && !supplierByOwner[u.id]
   ).length;
+  // Build a Set of all user ids for O(1) lookup (avoids O(n×m) Array.find in filter)
+  const userIdSet = new Set(users.map(u => u.id).filter(Boolean));
   const orphanedSuppliers = suppliers.filter(
-    s => s.ownerUserId && !users.find(u => u.id === s.ownerUserId)
+    s => s.ownerUserId && !userIdSet.has(s.ownerUserId)
   ).length;
 
   return {

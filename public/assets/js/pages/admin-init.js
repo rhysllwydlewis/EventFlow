@@ -120,6 +120,7 @@
   let allUsers = [];
   let allSuppliers = [];
   let allPackages = [];
+  let summary = null; // populated by /users/summary; shared with renderAnalytics
 
   function renderUsersTable(list) {
     const el = document.getElementById('users');
@@ -536,22 +537,14 @@
       }
     })();
 
-    // Trend indicators — real period-over-period comparison
-    // Users: compare last 7 days vs previous 7 days using allUsers (already loaded)
+    // Trend indicators — use summary.newLast7 (from shared summary service)
+    // allUsers is no longer pre-loaded on the dashboard; Users Centre has the full list
     (function () {
       const now = Date.now();
       const oneWeek = 7 * 24 * 60 * 60 * 1000;
-      const cutoffRecent = now - oneWeek;
-      const cutoffPrev = now - 2 * oneWeek;
-      const usersList = Array.isArray(allUsers) ? allUsers : [];
-      const recentUsers = usersList.filter(u => {
-        const t = u.createdAt ? Date.parse(u.createdAt) : NaN;
-        return !isNaN(t) && t >= cutoffRecent;
-      }).length;
-      const prevUsers = usersList.filter(u => {
-        const t = u.createdAt ? Date.parse(u.createdAt) : NaN;
-        return !isNaN(t) && t >= cutoffPrev && t < cutoffRecent;
-      }).length;
+      // Use pre-computed summary.newLast7 (allUsers no longer pre-loaded on dashboard)
+      const recentUsers = (typeof summary !== 'undefined' && summary && summary.newLast7) || 0;
+      const prevUsers = 0; // period-over-period not available from summary; defaults to 0
 
       const usersChangeEl = document.getElementById('totalUsersChange');
       if (usersChangeEl) {
@@ -683,7 +676,10 @@
           const photosResp = results[2] || {};
           const reviewsResp = results[3] || {};
 
-          allUsers = usersResp.items || [];
+          // results[0] is now the /api/admin/users/summary response (stats only, no items)
+          // allUsers is populated separately via the legacy user management section
+          summary = usersResp.total !== null && usersResp.total !== undefined ? usersResp : null; // set on outer scope for renderAnalytics
+          allUsers = []; // dashboard no longer loads the full user list; use Users Centre
           // Reset supplier/package caches so edits refetch fresh data after a reload
           allSuppliers = [];
           allPackages = [];
@@ -739,7 +735,9 @@
             });
 
           if (statusEl) {
-            statusEl.textContent = `Loaded ${allUsers.length} users.`;
+            statusEl.textContent = summary
+              ? `${summary.total || 0} users · ${summary.suppliers ? summary.suppliers.total : 0} suppliers`
+              : 'Dashboard loaded.';
             statusEl.classList.remove('is-loading');
           }
         });
