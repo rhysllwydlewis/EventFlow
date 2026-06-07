@@ -1,7 +1,7 @@
 /**
  * Admin Notification Centre — tests
  * Covers: route file structure, notifyAdmins helper, nav bell integration,
- * and that key event sources (tickets, partner) actually fire admin notifications.
+ * and that key event sources (tickets, contact, partner) actually fire admin notifications.
  */
 'use strict';
 
@@ -67,6 +67,16 @@ describe('routes/admin-notifications.js', () => {
     const src = fs.readFileSync(path.join(__dirname, '../../server.js'), 'utf8');
     expect(src).toContain('admin-notifications');
   });
+
+  test('admin work queue items are merged into list and unread count responses', () => {
+    const src = fs.readFileSync(
+      path.join(__dirname, '../../routes/admin-notifications.js'),
+      'utf8'
+    );
+    expect(src).toContain('getAdminQueueNotifications');
+    expect(src).toContain('workQueue');
+    expect(src).toContain('workQueueCount');
+  });
 });
 
 // ─── notifyAdmins helper ─────────────────────────────────────────────────────
@@ -98,6 +108,26 @@ describe('services/notifyAdmins.service.js', () => {
     await expect(
       notifyAdmins({ type: 'system', title: 'Test', message: 'Hello' })
     ).resolves.not.toThrow();
+  });
+});
+
+// ─── Admin work queue notification helper ────────────────────────────────────
+describe('routes/admin-notification-work-queue.js', () => {
+  test('file exists', () => {
+    expect(
+      fs.existsSync(path.join(__dirname, '../../routes/admin-notification-work-queue.js'))
+    ).toBe(true);
+  });
+
+  test('reads both support tickets and external contact enquiries', () => {
+    const src = fs.readFileSync(
+      path.join(__dirname, '../../routes/admin-notification-work-queue.js'),
+      'utf8'
+    );
+    expect(src).toContain("readCollection('tickets')");
+    expect(src).toContain("readCollection('contact_enquiries')");
+    expect(src).toContain('admin-queue-support-tickets');
+    expect(src).toContain('admin-queue-contact-enquiries');
   });
 });
 
@@ -189,6 +219,12 @@ describe('Admin notification event coverage', () => {
   test('routes/tickets.js notifies admins on ticket reply', () => {
     const src = fs.readFileSync(path.join(__dirname, '../../routes/tickets.js'), 'utf8');
     expect(src).toContain('notifyTicketReply');
+  });
+
+  test('routes/contact.js notifies admins on external contact enquiry', () => {
+    const src = fs.readFileSync(path.join(__dirname, '../../routes/contact.js'), 'utf8');
+    expect(src).toContain('notifyAdmins');
+    expect(src).toContain('New external contact enquiry');
   });
 
   test('routes/partner.js notifies admins on partner registration', () => {
