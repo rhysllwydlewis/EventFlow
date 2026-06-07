@@ -45,6 +45,94 @@ function sanitizeAdminUser(u, verificationLogs) {
   };
 }
 
+function getUserIdentifier(user) {
+  return user && (user.id || (user._id ? String(user._id) : undefined));
+}
+
+function getUserWriteFilter(user) {
+  if (user && user.id) {
+    return { id: user.id };
+  }
+  return user && user._id ? { _id: user._id } : { id: undefined };
+}
+
+function getUserDeleteTarget(user) {
+  if (user && user.id) {
+    return user.id;
+  }
+  return user && user._id ? { _id: user._id } : undefined;
+}
+
+function safeAuditUser(user, reason) {
+  return {
+    id: getUserIdentifier(user),
+    email: user && user.email,
+    role: user && user.role,
+    reason,
+  };
+}
+
+function isProtectedUser(user, actor, action = 'destructive') {
+  if (!user) {
+    return false;
+  }
+  const userId = getUserIdentifier(user);
+  const actorId = getUserIdentifier(actor);
+  if (userId && actorId && String(userId) === String(actorId)) {
+    return true;
+  }
+  if (
+    user.isOwner === true ||
+    user.role === 'owner' ||
+    domainAdmin.isOwnerEmail(user.email || '')
+  ) {
+    return true;
+  }
+  if (action === 'destructive' && user.role === 'admin') {
+    return true;
+  }
+  if (action === 'verify' && user.role === 'admin') {
+    return true;
+  }
+  return false;
+}
+
+function buildBulkResult(userIds, users, actor, action) {
+  const requested = userIds.map(id => String(id));
+  const byId = new Map();
+  for (const user of users || []) {
+    const userId = getUserIdentifier(user);
+    if (userId) {
+      byId.set(String(userId), user);
+    }
+  }
+  const result = {
+    updated: 0,
+    alreadyDone: 0,
+    skippedProtected: 0,
+    notFound: 0,
+    totalRequested: requested.length,
+    skipped: [],
+    targets: [],
+  };
+
+  for (const userId of requested) {
+    const user = byId.get(userId);
+    if (!user) {
+      result.notFound += 1;
+      result.skipped.push({ id: userId, reason: 'not_found' });
+      continue;
+    }
+    if (isProtectedUser(user, actor, action)) {
+      result.skippedProtected += 1;
+      result.skipped.push(safeAuditUser(user, 'protected_account'));
+      continue;
+    }
+    result.targets.push(user);
+  }
+  return result;
+}
+
 // Helper function to parse duration strings like "7d", "1h", "30m"
 function parseDuration(duration) {
   const match = duration.match(/^(\d+)([dhm])$/);
@@ -500,16 +588,23 @@ router.get('/marketing-export', authRequired, roleRequired('admin'), async (req,
  * GET /api/admin/users-export
  * Export all users as CSV
  */
-router.get('/users-export', authRequired, roleRequired('admin'), async (req, res) => {
+async function sendUsersCsv(req, res) {
   try {
-    const users = await dbUnified.read('users');
+    const ids = String(req.query.ids || '')
+      .split(',')
+      .map(id => id.trim())
+      .filter(Boolean);
+    const idSet = new Set(ids);
+    const users = (await dbUnified.read('users')).filter(
+      u => !idSet.size || idSet.has(String(getUserIdentifier(u) || ''))
+    );
     const header = 'id,name,email,role,verified,marketingOptIn,createdAt,lastLoginAt\n';
     const rows = users
       .map(u => {
         const esc = v => String(v ?? '').replace(/"/g, '""');
         const verified = u.verified ? 'yes' : 'no';
         const marketing = u.marketingOptIn ? 'yes' : 'no';
-        return `"${esc(u.id)}","${esc(u.name)}","${esc(u.email)}","${esc(u.role)}","${verified}","${marketing}","${esc(u.createdAt)}","${esc(u.lastLoginAt || '')}"`;
+        return `"${esc(getUserIdentifier(u))}","${esc(u.name)}","${esc(u.email)}","${esc(u.role)}","${verified}","${marketing}","${esc(u.createdAt)}","${esc(u.lastLoginAt || '')}"`;
       })
       .join('\n');
     const csv = header + rows + (rows ? '\n' : '');
@@ -520,7 +615,10 @@ router.get('/users-export', authRequired, roleRequired('admin'), async (req, res
     logger.error('Error exporting users:', error);
     return res.status(500).json({ error: 'Internal server error' });
   }
-});
+}
+
+router.get('/users-export', authRequired, roleRequired('admin'), sendUsersCsv);
+router.get('/users/export', authRequired, roleRequired('admin'), sendUsersCsv);
 
 // ---------- User Management ----------
 
@@ -824,60 +922,70 @@ router.post(
 
       const users = await dbUnified.read('users');
       const now = new Date().toISOString();
-      let verifiedCount = 0;
-      let alreadyVerifiedCount = 0;
-
+      const bulk = buildBulkResult(userIds, users, req.user, 'verify');
       const updatePromises = [];
-      userIds.forEach(userId => {
-        const user = users.find(u => u.id === userId);
-        if (user && !user.verified) {
-          updatePromises.push(
-            dbUnified.updateOne(
-              'users',
-              { id: userId },
-              {
-                $set: {
-                  verified: true,
-                  verifiedAt: now,
-                  verificationMethod: 'manual_admin',
-                  verifiedBy: {
-                    type: 'admin',
-                    userId: req.user.id,
-                    reason: 'Bulk manually verified by admin',
-                  },
-                  emailDeliveryStatus: 'not_required',
-                  verificationToken: null,
-                  updatedAt: now,
-                },
-              }
-            )
-          );
-          verifiedCount++;
-        } else if (user && user.verified) {
-          alreadyVerifiedCount++;
+
+      bulk.targets.forEach(user => {
+        if (user.verified || user.emailVerified) {
+          bulk.alreadyDone += 1;
+          return;
         }
+        updatePromises.push(
+          dbUnified.updateOne('users', getUserWriteFilter(user), {
+            $set: {
+              verified: true,
+              emailVerified: true,
+              verifiedAt: now,
+              verificationMethod: 'manual_admin',
+              verifiedBy: {
+                type: 'admin',
+                userId: req.user.id,
+                reason: 'Bulk manually verified by admin',
+              },
+              emailDeliveryStatus: 'not_required',
+              verificationToken: null,
+              emailVerificationToken: null,
+              updatedAt: now,
+            },
+          })
+        );
+        bulk.updated += 1;
       });
 
       await Promise.all(updatePromises);
 
-      // Create audit log
       await auditLog({
         adminId: req.user.id,
         adminEmail: req.user.email,
         action: 'BULK_USERS_VERIFIED',
         targetType: 'users',
         targetId: 'bulk',
-        details: { userIds, verifiedCount, alreadyVerifiedCount },
+        details: {
+          userIds,
+          updated: bulk.updated,
+          alreadyDone: bulk.alreadyDone,
+          skippedProtected: bulk.skippedProtected,
+          notFound: bulk.notFound,
+          totalRequested: bulk.totalRequested,
+          skipped: bulk.skipped,
+          verifiedCount: bulk.updated,
+          alreadyVerifiedCount: bulk.alreadyDone,
+        },
         ipAddress: req.ip || req.connection.remoteAddress,
         userAgent: req.get('user-agent'),
       });
 
       res.json({
         success: true,
-        message: `Successfully verified ${verifiedCount} user(s)`,
-        verifiedCount,
-        alreadyVerifiedCount,
-        totalRequested: userIds.length,
+        message: `Successfully verified ${bulk.updated} user(s)`,
+        updated: bulk.updated,
+        alreadyDone: bulk.alreadyDone,
+        skippedProtected: bulk.skippedProtected,
+        notFound: bulk.notFound,
+        totalRequested: bulk.totalRequested,
+        skipped: bulk.skipped,
+        verifiedCount: bulk.updated,
+        alreadyVerifiedCount: bulk.alreadyDone,
       });
     } catch (error) {
       logger.error('Error bulk verifying users:', error);
@@ -906,57 +1014,71 @@ router.post(
 
       const users = await dbUnified.read('users');
       const now = new Date().toISOString();
-      let updatedCount = 0;
-
+      const bulk = buildBulkResult(userIds, users, req.user, 'destructive');
       const suspendPromises = [];
-      userIds.forEach(userId => {
-        const user = users.find(u => u.id === userId);
-        if (user && user.id !== req.user.id) {
-          // Don't allow admins to suspend themselves
-          const suspendUpdates = {
-            suspended: !!suspended,
-            suspendedAt: suspended ? now : null,
-            suspendedBy: suspended ? req.user.id : null,
-            suspensionReason: suspended ? reason || 'Bulk suspension' : null,
-            suspensionDuration: suspended ? duration : null,
-            suspensionExpiresAt: null,
-            updatedAt: now,
-          };
 
-          // Calculate expiry if duration is provided
-          if (suspended && duration) {
-            const durationMs = parseDuration(duration);
-            if (durationMs > 0) {
-              suspendUpdates.suspensionExpiresAt = new Date(Date.now() + durationMs).toISOString();
-            }
-          }
-
-          suspendPromises.push(
-            dbUnified.updateOne('users', { id: userId }, { $set: suspendUpdates })
-          );
-          updatedCount++;
+      bulk.targets.forEach(user => {
+        if (!!user.suspended === !!suspended) {
+          bulk.alreadyDone += 1;
+          return;
         }
+        const suspendUpdates = {
+          suspended: !!suspended,
+          suspendedAt: suspended ? now : null,
+          suspendedBy: suspended ? req.user.id : null,
+          suspensionReason: suspended ? reason || 'Bulk suspension' : null,
+          suspensionDuration: suspended ? duration : null,
+          suspensionExpiresAt: null,
+          updatedAt: now,
+        };
+
+        if (suspended && duration) {
+          const durationMs = parseDuration(duration);
+          if (durationMs > 0) {
+            suspendUpdates.suspensionExpiresAt = new Date(Date.now() + durationMs).toISOString();
+          }
+        }
+
+        suspendPromises.push(
+          dbUnified.updateOne('users', getUserWriteFilter(user), { $set: suspendUpdates })
+        );
+        bulk.updated += 1;
       });
 
       await Promise.all(suspendPromises);
 
-      // Create audit log
       await auditLog({
         adminId: req.user.id,
         adminEmail: req.user.email,
         action: suspended ? 'BULK_USERS_SUSPENDED' : 'BULK_USERS_UNSUSPENDED',
         targetType: 'users',
         targetId: 'bulk',
-        details: { userIds, count: updatedCount, reason, duration },
+        details: {
+          userIds,
+          updated: bulk.updated,
+          alreadyDone: bulk.alreadyDone,
+          skippedProtected: bulk.skippedProtected,
+          notFound: bulk.notFound,
+          totalRequested: bulk.totalRequested,
+          skipped: bulk.skipped,
+          count: bulk.updated,
+          reason,
+          duration,
+        },
         ipAddress: req.ip || req.connection.remoteAddress,
         userAgent: req.get('user-agent'),
       });
 
       res.json({
         success: true,
-        message: `Successfully ${suspended ? 'suspended' : 'unsuspended'} ${updatedCount} user(s)`,
-        updatedCount,
-        totalRequested: userIds.length,
+        message: `Successfully ${suspended ? 'suspended' : 'unsuspended'} ${bulk.updated} user(s)`,
+        updated: bulk.updated,
+        alreadyDone: bulk.alreadyDone,
+        skippedProtected: bulk.skippedProtected,
+        notFound: bulk.notFound,
+        totalRequested: bulk.totalRequested,
+        skipped: bulk.skipped,
+        updatedCount: bulk.updated,
       });
     } catch (error) {
       logger.error('Error bulk suspending users:', error);
@@ -984,34 +1106,19 @@ router.post(
       }
 
       const users = await dbUnified.read('users');
-      let deletedCount = 0;
+      const bulk = buildBulkResult(userIds, users, req.user, 'destructive');
       const deletedUsers = [];
-
-      // Filter out users that cannot be deleted
       const deletePromises = [];
-      userIds.forEach(userId => {
-        const user = users.find(u => u.id === userId);
-        if (user) {
-          // Prevent admins from deleting themselves
-          if (user.id === req.user.id) {
-            return;
-          }
 
-          // ⚠️ SECURITY: Prevent deletion of the owner account
-          const isOwner = domainAdmin.isOwnerEmail(user.email) || user.isOwner;
-          if (isOwner) {
-            return;
-          }
-
-          deletedUsers.push({ id: user.id, email: user.email, name: user.name });
-          deletePromises.push(dbUnified.deleteOne('users', userId));
-          deletedCount++;
-        }
+      bulk.targets.forEach(user => {
+        const userId = getUserIdentifier(user);
+        deletedUsers.push({ id: userId, email: user.email, name: user.name, role: user.role });
+        deletePromises.push(dbUnified.deleteOne('users', getUserDeleteTarget(user)));
+        bulk.updated += 1;
       });
 
       await Promise.all(deletePromises);
 
-      // Soft-delete partner records for all deleted users to preserve audit trail
       for (const deletedUser of deletedUsers) {
         try {
           await partnerService.softDeletePartnerByUserId(deletedUser.id);
@@ -1023,23 +1130,37 @@ router.post(
         }
       }
 
-      // Create audit log
       await auditLog({
         adminId: req.user.id,
         adminEmail: req.user.email,
         action: 'BULK_USERS_DELETED',
         targetType: 'users',
         targetId: 'bulk',
-        details: { userIds, deletedCount, deletedUsers },
+        details: {
+          userIds,
+          updated: bulk.updated,
+          alreadyDone: bulk.alreadyDone,
+          skippedProtected: bulk.skippedProtected,
+          notFound: bulk.notFound,
+          totalRequested: bulk.totalRequested,
+          skipped: bulk.skipped,
+          deletedCount: bulk.updated,
+          deletedUsers,
+        },
         ipAddress: req.ip || req.connection.remoteAddress,
         userAgent: req.get('user-agent'),
       });
 
       res.json({
         success: true,
-        message: `Successfully deleted ${deletedCount} user(s)`,
-        deletedCount,
-        totalRequested: userIds.length,
+        message: `Successfully deleted ${bulk.updated} user(s)`,
+        updated: bulk.updated,
+        alreadyDone: bulk.alreadyDone,
+        skippedProtected: bulk.skippedProtected,
+        notFound: bulk.notFound,
+        totalRequested: bulk.totalRequested,
+        skipped: bulk.skipped,
+        deletedCount: bulk.updated,
       });
     } catch (error) {
       logger.error('Error bulk deleting users:', error);

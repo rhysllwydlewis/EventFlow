@@ -19,9 +19,31 @@ describe('Admin API Fixes', () => {
 
       // Users Centre uses the shared summary and list endpoints
       expect(content).toContain("AdminShared.api('/api/admin/users/summary')");
-      expect(content).toContain("AdminShared.api('/api/admin/users/list')");
+      expect(content).toContain('/api/admin/users/list?');
+      expect(content).toContain('AdminShared.api(buildListUrl())');
       // Should not use raw fetch for data loading
       expect(content).not.toContain("fetch('/api/admin/users'");
+    });
+
+    it('should send Users Centre filters and pagination to the server', () => {
+      const fs = require('fs');
+      const path = require('path');
+      const content = fs.readFileSync(
+        path.join(__dirname, '../../public/assets/js/pages/admin-users-init.js'),
+        'utf8'
+      );
+      const html = fs.readFileSync(path.join(__dirname, '../../public/admin-users.html'), 'utf8');
+
+      expect(content).toContain('function buildListUrl()');
+      expect(content).toContain("params.set('page', String(currentPage))");
+      expect(content).toContain("params.set('limit', String(currentLimit))");
+      expect(content).toContain('syncFilterUrl');
+      expect(content).toContain('subscription-history');
+      expect(content).toContain('bulkExportSelected');
+      expect(html).toContain('id="ucPrevPage"');
+      expect(html).toContain('id="ucNextPage"');
+      expect(html).toContain('id="ucTotalPages"');
+      expect(html).toContain('Select all visible users on this page');
     });
 
     it('should look up user id via dataset.userId for stable ID resolution', () => {

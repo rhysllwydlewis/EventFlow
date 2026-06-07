@@ -8,11 +8,13 @@
   'use strict';
 
   const $ = id => document.getElementById(id);
-  const PAGE_SIZE = 50;
   const selectedUserIds = new Set();
 
-  let allUsers = [];
+  let currentUsers = [];
   let currentPage = 1;
+  let currentLimit = 50;
+  let currentTotal = 0;
+  let currentPages = 1;
   let debounceTimer = null;
 
   function esc(value) {
@@ -219,6 +221,7 @@
       if (emptyClear) {
         emptyClear.addEventListener('click', clearFilters);
       }
+      updateSelectAllState();
       return;
     }
 
@@ -250,6 +253,7 @@
         </tr>`;
       })
       .join('');
+    updateSelectAllState();
   }
 
   function getFilters() {
@@ -262,45 +266,69 @@
     };
   }
 
-  function applyFilters() {
-    const { search, role, signupMethod, verificationMethod, issue } = getFilters();
-    const searchLower = search.toLowerCase().trim();
-    const filtered = allUsers.filter(user => {
-      if (
-        searchLower &&
-        !(user.name || '').toLowerCase().includes(searchLower) &&
-        !(user.email || '').toLowerCase().includes(searchLower)
-      ) {
-        return false;
+  function buildListUrl() {
+    const params = new URLSearchParams();
+    const filters = getFilters();
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value) {
+        params.set(key, value);
       }
-      if (role && user.role !== role) {
-        return false;
-      }
-      if (signupMethod && user.signupMethod !== signupMethod) {
-        return false;
-      }
-      if (verificationMethod && user.verificationMethod !== verificationMethod) {
-        return false;
-      }
-      if (issue && !(user.accountIssues || []).includes(issue)) {
-        return false;
-      }
-      return true;
     });
+    params.set('page', String(currentPage));
+    params.set('limit', String(currentLimit));
+    return `/api/admin/users/list?${params.toString()}`;
+  }
 
-    const total = filtered.length;
-    const pages = Math.max(Math.ceil(total / PAGE_SIZE), 1);
-    currentPage = Math.min(currentPage, pages);
-    const visible = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-    renderTable(visible);
-    updateSummaryText(total, pages);
-    updateBulkBar();
+  function syncFilterUrl() {
+    const params = new URLSearchParams();
+    Object.entries(getFilters()).forEach(([key, value]) => {
+      if (value) {
+        params.set(key, value);
+      }
+    });
+    if (currentPage > 1) {
+      params.set('page', String(currentPage));
+    }
+    if (currentLimit !== 50) {
+      params.set('limit', String(currentLimit));
+    }
+    const query = params.toString();
+    window.history.replaceState({}, '', query ? `/admin-users?${query}` : '/admin-users');
+  }
+
+  async function applyFilters() {
+    syncFilterUrl();
+    await loadUsers();
   }
 
   function updateSummaryText(total, pages) {
     const el = $('ucUserSummary') || $('user-summary');
+    const start = total ? (currentPage - 1) * currentLimit + 1 : 0;
+    const end = Math.min(currentPage * currentLimit, total);
     if (el) {
-      el.textContent = `${total.toLocaleString()} users · page ${currentPage} of ${pages}`;
+      el.textContent = `${total.toLocaleString()} users · showing ${start.toLocaleString()}–${end.toLocaleString()} · page ${currentPage} of ${pages}`;
+    }
+    const pageEl = $('ucCurrentPage');
+    if (pageEl) {
+      pageEl.textContent = String(currentPage);
+    }
+    const pagesEl = $('ucTotalPages');
+    if (pagesEl) {
+      pagesEl.textContent = String(pages);
+    }
+    const totalEl = $('ucTotalCount');
+    if (totalEl) {
+      totalEl.textContent = total.toLocaleString();
+    }
+    const prev = $('ucPrevPage');
+    const next = $('ucNextPage');
+    if (prev) {
+      prev.disabled = currentPage <= 1;
+      prev.setAttribute('aria-disabled', String(prev.disabled));
+    }
+    if (next) {
+      next.disabled = currentPage >= pages;
+      next.setAttribute('aria-disabled', String(next.disabled));
     }
   }
 
@@ -311,6 +339,7 @@
         el.value = '';
       }
     });
+    selectedUserIds.clear();
     currentPage = 1;
     applyFilters();
   }
@@ -334,10 +363,33 @@
     if (search && $('ucSearch')) {
       $('ucSearch').value = search;
     }
+    const page = Number(params.get('page'));
+    currentPage = Number.isFinite(page) && page > 0 ? page : 1;
+    const limit = Number(params.get('limit'));
+    if ([25, 50, 100, 200].includes(limit)) {
+      currentLimit = limit;
+    }
+  }
+
+  function visibleCheckboxes() {
+    return [...document.querySelectorAll('.uc-user-checkbox')];
+  }
+
+  function updateSelectAllState() {
+    const selectAll = $('ucSelectAll');
+    if (!selectAll) {
+      return;
+    }
+    const checkboxes = visibleCheckboxes();
+    const checkedCount = checkboxes.filter(checkbox => checkbox.checked).length;
+    selectAll.checked = checkboxes.length > 0 && checkedCount === checkboxes.length;
+    selectAll.indeterminate = checkedCount > 0 && checkedCount < checkboxes.length;
   }
 
   function selectedEligible(ids, predicate) {
-    return allUsers.filter(user => ids.includes(user.id) && predicate(user)).map(user => user.id);
+    return currentUsers
+      .filter(user => ids.includes(user.id) && predicate(user))
+      .map(user => user.id);
   }
 
   async function bulkVerify(ids) {
@@ -436,7 +488,7 @@
   }
 
   async function resendVerification(userId) {
-    const user = allUsers.find(item => item.id === userId);
+    const user = currentUsers.find(item => item.id === userId);
     if (!canResendVerification(user)) {
       AdminShared.showToast('Verification email is not required for this account.', 'warning');
       return;
@@ -458,12 +510,55 @@
       bar.style.display = selectedCount ? 'flex' : 'none';
     }
     if (count) {
-      count.textContent = `${selectedCount} user${selectedCount === 1 ? '' : 's'} selected`;
+      count.textContent = `${selectedCount} visible user${selectedCount === 1 ? '' : 's'} selected`;
+    }
+  }
+
+  async function bulkExportSelected() {
+    const ids = [...selectedUserIds];
+    if (!ids.length) {
+      AdminShared.showToast('Select visible users to export.', 'warning');
+      return;
+    }
+    const params = new URLSearchParams();
+    params.set('ids', ids.join(','));
+    window.open(`/api/admin/users/export?${params.toString()}`, '_blank', 'noopener');
+  }
+
+  function renderSubscriptionHistory(history) {
+    const target = $('subscriptionHistory');
+    if (!target) {
+      return;
+    }
+    if (!Array.isArray(history) || !history.length) {
+      target.innerHTML = '<div class="text-muted">No subscription history.</div>';
+      return;
+    }
+    target.innerHTML = history
+      .map(
+        item =>
+          `<div class="subscription-history-item"><strong>${esc(humanize(item.action || 'updated'))}</strong> ${esc(humanize(item.tier || 'free'))}<div class="small">${fmtDate(item.date)}${item.reason ? ` · ${esc(item.reason)}` : ''}</div></div>`
+      )
+      .join('');
+  }
+
+  async function loadSubscriptionHistory(userId) {
+    renderSubscriptionHistory([]);
+    try {
+      const data = await AdminShared.api(
+        `/api/admin/users/${encodeURIComponent(userId)}/subscription-history`
+      );
+      renderSubscriptionHistory(data.history || []);
+    } catch (_err) {
+      const target = $('subscriptionHistory');
+      if (target) {
+        target.innerHTML = '<div class="text-muted">Could not load subscription history.</div>';
+      }
     }
   }
 
   function openSubscriptionModal(userId) {
-    const user = allUsers.find(item => item.id === userId);
+    const user = currentUsers.find(item => item.id === userId);
     if (!user) {
       return;
     }
@@ -483,6 +578,7 @@
     if (modal) {
       modal.style.display = 'flex';
     }
+    loadSubscriptionHistory(userId);
   }
 
   function closeSubscriptionModal() {
@@ -553,10 +649,16 @@
       AdminShared.showLoadingState(tbody, { rows: 5, cols: 12, message: 'Loading users...' });
     }
     try {
-      const data = await AdminShared.api('/api/admin/users/list');
-      allUsers = data.items || [];
+      const data = await AdminShared.api(buildListUrl());
+      currentUsers = data.items || [];
+      currentTotal = Number(data.total || 0);
+      currentPages = Math.max(Number(data.pages || 1), 1);
+      currentPage = Math.min(Number(data.page || currentPage), currentPages);
+      currentLimit = Number(data.limit || currentLimit);
       selectedUserIds.clear();
-      applyFilters();
+      renderTable(currentUsers);
+      updateSummaryText(currentTotal, currentPages);
+      updateBulkBar();
     } catch (err) {
       if (tbody) {
         tbody.innerHTML =
@@ -575,7 +677,36 @@
 
     const refreshBtn = $('ucRefreshBtn');
     if (refreshBtn) {
-      refreshBtn.addEventListener('click', loadData);
+      refreshBtn.addEventListener('click', () => loadData());
+    }
+
+    const prevBtn = $('ucPrevPage');
+    if (prevBtn) {
+      prevBtn.addEventListener('click', () => {
+        if (currentPage > 1) {
+          currentPage -= 1;
+          applyFilters();
+        }
+      });
+    }
+    const nextBtn = $('ucNextPage');
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => {
+        if (currentPage < currentPages) {
+          currentPage += 1;
+          applyFilters();
+        }
+      });
+    }
+    const pageSize = $('ucPageSize');
+    if (pageSize) {
+      pageSize.value = String(currentLimit);
+      pageSize.addEventListener('change', () => {
+        currentLimit = Number(pageSize.value) || 50;
+        selectedUserIds.clear();
+        currentPage = 1;
+        applyFilters();
+      });
     }
 
     const clearBtn = $('ucClearFilters');
@@ -591,11 +722,13 @@
       el.addEventListener('input', () => {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
+          selectedUserIds.clear();
           currentPage = 1;
           applyFilters();
         }, 250);
       });
       el.addEventListener('change', () => {
+        selectedUserIds.clear();
         currentPage = 1;
         applyFilters();
       });
@@ -604,9 +737,12 @@
     const selectAll = $('ucSelectAll');
     if (selectAll) {
       selectAll.addEventListener('change', () => {
-        document.querySelectorAll('.uc-user-checkbox').forEach(checkbox => {
+        visibleCheckboxes().forEach(checkbox => {
           checkbox.checked = selectAll.checked;
           const uid = checkbox.dataset.userId;
+          if (!uid) {
+            return;
+          }
           if (selectAll.checked) {
             selectedUserIds.add(uid);
           } else {
@@ -623,12 +759,16 @@
         return;
       }
       const uid = checkbox.dataset.userId;
+      if (!uid) {
+        return;
+      }
       if (checkbox.checked) {
         selectedUserIds.add(uid);
       } else {
         selectedUserIds.delete(uid);
       }
       updateBulkBar();
+      updateSelectAllState();
     });
 
     document.addEventListener('click', event => {
@@ -648,13 +788,31 @@
       ['ucBulkVerify', () => bulkVerify([...selectedUserIds])],
       ['ucBulkSuspend', () => bulkSuspend([...selectedUserIds])],
       ['ucBulkDelete', () => bulkDelete([...selectedUserIds])],
-      ['ucBulkExport', () => AdminShared.showToast('Export from /admin-exports.', 'info')],
+      ['ucBulkExport', bulkExportSelected],
     ].forEach(([id, handler]) => {
       const btn = $(id);
       if (btn) {
         btn.addEventListener('click', () =>
           handler().catch(err => AdminShared.showToast(`Failed: ${err.message}`, 'error'))
         );
+      }
+    });
+
+    const closePanelBtn = $('closeSubPanel');
+    if (closePanelBtn) {
+      closePanelBtn.addEventListener('click', closeSubscriptionModal);
+    }
+    const modal = $('subscriptionModal');
+    if (modal) {
+      modal.addEventListener('click', event => {
+        if (event.target === modal) {
+          closeSubscriptionModal();
+        }
+      });
+    }
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape') {
+        closeSubscriptionModal();
       }
     });
 

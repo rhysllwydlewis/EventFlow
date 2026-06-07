@@ -114,7 +114,7 @@
           >
             <div class="bulk-actions-content">
               <span id="ucBulkCount" class="bulk-selected-count" aria-live="polite"
-                >0 users selected</span
+                >0 visible users selected</span
               >
               <button id="ucBulkVerify" class="ef-cta btn btn-primary btn-sm">Verify email</button>
               <button id="ucBulkSuspend" class="ef-cta btn btn-secondary btn-sm">Suspend</button>
@@ -124,6 +124,19 @@
           </div>
 
           <div class="small" id="ucUserSummary" role="status" aria-live="polite">Loading…</div>
+          <nav class="uc-pagination" aria-label="Users pagination">
+            <button type="button" id="ucPrevPage" class="ef-cta btn btn-secondary btn-sm">Previous</button>
+            <span class="small">Page <strong id="ucCurrentPage">1</strong> of <strong id="ucTotalPages">1</strong></span>
+            <button type="button" id="ucNextPage" class="ef-cta btn btn-secondary btn-sm">Next</button>
+            <label class="small" for="ucPageSize">Page size</label>
+            <select id="ucPageSize" class="form-control form-control-sm" aria-label="Users per page">
+              <option value="25">25</option>
+              <option value="50" selected>50</option>
+              <option value="100">100</option>
+              <option value="200">200</option>
+            </select>
+            <span class="small"><strong id="ucTotalCount">0</strong> total</span>
+          </nav>
           <div class="table-wrapper">
             <table class="table" aria-label="Users list">
               <thead>
@@ -133,7 +146,7 @@
                       type="checkbox"
                       id="ucSelectAll"
                       class="table-checkbox"
-                      aria-label="Select all users"
+                      aria-label="Select all visible users on this page"
                     />
                   </th>
                   <th scope="col">Name</th>
