@@ -113,6 +113,14 @@ async function createIndexes() {
     const suppliersCollection = mongodb.collection('suppliers');
     await suppliersCollection.createIndex({ id: 1 }, { unique: true }); // direct id lookups
     await suppliersCollection.createIndex({ ownerUserId: 1 }); // used by GET /me supplier approval check
+    await suppliersCollection.createIndex(
+      { ownerUserId: 1 },
+      {
+        unique: true,
+        partialFilterExpression: { ownerUserId: { $type: 'string' } },
+        name: 'uniq_suppliers_ownerUserId_string',
+      }
+    ); // enforce one real linked supplier profile per user while allowing legacy null ownerUserId
     await suppliersCollection.createIndex({ approved: 1, category: 1 }); // public directory
     await suppliersCollection.createIndex({ category: 1 });
     await suppliersCollection.createIndex({ userId: 1 });
