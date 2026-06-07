@@ -216,6 +216,13 @@
     { id: 'tools', label: 'Tools', icon: '🔧' },
   ];
 
+  // ── Notification bell state — declared here so init() can safely call
+  // initNotifBell() synchronously when the script runs after DOMContentLoaded.
+  // If these were declared after the init call site, a `let` temporal dead zone
+  // (TDZ) ReferenceError would abort init() and leave all buttons broken.
+  let notifPanelOpen = false;
+  let notifPollInterval = null;
+
   // Initialize when DOM is ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
@@ -230,7 +237,14 @@
     initDatabaseStatus();
     highlightActivePage();
     initBadgeCounts();
-    initNotifBell();
+    // Guard: if notification bell init fails for any reason it must not
+    // stop the Refresh button, All Sections, or User dropdown from working.
+    try {
+      initNotifBell();
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn('[AdminNavbar] initNotifBell failed (non-fatal):', e.message);
+    }
     updateNavbarUser();
     initRefreshButton();
     initLogoutButton();
@@ -288,7 +302,7 @@
       '      </div>',
       '      <!-- Admin Notification Bell -->',
       '      <div class="admin-notif-bell-wrap" id="adminNotifWrap">',
-      '        <button class="ef-cta navbar-icon-btn admin-notif-bell" id="adminNotifBellBtn"',
+      '        <button type="button" class="ef-cta navbar-icon-btn admin-notif-bell" id="adminNotifBellBtn"',
       '                aria-label="Notifications" aria-haspopup="true" aria-expanded="false"',
       '                aria-controls="adminNotifPanel" title="Notifications">',
       '          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"',
@@ -313,7 +327,7 @@
       '          </div>',
       '        </div>',
       '      </div>',
-      '      <button class="ef-cta navbar-icon-btn" id="navRefreshBtn"',
+      '      <button type="button" class="ef-cta navbar-icon-btn" id="navRefreshBtn"',
       '              title="Refresh data" aria-label="Refresh data">',
       '        <svg width="24" height="24" viewBox="0 0 24 24" fill="none"',
       '             stroke="currentColor" stroke-width="2" aria-hidden="true">',
@@ -1034,9 +1048,6 @@
   // When the bell is clicked, loads the full list and renders the panel.
   // Clicking a notification marks it as read and navigates to its actionUrl.
 
-  let notifPanelOpen = false;
-  let notifPollInterval = null;
-
   function formatNotifTime(isoString) {
     if (!isoString) {
       return '';
@@ -1061,7 +1072,16 @@
     }
   }
 
-  function getNotifIcon(type) {
+  function getNotifIcon(type, metadata) {
+    // External contact notifications use type='system' with metadata.category='external_contact'
+    if (type === 'system' && metadata && metadata.category === 'external_contact') {
+      return (
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"' +
+        ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' +
+        '<line x1="9" y1="10" x2="15" y2="10"/></svg>'
+      );
+    }
     const icons = {
       ticket:
         '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/></svg>',
@@ -1131,7 +1151,7 @@
       body.innerHTML = notifications
         .map(n => {
           const isUnread = !n.isRead;
-          const icon = getNotifIcon(n.type);
+          const icon = getNotifIcon(n.type, n.metadata);
           const time = formatNotifTime(n.createdAt);
           const href = n.actionUrl || '#';
           return `<div class="admin-notif-item ${isUnread ? 'admin-notif-item--unread' : ''}"

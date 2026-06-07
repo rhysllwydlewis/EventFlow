@@ -996,6 +996,24 @@ mountDeprecatedApiAlias(
   adminNotificationsRoutes
 );
 
+// External contacts ingestion (server-to-server from VEXI, Chlo, etc.)
+const externalContactsIngestRoutes = require('./routes/integrations-external-contacts');
+app.use('/api/v1/integrations/external-contacts', externalContactsIngestRoutes);
+mountDeprecatedApiAlias(
+  '/api/integrations/external-contacts',
+  '/api/v1/integrations/external-contacts',
+  externalContactsIngestRoutes
+);
+
+// Admin external contacts management
+const adminExternalContactsRoutes = require('./routes/admin-external-contacts');
+app.use('/api/v1/admin/external-contacts', adminExternalContactsRoutes);
+mountDeprecatedApiAlias(
+  '/api/admin/external-contacts',
+  '/api/v1/admin/external-contacts',
+  adminExternalContactsRoutes
+);
+
 // Admin V2 routes (RBAC with granular permissions)
 const adminV2Routes = require('./routes/admin-v2');
 app.use('/api/v2/admin', adminV2Routes);

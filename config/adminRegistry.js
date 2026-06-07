@@ -167,6 +167,16 @@ const REGISTRY = [
     badgeId: 'openTicketsBadge',
   },
   {
+    route: '/admin-external-contacts',
+    htmlFile: 'admin-external-contacts',
+    label: 'External Contacts',
+    icon: '📩',
+    category: 'moderation',
+    inNav: true,
+    desc: 'Enquiries from VEXI, Chlo and other integrated sites',
+    badgeId: 'navBadgeExternalContacts',
+  },
+  {
     route: '/admin-reports',
     htmlFile: 'admin-reports',
     label: 'Reports',

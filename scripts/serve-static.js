@@ -883,6 +883,7 @@ const adminPages = [
   'admin-settings',
   'admin-supplier-detail',
   'admin-suppliers',
+  'admin-external-contacts',
   'admin-tickets',
   'admin-user-detail',
   'admin-users',
