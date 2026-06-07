@@ -20,6 +20,7 @@ const domainAdmin = require('../middleware/domain-admin');
 const partnerService = require('../services/partnerService');
 const verificationProvenance = require('../services/verificationProvenance.service');
 const userProvenance = require('../services/userProvenance.service');
+const adminUserSummary = require('../services/adminUserSummary.service');
 
 const router = express.Router();
 
@@ -144,7 +145,11 @@ router.get('/users/summary', authRequired, roleRequired('admin'), async (req, re
     const summary = await adminUserSummary.buildUserSummary();
     res.json({ ok: true, ...summary });
   } catch (err) {
-    logger.error('[admin users/summary] Error:', err.message);
+    logger.error('[admin users/summary] Failed to build user summary', {
+      message: err && err.message,
+      stack: err && err.stack,
+      stage: err && err.stage,
+    });
     res.status(500).json({ ok: false, error: 'Failed to build user summary' });
   }
 });

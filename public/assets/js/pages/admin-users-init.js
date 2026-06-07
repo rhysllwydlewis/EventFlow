@@ -7,95 +7,57 @@
 (function () {
   'use strict';
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
-  function esc(str) {
+  const $ = id => document.getElementById(id);
+  const PAGE_SIZE = 50;
+  const selectedUserIds = new Set();
+
+  let allUsers = [];
+  let currentPage = 1;
+  let debounceTimer = null;
+
+  function esc(value) {
     const d = document.createElement('div');
-    d.textContent = String(str ?? '');
+    d.textContent = String(value ?? '');
     return d.innerHTML;
   }
 
-  function fmtDate(dt) {
-    if (!dt) {
+  function fmtDate(value) {
+    if (!value) {
       return '—';
     }
-    try {
-      return new Date(dt).toLocaleDateString('en-GB', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      });
-    } catch {
+    const parsed = Date.parse(value);
+    if (Number.isNaN(parsed)) {
       return '—';
     }
+    return new Date(parsed).toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
   }
 
-  function fmtRelative(dt) {
-    if (!dt) {
+  function fmtRelative(value) {
+    if (!value) {
       return '—';
     }
-    try {
-      const diff = Date.now() - new Date(dt).getTime();
-      const days = Math.floor(diff / 86400000);
-      if (days === 0) {
-        return 'Today';
-      }
-      if (days === 1) {
-        return 'Yesterday';
-      }
-      if (days < 7) {
-        return `${days}d ago`;
-      }
-      if (days < 30) {
-        return `${Math.floor(days / 7)}w ago`;
-      }
-      return fmtDate(dt);
-    } catch {
+    const parsed = Date.parse(value);
+    if (Number.isNaN(parsed)) {
       return '—';
     }
-  }
-
-  // ── State ─────────────────────────────────────────────────────────────────
-  let allUsers = [];
-  let currentPage = 1;
-  const PAGE_SIZE = 50;
-  const selectedUserIds = new Set();
-  let debounceTimer = null;
-
-  // ── DOM refs ──────────────────────────────────────────────────────────────
-  const $ = id => document.getElementById(id);
-
-  // ── Badge helpers ─────────────────────────────────────────────────────────
-  function roleBadge(role) {
-    const map = {
-      customer: '<span class="badge badge-customer">Customer</span>',
-      supplier: '<span class="badge badge-supplier-account">Supplier</span>',
-      admin: '<span class="badge badge-admin">Admin</span>',
-      owner: '<span class="badge badge-admin">Owner</span>',
-    };
-    return map[role] || `<span class="badge">${esc(role)}</span>`;
-  }
-
-  function signupBadge(method) {
-    const map = {
-      google: '<span class="badge badge-google">Google</span>',
-      email_password: '<span class="badge badge-email">Email</span>',
-      admin_created: '<span class="badge badge-admin-created">Admin</span>',
-      owner: '<span class="badge badge-admin">Owner</span>',
-      unknown: '<span class="badge badge-warning">Unknown</span>',
-    };
-    return map[method] || `<span class="badge badge-warning">${esc(method)}</span>`;
-  }
-
-  function verifBadge(method) {
-    const map = {
-      google: '<span class="badge badge-google">Google</span>',
-      email_link: '<span class="badge badge-yes">Email link</span>',
-      admin: '<span class="badge badge-admin-created">Admin</span>',
-      legacy: '<span class="badge">Legacy</span>',
-      pending: '<span class="badge badge-no">Pending</span>',
-      unknown: '<span class="badge badge-warning">Unknown</span>',
-    };
-    return map[method] || `<span class="badge badge-warning">${esc(method)}</span>`;
+    const days = Math.floor((Date.now() - parsed) / 86400000);
+    if (days <= 0) {
+      return 'Today';
+    }
+    if (days === 1) {
+      return 'Yesterday';
+    }
+    if (days < 7) {
+      return `${days}d ago`;
+    }
+    if (days < 30) {
+      return `${Math.floor(days / 7)}w ago`;
+    }
+    return fmtDate(value);
   }
 
   function humanize(value) {
@@ -105,112 +67,141 @@
   }
 
   function badge(label, type) {
-    return `<span class="badge badge-${type || 'secondary'}" style="display:inline-block;margin:1px 2px 1px 0;white-space:nowrap;">${escapeHtml(label)}</span>`;
+    return `<span class="badge badge-${type || 'secondary'}">${esc(label)}</span>`;
   }
 
-  function verificationBadge(user) {
-    switch (user.verificationMethod) {
-      case 'google_verified_email':
-        return badge('Google verified', 'success');
-      case 'eventflow_email':
-        return badge('Verified by EventFlow email', 'success');
-      case 'admin_created':
-        return badge('Admin-created verified', 'info');
-      case 'owner_account':
-        return badge('Owner account', 'warning');
-      case 'pending':
-        return badge('Email verification pending', 'warning');
-      default:
-        return badge('Unknown verification source', 'danger');
-    }
+  function roleBadge(role) {
+    const map = {
+      customer: badge('Customer', 'customer'),
+      supplier: badge('Supplier', 'supplier-account'),
+      admin: badge('Admin', 'admin'),
+      owner: badge('Owner', 'admin'),
+    };
+    return map[role] || badge(humanize(role), 'secondary');
+  }
+
+  function signupBadge(method) {
+    const map = {
+      google: badge('Google', 'google'),
+      email_password: badge('Email/password', 'email'),
+      admin_created: badge('Admin-created', 'admin-created'),
+      owner: badge('Owner', 'admin'),
+      unknown: badge('Unknown', 'warning'),
+    };
+    return map[method] || badge(humanize(method), 'warning');
+  }
+
+  function verificationBadge(method) {
+    const map = {
+      google: badge('Google verified', 'google'),
+      google_verified_email: badge('Google verified', 'google'),
+      email_link: badge('Email link', 'yes'),
+      eventflow_email: badge('EventFlow email', 'yes'),
+      admin: badge('Admin verified', 'admin-created'),
+      admin_created: badge('Admin-created', 'admin-created'),
+      owner_account: badge('Owner account', 'admin'),
+      legacy: badge('Legacy verified', 'secondary'),
+      pending: badge('Pending', 'no'),
+      unknown: badge('Unknown', 'warning'),
+    };
+    return map[method] || badge(humanize(method), 'warning');
   }
 
   function emailStatusBadge(status) {
-    switch (status) {
-      case 'not_required':
-        return badge('No EventFlow email required', 'secondary');
-      case 'sent':
-        return badge('Email sent', 'info');
-      case 'delivered':
-        return badge('Delivered', 'success');
-      case 'failed':
-        return badge('Email failed', 'danger');
-      case 'outbox':
-        return badge('Outbox fallback', 'warning');
-      case 'bounced':
-        return badge('Bounced', 'danger');
-      case 'pending':
-        return badge('Email pending', 'warning');
-      default:
-        return badge('Email unknown', 'secondary');
-    }
+    const map = {
+      not_required: badge('Not required', 'secondary'),
+      sent: badge('Sent', 'info'),
+      delivered: badge('Delivered', 'yes'),
+      failed: badge('Failed', 'danger'),
+      bounced: badge('Bounced', 'danger'),
+      outbox: badge('Outbox fallback', 'warning'),
+      pending: badge('Pending', 'warning'),
+    };
+    return map[status] || badge(humanize(status), 'secondary');
   }
 
-  function canResendVerification(user) {
-    if (!user || user.verified) {
-      return false;
+  function subscriptionBadge(subscription, role) {
+    if (role === 'admin' || role === 'owner') {
+      return '—';
     }
-    if (
-      ['google_verified_email', 'admin_created', 'owner_account'].includes(user.verificationMethod)
-    ) {
-      return false;
+    const tier = (subscription && subscription.tier) || 'free';
+    if (tier === 'pro_plus') {
+      return badge('Pro Plus', 'pro-plus');
     }
-    if (['google', 'admin_created', 'owner_seed'].includes(user.signupMethod)) {
-      return false;
+    if (tier === 'pro') {
+      return badge('Pro', 'pro');
     }
-    return true;
-  }
-
-  function formatDate(dateStr) {
-    if (!dateStr) {
-      return 'Never';
-    }
-    if (profile.approved) {
-      return `<a href="${esc(profile.profileUrl)}" class="badge badge-yes">Approved</a>`;
-    }
-    return `<a href="${esc(profile.profileUrl)}" class="badge badge-warning">Pending</a>`;
+    return badge('Starter', 'starter');
   }
 
   function issueBadges(issues) {
-    if (!issues || !issues.length) {
-      return '';
-    }
     const labels = {
-      email_unverified: '<span class="uc-issue-badge">Unverified</span>',
-      unknown_verification_source:
-        '<span class="uc-issue-badge uc-issue-badge--warn">Unknown source</span>',
-      supplier_profile_missing:
-        '<span class="uc-issue-badge uc-issue-badge--warn">No profile</span>',
-      suspended: '<span class="uc-issue-badge uc-issue-badge--danger">Suspended</span>',
+      email_unverified: ['Email unverified', 'warning'],
+      unknown_verification_source: ['Unknown source', 'warning'],
+      supplier_profile_missing: ['No supplier profile', 'warning'],
+      suspended: ['Suspended', 'danger'],
     };
-    return issues.map(i => labels[i] || `<span class="uc-issue-badge">${esc(i)}</span>`).join(' ');
+    return (issues || [])
+      .map(issue => {
+        const [label, type] = labels[issue] || [humanize(issue), 'secondary'];
+        return `<span class="uc-issue-badge uc-issue-badge--${type}">${esc(label)}</span>`;
+      })
+      .join(' ');
   }
 
-  // ── Summary cards ─────────────────────────────────────────────────────────
-  function renderSummaryCards(summary) {
+  function canResendVerification(user) {
+    return (
+      user &&
+      user.signupMethod === 'email_password' &&
+      user.verified !== true &&
+      user.emailDeliveryStatus !== 'not_required'
+    );
+  }
+
+  function renderSummaryCards(data) {
     const grid = $('ucSummaryGrid');
-    if (!grid || !summary) {
+    if (!grid) {
       return;
     }
+    const summary = data.summary || {};
+    const health = data.health || {};
+    const supplierHealth = data.supplierHealth || {};
+    const card = (value, label, href, accent) => `
+      <a href="${href}" class="uc-summary-card uc-summary-card--${accent || 'blue'}">
+        <span class="uc-summary-card__value">${Number(value || 0).toLocaleString()}</span>
+        <span class="uc-summary-card__label">${esc(label)}</span>
+      </a>`;
 
-    const makeCard = (value, label, icon, accent, filterParams) => {
-      const href = filterParams ? `/admin-users?${filterParams}` : '/admin-users';
-      return `
-        <a href="${href}" class="uc-summary-card uc-summary-card--${accent}" title="Click to filter">
-          <div class="uc-summary-card__icon uc-summary-card__icon--${accent}" aria-hidden="true">${icon}</div>
-          <div class="uc-summary-card__value">${value}</div>
-          <div class="uc-summary-card__label">${label}</div>
-        </a>`;
-    };
+    grid.innerHTML = [
+      card(summary.totalUsers ?? data.total, 'Total users', '/admin-users', 'blue'),
+      card(
+        summary.unverifiedUsers ?? data.unverified,
+        'Unverified users',
+        '/admin-users?verificationMethod=pending',
+        'amber'
+      ),
+      card(health.googleVerified, 'Google verified', '/admin-users?signupMethod=google', 'green'),
+      card(
+        health.emailPasswordPending,
+        'Email/password pending',
+        '/admin-users?signupMethod=email_password&verificationMethod=pending',
+        'amber'
+      ),
+      card(
+        supplierHealth.totalSupplierUsers ?? (data.byRole && data.byRole.supplier),
+        'Supplier users',
+        '/admin-users?role=supplier',
+        'teal'
+      ),
+      card(
+        supplierHealth.linkIssues ?? (data.suppliers && data.suppliers.linkIssues),
+        'Supplier link issues',
+        '/admin-users?issue=supplier_profile_missing',
+        'red'
+      ),
+    ].join('');
+  }
 
-    // Show loading state
-    AdminShared.showLoadingState(tbody, {
-      rows: 5,
-      cols: 12,
-      message: 'Loading users...',
-    });
-
-  // ── Table rendering ───────────────────────────────────────────────────────
   function renderTable(users) {
     const tbody = $('ucTableBody');
     if (!tbody) {
@@ -218,53 +209,49 @@
     }
 
     if (!users.length) {
-      tbody.innerHTML = `<tr><td colspan="9" class="uc-empty-cell">
+      tbody.innerHTML = `<tr><td colspan="12" class="uc-empty-cell">
         <div class="admin-empty-state">
           <p>No users match the current filters.</p>
           <button type="button" class="btn btn-ghost btn-sm" id="ucEmptyClear">Clear filters</button>
         </div>
       </td></tr>`;
-      $('ucEmptyClear') && $('ucEmptyClear').addEventListener('click', clearFilters);
+      const emptyClear = $('ucEmptyClear');
+      if (emptyClear) {
+        emptyClear.addEventListener('click', clearFilters);
+      }
       return;
     }
 
     tbody.innerHTML = users
-      .map(u => {
-        const userId = esc(u.id || '');
-        const isChecked = selectedUserIds.has(u.id);
-        return `<tr class="${u.suspended ? 'uc-row--suspended' : ''} ${u.accountIssues && u.accountIssues.length ? 'uc-row--issues' : ''}">
-        <td class="checkbox-cell">
-          <input type="checkbox" class="uc-user-checkbox table-checkbox" data-user-id="${userId}" ${isChecked ? 'checked' : ''} aria-label="Select ${esc(u.name || u.email)}">
-        </td>
-        <td class="uc-name-cell">
-          <a href="/admin-user-detail?id=${userId}" class="uc-user-link">${esc(u.name || '(no name)')}</a>
-          <span class="uc-user-email">${esc(u.email || '')}</span>
-          ${issueBadges(u.accountIssues)}
-        </td>
-        <td>${roleBadge(u.role)}</td>
-        <td>${signupBadge(u.signupMethod)}</td>
-        <td>${verifBadge(u.verificationMethod)}</td>
-        <td>${supplierBadge(u.supplierProfile)}</td>
-        <td class="uc-date-cell">${fmtDate(u.createdAt)}</td>
-        <td class="uc-date-cell">${fmtRelative(u.lastLoginAt)}</td>
-        <td class="uc-actions-cell">
-          <a href="/admin-user-detail?id=${userId}" class="btn btn-ghost btn-xs" title="View user detail">View</a>
-          ${u.supplierProfile ? `<a href="${esc(u.supplierProfile.profileUrl)}" class="btn btn-ghost btn-xs" title="Supplier profile">Supplier</a>` : ''}
-        </td>
-      </tr>`;
+      .map(user => {
+        const userId = esc(user.id || '');
+        const checked = selectedUserIds.has(user.id) ? 'checked' : '';
+        const supplierLink = user.supplierProfile
+          ? `<a href="${esc(user.supplierProfile.profileUrl)}" class="btn btn-ghost btn-xs">Supplier</a>`
+          : '';
+        return `<tr class="${user.suspended ? 'uc-row--suspended' : ''} ${(user.accountIssues || []).length ? 'uc-row--issues' : ''}">
+          <td class="checkbox-cell"><input type="checkbox" class="uc-user-checkbox table-checkbox" data-user-id="${userId}" ${checked} aria-label="Select ${esc(user.name || user.email || 'user')}"></td>
+          <td><a href="/admin-user-detail?id=${userId}" class="uc-user-link">${esc(user.name || '(no name)')}</a>${issueBadges(user.accountIssues)}</td>
+          <td><a href="/admin-user-detail?id=${userId}" class="uc-user-link">${esc(user.email || '')}</a></td>
+          <td>${roleBadge(user.role)}</td>
+          <td>${subscriptionBadge(user.subscription, user.role)}</td>
+          <td>${user.verified ? '✓ Yes' : '✗ No'}<div>${verificationBadge(user.verificationMethod)}</div></td>
+          <td>${signupBadge(user.signupMethod)}</td>
+          <td>${emailStatusBadge(user.emailDeliveryStatus)}</td>
+          <td>${user.marketingOptIn ? 'Yes' : 'No'}</td>
+          <td>${fmtDate(user.createdAt)}</td>
+          <td>${fmtRelative(user.lastLoginAt)}</td>
+          <td class="uc-actions-cell">
+            <a href="/admin-user-detail?id=${userId}" class="btn btn-ghost btn-xs">View</a>
+            ${supplierLink}
+            <button type="button" class="btn btn-secondary btn-xs" data-manage-subscription="${userId}">Subscription</button>
+            ${canResendVerification(user) ? `<button type="button" class="btn btn-secondary btn-xs" data-resend-verification="${userId}">Resend</button>` : ''}
+          </td>
+        </tr>`;
       })
       .join('');
-
-      // Show error state with retry button
-      AdminShared.showErrorState(tbody, {
-        message: 'Failed to load users. Please try again.',
-        onRetry: loadAdminUsers,
-        colspan: 12,
-      });
-    });
   }
 
-  // ── Filtering + pagination ─────────────────────────────────────────────────
   function getFilters() {
     return {
       search: ($('ucSearch') || {}).value || '',
@@ -277,25 +264,25 @@
 
   function applyFilters() {
     const { search, role, signupMethod, verificationMethod, issue } = getFilters();
-    const s = search.toLowerCase();
-    const filtered = allUsers.filter(u => {
+    const searchLower = search.toLowerCase().trim();
+    const filtered = allUsers.filter(user => {
       if (
-        s &&
-        !(u.name || '').toLowerCase().includes(s) &&
-        !(u.email || '').toLowerCase().includes(s)
+        searchLower &&
+        !(user.name || '').toLowerCase().includes(searchLower) &&
+        !(user.email || '').toLowerCase().includes(searchLower)
       ) {
         return false;
       }
-      if (role && u.role !== role) {
+      if (role && user.role !== role) {
         return false;
       }
-      if (signupMethod && u.signupMethod !== signupMethod) {
+      if (signupMethod && user.signupMethod !== signupMethod) {
         return false;
       }
-      if (verificationMethod && u.verificationMethod !== verificationMethod) {
+      if (verificationMethod && user.verificationMethod !== verificationMethod) {
         return false;
       }
-      if (issue && !(u.accountIssues || []).includes(issue)) {
+      if (issue && !(user.accountIssues || []).includes(issue)) {
         return false;
       }
       return true;
@@ -304,66 +291,18 @@
     const total = filtered.length;
     const pages = Math.max(Math.ceil(total / PAGE_SIZE), 1);
     currentPage = Math.min(currentPage, pages);
-    const slice = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+    const visible = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+    renderTable(visible);
+    updateSummaryText(total, pages);
+    updateBulkBar();
+  }
 
-          renderUsers();
-        },
-        colspan: 12,
-      });
-      return;
+  function updateSummaryText(total, pages) {
+    const el = $('ucUserSummary') || $('user-summary');
+    if (el) {
+      el.textContent = `${total.toLocaleString()} users · page ${currentPage} of ${pages}`;
     }
-
-    tbody.innerHTML = filtered
-      .map(u => {
-        // Build role badge using shared helper
-        const roleBadge = AdminShared.getRoleBadge(u.role);
-
-        // Admin users get an Admin badge — they have full privileges, not a subscription tier
-        const isAdminUser = u.role === 'admin';
-        let subscriptionBadge = '';
-        if (isAdminUser) {
-          subscriptionBadge = '—';
-        } else {
-          const subscription = u.subscription || { tier: 'free', status: 'active' };
-          if (subscription.tier === 'pro') {
-            subscriptionBadge = '<span class="badge badge-pro">Pro</span>';
-          } else if (subscription.tier === 'pro_plus') {
-            subscriptionBadge = '<span class="badge badge-pro-plus">Pro Plus</span>';
-          } else {
-            subscriptionBadge = '<span class="badge badge-starter">Starter</span>';
-          }
-        }
-
-        const userId = escapeHtml(u.id || u._id || '');
-        const isChecked = selectedUserIds.has(userId);
-
-        const actionsHtml = `
-          <button class="btn btn-secondary btn-sm" data-manage-subscription="${userId}" style="font-size:12px;padding:4px 8px;margin-right:4px;">Manage Subscription</button>
-          ${
-            canResendVerification(u)
-              ? `<button class="btn btn-secondary btn-sm" data-resend-verification="${userId}" style="font-size:12px;padding:4px 8px;">Resend Verification</button>`
-              : ''
-          }
-        `;
-
-        return (
-          `<tr>` +
-          `<td class="checkbox-cell"><input type="checkbox" class="user-checkbox table-checkbox" data-user-id="${userId}" ${isChecked ? 'checked' : ''}></td>` +
-          `<td><a href="/admin-user-detail?id=${userId}" style="color:#3b82f6;text-decoration:none;">${escapeHtml(u.name || '')}</a></td>` +
-          `<td><a href="/admin-user-detail?id=${userId}" style="color:#3b82f6;text-decoration:none;">${escapeHtml(u.email || '')}</a></td>` +
-          `<td>${roleBadge}</td>` +
-          `<td>${subscriptionBadge}</td>` +
-          `<td>${u.verified ? '✓ Yes' : '✗ No'}<div>${verificationBadge(u)}</div></td>` +
-          `<td>${badge(humanize(u.signupMethod), 'secondary')}<br>${badge(humanize(u.authProvider), 'secondary')}</td>` +
-          `<td>${emailStatusBadge(u.emailDeliveryStatus)}</td>` +
-          `<td>${u.marketingOptIn ? 'Yes' : 'No'}</td>` +
-          `<td>${formatDate(u.createdAt)}</td>` +
-          `<td>${formatDate(u.lastLoginAt)}</td>` +
-          `<td>${actionsHtml}</td>` +
-          `</tr>`
-        );
-      })
-      .join('');
+  }
 
   function clearFilters() {
     ['ucSearch', 'ucRoleFilter', 'ucSignupFilter', 'ucVerifFilter', 'ucIssueFilter'].forEach(id => {
@@ -376,7 +315,6 @@
     applyFilters();
   }
 
-  // Apply URL query params on load
   function applyUrlFilters() {
     const params = new URLSearchParams(window.location.search);
     const mapping = {
@@ -386,185 +324,89 @@
       issue: 'ucIssueFilter',
     };
     Object.entries(mapping).forEach(([param, id]) => {
-      const val = params.get(param);
+      const value = params.get(param);
       const el = $(id);
-      if (val && el) {
-        el.value = val;
+      if (value && el) {
+        el.value = value;
       }
     });
     const search = params.get('search');
-    const searchEl = $('ucSearch');
-    if (search && searchEl) {
-      searchEl.value = search;
+    if (search && $('ucSearch')) {
+      $('ucSearch').value = search;
     }
   }
 
-  // ── Pagination ─────────────────────────────────────────────────────────────
-  function renderPagination(page, pages, total) {
-    const html =
-      pages <= 1
-        ? ''
-        : `
-      <div class="uc-pagination-inner">
-        <button class="btn btn-ghost btn-xs" ${page === 1 ? 'disabled' : ''} data-page="${page - 1}">← Prev</button>
-        <span class="uc-pagination-label">Page ${page} of ${pages} (${total})</span>
-        <button class="btn btn-ghost btn-xs" ${page >= pages ? 'disabled' : ''} data-page="${page + 1}">Next →</button>
-      </div>`;
-
-    [$('ucPaginationTop'), $('ucPaginationBottom')].forEach(el => {
-      if (!el) {
-        return;
-      }
-      el.innerHTML = html;
-      el.querySelectorAll('[data-page]').forEach(btn => {
-        btn.addEventListener('click', () => {
-          currentPage = Number(btn.dataset.page);
-          applyFilters();
-        });
-      });
-    });
+  function selectedEligible(ids, predicate) {
+    return allUsers.filter(user => ids.includes(user.id) && predicate(user)).map(user => user.id);
   }
 
-  // ── Select all / bulk actions ──────────────────────────────────────────────
-  function updateBulkBar() {
-    const bar = $('ucBulkActionsBar');
-    const count = $('ucBulkCount');
-    if (!bar) {
-      return;
-    }
-    const n = selectedUserIds.size;
-    if (n > 0) {
-      bar.hidden = false;
-      if (count) {
-        count.textContent = `${n} selected`;
-      }
-    } else {
-      bar.hidden = true;
-    }
-  }
-
-  function updateSelectAll() {
-    const sa = $('ucSelectAll');
-    if (!sa) {
-      return;
-    }
-    const checkboxes = document.querySelectorAll('.uc-user-checkbox');
-    const checked = [...checkboxes].filter(c => c.checked).length;
-    sa.indeterminate = checked > 0 && checked < checkboxes.length;
-    sa.checked = checked === checkboxes.length && checkboxes.length > 0;
-  }
-
-  // ── Bulk actions ───────────────────────────────────────────────────────────
   async function bulkVerify(ids) {
-    const eligible = allUsers.filter(
-      u => ids.includes(u.id) && !u.verified && u.signupMethod === 'email_password'
+    const safeIds = selectedEligible(
+      ids,
+      user =>
+        user.role !== 'admin' && user.role !== 'owner' && user.signupMethod === 'email_password'
     );
-    if (!eligible.length) {
-      AdminShared.showToast(
-        'No eligible users — only unverified email/password accounts can be verified this way.',
-        'warning'
-      );
+    if (!safeIds.length) {
+      AdminShared.showToast('No eligible email/password users selected.', 'warning');
       return;
     }
     const ok = await AdminShared.showConfirmModal({
-      title: `Verify ${eligible.length} user${eligible.length !== 1 ? 's' : ''}?`,
-      message:
-        'This will mark selected unverified email/password accounts as verified. Google and admin-created accounts are excluded.',
+      title: `Verify ${safeIds.length} user${safeIds.length !== 1 ? 's' : ''}?`,
+      message: 'Admin and owner accounts are excluded from this bulk action.',
       confirmText: 'Verify',
       type: 'warning',
     });
     if (!ok) {
       return;
     }
-    try {
-      await AdminShared.adminFetch('/api/admin/users/bulk-verify', {
-        method: 'POST',
-        body: JSON.stringify({ userIds: eligible.map(u => u.id) }),
-      });
-      AdminShared.showToast(
-        `Verified ${eligible.length} user${eligible.length !== 1 ? 's' : ''}.`,
-        'success'
-      );
-      await loadData();
-    } catch (err) {
-      AdminShared.showToast(`Failed: ${err.message}`, 'error');
-    }
-  }
-
-  async function bulkResendVerif(ids) {
-    const eligible = allUsers.filter(
-      u => ids.includes(u.id) && !u.verified && u.signupMethod === 'email_password'
-    );
-    if (!eligible.length) {
-      AdminShared.showToast(
-        'No eligible users — only unverified email/password accounts can receive a verification resend.',
-        'warning'
-      );
-      return;
-    }
-    const ok = await AdminShared.showConfirmModal({
-      title: `Resend verification to ${eligible.length} user${eligible.length !== 1 ? 's' : ''}?`,
-      confirmText: 'Resend',
-      type: 'info',
+    await AdminShared.adminFetch('/api/admin/users/bulk-verify', {
+      method: 'POST',
+      body: JSON.stringify({ userIds: safeIds }),
     });
-    if (!ok) {
-      return;
-    }
-    let sent = 0;
-    for (const u of eligible) {
-      try {
-        await AdminShared.adminFetch(`/api/admin/users/${u.id}/resend-verification`, {
-          method: 'POST',
-        });
-        sent++;
-      } catch {
-        /* continue */
-      }
-    }
+    selectedUserIds.clear();
     AdminShared.showToast(
-      `Sent ${sent} of ${eligible.length} verification email${eligible.length !== 1 ? 's' : ''}.`,
-      sent > 0 ? 'success' : 'error'
+      `Verified ${safeIds.length} account${safeIds.length !== 1 ? 's' : ''}.`,
+      'success'
     );
+    await loadData();
   }
 
   async function bulkSuspend(ids) {
-    const safeIds = allUsers
-      .filter(u => ids.includes(u.id) && u.role !== 'admin' && u.role !== 'owner')
-      .map(u => u.id);
+    const safeIds = selectedEligible(ids, user => user.role !== 'admin' && user.role !== 'owner');
     if (!safeIds.length) {
       AdminShared.showToast(
-        'No eligible users — admin and owner accounts cannot be bulk suspended.',
+        'No eligible users — admin and owner accounts cannot be suspended.',
         'warning'
       );
       return;
     }
     const ok = await AdminShared.showConfirmModal({
       title: `Suspend ${safeIds.length} user${safeIds.length !== 1 ? 's' : ''}?`,
+      message: 'Admin and owner accounts are excluded from this bulk action.',
       confirmText: 'Suspend',
       type: 'danger',
     });
     if (!ok) {
       return;
     }
-    try {
-      await AdminShared.adminFetch('/api/admin/users/bulk-suspend', {
-        method: 'POST',
-        body: JSON.stringify({ userIds: safeIds, suspend: true }),
-      });
-      AdminShared.showToast(
-        `Suspended ${safeIds.length} account${safeIds.length !== 1 ? 's' : ''}.`,
-        'success'
-      );
-      await loadData();
-    } catch (err) {
-      AdminShared.showToast(`Failed: ${err.message}`, 'error');
-    }
+    await AdminShared.adminFetch('/api/admin/users/bulk-suspend', {
+      method: 'POST',
+      body: JSON.stringify({
+        userIds: safeIds,
+        suspended: true,
+        reason: 'Bulk suspension from Users Centre',
+      }),
+    });
+    selectedUserIds.clear();
+    AdminShared.showToast(
+      `Suspended ${safeIds.length} account${safeIds.length !== 1 ? 's' : ''}.`,
+      'success'
+    );
+    await loadData();
   }
 
   async function bulkDelete(ids) {
-    const safeIds = allUsers
-      .filter(u => ids.includes(u.id) && u.role !== 'admin' && u.role !== 'owner')
-      .map(u => u.id);
+    const safeIds = selectedEligible(ids, user => user.role !== 'admin' && user.role !== 'owner');
     if (!safeIds.length) {
       AdminShared.showToast(
         'No eligible users — admin and owner accounts cannot be bulk deleted.',
@@ -581,44 +423,144 @@
     if (!ok) {
       return;
     }
-    let deleted = 0;
-    for (const id of safeIds) {
-      try {
-        await AdminShared.adminFetch(`/api/admin/users/${id}`, { method: 'DELETE' });
-        deleted++;
-      } catch {
-        /* continue */
-      }
-    }
-    AdminShared.showToast(
-      `Deleted ${deleted} account${deleted !== 1 ? 's' : ''}.`,
-      deleted > 0 ? 'success' : 'error'
-    );
+    await AdminShared.adminFetch('/api/admin/users/bulk-delete', {
+      method: 'POST',
+      body: JSON.stringify({ userIds: safeIds }),
+    });
     selectedUserIds.clear();
+    AdminShared.showToast(
+      `Deleted ${safeIds.length} account${safeIds.length !== 1 ? 's' : ''}.`,
+      'success'
+    );
     await loadData();
   }
 
-  // ── Data loading ───────────────────────────────────────────────────────────
+  async function resendVerification(userId) {
+    const user = allUsers.find(item => item.id === userId);
+    if (!canResendVerification(user)) {
+      AdminShared.showToast('Verification email is not required for this account.', 'warning');
+      return;
+    }
+    await AdminShared.adminFetch(
+      `/api/admin/users/${encodeURIComponent(userId)}/resend-verification`,
+      {
+        method: 'POST',
+      }
+    );
+    AdminShared.showToast('Verification email queued.', 'success');
+  }
+
+  function updateBulkBar() {
+    const bar = $('ucBulkActionsBar');
+    const count = $('ucBulkCount');
+    const selectedCount = selectedUserIds.size;
+    if (bar) {
+      bar.style.display = selectedCount ? 'flex' : 'none';
+    }
+    if (count) {
+      count.textContent = `${selectedCount} user${selectedCount === 1 ? '' : 's'} selected`;
+    }
+  }
+
+  function openSubscriptionModal(userId) {
+    const user = allUsers.find(item => item.id === userId);
+    if (!user) {
+      return;
+    }
+    const modal = $('subscriptionModal');
+    const userIdInput = $('subscriptionUserId');
+    const subtitle = $('subscriptionModalSubtitle');
+    const status = $('currentSubscriptionStatus');
+    if (userIdInput) {
+      userIdInput.value = userId;
+    }
+    if (subtitle) {
+      subtitle.textContent = `${user.name || '(no name)'} · ${user.email || 'No email'}`;
+    }
+    if (status) {
+      status.innerHTML = `<p>${subscriptionBadge(user.subscription, user.role)} ${esc((user.subscription && user.subscription.status) || 'active')}</p>`;
+    }
+    if (modal) {
+      modal.style.display = 'flex';
+    }
+  }
+
+  function closeSubscriptionModal() {
+    const modal = $('subscriptionModal');
+    if (modal) {
+      modal.style.display = 'none';
+    }
+  }
+
+  async function saveSubscription(event) {
+    event.preventDefault();
+    const userId = ($('subscriptionUserId') || {}).value;
+    const tier = ($('subscriptionTier') || {}).value;
+    const duration = ($('subscriptionDuration') || {}).value;
+    const reason = ($('subscriptionReason') || {}).value;
+    if (!userId || !tier) {
+      AdminShared.showToast('Choose a user and subscription tier.', 'warning');
+      return;
+    }
+    if (tier === 'free') {
+      await removeSubscription(userId, reason);
+      return;
+    }
+    await AdminShared.adminFetch(`/api/admin/users/${encodeURIComponent(userId)}/subscription`, {
+      method: 'POST',
+      body: JSON.stringify({ tier, duration, reason }),
+    });
+    closeSubscriptionModal();
+    AdminShared.showToast('Subscription updated.', 'success');
+    await loadData();
+  }
+
+  async function removeSubscription(userId, reason) {
+    const ok = await AdminShared.showConfirmModal({
+      title: 'Remove subscription?',
+      message: 'This user will be moved back to the free tier.',
+      confirmText: 'Remove subscription',
+      type: 'danger',
+    });
+    if (!ok) {
+      return;
+    }
+    await AdminShared.adminFetch(`/api/admin/users/${encodeURIComponent(userId)}/subscription`, {
+      method: 'DELETE',
+      body: JSON.stringify({ reason: reason || 'Removed from Users Centre' }),
+    });
+    closeSubscriptionModal();
+    AdminShared.showToast('Subscription removed.', 'success');
+    await loadData();
+  }
+
   async function loadSummary() {
     try {
       const data = await AdminShared.api('/api/admin/users/summary');
       renderSummaryCards(data);
     } catch (err) {
+      const grid = $('ucSummaryGrid');
+      if (grid) {
+        grid.innerHTML = '<div class="admin-inline-error">Could not load user summary.</div>';
+      }
       AdminShared.showToast('Failed to load user summary.', 'error');
     }
   }
 
   async function loadUsers() {
+    const tbody = $('ucTableBody');
+    if (tbody && window.AdminShared && AdminShared.showLoadingState) {
+      AdminShared.showLoadingState(tbody, { rows: 5, cols: 12, message: 'Loading users...' });
+    }
     try {
-      // Use the existing /users list endpoint which is already mounted
       const data = await AdminShared.api('/api/admin/users/list');
       allUsers = data.items || [];
+      selectedUserIds.clear();
       applyFilters();
     } catch (err) {
-      const tbody = $('ucTableBody');
       if (tbody) {
         tbody.innerHTML =
-          '<tr><td colspan="9" class="uc-empty-cell">Failed to load users. Please refresh.</td></tr>';
+          '<tr><td colspan="12" class="uc-empty-cell">Failed to load users. Please refresh.</td></tr>';
       }
       AdminShared.showToast('Failed to load users.', 'error');
     }
@@ -628,23 +570,19 @@
     await Promise.allSettled([loadSummary(), loadUsers()]);
   }
 
-  // ── Initialise ─────────────────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', () => {
     applyUrlFilters();
 
-    // Refresh button
     const refreshBtn = $('ucRefreshBtn');
     if (refreshBtn) {
       refreshBtn.addEventListener('click', loadData);
     }
 
-    // Clear filters
     const clearBtn = $('ucClearFilters');
     if (clearBtn) {
       clearBtn.addEventListener('click', clearFilters);
     }
 
-    // Search + filters with debounce
     ['ucSearch', 'ucRoleFilter', 'ucSignupFilter', 'ucVerifFilter', 'ucIssueFilter'].forEach(id => {
       const el = $(id);
       if (!el) {
@@ -663,15 +601,13 @@
       });
     });
 
-    // Select all
-    const sa = $('ucSelectAll');
-    if (sa) {
-      sa.addEventListener('change', () => {
-        const checkboxes = document.querySelectorAll('.uc-user-checkbox');
-        checkboxes.forEach(cb => {
-          cb.checked = sa.checked;
-          const uid = cb.dataset.userId;
-          if (sa.checked) {
+    const selectAll = $('ucSelectAll');
+    if (selectAll) {
+      selectAll.addEventListener('change', () => {
+        document.querySelectorAll('.uc-user-checkbox').forEach(checkbox => {
+          checkbox.checked = selectAll.checked;
+          const uid = checkbox.dataset.userId;
+          if (selectAll.checked) {
             selectedUserIds.add(uid);
           } else {
             selectedUserIds.delete(uid);
@@ -681,19 +617,68 @@
       });
     }
 
-    // Bulk action buttons
+    document.addEventListener('change', event => {
+      const checkbox = event.target && event.target.closest('.uc-user-checkbox');
+      if (!checkbox) {
+        return;
+      }
+      const uid = checkbox.dataset.userId;
+      if (checkbox.checked) {
+        selectedUserIds.add(uid);
+      } else {
+        selectedUserIds.delete(uid);
+      }
+      updateBulkBar();
+    });
+
+    document.addEventListener('click', event => {
+      const subscriptionBtn = event.target && event.target.closest('[data-manage-subscription]');
+      const resendBtn = event.target && event.target.closest('[data-resend-verification]');
+      if (subscriptionBtn) {
+        openSubscriptionModal(subscriptionBtn.dataset.manageSubscription);
+      }
+      if (resendBtn) {
+        resendVerification(resendBtn.dataset.resendVerification).catch(err =>
+          AdminShared.showToast(`Failed: ${err.message}`, 'error')
+        );
+      }
+    });
+
     [
       ['ucBulkVerify', () => bulkVerify([...selectedUserIds])],
-      ['ucBulkResendVerif', () => bulkResendVerif([...selectedUserIds])],
       ['ucBulkSuspend', () => bulkSuspend([...selectedUserIds])],
-      ['ucBulkExport', () => AdminShared.showToast('Export from /admin-exports.', 'info')],
       ['ucBulkDelete', () => bulkDelete([...selectedUserIds])],
+      ['ucBulkExport', () => AdminShared.showToast('Export from /admin-exports.', 'info')],
     ].forEach(([id, handler]) => {
       const btn = $(id);
       if (btn) {
-        btn.addEventListener('click', handler);
+        btn.addEventListener('click', () =>
+          handler().catch(err => AdminShared.showToast(`Failed: ${err.message}`, 'error'))
+        );
       }
     });
+
+    const closeBtn = $('closeSubscriptionModal');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', closeSubscriptionModal);
+    }
+    const cancelBtn = $('cancelSubscriptionBtn');
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', closeSubscriptionModal);
+    }
+    const form = $('subscriptionForm');
+    if (form) {
+      form.addEventListener('submit', saveSubscription);
+    }
+    const removeBtn = $('removeSubscriptionBtn');
+    if (removeBtn) {
+      removeBtn.addEventListener('click', () => {
+        const userId = ($('subscriptionUserId') || {}).value;
+        removeSubscription(userId).catch(err =>
+          AdminShared.showToast(`Failed: ${err.message}`, 'error')
+        );
+      });
+    }
 
     loadData();
   });

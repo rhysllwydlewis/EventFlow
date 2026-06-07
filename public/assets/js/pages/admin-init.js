@@ -121,6 +121,58 @@
   let allSuppliers = [];
   let allPackages = [];
   let summary = null; // populated by /users/summary; shared with renderAnalytics
+  let summaryLoadFailed = false;
+  let summaryWarningShown = false;
+
+  function renderAccountHealthFallback() {
+    const userRowsEl = document.getElementById('dashUserHealthRows');
+    const supplierRowsEl = document.getElementById('dashSupplierHealthRows');
+    const fallbackHtml = `
+      <div class="dash-health-row dash-health-row--error">
+        <span class="dash-health-row__label">Could not load account health.</span>
+        <button type="button" class="ef-cta" data-action="retryAccountHealth">Retry</button>
+      </div>
+      <div class="dash-health-row">
+        <span class="dash-health-row__label"><a href="/admin-users">Open Users Centre</a></span>
+        <span class="dash-health-row__value">↗</span>
+      </div>
+      <div class="dash-health-row">
+        <span class="dash-health-row__label"><a href="/admin-emails">Open Email Centre</a></span>
+        <span class="dash-health-row__value">↗</span>
+      </div>`;
+    const supplierFallbackHtml = `
+      <div class="dash-health-row dash-health-row--error">
+        <span class="dash-health-row__label">Supplier account health is temporarily unavailable.</span>
+        <button type="button" class="ef-cta" data-action="retryAccountHealth">Retry</button>
+      </div>
+      <div class="dash-health-row">
+        <span class="dash-health-row__label"><a href="/admin-suppliers">Supplier Management</a></span>
+        <span class="dash-health-row__value">↗</span>
+      </div>
+      <div class="dash-health-row">
+        <span class="dash-health-row__label"><a href="/admin-users">Open Users Centre</a></span>
+        <span class="dash-health-row__value">↗</span>
+      </div>`;
+    if (userRowsEl) {
+      userRowsEl.innerHTML = fallbackHtml;
+    }
+    if (supplierRowsEl) {
+      supplierRowsEl.innerHTML = supplierFallbackHtml;
+    }
+    if (!summaryWarningShown) {
+      _adminToast('Could not load account health. Try again or open Users Centre.', 'warning');
+      summaryWarningShown = true;
+    }
+  }
+
+  document.addEventListener('click', e => {
+    const btn = e.target && e.target.closest('[data-action="retryAccountHealth"]');
+    if (btn) {
+      e.preventDefault();
+      summaryWarningShown = false;
+      loadAll();
+    }
+  });
 
   function renderUsersTable(list) {
     const el = document.getElementById('users');
@@ -540,8 +592,6 @@
     // Trend indicators — use summary.newLast7 (from shared summary service)
     // allUsers is no longer pre-loaded on the dashboard; Users Centre has the full list
     (function () {
-      const now = Date.now();
-      const oneWeek = 7 * 24 * 60 * 60 * 1000;
       // Use pre-computed summary.newLast7 (allUsers no longer pre-loaded on dashboard)
       const recentUsers = (typeof summary !== 'undefined' && summary && summary.newLast7) || 0;
       const prevUsers = 0; // period-over-period not available from summary; defaults to 0
@@ -655,8 +705,8 @@
         return Promise.all([
           // Use the shared summary service — same source as Users Centre
           api('/api/admin/users/summary').catch(err => {
-            console.warn('Failed to load user summary:', err.message);
-            return null;
+            console.warn('Failed to load account health:', err.message);
+            return { __summaryError: true };
           }),
           api('/api/admin/metrics').catch(err => {
             console.warn('Failed to load metrics:', err.message);
@@ -678,13 +728,20 @@
 
           // results[0] is now the /api/admin/users/summary response (stats only, no items)
           // allUsers is populated separately via the legacy user management section
-          summary = usersResp.total !== null && usersResp.total !== undefined ? usersResp : null; // set on outer scope for renderAnalytics
+          summaryLoadFailed = !!usersResp.__summaryError;
+          summary =
+            !summaryLoadFailed && usersResp.total !== null && usersResp.total !== undefined
+              ? usersResp
+              : null; // set on outer scope for renderAnalytics
           allUsers = []; // dashboard no longer loads the full user list; use Users Centre
           // Reset supplier/package caches so edits refetch fresh data after a reload
           allSuppliers = [];
           allPackages = [];
           applyUserFilters();
           renderAnalytics(metricsResp);
+          if (summaryLoadFailed) {
+            renderAccountHealthFallback();
+          }
 
           // Update moderation queue counts
           const pendingPhotos = (photosResp.photos || []).filter(p => !p.approved && !p.rejected);
@@ -737,7 +794,9 @@
           if (statusEl) {
             statusEl.textContent = summary
               ? `${summary.total || 0} users · ${summary.suppliers ? summary.suppliers.total : 0} suppliers`
-              : 'Dashboard loaded.';
+              : summaryLoadFailed
+                ? 'Dashboard loaded with warnings.'
+                : 'Dashboard loaded.';
             statusEl.classList.remove('is-loading');
           }
         });
