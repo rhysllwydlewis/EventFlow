@@ -25,7 +25,6 @@
     }
   }
 
-  const userId = new URLSearchParams(window.location.search).get('id');
   if (!userId) {
     document.getElementById('userDetailsContainer').innerHTML =
       '<div class="card"><p class="small">No user ID specified. <a href="/admin-users">Back to Users Centre</a></p></div>';
