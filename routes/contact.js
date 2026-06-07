@@ -12,6 +12,7 @@ const validator = require('validator');
 const crypto = require('crypto');
 const logger = require('../utils/logger');
 const { uid } = require('../store');
+const { notifyAdmins } = require('../services/notifyAdmins.service');
 const router = express.Router();
 
 // Input length limits for contact form fields
@@ -99,6 +100,20 @@ router.post('/contact', applyWriteLimiter, async (req, res) => {
       logger.error('[CONTACT] Failed to save contact enquiry', { email: enquiry.email });
       return res.status(500).json({ error: 'Failed to submit enquiry. Please try again.' });
     }
+
+    const wsServer = req.app && req.app.get ? req.app.get('websocketServer') : null;
+    notifyAdmins(
+      {
+        type: 'ticket',
+        title: 'New external contact enquiry',
+        message: `${enquiry.senderName} submitted: ${enquiry.subject}`,
+        actionUrl: '/admin-tickets#contacts',
+        actionText: 'View enquiry',
+        priority: 'normal',
+        metadata: { enquiryId: enquiry.id, queueType: 'contact_enquiries' },
+      },
+      wsServer
+    );
 
     logger.info('Contact form submission saved', {
       id: enquiry.id,

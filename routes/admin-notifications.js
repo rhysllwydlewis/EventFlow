@@ -21,6 +21,7 @@ const { notificationLimiter } = require('../middleware/rateLimits');
 const mongoDb = require('../db');
 const logger = require('../utils/logger');
 const NotificationService = require('../services/notification.service');
+const { getAdminQueueNotifications } = require('./admin-notification-work-queue');
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -43,20 +44,67 @@ async function getNotifSvc(req) {
   return new NotificationService(db, ws);
 }
 
+function getNotificationTime(item) {
+  const time = new Date(item.updatedAt || item.createdAt || 0).getTime();
+  return Number.isFinite(time) ? time : 0;
+}
+
+function withAdminQueue(result, queueItems, limit, skip) {
+  const storedNotifications = Array.isArray(result.notifications) ? result.notifications : [];
+  const mergedNotifications = [...queueItems, ...storedNotifications].sort(
+    (a, b) => getNotificationTime(b) - getNotificationTime(a)
+  );
+  const storedTotal = result.pagination
+    ? Number(result.pagination.total) || 0
+    : storedNotifications.length;
+  const total = storedTotal + queueItems.length;
+
+  return {
+    notifications: mergedNotifications.slice(skip, skip + limit),
+    pagination: {
+      total,
+      limit,
+      skip,
+      hasMore: total > skip + limit,
+    },
+    unreadCount: (Number(result.unreadCount) || 0) + queueItems.length,
+    workQueue: {
+      total: queueItems.length,
+      items: queueItems,
+    },
+  };
+}
+
 // ── GET /api/admin/notifications ─────────────────────────────────────────────
 /**
  * List the current admin's notifications, newest first.
  * Supports: ?unreadOnly=true, ?limit=N, ?skip=N
  */
 router.get('/', authRequired, roleRequired('admin'), notificationLimiter, async (req, res) => {
+  const unreadOnly = req.query.unreadOnly === 'true';
+  const limit = Math.min(Number(req.query.limit) || 30, 100);
+  const skip = Math.max(Number(req.query.skip) || 0, 0);
+  const storedFetchLimit = Math.min(limit + skip, 100);
+  let result = {
+    notifications: [],
+    pagination: { total: 0, limit: storedFetchLimit, skip: 0, hasMore: false },
+    unreadCount: 0,
+  };
+
   try {
     const svc = await getNotifSvc(req);
-    const unreadOnly = req.query.unreadOnly === 'true';
-    const limit = Math.min(Number(req.query.limit) || 30, 100);
-    const skip = Math.max(Number(req.query.skip) || 0, 0);
+    result = await svc.getForUser(req.user.id, {
+      unreadOnly,
+      limit: storedFetchLimit,
+      skip: 0,
+    });
+  } catch (err) {
+    logger.warn('[admin-notif] stored notifications unavailable:', err.message);
+  }
 
-    const result = await svc.getForUser(req.user.id, { unreadOnly, limit, skip });
-    res.json({ ok: true, ...result });
+  try {
+    const queueItems = await getAdminQueueNotifications();
+    res.json({ ok: true, ...withAdminQueue(result, queueItems, limit, skip) });
   } catch (err) {
     logger.error('[admin-notif] GET / error:', err.message);
     res.status(503).json({
@@ -75,13 +123,25 @@ router.get(
   roleRequired('admin'),
   notificationLimiter,
   async (req, res) => {
+    let count = 0;
     try {
       const svc = await getNotifSvc(req);
-      const count = await svc.getUnreadCount(req.user.id);
-      res.json({ ok: true, count });
+      count = await svc.getUnreadCount(req.user.id);
     } catch (err) {
       logger.warn('[admin-notif] unread-count error:', err.message);
-      res.json({ ok: true, count: 0 });
+    }
+
+    try {
+      const queueItems = await getAdminQueueNotifications();
+      res.json({
+        ok: true,
+        count: count + queueItems.length,
+        storedCount: count,
+        workQueueCount: queueItems.length,
+      });
+    } catch (err) {
+      logger.warn('[admin-notif] queue unread-count error:', err.message);
+      res.json({ ok: true, count });
     }
   }
 );
