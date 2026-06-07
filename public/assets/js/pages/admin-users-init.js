@@ -468,7 +468,8 @@
     }
     const ok = await AdminShared.showConfirmModal({
       title: `Permanently delete ${safeIds.length} user${safeIds.length !== 1 ? 's' : ''}?`,
-      message: 'This cannot be undone. Admin and owner accounts are excluded.',
+      message:
+        'This cannot be undone. Supplier users will also have their supplier profile, packages and public listing data deleted. Admin and owner accounts are excluded.',
       confirmText: 'Delete permanently',
       type: 'danger',
     });

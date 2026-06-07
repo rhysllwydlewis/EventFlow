@@ -33,6 +33,7 @@ const REFERENCED_TEMPLATES = [
   'newsletter-confirm',
   'newsletter-welcome',
   'notification',
+  'support-ticket-reply',
   'partner-welcome',
   'password-reset',
   'password-reset-confirmation',
@@ -532,6 +533,7 @@ describe('Email preview registry, preheaders and plain text', () => {
     'welcome-supplier',
     'partner-welcome',
     'supplier-verification-status',
+    'support-ticket-reply',
     'marketing',
     'newsletter-confirm',
     'newsletter-welcome',
@@ -572,6 +574,29 @@ describe('Email preview registry, preheaders and plain text', () => {
     expect(html).toContain('/dashboard/customer');
     expect(html).not.toContain('/dashboard-customer');
     expect(html).not.toContain('/checklist');
+  });
+
+  test('support ticket reply template renders escaped subject and safe reply HTML', () => {
+    const registry = require('../../utils/emailTemplateRegistry');
+    const html = loadEmailTemplate('support-ticket-reply', {
+      name: '<img src=x onerror=alert(1)>',
+      ticketSubject: '<script>alert(1)</script>',
+      replyMessageHtml: 'Hello&lt;br&gt;&lt;strong&gt;escaped&lt;/strong&gt;',
+      ticketUrl: 'https://event-flow.co.uk/tickets/t1',
+      supportEmail: 'support@event-flow.co.uk',
+      preheader: registry.getPreheader('support-ticket-reply'),
+    });
+    expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
+    expect(html).not.toContain('<script>alert(1)</script>');
+    expect(html).toContain('Hello&lt;br&gt;&lt;strong&gt;escaped&lt;/strong&gt;');
+  });
+
+  test('ticket admin reply uses support-ticket-reply via sendMail', () => {
+    const src = fs.readFileSync(path.join(__dirname, '../../routes/tickets.js'), 'utf8');
+    expect(src).toContain('postmark.sendMail');
+    expect(src).toContain("template: 'support-ticket-reply'");
+    expect(src).toContain('Reply to your EventFlow support ticket');
+    expect(src).toContain('safeLineBreakHtml(message)');
   });
 
   test('email branding keeps text-only fallback and avoids remote logo dependency', () => {

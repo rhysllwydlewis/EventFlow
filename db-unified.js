@@ -489,7 +489,7 @@ async function updateOne(collectionName, id, updates) {
       return result.modifiedCount > 0;
     } else {
       const all = store.read(collectionName);
-      const index = all.findIndex(item => Object.keys(filter).every(k => item[k] === filter[k]));
+      const index = all.findIndex(item => matchesFilter(item, filter));
       if (index >= 0) {
         // Apply $set fields
         const setFields = hasOperators ? updates.$set || {} : updates;
@@ -510,6 +510,46 @@ async function updateOne(collectionName, id, updates) {
   } catch (error) {
     logger.error(`Error updating in ${collectionName}:`, error.message);
     return false;
+  }
+}
+
+async function updateMany(collectionName, filter, updates) {
+  await initializeDatabase();
+  try {
+    const hasOperators =
+      updates !== null &&
+      typeof updates === 'object' &&
+      Object.keys(updates).some(k => k.startsWith('$'));
+
+    if (dbType === 'mongodb') {
+      const collection = mongodb.collection(collectionName);
+      const mongoUpdate = hasOperators ? updates : { $set: updates };
+      const result = await collection.updateMany(filter || {}, mongoUpdate);
+      return result.modifiedCount || 0;
+    }
+
+    const all = store.read(collectionName);
+    let modified = 0;
+    const setFields = hasOperators ? updates.$set || {} : updates;
+    const unsetFields = hasOperators ? updates.$unset || {} : {};
+    const next = all.map(item => {
+      if (!matchesFilter(item, filter || {})) {
+        return item;
+      }
+      modified += 1;
+      const updated = { ...item, ...setFields };
+      for (const key of Object.keys(unsetFields)) {
+        delete updated[key];
+      }
+      return updated;
+    });
+    if (modified > 0) {
+      store.write(collectionName, next);
+    }
+    return modified;
+  } catch (error) {
+    logger.error(`Error in updateMany for ${collectionName}:`, error.message);
+    return 0;
   }
 }
 
@@ -544,7 +584,7 @@ async function deleteOne(collectionName, id) {
       return result.deletedCount > 0;
     } else {
       const all = store.read(collectionName);
-      const index = all.findIndex(item => Object.keys(filter).every(k => item[k] === filter[k]));
+      const index = all.findIndex(item => matchesFilter(item, filter));
       if (index >= 0) {
         all.splice(index, 1);
         store.write(collectionName, all);
@@ -568,7 +608,7 @@ async function deleteMany(collectionName, filter) {
     } else {
       // Local store: filter and rewrite without matching documents
       const all = store.read(collectionName);
-      const kept = all.filter(item => !Object.keys(filter).every(k => item[k] === filter[k]));
+      const kept = all.filter(item => !matchesFilter(item, filter));
       const removed = all.length - kept.length;
       if (removed > 0) {
         store.write(collectionName, kept);
@@ -863,6 +903,7 @@ module.exports = {
   find,
   findOne,
   updateOne,
+  updateMany,
   insertOne,
   deleteOne,
   deleteMany,

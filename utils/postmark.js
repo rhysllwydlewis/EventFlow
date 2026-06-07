@@ -174,6 +174,7 @@ const RAW_HTML_TEMPLATE_KEYS = new Set([
   'unsubscribeSection',
   'notesSection',
   'ctaSection',
+  'replyMessageHtml',
 ]);
 
 function buildHiddenPreheader(preheader) {

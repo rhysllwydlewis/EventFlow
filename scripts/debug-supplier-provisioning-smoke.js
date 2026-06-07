@@ -6,7 +6,9 @@
  *
  * This intentionally writes short-lived dummy records and cleans them up again.
  * It is designed for manual pre-merge or staging checks against MongoDB:
+ *   npm run debug:supplier-provisioning-smoke
  *   MONGODB_URI=... npm run debug:supplier-provisioning-smoke
+ *   MONGODB_URI=... npm run debug:supplier-provisioning-smoke -- --keep
  *
  * Without MONGODB_URI it exits successfully with a warning so local/CI runs do not
  * accidentally populate the file-backed development store. Set ALLOW_LOCAL_DEBUG_SMOKE=1
@@ -69,7 +71,32 @@ async function cleanup(context) {
   return summary;
 }
 
-async function runSmoke() {
+function parseArgs(argv = process.argv.slice(2)) {
+  return { keep: argv.includes('--keep') };
+}
+
+function assertKeepAllowed({ keep }) {
+  if (!keep) {
+    return;
+  }
+  const productionLike =
+    process.env.NODE_ENV === 'production' || process.env.EVENTFLOW_ENV === 'production';
+  if (productionLike && process.env.ALLOW_DEBUG_SMOKE_KEEP !== '1') {
+    throw new Error('--keep is blocked in production unless ALLOW_DEBUG_SMOKE_KEEP=1 is set');
+  }
+}
+
+async function runSmoke(options = parseArgs()) {
+  assertKeepAllowed(options);
+  console.log(
+    'This script creates temporary dummy records and removes them again at the end. You should not expect to see them in the admin dashboard after a successful run.'
+  );
+  if (options.keep) {
+    console.warn(
+      'Debug supplier provisioning smoke --keep enabled: temporary records will be left in place for inspection.'
+    );
+  }
+
   if (!process.env.MONGODB_URI && process.env.ALLOW_LOCAL_DEBUG_SMOKE !== '1') {
     console.warn(
       'Skipping debug supplier provisioning smoke test: MONGODB_URI is not set. Set ALLOW_LOCAL_DEBUG_SMOKE=1 to run against local storage.'
@@ -170,15 +197,22 @@ async function runSmoke() {
       supplierId: supplierProfile.id,
       packageId: packageDoc.id,
     });
-    return { skipped: false, ok: true };
+    return { skipped: false, ok: true, kept: !!options.keep, ids };
   } finally {
-    const cleanupSummary = await cleanup({ ids, customerEmail, supplierEmail });
-    console.log('Debug supplier provisioning smoke cleanup complete', cleanupSummary);
+    if (options.keep) {
+      console.log(
+        'Debug supplier provisioning smoke cleanup skipped because --keep was provided',
+        ids
+      );
+    } else {
+      const cleanupSummary = await cleanup({ ids, customerEmail, supplierEmail });
+      console.log('Debug supplier provisioning smoke cleanup complete', cleanupSummary);
+    }
   }
 }
 
 if (require.main === module) {
-  runSmoke().catch(error => {
+  runSmoke(parseArgs()).catch(error => {
     console.error('Debug supplier provisioning smoke test failed:', error.message);
     process.exitCode = 1;
   });
@@ -186,5 +220,7 @@ if (require.main === module) {
 
 module.exports = {
   cleanup,
+  parseArgs,
+  assertKeepAllowed,
   runSmoke,
 };

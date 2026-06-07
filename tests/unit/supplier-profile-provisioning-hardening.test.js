@@ -697,4 +697,38 @@ describe('debug supplier provisioning smoke script', () => {
       expect(data.packages).toHaveLength(0);
     });
   });
+
+  it('--keep leaves debug records for inspection', async () => {
+    await withLocalSmokeEnabled(async () => {
+      const { data, runSmoke } = loadSmokeWithMemoryDb();
+
+      const result = await runSmoke({ keep: true });
+
+      expect(result).toMatchObject({ skipped: false, ok: true, kept: true });
+      expect(data.users).toHaveLength(2);
+      expect(data.suppliers).toHaveLength(1);
+      expect(data.packages).toHaveLength(1);
+    });
+  });
+
+  it('--keep is blocked in production without explicit override', () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    const originalAllowKeep = process.env.ALLOW_DEBUG_SMOKE_KEEP;
+    process.env.NODE_ENV = 'production';
+    delete process.env.ALLOW_DEBUG_SMOKE_KEEP;
+    const { assertKeepAllowed } = require('../../scripts/debug-supplier-provisioning-smoke');
+
+    expect(() => assertKeepAllowed({ keep: true })).toThrow('--keep is blocked in production');
+
+    if (originalNodeEnv === undefined) {
+      delete process.env.NODE_ENV;
+    } else {
+      process.env.NODE_ENV = originalNodeEnv;
+    }
+    if (originalAllowKeep === undefined) {
+      delete process.env.ALLOW_DEBUG_SMOKE_KEEP;
+    } else {
+      process.env.ALLOW_DEBUG_SMOKE_KEEP = originalAllowKeep;
+    }
+  });
 });

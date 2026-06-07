@@ -47,6 +47,18 @@ function escHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
+function safeLineBreakHtml(str) {
+  return escHtml(str)
+    .split(/\r?\n/)
+    .map(line => (line.trim() ? line : '&nbsp;'))
+    .join('<br>');
+}
+
+function publicTicketUrl(ticketId) {
+  const baseUrl = process.env.APP_BASE_URL || process.env.BASE_URL || 'https://event-flow.co.uk';
+  return `${baseUrl.replace(/\/$/, '')}/tickets/${encodeURIComponent(ticketId)}`;
+}
+
 /**
  * Get a NotificationService instance using the live DB and WebSocket server.
  * @param {Object} req - Express request (used to resolve the WS server)
@@ -193,7 +205,8 @@ router.post(
       try {
         const adminUsers = await dbUnified.find('users', { role: 'admin' });
         const notifSvc = await getNotificationService(req);
-        const baseUrl = process.env.BASE_URL || 'https://event-flow.co.uk';
+        const baseUrl =
+          process.env.APP_BASE_URL || process.env.BASE_URL || 'https://event-flow.co.uk';
         const ticketCreatorName = newTicket.senderName || getUserDisplayName(req.user, 'User');
 
         for (const adminUser of adminUsers) {
@@ -207,7 +220,7 @@ router.post(
           }
           if (adminUser.email) {
             await postmark
-              .sendEmail({
+              .sendMail({
                 to: adminUser.email,
                 subject: `New support ticket: ${newTicket.subject}`,
                 text: `A new support ticket has been submitted.\n\nFrom: ${ticketCreatorName}\nSubject: ${newTicket.subject}\n\nView and manage tickets at: ${baseUrl}/admin-tickets`,
@@ -590,18 +603,30 @@ router.post('/:id/reply', authRequired, csrfProtection, writeLimiter, async (req
     // Send email notification to ticket creator (if reply is from admin)
     if (userRole === 'admin' && ticket.senderEmail) {
       try {
-        const emailBaseUrl = process.env.BASE_URL || 'https://event-flow.co.uk';
-        await postmark.sendEmail({
+        const ticketUrl = publicTicketUrl(ticket.id);
+        await postmark.sendMail({
           to: ticket.senderEmail,
-          subject: `Reply to your support ticket: ${ticket.subject}`,
-          text: `You have received a reply to your support ticket.\n\nTicket: ${ticket.subject}\n\nReply: ${message}\n\nView your ticket at: ${emailBaseUrl}/tickets/${ticket.id}`,
-          html: `
-            <h2>Reply to Your Support Ticket</h2>
-            <p><strong>Ticket:</strong> ${escHtml(ticket.subject)}</p>
-            <p><strong>Reply:</strong></p>
-            <p>${escHtml(message).replace(/\n/g, '<br>')}</p>
-            <p><a href="${escHtml(`${emailBaseUrl}/tickets/${ticket.id}`)}">View Ticket</a></p>
-          `,
+          from: postmark.FROM_SUPPORT,
+          subject: `Reply to your EventFlow support ticket: ${ticket.subject}`,
+          template: 'support-ticket-reply',
+          templateData: {
+            name: ticket.senderName || 'there',
+            ticketSubject: ticket.subject,
+            replyMessageHtml: safeLineBreakHtml(message),
+            ticketUrl,
+            supportEmail: postmark.FROM_SUPPORT,
+            preheader: 'The EventFlow Support Team has replied to your ticket.',
+          },
+          text: `You have received a reply to your EventFlow support ticket.
+
+Ticket: ${ticket.subject}
+
+Reply:
+${message}
+
+View your ticket: ${ticketUrl}`,
+          tags: ['support', 'ticket-reply', 'transactional'],
+          messageStream: 'outbound',
         });
       } catch (emailError) {
         logger.error('Failed to send reply notification email:', emailError);
@@ -613,7 +638,8 @@ router.post('/:id/reply', authRequired, csrfProtection, writeLimiter, async (req
       try {
         const adminUsers = await dbUnified.find('users', { role: 'admin' });
         const notifSvc = await getNotificationService(req);
-        const baseUrl = process.env.BASE_URL || 'https://event-flow.co.uk';
+        const baseUrl =
+          process.env.APP_BASE_URL || process.env.BASE_URL || 'https://event-flow.co.uk';
         const replierName = reply.userName || 'User';
 
         for (const adminUser of adminUsers) {
@@ -622,7 +648,7 @@ router.post('/:id/reply', authRequired, csrfProtection, writeLimiter, async (req
           }
           if (adminUser.email) {
             await postmark
-              .sendEmail({
+              .sendMail({
                 to: adminUser.email,
                 subject: `New reply on ticket: ${ticket.subject}`,
                 text: `${replierName} has replied to a support ticket.\n\nTicket: ${ticket.subject}\n\nReply: ${message}\n\nView and manage tickets at: ${baseUrl}/admin-tickets`,
