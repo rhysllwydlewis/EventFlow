@@ -216,16 +216,16 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
 
     // Hero preset gradient map — mirrors HERO_PRESETS in supplier-profile-owner-edit.js
     const PRESET_GRADIENTS = {
-      'ef-teal':    'linear-gradient(135deg,#0B8073 0%,#13B6A2 100%)',
-      'midnight':   'linear-gradient(135deg,#1a1a2e 0%,#0f3460 100%)',
-      'rose-gold':  'linear-gradient(135deg,#b76e79 0%,#f9c8c8 100%)',
-      'forest':     'linear-gradient(135deg,#1b4332 0%,#40916c 100%)',
-      'ocean':      'linear-gradient(135deg,#03045e 0%,#00b4d8 100%)',
-      'sunset':     'linear-gradient(135deg,#f77f00 0%,#d62828 100%)',
-      'purple':     'linear-gradient(135deg,#3d0066 0%,#a855f7 100%)',
-      'charcoal':   'linear-gradient(135deg,#1a1a1a 0%,#4a5568 100%)',
-      'blush':      'linear-gradient(135deg,#c2185b 0%,#ff80ab 100%)',
-      'champagne':  'linear-gradient(135deg,#9c7c38 0%,#e8d5a3 100%)',
+      'ef-teal': 'linear-gradient(135deg,#0B8073 0%,#13B6A2 100%)',
+      midnight: 'linear-gradient(135deg,#1a1a2e 0%,#0f3460 100%)',
+      'rose-gold': 'linear-gradient(135deg,#b76e79 0%,#f9c8c8 100%)',
+      forest: 'linear-gradient(135deg,#1b4332 0%,#40916c 100%)',
+      ocean: 'linear-gradient(135deg,#03045e 0%,#00b4d8 100%)',
+      sunset: 'linear-gradient(135deg,#f77f00 0%,#d62828 100%)',
+      purple: 'linear-gradient(135deg,#3d0066 0%,#a855f7 100%)',
+      charcoal: 'linear-gradient(135deg,#1a1a1a 0%,#4a5568 100%)',
+      blush: 'linear-gradient(135deg,#c2185b 0%,#ff80ab 100%)',
+      champagne: 'linear-gradient(135deg,#9c7c38 0%,#e8d5a3 100%)',
     };
 
     const heroSection = document.getElementById('supplier-hero');
@@ -236,7 +236,9 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
         heroBanner.src = bannerUrl;
         heroBanner.alt = `${supplier.name} banner`;
         heroBanner.style.display = '';
-        if (heroMedia) heroMedia.style.backgroundImage = '';
+        if (heroMedia) {
+          heroMedia.style.backgroundImage = '';
+        }
       } else {
         // No custom banner — use preset gradient or theme colour
         heroBanner.style.display = 'none';
@@ -701,11 +703,13 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
       ? supplier.photosGallery
           .filter(p => p && (typeof p === 'string' ? p : p.url))
           .map(p => {
-            if (typeof p === 'string') return { display: p, full: p };
+            if (typeof p === 'string') {
+              return { display: p, full: p };
+            }
             // Use thumbnail for grid (fast load), full url for lightbox
             return {
               display: p.thumbnail || p.url || p.original || '',
-              full:    p.large    || p.url || p.original || '',
+              full: p.large || p.url || p.original || '',
             };
           })
           .filter(p => p.display)
@@ -798,7 +802,8 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
           window.ImageCarousel.openWithImages(fullUrls, idx, supplierName);
         } else {
           // Graceful fallback: open the full-size image directly in a new tab
-          const url = el.dataset.fullUrl || (el.querySelector('img') ? el.querySelector('img').src : '');
+          const url =
+            el.dataset.fullUrl || (el.querySelector('img') ? el.querySelector('img').src : '');
           if (url) {
             window.open(url, '_blank', 'noopener,noreferrer');
           }
@@ -861,6 +866,82 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     });
   }
 
+  const FALLBACK_PACKAGE_PLACEHOLDER = '/assets/images/placeholders/package-event.svg';
+  const FALLBACK_KNOWN_PLACEHOLDERS = new Set([
+    FALLBACK_PACKAGE_PLACEHOLDER,
+    '/assets/images/placeholder-package.jpg',
+  ]);
+
+  function extractPackageImageUrl(item) {
+    if (!item) {
+      return '';
+    }
+    if (typeof item === 'string') {
+      return item.trim();
+    }
+    return String(
+      item.url || item.src || item.path || item.image || item.originalUrl || item.thumbnail || ''
+    ).trim();
+  }
+
+  function isRealPackageImage(url) {
+    if (!url || typeof url !== 'string') {
+      return false;
+    }
+    const trimmed = url.trim();
+    if (!trimmed || /^data:/i.test(trimmed)) {
+      return false;
+    }
+    if (typeof window.isPlaceholderImage === 'function') {
+      return !window.isPlaceholderImage(trimmed);
+    }
+    return !FALLBACK_KNOWN_PLACEHOLDERS.has(trimmed);
+  }
+
+  function firstRealPackageImage(items) {
+    if (!Array.isArray(items)) {
+      return '';
+    }
+    for (const item of items) {
+      const url = extractPackageImageUrl(item);
+      if (isRealPackageImage(url)) {
+        return url;
+      }
+    }
+    return '';
+  }
+
+  function firstRealScalarPackageImage(...urls) {
+    for (const url of urls) {
+      if (isRealPackageImage(url)) {
+        return url.trim();
+      }
+    }
+    return '';
+  }
+
+  function getPackageCardImage(p) {
+    // Use the shared browser resolver as the source of truth whenever it is
+    // available. It is placeholder-aware and intentionally ignores rawImage,
+    // which is diagnostic data rather than a display-first field.
+    if (typeof window.resolvePackageImage === 'function') {
+      const resolved = window.resolvePackageImage(p);
+      if (isRealPackageImage(resolved)) {
+        return resolved;
+      }
+    }
+
+    return (
+      firstRealScalarPackageImage(p.resolvedImage, p.image) ||
+      firstRealPackageImage(p.resolvedGallery) ||
+      firstRealPackageImage(p.gallery) ||
+      firstRealPackageImage(p.images) ||
+      firstRealScalarPackageImage(p.rawImage) ||
+      window.PLACEHOLDER_PACKAGE_IMAGE ||
+      FALLBACK_PACKAGE_PLACEHOLDER
+    );
+  }
+
   function _renderPackageCard(p) {
     const title = escapeHtml(p.title || p.name || 'Package');
     const desc = escapeHtml((p.description || p.description_short || '').substring(0, 160));
@@ -868,77 +949,7 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     const pkgId = escapeHtml(p.id || '');
     const pkgSlug = escapeHtml(p.slug || '');
 
-    // Image resolution — mirrors the strategy used by package-init.js / package detail page:
-    //   0. p.rawImage — the raw stored pkg.image value, no placeholder filtering at all.
-    //      This is the same field the admin packages page reads directly and always shows.
-    //      If it's a real URL it is used as-is; only skipped if empty/null/undefined.
-    //   1. resolvedGallery (pre-normalised by the server, most reliable)
-    //   2. raw gallery items (walk and extract first real url)
-    //   3. p.image (server-resolved, might be placeholder path → skip if so)
-    //   4. p.images plural (legacy package.service.js field)
-    // Any URL that looks like a placeholder is treated as "no image" (steps 1-4 only;
-    // step 0 uses the value unconditionally since it's the ground-truth DB value).
-    const PLACEHOLDER_HINT = 'placeholder';
-    const _url = item => {
-      if (!item) return '';
-      if (typeof item === 'string') return item;
-      return String(item.url || item.src || item.path || item.image || item.originalUrl || item.thumbnail || '');
-    };
-    const _real = url => !!url && !url.includes(PLACEHOLDER_HINT);
-
-    let rawImageUrl = '';
-
-    // 0. rawImage — the unprocessed stored value (highest priority, no filtering)
-    if (p.rawImage && typeof p.rawImage === 'string' && _real(p.rawImage.trim())) {
-      rawImageUrl = p.rawImage.trim();
-    }
-
-    // 1. resolvedGallery — provided by the supplier packages API alongside image
-    if (!rawImageUrl) {
-      const rg = Array.isArray(p.resolvedGallery) ? p.resolvedGallery : [];
-      for (const item of rg) {
-        const u = _url(item);
-        if (_real(u)) {
-          // Prefer thumbnail for card grid (faster load), fallback to the full url
-          rawImageUrl = (typeof item === 'object' && _real(item.thumbnail)) ? item.thumbnail : u;
-          break;
-        }
-      }
-    }
-
-    // 2. raw gallery fallback
-    if (!rawImageUrl) {
-      const g = Array.isArray(p.gallery) ? p.gallery : [];
-      for (const item of g) {
-        const u = _url(item);
-        if (_real(u)) { rawImageUrl = u; break; }
-      }
-    }
-
-    // 3. p.image (already server-resolved — use unless it's a placeholder path)
-    if (!rawImageUrl && typeof p.image === 'string' && _real(p.image)) {
-      rawImageUrl = p.image;
-    }
-
-    // 4. legacy p.images (plural) from package.service.js creation path
-    if (!rawImageUrl) {
-      const imgs = Array.isArray(p.images) ? p.images : [];
-      for (const item of imgs) {
-        const u = _url(item);
-        if (_real(u)) { rawImageUrl = u; break; }
-      }
-    }
-
-    // If window.resolvePackageImage is available, use it as a final pass —
-    // it has extra heuristics but by now we've already done the heavy lifting.
-    if (!rawImageUrl && typeof window.resolvePackageImage === 'function') {
-      const resolved = window.resolvePackageImage(p);
-      if (typeof window.isPlaceholderImage === 'function' && !window.isPlaceholderImage(resolved)) {
-        rawImageUrl = resolved || '';
-      }
-    }
-
-    const imageUrl = escapeHtml(rawImageUrl);
+    const imageUrl = escapeHtml(getPackageCardImage(p));
 
     const imageHtml = imageUrl
       ? `<img class="sp-pkg-card__image" src="${imageUrl}" alt="${title}" loading="lazy">`
