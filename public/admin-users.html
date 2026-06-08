@@ -103,6 +103,7 @@
             </select>
             <button id="ucClearFilters" class="ef-cta btn btn-secondary">Clear</button>
             <button id="ucRefreshBtn" class="ef-cta btn btn-secondary">Refresh</button>
+            <button id="ucBulkProvisionProfiles" class="ef-cta btn btn-warning" title="Create supplier profiles for all supplier accounts that are missing one">⚠️ Fix missing profiles</button>
           </div>
 
           <div
@@ -137,8 +138,22 @@
             </select>
             <span class="small"><strong id="ucTotalCount">0</strong> total</span>
           </nav>
-          <div class="table-wrapper">
-            <table class="table" aria-label="Users list">
+          <div class="table-wrapper" style="overflow-x:auto;width:100%;">
+            <table class="table" aria-label="Users list" style="min-width:1100px;table-layout:fixed;width:100%;">
+              <colgroup>
+                <col style="width:36px;">
+                <col style="width:160px;">
+                <col style="width:200px;">
+                <col style="width:100px;">
+                <col style="width:110px;">
+                <col style="width:150px;">
+                <col style="width:130px;">
+                <col style="width:110px;">
+                <col style="width:80px;">
+                <col style="width:100px;">
+                <col style="width:100px;">
+                <col style="width:200px;">
+              </colgroup>
               <thead>
                 <tr>
                   <th class="checkbox-cell" scope="col">

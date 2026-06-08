@@ -102,6 +102,42 @@
             : '<span class="badge badge-customer">🎉 Customer</span>';
   }
 
+  // Alias so template literals in renderUserDetails can call roleBadge() directly
+  function roleBadge(role) {
+    return getRoleBadge(role);
+  }
+
+  function badge(label, type) {
+    return `<span class="badge badge-${type || 'secondary'}">${esc(label)}</span>`;
+  }
+
+  function verifBadge(method) {
+    const map = {
+      google: badge('Google verified', 'google'),
+      google_verified_email: badge('Google verified', 'google'),
+      email_link: badge('Email link', 'yes'),
+      eventflow_email: badge('EventFlow email', 'yes'),
+      admin: badge('Admin verified', 'admin-created'),
+      admin_created: badge('Admin-created', 'admin-created'),
+      owner_account: badge('Owner account', 'admin'),
+      legacy: badge('Legacy verified', 'secondary'),
+      pending: badge('Pending', 'no'),
+      unknown: badge('Unknown', 'warning'),
+    };
+    return map[method] || badge(humanize(method || 'unknown'), 'warning');
+  }
+
+  function signupLabel(method) {
+    const map = {
+      google: 'Google',
+      email_password: 'Email / password',
+      admin_created: 'Admin-created',
+      owner: 'Owner',
+      unknown: 'Unknown',
+    };
+    return map[method] || humanize(method || 'unknown');
+  }
+
   function renderUserDetails(user) {
     const container = document.getElementById('userDetailsContainer');
     const issues = user.accountIssues || [];
@@ -121,7 +157,12 @@
           </div>
           <div class="ud-card-actions">
             <a href="/admin-users" class="btn btn-secondary btn-sm">← Users Centre</a>
-            ${user.supplierProfile ? `<a href="${esc(user.supplierProfile.profileUrl)}" class="btn btn-secondary btn-sm">Supplier Profile →</a>` : ''}
+            ${user.supplierProfile
+              ? `<a href="${esc(user.supplierProfile.profileUrl)}" class="btn btn-secondary btn-sm">Supplier Profile →</a>`
+              : user.role === 'supplier'
+                ? `<button id="provisionProfileBtn" class="btn btn-warning btn-sm" title="Create missing supplier profile for this user">⚠️ Provision Profile</button>`
+                : ''
+            }
           </div>
         </div>
         <div class="ud-info-grid">
@@ -343,6 +384,24 @@
     }
   }
 
+  async function provisionSupplierProfile(userId) {
+    const ok = await AdminShared.showConfirmModal({
+      title: 'Provision supplier profile?',
+      message:
+        'This will create a blank supplier profile for this user. They can then customise it from their dashboard.',
+      confirmText: 'Create profile',
+      type: 'warning',
+    });
+    if (!ok) return;
+    try {
+      await AdminShared.api(`/api/admin/users/${encodeURIComponent(userId)}/provision-supplier-profile`, 'POST');
+      AdminShared.showToast('Supplier profile created successfully', 'success');
+      await loadUserDetails();
+    } catch (err) {
+      AdminShared.showToast(`Failed to provision profile: ${err.message}`, 'error');
+    }
+  }
+
   // ── Boot ───────────────────────────────────────────────────────────────────
   if (userId) {
     if (document.readyState === 'loading') {
@@ -350,5 +409,10 @@
     } else {
       loadUserDetails();
     }
+    document.addEventListener('click', e => {
+      if (e.target && e.target.id === 'provisionProfileBtn') {
+        provisionSupplierProfile(userId);
+      }
+    });
   }
 })();
