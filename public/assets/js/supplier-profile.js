@@ -869,11 +869,15 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     const pkgSlug = escapeHtml(p.slug || '');
 
     // Image resolution — mirrors the strategy used by package-init.js / package detail page:
+    //   0. p.rawImage — the raw stored pkg.image value, no placeholder filtering at all.
+    //      This is the same field the admin packages page reads directly and always shows.
+    //      If it's a real URL it is used as-is; only skipped if empty/null/undefined.
     //   1. resolvedGallery (pre-normalised by the server, most reliable)
     //   2. raw gallery items (walk and extract first real url)
     //   3. p.image (server-resolved, might be placeholder path → skip if so)
     //   4. p.images plural (legacy package.service.js field)
-    // Any URL that looks like a placeholder is treated as "no image".
+    // Any URL that looks like a placeholder is treated as "no image" (steps 1-4 only;
+    // step 0 uses the value unconditionally since it's the ground-truth DB value).
     const PLACEHOLDER_HINT = 'placeholder';
     const _url = item => {
       if (!item) return '';
@@ -884,14 +888,21 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
 
     let rawImageUrl = '';
 
+    // 0. rawImage — the unprocessed stored value (highest priority, no filtering)
+    if (p.rawImage && typeof p.rawImage === 'string' && _real(p.rawImage.trim())) {
+      rawImageUrl = p.rawImage.trim();
+    }
+
     // 1. resolvedGallery — provided by the supplier packages API alongside image
-    const rg = Array.isArray(p.resolvedGallery) ? p.resolvedGallery : [];
-    for (const item of rg) {
-      const u = _url(item);
-      if (_real(u)) {
-        // Prefer thumbnail for card grid (faster load), fallback to the full url
-        rawImageUrl = (typeof item === 'object' && _real(item.thumbnail)) ? item.thumbnail : u;
-        break;
+    if (!rawImageUrl) {
+      const rg = Array.isArray(p.resolvedGallery) ? p.resolvedGallery : [];
+      for (const item of rg) {
+        const u = _url(item);
+        if (_real(u)) {
+          // Prefer thumbnail for card grid (faster load), fallback to the full url
+          rawImageUrl = (typeof item === 'object' && _real(item.thumbnail)) ? item.thumbnail : u;
+          break;
+        }
       }
     }
 
