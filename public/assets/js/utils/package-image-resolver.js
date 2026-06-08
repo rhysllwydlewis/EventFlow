@@ -59,6 +59,7 @@ function isPlaceholderImage(url) {
  * @param {Object} pkg            - Package data object
  * @param {string}  [pkg.image]   - Primary image URL
  * @param {Array}   [pkg.gallery] - Gallery array (strings or objects)
+ * @param {Array}   [pkg.images]  - Legacy plural image array (package.service.js path)
  * @returns {string} Resolved image URL (always a non-empty string)
  */
 function resolvePackageImage(pkg) {
@@ -84,7 +85,21 @@ function resolvePackageImage(pkg) {
     }
   }
 
-  // 3. Fall back to the canonical placeholder
+  // 3. Fallback for packages created via package.service.js which stores images
+  //    in a plural `images` array rather than the singular `image` + `gallery` fields.
+  if (Array.isArray(pkg.images) && pkg.images.length > 0) {
+    for (const img of pkg.images) {
+      const url =
+        typeof img === 'string'
+          ? img
+          : img.url || img.src || img.path || img.image || img.originalUrl || img.thumbnail;
+      if (url && !isPlaceholderImage(url)) {
+        return url;
+      }
+    }
+  }
+
+  // 4. Fall back to the canonical placeholder
   return PLACEHOLDER_PACKAGE_IMAGE;
 }
 
