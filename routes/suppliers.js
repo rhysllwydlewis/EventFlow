@@ -353,6 +353,9 @@ router.get('/suppliers/:id/packages', async (req, res) => {
       const item = {
         ...pkg,
         image: resolvedImage,
+        // rawImage is the unmodified stored value — used by _renderPackageCard as the
+        // highest-priority image source (mirrors what the admin packages page reads).
+        rawImage: pkg.image || null,
         // Include the pre-normalised gallery so the profile page card renderer
         // can use the same image-resolution strategy as the package detail page.
         resolvedGallery,
@@ -362,6 +365,7 @@ router.get('/suppliers/:id/packages', async (req, res) => {
           chosenImage: resolvedImage,
           imageFieldWasEmpty: !pkg.image,
           imageFieldWasPlaceholder: isPlaceholderImage(pkg.image),
+          rawImageValue: pkg.image || '(empty)',
           rawGalleryLength: Array.isArray(pkg.gallery) ? pkg.gallery.length : 0,
           resolvedGalleryLength: resolvedGallery.length,
           resolvedGalleryFirstUrl: resolvedGallery.length > 0 ? resolvedGallery[0].url : null,
