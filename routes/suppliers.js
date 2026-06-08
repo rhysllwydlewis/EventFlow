@@ -669,7 +669,11 @@ router.get('/packages/search', async (req, res) => {
       return true;
     });
 
-    res.json({ items: items.map(pkg => ({ ...pkg, image: resolvePackageImage(pkg) })) });
+    res.json({ items: items.map(pkg => ({
+      ...pkg,
+      image: resolvePackageImage(pkg),
+      resolvedGallery: normalizeGallery(pkg.gallery),
+    })) });
   } catch (error) {
     logger.error('Error searching packages:', error);
     return res.status(500).json({ error: 'Internal server error' });
