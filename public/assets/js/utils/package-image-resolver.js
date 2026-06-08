@@ -6,10 +6,11 @@
  * every card uses the same "prefer real image over placeholder" strategy.
  *
  * Resolution order (O(gallery.length) worst case per call):
- *   1. pkg.image  — if present and not a known placeholder, use it (O(1)).
- *   2. pkg.gallery — first non-placeholder entry wins; supports both string
- *                    items and objects with url / src / path / image fields.
- *   3. Canonical placeholder path — used as the final fallback.
+ *   1. pkg.resolvedImage / pkg.image — first real non-placeholder scalar URL.
+ *   2. pkg.resolvedGallery / pkg.gallery — first non-placeholder gallery entry;
+ *                    supports strings and objects with url / src / path / image fields.
+ *   3. pkg.images — legacy plural image array used by package.service.js.
+ *   4. Canonical placeholder path — used as the final fallback.
  *
  * Debug instrumentation:
  *   Enable by appending ?debugImages=1 to the page URL, or by running:
@@ -53,13 +54,49 @@ function isPlaceholderImage(url) {
   return KNOWN_PLACEHOLDERS.has(trimmed);
 }
 
+function extractGalleryItemUrl(img) {
+  if (!img) {
+    return '';
+  }
+  if (typeof img === 'string') {
+    return img;
+  }
+  return img.url || img.src || img.path || img.image || img.originalUrl || img.thumbnail || '';
+}
+
+function firstRealScalarImage(...urls) {
+  for (const url of urls) {
+    if (url && !isPlaceholderImage(url)) {
+      return url;
+    }
+  }
+  return '';
+}
+
+function firstRealGalleryImage(...galleries) {
+  for (const gallery of galleries) {
+    if (!Array.isArray(gallery) || gallery.length === 0) {
+      continue;
+    }
+    for (const img of gallery) {
+      const url = extractGalleryItemUrl(img);
+      if (url && !isPlaceholderImage(url)) {
+        return url;
+      }
+    }
+  }
+  return '';
+}
+
 /**
  * Resolve the best available image URL for a package.
  *
- * @param {Object} pkg            - Package data object
- * @param {string}  [pkg.image]   - Primary image URL
- * @param {Array}   [pkg.gallery] - Gallery array (strings or objects)
- * @param {Array}   [pkg.images]  - Legacy plural image array (package.service.js path)
+ * @param {Object} pkg                    - Package data object
+ * @param {string}  [pkg.resolvedImage]   - Server-resolved image URL
+ * @param {string}  [pkg.image]           - Primary image URL
+ * @param {Array}   [pkg.resolvedGallery] - Server-normalised gallery array
+ * @param {Array}   [pkg.gallery]         - Gallery array (strings or objects)
+ * @param {Array}   [pkg.images]          - Legacy plural image array (package.service.js path)
  * @returns {string} Resolved image URL (always a non-empty string)
  */
 function resolvePackageImage(pkg) {
@@ -67,40 +104,11 @@ function resolvePackageImage(pkg) {
     return PLACEHOLDER_PACKAGE_IMAGE;
   }
 
-  // 1. Primary image field — use if present and not a known placeholder
-  if (pkg.image && !isPlaceholderImage(pkg.image)) {
-    return pkg.image;
-  }
-
-  // 2. Walk the gallery array for the first real image
-  if (Array.isArray(pkg.gallery) && pkg.gallery.length > 0) {
-    for (const img of pkg.gallery) {
-      const url =
-        typeof img === 'string'
-          ? img
-          : img.url || img.src || img.path || img.image || img.originalUrl || img.thumbnail;
-      if (url && !isPlaceholderImage(url)) {
-        return url;
-      }
-    }
-  }
-
-  // 3. Fallback for packages created via package.service.js which stores images
-  //    in a plural `images` array rather than the singular `image` + `gallery` fields.
-  if (Array.isArray(pkg.images) && pkg.images.length > 0) {
-    for (const img of pkg.images) {
-      const url =
-        typeof img === 'string'
-          ? img
-          : img.url || img.src || img.path || img.image || img.originalUrl || img.thumbnail;
-      if (url && !isPlaceholderImage(url)) {
-        return url;
-      }
-    }
-  }
-
-  // 4. Fall back to the canonical placeholder
-  return PLACEHOLDER_PACKAGE_IMAGE;
+  return (
+    firstRealScalarImage(pkg.resolvedImage, pkg.image) ||
+    firstRealGalleryImage(pkg.resolvedGallery, pkg.gallery, pkg.images) ||
+    PLACEHOLDER_PACKAGE_IMAGE
+  );
 }
 
 /**
@@ -135,6 +143,7 @@ function debugPackageImage(pkg, chosenUrl) {
     chosenUrl,
     imageWasPlaceholder: isPlaceholderImage(pkg.image),
     galleryLength: Array.isArray(pkg.gallery) ? pkg.gallery.length : 0,
+    resolvedGalleryLength: Array.isArray(pkg.resolvedGallery) ? pkg.resolvedGallery.length : 0,
   });
 }
 

@@ -353,8 +353,10 @@ router.get('/suppliers/:id/packages', async (req, res) => {
       const item = {
         ...pkg,
         image: resolvedImage,
-        // rawImage is the unmodified stored value — used by _renderPackageCard as the
-        // highest-priority image source (mirrors what the admin packages page reads).
+        resolvedImage,
+        // rawImage is the unmodified stored value for diagnostics/backwards
+        // compatibility only; supplier-profile.js must not prefer it over
+        // resolved non-placeholder images.
         rawImage: pkg.image || null,
         // Include the pre-normalised gallery so the profile page card renderer
         // can use the same image-resolution strategy as the package detail page.
@@ -363,9 +365,9 @@ router.get('/suppliers/:id/packages', async (req, res) => {
       if (debug) {
         item._debug = {
           chosenImage: resolvedImage,
+          rawImageValue: pkg.image || '(empty)',
           imageFieldWasEmpty: !pkg.image,
           imageFieldWasPlaceholder: isPlaceholderImage(pkg.image),
-          rawImageValue: pkg.image || '(empty)',
           rawGalleryLength: Array.isArray(pkg.gallery) ? pkg.gallery.length : 0,
           resolvedGalleryLength: resolvedGallery.length,
           resolvedGalleryFirstUrl: resolvedGallery.length > 0 ? resolvedGallery[0].url : null,
@@ -673,11 +675,13 @@ router.get('/packages/search', async (req, res) => {
       return true;
     });
 
-    res.json({ items: items.map(pkg => ({
-      ...pkg,
-      image: resolvePackageImage(pkg),
-      resolvedGallery: normalizeGallery(pkg.gallery),
-    })) });
+    res.json({
+      items: items.map(pkg => ({
+        ...pkg,
+        image: resolvePackageImage(pkg),
+        resolvedGallery: normalizeGallery(pkg.gallery),
+      })),
+    });
   } catch (error) {
     logger.error('Error searching packages:', error);
     return res.status(500).json({ error: 'Internal server error' });
@@ -762,7 +766,8 @@ router.get('/packages/:slug', async (req, res) => {
     }
 
     const supplier = suppliers.find(
-      s => s.id === pkg.supplierId && s.approved && (!s.ownerUserId || validUserIds.has(s.ownerUserId))
+      s =>
+        s.id === pkg.supplierId && s.approved && (!s.ownerUserId || validUserIds.has(s.ownerUserId))
     );
     if (!supplier) {
       return res.status(404).json({ error: 'Package not found' });
@@ -904,9 +909,8 @@ router.get(
           resolvedGalleryLength: resolvedGallery.length,
           firstGalleryUrl: resolvedGallery.length > 0 ? resolvedGallery[0].url : null,
           // First raw gallery item for format inspection
-          firstRawGalleryItem: Array.isArray(pkg.gallery) && pkg.gallery.length > 0
-            ? pkg.gallery[0]
-            : null,
+          firstRawGalleryItem:
+            Array.isArray(pkg.gallery) && pkg.gallery.length > 0 ? pkg.gallery[0] : null,
         };
       });
       res.json({
