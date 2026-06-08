@@ -156,8 +156,9 @@ describe('Supplier Packages — PUT field handling', () => {
     expect(routesContent).toContain('String(req.body.description).slice(0, 1500)');
   });
 
-  it('PUT /me/packages/:id validates eventTypes to allowed values', () => {
-    expect(routesContent).toMatch(/eventTypes.*filter.*wedding.*other/s);
+  it('PUT /me/packages/:id validates eventTypes against VALID_EVENT_TYPES set', () => {
+    expect(routesContent).toMatch(/VALID_EVENT_TYPES/);
+    expect(routesContent).toMatch(/VALID_EVENT_TYPES\.has/);
   });
 
   it('PUT /me/packages/:id sets updatedAt timestamp', () => {

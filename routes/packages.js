@@ -10,6 +10,34 @@ const { PLACEHOLDER_PACKAGE_IMAGE, isPlaceholderImage } = require('../utils/pack
 const suppliersRouter = require('./suppliers');
 const router = express.Router();
 
+/**
+ * Canonical set of allowed event type values.
+ * Add new types here — the client-side form and display code read this via
+ * GET /api/v1/me/packages/event-types so there is only one source of truth.
+ */
+const VALID_EVENT_TYPES = new Set([
+  'wedding',
+  'birthday',
+  'corporate',
+  'anniversary',
+  'christening',
+  'graduation',
+  'engagement',
+  'other',
+]);
+
+/** Human-readable labels for each event type, used in API responses. */
+const EVENT_TYPE_LABELS = {
+  wedding:     'Wedding',
+  birthday:    'Birthday',
+  corporate:   'Corporate',
+  anniversary: 'Anniversary',
+  christening: 'Christening',
+  graduation:  'Graduation',
+  engagement:  'Engagement',
+  other:       'Other',
+};
+
 // Dependencies injected by server.js
 let dbUnified;
 let authRequired;
@@ -181,6 +209,20 @@ async function saveImageBase64(base64, namePrefix) {
 }
 
 /**
+ * GET /api/me/packages/event-types
+ * Returns the canonical list of allowed event types with their labels.
+ * Public data (fully static, non-sensitive) used by the supplier dashboard
+ * form to populate checkboxes dynamically. No auth required.
+ */
+router.get('/me/packages/event-types', (req, res) => {
+  const types = [...VALID_EVENT_TYPES].map(value => ({
+    value,
+    label: EVENT_TYPE_LABELS[value] || value.charAt(0).toUpperCase() + value.slice(1),
+  }));
+  res.json({ eventTypes: types });
+});
+
+/**
  * GET /api/me/packages
  * List supplier's packages
  */
@@ -241,13 +283,15 @@ router.post(
     if (!eventTypes || !Array.isArray(eventTypes) || eventTypes.length === 0) {
       return res
         .status(400)
-        .json({ error: 'At least one event type is required (wedding or other)' });
+        .json({ error: 'At least one event type is required' });
     }
 
-    // Validate event types
-    const validEventTypes = eventTypes.filter(t => t === 'wedding' || t === 'other');
+    // Validate event types against the canonical allowed set
+    const validEventTypes = eventTypes.filter(t => VALID_EVENT_TYPES.has(t));
     if (validEventTypes.length === 0) {
-      return res.status(400).json({ error: 'Event types must be "wedding" or "other"' });
+      return res.status(400).json({
+        error: `Invalid event type(s). Allowed values: ${[...VALID_EVENT_TYPES].join(', ')}`,
+      });
     }
 
     const ownedSuppliers = req.supplierProfile
@@ -514,7 +558,7 @@ router.put(
         pkgUpdates.primaryCategoryKey = String(req.body.primaryCategoryKey);
       }
       if (req.body.eventTypes !== undefined && Array.isArray(req.body.eventTypes)) {
-        const validEventTypes = req.body.eventTypes.filter(t => t === 'wedding' || t === 'other');
+        const validEventTypes = req.body.eventTypes.filter(t => VALID_EVENT_TYPES.has(t));
         if (validEventTypes.length > 0) {
           pkgUpdates.eventTypes = validEventTypes;
         }

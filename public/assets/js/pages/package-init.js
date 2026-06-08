@@ -140,10 +140,25 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const etContainer = document.getElementById('package-event-types');
         if (etContainer) {
+          // Human-readable labels and distinct emojis for each event type
+          const EVENT_DISPLAY = {
+            wedding:     { label: 'Wedding',     emoji: '💍' },
+            birthday:    { label: 'Birthday',    emoji: '🎂' },
+            corporate:   { label: 'Corporate',   emoji: '💼' },
+            anniversary: { label: 'Anniversary', emoji: '🥂' },
+            christening: { label: 'Christening', emoji: '✨' },
+            graduation:  { label: 'Graduation',  emoji: '🎓' },
+            engagement:  { label: 'Engagement',  emoji: '💎' },
+            other:       { label: 'Other',       emoji: '🎉' },
+          };
           etContainer.innerHTML = pkg.eventTypes
             .map(et => {
-              const label = typeof et === 'string' ? et : et.name || et.label || String(et);
-              return `<span class="pkg-event-type-pill"><span aria-hidden="true">🎉</span> ${label}</span>`;
+              const key = typeof et === 'string' ? et.toLowerCase() : String(et).toLowerCase();
+              const display = EVENT_DISPLAY[key] || {
+                label: key.charAt(0).toUpperCase() + key.slice(1),
+                emoji: '🎉',
+              };
+              return `<span class="pkg-event-type-pill"><span aria-hidden="true">${display.emoji}</span> ${display.label}</span>`;
             })
             .join('');
         }

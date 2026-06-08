@@ -4573,7 +4573,7 @@ async function initDashSupplier() {
         return;
       }
       if (!payload.eventTypes || payload.eventTypes.length === 0) {
-        alert('Please select at least one event type (Wedding or Other)');
+        alert('Please select at least one event type.');
         return;
       }
       if (!payload.price || !String(payload.price).trim()) {
@@ -4946,9 +4946,13 @@ function editPackage(packageId) {
       }
 
       // Set event type checkboxes
+      // Set event type checkboxes
       if (pkg.eventTypes && Array.isArray(pkg.eventTypes)) {
-        document.getElementById('pkg-event-wedding').checked = pkg.eventTypes.includes('wedding');
-        document.getElementById('pkg-event-other').checked = pkg.eventTypes.includes('other');
+        const ALL_EVENT_TYPES = ['wedding','birthday','corporate','anniversary','christening','graduation','engagement','other'];
+        ALL_EVENT_TYPES.forEach(type => {
+          const el = document.getElementById(`pkg-event-${type}`);
+          if (el) el.checked = pkg.eventTypes.includes(type);
+        });
       }
 
       // Populate existing gallery photos for editing

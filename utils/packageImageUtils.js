@@ -70,7 +70,8 @@ function extractGalleryItemUrl(img) {
  * Resolution order:
  *   1. pkg.image  — if present and not a known placeholder.
  *   2. pkg.gallery — first non-placeholder entry wins.
- *   3. Canonical placeholder path — always returns a non-empty string.
+ *   3. pkg.images  — legacy plural array used by package.service.js path.
+ *   4. Canonical placeholder path — always returns a non-empty string.
  *
  * @param {Object} pkg
  * @returns {string}
@@ -86,6 +87,17 @@ function resolvePackageImage(pkg) {
 
   if (Array.isArray(pkg.gallery) && pkg.gallery.length > 0) {
     for (const img of pkg.gallery) {
+      const url = extractGalleryItemUrl(img);
+      if (url && !isPlaceholderImage(url)) {
+        return url;
+      }
+    }
+  }
+
+  // Fallback for packages created via package.service.js which stores images
+  // in a plural `images` array rather than the singular `image` + `gallery` fields.
+  if (Array.isArray(pkg.images) && pkg.images.length > 0) {
+    for (const img of pkg.images) {
       const url = extractGalleryItemUrl(img);
       if (url && !isPlaceholderImage(url)) {
         return url;

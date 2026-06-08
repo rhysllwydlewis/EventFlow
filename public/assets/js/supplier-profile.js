@@ -853,13 +853,40 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
   function _renderPackageCard(p) {
     const title = escapeHtml(p.title || p.name || 'Package');
     const desc = escapeHtml((p.description || p.description_short || '').substring(0, 160));
-    const price = escapeHtml(p.price_display || p.priceDisplay || '');
-    const imageUrl = p.image || p.imageUrl || '';
+    const price = escapeHtml(p.price_display || p.priceDisplay || p.price || '');
     const pkgId = escapeHtml(p.id || '');
     const pkgSlug = escapeHtml(p.slug || '');
 
+    // Resolve the best available image using the same priority order as the
+    // server-side resolver (image → gallery → images).
+    // Fall back to the client-side window.resolvePackageImage if available,
+    // otherwise inline the same logic. Treat the placeholder SVG path as
+    // "no image" so we show the styled placeholder div instead of a broken SVG.
+    let rawImageUrl = '';
+    if (typeof window.resolvePackageImage === 'function') {
+      const resolved = window.resolvePackageImage(p);
+      rawImageUrl =
+        typeof window.isPlaceholderImage === 'function' && window.isPlaceholderImage(resolved)
+          ? ''
+          : resolved || '';
+    } else {
+      // Inline fallback when package-image-resolver.js hasn't loaded yet.
+      // Safely extract a string URL from each potential source.
+      const _extractUrl = item =>
+        !item
+          ? ''
+          : typeof item === 'string'
+            ? item
+            : String(item.url || item.src || item.path || item.image || '');
+      const galleryUrl = Array.isArray(p.gallery) ? _extractUrl(p.gallery[0]) : '';
+      const imagesUrl  = Array.isArray(p.images)  ? _extractUrl(p.images[0])  : '';
+      rawImageUrl = (typeof p.image === 'string' && p.image) || galleryUrl || imagesUrl || '';
+      if (rawImageUrl && rawImageUrl.includes('placeholder')) rawImageUrl = '';
+    }
+    const imageUrl = escapeHtml(rawImageUrl);
+
     const imageHtml = imageUrl
-      ? `<img class="sp-pkg-card__image" src="${escapeHtml(imageUrl)}" alt="${title}" loading="lazy">`
+      ? `<img class="sp-pkg-card__image" src="${imageUrl}" alt="${title}" loading="lazy">`
       : `<div class="sp-pkg-card__image-placeholder"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>`;
 
     return `
