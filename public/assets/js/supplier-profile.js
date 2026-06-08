@@ -857,32 +857,61 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     const pkgId = escapeHtml(p.id || '');
     const pkgSlug = escapeHtml(p.slug || '');
 
-    // Resolve the best available image using the same priority order as the
-    // server-side resolver (image → gallery → images).
-    // Fall back to the client-side window.resolvePackageImage if available,
-    // otherwise inline the same logic. Treat the placeholder SVG path as
-    // "no image" so we show the styled placeholder div instead of a broken SVG.
+    // Image resolution — mirrors the strategy used by package-init.js / package detail page:
+    //   1. resolvedGallery (pre-normalised by the server, most reliable)
+    //   2. raw gallery items (walk and extract first real url)
+    //   3. p.image (server-resolved, might be placeholder path → skip if so)
+    //   4. p.images plural (legacy package.service.js field)
+    // Any URL that looks like a placeholder is treated as "no image".
+    const PLACEHOLDER_HINT = 'placeholder';
+    const _url = item => {
+      if (!item) return '';
+      if (typeof item === 'string') return item;
+      return String(item.url || item.src || item.path || item.image || item.originalUrl || item.thumbnail || '');
+    };
+    const _real = url => !!url && !url.includes(PLACEHOLDER_HINT);
+
     let rawImageUrl = '';
-    if (typeof window.resolvePackageImage === 'function') {
-      const resolved = window.resolvePackageImage(p);
-      rawImageUrl =
-        typeof window.isPlaceholderImage === 'function' && window.isPlaceholderImage(resolved)
-          ? ''
-          : resolved || '';
-    } else {
-      // Inline fallback when package-image-resolver.js hasn't loaded yet.
-      // Safely extract a string URL from each potential source.
-      const _extractUrl = item =>
-        !item
-          ? ''
-          : typeof item === 'string'
-            ? item
-            : String(item.url || item.src || item.path || item.image || '');
-      const galleryUrl = Array.isArray(p.gallery) ? _extractUrl(p.gallery[0]) : '';
-      const imagesUrl  = Array.isArray(p.images)  ? _extractUrl(p.images[0])  : '';
-      rawImageUrl = (typeof p.image === 'string' && p.image) || galleryUrl || imagesUrl || '';
-      if (rawImageUrl && rawImageUrl.includes('placeholder')) rawImageUrl = '';
+
+    // 1. resolvedGallery — provided by the supplier packages API alongside image
+    const rg = Array.isArray(p.resolvedGallery) ? p.resolvedGallery : [];
+    for (const item of rg) {
+      const u = _url(item);
+      if (_real(u)) { rawImageUrl = u; break; }
     }
+
+    // 2. raw gallery fallback
+    if (!rawImageUrl) {
+      const g = Array.isArray(p.gallery) ? p.gallery : [];
+      for (const item of g) {
+        const u = _url(item);
+        if (_real(u)) { rawImageUrl = u; break; }
+      }
+    }
+
+    // 3. p.image (already server-resolved — use unless it's a placeholder path)
+    if (!rawImageUrl && typeof p.image === 'string' && _real(p.image)) {
+      rawImageUrl = p.image;
+    }
+
+    // 4. legacy p.images (plural) from package.service.js creation path
+    if (!rawImageUrl) {
+      const imgs = Array.isArray(p.images) ? p.images : [];
+      for (const item of imgs) {
+        const u = _url(item);
+        if (_real(u)) { rawImageUrl = u; break; }
+      }
+    }
+
+    // If window.resolvePackageImage is available, use it as a final pass —
+    // it has extra heuristics but by now we've already done the heavy lifting.
+    if (!rawImageUrl && typeof window.resolvePackageImage === 'function') {
+      const resolved = window.resolvePackageImage(p);
+      if (typeof window.isPlaceholderImage === 'function' && !window.isPlaceholderImage(resolved)) {
+        rawImageUrl = resolved || '';
+      }
+    }
+
     const imageUrl = escapeHtml(rawImageUrl);
 
     const imageHtml = imageUrl
