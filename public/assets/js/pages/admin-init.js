@@ -720,7 +720,7 @@
             console.warn('Failed to load pending reviews:', err.message);
             return { reviews: [] };
           }),
-        ]).then(results => {
+        ]).then(async results => {
           const usersResp = results[0] || {};
           const metricsResp = results[1] || {};
           const photosResp = results[2] || {};

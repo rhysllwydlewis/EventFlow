@@ -864,6 +864,63 @@ router.get(
   }
 );
 
+/**
+ * GET /api/v1/admin/suppliers/:id/package-image-audit
+ * Admin-only diagnostic: shows exact image fields for every package belonging to a supplier.
+ * Useful for troubleshooting "images not showing on profile page" reports without needing
+ * direct DB access.
+ *
+ * Response per package:
+ *   id, title, image (resolved), imageRaw (stored), gallery.length, images.length,
+ *   resolvedGallery.length, firstGalleryUrl, isPlaceholder
+ */
+router.get(
+  '/admin/suppliers/:id/package-image-audit',
+  applyAuthRequired,
+  applyRoleRequired('admin'),
+  async (req, res) => {
+    try {
+      const pkgs = await dbUnified.find('packages', { supplierId: req.params.id });
+      const audit = pkgs.map(pkg => {
+        const resolvedImage = resolvePackageImage(pkg);
+        const resolvedGallery = normalizeGallery(pkg.gallery);
+        return {
+          id: pkg.id,
+          title: pkg.title || pkg.name,
+          approved: pkg.approved,
+          // Resolved image (what the API returns as `image` field)
+          image: resolvedImage,
+          isPlaceholder: isPlaceholderImage(resolvedImage),
+          // Raw stored fields
+          imageRaw: pkg.image || null,
+          imageRawIsEmpty: !pkg.image,
+          galleryLength: Array.isArray(pkg.gallery) ? pkg.gallery.length : 0,
+          imagesLength: Array.isArray(pkg.images) ? pkg.images.length : 0,
+          // Resolved gallery (what the API returns as `resolvedGallery`)
+          resolvedGalleryLength: resolvedGallery.length,
+          firstGalleryUrl: resolvedGallery.length > 0 ? resolvedGallery[0].url : null,
+          // First raw gallery item for format inspection
+          firstRawGalleryItem: Array.isArray(pkg.gallery) && pkg.gallery.length > 0
+            ? pkg.gallery[0]
+            : null,
+        };
+      });
+      res.json({
+        supplierId: req.params.id,
+        packageCount: audit.length,
+        packagesWithImages: audit.filter(p => !p.isPlaceholder).length,
+        packages: audit,
+      });
+    } catch (err) {
+      logger.error('Package image audit error:', err);
+      res.status(500).json({
+        error: 'Audit failed',
+        ...(process.env.NODE_ENV !== 'production' && { details: err.message }),
+      });
+    }
+  }
+);
+
 module.exports = router;
 module.exports.initializeDependencies = initializeDependencies;
 module.exports.invalidatePackageCaches = invalidatePackageCaches;
