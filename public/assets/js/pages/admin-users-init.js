@@ -229,22 +229,25 @@
       .map(user => {
         const userId = esc(user.id || '');
         const checked = selectedUserIds.has(user.id) ? 'checked' : '';
-        const supplierLink = user.supplierProfile
-          ? `<a href="${esc(user.supplierProfile.profileUrl)}" class="btn btn-ghost btn-xs">Supplier</a>`
-          : '';
+        const hasProfile = Boolean(user.supplierProfile);
+        const supplierLink = hasProfile
+          ? `<a href="${esc(user.supplierProfile.profileUrl)}" class="btn btn-ghost btn-xs" style="white-space:nowrap;">Supplier</a>`
+          : user.role === 'supplier'
+            ? `<button type="button" class="btn btn-warning btn-xs" style="white-space:nowrap;" data-provision-profile="${userId}" title="Create missing supplier profile">⚠️ Provision</button>`
+            : '';
         return `<tr class="${user.suspended ? 'uc-row--suspended' : ''} ${(user.accountIssues || []).length ? 'uc-row--issues' : ''}">
           <td class="checkbox-cell"><input type="checkbox" class="uc-user-checkbox table-checkbox" data-user-id="${userId}" ${checked} aria-label="Select ${esc(user.name || user.email || 'user')}"></td>
-          <td><a href="/admin-user-detail?id=${userId}" class="uc-user-link">${esc(user.name || '(no name)')}</a>${issueBadges(user.accountIssues)}</td>
-          <td><a href="/admin-user-detail?id=${userId}" class="uc-user-link">${esc(user.email || '')}</a></td>
-          <td>${roleBadge(user.role)}</td>
-          <td>${subscriptionBadge(user.subscription, user.role)}</td>
-          <td>${user.verified ? '✓ Yes' : '✗ No'}<div>${verificationBadge(user.verificationMethod)}</div></td>
-          <td>${signupBadge(user.signupMethod)}</td>
-          <td>${emailStatusBadge(user.emailDeliveryStatus)}</td>
-          <td>${user.marketingOptIn ? 'Yes' : 'No'}</td>
-          <td>${fmtDate(user.createdAt)}</td>
-          <td>${fmtRelative(user.lastLoginAt)}</td>
-          <td class="uc-actions-cell">
+          <td style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:155px;"><a href="/admin-user-detail?id=${userId}" class="uc-user-link" title="${esc(user.name || '(no name)')}">${esc(user.name || '(no name)')}</a>${issueBadges(user.accountIssues)}</td>
+          <td style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:195px;"><a href="/admin-user-detail?id=${userId}" class="uc-user-link" title="${esc(user.email || '')}">${esc(user.email || '')}</a></td>
+          <td style="white-space:nowrap;">${roleBadge(user.role)}</td>
+          <td style="white-space:nowrap;">${subscriptionBadge(user.subscription, user.role)}</td>
+          <td>${user.verified ? '✓ Yes' : '✗ No'}<div style="margin-top:2px;">${verificationBadge(user.verificationMethod)}</div></td>
+          <td style="white-space:nowrap;">${signupBadge(user.signupMethod)}</td>
+          <td style="white-space:nowrap;">${emailStatusBadge(user.emailDeliveryStatus)}</td>
+          <td style="white-space:nowrap;">${user.marketingOptIn ? 'Yes' : 'No'}</td>
+          <td style="white-space:nowrap;">${fmtDate(user.createdAt)}</td>
+          <td style="white-space:nowrap;">${fmtRelative(user.lastLoginAt)}</td>
+          <td class="uc-actions-cell" style="white-space:nowrap;">
             <a href="/admin-user-detail?id=${userId}" class="btn btn-ghost btn-xs">View</a>
             ${supplierLink}
             <button type="button" class="btn btn-secondary btn-xs" data-manage-subscription="${userId}">Subscription</button>
@@ -488,6 +491,49 @@
     await loadData();
   }
 
+  async function provisionMissingProfile(userId) {
+    const ok = await AdminShared.showConfirmModal({
+      title: 'Create supplier profile?',
+      message: 'This will create a blank supplier profile for this user. They can customise it from their dashboard.',
+      confirmText: 'Create profile',
+      type: 'warning',
+    });
+    if (!ok) return;
+    try {
+      await AdminShared.adminFetch(
+        `/api/admin/users/${encodeURIComponent(userId)}/provision-supplier-profile`,
+        { method: 'POST' }
+      );
+      AdminShared.showToast('Supplier profile created.', 'success');
+      await loadData();
+    } catch (err) {
+      AdminShared.showToast(`Failed: ${err.message}`, 'error');
+    }
+  }
+
+  async function bulkProvisionProfiles() {
+    const ok = await AdminShared.showConfirmModal({
+      title: 'Fix all missing supplier profiles?',
+      message: 'This will create blank supplier profiles for every supplier account that is missing one. Safe to run multiple times.',
+      confirmText: 'Fix all',
+      type: 'warning',
+    });
+    if (!ok) return;
+    try {
+      const data = await AdminShared.adminFetch(
+        '/api/admin/users/bulk-provision-supplier-profiles',
+        { method: 'POST' }
+      );
+      AdminShared.showToast(
+        `Done — ${data.provisioned || 0} profile(s) created out of ${data.checked || 0} supplier account(s).`,
+        'success'
+      );
+      await loadData();
+    } catch (err) {
+      AdminShared.showToast(`Failed: ${err.message}`, 'error');
+    }
+  }
+
   async function resendVerification(userId) {
     const user = currentUsers.find(item => item.id === userId);
     if (!canResendVerification(user)) {
@@ -561,8 +607,17 @@
   function openSubscriptionModal(userId) {
     const user = currentUsers.find(item => item.id === userId);
     if (!user) {
+      // User not in current page cache — can happen on filtered views with a single result.
+      // Fetch directly so the modal still works.
+      AdminShared.api(`/api/admin/users/${encodeURIComponent(userId)}`)
+        .then(fetchedUser => _showSubscriptionModal(userId, fetchedUser))
+        .catch(err => AdminShared.showToast(`Could not load user: ${err.message}`, 'error'));
       return;
     }
+    _showSubscriptionModal(userId, user);
+  }
+
+  function _showSubscriptionModal(userId, user) {
     const modal = $('subscriptionModal');
     const userIdInput = $('subscriptionUserId');
     const subtitle = $('subscriptionModalSubtitle');
@@ -775,6 +830,7 @@
     document.addEventListener('click', event => {
       const subscriptionBtn = event.target && event.target.closest('[data-manage-subscription]');
       const resendBtn = event.target && event.target.closest('[data-resend-verification]');
+      const provisionBtn = event.target && event.target.closest('[data-provision-profile]');
       if (subscriptionBtn) {
         openSubscriptionModal(subscriptionBtn.dataset.manageSubscription);
       }
@@ -783,6 +839,9 @@
           AdminShared.showToast(`Failed: ${err.message}`, 'error')
         );
       }
+      if (provisionBtn) {
+        provisionMissingProfile(provisionBtn.dataset.provisionProfile);
+      }
     });
 
     [
@@ -790,6 +849,7 @@
       ['ucBulkSuspend', () => bulkSuspend([...selectedUserIds])],
       ['ucBulkDelete', () => bulkDelete([...selectedUserIds])],
       ['ucBulkExport', bulkExportSelected],
+      ['ucBulkProvisionProfiles', bulkProvisionProfiles],
     ].forEach(([id, handler]) => {
       const btn = $(id);
       if (btn) {

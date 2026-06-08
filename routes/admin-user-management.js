@@ -2579,6 +2579,102 @@ router.get('/users/:id', authRequired, roleRequired('admin'), async (req, res) =
 });
 
 /**
+ * POST /api/admin/users/:id/provision-supplier-profile
+ * Create a missing supplier profile for a supplier-role user.
+ * Idempotent: if a profile already exists the existing one is returned.
+ */
+router.post(
+  '/users/:id/provision-supplier-profile',
+  authRequired,
+  roleRequired('admin'),
+  csrfProtection,
+  async (req, res) => {
+    try {
+      const user = await dbUnified.findOne('users', { id: req.params.id });
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      if (user.role !== 'supplier') {
+        return res.status(400).json({
+          error: 'User is not a supplier',
+          code: 'NOT_A_SUPPLIER',
+        });
+      }
+      const profile = await ensureSupplierProfileForUser(user);
+      auditLog({
+        adminId: req.user.id,
+        adminEmail: req.user.email,
+        action: 'SUPPLIER_PROFILE_PROVISIONED',
+        targetType: 'user',
+        targetId: user.id,
+        details: { supplierId: profile && profile.id, userEmail: user.email },
+      });
+      logger.info(
+        `[admin] Supplier profile provisioned for user ${user.id} by admin ${req.user.email}`
+      );
+      res.json({ ok: true, supplierId: profile && profile.id });
+    } catch (err) {
+      logger.error('[admin] provision-supplier-profile error:', err.message);
+      res.status(500).json({ error: 'Failed to provision supplier profile' });
+    }
+  }
+);
+
+/**
+ * POST /api/admin/users/bulk-provision-supplier-profiles
+ * Create missing supplier profiles for ALL supplier-role users that don't have one.
+ * Safe to call multiple times (idempotent per user).
+ */
+router.post(
+  '/users/bulk-provision-supplier-profiles',
+  authRequired,
+  roleRequired('admin'),
+  csrfProtection,
+  async (req, res) => {
+    try {
+      const allUsers = await dbUnified.read('users');
+      const supplierUsers = (allUsers || []).filter(u => u.role === 'supplier');
+      const existingProfiles = await dbUnified.read('suppliers');
+      const profiledOwnerIds = new Set(
+        (existingProfiles || []).map(s => s.ownerUserId).filter(Boolean)
+      );
+
+      const missing = supplierUsers.filter(u => u.id && !profiledOwnerIds.has(u.id));
+      let provisioned = 0;
+      const errors = [];
+
+      for (const user of missing) {
+        try {
+          await ensureSupplierProfileForUser(user);
+          provisioned += 1;
+        } catch (err) {
+          errors.push({ userId: user.id, error: err.message });
+          logger.error(`[admin] bulk-provision failed for user ${user.id}:`, err.message);
+        }
+      }
+
+      auditLog({
+        adminId: req.user.id,
+        adminEmail: req.user.email,
+        action: 'SUPPLIER_PROFILES_BULK_PROVISIONED',
+        targetType: 'users',
+        targetId: null,
+        details: { checked: supplierUsers.length, provisioned, errors: errors.length },
+      });
+
+      logger.info(
+        `[admin] Bulk supplier profile provisioning: ${provisioned}/${missing.length} created by ${req.user.email}`
+      );
+
+      res.json({ ok: true, checked: supplierUsers.length, provisioned, errors });
+    } catch (err) {
+      logger.error('[admin] bulk-provision-supplier-profiles error:', err.message);
+      res.status(500).json({ error: 'Failed to bulk provision supplier profiles' });
+    }
+  }
+);
+
+/**
  * POST /api/admin/users/:id/reset-password
  * Send password reset email to user
  */

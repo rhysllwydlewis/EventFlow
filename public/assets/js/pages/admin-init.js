@@ -733,7 +733,16 @@
             !summaryLoadFailed && usersResp.total !== null && usersResp.total !== undefined
               ? usersResp
               : null; // set on outer scope for renderAnalytics
-          allUsers = []; // dashboard no longer loads the full user list; use Users Centre
+
+          // Load a small set of recent users for the dashboard table (most-recent 20).
+          // The full paginated list lives in the Users Centre.
+          try {
+            const recentData = await api('/api/admin/users/list?limit=20&page=1');
+            allUsers = (recentData && recentData.items) || [];
+          } catch (_) {
+            allUsers = [];
+          }
+
           // Reset supplier/package caches so edits refetch fresh data after a reload
           allSuppliers = [];
           allPackages = [];

@@ -415,10 +415,10 @@
   <!-- Users Section -->
   <div class="data-section">
     <div class="data-header">
-      <h3 class="subsection-title">Users</h3>
+      <h3 class="subsection-title">Recent Users <span style="font-size:0.75rem;font-weight:400;color:#6b7280;">(20 most recent — <a href="/admin-users">view all in Users Centre</a>)</span></h3>
       <div class="data-controls">
         <button id="createUserBtn" class="ef-cta btn-sm btn-success">+ Create User</button>
-        <input id="userSearch" type="text" placeholder="Search users..." class="search-input">
+        <input id="userSearch" type="text" placeholder="Search recent users..." class="search-input">
         <select id="userDateFilter" class="filter-select">
           <option value="all" selected>All time</option>
           <option value="7">Last 7 days</option>
@@ -426,8 +426,8 @@
         </select>
       </div>
     </div>
-    <div class="table-wrapper">
-      <table id="users" aria-label="Users"></table>
+    <div class="table-wrapper" style="overflow-x:auto;">
+      <table id="users" aria-label="Recent users" style="min-width:700px;"></table>
     </div>
   </div>
 
