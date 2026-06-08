@@ -346,10 +346,30 @@ router.get('/suppliers/:id/packages', async (req, res) => {
     }
     // Use find with compound index { supplierId, approved }
     const pkgs = await dbUnified.find('packages', { supplierId: supplier.id, approved: true });
-    const items = pkgs.map(pkg => ({
-      ...pkg,
-      image: resolvePackageImage(pkg),
-    }));
+    const debug = req.query.debugImages === '1';
+    const items = pkgs.map(pkg => {
+      const resolvedImage = resolvePackageImage(pkg);
+      const resolvedGallery = normalizeGallery(pkg.gallery);
+      const item = {
+        ...pkg,
+        image: resolvedImage,
+        // Include the pre-normalised gallery so the profile page card renderer
+        // can use the same image-resolution strategy as the package detail page.
+        resolvedGallery,
+      };
+      if (debug) {
+        item._debug = {
+          chosenImage: resolvedImage,
+          imageFieldWasEmpty: !pkg.image,
+          imageFieldWasPlaceholder: isPlaceholderImage(pkg.image),
+          rawGalleryLength: Array.isArray(pkg.gallery) ? pkg.gallery.length : 0,
+          resolvedGalleryLength: resolvedGallery.length,
+          resolvedGalleryFirstUrl: resolvedGallery.length > 0 ? resolvedGallery[0].url : null,
+          rawImagesLength: Array.isArray(pkg.images) ? pkg.images.length : 0,
+        };
+      }
+      return item;
+    });
     res.json({ items });
   } catch (error) {
     logger.error('Error reading supplier packages:', error);
@@ -649,7 +669,11 @@ router.get('/packages/search', async (req, res) => {
       return true;
     });
 
-    res.json({ items: items.map(pkg => ({ ...pkg, image: resolvePackageImage(pkg) })) });
+    res.json({ items: items.map(pkg => ({
+      ...pkg,
+      image: resolvePackageImage(pkg),
+      resolvedGallery: normalizeGallery(pkg.gallery),
+    })) });
   } catch (error) {
     logger.error('Error searching packages:', error);
     return res.status(500).json({ error: 'Internal server error' });

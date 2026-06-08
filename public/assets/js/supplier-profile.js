@@ -698,7 +698,17 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     }
 
     const photos = Array.isArray(supplier.photosGallery)
-      ? supplier.photosGallery.map(p => (typeof p === 'string' ? p : p.url)).filter(Boolean)
+      ? supplier.photosGallery
+          .filter(p => p && (typeof p === 'string' ? p : p.url))
+          .map(p => {
+            if (typeof p === 'string') return { display: p, full: p };
+            // Use thumbnail for grid (fast load), full url for lightbox
+            return {
+              display: p.thumbnail || p.url || p.original || '',
+              full:    p.large    || p.url || p.original || '',
+            };
+          })
+          .filter(p => p.display)
       : [];
 
     // Show polished empty state if no photos uploaded yet
@@ -729,11 +739,11 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
 
       const thumbs = visible
         .slice(1)
-        .map((url, idx) => {
+        .map((photo, idx) => {
           const isLast = idx === 3 && extra > 0;
           return `
-          <div class="sp-gallery__thumb" role="button" aria-label="Open gallery photo ${idx + 2}" tabindex="0">
-            <img loading="lazy" src="${escapeHtml(url)}" alt="${escapeHtml(supplier.name)} — photo ${idx + 2}">
+          <div class="sp-gallery__thumb" role="button" aria-label="Open gallery photo ${idx + 2}" tabindex="0" data-full-url="${escapeHtml(photo.full)}">
+            <img loading="lazy" src="${escapeHtml(photo.display)}" alt="${escapeHtml(supplier.name)} — photo ${idx + 2}">
             ${isLast ? `<div class="sp-gallery__more-overlay">+${extra} more</div>` : `<div class="sp-gallery__overlay" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>`}
           </div>`;
         })
@@ -741,8 +751,8 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
 
       galleryHtml = `
         <div class="sp-gallery">
-          <div class="sp-gallery__featured" role="button" aria-label="Open main gallery photo" tabindex="0">
-            <img src="${escapeHtml(visible[0])}" alt="${escapeHtml(supplier.name)} — main photo">
+          <div class="sp-gallery__featured" role="button" aria-label="Open main gallery photo" tabindex="0" data-full-url="${escapeHtml(visible[0].full)}">
+            <img src="${escapeHtml(visible[0].display)}" alt="${escapeHtml(supplier.name)} — main photo">
             <div class="sp-gallery__overlay" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
           </div>
           ${thumbs}
@@ -751,9 +761,9 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
       // Simple compact grid for 1-2 photos
       const items = photos
         .map(
-          (url, idx) => `
-        <div class="sp-gallery__${idx === 0 ? 'featured' : 'thumb'}" role="button" aria-label="Open gallery photo ${idx + 1}" tabindex="0">
-          <img ${idx > 0 ? 'loading="lazy"' : ''} src="${escapeHtml(url)}" alt="${escapeHtml(supplier.name)} — photo ${idx + 1}">
+          (photo, idx) => `
+        <div class="sp-gallery__${idx === 0 ? 'featured' : 'thumb'}" role="button" aria-label="Open gallery photo ${idx + 1}" tabindex="0" data-full-url="${escapeHtml(photo.full)}">
+          <img ${idx > 0 ? 'loading="lazy"' : ''} src="${escapeHtml(photo.display)}" alt="${escapeHtml(supplier.name)} — photo ${idx + 1}">
           <div class="sp-gallery__overlay" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
         </div>`
         )
@@ -783,11 +793,12 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     thumbEls.forEach((el, idx) => {
       el.addEventListener('click', () => {
         if (window.ImageCarousel?.openWithImages) {
-          window.ImageCarousel.openWithImages(photos, idx, supplierName);
+          // Pass full-size URLs to the carousel for best quality
+          const fullUrls = photos.map(p => p.full || p.display);
+          window.ImageCarousel.openWithImages(fullUrls, idx, supplierName);
         } else {
-          // Graceful fallback: open the clicked image directly in a new tab
-          const imgEl = el.querySelector('img');
-          const url = photos[idx] || (imgEl ? imgEl.src : '');
+          // Graceful fallback: open the full-size image directly in a new tab
+          const url = el.dataset.fullUrl || (el.querySelector('img') ? el.querySelector('img').src : '');
           if (url) {
             window.open(url, '_blank', 'noopener,noreferrer');
           }
@@ -857,32 +868,65 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     const pkgId = escapeHtml(p.id || '');
     const pkgSlug = escapeHtml(p.slug || '');
 
-    // Resolve the best available image using the same priority order as the
-    // server-side resolver (image → gallery → images).
-    // Fall back to the client-side window.resolvePackageImage if available,
-    // otherwise inline the same logic. Treat the placeholder SVG path as
-    // "no image" so we show the styled placeholder div instead of a broken SVG.
+    // Image resolution — mirrors the strategy used by package-init.js / package detail page:
+    //   1. resolvedGallery (pre-normalised by the server, most reliable)
+    //   2. raw gallery items (walk and extract first real url)
+    //   3. p.image (server-resolved, might be placeholder path → skip if so)
+    //   4. p.images plural (legacy package.service.js field)
+    // Any URL that looks like a placeholder is treated as "no image".
+    const PLACEHOLDER_HINT = 'placeholder';
+    const _url = item => {
+      if (!item) return '';
+      if (typeof item === 'string') return item;
+      return String(item.url || item.src || item.path || item.image || item.originalUrl || item.thumbnail || '');
+    };
+    const _real = url => !!url && !url.includes(PLACEHOLDER_HINT);
+
     let rawImageUrl = '';
-    if (typeof window.resolvePackageImage === 'function') {
-      const resolved = window.resolvePackageImage(p);
-      rawImageUrl =
-        typeof window.isPlaceholderImage === 'function' && window.isPlaceholderImage(resolved)
-          ? ''
-          : resolved || '';
-    } else {
-      // Inline fallback when package-image-resolver.js hasn't loaded yet.
-      // Safely extract a string URL from each potential source.
-      const _extractUrl = item =>
-        !item
-          ? ''
-          : typeof item === 'string'
-            ? item
-            : String(item.url || item.src || item.path || item.image || '');
-      const galleryUrl = Array.isArray(p.gallery) ? _extractUrl(p.gallery[0]) : '';
-      const imagesUrl  = Array.isArray(p.images)  ? _extractUrl(p.images[0])  : '';
-      rawImageUrl = (typeof p.image === 'string' && p.image) || galleryUrl || imagesUrl || '';
-      if (rawImageUrl && rawImageUrl.includes('placeholder')) rawImageUrl = '';
+
+    // 1. resolvedGallery — provided by the supplier packages API alongside image
+    const rg = Array.isArray(p.resolvedGallery) ? p.resolvedGallery : [];
+    for (const item of rg) {
+      const u = _url(item);
+      if (_real(u)) {
+        // Prefer thumbnail for card grid (faster load), fallback to the full url
+        rawImageUrl = (typeof item === 'object' && _real(item.thumbnail)) ? item.thumbnail : u;
+        break;
+      }
     }
+
+    // 2. raw gallery fallback
+    if (!rawImageUrl) {
+      const g = Array.isArray(p.gallery) ? p.gallery : [];
+      for (const item of g) {
+        const u = _url(item);
+        if (_real(u)) { rawImageUrl = u; break; }
+      }
+    }
+
+    // 3. p.image (already server-resolved — use unless it's a placeholder path)
+    if (!rawImageUrl && typeof p.image === 'string' && _real(p.image)) {
+      rawImageUrl = p.image;
+    }
+
+    // 4. legacy p.images (plural) from package.service.js creation path
+    if (!rawImageUrl) {
+      const imgs = Array.isArray(p.images) ? p.images : [];
+      for (const item of imgs) {
+        const u = _url(item);
+        if (_real(u)) { rawImageUrl = u; break; }
+      }
+    }
+
+    // If window.resolvePackageImage is available, use it as a final pass —
+    // it has extra heuristics but by now we've already done the heavy lifting.
+    if (!rawImageUrl && typeof window.resolvePackageImage === 'function') {
+      const resolved = window.resolvePackageImage(p);
+      if (typeof window.isPlaceholderImage === 'function' && !window.isPlaceholderImage(resolved)) {
+        rawImageUrl = resolved || '';
+      }
+    }
+
     const imageUrl = escapeHtml(rawImageUrl);
 
     const imageHtml = imageUrl
