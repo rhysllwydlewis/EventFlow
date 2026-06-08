@@ -211,22 +211,46 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
       return;
     }
 
-    // Banner image
     const heroBanner = document.getElementById('hero-banner');
     const bannerUrl = supplier.bannerUrl || supplier.coverImage || null;
+
+    // Hero preset gradient map — mirrors HERO_PRESETS in supplier-profile-owner-edit.js
+    const PRESET_GRADIENTS = {
+      'ef-teal':    'linear-gradient(135deg,#0B8073 0%,#13B6A2 100%)',
+      'midnight':   'linear-gradient(135deg,#1a1a2e 0%,#0f3460 100%)',
+      'rose-gold':  'linear-gradient(135deg,#b76e79 0%,#f9c8c8 100%)',
+      'forest':     'linear-gradient(135deg,#1b4332 0%,#40916c 100%)',
+      'ocean':      'linear-gradient(135deg,#03045e 0%,#00b4d8 100%)',
+      'sunset':     'linear-gradient(135deg,#f77f00 0%,#d62828 100%)',
+      'purple':     'linear-gradient(135deg,#3d0066 0%,#a855f7 100%)',
+      'charcoal':   'linear-gradient(135deg,#1a1a1a 0%,#4a5568 100%)',
+      'blush':      'linear-gradient(135deg,#c2185b 0%,#ff80ab 100%)',
+      'champagne':  'linear-gradient(135deg,#9c7c38 0%,#e8d5a3 100%)',
+    };
+
+    const heroSection = document.getElementById('supplier-hero');
+    const heroMedia = heroSection ? heroSection.querySelector('.hero-media') : null;
+
     if (heroBanner) {
       if (bannerUrl) {
         heroBanner.src = bannerUrl;
         heroBanner.alt = `${supplier.name} banner`;
+        heroBanner.style.display = '';
+        if (heroMedia) heroMedia.style.backgroundImage = '';
       } else {
-        heroBanner.src = '/assets/images/placeholder-banner.svg';
-        heroBanner.alt = `${supplier.name} banner`;
-        // Apply brand theme tint
-        const heroSection = document.getElementById('supplier-hero');
-        if (heroSection && supplier.themeColor && /^#[0-9A-F]{6}$/i.test(supplier.themeColor)) {
-          const heroMedia = heroSection.querySelector('.hero-media');
-          if (heroMedia) {
+        // No custom banner — use preset gradient or theme colour
+        heroBanner.style.display = 'none';
+        if (heroMedia) {
+          const preset = supplier.heroPreset && PRESET_GRADIENTS[supplier.heroPreset];
+          if (preset) {
+            heroMedia.style.backgroundImage = preset;
+          } else if (supplier.themeColor && /^#[0-9A-F]{6}$/i.test(supplier.themeColor)) {
+            // Clear any previous preset backgroundImage so the CSS variable takes effect
+            heroMedia.style.backgroundImage = '';
             heroMedia.style.setProperty('--supplier-theme', supplier.themeColor);
+          } else {
+            // No preset, no custom colour — clear inline styles and let CSS default apply
+            heroMedia.style.backgroundImage = '';
           }
         }
       }
@@ -1328,6 +1352,10 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
         }
       }
 
+      // Expose to window so supplier-profile-owner-edit.js can read them
+      window.__supplierData = supplierData;
+      window.__supplierId = supplierId;
+
       // Render all sections
       updateMetaTags(supplierData);
       renderHeroSection(supplierData);
@@ -1337,6 +1365,26 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
       renderReviewsSection(supplierId, supplierData);
       renderSidebarSection(supplierData);
       renderBadgesSection(supplierData);
+      // Expose rerender helpers so the owner-edit module can refresh
+      // individual sections without a full page reload.
+      window.__spRerender = {
+        hero: () => renderHeroSection(supplierData),
+        about: () => renderAboutSection(supplierData),
+        gallery: () => renderGallerySection(supplierData),
+        sidebar: () => renderSidebarSection(supplierData),
+        badges: () => renderBadgesSection(supplierData),
+        all: () => {
+          renderHeroSection(supplierData);
+          renderAboutSection(supplierData);
+          renderGallerySection(supplierData);
+          renderSidebarSection(supplierData);
+          renderBadgesSection(supplierData);
+          updateMetaTags(supplierData);
+        },
+      };
+
+      // Signal to the edit overlay that data is ready
+      window.dispatchEvent(new CustomEvent('sp:dataReady', { detail: { supplier: supplierData } }));
     } catch (error) {
       console.error('Error loading supplier profile:', error);
       showPageError('This supplier profile could not be loaded. Please try again.');

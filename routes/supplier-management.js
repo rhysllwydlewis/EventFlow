@@ -27,6 +27,8 @@ const PATCH_FIELD_MAX_LENGTHS = {
   description_long: 5000,
   bannerUrl: 500,
   tagline: 200,
+  phone: 30,
+  heroPreset: 40,
 };
 
 // Dependencies injected by server.js
