@@ -1,1 +1,21 @@
 /* Standardised notification badge alignment across admin, customer, supplier and legacy navs. */
+
+:root {
+  --ef-notification-badge-size: 18px;
+  --ef-notification-badge-min-width: 18px;
+  --ef-notification-badge-font-size: 10px;
+  --ef-notification-badge-bg: #dc2626;
+  --ef-notification-badge-color: #ffffff;
+}
+
+.notification-badge,
+.ef-notification-badge,
+.ef-bottom-dashboard-badge,
+.admin-notif-badge,
+.admin-nav-badge {
+  box-sizing: border-box;
+  min-width: var(--ef-notification-badge-min-width);
+  height: var(--ef-notification-badge-size);
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--ef
