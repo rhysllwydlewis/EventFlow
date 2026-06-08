@@ -9,4 +9,9 @@
 }
 
 .notification-badge,
-.ef
+.ef-notification-badge,
+.ef-bottom-dashboard-badge,
+.admin-notif-badge,
+.admin-nav-badge {
+  box-sizing: border-box;
+  min-width
