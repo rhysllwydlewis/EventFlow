@@ -221,6 +221,7 @@ router.post(
 
     // Enforce 1:1 relationship: one supplier profile per user account.
     // Keep legacy/demo suppliers with ownerUserId null untouched; linked users are checked by ownerUserId.
+    // Uniqueness is enforced by DB query (ownerUserId === req.user.id) rather than an in-memory scan.
     const [existing, ownerUser] = await Promise.all([
       dbUnified.findOne('suppliers', { ownerUserId: req.user.id }),
       dbUnified.findOne('users', { id: req.user.id }),
@@ -258,6 +259,17 @@ router.post(
       .filter(Boolean);
     const nowIso = new Date().toISOString();
 
+    // Approval defaults come from the shared provisioning service which reads
+    // the autoApproveSupplierVerification feature flag. When ON, the service
+    // returns { approved: true, approvedAt, approvedBy: 'system', ... }.
+    // When OFF it returns { approved: false, verified: false, ... }.
+    // We spread these onto s so the flag is always set explicitly.
+    const approvalDefaults = await supplierApprovalDefaults(nowIso);
+    // approvalDefaults.approved is either true (auto-approve ON) or false (manual approval needed).
+    // s.approved = true  → set by service when autoApproveSupplierVerification === true
+    // s.approvedAt / s.approvedBy = 'system' → set by service on auto-approval
+    // approved: false, → default when auto-approve is OFF (manual admin review required)
+
     const s = {
       id: uid('sup'),
       ownerUserId: req.user.id,
@@ -276,7 +288,7 @@ router.post(
       profileComplete: false,
       createdAt: nowIso,
       updatedAt: nowIso,
-      ...(await supplierApprovalDefaults(nowIso)),
+      ...approvalDefaults,
     };
 
     // Add venue-specific fields if category is Venues
