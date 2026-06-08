@@ -131,6 +131,8 @@ function isFeaturedPackage(pkg) {
  * package-image-resolver.js.
  */
 const {
+  buildPackageImageAudit,
+  classifyPackageImageValue,
   isPlaceholderImage,
   resolvePackageImage,
   normalizeGallery,
@@ -367,6 +369,8 @@ router.get('/suppliers/:id/packages', async (req, res) => {
           chosenImage: resolvedImage,
           rawImageValue: pkg.image || '(empty)',
           imageFieldWasEmpty: !pkg.image,
+          imageFieldWasDataUri: classifyPackageImageValue(pkg.image).isDataUri,
+          imageFieldWasApiPhoto: classifyPackageImageValue(pkg.image).isApiPhoto,
           imageFieldWasPlaceholder: isPlaceholderImage(pkg.image),
           rawGalleryLength: Array.isArray(pkg.gallery) ? pkg.gallery.length : 0,
           resolvedGalleryLength: resolvedGallery.length,
@@ -796,6 +800,10 @@ router.get('/packages/:slug', async (req, res) => {
     if (req.query.debugImages === '1') {
       packageResponse._debug = {
         chosenImage: resolvedImg,
+        rawImageValue: pkg.image || '(empty)',
+        imageFieldWasEmpty: !pkg.image,
+        imageFieldWasDataUri: classifyPackageImageValue(pkg.image).isDataUri,
+        imageFieldWasApiPhoto: classifyPackageImageValue(pkg.image).isApiPhoto,
         imageFieldWasPlaceholder: isPlaceholderImage(pkg.image),
         rawGalleryLength: Array.isArray(pkg.gallery) ? pkg.gallery.length : 0,
         resolvedGalleryLength: resolvedGallery.length,
@@ -890,29 +898,7 @@ router.get(
   async (req, res) => {
     try {
       const pkgs = await dbUnified.find('packages', { supplierId: req.params.id });
-      const audit = pkgs.map(pkg => {
-        const resolvedImage = resolvePackageImage(pkg);
-        const resolvedGallery = normalizeGallery(pkg.gallery);
-        return {
-          id: pkg.id,
-          title: pkg.title || pkg.name,
-          approved: pkg.approved,
-          // Resolved image (what the API returns as `image` field)
-          image: resolvedImage,
-          isPlaceholder: isPlaceholderImage(resolvedImage),
-          // Raw stored fields
-          imageRaw: pkg.image || null,
-          imageRawIsEmpty: !pkg.image,
-          galleryLength: Array.isArray(pkg.gallery) ? pkg.gallery.length : 0,
-          imagesLength: Array.isArray(pkg.images) ? pkg.images.length : 0,
-          // Resolved gallery (what the API returns as `resolvedGallery`)
-          resolvedGalleryLength: resolvedGallery.length,
-          firstGalleryUrl: resolvedGallery.length > 0 ? resolvedGallery[0].url : null,
-          // First raw gallery item for format inspection
-          firstRawGalleryItem:
-            Array.isArray(pkg.gallery) && pkg.gallery.length > 0 ? pkg.gallery[0] : null,
-        };
-      });
+      const audit = pkgs.map(pkg => buildPackageImageAudit(pkg));
       res.json({
         supplierId: req.params.id,
         packageCount: audit.length,
