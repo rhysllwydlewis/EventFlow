@@ -3450,8 +3450,67 @@ router.put(
       const totalTime = Date.now() - startTime;
       logger.info(`[${requestId}] Feature flags update completed successfully in ${totalTime}ms`);
 
+      // When auto-approve is being enabled, immediately approve all suppliers
+      // that are currently awaiting review (pending_review) or are unapproved.
+      // This prevents existing suppliers from remaining stuck in a pending state
+      // after the admin flips the switch.
+      let bulkAutoApproved = 0;
+      if (newFeatures.autoApproveSupplierVerification === true) {
+        try {
+          const { VERIFICATION_STATES } = require('../utils/supplierVerificationStateMachine');
+          const pendingSuppliers = await dbUnified.find('suppliers', {
+            $or: [
+              { approved: false },
+              { approved: { $ne: true } },
+              { verificationStatus: VERIFICATION_STATES.PENDING_REVIEW },
+              { verificationStatus: VERIFICATION_STATES.UNVERIFIED },
+            ],
+          });
+          const approvedAt = new Date().toISOString();
+          for (const s of pendingSuppliers) {
+            if (s.approved === true && s.verificationStatus === VERIFICATION_STATES.APPROVED) {
+              continue; // already fully approved, skip
+            }
+            await dbUnified.updateOne(
+              'suppliers',
+              { id: s.id },
+              {
+                $set: {
+                  approved: true,
+                  approvedAt,
+                  approvedBy: 'system',
+                  verified: true,
+                  verificationStatus: VERIFICATION_STATES.APPROVED,
+                  updatedAt: approvedAt,
+                },
+              }
+            );
+            bulkAutoApproved += 1;
+          }
+          if (bulkAutoApproved > 0) {
+            logger.info(
+              `[${requestId}] Auto-approve enabled: bulk-approved ${bulkAutoApproved} pending supplier(s)`
+            );
+            auditLog({
+              adminId: req.user.id,
+              adminEmail: req.user.email,
+              action: 'SUPPLIERS_BULK_AUTO_APPROVED',
+              targetType: 'suppliers',
+              targetId: null,
+              details: { count: bulkAutoApproved, triggeredBy: 'autoApproveSupplierVerification' },
+            });
+          }
+        } catch (bulkErr) {
+          // Non-fatal: log and continue — the feature flag was saved successfully
+          logger.error(
+            `[${requestId}] Bulk auto-approve migration failed (feature flag still saved):`,
+            bulkErr.message
+          );
+        }
+      }
+
       // Return verified data from database
-      res.json({ success: true, features: result.data.features });
+      res.json({ success: true, features: result.data.features, bulkAutoApproved });
     } catch (error) {
       const totalTime = Date.now() - startTime;
       logger.error(

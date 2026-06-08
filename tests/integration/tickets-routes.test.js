@@ -44,7 +44,8 @@ jest.mock('../../db', () => ({
 }));
 
 jest.mock('../../utils/postmark', () => ({
-  sendEmail: jest.fn().mockResolvedValue({ MessageID: 'mock-id' }),
+  sendMail: jest.fn().mockResolvedValue({ MessageID: 'mock-id' }),
+  FROM_SUPPORT: 'support@event-flow.co.uk',
 }));
 
 const dbUnified = require('../../db-unified');
@@ -516,7 +517,7 @@ describe('Tickets Routes Integration', () => {
   describe('Admin notification on ticket creation', () => {
     it('notifies admins when a new ticket is created', async () => {
       const postmark = require('../../utils/postmark');
-      postmark.sendEmail.mockClear();
+      postmark.sendMail.mockClear();
 
       // Customer ticket: one read for suppliers in deriveTicketPriority (empty = medium)
       // Admin users fetched via find({ role: 'admin' })
@@ -536,8 +537,8 @@ describe('Tickets Routes Integration', () => {
         });
 
       expect(response.status).toBe(201);
-      // postmark.sendEmail should have been called for the admin notification
-      expect(postmark.sendEmail).toHaveBeenCalledWith(
+      // postmark.sendMail should have been called for the admin notification
+      expect(postmark.sendMail).toHaveBeenCalledWith(
         expect.objectContaining({
           to: 'admin@example.com',
           subject: expect.stringContaining('New support ticket'),
@@ -547,7 +548,7 @@ describe('Tickets Routes Integration', () => {
 
     it('does not break ticket creation when admin notification fails', async () => {
       const postmark = require('../../utils/postmark');
-      postmark.sendEmail.mockRejectedValueOnce(new Error('email service down'));
+      postmark.sendMail.mockRejectedValueOnce(new Error('email service down'));
 
       dbUnified.read
         .mockResolvedValueOnce([]) // tickets
@@ -586,7 +587,7 @@ describe('Tickets Routes Integration', () => {
 
     it('notifies admins when a non-admin user replies to a ticket', async () => {
       const postmark = require('../../utils/postmark');
-      postmark.sendEmail.mockClear();
+      postmark.sendMail.mockClear();
 
       dbUnified.findOne.mockImplementation(async (collection, filter) => {
         if (collection === 'tickets' && filter.id === 'ticket-reply-test') {
@@ -608,7 +609,7 @@ describe('Tickets Routes Integration', () => {
         .send({ message: 'Customer follow-up reply' });
 
       expect(response.status).toBe(200);
-      expect(postmark.sendEmail).toHaveBeenCalledWith(
+      expect(postmark.sendMail).toHaveBeenCalledWith(
         expect.objectContaining({
           to: 'admin@example.com',
           subject: expect.stringContaining('New reply on ticket'),
@@ -618,7 +619,7 @@ describe('Tickets Routes Integration', () => {
 
     it('does not notify admins when an admin replies', async () => {
       const postmark = require('../../utils/postmark');
-      postmark.sendEmail.mockClear();
+      postmark.sendMail.mockClear();
 
       dbUnified.findOne.mockImplementation(async (collection, filter) => {
         if (collection === 'tickets' && filter.id === 'ticket-reply-test') {
@@ -634,7 +635,7 @@ describe('Tickets Routes Integration', () => {
         .send({ message: 'Admin response' });
 
       // Admin reply should NOT trigger admin notification (only customer email)
-      const adminNotificationCall = postmark.sendEmail.mock.calls.find(
+      const adminNotificationCall = postmark.sendMail.mock.calls.find(
         call => call[0] && call[0].subject && call[0].subject.includes('New reply on ticket')
       );
       expect(adminNotificationCall).toBeUndefined();
