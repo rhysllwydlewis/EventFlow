@@ -134,9 +134,37 @@ const {
   buildPackageImageAudit,
   classifyPackageImageValue,
   isPlaceholderImage,
+  collectNamedPackageImageFields,
+  getBestPackageImageCandidate,
+  listPackageImageCandidates,
   resolvePackageImage,
   normalizeGallery,
 } = require('../utils/packageImageUtils');
+
+function normalizePackageDuplicateKey(pkg) {
+  const raw = (pkg && (pkg.slug || pkg.title || pkg.name)) || '';
+  return String(raw)
+    .trim()
+    .toLowerCase()
+    .replace(/-[a-z0-9]{6,}$/i, '')
+    .replace(/[^a-z0-9]+/g, '-');
+}
+
+function buildDuplicateTitleCounts(pkgs) {
+  const counts = new Map();
+  (pkgs || []).forEach(pkg => {
+    const key = normalizePackageDuplicateKey(pkg);
+    if (key) {
+      counts.set(key, (counts.get(key) || 0) + 1);
+    }
+  });
+  return counts;
+}
+
+function getDuplicateTitleCountForSupplier(pkg, counts) {
+  const key = normalizePackageDuplicateKey(pkg);
+  return key ? counts.get(key) || 0 : 0;
+}
 
 // Cache for featured packages
 let featuredPackagesCache = null;
@@ -346,11 +374,17 @@ router.get('/suppliers/:id/packages', async (req, res) => {
     if (!supplier) {
       return res.status(404).json({ error: 'Supplier not found' });
     }
-    // Use find with compound index { supplierId, approved }
-    const pkgs = await dbUnified.find('packages', { supplierId: supplier.id, approved: true });
+    // Use all supplier package records for duplicate diagnostics, but only return approved
+    // packages to public clients.
+    const supplierPkgs = await dbUnified.find('packages', { supplierId: supplier.id });
+    const duplicateCounts = buildDuplicateTitleCounts(supplierPkgs);
+    const pkgs = supplierPkgs.filter(pkg => pkg.approved === true);
     const debug = req.query.debugImages === '1';
+    const dbBackendType =
+      typeof dbUnified.getDatabaseType === 'function' ? dbUnified.getDatabaseType() : 'unknown';
     const items = pkgs.map(pkg => {
       const resolvedImage = resolvePackageImage(pkg);
+      const chosen = getBestPackageImageCandidate(pkg);
       const resolvedGallery = normalizeGallery(pkg.gallery);
       const item = {
         ...pkg,
@@ -367,15 +401,19 @@ router.get('/suppliers/:id/packages', async (req, res) => {
       if (debug) {
         item._debug = {
           chosenImage: resolvedImage,
+          chosenImageSource: chosen ? chosen.source : 'fallback.placeholder',
+          resolverCandidates: listPackageImageCandidates(pkg),
           rawImageValue: pkg.image || '(empty)',
           imageFieldWasEmpty: !pkg.image,
           imageFieldWasDataUri: classifyPackageImageValue(pkg.image).isDataUri,
           imageFieldWasApiPhoto: classifyPackageImageValue(pkg.image).isApiPhoto,
           imageFieldWasPlaceholder: isPlaceholderImage(pkg.image),
           rawGalleryLength: Array.isArray(pkg.gallery) ? pkg.gallery.length : 0,
-          resolvedGalleryLength: resolvedGallery.length,
-          resolvedGalleryFirstUrl: resolvedGallery.length > 0 ? resolvedGallery[0].url : null,
           rawImagesLength: Array.isArray(pkg.images) ? pkg.images.length : 0,
+          resolvedGalleryLength: resolvedGallery.length,
+          namedImageFields: collectNamedPackageImageFields(pkg),
+          duplicateTitleCountForSupplier: getDuplicateTitleCountForSupplier(pkg, duplicateCounts),
+          dbBackendType,
         };
       }
       return item;
@@ -798,16 +836,27 @@ router.get('/packages/:slug', async (req, res) => {
     // ?debugImages=1 — include diagnostic fields in the response.
     // Off by default; intended for development / production troubleshooting only.
     if (req.query.debugImages === '1') {
+      const supplierPackageRecords = await dbUnified.find('packages', {
+        supplierId: pkg.supplierId,
+      });
+      const duplicateCounts = buildDuplicateTitleCounts(supplierPackageRecords);
+      const chosen = getBestPackageImageCandidate(pkg);
       packageResponse._debug = {
         chosenImage: resolvedImg,
+        chosenImageSource: chosen ? chosen.source : 'fallback.placeholder',
+        resolverCandidates: listPackageImageCandidates(pkg),
         rawImageValue: pkg.image || '(empty)',
         imageFieldWasEmpty: !pkg.image,
         imageFieldWasDataUri: classifyPackageImageValue(pkg.image).isDataUri,
         imageFieldWasApiPhoto: classifyPackageImageValue(pkg.image).isApiPhoto,
         imageFieldWasPlaceholder: isPlaceholderImage(pkg.image),
         rawGalleryLength: Array.isArray(pkg.gallery) ? pkg.gallery.length : 0,
+        rawImagesLength: Array.isArray(pkg.images) ? pkg.images.length : 0,
         resolvedGalleryLength: resolvedGallery.length,
-        resolvedGalleryFirstUrl: resolvedGallery.length > 0 ? resolvedGallery[0].url : null,
+        namedImageFields: collectNamedPackageImageFields(pkg),
+        duplicateTitleCountForSupplier: getDuplicateTitleCountForSupplier(pkg, duplicateCounts),
+        dbBackendType:
+          typeof dbUnified.getDatabaseType === 'function' ? dbUnified.getDatabaseType() : 'unknown',
       };
     }
 
@@ -898,7 +947,12 @@ router.get(
   async (req, res) => {
     try {
       const pkgs = await dbUnified.find('packages', { supplierId: req.params.id });
-      const audit = pkgs.map(pkg => buildPackageImageAudit(pkg));
+      const duplicateCounts = buildDuplicateTitleCounts(pkgs);
+      const audit = pkgs.map(pkg =>
+        buildPackageImageAudit(pkg, {
+          duplicateTitleCountForSupplier: getDuplicateTitleCountForSupplier(pkg, duplicateCounts),
+        })
+      );
       res.json({
         supplierId: req.params.id,
         packageCount: audit.length,
