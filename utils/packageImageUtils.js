@@ -25,6 +25,18 @@ const KNOWN_PLACEHOLDERS = new Set([
   '/assets/images/placeholder-package.jpg',
 ]);
 
+/** Field names that have appeared in package image payloads or upload results. */
+const INSPECTED_PACKAGE_IMAGE_FIELDS = Object.freeze([
+  'original',
+  'optimized',
+  'large',
+  'thumbnail',
+  'photoUrl',
+  'imageUrl',
+  'secureUrl',
+  'cdnUrl',
+]);
+
 /**
  * Return true when a URL represents a placeholder, is absent, empty, or a
  * data: URI that should not be stored / returned in public API responses.
@@ -62,6 +74,120 @@ function extractGalleryItemUrl(img) {
     return img;
   }
   return img.url || img.src || img.path || img.image || img.originalUrl || img.thumbnail || '';
+}
+
+/**
+ * Return structured facts about an image-like value for diagnostics.
+ *
+ * @param {string|null|undefined} url
+ * @returns {{value: string|null, isDataUri: boolean, isApiPhoto: boolean, isPlaceholder: boolean}}
+ */
+function classifyPackageImageValue(url) {
+  const value = typeof url === 'string' ? url.trim() : '';
+  return {
+    value: value || null,
+    isDataUri: /^data:/i.test(value),
+    isApiPhoto: /^\/api\/photos\//i.test(value),
+    isPlaceholder: isPlaceholderImage(value),
+  };
+}
+
+/**
+ * Collect known image field names anywhere in a package payload. The path makes
+ * it clear whether a value came from the root package document, gallery item,
+ * nested upload result, etc.
+ *
+ * @param {*} value
+ * @param {Object} [opts]
+ * @param {string} [opts.path]
+ * @param {number} [opts.depth]
+ * @param {Set<*>} [opts.seen]
+ * @returns {Array<{path: string, field: string, value: *}>}
+ */
+function collectNamedPackageImageFields(value, opts = {}) {
+  const path = opts.path || 'pkg';
+  const depth = opts.depth || 0;
+  const seen = opts.seen || new Set();
+  if (!value || typeof value !== 'object' || depth > 5 || seen.has(value)) {
+    return [];
+  }
+  seen.add(value);
+
+  const found = [];
+  if (Array.isArray(value)) {
+    value.forEach((item, index) => {
+      found.push(
+        ...collectNamedPackageImageFields(item, {
+          path: `${path}[${index}]`,
+          depth: depth + 1,
+          seen,
+        })
+      );
+    });
+    return found;
+  }
+
+  Object.entries(value).forEach(([key, child]) => {
+    const childPath = `${path}.${key}`;
+    if (INSPECTED_PACKAGE_IMAGE_FIELDS.includes(key)) {
+      found.push({ path: childPath, field: key, value: child });
+    }
+    if (child && typeof child === 'object') {
+      found.push(
+        ...collectNamedPackageImageFields(child, {
+          path: childPath,
+          depth: depth + 1,
+          seen,
+        })
+      );
+    }
+  });
+  return found;
+}
+
+/**
+ * Build a complete audit record for package image investigation.
+ *
+ * @param {Object} pkg
+ * @returns {Object}
+ */
+function buildPackageImageAudit(pkg) {
+  const resolvedImage = resolvePackageImage(pkg);
+  const resolvedGallery = normalizeGallery(pkg && pkg.gallery);
+  const imageFacts = classifyPackageImageValue(pkg && pkg.image);
+  const publicImageFacts = classifyPackageImageValue(resolvedImage);
+  return {
+    id: pkg && pkg.id,
+    title: pkg && (pkg.title || pkg.name),
+    approved: pkg && pkg.approved,
+    supplierId: pkg && (pkg.supplierId || pkg.supplier_id),
+
+    // Raw stored fields from the package document.
+    imageRaw: (pkg && pkg.image) || null,
+    imageRawIsEmpty: !(pkg && pkg.image),
+    imageRawIsDataUri: imageFacts.isDataUri,
+    imageRawIsApiPhoto: imageFacts.isApiPhoto,
+    imageRawIsPlaceholder: imageFacts.isPlaceholder,
+    galleryRaw: pkg && Array.isArray(pkg.gallery) ? pkg.gallery : null,
+    imagesRaw: pkg && Array.isArray(pkg.images) ? pkg.images : null,
+    namedImageFields: collectNamedPackageImageFields(pkg),
+
+    // Public API shape returned by supplier package endpoints.
+    image: resolvedImage,
+    resolvedImage,
+    resolvedImageIsDataUri: publicImageFacts.isDataUri,
+    resolvedImageIsApiPhoto: publicImageFacts.isApiPhoto,
+    isPlaceholder: publicImageFacts.isPlaceholder,
+    resolvedGallery,
+
+    // Compact counters / first item for easier scanning in admin tables.
+    galleryLength: Array.isArray(pkg && pkg.gallery) ? pkg.gallery.length : 0,
+    imagesLength: Array.isArray(pkg && pkg.images) ? pkg.images.length : 0,
+    resolvedGalleryLength: resolvedGallery.length,
+    firstGalleryUrl: resolvedGallery.length > 0 ? resolvedGallery[0].url : null,
+    firstRawGalleryItem:
+      Array.isArray(pkg && pkg.gallery) && pkg.gallery.length > 0 ? pkg.gallery[0] : null,
+  };
 }
 
 function firstRealScalarImage(...urls) {
@@ -143,8 +269,12 @@ function normalizeGallery(gallery) {
 module.exports = {
   PLACEHOLDER_PACKAGE_IMAGE,
   KNOWN_PLACEHOLDERS,
+  INSPECTED_PACKAGE_IMAGE_FIELDS,
   isPlaceholderImage,
   extractGalleryItemUrl,
+  classifyPackageImageValue,
+  collectNamedPackageImageFields,
+  buildPackageImageAudit,
   resolvePackageImage,
   normalizeGallery,
 };
