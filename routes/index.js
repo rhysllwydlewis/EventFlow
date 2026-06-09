@@ -39,6 +39,7 @@ const supplierAdminRoutes = require('./supplier-admin');
 const supplierManagementRoutes = require('./supplier-management');
 const suppliersV2Routes = require('./suppliers-v2');
 const supplierProfileSafeRoutes = require('./supplier-profile-safe');
+const supplierProfilePackageCardRoutes = require('./supplier-profile-package-cards');
 
 // New extracted route modules
 const suppliersRoutes = require('./suppliers');
@@ -305,6 +306,11 @@ function mountRoutes(app, deps) {
   app.use('/api/v1/me/suppliers', suppliersV2Routes);
   app.use('/api/me/suppliers', suppliersV2Routes);
 
+  if (deps && supplierProfilePackageCardRoutes.initializeDependencies) {
+    supplierProfilePackageCardRoutes.initializeDependencies(deps);
+  }
+  app.use('/api/v1', supplierProfilePackageCardRoutes);
+  app.use('/api', supplierProfilePackageCardRoutes);
   if (deps && supplierProfileSafeRoutes.initializeDependencies) {
     supplierProfileSafeRoutes.initializeDependencies(deps);
   }
