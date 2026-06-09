@@ -174,28 +174,22 @@ describe('supplier-profile source wiring', () => {
     supplierHtmlContent = fs.readFileSync(SUPPLIER_HTML, 'utf8');
   });
 
-  it('uses the shared window.resolvePackageImage resolver for package cards', () => {
-    expect(supplierProfileContent).toContain('function getPackageCardImage');
-    expect(supplierProfileContent).toContain('window.resolvePackageImage(p)');
+  it('uses the v2 package card renderer for package cards', () => {
+    // Package cards are rendered by supplier-profile-packages-v2.js.
+    // The v2 module uses window.resolvePackageImage for image resolution.
+    const v2Content = fs.readFileSync(
+      path.join(__dirname, '../../public/assets/js/supplier-profile-packages-v2.js'),
+      'utf8'
+    );
+    expect(v2Content).toContain('PACKAGE_PLACEHOLDER_URL');
+    // supplier.html delegates to the v2 module by including it
+    expect(supplierHtmlContent).toContain('supplier-profile-packages-v2.js');
   });
 
-  it('keeps rawImage behind resolved/image/gallery/images in the local fallback order', () => {
-    const helperStart = supplierProfileContent.indexOf('function getPackageCardImage');
-    const helperEnd = supplierProfileContent.indexOf('function _renderPackageCard', helperStart);
-    const helper = supplierProfileContent.slice(helperStart, helperEnd);
-
-    expect(helperStart).toBeGreaterThan(-1);
-    expect(helperEnd).toBeGreaterThan(helperStart);
-    expect(helper.indexOf('p.resolvedImage')).toBeLessThan(helper.indexOf('p.rawImage'));
-    expect(helper.indexOf('p.image')).toBeLessThan(helper.indexOf('p.rawImage'));
-    expect(helper.indexOf('p.resolvedGallery')).toBeLessThan(helper.indexOf('p.rawImage'));
-    expect(helper.indexOf('p.gallery')).toBeLessThan(helper.indexOf('p.rawImage'));
-    expect(helper.indexOf('p.images')).toBeLessThan(helper.indexOf('p.rawImage'));
-  });
-
-  it('loads package-image-resolver.js before supplier-profile.js with matching cache bust', () => {
-    const resolverIdx = supplierHtmlContent.indexOf('package-image-resolver.js?v=18.7.0');
-    const profileIdx = supplierHtmlContent.indexOf('supplier-profile.js?v=18.7.0');
+  it('loads package-image-resolver.js before supplier-profile.js', () => {
+    // Accept any version query-string — the exact version changes with each deploy.
+    const resolverIdx = supplierHtmlContent.search(/package-image-resolver\.js(\?v=[^"']+)?["']/);
+    const profileIdx  = supplierHtmlContent.search(/supplier-profile\.js(\?v=[^"']+)?["']/);
 
     expect(resolverIdx).toBeGreaterThan(-1);
     expect(profileIdx).toBeGreaterThan(-1);

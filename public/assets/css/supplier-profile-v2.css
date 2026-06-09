@@ -1,0 +1,801 @@
+/**
+ * Supplier Profile — Visual Polish v2
+ *
+ * Layer on top of supplier-profile.css. Overrides that improve:
+ *   1. Hero: shorter, avatar anchor, category-aware gradients, subtle texture
+ *   2. Identity strip: cleaner typography, better chip design
+ *   3. Reviews: replace purple gradient with EventFlow teal, compact empty state
+ *   4. Package cards: clamped descriptions, better hover
+ *   5. Sidebar cards: more premium
+ *   6. Badges: compact bottom section
+ *   7. Gallery: improved empty state
+ */
+
+/* ─── 1. Hero — Shorter + Avatar Anchor ────────────────────────────────────── */
+
+/* Reduce hero height — the original 300px is too tall for sparse profiles */
+:root {
+  --sp-hero-height: 230px;
+  --sp-hero-height-mobile: 170px;
+  /* Avatar dimensions */
+  --sp-avatar-size: 80px;
+  --sp-avatar-border: 4px;
+}
+
+/* Subtle geometric overlay — adds visual texture without heavy imagery */
+.hero-media::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 15% 50%, rgba(255,255,255,0.07) 0%, transparent 40%),
+    radial-gradient(circle at 85% 20%, rgba(255,255,255,0.05) 0%, transparent 35%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Keep the bottom fade but make it stronger for white content below */
+.hero-media::after {
+  background: linear-gradient(
+    to bottom,
+    transparent 30%,
+    rgba(0, 0, 0, 0.28) 100%
+  );
+  z-index: 2;
+}
+
+/* ─── Avatar — overlaps hero bottom ────────────────────────────────────────── */
+
+.hero-avatar-wrap {
+  position: relative;
+  max-width: var(--sp-page-max-width);
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  /* Negative margin pulls it up to overlap the hero */
+  margin-top: calc(var(--sp-avatar-size) / -2);
+  margin-bottom: 0;
+  /* Prevent the wrapper div itself from intercepting click/hover events;
+     the avatar inside restores pointer-events so it can be hovered */
+  pointer-events: none;
+  z-index: 10;
+}
+
+.hero-avatar {
+  width: var(--sp-avatar-size);
+  height: var(--sp-avatar-size);
+  border-radius: 50%;
+  border: var(--sp-avatar-border) solid #ffffff;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.18), 0 1px 4px rgba(0,0,0,0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+  /* Default gradient — overridden by JS with supplier accent colour */
+  background: linear-gradient(135deg, #0B8073 0%, #13B6A2 100%);
+  pointer-events: auto;
+  cursor: default;
+  /* Prevent layout shift — always occupies space */
+  flex-shrink: 0;
+  user-select: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  z-index: 11;
+}
+
+.hero-avatar:hover {
+  transform: scale(1.04);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.22);
+}
+
+/* ─── Identity strip — tighten top padding to account for avatar ────────────── */
+
+.hero-content {
+  padding-top: 0.75rem;
+}
+
+/* Name styling — add more weight and presence */
+.hero-content h1 {
+  font-size: 1.9375rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: #0b1220;
+}
+
+/* Tagline */
+.supplier-tagline {
+  font-size: 0.9375rem;
+  color: #4b5563;
+  margin: 0.25rem 0 0.5rem;
+  line-height: 1.5;
+}
+
+/* Meta chips — category, location, rating */
+.supplier-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-top: 0.5rem;
+}
+
+.meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #374151;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  padding: 0.275rem 0.7rem;
+  line-height: 1.3;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.meta-item svg {
+  width: 11px;
+  height: 11px;
+  color: #0b8073;
+  flex-shrink: 0;
+}
+
+.meta-item:hover {
+  background: #e8f5f3;
+  border-color: rgba(11, 128, 115, 0.3);
+}
+
+.meta-category {
+  background: rgba(11, 128, 115, 0.07);
+  border-color: rgba(11, 128, 115, 0.2);
+  color: #0b5e56;
+}
+
+.meta-rating {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.25);
+  color: #92400e;
+}
+
+.meta-rating .star-icon {
+  color: #f59e0b;
+}
+
+/* ─── 2. Category-Aware Hero Gradients ─────────────────────────────────────── */
+
+/* Applied via JS on the .supplier-hero element using data-category-preset attribute.
+   These provide instant visual personalisation for new suppliers with no uploads.
+   When a supplier has a custom banner or named preset, JS sets an inline backgroundImage
+   on .hero-media which wins over these class selectors, so they only fire for the
+   category-default path. */
+
+.supplier-hero[data-category-preset="wedding"] .hero-media {
+  background: linear-gradient(135deg, #b76e79 0%, #e8a0ab 50%, #f4c2ca 100%);
+}
+
+.supplier-hero[data-category-preset="photography"] .hero-media {
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+}
+
+.supplier-hero[data-category-preset="catering"] .hero-media {
+  background: linear-gradient(135deg, #7f5539 0%, #b08968 50%, #ddb892 100%);
+}
+
+.supplier-hero[data-category-preset="music"] .hero-media {
+  background: linear-gradient(135deg, #1a0533 0%, #3a0c6e 50%, #6a0dad 100%);
+}
+
+.supplier-hero[data-category-preset="flowers"] .hero-media {
+  background: linear-gradient(135deg, #386641 0%, #6a994e 50%, #a7c957 100%);
+}
+
+.supplier-hero[data-category-preset="venue"] .hero-media {
+  background: linear-gradient(135deg, #2d3748 0%, #4a5568 50%, #718096 100%);
+}
+
+.supplier-hero[data-category-preset="entertainment"] .hero-media {
+  background: linear-gradient(135deg, #c2185b 0%, #e91e8c 50%, #ff80ab 100%);
+}
+
+.supplier-hero[data-category-preset="transport"] .hero-media {
+  background: linear-gradient(135deg, #1a3a4a 0%, #1a6b8a 50%, #2196c0 100%);
+}
+
+/* ─── 3. Reviews Section — Replace Purple Gradient ─────────────────────────── */
+
+/* Override the jarring purple gradient from reviews.css */
+.review-summary {
+  background: linear-gradient(135deg, #0b8073 0%, #0d9e8a 60%, #10b981 100%) !important;
+  padding: 1.5rem !important;
+}
+
+.review-summary::before {
+  background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%) !important;
+  animation: none !important; /* Remove the pulsing animation — too busy */
+}
+
+/* Score block inside review summary */
+.review-summary-score {
+  min-width: 120px !important;
+  padding: 0.875rem !important;
+}
+
+.review-average-rating {
+  font-size: 2.75rem !important;
+}
+
+/* Make the "Customer Reviews & Ratings" heading smaller */
+.review-summary-details h2 {
+  font-size: 1.0625rem !important;
+  font-weight: 700 !important;
+  margin-bottom: 0.625rem !important;
+}
+
+/* Compact the rating distribution bars */
+.rating-distribution {
+  gap: 0.3rem !important;
+}
+
+/* ─── Compact empty reviews state ───────────────────────────────────────────── */
+
+/* The star + "No Reviews Yet" + two paragraphs takes up too much space */
+.reviews-empty-state,
+.reviews-list .no-reviews,
+.no-reviews-state {
+  padding: 2rem 1.5rem !important;
+  text-align: center;
+}
+
+/* Override the reviews.css no-reviews block */
+.reviews-list:empty {
+  display: none;
+}
+
+/* Make the "No Reviews Yet" empty block compact */
+.sp-reviews-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2rem 1rem;
+  text-align: center;
+}
+
+.sp-reviews-empty__icon {
+  font-size: 2rem;
+  line-height: 1;
+  opacity: 0.5;
+}
+
+.sp-reviews-empty__title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #374151;
+  margin: 0;
+}
+
+.sp-reviews-empty__subtitle {
+  font-size: 0.8125rem;
+  color: #9ca3af;
+  margin: 0;
+  max-width: 280px;
+}
+
+/* Compact the review controls when there are no reviews */
+.review-controls {
+  border-top: 1px solid #f3f4f6;
+  padding: 0.875rem 1.25rem !important;
+  gap: 0.75rem !important;
+  flex-wrap: wrap;
+}
+
+.review-filter-select {
+  font-size: 0.8125rem !important;
+  padding: 0.3rem 0.625rem !important;
+  border-radius: 6px !important;
+}
+
+/* Reviews card wrapper — remove the heavy outer margin from reviews.css */
+.reviews-widget {
+  margin: 0 !important;
+}
+
+.reviews-section {
+  border-radius: var(--sp-card-radius) !important;
+  box-shadow: none !important;
+  border: 1px solid rgba(11, 128, 115, 0.1) !important;
+}
+
+/* The sp-card wrapper already provides shadow; strip the inner double shadow */
+.sp-card .reviews-section {
+  border: none !important;
+}
+
+/* ─── 4. Package Cards — Clamped Descriptions + Better Hover ─────────────── */
+
+/* Individual card appearance — the base CSS leaves supplier-package-card-v2
+   unstyled (no border/shadow); add it here so the 2-col grid looks like distinct cards */
+.supplier-package-card-v2 {
+  background: var(--sp-surface, #ffffff) !important;
+  border: 1px solid var(--sp-card-border, rgba(11,128,115,0.1)) !important;
+  box-shadow: var(--sp-shadow-sm) !important;
+}
+
+/* Clamp the description to 3 lines max — prevents uneven cards */
+.supplier-package-card-v2__description,
+.sp-pkg-card__description,
+.sp-package-card__description {
+  display: -webkit-box !important;
+  -webkit-line-clamp: 3 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  font-size: 0.8375rem !important;
+  line-height: 1.55 !important;
+  color: #4b5563 !important;
+  margin-bottom: 0 !important;
+}
+
+/* Package card image — enforce consistent height */
+.supplier-package-card-v2__media,
+.sp-pkg-card__image,
+.sp-package-card__image {
+  aspect-ratio: 4 / 3 !important;
+  height: auto !important;
+  overflow: hidden;
+  background: linear-gradient(135deg, #f0fdf8, #d1fae5);
+}
+
+.supplier-package-card-v2__media img,
+.sp-pkg-card__image img,
+.sp-package-card__image {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block;
+  transition: transform 0.35s ease !important;
+}
+
+/* Hover lift on entire card */
+.supplier-package-card-v2,
+.sp-package-card {
+  transition: transform 0.22s ease, box-shadow 0.22s ease !important;
+  border-radius: var(--sp-card-radius) !important;
+  overflow: hidden;
+}
+
+.supplier-package-card-v2:hover,
+.sp-package-card:hover {
+  transform: translateY(-3px) !important;
+  box-shadow: 0 8px 28px rgba(11,128,115,0.16), 0 2px 8px rgba(0,0,0,0.07) !important;
+}
+
+/* Image zoom on card hover */
+.supplier-package-card-v2:hover .supplier-package-card-v2__media img {
+  transform: scale(1.04);
+}
+
+/* Package footer — price + CTA */
+.supplier-package-card-v2__footer,
+.sp-pkg-card__footer,
+.sp-package-card__footer {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 0.5rem !important;
+  margin-top: 0.75rem !important;
+  padding-top: 0.75rem !important;
+  border-top: 1px solid #f3f4f6 !important;
+}
+
+/* Price text */
+.supplier-package-card-v2__price,
+.sp-pkg-card__price,
+.sp-package-card__price {
+  font-size: 1rem !important;
+  font-weight: 700 !important;
+  color: #0b8073 !important;
+}
+
+/* View button */
+.supplier-package-card-v2__button,
+.sp-pkg-card .btn-view {
+  font-size: 0.78125rem !important;
+  font-weight: 700 !important;
+  padding: 0.3rem 0.875rem !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  border: 1.5px solid #0b8073 !important;
+  color: #0b8073 !important;
+  transition: background 0.15s ease, color 0.15s ease !important;
+  white-space: nowrap;
+}
+
+.supplier-package-card-v2__button:hover,
+.sp-pkg-card .btn-view:hover {
+  background: #0b8073 !important;
+  color: #ffffff !important;
+}
+
+/* Package body padding */
+.supplier-package-card-v2__body,
+.sp-package-card__body {
+  padding: 0.875rem 1rem 1rem !important;
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+  gap: 0.375rem !important;
+}
+
+/* Package title */
+.supplier-package-card-v2__title,
+.sp-package-card__title {
+  font-size: 0.9375rem !important;
+  font-weight: 700 !important;
+  color: #0b1220 !important;
+  line-height: 1.3 !important;
+  margin: 0 !important;
+}
+
+/* Packages grid — 2 columns on desktop */
+.supplier-packages-v2__grid,
+.sp-packages-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 1rem !important;
+}
+
+/* ─── 5. Sidebar Cards — More Premium ───────────────────────────────────────── */
+
+/* Contact CTA card — make it feel special */
+.sp-cta-card {
+  background: linear-gradient(160deg, #0b8073 0%, #0d9e8a 100%) !important;
+  border: none !important;
+  border-radius: var(--sp-card-radius) !important;
+  padding: 1.25rem 1.375rem !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 20px rgba(11, 128, 115, 0.28) !important;
+}
+
+.sp-cta-card__name {
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  color: rgba(255, 255, 255, 0.75) !important;
+  margin-bottom: 0.25rem !important;
+}
+
+.sp-cta-card__title {
+  font-size: 1.125rem !important;
+  font-weight: 800 !important;
+  color: #ffffff !important;
+  margin-bottom: 1rem !important;
+  line-height: 1.2 !important;
+}
+
+.sp-cta-btn--primary {
+  width: 100% !important;
+  background: rgba(255, 255, 255, 0.18) !important;
+  color: #ffffff !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.35) !important;
+  backdrop-filter: blur(6px) !important;
+  font-weight: 700 !important;
+  border-radius: 10px !important;
+  padding: 0.7rem 1rem !important;
+  font-size: 0.9rem !important;
+  transition: background 0.18s ease, border-color 0.18s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.5rem !important;
+}
+
+.sp-cta-btn--primary:hover {
+  background: rgba(255, 255, 255, 0.28) !important;
+  border-color: rgba(255, 255, 255, 0.55) !important;
+}
+
+.sp-cta-card__note {
+  font-size: 0.75rem !important;
+  color: rgba(255, 255, 255, 0.65) !important;
+  text-align: center !important;
+  margin: 0.625rem 0 0 !important;
+}
+
+/* Trust card */
+.sp-trust-card {
+  border-radius: var(--sp-card-radius) !important;
+  border: 1px solid rgba(11, 128, 115, 0.12) !important;
+  padding: 1rem 1.125rem !important;
+  background: #fafffe !important;
+}
+
+.sp-trust-card__title {
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  color: #6b7280 !important;
+  margin-bottom: 0.625rem !important;
+}
+
+.sp-trust-item {
+  font-size: 0.8375rem !important;
+  color: #374151 !important;
+  padding: 0.3rem 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+}
+
+.sp-trust-icon {
+  color: #0b8073 !important;
+  font-weight: 800 !important;
+  font-size: 0.875rem !important;
+  flex-shrink: 0 !important;
+}
+
+/* Key details card */
+.sp-details-card {
+  border-radius: var(--sp-card-radius) !important;
+  border: 1px solid rgba(11, 128, 115, 0.12) !important;
+  padding: 1rem 1.125rem !important;
+  background: #ffffff !important;
+}
+
+.sp-details-card__title {
+  font-size: 0.75rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  color: #6b7280 !important;
+  margin-bottom: 0.625rem !important;
+}
+
+.sp-detail-row {
+  display: grid !important;
+  grid-template-columns: 1.25rem 1fr auto !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  padding: 0.35rem 0 !important;
+  font-size: 0.8375rem !important;
+  border-bottom: 1px solid #f9fafb !important;
+}
+
+.sp-detail-row:last-child {
+  border-bottom: none !important;
+}
+
+.sp-detail-row__icon {
+  font-size: 0.875rem !important;
+  text-align: center !important;
+}
+
+.sp-detail-row__label {
+  color: #6b7280 !important;
+  font-size: 0.8125rem !important;
+}
+
+.sp-detail-row__value {
+  color: #111827 !important;
+  font-weight: 600 !important;
+  font-size: 0.8125rem !important;
+  text-align: right !important;
+}
+
+/* ─── 6. Badges Section — Compact Bottom ───────────────────────────────────── */
+
+.sp-badges-section {
+  margin-top: 1rem !important;
+}
+
+.sp-badges-group-label {
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.07em !important;
+  color: #9ca3af !important;
+  margin: 0.75rem 0 0.4rem !important;
+}
+
+.sp-badges-row {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 0.375rem !important;
+}
+
+/* Badges */
+.sp-badge-card {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.625rem !important;
+  padding: 0.5rem 0.75rem !important;
+  background: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 10px !important;
+}
+
+.sp-badge-card__icon {
+  font-size: 1.25rem !important;
+  line-height: 1 !important;
+}
+
+.sp-badge-card__name {
+  font-size: 0.8125rem !important;
+  font-weight: 700 !important;
+  color: #111827 !important;
+}
+
+.sp-badge-card__desc {
+  font-size: 0.75rem !important;
+  color: #6b7280 !important;
+}
+
+/* ─── 7. Gallery — Hidden When Empty ───────────────────────────────────────── */
+
+/* The JS hides the gallery section entirely when no photos exist (container.style.display='none').
+   No CSS empty-state rules needed — a missing gallery is cleaner than a placeholder card. */
+
+/* ─── 8. About Section — Better Description ────────────────────────────────── */
+
+.sp-about__description {
+  line-height: 1.7;
+  color: #374151;
+  font-size: 0.9375rem;
+  margin-bottom: 0.75rem;
+}
+
+.sp-about__meta {
+  font-size: 0.8375rem;
+  color: #6b7280;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.sp-about__meta a {
+  color: #0b8073;
+  text-decoration: none;
+}
+
+.sp-about__meta a:hover {
+  text-decoration: underline;
+}
+
+/* ─── 9. Hero Action buttons — more polished ────────────────────────────────── */
+
+/* Lift the Message button design */
+#btn-enquiry.btn-primary {
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  padding: 0.6rem 1.25rem;
+  box-shadow: 0 2px 8px rgba(11, 128, 115, 0.25);
+  transition: box-shadow 0.18s ease, transform 0.15s ease;
+}
+
+#btn-enquiry.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(11, 128, 115, 0.35);
+}
+
+/* Icon buttons (save, share) */
+#btn-save, #btn-share {
+  border-radius: 10px;
+  border: 1.5px solid #e5e7eb;
+  background: #ffffff;
+  color: #374151;
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
+}
+
+#btn-save:hover, #btn-share:hover {
+  border-color: #0b8073;
+  color: #0b8073;
+  background: #f0fdf8;
+  transform: translateY(-1px);
+}
+
+/* ─── 10. Page-level spacing improvements ──────────────────────────────────── */
+
+/* Tighten the gap between hero and content */
+.supplier-hero {
+  margin-bottom: 0 !important;
+}
+
+/* Add breathing room between the hero section and the first content card.
+   The hero margin-bottom is zeroed above, so this replaces it with a slightly
+   larger gap that gives the avatar visual clearance before the cards begin. */
+.sp-page {
+  padding-top: calc(var(--sp-avatar-size) / 2 + 0.75rem) !important;
+}
+
+/* Card titles — slightly smaller, more refined */
+.sp-card-title {
+  font-size: 0.9375rem !important;
+  font-weight: 700 !important;
+  color: #111827 !important;
+  border-bottom: 2px solid rgba(11, 128, 115, 0.08) !important;
+  padding-bottom: 0.75rem !important;
+  margin-bottom: 1rem !important;
+}
+
+/* ─── 11. Responsive ────────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  :root {
+    --sp-avatar-size: 64px;
+  }
+
+  .hero-avatar-wrap {
+    padding: 0 1rem;
+  }
+
+  .hero-content h1 {
+    font-size: 1.5rem !important;
+  }
+
+  .supplier-packages-v2__grid,
+  .sp-packages-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .sp-page {
+    padding-top: calc(var(--sp-avatar-size) / 2 + 0.5rem) !important;
+  }
+
+  .review-summary {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
+    padding: 1.25rem !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-actions {
+    grid-template-columns: 1fr auto auto !important;
+  }
+
+  .review-summary-score {
+    display: flex !important;
+    align-items: center !important;
+    gap: 1rem !important;
+    min-width: unset !important;
+    text-align: left !important;
+    justify-content: flex-start !important;
+  }
+}
+
+/* ─── 12. Accessibility & Reduced Motion ───────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-avatar,
+  .supplier-package-card-v2,
+  .sp-package-card,
+  #btn-enquiry,
+  #btn-save,
+  #btn-share {
+    transition: none !important;
+  }
+
+  .hero-media::before {
+    display: none !important;
+  }
+}
+
+/* Focus rings */
+.hero-avatar:focus-visible,
+.sp-cta-btn--primary:focus-visible {
+  outline: 3px solid #0b8073;
+  outline-offset: 2px;
+}
+
+/* Package card link focus — the card itself is not focusable, the link inside it is */
+.supplier-package-card-v2__link:focus-visible {
+  outline: 3px solid #0b8073;
+  outline-offset: 2px;
+  border-radius: var(--sp-card-radius);
+}
