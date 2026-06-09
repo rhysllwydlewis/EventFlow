@@ -1824,3 +1824,64 @@
   color: #d1d5db;
 }
 
+/* Supplier profile package cards V2 owns the Packages & Services mount. */
+.supplier-packages-v2__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.supplier-package-card-v2 {
+  overflow: hidden;
+}
+
+.supplier-package-card-v2__link {
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  text-decoration: none;
+}
+
+.supplier-package-card-v2__media {
+  aspect-ratio: 16 / 10;
+  background: var(--color-surface-muted, #f3f4f6);
+  overflow: hidden;
+}
+
+.supplier-package-card-v2__image {
+  display: block;
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.supplier-package-card-v2__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+}
+
+.supplier-package-card-v2__title {
+  margin: 0;
+}
+
+.supplier-package-card-v2__description {
+  color: var(--color-text-muted, #6b7280);
+  flex: 1;
+  margin: 0;
+}
+
+.supplier-package-card-v2__footer {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  margin-top: 0.25rem;
+}
+
+.supplier-package-card-v2__price {
+  font-weight: 700;
+}

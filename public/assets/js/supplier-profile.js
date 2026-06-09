@@ -10,7 +10,7 @@
  *  - renderHeroSection     — banner, badges, title, tagline, meta, CTAs
  *  - renderAboutSection    — description, stats, highlights, services, social, trust
  *  - renderGallerySection  — photo gallery (featured + thumbs)
- *  - renderPackagesSection — premium package cards
+ *  - supplier-profile-packages-v2.js — premium package cards
  *  - renderReviewsSection  — reviews widget scaffold + ReviewsManager init
  *  - renderSidebarSection  — CTA card, trust card, key details
  *  - renderBadgesSection   — badges & recognition (full-width bottom)
@@ -819,164 +819,7 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
   }
 
   // ─── Packages Section ────────────────────────────────────────────────────────
-
-  function renderPackagesSection(packages) {
-    const container = document.getElementById('sp-section-packages');
-    if (!container) {
-      return;
-    }
-
-    if (!packages || packages.length === 0) {
-      container.style.display = 'none';
-      return;
-    }
-
-    const cards = packages.map(p => _renderPackageCard(p)).join('');
-
-    container.innerHTML = `
-      <div class="sp-card sp-fade-in">
-        <h2 class="sp-card-title">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><polyline points="16 3 12 7 8 3"/></svg>
-          Packages &amp; Services
-        </h2>
-        <div class="sp-packages-grid">${cards}</div>
-      </div>
-    `;
-
-    container.style.display = '';
-
-    // Wire up package card click handlers
-    container.querySelectorAll('[data-package-id]').forEach(card => {
-      const pkgId = card.getAttribute('data-package-id');
-      const pkgSlug = card.getAttribute('data-package-slug');
-
-      card.addEventListener('click', () => {
-        const dest = pkgSlug
-          ? `/package/${encodeURIComponent(pkgSlug)}`
-          : `/package?id=${encodeURIComponent(pkgId)}`;
-        window.location.href = dest;
-      });
-
-      card.addEventListener('keydown', e => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          card.click();
-        }
-      });
-    });
-  }
-
-  const FALLBACK_PACKAGE_PLACEHOLDER = '/assets/images/placeholders/package-event.svg';
-  const FALLBACK_KNOWN_PLACEHOLDERS = new Set([
-    FALLBACK_PACKAGE_PLACEHOLDER,
-    '/assets/images/placeholder-package.jpg',
-  ]);
-
-  function extractPackageImageUrl(item) {
-    if (!item) {
-      return '';
-    }
-    if (typeof item === 'string') {
-      return item.trim();
-    }
-    return String(
-      item.url || item.src || item.path || item.image || item.originalUrl || item.thumbnail || ''
-    ).trim();
-  }
-
-  function isRealPackageImage(url) {
-    if (!url || typeof url !== 'string') {
-      return false;
-    }
-    const trimmed = url.trim();
-    if (!trimmed || /^data:/i.test(trimmed)) {
-      return false;
-    }
-    if (typeof window.isPlaceholderImage === 'function') {
-      return !window.isPlaceholderImage(trimmed);
-    }
-    return !FALLBACK_KNOWN_PLACEHOLDERS.has(trimmed);
-  }
-
-  function firstRealPackageImage(items) {
-    if (!Array.isArray(items)) {
-      return '';
-    }
-    for (const item of items) {
-      const url = extractPackageImageUrl(item);
-      if (isRealPackageImage(url)) {
-        return url;
-      }
-    }
-    return '';
-  }
-
-  function firstRealScalarPackageImage(...urls) {
-    for (const url of urls) {
-      if (isRealPackageImage(url)) {
-        return url.trim();
-      }
-    }
-    return '';
-  }
-
-  function getPackageCardImage(p) {
-    // Use the shared browser resolver as the source of truth whenever it is
-    // available. It is placeholder-aware and intentionally ignores rawImage,
-    // which is diagnostic data rather than a display-first field.
-    if (typeof window.resolvePackageImage === 'function') {
-      const resolved = window.resolvePackageImage(p);
-      if (isRealPackageImage(resolved)) {
-        return resolved;
-      }
-    }
-
-    return (
-      firstRealScalarPackageImage(p.resolvedImage, p.image) ||
-      firstRealPackageImage(p.resolvedGallery) ||
-      firstRealPackageImage(p.gallery) ||
-      firstRealPackageImage(p.images) ||
-      firstRealScalarPackageImage(p.rawImage) ||
-      window.PLACEHOLDER_PACKAGE_IMAGE ||
-      FALLBACK_PACKAGE_PLACEHOLDER
-    );
-  }
-
-  function _renderPackageCard(p) {
-    const title = escapeHtml(p.title || p.name || 'Package');
-    const desc = escapeHtml((p.description || p.description_short || '').substring(0, 160));
-    const price = escapeHtml(p.price_display || p.priceDisplay || p.price || '');
-    const pkgId = escapeHtml(p.id || '');
-    const pkgSlug = escapeHtml(p.slug || '');
-
-    const imageUrl = escapeHtml(getPackageCardImage(p));
-
-    const imageHtml = imageUrl
-      ? `<img class="sp-pkg-card__image" src="${imageUrl}" alt="${title}" loading="lazy">`
-      : `<div class="sp-pkg-card__image-placeholder"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>`;
-
-    return `
-      <div class="sp-pkg-card"
-           role="button"
-           tabindex="0"
-           data-package-id="${pkgId}"
-           ${pkgSlug ? `data-package-slug="${pkgSlug}"` : ''}
-           aria-label="View ${title} package">
-        ${imageHtml}
-        <div class="sp-pkg-card__body">
-          <h3 class="sp-pkg-card__title">${title}</h3>
-          ${desc ? `<p class="sp-pkg-card__desc">${desc}</p>` : ''}
-          <div class="sp-pkg-card__footer">
-            <span class="sp-pkg-card__price">${price || 'Contact for price'}</span>
-            <span class="sp-pkg-card__cta">
-              View
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
-            </span>
-          </div>
-        </div>
-      </div>
-    `;
-  }
+  // Package cards are intentionally rendered by supplier-profile-packages-v2.js.
 
   // ─── Reviews Section ─────────────────────────────────────────────────────────
 
@@ -1421,29 +1264,18 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
     }
 
     try {
-      // Fetch supplier data and packages in parallel
-      const [supplierResp, packagesResp] = await Promise.allSettled([
-        fetch(`/api/suppliers/${encodeURIComponent(supplierId)}`, { credentials: 'include' }),
-        fetch(`/api/suppliers/${encodeURIComponent(supplierId)}/packages`, {
-          credentials: 'include',
-        }),
-      ]);
+      // Fetch supplier data only. Packages & Services are owned by
+      // supplier-profile-packages-v2.js via /api/supplier-profile/:supplierId/package-cards.
+      const supplierResp = await fetch(`/api/suppliers/${encodeURIComponent(supplierId)}`, {
+        credentials: 'include',
+      });
 
       // Supplier data is required
-      if (supplierResp.status === 'rejected' || !supplierResp.value.ok) {
+      if (!supplierResp.ok) {
         throw new Error('Failed to load supplier data');
       }
 
-      supplierData = await supplierResp.value.json();
-      let packages = [];
-      if (packagesResp.status === 'fulfilled' && packagesResp.value.ok) {
-        try {
-          const pkgData = await packagesResp.value.json();
-          packages = pkgData.items || pkgData.packages || [];
-        } catch (_) {
-          // packages endpoint returned non-JSON (e.g. HTML fallback); use empty list
-        }
-      }
+      supplierData = await supplierResp.json();
 
       // Expose to window so supplier-profile-owner-edit.js can read them
       window.__supplierData = supplierData;
@@ -1454,7 +1286,7 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
       renderHeroSection(supplierData);
       renderAboutSection(supplierData);
       renderGallerySection(supplierData);
-      renderPackagesSection(packages);
+      // Do not render legacy package cards here; the V2 package-card module owns #supplier-package-cards-root.
       renderReviewsSection(supplierId, supplierData);
       renderSidebarSection(supplierData);
       renderBadgesSection(supplierData);
