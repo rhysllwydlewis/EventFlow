@@ -631,6 +631,11 @@
    O) PREVENT HORIZONTAL OVERFLOW
    ============================================================ */
 @media (max-width: 768px) {
+  body.customer-dashboard-page main.section,
+  body.customer-dashboard-page .container {
+    overflow-x: hidden;
+  }
+
   .dashboard-hero,
   .supplier-quick-actions,
   .package-card,

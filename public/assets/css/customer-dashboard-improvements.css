@@ -2056,8 +2056,9 @@ body.customer-dashboard-page .customer-card-action--full:focus-visible {
          Mobile  (<640px):  1 column — all full-width
          Tablet  (640-899): 2 columns — Plans full-width (1/-1)
                                         [Saved][Quick] / [Support][Conversations]
-         Desktop (≥900px):  3 columns — [Plans][Saved][Quick]
-                                        [Support][Conversations(span 2)]
+         Desktop (≥900px):  3 columns — Plans full-width
+                                        [Saved][Quick][Support]
+                                        [Conversations(span 2)][empty]
    =========================================== */
 body.customer-dashboard-page .cards {
   display: grid;
@@ -2090,9 +2091,10 @@ body.customer-dashboard-page .cards {
     gap: 1.25rem;
   }
 
-  /* Plans back to 1/3 on wide desktop — sits alongside Saved + Quick */
+  /* Plans stays full-width on desktop — it shows a list of event plans
+     which reads better at full container width */
   body.customer-dashboard-page .cards .cd-card--plans {
-    grid-column: span 1;
+    grid-column: 1 / -1;
   }
 
   /* Conversations spans 2 of 3 columns — plenty of room for the widget */
