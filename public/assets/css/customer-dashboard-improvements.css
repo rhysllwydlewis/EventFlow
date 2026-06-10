@@ -1943,6 +1943,34 @@ body.customer-dashboard-page .sd-card-header__actions {
   }
 }
 
+/* Conversations header: stack left content and actions vertically on mobile/tablet
+   so "View Inbox" never clips off screen. At ≤768px the header row can't
+   accommodate icon + title + subtitle + badge + View Inbox + Expand in one line. */
+@media (max-width: 768px) {
+  body.customer-dashboard-page .cd-card--conversations .sd-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.625rem;
+  }
+
+  body.customer-dashboard-page .cd-card--conversations .sd-card-header__actions {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  /* View Inbox becomes a full-width tappable button — easy to hit on touch */
+  body.customer-dashboard-page .cd-card--conversations .customer-inbox-btn {
+    flex: 1 1 auto;
+    text-align: center;
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
 /* On very narrow screens, compact the header action buttons */
 @media (max-width: 480px) {
   body.customer-dashboard-page .sd-card-header__actions .cta,
@@ -2056,9 +2084,10 @@ body.customer-dashboard-page .customer-card-action--full:focus-visible {
          Mobile  (<640px):  1 column — all full-width
          Tablet  (640-899): 2 columns — Plans full-width (1/-1)
                                         [Saved][Quick] / [Support][Conversations]
-         Desktop (≥900px):  3 columns — Plans full-width
-                                        [Saved][Quick][Support]
-                                        [Conversations(span 2)][empty]
+         Desktop (≥900px):  3 columns, align-items:stretch (equal height rows)
+                                        [Plans               full-width        ]
+                                        [Saved] [Quick] [Support Tickets       ]
+                                        [Conversations       full-width        ]
    =========================================== */
 body.customer-dashboard-page .cards {
   display: grid;
@@ -2081,7 +2110,7 @@ body.customer-dashboard-page .cards {
 
   /* Conversations stays at 50% on tablet — this fills all 4 remaining
      cards cleanly: [Saved][Quick] / [Support][Conversations].
-     It gets more room (span 2) on the wider 3-col desktop layout. */
+     It becomes full-width on the wider 3-col desktop layout. */
 }
 
 /* Desktop: 3-col grid */
@@ -2089,6 +2118,10 @@ body.customer-dashboard-page .cards {
   body.customer-dashboard-page .cards {
     grid-template-columns: repeat(3, 1fr);
     gap: 1.25rem;
+    /* Stretch so all cards in a row reach the same height — prevents
+       Support Tickets (which has a button in its header) looking taller
+       than Saved Suppliers and Quick Actions beside it */
+    align-items: stretch;
   }
 
   /* Plans stays full-width on desktop — it shows a list of event plans
@@ -2097,9 +2130,18 @@ body.customer-dashboard-page .cards {
     grid-column: 1 / -1;
   }
 
-  /* Conversations spans 2 of 3 columns — plenty of room for the widget */
+  /* Conversations full-width on desktop — messenger widget benefits from
+     the full container width and removes the orphaned empty column */
   body.customer-dashboard-page .cards .cd-card--conversations {
-    grid-column: span 2;
+    grid-column: 1 / -1;
+  }
+
+  /* When a card is collapsed (card-collapse.js adds .card--collapsed),
+     cancel the stretch so it doesn't have a big empty area below its header.
+     The collapsed card shows only its header at its natural height while
+     expanded neighbours stretch to their content height. */
+  body.customer-dashboard-page .cards .card--collapsed {
+    align-self: start;
   }
 }
 

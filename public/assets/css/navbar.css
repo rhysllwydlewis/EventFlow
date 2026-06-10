@@ -135,6 +135,14 @@
   .ef-brand {
     gap: 0;
   }
+
+  /* Auth and Dashboard buttons are available in the hamburger menu — hide
+     them from the header on mobile to avoid a crowded, overflowing action bar.
+     On mobile the header should show only: logo | (bell) | hamburger */
+  .ef-header-actions #ef-auth-link,
+  .ef-header-actions #ef-dashboard-link {
+    display: none !important;
+  }
 }
 
 .ef-logo {
@@ -945,6 +953,7 @@ body.ef-menu-open {
    BOTTOM NAVIGATION (Mobile Only) - ENHANCED
    ======================================== */
 
+/* ── Safe-area bottom padding for notch devices (iPhone home indicator) */
 .ef-bottom-nav {
   position: fixed;
   bottom: 0;
@@ -958,7 +967,7 @@ body.ef-menu-open {
   backdrop-filter: blur(16px) saturate(180%);
   -webkit-backdrop-filter: blur(16px) saturate(180%);
   border-top: 1px solid rgba(255, 255, 255, 0.4);
-  padding: 10px 4px 12px;
+  padding: 10px 4px max(12px, env(safe-area-inset-bottom));
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.07);
   gap: 4px;
 }
