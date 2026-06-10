@@ -98,7 +98,63 @@
   .customer-dashboard-page .customer-calendar-legend{padding:8px 10px;gap:6px 10px}
 }
 
-/* ═══ 13. REDUCED MOTION ═════════════════════════════════════════════ */
+/* ═══ 13. CUSTOMER DASHBOARD MOBILE FINAL AUTHORITY ═════════════════ */
+@media(max-width:768px){
+  .customer-dashboard-page{overflow-x:hidden}
+  .customer-dashboard-page .ef-header .ef-container{padding-left:10px;padding-right:10px}
+  .customer-dashboard-page .ef-header-content{gap:8px;min-width:0}
+  .customer-dashboard-page .ef-brand{min-width:0;flex:0 1 auto}
+  .customer-dashboard-page .ef-brand-text{display:none}
+  .customer-dashboard-page .ef-header-actions{margin-left:auto;gap:6px;min-width:0}
+  .customer-dashboard-page #ef-auth-link,
+  .customer-dashboard-page #ef-dashboard-link{display:none!important}
+  .customer-dashboard-page .ef-icon-btn,
+  .customer-dashboard-page .ef-mobile-toggle{width:40px;height:40px;min-width:40px;min-height:40px;flex:0 0 40px}
+  .customer-dashboard-page .container{width:min(100% - 20px, 720px);padding-left:0;padding-right:0}
+  .customer-dashboard-page main.section{padding-bottom:92px}
+  .customer-dashboard-page .card{max-width:100%;box-sizing:border-box}
+  .customer-dashboard-page .card:not([data-collapsible="true"]):not(.js-collapsible-card)>.card-collapse-btn{display:none!important}
+  .customer-dashboard-page .card:not([data-collapsible="true"]):not(.js-collapsible-card)>.card-body-collapsible{display:block!important;max-height:none!important;opacity:1!important;overflow:visible!important}
+  .customer-dashboard-page .card:not([data-collapsible="true"]):not(.js-collapsible-card).card--collapsed{padding-bottom:initial!important}
+  .customer-dashboard-page .cards{display:grid;grid-template-columns:1fr!important;gap:14px!important}
+  .customer-dashboard-page .cards>.card{grid-column:1!important}
+  .customer-dashboard-page .sd-card-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;min-width:0;padding:16px!important}
+  .customer-dashboard-page .sd-card-header__left{min-width:0;flex:1 1 auto}
+  .customer-dashboard-page .sd-card-header__title-row{min-width:0;gap:10px}
+  .customer-dashboard-page .sd-card-header__heading{font-size:16px;line-height:1.2;min-width:0}
+  .customer-dashboard-page .sd-card-header__subtitle{font-size:12px;line-height:1.35;max-width:100%}
+  .customer-dashboard-page .sd-card-header__actions{display:flex;align-items:center;justify-content:flex-start;flex-wrap:wrap;gap:8px;min-width:0}
+  .customer-dashboard-page .cd-card-body{padding:14px!important}
+  .customer-dashboard-page .cd-card--conversations .sd-card-header{flex-direction:column;align-items:stretch}
+  .customer-dashboard-page .cd-card--conversations .sd-card-header__actions{width:100%;display:grid;grid-template-columns:1fr;gap:8px}
+  .customer-dashboard-page .cd-card--conversations .customer-unread-badge{width:max-content;max-width:100%}
+  .customer-dashboard-page .customer-inbox-btn{width:100%;min-height:40px;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;white-space:normal;text-align:center}
+  .customer-dashboard-page .customer-conversations-controls{display:grid;grid-template-columns:1fr;gap:8px;margin-bottom:12px}
+  .customer-dashboard-page .customer-conversations-search,
+  .customer-dashboard-page .customer-conversations-filter{width:100%;min-width:0;box-sizing:border-box;min-height:40px}
+  .customer-dashboard-page .customer-messenger-widget{max-width:100%;overflow:hidden;padding-bottom:16px}
+}
+
+@media(min-width:769px) and (max-width:1024px){
+  .customer-dashboard-page .card:not([data-collapsible="true"]):not(.js-collapsible-card)>.card-collapse-btn{display:none!important}
+  .customer-dashboard-page .card:not([data-collapsible="true"]):not(.js-collapsible-card)>.card-body-collapsible{display:block!important;max-height:none!important;opacity:1!important;overflow:visible!important}
+  .customer-dashboard-page .card:not([data-collapsible="true"]):not(.js-collapsible-card).card--collapsed{padding-bottom:initial!important}
+  .customer-dashboard-page .cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+  .customer-dashboard-page .cards .cd-card--plans,
+  .customer-dashboard-page .cards .cd-card--conversations{grid-column:1/-1}
+  .customer-dashboard-page .sd-card-header{min-width:0}
+  .customer-dashboard-page .sd-card-header__actions{flex-wrap:wrap;min-width:0}
+}
+
+@media(max-width:430px){
+  .customer-dashboard-page .ef-logo{width:40px;height:40px}
+  .customer-dashboard-page .ef-header-actions{gap:5px}
+  .customer-dashboard-page .sd-card-header{padding:14px!important}
+  .customer-dashboard-page .sd-card-header__icon{width:36px;height:36px;min-width:36px}
+  .customer-dashboard-page .customer-inbox-btn{font-size:13px}
+}
+
+/* ═══ 14. REDUCED MOTION ═════════════════════════════════════════════ */
 @media(prefers-reduced-motion:reduce){
   .customer-dashboard-page .customer-welcome-action-card,
   .customer-dashboard-page .cd-quick-action,
