@@ -2148,6 +2148,51 @@ body.customer-dashboard-page .card.customer-calendar-card {
 }
 
 /* ===========================================
+   30a. HUB CARD COLLAPSED STATE
+        card-collapse.css globally hides .sd-card-header__subtitle and
+        .sd-card-header__actions when any .card--collapsed fires, keeping
+        the collapsed state minimal across the whole app.
+
+        For customer dashboard hub cards (.cards > .card) we want a
+        different behaviour: show the description even when collapsed so
+        every card looks the same (icon + title + description). This makes
+        the five hub cards visually consistent regardless of whether their
+        body content has loaded yet.
+
+        We also restore .sd-card-header__actions so "View Inbox" stays
+        tappable on Conversations without the user needing to expand it.
+
+        Specificity breakdown for the subtitle rule:
+          body           = type selector  → (0,0,1)
+          .cd-page       = class selector → (0,1,0)
+          .cards         = class selector → (0,1,0)
+          .card--collapsed = class        → (0,1,0)
+          .sd-card-header__subtitle = class → (0,1,0)
+          TOTAL          = (0,4,1)
+
+        card-collapse.css rule is just (0,2,0) — our rule wins even
+        though both use !important (higher specificity wins when
+        importance is equal, per CSS Cascade Level 5).
+
+        Desktop note: card-collapse.js only activates at ≤1024px
+        (BREAKPOINT constant in card-collapse.js). On desktop .card--collapsed
+        is never applied, so these rules have zero effect on desktop.
+   =========================================== */
+
+/* Always show the description line on collapsed hub cards */
+body.customer-dashboard-page .cards .card--collapsed .sd-card-header__subtitle {
+  display: block !important;
+  /* Slightly muted so the collapsed state still feels different from expanded */
+  opacity: 0.72;
+}
+
+/* Restore header actions on hub cards so primary CTAs remain reachable
+   when the card body is collapsed (e.g. "View Inbox" on Conversations) */
+body.customer-dashboard-page .cards .card--collapsed .sd-card-header__actions {
+  display: flex !important;
+}
+
+/* ===========================================
    30. CONVERSATIONS CARD BODY LAYOUT
    =========================================== */
 body.customer-dashboard-page .customer-conversations-controls {
