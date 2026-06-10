@@ -22,7 +22,7 @@
     <link rel="stylesheet" href="/assets/css/liquid-glass.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/messaging-glass-enhancements.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/p3-features.css?v=18.3.0" />
-    <link rel="stylesheet" href="/assets/css/customer-dashboard-improvements.css?v=1.0.3" />
+    <link rel="stylesheet" href="/assets/css/customer-dashboard-improvements.css?v=1.0.5" />
     <link rel="stylesheet" href="/assets/css/dashboard-mobile.css?v=1.0.1" />
     <link rel="stylesheet" href="/assets/css/card-collapse.css" />
     <link rel="stylesheet" href="/assets/css/customer-dashboard-liquid-glass.css?v=1.0.0" />
@@ -471,7 +471,55 @@
               <a href="/start" class="cta secondary customer-card-action">Create New Plan</a>
             </div>
           </div>
+          <!-- Conversations Card -->
+          <div class="card cd-card cd-card--conversations">
+            <div class="sd-card-header sd-card-header--indigo">
+              <div class="sd-card-header__left">
+                <div class="sd-card-header__title-row">
+                  <div class="sd-card-header__icon sd-card-header__icon--indigo" aria-hidden="true">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.75"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
+                  </div>
+                  <h3 class="sd-card-header__heading">Conversations</h3>
+                </div>
+                <p class="sd-card-header__subtitle">Messages with your event suppliers.</p>
+              </div>
+              <div class="sd-card-header__actions">
+                <span id="unreadMessageBadge" class="badge badge-info customer-unread-badge"
+                  >0 unread</span
+                >
+                <a href="/messenger/" class="cta customer-inbox-btn">View Inbox</a>
+              </div>
+            </div>
+            <div class="cd-card-body">
+              <div class="customer-conversations-controls">
+                <!-- Mini search bar -->
+                <input
+                  type="search"
+                  id="widget-search-input"
+                  placeholder="Search conversations..."
+                  class="customer-conversations-search"
+                />
 
+                <!-- Filter dropdown -->
+                <select id="widget-filter-select" class="customer-conversations-filter">
+                  <option value="all">All</option>
+                  <option value="unread">Unread</option>
+                  <option value="starred">Starred</option>
+                </select>
+              </div>
+              <!-- Messenger Dashboard Widget (sole conversation UI) -->
+              <div id="messenger-dashboard-widget" class="customer-messenger-widget"></div>
+            </div>
+          </div>
           <!-- Your Saved Suppliers Card -->
           <div class="card cd-card">
             <div class="sd-card-header sd-card-header--amber">
@@ -503,7 +551,6 @@
               </button>
             </div>
           </div>
-
           <!-- Quick Actions Card -->
           <div class="card cd-card">
             <div class="sd-card-header sd-card-header--emerald">
@@ -555,9 +602,8 @@
               </div>
             </div>
           </div>
-
           <!-- Support Tickets Card -->
-          <div class="card cd-card">
+          <div class="card cd-card cd-card--support">
             <div class="sd-card-header sd-card-header--red">
               <div class="sd-card-header__left">
                 <div class="sd-card-header__title-row">
@@ -583,56 +629,6 @@
                 <div class="skeleton skeleton-text skeleton-text-long"></div>
                 <div class="skeleton skeleton-text skeleton-text-medium"></div>
               </div>
-            </div>
-          </div>
-
-          <!-- Conversations Card -->
-          <div class="card cd-card cd-card--conversations">
-            <div class="sd-card-header sd-card-header--indigo">
-              <div class="sd-card-header__left">
-                <div class="sd-card-header__title-row">
-                  <div class="sd-card-header__icon sd-card-header__icon--indigo" aria-hidden="true">
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.75"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                    </svg>
-                  </div>
-                  <h3 class="sd-card-header__heading">Conversations</h3>
-                </div>
-                <p class="sd-card-header__subtitle">Messages with your event suppliers.</p>
-              </div>
-              <div class="sd-card-header__actions">
-                <span id="unreadMessageBadge" class="badge badge-info customer-unread-badge"
-                  >0 unread</span
-                >
-                <a href="/messenger/" class="cta customer-inbox-btn">View Inbox</a>
-              </div>
-            </div>
-            <div class="cd-card-body">
-              <div class="customer-conversations-controls">
-                <!-- Mini search bar -->
-                <input
-                  type="search"
-                  id="widget-search-input"
-                  placeholder="Search conversations..."
-                  class="customer-conversations-search"
-                />
-
-                <!-- Filter dropdown -->
-                <select id="widget-filter-select" class="customer-conversations-filter">
-                  <option value="all">All</option>
-                  <option value="unread">Unread</option>
-                  <option value="starred">Starred</option>
-                </select>
-              </div>
-              <!-- Messenger Dashboard Widget (sole conversation UI) -->
-              <div id="messenger-dashboard-widget" class="customer-messenger-widget"></div>
             </div>
           </div>
         </div>

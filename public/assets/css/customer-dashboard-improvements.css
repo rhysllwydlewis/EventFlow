@@ -2075,19 +2075,21 @@ body.customer-dashboard-page .customer-card-action--full:focus-visible {
 
 /* ===========================================
    29. HUB CARDS GRID
-       Replaces the previous display:flex that caused cards to
-       collapse to content-width when align-items:start from
-       customer-dashboard-polish.css bled through.
+       Layout (HTML order: Plans → Conversations → Saved Suppliers
+                          → Quick Actions → Support Tickets):
 
-       Layout (HTML order: Plans → Saved Suppliers → Quick Actions
-                          → Support Tickets → Conversations):
          Mobile  (<640px):  1 column — all full-width
-         Tablet  (640-899): 2 columns — Plans full-width (1/-1)
-                                        [Saved][Quick] / [Support][Conversations]
-         Desktop (≥900px):  3 columns, align-items:stretch (equal height rows)
-                                        [Plans               full-width        ]
-                                        [Saved] [Quick] [Support Tickets       ]
-                                        [Conversations       full-width        ]
+
+         Tablet  (640-899): 2 columns
+                            [Plans            full-width]
+                            [Conversations    full-width]
+                            [Saved Suppliers] [Quick Actions]
+                            [Support Tickets  full-width]
+
+         Desktop (≥900px):  3 columns, align-items:start (natural heights)
+                            [Plans                 full-width]
+                            [Conversations         full-width]
+                            [Saved] [Quick] [Support Tickets]
    =========================================== */
 body.customer-dashboard-page .cards {
   display: grid;
@@ -2103,14 +2105,17 @@ body.customer-dashboard-page .cards {
     grid-template-columns: repeat(2, 1fr);
   }
 
-  /* Plans is the primary card — full width on tablet */
-  body.customer-dashboard-page .cards .cd-card--plans {
+  /* Plans and Conversations each take a full row at tablet */
+  body.customer-dashboard-page .cards .cd-card--plans,
+  body.customer-dashboard-page .cards .cd-card--conversations {
     grid-column: 1 / -1;
   }
 
-  /* Conversations stays at 50% on tablet — this fills all 4 remaining
-     cards cleanly: [Saved][Quick] / [Support][Conversations].
-     It becomes full-width on the wider 3-col desktop layout. */
+  /* Support Tickets full-width at tablet — avoids a lone card in a
+     half-empty row after Saved Suppliers + Quick Actions fill row 3 */
+  body.customer-dashboard-page .cards .cd-card--support {
+    grid-column: 1 / -1;
+  }
 }
 
 /* Desktop: 3-col grid */
@@ -2118,30 +2123,22 @@ body.customer-dashboard-page .cards {
   body.customer-dashboard-page .cards {
     grid-template-columns: repeat(3, 1fr);
     gap: 1.25rem;
-    /* Stretch so all cards in a row reach the same height — prevents
-       Support Tickets (which has a button in its header) looking taller
-       than Saved Suppliers and Quick Actions beside it */
-    align-items: stretch;
+    /* align-items:start — each card is its natural height.
+       Avoids empty white-space in shorter cards when a neighbour
+       (e.g. Support Tickets with a long description) is taller. */
+    align-items: start;
   }
 
-  /* Plans stays full-width on desktop — it shows a list of event plans
-     which reads better at full container width */
-  body.customer-dashboard-page .cards .cd-card--plans {
-    grid-column: 1 / -1;
-  }
-
-  /* Conversations full-width on desktop — messenger widget benefits from
-     the full container width and removes the orphaned empty column */
+  /* Plans and Conversations each take a full row on desktop */
+  body.customer-dashboard-page .cards .cd-card--plans,
   body.customer-dashboard-page .cards .cd-card--conversations {
     grid-column: 1 / -1;
   }
 
-  /* When a card is collapsed (card-collapse.js adds .card--collapsed),
-     cancel the stretch so it doesn't have a big empty area below its header.
-     The collapsed card shows only its header at its natural height while
-     expanded neighbours stretch to their content height. */
-  body.customer-dashboard-page .cards .card--collapsed {
-    align-self: start;
+  /* Support Tickets resets to auto (1/3 column) at desktop —
+     sits alongside Saved Suppliers and Quick Actions in row 3 */
+  body.customer-dashboard-page .cards .cd-card--support {
+    grid-column: span 1;
   }
 }
 
