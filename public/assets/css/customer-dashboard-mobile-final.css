@@ -1,1 +1,245 @@
-test
+/**
+ * EventFlow — Customer Dashboard Mobile Final
+ * Last-loaded, customer-only responsive guard rails for the dashboard.
+ * Keeps core dashboard content visible and prevents mobile header/card overflow.
+ */
+
+@media (max-width: 768px) {
+  body.customer-dashboard-page {
+    overflow-x: hidden;
+  }
+
+  body.customer-dashboard-page .ef-header .ef-container {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  body.customer-dashboard-page .ef-header-content {
+    gap: 8px;
+    min-width: 0;
+  }
+
+  body.customer-dashboard-page .ef-brand {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+
+  body.customer-dashboard-page .ef-brand-text {
+    display: none;
+  }
+
+  body.customer-dashboard-page .ef-header-actions {
+    gap: 6px;
+    margin-left: auto;
+    min-width: 0;
+  }
+
+  body.customer-dashboard-page #ef-auth-link,
+  body.customer-dashboard-page #ef-dashboard-link {
+    display: none !important;
+  }
+
+  body.customer-dashboard-page .ef-icon-btn,
+  body.customer-dashboard-page .ef-mobile-toggle {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    min-height: 40px;
+    flex: 0 0 40px;
+  }
+
+  body.customer-dashboard-page .container {
+    width: min(100% - 20px, 720px);
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  body.customer-dashboard-page main.section {
+    padding-bottom: 92px;
+  }
+
+  body.customer-dashboard-page .card {
+    box-sizing: border-box;
+    max-width: 100%;
+  }
+
+  /* Customer dashboard cards are open by default. Only explicitly opt-in cards collapse. */
+  body.customer-dashboard-page .card:not([data-collapsible="true"]):not(.js-collapsible-card) > .card-collapse-btn {
+    display: none !important;
+  }
+
+  body.customer-dashboard-page .card:not([data-collapsible="true"]):not(.js-collapsible-card) > .card-body-collapsible {
+    display: block !important;
+    max-height: none !important;
+    opacity: 1 !important;
+    overflow: visible !important;
+  }
+
+  body.customer-dashboard-page .card:not([data-collapsible="true"]):not(.js-collapsible-card).card--collapsed {
+    padding-bottom: initial !important;
+  }
+
+  body.customer-dashboard-page .cards {
+    display: grid;
+    grid-template-columns: 1fr !important;
+    gap: 14px !important;
+  }
+
+  body.customer-dashboard-page .cards > .card {
+    grid-column: 1 !important;
+  }
+
+  body.customer-dashboard-page .sd-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    min-width: 0;
+    padding: 16px !important;
+  }
+
+  body.customer-dashboard-page .sd-card-header__left {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  body.customer-dashboard-page .sd-card-header__title-row {
+    gap: 10px;
+    min-width: 0;
+  }
+
+  body.customer-dashboard-page .sd-card-header__heading {
+    min-width: 0;
+    font-size: 16px;
+    line-height: 1.2;
+  }
+
+  body.customer-dashboard-page .sd-card-header__subtitle {
+    max-width: 100%;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+
+  body.customer-dashboard-page .sd-card-header__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  body.customer-dashboard-page .cd-card-body {
+    padding: 14px !important;
+  }
+
+  body.customer-dashboard-page .cd-card--conversations .sd-card-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  body.customer-dashboard-page .cd-card--conversations .sd-card-header__actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    width: 100%;
+  }
+
+  body.customer-dashboard-page .cd-card--conversations .customer-unread-badge {
+    width: max-content;
+    max-width: 100%;
+  }
+
+  body.customer-dashboard-page .customer-inbox-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 40px;
+    white-space: normal;
+    text-align: center;
+  }
+
+  body.customer-dashboard-page .customer-conversations-controls {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  body.customer-dashboard-page .customer-conversations-search,
+  body.customer-dashboard-page .customer-conversations-filter {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    min-height: 40px;
+  }
+
+  body.customer-dashboard-page .customer-messenger-widget {
+    max-width: 100%;
+    overflow: hidden;
+    padding-bottom: 16px;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1024px) {
+  body.customer-dashboard-page .card:not([data-collapsible="true"]):not(.js-collapsible-card) > .card-collapse-btn {
+    display: none !important;
+  }
+
+  body.customer-dashboard-page .card:not([data-collapsible="true"]):not(.js-collapsible-card) > .card-body-collapsible {
+    display: block !important;
+    max-height: none !important;
+    opacity: 1 !important;
+    overflow: visible !important;
+  }
+
+  body.customer-dashboard-page .card:not([data-collapsible="true"]):not(.js-collapsible-card).card--collapsed {
+    padding-bottom: initial !important;
+  }
+
+  body.customer-dashboard-page .cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+  }
+
+  body.customer-dashboard-page .cards .cd-card--plans,
+  body.customer-dashboard-page .cards .cd-card--conversations {
+    grid-column: 1 / -1;
+  }
+
+  body.customer-dashboard-page .sd-card-header,
+  body.customer-dashboard-page .sd-card-header__actions {
+    min-width: 0;
+  }
+
+  body.customer-dashboard-page .sd-card-header__actions {
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 430px) {
+  body.customer-dashboard-page .ef-logo {
+    width: 40px;
+    height: 40px;
+  }
+
+  body.customer-dashboard-page .ef-header-actions {
+    gap: 5px;
+  }
+
+  body.customer-dashboard-page .sd-card-header {
+    padding: 14px !important;
+  }
+
+  body.customer-dashboard-page .sd-card-header__icon {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+  }
+
+  body.customer-dashboard-page .customer-inbox-btn {
+    font-size: 13px;
+  }
+}
