@@ -10,9 +10,10 @@
     <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/components.css?v=18.3.0" />
     <link rel="stylesheet" href="/assets/css/partner.css?v=18.3.0" />
+    <link rel="stylesheet" href="/assets/css/partner-programme-pages.css?v=1.0.0" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   </head>
-  <body class="partner-page">
+  <body class="partner-page partner-resource-page">
     <div class="partner-bg" aria-hidden="true">
       <div class="partner-bg-blob partner-bg-blob--1"></div>
       <div class="partner-bg-blob partner-bg-blob--2"></div>
@@ -20,82 +21,146 @@
     </div>
 
     <header class="partner-header">
-      <a href="/partner" class="partner-logo-link">
+      <a href="/partner" class="partner-logo-link" aria-label="Back to EventFlow Partners">
         <div class="partner-brand-logo-mark partner-logo-icon" aria-hidden="true">EF</div>
         <span class="partner-brand-text">EventFlow <span class="partner-verified-label">Partners</span></span>
       </a>
-      <a class="partner-stat-badge" href="/partner/media-pack.html">Share pack</a>
+      <div class="partner-user-area">
+        <a class="partner-stat-badge" href="/partner/media-pack.html">Share pack</a>
+        <a class="partner-stat-badge" href="/partner/dashboard">Dashboard</a>
+      </div>
     </header>
 
-    <main class="partner-main partner-dashboard" id="main-content">
-      <div class="partner-dashboard-header">
-        <h1 class="partner-greeting">Partner Programme Terms</h1>
-        <p class="partner-sub-heading">Plain-English rules for earning points, referring suppliers and requesting gift-card/pre-paid-card rewards.</p>
-      </div>
-
-      <section class="partner-section">
-        <h2 class="partner-section-title">1. Programme purpose</h2>
-        <p class="partner-body-copy">The EventFlow Partner Programme rewards approved partners for introducing genuine event suppliers to EventFlow. It is intended for community partners, event pages, group admins, creators, influencers and other trusted referrers.</p>
-        <p class="partner-body-copy">The programme is invite-led or application-led. EventFlow may approve, pause, decline, disable or remove partner accounts where needed to protect the platform, suppliers, customers or the integrity of the reward system.</p>
-      </section>
-
-      <section class="partner-section">
-        <h2 class="partner-section-title">2. How points are earned</h2>
-        <p class="partner-body-copy">Partners earn points when a supplier uses their current or historical referral code/link and completes qualifying actions. Unless a specific campaign brief says otherwise, the standard reward model is:</p>
-        <div class="partner-value-key partner-value-key--stacked">
-          <span>🔗 Referred supplier signup = <strong>+5 points</strong></span>
-          <span>📦 Referred supplier creates their first package = <strong>+10 points</strong></span>
-          <span>⭐ Referred supplier receives their first customer review = <strong>+15 points</strong></span>
-          <span>💳 Referred supplier makes their first successful paid subscription payment = <strong>+100 points</strong></span>
+    <main class="partner-resource-shell" id="main-content">
+      <section class="partner-resource-hero" aria-labelledby="terms-heading">
+        <span class="partner-resource-kicker">Partner terms</span>
+        <h1 class="partner-resource-title" id="terms-heading">Clear rules for earning partner rewards.</h1>
+        <p class="partner-resource-lede">
+          These terms explain how partner referrals, points, cashout requests and acceptable promotion work.
+          They are written in plain English so partners know exactly what is allowed before sharing their link.
+        </p>
+        <div class="partner-resource-actions">
+          <a href="/partner/media-pack.html" class="partner-resource-primary">Open share pack</a>
+          <a href="/partner">Back to partner sign in</a>
         </div>
-        <p class="partner-body-copy">Points are subject to a 30-day maturation period before becoming available for cashout. Qualifying package and subscription actions must normally happen within the referral attribution window shown in the partner dashboard.</p>
-        <p class="partner-body-copy">EventFlow may run separate launch campaigns, quality bonuses or volume bonuses. These are not automatic unless shown in an active campaign brief or confirmed by EventFlow. Any manual bonus must be recorded through an admin credit adjustment with an audit note.</p>
       </section>
 
-      <section class="partner-section">
-        <h2 class="partner-section-title">3. Referral link and campaign tracking</h2>
-        <p class="partner-body-copy">Partners should share their own EventFlow referral link and should not remove the referral code. Old regenerated codes remain valid so historic posts and messages should continue to attribute correctly.</p>
-        <p class="partner-body-copy">Partners may add standard UTM tags so EventFlow can understand which channels work best, for example <code>utm_source=facebook_group</code>, <code>utm_medium=social</code> and <code>utm_campaign=south_wales_suppliers</code>.</p>
-        <p class="partner-body-copy">Partners must not use misleading tracking names, pretend to be EventFlow staff, or imply guaranteed earnings where no campaign guarantee has been given.</p>
+      <nav class="partner-resource-nav" aria-label="Partner terms sections">
+        <a href="#purpose">Purpose</a>
+        <a href="#earn">Earning points</a>
+        <a href="#tracking">Tracking</a>
+        <a href="#conduct">Conduct</a>
+        <a href="#cashout">Cashout</a>
+        <a href="#changes">Changes</a>
+      </nav>
+
+      <section class="partner-resource-section" id="purpose">
+        <h2>1. Programme purpose</h2>
+        <p>
+          The EventFlow Partner Programme rewards approved partners for introducing genuine event suppliers to EventFlow.
+          It is intended for community partners, event pages, group admins, creators, influencers and other trusted referrers.
+        </p>
+        <p>
+          The programme is invite-led or application-led. EventFlow may approve, pause, decline, disable or remove partner
+          accounts where needed to protect the platform, suppliers, customers or the integrity of the reward system.
+        </p>
       </section>
 
-      <section class="partner-section">
-        <h2 class="partner-section-title">4. Prohibited conduct</h2>
-        <ul class="partner-launch-list">
+      <section class="partner-resource-section partner-resource-section--accent" id="earn">
+        <h2>2. How points are earned</h2>
+        <p>
+          Partners earn points when a supplier uses their current or historical referral code or link and completes qualifying actions.
+          Unless a specific campaign brief says otherwise, the standard reward model is:
+        </p>
+        <div class="partner-reward-grid" aria-label="Standard partner reward model">
+          <div class="partner-reward-card"><span class="partner-reward-icon" aria-hidden="true">🔗</span><strong>+5 points</strong><span>Referred supplier signup</span></div>
+          <div class="partner-reward-card"><span class="partner-reward-icon" aria-hidden="true">📦</span><strong>+10 points</strong><span>First package created</span></div>
+          <div class="partner-reward-card"><span class="partner-reward-icon" aria-hidden="true">⭐</span><strong>+15 points</strong><span>First customer review received</span></div>
+          <div class="partner-reward-card"><span class="partner-reward-icon" aria-hidden="true">💳</span><strong>+100 points</strong><span>First successful paid subscription payment</span></div>
+        </div>
+        <p>
+          Points are subject to a 30-day maturation period before becoming available for cashout. Qualifying package and subscription
+          actions must normally happen within the referral attribution window shown in the partner dashboard.
+        </p>
+        <p>
+          EventFlow may run separate launch campaigns, quality bonuses or volume bonuses. These are not automatic unless shown in
+          an active campaign brief or confirmed by EventFlow. Any manual bonus must be recorded through an admin credit adjustment
+          with an audit note.
+        </p>
+      </section>
+
+      <section class="partner-resource-section" id="tracking">
+        <h2>3. Referral link and campaign tracking</h2>
+        <p>
+          Partners should share their own EventFlow referral link and should not remove the referral code. Old regenerated codes
+          remain valid so historic posts, messages and group links continue to attribute correctly.
+        </p>
+        <p>
+          Partners may add standard UTM tags so EventFlow can understand which channels work best, for example
+          <code>utm_source=facebook_group</code>, <code>utm_medium=social</code> and <code>utm_campaign=south_wales_suppliers</code>.
+        </p>
+        <p>
+          Partners must not use misleading tracking names, pretend to be EventFlow staff, or imply guaranteed earnings where no
+          campaign guarantee has been given.
+        </p>
+      </section>
+
+      <section class="partner-resource-section" id="conduct">
+        <h2>4. Prohibited conduct</h2>
+        <ul class="partner-rule-list partner-rule-list--warning">
           <li>No fake, duplicate, test or low-quality supplier referrals.</li>
           <li>No self-referrals unless EventFlow has explicitly approved this in writing.</li>
-          <li>No spam posting, scraping, mass messaging or posting against Facebook/group/community rules.</li>
+          <li>No spam posting, scraping, mass messaging or posting against Facebook, group or community rules.</li>
           <li>No misleading claims about EventFlow, reward values, supplier approvals or paid subscriptions.</li>
           <li>No buying traffic, incentivised fake signups or bot activity.</li>
           <li>No referrals for suppliers who are not genuine event businesses or do not have permission to create the listing.</li>
         </ul>
-        <p class="partner-body-copy">EventFlow may withhold, reverse or cancel points where abuse, fraud, error, duplicate accounts, fake suppliers or policy breaches are suspected.</p>
+        <p>
+          EventFlow may withhold, reverse or cancel points where abuse, fraud, error, duplicate accounts, fake suppliers or policy
+          breaches are suspected.
+        </p>
       </section>
 
-      <section class="partner-section">
-        <h2 class="partner-section-title">5. Cashout rules</h2>
-        <ul class="partner-launch-list">
+      <section class="partner-resource-section" id="cashout">
+        <h2>5. Cashout rules</h2>
+        <ul class="partner-rule-list">
           <li>Default conversion: <strong>100 points = £1.00</strong>.</li>
           <li>Minimum cashout: <strong>£15</strong>.</li>
           <li>Cashouts must be requested in <strong>£5 increments</strong>.</li>
           <li>Available points only can be used. Maturing points and points already held against another request cannot be reused.</li>
           <li>On submission, points are held. If rejected, the hold is released. If delivered, the points are permanently redeemed.</li>
-          <li>Rewards are currently processed manually as Amazon Vouchers or Pre-Paid Debit Cards, normally within 3-5 working days after approval.</li>
+          <li>Rewards are currently processed manually as Amazon Vouchers or Pre-Paid Debit Cards, normally within 3 to 5 working days after approval.</li>
         </ul>
-        <p class="partner-body-copy">EventFlow may use third-party reward providers. Delivery times may vary where the provider, email delivery, fraud review or manual checks cause delay.</p>
+        <p>
+          EventFlow may use third-party reward providers. Delivery times may vary where the provider, email delivery, fraud review or
+          manual checks cause delay.
+        </p>
       </section>
 
-      <section class="partner-section">
-        <h2 class="partner-section-title">6. Tax, liability and programme changes</h2>
-        <p class="partner-body-copy">Partners are responsible for any tax, accounting or reporting obligations that apply to rewards they receive. EventFlow does not provide tax advice.</p>
-        <p class="partner-body-copy">EventFlow may update the points model, launch bonuses, cashout methods or programme terms. Where practical, partners will be notified via the partner dashboard, email or updated programme pages.</p>
-        <p class="partner-body-copy">EventFlow may close the programme or disable partner accounts where required. Approved but undelivered cashout requests will be reviewed and handled at EventFlow's discretion.</p>
+      <section class="partner-resource-section" id="changes">
+        <h2>6. Tax, liability and programme changes</h2>
+        <p>
+          Partners are responsible for any tax, accounting or reporting obligations that apply to rewards they receive. EventFlow does not provide tax advice.
+        </p>
+        <p>
+          EventFlow may update the points model, launch bonuses, cashout methods or programme terms. Where practical, partners will be
+          notified via the partner dashboard, email or updated programme pages.
+        </p>
+        <p>
+          EventFlow may close the programme or disable partner accounts where required. Approved but undelivered cashout requests will be
+          reviewed and handled at EventFlow's discretion.
+        </p>
       </section>
 
-      <section class="partner-section">
-        <h2 class="partner-section-title">Questions</h2>
-        <p class="partner-body-copy">For questions about referrals, cashout requests, campaign rules or partner eligibility, raise a partner support ticket from your dashboard or email <a href="mailto:hello@event-flow.co.uk">hello@event-flow.co.uk</a>.</p>
+      <section class="partner-resource-section partner-resource-section--accent">
+        <h2>Questions</h2>
+        <p>
+          For questions about referrals, cashout requests, campaign rules or partner eligibility, raise a partner support ticket from your dashboard
+          or email <a href="mailto:hello@event-flow.co.uk">hello@event-flow.co.uk</a>.
+        </p>
       </section>
+
+      <p class="partner-resource-footer-note">Partner programme pages are noindex and designed for approved or invited partners.</p>
     </main>
   </body>
 </html>
