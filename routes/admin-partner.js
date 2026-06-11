@@ -1,6 +1,6 @@
 /**
  * Admin Partner Routes
- * Admin-only endpoints for managing partner accounts and credit adjustments
+ * Admin-only endpoints for managing partner accounts, campaign reporting and credit adjustments
  *
  * Base path (mounted in routes/index.js): /api/admin/partners
  */
@@ -19,6 +19,47 @@ const router = express.Router();
 
 // All routes require admin authentication
 router.use(authRequired, roleRequired('admin'));
+
+function safeKey(value, fallback = 'direct_or_unknown') {
+  return String(value || fallback).trim() || fallback;
+}
+
+function startCampaignBucket(map, key, extras = {}) {
+  if (!map.has(key)) {
+    map.set(key, {
+      key,
+      referrals: 0,
+      packageQualified: 0,
+      subscriptionQualified: 0,
+      firstReviewQualified: 0,
+      pointsAwarded: 0,
+      ...extras,
+    });
+  }
+  return map.get(key);
+}
+
+function buildTxnIndex(transactions) {
+  const index = new Map();
+  transactions.forEach(txn => {
+    if (!txn.partnerId || !txn.supplierUserId) {
+      return;
+    }
+    const key = `${txn.partnerId}::${txn.supplierUserId}`;
+    if (!index.has(key)) {
+      index.set(key, []);
+    }
+    index.get(key).push(txn);
+  });
+  return index;
+}
+
+function pointsForReferral(txnIndex, referral) {
+  const txns = txnIndex.get(`${referral.partnerId}::${referral.supplierUserId}`) || [];
+  return txns
+    .filter(txn => Number(txn.amount) > 0)
+    .reduce((sum, txn) => sum + Number(txn.amount || 0), 0);
+}
 
 // ─── List Partners ────────────────────────────────────────────────────────────
 
@@ -87,6 +128,110 @@ router.get('/', async (req, res) => {
     res.json({ items: list });
   } catch (err) {
     logger.error('Error listing partners:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ─── Campaign Reporting ───────────────────────────────────────────────────────
+// NOTE: Must sit before router.get('/:id') so the static path is not consumed.
+
+/**
+ * GET /api/admin/partners/campaign-report
+ * Summarise partner referrals by UTM/campaign/source and partner.
+ */
+router.get('/campaign-report', async (req, res) => {
+  try {
+    const referrals = (await dbUnified.read('partner_referrals')) || [];
+    const partners = (await dbUnified.read('partners')) || [];
+    const users = (await dbUnified.read('users')) || [];
+    const txns = (await dbUnified.read('partner_credit_transactions')) || [];
+    const txnIndex = buildTxnIndex(txns);
+
+    const byCampaign = new Map();
+    const byPartner = new Map();
+    const items = referrals
+      .map(referral => {
+        const partner = partners.find(p => p.id === referral.partnerId) || {};
+        const partnerUser = users.find(u => u.id === partner.userId) || null;
+        const supplierUser = users.find(u => u.id === referral.supplierUserId) || null;
+        const source = safeKey(referral.source);
+        const medium = safeKey(referral.medium, 'unknown_medium');
+        const campaign = safeKey(referral.campaign);
+        const content = safeKey(referral.content, '');
+        const term = safeKey(referral.term, '');
+        const pointsAwarded = pointsForReferral(txnIndex, referral);
+        const campaignKey = `${source}::${medium}::${campaign}`;
+        const partnerKey = referral.partnerId || 'unknown_partner';
+
+        const campaignBucket = startCampaignBucket(byCampaign, campaignKey, {
+          source,
+          medium,
+          campaign,
+        });
+        const partnerBucket = startCampaignBucket(byPartner, partnerKey, {
+          partnerId: referral.partnerId,
+          partnerRefCode: partner.refCode || null,
+          partnerName: partnerUser ? partnerUser.name || partnerUser.email : 'Unknown partner',
+          partnerEmail: partnerUser ? partnerUser.email : null,
+        });
+
+        [campaignBucket, partnerBucket].forEach(bucket => {
+          bucket.referrals += 1;
+          bucket.packageQualified += referral.packageQualified ? 1 : 0;
+          bucket.subscriptionQualified += referral.subscriptionQualified ? 1 : 0;
+          bucket.firstReviewQualified += referral.firstReviewQualified ? 1 : 0;
+          bucket.pointsAwarded += pointsAwarded;
+        });
+
+        return {
+          id: referral.id,
+          partnerId: referral.partnerId,
+          partnerRefCode: partner.refCode || null,
+          partnerName: partnerUser ? partnerUser.name || partnerUser.email : 'Unknown partner',
+          partnerEmail: partnerUser ? partnerUser.email : null,
+          supplierUserId: referral.supplierUserId,
+          supplierName: supplierUser ? supplierUser.name || supplierUser.email : 'Unknown supplier',
+          supplierEmail: supplierUser ? supplierUser.email : null,
+          supplierCompany: supplierUser ? supplierUser.company || null : null,
+          source,
+          medium,
+          campaign,
+          content,
+          term,
+          packageQualified: !!referral.packageQualified,
+          subscriptionQualified: !!referral.subscriptionQualified,
+          firstReviewQualified: !!referral.firstReviewQualified,
+          pointsAwarded,
+          supplierCreatedAt: referral.supplierCreatedAt,
+          attributionExpiresAt: referral.attributionExpiresAt,
+          createdAt: referral.createdAt,
+        };
+      })
+      .sort((a, b) => new Date(b.supplierCreatedAt || b.createdAt) - new Date(a.supplierCreatedAt || a.createdAt));
+
+    const campaignSummary = Array.from(byCampaign.values()).sort(
+      (a, b) => b.referrals - a.referrals || b.pointsAwarded - a.pointsAwarded
+    );
+    const partnerSummary = Array.from(byPartner.values()).sort(
+      (a, b) => b.referrals - a.referrals || b.pointsAwarded - a.pointsAwarded
+    );
+
+    res.json({
+      ok: true,
+      totals: {
+        referrals: items.length,
+        campaignCount: campaignSummary.length,
+        partnerCount: partnerSummary.length,
+        pointsAwarded: items.reduce((sum, item) => sum + item.pointsAwarded, 0),
+        packageQualified: items.filter(item => item.packageQualified).length,
+        subscriptionQualified: items.filter(item => item.subscriptionQualified).length,
+      },
+      campaignSummary,
+      partnerSummary,
+      items: items.slice(0, 200),
+    });
+  } catch (err) {
+    logger.error('Error building partner campaign report:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
