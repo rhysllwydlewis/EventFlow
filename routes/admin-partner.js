@@ -20,11 +20,20 @@ const router = express.Router();
 // All routes require admin authentication
 router.use(authRequired, roleRequired('admin'));
 
+const REFERRAL_EARNING_TYPES = new Set([
+  'REFERRAL_SIGNUP_BONUS',
+  'PACKAGE_BONUS',
+  'SUBSCRIPTION_BONUS',
+  'FIRST_REVIEW_BONUS',
+  'PROFILE_APPROVED_BONUS',
+]);
+
 function safeKey(value, fallback = 'direct_or_unknown') {
-  return String(value || fallback).trim() || fallback;
+  const clean = String(value || '').trim();
+  return clean || fallback;
 }
 
-function startCampaignBucket(map, key, extras = {}) {
+function startReportBucket(map, key, extras = {}) {
   if (!map.has(key)) {
     map.set(key, {
       key,
@@ -54,11 +63,29 @@ function buildTxnIndex(transactions) {
   return index;
 }
 
+function referralTransactions(txnIndex, referral) {
+  return txnIndex.get(`${referral.partnerId}::${referral.supplierUserId}`) || [];
+}
+
+function hasReferralTxn(txnIndex, referral, type) {
+  return referralTransactions(txnIndex, referral).some(txn => txn.type === type && Number(txn.amount) > 0);
+}
+
 function pointsForReferral(txnIndex, referral) {
-  const txns = txnIndex.get(`${referral.partnerId}::${referral.supplierUserId}`) || [];
-  return txns
-    .filter(txn => Number(txn.amount) > 0)
+  return referralTransactions(txnIndex, referral)
+    .filter(txn => REFERRAL_EARNING_TYPES.has(txn.type) && Number(txn.amount) > 0)
     .reduce((sum, txn) => sum + Number(txn.amount || 0), 0);
+}
+
+function qualificationFlags(txnIndex, referral) {
+  return {
+    packageQualified:
+      !!referral.packageQualified || hasReferralTxn(txnIndex, referral, 'PACKAGE_BONUS'),
+    subscriptionQualified:
+      !!referral.subscriptionQualified || hasReferralTxn(txnIndex, referral, 'SUBSCRIPTION_BONUS'),
+    firstReviewQualified:
+      !!referral.firstReviewQualified || hasReferralTxn(txnIndex, referral, 'FIRST_REVIEW_BONUS'),
+  };
 }
 
 // ─── List Partners ────────────────────────────────────────────────────────────
@@ -156,19 +183,20 @@ router.get('/campaign-report', async (req, res) => {
         const supplierUser = users.find(u => u.id === referral.supplierUserId) || null;
         const source = safeKey(referral.source);
         const medium = safeKey(referral.medium, 'unknown_medium');
-        const campaign = safeKey(referral.campaign);
+        const campaign = safeKey(referral.campaign, 'direct_or_unknown');
         const content = safeKey(referral.content, '');
         const term = safeKey(referral.term, '');
         const pointsAwarded = pointsForReferral(txnIndex, referral);
+        const flags = qualificationFlags(txnIndex, referral);
         const campaignKey = `${source}::${medium}::${campaign}`;
         const partnerKey = referral.partnerId || 'unknown_partner';
 
-        const campaignBucket = startCampaignBucket(byCampaign, campaignKey, {
+        const campaignBucket = startReportBucket(byCampaign, campaignKey, {
           source,
           medium,
           campaign,
         });
-        const partnerBucket = startCampaignBucket(byPartner, partnerKey, {
+        const partnerBucket = startReportBucket(byPartner, partnerKey, {
           partnerId: referral.partnerId,
           partnerRefCode: partner.refCode || null,
           partnerName: partnerUser ? partnerUser.name || partnerUser.email : 'Unknown partner',
@@ -177,9 +205,9 @@ router.get('/campaign-report', async (req, res) => {
 
         [campaignBucket, partnerBucket].forEach(bucket => {
           bucket.referrals += 1;
-          bucket.packageQualified += referral.packageQualified ? 1 : 0;
-          bucket.subscriptionQualified += referral.subscriptionQualified ? 1 : 0;
-          bucket.firstReviewQualified += referral.firstReviewQualified ? 1 : 0;
+          bucket.packageQualified += flags.packageQualified ? 1 : 0;
+          bucket.subscriptionQualified += flags.subscriptionQualified ? 1 : 0;
+          bucket.firstReviewQualified += flags.firstReviewQualified ? 1 : 0;
           bucket.pointsAwarded += pointsAwarded;
         });
 
@@ -198,16 +226,17 @@ router.get('/campaign-report', async (req, res) => {
           campaign,
           content,
           term,
-          packageQualified: !!referral.packageQualified,
-          subscriptionQualified: !!referral.subscriptionQualified,
-          firstReviewQualified: !!referral.firstReviewQualified,
+          ...flags,
           pointsAwarded,
           supplierCreatedAt: referral.supplierCreatedAt,
           attributionExpiresAt: referral.attributionExpiresAt,
           createdAt: referral.createdAt,
         };
       })
-      .sort((a, b) => new Date(b.supplierCreatedAt || b.createdAt) - new Date(a.supplierCreatedAt || a.createdAt));
+      .sort(
+        (a, b) =>
+          new Date(b.supplierCreatedAt || b.createdAt) - new Date(a.supplierCreatedAt || a.createdAt)
+      );
 
     const campaignSummary = Array.from(byCampaign.values()).sort(
       (a, b) => b.referrals - a.referrals || b.pointsAwarded - a.pointsAwarded
@@ -225,6 +254,7 @@ router.get('/campaign-report', async (req, res) => {
         pointsAwarded: items.reduce((sum, item) => sum + item.pointsAwarded, 0),
         packageQualified: items.filter(item => item.packageQualified).length,
         subscriptionQualified: items.filter(item => item.subscriptionQualified).length,
+        firstReviewQualified: items.filter(item => item.firstReviewQualified).length,
       },
       campaignSummary,
       partnerSummary,
