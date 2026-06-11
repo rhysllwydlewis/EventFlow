@@ -50,15 +50,81 @@
     return '';
   }
 
+  /**
+   * Register a single global fallback handler so onerror attributes on
+   * recommendation avatars don't need to embed raw HTML inline.
+   *
+   * Root cause of the broken-image bug:
+   *   The previous implementation embedded the `fallback` div HTML directly
+   *   inside onerror="...innerHTML='[fallback]'".  The fallback contains six
+   *   double-quoted HTML attributes (class="..." style="...") which
+   *   PREMATURELY CLOSED the outer onerror="..." attribute delimiter the moment
+   *   the HTML parser hit the first " inside the fallback string.  This caused:
+   *     - The onerror handler to be silently truncated (fallback never ran)
+   *     - Orphaned attribute fragments rendered as visible text inside the card
+   *     - A stray </div> from the malformed content closing the card's flex
+   *       container, breaking the name + category layout below the image
+   *
+   *   Fix: store the initial letter in a data-rec-initial attribute; call a
+   *   pre-registered global function from onerror so NO HTML is embedded inside
+   *   any inline event handler.
+   */
+  function registerAvatarFallback() {
+    if (window.__efRecAvatarFallback) return;
+    window.__efRecAvatarFallback = function (img) {
+      const wrap = img && img.closest && img.closest('.recommendation-avatar-wrap');
+      if (!wrap) return;
+      const initial = escapeHtml(wrap.dataset.recInitial || '?');
+      wrap.innerHTML =
+        '<div class="recommendation-avatar recommendation-avatar--fallback"' +
+        ' aria-hidden="true"' +
+        ' style="width:48px;height:48px;border-radius:999px;' +
+        'background:linear-gradient(135deg,#13b6a2,#0b8073);' +
+        'display:flex;align-items:center;justify-content:center;' +
+        'color:white;font-weight:800;font-size:1.08rem;' +
+        'box-shadow:0 8px 18px rgba(19,182,162,.18);">' +
+        initial +
+        '</div>';
+    };
+  }
+
   function recommendationAvatar(name, logoSrc) {
     const initial = escapeHtml(String(name || 'S').charAt(0).toUpperCase());
-    const fallback = `<div class="recommendation-avatar recommendation-avatar--fallback" aria-hidden="true" style="width:48px;height:48px;border-radius:999px;background:linear-gradient(135deg,#13b6a2,#0b8073);display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:1.08rem;box-shadow:0 8px 18px rgba(19,182,162,.18);">${initial}</div>`;
+    const fallback =
+      '<div class="recommendation-avatar recommendation-avatar--fallback"' +
+      ' aria-hidden="true"' +
+      ' style="width:48px;height:48px;border-radius:999px;' +
+      'background:linear-gradient(135deg,#13b6a2,#0b8073);' +
+      'display:flex;align-items:center;justify-content:center;' +
+      'color:white;font-weight:800;font-size:1.08rem;' +
+      'box-shadow:0 8px 18px rgba(19,182,162,.18);">' +
+      initial +
+      '</div>';
+
     if (!logoSrc) {
       return fallback;
     }
-    return `<span class="recommendation-avatar-wrap" style="display:inline-flex;width:48px;height:48px;flex:0 0 48px;">` +
-      `<img src="${escapeHtml(logoSrc)}" alt="${escapeHtml(name)}" class="recommendation-avatar" loading="lazy" style="width:48px;height:48px;border-radius:999px;object-fit:cover;box-shadow:0 8px 18px rgba(15,23,42,.10);" onerror="this.closest('.recommendation-avatar-wrap').innerHTML='${fallback.replace(/'/g, '&apos;')}'">` +
-      `</span>`;
+
+    // Ensure the global handler is registered before the first img is rendered.
+    registerAvatarFallback();
+
+    // data-rec-initial carries the letter so the global handler can build the
+    // fallback avatar without any HTML being embedded in the onerror attribute.
+    return (
+      '<span class="recommendation-avatar-wrap"' +
+      ' data-rec-initial="' + initial + '"' +
+      ' style="display:inline-flex;width:48px;height:48px;flex:0 0 48px;">' +
+      '<img' +
+      ' src="' + escapeHtml(logoSrc) + '"' +
+      ' alt="' + escapeHtml(name) + '"' +
+      ' class="recommendation-avatar"' +
+      ' loading="lazy"' +
+      ' style="width:48px;height:48px;border-radius:999px;object-fit:cover;' +
+      'box-shadow:0 8px 18px rgba(15,23,42,.10);"' +
+      ' onerror="window.__efRecAvatarFallback(this)"' +
+      '>' +
+      '</span>'
+    );
   }
 
   /**
