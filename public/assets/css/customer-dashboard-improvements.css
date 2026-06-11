@@ -2193,6 +2193,138 @@ body.customer-dashboard-page .cards .card--collapsed .sd-card-header__actions {
 }
 
 /* ===========================================
+   30b. HUB CARD STANDARDISATION
+        Addresses three problems visible in screenshots:
+
+        DESKTOP — unequal 3-column row:
+          Saved Suppliers (~98px header) and Quick Actions (~98px) are
+          shorter than Support Tickets (~144px header) because Support
+          Tickets has TWO buttons in its __actions (Create Ticket injected
+          in HTML + Expand toggle from customer-dashboard-polish.js).
+          Those two buttons eat ~218px from the available header width,
+          compressing __left to ~162px and wrapping the description into
+          4+ lines.
+
+        MOBILE — "Supp ort..." title break:
+          At 412px, the same button pair eats ~218px leaving only ~69px
+          for a 16px heading. word-break:break-word then mid-word breaks
+          "Support" to "Supp" on line 1 and "ort..." on line 2.
+
+        FIX STRATEGY:
+          a) Desktop + tablet: stack Support Tickets header vertically
+             (flex-direction: column) so __left gets the full column width.
+             Description now fits on one line. Buttons form a clean row below.
+          b) Mobile: same stacking, matching the Conversations fix already in
+             dashboard-mobile.css / customer-dashboard-improvements.css.
+          c) Desktop equal-height: align-items:stretch on the grid so all 3
+             bottom-row cards reach the same outer height. When collapsed,
+             flex:1 on the header makes the coloured gradient fill the full
+             card cleanly instead of leaving dead whitespace below the header.
+   =========================================== */
+
+/* ── Desktop + tablet: equal-height 3-column row ────────────────────────── */
+@media (min-width: 640px) {
+  /* Stretch grid items in each row to equal height */
+  body.customer-dashboard-page .cards {
+    align-items: stretch;
+  }
+
+  /* Full-width cards sit in their own row — stretching would only match
+     their own height, so revert to start to avoid any visual side-effects */
+  body.customer-dashboard-page .cards .cd-card--plans,
+  body.customer-dashboard-page .cards .cd-card--conversations {
+    align-self: start;
+  }
+
+  /* Each hub card is a flex column so header and body stack vertically */
+  body.customer-dashboard-page .cards > .cd-card {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Expanded card: body fills remaining space after the header */
+  body.customer-dashboard-page .cards > .cd-card > .cd-card-body {
+    flex: 1;
+  }
+
+  /* Collapsed card (ef-dashboard-collapse-toggle system from
+     customer-dashboard-polish.js):
+     The card body is display:none, leaving empty space at the bottom.
+     flex:1 on the header extends the coloured gradient to fill the full
+     card height cleanly, matching the look of the taller Support Tickets
+     card beside it. Content stays pinned to the top because the base
+     .sd-card-header rule already sets align-items:flex-start. */
+  body.customer-dashboard-page .cards > .ef-dashboard-card--collapsed > .sd-card-header {
+    flex: 1;
+  }
+}
+
+/* ── Support Tickets: stack header vertically (desktop + tablet) ─────────── */
+/* Places __left (icon + title + subtitle) and __actions (Create Ticket +
+   Expand) in a column instead of a row. align-items:stretch is essential —
+   in flex-direction:column, align-items controls the HORIZONTAL axis, so
+   stretch ensures both __left and __actions fill the full column width
+   (without it they would shrink to content-width). */
+@media (min-width: 640px) {
+  body.customer-dashboard-page .cd-card--support .sd-card-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  body.customer-dashboard-page .cd-card--support .sd-card-header__actions {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+  }
+}
+
+/* ── Support Tickets: stack header vertically (mobile) ───────────────────── */
+/* Same column stacking on mobile — prevents mid-word break at 412px.
+   Mirrors the identical fix already applied to Conversations. */
+@media (max-width: 639px) {
+  body.customer-dashboard-page .cd-card--support .sd-card-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  body.customer-dashboard-page .cd-card--support .sd-card-header__actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  body.customer-dashboard-page .cd-card--support .customer-tickets-create-btn {
+    width: 100%;
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    white-space: normal;
+    text-align: center;
+  }
+}
+
+/* ── Standardise hub action button heights ───────────────────────────────── */
+/* The "Expand/Minimise" toggle (ef-dashboard-collapse-toggle) from
+   customer-dashboard-polish.js and the Create Ticket CTA should share
+   the same minimum height so button baselines align across cards.
+   2.5rem = 40px — meets practical touch-target minimums and overrides
+   the JS-injected 2.25rem for the toggle at correct specificity. */
+body.customer-dashboard-page .cards .sd-card-header__actions .ef-dashboard-collapse-toggle,
+body.customer-dashboard-page .cards .sd-card-header__actions .customer-tickets-create-btn {
+  min-height: 2.5rem;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ===========================================
    30. CONVERSATIONS CARD BODY LAYOUT
    =========================================== */
 body.customer-dashboard-page .customer-conversations-controls {
