@@ -40,6 +40,7 @@ const supplierManagementRoutes = require('./supplier-management');
 const suppliersV2Routes = require('./suppliers-v2');
 const supplierProfileSafeRoutes = require('./supplier-profile-safe');
 const supplierProfilePackageCardRoutes = require('./supplier-profile-package-cards');
+const partnerReferralCampaignCapture = require('../middleware/partnerReferralCampaignCapture');
 
 // New extracted route modules
 const suppliersRoutes = require('./suppliers');
@@ -114,8 +115,8 @@ function mountRoutes(app, deps) {
   if (deps && authRoutes.initializeDependencies) {
     authRoutes.initializeDependencies(deps);
   }
-  app.use('/api/v1/auth', authRoutes);
-  app.use('/api/auth', authRoutes); // Backward compatibility
+  app.use('/api/v1/auth', partnerReferralCampaignCapture, authRoutes);
+  app.use('/api/auth', partnerReferralCampaignCapture, authRoutes); // Backward compatibility
 
   // Sign in with Google redirect-mode callback. This is mounted separately from
   // the JSON auth API because Google posts x-www-form-urlencoded credentials.
