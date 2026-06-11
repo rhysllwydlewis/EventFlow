@@ -2222,7 +2222,10 @@ body.customer-dashboard-page .cards .card--collapsed .sd-card-header__actions {
              card cleanly instead of leaving dead whitespace below the header.
    =========================================== */
 
-/* ── Desktop + tablet: equal-height 3-column row ────────────────────────── */
+/* ── Desktop + tablet: equal-height 3-column row + Support Tickets layout ── */
+/* All rules that apply at ≥640px are in a single block.
+   Combining the equal-height grid rules with the Support Tickets column
+   stacking avoids having two separate min-width:640px blocks. */
 @media (min-width: 640px) {
   /* Stretch grid items in each row to equal height */
   body.customer-dashboard-page .cards {
@@ -2257,15 +2260,13 @@ body.customer-dashboard-page .cards .card--collapsed .sd-card-header__actions {
   body.customer-dashboard-page .cards > .ef-dashboard-card--collapsed > .sd-card-header {
     flex: 1;
   }
-}
 
-/* ── Support Tickets: stack header vertically (desktop + tablet) ─────────── */
-/* Places __left (icon + title + subtitle) and __actions (Create Ticket +
-   Expand) in a column instead of a row. align-items:stretch is essential —
-   in flex-direction:column, align-items controls the HORIZONTAL axis, so
-   stretch ensures both __left and __actions fill the full column width
-   (without it they would shrink to content-width). */
-@media (min-width: 640px) {
+  /* ── Support Tickets: stack header vertically (desktop + tablet) ──────────
+     Places __left (icon + title + subtitle) and __actions (Create Ticket +
+     Expand) in a column instead of a row. align-items:stretch is essential —
+     in flex-direction:column, align-items controls the HORIZONTAL axis, so
+     stretch ensures both __left and __actions fill the full column width
+     (without it they would shrink to content-width). */
   body.customer-dashboard-page .cd-card--support .sd-card-header {
     flex-direction: column;
     align-items: stretch;
@@ -2282,8 +2283,10 @@ body.customer-dashboard-page .cards .card--collapsed .sd-card-header__actions {
 
 /* ── Support Tickets: stack header vertically (mobile) ───────────────────── */
 /* Same column stacking on mobile — prevents mid-word break at 412px.
-   Mirrors the identical fix already applied to Conversations. */
-@media (max-width: 639px) {
+   Mirrors the identical fix already applied to Conversations.
+   Uses max-width:767px to match the mobile breakpoint used by every other
+   rule in dashboard-mobile.css and customer-dashboard-polish.css. */
+@media (max-width: 767px) {
   body.customer-dashboard-page .cd-card--support .sd-card-header {
     flex-direction: column;
     align-items: stretch;
