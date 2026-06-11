@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Partner Campaign Report — EventFlow Admin</title>
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="stylesheet" href="/assets/css/tokens.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-tokens.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/eventflow-17.0.0.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/utilities.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/components.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-enhanced.css?v=18.3.0">
+  <link rel="stylesheet" href="/assets/css/admin-navbar.css?v=18.3.0">
+  <link rel="icon" href="/favicon.svg">
+  <script src="/assets/js/dashboard-guard.js?v=17.0.2"></script>
+  <script src="/assets/js/admin-shared.js?v=18.3.0"></script>
+  <script src="/assets/js/admin-navbar.js?v=18.3.0" defer></script>
+  <style>
+    .pcr-shell{max-width:1280px;margin:0 auto;padding:2rem 1.5rem 4rem;color:#111827}
+    .pcr-hero{display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;flex-wrap:wrap;margin-bottom:1.5rem;padding:1.4rem;border:1px solid #e5e7eb;border-radius:18px;background:linear-gradient(135deg,#ffffff,#f8fafc);box-shadow:0 10px 30px rgba(15,23,42,.06)}
+    .pcr-title{font-size:1.7rem;line-height:1.1;margin:0 0 .35rem;font-weight:800;letter-spacing:-.03em;color:#0f172a}.pcr-sub{margin:0;color:#64748b;font-size:.92rem;max-width:780px;line-height:1.55}.pcr-actions{display:flex;gap:.55rem;flex-wrap:wrap}.pcr-btn{display:inline-flex;align-items:center;gap:.35rem;border:1px solid #d1d5db;border-radius:10px;background:#fff;color:#334155;text-decoration:none;padding:.52rem .82rem;font-weight:700;font-size:.84rem}.pcr-btn--primary{background:#0B8073;border-color:#0B8073;color:#fff}.pcr-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:1.25rem}.pcr-card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:1rem 1.15rem;box-shadow:0 1px 3px rgba(0,0,0,.04)}.pcr-label{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;font-weight:800;color:#64748b}.pcr-value{font-size:1.8rem;font-weight:800;margin-top:.2rem;color:#0f172a}.pcr-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:1.25rem}.pcr-section{background:#fff;border:1px solid #e5e7eb;border-radius:18px;padding:1.2rem;box-shadow:0 1px 3px rgba(0,0,0,.04)}.pcr-section-head{display:flex;justify-content:space-between;gap:1rem;align-items:center;margin-bottom:.85rem}.pcr-section-title{font-size:.82rem;letter-spacing:.07em;text-transform:uppercase;font-weight:800;color:#475569;margin:0}.pcr-table-wrap{overflow-x:auto}.pcr-table{width:100%;border-collapse:collapse;font-size:.84rem}.pcr-table th{text-align:left;background:#f8fafc;color:#64748b;font-size:.72rem;text-transform:uppercase;letter-spacing:.05em;padding:.65rem;border-bottom:1px solid #e5e7eb;white-space:nowrap}.pcr-table td{padding:.7rem .65rem;border-bottom:1px solid #f1f5f9;vertical-align:top;color:#334155}.pcr-table tr:last-child td{border-bottom:none}.pcr-pill{display:inline-flex;align-items:center;border:1px solid #d1fae5;background:#ecfdf5;color:#047857;border-radius:999px;padding:.16rem .5rem;font-size:.74rem;font-weight:800}.pcr-muted{color:#94a3b8;font-size:.78rem}.pcr-empty{text-align:center;padding:2.5rem;color:#64748b}.pcr-search{border:1px solid #d1d5db;border-radius:10px;padding:.52rem .78rem;min-width:240px}.pcr-checklist{display:grid;gap:.55rem;margin:0;padding:0;list-style:none}.pcr-checklist li{padding:.68rem .78rem;border:1px solid #e5e7eb;border-radius:12px;background:#f8fafc;color:#475569;font-size:.86rem;line-height:1.45}.pcr-checklist strong{color:#0f172a}@media(max-width:760px){.pcr-shell{padding:1rem .75rem 3rem}.pcr-section-head{align-items:stretch;flex-direction:column}.pcr-search{min-width:0;width:100%}}
+  </style>
+</head>
+<body class="admin-body" data-require-role="admin">
+  <div id="admin-navbar-placeholder"></div>
+  <main class="pcr-shell">
+    <section class="pcr-hero">
+      <div>
+        <h1 class="pcr-title">Partner Campaign Report</h1>
+        <p class="pcr-sub">Review which partners, sources and campaigns are driving supplier referrals. This supports the manual cashout review and helps spot suspicious or low-quality referral patterns before rewards are issued.</p>
+      </div>
+      <div class="pcr-actions">
+        <a class="pcr-btn" href="/admin-partners.html">Partners</a>
+        <a class="pcr-btn" href="/admin-cashout-requests.html">Cashouts</a>
+        <button class="pcr-btn pcr-btn--primary" id="pcr-refresh" type="button">Refresh</button>
+      </div>
+    </section>
+
+    <section class="pcr-grid" aria-label="Campaign report totals">
+      <div class="pcr-card"><div class="pcr-label">Referrals</div><div class="pcr-value" id="pcr-total-referrals">—</div></div>
+      <div class="pcr-card"><div class="pcr-label">Campaigns</div><div class="pcr-value" id="pcr-total-campaigns">—</div></div>
+      <div class="pcr-card"><div class="pcr-label">Partners</div><div class="pcr-value" id="pcr-total-partners">—</div></div>
+      <div class="pcr-card"><div class="pcr-label">Points Awarded</div><div class="pcr-value" id="pcr-total-points">—</div></div>
+    </section>
+
+    <div class="pcr-layout">
+      <section class="pcr-section">
+        <div class="pcr-section-head"><h2 class="pcr-section-title">Manual cashout review checklist</h2></div>
+        <ul class="pcr-checklist">
+          <li><strong>Check supplier quality:</strong> supplier name, company, location, category, package/profile activity and whether the profile appears genuine.</li>
+          <li><strong>Check campaign pattern:</strong> unusually high volume, repeated source names, duplicate supplier details or suspicious incomplete profiles should be reviewed before approval.</li>
+          <li><strong>Keep cashout manual:</strong> approve only after checking the partner, referral quality, available points and campaign context.</li>
+          <li><strong>Use audit notes:</strong> manual bonuses and cashout approvals/rejections should record the reason clearly.</li>
+        </ul>
+      </section>
+
+      <section class="pcr-section">
+        <div class="pcr-section-head"><h2 class="pcr-section-title">Campaign summary</h2></div>
+        <div class="pcr-table-wrap"><table class="pcr-table"><thead><tr><th>Source</th><th>Medium</th><th>Campaign</th><th>Referrals</th><th>Package</th><th>Subscription</th><th>Points</th></tr></thead><tbody id="pcr-campaign-body"><tr><td colspan="7" class="pcr-empty">Loading…</td></tr></tbody></table></div>
+      </section>
+
+      <section class="pcr-section">
+        <div class="pcr-section-head"><h2 class="pcr-section-title">Partner summary</h2></div>
+        <div class="pcr-table-wrap"><table class="pcr-table"><thead><tr><th>Partner</th><th>Ref code</th><th>Referrals</th><th>Package</th><th>Subscription</th><th>Points</th></tr></thead><tbody id="pcr-partner-body"><tr><td colspan="6" class="pcr-empty">Loading…</td></tr></tbody></table></div>
+      </section>
+
+      <section class="pcr-section">
+        <div class="pcr-section-head"><h2 class="pcr-section-title">Recent referrals</h2><input class="pcr-search" id="pcr-search" type="search" placeholder="Search partner, supplier, source or campaign…"></div>
+        <div class="pcr-table-wrap"><table class="pcr-table"><thead><tr><th>Partner</th><th>Supplier</th><th>Source</th><th>Campaign</th><th>Qualifiers</th><th>Points</th><th>Signed up</th></tr></thead><tbody id="pcr-items-body"><tr><td colspan="7" class="pcr-empty">Loading…</td></tr></tbody></table></div>
+      </section>
+    </div>
+  </main>
+  <script src="/assets/js/pages/admin-partner-campaign-report-init.js" defer></script>
+</body>
+</html>
