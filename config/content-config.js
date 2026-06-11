@@ -23,7 +23,7 @@ const contentConfig = {
     currentYear: getCurrentYear(),
     copyrightYear: getCurrentYear(),
     // Legal document dates - update these when legal docs are revised
-    legalLastUpdated: 'January 2026',
+    legalLastUpdated: 'June 2026',
     legalEffectiveDate: 'January 2026',
     // Sitemap last modification date
     sitemapLastMod: new Date().toISOString().split('T')[0], // YYYY-MM-DD format
