@@ -148,8 +148,11 @@ router.get('/me', authRequired, roleRequired('partner'), async (req, res) => {
       });
     }
 
-    const balance = await partnerService.getBalance(partner.id);
-    const pending = await partnerService.getPendingPoints(partner.id);
+    const [balance, pending, userRecord] = await Promise.all([
+      partnerService.getBalance(partner.id),
+      partnerService.getPendingPoints(partner.id),
+      dbUnified.findOne('users', { id: req.user.id }),
+    ]);
     const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
     const refLink = `${baseUrl}/auth?ref=${partner.refCode}&role=supplier`;
 
@@ -160,6 +163,13 @@ router.get('/me', authRequired, roleRequired('partner'), async (req, res) => {
         refLink,
         status: partner.status,
         createdAt: partner.createdAt,
+      },
+      // User profile fields — used to pre-fill the Account Settings form
+      userProfile: {
+        firstName: userRecord?.firstName || '',
+        lastName: userRecord?.lastName || '',
+        company: userRecord?.company || null,
+        name: userRecord?.name || '',
       },
       pointsPerGbp: partnerService.POINTS_PER_GBP,
       credits: {
@@ -659,6 +669,165 @@ router.get('/cashout-requests/:id', authRequired, roleRequired('partner'), async
     res.json({ request });
   } catch (err) {
     logger.error('Error fetching cashout request:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+
+// ─── Partner Profile Update ───────────────────────────────────────────────────
+
+/**
+ * PATCH /api/partner/me
+ * Update the current partner's display name and/or company.
+ * Body: { firstName?, lastName?, company? }
+ */
+router.patch('/me', authRequired, roleRequired('partner'), csrfProtection, async (req, res) => {
+  try {
+    const partner = await partnerService.getPartnerByUserId(req.user.id);
+    if (!partner) return res.status(404).json({ error: 'Partner account not found' });
+    if (partner.status === 'disabled')
+      return res.status(403).json({ error: 'Your partner account has been disabled.' });
+
+    const { firstName, lastName, company } = req.body || {};
+
+    const updates = {};
+    if (firstName !== undefined) {
+      const f = String(firstName).trim().slice(0, 40);
+      if (!f) return res.status(400).json({ error: 'First name cannot be empty' });
+      updates.firstName = f;
+    }
+    if (lastName !== undefined) {
+      const l = String(lastName).trim().slice(0, 40);
+      if (!l) return res.status(400).json({ error: 'Last name cannot be empty' });
+      updates.lastName = l;
+    }
+    if (updates.firstName || updates.lastName) {
+      const user = await dbUnified.findOne('users', { id: req.user.id });
+      const fn = updates.firstName || (user && user.firstName) || '';
+      const ln = updates.lastName || (user && user.lastName) || '';
+      updates.name = `${fn} ${ln}`.trim();
+    }
+    if (company !== undefined) {
+      updates.company = company ? String(company).trim().slice(0, 100) : null;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ error: 'No fields to update' });
+    }
+
+    updates.updatedAt = new Date().toISOString();
+    const ok = await dbUnified.updateOne('users', { id: req.user.id }, updates);
+    if (!ok) return res.status(500).json({ error: 'Failed to update profile' });
+
+    logger.info(`Partner profile updated for user ${req.user.id}`);
+    res.json({ ok: true, message: 'Profile updated successfully' });
+  } catch (err) {
+    logger.error('Error updating partner profile:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ─── Partner Password Change ──────────────────────────────────────────────────
+
+/**
+ * POST /api/partner/change-password
+ * Change the current partner's password.
+ * Body: { currentPassword: string, newPassword: string }
+ */
+router.post(
+  '/change-password',
+  authLimiter,
+  authRequired,
+  roleRequired('partner'),
+  csrfProtection,
+  async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body || {};
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: 'Current password and new password are required' });
+      }
+      if (!passwordOk(newPassword)) {
+        return res.status(400).json({
+          error: 'New password must be at least 8 characters and include letters and numbers',
+        });
+      }
+
+      const user = await dbUnified.findOne('users', { id: req.user.id });
+      if (!user || !user.passwordHash) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      const match = await bcrypt.compare(currentPassword, user.passwordHash);
+      if (!match) {
+        return res.status(400).json({ error: 'Current password is incorrect' });
+      }
+
+      const newHash = await bcrypt.hash(newPassword, 10);
+      const ok = await dbUnified.updateOne(
+        'users',
+        { id: req.user.id },
+        { passwordHash: newHash, updatedAt: new Date().toISOString() }
+      );
+      if (!ok) return res.status(500).json({ error: 'Failed to update password' });
+
+      logger.info(`Partner password changed for user ${req.user.id}`);
+      res.json({ ok: true, message: 'Password changed successfully' });
+    } catch (err) {
+      logger.error('Error changing partner password:', err);
+      res.status(500).json({ error: 'Internal server error' });
+    }
+  }
+);
+
+// ─── Partner Stats (Earnings Breakdown) ──────────────────────────────────────
+
+/**
+ * GET /api/partner/stats
+ * Returns an earnings breakdown by bonus type for the charts/widgets on the dashboard.
+ */
+router.get('/stats', authRequired, roleRequired('partner'), async (req, res) => {
+  try {
+    const partner = await partnerService.getPartnerByUserId(req.user.id);
+    if (!partner) return res.status(404).json({ error: 'Partner account not found' });
+    if (partner.status === 'disabled')
+      return res.status(403).json({
+        error: 'Your partner account has been disabled.',
+        disabled: true,
+      });
+
+    const balance = await partnerService.getBalance(partner.id);
+    const referrals = await partnerService.listReferralsByPartnerId(partner.id);
+    const activeReferrals = referrals.filter(r =>
+      partnerService.isWithinAttributionWindow(r.supplierCreatedAt)
+    ).length;
+
+    const minCashoutPoints = 15 * partnerService.POINTS_PER_GBP; // £15 minimum cashout
+    const availPts = balance.availableBalance || 0;
+    const pointsToNextCashout = availPts >= minCashoutPoints ? 0 : minCashoutPoints - availPts;
+
+    res.json({
+      breakdown: {
+        signup: balance.signupBonusTotal || 0,
+        package: balance.packageBonusTotal || 0,
+        review: balance.reviewBonusTotal || 0,
+        subscription: balance.subscriptionBonusTotal || 0,
+        adjustment: balance.adjustmentTotal || 0,
+      },
+      cashoutProgress: {
+        availablePoints: availPts,
+        minCashoutPoints,
+        pointsToNextCashout,
+        percentToNextCashout: Math.min(100, Math.round((availPts / minCashoutPoints) * 100)),
+      },
+      referralActivity: {
+        total: referrals.length,
+        active: activeReferrals,
+        qualified: referrals.filter(r => r.packageQualified || r.subscriptionQualified).length,
+      },
+      pointsPerGbp: partnerService.POINTS_PER_GBP,
+    });
+  } catch (err) {
+    logger.error('Error fetching partner stats:', err);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

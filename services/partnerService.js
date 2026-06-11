@@ -653,6 +653,8 @@ async function getBalance(partnerId) {
   let maturingEarned = 0;
   let packageBonusTotal = 0;
   let subscriptionBonusTotal = 0;
+  let signupBonusTotal = 0;
+  let reviewBonusTotal = 0;
   let adjustmentTotal = 0;
   let redeemed = 0;
   let totalEarned = 0;
@@ -669,6 +671,10 @@ async function getBalance(partnerId) {
       packageBonusTotal += t.amount;
     } else if (t.type === CREDIT_TYPES.SUBSCRIPTION_BONUS) {
       subscriptionBonusTotal += t.amount;
+    } else if (t.type === CREDIT_TYPES.REFERRAL_SIGNUP_BONUS) {
+      signupBonusTotal += t.amount;
+    } else if (t.type === CREDIT_TYPES.FIRST_REVIEW_BONUS) {
+      reviewBonusTotal += t.amount;
     } else if (t.type === CREDIT_TYPES.ADJUSTMENT) {
       adjustmentTotal += t.amount;
     } else if (t.type === CREDIT_TYPES.REDEEM || t.type === CREDIT_TYPES.CASHOUT_HOLD) {
@@ -696,6 +702,7 @@ async function getBalance(partnerId) {
     totalEarned,
     packageBonusTotal,
     subscriptionBonusTotal,
+    reviewBonusTotal,
     adjustmentTotal,
     redeemed,
     transactions: partnerTxns.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
