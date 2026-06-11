@@ -4,7 +4,6 @@ const dbUnified = require('../db-unified');
 const logger = require('../utils/logger');
 
 const CAMPAIGN_FIELDS = ['source', 'medium', 'campaign', 'content', 'term'];
-const UTM_FIELDS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
 
 function sanitizeCampaignValue(value, maxLength = 80) {
   if (typeof value !== 'string') {
