@@ -1,0 +1,109 @@
+'use strict';
+
+const dbUnified = require('../db-unified');
+const logger = require('../utils/logger');
+
+const CAMPAIGN_FIELDS = ['source', 'medium', 'campaign', 'content', 'term'];
+const UTM_FIELDS = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term'];
+
+function sanitizeCampaignValue(value, maxLength = 80) {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const clean = value
+    .trim()
+    .replace(/[^\w\s\-./:@]/g, '')
+    .replace(/\s+/g, ' ')
+    .slice(0, maxLength);
+
+  return clean || undefined;
+}
+
+function readUrlParams(urlLike) {
+  if (!urlLike || typeof urlLike !== 'string') {
+    return new URLSearchParams();
+  }
+
+  try {
+    return new URL(urlLike, 'https://event-flow.local').searchParams;
+  } catch (_) {
+    return new URLSearchParams();
+  }
+}
+
+function extractCampaignMetadata(req) {
+  const body = req.body || {};
+  const query = req.query || {};
+  const refererParams = readUrlParams(req.get ? req.get('referer') : '');
+  const metadata = {};
+
+  CAMPAIGN_FIELDS.forEach(field => {
+    const utmField = `utm_${field}`;
+    const value =
+      body[utmField] ||
+      body[field] ||
+      query[utmField] ||
+      query[field] ||
+      refererParams.get(utmField) ||
+      refererParams.get(field);
+    const clean = sanitizeCampaignValue(value);
+    if (clean) {
+      metadata[field] = clean;
+    }
+  });
+
+  return metadata;
+}
+
+function hasCampaignMetadata(metadata) {
+  return !!metadata && CAMPAIGN_FIELDS.some(field => !!metadata[field]);
+}
+
+function isRegistrationResponse(req, res, body) {
+  if (!req || !res || !body || typeof body !== 'object') {
+    return false;
+  }
+
+  const methodOk = String(req.method || '').toUpperCase() === 'POST';
+  const pathOk = /\/(register|google)\/?$/.test(String(req.path || req.originalUrl || ''));
+  const statusOk = res.statusCode >= 200 && res.statusCode < 300;
+  const user = body.user || {};
+
+  return methodOk && pathOk && statusOk && body.ok === true && user.role === 'supplier' && !!user.id;
+}
+
+function partnerReferralCampaignCapture(req, res, next) {
+  const metadata = extractCampaignMetadata(req);
+  const refCode = req.body && req.body.ref;
+
+  if (!refCode || !hasCampaignMetadata(metadata)) {
+    return next();
+  }
+
+  const originalJson = res.json.bind(res);
+
+  res.json = function partnerReferralCampaignJson(body) {
+    if (isRegistrationResponse(req, res, body)) {
+      const supplierUserId = body.user.id;
+      dbUnified
+        .updateOne('partner_referrals', { supplierUserId }, { $set: metadata })
+        .catch(err => {
+          logger.warn('[PARTNER-CAMPAIGN] Failed to attach campaign metadata to referral', {
+            supplierUserId,
+            error: err.message,
+          });
+        });
+    }
+
+    return originalJson(body);
+  };
+
+  return next();
+}
+
+partnerReferralCampaignCapture.extractCampaignMetadata = extractCampaignMetadata;
+partnerReferralCampaignCapture.sanitizeCampaignValue = sanitizeCampaignValue;
+partnerReferralCampaignCapture.hasCampaignMetadata = hasCampaignMetadata;
+
+module.exports = partnerReferralCampaignCapture;
