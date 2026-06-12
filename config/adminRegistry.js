@@ -317,6 +317,15 @@ const REGISTRY = [
     inNav: true,
     desc: 'Partner cashout requests — approve, process and deliver',
   },
+  {
+    route: '/admin-partner-campaign-report',
+    htmlFile: 'admin-partner-campaign-report',
+    label: 'Partner Campaign Report',
+    icon: '📊',
+    category: 'moderation',
+    inNav: false,
+    desc: 'Partner referral campaign reporting for manual cashout review',
+  },
 
   // ── Compatibility stubs (legacy aliases — no nav link, server-side redirect) ──
   {

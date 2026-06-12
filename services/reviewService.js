@@ -240,16 +240,26 @@ async function getSupplierReviews(supplierId, options = {}) {
   }
 
   // Sort reviews
+  const helpfulCount = review => Number(review?.votes?.helpful) || 0;
+  const safeRating = review => {
+    const rating = Number(review?.rating);
+    return Number.isFinite(rating) ? rating : 0;
+  };
+  const safeTime = review => {
+    const time = new Date(review?.createdAt || 0).getTime();
+    return Number.isFinite(time) ? time : 0;
+  };
+
   switch (sortBy) {
     case 'helpful':
-      filtered.sort((a, b) => b.votes.helpful - a.votes.helpful);
+      filtered.sort((a, b) => helpfulCount(b) - helpfulCount(a));
       break;
     case 'rating':
-      filtered.sort((a, b) => b.rating - a.rating);
+      filtered.sort((a, b) => safeRating(b) - safeRating(a));
       break;
     case 'recent':
     default:
-      filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      filtered.sort((a, b) => safeTime(b) - safeTime(a));
   }
 
   // Pagination
@@ -266,8 +276,11 @@ async function getSupplierReviews(supplierId, options = {}) {
   // so the bar chart is accurate regardless of which page the supplier is viewing.
   const ratingDistribution = [0, 0, 0, 0, 0]; // index 0 = 1★ … index 4 = 5★
   filtered.forEach(r => {
-    const i = Math.round(r.rating || 0) - 1;
-    if (i >= 0 && i <= 4) ratingDistribution[i]++;
+    const rating = Number(r.rating);
+    const i = Math.round(Number.isFinite(rating) ? rating : 0) - 1;
+    if (i >= 0 && i <= 4) {
+      ratingDistribution[i]++;
+    }
   });
 
   return {
@@ -281,7 +294,7 @@ async function getSupplierReviews(supplierId, options = {}) {
     analytics: {
       avgRating: analytics.metrics.averageRating,
       totalReviews: analytics.metrics.totalReviews,
-      responseRate: analytics.response.responseRate,
+      responseRate: Math.round((analytics.response.responseRate || 0) * 100),
       ratingDistribution, // [1★count, 2★count, 3★count, 4★count, 5★count]
     },
   };
@@ -617,4 +630,8 @@ module.exports = {
   getSupplierAnalytics,
   getPlatformAnalytics,
   getVerifiedCount,
+  constants: {
+    MIN_RESPONSE_LENGTH,
+    MAX_RESPONSE_LENGTH,
+  },
 };

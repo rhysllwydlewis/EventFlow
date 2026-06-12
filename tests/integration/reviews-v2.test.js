@@ -498,6 +498,50 @@ describe('Review Service Integration Tests', () => {
         expect(review.verification.status).not.toBe('unverified');
       });
     });
+
+    it('should handle legacy reviews with missing votes and invalid ratings defensively', async () => {
+      mockReviews.push(
+        {
+          _id: 'rev-legacy',
+          authorId: 'usr-1',
+          supplierId: 'sup-1',
+          rating: 'not-a-number',
+          title: 'Imported review',
+          text: 'Legacy import',
+          moderation: { state: 'approved' },
+          verification: { status: 'unverified' },
+          createdAt: '2026-01-01T00:00:00.000Z',
+        },
+        {
+          _id: 'rev-helpful-legacy',
+          authorId: 'usr-1',
+          supplierId: 'sup-1',
+          rating: 3,
+          title: 'Helpful legacy review',
+          text: 'Legacy import with votes',
+          moderation: { state: 'approved' },
+          votes: { helpful: 99 },
+          supplierResponse: { respondedAt: '2026-01-03T00:00:00.000Z' },
+          verification: { status: 'unverified' },
+          createdAt: '2026-01-02T00:00:00.000Z',
+        }
+      );
+
+      const helpful = await reviewService.getSupplierReviews('sup-1', {
+        sortBy: 'helpful',
+        limit: 25,
+      });
+      expect(helpful.reviews[0]._id).toBe('rev-helpful-legacy');
+
+      const rating = await reviewService.getSupplierReviews('sup-1', {
+        sortBy: 'rating',
+        limit: 25,
+      });
+      expect(rating.reviews[rating.reviews.length - 1]._id).toBe('rev-legacy');
+      expect(rating.analytics.ratingDistribution.reduce((sum, count) => sum + count, 0)).toBe(16);
+      expect(rating.analytics.avgRating).toBe(4.38);
+      expect(rating.analytics.responseRate).toBe(6);
+    });
   });
 
   describe('getSupplierAnalytics', () => {
