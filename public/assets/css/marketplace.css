@@ -1536,3 +1536,39 @@
   border: 2px dashed #d1d5db;
   border-radius: 4px;
 }
+
+/* ─── PR #1201: Marketplace error state ─────────────────────────────────── */
+
+.mp-error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 3rem 1.5rem;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+}
+.mp-error-icon {
+  color: #9ca3af;
+  margin-bottom: 1rem;
+}
+.mp-error-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 0.5rem;
+}
+.mp-error-body {
+  font-size: 0.9rem;
+  color: #6b7280;
+  max-width: 360px;
+  line-height: 1.6;
+  margin: 0 0 1.25rem;
+}
+.mp-error-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+}

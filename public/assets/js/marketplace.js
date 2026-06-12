@@ -139,7 +139,7 @@
       }
       if (sellBtn) {
         sellBtn.onclick = () => {
-          window.location.href = `/auth?redirect=${encodeURIComponent('/supplier/marketplace-new-listing')}`;
+          window.location.href = `/auth?redirect=${encodeURIComponent('/supplier/marketplace-new-listing')}&intent=listing`;
         };
       }
       if (myListingsLink) {
@@ -241,8 +241,20 @@
       const resultsContainer = document.getElementById('marketplace-results');
       if (resultsContainer) {
         resultsContainer.innerHTML = `
-          <div class="card" style="text-align: center; padding: 2rem;">
-            <p>Unable to load listings. Please try again later.</p>
+          <div class="mp-error-state" role="alert" style="grid-column: 1 / -1;">
+            <div class="mp-error-icon" aria-hidden="true">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <circle cx="12" cy="16" r="0.5" fill="currentColor"/>
+              </svg>
+            </div>
+            <h3 class="mp-error-title">Unable to load listings</h3>
+            <p class="mp-error-body">There was a problem loading the Marketplace. Check your connection and try again.</p>
+            <div class="mp-error-actions">
+              <button type="button" class="btn btn-primary" onclick="window.location.reload()">Try again</button>
+              <a href="/suppliers" class="btn btn-secondary">Browse suppliers instead</a>
+            </div>
           </div>
         `;
       }
@@ -1163,9 +1175,10 @@
 
     if (!currentUser) {
       showToast('Please log in to save items', 'error');
+      const returnTo = window.location.pathname + window.location.search;
       setTimeout(() => {
-        window.location.href = `/auth?redirect=${encodeURIComponent('/marketplace')}`;
-      }, 1200);
+        window.location.href = `/auth?redirect=${encodeURIComponent(returnTo)}&intent=save`;
+      }, 1000);
       return;
     }
 
@@ -1186,9 +1199,10 @@
 
       if (res.status === 401) {
         showToast('Session expired. Please log in again.', 'error');
+        const returnTo2 = window.location.pathname + window.location.search;
         setTimeout(() => {
-          window.location.href = `/auth?redirect=${encodeURIComponent('/marketplace')}`;
-        }, 1200);
+          window.location.href = `/auth?redirect=${encodeURIComponent(returnTo2)}&intent=save`;
+        }, 1000);
         return;
       }
 
