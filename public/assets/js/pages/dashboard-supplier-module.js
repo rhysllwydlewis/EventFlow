@@ -477,7 +477,16 @@ async function initSupplierDashboardWidgets() {
     }
 
     // Initialize Reviews & Ratings section
-    await loadReviewStats('supplier-reviews-section');
+    // supplier-reviews-init.js exposes window.SupplierReviews.init().
+    // supplierId comes from summaryData.profile.topProfileId which the
+    // dashboard-summary endpoint always returns for authenticated suppliers.
+    const _reviewSupplierId = summaryData?.profile?.topProfileId || null;
+    if (_reviewSupplierId && window.SupplierReviews?.init) {
+      await window.SupplierReviews.init(_reviewSupplierId, 'supplier-reviews-section');
+    } else {
+      // Fallback: legacy stats-only view if new script hasn't loaded yet
+      await loadReviewStats('supplier-reviews-section');
+    }
 
     // Fetch supplier profiles to check completion
     let hasProfile = false;

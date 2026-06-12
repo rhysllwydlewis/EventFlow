@@ -262,6 +262,14 @@ async function getSupplierReviews(supplierId, options = {}) {
   // Get analytics for supplier
   const analytics = ReviewAnalytics.generateSupplierAnalytics(filtered);
 
+  // Compute star distribution from ALL filtered reviews (not just the current page)
+  // so the bar chart is accurate regardless of which page the supplier is viewing.
+  const ratingDistribution = [0, 0, 0, 0, 0]; // index 0 = 1★ … index 4 = 5★
+  filtered.forEach(r => {
+    const i = Math.round(r.rating || 0) - 1;
+    if (i >= 0 && i <= 4) ratingDistribution[i]++;
+  });
+
   return {
     reviews: paginatedReviews,
     pagination: {
@@ -274,6 +282,7 @@ async function getSupplierReviews(supplierId, options = {}) {
       avgRating: analytics.metrics.averageRating,
       totalReviews: analytics.metrics.totalReviews,
       responseRate: analytics.response.responseRate,
+      ratingDistribution, // [1★count, 2★count, 3★count, 4★count, 5★count]
     },
   };
 }
