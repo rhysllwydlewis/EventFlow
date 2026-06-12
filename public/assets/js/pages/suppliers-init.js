@@ -336,15 +336,49 @@ function createEmptyState(filters) {
     filters.postcode ||
     filters.maxDistance;
 
+  const POPULAR_CATEGORIES = [
+    { label: 'Venues', value: 'Venues' },
+    { label: 'Photography', value: 'Photography' },
+    { label: 'Catering', value: 'Catering' },
+    { label: 'Music/DJ', value: 'Music/DJ' },
+    { label: 'Florist', value: 'Florist' },
+  ];
+
+  const categoryChips = POPULAR_CATEGORIES.map(cat => `
+    <a href="/suppliers?category=${encodeURIComponent(cat.value)}"
+       class="sp-empty-category-chip"
+       aria-label="Browse ${escapeHtml(cat.label)} suppliers">
+      ${escapeHtml(cat.label)}
+    </a>`
+  ).join('');
+
+  const tips = hasFilters ? `
+    <div class="sp-empty-tips">
+      <p class="sp-empty-tips-label">Try:</p>
+      <ul class="sp-empty-tips-list">
+        <li>Removing the location filter to search further afield</li>
+        <li>Using a broader category (e.g. "Venues" instead of a specific style)</li>
+        <li>Searching by supplier name or service keyword</li>
+      </ul>
+    </div>` : '';
+
   return `
     <div class="sp-empty-state" role="status">
       <span class="sp-empty-icon" aria-hidden="true">🔍</span>
-      <h2 class="sp-empty-title">No suppliers found</h2>
-      <p class="sp-empty-text">${hasFilters ? 'No suppliers match your current filters. Try adjusting or clearing your search.' : 'No suppliers are available at the moment. Check back soon.'}</p>
+      <h2 class="sp-empty-title">${hasFilters ? 'No suppliers match your search' : 'No suppliers found'}</h2>
+      <p class="sp-empty-text">${hasFilters
+        ? 'No suppliers match your current filters.'
+        : 'No suppliers are available at the moment — check back soon.'
+      }</p>
+      ${tips}
       <div class="sp-empty-actions">
-        ${hasFilters ? '<button class="ef-cta sp-btn sp-btn--secondary" id="clear-filters-btn">Clear filters</button>' : ''}
-        <a href="/start" class="sp-btn sp-btn--primary">Start planning</a>
+        ${hasFilters ? '<button class="ef-cta sp-btn sp-btn--secondary" id="clear-filters-btn">Clear all filters</button>' : ''}
+        <a href="/suppliers" class="sp-btn sp-btn--outline">Browse all suppliers</a>
       </div>
+      ${hasFilters ? `<div class="sp-empty-categories">
+        <p class="sp-empty-categories-label">Popular categories</p>
+        <div class="sp-empty-categories-chips">${categoryChips}</div>
+      </div>` : ''}
     </div>
   `;
 }
@@ -585,7 +619,8 @@ async function initSuppliersPage() {
       : filters.location
         ? ` in ${filters.location}`
         : '';
-    ctxEl.textContent = `Showing ${base}${locationSuffix}`;
+    const querySuffix = filters.q ? ` for "${filters.q}"` : '';
+    ctxEl.textContent = `Showing ${base}${locationSuffix}${querySuffix}`;
   }
 
   // Render active filter chips below the result count

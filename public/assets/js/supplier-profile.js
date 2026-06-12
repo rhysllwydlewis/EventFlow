@@ -460,6 +460,22 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
           );
           return;
         }
+
+        // Gate behind auth — QuickComposeV4 checks internally but we also
+        // guard here so logged-out users get the intent-aware redirect.
+        const authState = window.EFAuth || window.__authState__;
+        const isLoggedIn = authState
+          ? (authState.isAuthenticated || authState.loggedIn || authState.user)
+          : !!document.cookie.includes('ef_session');
+        if (!isLoggedIn && !window.QuickComposeV4) {
+          const returnTo = window.location.pathname + window.location.search;
+          window.NotificationDispatcher?.info('Please log in to message this supplier');
+          setTimeout(() => {
+            window.location.href = `/auth?redirect=${encodeURIComponent(returnTo)}&intent=message`;
+          }, 700);
+          return;
+        }
+
         const safeName = (supplier.name || 'Supplier').replace(/[<>'"&]/g, '').trim() || 'Supplier';
         if (window.QuickComposeV4) {
           window.QuickComposeV4.open({
@@ -523,7 +539,13 @@ import { renderVerificationBadges, renderTierIcon } from '/assets/js/utils/verif
           } else if (response.status === 409) {
             window.NotificationDispatcher?.info('Already in your shortlist');
           } else if (response.status === 401 || response.status === 403) {
-            window.NotificationDispatcher?.info('Please sign in to save suppliers');
+            // Not authenticated — redirect to auth with intent so user
+            // is returned here after login
+            window.NotificationDispatcher?.info('Please log in to save suppliers');
+            const returnTo = window.location.pathname + window.location.search;
+            setTimeout(() => {
+              window.location.href = `/auth?redirect=${encodeURIComponent(returnTo)}&intent=save`;
+            }, 700);
           } else {
             window.NotificationDispatcher?.error('Could not save — please try again');
           }
